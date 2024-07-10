@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS assistant (
 
 CREATE TABLE IF NOT EXISTS thread (
     thread_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    assistant_id UUID REFERENCES assistant(assistant_id) ON DELETE SET NULL,
+    assistant_id UUID,
     user_id VARCHAR(255) NOT NULL,
     name VARCHAR(255) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')

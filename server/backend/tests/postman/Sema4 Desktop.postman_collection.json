@@ -1,0 +1,201 @@
+{
+	"info": {
+		"_postman_id": "ce205694-d333-4d75-8c66-1cba44468330",
+		"name": "Sema4 Desktop",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "5103394"
+	},
+	"item": [
+		{
+			"name": "1. List Assistants",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Parse the JSON response",
+							"var responseJson = pm.response.json();",
+							"",
+							"// Extract the token from the response",
+							"var assistant_id = responseJson.assistant_id;",
+							"",
+							"// Set the token as an environment variable",
+							"pm.environment.set(\"assistant_id\", assistant_id);",
+							"",
+							"// Optionally, log the token to the console for verification",
+							"console.log(\"assistant_id:\", assistant_id);",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/assistants/",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"assistants",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "2. Create ChatBot Assistant",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Parse the JSON response",
+							"var responseJson = pm.response.json();",
+							"",
+							"// Extract the token from the response",
+							"var assistant_id = responseJson.assistant_id;",
+							"",
+							"// Set the token as an environment variable",
+							"pm.environment.set(\"assistant_id\", assistant_id);",
+							"",
+							"// Optionally, log the token to the console for verification",
+							"console.log(\"assistant_id:\", assistant_id);"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"name\": \"Test Agent\",\r\n    \"config\": {\r\n        \"configurable\": {\r\n            \"type\": \"agent\",\r\n            \"type==agent/agent_type\": \"GPT 4 Turbo\",\r\n            \"type==agent/interrupt_before_action\": false,\r\n            \"type==agent/retrieval_description\": \"Can be used to look up information that was uploaded to this assistant.\\nIf the user is referencing particular files, that is often a good hint that information may be here.\\nIf the user asks a vague question, they are likely meaning to look up info from this retriever, and you should call it!\",\r\n            \"type==agent/system_message\": \"You are an assistant with the following name: Test Agent.\\nThe current date and time is: ${CURRENT_DATETIME}.\\nYour instructions are:\\nYou are helpfule.\",\r\n            \"type==agent/description\": \"fasfasdf\",\r\n            \"type==agent/tools\": [],\r\n            \"type==agent/reasoning_level\": 0\r\n        }\r\n    }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/assistants",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"assistants"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "3. Create Thread",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Parse the JSON response",
+							"var responseJson = pm.response.json();",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"assistant_id\": \"{{assistant_id}}\",\n    \"name\": \"Welcome\",\n    \"starting_message\": \"Hello! I'm Test Agent, your Sema4.ai assistant. I'm here to help you with a variety of tasks, including answering questions, providing information, assisting with scheduling, and much more. Whether you need help with research, organizing data, or just looking for some advice, I'm here to assist you efficiently and effectively. How can I assist you today?\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/threads",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"threads"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					"pm.test(\"Verify response details\", function () {",
+					"    // Status code assertion",
+					"    pm.response.to.have.status(200);",
+					"",
+					"    // Response time assertion",
+					"    // pm.expect(pm.response.responseTime).to.be.below(500);",
+					"",
+					"    // Response body assertions",
+					"    var jsonData = pm.response.json();",
+					"",
+					"    // Header assertion",
+					"    pm.response.to.have.header(\"Content-Type\", \"application/json\");",
+					"});",
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8100",
+			"type": "string"
+		},
+		{
+			"key": "assistant_id",
+			"value": "64399b0d-c66b-4d4c-a4c7-106020166397",
+			"type": "string"
+		},
+		{
+			"key": "thread_id",
+			"value": "bb28b577-3c77-4379-89b5-787eecda239c",
+			"type": "string"
+		}
+	]
+}

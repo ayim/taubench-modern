@@ -5,8 +5,6 @@ services:
     image: pgvector/pgvector:pg16
     healthcheck:
       test: pg_isready -U $POSTGRES_USER
-      start_interval: 1s
-      start_period: 5s
       interval: 5s
       retries: 5
     ports:
@@ -21,16 +19,14 @@ services:
       postgres:
         condition: service_healthy
     volumes:
-      - ./backend/migrations:/migrations
+      - ./backend/migrations/postgres:/migrations/postgres
     env_file:
       - .env
-    command: ["-path", "/migrations", "-database", "postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres:$POSTGRES_PORT/$POSTGRES_DB?sslmode=disable", "up"]
+    command: ["-path", "/migrations/postgres", "-database", "postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres:$POSTGRES_PORT/$POSTGRES_DB?sslmode=disable", "up"]
   backend:
     container_name: opengpts-backend
     build:
       context: backend
-    ports:
-      - "8100:8000" # Backend is accessible on localhost:8100
     depends_on:
       postgres-setup:
         condition: service_completed_successfully
@@ -38,20 +34,8 @@ services:
       - .env
     volumes:
       - ./backend:/backend
+    ports:
+      - "8100:8100"
+
     environment:
       POSTGRES_HOST: "postgres"
-    command:
-      - --reload
-  frontend:
-    container_name: opengpts-frontend
-    build:
-      context: frontend
-    depends_on:
-      backend:
-        condition: service_healthy
-    volumes:
-      - ./frontend/src:/frontend/src
-    ports:
-      - "5173:5173" # Frontend is accessible on localhost:5173
-    environment:
-      VITE_BACKEND_URL: "http://backend:8000"
