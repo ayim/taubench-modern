@@ -6,7 +6,6 @@ from uuid import uuid4
 from langchain_core.messages import AIMessage, ToolMessage
 from langchain_openai import ChatOpenAI
 
-from app.agent_types.planner_agent.tools_executor import get_tools_executor
 from app.agent_types.vitality_ai_multi_agent.base_vitality_agent import (
     BaseVitalityAgent,
 )
@@ -18,6 +17,7 @@ from app.agent_types.vitality_ai_multi_agent.state.planning_models import (
     PLAN_ACTION,
     Plan,
 )
+from app.agent_types.vitality_ai_multi_agent.tools_executor import get_tools_executor
 from app.storage.checkpoint import get_checkpointer
 from app.tools import BaseTool
 

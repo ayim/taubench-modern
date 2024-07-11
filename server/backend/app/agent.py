@@ -82,10 +82,10 @@ def get_agent_executor(
     system_message: str,
     interrupt_before_action: bool,
     reasoning_level: int,
+    name: str,
 ):
     if agent == AgentType.GPT_35_TURBO:
         llm = get_openai_llm()
-        # TODO: hard coded use reasoning for now
     elif agent == AgentType.GPT_4:
         llm = get_openai_llm(model="gpt-4-turbo")
     elif agent == AgentType.GPT_4O:
@@ -110,6 +110,7 @@ def get_agent_executor(
         system_message,
         reasoning_level,
         interrupt_before_action,
+        name,
         CHECKPOINTER,
     )
 
@@ -124,6 +125,7 @@ class ConfigurableAgent(RunnableBinding):
     thread_id: Optional[str] = None
     user_id: Optional[str] = None
     reasoning_level: int = 0
+    name: Optional[str] = None
 
     def __init__(
         self,
@@ -136,6 +138,7 @@ class ConfigurableAgent(RunnableBinding):
         retrieval_description: str = RETRIEVAL_DESCRIPTION,
         interrupt_before_action: bool = False,
         reasoning_level: int = 0,
+        name: Optional[str] = None,
         kwargs: Optional[Mapping[str, Any]] = None,
         config: Optional[Mapping[str, Any]] = None,
         **others: Any,
@@ -159,7 +162,12 @@ class ConfigurableAgent(RunnableBinding):
                 else:
                     _tools.append(_returned_tools)
         _agent = get_agent_executor(
-            _tools, agent, system_message, interrupt_before_action, reasoning_level
+            _tools,
+            agent,
+            system_message,
+            interrupt_before_action,
+            reasoning_level,
+            name,
         )
         agent_executor = _agent.with_config({"recursion_limit": 50})
         super().__init__(
@@ -319,6 +327,8 @@ class ConfigurablePlanExecute(RunnableBinding):
     assistant_id: Optional[str] = None
     thread_id: Optional[str] = None
     user_id: Optional[str] = None
+    reasoning_level: Optional[int] = None
+    name: Optional[str] = None
 
     def __init__(
         self,
@@ -330,6 +340,8 @@ class ConfigurablePlanExecute(RunnableBinding):
         thread_id: Optional[str] = None,
         retrieval_description: str = RETRIEVAL_DESCRIPTION,
         interrupt_before_action: bool = False,
+        reasoning_level: Optional[int] = None,
+        name: Optional[str] = None,
         kwargs: Optional[Mapping[str, Any]] = None,
         config: Optional[Mapping[str, Any]] = None,
         **others: Any,
@@ -373,7 +385,13 @@ class ConfigurablePlanExecute(RunnableBinding):
         else:
             raise ValueError("Unexpected llm type")
         _agent = get_plan_execute_agent(
-            _tools, llm, system_message, interrupt_before_action, CHECKPOINTER
+            _tools,
+            llm,
+            system_message,
+            interrupt_before_action,
+            reasoning_level,
+            name,
+            CHECKPOINTER,
         )
         agent_executor = _agent.with_config({"recursion_limit": 50})
         super().__init__(
@@ -472,6 +490,8 @@ chat_plan_execute = (
         retrieval_description=RETRIEVAL_DESCRIPTION,
         assistant_id=None,
         thread_id=None,
+        reasoning_level=0,
+        name="Plan and Execute Agent",
     )
     .configurable_fields(
         agent=ConfigurableField(id="agent_type", name="Agent Type"),
@@ -489,6 +509,12 @@ chat_plan_execute = (
         retrieval_description=ConfigurableField(
             id="retrieval_description", name="Retrieval Description"
         ),
+        reasoning_level=ConfigurableField(
+            id="reasoning_level",
+            name="Reasoning Level",
+            description="The level of reasoning the agent should use, 0 for no reasoning, 1 for succinct reasoning, 2 for verbose reasoning.",
+        ),
+        name=ConfigurableField(id="name", name="Agent Name"),
     )
     .with_types(input_type=Dict[str, str], output_type=Sequence[AnyMessage])
 )
@@ -531,6 +557,7 @@ agent: Pregel = (
         assistant_id=None,
         thread_id=None,
         reasoning_level=0,
+        name="Agent",
     )
     .configurable_fields(
         agent=ConfigurableField(id="agent_type", name="Agent Type"),
@@ -553,6 +580,7 @@ agent: Pregel = (
             name="Reasoning Level",
             description="The level of reasoning the agent should use, 0 for no reasoning, 1 for succinct reasoning, 2 for verbose reasoning.",
         ),
+        name=ConfigurableField(id="name", name="Agent Name"),
     )
     .configurable_alternatives(
         ConfigurableField(id="type", name="Bot Type"),

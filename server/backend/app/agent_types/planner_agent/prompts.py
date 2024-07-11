@@ -1,113 +1,374 @@
 from langchain_core.prompts import ChatPromptTemplate
 
-OFFRAMP_PROMPT = ChatPromptTemplate.from_template(
-    """Assume the provided role and then, for the given objective and associated \
-conversation, decide if you need to develop a plan to complete the objective. \
-If you already know how to respond or can complete the assigned objective by using \
-the available tools, you do not need a plan. Pay close attention to the objective \
-because it will drive if you need a plan for this specific response, and in some cases, \
-it may indicate the user simply wants to chat.
+PLAN_DESCRIPTION = """Plans are generally only required for more complex objectives which \
+would benefit from multiple rounds of interaction with various tools to complete, especially \
+where the expected output from one tool needs to be used as input into future tools. If you \
+think you already know how to respond, or the user seems to want to chat (for example, they \
+say "hello"), or you think one of the available tools could be used in a single shot, we \
+would not need a plan. Written plans should always be more than one step long, and each step \
+should be a specific task that helps to achieve the objective. If only one step is needed, a \
+plan is not required."""
 
-Current datetime (ISO 8601): ###
-{datetime}
-###
+## Planner related prompts and messages
+PLANNER_ROLE = """You are part of a team of agents following the provided runbook. Your \
+job is to decide if we need a plan to complete the objective provided by the user, and \
+then develop that plan if so."""
 
-Your role: ###
-{system_message}
-###
+# Not currently used, but could be included in instructions for planner if plans keep being problematic
+EXAMPLE_THINKER_STEPS = """[
+    (
+    "To gather relevant news and financial data, we need to perform a web search for the \
+latest news on financial markets and economic conditions.",
+    "Use the web_search_news function to search for the latest news on financial markets \
+and economic conditions. Set the count to 10 to get a comprehensive overview."
+    ),
+    (
+    "We need to analyze the results from the web search to identify trends, risks, and \
+opportunities in the market.",
+    "Review the results from the web_search_news function to identify \
+trends, risks, and opportunities in the market."
+    ),
+    (
+    "To develop an investment strategy for the next quarter, we must analyze the results \
+from the web search and identify key areas for investment.",
+    "Synthesize the findings from the analysis to develop a comprehensive investment \
+strategy for the next quarter. This should include recommendations on asset allocation, specific \
+sectors or stocks to invest in, and any risk management strategies."
+    )
+]"""
 
-Conversation so far: ###
-{chat_history}
-###
 
-Current objective: ###
-{objective}
-###
+def planner_template(instructions: str) -> str:
+    return f"""We use XML tags to help structure our team instructions. Runbooks \
+use markdown to format structured content.
 
-The tools available to you: ###
-{tools}
-###
-"""
-)
+Our team name: <team_name>
+{{agent_name}}
+</team_name>
 
-PLANNER_PROMPT = ChatPromptTemplate.from_template(
-    """Assume the provided role and then, for the given objective and associated \
-conversation, come up with a step by step plan. This plan should involve individual \
-tasks that, if executed, will yield a meaninful response to the objective. The steps \
-should be specific and each step should help to achieve the objective. The result \
+Current datetime (ISO 8601): <datetime>
+{{datetime}}
+</datetime>
+
+Your role: <role>
+{PLANNER_ROLE}
+</role>
+
+What is a plan: <plan_description>
+{PLAN_DESCRIPTION}
+</plan_description>
+
+Our runbook: <runbook>
+{{runbook}}
+</runbook>
+
+Your immediate instructions: <instructions>
+{instructions}
+</instructions>"""
+
+
+PLANNER_PROMPTS: dict[int, ChatPromptTemplate] = {
+    0: ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                planner_template(
+                    """Based on the full conversation that follows, you must decide \
+if we need a plan to respond to the user.
+
+If a plan is required, develop a step by step plan for the team. This plan should involve \
+individual tasks that, when executed, will yield a meaninful response to the objective. \
+The steps should be specific and each step should help to achieve the objective. The result \
 of the final step should be a complete meaningful response to the objective. Make \
-sure each step has all the information needed, assume every step will be followed.
+sure each step has all the information needed, assume every step will be followed."""
+                ),
+            ),
+            ("placeholder", "{messages}"),
+        ]
+    ),
+    1: ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                planner_template(
+                    """Based on the full conversation that follows, you must \
+think about whether we need a plan to respond to the user. BE SUCCINCT. \
+Succinctly explain your thinking about whether a plan is needed.
 
-Current datetime (ISO 8601): ###
+If a plan is needed, succinctly explain your approach. When developing the plan, succinctly think about \
+each step and why it is needed. Include your thoughts in the response tool call. The plan should \
+be specific and each step should help to achieve the objective. The result of the final step should \
+be a complete meaningful response to the objective. Make sure each step has all the information \
+needed, assume every step will be followed. Steps must be created as tuples of two strings: \
+the first string is the reasoning why the step is needed and the second string is the step itself."""
+                ),
+            ),
+            ("placeholder", "{messages}"),
+        ]
+    ),
+    2: ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                planner_template(
+                    """Based on the full conversation that follows, you must \
+think about whether we need a plan to respond to the user. \
+Explain your thinking about whether a plan is needed.
+
+If a plan is needed, explain your approach. When developing the plan, think about \
+each step, why it is needed, and what information is needed by the assigned team member to \
+complete it. Include your thoughts in the response tool call. The plan should \
+be specific and each step should help to achieve the objective. The result of the final step should \
+be a complete meaningful response to the objective. Make sure each step has all the information \
+needed, assume every step will be followed. Steps must be created as tuples of two strings: \
+the first string is the reasoning why the step is needed and the second string is the step itself."""
+                ),
+            ),
+            ("placeholder", "{messages}"),
+        ]
+    ),
+}
+
+# Step Executor Prompts
+STEP_EXECUTOR_ROLE = """You are part of a team of agents following the provided runbook. Your \
+job is to execute the current step of the plan developed by the planner to complete the objective \
+provided by the user."""
+
+
+def step_executor_template(agent_name: str, datetime: str, runbook: str) -> str:
+    return f"""We use XML tags to help structure our team instructions. Runbooks \
+use markdown to format structured content.
+
+Our team name: <team_name>
+{agent_name}
+</team_name>
+
+Current datetime (ISO 8601): <datetime>
 {datetime}
-###
+</datetime>
 
-Your role: ###
-{system_message}
-###
+Your role: <role>
+{STEP_EXECUTOR_ROLE}
+</role>
 
-Conversation so far: ###
-{primary_conversation}
-###
+Our runbook: <runbook>
+{runbook}
+</runbook>
 
-Current objective: ###
+Your immediate instructions: <instructions>
+The planner will provide you with a snippet of the current team thread, which may include messages \
+from the user and other members of your team. The last message in this thread will be the step you \
+need to execute.
+</instructions>"""
+
+
+# Replanner related prompts and messages
+REPLANNER_ROLE = """You are part of a team of agents following the provided runbook. Your \
+job is to update the current plan to complete the objective provided by the user."""
+
+
+def replanner_template(instructions: str) -> str:
+    return f"""We use XML tags to help structure our team instructions. Runbooks \
+use markdown to format structured content.
+
+Our team name: <team_name>
+{{agent_name}}
+</team_name>
+
+Current datetime (ISO 8601): <datetime>
+{{datetime}}
+</datetime>
+
+Your role: <role>
+{REPLANNER_ROLE}
+</role>
+
+What is a plan: <plan_description>
+{PLAN_DESCRIPTION}
+</plan_description>
+
+Our runbook: <runbook>
+{{runbook}}
+</runbook>
+
+Your immediate instructions: <instructions>
+{instructions}
+</instructions>"""
+
+
+REPLANNER_PROMPTS: dict[int, ChatPromptTemplate] = {
+    0: ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                replanner_template(
+                    """The below objective is the last message from the user. Following that is \
+your team's internal thread as the plan was executed. Finally, an additional system message \
+will be added to help you compare the last step executed at that point in the thread to the \
+what was expected to be completed and the remaining steps in the plan.
+
+Review the objective, the last step executed, and the team thread, then perform the \
+following in order:
+
+1. Determine if the last step was properly completed.
+2. Consider if the objective is accomplished at this point.
+3. Consider if the last message in the thread provides a response to the objective.
+4. Consider if the remaining steps are appropriate based on your previous analysis.
+
+Next:
+
+5. Set the "response_type" field based on the following criteria:
+    - If the objective is accomplished and the last message in the thread provides a response to \
+the objective, set the response type to "complete-as-is".
+    - If the objective is accomplished but the last message in the thread does not provide a \
+response to the objective, set the response type to "response-needed".
+    - If the work needed to respond to the objective is not done yet, update the plan and set the \
+response type to "update".
+    - If the plan cannot be completed without more information or after prompting the user for \
+some sort of input, set the response type to "edge-case".
+6. Update the plan as needed based on your analysis. When doing so, remove steps that have already \
+been completed and only add steps to the plan that still NEED to be done. Assume these new steps \
+will be followed.
+8. Write a final response as needed based on your analysis.
+9. Write out a reply to the user to explain any edge cases encountered, if any.
+
+Objective: <objective>
 {objective}
-###
+</objective>"""
+                ),
+            ),
+            ("placeholder", "{messages}"),
+            (
+                "system",
+                """Now, compare the last step executed above to the expected step executed \
+and remaining steps below and begin your analysis.
+             
+Last step executed: <last_step>
+{last_step}
+</last_step>
 
-The tools available to you: ###
-{tools}
-###"""
-)
+Remaining planned steps: <remaining_steps>
+{remaining_steps}
+</remaining_steps>""",
+            ),
+        ]
+    ),
+    1: ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                replanner_template(
+                    """The below objective is the last message from the user. Following that is \
+your team's internal thread as the plan was executed. Finally, an additional system message \
+will be added to help you compare the last step executed at that point in the thread to the \
+what was expected to be completed and the remaining steps in the plan.
 
-REPLANNER_PROMPT = ChatPromptTemplate.from_template(
-    """Assume the provided role and then, for the given objective, associated \
-conversation, and original plan, update your plan to complete the objective. This \
-plan should involve individual tasks that, if executed, will yield a meaninful \
-response to the objective. The steps should be specific and each step should help \
-to achieve the objective. The result of the final step should be a complete \
-meaningful response to the objective. Make sure each step has all the information \
-needed, assume every step will be followed.
+Review the objective, the last step executed, and the team thread, then perform the \
+following in order:
 
-If no more steps are needed or if all remaining steps call for analysis or thinking, \
-respond to the objective based on the steps completed so far. Be careful to craft a \
-response that responds to the entire objective, not just the last step of your plan. \
-If you need more information, ask the user a question. If the plan is impossible to \
-complete, indicate that it is impossible to continue.
+1. Determine if the last step was properly completed.
+2. Consider if the objective is accomplished at this point.
+3. Consider if the last message in the thread provides a response to the objective.
+4. Consider if the remaining steps are appropriate based on your previous analysis.
+5. Using the response tool, succinctly write out your thoughts for these points in the "reasoning" field.
 
-Otherwise, update and fill out the plan. Remove steps that have alrady been completed \
-and only add steps to the plan that still NEED to be done. Assume these new steps will \
-be followed, you do not need to ask the user if you should proceed or continue. You \
-should only ask the user a question if you need more information to complete the plan.
+Next:
 
-Current datetime (ISO 8601): ###
-{datetime}
-###
+6. Set the "response_type" field based on the following criteria:
+    - If the objective is accomplished and the last message in the thread provides a response to \
+the objective, set the response type to "complete-as-is".
+    - If the objective is accomplished but the last message in the thread does not provide a \
+response to the objective, set the response type to "response-needed".
+    - If the work needed to respond to the objective is not done yet, update the plan and set the \
+response type to "update".
+    - If the plan cannot be completed without more information or after prompting the user for \
+some sort of input, set the response type to "edge-case".
+7. Update the plan as needed based on your analysis. When doing so, remove steps that have already \
+been completed and only add steps to the plan that still NEED to be done. Assume these new steps \
+will be followed. Be sure to follow the correct format by creating a tuple of two strings for \
+each step: the first string is the reasoning why the step is needed and the second string is \
+the step itself.
+8. Write a final response as needed based on your analysis.
+9. Write out a reply to the user to explain any edge cases encountered, if any.
 
-Your role: ###
-{system_message}
-###
-
-The conversation so far is this: ###
-{primary_conversation}
-###
-
-Your objective was this: ###
+Objective: <objective>
 {objective}
-###
+</objective>"""
+                ),
+            ),
+            ("placeholder", "{messages}"),
+            (
+                "system",
+                """Now, compare the last step executed above to the expected step executed \
+and remaining steps below and begin your analysis.
+             
+Last step executed: <last_step>
+{last_step}
+</last_step>
 
-Your original plan was this: ###
-{plan}
-###
+Remaining planned steps: <remaining_steps>
+{remaining_steps}
+</remaining_steps>""",
+            ),
+        ]
+    ),
+    2: ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                replanner_template(
+                    """The below objective is the last message from the user. Following that is \
+your team's internal thread as the plan was executed. Finally, an additional system message \
+will be added to help you compare the last step executed at that point in the thread to the \
+what was expected to be completed and the remaining steps in the plan.
 
-You have currently done the following steps: ###
-{past_steps}
-###
+Review the objective, the last step executed, and the team thread, then perform the \
+following in order:
 
-The tools available to you: ###
-{tools}
-###"""
-)
+1. Determine if the last step was properly completed.
+2. Consider if the objective is accomplished at this point.
+3. Consider if the last message in the thread provides a response to the objective.
+4. Consider if the remaining steps are appropriate based on your previous analysis.
+5. Using the response tool, write out your thoughts for these points in the "reasoning" field.
 
-TOOLS_EXECUTOR_SYS_MSG = """You are an agent working for a supervisor trying to \
-accomplish an objective. You are responsible for completing a specific task working \
-toward that objective."""
+Next:
+
+6. Set the "response_type" field based on the following criteria:
+    - If the objective is accomplished and the last message in the thread provides a response to \
+the objective, set the response type to "complete-as-is".
+    - If the objective is accomplished but the last message in the thread does not provide a \
+response to the objective, set the response type to "response-needed".
+    - If the work needed to respond to the objective is not done yet, update the plan and set the \
+response type to "update".
+    - If the plan cannot be completed without more information or after prompting the user for \
+some sort of input, set the response type to "edge-case".
+7. Update the plan as needed based on your analysis. When doing so, remove steps that have already \
+been completed and only add steps to the plan that still NEED to be done. Assume these new steps \
+will be followed. Be sure to follow the correct format by creating a tuple of two strings for \
+each step: the first string is the reasoning why the step is needed and the second string is \
+the step itself.
+8. Write a final response as needed based on your analysis.
+9. Write out a reply to the user to explain any edge cases encountered, if any.
+
+Objective: <objective>
+{objective}
+</objective>"""
+                ),
+            ),
+            ("placeholder", "{messages}"),
+            (
+                "system",
+                """Now, compare the last step executed above to the expected step executed \
+and remaining steps below and begin your analysis.
+             
+Last step executed: <last_step>
+{last_step}
+</last_step>
+
+Remaining planned steps: <remaining_steps>
+{remaining_steps}
+</remaining_steps>""",
+            ),
+        ]
+    ),
+}

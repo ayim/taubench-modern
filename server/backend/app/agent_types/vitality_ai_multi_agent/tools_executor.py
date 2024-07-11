@@ -1,7 +1,8 @@
 """This module provides a compiled subgraph of a tools executor for the planner agent."""
 
+import operator
 from datetime import datetime
-from typing import cast
+from typing import Annotated, cast
 
 from langchain.agents.format_scratchpad.openai_tools import (
     format_to_openai_tool_messages,
@@ -13,13 +14,31 @@ from langchain.agents.output_parsers.openai_tools import (
 from langchain.tools import BaseTool
 from langchain_core.agents import AgentFinish
 from langchain_core.language_models.base import LanguageModelLike
-from langchain_core.messages import SystemMessage, ToolMessage
+from langchain_core.messages import BaseMessage, SystemMessage, ToolMessage
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.pydantic_v1 import BaseModel
 from langchain_core.runnables import RunnablePassthrough
 from langgraph.graph import END, StateGraph
 from langgraph.prebuilt.tool_executor import ToolExecutor
 
-from app.agent_types.planner_agent.schemas import ExecAgentState
+
+class ExecAgentState(BaseModel):
+    # The input string
+    input: str
+    # The list of previous messages in the conversation
+    chat_history: list[BaseMessage]
+    # The outcome of a given call to the agent
+    # Needs `None` as a valid type, since this is what this will start as
+    agent_outcome: list[OpenAIToolAgentAction | AgentFinish] | None
+    # List of actions and corresponding observations
+    # Here we annotate this with `operator.add` to indicate that operations to
+    # this state should be ADDED to the existing values (not overwrite it)
+    intermediate_steps: Annotated[
+        list[tuple[OpenAIToolAgentAction | AgentFinish, str]], operator.add
+    ]
+    # List of intermediate messages to be extraced by the parent graph
+    # for streaming
+    intermediate_messages: Annotated[list[BaseMessage], operator.add]
 
 
 def get_tools_executor(
