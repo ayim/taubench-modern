@@ -9,7 +9,7 @@ from uuid import uuid4
 import structlog
 from langchain_core.messages import AnyMessage
 
-from app.agent import AgentType, agent, get_agent_executor
+from app.agent import agent
 from app.agent_types.constants import FINISH_NODE_KEY
 from app.constants import DOMAIN_DATABASE_PATH
 from app.schema import Assistant, Thread, UploadedFile, User
@@ -282,8 +282,17 @@ class SqliteStorage(BaseStorage):
 
     async def get_thread_state(self, user_id: str, thread_id: str):
         """Get state for a thread."""
-        app = get_agent_executor([], AgentType.GPT_35_TURBO, "", False, 0)
-        state = app.get_state({"configurable": {"thread_id": thread_id}})
+        assistant_id = self.get_thread(user_id, thread_id)["assistant_id"]
+        assistant = self.get_assistant(user_id, assistant_id)
+        state = agent.get_state(
+            {
+                "configurable": {
+                    **assistant["config"]["configurable"],
+                    "thread_id": thread_id,
+                    "assistant_id": assistant_id,
+                }
+            }
+        )
         return {
             "values": state.values,
             "next": state.next,
@@ -316,7 +325,8 @@ class SqliteStorage(BaseStorage):
 
     async def get_thread_history(self, user_id: str, thread_id: str):
         """Get the history of a thread."""
-        app = get_agent_executor([], AgentType.GPT_35_TURBO, "", False)
+        assistant_id = self.get_thread(user_id, thread_id)["assistant_id"]
+        assistant = self.get_assistant(user_id, assistant_id)
         return [
             {
                 "values": c.values,
@@ -324,7 +334,15 @@ class SqliteStorage(BaseStorage):
                 "config": c.config,
                 "parent": c.parent_config,
             }
-            for c in app.get_state_history({"configurable": {"thread_id": thread_id}})
+            for c in agent.get_state_history(
+                {
+                    "configurable": {
+                        **assistant["config"]["configurable"],
+                        "thread_id": thread_id,
+                        "assistant_id": assistant_id,
+                    }
+                }
+            )
         ]
 
     async def put_thread(
