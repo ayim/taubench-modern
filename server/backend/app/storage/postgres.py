@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional, Sequence, Union
 
 from langchain_core.messages import AnyMessage
 
-from app.agent import AgentType, agent, get_agent_executor
+from app.agent import agent
 from app.agent_types.constants import FINISH_NODE_KEY
 from app.lifespan import get_pg_pool
 from app.schema import Assistant, Thread, UploadedFile, User
@@ -250,8 +250,18 @@ class PostgresStorage(BaseStorage):
 
     async def get_thread_state(self, user_id: str, thread_id: str):
         """Get state for a thread."""
-        app = get_agent_executor([], AgentType.GPT_35_TURBO, "", False, 0)
-        state = app.get_state({"configurable": {"thread_id": thread_id}})
+        thread = await self.get_thread(user_id, thread_id)
+        assistant_id = thread["assistant_id"]
+        assistant = await self.get_assistant(user_id, assistant_id)
+        state = agent.get_state(
+            {
+                "configurable": {
+                    **assistant["config"]["configurable"],
+                    "thread_id": thread_id,
+                    "assistant_id": assistant_id,
+                }
+            }
+        )
         return {
             "values": state.values,
             "next": state.next,
@@ -284,11 +294,19 @@ class PostgresStorage(BaseStorage):
 
     async def get_thread_history(self, user_id: str, thread_id: str):
         """Get the history of a thread."""
-        app = await get_agent_executor([], AgentType.GPT_35_TURBO, "", False)
+        thread = await self.get_thread(user_id, thread_id)
+        assistant_id = thread["assistant_id"]
+        assistant = await self.get_assistant(user_id, assistant_id)
 
         history = []
-        async for c in app.get_state_history(
-            {"configurable": {"thread_id": thread_id}}
+        async for c in agent.aget_state_history(
+            {
+                "configurable": {
+                    **assistant["config"]["configurable"],
+                    "thread_id": thread_id,
+                    "assistant_id": assistant_id,
+                }
+            }
         ):
             history.append(
                 {
