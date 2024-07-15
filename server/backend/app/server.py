@@ -194,8 +194,15 @@ def main():
         default=8100,
         help="Port to run the HTTP server on. Default is 8100.",
     )
+    parser.add_argument(
+        "-r",
+        "--reload",
+        action="store_true",
+        help="Enable auto-reload of the server on code changes.",
+    )
+
     args = parser.parse_args()
-    uvicorn.run(app, host="0.0.0.0", port=args.port)
+    uvicorn.run("app.server:app", host="0.0.0.0", port=args.port, reload=args.reload)
 
 
 if __name__ == "__main__":
