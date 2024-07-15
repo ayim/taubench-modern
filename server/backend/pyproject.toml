@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sema4ai-agent-server"
-version = "0.1.0"
+version = "0.1.3"
 description = ""
 authors = ["Sema4.ai Engineering <engineering@sema4.ai>"]
 readme = "README.md"
@@ -108,6 +108,11 @@ pytest-timeout = "^2.2.0"
 
 [tool.poetry.scripts]
 agent-server = "app.server:main"
+
+[[tool.poetry.source]]
+name = "codeartifact"
+url = "https://sema4ai-710450854638.d.codeartifact.eu-west-1.amazonaws.com/pypi/agent-server/"
+
 
 
 [tool.coverage.run]

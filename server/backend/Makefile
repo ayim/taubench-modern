@@ -1,10 +1,9 @@
-.PHONY: all lint format test help
+.PHONY: all lint format test help publish
+
+SHELL := /bin/bash
 
 # Default target executed when no arguments are given to make.
 all: help
-
-build_ui:
-	cd ../frontend && yarn build && cp -r dist/* ../backend/ui
 
 ######################
 # TESTING AND COVERAGE
@@ -27,6 +26,11 @@ test:
 test_watch:
 	# We need to update handling of env variables for tests
 	YDC_API_KEY=placeholder OPENAI_API_KEY=placeholder poetry run ptw . -- $(TEST_FILE)
+
+publish:
+	poetry build
+	@. ./codeartifact.sh
+	poetry publish --repository codeartifact
 
 ######################
 # LINTING AND FORMATTING
