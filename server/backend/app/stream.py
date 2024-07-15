@@ -133,13 +133,15 @@ async def astream_state(
 
             if message.id not in messages:
                 # Attach metadata to new messages
+                # TODO: Original metedata isn't coming through because `message` is the new message
+                # created by the structured response streamer, not the original.
                 if "sema4ai_metadata" in message.response_metadata:
                     # This is the case when there is a pydantic model response
                     message.response_metadata["sema4ai_metadata"].update(
                         metadata["sema4ai_metadata"]
                     )
                     logger.debug(
-                        f"astream_state:on_chat_model_stream:pydantic_model_response final metadata: {message.response_metadata}"
+                        f"astream_state:on_chat_model_stream:structured_response_streamer final metadata: {message.response_metadata}"
                     )
                 else:
                     message.response_metadata.update(metadata)
@@ -156,6 +158,7 @@ async def astream_state(
                     tool_calls = []
             yield [messages[message.id]]
         elif event["event"] == "on_tool_start":
+            # Explicitly send tool start events to the front end
             logger.debug(f"astream_state:on_tool_start:event: {event}")
 
             for tool_call in tool_calls:
@@ -180,6 +183,7 @@ async def astream_state(
                 messages[input_message.id] += input_message
                 yield [messages[input_message.id]]
         elif event["event"] == "on_tool_end":
+            # Explicitly send tool end events to the front end
             logger.debug(f"astream_state:on_tool_end:event: {event}")
             try:
                 tool_call_id = messages[event["run_id"]].tool_call_id
