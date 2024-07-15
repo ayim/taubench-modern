@@ -252,11 +252,9 @@ class PostgresStorage(BaseStorage):
         """Get state for a thread."""
         thread = await self.get_thread(user_id, thread_id)
         assistant_id = thread["assistant_id"]
-        assistant = await self.get_assistant(user_id, assistant_id)
         state = agent.get_state(
             {
                 "configurable": {
-                    **assistant["config"]["configurable"],
                     "thread_id": thread_id,
                     "assistant_id": assistant_id,
                 }
@@ -277,12 +275,9 @@ class PostgresStorage(BaseStorage):
         """Add state to a thread."""
         thread = await self.get_thread(user_id, thread_id)
         assistant_id = thread["assistant_id"]
-        assistant = await self.get_assistant(user_id, assistant_id)
-        config = assistant["config"]["configurable"] if assistant else {}
         retval = agent.update_state(
             {
                 "configurable": {
-                    **config,
                     "thread_id": thread_id,
                     "assistant_id": assistant_id,
                 }
@@ -296,13 +291,11 @@ class PostgresStorage(BaseStorage):
         """Get the history of a thread."""
         thread = await self.get_thread(user_id, thread_id)
         assistant_id = thread["assistant_id"]
-        assistant = await self.get_assistant(user_id, assistant_id)
 
         history = []
         async for c in agent.aget_state_history(
             {
                 "configurable": {
-                    **assistant["config"]["configurable"],
                     "thread_id": thread_id,
                     "assistant_id": assistant_id,
                 }

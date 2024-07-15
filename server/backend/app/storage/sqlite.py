@@ -282,12 +282,11 @@ class SqliteStorage(BaseStorage):
 
     async def get_thread_state(self, user_id: str, thread_id: str):
         """Get state for a thread."""
-        assistant_id = self.get_thread(user_id, thread_id)["assistant_id"]
-        assistant = self.get_assistant(user_id, assistant_id)
+        thread = await self.get_thread(user_id, thread_id)
+        assistant_id = thread["assistant_id"]
         state = agent.get_state(
             {
                 "configurable": {
-                    **assistant["config"]["configurable"],
                     "thread_id": thread_id,
                     "assistant_id": assistant_id,
                 }
@@ -308,12 +307,9 @@ class SqliteStorage(BaseStorage):
         """Add state to a thread."""
         thread = await self.get_thread(user_id, thread_id)
         assistant_id = thread["assistant_id"]
-        assistant = await self.get_assistant(user_id, assistant_id)
-        config = assistant["config"]["configurable"] if assistant else {}
         retval = agent.update_state(
             {
                 "configurable": {
-                    **config,
                     "thread_id": thread_id,
                     "assistant_id": assistant_id,
                 }
@@ -325,8 +321,8 @@ class SqliteStorage(BaseStorage):
 
     async def get_thread_history(self, user_id: str, thread_id: str):
         """Get the history of a thread."""
-        assistant_id = self.get_thread(user_id, thread_id)["assistant_id"]
-        assistant = self.get_assistant(user_id, assistant_id)
+        thread = await self.get_thread(user_id, thread_id)
+        assistant_id = thread["assistant_id"]
         return [
             {
                 "values": c.values,
@@ -337,7 +333,6 @@ class SqliteStorage(BaseStorage):
             for c in agent.get_state_history(
                 {
                     "configurable": {
-                        **assistant["config"]["configurable"],
                         "thread_id": thread_id,
                         "assistant_id": assistant_id,
                     }
