@@ -21,6 +21,7 @@ jobs:
     - name: Publish Release
       env:
         # Required for tests
+        POSTGRES_HOST: localhost
         POSTGRES_PORT: 5432
         POSTGRES_DB: opengpts
         POSTGRES_USER: postgres
