@@ -37,4 +37,6 @@ jobs:
         echo "Testing and Publishing ${{ github.ref_name }}"
         cd backend
         poetry install
-        make publish
+        poetry build
+        @. ./codeartifact.sh
+        poetry publish --repository codeartifact

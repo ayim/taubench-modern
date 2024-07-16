@@ -27,11 +27,6 @@ test_watch:
 	# We need to update handling of env variables for tests
 	YDC_API_KEY=placeholder OPENAI_API_KEY=placeholder poetry run ptw . -- $(TEST_FILE)
 
-publish:
-	poetry build
-	@. ./codeartifact.sh
-	poetry publish --repository codeartifact
-
 ######################
 # LINTING AND FORMATTING
 ######################
