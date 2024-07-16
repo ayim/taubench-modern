@@ -26,6 +26,9 @@ jobs:
         POSTGRES_DB: opengpts
         POSTGRES_USER: postgres
         POSTGRES_PASSWORD: Password123
+
+        # Use sqlite for testing
+        S4_AGENT_SERVER_DB_TYPE: postgres
         # Required for Poetry to publish to CodeArtifact
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
