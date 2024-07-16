@@ -20,11 +20,17 @@ jobs:
 
     - name: Publish Release
       env:
+        # Required for tests
+        POSTGRES_PORT: 5432
+        POSTGRES_DB: opengpts
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: Password123
+        # Required for Poetry to publish to CodeArtifact
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       run: |
         pip install poetry
-        echo "Testing and Publishin ${{ github.ref_name }}"
+        echo "Testing and Publishing ${{ github.ref_name }}"
         cd backend
         poetry install
         make test
