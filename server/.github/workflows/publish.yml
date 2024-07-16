@@ -38,5 +38,5 @@ jobs:
         cd backend
         poetry install
         poetry build
-        @. ./codeartifact.sh
+        . ./codeartifact.sh
         poetry publish --repository codeartifact
