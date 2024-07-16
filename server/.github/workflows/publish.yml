@@ -26,5 +26,6 @@ jobs:
         pip install poetry
         echo "Testing and Publishin ${{ github.ref_name }}"
         cd backend
+        poetry install
         make test
         make publish
