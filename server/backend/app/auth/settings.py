@@ -2,7 +2,7 @@ import os
 from base64 import b64decode
 from enum import Enum
 from typing import Optional, Union
-from pydantic_settings import BaseSettings
+from pydantic import BaseSettings
 from pydantic import root_validator, validator
 
 
