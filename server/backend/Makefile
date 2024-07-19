@@ -1,10 +1,9 @@
-.PHONY: all lint format test help
+.PHONY: all lint format test help publish
+
+SHELL := /bin/bash
 
 # Default target executed when no arguments are given to make.
 all: help
-
-build_ui:
-	cd ../frontend && yarn build && cp -r dist/* ../backend/ui
 
 ######################
 # TESTING AND COVERAGE

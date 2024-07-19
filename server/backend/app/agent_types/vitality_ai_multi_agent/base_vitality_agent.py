@@ -1,4 +1,4 @@
-from pathlib import Path
+import pathlib
 
 import structlog
 
@@ -21,8 +21,8 @@ class BaseVitalityAgent:
         Returns:
             str: The content of the file as a string.
         """
-        base_path = Path("app/agent_types/vitality_ai_multi_agent/prompts")
-        file_path = base_path / filename
+        base_path = pathlib.Path(__file__).parent.absolute()
+        file_path = pathlib.Path(base_path, "prompts", filename)
         with open(file_path, "r", encoding="utf-8") as file:
             return file.read()
 

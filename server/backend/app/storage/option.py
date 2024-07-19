@@ -1,6 +1,5 @@
 import os
 
-
 from app.storage import BaseStorage
 from app.storage.postgres import PostgresStorage
 from app.storage.sqlite import SqliteStorage

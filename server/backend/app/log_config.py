@@ -56,6 +56,11 @@ def setup_logging():
     uvicorn_access_logger.addHandler(file_handler)
     uvicorn_access_logger.propagate = False
 
+    # Prevents getting spammed with watchfiles logs when --reload is used in development
+    watchfiles_logger = logging.getLogger("watchfiles.main")
+    watchfiles_logger.setLevel(logging.WARNING)
+    watchfiles_logger.propagate = False
+
     structlog.configure(
         processors=[
             structlog.stdlib.filter_by_level,
