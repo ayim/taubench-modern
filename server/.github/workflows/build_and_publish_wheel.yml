@@ -25,13 +25,15 @@ jobs:
         run: pip install poetry
 
       - name: Install dependencies
+        working-directory: ./backend
         run: poetry install
 
       - name: Build wheel
+        working-directory: ./backend
         run: poetry build
 
       - name: Upload wheel as artifact
         uses: actions/upload-artifact@v3
         with:
           name: sema4ai_agent_server_wheel
-          path: dist/*.whl
+          path: backend/dist/*.whl
