@@ -34,3 +34,17 @@ jobs:
         with:
           name: sema4ai_agent_server_wheel
           path: backend/dist/*.whl
+
+      - name: Set Release Version
+        id: set_release_version
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: backend/dist/*.whl
+          asset_name: sema4ai_agent_server-${{ env.RELEASE_VERSION }}-py3-none-any.whl
+          asset_content_type: application/zip
