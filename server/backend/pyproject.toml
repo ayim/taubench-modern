@@ -4,7 +4,7 @@ version = "0.2.1"
 description = ""
 authors = ["Sema4.ai Engineering <engineering@sema4.ai>"]
 readme = "README.md"
-packages = [{include = "app"}]
+packages = [{include = "sema4ai_agent_server"}]
 
 [tool.poetry.dependencies]
 python = "^3.9.0,<3.12"
