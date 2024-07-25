@@ -2,11 +2,8 @@ name: Build and Publish Wheel
 
 on:
   push:
-    branches:
-      - '**'  # This will trigger on any branch
-  pull_request:
-    branches:
-      - '**'  # This will trigger on any branch
+    tags:
+      - 'v*'
 
 jobs:
   build:
