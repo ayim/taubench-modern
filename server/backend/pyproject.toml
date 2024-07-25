@@ -70,7 +70,7 @@ pytest-watch = "^4.2.0"
 pytest-timeout = "^2.2.0"
 
 [tool.poetry.scripts]
-agent-server = "app.server:main"
+agent-server = "sema4ai_agent_server.server:main"
 
 [[tool.poetry.source]]
 name = "pypi-public"
