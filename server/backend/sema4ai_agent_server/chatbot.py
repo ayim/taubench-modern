@@ -5,7 +5,7 @@ from langchain_core.messages import BaseMessage, SystemMessage
 from langgraph.checkpoint import BaseCheckpointSaver
 from langgraph.graph.state import StateGraph
 
-from app.message_types import add_messages_liberal
+from sema4ai_agent_server.message_types import add_messages_liberal
 
 
 def get_chatbot_executor(

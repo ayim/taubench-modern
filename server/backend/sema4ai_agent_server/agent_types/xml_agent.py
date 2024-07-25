@@ -12,8 +12,8 @@ from langgraph.graph import END
 from langgraph.graph.message import MessageGraph
 from langgraph.prebuilt import ToolExecutor, ToolInvocation
 
-from app.agent_types.prompts import xml_template
-from app.message_types import LiberalFunctionMessage
+from sema4ai_agent_server.agent_types.prompts import xml_template
+from sema4ai_agent_server.message_types import LiberalFunctionMessage
 
 
 def _collapse_messages(messages):

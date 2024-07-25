@@ -11,14 +11,14 @@ from fastapi import FastAPI, Form, UploadFile
 from fastapi.exceptions import HTTPException
 from starlette.background import BackgroundTasks
 
-from app.api import router as api_router
-from app.auth.handlers import AuthedUser
-from app.lifespan import lifespan
-from app.log_config import setup_logging
-from app.schema import UploadedFile
-from app.storage.option import get_storage
-from app.tools import AvailableTools
-from app.upload import convert_ingestion_input_to_blob, ingest_runnable
+from sema4ai_agent_server.api import router as api_router
+from sema4ai_agent_server.auth.handlers import AuthedUser
+from sema4ai_agent_server.lifespan import lifespan
+from sema4ai_agent_server.log_config import setup_logging
+from sema4ai_agent_server.schema import UploadedFile
+from sema4ai_agent_server.storage.option import get_storage
+from sema4ai_agent_server.tools import AvailableTools
+from sema4ai_agent_server.upload import convert_ingestion_input_to_blob, ingest_runnable
 
 setup_logging()
 logger = structlog.get_logger(__name__)

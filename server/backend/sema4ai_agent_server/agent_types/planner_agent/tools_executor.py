@@ -19,7 +19,7 @@ from langchain_core.runnables import RunnablePassthrough
 from langgraph.graph import END, StateGraph
 from langgraph.prebuilt.tool_executor import ToolExecutor
 
-from app.agent_types.planner_agent.schemas import ExecAgentState
+from sema4ai_agent_server.agent_types.planner_agent.schemas import ExecAgentState
 
 
 def get_tools_executor(

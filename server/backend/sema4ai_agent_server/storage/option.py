@@ -1,8 +1,8 @@
 import os
 
-from app.storage import BaseStorage
-from app.storage.postgres import PostgresStorage
-from app.storage.sqlite import SqliteStorage
+from sema4ai_agent_server.storage import BaseStorage
+from sema4ai_agent_server.storage.postgres import PostgresStorage
+from sema4ai_agent_server.storage.sqlite import SqliteStorage
 
 _storage = None
 

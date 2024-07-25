@@ -6,9 +6,9 @@ from langchain.schema.messages import AnyMessage
 from langchain_core.messages import AIMessage
 from pydantic import BaseModel, Field
 
-from app.auth.handlers import AuthedUser
-from app.schema import Thread, UploadedFile
-from app.storage.option import get_storage
+from sema4ai_agent_server.auth.handlers import AuthedUser
+from sema4ai_agent_server.schema import Thread, UploadedFile
+from sema4ai_agent_server.storage.option import get_storage
 
 router = APIRouter()
 

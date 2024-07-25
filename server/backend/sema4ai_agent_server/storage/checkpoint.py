@@ -13,8 +13,8 @@ from langgraph.checkpoint import (
 )
 from langgraph.checkpoint.base import CheckpointThreadTs, CheckpointTuple
 
-from app.constants import DOMAIN_DATABASE_PATH
-from app.storage.postgres_checkpointer import (
+from sema4ai_agent_server.constants import DOMAIN_DATABASE_PATH
+from sema4ai_agent_server.storage.postgres_checkpointer import (
     CheckpointSerializer,
     PickleCheckpointSerializer,
     PostgresSaver,

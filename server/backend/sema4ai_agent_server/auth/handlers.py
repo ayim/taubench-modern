@@ -7,9 +7,9 @@ import requests
 from fastapi import Depends, HTTPException, Request
 from fastapi.security.http import HTTPBearer
 
-from app.auth.settings import AuthType, settings
-from app.schema import User
-from app.storage.option import get_storage
+from sema4ai_agent_server.auth.settings import AuthType, settings
+from sema4ai_agent_server.schema import User
+from sema4ai_agent_server.storage.option import get_storage
 
 
 class AuthHandler(ABC):

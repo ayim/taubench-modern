@@ -9,11 +9,11 @@ from uuid import uuid4
 import structlog
 from langchain_core.messages import AnyMessage
 
-from app.agent import AgentType, agent, get_agent_executor
-from app.agent_types.constants import FINISH_NODE_KEY
-from app.constants import DOMAIN_DATABASE_PATH
-from app.schema import Assistant, Thread, UploadedFile, User
-from app.storage import BaseStorage
+from sema4ai_agent_server.agent import AgentType, agent, get_agent_executor
+from sema4ai_agent_server.agent_types.constants import FINISH_NODE_KEY
+from sema4ai_agent_server.constants import DOMAIN_DATABASE_PATH
+from sema4ai_agent_server.schema import Assistant, Thread, UploadedFile, User
+from sema4ai_agent_server.storage import BaseStorage
 
 logger = structlog.get_logger()
 

@@ -1,9 +1,9 @@
 from langchain_openai import ChatOpenAI
 
-from app.agent_types.vitality_ai_multi_agent.data_retrieval_specilalist_new import (
+from sema4ai_agent_server.agent_types.vitality_ai_multi_agent.data_retrieval_specilalist_new import (
     DataRetrievalSpecialist,
 )
-from app.tools import BaseTool
+from sema4ai_agent_server.tools import BaseTool
 
 
 class HealthCoach(DataRetrievalSpecialist):

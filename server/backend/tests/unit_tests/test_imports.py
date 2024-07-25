@@ -2,5 +2,5 @@
 
 
 def test_import_app() -> None:
-    """Test import app"""
-    import app  # noqa: F401
+    """Test import sema4ai_agent_server"""
+    import sema4ai_agent_server  # noqa: F401

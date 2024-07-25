@@ -2,7 +2,7 @@ import pathlib
 
 import structlog
 
-from app.agent_types.vitality_ai_multi_agent.state.graph_states_new import (
+from sema4ai_agent_server.agent_types.vitality_ai_multi_agent.state.graph_states_new import (
     VitalityAIModel,
     VitalityAIModelConversationV2,
 )

@@ -5,16 +5,16 @@ from unittest.mock import MagicMock, patch
 
 import jwt
 
-from app.auth.handlers import AuthedUser, get_auth_handler
-from app.auth.settings import (
+from sema4ai_agent_server.auth.handlers import AuthedUser, get_auth_handler
+from sema4ai_agent_server.auth.settings import (
     AuthType,
     JWTSettingsLocal,
     JWTSettingsOIDC,
 )
-from app.auth.settings import (
+from sema4ai_agent_server.auth.settings import (
     settings as auth_settings,
 )
-from app.server import app
+from sema4ai_agent_server.server import app
 from tests.unit_tests.app.helpers import get_client
 
 

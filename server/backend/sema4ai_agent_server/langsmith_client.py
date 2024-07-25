@@ -6,8 +6,8 @@ import langsmith.client
 from langsmith import schemas as ls_schemas
 from langsmith.utils import LangSmithError, LangSmithNotFoundError
 
-from app.schema import Thread
-from app.storage.option import get_storage
+from sema4ai_agent_server.schema import Thread
+from sema4ai_agent_server.storage.option import get_storage
 
 
 @lru_cache()

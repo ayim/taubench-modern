@@ -3,8 +3,8 @@ from typing import Any, Dict, List, Optional, Sequence, Union
 
 from langchain_core.messages import AnyMessage
 
-from app.agent_types.constants import FINISH_NODE_KEY
-from app.schema import Assistant, Thread, UploadedFile, User
+from sema4ai_agent_server.agent_types.constants import FINISH_NODE_KEY
+from sema4ai_agent_server.schema import Assistant, Thread, UploadedFile, User
 
 
 class BaseStorage(ABC):

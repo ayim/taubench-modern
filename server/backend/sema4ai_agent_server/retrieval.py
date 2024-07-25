@@ -11,7 +11,7 @@ from langgraph.checkpoint import BaseCheckpointSaver
 from langgraph.graph import END
 from langgraph.graph.state import StateGraph
 
-from app.message_types import LiberalToolMessage, add_messages_liberal
+from sema4ai_agent_server.message_types import LiberalToolMessage, add_messages_liberal
 
 search_prompt = PromptTemplate.from_template(
     """Given the conversation below, come up with a search query to look up.

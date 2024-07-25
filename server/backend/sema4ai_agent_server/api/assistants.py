@@ -6,10 +6,10 @@ from fastapi import APIRouter, HTTPException, Path
 from langchain_core.messages import HumanMessage
 from pydantic import BaseModel, Field
 
-from app.agent import agent
-from app.auth.handlers import AuthedUser
-from app.schema import Assistant, UploadedFile
-from app.storage.option import get_storage
+from sema4ai_agent_server.agent import agent
+from sema4ai_agent_server.auth.handlers import AuthedUser
+from sema4ai_agent_server.schema import Assistant, UploadedFile
+from sema4ai_agent_server.storage.option import get_storage
 
 logger = structlog.get_logger(__name__)
 

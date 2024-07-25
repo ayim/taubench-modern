@@ -9,18 +9,20 @@ from langchain_core.prompts import (
 )
 from langchain_openai import ChatOpenAI
 
-from app.agent_types.vitality_ai_multi_agent.data_retrieval_specilalist_new import (
+from sema4ai_agent_server.agent_types.vitality_ai_multi_agent.data_retrieval_specilalist_new import (
     DataRetrievalSpecialist,
 )
-from app.agent_types.vitality_ai_multi_agent.state.graph_states_new import (
+from sema4ai_agent_server.agent_types.vitality_ai_multi_agent.state.graph_states_new import (
     VitalityAIModel,
     VitalityAIModelConversationV2,
 )
-from app.agent_types.vitality_ai_multi_agent.state.planning_models import Plan
-from app.agent_types.vitality_ai_multi_agent.state.reasoning_audit import (
+from sema4ai_agent_server.agent_types.vitality_ai_multi_agent.state.planning_models import (
+    Plan,
+)
+from sema4ai_agent_server.agent_types.vitality_ai_multi_agent.state.reasoning_audit import (
     VitalityReasoningLogEntry,
 )
-from app.tools import BaseTool
+from sema4ai_agent_server.tools import BaseTool
 
 logger = logging.getLogger(__name__)
 

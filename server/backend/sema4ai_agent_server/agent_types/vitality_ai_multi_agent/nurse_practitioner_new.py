@@ -6,14 +6,14 @@ from langchain_core.messages import AIMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 
-from app.agent_types.vitality_ai_multi_agent.base_vitality_agent import (
+from sema4ai_agent_server.agent_types.vitality_ai_multi_agent.base_vitality_agent import (
     BaseVitalityAgent,
 )
-from app.agent_types.vitality_ai_multi_agent.state.graph_states_new import (
+from sema4ai_agent_server.agent_types.vitality_ai_multi_agent.state.graph_states_new import (
     VitalityAIModel,
     VitalityAIModelConversationV2,
 )
-from app.agent_types.vitality_ai_multi_agent.state.planning_models import (
+from sema4ai_agent_server.agent_types.vitality_ai_multi_agent.state.planning_models import (
     PLAN_ACTION,
     Plan,
 )

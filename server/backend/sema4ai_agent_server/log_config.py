@@ -6,7 +6,7 @@ import structlog
 import uvicorn
 from pythonjsonlogger import jsonlogger
 
-from app.constants import LOG_FILE_PATH, LOG_LEVEL
+from sema4ai_agent_server.constants import LOG_FILE_PATH, LOG_LEVEL
 
 
 def setup_logging():

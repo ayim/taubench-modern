@@ -25,8 +25,8 @@ from langchain_core.vectorstores import VectorStore
 from langchain_openai import AzureOpenAIEmbeddings, OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter, TextSplitter
 
-from app.ingest import ingest_blob
-from app.parsing import MIMETYPE_BASED_PARSER
+from sema4ai_agent_server.ingest import ingest_blob
+from sema4ai_agent_server.parsing import MIMETYPE_BASED_PARSER
 
 
 def _guess_mimetype(file_name: str, file_bytes: bytes) -> str:
