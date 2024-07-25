@@ -1,0 +1,37 @@
+name: Build and Publish Wheel
+
+on:
+  push:
+    branches:
+      - '**'  # This will trigger on any branch
+  pull_request:
+    branches:
+      - '**'  # This will trigger on any branch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies
+        run: poetry install
+
+      - name: Build wheel
+        run: poetry build
+
+      - name: Upload wheel as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: sema4ai_agent_server_wheel
+          path: dist/*.whl
