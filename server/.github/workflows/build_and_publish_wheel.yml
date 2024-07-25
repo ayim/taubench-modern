@@ -19,12 +19,11 @@ jobs:
           python-version: '3.11'
 
       - name: Install Poetry and Dependencies
-        run: |
-          pip install poetry toml
-          poetry install
+        run: pip install poetry toml
 
-      - name: Update version in pyproject.toml
-        run: python update_version.py
+      - name: Install dependencies
+        working-directory: ./backend
+        run: poetry install
 
       - name: Build wheel
         working-directory: ./backend
