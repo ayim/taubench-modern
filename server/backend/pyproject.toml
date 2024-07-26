@@ -35,7 +35,7 @@ pdfminer-six = "20231228"
 pgvector = "0.2.5"
 psycopg = "3.2.1"
 psycopg-pool = "3.2.2"
-psycopg2-binary = "2.9.9"
+psycopg2 = "2.9.9"
 psycopg2-pool = "1.2"
 pydantic = "1.10.13"
 pyjwt = {extras = ["crypto"], version = "^2.8.0"}
