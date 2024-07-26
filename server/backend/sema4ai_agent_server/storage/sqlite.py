@@ -3,6 +3,7 @@ import os
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Union
 from uuid import uuid4
 
@@ -35,8 +36,8 @@ class SqliteStorage(BaseStorage):
 
     def run_migrations(self):
         db_exists = os.path.exists(DOMAIN_DATABASE_PATH)
-        current_dir = os.path.dirname(__file__)
-        migrations_path = os.path.join(current_dir, "../../migrations/sqlite")
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        migrations_path = Path(current_dir).parent / "migrations" / "sqlite"
 
         with self._connect() as conn:
             cursor = conn.cursor()
