@@ -7,7 +7,17 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ['3.11']
+        include:
+          - os: macos-latest
+            arch: x86_64
+          - os: macos-latest
+            arch: arm64
+
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout repository
@@ -16,7 +26,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: ${{ matrix.python-version }}
 
       - name: Install Poetry and Dependencies
         run: pip install poetry toml
@@ -27,17 +37,30 @@ jobs:
 
       - name: Build wheel
         working-directory: ./backend
-        run: poetry build
+        env:
+          CIBW_ARCHS: ${{ matrix.arch || 'auto' }}
+        run: |
+          pip install cibuildwheel
+          cibuildwheel --output-dir dist
 
       - name: Upload wheel as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: sema4ai_agent_server_wheel
+          name: sema4ai_agent_server_wheel_${{ runner.os }}_${{ matrix.arch || 'x86_64' }}
           path: backend/dist/*.whl
 
       - name: Set Release Version
         id: set_release_version
         run: echo "RELEASE_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+
+  collect-wheels:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all wheels
+        uses: actions/download-artifact@v4
+        with:
+          path: wheels
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -45,4 +68,4 @@ jobs:
         with:
           tag_name: ${{ env.RELEASE_VERSION }}
           name: Release ${{ env.RELEASE_VERSION }}
-          files: backend/dist/*.whl
+          files: wheels/**/*.whl
