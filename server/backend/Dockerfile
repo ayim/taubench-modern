@@ -6,7 +6,7 @@ ARG TARGETARCH
 ARG TARGETVARIANT
 
 # Install system dependencies
-RUN apt-get update && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 RUN wget -O golang-migrate.deb https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.${TARGETOS}-${TARGETARCH}${TARGETVARIANT}.deb \
     && dpkg -i golang-migrate.deb \
     && rm golang-migrate.deb
@@ -27,6 +27,9 @@ RUN poetry config virtualenvs.create false \
 # Copy the rest of application code
 COPY . .
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --start-interval=1s --retries=3 CMD [ "curl", "-f", "http://localhost:8000/health" ]
+# Install any missing dependencies
+RUN poetry install --no-interaction --no-ansi
 
-ENTRYPOINT [ "poetry", "run", "agent-server" ]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --start-interval=1s --retries=3 CMD [ "curl", "-f", "http://localhost:8100/health" ]
+
+ENTRYPOINT [ "poetry", "run", "uvicorn", "sema4ai_agent_server.server:app", "--host", "0.0.0.0", "--port", "8100" ]

@@ -19,7 +19,7 @@ services:
       postgres:
         condition: service_healthy
     volumes:
-      - ./backend/migrations/postgres:/migrations/postgres
+      - ./backend/sema4ai_agent_server/migrations/postgres:/migrations/postgres
     env_file:
       - .env
     command: ["-path", "/migrations/postgres", "-database", "postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres:$POSTGRES_PORT/$POSTGRES_DB?sslmode=disable", "up"]
