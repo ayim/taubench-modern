@@ -431,3 +431,27 @@ class PostgresSaver(BaseCheckpointSaver):
                         )
 
         return None
+
+
+class PostgresCheckpointer(PostgresSaver):
+    serde = None
+
+    def __init__(self, serializer: CheckpointSerializer):
+        super().__init__()
+        self.serde = serializer
+        # self.sync_connection = sync_connection
+        # self.async_connection = async_connection
+
+    @property
+    def config_specs(self) -> list[ConfigurableFieldSpec]:
+        return [
+            ConfigurableFieldSpec(
+                id="thread_id",
+                annotation=Optional[str],
+                name="Thread ID",
+                description=None,
+                default=None,
+                is_shared=True,
+            ),
+            CheckpointThreadTs,
+        ]

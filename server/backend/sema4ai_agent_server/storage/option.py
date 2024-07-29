@@ -6,17 +6,19 @@ from sema4ai_agent_server.storage import BaseStorage
 
 def get_postgres_storage() -> BaseStorage:
     from sema4ai_agent_server.storage.postgres import PostgresStorage
+
     return PostgresStorage()
 
 
 def get_sqlite_storage() -> BaseStorage:
     from sema4ai_agent_server.storage.sqlite import SqliteStorage
+
     return SqliteStorage()
 
 
 STORAGE_TYPES: Final[Dict[str, Callable[[], BaseStorage]]] = {
     "postgres": get_postgres_storage,
-    "sqlite": get_sqlite_storage
+    "sqlite": get_sqlite_storage,
 }
 
 
