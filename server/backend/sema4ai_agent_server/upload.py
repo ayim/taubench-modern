@@ -11,7 +11,7 @@ import os
 from typing import Any, BinaryIO, List, Optional
 
 from fastapi import UploadFile
-from langchain_core.document_loaders.blob_loaders.schema import Blob
+from langchain_core.document_loaders.blob_loaders import Blob
 from langchain_core.runnables import (
     ConfigurableField,
     RunnableConfig,
