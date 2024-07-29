@@ -13,7 +13,6 @@ from starlette.background import BackgroundTasks
 
 from sema4ai_agent_server.api import router as api_router
 from sema4ai_agent_server.auth.handlers import AuthedUser
-from sema4ai_agent_server.lifespan import lifespan
 from sema4ai_agent_server.log_config import setup_logging
 from sema4ai_agent_server.schema import UploadedFile
 from sema4ai_agent_server.storage.option import get_storage
@@ -28,7 +27,16 @@ UPLOAD_DIR = os.path.join(SEMA4AIDESKTOP_HOME, "uploads")
 # Ensure UPLOAD_DIR exists
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-app = FastAPI(title="OpenGPTs API", lifespan=lifespan)
+# Determine the database type
+DB_TYPE = os.environ.get("S4_AGENT_SERVER_DB_TYPE", "sqlite").lower()
+
+# Conditionally import and use the PostgreSQL lifespan
+if DB_TYPE == "postgres":
+    from sema4ai_agent_server.lifespan import lifespan
+
+    app = FastAPI(title="OpenGPTs API", lifespan=lifespan)
+else:
+    app = FastAPI(title="OpenGPTs API")
 
 
 # Get root of app, used to point to directory containing static files
