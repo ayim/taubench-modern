@@ -1,21 +1,20 @@
 """API to deal with file uploads via a runnable.
 
-For now this code assumes that the content is a base64 encoded string.
-
-The details here might change in the future.
-
-For the time being, upload and ingestion are coupled
+This module supports both PostgreSQL (PGVector) and SQLite (ChromaDB) as backend stores.
+The choice is determined by the S4_AGENT_SERVER_DB_TYPE environment variable.
 """
 
 from __future__ import annotations
 
 import mimetypes
 import os
-from typing import BinaryIO, List, Optional
+from typing import Any, BinaryIO, List, Optional
 
+from app.constants import VECTOR_DATABASE_PATH
+from app.ingest import ingest_blob
+from app.parsing import MIMETYPE_BASED_PARSER
 from fastapi import UploadFile
-from langchain_community.vectorstores.pgvector import PGVector
-from langchain_core.document_loaders.blob_loaders import Blob
+from langchain_core.document_loaders.blob_loaders.schema import Blob
 from langchain_core.runnables import (
     ConfigurableField,
     RunnableConfig,
@@ -25,20 +24,59 @@ from langchain_core.vectorstores import VectorStore
 from langchain_openai import AzureOpenAIEmbeddings, OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter, TextSplitter
 
-from sema4ai_agent_server.ingest import ingest_blob
-from sema4ai_agent_server.parsing import MIMETYPE_BASED_PARSER
+
+def get_vector_store() -> VectorStore:
+    db_type = os.environ.get("S4_AGENT_SERVER_DB_TYPE", "sqlite").lower()
+
+    if db_type == "postgres":
+        from langchain_community.vectorstores.pgvector import PGVector
+
+        PG_CONNECTION_STRING = PGVector.connection_string_from_db_params(
+            driver="psycopg2",
+            host=os.environ.get("POSTGRES_HOST", "localhost"),
+            port=int(os.environ.get("POSTGRES_PORT", 5432)),
+            database=os.environ.get("POSTGRES_DB", "sema4ai"),
+            user=os.environ.get("POSTGRES_USER", "postgres"),
+            password=os.environ.get("POSTGRES_PASSWORD", ""),
+        )
+
+        return PGVector(
+            connection_string=PG_CONNECTION_STRING,
+            embedding_function=get_embeddings(),
+            use_jsonb=True,
+        )
+    elif db_type == "sqlite":
+        from langchain_chroma import Chroma
+
+        return Chroma(
+            persist_directory=VECTOR_DATABASE_PATH,
+            embedding_function=get_embeddings(),
+        )
+    else:
+        raise ValueError(f"Unsupported database type: {db_type}")
+
+
+def get_embeddings():
+    if os.environ.get("OPENAI_API_KEY"):
+        return OpenAIEmbeddings()
+    elif os.environ.get("AZURE_OPENAI_API_KEY"):
+        return AzureOpenAIEmbeddings(
+            azure_endpoint=os.environ.get("AZURE_OPENAI_API_BASE"),
+            azure_deployment=os.environ.get("AZURE_OPENAI_EMBEDDINGS_DEPLOYMENT_NAME"),
+            openai_api_version=os.environ.get("AZURE_OPENAI_API_VERSION"),
+        )
+    else:
+        raise ValueError(
+            "Either OPENAI_API_KEY or AZURE_OPENAI_API_KEY needs to be set for embeddings to work."
+        )
 
 
 def _guess_mimetype(file_name: str, file_bytes: bytes) -> str:
     """Guess the mime-type of a file based on its name or bytes."""
-    # Guess based on the file extension
     mime_type, _ = mimetypes.guess_type(file_name)
-
-    # Return detected mime type from mimetypes guess, unless it's None
     if mime_type:
         return mime_type
 
-    # Signature-based detection for common types
     if file_bytes.startswith(b"%PDF"):
         return "application/pdf"
     elif file_bytes.startswith(
@@ -50,7 +88,6 @@ def _guess_mimetype(file_name: str, file_bytes: bytes) -> str:
     elif file_bytes.startswith(b"\x09\x00\xff\x00\x06\x00"):
         return "application/vnd.ms-excel"
 
-    # Check for CSV-like plain text content (commas, tabs, newlines)
     try:
         decoded = file_bytes[:1024].decode("utf-8", errors="ignore")
         if all(char in decoded for char in (",", "\n")) or all(
@@ -70,7 +107,6 @@ def convert_ingestion_input_to_blob(file: UploadFile) -> Blob:
     file_data = file.file.read()
     file_name = file.filename
 
-    # Check if file_name is a valid string
     if not isinstance(file_name, str):
         raise TypeError(f"Expected string for file name, got {type(file_name)}")
 
@@ -82,43 +118,13 @@ def convert_ingestion_input_to_blob(file: UploadFile) -> Blob:
     )
 
 
-def _determine_azure_or_openai_embeddings() -> PGVector:
-    if os.environ.get("OPENAI_API_KEY"):
-        return PGVector(
-            connection_string=PG_CONNECTION_STRING,
-            embedding_function=OpenAIEmbeddings(),
-            use_jsonb=True,
-        )
-    if os.environ.get("AZURE_OPENAI_API_KEY"):
-        return PGVector(
-            connection_string=PG_CONNECTION_STRING,
-            embedding_function=AzureOpenAIEmbeddings(
-                azure_endpoint=os.environ.get("AZURE_OPENAI_API_BASE"),
-                azure_deployment=os.environ.get(
-                    "AZURE_OPENAI_EMBEDDINGS_DEPLOYMENT_NAME"
-                ),
-                openai_api_version=os.environ.get("AZURE_OPENAI_API_VERSION"),
-            ),
-            use_jsonb=True,
-        )
-    raise ValueError(
-        "Either OPENAI_API_KEY or AZURE_OPENAI_API_KEY needs to be set for embeddings to work."
-    )
-
-
 class IngestRunnable(RunnableSerializable[BinaryIO, List[str]]):
     """Runnable for ingesting files into a vectorstore."""
 
     text_splitter: TextSplitter
-    """Text splitter to use for splitting the text into chunks."""
     vectorstore: VectorStore
-    """Vectorstore to ingest into."""
     assistant_id: Optional[str]
     thread_id: Optional[str]
-    """Ingested documents will be associated with assistant_id or thread_id.
-    
-    ID is used as the namespace, and is filtered on at query time.
-    """
 
     class Config:
         arbitrary_types_allowed = True
@@ -134,26 +140,33 @@ class IngestRunnable(RunnableSerializable[BinaryIO, List[str]]):
         return self.assistant_id if self.assistant_id is not None else self.thread_id
 
     def invoke(self, blob: Blob, config: Optional[RunnableConfig] = None) -> List[str]:
-        out = ingest_blob(
-            blob,
-            MIMETYPE_BASED_PARSER,
-            self.text_splitter,
-            self.vectorstore,
-            self.namespace,
-        )
-        return out
+        return self.batch([blob], config)
+
+    def batch(
+        self,
+        inputs: List[Blob],
+        config: RunnableConfig | List[RunnableConfig] | None = None,
+        *,
+        return_exceptions: bool = False,
+        **kwargs: Any | None,
+    ) -> List:
+        """Ingest a batch of files into the vectorstore."""
+        ids = []
+        for blob in inputs:
+            ids.extend(
+                ingest_blob(
+                    blob,
+                    MIMETYPE_BASED_PARSER,
+                    self.text_splitter,
+                    self.vectorstore,
+                    self.namespace,
+                )
+            )
+        return ids
 
 
-PG_CONNECTION_STRING = PGVector.connection_string_from_db_params(
-    driver="psycopg2",
-    host=os.environ["POSTGRES_HOST"],
-    port=int(os.environ["POSTGRES_PORT"]),
-    database=os.environ["POSTGRES_DB"],
-    user=os.environ["POSTGRES_USER"],
-    password=os.environ["POSTGRES_PASSWORD"],
-)
-vstore = _determine_azure_or_openai_embeddings()
-
+# Initialize the vector store
+vstore = get_vector_store()
 
 ingest_runnable = IngestRunnable(
     text_splitter=RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200),
