@@ -10,9 +10,6 @@ import mimetypes
 import os
 from typing import Any, BinaryIO, List, Optional
 
-from app.constants import VECTOR_DATABASE_PATH
-from app.ingest import ingest_blob
-from app.parsing import MIMETYPE_BASED_PARSER
 from fastapi import UploadFile
 from langchain_core.document_loaders.blob_loaders.schema import Blob
 from langchain_core.runnables import (
@@ -23,6 +20,10 @@ from langchain_core.runnables import (
 from langchain_core.vectorstores import VectorStore
 from langchain_openai import AzureOpenAIEmbeddings, OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter, TextSplitter
+
+from sema4ai_agent_server.constants import VECTOR_DATABASE_PATH
+from sema4ai_agent_server.ingest import ingest_blob
+from sema4ai_agent_server.parsing import MIMETYPE_BASED_PARSER
 
 
 def get_vector_store() -> VectorStore:
