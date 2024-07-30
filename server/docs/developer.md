@@ -2,31 +2,29 @@
 
 ## Quickstart with Docker
 
-This project supports a Docker-based setup, streamlining installation and execution. It automatically builds images for 
-the frontend and backend and sets up Postgres using docker-compose.
-
+This project supports a Docker-based setup, streamlining installation and execution. It automatically builds images for the frontend and backend and sets up Postgres using docker-compose.
 
 1. **Prerequisites:**  
-    Ensure you have Docker and docker-compose installed on your system.
-
+   Ensure you have `Docker` and `docker-compose` installed on your system.
 
 2. **Clone the Repository:**  
    Obtain the project files by cloning the repository.
 
-   ```
-   git clone https://github.com/langchain-ai/opengpts.git
-   cd opengpts
+   ```shell
+   git clone https://github.com/Sema4AI/opengpts-private.git
+   cd opengpts-private
    ```
 
 3. **Set Up Environment Variables:**  
-   Create a `.env` file in the root directory of the project by copying `.env.example` as a template, and add the 
+   Create a `.env` file in the root directory of the project by copying `.env.example` as a template, and add the
    following environment variables:
+
    ```shell
    # At least one language model API key is required
    OPENAI_API_KEY=sk-...
    # LANGCHAIN_TRACING_V2=true
    # LANGCHAIN_API_KEY=...
-   
+
    # Setup for Postgres. Docker compose will use these values to set up the database.
    POSTGRES_PORT=5432
    POSTGRES_DB=opengpts
@@ -36,103 +34,110 @@ the frontend and backend and sets up Postgres using docker-compose.
 
    Replace `sk-...` with your OpenAI API key and `...` with your LangChain API key.
 
-
 4. **Run with Docker Compose:**  
    In the root directory of the project, execute:
 
-   ```
+   ```shell
    docker compose up
    ```
 
-   This command builds the Docker images for the frontend and backend from their respective Dockerfiles and starts all 
-   necessary services, including Postgres.
+   This command builds the Docker images for the frontend and backend from their respective Dockerfiles and starts all   necessary services, including Postgres.
 
 5. **Access the Application:**  
-   With the services running, access the frontend at [http://localhost:5173](http://localhost:5173), substituting `5173` with the 
-   designated port number.
-
+   With the services running, access the frontend at [http://localhost:5173](http://localhost:5173), substituting `5173` with the designated port number.
 
 6. **Rebuilding After Changes:**  
    If you make changes to either the frontend or backend, rebuild the Docker images to reflect these changes. Run:
-   ```
+
+   ```shell
    docker compose up --build
    ```
-   This command rebuilds the images with your latest changes and restarts the services.
 
+This command rebuilds the images with your latest changes and restarts the services.
 
 ## Quickstart without Docker
 
-**Prerequisites**
-The following instructions assume you have Python 3.11+ installed on your system. We strongly recommend using a virtual 
-environment to manage dependencies.
+1. **Prerequisites**
+   The following instructions assume you have Python 3.11+ installed on your system. We strongly recommend using a virtual environment to manage dependencies.
 
-For example, if you are using `pyenv`, you can create a new virtual environment with:
-```shell
-pyenv install 3.11
-pyenv virtualenv 3.11 opengpts
-pyenv activate opengpts
-```
+   For example, if you are using `pyenv`, you can create a new virtual environment with:
 
-Once your Python environment is set up, you can install the project dependencies:
+   ```shell
+   pyenv install 3.11
+   pyenv virtualenv 3.11 opengpts
+   pyenv activate opengpts
+   ```
 
-The backend service uses [poetry](https://python-poetry.org/docs/#installation) to manage dependencies.
+   If you are using `anaconda`, you can create a new virtual environment with:
 
-```shell 
-pip install poetry
-pip install langchain-community
-```
+   ```shell
+   conda create -n opengpts python=3.11 pip
+   conda activate opengpts
+   ```
 
-**Install Postgres and the Postgres Vector Extension**
-```
-brew install postgresql pgvector
-brew services start postgresql
-```
+   Once your Python environment is set up, you can install the project dependencies:
 
-**Configure persistence layer**
+   The backend service uses [poetry](https://python-poetry.org/docs/#installation) to manage dependencies.
 
-The backend uses Postgres for saving agent configurations and chat message history.
-In order to use this, you need to set the following environment variables:
+   ```shell
+   pip install poetry
+   pip install langchain-community
+   ```
 
-```shell
-export POSTGRES_HOST=localhost
-export POSTGRES_PORT=5432
-export POSTGRES_DB=opengpts
-export POSTGRES_USER=postgres
-export POSTGRES_PASSWORD=...
-```
+2. **Install Postgres and the Postgres Vector Extension**
 
-**Create the database**
-```shell
-createdb opengpts
-```
+   ```shell
+   brew install postgresql pgvector
+   brew services start postgresql
+   ```
 
-**Connect to the database and create the `postgres` role**
-```shell
-psql -d opengpts
-```
+3. **Configure persistence layer**
 
-```sql
-CREATE ROLE postgres WITH LOGIN SUPERUSER CREATEDB CREATEROLE;
-```
+   The backend uses Postgres for saving agent configurations and chat message history.
+   In order to use this, you need to set the following environment variables:
 
-**Install Golang Migrate**
+   ```shell
+   export POSTGRES_HOST=localhost
+   export POSTGRES_PORT=5432
+   export POSTGRES_DB=opengpts
+   export POSTGRES_USER=postgres
+   export POSTGRES_PASSWORD=...
+   ```
 
-Database migrations are managed with [golang-migrate](https://github.com/golang-migrate/migrate). 
+4. **Create the database**
 
-On MacOS, you can install it with `brew install golang-migrate`. Instructions for other OSs or the Golang toolchain, 
-can be found [here](https://github.com/golang-migrate/migrate/blob/master/cmd/migrate/README.md#installation).
+   ```shell
+   createdb opengpts
+   ```
 
-Once `golang-migrate` is installed, you can run all the migrations with:
-```shell
-make migrate
-```
+5. **Connect to the database and create the `postgres` role**
 
-This will enable the backend to use Postgres as a vector database and create the initial tables.
+   ```shell
+   psql -d opengpts
+   ```
 
+   ```sql
+   CREATE ROLE postgres WITH LOGIN SUPERUSER CREATEDB CREATEROLE;
+   ```
 
-**Install backend dependencies**
-```shell
-cd backend
-poetry install
-```
+6. **Install Golang Migrate**
 
+   Database migrations are managed with [golang-migrate](https://github.com/golang-migrate/migrate).
+
+   On MacOS, you can install it with `brew install golang-migrate`. Instructions for other OSs or the Golang toolchain,
+   can be found [here](https://github.com/golang-migrate/migrate/blob/master/cmd/migrate/README.md#installation).
+
+   Once `golang-migrate` is installed, you can run all the migrations with:
+
+   ```shell
+   make migrate-postgres
+   ```
+
+   This will enable the backend to use Postgres as a vector database and create the initial tables.
+
+7. **Install backend dependencies**
+
+   ```shell
+   cd backend
+   poetry install
+   ```
