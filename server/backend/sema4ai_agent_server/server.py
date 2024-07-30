@@ -146,9 +146,7 @@ async def update_action_server_ports(port_map: dict[str, str]) -> dict:
 
     for assistant in assistants:
         updated = False
-        for tool in (
-            assistant["config"].get("configurable", {}).get("type==agent/tools", [])
-        ):
+        for tool in assistant["config"].get("configurable", {}).get("tools", []):
             if tool["type"] != AvailableTools.ACTION_SERVER:
                 continue
 
