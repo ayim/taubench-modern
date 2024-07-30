@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import asyncpg
 
-from tests.unit_tests.app.helpers import get_client
+from tests.unit_tests.sema4ai_agent_server.helpers import get_client
 
 
 def _project(d: dict, *, exclude_keys: Optional[Sequence[str]]) -> dict:

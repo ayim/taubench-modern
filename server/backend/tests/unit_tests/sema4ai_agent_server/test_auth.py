@@ -15,7 +15,7 @@ from sema4ai_agent_server.auth.settings import (
     settings as auth_settings,
 )
 from sema4ai_agent_server.server import app
-from tests.unit_tests.app.helpers import get_client
+from tests.unit_tests.sema4ai_agent_server.helpers import get_client
 
 
 @app.get("/me")
@@ -98,7 +98,7 @@ async def test_jwt_oidc():
     mock_jwk_client.get_signing_key.return_value = MagicMock(key=key)
 
     with patch(
-        "app.auth.handlers.JWTAuthOIDC._get_jwk_client", return_value=mock_jwk_client
+        "sema4ai_agent_server.auth.handlers.JWTAuthOIDC._get_jwk_client", return_value=mock_jwk_client
     ):
         async with get_client() as client:
             response = await client.get(
