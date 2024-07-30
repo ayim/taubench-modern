@@ -3,7 +3,7 @@ import mimetypes
 
 from langchain_community.document_loaders import Blob
 
-from app.parsing import MIMETYPE_BASED_PARSER, SUPPORTED_MIMETYPES
+from sema4ai_agent_server.parsing import MIMETYPE_BASED_PARSER, SUPPORTED_MIMETYPES
 from tests.unit_tests.fixtures import get_sample_paths
 
 

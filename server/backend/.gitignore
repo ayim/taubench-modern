@@ -1,2 +1,5 @@
 .envrc
 ui
+chroma_db
+opengpts.db
+

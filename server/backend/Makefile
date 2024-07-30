@@ -13,10 +13,10 @@ all: help
 TEST_FILE ?= tests/unit_tests/
 
 start:
-	poetry run uvicorn app.server:app --port 8100 --log-config log_config.json
+	poetry run uvicorn sema4ai_agent_server.server:app --port 8100 --log-config log_config.json
 
 migrate-postgres:
-	migrate -database postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)?sslmode=disable -path ./migrations/postgres up
+	migrate -database postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)?sslmode=disable -path ./sema4ai_agent_server/migrations/postgres up
 
 test:
 	# We need to update handling of env variables for tests
