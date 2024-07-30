@@ -98,7 +98,8 @@ async def test_jwt_oidc():
     mock_jwk_client.get_signing_key.return_value = MagicMock(key=key)
 
     with patch(
-        "sema4ai_agent_server.auth.handlers.JWTAuthOIDC._get_jwk_client", return_value=mock_jwk_client
+        "sema4ai_agent_server.auth.handlers.JWTAuthOIDC._get_jwk_client",
+        return_value=mock_jwk_client,
     ):
         async with get_client() as client:
             response = await client.get(
