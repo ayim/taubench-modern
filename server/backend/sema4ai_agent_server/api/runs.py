@@ -108,7 +108,7 @@ async def stream_run(
     input_, config, thread, _ = await _run_input_and_config(payload, user["user_id"])
     if langsmith_client:
         if url := get_langsmith_thread_url(langsmith_client, thread["thread_id"]):
-            save_langsmith_thread_url(thread, url)
+            await save_langsmith_thread_url(thread, url)
     return EventSourceResponse(to_sse(astream_state(agent, input_, config)))
 
 
