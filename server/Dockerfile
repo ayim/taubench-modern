@@ -15,7 +15,7 @@ RUN wget -O golang-migrate.deb https://github.com/golang-migrate/migrate/release
 RUN pip install poetry
 
 # Set the working directory
-WORKDIR /backend
+WORKDIR /app
 
 # Copy only dependencies
 COPY pyproject.toml poetry.lock* ./

@@ -2,13 +2,14 @@
 .env.gcp.yaml
 postgres-volume/
 redis-volume/
-backend/ui
+chroma_db/
 
 # Operating System generated files
 .DS_Store
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+opengpts.db
 
 # Python artifacts
 __pycache__/

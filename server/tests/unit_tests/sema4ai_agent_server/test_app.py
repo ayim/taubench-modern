@@ -2,9 +2,9 @@
 from typing import Optional, Sequence
 from unittest import skip
 from uuid import uuid4
-import pytest
 
 import asyncpg
+import pytest
 
 from tests.unit_tests.sema4ai_agent_server.helpers import get_client
 
