@@ -1,8 +1,8 @@
 """Test the server and client together."""
-
 from typing import Optional, Sequence
 from unittest import skip
 from uuid import uuid4
+import pytest
 
 import asyncpg
 
@@ -13,6 +13,11 @@ def _project(d: dict, *, exclude_keys: Optional[Sequence[str]]) -> dict:
     """Return a dict with only the keys specified."""
     _exclude = set(exclude_keys) if exclude_keys else set()
     return {k: v for k, v in d.items() if k not in _exclude}
+
+
+@pytest.fixture()
+async def pool():
+    print("pool created")
 
 
 @skip("TODO: Remove references to postgres and use sqlite for unit tests.")
