@@ -1,4 +1,4 @@
-.PHONY: all lint format test help publish
+.PHONY: all lint format test help publish start migrate-postgres test_watch spell_check spell_fix install-hooks uninstall-hooks
 
 SHELL := /bin/bash
 
@@ -19,13 +19,10 @@ migrate-postgres:
 	migrate -database postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)?sslmode=disable -path ./sema4ai_agent_server/migrations/postgres up
 
 test:
-	# We need to update handling of env variables for tests
-	YDC_API_KEY=placeholder OPENAI_API_KEY=placeholder poetry run pytest $(TEST_FILE)
-
+	poetry run pytest $(TEST_FILE)
 
 test_watch:
-	# We need to update handling of env variables for tests
-	YDC_API_KEY=placeholder OPENAI_API_KEY=placeholder poetry run ptw . -- $(TEST_FILE)
+	poetry run ptw . -- $(TEST_FILE)
 
 ######################
 # LINTING AND FORMATTING
@@ -51,18 +48,55 @@ spell_fix:
 	poetry run codespell --toml pyproject.toml -w
 
 ######################
+# GIT HOOKS
+######################
+
+ifeq ($(OS),Windows_NT)
+install-hooks:
+	@echo "Installing Git hooks..."
+	copy scripts\pre-commit.bat .git\hooks\pre-commit.bat
+	copy scripts\pre-push.bat .git\hooks\pre-push.bat
+	@echo "Git hooks installed successfully!"
+
+uninstall-hooks:
+	@echo "Uninstalling Git hooks..."
+	del /Q .git\hooks\pre-commit.bat
+	del /Q .git\hooks\pre-push.bat
+	@echo "Git hooks uninstalled successfully!"
+else
+install-hooks:
+	@echo "Installing Git hooks..."
+	cp scripts/pre-commit .git/hooks/pre-commit
+	cp scripts/pre-push .git/hooks/pre-push
+	chmod +x .git/hooks/pre-commit .git/hooks/pre-push
+	@echo "Git hooks installed successfully!"
+
+uninstall-hooks:
+	@echo "Uninstalling Git hooks..."
+	rm -f .git/hooks/pre-commit
+	rm -f .git/hooks/pre-push
+	@echo "Git hooks uninstalled successfully!"
+endif
+
+######################
 # HELP
 ######################
 
 help:
 	@echo '===================='
-	@echo '-- LINTING --'
+	@echo '-- LINTING AND FORMATTING --'
 	@echo 'format                       - run code formatters'
 	@echo 'lint                         - run linters'
-	@echo 'spell_check                 	- run codespell on the project'
-	@echo 'spell_fix                		- run codespell on the project and fix the errors'
+	@echo 'spell_check                  - run codespell on the project'
+	@echo 'spell_fix                    - run codespell on the project and fix the errors'
 	@echo '-- TESTS --'
-	@echo 'coverage                     - run unit tests and generate coverage report'
 	@echo 'test                         - run unit tests'
 	@echo 'test TEST_FILE=<test_file>   - run all tests in file'
+	@echo 'test_watch                   - run tests in watch mode'
+	@echo '-- GIT HOOKS --'
+	@echo 'install-hooks                - install Git pre-commit and pre-push hooks'
+	@echo 'uninstall-hooks              - uninstall Git hooks'
+	@echo '-- OTHER --'
+	@echo 'start                        - start the application server'
+	@echo 'migrate-postgres             - run PostgreSQL migrations'
 	@echo '-- DOCUMENTATION tasks are from the top-level Makefile --'

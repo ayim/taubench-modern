@@ -79,4 +79,5 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           SCARF_NO_ANALYTICS: true
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: make test

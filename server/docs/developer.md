@@ -141,3 +141,41 @@ This command rebuilds the images with your latest changes and restarts the servi
    cd backend
    poetry install
    ```
+
+## Git Hooks and Makefile
+
+This project uses Git hooks to ensure code quality and Makefile to streamline development tasks.
+
+### Git Hooks
+
+Two Git hooks are available:
+- Pre-commit hook: Runs formatting and linting checks
+- Pre-push hook: Runs unit tests
+
+To install the hooks:
+
+```shell
+make install-hooks
+```
+
+To uninstall the hooks:
+
+```shell
+make uninstall-hooks
+```
+
+### Makefile Commands
+
+The project includes several Makefile commands to assist with development:
+
+- `make format`: Run code formatters
+- `make lint`: Run linters
+- `make test`: Run unit tests
+- `make install-hooks`: Install Git hooks
+- `make uninstall-hooks`: Uninstall Git hooks
+
+For a full list of available commands, run:
+
+```shell
+make help
+```
