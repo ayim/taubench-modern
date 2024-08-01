@@ -208,7 +208,7 @@ def get_chatbot(
     elif llm_type == LLMType.OLLAMA:
         llm = get_ollama_llm()
     else:
-        raise ValueError("Unexpected llm type")
+        raise ValueError(f"Unexpected llm type ({llm_type})")
     return get_chatbot_executor(llm, system_message, CHECKPOINTER)
 
 
