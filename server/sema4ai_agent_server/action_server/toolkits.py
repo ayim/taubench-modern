@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Callable, Dict, List, Optional, TypedDict
+from typing import Any, Callable, Dict, List, Optional, Set, TypedDict
 from urllib.parse import urljoin
 
 import requests
@@ -117,12 +117,14 @@ class ActionServerToolkit(BaseModel):
         self,
         llm: Optional[BaseChatModel] = None,
         callback_manager: Optional[CallbackManager] = None,
+        whitelist: List[str] = None,
     ) -> List[BaseTool]:
         """
         Get Action Server actions as a toolkit
 
         :param llm: Optionally pass a model to return single input tools
         :param callback_manager: Callback manager to be passed to tools
+        :param whitelist: Complete list of actions to reveal, if None return all.
         """
 
         # Fetch and format the API spec
@@ -152,6 +154,8 @@ class ActionServerToolkit(BaseModel):
 
         toolkit: List[BaseTool] = []
 
+        whitelist_set: Set[str] = set(whitelist) if whitelist else set()
+
         # Prepare tools
         for endpoint, docs in api_spec.endpoints:
             if not endpoint.startswith("/api/actions"):
@@ -163,12 +167,21 @@ class ActionServerToolkit(BaseModel):
                 "callback_manager": callback_manager,
             }
 
+            if whitelist and tool_args["name"] not in whitelist_set:
+                continue
+
             if llm:
                 tool = self._get_unstructured_tool(endpoint, docs, tool_args, llm)
             else:
                 tool = self._get_structured_tool(endpoint, docs, tool_args)
 
             toolkit.append(tool)
+
+        if whitelist and whitelist_set != {tool.name for tool in toolkit}:
+            missing_tools = whitelist_set - {tool.name for tool in toolkit}
+            raise ValueError(
+                f"The following whitelisted tools were not found: {', '.join(missing_tools)}"
+            )
 
         return toolkit
 

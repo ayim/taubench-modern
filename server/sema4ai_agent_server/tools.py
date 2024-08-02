@@ -75,6 +75,7 @@ class BaseTool(BaseModel):
 class ActionServerConfig(ToolConfig):
     url: str
     api_key: str
+    whitelist: str
 
 
 class ActionServer(BaseTool):
@@ -292,7 +293,10 @@ def _get_action_server(**kwargs: ActionServerConfig):
         api_key=kwargs["api_key"],
         additional_headers=kwargs.get("additional_headers", {}),
     )
-    tools = toolkit.get_tools()
+    whitelist = [
+        name.strip() for name in kwargs.get("whitelist", "").split(",")
+    ] or None
+    tools = toolkit.get_tools(whitelist=whitelist)
     return tools
 
 
