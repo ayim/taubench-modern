@@ -13,6 +13,7 @@ from starlette.background import BackgroundTasks
 
 from sema4ai_agent_server.api import router as api_router
 from sema4ai_agent_server.auth.handlers import AuthedUser
+from sema4ai_agent_server.constants import UPLOAD_DIR
 from sema4ai_agent_server.log_config import setup_logging
 from sema4ai_agent_server.schema import UploadedFile
 from sema4ai_agent_server.storage.option import get_storage
@@ -22,8 +23,6 @@ from sema4ai_agent_server.upload import convert_ingestion_input_to_blob, ingest_
 setup_logging()
 logger = structlog.get_logger(__name__)
 
-SEMA4AIDESKTOP_HOME = os.getenv("S4_AGENT_SERVER_HOME", ".")
-UPLOAD_DIR = os.path.join(SEMA4AIDESKTOP_HOME, "uploads")
 # Ensure UPLOAD_DIR exists
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
