@@ -22,9 +22,9 @@ from langchain_community.utilities.arxiv import ArxivAPIWrapper
 from langchain_community.utilities.dalle_image_generator import DallEAPIWrapper
 from langchain_community.utilities.tavily_search import TavilySearchAPIWrapper
 from langchain_core.tools import Tool
-from langchain_robocorp import ActionServerToolkit
 from typing_extensions import TypedDict
 
+from sema4ai_agent_server.action_server import ActionServerToolkit
 from sema4ai_agent_server.upload import vstore
 
 
