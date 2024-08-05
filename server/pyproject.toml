@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sema4ai-agent-server"
-version = "0.2.17"
+version = "0.2.18"
 description = ""
 authors = ["Sema4.ai Engineering <engineering@sema4.ai>"]
 readme = "README.md"
