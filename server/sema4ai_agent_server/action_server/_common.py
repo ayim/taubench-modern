@@ -100,10 +100,10 @@ def create_field(
     """
     Creates a Pydantic field based on the schema definition.
     """
-    if "anyOf" in schema:
+    if "anyOf" in schema or "allOf" in schema:
         field_types = [
             create_field(sub_schema, required, created_model_names)[0]
-            for sub_schema in schema["anyOf"]
+            for sub_schema in (schema.get("anyOf") or schema.get("allOf"))
         ]
         if len(field_types) == 1:
             field_type = field_types[0]  # Simplified handling

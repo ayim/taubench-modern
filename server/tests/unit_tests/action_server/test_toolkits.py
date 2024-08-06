@@ -9,7 +9,6 @@ from langchain_core.utils.function_calling import (
     convert_to_openai_function,
     convert_to_openai_tool,
 )
-
 from sema4ai_agent_server.action_server.toolkits import ActionServerToolkit
 
 from ._fixtures import FakeChatLLMT
@@ -227,3 +226,159 @@ def test_get_tools_with_whitelist():
         # Test with None whitelist (should return all tools)
         all_tools = toolkit_instance.get_tools(whitelist=None)
         assert len(all_tools) == 5
+
+
+def test_get_tools_with_multi_level_nesting_and_field_requirements() -> None:
+    # Setup
+    toolkit_instance = ActionServerToolkit(
+        url="http://example.com", api_key="dummy_key"
+    )
+
+    fixture_path = Path(__file__).with_name("_openapi4.fixture.json")
+
+    with patch(
+        "sema4ai_agent_server.action_server.toolkits.requests.get"
+    ) as mocked_get, fixture_path.open("r") as f:
+        data = json.load(f)  # Using json.load directly on the file object
+        mocked_response = MagicMock()
+        mocked_response.json.return_value = data
+        mocked_response.status_code = 200
+        mocked_response.headers = {"Content-Type": "application/json"}
+        mocked_get.return_value = mocked_response
+
+        # Execute
+        tools = toolkit_instance.get_tools()
+
+        create_event_tool = tools[0]
+
+        openai_func_spec = convert_to_openai_function(create_event_tool)
+        params = openai_func_spec["parameters"]
+        recurrence = params["properties"]["event"]["allOf"][0]["properties"][
+            "recurrence"
+        ]
+
+        assert recurrence == {
+            "title": "Recurrence",
+            "description": "The recurrence of the event",
+            "allOf": [
+                {
+                    "title": "Recurrence",
+                    "type": "object",
+                    "properties": {
+                        "pattern": {
+                            "title": "Pattern",
+                            "description": "The frequency of an event",
+                            "allOf": [
+                                {
+                                    "title": "Pattern",
+                                    "type": "object",
+                                    "properties": {
+                                        "type": {
+                                            "title": "Type",
+                                            "description": "The recurrence pattern type: daily, weekly, absoluteMonthly, relativeMonthly, absoluteYearly, relativeYearly",
+                                            "type": "string",
+                                        },
+                                        "interval": {
+                                            "title": "Interval",
+                                            "description": "The number of units between occurrences, where units can be in days, weeks, months, or years, depending on the type",
+                                            "type": "integer",
+                                        },
+                                        "daysOfWeek": {
+                                            "title": "Daysofweek",
+                                            "description": "A collection of the days of the week on which the event occurs.If type is relativeMonthly or relativeYearly, and daysOfWeek specifies more than one day, the event falls on the first day that satisfies the pattern.Required if type is weekly, relativeMonthly, or relativeYearly",
+                                            "type": "array",
+                                            "items": {"type": "string"},
+                                        },
+                                        "dayOfMonth": {
+                                            "title": "Dayofmonth",
+                                            "description": "The day of the month on which the event occurs. Required if type is absoluteMonthly or absoluteYearly",
+                                            "type": "integer",
+                                        },
+                                        "firstDayOfWeek": {
+                                            "title": "Firstdayofweek",
+                                            "description": "The first day of the week on which the event occurs.Default is sunday. Required if type is weekly",
+                                            "type": "string",
+                                        },
+                                        "index": {
+                                            "title": "Index",
+                                            "description": "Specifies on which instance of the allowed days specified in daysOfWeek the event occurs, counted from the first instance in the month. The possible values are: first, second, third, fourth, last.Default is first. Optional and used if type is relativeMonthly or relativeYearly",
+                                            "type": "string",
+                                        },
+                                        "month": {
+                                            "title": "Month",
+                                            "description": "The month in which the event occurs. This is a number from 1 to 12",
+                                            "type": "integer",
+                                        },
+                                    },
+                                    "required": ["type", "interval", "daysOfWeek"],
+                                }
+                            ],
+                        },
+                        "range": {
+                            "title": "Range",
+                            "description": "The duration of an event",
+                            "allOf": [
+                                {
+                                    "title": "Range",
+                                    "type": "object",
+                                    "properties": {
+                                        "type": {
+                                            "title": "Type",
+                                            "description": "The recurrence range. The possible values are: endDate, noEnd, numbered.endDate -> Range with end date and requires: type, startDate, endDatenoEnd -> Range without an end date and requires: type, startDatenumbered -> Range with specific number of occurrences and requires: type, startDate, numberOfOccurrences",
+                                            "type": "string",
+                                        },
+                                        "startDate": {
+                                            "title": "Startdate",
+                                            "description": "The date to start applying the recurrence pattern. The first occurrence of the meeting may be this date or later, depending on the recurrence pattern of the event. Must be the same value as the start property of the recurring event.",
+                                            "type": "string",
+                                        },
+                                        "endDate": {
+                                            "title": "Enddate",
+                                            "description": "The date to stop applying the recurrence pattern. Depending on the recurrence pattern of the event, the last occurrence of the meeting may not be this date.Required if type is endDate.",
+                                            "type": "string",
+                                        },
+                                        "numberOfOccurrences": {
+                                            "title": "Numberofoccurrences",
+                                            "description": "The number of times to repeat the event. Required and must be positive if type is numbered.",
+                                            "type": "integer",
+                                        },
+                                    },
+                                    "required": ["type", "startDate"],
+                                }
+                            ],
+                        },
+                    },
+                    "required": ["pattern", "range"],
+                }
+            ],
+        }
+
+        attendees = params["properties"]["event"]["allOf"][0]["properties"]["attendees"]
+
+        assert attendees == {
+            "title": "Attendees",
+            "description": "The list of attendees",
+            "type": "array",
+            "items": {
+                "title": "AddAttendee",
+                "type": "object",
+                "properties": {
+                    "type": {
+                        "title": "Type",
+                        "description": "The attendee type: required, optional, resource",
+                        "type": "string",
+                    },
+                    "email": {
+                        "title": "Email",
+                        "description": "The email address of the attendee",
+                        "type": "string",
+                    },
+                    "name": {
+                        "title": "Name",
+                        "description": "The name of the attendee",
+                        "type": "string",
+                    },
+                },
+                "required": ["type", "email"],
+            },
+        }
