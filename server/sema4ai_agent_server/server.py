@@ -207,7 +207,7 @@ def main():
     )
 
     args = parser.parse_args()
-    uvicorn.run("app.server:app", host="0.0.0.0", port=args.port, reload=args.reload)
+    uvicorn.run("server:app", host="0.0.0.0", port=args.port, reload=args.reload)
 
 
 if __name__ == "__main__":

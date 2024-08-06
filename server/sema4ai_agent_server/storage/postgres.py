@@ -12,7 +12,8 @@ from sema4ai_agent_server.storage import BaseStorage
 
 class PostgresStorage(BaseStorage):
     async def list_all_assistants(self) -> List[Assistant]:
-        raise NotImplementedError
+        async with get_pg_pool().acquire() as conn:
+            return await conn.fetch("SELECT * FROM assistant ")
 
     async def assistant_count(self) -> int:
         """Get assistant row count"""
@@ -227,12 +228,12 @@ class PostgresStorage(BaseStorage):
 
     async def delete_assistant(self, user_id: str, assistant_id: str) -> None:
         """Delete an assistant by ID."""
-        conn = get_pg_pool().acquire()
-        conn.execute(
-            "DELETE FROM assistant WHERE assistant_id = $1 AND user_id = $2",
-            assistant_id,
-            user_id,
-        )
+        async with get_pg_pool().acquire() as conn:
+            await conn.execute(
+                "DELETE FROM assistant WHERE assistant_id = $1 AND user_id = $2",
+                assistant_id,
+                user_id,
+            )
 
     async def list_threads(self, user_id: str) -> List[Thread]:
         """List all threads for the current user."""
