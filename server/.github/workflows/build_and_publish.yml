@@ -1,4 +1,4 @@
-name: Build and Publish Wheel
+name: Build and Publish Source Distribution
 
 on:
   push:
@@ -21,17 +21,17 @@ jobs:
       - name: Install Poetry and Dependencies
         run: pip install poetry toml
 
-      - name: Install dependencies
-        run: poetry install
+      - name: Install project dependencies
+        run: poetry install --no-interaction --no-root
 
-      - name: Build wheel
-        run: poetry build
+      - name: Build source distribution
+        run: poetry build -f sdist
 
-      - name: Upload wheel as artifact
+      - name: Upload source distribution as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: sema4ai_agent_server_wheel
-          path: ./dist/*.whl
+          name: sema4ai_agent_server_sdist
+          path: ./dist/*.tar.gz
 
       - name: Set Release Version
         id: set_release_version
@@ -43,4 +43,6 @@ jobs:
         with:
           tag_name: ${{ env.RELEASE_VERSION }}
           name: Release ${{ env.RELEASE_VERSION }}
-          files: ./dist/*.whl
+          files: ./dist/*.tar.gz
+          draft: false
+          prerelease: false
