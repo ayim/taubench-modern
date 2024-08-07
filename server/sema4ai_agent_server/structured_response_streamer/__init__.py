@@ -9,7 +9,7 @@ from typing import AsyncGenerator, Sequence, cast
 import structlog
 from langchain_core.messages import AIMessageChunk, ToolCall
 
-from app.structured_response_streamer.field_streamer import (
+from sema4ai_agent_server.structured_response_streamer.field_streamer import (
     FieldStreamerType,
     StopStreamerLoop,
     field_streamer,
