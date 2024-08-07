@@ -210,7 +210,9 @@ what was expected to be completed and the remaining steps in the plan.
 Review the objective, the last step executed, and the team thread, then perform the \
 following in order:
 
-1. Determine if the last step was properly completed.
+1. Determine if the last step was properly completed. If it was not, consider how to modify the \
+step and rest of the plan to ensure the objective is met. Consider how the agent had responded \
+and if that indicates you should consider writing the step using a different approach.
 2. Consider if the objective is accomplished at this point.
 3. Consider if the last message in the thread provides a response to the objective.
 4. Consider if the remaining steps are appropriate based on your previous analysis.
@@ -266,7 +268,9 @@ what was expected to be completed and the remaining steps in the plan.
 Review the objective, the last step executed, and the team thread, then perform the \
 following in order:
 
-1. Determine if the last step was properly completed.
+1. Determine if the last step was properly completed. If it was not, consider how to modify the \
+step and rest of the plan to ensure the objective is met. Consider how the agent had responded \
+and if that indicates you should consider writing the step using a different approach.
 2. Consider if the objective is accomplished at this point.
 3. Consider if the last message in the thread provides a response to the objective.
 4. Consider if the remaining steps are appropriate based on your previous analysis.
@@ -325,7 +329,9 @@ what was expected to be completed and the remaining steps in the plan.
 Review the objective, the last step executed, and the team thread, then perform the \
 following in order:
 
-1. Determine if the last step was properly completed.
+1. Determine if the last step was properly completed. If it was not, consider how to modify the \
+step and rest of the plan to ensure the objective is met. Consider how the agent had responded \
+and if that indicates you should consider writing the step using a different approach.
 2. Consider if the objective is accomplished at this point.
 3. Consider if the last message in the thread provides a response to the objective.
 4. Consider if the remaining steps are appropriate based on your previous analysis.
