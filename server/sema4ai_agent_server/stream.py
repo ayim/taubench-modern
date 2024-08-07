@@ -24,8 +24,8 @@ from openai import (
     APIStatusError,
 )
 
-from app.message_types import ToolEventMessage
-from app.structured_response_streamer import (
+from sema4ai_agent_server.message_types import ToolEventMessage
+from sema4ai_agent_server.structured_response_streamer import (
     StructuredResponseStreamerType,
     structured_response_streamer,
 )
