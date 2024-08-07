@@ -142,6 +142,25 @@ This command rebuilds the images with your latest changes and restarts the servi
    poetry install
    ```
 
+### Using `local_start.sh` Script
+
+1. **Prerequisites**
+   Ensure you have Python 3.11+ installed on your system, along with `poetry`, `make`, and `docker-compose`. 
+
+2. **Run the Script**
+   The `local_start.sh` script is provided to simplify the process of setting up and starting the backend server. It handles the following tasks:
+   - Starts a PostgreSQL service using Docker
+   - Applies database migrations for PostgreSQL
+   - Installs Python dependencies
+   - Starts the Agent Server
+
+   To run the script:
+   ```shell
+   ./local_start.sh
+   ```
+
+This will start the necessary services and backend server, making the application available.
+
 ## Git Hooks and Makefile
 
 This project uses Git hooks to ensure code quality and Makefile to streamline development tasks.
