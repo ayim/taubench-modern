@@ -58,11 +58,10 @@ async def _run_input_and_config(payload: CreateRunPayload, user_id: str):
 
     current_datetime = _current_timestamp_with_iso_week_local()
     configurable = config["configurable"]
-    for key in configurable:
-        if key.endswith("/system_message"):
-            configurable[key] = configurable[key].replace(
-                "${CURRENT_DATETIME}", current_datetime
-            )
+    if "system_message" in configurable:
+        configurable["system_message"] = configurable["system_message"].replace(
+            "${CURRENT_DATETIME}", current_datetime
+        )
 
     try:
         input_ = (
