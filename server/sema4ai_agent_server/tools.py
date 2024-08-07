@@ -293,10 +293,7 @@ def _get_action_server(**kwargs: ActionServerConfig):
         api_key=kwargs["api_key"],
         additional_headers=kwargs.get("additional_headers", {}),
     )
-    whitelist = [
-        name.strip() for name in kwargs.get("whitelist", "").split(",")
-    ] or None
-    tools = toolkit.get_tools(whitelist=whitelist)
+    tools = toolkit.get_tools(whitelist=kwargs.get("whitelist", ""))
     return tools
 
 

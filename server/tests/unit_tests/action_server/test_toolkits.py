@@ -206,13 +206,13 @@ def test_get_tools_with_whitelist():
         mocked_get.return_value = mocked_response
 
         # Test with a valid whitelist
-        whitelist = ["add_sheet_rows", "get_google_spreadsheet_schema"]
+        whitelist = ",".join(["add_sheet_rows", "get_google_spreadsheet_schema"])
         tools = toolkit_instance.get_tools(whitelist=whitelist)
         assert len(tools) == 2
-        assert set(tool.name for tool in tools) == set(whitelist)
+        assert set(tool.name for tool in tools) == set(whitelist.split(","))
 
         # Test with an invalid whitelist (containing a non-existent tool)
-        invalid_whitelist = ["add_sheet_rows", "non_existent_tool"]
+        invalid_whitelist = ",".join(["add_sheet_rows", "non_existent_tool"])
         with pytest.raises(ValueError) as exc_info:
             toolkit_instance.get_tools(whitelist=invalid_whitelist)
         assert (
@@ -220,13 +220,15 @@ def test_get_tools_with_whitelist():
             in str(exc_info.value)
         )
 
-        # Test with an empty whitelist
-        empty_whitelist_tools = toolkit_instance.get_tools(whitelist=[])
-        assert len(empty_whitelist_tools) == 5
+        # Test with whitelist of one
+        whitelist = "get_google_spreadsheet_schema"
+        tools = toolkit_instance.get_tools(whitelist=whitelist)
+        assert len(tools) == 1
+        assert tools[0].name == whitelist
 
-        # Test with None whitelist (should return all tools)
-        all_tools = toolkit_instance.get_tools(whitelist=None)
-        assert len(all_tools) == 5
+        # Test with an empty whitelist
+        empty_whitelist_tools = toolkit_instance.get_tools(whitelist="")
+        assert len(empty_whitelist_tools) == 5
 
 
 def test_get_tools_with_multi_level_nesting_and_field_requirements() -> None:
