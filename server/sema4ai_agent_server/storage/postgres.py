@@ -251,7 +251,7 @@ class PostgresStorage(BaseStorage):
 
     async def get_thread_state(self, user_id: str, thread_id: str):
         """Get state for a thread."""
-        app = get_agent_executor([], AgentType.GPT_35_TURBO, "", False, 0)
+        app = get_agent_executor([], AgentType.GPT_35_TURBO, "", False, 0, "default")
         state = app.get_state({"configurable": {"thread_id": thread_id}})
         return {
             "values": state.values,
@@ -285,12 +285,10 @@ class PostgresStorage(BaseStorage):
 
     async def get_thread_history(self, user_id: str, thread_id: str):
         """Get the history of a thread."""
-        app = await get_agent_executor([], AgentType.GPT_35_TURBO, "", False)
+        app = get_agent_executor([], AgentType.GPT_35_TURBO, "", False, 0, "default")
 
         history = []
-        async for c in app.get_state_history(
-            {"configurable": {"thread_id": thread_id}}
-        ):
+        for c in app.get_state_history({"configurable": {"thread_id": thread_id}}):
             history.append(
                 {
                     "values": c.values,
