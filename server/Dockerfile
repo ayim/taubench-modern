@@ -4,12 +4,13 @@ FROM python:3.11
 ARG TARGETOS
 ARG TARGETARCH
 ARG TARGETVARIANT
+ARG AGENT_SERVER_PORT=8100
+
+# Convert ARG to ENV
+ENV AGENT_SERVER_PORT=${AGENT_SERVER_PORT}
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
-RUN wget -O golang-migrate.deb https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.${TARGETOS}-${TARGETARCH}${TARGETVARIANT}.deb \
-    && dpkg -i golang-migrate.deb \
-    && rm golang-migrate.deb
 
 # Install Poetry
 RUN pip install poetry
@@ -30,6 +31,7 @@ COPY . .
 # Install any missing dependencies
 RUN poetry install --no-interaction --no-ansi
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --start-interval=1s --retries=3 CMD [ "curl", "-f", "http://localhost:8100/health" ]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --start-interval=1s --retries=3 CMD sh -c "curl -f http://localhost:$AGENT_SERVER_PORT/health"
 
-ENTRYPOINT [ "poetry", "run", "uvicorn", "sema4ai_agent_server.server:app", "--host", "0.0.0.0", "--port", "8100" ]
+# Use a shell to ensure that the environment variable AGENT_SERVER_PORT is handled
+ENTRYPOINT poetry run uvicorn sema4ai_agent_server.server:app --host 0.0.0.0 --port "$AGENT_SERVER_PORT"
