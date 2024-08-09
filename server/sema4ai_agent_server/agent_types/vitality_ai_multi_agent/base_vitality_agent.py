@@ -11,7 +11,8 @@ logger = structlog.getLogger(__name__)
 
 
 class BaseVitalityAgent:
-    def load_agent_prompt(self, filename):
+    @classmethod
+    def load_agent_prompt(cls, filename):
         """
         Loads the agent prompt from a file.
 

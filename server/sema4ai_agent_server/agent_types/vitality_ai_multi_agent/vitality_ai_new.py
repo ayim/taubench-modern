@@ -1,5 +1,6 @@
 from langchain.tools import BaseTool
 from langchain_core.language_models.base import LanguageModelLike
+from langchain_openai import ChatOpenAI
 from langgraph.checkpoint import BaseCheckpointSaver
 from langgraph.graph.message import StateGraph
 from structlog import get_logger
@@ -11,20 +12,17 @@ from sema4ai_agent_server.agent_types.constants import (
 from sema4ai_agent_server.agent_types.vitality_ai_multi_agent.clinical_data_analyst_new import (
     ClinicalDataAnalyst,
 )
+from sema4ai_agent_server.agent_types.vitality_ai_multi_agent.data_retrieval_specilalist_new import (
+    DataRetrievalSpecialist,
+)
 from sema4ai_agent_server.agent_types.vitality_ai_multi_agent.doctor_vitality_new import (
     DoctorVitalityPlanner,
-)
-from sema4ai_agent_server.agent_types.vitality_ai_multi_agent.health_coach_new import (
-    HealthCoach,
 )
 from sema4ai_agent_server.agent_types.vitality_ai_multi_agent.lab_technician_new import (
     LabTechnician,
 )
 from sema4ai_agent_server.agent_types.vitality_ai_multi_agent.nurse_practitioner_new import (
     NursePractitionerNellyPlanManager,
-)
-from sema4ai_agent_server.agent_types.vitality_ai_multi_agent.pharmacist_new import (
-    Pharmacist,
 )
 from sema4ai_agent_server.agent_types.vitality_ai_multi_agent.reflective_practitioner_new import (
     ReflectivePractitioner,
@@ -34,6 +32,28 @@ from sema4ai_agent_server.agent_types.vitality_ai_multi_agent.state.graph_states
 )
 
 logger = get_logger(__name__)
+
+
+def _create_specialist_agent(
+    agent_type: str,
+    data_retriever_llm: ChatOpenAI,
+    tools: list[BaseTool],
+    prompt_filename: str,
+) -> DataRetrievalSpecialist:
+    """
+    Factory function to create specialized agents.
+
+    :param agent_type: Type of the agent to create (e.g., "Health Coach", "Pharmacist")
+    :param data_retriever_llm: The language model to use
+    :param tools: List of tools available to the agent
+    :param prompt_filename: Filename of the prompt to load
+    :return: An instance of DataRetrievalSpecialist configured for the specific agent type
+    """
+    objective_instructions = DataRetrievalSpecialist.load_agent_prompt(prompt_filename)
+
+    return DataRetrievalSpecialist(
+        data_retriever_llm, objective_instructions, tools, agent_type
+    )
 
 
 def get_tools_agent_executor(
@@ -59,8 +79,12 @@ def get_tools_agent_executor(
     nurse_practitioner_nelly_plan_manager = NursePractitionerNellyPlanManager(llm)
 
     # Specialists
-    pharmacist = Pharmacist(llm, tools)
-    health_coach = HealthCoach(llm, tools)
+    pharmacist = _create_specialist_agent(
+        "Pharmacist", llm, tools, "pharmacist_prompt.md"
+    )
+    health_coach = _create_specialist_agent(
+        "Health Coach", llm, tools, "health_coach_prompt.md"
+    )
     lab_tech = LabTechnician(llm, tools)
 
     # # Post Data Analysis Agents
