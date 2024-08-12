@@ -81,10 +81,10 @@ class AgentState(BaseModel):
 def get_tools_agent_executor(
     tools: list[BaseTool],
     llm: AgentType,
-    system_message: str,
+    name: str,
+    runbook: str,
     reasoning_level: int,
     interrupt_before_action: bool,
-    name: str,
     checkpoint: BaseCheckpointSaver,
 ):
     if not isinstance(llm, AGENT_TYPES):
@@ -98,7 +98,7 @@ def get_tools_agent_executor(
             f"Week {dt.strftime('%U')}]"
         )
 
-    def _get_messages(messages, system_message=system_message):
+    def _get_messages(messages, system_message=runbook):
         msgs = []
         for m in messages:
             if isinstance(m, LiberalToolMessage):
@@ -142,7 +142,7 @@ def get_tools_agent_executor(
             {
                 "agent_name": name,
                 "current_datetime": _format_date(datetime.now()),
-                "runbook": system_message,
+                "runbook": runbook,
                 "messages": _get_messages(combined_messages) + [reasoning_prompt],
             }
         )
@@ -168,7 +168,7 @@ def get_tools_agent_executor(
             {
                 "agent_name": name,
                 "current_datetime": _format_date(datetime.now()),
-                "runbook": system_message,
+                "runbook": runbook,
                 "messages": _get_messages(state.combined) + [retry_prompt],
             }
         )
@@ -185,7 +185,7 @@ def get_tools_agent_executor(
                 {
                     "agent_name": name,
                     "current_datetime": _format_date(datetime.now()),
-                    "runbook": system_message,
+                    "runbook": runbook,
                     "messages": _get_messages(state.combined),
                 }
             )
@@ -194,7 +194,7 @@ def get_tools_agent_executor(
                 {
                     "agent_name": name,
                     "current_datetime": _format_date(datetime.now()),
-                    "runbook": system_message,
+                    "runbook": runbook,
                     "messages": _get_messages(state.messages),
                 }
             )

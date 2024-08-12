@@ -103,10 +103,10 @@ def _get_executor_outcome_messages(
 def get_plan_execute_agent(
     tools: list[BaseTool],
     llm: AgentType,
-    system_message: str,
+    name: str,
+    runbook: str,
     interrupt_before_action: bool,
     reasoning_level: int,
-    agent_name: str,
     checkpoint: BaseCheckpointSaver,
 ):
     """Create a plan and execute agent graph that uses a planner, executor, and replanner.
@@ -159,9 +159,9 @@ def get_plan_execute_agent(
         prompt = PLANNER_PROMPTS[reasoning_level]
         messages = _get_messages(state.combined)
         input = {
-            "agent_name": agent_name,
+            "name": name,
             "datetime": datetime.now().isoformat(),
-            "runbook": system_message,
+            "runbook": runbook,
             "messages": messages,
         }
         offramper_agent: Runnable[LanguageModelInput, InitialPlanningResponse] = (
@@ -213,9 +213,9 @@ def get_plan_execute_agent(
         prompt = PLANNER_PROMPTS[reasoning_level]
         messages = _get_messages(state.combined)
         input = {
-            "agent_name": agent_name,
+            "name": name,
             "datetime": datetime.now().isoformat(),
-            "runbook": system_message,
+            "runbook": runbook,
             "messages": messages,
         }
         offramper_agent: Runnable[
@@ -279,10 +279,10 @@ def get_plan_execute_agent(
         agent = get_tools_agent_executor(
             tools,
             llm,
-            system_message,
+            name,
+            runbook,
             reasoning_level,
             interrupt_before_action,
-            agent_name,
             None,  # Subagent should not have a checkpointer
         )
         output = await agent.ainvoke(
@@ -304,15 +304,15 @@ def get_plan_execute_agent(
         """This node executes the next step and updates the executed plan with results.
         This node assumes reasoning_level == 0"""
         executor_system_message = step_executor_template(
-            agent_name, datetime.now().isoformat(), system_message
+            name, datetime.now().isoformat(), runbook
         )
         executor_agent = get_tools_agent_executor(
             tools,
             llm,
+            name,
             executor_system_message,
             reasoning_level,
             interrupt_before_action,
-            agent_name,
             None,  # Subagent should not have a checkpointer
         )
         current_step = cast(PlanStep, state.current_plan.steps[0])
@@ -349,15 +349,15 @@ def get_plan_execute_agent(
         """This node executes the next step and updates the executed plan with results.
         This node assumes reasoning_level > 0"""
         executor_system_message = step_executor_template(
-            agent_name, datetime.now().isoformat(), system_message
+            name, datetime.now().isoformat(), runbook
         )
         executor_agent = get_tools_agent_executor(
             tools,
             llm,
+            name,
             executor_system_message,
             reasoning_level,
             interrupt_before_action,
-            agent_name,
             None,  # Subagent should not have a checkpointer
         )
         current_step = cast(PlanStepWithThought, state.current_plan.steps[0])
@@ -415,9 +415,9 @@ def get_plan_execute_agent(
         remaining_steps = Plan(objective="", steps=state.current_plan.steps[1:])
 
         replanner_input = {
-            "agent_name": agent_name,
+            "name": name,
             "datetime": datetime.now().isoformat(),
-            "runbook": system_message,
+            "runbook": runbook,
             "messages": messages,
             "last_step": last_step.step,
             "remaining_steps": remaining_steps.steps_as_string(),
@@ -500,9 +500,9 @@ def get_plan_execute_agent(
         )
 
         replanner_input = {
-            "agent_name": agent_name,
+            "name": name,
             "datetime": datetime.now().isoformat(),
-            "runbook": system_message,
+            "runbook": runbook,
             "messages": messages,
             "last_step": last_step.step,
             "remaining_steps": remaining_steps.steps_as_string(),

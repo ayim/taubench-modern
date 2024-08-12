@@ -43,7 +43,7 @@ def planner_template(instructions: str) -> str:
 use markdown to format structured content.
 
 Our team name: <team_name>
-{{agent_name}}
+{{name}}
 </team_name>
 
 Current datetime (ISO 8601): <datetime>
@@ -135,12 +135,12 @@ job is to execute the current step of the plan developed by the planner to compl
 provided by the user."""
 
 
-def step_executor_template(agent_name: str, datetime: str, runbook: str) -> str:
+def step_executor_template(name: str, datetime: str, runbook: str) -> str:
     return f"""We use XML tags to help structure our team instructions. Runbooks \
 use markdown to format structured content.
 
 Our team name: <team_name>
-{agent_name}
+{name}
 </team_name>
 
 Current datetime (ISO 8601): <datetime>
@@ -172,7 +172,7 @@ def replanner_template(instructions: str) -> str:
 use markdown to format structured content.
 
 Our team name: <team_name>
-{{agent_name}}
+{{name}}
 </team_name>
 
 Current datetime (ISO 8601): <datetime>

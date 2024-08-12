@@ -73,7 +73,8 @@ class AgentType(str, Enum):
     OLLAMA = "Ollama"
 
 
-DEFAULT_SYSTEM_MESSAGE = "You are a helpful assistant."
+DEFAULT_RUNBOOK = "You are a helpful assistant."
+DEFAULT_NAME = "Agent"
 
 CHECKPOINTER = get_checkpointer()
 
@@ -81,10 +82,10 @@ CHECKPOINTER = get_checkpointer()
 def get_agent_executor(
     tools: list,
     agent: AgentType,
-    system_message: str,
+    name: str,
+    runbook: str,
     interrupt_before_action: bool,
     reasoning_level: int,
-    name: str,
 ):
     if agent == AgentType.GPT_35_TURBO:
         llm = get_openai_llm()
@@ -109,10 +110,10 @@ def get_agent_executor(
     return get_tools_agent_executor(
         tools,
         llm,
-        system_message,
+        name,
+        runbook,
         reasoning_level,
         interrupt_before_action,
-        name,
         CHECKPOINTER,
     )
 
@@ -120,27 +121,27 @@ def get_agent_executor(
 class ConfigurableAgent(RunnableBinding):
     tools: Sequence[Tool]
     agent: AgentType
-    system_message: str = DEFAULT_SYSTEM_MESSAGE
+    name: str = DEFAULT_NAME
+    runbook: str = DEFAULT_RUNBOOK
     retrieval_description: str = RETRIEVAL_DESCRIPTION
     interrupt_before_action: bool = False
     assistant_id: Optional[str] = None
     thread_id: Optional[str] = None
     user_id: Optional[str] = None
     reasoning_level: int = 0
-    name: Optional[str] = None
 
     def __init__(
         self,
         *,
         tools: Sequence[Tool],
         agent: AgentType = AgentType.GPT_35_TURBO,
-        system_message: str = DEFAULT_SYSTEM_MESSAGE,
+        name: str = DEFAULT_NAME,
+        runbook: str = DEFAULT_RUNBOOK,
         assistant_id: Optional[str] = None,
         thread_id: Optional[str] = None,
         retrieval_description: str = RETRIEVAL_DESCRIPTION,
         interrupt_before_action: bool = False,
         reasoning_level: int = 0,
-        name: Optional[str] = None,
         kwargs: Optional[Mapping[str, Any]] = None,
         config: Optional[Mapping[str, Any]] = None,
         **others: Any,
@@ -166,16 +167,16 @@ class ConfigurableAgent(RunnableBinding):
         _agent = get_agent_executor(
             _tools,
             agent,
-            system_message,
+            name,
+            runbook,
             interrupt_before_action,
             reasoning_level,
-            name,
         )
         agent_executor = _agent.with_config({"recursion_limit": 50})
         super().__init__(
             tools=tools,
             agent=agent,
-            system_message=system_message,
+            runbook=runbook,
             retrieval_description=retrieval_description,
             bound=agent_executor,
             kwargs=kwargs or {},
@@ -222,14 +223,14 @@ def get_chatbot(
 
 class ConfigurableChatBot(RunnableBinding):
     llm: LLMType
-    system_message: str = DEFAULT_SYSTEM_MESSAGE
+    system_message: str = DEFAULT_RUNBOOK
     user_id: Optional[str] = None
 
     def __init__(
         self,
         *,
         llm: LLMType = LLMType.GPT_35_TURBO,
-        system_message: str = DEFAULT_SYSTEM_MESSAGE,
+        system_message: str = DEFAULT_RUNBOOK,
         kwargs: Optional[Mapping[str, Any]] = None,
         config: Optional[Mapping[str, Any]] = None,
         **others: Any,
@@ -258,7 +259,7 @@ chatbot = (
 
 class ConfigurableRetrieval(RunnableBinding):
     llm_type: LLMType
-    system_message: str = DEFAULT_SYSTEM_MESSAGE
+    system_message: str = DEFAULT_RUNBOOK
     assistant_id: Optional[str] = None
     thread_id: Optional[str] = None
     user_id: Optional[str] = None
@@ -267,7 +268,7 @@ class ConfigurableRetrieval(RunnableBinding):
         self,
         *,
         llm_type: LLMType = LLMType.GPT_35_TURBO,
-        system_message: str = DEFAULT_SYSTEM_MESSAGE,
+        system_message: str = DEFAULT_RUNBOOK,
         assistant_id: Optional[str] = None,
         thread_id: Optional[str] = None,
         kwargs: Optional[Mapping[str, Any]] = None,
@@ -323,27 +324,27 @@ chat_retrieval = (
 class ConfigurablePlanExecute(RunnableBinding):
     tools: Sequence[Tool]
     agent: AgentType
-    system_message: str = DEFAULT_SYSTEM_MESSAGE
+    name: str = DEFAULT_NAME
+    runbook: str = DEFAULT_RUNBOOK
     retrieval_description: str = RETRIEVAL_DESCRIPTION
     interrupt_before_action: bool = False
     assistant_id: Optional[str] = None
     thread_id: Optional[str] = None
     user_id: Optional[str] = None
     reasoning_level: Optional[int] = None
-    name: Optional[str] = None
 
     def __init__(
         self,
         *,
         tools: Sequence[Tool],
         agent: AgentType = AgentType.GPT_35_TURBO,
-        system_message: str = DEFAULT_SYSTEM_MESSAGE,
+        name: str = DEFAULT_NAME,
+        runbook: str = DEFAULT_RUNBOOK,
         assistant_id: Optional[str] = None,
         thread_id: Optional[str] = None,
         retrieval_description: str = RETRIEVAL_DESCRIPTION,
         interrupt_before_action: bool = False,
         reasoning_level: Optional[int] = None,
-        name: Optional[str] = None,
         kwargs: Optional[Mapping[str, Any]] = None,
         config: Optional[Mapping[str, Any]] = None,
         **others: Any,
@@ -389,17 +390,17 @@ class ConfigurablePlanExecute(RunnableBinding):
         _agent = get_plan_execute_agent(
             _tools,
             llm,
-            system_message,
+            name,
+            runbook,
             interrupt_before_action,
             reasoning_level,
-            name,
             CHECKPOINTER,
         )
         agent_executor = _agent.with_config({"recursion_limit": 50})
         super().__init__(
             tools=tools,
             agent=agent,
-            system_message=system_message,
+            runbook=runbook,
             retrieval_description=retrieval_description,
             bound=agent_executor,
             kwargs=kwargs or {},
@@ -410,7 +411,7 @@ class ConfigurablePlanExecute(RunnableBinding):
 class ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(RunnableBinding):
     tools: Sequence[Tool]
     agent: AgentType
-    system_message: str = DEFAULT_SYSTEM_MESSAGE
+    system_message: str = DEFAULT_RUNBOOK
     retrieval_description: str = RETRIEVAL_DESCRIPTION
     interrupt_before_action: bool = False
     assistant_id: Optional[str] = None
@@ -422,7 +423,7 @@ class ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(RunnableBin
         *,
         tools: Sequence[Tool],
         agent: AgentType = AgentType.GPT_4O,
-        system_message: str = DEFAULT_SYSTEM_MESSAGE,
+        system_message: str = DEFAULT_RUNBOOK,
         assistant_id: Optional[str] = None,
         thread_id: Optional[str] = None,
         retrieval_description: str = RETRIEVAL_DESCRIPTION,
@@ -488,16 +489,17 @@ chat_plan_execute = (
     ConfigurablePlanExecute(
         tools=[],
         agent=AgentType.GPT_35_TURBO,
-        system_message=DEFAULT_SYSTEM_MESSAGE,
+        name=DEFAULT_NAME,
+        runbook=DEFAULT_RUNBOOK,
         retrieval_description=RETRIEVAL_DESCRIPTION,
         assistant_id=None,
         thread_id=None,
         reasoning_level=0,
-        name="Plan and Execute Agent",
     )
     .configurable_fields(
         agent=ConfigurableField(id="agent_type", name="Agent Type"),
-        system_message=ConfigurableField(id="system_message", name="Instructions"),
+        name=ConfigurableField(id="name", name="Agent Name"),
+        runbook=ConfigurableField(id="runbook", name="Instructions"),
         interrupt_before_action=ConfigurableField(
             id="interrupt_before_action",
             name="Tool Confirmation",
@@ -516,7 +518,6 @@ chat_plan_execute = (
             name="Reasoning Level",
             description="The level of reasoning the agent should use, 0 for no reasoning, 1 for succinct reasoning, 2 for verbose reasoning.",
         ),
-        name=ConfigurableField(id="name", name="Agent Name"),
     )
     .with_types(input_type=Dict[str, str], output_type=Sequence[AnyMessage])
 )
@@ -525,7 +526,7 @@ multi_agent_hierarchical_planning = (
     ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(
         tools=[],
         agent=AgentType.GPT_4O,
-        system_message=DEFAULT_SYSTEM_MESSAGE,
+        system_message=DEFAULT_RUNBOOK,
         retrieval_description=RETRIEVAL_DESCRIPTION,
         assistant_id=None,
         thread_id=None,
@@ -554,16 +555,17 @@ agent: Pregel = (
     ConfigurableAgent(
         agent=AgentType.GPT_35_TURBO,
         tools=[],
-        system_message=DEFAULT_SYSTEM_MESSAGE,
+        name=DEFAULT_NAME,
+        runbook=DEFAULT_RUNBOOK,
         retrieval_description=RETRIEVAL_DESCRIPTION,
         assistant_id=None,
         thread_id=None,
         reasoning_level=0,
-        name="Agent",
     )
     .configurable_fields(
         agent=ConfigurableField(id="agent_type", name="Agent Type"),
-        system_message=ConfigurableField(id="system_message", name="Instructions"),
+        name=ConfigurableField(id="name", name="Agent Name"),
+        runbook=ConfigurableField(id="runbook", name="Instructions"),
         interrupt_before_action=ConfigurableField(
             id="interrupt_before_action",
             name="Tool Confirmation",
@@ -582,7 +584,6 @@ agent: Pregel = (
             name="Reasoning Level",
             description="The level of reasoning the agent should use, 0 for no reasoning, 1 for succinct reasoning, 2 for verbose reasoning.",
         ),
-        name=ConfigurableField(id="name", name="Agent Name"),
     )
     .configurable_alternatives(
         ConfigurableField(id="type", name="Bot Type"),
