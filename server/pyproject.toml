@@ -1,10 +1,10 @@
 [tool.poetry]
 name = "sema4ai-agent-server"
-version = "0.2.24"
+version = "0.3.0"
 description = ""
 authors = ["Sema4.ai Engineering <engineering@sema4.ai>"]
 readme = "README.md"
-packages = [{include = "sema4ai_agent_server"}]
+packages = [{ include = "sema4ai_agent_server" }]
 
 [tool.poetry.dependencies]
 python = "^3.9.0,<3.12"
@@ -37,7 +37,7 @@ psycopg-pool = "3.2.2"
 psycopg2-binary = "2.9.9"
 psycopg2-pool = "1.2"
 pydantic = "1.10.13"
-pyjwt = {extras = ["crypto"], version = "^2.8.0"}
+pyjwt = { extras = ["crypto"], version = "^2.8.0" }
 python-json-logger = "2.0.7"
 python-multipart = "0.0.6"
 setuptools = "69.0.3"
@@ -46,7 +46,7 @@ structlog = "24.1.0"
 tenacity = "8.4.1"
 tiktoken = "0.5.2"
 tomli-w = "1.0.0"
-unstructured = {extras = ["doc", "docx"], version = "^0.12.5"}
+unstructured = { extras = ["doc", "docx"], version = "^0.12.5" }
 uvicorn = "0.23.2"
 wikipedia = "1.4.0"
 xmltodict = "0.13.0"
@@ -81,9 +81,7 @@ url = "https://sema4ai-710450854638.d.codeartifact.eu-west-1.amazonaws.com/pypi/
 priority = "supplemental"
 
 [tool.coverage.run]
-omit = [
-    "tests/*",
-]
+omit = ["tests/*"]
 
 [tool.pytest.ini_options]
 # --strict-markers will raise errors on unknown marks.
