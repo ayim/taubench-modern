@@ -74,6 +74,7 @@ class AgentType(str, Enum):
 
 
 DEFAULT_SYSTEM_MESSAGE = "You are a helpful assistant."
+DEFAULT_NAME = "Agent"
 
 CHECKPOINTER = get_checkpointer()
 
@@ -81,6 +82,7 @@ CHECKPOINTER = get_checkpointer()
 def get_agent_executor(
     tools: list,
     agent: AgentType,
+    name: str,
     system_message: str,
     interrupt_before_action: bool,
     reasoning_level: int,
@@ -109,6 +111,7 @@ def get_agent_executor(
     return get_tools_agent_executor(
         tools,
         llm,
+        name,
         system_message,
         reasoning_level,
         interrupt_before_action,
@@ -119,6 +122,7 @@ def get_agent_executor(
 class ConfigurableAgent(RunnableBinding):
     tools: Sequence[Tool]
     agent: AgentType
+    name: str = DEFAULT_NAME
     system_message: str = DEFAULT_SYSTEM_MESSAGE
     retrieval_description: str = RETRIEVAL_DESCRIPTION
     interrupt_before_action: bool = False
@@ -132,6 +136,7 @@ class ConfigurableAgent(RunnableBinding):
         *,
         tools: Sequence[Tool],
         agent: AgentType = AgentType.GPT_35_TURBO,
+        name: str = DEFAULT_NAME,
         system_message: str = DEFAULT_SYSTEM_MESSAGE,
         assistant_id: Optional[str] = None,
         thread_id: Optional[str] = None,
@@ -161,7 +166,12 @@ class ConfigurableAgent(RunnableBinding):
                 else:
                     _tools.append(_returned_tools)
         _agent = get_agent_executor(
-            _tools, agent, system_message, interrupt_before_action, reasoning_level
+            _tools,
+            agent,
+            name,
+            system_message,
+            interrupt_before_action,
+            reasoning_level,
         )
         agent_executor = _agent.with_config({"recursion_limit": 50})
         super().__init__(
@@ -528,6 +538,7 @@ agent: Pregel = (
     ConfigurableAgent(
         agent=AgentType.GPT_35_TURBO,
         tools=[],
+        name=DEFAULT_NAME,
         system_message=DEFAULT_SYSTEM_MESSAGE,
         retrieval_description=RETRIEVAL_DESCRIPTION,
         assistant_id=None,
@@ -536,6 +547,7 @@ agent: Pregel = (
     )
     .configurable_fields(
         agent=ConfigurableField(id="agent_type", name="Agent Type"),
+        name=ConfigurableField(id="name", name="Name"),
         system_message=ConfigurableField(id="system_message", name="Instructions"),
         interrupt_before_action=ConfigurableField(
             id="interrupt_before_action",

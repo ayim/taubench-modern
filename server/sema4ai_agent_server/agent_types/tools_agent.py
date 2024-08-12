@@ -23,6 +23,7 @@ from sema4ai_agent_server.agent_types.constants import (
     FINISH_NODE_KEY,
 )
 from sema4ai_agent_server.message_types import LiberalToolMessage
+from sema4ai_agent_server.utils import current_timestamp_with_iso_week_local
 
 # Define all possible LLM types
 # TODO: Support Fireworks by changing dependency to langchain_fireworks instead of the cummunity version
@@ -66,6 +67,7 @@ class AgentState(BaseModel):
 def get_tools_agent_executor(
     tools: list[BaseTool],
     llm: AgentType,
+    name: str,
     system_message: str,
     reasoning_level: int,
     interrupt_before_action: bool,
@@ -76,7 +78,16 @@ def get_tools_agent_executor(
             f"Expected an LLM with one of type {AGENT_TYPES}, got {type(llm)}."
         )
 
-    def _get_messages(messages, system_message=system_message):
+    def _get_system_message(runbook: str) -> SystemMessage:
+        current_datetime = current_timestamp_with_iso_week_local()
+        content = (
+            f"You are an agent with the following name: {name}.\n"
+            f"The current date and time is: {current_datetime}.\n"
+            f"Your instructions are:\n{runbook}"
+        )
+        return SystemMessage(content=content)
+
+    def _get_messages(messages):
         msgs = []
         for m in messages:
             if isinstance(m, LiberalToolMessage):
@@ -90,7 +101,7 @@ def get_tools_agent_executor(
             else:
                 msgs.append(m)
 
-        return [SystemMessage(content=system_message)] + msgs
+        return [_get_system_message(system_message)] + msgs
 
     if tools:
         llm_with_tools = llm.bind_tools(tools)
