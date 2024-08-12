@@ -1,333 +1,648 @@
+import re
 from datetime import datetime
-from typing import Any, List, Type
-from uuid import uuid4
+from typing import cast
 
-from langchain.chains.structured_output import (
-    create_structured_output_runnable,
-)
-from langchain.output_parsers import JsonOutputToolsParser
 from langchain.tools import BaseTool
-from langchain_core.language_models.base import LanguageModelLike
-from langchain_core.messages import AIMessage, HumanMessage
-from langchain_core.outputs import Generation
-from langchain_core.pydantic_v1 import BaseModel, ValidationError
+from langchain_core.language_models.base import LanguageModelInput
+from langchain_core.messages import (
+    AIMessage,
+    AnyMessage,
+    FunctionMessage,
+    HumanMessage,
+    ToolMessage,
+)
+from langchain_core.runnables import Runnable
 from langgraph.checkpoint import BaseCheckpointSaver
 from langgraph.graph.message import StateGraph
 from structlog import get_logger
+from structlog.stdlib import BoundLogger
 
 from sema4ai_agent_server.agent_types.constants import (
     FINISH_NODE_ACTION,
     FINISH_NODE_KEY,
 )
+from sema4ai_agent_server.agent_types.planner_agent.models import (
+    AGENT_TYPES,
+    AgentType,
+    bind_tools,
+    get_pydantic_output_parser,
+)
 from sema4ai_agent_server.agent_types.planner_agent.prompts import (
-    OFFRAMP_PROMPT,
-    PLANNER_PROMPT,
-    REPLANNER_PROMPT,
-    TOOLS_EXECUTOR_SYS_MSG,
+    PLANNER_PROMPTS,
+    REPLANNER_PROMPTS,
+    step_executor_template,
 )
 from sema4ai_agent_server.agent_types.planner_agent.schemas import (
+    CompletedPlan,
+    CompletedPlanWithThought,
+    ExecutedPlan,
+    ExecutedPlanWithThought,
+    InitialPlanningResponse,
+    InitialThinkingPlanningResponse,
+    PastStep,
     Plan,
-    PlanExecute,
-    PlanNeeded,
-    ReplannerOutput,
+    PlanExecuteAgentState,
+    PlanStep,
+    PlanStepWithThought,
+    PlanWithThought,
+    ReplannerResponse,
+    ReplannerThinkerResponse,
 )
-from sema4ai_agent_server.agent_types.planner_agent.tools_executor import (
-    get_tools_executor,
+from sema4ai_agent_server.agent_types.tools_agent import (
+    AgentState,
+    get_tools_agent_executor,
 )
+from sema4ai_agent_server.message_types import LiberalToolMessage
 
-logger = get_logger(__name__)
+logger: BoundLogger = get_logger(__name__)
+STEPS_CONTENT_PATTERN = re.compile(pattern=r"^\[.*\]$")
+
+
+def _clean_message(m: AnyMessage):
+    if isinstance(m, LiberalToolMessage):
+        _dict = m.dict()
+        _dict["content"] = str(_dict["content"])
+        m_c = ToolMessage(**_dict)
+        return m_c
+    elif isinstance(m, FunctionMessage):
+        # anthropic doesn't like function messages
+        return HumanMessage(content=str(m.content))
+    else:
+        return m
+
+
+def _get_messages(messages: list[AnyMessage]) -> list[AnyMessage]:
+    return [_clean_message(m) for m in messages]
+
+
+def _reformat_step_message(m: AIMessage):
+    new_content = f"Plan steps at this point: {m.content}"
+    return AIMessage(content=new_content)
+
+
+def _get_messages_for_replanner(messages: list[AnyMessage]) -> list[AnyMessage]:
+    msgs = []
+    for m in messages:
+        if STEPS_CONTENT_PATTERN.match(m.content):
+            msgs.append(_reformat_step_message(m))
+        else:
+            msgs.append(_clean_message(m))
+    return msgs
+
+
+def _get_executor_outcome_messages(
+    executed_plans: list[ExecutedPlan],
+) -> list[AnyMessage]:
+    messages: list[AnyMessage] = []
+    for executed_plan in executed_plans:
+        for step in executed_plan.past_steps:
+            messages.extend(step.outcome)
+    return messages
 
 
 def get_plan_execute_agent(
     tools: list[BaseTool],
-    llm: LanguageModelLike,
-    system_message: str,
+    llm: AgentType,
+    name: str,
+    runbook: str,
     interrupt_before_action: bool,
+    reasoning_level: int,
     checkpoint: BaseCheckpointSaver,
 ):
     """Create a plan and execute agent graph that uses a planner, executor, and replanner.
 
-    This function is only compatible with LLMs that support the OpenAI Function
-    API.
-
     The final agent is a Pregel type graph that uses a StateGraph to manage the
     state of the agent.
     """
-
-    ### Create output parses that include IDs
-    class PydanticToolsParserWithID(JsonOutputToolsParser):
-        """Parse tools from OpenAI response and include original ID in response.
-
-        Models with `id` as a field will not be able to use this parser."""
-
-        tools: List[Type[BaseModel]]
-        return_id: bool = True
-        first_tool_only: bool = True
-
-        def parse_result(
-            self, result: List[Generation], *, partial: bool = False
-        ) -> Any:
-            json_results = super().parse_result(result, partial=partial)
-            if not json_results:
-                return None if self.first_tool_only else []
-
-            json_results = [json_results] if self.first_tool_only else json_results
-            name_dict = {tool.__name__: tool for tool in self.tools}
-            pydantic_objects = []
-            for res in json_results:
-                try:
-                    if not isinstance(res["args"], dict):
-                        raise ValueError(
-                            f"Tool arguments must be specified as a dict, received: "
-                            f"{res['args']}"
-                        )
-                    if self.return_id:
-                        pydantic_objects.append(
-                            name_dict[res["type"]](**res["args"], id=res["id"])
-                        )
-                except (ValidationError, ValueError) as e:
-                    if partial:
-                        continue
-                    else:
-                        raise e
-            if self.first_tool_only:
-                return pydantic_objects[0] if pydantic_objects else None
-            else:
-                return pydantic_objects
-
-    def _get_output_parser(model: BaseModel):
-        return PydanticToolsParserWithID(tools=[model])
-
-    ### Create runnables
-    # TODO: Streaming of plan generation and final response doesn't work because of how these
-    #   models are represented as tool calls. They stream into the tool call UI.
-    offramper = create_structured_output_runnable(
-        PlanNeeded,
-        llm,
-        OFFRAMP_PROMPT,
-        output_parser=_get_output_parser(PlanNeeded),
-        mode="openai-tools",
-    )
-    planner = create_structured_output_runnable(
-        Plan,
-        llm,
-        PLANNER_PROMPT,
-        output_parser=_get_output_parser(Plan),
-        mode="openai-tools",
-    )
-    executor_agent = get_tools_executor(
-        tools, llm, interrupt_before_action, TOOLS_EXECUTOR_SYS_MSG
-    )
-    replanner = create_structured_output_runnable(
-        ReplannerOutput,
-        llm,
-        REPLANNER_PROMPT,
-        output_parser=_get_output_parser(ReplannerOutput),
-        mode="openai-tools",
-    )
-
-    def _format_tools(tools: list[BaseTool]):
-        """Creates a meaningful string out of the tools"""
-        return [f"{tool.name}: {tool.description}" for tool in tools]
-
-    ### Define main nodes
-    # Decide if we need a plan based on the input.
-    async def offramp_step(state: PlanExecute):
-        # The most recent message attached to the input is the objective.
-        most_recent_message = state.messages[-1]
-        objective = most_recent_message.content
-        plan_needed: PlanNeeded = await offramper.ainvoke(
-            {
-                "datetime": datetime.now().isoformat(),
-                "system_message": system_message,
-                "objective": objective,
-                "chat_history": state.primary_conversation,
-                "tools": _format_tools(tools),
-            }
+    if not isinstance(llm, AGENT_TYPES):
+        raise ValueError(
+            f"Expected an LLM with one of type {AGENT_TYPES}, got {type(llm)}."
         )
-        return {
-            "objective": objective,
-            "plan_needed": plan_needed.plan_needed,
-            # Also reset plan and response
-            "plan": [],
-            "response": "",
-        }
 
-    # Create a plan based on the input, note how input from state is passed to the planner
-    async def plan_step(state: PlanExecute):
-        # The pydantic models will convert the output of the planner into a Plan object
-        plan: Plan = await planner.ainvoke(
-            {
-                "datetime": datetime.now().isoformat(),
-                "system_message": system_message,
-                "primary_conversation": state.primary_conversation,
-                "objective": state.objective,
-                "tools": _format_tools(tools),
-            }
-        )
-        return {
-            "plan": plan.steps,
-            "messages": [
-                AIMessage(
-                    content=await plan.formatted(),
-                    id=plan.dict().get("id", str(uuid4())),
-                )
-            ],
-            "response": "",
-        }
-
-    # Execute a step using the shared state
-    async def execute_step(state: PlanExecute):
-        # TODO: Creating a tool executor node directly in the main graph may improve performance
-        # Handle None input
-        if (
-            not state.messages
-            and not state.objective
-            and not (isinstance(state.plan, list) and len(state.plan) > 0)
-        ):
-            return {
-                "response": "How can I help you?",
-            }
-        # We may have gotten here from the offramp step
-        if state.plan:
-            task = state.plan[0]  # the next step to execute
-        else:
-            task = state.objective
+    async def objective_parser_and_state_reset(state: PlanExecuteAgentState):
+        """Entry node to read the objective and clear the state."""
         logger.debug(
-            f"planner_agent.execute_step prior to agent execution:\nTask: {task}\n"
-            f"Chat history: {state.primary_conversation}"
+            f"objective_parser_and_state_reset:state at start of node: {state.dict()}"
         )
-        # Filter out the current plan and objective so the executor focuses on the
-        # assigned task.
-        filtered_chat_history = [
-            msg
-            for msg in state.messages
-            if not msg.content.startswith("Current plan:")
-            and state.objective not in msg.content
+        last_human_message = state.messages[-1]
+        if state.response_type == "edge-case":
+            # Do not clear state as the current plan is likely still valid
+            out = {
+                "response": None,
+                "response_type": None,
+            }
+        else:
+            # state needs to be reset for new plans
+            out = {
+                "plan_needed": False,
+                "objective": last_human_message.content,
+                "original_plan": None,
+                "current_plan": None,
+                "executed_plan": None,
+                "response": None,
+            }
+        if reasoning_level > 0:
+            # Add the last human message to combined messages
+            if state.combined:
+                if isinstance(last_human_message, HumanMessage):
+                    out["combined"] = [last_human_message]
+            else:
+                out["combined"] = state.messages
+            return out
+        else:
+            return out
+
+    async def offramper(state: PlanExecuteAgentState):
+        """Decides if a plan is needed and writes the plan if so.
+        This node assumes reasoning_level == 0"""
+        logger.debug(f"offramper:state at start of node: {state.dict()}")
+        prompt = PLANNER_PROMPTS[reasoning_level]
+        messages = _get_messages(state.combined)
+        input = {
+            "name": name,
+            "datetime": datetime.now().isoformat(),
+            "runbook": runbook,
+            "messages": messages,
+        }
+        offramper_agent: Runnable[LanguageModelInput, InitialPlanningResponse] = (
+            prompt
+            | bind_tools(
+                llm,
+                [*tools, InitialPlanningResponse],
+                tool_choice="InitialPlanningResponse",
+            )
+            | get_pydantic_output_parser(llm, InitialPlanningResponse)
+        )
+        initial_thinking_response: InitialPlanningResponse = (
+            offramper_agent.with_config(
+                {
+                    "metadata": {
+                        "structured_response_config": {
+                            "model_name": "InitialPlanningResponse",
+                            "fields": [
+                                ("steps", "message", "json"),
+                            ],
+                        }
+                    }
+                }
+            ).invoke(input)
+        )
+        is_plannig = initial_thinking_response.plan_needed_response == "plan"
+        if is_plannig:
+            plan_steps = [
+                PlanStep(step=step) for step in initial_thinking_response.steps
+            ]
+            plan = Plan(
+                objective=state.objective,
+                steps=plan_steps,
+            )
+            steps_message = AIMessage(content=plan.steps_as_string())
+        else:
+            plan = None
+        return {
+            "plan_needed": initial_thinking_response.plan_needed_response == "plan",
+            "original_plan": plan,
+            "current_plan": plan,
+            "messages": [steps_message],
+        }
+
+    async def offramper_thinker(state: PlanExecuteAgentState):
+        """Decides if a plan is needed and writes the plan if so.
+        This node assumes reasoning_level > 0"""
+        logger.debug(f"offramper_thinker: {state.dict()}")
+        prompt = PLANNER_PROMPTS[reasoning_level]
+        messages = _get_messages(state.combined)
+        input = {
+            "name": name,
+            "datetime": datetime.now().isoformat(),
+            "runbook": runbook,
+            "messages": messages,
+        }
+        offramper_agent: Runnable[
+            LanguageModelInput, InitialThinkingPlanningResponse
+        ] = (
+            prompt
+            | bind_tools(
+                llm,
+                [*tools, InitialThinkingPlanningResponse],
+                tool_choice="InitialThinkingPlanningResponse",
+            )
+            | get_pydantic_output_parser(llm, InitialThinkingPlanningResponse)
+        )
+        initial_thinking_response: InitialThinkingPlanningResponse = (
+            offramper_agent.with_config(
+                {
+                    "metadata": {
+                        "structured_response_config": {
+                            "model_name": "InitialThinkingPlanningResponse",
+                            "fields": [
+                                ("reasoning", "reasoning"),
+                                ("steps", "reasoning", "json"),
+                            ],
+                        }
+                    }
+                }
+            ).invoke(input)
+        )
+        reasoning_messages = [
+            AIMessage(
+                content=initial_thinking_response.reasoning,
+            )
         ]
-        agent_response = await executor_agent.ainvoke(
+        is_plannig = initial_thinking_response.plan_needed_response == "plan"
+        if is_plannig:
+            plan_steps = [
+                PlanStepWithThought(step=step, reasoning=thought)
+                for thought, step in initial_thinking_response.steps
+            ]
+            plan = PlanWithThought(
+                thought=initial_thinking_response.reasoning,
+                objective=state.objective,
+                steps=plan_steps,
+            )
+            steps_message = AIMessage(
+                content=plan.steps_as_string(),
+            )
+            reasoning_messages.append(steps_message)
+        else:
+            plan = None
+        return {
+            "plan_needed": initial_thinking_response.plan_needed_response == "plan",
+            "original_plan": plan,
+            "current_plan": plan,
+            "reasoning": reasoning_messages,
+            "combined": reasoning_messages,
+        }
+
+    async def direct_response(state: PlanExecuteAgentState):
+        """Directly respond to the user as we have decided not to plan."""
+        agent = get_tools_agent_executor(
+            tools,
+            llm,
+            name,
+            runbook,
+            reasoning_level,
+            interrupt_before_action,
+            None,  # Subagent should not have a checkpointer
+        )
+        output = await agent.ainvoke(
             {
-                "input": task,
-                # We pass primary conversation so the executor does not see
-                # the full plan, only the human input and the final AI response.
-                "chat_history": filtered_chat_history,
-            },
+                "messages": state.messages,
+                "reasoning": state.reasoning,
+                "combined": state.combined,
+            }
         )
-        logger.debug(f"planner_agent.execute_step: Agent response: {agent_response}")
-        # Return the state with the current step and the new output added to past steps.
-        outputs = [
-            outcome.return_values["output"]
-            for outcome in agent_response["agent_outcome"]
+        output_agent_state = AgentState(**output)
+        return {
+            "response": output_agent_state.messages[-1].content,
+            "messages": output_agent_state.messages,
+            "reasoning": output_agent_state.reasoning,
+            "combined": output_agent_state.combined,
+        }
+
+    async def step_executor(state: PlanExecuteAgentState):
+        """This node executes the next step and updates the executed plan with results.
+        This node assumes reasoning_level == 0"""
+        executor_system_message = step_executor_template(
+            name, datetime.now().isoformat(), runbook
+        )
+        executor_agent = get_tools_agent_executor(
+            tools,
+            llm,
+            name,
+            executor_system_message,
+            reasoning_level,
+            interrupt_before_action,
+            None,  # Subagent should not have a checkpointer
+        )
+        current_step = cast(PlanStep, state.current_plan.steps[0])
+
+        # Isolate step executor from plan
+        completed_plans = state.completed_plans or []
+        if state.executed_plan:
+            completed_plans.append(state.executed_plan)
+        messages_for_executor = _get_executor_outcome_messages(completed_plans)
+        messages_for_executor.append(AIMessage(content=current_step.step))
+        output = await executor_agent.ainvoke({"messages": messages_for_executor})
+        output_agent_state = AgentState(**output)
+
+        new_messages = [
+            m for m in output_agent_state.messages if m not in state.messages
         ]
+
+        ## Update executed plan
+        newly_completed_step = PastStep(
+            original_step=current_step,
+            outcome=new_messages,
+        )
+        executed_plan = state.executed_plan or ExecutedPlan(
+            original_plan=state.original_plan, past_steps=[]
+        )
+        executed_plan.past_steps.append(newly_completed_step)
+
+        return {
+            "executed_plan": executed_plan,
+            "messages": new_messages,
+        }
+
+    async def step_executor_thinker(state: PlanExecuteAgentState):
+        """This node executes the next step and updates the executed plan with results.
+        This node assumes reasoning_level > 0"""
+        executor_system_message = step_executor_template(
+            name, datetime.now().isoformat(), runbook
+        )
+        executor_agent = get_tools_agent_executor(
+            tools,
+            llm,
+            name,
+            executor_system_message,
+            reasoning_level,
+            interrupt_before_action,
+            None,  # Subagent should not have a checkpointer
+        )
+        current_step = cast(PlanStepWithThought, state.current_plan.steps[0])
+
+        # Isolate step executor from plan
+        completed_plans = state.completed_plans or []
+        if state.executed_plan:
+            completed_plans.append(state.executed_plan)
+        messages_for_executor = _get_executor_outcome_messages(completed_plans)
+        messages_for_executor.append(AIMessage(content=current_step.reasoning))
+        messages_for_executor.append(AIMessage(content=current_step.step))
+
+        output = await executor_agent.ainvoke({"combined": messages_for_executor})
+        output_agent_state = AgentState(**output)
+
+        new_combined_messages = [
+            m for m in output_agent_state.combined if m not in state.combined
+        ]
+        new_messages = [
+            m for m in output_agent_state.messages if m not in state.messages
+        ]
+
+        ## Update executed plan
+        newly_completed_step = PastStep(
+            original_step=current_step,
+            outcome=new_combined_messages,
+        )
+        executed_plan = state.executed_plan or ExecutedPlanWithThought(
+            original_plan=state.original_plan, past_steps=[]
+        )
+        executed_plan.past_steps.append(newly_completed_step)
+
+        return {
+            "executed_plan": executed_plan,
+            "messages": new_messages,
+            "reasoning": output_agent_state.reasoning,
+            "combined": new_combined_messages,
+        }
+
+    async def replanner(state: PlanExecuteAgentState):
+        """This node reviews the executed plan so far, compares it to the original plan,
+        and updates the current plan with the next steps. This node assumes reasoning_level == 0"""
+        prompt = REPLANNER_PROMPTS[reasoning_level]
+        messages = _get_messages_for_replanner(state.messages)
+        replanner_agent: Runnable[LanguageModelInput, ReplannerResponse] = (
+            prompt
+            | bind_tools(
+                llm,
+                [*tools, ReplannerResponse],
+                tool_choice="ReplannerResponse",
+            )
+            | get_pydantic_output_parser(llm, ReplannerResponse)
+        )
+        last_step = state.current_plan.steps[0]
+        remaining_steps = Plan(objective="", steps=state.current_plan.steps[1:])
+
+        replanner_input = {
+            "name": name,
+            "datetime": datetime.now().isoformat(),
+            "runbook": runbook,
+            "messages": messages,
+            "last_step": last_step.step,
+            "remaining_steps": remaining_steps.steps_as_string(),
+            "objective": state.objective,
+        }
+        replanner_response: ReplannerResponse = await replanner_agent.with_config(
+            {
+                "metadata": {
+                    "structured_response_config": {
+                        "model_name": "ReplannerResponse",
+                        "fields": [
+                            ("response", "message"),
+                            ("new_steps", "message", "json"),
+                            ("edge_case_reply", "message"),
+                        ],
+                    }
+                }
+            }
+        ).ainvoke(replanner_input)
+
+        if replanner_response.response_type == "update":
+            plan_steps = [PlanStep(step=step) for step in replanner_response.new_steps]
+            plan = Plan(objective=state.objective, steps=plan_steps)
+            steps_message = AIMessage(content=plan.steps_as_string())
+            return {
+                "response_type": "update",
+                "current_plan": plan,
+                "messages": [steps_message],
+            }
+        elif replanner_response.response_type == "response-needed":
+            completed_plan = CompletedPlan(
+                original_plan=state.original_plan,
+                past_steps=state.executed_plan.past_steps,
+                output=replanner_response.response,
+            )
+            return {
+                "completed_plans": [completed_plan],
+                "response_type": replanner_response.response_type,
+                "response": replanner_response.response,
+                "messages": [AIMessage(content=replanner_response.response)],
+            }
+        elif replanner_response.response_type == "complete-as-is":
+            completed_plan = CompletedPlan(
+                original_plan=state.original_plan,
+                past_steps=state.executed_plan.past_steps,
+                output=state.messages[-1].content,
+            )
+            return {
+                "completed_plans": [completed_plan],
+                "response_type": replanner_response.response_type,
+                "response": state.messages[-1].content,
+            }
+        elif replanner_response.response_type == "edge-case":
+            response_messages = [
+                AIMessage(content=replanner_response.edge_case_reply),
+            ]
+            return {
+                "response_type": replanner_response.response_type,
+                "response": replanner_response.edge_case_reply,
+                "messages": response_messages,
+            }
+
+    async def replanner_thinker(state: PlanExecuteAgentState):
+        """This node reviews the executed plan so far, compares it to the original plan,
+        and updates the current plan with the next steps. This node assumes reasoning_level > 0"""
+        prompt = REPLANNER_PROMPTS[reasoning_level]
+        messages = _get_messages_for_replanner(state.combined)
+        replanner_agent: Runnable[LanguageModelInput, ReplannerThinkerResponse] = (
+            prompt
+            | bind_tools(
+                llm,
+                [*tools, ReplannerThinkerResponse],
+                tool_choice="ReplannerThinkerResponse",
+            )
+            | get_pydantic_output_parser(llm, ReplannerThinkerResponse)
+        )
+        last_step = state.current_plan.steps[0]
+        remaining_steps = PlanWithThought(
+            objective="", steps=state.current_plan.steps[1:], thought=""
+        )
+
+        replanner_input = {
+            "name": name,
+            "datetime": datetime.now().isoformat(),
+            "runbook": runbook,
+            "messages": messages,
+            "last_step": last_step.step,
+            "remaining_steps": remaining_steps.steps_as_string(),
+            "objective": state.objective,
+        }
+        replanner_response: ReplannerThinkerResponse = (
+            await replanner_agent.with_config(
+                {
+                    "metadata": {
+                        "structured_response_config": {
+                            "model_name": "ReplannerThinkerResponse",
+                            "fields": [
+                                ("reasoning", "reasoning"),
+                                ("response", "message", "string", "reasoning"),
+                                ("new_steps", "reasoning", "json"),
+                                ("edge_case_reply", "message", "string", "reasoning"),
+                            ],
+                        }
+                    }
+                }
+            ).ainvoke(replanner_input)
+        )
+
+        reasoning_messages = [
+            AIMessage(
+                content=replanner_response.reasoning,
+            )
+        ]
+        if replanner_response.response_type == "update":
+            plan_steps = [
+                PlanStepWithThought(step=step, reasoning=thought)
+                for thought, step in replanner_response.new_steps
+            ]
+            plan = PlanWithThought(
+                thought=replanner_response.reasoning,
+                objective=state.objective,
+                steps=plan_steps,
+            )
+            reasoning_messages.append(
+                AIMessage(
+                    content=plan.steps_as_string(),
+                )
+            )
+            return {
+                "response_type": replanner_response.response_type,
+                "current_plan": plan,
+                "reasoning": reasoning_messages,
+                "combined": reasoning_messages,
+            }
+        elif replanner_response.response_type == "response-needed":
+            completed_plan = CompletedPlanWithThought(
+                original_plan=state.original_plan,
+                past_steps=state.executed_plan.past_steps,
+                thought=replanner_response.reasoning,
+                output=replanner_response.response,
+            )
+            response_messages = [
+                AIMessage(content=replanner_response.response),
+            ]
+            return {
+                "completed_plans": [completed_plan],
+                "response_type": replanner_response.response_type,
+                "response": replanner_response.response,
+                "messages": response_messages,
+                "reasoning": reasoning_messages,
+                "combined": reasoning_messages + response_messages,
+            }
+        elif replanner_response.response_type == "complete-as-is":
+            completed_plan = CompletedPlanWithThought(
+                original_plan=state.original_plan,
+                past_steps=state.executed_plan.past_steps,
+                thought=replanner_response.reasoning,
+                output=state.messages[-1].content,
+            )
+            return {
+                "completed_plans": [completed_plan],
+                "response_type": replanner_response.response_type,
+                "response": None,
+                "reasoning": reasoning_messages,
+                "combined": reasoning_messages,
+            }
+        elif replanner_response.response_type == "edge-case":
+            response_messages = [
+                AIMessage(content=replanner_response.edge_case_reply),
+            ]
+            return {
+                "response_type": replanner_response.response_type,
+                "response": replanner_response.edge_case_reply,
+                "messages": response_messages,
+                "reasoning": reasoning_messages,
+                "combined": reasoning_messages + response_messages,
+            }
+
+    def should_offramp(state: PlanExecuteAgentState):
         if state.plan_needed:
-            return {
-                "past_steps": [(task, output) for output in outputs],
-                "messages": agent_response["intermediate_messages"]
-                + [AIMessage(content=output, id=str(uuid4())) for output in outputs],
-            }
+            return "plan"
         else:
-            return {
-                "messages": agent_response["intermediate_messages"]
-                + [AIMessage(content=output, id=str(uuid4())) for output in outputs],
-                # Primary conversation is used on subsequent runs to restrict
-                # input to the planner prompt to only the most important messages,
-                # i.e. the human input and the final AI response.
-                "primary_conversation": [HumanMessage(content=state.objective)]
-                + [AIMessage(content=output) for output in outputs],
-                "response": " ".join(outputs),
-            }
+            return "direct-response"
 
-    # Replan based on the current state
-    async def replan_step(state: PlanExecute):
-        output: ReplannerOutput = await replanner.ainvoke(
-            {
-                "datetime": datetime.now().isoformat(),
-                "system_message": system_message,
-                "primary_conversation": state.primary_conversation,
-                "objective": state.objective,
-                "plan": state.plan,
-                "past_steps": state.past_steps,
-                "tools": _format_tools(tools),
-            }
-        )
-        logger.debug(f"planner_agent.replan_step: Replanner output: {output.dict()}")
-        if output.question or output.impossibility:
-            content = output.question or output.impossibility
-            return {
-                "response": content,
-                "primary_conversation": [
-                    HumanMessage(content=state.objective),
-                    AIMessage(content=content),
-                ],
-                "messages": [
-                    AIMessage(
-                        content=content, id=output.dict().get("id", str(uuid4()))
-                    ),
-                ],
-            }
-        elif output.response:
-            content = output.response
-            return {
-                "response": content,
-                "primary_conversation": [
-                    HumanMessage(content=state.objective),
-                    AIMessage(content=content),
-                ],
-                "messages": [
-                    AIMessage(
-                        content=content, id=output.dict().get("id", str(uuid4()))
-                    ),
-                ],
-            }
-        else:
-            # Output must be a Plan
-            return {
-                "plan": output.steps,
-                "messages": [
-                    AIMessage(
-                        content=await output.formatted(),
-                        id=output.dict().get("id", str(uuid4())),
-                    )
-                ],
-            }
-
-    # decide if we should use the plan/replan logic
-    def should_plan(state: PlanExecute):
-        return state.plan_needed
-
-    # decide if we should continue or return to the user
-    def should_end(state: PlanExecute):
-        logger.debug(f"State at planner_agent.should_end: {state.dict()}")
-        if state.response:
+    def should_end(state: PlanExecuteAgentState):
+        if state.response_type != "update":
             return True
         else:
             return False
 
     ### Create the graph
     # Create a new workflow
-    workflow = StateGraph(PlanExecute)
+    workflow = StateGraph(PlanExecuteAgentState)
 
     # add nodes
-    workflow.add_node("offramper", offramp_step)
-    workflow.add_node("planner", plan_step)
-    workflow.add_node("agent", execute_step)
-    workflow.add_node("replan", replan_step)
+    workflow.add_node("start_node", objective_parser_and_state_reset)
+    if reasoning_level > 0:
+        workflow.add_node("offramper", offramper_thinker)
+        workflow.add_node("step_executor", step_executor_thinker)
+        workflow.add_node("replanner", replanner_thinker)
+    else:
+        workflow.add_node("offramper", offramper)
+        workflow.add_node("step_executor", step_executor)
+        workflow.add_node("replanner", replanner)
+    workflow.add_node("direct_response", direct_response)
     workflow.add_node(FINISH_NODE_KEY, FINISH_NODE_ACTION)
 
     # Set entry
-    workflow.set_entry_point("offramper")
+    workflow.set_entry_point("start_node")
     workflow.set_finish_point(FINISH_NODE_KEY)
 
     # Create edges
+    workflow.add_edge("start_node", "offramper")
     workflow.add_conditional_edges(
-        "offramper", should_plan, {True: "planner", False: "agent"}
+        "offramper",
+        should_offramp,
+        {
+            "direct-response": "direct_response",
+            "plan": "step_executor",
+        },
     )
-    workflow.add_edge("planner", "agent")
+    workflow.add_edge("direct_response", FINISH_NODE_KEY)
+    workflow.add_edge("step_executor", "replanner")
     workflow.add_conditional_edges(
-        "agent", should_plan, {True: "replan", False: FINISH_NODE_KEY}
-    )
-    workflow.add_conditional_edges(
-        "replan", should_end, {True: FINISH_NODE_KEY, False: "agent"}
+        "replanner", should_end, {True: FINISH_NODE_KEY, False: "step_executor"}
     )
 
     return workflow.compile(checkpointer=checkpoint)
