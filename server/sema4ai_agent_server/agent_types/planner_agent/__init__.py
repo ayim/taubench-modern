@@ -41,7 +41,7 @@ logger = get_logger(__name__)
 def get_plan_execute_agent(
     tools: list[BaseTool],
     llm: LanguageModelLike,
-    system_message: str,
+    runbook: str,
     interrupt_before_action: bool,
     checkpoint: BaseCheckpointSaver,
 ):
@@ -139,7 +139,7 @@ def get_plan_execute_agent(
         plan_needed: PlanNeeded = await offramper.ainvoke(
             {
                 "datetime": datetime.now().isoformat(),
-                "system_message": system_message,
+                "runbook": runbook,
                 "objective": objective,
                 "chat_history": state.primary_conversation,
                 "tools": _format_tools(tools),
@@ -159,7 +159,7 @@ def get_plan_execute_agent(
         plan: Plan = await planner.ainvoke(
             {
                 "datetime": datetime.now().isoformat(),
-                "system_message": system_message,
+                "runbook": runbook,
                 "primary_conversation": state.primary_conversation,
                 "objective": state.objective,
                 "tools": _format_tools(tools),
@@ -242,7 +242,7 @@ def get_plan_execute_agent(
         output: ReplannerOutput = await replanner.ainvoke(
             {
                 "datetime": datetime.now().isoformat(),
-                "system_message": system_message,
+                "runbook": runbook,
                 "primary_conversation": state.primary_conversation,
                 "objective": state.objective,
                 "plan": state.plan,

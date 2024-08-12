@@ -13,7 +13,7 @@ Current datetime (ISO 8601): ###
 ###
 
 Your role: ###
-{system_message}
+{runbook}
 ###
 
 Conversation so far: ###
@@ -43,7 +43,7 @@ Current datetime (ISO 8601): ###
 ###
 
 Your role: ###
-{system_message}
+{runbook}
 ###
 
 Conversation so far: ###
@@ -84,7 +84,7 @@ Current datetime (ISO 8601): ###
 ###
 
 Your role: ###
-{system_message}
+{runbook}
 ###
 
 The conversation so far is this: ###

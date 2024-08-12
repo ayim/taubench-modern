@@ -68,7 +68,7 @@ def get_tools_agent_executor(
     tools: list[BaseTool],
     llm: AgentType,
     name: str,
-    system_message: str,
+    runbook: str,
     reasoning_level: int,
     interrupt_before_action: bool,
     checkpoint: BaseCheckpointSaver,
@@ -101,7 +101,7 @@ def get_tools_agent_executor(
             else:
                 msgs.append(m)
 
-        return [_get_system_message(system_message)] + msgs
+        return [_get_system_message(runbook)] + msgs
 
     if tools:
         llm_with_tools = llm.bind_tools(tools)
