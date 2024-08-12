@@ -30,7 +30,7 @@ RECURSION_LIMIT_FOR_DATA_RETRIEVAL = 20
 
 """ 
 Mapping of agent to its actions. Since actions are spread across three different Action Groups
-but comes form teh UI as a single list and no way to distinguish which action belongs to which agent, 
+but comes form the UI as a single list and no way to distinguish which action belongs to which agent, 
 we maintain this mapping to help us determine which action belongs to which agent
 """
 agent_actions_mapping = {
@@ -145,11 +145,11 @@ class DataRetrievalSpecialist(BaseVitalityAgent):
             )
 
             # Create the chat history by serializing by serializing the vitality model and then converying dict to json string
-            # Putting the JSON strin into a AIMMessage or is the ChatPromplate cannot handle special characters in the promple templat
+            # Putting the JSON string into a AIMessage or is the ChatPromptTemplate cannot handle special characters in the prompt template
             # when you have things like example code snippets or json
 
             # Given the supervisor planning model, we are not going to pass the chat_history since we have
-            # roles that will aggregrate data from mulitple specialistis like the Data Clinical Analyst
+            # roles that will aggregate data from multiple specialists like the Data Clinical Analyst
             # serialized_vitality_model = vitality_model.serialize()
             # json_serialized_vitality_model = json.dumps(serialized_vitality_model)
             # json_serialized_vitality_model_ai_message = AIMessage(content=json_serialized_vitality_model, name="vitality_model")

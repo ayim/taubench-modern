@@ -24,14 +24,14 @@ jobs:
       - name: Install project dependencies
         run: poetry install --no-interaction --no-root
 
-      - name: Build source distribution
-        run: poetry build -f sdist
+      - name: Build source distribution and wheel
+        run: poetry build
 
-      - name: Upload source distribution as artifact
+      - name: Upload distributions as artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: sema4ai_agent_server_sdist
-          path: ./dist/*.tar.gz
+          name: sema4ai_agent_server_distributions
+          path: ./dist/*
 
       - name: Set Release Version
         id: set_release_version
@@ -43,6 +43,6 @@ jobs:
         with:
           tag_name: ${{ env.RELEASE_VERSION }}
           name: Release ${{ env.RELEASE_VERSION }}
-          files: ./dist/*.tar.gz
+          files: ./dist/*
           draft: false
           prerelease: false
