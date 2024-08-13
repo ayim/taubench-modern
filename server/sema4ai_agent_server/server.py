@@ -2,6 +2,7 @@ import argparse
 import hashlib
 import os
 from pathlib import Path
+from typing import List
 from urllib.parse import urlparse, urlunparse
 from uuid import uuid4
 
@@ -9,6 +10,7 @@ import orjson
 import structlog
 from fastapi import FastAPI, Form, UploadFile
 from fastapi.exceptions import HTTPException
+from langchain_core.messages import AIMessage, ToolCall, ToolMessage
 from starlette.background import BackgroundTasks
 
 from sema4ai_agent_server.api import router as api_router
@@ -37,10 +39,8 @@ if DB_TYPE == "postgres":
 else:
     app = FastAPI(title="OpenGPTs API")
 
-
 # Get root of app, used to point to directory containing static files
 ROOT = Path(__file__).parent.parent
-
 
 app.include_router(api_router)
 
@@ -85,7 +85,7 @@ async def ingest_files(
 
     non_ingestable_extensions = {".csv", ".xls", ".xlsx", ".json", ".xml"}
     ingestable_file_blobs = []
-    stored_files = []
+    stored_files: List[UploadedFile] = []
     for file_blob in file_blobs:
         filename = file_blob.path
         file_path = os.path.join(UPLOAD_DIR, assistant_id or thread_id, filename)
@@ -106,7 +106,7 @@ async def ingest_files(
             ingestable = file_extension not in non_ingestable_extensions
             if ingestable:
                 ingestable_file_blobs.append(file_blob)
-            stored_file = await get_storage().put_file_owner(
+            stored_file: UploadedFile = await get_storage().put_file_owner(
                 str(uuid4()), file_path, file_hash, ingestable, assistant_id, thread_id
             )
             stored_files.append(stored_file)
@@ -114,6 +114,49 @@ async def ingest_files(
             logger.exception(f"Failed to store file {filename}")
             raise HTTPException(
                 status_code=500, detail=f"Failed to store file {filename}: {str(e)}"
+            )
+
+    if thread_id:
+        for stored_file in stored_files:
+            if stored_file is None:
+                continue
+            file_path = stored_file["file_path"]
+            # Get current thread state
+            current_state = await get_storage().get_thread_state(
+                user["user_id"], thread_id
+            )
+            current_messages = current_state.get("messages", [])
+
+            # Create tool call message
+            tool_call_message = AIMessage(
+                content="",
+                tool_calls=[
+                    ToolCall(
+                        name="upload file",
+                        args=dict(),
+                        id=f"upload-{file_path}",
+                    )
+                ],
+            )
+
+            # Create tool response message
+            tool_response_message = ToolMessage(
+                tool_call_id=f"upload-{file_path}",
+                content=f'File uploaded: "{file_path}"',
+                additional_kwargs={
+                    "name": "upload file",
+                },
+            )
+
+            # Append new messages to existing messages
+            updated_messages = current_messages + [
+                tool_call_message,
+                tool_response_message,
+            ]
+
+            # Update thread state with appended messages
+            await get_storage().update_thread_state(
+                user["user_id"], thread_id, {"messages": updated_messages}
             )
 
     ingest_runnable.batch(ingestable_file_blobs, config)
