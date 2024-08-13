@@ -14,18 +14,14 @@ from sema4ai_agent_server.agent_types.tools_agent import get_tools_agent_executo
 from sema4ai_agent_server.agent_types.vitality_ai_multi_agent import (
     vitality_ai_new as vitality_ai,
 )
-from sema4ai_agent_server.chatbot import get_chatbot_executor
 from sema4ai_agent_server.llms import (
     get_anthropic_llm,
     get_google_llm,
-    get_mixtral_fireworks,
     get_ollama_llm,
     get_openai_llm,
 )
-from sema4ai_agent_server.retrieval import get_retrieval_executor
 from sema4ai_agent_server.storage.checkpoint import get_checkpointer
 from sema4ai_agent_server.tools import (
-    RETRIEVAL_DESCRIPTION,
     TOOLS,
     ActionServer,
     Arxiv,
@@ -42,7 +38,6 @@ from sema4ai_agent_server.tools import (
     Wikipedia,
     YouSearch,
     get_retrieval_tool,
-    get_retriever,
 )
 
 Tool = Union[
@@ -73,8 +68,9 @@ class AgentType(str, Enum):
     OLLAMA = "Ollama"
 
 
-DEFAULT_RUNBOOK = "You are a helpful assistant."
+DEFAULT_RUNBOOK = "You are a helpful agent."
 DEFAULT_NAME = "Agent"
+
 
 CHECKPOINTER = get_checkpointer()
 
@@ -123,7 +119,6 @@ class ConfigurableAgent(RunnableBinding):
     agent: AgentType
     name: str = DEFAULT_NAME
     runbook: str = DEFAULT_RUNBOOK
-    retrieval_description: str = RETRIEVAL_DESCRIPTION
     interrupt_before_action: bool = False
     assistant_id: Optional[str] = None
     thread_id: Optional[str] = None
@@ -139,7 +134,6 @@ class ConfigurableAgent(RunnableBinding):
         runbook: str = DEFAULT_RUNBOOK,
         assistant_id: Optional[str] = None,
         thread_id: Optional[str] = None,
-        retrieval_description: str = RETRIEVAL_DESCRIPTION,
         interrupt_before_action: bool = False,
         reasoning_level: int = 0,
         kwargs: Optional[Mapping[str, Any]] = None,
@@ -154,9 +148,7 @@ class ConfigurableAgent(RunnableBinding):
                     raise ValueError(
                         "Either assistant_id or thread_id must be provided if Retrieval tool is used"
                     )
-                _tools.append(
-                    get_retrieval_tool(assistant_id, thread_id, retrieval_description)
-                )
+                _tools.append(get_retrieval_tool(assistant_id, thread_id))
             else:
                 tool_config = _tool.get("config", {})
                 _returned_tools = TOOLS[_tool["type"]](**tool_config)
@@ -177,7 +169,6 @@ class ConfigurableAgent(RunnableBinding):
             tools=tools,
             agent=agent,
             runbook=runbook,
-            retrieval_description=retrieval_description,
             bound=agent_executor,
             kwargs=kwargs or {},
             config=config or {},
@@ -196,137 +187,11 @@ class LLMType(str, Enum):
     OLLAMA = "Ollama"
 
 
-def get_chatbot(
-    llm_type: LLMType,
-    system_message: str,
-):
-    if llm_type == LLMType.GPT_35_TURBO:
-        llm = get_openai_llm()
-    elif llm_type == LLMType.GPT_4:
-        llm = get_openai_llm(gpt_4=True)
-    elif llm_type == LLMType.AZURE_OPENAI:
-        llm = get_openai_llm(azure=True)
-    elif llm_type == LLMType.CLAUDE2:
-        llm = get_anthropic_llm()
-    elif llm_type == LLMType.BEDROCK_CLAUDE2:
-        llm = get_anthropic_llm(bedrock=True)
-    elif llm_type == LLMType.GEMINI:
-        llm = get_google_llm()
-    elif llm_type == LLMType.MIXTRAL:
-        llm = get_mixtral_fireworks()
-    elif llm_type == LLMType.OLLAMA:
-        llm = get_ollama_llm()
-    else:
-        raise ValueError(f"Unexpected llm type ({llm_type})")
-    return get_chatbot_executor(llm, system_message, CHECKPOINTER)
-
-
-class ConfigurableChatBot(RunnableBinding):
-    llm: LLMType
-    system_message: str = DEFAULT_RUNBOOK
-    user_id: Optional[str] = None
-
-    def __init__(
-        self,
-        *,
-        llm: LLMType = LLMType.GPT_35_TURBO,
-        system_message: str = DEFAULT_RUNBOOK,
-        kwargs: Optional[Mapping[str, Any]] = None,
-        config: Optional[Mapping[str, Any]] = None,
-        **others: Any,
-    ) -> None:
-        others.pop("bound", None)
-
-        chatbot = get_chatbot(llm, system_message)
-        super().__init__(
-            llm=llm,
-            system_message=system_message,
-            bound=chatbot,
-            kwargs=kwargs or {},
-            config=config or {},
-        )
-
-
-chatbot = (
-    ConfigurableChatBot(llm=LLMType.GPT_35_TURBO, checkpoint=CHECKPOINTER)
-    .configurable_fields(
-        llm=ConfigurableField(id="llm_type", name="LLM Type"),
-        system_message=ConfigurableField(id="system_message", name="Instructions"),
-    )
-    .with_types(input_type=Sequence[AnyMessage], output_type=Sequence[AnyMessage])
-)
-
-
-class ConfigurableRetrieval(RunnableBinding):
-    llm_type: LLMType
-    system_message: str = DEFAULT_RUNBOOK
-    assistant_id: Optional[str] = None
-    thread_id: Optional[str] = None
-    user_id: Optional[str] = None
-
-    def __init__(
-        self,
-        *,
-        llm_type: LLMType = LLMType.GPT_35_TURBO,
-        system_message: str = DEFAULT_RUNBOOK,
-        assistant_id: Optional[str] = None,
-        thread_id: Optional[str] = None,
-        kwargs: Optional[Mapping[str, Any]] = None,
-        config: Optional[Mapping[str, Any]] = None,
-        **others: Any,
-    ) -> None:
-        others.pop("bound", None)
-        retriever = get_retriever(assistant_id, thread_id)
-        if llm_type == LLMType.GPT_35_TURBO:
-            llm = get_openai_llm()
-        elif llm_type == LLMType.GPT_4:
-            llm = get_openai_llm(model="gpt-4-turbo")
-        elif llm_type == LLMType.GPT_4O:
-            llm = get_openai_llm(model="gpt-4o")
-        elif llm_type == LLMType.AZURE_OPENAI:
-            llm = get_openai_llm(azure=True)
-        elif llm_type == LLMType.CLAUDE2:
-            llm = get_anthropic_llm()
-        elif llm_type == LLMType.BEDROCK_CLAUDE2:
-            llm = get_anthropic_llm(bedrock=True)
-        elif llm_type == LLMType.GEMINI:
-            llm = get_google_llm()
-        elif llm_type == LLMType.MIXTRAL:
-            llm = get_mixtral_fireworks()
-        elif llm_type == LLMType.OLLAMA:
-            llm = get_ollama_llm()
-        else:
-            raise ValueError("Unexpected llm type")
-        chatbot = get_retrieval_executor(llm, retriever, system_message, CHECKPOINTER)
-        super().__init__(
-            llm_type=llm_type,
-            system_message=system_message,
-            bound=chatbot,
-            kwargs=kwargs or {},
-            config=config or {},
-        )
-
-
-chat_retrieval = (
-    ConfigurableRetrieval(llm_type=LLMType.GPT_35_TURBO, checkpoint=CHECKPOINTER)
-    .configurable_fields(
-        llm_type=ConfigurableField(id="llm_type", name="LLM Type"),
-        system_message=ConfigurableField(id="system_message", name="Instructions"),
-        assistant_id=ConfigurableField(
-            id="assistant_id", name="Assistant ID", is_shared=True
-        ),
-        thread_id=ConfigurableField(id="thread_id", name="Thread ID", is_shared=True),
-    )
-    .with_types(input_type=Sequence[AnyMessage], output_type=Sequence[AnyMessage])
-)
-
-
 class ConfigurablePlanExecute(RunnableBinding):
     tools: Sequence[Tool]
     agent: AgentType
     name: str = DEFAULT_NAME
     runbook: str = DEFAULT_RUNBOOK
-    retrieval_description: str = RETRIEVAL_DESCRIPTION
     interrupt_before_action: bool = False
     assistant_id: Optional[str] = None
     thread_id: Optional[str] = None
@@ -342,7 +207,6 @@ class ConfigurablePlanExecute(RunnableBinding):
         runbook: str = DEFAULT_RUNBOOK,
         assistant_id: Optional[str] = None,
         thread_id: Optional[str] = None,
-        retrieval_description: str = RETRIEVAL_DESCRIPTION,
         interrupt_before_action: bool = False,
         reasoning_level: Optional[int] = None,
         kwargs: Optional[Mapping[str, Any]] = None,
@@ -357,9 +221,7 @@ class ConfigurablePlanExecute(RunnableBinding):
                     raise ValueError(
                         "Both assistant_id and thread_id must be provided if Retrieval tool is used"
                     )
-                _tools.append(
-                    get_retrieval_tool(assistant_id, thread_id, retrieval_description)
-                )
+                _tools.append(get_retrieval_tool(assistant_id, thread_id))
             else:
                 tool_config = _tool.get("config", {})
                 _returned_tools = TOOLS[_tool["type"]](**tool_config)
@@ -401,7 +263,6 @@ class ConfigurablePlanExecute(RunnableBinding):
             tools=tools,
             agent=agent,
             runbook=runbook,
-            retrieval_description=retrieval_description,
             bound=agent_executor,
             kwargs=kwargs or {},
             config=config or {},
@@ -411,8 +272,7 @@ class ConfigurablePlanExecute(RunnableBinding):
 class ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(RunnableBinding):
     tools: Sequence[Tool]
     agent: AgentType
-    system_message: str = DEFAULT_RUNBOOK
-    retrieval_description: str = RETRIEVAL_DESCRIPTION
+    runbook: str = DEFAULT_RUNBOOK
     interrupt_before_action: bool = False
     assistant_id: Optional[str] = None
     thread_id: Optional[str] = None
@@ -423,10 +283,9 @@ class ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(RunnableBin
         *,
         tools: Sequence[Tool],
         agent: AgentType = AgentType.GPT_4O,
-        system_message: str = DEFAULT_RUNBOOK,
+        runbook: str = DEFAULT_RUNBOOK,
         assistant_id: Optional[str] = None,
         thread_id: Optional[str] = None,
-        retrieval_description: str = RETRIEVAL_DESCRIPTION,
         interrupt_before_action: bool = False,
         kwargs: Optional[Mapping[str, Any]] = None,
         config: Optional[Mapping[str, Any]] = None,
@@ -440,9 +299,7 @@ class ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(RunnableBin
                     raise ValueError(
                         "Both assistant_id and thread_id must be provided if Retrieval tool is used"
                     )
-                _tools.append(
-                    get_retrieval_tool(assistant_id, thread_id, retrieval_description)
-                )
+                _tools.append(get_retrieval_tool(assistant_id, thread_id))
             else:
                 tool_config = _tool.get("config", {})
                 _returned_tools = TOOLS[_tool["type"]](**tool_config)
@@ -477,8 +334,7 @@ class ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(RunnableBin
         super().__init__(
             tools=tools,
             agent=agent,
-            system_message=system_message,
-            retrieval_description=retrieval_description,
+            runbook=runbook,
             bound=agent_executor,
             kwargs=kwargs or {},
             config=config or {},
@@ -491,7 +347,6 @@ chat_plan_execute = (
         agent=AgentType.GPT_35_TURBO,
         name=DEFAULT_NAME,
         runbook=DEFAULT_RUNBOOK,
-        retrieval_description=RETRIEVAL_DESCRIPTION,
         assistant_id=None,
         thread_id=None,
         reasoning_level=0,
@@ -510,9 +365,6 @@ chat_plan_execute = (
         ),
         thread_id=ConfigurableField(id="thread_id", name="Thread ID", is_shared=True),
         tools=ConfigurableField(id="tools", name="Tools"),
-        retrieval_description=ConfigurableField(
-            id="retrieval_description", name="Retrieval Description"
-        ),
         reasoning_level=ConfigurableField(
             id="reasoning_level",
             name="Reasoning Level",
@@ -526,14 +378,13 @@ multi_agent_hierarchical_planning = (
     ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(
         tools=[],
         agent=AgentType.GPT_4O,
-        system_message=DEFAULT_RUNBOOK,
-        retrieval_description=RETRIEVAL_DESCRIPTION,
+        runbook=DEFAULT_RUNBOOK,
         assistant_id=None,
         thread_id=None,
     )
     .configurable_fields(
         agent=ConfigurableField(id="agent_type", name="Agent Type"),
-        system_message=ConfigurableField(id="system_message", name="Instructions"),
+        runbook=ConfigurableField(id="runbook", name="Instructions"),
         interrupt_before_action=ConfigurableField(
             id="interrupt_before_action",
             name="Tool Confirmation",
@@ -544,9 +395,6 @@ multi_agent_hierarchical_planning = (
         ),
         thread_id=ConfigurableField(id="thread_id", name="Thread ID", is_shared=True),
         tools=ConfigurableField(id="tools", name="Tools"),
-        retrieval_description=ConfigurableField(
-            id="retrieval_description", name="Retrieval Description"
-        ),
     )
     .with_types(input_type=Dict[str, str], output_type=Sequence[AnyMessage])
 )
@@ -557,7 +405,6 @@ agent: Pregel = (
         tools=[],
         name=DEFAULT_NAME,
         runbook=DEFAULT_RUNBOOK,
-        retrieval_description=RETRIEVAL_DESCRIPTION,
         assistant_id=None,
         thread_id=None,
         reasoning_level=0,
@@ -576,9 +423,6 @@ agent: Pregel = (
         ),
         thread_id=ConfigurableField(id="thread_id", name="Thread ID", is_shared=True),
         tools=ConfigurableField(id="tools", name="Tools"),
-        retrieval_description=ConfigurableField(
-            id="retrieval_description", name="Retrieval Description"
-        ),
         reasoning_level=ConfigurableField(
             id="reasoning_level",
             name="Reasoning Level",
@@ -589,8 +433,6 @@ agent: Pregel = (
         ConfigurableField(id="type", name="Bot Type"),
         default_key="agent",
         prefix_keys=True,
-        chatbot=chatbot,
-        chat_retrieval=chat_retrieval,
         chat_plan_execute=chat_plan_execute,
         multi_agent_hierarchical_planning=multi_agent_hierarchical_planning,
     )

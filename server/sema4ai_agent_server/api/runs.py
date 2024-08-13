@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import Any, Dict, Optional, Sequence, Union
 
 import langsmith.client
@@ -53,15 +52,9 @@ async def _run_input_and_config(payload: CreateRunPayload, user_id: str):
             "user_id": user_id,
             "thread_id": str(thread["thread_id"]),
             "assistant_id": str(assistant["assistant_id"]),
+            "name": assistant["name"],
         },
     }
-
-    current_datetime = _current_timestamp_with_iso_week_local()
-    configurable = config["configurable"]
-    if "system_message" in configurable:
-        configurable["system_message"] = configurable["system_message"].replace(
-            "${CURRENT_DATETIME}", current_datetime
-        )
 
     try:
         input_ = (
@@ -74,16 +67,6 @@ async def _run_input_and_config(payload: CreateRunPayload, user_id: str):
         raise RequestValidationError(e.errors(), body=payload)
 
     return input_, config, thread, assistant
-
-
-def _current_timestamp_with_iso_week_local():
-    now = datetime.now().astimezone()
-    iso_timestamp = now.replace(second=0, microsecond=0).isoformat()
-    day_of_week = now.strftime("%A")
-    # ISO week number
-    week_number = now.strftime("%V")
-    formatted_string = f"{iso_timestamp} [{day_of_week}, Week {week_number}]"
-    return formatted_string
 
 
 @router.post("")

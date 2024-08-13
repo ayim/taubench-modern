@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import Annotated, cast
 
 from langchain.tools import BaseTool
@@ -25,6 +24,7 @@ from sema4ai_agent_server.agent_types.constants import (
     FINISH_NODE_KEY,
 )
 from sema4ai_agent_server.message_types import LiberalToolMessage
+from sema4ai_agent_server.utils import current_timestamp_with_iso_week_local
 
 # Define all possible LLM types
 # TODO: Support Fireworks by changing dependency to langchain_fireworks instead of the cummunity version
@@ -92,13 +92,7 @@ def get_tools_agent_executor(
             f"Expected an LLM with one of type {AGENT_TYPES}, got {type(llm)}."
         )
 
-    def _format_date(dt: datetime):
-        return (
-            f"{dt.strftime('%Y-%m-%dT%H:%M:%S%z')} [{dt.strftime('%A')}, "
-            f"Week {dt.strftime('%U')}]"
-        )
-
-    def _get_messages(messages, system_message=runbook):
+    def _get_messages(messages):
         msgs = []
         for m in messages:
             if isinstance(m, LiberalToolMessage):
@@ -141,7 +135,7 @@ def get_tools_agent_executor(
         ).ainvoke(
             {
                 "agent_name": name,
-                "current_datetime": _format_date(datetime.now()),
+                "current_datetime": current_timestamp_with_iso_week_local(),
                 "runbook": runbook,
                 "messages": _get_messages(combined_messages) + [reasoning_prompt],
             }
@@ -167,7 +161,7 @@ def get_tools_agent_executor(
         ).ainvoke(
             {
                 "agent_name": name,
-                "current_datetime": _format_date(datetime.now()),
+                "current_datetime": current_timestamp_with_iso_week_local(),
                 "runbook": runbook,
                 "messages": _get_messages(state.combined) + [retry_prompt],
             }
@@ -184,7 +178,7 @@ def get_tools_agent_executor(
             ).ainvoke(
                 {
                     "agent_name": name,
-                    "current_datetime": _format_date(datetime.now()),
+                    "current_datetime": current_timestamp_with_iso_week_local(),
                     "runbook": runbook,
                     "messages": _get_messages(state.combined),
                 }
@@ -193,7 +187,7 @@ def get_tools_agent_executor(
             response = await llm_with_tools.ainvoke(
                 {
                     "agent_name": name,
-                    "current_datetime": _format_date(datetime.now()),
+                    "current_datetime": current_timestamp_with_iso_week_local(),
                     "runbook": runbook,
                     "messages": _get_messages(state.messages),
                 }
