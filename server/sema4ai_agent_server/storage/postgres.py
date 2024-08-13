@@ -288,9 +288,7 @@ class PostgresStorage(BaseStorage):
         app = await get_agent_executor([], AgentType.GPT_35_TURBO, "", "", False)
 
         history = []
-        async for c in app.get_state_history(
-            {"configurable": {"thread_id": thread_id}}
-        ):
+        for c in app.get_state_history({"configurable": {"thread_id": thread_id}}):
             history.append(
                 {
                     "values": c.values,

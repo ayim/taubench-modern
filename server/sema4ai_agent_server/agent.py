@@ -85,7 +85,6 @@ def get_agent_executor(
 ):
     if agent == AgentType.GPT_35_TURBO:
         llm = get_openai_llm()
-        # TODO: hard coded use reasoning for now
     elif agent == AgentType.GPT_4:
         llm = get_openai_llm(model="gpt-4-turbo")
     elif agent == AgentType.GPT_4O:
@@ -191,21 +190,25 @@ class LLMType(str, Enum):
 class ConfigurablePlanExecute(RunnableBinding):
     tools: Sequence[Tool]
     agent: AgentType
+    name: str = DEFAULT_NAME
     runbook: str = DEFAULT_RUNBOOK
     interrupt_before_action: bool = False
     assistant_id: Optional[str] = None
     thread_id: Optional[str] = None
     user_id: Optional[str] = None
+    reasoning_level: Optional[int] = None
 
     def __init__(
         self,
         *,
         tools: Sequence[Tool],
         agent: AgentType = AgentType.GPT_35_TURBO,
+        name: str = DEFAULT_NAME,
         runbook: str = DEFAULT_RUNBOOK,
         assistant_id: Optional[str] = None,
         thread_id: Optional[str] = None,
         interrupt_before_action: bool = False,
+        reasoning_level: Optional[int] = None,
         kwargs: Optional[Mapping[str, Any]] = None,
         config: Optional[Mapping[str, Any]] = None,
         **others: Any,
@@ -247,7 +250,13 @@ class ConfigurablePlanExecute(RunnableBinding):
         else:
             raise ValueError("Unexpected llm type")
         _agent = get_plan_execute_agent(
-            _tools, llm, runbook, interrupt_before_action, CHECKPOINTER
+            _tools,
+            llm,
+            name,
+            runbook,
+            interrupt_before_action,
+            reasoning_level,
+            CHECKPOINTER,
         )
         agent_executor = _agent.with_config({"recursion_limit": 50})
         super().__init__(
@@ -336,12 +345,15 @@ chat_plan_execute = (
     ConfigurablePlanExecute(
         tools=[],
         agent=AgentType.GPT_35_TURBO,
+        name=DEFAULT_NAME,
         runbook=DEFAULT_RUNBOOK,
         assistant_id=None,
         thread_id=None,
+        reasoning_level=0,
     )
     .configurable_fields(
         agent=ConfigurableField(id="agent_type", name="Agent Type"),
+        name=ConfigurableField(id="name", name="Agent Name"),
         runbook=ConfigurableField(id="runbook", name="Instructions"),
         interrupt_before_action=ConfigurableField(
             id="interrupt_before_action",
@@ -353,6 +365,11 @@ chat_plan_execute = (
         ),
         thread_id=ConfigurableField(id="thread_id", name="Thread ID", is_shared=True),
         tools=ConfigurableField(id="tools", name="Tools"),
+        reasoning_level=ConfigurableField(
+            id="reasoning_level",
+            name="Reasoning Level",
+            description="The level of reasoning the agent should use, 0 for no reasoning, 1 for succinct reasoning, 2 for verbose reasoning.",
+        ),
     )
     .with_types(input_type=Dict[str, str], output_type=Sequence[AnyMessage])
 )
@@ -394,7 +411,7 @@ agent: Pregel = (
     )
     .configurable_fields(
         agent=ConfigurableField(id="agent_type", name="Agent Type"),
-        name=ConfigurableField(id="name", name="Name"),
+        name=ConfigurableField(id="name", name="Agent Name"),
         runbook=ConfigurableField(id="runbook", name="Instructions"),
         interrupt_before_action=ConfigurableField(
             id="interrupt_before_action",

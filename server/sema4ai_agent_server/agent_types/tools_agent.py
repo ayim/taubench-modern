@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Annotated, cast
 
 from langchain.tools import BaseTool
@@ -10,6 +11,7 @@ from langchain_core.messages import (
     SystemMessage,
     ToolMessage,
 )
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.pydantic_v1 import BaseModel
 from langchain_google_vertexai import ChatVertexAI
 from langchain_openai import AzureChatOpenAI, ChatOpenAI
@@ -29,6 +31,19 @@ from sema4ai_agent_server.utils import current_timestamp_with_iso_week_local
 # TODO: Support Fireworks by changing dependency to langchain_fireworks instead of the cummunity version
 AgentType = AzureChatOpenAI | ChatOpenAI | ChatAnthropic | ChatVertexAI
 AGENT_TYPES = (AzureChatOpenAI, ChatOpenAI, ChatAnthropic, ChatVertexAI)
+
+PROMPT_TEMPLATE = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            """You are an assistant with the following name: {agent_name}.
+The current date and time is: {current_datetime}.
+Your instructions are:
+{runbook}""",
+        ),
+        ("placeholder", "{messages}"),
+    ]
+)
 
 # Keys off of the verbose levels in the configurable.
 REASONING_PROMPTS = {
@@ -78,15 +93,6 @@ def get_tools_agent_executor(
             f"Expected an LLM with one of type {AGENT_TYPES}, got {type(llm)}."
         )
 
-    def _get_system_message(runbook: str) -> SystemMessage:
-        current_datetime = current_timestamp_with_iso_week_local()
-        content = (
-            f"You are an agent with the following name: {name}.\n"
-            f"The current date and time is: {current_datetime}.\n"
-            f"Your instructions are:\n{runbook}"
-        )
-        return SystemMessage(content=content)
-
     def _get_messages(messages):
         msgs = []
         for m in messages:
@@ -101,12 +107,12 @@ def get_tools_agent_executor(
             else:
                 msgs.append(m)
 
-        return [_get_system_message(runbook)] + msgs
+        return msgs
 
     if tools:
-        llm_with_tools = llm.bind_tools(tools)
+        llm_with_tools = PROMPT_TEMPLATE | llm.bind_tools(tools)
     else:
-        llm_with_tools = llm
+        llm_with_tools = PROMPT_TEMPLATE | llm
     tool_executor = ToolExecutor(tools)
 
     async def reasoning(state: AgentState):
@@ -116,7 +122,7 @@ def get_tools_agent_executor(
         if not state.combined:
             fresh_state = True
             combined_messages = state.messages
-        elif isinstance(state.messages[-1], HumanMessage):
+        elif len(state.messages) > 0 and isinstance(state.messages[-1], HumanMessage):
             # Add the last human message to the combined thread before calling LLM. This won't work
             # with Anthropic if function messages were involved as the _get_messages function will
             # convert them to HumanMessages.
@@ -125,10 +131,16 @@ def get_tools_agent_executor(
         else:
             combined_messages = state.combined
         reasoning_prompt = REASONING_PROMPTS[reasoning_level]
-        messages = _get_messages(combined_messages) + [reasoning_prompt]
         response = await llm_with_tools.with_config(
             {"metadata": {"reasoning": True}}
-        ).ainvoke(messages)
+        ).ainvoke(
+            {
+                "agent_name": name,
+                "current_datetime": current_timestamp_with_iso_week_local(),
+                "runbook": runbook,
+                "messages": _get_messages(combined_messages) + [reasoning_prompt],
+            }
+        )
         if fresh_state:
             return {"reasoning": [response], "combined": combined_messages + [response]}
         elif last_human_message:
@@ -145,10 +157,16 @@ def get_tools_agent_executor(
 
     async def retry_reasoning(state: AgentState):
         retry_prompt = RETRY_REASONING_PROMPTS[reasoning_level]
-        messages = _get_messages(state.combined) + [retry_prompt]
         response = await llm_with_tools.with_config(
             {"metadata": {"reasoning": True}}
-        ).ainvoke(messages)
+        ).ainvoke(
+            {
+                "agent_name": name,
+                "current_datetime": current_timestamp_with_iso_week_local(),
+                "runbook": runbook,
+                "messages": _get_messages(state.combined) + [retry_prompt],
+            }
+        )
         return {"reasoning": [response], "combined": [response]}
 
     async def agent(state: AgentState):
@@ -158,9 +176,23 @@ def get_tools_agent_executor(
             )
             response = await llm_with_tools.with_config(
                 {"metadata": {"associated_reasoning": associated_reasoning_id}}
-            ).ainvoke(_get_messages(state.combined))
+            ).ainvoke(
+                {
+                    "agent_name": name,
+                    "current_datetime": current_timestamp_with_iso_week_local(),
+                    "runbook": runbook,
+                    "messages": _get_messages(state.combined),
+                }
+            )
         else:
-            response = await llm_with_tools.ainvoke(_get_messages(state.messages))
+            response = await llm_with_tools.ainvoke(
+                {
+                    "agent_name": name,
+                    "current_datetime": current_timestamp_with_iso_week_local(),
+                    "runbook": runbook,
+                    "messages": _get_messages(state.messages),
+                }
+            )
         if reasoning_level > 0:
             return {"messages": [response], "combined": [response]}
         else:
