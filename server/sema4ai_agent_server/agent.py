@@ -70,9 +70,7 @@ class AgentType(str, Enum):
 
 DEFAULT_RUNBOOK = "You are a helpful agent."
 DEFAULT_NAME = "Agent"
-DEFAULT_RETRIEVAL_DESCRIPTION = """Can be used to look up information that was uploaded to this assistant.
-If the user is referencing particular files, that is often a good hint that information may be here.
-If the user asks a vague question, they are likely meaning to look up info from this retriever, and you should call it!"""
+
 
 CHECKPOINTER = get_checkpointer()
 
@@ -122,7 +120,6 @@ class ConfigurableAgent(RunnableBinding):
     agent: AgentType
     name: str = DEFAULT_NAME
     runbook: str = DEFAULT_RUNBOOK
-    retrieval_description: str = DEFAULT_RETRIEVAL_DESCRIPTION
     interrupt_before_action: bool = False
     assistant_id: Optional[str] = None
     thread_id: Optional[str] = None
@@ -138,7 +135,6 @@ class ConfigurableAgent(RunnableBinding):
         runbook: str = DEFAULT_RUNBOOK,
         assistant_id: Optional[str] = None,
         thread_id: Optional[str] = None,
-        retrieval_description: str = DEFAULT_RETRIEVAL_DESCRIPTION,
         interrupt_before_action: bool = False,
         reasoning_level: int = 0,
         kwargs: Optional[Mapping[str, Any]] = None,
@@ -153,9 +149,7 @@ class ConfigurableAgent(RunnableBinding):
                     raise ValueError(
                         "Either assistant_id or thread_id must be provided if Retrieval tool is used"
                     )
-                _tools.append(
-                    get_retrieval_tool(assistant_id, thread_id, retrieval_description)
-                )
+                _tools.append(get_retrieval_tool(assistant_id, thread_id))
             else:
                 tool_config = _tool.get("config", {})
                 _returned_tools = TOOLS[_tool["type"]](**tool_config)
@@ -176,7 +170,6 @@ class ConfigurableAgent(RunnableBinding):
             tools=tools,
             agent=agent,
             runbook=runbook,
-            retrieval_description=retrieval_description,
             bound=agent_executor,
             kwargs=kwargs or {},
             config=config or {},
@@ -199,7 +192,6 @@ class ConfigurablePlanExecute(RunnableBinding):
     tools: Sequence[Tool]
     agent: AgentType
     runbook: str = DEFAULT_RUNBOOK
-    retrieval_description: str = DEFAULT_RETRIEVAL_DESCRIPTION
     interrupt_before_action: bool = False
     assistant_id: Optional[str] = None
     thread_id: Optional[str] = None
@@ -213,7 +205,6 @@ class ConfigurablePlanExecute(RunnableBinding):
         runbook: str = DEFAULT_RUNBOOK,
         assistant_id: Optional[str] = None,
         thread_id: Optional[str] = None,
-        retrieval_description: str = DEFAULT_RETRIEVAL_DESCRIPTION,
         interrupt_before_action: bool = False,
         kwargs: Optional[Mapping[str, Any]] = None,
         config: Optional[Mapping[str, Any]] = None,
@@ -227,9 +218,7 @@ class ConfigurablePlanExecute(RunnableBinding):
                     raise ValueError(
                         "Both assistant_id and thread_id must be provided if Retrieval tool is used"
                     )
-                _tools.append(
-                    get_retrieval_tool(assistant_id, thread_id, retrieval_description)
-                )
+                _tools.append(get_retrieval_tool(assistant_id, thread_id))
             else:
                 tool_config = _tool.get("config", {})
                 _returned_tools = TOOLS[_tool["type"]](**tool_config)
@@ -265,7 +254,6 @@ class ConfigurablePlanExecute(RunnableBinding):
             tools=tools,
             agent=agent,
             runbook=runbook,
-            retrieval_description=retrieval_description,
             bound=agent_executor,
             kwargs=kwargs or {},
             config=config or {},
@@ -276,7 +264,6 @@ class ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(RunnableBin
     tools: Sequence[Tool]
     agent: AgentType
     runbook: str = DEFAULT_RUNBOOK
-    retrieval_description: str = DEFAULT_RETRIEVAL_DESCRIPTION
     interrupt_before_action: bool = False
     assistant_id: Optional[str] = None
     thread_id: Optional[str] = None
@@ -290,7 +277,6 @@ class ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(RunnableBin
         runbook: str = DEFAULT_RUNBOOK,
         assistant_id: Optional[str] = None,
         thread_id: Optional[str] = None,
-        retrieval_description: str = DEFAULT_RETRIEVAL_DESCRIPTION,
         interrupt_before_action: bool = False,
         kwargs: Optional[Mapping[str, Any]] = None,
         config: Optional[Mapping[str, Any]] = None,
@@ -304,9 +290,7 @@ class ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(RunnableBin
                     raise ValueError(
                         "Both assistant_id and thread_id must be provided if Retrieval tool is used"
                     )
-                _tools.append(
-                    get_retrieval_tool(assistant_id, thread_id, retrieval_description)
-                )
+                _tools.append(get_retrieval_tool(assistant_id, thread_id))
             else:
                 tool_config = _tool.get("config", {})
                 _returned_tools = TOOLS[_tool["type"]](**tool_config)
@@ -342,7 +326,6 @@ class ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(RunnableBin
             tools=tools,
             agent=agent,
             runbook=runbook,
-            retrieval_description=retrieval_description,
             bound=agent_executor,
             kwargs=kwargs or {},
             config=config or {},
@@ -354,7 +337,6 @@ chat_plan_execute = (
         tools=[],
         agent=AgentType.GPT_35_TURBO,
         runbook=DEFAULT_RUNBOOK,
-        retrieval_description=DEFAULT_RETRIEVAL_DESCRIPTION,
         assistant_id=None,
         thread_id=None,
     )
@@ -371,9 +353,6 @@ chat_plan_execute = (
         ),
         thread_id=ConfigurableField(id="thread_id", name="Thread ID", is_shared=True),
         tools=ConfigurableField(id="tools", name="Tools"),
-        retrieval_description=ConfigurableField(
-            id="retrieval_description", name="Retrieval Description"
-        ),
     )
     .with_types(input_type=Dict[str, str], output_type=Sequence[AnyMessage])
 )
@@ -383,7 +362,6 @@ multi_agent_hierarchical_planning = (
         tools=[],
         agent=AgentType.GPT_4O,
         runbook=DEFAULT_RUNBOOK,
-        retrieval_description=DEFAULT_RETRIEVAL_DESCRIPTION,
         assistant_id=None,
         thread_id=None,
     )
@@ -400,9 +378,6 @@ multi_agent_hierarchical_planning = (
         ),
         thread_id=ConfigurableField(id="thread_id", name="Thread ID", is_shared=True),
         tools=ConfigurableField(id="tools", name="Tools"),
-        retrieval_description=ConfigurableField(
-            id="retrieval_description", name="Retrieval Description"
-        ),
     )
     .with_types(input_type=Dict[str, str], output_type=Sequence[AnyMessage])
 )
@@ -413,7 +388,6 @@ agent: Pregel = (
         tools=[],
         name=DEFAULT_NAME,
         runbook=DEFAULT_RUNBOOK,
-        retrieval_description=DEFAULT_RETRIEVAL_DESCRIPTION,
         assistant_id=None,
         thread_id=None,
         reasoning_level=0,
@@ -432,9 +406,6 @@ agent: Pregel = (
         ),
         thread_id=ConfigurableField(id="thread_id", name="Thread ID", is_shared=True),
         tools=ConfigurableField(id="tools", name="Tools"),
-        retrieval_description=ConfigurableField(
-            id="retrieval_description", name="Retrieval Description"
-        ),
         reasoning_level=ConfigurableField(
             id="reasoning_level",
             name="Reasoning Level",
