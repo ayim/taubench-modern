@@ -27,7 +27,6 @@ RUN poetry config virtualenvs.create false \
 
 # Copy the rest of application code
 COPY sema4ai_agent_server/ sema4ai_agent_server/
-COPY .env .env
 COPY log_config.json log_config.json
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --start-interval=1s --retries=3 CMD sh -c "curl -f http://localhost:$AGENT_SERVER_PORT/health"
