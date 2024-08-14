@@ -178,8 +178,7 @@ class PlanExecuteAgentState(AgentState):
 # Initial offramp reponse
 class InitialThinkingPlanningResponse(BaseModel):
     """Your initial planning response. You should include your thinking as to why or why not a
-    plan is needed as well as the actual plan if one is needed. If you do not think you can
-    create a plan with the context provided, you can request more context via the appropriate field.
+    plan is needed as well as the actual plan if one is needed.
     """
 
     reasoning: str = Field(
@@ -187,9 +186,8 @@ class InitialThinkingPlanningResponse(BaseModel):
         description="Your thinking as to why or why not a plan is needed to accomplish the objective. "
         "If needed, explain why a plan is needed and what it will accomplish. If not needed, explain why.",
     )
-    plan_needed_response: Literal["plan", "no-plan", "full-context-needed"] = Field(
-        description="Whether a plan is needed to accomplish the objective or if you need the full "
-        "context of the conversation to decide and develop the plan."
+    plan_needed_response: Literal["plan", "no-plan"] = Field(
+        description="Whether a plan is needed to accomplish the objective."
     )
     steps: list[tuple] | None = Field(
         None,
@@ -198,13 +196,10 @@ class InitialThinkingPlanningResponse(BaseModel):
 
 
 class InitialPlanningResponse(BaseModel):
-    """Your initial planning response, including the plan if needed. If you do not think you can
-    create a plan with the context provided, you can request more context via the appropriate field.
-    """
+    """Your initial planning response, including the plan if needed."""
 
-    plan_needed_response: Literal["plan", "no-plan", "full-context-needed"] = Field(
-        description="Whether a plan is needed to accomplish the objective or if you need the full "
-        "context of the conversation to decide and develop the plan."
+    plan_needed_response: Literal["plan", "no-plan"] = Field(
+        description="Whether a plan is needed to accomplish the objective."
     )
     steps: list[str] | None = Field(
         None,
@@ -284,7 +279,8 @@ class ReplannerThinkerResponse(BaseModel):
 
 
 class ReplannerResponse(BaseModel):
-    """Whether the current plan is complete or needs to be updated."""
+    """Whether the current plan is complete or needs to be updated, and how to update
+    it if needed."""
 
     response_type: ResponseType = Field(
         ...,
