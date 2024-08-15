@@ -5,8 +5,10 @@ would benefit from multiple rounds of interaction with various tools to complete
 where the expected output from one tool needs to be used as input into future tools. If you \
 think you already know how to respond, or the user seems to want to chat (for example, they \
 say "hello"), or you think one of the available tools could be used in a single shot, we \
-would not need a plan. Written plans should always be more than one step long, and each step \
-should be a specific task that helps to achieve the objective. If only one step is needed, a \
+would not need a plan. When creating the plan, think about the various steps needed to \
+accomplish the objective and what information is needed for each step. Each step is \
+likely interconnected with the previous and following steps, so be sure to think about \
+how each step builds on the previous one. If only one step is needed, a \
 plan is not required."""
 
 ## Planner related prompts and messages
@@ -135,16 +137,16 @@ job is to execute the current step of the plan developed by the planner to compl
 provided by the user."""
 
 
-def step_executor_template(name: str, datetime: str, runbook: str) -> str:
+def step_executor_template() -> str:
     return f"""We use XML tags to help structure our team instructions. Runbooks \
 use markdown to format structured content.
 
 Our team name: <team_name>
-{name}
+{{agent_name}}
 </team_name>
 
 Current datetime (ISO 8601): <datetime>
-{datetime}
+{{current_datetime}}
 </datetime>
 
 Your role: <role>
@@ -152,7 +154,7 @@ Your role: <role>
 </role>
 
 Our runbook: <runbook>
-{runbook}
+{{runbook}}
 </runbook>
 
 Your immediate instructions: <instructions>
@@ -160,6 +162,68 @@ The planner will provide you with a snippet of the current team thread, which ma
 from the user and other members of your team. The last message in this thread will be the step you \
 need to execute.
 </instructions>"""
+
+
+# Prompts to override subagent built in prompts
+STEP_EXECUTOR_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        ("system", step_executor_template()),
+        ("placeholder", "{messages}"),
+        ("system", "Now execute the step provided above."),
+    ]
+)
+STEP_REASONING_PROMPTS = {
+    1: ChatPromptTemplate.from_messages(
+        [
+            ("system", step_executor_template()),
+            ("placeholder", "{messages}"),
+            (
+                "system",
+                "Think about your next response based on the conversation so far and succinctly "
+                "explain why you are thinking to respond in this way. Focus on the most important aspects "
+                "of your reasoning. ONLY PROVIDE REASONING.",
+            ),
+        ]
+    ),
+    2: ChatPromptTemplate.from_messages(
+        [
+            ("system", step_executor_template()),
+            ("placeholder", "{messages}"),
+            (
+                "system",
+                "Think about your next response based on the conversation so far and explain "
+                "why you are thinking to respond in this way. If you are thinking about calling tools, "
+                "also explain what parameters you are thinking of using and why. ONLY PROVIDE REASONING.",
+            ),
+        ]
+    ),
+}
+STEP_RETRY_REASONING_PROMPTS = {
+    1: ChatPromptTemplate.from_messages(
+        [
+            ("system", step_executor_template()),
+            ("placeholder", "{messages}"),
+            (
+                "system",
+                "You provided a tool call with your thinking, which is not allowed at this time. "
+                "Please provide your thoughts without tool calls. You should succinctly explain why you are "
+                "thinking to call the tool.",
+            ),
+        ]
+    ),
+    2: ChatPromptTemplate.from_messages(
+        [
+            ("system", step_executor_template()),
+            ("placeholder", "{messages}"),
+            (
+                "system",
+                "You provided a tool call with your thinking, which is not allowed at this time. "
+                "Please provide your thoughts without tool calls. You should explain why you are thinking "
+                "to call the tool and which parameters you are thinking of using.",
+            ),
+        ]
+    ),
+}
 
 
 # Replanner related prompts and messages
@@ -204,7 +268,7 @@ REPLANNER_PROMPTS: dict[int, ChatPromptTemplate] = {
                 replanner_template(
                     """The below objective is the last message from the user. Following that is \
 your team's internal thread as the plan was executed. Finally, an additional system message \
-will be added to help you compare the last step executed at that point in the thread to the \
+will be added to help you compare the last step executed at that point in the thread to \
 what was expected to be completed and the remaining steps in the plan.
 
 Review the objective, the last step executed, and the team thread, then perform the \
@@ -212,7 +276,8 @@ following in order:
 
 1. Determine if the last step was properly completed. If it was not, consider how to modify the \
 step and rest of the plan to ensure the objective is met. Consider how the agent had responded \
-and if that indicates you should consider writing the step using a different approach.
+and if that indicates there are problems with the way the step was written or with any underlying \
+assumption the user made when they provided you the objective.
 2. Consider if the objective is accomplished at this point.
 3. Consider if the last message in the thread provides a response to the objective.
 4. Consider if the remaining steps are appropriate based on your previous analysis.
@@ -231,8 +296,8 @@ some sort of input, set the response type to "edge-case".
 6. Update the plan as needed based on your analysis. When doing so, remove steps that have already \
 been completed and only add steps to the plan that still NEED to be done. Assume these new steps \
 will be followed.
-8. Write a final response as needed based on your analysis.
-9. Write out a reply to the user to explain any edge cases encountered, if any.
+8. Based on your analysis, write a final response or reply to the user to explain any edge cases \
+encountered, if any.
 
 Objective: <objective>
 {objective}
@@ -244,7 +309,7 @@ Objective: <objective>
                 "system",
                 """Now, compare the last step executed above to the expected step executed \
 and remaining steps below and begin your analysis.
-             
+
 Last step executed: <last_step>
 {last_step}
 </last_step>
@@ -262,7 +327,7 @@ Remaining planned steps: <remaining_steps>
                 replanner_template(
                     """The below objective is the last message from the user. Following that is \
 your team's internal thread as the plan was executed. Finally, an additional system message \
-will be added to help you compare the last step executed at that point in the thread to the \
+will be added to help you compare the last step executed at that point in the thread to \
 what was expected to be completed and the remaining steps in the plan.
 
 Review the objective, the last step executed, and the team thread, then perform the \
@@ -270,7 +335,8 @@ following in order:
 
 1. Determine if the last step was properly completed. If it was not, consider how to modify the \
 step and rest of the plan to ensure the objective is met. Consider how the agent had responded \
-and if that indicates you should consider writing the step using a different approach.
+and if that indicates there are problems with the way the step was written or with any underlying \
+assumption the user made when they provided you the objective.
 2. Consider if the objective is accomplished at this point.
 3. Consider if the last message in the thread provides a response to the objective.
 4. Consider if the remaining steps are appropriate based on your previous analysis.
@@ -292,8 +358,8 @@ been completed and only add steps to the plan that still NEED to be done. Assume
 will be followed. Be sure to follow the correct format by creating a tuple of two strings for \
 each step: the first string is the reasoning why the step is needed and the second string is \
 the step itself.
-8. Write a final response as needed based on your analysis.
-9. Write out a reply to the user to explain any edge cases encountered, if any.
+8. Based on your analysis, write a final response or reply to the user to explain any edge cases \
+encountered, if any.
 
 Objective: <objective>
 {objective}
@@ -323,7 +389,7 @@ Remaining planned steps: <remaining_steps>
                 replanner_template(
                     """The below objective is the last message from the user. Following that is \
 your team's internal thread as the plan was executed. Finally, an additional system message \
-will be added to help you compare the last step executed at that point in the thread to the \
+will be added to help you compare the last step executed at that point in the thread to \
 what was expected to be completed and the remaining steps in the plan.
 
 Review the objective, the last step executed, and the team thread, then perform the \
@@ -331,7 +397,8 @@ following in order:
 
 1. Determine if the last step was properly completed. If it was not, consider how to modify the \
 step and rest of the plan to ensure the objective is met. Consider how the agent had responded \
-and if that indicates you should consider writing the step using a different approach.
+and if that indicates there are problems with the way the step was written or with any underlying \
+assumption the user made when they provided you the objective.
 2. Consider if the objective is accomplished at this point.
 3. Consider if the last message in the thread provides a response to the objective.
 4. Consider if the remaining steps are appropriate based on your previous analysis.
@@ -353,8 +420,8 @@ been completed and only add steps to the plan that still NEED to be done. Assume
 will be followed. Be sure to follow the correct format by creating a tuple of two strings for \
 each step: the first string is the reasoning why the step is needed and the second string is \
 the step itself.
-8. Write a final response as needed based on your analysis.
-9. Write out a reply to the user to explain any edge cases encountered, if any.
+8. Based on your analysis, write a final response or reply to the user to explain any edge cases \
+encountered, if any.
 
 Objective: <objective>
 {objective}
