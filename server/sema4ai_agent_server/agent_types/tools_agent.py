@@ -7,7 +7,6 @@ from langchain_core.messages import (
     BaseMessage,
     FunctionMessage,
     HumanMessage,
-    SystemMessage,
     ToolMessage,
 )
 from langchain_core.prompts import ChatPromptTemplate
@@ -31,43 +30,65 @@ from sema4ai_agent_server.utils import current_timestamp_with_iso_week_local
 AgentType = AzureChatOpenAI | ChatOpenAI | ChatAnthropic | ChatVertexAI
 AGENT_TYPES = (AzureChatOpenAI, ChatOpenAI, ChatAnthropic, ChatVertexAI)
 
-PROMPT_TEMPLATE = ChatPromptTemplate.from_messages(
-    [
-        (
-            "system",
-            """You are an assistant with the following name: {agent_name}.
+BASE_PROMPT_MESSAGES = [
+    (
+        "system",
+        """You are an assistant with the following name: {agent_name}.
 The current date and time is: {current_datetime}.
 Your instructions are:
 {runbook}""",
-        ),
-        ("placeholder", "{messages}"),
-    ]
-)
-
-# Keys off of the verbose levels in the configurable.
-REASONING_PROMPTS = {
-    # Consider adding "Respond with at most 2 sentances." in the level 1 prompt if it's still too verbose
-    1: SystemMessage(
-        content="Think about your next response based on the conversation so far and succinctly "
-        "explain why you are thinking to respond in this way. Focus on the most important aspects "
-        "of your reasoning. ONLY PROVIDE REASONING."
     ),
-    2: SystemMessage(
-        content="Think about your next response based on the conversation so far and explain "
-        "why you are thinking to respond in this way. If you are thinking about calling tools, "
-        "also explain what parameters you are thinking of using and why. ONLY PROVIDE REASONING."
+    ("placeholder", "{messages}"),
+]
+EXECUTE_PROMPT_TEMPLATE = ChatPromptTemplate.from_messages(BASE_PROMPT_MESSAGES)
+# Keys off of the verbose levels in the configurable.
+REASONING_PROMPT_TEMPLATES = {
+    # Consider adding "Respond with at most 2 sentances." in the level 1 prompt if it's still too verbose
+    1: ChatPromptTemplate.from_messages(
+        BASE_PROMPT_MESSAGES
+        + [
+            (
+                "system",
+                "Think about your next response based on the conversation so far and succinctly "
+                "explain why you are thinking to respond in this way. Focus on the most important aspects "
+                "of your reasoning. ONLY PROVIDE REASONING.",
+            )
+        ]
+    ),
+    2: ChatPromptTemplate.from_messages(
+        BASE_PROMPT_MESSAGES
+        + [
+            (
+                "system",
+                "Think about your next response based on the conversation so far and explain "
+                "why you are thinking to respond in this way. If you are thinking about calling tools, "
+                "also explain what parameters you are thinking of using and why. ONLY PROVIDE REASONING.",
+            )
+        ]
     ),
 }
-RETRY_REASONING_PROMPTS = {
-    1: SystemMessage(
-        content="You provided a tool call with your thinking, which is not allowed at this time. "
-        "Please provide your thoughts without tool calls. You should succinctly explain why you are "
-        "thinking to call the tool."
+RETRY_REASONING_TEMPLATES = {
+    1: ChatPromptTemplate.from_messages(
+        BASE_PROMPT_MESSAGES
+        + [
+            (
+                "system",
+                "You provided a tool call with your thinking, which is not allowed at this time. "
+                "Please provide your thoughts without tool calls. You should succinctly explain why you are "
+                "thinking to call the tool.",
+            )
+        ]
     ),
-    2: SystemMessage(
-        content="You provided a tool call with your thinking, which is not allowed at this time. "
-        "Please provide your thoughts without tool calls. You should explain why you are thinking "
-        "to call the tool and which parameters you are thinking of using."
+    2: ChatPromptTemplate.from_messages(
+        BASE_PROMPT_MESSAGES
+        + [
+            (
+                "system",
+                "You provided a tool call with your thinking, which is not allowed at this time. "
+                "Please provide your thoughts without tool calls. You should explain why you are thinking "
+                "to call the tool and which parameters you are thinking of using.",
+            )
+        ]
     ),
 }
 
@@ -86,6 +107,12 @@ def get_tools_agent_executor(
     reasoning_level: int,
     interrupt_before_action: bool,
     checkpoint: BaseCheckpointSaver,
+    *,
+    execute_template: ChatPromptTemplate = EXECUTE_PROMPT_TEMPLATE,
+    reasoning_templates: dict[int, ChatPromptTemplate] = REASONING_PROMPT_TEMPLATES,
+    retry_reasoning_templates: dict[
+        int, ChatPromptTemplate
+    ] = RETRY_REASONING_TEMPLATES,
 ):
     if not isinstance(llm, AGENT_TYPES):
         raise ValueError(
@@ -109,10 +136,17 @@ def get_tools_agent_executor(
         return msgs
 
     if tools:
-        llm_with_tools = PROMPT_TEMPLATE | llm.bind_tools(tools)
+        llm_with_tools = llm.bind_tools(tools)
     else:
-        llm_with_tools = PROMPT_TEMPLATE | llm
+        llm_with_tools = llm
     tool_executor = ToolExecutor(tools)
+
+    executor_agent = execute_template | llm_with_tools
+    if reasoning_level > 0:
+        reasoning_agent = reasoning_templates[reasoning_level] | llm_with_tools
+        retry_reasoning_agent = (
+            retry_reasoning_templates[reasoning_level] | llm_with_tools
+        )
 
     async def reasoning(state: AgentState):
         # setup combined message thread:
@@ -129,15 +163,14 @@ def get_tools_agent_executor(
             combined_messages = state.combined + [last_human_message]
         else:
             combined_messages = state.combined
-        reasoning_prompt = REASONING_PROMPTS[reasoning_level]
-        response = await llm_with_tools.with_config(
+        response = await reasoning_agent.with_config(
             {"metadata": {"reasoning": True}}
         ).ainvoke(
             {
                 "agent_name": name,
                 "current_datetime": current_timestamp_with_iso_week_local(),
                 "runbook": runbook,
-                "messages": _get_messages(combined_messages) + [reasoning_prompt],
+                "messages": _get_messages(combined_messages),
             }
         )
         if fresh_state:
@@ -155,15 +188,14 @@ def get_tools_agent_executor(
             return "continue"
 
     async def retry_reasoning(state: AgentState):
-        retry_prompt = RETRY_REASONING_PROMPTS[reasoning_level]
-        response = await llm_with_tools.with_config(
+        response = await retry_reasoning_agent.with_config(
             {"metadata": {"reasoning": True}}
         ).ainvoke(
             {
                 "agent_name": name,
                 "current_datetime": current_timestamp_with_iso_week_local(),
                 "runbook": runbook,
-                "messages": _get_messages(state.combined) + [retry_prompt],
+                "messages": _get_messages(state.combined),
             }
         )
         return {"reasoning": [response], "combined": [response]}
@@ -173,7 +205,7 @@ def get_tools_agent_executor(
             associated_reasoning_id = (
                 state.reasoning[-1].id if state.reasoning else None
             )
-            response = await llm_with_tools.with_config(
+            response = await executor_agent.with_config(
                 {"metadata": {"associated_reasoning": associated_reasoning_id}}
             ).ainvoke(
                 {
@@ -184,7 +216,7 @@ def get_tools_agent_executor(
                 }
             )
         else:
-            response = await llm_with_tools.ainvoke(
+            response = await executor_agent.ainvoke(
                 {
                     "agent_name": name,
                     "current_datetime": current_timestamp_with_iso_week_local(),

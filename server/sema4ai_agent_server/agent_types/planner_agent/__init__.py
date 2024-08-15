@@ -1,5 +1,4 @@
 import re
-from datetime import datetime
 from typing import cast
 
 from langchain.tools import BaseTool
@@ -30,7 +29,9 @@ from sema4ai_agent_server.agent_types.planner_agent.models import (
 from sema4ai_agent_server.agent_types.planner_agent.prompts import (
     PLANNER_PROMPTS,
     REPLANNER_PROMPTS,
-    step_executor_template,
+    STEP_EXECUTOR_PROMPT,
+    STEP_REASONING_PROMPTS,
+    STEP_RETRY_REASONING_PROMPTS,
 )
 from sema4ai_agent_server.agent_types.planner_agent.schemas import (
     CompletedPlan,
@@ -53,6 +54,7 @@ from sema4ai_agent_server.agent_types.tools_agent import (
     get_tools_agent_executor,
 )
 from sema4ai_agent_server.message_types import LiberalToolMessage
+from sema4ai_agent_server.utils import current_timestamp_with_iso_week_local
 
 logger: BoundLogger = get_logger(__name__)
 STEPS_CONTENT_PATTERN = re.compile(pattern=r"^\[.*\]$")
@@ -124,7 +126,7 @@ def get_plan_execute_agent(
         logger.debug(
             f"objective_parser_and_state_reset:state at start of node: {state.dict()}"
         )
-        last_human_message = state.messages[-1]
+        last_message = state.messages[-1]
         if state.response_type == "edge-case":
             # Do not clear state as the current plan is likely still valid
             out = {
@@ -135,7 +137,7 @@ def get_plan_execute_agent(
             # state needs to be reset for new plans
             out = {
                 "plan_needed": False,
-                "objective": last_human_message.content,
+                "objective": last_message.content,
                 "original_plan": None,
                 "current_plan": None,
                 "executed_plan": None,
@@ -144,8 +146,8 @@ def get_plan_execute_agent(
         if reasoning_level > 0:
             # Add the last human message to combined messages
             if state.combined:
-                if isinstance(last_human_message, HumanMessage):
-                    out["combined"] = [last_human_message]
+                if isinstance(last_message, HumanMessage):
+                    out["combined"] = [last_message]
             else:
                 out["combined"] = state.messages
             return out
@@ -160,7 +162,7 @@ def get_plan_execute_agent(
         messages = _get_messages(state.combined)
         input = {
             "name": name,
-            "datetime": datetime.now().isoformat(),
+            "datetime": current_timestamp_with_iso_week_local(),
             "runbook": runbook,
             "messages": messages,
         }
@@ -214,7 +216,7 @@ def get_plan_execute_agent(
         messages = _get_messages(state.combined)
         input = {
             "name": name,
-            "datetime": datetime.now().isoformat(),
+            "datetime": current_timestamp_with_iso_week_local(),
             "runbook": runbook,
             "messages": messages,
         }
@@ -303,17 +305,17 @@ def get_plan_execute_agent(
     async def step_executor(state: PlanExecuteAgentState):
         """This node executes the next step and updates the executed plan with results.
         This node assumes reasoning_level == 0"""
-        executor_system_message = step_executor_template(
-            name, datetime.now().isoformat(), runbook
-        )
         executor_agent = get_tools_agent_executor(
             tools,
             llm,
             name,
-            executor_system_message,
+            runbook,
             reasoning_level,
             interrupt_before_action,
             None,  # Subagent should not have a checkpointer
+            execute_template=STEP_EXECUTOR_PROMPT,
+            reasoning_templates=STEP_REASONING_PROMPTS,
+            retry_reasoning_templates=STEP_RETRY_REASONING_PROMPTS,
         )
         current_step = cast(PlanStep, state.current_plan.steps[0])
 
@@ -348,17 +350,17 @@ def get_plan_execute_agent(
     async def step_executor_thinker(state: PlanExecuteAgentState):
         """This node executes the next step and updates the executed plan with results.
         This node assumes reasoning_level > 0"""
-        executor_system_message = step_executor_template(
-            name, datetime.now().isoformat(), runbook
-        )
         executor_agent = get_tools_agent_executor(
             tools,
             llm,
             name,
-            executor_system_message,
+            runbook,
             reasoning_level,
             interrupt_before_action,
             None,  # Subagent should not have a checkpointer
+            execute_template=STEP_EXECUTOR_PROMPT,
+            reasoning_templates=STEP_REASONING_PROMPTS,
+            retry_reasoning_templates=STEP_RETRY_REASONING_PROMPTS,
         )
         current_step = cast(PlanStepWithThought, state.current_plan.steps[0])
 
@@ -367,8 +369,8 @@ def get_plan_execute_agent(
         if state.executed_plan:
             completed_plans.append(state.executed_plan)
         messages_for_executor = _get_executor_outcome_messages(completed_plans)
-        messages_for_executor.append(AIMessage(content=current_step.reasoning))
-        messages_for_executor.append(AIMessage(content=current_step.step))
+        combined_message = f"{current_step.reasoning} {current_step.step}"
+        messages_for_executor.append(AIMessage(content=combined_message))
 
         output = await executor_agent.ainvoke({"combined": messages_for_executor})
         output_agent_state = AgentState(**output)
@@ -412,15 +414,17 @@ def get_plan_execute_agent(
             | get_pydantic_output_parser(llm, ReplannerResponse)
         )
         last_step = state.current_plan.steps[0]
-        remaining_steps = Plan(objective="", steps=state.current_plan.steps[1:])
+        remaining_steps = Plan(
+            objective="", steps=state.current_plan.steps[1:]
+        ).steps_as_string()
 
         replanner_input = {
             "name": name,
-            "datetime": datetime.now().isoformat(),
+            "datetime": current_timestamp_with_iso_week_local(),
             "runbook": runbook,
             "messages": messages,
             "last_step": last_step.step,
-            "remaining_steps": remaining_steps.steps_as_string(),
+            "remaining_steps": remaining_steps,
             "objective": state.objective,
         }
         replanner_response: ReplannerResponse = await replanner_agent.with_config(
@@ -501,7 +505,7 @@ def get_plan_execute_agent(
 
         replanner_input = {
             "name": name,
-            "datetime": datetime.now().isoformat(),
+            "datetime": current_timestamp_with_iso_week_local(),
             "runbook": runbook,
             "messages": messages,
             "last_step": last_step.step,
