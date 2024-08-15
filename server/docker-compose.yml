@@ -13,6 +13,7 @@ services:
       - .env
     volumes:
       - ./postgres-volume:/var/lib/postgresql/data
+      - ./pg_init.sql:/docker-entrypoint-initdb.d/init_db.sql
   postgres-setup:
     image: migrate/migrate
     depends_on:
