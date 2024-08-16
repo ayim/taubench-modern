@@ -19,7 +19,7 @@ from sema4ai_agent_server.langsmith_client import (
     save_langsmith_thread_url,
 )
 from sema4ai_agent_server.storage.option import get_storage
-from sema4ai_agent_server.stream import astream_state, to_sse
+from sema4ai_agent_server.stream import astream_state, invoke_state, to_sse
 
 router = APIRouter()
 langsmith_client = langsmith.client.Client() if tracing_is_enabled() else None
@@ -92,6 +92,19 @@ async def stream_run(
         if url := get_langsmith_thread_url(langsmith_client, thread["thread_id"]):
             await save_langsmith_thread_url(thread, url)
     return EventSourceResponse(to_sse(astream_state(agent, input_, config)))
+
+
+@router.post("/invoke")
+async def invoke_run(
+    payload: CreateRunPayload,
+    user: AuthedUser,
+):
+    """Create a run."""
+    input_, config, thread, _ = await _run_input_and_config(payload, user["user_id"])
+    if langsmith_client:
+        if url := get_langsmith_thread_url(langsmith_client, thread["thread_id"]):
+            await save_langsmith_thread_url(thread, url)
+    return await invoke_state(agent, input_, config)
 
 
 @router.get("/input_schema")

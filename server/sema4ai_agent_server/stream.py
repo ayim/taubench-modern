@@ -35,6 +35,15 @@ logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 MessagesStream = AsyncIterator[Union[list[AnyMessage], str]]
 
 
+async def invoke_state(
+    app: Runnable,
+    input: Union[Sequence[AnyMessage], Dict[str, Any]],
+    config: RunnableConfig,
+) -> MessagesStream:
+    """Return messages from the runnable."""
+    return await app.ainvoke(input, config)
+
+
 async def astream_state(
     app: Runnable,
     input: Union[Sequence[AnyMessage], Dict[str, Any]],
