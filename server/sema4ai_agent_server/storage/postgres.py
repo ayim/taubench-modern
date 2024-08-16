@@ -1,34 +1,84 @@
+import os
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Union
 
+import asyncpg
+import orjson
+import structlog
 from langchain_core.messages import AnyMessage
 
 from sema4ai_agent_server.agent import AgentType, agent, get_agent_executor
 from sema4ai_agent_server.agent_types.constants import FINISH_NODE_KEY
-from sema4ai_agent_server.lifespan import get_pg_pool
 from sema4ai_agent_server.schema import Assistant, Thread, UploadedFile, User
 from sema4ai_agent_server.storage import BaseStorage
 
+logger = structlog.get_logger()
+
 
 class PostgresStorage(BaseStorage):
+    _pool: asyncpg.pool.Pool = None
+    _is_setup: bool = False
+
+    async def setup(self) -> None:
+        if self._is_setup:
+            return
+        self._pool = await asyncpg.create_pool(
+            database=os.environ["POSTGRES_DB"],
+            user=os.environ["POSTGRES_USER"],
+            password=os.environ["POSTGRES_PASSWORD"],
+            host=os.environ["POSTGRES_HOST"],
+            port=os.environ["POSTGRES_PORT"],
+            init=self._init_connection,
+        )
+        await self._run_migrations()
+        self._is_setup = True
+
+    async def teardown(self) -> None:
+        await self._pool.close()
+        self._pool = None
+        self._is_setup = False
+
+    async def _init_connection(self, conn) -> None:
+        await conn.set_type_codec(
+            "json",
+            encoder=lambda v: orjson.dumps(v).decode(),
+            decoder=orjson.loads,
+            schema="pg_catalog",
+        )
+        await conn.set_type_codec(
+            "jsonb",
+            encoder=lambda v: orjson.dumps(v).decode(),
+            decoder=orjson.loads,
+            schema="pg_catalog",
+        )
+        await conn.set_type_codec(
+            "uuid", encoder=lambda v: str(v), decoder=lambda v: v, schema="pg_catalog"
+        )
+
+    def get_pool(self) -> asyncpg.pool.Pool:
+        if not self._pool:
+            raise Exception("Pool has not been created.")
+        return self._pool
+
     async def list_all_assistants(self) -> List[Assistant]:
-        async with get_pg_pool().acquire() as conn:
+        async with self.get_pool().acquire() as conn:
             return await conn.fetch("SELECT * FROM assistant ")
 
     async def assistant_count(self) -> int:
         """Get assistant row count"""
-        async with get_pg_pool().acquire() as conn:
+        async with self.get_pool().acquire() as conn:
             count = await conn.fetchrow("SELECT COUNT(*) FROM assistant")[0]
             return count
 
     async def thread_count(self) -> int:
-        async with get_pg_pool().acquire() as conn:
+        async with self.get_pool().acquire() as conn:
             count = await conn.fetchrow("SELECT COUNT(*) FROM thread")[0]
             return count
 
     async def get_assistant_files(self, assistant_id: str) -> list[UploadedFile]:
         """Get a list of files associated with an assistant."""
-        async with get_pg_pool().acquire() as conn:
+        async with self.get_pool().acquire() as conn:
             # cursor = conn.cursor()
             rows = await conn.fetch(
                 "SELECT * FROM file_owners WHERE assistant_id = $1",
@@ -46,7 +96,7 @@ class PostgresStorage(BaseStorage):
 
     async def get_thread_files(self, thread_id: str) -> list[UploadedFile]:
         """Get a list of files associated with a thread."""
-        async with get_pg_pool().acquire() as conn:
+        async with self.get_pool().acquire() as conn:
             rows = await conn.fetch(
                 """
                 SELECT * FROM file_owners WHERE thread_id = $1
@@ -65,7 +115,7 @@ class PostgresStorage(BaseStorage):
 
     async def get_file(self, file_path: str) -> Optional[UploadedFile]:
         """Get a file by path."""
-        async with get_pg_pool().acquire() as conn:
+        async with self.get_pool().acquire() as conn:
             row = await conn.fetchrow(
                 """
                 SELECT * FROM file_owners
@@ -91,7 +141,7 @@ class PostgresStorage(BaseStorage):
         assistant_id: Optional[str],
         thread_id: Optional[str],
     ) -> UploadedFile:
-        async with get_pg_pool().acquire() as conn:
+        async with self.get_pool().acquire() as conn:
             await conn.execute(
                 """
                 INSERT INTO file_owners (file_id, file_path, file_hash, embedded, assistant_id, thread_id)
@@ -118,12 +168,73 @@ class PostgresStorage(BaseStorage):
                 embedded=embedded,
             )
 
-    async def run_migrations(self):
-        pass
+    async def _run_migrations(self):
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        migrations_path = Path(current_dir).parent / "migrations" / "postgres"
+
+        async with self.get_pool().acquire() as conn:
+            # Check if schema_migrations table exists and create it if it doesn't
+            table_exists = await conn.fetchval(
+                """
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = 'schema_migrations'
+                );
+                """
+            )
+            if not table_exists:
+                await conn.execute(
+                    """
+                    CREATE TABLE schema_migrations (
+                        version BIGINT PRIMARY KEY, dirty BOOLEAN NOT NULL
+                    );
+                    """
+                )
+                await conn.execute(
+                    "INSERT INTO schema_migrations (version, dirty) VALUES (0, FALSE);"
+                )
+
+            dirty_version = await conn.fetchval(
+                "SELECT version FROM schema_migrations WHERE dirty = TRUE;"
+            )
+            if dirty_version:
+                raise Exception(
+                    f"Migration {dirty_version} is dirty. "
+                    "No migrations will be applied. Please fix it manually."
+                )
+
+            current_version = await conn.fetchval(
+                "SELECT version FROM schema_migrations;"
+            )
+            migration_files = sorted(
+                (f for f in os.listdir(migrations_path) if f.endswith(".up.sql")),
+                key=lambda x: int(x.split("_")[0]),
+            )
+
+            logger.info(f"Migrations found: {migration_files}")
+            logger.info(f"Current migration version: {current_version}")
+
+            for migration in migration_files:
+                version = int(migration.split("_")[0])
+                if version > current_version:
+                    logger.info(f"Applying migration {migration}")
+
+                    # Set dirty flag
+                    await conn.execute(
+                        "UPDATE schema_migrations SET version = $1, dirty = TRUE",
+                        version,
+                    )
+                    # Try to apply the migration
+                    with open(os.path.join(migrations_path, migration), "r") as f:
+                        await conn.execute(f.read())
+                    # Unset dirty flag
+                    await conn.execute("UPDATE schema_migrations SET dirty = FALSE")
+
+                    current_version = version
 
     async def list_assistants(self, user_id: str) -> List[Assistant]:
         """List all assistants for the current user."""
-        async with get_pg_pool().acquire() as conn:
+        async with self.get_pool().acquire() as conn:
             return await conn.fetch(
                 "SELECT * FROM assistant WHERE user_id = $1", user_id
             )
@@ -132,7 +243,7 @@ class PostgresStorage(BaseStorage):
         self, user_id: str, assistant_id: str
     ) -> Optional[Assistant]:
         """Get an assistant by ID."""
-        async with get_pg_pool().acquire() as conn:
+        async with self.get_pool().acquire() as conn:
             row = await conn.fetchrow(
                 "SELECT * FROM assistant WHERE assistant_id = $1 AND (user_id = $2 OR public IS true)",
                 assistant_id,
@@ -161,7 +272,7 @@ class PostgresStorage(BaseStorage):
             assistant_ids
         )  # SQL requires a tuple for the IN operator.
         placeholders = ", ".join("?" for _ in assistant_ids)
-        conn = get_pg_pool().acquire()
+        conn = self.get_pool().acquire()
         cursor = conn.cursor()
         cursor.execute(
             f"SELECT * FROM assistant WHERE assistant_id IN ({placeholders}) AND public = 1",
@@ -194,8 +305,8 @@ class PostgresStorage(BaseStorage):
             return the assistant model if no exception is raised.
         """
         updated_at = datetime.now(timezone.utc)
-        conn = get_pg_pool().acquire()
-        async with get_pg_pool().acquire() as conn:
+        conn = self.get_pool().acquire()
+        async with self.get_pool().acquire() as conn:
             async with conn.transaction():
                 await conn.execute(
                     (
@@ -228,7 +339,7 @@ class PostgresStorage(BaseStorage):
 
     async def delete_assistant(self, user_id: str, assistant_id: str) -> None:
         """Delete an assistant by ID."""
-        async with get_pg_pool().acquire() as conn:
+        async with self.get_pool().acquire() as conn:
             await conn.execute(
                 "DELETE FROM assistant WHERE assistant_id = $1 AND user_id = $2",
                 assistant_id,
@@ -237,12 +348,12 @@ class PostgresStorage(BaseStorage):
 
     async def list_threads(self, user_id: str) -> List[Thread]:
         """List all threads for the current user."""
-        async with get_pg_pool().acquire() as conn:
+        async with self.get_pool().acquire() as conn:
             return await conn.fetch("SELECT * FROM thread WHERE user_id = $1", user_id)
 
     async def get_thread(self, user_id: str, thread_id: str) -> Optional[Thread]:
         """Get a thread by ID."""
-        async with get_pg_pool().acquire() as conn:
+        async with self.get_pool().acquire() as conn:
             return await conn.fetchrow(
                 "SELECT * FROM thread WHERE thread_id = $1 AND user_id = $2",
                 thread_id,
@@ -317,7 +428,7 @@ class PostgresStorage(BaseStorage):
             if assistant
             else None
         )
-        async with get_pg_pool().acquire() as conn:
+        async with self.get_pool().acquire() as conn:
             await conn.execute(
                 (
                     "INSERT INTO thread (thread_id, user_id, assistant_id, name, updated_at, metadata) VALUES ($1, $2, $3, $4, $5, $6) "
@@ -346,7 +457,7 @@ class PostgresStorage(BaseStorage):
 
     async def delete_thread(self, user_id: str, thread_id: str):
         """Delete a thread by ID."""
-        async with get_pg_pool().acquire() as conn:
+        async with self.get_pool().acquire() as conn:
             await conn.execute(
                 "DELETE FROM thread WHERE thread_id = $1 AND user_id = $2",
                 thread_id,
@@ -355,7 +466,7 @@ class PostgresStorage(BaseStorage):
 
     async def get_or_create_user(self, sub: str) -> tuple[User, bool]:
         """Returns a tuple of the user and a boolean indicating whether the user was created."""
-        async with get_pg_pool().acquire() as conn:
+        async with self.get_pool().acquire() as conn:
             if user := await conn.fetchrow('SELECT * FROM "user" WHERE sub = $1', sub):
                 return user, False
             user = await conn.fetchrow(

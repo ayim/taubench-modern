@@ -11,7 +11,15 @@ class BaseStorage(ABC):
     """Base class for storage backends."""
 
     @abstractmethod
-    async def run_migrations(self):
+    async def setup(self) -> None:
+        """Setup the storage backend."""
+
+    @abstractmethod
+    async def teardown(self) -> None:
+        """Teardown the storage backend."""
+
+    @abstractmethod
+    async def _run_migrations(self):
         pass
 
     async def list_assistants(self, user_id: str) -> List[Assistant]:

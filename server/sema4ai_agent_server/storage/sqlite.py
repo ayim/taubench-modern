@@ -20,9 +20,16 @@ logger = structlog.get_logger()
 
 
 class SqliteStorage(BaseStorage):
-    def __init__(self):
-        print("Running migrations...")
-        self.run_migrations()
+    _is_setup: bool = False
+
+    async def setup(self) -> None:
+        if self._is_setup:
+            return
+        await self._run_migrations()
+        self._is_setup = True
+
+    async def teardown(self) -> None:
+        pass
 
     @classmethod
     @contextmanager
@@ -34,7 +41,7 @@ class SqliteStorage(BaseStorage):
         finally:
             conn.close()
 
-    def run_migrations(self):
+    async def _run_migrations(self):
         db_exists = os.path.exists(DOMAIN_DATABASE_PATH)
         current_dir = os.path.dirname(os.path.abspath(__file__))
         migrations_path = Path(current_dir).parent / "migrations" / "sqlite"
