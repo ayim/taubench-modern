@@ -13,11 +13,15 @@ RESPONSE_STEP_DESCRIPTIONS = {
     "with_reasoning": """The steps to follow in the future. Respond as a list of tuples with each tuple \
 containing only two strings. The first part is your thinking about why the step is needed. \
 The second part is the step itself and any additional details you think are important for \
-your team members to know when performing the step. It is critically important that these \
+your team members to know when performing the step. The step itself should be more than a \
+tool call with parameters, you should write out the step as if you need to explain it to someone \
+else so they can execute it. It is critically important that these \
 steps are not repeats of the steps already taken.""",
     "without_reasoning": """The steps to follow in the future. Include any additional details you \
-think are important for your team members to know when performing the step. It is critically \
-important that these steps are not repeats of the steps already taken.""",
+think are important for your team members to know when performing the step. The step itself \
+should be more than a tool call with parameters, you should write out the step as if you need \
+to explain it to someone else so they can execute it. It is critically important that these \
+steps are not repeats of the steps already taken.""",
 }
 
 ResponseType = Literal[
@@ -191,7 +195,11 @@ class InitialThinkingPlanningResponse(BaseModel):
     )
     steps: list[tuple] | None = Field(
         None,
-        description=RESPONSE_STEP_DESCRIPTIONS["with_reasoning"],
+        description=RESPONSE_STEP_DESCRIPTIONS["with_reasoning"]
+        + " As part of your initial "
+        "response, be sure to think through the ENTIRE plan, not just the first step. "
+        "You are responsible for generating a complete plan that will be followed by "
+        "the rest of the team, they are counting on you to be thorough.",
     )
 
 
@@ -203,7 +211,11 @@ class InitialPlanningResponse(BaseModel):
     )
     steps: list[str] | None = Field(
         None,
-        description=RESPONSE_STEP_DESCRIPTIONS["without_reasoning"],
+        description=RESPONSE_STEP_DESCRIPTIONS["without_reasoning"]
+        + " As part of your initial "
+        "response, be sure to think through the ENTIRE plan, not just the first step. "
+        "You are responsible for generating a complete plan that will be followed by "
+        "the rest of the team, they are counting on you to be thorough.",
     )
 
 

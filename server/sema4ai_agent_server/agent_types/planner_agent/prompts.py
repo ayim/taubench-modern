@@ -5,11 +5,15 @@ would benefit from multiple rounds of interaction with various tools to complete
 where the expected output from one tool needs to be used as input into future tools. If you \
 think you already know how to respond, or the user seems to want to chat (for example, they \
 say "hello"), or you think one of the available tools could be used in a single shot, we \
-would not need a plan. When creating the plan, think about the various steps needed to \
-accomplish the objective and what information is needed for each step. Each step is \
-likely interconnected with the previous and following steps, so be sure to think about \
-how each step builds on the previous one. If only one step is needed, a \
-plan is not required."""
+would not need a plan. 
+
+When creating the plan, think about the various steps needed to accomplish the objective and \
+what information is needed for each step. Each step is likely interconnected with the previous \
+and following steps, so be sure to think about how each step builds on the previous one. These \
+plans are relied upon by the rest of the team, so it is very important that they be thorough \
+and include all steps needed to accomplish the objective.
+
+If only one step is needed, a plan is not required."""
 
 ## Planner related prompts and messages
 PLANNER_ROLE = """You are part of a team of agents following the provided runbook. Your \
@@ -81,8 +85,10 @@ if we need a plan to respond to the user.
 If a plan is required, develop a step by step plan for the team. This plan should involve \
 individual tasks that, when executed, will yield a meaninful response to the objective. \
 The steps should be specific and each step should help to achieve the objective. The result \
-of the final step should be a complete meaningful response to the objective. Make \
-sure each step has all the information needed, assume every step will be followed."""
+of the final step should be a complete meaningful response to the objective. The entire \
+team is relying on you to develop a complete plan for them, you must develop a full \
+plan that accomplished the objective. Make sure each step has all the information \
+needed, assume every step will be followed."""
                 ),
             ),
             ("placeholder", "{messages}"),
@@ -100,7 +106,9 @@ Succinctly explain your thinking about whether a plan is needed.
 If a plan is needed, succinctly explain your approach. When developing the plan, succinctly think about \
 each step and why it is needed. Include your thoughts in the response tool call. The plan should \
 be specific and each step should help to achieve the objective. The result of the final step should \
-be a complete meaningful response to the objective. Make sure each step has all the information \
+be a complete meaningful response to the objective. The entire team is relying on you to \
+develop a complete plan for them, you must develop a full plan that will accomplish the objective \
+made up of multiple steps. Make sure each step has all the information \
 needed, assume every step will be followed. Steps must be created as tuples of two strings: \
 the first string is the reasoning why the step is needed and the second string is the step itself."""
                 ),
@@ -121,7 +129,9 @@ If a plan is needed, explain your approach. When developing the plan, think abou
 each step, why it is needed, and what information is needed by the assigned team member to \
 complete it. Include your thoughts in the response tool call. The plan should \
 be specific and each step should help to achieve the objective. The result of the final step should \
-be a complete meaningful response to the objective. Make sure each step has all the information \
+be a complete meaningful response to the objective. The entire team is relying on you to \
+develop a complete plan for them, you must develop a full plan that will accomplish the objective \
+made up of multiple steps. Make sure each step has all the information \
 needed, assume every step will be followed. Steps must be created as tuples of two strings: \
 the first string is the reasoning why the step is needed and the second string is the step itself."""
                 ),
@@ -159,8 +169,10 @@ Our runbook: <runbook>
 
 Your immediate instructions: <instructions>
 The planner will provide you with a snippet of the current team thread, which may include messages \
-from the user and other members of your team. The last message in this thread will be the step you \
-need to execute.
+from the user and other members of your team. The last message in the thread will be the planner's \
+directions to you. You must execute the step provided by the planner to the best of your ability. \
+You should assume that the overall objective may not be known to you, but you should focus on \
+completing the step provided to you.
 </instructions>"""
 
 
@@ -179,9 +191,9 @@ STEP_REASONING_PROMPTS = {
             ("placeholder", "{messages}"),
             (
                 "system",
-                "Think about your next response based on the conversation so far and succinctly "
-                "explain why you are thinking to respond in this way. Focus on the most important aspects "
-                "of your reasoning. ONLY PROVIDE REASONING.",
+                "Think about your next response based on the conversation and instructions the planner "
+                "provided. Then, succinctly sexplain why you are thinking to respond in this way. "
+                "Focus on the most important aspects of your reasoning. ONLY PROVIDE REASONING.",
             ),
         ]
     ),
@@ -191,9 +203,9 @@ STEP_REASONING_PROMPTS = {
             ("placeholder", "{messages}"),
             (
                 "system",
-                "Think about your next response based on the conversation so far and explain "
-                "why you are thinking to respond in this way. If you are thinking about calling tools, "
-                "also explain what parameters you are thinking of using and why. ONLY PROVIDE REASONING.",
+                "Think about your next response based on the conversation and instructions the planner "
+                "provided. Then, explain why you are thinking to respond in this way. "
+                "Focus on the most important aspects of your reasoning. ONLY PROVIDE REASONING.",
             ),
         ]
     ),
