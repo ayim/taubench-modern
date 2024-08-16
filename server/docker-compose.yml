@@ -14,23 +14,10 @@ services:
     volumes:
       - ./postgres-volume:/var/lib/postgresql/data
       - ./pg_init.sql:/docker-entrypoint-initdb.d/init_db.sql
-  postgres-setup:
-    image: migrate/migrate
-    depends_on:
-      postgres:
-        condition: service_healthy
-    volumes:
-      - ./sema4ai_agent_server/migrations/postgres:/migrations/postgres
-    env_file:
-      - .env
-    command: ["-path", "/migrations/postgres", "-database", "postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres:$POSTGRES_PORT/$POSTGRES_DB?sslmode=disable", "up"]
   backend:
     container_name: opengpts-backend
     build:
       context: .
-    depends_on:
-      postgres-setup:
-        condition: service_completed_successfully
     env_file:
       - .env
     volumes:
