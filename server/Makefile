@@ -1,4 +1,4 @@
-.PHONY: all lint format test help publish start migrate-postgres test_watch spell_check spell_fix install-hooks uninstall-hooks
+.PHONY: all lint format test help publish start migrate-postgres test_watch spell_check spell_fix install-hooks uninstall-hooks test_api_interaction
 
 SHELL := /bin/bash
 
@@ -12,6 +12,10 @@ all: help
 # Define a variable for the test file path.
 TEST_FILE ?= tests/unit_tests/
 
+# Define variables for API interaction test
+API_HOST ?= localhost
+API_PORT ?= 8100
+
 start:
 	poetry run uvicorn sema4ai_agent_server.server:app --port 8100 --log-config log_config.json
 
@@ -23,6 +27,9 @@ test:
 
 test_watch:
 	poetry run ptw . -- $(TEST_FILE)
+
+test_api_interaction:
+	poetry run python tests/integration_tests/test_api_interaction.py --host $(API_HOST) --port $(API_PORT)
 
 ######################
 # LINTING AND FORMATTING
@@ -93,6 +100,9 @@ help:
 	@echo 'test                         - run unit tests'
 	@echo 'test TEST_FILE=<test_file>   - run all tests in file'
 	@echo 'test_watch                   - run tests in watch mode'
+	@echo 'test_api_interaction         - run API interaction test'
+	@echo '  API_HOST=<host>            - specify API host (default: localhost)'
+	@echo '  API_PORT=<port>            - specify API port (default: 8100)'
 	@echo '-- GIT HOOKS --'
 	@echo 'install-hooks                - install Git pre-commit and pre-push hooks'
 	@echo 'uninstall-hooks              - uninstall Git hooks'
