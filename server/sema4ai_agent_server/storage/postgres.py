@@ -9,7 +9,7 @@ import structlog
 from langchain_core.messages import AnyMessage
 from pydantic import parse_obj_as
 
-from sema4ai_agent_server.agent import AgentType, runnable_agent, get_agent_executor
+from sema4ai_agent_server.agent import AgentType, get_agent_executor, runnable_agent
 from sema4ai_agent_server.agent_types.constants import FINISH_NODE_KEY
 from sema4ai_agent_server.schema import Agent, Thread, UploadedFile, User
 from sema4ai_agent_server.storage import BaseStorage
@@ -252,14 +252,10 @@ class PostgresStorage(BaseStorage):
     async def list_agents(self, user_id: str) -> List[Agent]:
         """List all agents for the current user."""
         async with self.get_pool().acquire() as conn:
-            agents = await conn.fetch(
-                "SELECT * FROM agent WHERE user_id = $1", user_id
-            )
+            agents = await conn.fetch("SELECT * FROM agent WHERE user_id = $1", user_id)
             return parse_obj_as(List[Agent], agents)
 
-    async def get_agent(
-        self, user_id: str, agent_id: str
-    ) -> Optional[Agent]:
+    async def get_agent(self, user_id: str, agent_id: str) -> Optional[Agent]:
         """Get an agent by ID."""
         async with self.get_pool().acquire() as conn:
             row = await conn.fetchrow(
@@ -269,13 +265,9 @@ class PostgresStorage(BaseStorage):
             )
             return parse_obj_as(Optional[Agent], row)
 
-    async def list_public_agents(
-        self, agent_ids: Sequence[str]
-    ) -> List[Agent]:
+    async def list_public_agents(self, agent_ids: Sequence[str]) -> List[Agent]:
         """List all the public agents."""
-        agent_ids_tuple = tuple(
-            agent_ids
-        )  # SQL requires a tuple for the IN operator.
+        agent_ids_tuple = tuple(agent_ids)  # SQL requires a tuple for the IN operator.
         placeholders = ", ".join("?" for _ in agent_ids)
         conn = self.get_pool().acquire()
         cursor = conn.cursor()
@@ -433,9 +425,7 @@ class PostgresStorage(BaseStorage):
         updated_at = datetime.now(timezone.utc)
         agent = await self.get_agent(user_id, agent_id)
         metadata = (
-            {"agent_type": agent.config["configurable"]["type"]}
-            if agent
-            else None
+            {"agent_type": agent.config["configurable"]["type"]} if agent else None
         )
         async with self.get_pool().acquire() as conn:
             await conn.execute(

@@ -33,9 +33,7 @@ class BaseStorage(ABC):
         pass
 
     @abstractmethod
-    async def get_agent(
-        self, user_id: str, agent_id: str
-    ) -> Optional[Agent]:
+    async def get_agent(self, user_id: str, agent_id: str) -> Optional[Agent]:
         """Get an agent by ID."""
         pass
 

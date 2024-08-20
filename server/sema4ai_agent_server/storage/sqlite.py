@@ -11,7 +11,7 @@ import structlog
 from langchain_core.messages import AnyMessage
 from pydantic import parse_obj_as
 
-from sema4ai_agent_server.agent import AgentType, runnable_agent, get_agent_executor
+from sema4ai_agent_server.agent import AgentType, get_agent_executor, runnable_agent
 from sema4ai_agent_server.agent_types.constants import FINISH_NODE_KEY
 from sema4ai_agent_server.constants import DOMAIN_DATABASE_PATH
 from sema4ai_agent_server.schema import Agent, Thread, UploadedFile, User
@@ -145,9 +145,7 @@ class SqliteStorage(BaseStorage):
 
             return agents
 
-    async def get_agent(
-        self, user_id: str, agent_id: str
-    ) -> Optional[Agent]:
+    async def get_agent(self, user_id: str, agent_id: str) -> Optional[Agent]:
         """Get an agent by ID."""
         with self._connect() as conn:
             cursor = conn.cursor()

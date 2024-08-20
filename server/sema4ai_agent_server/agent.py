@@ -365,9 +365,7 @@ chat_plan_execute = (
             name="Tool Confirmation",
             description="If Yes, you'll be prompted to continue before each tool is executed.\nIf No, tools will be executed automatically by the agent.",
         ),
-        agent_id=ConfigurableField(
-            id="agent_id", name="Agent ID", is_shared=True
-        ),
+        agent_id=ConfigurableField(id="agent_id", name="Agent ID", is_shared=True),
         thread_id=ConfigurableField(id="thread_id", name="Thread ID", is_shared=True),
         tools=ConfigurableField(id="tools", name="Tools"),
         reasoning_level=ConfigurableField(
@@ -395,9 +393,7 @@ multi_agent_hierarchical_planning = (
             name="Tool Confirmation",
             description="If Yes, you'll be prompted to continue before each tool is executed.\nIf No, tools will be executed automatically by the agent.",
         ),
-        agent_id=ConfigurableField(
-            id="agent_id", name="Agent ID", is_shared=True
-        ),
+        agent_id=ConfigurableField(id="agent_id", name="Agent ID", is_shared=True),
         thread_id=ConfigurableField(id="thread_id", name="Thread ID", is_shared=True),
         tools=ConfigurableField(id="tools", name="Tools"),
     )
@@ -424,9 +420,7 @@ runnable_agent: Pregel = (
             name="Tool Confirmation",
             description="If Yes, you'll be prompted to continue before each tool is executed.\nIf No, tools will be executed automatically by the agent.",
         ),
-        agent_id=ConfigurableField(
-            id="agent_id", name="Agent ID", is_shared=True
-        ),
+        agent_id=ConfigurableField(id="agent_id", name="Agent ID", is_shared=True),
         thread_id=ConfigurableField(id="thread_id", name="Thread ID", is_shared=True),
         tools=ConfigurableField(id="tools", name="Tools"),
         reasoning_level=ConfigurableField(

@@ -187,9 +187,7 @@ async def update_action_server_ports(port_map: dict[str, str]) -> dict:
             )
             tool["config"]["url"] = new_url
             updated = True
-            logger.info(
-                f"Updated tool URL from {url} to {new_url} for {agent.name}."
-            )
+            logger.info(f"Updated tool URL from {url} to {new_url} for {agent.name}.")
 
         if updated:
             updated_agents.append(agent)

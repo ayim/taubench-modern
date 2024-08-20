@@ -64,7 +64,9 @@ async def _run_input_and_config(payload: CreateRunPayload, user_id: str):
 
     try:
         input_ = (
-            _unpack_input(runnable_agent.get_input_schema(config).validate(payload.input))
+            _unpack_input(
+                runnable_agent.get_input_schema(config).validate(payload.input)
+            )
             if payload.input is not None
             else None
         )
