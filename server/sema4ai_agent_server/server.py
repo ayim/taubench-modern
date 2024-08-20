@@ -168,7 +168,7 @@ async def update_action_server_ports(port_map: dict[str, str]) -> dict:
 
     for assistant in assistants:
         updated = False
-        for tool in assistant["config"].get("configurable", {}).get("tools", []):
+        for tool in assistant.config.get("configurable", {}).get("tools", []):
             if tool["type"] != AvailableTools.ACTION_SERVER:
                 continue
 
@@ -191,7 +191,7 @@ async def update_action_server_ports(port_map: dict[str, str]) -> dict:
             tool["config"]["url"] = new_url
             updated = True
             logger.info(
-                f"Updated tool URL from {url} to {new_url} for {assistant['name']}."
+                f"Updated tool URL from {url} to {new_url} for {assistant.name}."
             )
 
         if updated:
@@ -199,12 +199,12 @@ async def update_action_server_ports(port_map: dict[str, str]) -> dict:
 
     for assistant in updated_assistants:
         await get_storage().put_assistant(
-            user_id=assistant["user_id"],
-            assistant_id=assistant["assistant_id"],
-            name=assistant["name"],
-            config=assistant["config"],
-            public=assistant["public"],
-            metadata=assistant["metadata"],
+            user_id=assistant.user_id,
+            assistant_id=assistant.assistant_id,
+            name=assistant.name,
+            config=assistant.config,
+            public=assistant.public,
+            metadata=assistant.metadata,
         )
 
     logger.info(f"Ports updated for {len(updated_assistants)} assistants.")

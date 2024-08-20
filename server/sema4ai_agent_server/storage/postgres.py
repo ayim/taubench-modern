@@ -64,7 +64,8 @@ class PostgresStorage(BaseStorage):
 
     async def list_all_assistants(self) -> List[Assistant]:
         async with self.get_pool().acquire() as conn:
-            return await conn.fetch("SELECT * FROM assistant ")
+            assistants = await conn.fetch("SELECT * FROM assistant ")
+            return parse_obj_as(List[Assistant], assistants)
 
     async def assistant_count(self) -> int:
         """Get assistant row count"""
@@ -285,9 +286,10 @@ class PostgresStorage(BaseStorage):
     async def list_assistants(self, user_id: str) -> List[Assistant]:
         """List all assistants for the current user."""
         async with self.get_pool().acquire() as conn:
-            return await conn.fetch(
+            assistants = await conn.fetch(
                 "SELECT * FROM assistant WHERE user_id = $1", user_id
             )
+            return parse_obj_as(List[Assistant], assistants)
 
     async def get_assistant(
         self, user_id: str, assistant_id: str
@@ -299,20 +301,7 @@ class PostgresStorage(BaseStorage):
                 assistant_id,
                 user_id,
             )
-            if not row:
-                return None
-            assistant_data = dict(row)  # Convert sqlite3.Row to dict
-            assistant_data["config"] = (
-                assistant_data["config"]
-                if "config" in assistant_data and assistant_data["config"]
-                else {}
-            )
-            assistant_data["metadata"] = (
-                assistant_data["metadata"]
-                if assistant_data["metadata"] is not None
-                else None
-            )
-            return Assistant(**assistant_data)
+            return parse_obj_as(Optional[Assistant], row)
 
     async def list_public_assistants(
         self, assistant_ids: Sequence[str]
@@ -329,7 +318,7 @@ class PostgresStorage(BaseStorage):
             assistant_ids_tuple,
         )
         rows = cursor.fetchall()
-        return [Assistant(**dict(row)) for row in rows]
+        return parse_obj_as(List[Assistant], rows)
 
     async def put_assistant(
         self,
@@ -377,15 +366,15 @@ class PostgresStorage(BaseStorage):
                     public,
                     metadata,
                 )
-        return {
-            "assistant_id": assistant_id,
-            "user_id": user_id,
-            "name": name,
-            "config": config,
-            "updated_at": updated_at,
-            "public": public,
-            "metadata": metadata,
-        }
+        return Assistant(
+            assistant_id=assistant_id,
+            user_id=user_id,
+            name=name,
+            config=config,
+            updated_at=updated_at,
+            public=public,
+            metadata=metadata,
+        )
 
     async def delete_assistant(self, user_id: str, assistant_id: str) -> None:
         """Delete an assistant by ID."""
@@ -434,7 +423,7 @@ class PostgresStorage(BaseStorage):
         thread = await self.get_thread(user_id, thread_id)
         assistant_id = thread.assistant_id
         assistant = await self.get_assistant(user_id, assistant_id)
-        config = assistant["config"]["configurable"] if assistant else {}
+        config = assistant.config["configurable"] if assistant else {}
         retval = agent.update_state(
             {
                 "configurable": {
@@ -478,7 +467,7 @@ class PostgresStorage(BaseStorage):
         updated_at = datetime.now(timezone.utc)
         assistant = await self.get_assistant(user_id, assistant_id)
         metadata = (
-            {"assistant_type": assistant["config"]["configurable"]["type"]}
+            {"assistant_type": assistant.config["configurable"]["type"]}
             if assistant
             else None
         )

@@ -46,20 +46,18 @@ async def _run_input_and_config(payload: CreateRunPayload, user_id: str):
 
     knowledge_files = (None,)
     if assistant:
-        uploaded_files = await get_storage().get_assistant_files(
-            assistant["assistant_id"]
-        )
+        uploaded_files = await get_storage().get_assistant_files(assistant.assistant_id)
         knowledge_files = [file["file_ref"] for file in uploaded_files]
 
     config: RunnableConfig = {
-        **assistant["config"],
+        **assistant.config,
         "configurable": {
-            **assistant["config"]["configurable"],
+            **assistant.config["configurable"],
             **((payload.config or {}).get("configurable") or {}),
             "user_id": user_id,
             "thread_id": str(thread.thread_id),
-            "assistant_id": str(assistant["assistant_id"]),
-            "name": assistant["name"],
+            "assistant_id": str(assistant.assistant_id),
+            "name": assistant.name,
             "knowledge_files": knowledge_files,
         },
     }

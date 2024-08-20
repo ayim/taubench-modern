@@ -11,23 +11,16 @@ class User(BaseModel):
     created_at: datetime = Field(description="The time the user was created.")
 
 
-class Assistant(TypedDict):
+class Assistant(BaseModel):
     """Assistant model."""
 
-    assistant_id: str
-    """The ID of the assistant."""
-    user_id: str
-    """The ID of the user that owns the assistant."""
-    name: str
-    """The name of the assistant."""
-    config: dict
-    """The assistant config."""
-    updated_at: datetime
-    """The last time the assistant was updated."""
-    public: bool
-    """Whether the assistant is public."""
-    metadata: Optional[dict]
-    """The assistant metadata."""
+    assistant_id: str = Field(description="The ID of the assistant.")
+    user_id: str = Field(description="The ID of the user that owns the assistant.")
+    name: str = Field(description="The name of the assistant.")
+    config: dict = Field(description="The assistant config.")
+    updated_at: datetime = Field(description="The last time the assistant was updated.")
+    public: bool = Field(description="Whether the assistant is public.")
+    metadata: Optional[dict] = Field(description="The assistant metadata.")
 
 
 class Thread(BaseModel):

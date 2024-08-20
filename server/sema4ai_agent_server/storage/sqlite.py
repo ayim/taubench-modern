@@ -293,7 +293,7 @@ class SqliteStorage(BaseStorage):
         thread = await self.get_thread(user_id, thread_id)
         assistant_id = thread.assistant_id
         assistant = await self.get_assistant(user_id, assistant_id)
-        config = assistant["config"]["configurable"] if assistant else {}
+        config = assistant.config["configurable"] if assistant else {}
         retval = agent.update_state(
             {
                 "configurable": {
