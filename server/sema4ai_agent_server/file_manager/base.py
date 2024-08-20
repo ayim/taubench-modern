@@ -53,7 +53,10 @@ class BaseFileManager:
     def _create_embeddings(
         self, blob: Blob, owner: Union[Assistant, Thread], file_id: str
     ) -> None:
-        owner_id: str = owner.get("thread_id", owner.get("assistant_id", "NO OWNER"))
+        if isinstance(owner, Assistant):
+            owner_id = owner.assistant_id
+        else:
+            owner_id = owner.thread_id
         config = {"configurable": {"owner_id": owner_id, "file_id": file_id}}
         try:
             embed_runnable.invoke(blob, config)

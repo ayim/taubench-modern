@@ -291,7 +291,7 @@ class SqliteStorage(BaseStorage):
     ):
         """Add state to a thread."""
         thread = await self.get_thread(user_id, thread_id)
-        assistant_id = thread["assistant_id"]
+        assistant_id = thread.assistant_id
         assistant = await self.get_assistant(user_id, assistant_id)
         config = assistant["config"]["configurable"] if assistant else {}
         retval = agent.update_state(
@@ -355,14 +355,14 @@ class SqliteStorage(BaseStorage):
                 ),
             )
             conn.commit()
-            return {
-                "thread_id": thread_id,
-                "user_id": user_id,
-                "assistant_id": assistant_id,
-                "name": name,
-                "updated_at": updated_at,
-                "metadata": metadata,
-            }
+            return Thread(
+                thread_id=thread_id,
+                user_id=user_id,
+                assistant_id=assistant_id,
+                name=name,
+                updated_at=updated_at,
+                metadata=metadata,
+            )
 
     async def get_or_create_user(self, sub: str) -> tuple[User, bool]:
         """Returns a tuple of the user and a boolean indicating whether the user was created."""
@@ -490,14 +490,12 @@ class SqliteStorage(BaseStorage):
         self, owner: Union[Assistant, Thread], file_ref: str
     ) -> Optional[UploadedFile]:
         """Get a file by ref."""
-        query = ""
-        value = None
-        if "assistant_id" in owner:
+        if isinstance(owner, Assistant):
             query = "assistant_id = ?"
-            value = owner["assistant_id"]
-        if "thread_id" in owner:
+            value = owner.assistant_id
+        else:
             query = "thread_id = ?"
-            value = owner["thread_id"]
+            value = owner.thread_id
         with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute(
@@ -529,7 +527,12 @@ class SqliteStorage(BaseStorage):
         owner: Union[Assistant, Thread],
         file_path_expiration: Optional[datetime],
     ) -> UploadedFile:
-        assistant_id = None if "thread_id" in owner else owner["assistant_id"]
+        if isinstance(owner, Assistant):
+            assistant_id = owner.assistant_id
+            thread_id = None
+        else:
+            assistant_id = None
+            thread_id = owner.thread_id
         with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute(
@@ -552,7 +555,7 @@ class SqliteStorage(BaseStorage):
                     file_hash,
                     embedded,
                     assistant_id,
-                    owner.get("thread_id"),
+                    thread_id,
                     file_path_expiration,
                 ),
             )

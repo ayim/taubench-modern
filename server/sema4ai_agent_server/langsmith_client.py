@@ -40,15 +40,15 @@ def get_langsmith_thread_url(
 async def save_langsmith_thread_url(thread: Thread, url: str) -> None:
     """Save the langsmith URL to the thread metadata if it is not already present."""
 
-    metadata = thread["metadata"] or {}
+    metadata = thread.metadata or {}
     existing_urls = metadata.get("langsmith_urls", [])
     if url not in existing_urls:
         existing_urls.append(url)
         metadata["langsmith_urls"] = existing_urls
         await get_storage().put_thread(
-            user_id=thread["user_id"],
-            thread_id=thread["thread_id"],
-            assistant_id=thread["assistant_id"],
-            name=thread["name"],
+            user_id=thread.user_id,
+            thread_id=thread.thread_id,
+            assistant_id=thread.assistant_id,
+            name=thread.name,
             metadata=metadata,
         )
