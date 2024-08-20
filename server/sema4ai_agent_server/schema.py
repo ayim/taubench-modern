@@ -42,3 +42,4 @@ class UploadedFile(BaseModel):
     """The hash of the file."""
     embedded: bool
     """Whether the file is embedded."""
+    file_path_expiration: Optional[datetime] = None

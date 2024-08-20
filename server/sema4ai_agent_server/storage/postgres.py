@@ -472,3 +472,22 @@ class PostgresStorage(BaseStorage):
                 'INSERT INTO "user" (sub) VALUES ($1) RETURNING *', sub
             )
             return parse_obj_as(User, user), True
+
+    async def update_file_retrieve_information(
+        self, file_id: str, *, file_path: str, file_path_expiration: datetime
+    ) -> UploadedFile:
+        async with self.get_pool().acquire() as conn:
+            row = await conn.fetchrow(
+                """
+                UPDATE file_owners
+                SET file_path = $2, file_path_expiration = $3
+                WHERE file_id = $1
+                RETURNING *
+                """,
+                file_id,
+                file_path,
+                file_path_expiration,
+            )
+            if not row:
+                raise ValueError(f"File with id {file_id} not found")
+            return parse_obj_as(UploadedFile, row)

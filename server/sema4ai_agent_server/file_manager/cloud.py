@@ -31,7 +31,7 @@ class CloudFileManager(BaseFileManager):
         )
         return response.json()
 
-    def _get_presigned_url(self, file_id: str, file_name: str) -> dict:
+    def _get_presigned_url(self, file_id: str, file_name: str) -> str:
         response = requests.get(
             f"{FILE_MANAGEMENT_API_URL}",
             headers={"Content-Type": "application/json"},
@@ -134,14 +134,12 @@ class CloudFileManager(BaseFileManager):
         for file in files:
             if self._file_path_is_expired(file):
                 refreshed_file_path = self._get_presigned_url(
-                    file.file_id, file.file_name
+                    file.file_id, file.file_ref
                 )
-                updated_file = await storage.update_file(
+                updated_file = await storage.update_file_retrieve_information(
                     file.file_id,
-                    {
-                        "file_path": refreshed_file_path,
-                        "file_path_expiration": self._get_file_path_expiration(),
-                    },
+                    file_path=refreshed_file_path,
+                    file_path_expiration=self._get_file_path_expiration(),
                 )
                 ret.append(updated_file)
             else:

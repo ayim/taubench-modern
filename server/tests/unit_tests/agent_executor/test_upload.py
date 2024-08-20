@@ -1,5 +1,4 @@
 from io import BytesIO
-from unittest import skip
 
 from fastapi import UploadFile
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -13,7 +12,6 @@ from tests.unit_tests.fixtures import get_sample_paths
 from tests.unit_tests.utils import InMemoryVectorStore
 
 
-@skip("This test is not a unit test.")
 def test_embed_runnable() -> None:
     """Test embed runnable"""
     vectorstore = InMemoryVectorStore()

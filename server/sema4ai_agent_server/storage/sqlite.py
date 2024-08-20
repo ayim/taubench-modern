@@ -526,3 +526,26 @@ class SqliteStorage(BaseStorage):
             cursor = conn.cursor()
             cursor.execute("DELETE FROM file_owners WHERE file_id = ?", (file_id,))
             conn.commit()
+
+    async def update_file_retrieve_information(
+        self, file_id: str, *, file_path: str, file_path_expiration: datetime
+    ) -> UploadedFile:
+        with self._connect() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                UPDATE file_owners
+                SET file_path = ?, file_path_expiration = ?
+                WHERE file_id = ?
+                """,
+                (file_path, file_path_expiration, file_id),
+            )
+            if cursor.rowcount == 0:
+                raise ValueError(f"File with id {file_id} not found")
+
+            # Fetch the updated row
+            cursor.execute("SELECT * FROM file_owners WHERE file_id = ?", (file_id,))
+            row = cursor.fetchone()
+            conn.commit()
+
+            return parse_obj_as(UploadedFile, row)

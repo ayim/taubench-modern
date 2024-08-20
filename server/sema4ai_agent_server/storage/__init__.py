@@ -159,3 +159,10 @@ class BaseStorage(ABC):
     ) -> UploadedFile:
         """Add or update a file owner."""
         pass
+
+    @abstractmethod
+    async def update_file_retrieve_information(
+        self, file_id: str, *, file_path: str, file_path_expiration: datetime
+    ) -> UploadedFile:
+        """Update file retrieve information"""
+        pass
