@@ -1,10 +1,11 @@
 from datetime import datetime
 from typing import Optional
 
+from pydantic import BaseModel
 from typing_extensions import TypedDict
 
 
-class User(TypedDict):
+class User(BaseModel):
     user_id: str
     """The ID of the user."""
     sub: str

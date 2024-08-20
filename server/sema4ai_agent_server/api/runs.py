@@ -84,7 +84,7 @@ async def create_run(
     background_tasks: BackgroundTasks,
 ):
     """Create a run."""
-    input_, config, _, _ = await _run_input_and_config(payload, user["user_id"])
+    input_, config, _, _ = await _run_input_and_config(payload, user.user_id)
     background_tasks.add_task(agent.ainvoke, input_, config)
     return {"status": "ok"}  # TODO add a run id
 
@@ -95,7 +95,7 @@ async def stream_run(
     user: AuthedUser,
 ):
     """Create a run."""
-    input_, config, thread, _ = await _run_input_and_config(payload, user["user_id"])
+    input_, config, thread, _ = await _run_input_and_config(payload, user.user_id)
     if langsmith_client:
         if url := get_langsmith_thread_url(langsmith_client, thread["thread_id"]):
             await save_langsmith_thread_url(thread, url)
@@ -108,7 +108,7 @@ async def invoke_run(
     user: AuthedUser,
 ):
     """Create a run."""
-    input_, config, thread, _ = await _run_input_and_config(payload, user["user_id"])
+    input_, config, thread, _ = await _run_input_and_config(payload, user.user_id)
     if langsmith_client:
         if url := get_langsmith_thread_url(langsmith_client, thread["thread_id"]):
             await save_langsmith_thread_url(thread, url)

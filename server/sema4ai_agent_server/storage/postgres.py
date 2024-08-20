@@ -7,6 +7,7 @@ import asyncpg
 import orjson
 import structlog
 from langchain_core.messages import AnyMessage
+from pydantic import parse_obj_as
 
 from sema4ai_agent_server.agent import AgentType, agent, get_agent_executor
 from sema4ai_agent_server.agent_types.constants import FINISH_NODE_KEY
@@ -514,8 +515,8 @@ class PostgresStorage(BaseStorage):
         """Returns a tuple of the user and a boolean indicating whether the user was created."""
         async with self.get_pool().acquire() as conn:
             if user := await conn.fetchrow('SELECT * FROM "user" WHERE sub = $1', sub):
-                return user, False
+                return parse_obj_as(User, user), False
             user = await conn.fetchrow(
                 'INSERT INTO "user" (sub) VALUES ($1) RETURNING *', sub
             )
-            return user, True
+            return parse_obj_as(User, user), True
