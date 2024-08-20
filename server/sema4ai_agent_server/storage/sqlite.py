@@ -275,7 +275,7 @@ class SqliteStorage(BaseStorage):
 
     async def get_thread_state(self, user_id: str, thread_id: str):
         """Get state for a thread."""
-        app = get_agent_executor([], AgentType.GPT_35_TURBO, "", "", False, 0)
+        app = get_agent_executor([], AgentType.GPT_35_TURBO, "", "", False, 0, None)
         state = app.get_state({"configurable": {"thread_id": thread_id}})
         return {
             "values": state.values,
@@ -309,7 +309,7 @@ class SqliteStorage(BaseStorage):
 
     async def get_thread_history(self, user_id: str, thread_id: str):
         """Get the history of a thread."""
-        app = get_agent_executor([], AgentType.GPT_35_TURBO, "", "", False)
+        app = get_agent_executor([], AgentType.GPT_35_TURBO, "", "", False, None)
         return [
             {
                 "values": c.values,
@@ -434,6 +434,7 @@ class SqliteStorage(BaseStorage):
                 UploadedFile(
                     file_id=str(row["file_id"]),
                     file_path=row["file_path"],
+                    file_ref=row["file_ref"],
                     file_hash=row["file_hash"],
                     embedded=row["embedded"],
                 )
@@ -456,22 +457,23 @@ class SqliteStorage(BaseStorage):
                 UploadedFile(
                     file_id=str(row["file_id"]),
                     file_path=row["file_path"],
+                    file_ref=row["file_ref"],
                     file_hash=row["file_hash"],
                     embedded=row["embedded"],
                 )
                 for row in rows
             ]
 
-    async def get_file(self, file_path: str) -> Optional[UploadedFile]:
-        """Get a file by path."""
+    async def get_file_by_id(self, file_id: str) -> Optional[UploadedFile]:
+        """Get a file by id."""
         with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """
                 SELECT * FROM file_owners
-                WHERE file_path = ?
+                WHERE file_id = ?
                 """,
-                (file_path,),
+                (file_id,),
             )
             row = cursor.fetchone()
             if not row:
@@ -479,6 +481,40 @@ class SqliteStorage(BaseStorage):
             return UploadedFile(
                 file_id=str(row["file_id"]),
                 file_path=row["file_path"],
+                file_ref=row["file_ref"],
+                file_hash=row["file_hash"],
+                embedded=row["embedded"],
+            )
+
+    async def get_file(
+        self, owner: Union[Assistant, Thread], file_ref: str
+    ) -> Optional[UploadedFile]:
+        """Get a file by ref."""
+        query = ""
+        value = None
+        if "assistant_id" in owner:
+            query = "assistant_id = ?"
+            value = owner["assistant_id"]
+        if "thread_id" in owner:
+            query = "thread_id = ?"
+            value = owner["thread_id"]
+        with self._connect() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                f"""
+                SELECT * FROM file_owners
+                WHERE file_ref = ?
+                AND {query}
+                """,
+                (file_ref, value),
+            )
+            row = cursor.fetchone()
+            if not row:
+                return None
+            return UploadedFile(
+                file_id=str(row["file_id"]),
+                file_path=row["file_path"],
+                file_ref=row["file_ref"],
                 file_hash=row["file_hash"],
                 embedded=row["embedded"],
             )
@@ -486,32 +522,51 @@ class SqliteStorage(BaseStorage):
     async def put_file_owner(
         self,
         file_id: str,
-        file_path: str,
+        file_path: Optional[str],
+        file_ref: str,
         file_hash: str,
         embedded: bool,
-        assistant_id: Optional[str],
-        thread_id: Optional[str],
+        owner: Union[Assistant, Thread],
+        file_path_expiration: Optional[datetime],
     ) -> UploadedFile:
+        assistant_id = None if "thread_id" in owner else owner["assistant_id"]
         with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                INSERT INTO file_owners (file_id, file_path, file_hash, embedded, assistant_id, thread_id)
-                VALUES (?, ?, ?, ?, ?, ?)
-                ON CONFLICT(file_path)
+                INSERT INTO file_owners (file_id, file_path, file_ref, file_hash, embedded, assistant_id, thread_id, file_path_expiration)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(file_id)
                 DO UPDATE SET 
                     file_id = EXCLUDED.file_id,
+                    file_path = EXCLUDED.file_path,
                     file_hash = EXCLUDED.file_hash,
                     embedded = EXCLUDED.embedded,
                     assistant_id = EXCLUDED.assistant_id,
                     thread_id = EXCLUDED.thread_id
                 """,
-                (file_id, file_path, file_hash, embedded, assistant_id, thread_id),
+                (
+                    file_id,
+                    file_path,
+                    file_ref,
+                    file_hash,
+                    embedded,
+                    assistant_id,
+                    owner.get("thread_id"),
+                    file_path_expiration,
+                ),
             )
             conn.commit()
             return UploadedFile(
                 file_id=file_id,
                 file_path=file_path,
+                file_ref=file_ref,
                 file_hash=file_hash,
                 embedded=embedded,
             )
+
+    async def delete_file(self, file_id: str) -> None:
+        with self._connect() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM file_owners WHERE file_id = ?", (file_id,))
+            conn.commit()

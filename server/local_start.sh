@@ -51,7 +51,7 @@ export POSTGRES_PASSWORD=postgres
 
 if [ "$DB_TYPE" = "postgres" ]; then
     echo "🚀 Starting PostgreSQL service..."
-    docker-compose up -d postgres
+    docker compose up -d postgres
 
     if [ $? -eq 0 ]; then
         echo "✅ PostgreSQL started successfully."

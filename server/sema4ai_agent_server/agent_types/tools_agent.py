@@ -1,4 +1,4 @@
-from typing import Annotated, cast
+from typing import Annotated, List, Optional, cast
 
 from langchain.tools import BaseTool
 from langchain_anthropic import ChatAnthropic
@@ -35,6 +35,7 @@ BASE_PROMPT_MESSAGES = [
         "system",
         """You are an assistant with the following name: {agent_name}.
 The current date and time is: {current_datetime}.
+{knowledge_files}
 Your instructions are:
 {runbook}""",
     ),
@@ -107,6 +108,7 @@ def get_tools_agent_executor(
     reasoning_level: int,
     interrupt_before_action: bool,
     checkpoint: BaseCheckpointSaver,
+    knowledge_files: Optional[List[str]],
     *,
     execute_template: ChatPromptTemplate = EXECUTE_PROMPT_TEMPLATE,
     reasoning_templates: dict[int, ChatPromptTemplate] = REASONING_PROMPT_TEMPLATES,
@@ -134,6 +136,12 @@ def get_tools_agent_executor(
                 msgs.append(m)
 
         return msgs
+
+    def format_knowledge_files(files):
+        if files:
+            file_list = "\n".join(f"- {file}" for file in files)
+            return f"You have access to the following knowledge files:\n{file_list}"
+        return ""
 
     if tools:
         llm_with_tools = llm.bind_tools(tools)
@@ -169,6 +177,7 @@ def get_tools_agent_executor(
             {
                 "agent_name": name,
                 "current_datetime": current_timestamp_with_iso_week_local(),
+                "knowledge_files": format_knowledge_files(knowledge_files),
                 "runbook": runbook,
                 "messages": _get_messages(combined_messages),
             }
@@ -194,6 +203,7 @@ def get_tools_agent_executor(
             {
                 "agent_name": name,
                 "current_datetime": current_timestamp_with_iso_week_local(),
+                "knowledge_files": format_knowledge_files(knowledge_files),
                 "runbook": runbook,
                 "messages": _get_messages(state.combined),
             }
@@ -211,6 +221,7 @@ def get_tools_agent_executor(
                 {
                     "agent_name": name,
                     "current_datetime": current_timestamp_with_iso_week_local(),
+                    "knowledge_files": format_knowledge_files(knowledge_files),
                     "runbook": runbook,
                     "messages": _get_messages(state.combined),
                 }
@@ -220,6 +231,7 @@ def get_tools_agent_executor(
                 {
                     "agent_name": name,
                     "current_datetime": current_timestamp_with_iso_week_local(),
+                    "knowledge_files": format_knowledge_files(knowledge_files),
                     "runbook": runbook,
                     "messages": _get_messages(state.messages),
                 }

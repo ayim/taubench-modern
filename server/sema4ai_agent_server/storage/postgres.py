@@ -68,18 +68,19 @@ class PostgresStorage(BaseStorage):
     async def assistant_count(self) -> int:
         """Get assistant row count"""
         async with self.get_pool().acquire() as conn:
-            count = await conn.fetchrow("SELECT COUNT(*) FROM assistant")[0]
+            result = await conn.fetchrow("SELECT COUNT(*) FROM assistant")
+            count = result[0]
             return count
 
     async def thread_count(self) -> int:
         async with self.get_pool().acquire() as conn:
-            count = await conn.fetchrow("SELECT COUNT(*) FROM thread")[0]
+            result = await conn.fetchrow("SELECT COUNT(*) FROM thread")
+            count = result[0]
             return count
 
     async def get_assistant_files(self, assistant_id: str) -> list[UploadedFile]:
         """Get a list of files associated with an assistant."""
         async with self.get_pool().acquire() as conn:
-            # cursor = conn.cursor()
             rows = await conn.fetch(
                 "SELECT * FROM file_owners WHERE assistant_id = $1",
                 assistant_id,
@@ -88,6 +89,7 @@ class PostgresStorage(BaseStorage):
                 UploadedFile(
                     file_id=str(row["file_id"]),
                     file_path=row["file_path"],
+                    file_ref=row["file_ref"],
                     file_hash=row["file_hash"],
                     embedded=row["embedded"],
                 )
@@ -107,27 +109,61 @@ class PostgresStorage(BaseStorage):
                 UploadedFile(
                     file_id=str(row["file_id"]),
                     file_path=row["file_path"],
+                    file_ref=row["file_ref"],
                     file_hash=row["file_hash"],
                     embedded=row["embedded"],
                 )
                 for row in rows
             ]
 
-    async def get_file(self, file_path: str) -> Optional[UploadedFile]:
-        """Get a file by path."""
+    async def get_file_by_id(self, file_id: str) -> Optional[UploadedFile]:
+        """Get a file by id."""
         async with self.get_pool().acquire() as conn:
             row = await conn.fetchrow(
                 """
                 SELECT * FROM file_owners
-                WHERE file_path = $1
+                WHERE file_id = $1
                 """,
-                file_path,
+                file_id,
             )
             if not row:
                 return None
             return UploadedFile(
                 file_id=str(row["file_id"]),
                 file_path=row["file_path"],
+                file_ref=row["file_ref"],
+                file_hash=row["file_hash"],
+                embedded=row["embedded"],
+            )
+
+    async def get_file(
+        self, owner: Union[Assistant, Thread], file_ref: str
+    ) -> Optional[UploadedFile]:
+        """Get a file by ref."""
+        query = ""
+        value = None
+        if "assistant_id" in owner:
+            query = "assistant_id = $2"
+            value = owner["assistant_id"]
+        if "thread_id" in owner:
+            query = "thread_id = $2"
+            value = owner["thread_id"]
+        async with self.get_pool().acquire() as conn:
+            row = await conn.fetchrow(
+                f"""
+                SELECT * FROM file_owners
+                WHERE file_ref = $1
+                AND {query}
+                """,
+                file_ref,
+                value,
+            )
+            if not row:
+                return None
+            return UploadedFile(
+                file_id=str(row["file_id"]),
+                file_path=row["file_path"],
+                file_ref=row["file_ref"],
                 file_hash=row["file_hash"],
                 embedded=row["embedded"],
             )
@@ -135,20 +171,23 @@ class PostgresStorage(BaseStorage):
     async def put_file_owner(
         self,
         file_id: str,
-        file_path: str,
+        file_path: Optional[str],
+        file_ref: str,
         file_hash: str,
         embedded: bool,
-        assistant_id: Optional[str],
-        thread_id: Optional[str],
+        owner: Union[Assistant, Thread],
+        file_path_expiration: Optional[datetime],
     ) -> UploadedFile:
+        assistant_id = None if "thread_id" in owner else owner["assistant_id"]
         async with self.get_pool().acquire() as conn:
             await conn.execute(
                 """
-                INSERT INTO file_owners (file_id, file_path, file_hash, embedded, assistant_id, thread_id)
-                VALUES ($1, $2, $3, $4, $5, $6)
-                ON CONFLICT(file_path)
+                INSERT INTO file_owners (file_id, file_path, file_ref, file_hash, embedded, assistant_id, thread_id, file_path_expiration)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                ON CONFLICT(file_id)
                 DO UPDATE SET 
                     file_id = EXCLUDED.file_id,
+                    file_path = EXCLUDED.file_path,
                     file_hash = EXCLUDED.file_hash,
                     embedded = EXCLUDED.embedded,
                     assistant_id = EXCLUDED.assistant_id,
@@ -156,17 +195,24 @@ class PostgresStorage(BaseStorage):
                 """,
                 file_id,
                 file_path,
+                file_ref,
                 file_hash,
                 embedded,
                 assistant_id,
-                thread_id,
+                owner.get("thread_id"),
+                file_path_expiration,
             )
             return UploadedFile(
                 file_id=file_id,
                 file_path=file_path,
+                file_ref=file_ref,
                 file_hash=file_hash,
                 embedded=embedded,
             )
+
+    async def delete_file(self, file_id: str) -> None:
+        async with self.get_pool().acquire() as conn:
+            await conn.execute("DELETE FROM file_owners WHERE file_id = $1", file_id)
 
     async def _run_migrations(self):
         current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -362,7 +408,7 @@ class PostgresStorage(BaseStorage):
 
     async def get_thread_state(self, user_id: str, thread_id: str):
         """Get state for a thread."""
-        app = get_agent_executor([], AgentType.GPT_35_TURBO, "", "", False, 0)
+        app = get_agent_executor([], AgentType.GPT_35_TURBO, "", "", False, 0, None)
         state = app.get_state({"configurable": {"thread_id": thread_id}})
         return {
             "values": state.values,
@@ -396,7 +442,7 @@ class PostgresStorage(BaseStorage):
 
     async def get_thread_history(self, user_id: str, thread_id: str):
         """Get the history of a thread."""
-        app = await get_agent_executor([], AgentType.GPT_35_TURBO, "", "", False)
+        app = await get_agent_executor([], AgentType.GPT_35_TURBO, "", "", False, None)
 
         history = []
         for c in app.get_state_history({"configurable": {"thread_id": thread_id}}):

@@ -50,8 +50,10 @@ class Thread(TypedDict):
 class UploadedFile(TypedDict):
     file_id: str
     """The ID of the file."""
-    file_path: str
+    file_path: Optional[str]
     """The path of the file."""
+    file_ref: str
+    """Key for the file access."""
     file_hash: str
     """The hash of the file."""
     embedded: bool

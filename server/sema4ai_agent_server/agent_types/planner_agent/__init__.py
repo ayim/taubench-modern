@@ -286,6 +286,7 @@ def get_plan_execute_agent(
             reasoning_level,
             interrupt_before_action,
             None,  # Subagent should not have a checkpointer
+            None,
         )
         output = await agent.ainvoke(
             {
@@ -313,6 +314,7 @@ def get_plan_execute_agent(
             reasoning_level,
             interrupt_before_action,
             None,  # Subagent should not have a checkpointer
+            None,
             execute_template=STEP_EXECUTOR_PROMPT,
             reasoning_templates=STEP_REASONING_PROMPTS,
             retry_reasoning_templates=STEP_RETRY_REASONING_PROMPTS,
@@ -358,6 +360,7 @@ def get_plan_execute_agent(
             reasoning_level,
             interrupt_before_action,
             None,  # Subagent should not have a checkpointer
+            None,
             execute_template=STEP_EXECUTOR_PROMPT,
             reasoning_templates=STEP_REASONING_PROMPTS,
             retry_reasoning_templates=STEP_RETRY_REASONING_PROMPTS,

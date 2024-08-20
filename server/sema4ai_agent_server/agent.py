@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Dict, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 
 from langchain_core.messages import AnyMessage
 from langchain_core.runnables import (
@@ -82,6 +82,7 @@ def get_agent_executor(
     runbook: str,
     interrupt_before_action: bool,
     reasoning_level: int,
+    knowledge_files: Optional[List[str]],
 ):
     if agent == AgentType.GPT_35_TURBO:
         llm = get_openai_llm()
@@ -99,7 +100,6 @@ def get_agent_executor(
         llm = get_google_llm()
     elif agent == AgentType.OLLAMA:
         llm = get_ollama_llm()
-
     else:
         raise ValueError("Unexpected agent type")
 
@@ -111,6 +111,7 @@ def get_agent_executor(
         reasoning_level,
         interrupt_before_action,
         CHECKPOINTER,
+        knowledge_files,
     )
 
 
@@ -124,6 +125,7 @@ class ConfigurableAgent(RunnableBinding):
     thread_id: Optional[str] = None
     user_id: Optional[str] = None
     reasoning_level: int = 0
+    knowledge_files: Optional[List[str]] = None
 
     def __init__(
         self,
@@ -136,6 +138,7 @@ class ConfigurableAgent(RunnableBinding):
         thread_id: Optional[str] = None,
         interrupt_before_action: bool = False,
         reasoning_level: int = 0,
+        knowledge_files: Optional[List[str]] = None,
         kwargs: Optional[Mapping[str, Any]] = None,
         config: Optional[Mapping[str, Any]] = None,
         **others: Any,
@@ -156,6 +159,7 @@ class ConfigurableAgent(RunnableBinding):
                     _tools.extend(_returned_tools)
                 else:
                     _tools.append(_returned_tools)
+
         _agent = get_agent_executor(
             _tools,
             agent,
@@ -163,6 +167,7 @@ class ConfigurableAgent(RunnableBinding):
             runbook,
             interrupt_before_action,
             reasoning_level,
+            knowledge_files,
         )
         agent_executor = _agent.with_config({"recursion_limit": 50})
         super().__init__(
@@ -408,6 +413,7 @@ agent: Pregel = (
         assistant_id=None,
         thread_id=None,
         reasoning_level=0,
+        knowledge_files=None,
     )
     .configurable_fields(
         agent=ConfigurableField(id="agent_type", name="Agent Type"),
@@ -427,6 +433,11 @@ agent: Pregel = (
             id="reasoning_level",
             name="Reasoning Level",
             description="The level of reasoning the agent should use, 0 for no reasoning, 1 for succinct reasoning, 2 for verbose reasoning.",
+        ),
+        knowledge_files=ConfigurableField(
+            id="knowledge_files",
+            name="Knowledge Files",
+            description="List of knowledge files available to the agent.",
         ),
     )
     .configurable_alternatives(

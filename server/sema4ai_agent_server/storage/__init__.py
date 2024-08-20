@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Sequence, Union
 
 from langchain_core.messages import AnyMessage
@@ -37,11 +38,6 @@ class BaseStorage(ABC):
     ) -> Optional[Assistant]:
         """Get an assistant by ID."""
         pass
-
-    # @abstractmethod
-    # async def list_public_assistants(self, assistant_ids: Sequence[str]) -> List[Assistant]:
-    #     """List all the public assistants."""
-    #     pass
 
     @abstractmethod
     async def put_assistant(
@@ -134,76 +130,34 @@ class BaseStorage(ABC):
     @abstractmethod
     async def get_thread_files(self, thread_id: str) -> list[UploadedFile]:
         """Get a list of files associated with a thread."""
-        with self._connect() as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                """
-                SELECT * FROM file_owners
-                WHERE thread_id = ?
-                """,
-                (thread_id,),
-            )
-            rows = cursor.fetchall()
-            return [
-                UploadedFile(
-                    file_id=str(row["file_id"]),
-                    file_path=row["file_path"],
-                    file_hash=row["file_hash"],
-                    embedded=row["embedded"],
-                )
-                for row in rows
-            ]
+        pass
 
-    async def get_file(self, file_path: str) -> Optional[UploadedFile]:
-        """Get a file by path."""
-        with self._connect() as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                """
-                SELECT * FROM file_owners
-                WHERE file_path = ?
-                """,
-                (file_path,),
-            )
-            row = cursor.fetchone()
-            if not row:
-                return None
-            return UploadedFile(
-                file_id=str(row["file_id"]),
-                file_path=row["file_path"],
-                file_hash=row["file_hash"],
-                embedded=row["embedded"],
-            )
+    @abstractmethod
+    async def get_file(
+        self, owner: Union[Assistant, Thread], file_ref: str
+    ) -> Optional[UploadedFile]:
+        """Get a file by ref."""
+        pass
 
+    @abstractmethod
+    async def get_file_by_id(self, file_id: str) -> Optional[UploadedFile]:
+        """Get a file by id."""
+        pass
+
+    @abstractmethod
+    async def delete_file(self, file_id: str) -> None:
+        """Delete a file by ID."""
+
+    @abstractmethod
     async def put_file_owner(
         self,
         file_id: str,
-        file_path: str,
+        file_path: Optional[str],
+        file_ref: str,
         file_hash: str,
         embedded: bool,
-        assistant_id: Optional[str],
-        thread_id: Optional[str],
+        owner: Union[Assistant, Thread],
+        file_path_expiration: Optional[datetime],
     ) -> UploadedFile:
-        with self._connect() as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                """
-                INSERT INTO file_owners (file_id, file_path, file_hash, embedded, assistant_id, thread_id)
-                VALUES (?, ?, ?, ?, ?, ?)
-                ON CONFLICT(file_path)
-                DO UPDATE SET 
-                    file_id = EXCLUDED.file_id,
-                    file_hash = EXCLUDED.file_hash,
-                    embedded = EXCLUDED.embedded,
-                    assistant_id = EXCLUDED.assistant_id,
-                    thread_id = EXCLUDED.thread_id
-                """,
-                (file_id, file_path, file_hash, embedded, assistant_id, thread_id),
-            )
-            conn.commit()
-            return UploadedFile(
-                file_id=file_id,
-                file_path=file_path,
-                file_hash=file_hash,
-                embedded=embedded,
-            )
+        """Add or update a file owner."""
+        pass

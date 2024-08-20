@@ -1,0 +1,229 @@
+"""API to deal with file uploads via a runnable.
+
+This module supports both PostgreSQL (PGVector) and SQLite (ChromaDB) as backend stores.
+"""
+
+from __future__ import annotations
+
+import mimetypes
+import os
+from abc import ABC, abstractmethod
+from typing import BinaryIO, List, Optional, Union
+
+from fastapi import UploadFile
+from langchain_community.document_loaders.base import BaseBlobParser
+from langchain_core.document_loaders.blob_loaders import Blob
+from langchain_core.documents import Document
+from langchain_core.runnables import (
+    ConfigurableField,
+    RunnableConfig,
+    RunnableSerializable,
+)
+from langchain_core.vectorstores import VectorStore
+from langchain_openai import AzureOpenAIEmbeddings, OpenAIEmbeddings
+from langchain_text_splitters import RecursiveCharacterTextSplitter, TextSplitter
+
+from sema4ai_agent_server.constants import VECTOR_DATABASE_PATH
+from sema4ai_agent_server.parsing import MIMETYPE_BASED_PARSER
+
+
+def _update_document_metadata(document: Document, owner_id: str, file_id: str) -> None:
+    document.metadata["owner_id"] = owner_id
+    document.metadata["file_id"] = file_id
+
+
+def _sanitize_document_metadata(document: Document) -> Document:
+    """Chroma doesn't accept None values in metadata, so we replace them."""
+    for k, v in document.metadata.items():
+        if v is None:
+            document.metadata[k] = ""
+
+
+def _sanitize_document_content(document: Document) -> Document:
+    """Sanitize the document."""
+    # Without this, PDF embedding fails with
+    # "A string literal cannot contain NUL (0x00) characters".
+    document.page_content = document.page_content.replace("\x00", "x")
+
+
+def embed_blob(
+    blob: Blob,
+    parser: BaseBlobParser,
+    text_splitter: TextSplitter,
+    vectorstore: VectorStore,
+    owner_id: str,
+    file_id: str,
+    *,
+    batch_size: int = 100,
+) -> List[str]:
+    """Embed a document into the vectorstore."""
+    docs_to_index = []
+    ids = []
+    for document in parser.lazy_parse(blob):
+        docs = text_splitter.split_documents([document])
+        for doc in docs:
+            _sanitize_document_content(doc)
+            _sanitize_document_metadata(doc)
+            _update_document_metadata(doc, owner_id, file_id)
+        docs_to_index.extend(docs)
+
+        if len(docs_to_index) >= batch_size:
+            ids.extend(vectorstore.add_documents(docs_to_index))
+            docs_to_index = []
+
+    if docs_to_index:
+        ids.extend(vectorstore.add_documents(docs_to_index))
+
+    return ids
+
+
+def _guess_mimetype(file_name: str, file_bytes: bytes) -> str:
+    """Guess the mime-type of a file based on its name or bytes."""
+    # Guess based on the file extension
+    mime_type, _ = mimetypes.guess_type(file_name)
+
+    # Return detected mime type from mimetypes guess, unless it's None
+    if mime_type:
+        return mime_type
+
+    # Signature-based detection for common types
+    if file_bytes.startswith(b"%PDF"):
+        return "application/pdf"
+    elif file_bytes.startswith(
+        (b"\x50\x4B\x03\x04", b"\x50\x4B\x05\x06", b"\x50\x4B\x07\x08")
+    ):
+        return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    elif file_bytes.startswith(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"):
+        return "application/msword"
+    elif file_bytes.startswith(b"\x09\x00\xff\x00\x06\x00"):
+        return "application/vnd.ms-excel"
+
+    # Check for CSV-like plain text content (commas, tabs, newlines)
+    try:
+        decoded = file_bytes[:1024].decode("utf-8", errors="ignore")
+        if all(char in decoded for char in (",", "\n")) or all(
+            char in decoded for char in ("\t", "\n")
+        ):
+            return "text/csv"
+        elif decoded.isprintable() or decoded == "":
+            return "text/plain"
+    except UnicodeDecodeError:
+        pass
+
+    return "application/octet-stream"
+
+
+def convert_to_blob(file: UploadFile) -> Blob:
+    """Convert file to blob."""
+    file_data = file.file.read()
+    file_name = file.filename
+
+    # Check if file_name is a valid string
+    if not isinstance(file_name, str):
+        raise TypeError(f"Expected string for file name, got {type(file_name)}")
+
+    mimetype = _guess_mimetype(file_name, file_data)
+    return Blob.from_data(
+        data=file_data,
+        path=file_name,
+        mime_type=mimetype,
+    )
+
+
+def get_embeddings() -> Union[OpenAIEmbeddings, AzureOpenAIEmbeddings]:
+    if os.environ.get("OPENAI_API_KEY"):
+        return OpenAIEmbeddings()
+    elif os.environ.get("AZURE_OPENAI_API_KEY"):
+        return AzureOpenAIEmbeddings(
+            azure_endpoint=os.environ.get("AZURE_OPENAI_API_BASE"),
+            azure_deployment=os.environ.get("AZURE_OPENAI_EMBEDDINGS_DEPLOYMENT_NAME"),
+            openai_api_version=os.environ.get("AZURE_OPENAI_API_VERSION"),
+        )
+    raise ValueError(
+        "Either OPENAI_API_KEY or AZURE_OPENAI_API_KEY needs to be set for embeddings to work."
+    )
+
+
+class BaseVectorStoreWrapper(ABC):
+    @abstractmethod
+    def delete_by_metadata(self, metadata_key: str, metadata_value: str) -> None:
+        """
+        Enables deletion of embeddings by metadata values.
+
+        For example, to delete embeddings for a specific file, set metadata_key to
+        "file_id" and metadata_value to <file_id>. Similarly, to delete embeddings for
+        a specific owner (assistant or thread), set metadata_key to "owner_id" and
+        metadata_value to <owner_id>.
+        """
+
+
+def _get_pg_vector() -> VectorStore:
+    from sema4ai_agent_server.storage.pg_vector import get_pg_vector_wrapper
+
+    return get_pg_vector_wrapper(
+        embedding_function=get_embeddings(),
+    )
+
+
+def _get_chroma_vector() -> VectorStore:
+    from sema4ai_agent_server.storage.chroma import ChromaWrapper
+
+    return ChromaWrapper(
+        persist_directory=VECTOR_DATABASE_PATH,
+        embedding_function=get_embeddings(),
+    )
+
+
+def get_vector_store() -> VectorStore:
+    db_type = os.environ.get("S4_AGENT_SERVER_DB_TYPE", "sqlite")
+    if db_type == "postgres":
+        return _get_pg_vector()
+    elif db_type == "sqlite":
+        return _get_chroma_vector()
+    raise ValueError("Invalid storage type")
+
+
+class EmbedRunnable(RunnableSerializable[BinaryIO, List[str]]):
+    """Runnable for embedding files into a vectorstore."""
+
+    text_splitter: TextSplitter
+    """Text splitter to use for splitting the text into chunks."""
+    vectorstore: VectorStore
+    """Vectorstore to embed into."""
+    file_id: Optional[str]
+    """ID of the file to embed."""
+    owner_id: Optional[str]
+    """ID of the file owner (assistant or thread)."""
+
+    class Config:
+        arbitrary_types_allowed = True
+
+    def invoke(self, blob: Blob, config: Optional[RunnableConfig] = None) -> List[str]:
+        out = embed_blob(
+            blob,
+            MIMETYPE_BASED_PARSER,
+            self.text_splitter,
+            self.vectorstore,
+            self.owner_id,
+            self.file_id,
+        )
+        return out
+
+
+vstore = get_vector_store()
+
+embed_runnable = EmbedRunnable(
+    text_splitter=RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200),
+    vectorstore=vstore,
+).configurable_fields(
+    owner_id=ConfigurableField(
+        id="owner_id",
+        annotation=str,
+        name="Owner ID (assistant_id or thread_id)",
+    ),
+    file_id=ConfigurableField(
+        id="file_id",
+        annotation=str,
+        name="File ID",
+    ),
+)

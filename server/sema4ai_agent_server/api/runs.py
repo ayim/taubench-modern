@@ -44,6 +44,13 @@ async def _run_input_and_config(payload: CreateRunPayload, user_id: str):
     if not assistant:
         raise HTTPException(status_code=404, detail="Assistant not found")
 
+    knowledge_files = (None,)
+    if assistant:
+        uploaded_files = await get_storage().get_assistant_files(
+            assistant["assistant_id"]
+        )
+        knowledge_files = [file["file_ref"] for file in uploaded_files]
+
     config: RunnableConfig = {
         **assistant["config"],
         "configurable": {
@@ -53,6 +60,7 @@ async def _run_input_and_config(payload: CreateRunPayload, user_id: str):
             "thread_id": str(thread["thread_id"]),
             "assistant_id": str(assistant["assistant_id"]),
             "name": assistant["name"],
+            "knowledge_files": knowledge_files,
         },
     }
 

@@ -4,21 +4,21 @@ from unittest import skip
 from fastapi import UploadFile
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
-from sema4ai_agent_server.upload import (
-    IngestRunnable,
+from sema4ai_agent_server.storage.embed import (
+    EmbedRunnable,
     _guess_mimetype,
-    convert_ingestion_input_to_blob,
+    convert_to_blob,
 )
 from tests.unit_tests.fixtures import get_sample_paths
 from tests.unit_tests.utils import InMemoryVectorStore
 
 
 @skip("This test is not a unit test.")
-def test_ingestion_runnable() -> None:
-    """Test ingestion runnable"""
+def test_embed_runnable() -> None:
+    """Test embed runnable"""
     vectorstore = InMemoryVectorStore()
     splitter = RecursiveCharacterTextSplitter()
-    runnable = IngestRunnable(
+    runnable = EmbedRunnable(
         text_splitter=splitter,
         vectorstore=vectorstore,
         input_key="file_contents",
@@ -31,7 +31,7 @@ def test_ingestion_runnable() -> None:
     file = UploadFile(filename="testfile.txt", file=file_data)
 
     # Convert the file to blob
-    blob = convert_ingestion_input_to_blob(file)
+    blob = convert_to_blob(file)
     ids = runnable.invoke(blob)
     assert len(ids) == 1
 

@@ -25,7 +25,7 @@ from langchain_core.tools import Tool
 from typing_extensions import TypedDict
 
 from sema4ai_agent_server.action_server import ActionServerToolkit
-from sema4ai_agent_server.upload import vstore
+from sema4ai_agent_server.storage.embed import vstore
 
 
 class DDGInput(BaseModel):

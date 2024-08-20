@@ -2,26 +2,24 @@ import argparse
 import hashlib
 import os
 from pathlib import Path
-from typing import List
+from typing import List, Optional, Union
 from urllib.parse import urlparse, urlunparse
-from uuid import uuid4
 
 import orjson
 import structlog
 from fastapi import FastAPI, Form, UploadFile
 from fastapi.exceptions import HTTPException
 from langchain_core.messages import AIMessage, ToolCall, ToolMessage
-from starlette.background import BackgroundTasks
 
 from sema4ai_agent_server.api import router as api_router
 from sema4ai_agent_server.auth.handlers import AuthedUser
 from sema4ai_agent_server.constants import UPLOAD_DIR
+from sema4ai_agent_server.file_manager.option import get_file_manager
 from sema4ai_agent_server.lifespan import lifespan
 from sema4ai_agent_server.log_config import setup_logging
-from sema4ai_agent_server.schema import UploadedFile
+from sema4ai_agent_server.schema import Assistant, Thread, UploadedFile
 from sema4ai_agent_server.storage.option import get_storage
 from sema4ai_agent_server.tools import AvailableTools
-from sema4ai_agent_server.upload import convert_ingestion_input_to_blob, ingest_runnable
 
 setup_logging()
 logger = structlog.get_logger(__name__)
@@ -48,7 +46,6 @@ def _get_hash(file_content: bytes) -> str:
 async def ingest_files(
     files: list[UploadFile],
     user: AuthedUser,
-    background_tasks: BackgroundTasks,
     config: str = Form(...),
 ) -> list[UploadedFile]:
     """Ingest a list of files."""
@@ -62,98 +59,88 @@ async def ingest_files(
             status_code=400, detail="Indicate either assistant_id or thread_id."
         )
 
+    assistant: Optional[Assistant] = None
     if assistant_id is not None:
         assistant = await get_storage().get_assistant(user["user_id"], assistant_id)
         if assistant is None:
             raise HTTPException(status_code=404, detail="Assistant not found.")
 
+    thread: Optional[Thread] = None
     if thread_id is not None:
         thread = await get_storage().get_thread(user["user_id"], thread_id)
         if thread is None:
             raise HTTPException(status_code=404, detail="Thread not found.")
 
-    file_blobs = [convert_ingestion_input_to_blob(file) for file in files]
-
-    # Store files
-
-    non_ingestable_extensions = {".csv", ".xls", ".xlsx", ".json", ".xml"}
-    ingestable_file_blobs = []
-    stored_files: List[UploadedFile] = []
-    for file_blob in file_blobs:
-        filename = file_blob.path
-        file_path = os.path.join(UPLOAD_DIR, assistant_id or thread_id, filename)
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
-
-        file_hash = _get_hash(file_blob.data)
-        existing_file = await get_storage().get_file(file_path)
-        file_already_exists = existing_file and existing_file["file_hash"] == file_hash
-        if file_already_exists:
-            stored_files.append(existing_file)
-            continue
-
-        try:
-            with open(file_path, "wb") as out_file:
-                out_file.write(file_blob.data)
-            # Check the file extension
-            file_extension = os.path.splitext(filename)[1].lower()
-            ingestable = file_extension not in non_ingestable_extensions
-            if ingestable:
-                ingestable_file_blobs.append(file_blob)
-            stored_file: UploadedFile = await get_storage().put_file_owner(
-                str(uuid4()), file_path, file_hash, ingestable, assistant_id, thread_id
-            )
-            stored_files.append(stored_file)
-        except Exception as e:
-            logger.exception(f"Failed to store file {filename}")
-            raise HTTPException(
-                status_code=500, detail=f"Failed to store file {filename}: {str(e)}"
-            )
+    try:
+        stored_files = await _store_files(thread or assistant, files)
+    except Exception as e:
+        logger.exception("Failed to store a file", exception=e)
+        raise HTTPException(status_code=500, detail=f"Failed to store a file: {str(e)}")
 
     if thread_id:
-        for stored_file in stored_files:
-            if stored_file is None:
-                continue
-            file_path = stored_file["file_path"]
-            # Get current thread state
-            current_state = await get_storage().get_thread_state(
-                user["user_id"], thread_id
-            )
-            current_messages = current_state.get("messages", [])
+        await _add_uploaded_messages(stored_files, thread_id, user)
 
-            # Create tool call message
-            tool_call_message = AIMessage(
-                content="",
-                tool_calls=[
-                    ToolCall(
-                        name="upload file",
-                        args=dict(),
-                        id=f"upload-{file_path}",
-                    )
-                ],
-            )
-
-            # Create tool response message
-            tool_response_message = ToolMessage(
-                tool_call_id=f"upload-{file_path}",
-                content=f'File uploaded: "{file_path}"',
-                additional_kwargs={
-                    "name": "upload file",
-                },
-            )
-
-            # Append new messages to existing messages
-            updated_messages = current_messages + [
-                tool_call_message,
-                tool_response_message,
-            ]
-
-            # Update thread state with appended messages
-            await get_storage().update_thread_state(
-                user["user_id"], thread_id, {"messages": updated_messages}
-            )
-
-    ingest_runnable.batch(ingestable_file_blobs, config)
     return stored_files
+
+
+async def _store_files(
+    owner: Union[Assistant, Thread], files: list[UploadFile]
+) -> list[UploadedFile]:
+    file_manager = get_file_manager()
+    ret: list[UploadedFile] = []
+    for file in files:
+        ret.append(await file_manager.upload(file, owner))
+    return ret
+
+
+async def _add_uploaded_messages(
+    stored_files: List[UploadedFile], thread_id: str, user: AuthedUser
+):
+    for stored_file in stored_files:
+        if stored_file is None:
+            continue
+        file_id = stored_file["file_id"]
+        file_ref = stored_file["file_ref"]
+
+        # Generate a short, unique identifier for the tool call
+        short_id = hashlib.md5(file_id.encode()).hexdigest()[:8]
+        tool_call_id = f"upload-{short_id}"
+
+        # Get current thread state
+        current_state = await get_storage().get_thread_state(user["user_id"], thread_id)
+        current_messages = current_state.get("messages", [])
+
+        # Create tool call message
+        tool_call_message = AIMessage(
+            content="",
+            tool_calls=[
+                ToolCall(
+                    name="upload_file",
+                    args=dict(),
+                    id=tool_call_id,
+                )
+            ],
+        )
+
+        # Create tool response message
+        tool_response_message = ToolMessage(
+            tool_call_id=tool_call_id,
+            content=f'File uploaded: "{file_ref}"',
+            additional_kwargs={
+                "name": "upload_file",
+            },
+        )
+
+        # Append new messages to existing messages
+        updated_messages = current_messages + [
+            tool_call_message,
+            tool_response_message,
+        ]
+
+        # Update thread state with appended messages
+        await get_storage().update_thread_state(
+            user["user_id"], thread_id, {"messages": updated_messages}
+        )
 
 
 @app.get("/health")
