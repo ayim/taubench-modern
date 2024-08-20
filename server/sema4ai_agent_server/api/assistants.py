@@ -127,7 +127,7 @@ async def upsert_assistant(
         raise HTTPException(status_code=404, detail="Assistant not found")
 
     msg = await _generate_welcome_message(user.user_id, payload)
-    metadata = assistant["metadata"] or {}
+    metadata = assistant.metadata or {}
     if msg is not None:
         metadata["welcome_message"] = msg
 
