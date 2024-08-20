@@ -82,7 +82,7 @@ class LocalFileManager(BaseFileManager):
 
     async def delete(self, file_id: str) -> None:
         file = await get_storage().get_file_by_id(file_id)
-        await self._delete_stored_file(file["file_path"])
+        await self._delete_stored_file(file.file_path)
         self._delete_embeddings(file_id)
         await get_storage().delete_file(file_id)
 

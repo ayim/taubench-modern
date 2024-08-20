@@ -79,7 +79,7 @@ class CloudFileManager(BaseFileManager):
         return datetime.now(timezone.utc) + timedelta(seconds=self.FILE_PATH_EXPIRES_IN)
 
     def _file_path_is_expired(self, file: UploadedFile) -> bool:
-        expiration = file["file_path_expiration"]
+        expiration = file.file_path_expiration
         return expiration and expiration < datetime.now(timezone.utc) + timedelta(
             seconds=self.FILE_PATH_EXPIRATION_BUFFER
         )
@@ -134,10 +134,10 @@ class CloudFileManager(BaseFileManager):
         for file in files:
             if self._file_path_is_expired(file):
                 refreshed_file_path = self._get_presigned_url(
-                    file["file_id"], file["file_name"]
+                    file.file_id, file.file_name
                 )
                 updated_file = await storage.update_file(
-                    file["file_id"],
+                    file.file_id,
                     {
                         "file_path": refreshed_file_path,
                         "file_path_expiration": self._get_file_path_expiration(),
