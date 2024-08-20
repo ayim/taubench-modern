@@ -141,14 +141,12 @@ class PostgresStorage(BaseStorage):
         self, owner: Union[Assistant, Thread], file_ref: str
     ) -> Optional[UploadedFile]:
         """Get a file by ref."""
-        query = ""
-        value = None
-        if "assistant_id" in owner:
+        if isinstance(owner, Assistant):
             query = "assistant_id = $2"
-            value = owner["assistant_id"]
-        if "thread_id" in owner:
+            value = owner.assistant_id
+        else:
             query = "thread_id = $2"
-            value = owner["thread_id"]
+            value = owner.thread_id
         async with self.get_pool().acquire() as conn:
             row = await conn.fetchrow(
                 f"""
@@ -179,7 +177,12 @@ class PostgresStorage(BaseStorage):
         owner: Union[Assistant, Thread],
         file_path_expiration: Optional[datetime],
     ) -> UploadedFile:
-        assistant_id = None if "thread_id" in owner else owner["assistant_id"]
+        if isinstance(owner, Assistant):
+            assistant_id = owner.assistant_id
+            thread_id = None
+        else:
+            assistant_id = None
+            thread_id = owner.thread_id
         async with self.get_pool().acquire() as conn:
             await conn.execute(
                 """
@@ -200,7 +203,7 @@ class PostgresStorage(BaseStorage):
                 file_hash,
                 embedded,
                 assistant_id,
-                owner.get("thread_id"),
+                thread_id,
                 file_path_expiration,
             )
             return UploadedFile(
@@ -396,16 +399,20 @@ class PostgresStorage(BaseStorage):
     async def list_threads(self, user_id: str) -> List[Thread]:
         """List all threads for the current user."""
         async with self.get_pool().acquire() as conn:
-            return await conn.fetch("SELECT * FROM thread WHERE user_id = $1", user_id)
+            threads = await conn.fetch(
+                "SELECT * FROM thread WHERE user_id = $1", user_id
+            )
+            return parse_obj_as(List[Thread], threads)
 
     async def get_thread(self, user_id: str, thread_id: str) -> Optional[Thread]:
         """Get a thread by ID."""
         async with self.get_pool().acquire() as conn:
-            return await conn.fetchrow(
+            thread = await conn.fetchrow(
                 "SELECT * FROM thread WHERE thread_id = $1 AND user_id = $2",
                 thread_id,
                 user_id,
             )
+            return parse_obj_as(Optional[Thread], thread)
 
     async def get_thread_state(self, user_id: str, thread_id: str):
         """Get state for a thread."""
@@ -425,7 +432,7 @@ class PostgresStorage(BaseStorage):
     ):
         """Add state to a thread."""
         thread = await self.get_thread(user_id, thread_id)
-        assistant_id = thread["assistant_id"]
+        assistant_id = thread.assistant_id
         assistant = await self.get_assistant(user_id, assistant_id)
         config = assistant["config"]["configurable"] if assistant else {}
         retval = agent.update_state(
@@ -493,14 +500,14 @@ class PostgresStorage(BaseStorage):
                 updated_at,
                 metadata,
             )
-            return {
-                "thread_id": thread_id,
-                "user_id": user_id,
-                "assistant_id": assistant_id,
-                "name": name,
-                "updated_at": updated_at,
-                "metadata": metadata,
-            }
+            return Thread(
+                thread_id=thread_id,
+                user_id=user_id,
+                assistant_id=assistant_id,
+                name=name,
+                updated_at=updated_at,
+                metadata=metadata,
+            )
 
     async def delete_thread(self, user_id: str, thread_id: str):
         """Delete a thread by ID."""

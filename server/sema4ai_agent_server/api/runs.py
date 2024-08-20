@@ -40,7 +40,7 @@ async def _run_input_and_config(payload: CreateRunPayload, user_id: str):
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
 
-    assistant = await get_storage().get_assistant(user_id, str(thread["assistant_id"]))
+    assistant = await get_storage().get_assistant(user_id, str(thread.assistant_id))
     if not assistant:
         raise HTTPException(status_code=404, detail="Assistant not found")
 
@@ -57,7 +57,7 @@ async def _run_input_and_config(payload: CreateRunPayload, user_id: str):
             **assistant["config"]["configurable"],
             **((payload.config or {}).get("configurable") or {}),
             "user_id": user_id,
-            "thread_id": str(thread["thread_id"]),
+            "thread_id": str(thread.thread_id),
             "assistant_id": str(assistant["assistant_id"]),
             "name": assistant["name"],
             "knowledge_files": knowledge_files,
@@ -97,7 +97,7 @@ async def stream_run(
     """Create a run."""
     input_, config, thread, _ = await _run_input_and_config(payload, user.user_id)
     if langsmith_client:
-        if url := get_langsmith_thread_url(langsmith_client, thread["thread_id"]):
+        if url := get_langsmith_thread_url(langsmith_client, thread.thread_id):
             await save_langsmith_thread_url(thread, url)
     return EventSourceResponse(to_sse(astream_state(agent, input_, config)))
 
@@ -110,7 +110,7 @@ async def invoke_run(
     """Create a run."""
     input_, config, thread, _ = await _run_input_and_config(payload, user.user_id)
     if langsmith_client:
-        if url := get_langsmith_thread_url(langsmith_client, thread["thread_id"]):
+        if url := get_langsmith_thread_url(langsmith_client, thread.thread_id):
             await save_langsmith_thread_url(thread, url)
     return await invoke_state(agent, input_, config)
 

@@ -66,13 +66,12 @@ class LocalFileManager(BaseFileManager):
         owner: Union[Assistant, Thread],
     ) -> UploadedFile:
         file_id = str(uuid4())
+        if isinstance(owner, Assistant):
+            owner_id = owner.assistant_id
+        else:
+            owner_id = owner.thread_id
         file_path = os.path.abspath(
-            os.path.join(
-                UPLOAD_DIR,
-                owner.get("thread_id", owner.get("assistant_id", "NO_OWNER")),
-                file_id,
-                file.filename,
-            )
+            os.path.join(UPLOAD_DIR, owner_id, file_id, file.filename)
         )
         try:
             return await self._upload(file_id, file_path, file, owner)

@@ -41,7 +41,7 @@ async def _generate_welcome_message(
     config = {
         "configurable": {
             **payload.config.get("configurable", {}),
-            "thread_id": thread["thread_id"],
+            "thread_id": thread.thread_id,
         }
     }
     human_prompt = (
@@ -57,7 +57,7 @@ async def _generate_welcome_message(
     else:
         welcome_message = response["messages"][1].content
     finally:
-        await get_storage().delete_thread(thread["user_id"], thread["thread_id"])
+        await get_storage().delete_thread(thread.user_id, thread.thread_id)
 
     return welcome_message
 

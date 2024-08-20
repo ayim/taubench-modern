@@ -117,7 +117,7 @@ async def create_thread(
         message = AIMessage(id=str(uuid4()), content=payload.starting_message)
         await get_storage().update_thread_state(
             user_id=user.user_id,
-            thread_id=thread["thread_id"],
+            thread_id=thread.thread_id,
             values={"messages": [message]},
         )
     return thread
@@ -138,7 +138,7 @@ async def upsert_thread(
         tid,
         assistant_id=payload.assistant_id,
         name=payload.name,
-        metadata=thread["metadata"],
+        metadata=thread.metadata,
     )
 
 
