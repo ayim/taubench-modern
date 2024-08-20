@@ -6,7 +6,7 @@ from typing import Union
 import structlog
 from fastapi import UploadFile
 
-from sema4ai_agent_server.schema import Assistant, Thread, UploadedFile
+from sema4ai_agent_server.schema import Agent, Thread, UploadedFile
 from sema4ai_agent_server.storage.embed import Blob, embed_runnable, vstore
 from sema4ai_agent_server.storage.option import get_storage
 
@@ -37,7 +37,7 @@ class BaseFileManager:
     async def upload(
         self,
         file: UploadFile,
-        owner: Union[Assistant, Thread],
+        owner: Union[Agent, Thread],
     ) -> UploadedFile:
         raise NotImplementedError()
 
@@ -51,10 +51,10 @@ class BaseFileManager:
         vstore.delete_by_metadata("file_id", file_id)
 
     def _create_embeddings(
-        self, blob: Blob, owner: Union[Assistant, Thread], file_id: str
+        self, blob: Blob, owner: Union[Agent, Thread], file_id: str
     ) -> None:
-        if isinstance(owner, Assistant):
-            owner_id = owner.assistant_id
+        if isinstance(owner, Agent):
+            owner_id = owner.id
         else:
             owner_id = owner.thread_id
         config = {"configurable": {"owner_id": owner_id, "file_id": file_id}}
@@ -70,7 +70,7 @@ class BaseFileManager:
         return file_extension not in NON_EMBEDDABLE_EXTENSIONS
 
     async def _validate_file_uniqueness(
-        self, file: UploadFile, owner: Union[Assistant, Thread]
+        self, file: UploadFile, owner: Union[Agent, Thread]
     ) -> None:
         if await get_storage().get_file(owner, file.filename):
             raise FileAlreadyExists()

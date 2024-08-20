@@ -48,7 +48,7 @@ async def save_langsmith_thread_url(thread: Thread, url: str) -> None:
         await get_storage().put_thread(
             user_id=thread.user_id,
             thread_id=thread.thread_id,
-            assistant_id=thread.assistant_id,
+            agent_id=thread.agent_id,
             name=thread.name,
             metadata=metadata,
         )

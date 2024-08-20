@@ -12,7 +12,7 @@ from langsmith.utils import tracing_is_enabled
 from pydantic import BaseModel, Field
 from sse_starlette import EventSourceResponse
 
-from sema4ai_agent_server.agent import agent
+from sema4ai_agent_server.agent import runnable_agent
 from sema4ai_agent_server.auth.handlers import AuthedUser
 from sema4ai_agent_server.langsmith_client import (
     get_langsmith_thread_url,
@@ -40,31 +40,31 @@ async def _run_input_and_config(payload: CreateRunPayload, user_id: str):
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
 
-    assistant = await get_storage().get_assistant(user_id, str(thread.assistant_id))
-    if not assistant:
-        raise HTTPException(status_code=404, detail="Assistant not found")
+    agent = await get_storage().get_agent(user_id, str(thread.agent_id))
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
 
     knowledge_files = (None,)
-    if assistant:
-        uploaded_files = await get_storage().get_assistant_files(assistant.assistant_id)
+    if agent:
+        uploaded_files = await get_storage().get_agent_files(agent.id)
         knowledge_files = [file.file_ref for file in uploaded_files]
 
     config: RunnableConfig = {
-        **assistant.config,
+        **agent.config,
         "configurable": {
-            **assistant.config["configurable"],
+            **agent.config["configurable"],
             **((payload.config or {}).get("configurable") or {}),
             "user_id": user_id,
             "thread_id": str(thread.thread_id),
-            "assistant_id": str(assistant.assistant_id),
-            "name": assistant.name,
+            "agent_id": str(agent.id),
+            "name": agent.name,
             "knowledge_files": knowledge_files,
         },
     }
 
     try:
         input_ = (
-            _unpack_input(agent.get_input_schema(config).validate(payload.input))
+            _unpack_input(runnable_agent.get_input_schema(config).validate(payload.input))
             if payload.input is not None
             else None
         )
@@ -72,7 +72,7 @@ async def _run_input_and_config(payload: CreateRunPayload, user_id: str):
     except ValidationError as e:
         raise RequestValidationError(e.errors(), body=payload)
 
-    return input_, config, thread, assistant
+    return input_, config, thread, agent
 
 
 @router.post("")
@@ -83,7 +83,7 @@ async def create_run(
 ):
     """Create a run."""
     input_, config, _, _ = await _run_input_and_config(payload, user.user_id)
-    background_tasks.add_task(agent.ainvoke, input_, config)
+    background_tasks.add_task(runnable_agent.ainvoke, input_, config)
     return {"status": "ok"}  # TODO add a run id
 
 
@@ -97,7 +97,7 @@ async def stream_run(
     if langsmith_client:
         if url := get_langsmith_thread_url(langsmith_client, thread.thread_id):
             await save_langsmith_thread_url(thread, url)
-    return EventSourceResponse(to_sse(astream_state(agent, input_, config)))
+    return EventSourceResponse(to_sse(astream_state(runnable_agent, input_, config)))
 
 
 @router.post("/invoke")
@@ -110,25 +110,25 @@ async def invoke_run(
     if langsmith_client:
         if url := get_langsmith_thread_url(langsmith_client, thread.thread_id):
             await save_langsmith_thread_url(thread, url)
-    return await invoke_state(agent, input_, config)
+    return await invoke_state(runnable_agent, input_, config)
 
 
 @router.get("/input_schema")
 async def input_schema() -> dict:
     """Return the input schema of the runnable."""
-    return agent.get_input_schema().schema()
+    return runnable_agent.get_input_schema().schema()
 
 
 @router.get("/output_schema")
 async def output_schema() -> dict:
     """Return the output schema of the runnable."""
-    return agent.get_output_schema().schema()
+    return runnable_agent.get_output_schema().schema()
 
 
 @router.get("/config_schema")
 async def config_schema() -> dict:
     """Return the config schema of the runnable."""
-    return agent.config_schema().schema()
+    return runnable_agent.config_schema().schema()
 
 
 if langsmith_client:

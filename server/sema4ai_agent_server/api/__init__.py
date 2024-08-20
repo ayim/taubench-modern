@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from sema4ai_agent_server.api.assistants import router as assistants_router
+from sema4ai_agent_server.api.agents import router as agents_router
 from sema4ai_agent_server.api.runs import router as runs_router
 from sema4ai_agent_server.api.threads import router as threads_router
 
@@ -13,9 +13,9 @@ def ok():
 
 
 router.include_router(
-    assistants_router,
-    prefix="/assistants",
-    tags=["assistants"],
+    agents_router,
+    prefix="/agents",
+    tags=["agents"],
 )
 router.include_router(
     runs_router,

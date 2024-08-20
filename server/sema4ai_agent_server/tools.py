@@ -200,19 +200,19 @@ class DallE(BaseTool):
     )
 
 
-def get_retriever(assistant_id: str, thread_id: str):
+def get_retriever(agent_id: str, thread_id: str):
     return vstore.as_retriever(
-        search_kwargs={"filter": {"namespace": {"$in": [assistant_id, thread_id]}}}
+        search_kwargs={"filter": {"namespace": {"$in": [agent_id, thread_id]}}}
     )
 
 
 @lru_cache(maxsize=5)
-def get_retrieval_tool(assistant_id: str, thread_id: str):
-    description = """Can be used to look up information that was uploaded to this assistant.
+def get_retrieval_tool(agent_id: str, thread_id: str):
+    description = """Can be used to look up information that was uploaded to this agent.
     If the user is referencing particular files, that is often a good hint that information may be here.
     If the user asks a vague question, they are likely meaning to look up info from this retriever, and you should call it!"""
     return create_retriever_tool(
-        get_retriever(assistant_id, thread_id),
+        get_retriever(agent_id, thread_id),
         "Retriever",
         description,
     )

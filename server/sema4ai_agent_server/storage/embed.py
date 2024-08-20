@@ -152,7 +152,7 @@ class BaseVectorStoreWrapper(ABC):
 
         For example, to delete embeddings for a specific file, set metadata_key to
         "file_id" and metadata_value to <file_id>. Similarly, to delete embeddings for
-        a specific owner (assistant or thread), set metadata_key to "owner_id" and
+        a specific owner (agent or thread), set metadata_key to "owner_id" and
         metadata_value to <owner_id>.
         """
 
@@ -193,7 +193,7 @@ class EmbedRunnable(RunnableSerializable[BinaryIO, List[str]]):
     file_id: Optional[str]
     """ID of the file to embed."""
     owner_id: Optional[str]
-    """ID of the file owner (assistant or thread)."""
+    """ID of the file owner (agent or thread)."""
 
     class Config:
         arbitrary_types_allowed = True
@@ -219,7 +219,7 @@ embed_runnable = EmbedRunnable(
     owner_id=ConfigurableField(
         id="owner_id",
         annotation=str,
-        name="Owner ID (assistant_id or thread_id)",
+        name="Owner ID (agent's id or thread's id)",
     ),
     file_id=ConfigurableField(
         id="file_id",

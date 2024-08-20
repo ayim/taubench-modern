@@ -9,7 +9,7 @@ import structlog
 from fastapi import UploadFile
 
 from sema4ai_agent_server.file_manager.base import BaseFileManager, get_hash
-from sema4ai_agent_server.schema import Assistant, Thread, UploadedFile
+from sema4ai_agent_server.schema import Agent, Thread, UploadedFile
 from sema4ai_agent_server.storage.embed import Blob, convert_to_blob
 from sema4ai_agent_server.storage.option import get_storage
 
@@ -88,7 +88,7 @@ class CloudFileManager(BaseFileManager):
         self,
         file_id: str,
         file: UploadFile,
-        owner: Union[Assistant, Thread],
+        owner: Union[Agent, Thread],
     ) -> UploadedFile:
         await self._validate_file_uniqueness(file, owner)
 
@@ -113,7 +113,7 @@ class CloudFileManager(BaseFileManager):
     async def upload(
         self,
         file: UploadFile,
-        owner: Union[Assistant, Thread],
+        owner: Union[Agent, Thread],
     ) -> UploadedFile:
         file_id = str(uuid4())
         try:

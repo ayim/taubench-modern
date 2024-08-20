@@ -11,10 +11,10 @@ import structlog
 from langchain_core.messages import AnyMessage
 from pydantic import parse_obj_as
 
-from sema4ai_agent_server.agent import AgentType, agent, get_agent_executor
+from sema4ai_agent_server.agent import AgentType, runnable_agent, get_agent_executor
 from sema4ai_agent_server.agent_types.constants import FINISH_NODE_KEY
 from sema4ai_agent_server.constants import DOMAIN_DATABASE_PATH
-from sema4ai_agent_server.schema import Assistant, Thread, UploadedFile, User
+from sema4ai_agent_server.schema import Agent, Thread, UploadedFile, User
 from sema4ai_agent_server.storage import BaseStorage
 
 logger = structlog.get_logger()
@@ -92,96 +92,96 @@ class SqliteStorage(BaseStorage):
             )
             conn.commit()
 
-    async def list_assistants(self, user_id: str) -> List[Assistant]:
-        """List all assistants for the current user."""
+    async def list_agents(self, user_id: str) -> List[Agent]:
+        """List all agents for the current user."""
         with self._connect() as conn:
             conn.row_factory = sqlite3.Row  # Enable dictionary-like row access
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM assistant WHERE user_id = ?", (user_id,))
+            cursor.execute("SELECT * FROM agent WHERE user_id = ?", (user_id,))
             rows = cursor.fetchall()
 
             # Deserialize the 'config' field from a JSON string to a dict for each row
-            assistants = []
+            agents = []
             for row in rows:
-                assistant_data = dict(row)  # Convert sqlite3.Row to dict
-                assistant_data["config"] = (
-                    json.loads(assistant_data["config"])
-                    if "config" in assistant_data and assistant_data["config"]
+                agent_data = dict(row)  # Convert sqlite3.Row to dict
+                agent_data["config"] = (
+                    json.loads(agent_data["config"])
+                    if "config" in agent_data and agent_data["config"]
                     else {}
                 )
-                assistant_data["metadata"] = (
-                    json.loads(assistant_data["metadata"])
-                    if assistant_data["metadata"] is not None
+                agent_data["metadata"] = (
+                    json.loads(agent_data["metadata"])
+                    if agent_data["metadata"] is not None
                     else None
                 )
-                assistant = Assistant(**assistant_data)
-                assistants.append(assistant)
+                agent = Agent(**agent_data)
+                agents.append(agent)
 
-            return assistants
+            return agents
 
-    async def list_all_assistants(self) -> List[Assistant]:
-        """List all assistants for all users."""
+    async def list_all_agents(self) -> List[Agent]:
+        """List all agents for all users."""
         with self._connect() as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM assistant")
+            cursor.execute("SELECT * FROM agent")
             rows = cursor.fetchall()
 
-            assistants = []
+            agents = []
             for row in rows:
-                assistant_data = dict(row)
-                assistant_data["config"] = (
-                    json.loads(assistant_data["config"])
-                    if "config" in assistant_data and assistant_data["config"]
+                agent_data = dict(row)
+                agent_data["config"] = (
+                    json.loads(agent_data["config"])
+                    if "config" in agent_data and agent_data["config"]
                     else {}
                 )
-                assistant_data["metadata"] = (
-                    json.loads(assistant_data["metadata"])
-                    if assistant_data["metadata"] is not None
+                agent_data["metadata"] = (
+                    json.loads(agent_data["metadata"])
+                    if agent_data["metadata"] is not None
                     else None
                 )
-                assistant = Assistant(**assistant_data)
-                assistants.append(assistant)
+                agent = Agent(**agent_data)
+                agents.append(agent)
 
-            return assistants
+            return agents
 
-    async def get_assistant(
-        self, user_id: str, assistant_id: str
-    ) -> Optional[Assistant]:
-        """Get an assistant by ID."""
+    async def get_agent(
+        self, user_id: str, agent_id: str
+    ) -> Optional[Agent]:
+        """Get an agent by ID."""
         with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM assistant WHERE assistant_id = ? AND (user_id = ? OR public = 1)",
-                (assistant_id, user_id),
+                "SELECT * FROM agent WHERE id = ? AND (user_id = ? OR public = 1)",
+                (agent_id, user_id),
             )
             row = cursor.fetchone()
             if not row:
                 return None
-            assistant_data = dict(row)  # Convert sqlite3.Row to dict
-            assistant_data["config"] = (
-                json.loads(assistant_data["config"])
-                if "config" in assistant_data and assistant_data["config"]
+            agent_data = dict(row)  # Convert sqlite3.Row to dict
+            agent_data["config"] = (
+                json.loads(agent_data["config"])
+                if "config" in agent_data and agent_data["config"]
                 else {}
             )
-            assistant_data["metadata"] = (
-                json.loads(assistant_data["metadata"])
-                if assistant_data["metadata"] is not None
+            agent_data["metadata"] = (
+                json.loads(agent_data["metadata"])
+                if agent_data["metadata"] is not None
                 else None
             )
-            return Assistant(**assistant_data)
+            return Agent(**agent_data)
 
-    async def put_assistant(
+    async def put_agent(
         self,
         user_id: str,
-        assistant_id: str,
+        agent_id: str,
         *,
         name: str,
         config: dict,
         public: bool = False,
         metadata: Optional[dict],
-    ) -> Assistant:
-        """Modify an assistant."""
+    ) -> Agent:
+        """Modify an agent."""
         updated_at = datetime.now(timezone.utc)
         with self._connect() as conn:
             cursor = conn.cursor()
@@ -189,9 +189,9 @@ class SqliteStorage(BaseStorage):
             config_str = json.dumps(config)
             cursor.execute(
                 """
-                INSERT INTO assistant (assistant_id, user_id, name, config, updated_at, public, metadata)
+                INSERT INTO agent (id, user_id, name, config, updated_at, public, metadata)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(assistant_id) 
+                ON CONFLICT(id) 
                 DO UPDATE SET 
                     user_id = EXCLUDED.user_id, 
                     name = EXCLUDED.name, 
@@ -201,7 +201,7 @@ class SqliteStorage(BaseStorage):
                     metadata = EXCLUDED.metadata
                 """,
                 (
-                    assistant_id,
+                    agent_id,
                     user_id,
                     name,
                     config_str,
@@ -211,8 +211,8 @@ class SqliteStorage(BaseStorage):
                 ),
             )
             conn.commit()
-            return Assistant(
-                assistant_id=assistant_id,
+            return Agent(
+                id=agent_id,
                 user_id=user_id,
                 name=name,
                 config=config,
@@ -221,11 +221,11 @@ class SqliteStorage(BaseStorage):
                 metadata=metadata,
             )
 
-    async def assistant_count(self) -> int:
-        """Get assistant row count"""
+    async def agent_count(self) -> int:
+        """Get agent row count"""
         with self._connect() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT COUNT(*) FROM assistant")
+            cursor.execute("SELECT COUNT(*) FROM agent")
             count = cursor.fetchone()[0]
             return count
 
@@ -292,15 +292,15 @@ class SqliteStorage(BaseStorage):
     ):
         """Add state to a thread."""
         thread = await self.get_thread(user_id, thread_id)
-        assistant_id = thread.assistant_id
-        assistant = await self.get_assistant(user_id, assistant_id)
-        config = assistant.config["configurable"] if assistant else {}
-        retval = agent.update_state(
+        agent_id = thread.agent_id
+        agent = await self.get_agent(user_id, agent_id)
+        config = agent.config["configurable"] if agent else {}
+        retval = runnable_agent.update_state(
             {
                 "configurable": {
                     **config,
                     "thread_id": thread_id,
-                    "assistant_id": assistant_id,
+                    "agent_id": agent_id,
                 }
             },
             values,
@@ -326,7 +326,7 @@ class SqliteStorage(BaseStorage):
         user_id: str,
         thread_id: str,
         *,
-        assistant_id: str,
+        agent_id: str,
         name: str,
         metadata: Optional[dict],
     ) -> Thread:
@@ -336,12 +336,12 @@ class SqliteStorage(BaseStorage):
             cursor = conn.cursor()
             cursor.execute(
                 """
-                INSERT INTO thread (thread_id, user_id, assistant_id, name, updated_at, metadata)
+                INSERT INTO thread (thread_id, user_id, agent_id, name, updated_at, metadata)
                 VALUES (?, ?, ?, ?, ?, ?)
                 ON CONFLICT(thread_id) 
                 DO UPDATE SET 
                     user_id = EXCLUDED.user_id,
-                    assistant_id = EXCLUDED.assistant_id, 
+                    agent_id = EXCLUDED.agent_id, 
                     name = EXCLUDED.name, 
                     updated_at = EXCLUDED.updated_at,
                     metadata = EXCLUDED.metadata
@@ -349,7 +349,7 @@ class SqliteStorage(BaseStorage):
                 (
                     thread_id,
                     user_id,
-                    assistant_id,
+                    agent_id,
                     name,
                     updated_at,
                     json.dumps(metadata),
@@ -359,7 +359,7 @@ class SqliteStorage(BaseStorage):
             return Thread(
                 thread_id=thread_id,
                 user_id=user_id,
-                assistant_id=assistant_id,
+                agent_id=agent_id,
                 name=name,
                 updated_at=updated_at,
                 metadata=metadata,
@@ -397,26 +397,26 @@ class SqliteStorage(BaseStorage):
             )
             conn.commit()
 
-    async def delete_assistant(self, user_id: str, assistant_id: str) -> None:
-        """Delete an assistant by ID."""
+    async def delete_agent(self, user_id: str, agent_id: str) -> None:
+        """Delete an agent by ID."""
         with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "DELETE FROM assistant WHERE assistant_id = ? AND user_id = ?",
-                (assistant_id, user_id),
+                "DELETE FROM agent WHERE id = ? AND user_id = ?",
+                (agent_id, user_id),
             )
             conn.commit()
 
-    async def get_assistant_files(self, assistant_id: str) -> list[UploadedFile]:
-        """Get a list of files associated with an assistant."""
+    async def get_agent_files(self, agent_id: str) -> list[UploadedFile]:
+        """Get a list of files associated with an agent."""
         with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """
                 SELECT * FROM file_owners
-                WHERE assistant_id = ?
+                WHERE agent_id = ?
                 """,
-                (assistant_id,),
+                (agent_id,),
             )
             rows = cursor.fetchall()
             return parse_obj_as(List[UploadedFile], rows)
@@ -450,12 +450,12 @@ class SqliteStorage(BaseStorage):
             return parse_obj_as(Optional[UploadedFile], row)
 
     async def get_file(
-        self, owner: Union[Assistant, Thread], file_ref: str
+        self, owner: Union[Agent, Thread], file_ref: str
     ) -> Optional[UploadedFile]:
         """Get a file by ref."""
-        if isinstance(owner, Assistant):
-            query = "assistant_id = ?"
-            value = owner.assistant_id
+        if isinstance(owner, Agent):
+            query = "agent_id = ?"
+            value = owner.id
         else:
             query = "thread_id = ?"
             value = owner.thread_id
@@ -479,20 +479,20 @@ class SqliteStorage(BaseStorage):
         file_ref: str,
         file_hash: str,
         embedded: bool,
-        owner: Union[Assistant, Thread],
+        owner: Union[Agent, Thread],
         file_path_expiration: Optional[datetime],
     ) -> UploadedFile:
-        if isinstance(owner, Assistant):
-            assistant_id = owner.assistant_id
+        if isinstance(owner, Agent):
+            agent_id = owner.id
             thread_id = None
         else:
-            assistant_id = None
+            agent_id = None
             thread_id = owner.thread_id
         with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                INSERT INTO file_owners (file_id, file_path, file_ref, file_hash, embedded, assistant_id, thread_id, file_path_expiration)
+                INSERT INTO file_owners (file_id, file_path, file_ref, file_hash, embedded, agent_id, thread_id, file_path_expiration)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(file_id)
                 DO UPDATE SET 
@@ -500,7 +500,7 @@ class SqliteStorage(BaseStorage):
                     file_path = EXCLUDED.file_path,
                     file_hash = EXCLUDED.file_hash,
                     embedded = EXCLUDED.embedded,
-                    assistant_id = EXCLUDED.assistant_id,
+                    agent_id = EXCLUDED.agent_id,
                     thread_id = EXCLUDED.thread_id
                 """,
                 (
@@ -509,7 +509,7 @@ class SqliteStorage(BaseStorage):
                     file_ref,
                     file_hash,
                     embedded,
-                    assistant_id,
+                    agent_id,
                     thread_id,
                     file_path_expiration,
                 ),

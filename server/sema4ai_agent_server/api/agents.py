@@ -1,0 +1,153 @@
+from typing import Annotated, List, Optional
+from uuid import uuid4
+
+import structlog
+from fastapi import APIRouter, HTTPException, Path
+from langchain_core.messages import HumanMessage
+from pydantic import BaseModel, Field
+
+from sema4ai_agent_server.agent import runnable_agent
+from sema4ai_agent_server.auth.handlers import AuthedUser
+from sema4ai_agent_server.schema import Agent, UploadedFile
+from sema4ai_agent_server.storage.option import get_storage
+
+logger = structlog.get_logger(__name__)
+
+router = APIRouter()
+
+
+class AgentPayload(BaseModel):
+    """Payload for creating an agent."""
+
+    name: str = Field(..., description="The name of the agent.")
+    config: dict = Field(..., description="The agent config.")
+    public: bool = Field(default=False, description="Whether the agent is public.")
+    metadata: Optional[dict] = Field(
+        default=None, description="Additional metadata for the agent."
+    )
+
+
+AgentID = Annotated[str, Path(description="The ID of the agent.")]
+
+
+async def _generate_welcome_message(
+    user_id: str, payload: AgentPayload
+) -> Optional[str]:
+    thread = await get_storage().put_thread(
+        user_id, str(uuid4()), agent_id=None, name="", metadata=None
+    )
+    config = {
+        "configurable": {
+            **payload.config.get("configurable", {}),
+            "thread_id": thread.thread_id,
+        }
+    }
+    human_prompt = (
+        "Introduce yourself as a Sema4.ai Agent and tell me what you're capable of."
+    )
+    input = {"messages": [HumanMessage(content=human_prompt, id=str(uuid4()))]}
+
+    try:
+        response = await runnable_agent.ainvoke(input, config)
+    except Exception:
+        welcome_message = None
+        logger.exception("Failed to generate welcome message.")
+    else:
+        welcome_message = response["messages"][1].content
+    finally:
+        await get_storage().delete_thread(thread.user_id, thread.thread_id)
+
+    return welcome_message
+
+
+@router.get("/")
+async def list_agents(user: AuthedUser) -> List[Agent]:
+    """List all agents for the current user."""
+    agents = await get_storage().list_agents(user.user_id)
+    return agents
+
+
+@router.get("/{aid}")
+async def get_agent(
+    user: AuthedUser,
+    aid: AgentID,
+) -> Agent:
+    """Get an agent by ID."""
+    agent = await get_storage().get_agent(user.user_id, aid)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    return agent
+
+
+@router.post("")
+async def create_agent(
+    user: AuthedUser,
+    payload: AgentPayload,
+) -> Agent:
+    """Create an agent."""
+    msg = await _generate_welcome_message(user.user_id, payload)
+
+    metadata = payload.metadata or {}
+    if msg is not None:
+        metadata["welcome_message"] = msg
+
+    return await get_storage().put_agent(
+        user.user_id,
+        str(uuid4()),
+        name=payload.name,
+        config=payload.config,
+        public=payload.public,
+        metadata=metadata,
+    )
+
+
+@router.put("/{aid}")
+async def upsert_agent(
+    user: AuthedUser,
+    aid: AgentID,
+    payload: AgentPayload,
+) -> Agent:
+    """Create or update an agent."""
+    agent = await get_storage().get_agent(user.user_id, aid)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    msg = await _generate_welcome_message(user.user_id, payload)
+    metadata = agent.metadata or {}
+    if msg is not None:
+        metadata["welcome_message"] = msg
+
+    # Update metadata with payload metadata
+    if payload.metadata:
+        metadata.update(payload.metadata)
+
+    return await get_storage().put_agent(
+        user.user_id,
+        aid,
+        name=payload.name,
+        config=payload.config,
+        public=payload.public,
+        metadata=metadata,
+    )
+
+
+@router.delete("/{aid}")
+async def delete_agent(
+    user: AuthedUser,
+    aid: AgentID,
+):
+    """Delete an agent by ID."""
+    await get_storage().delete_agent(user.user_id, aid)
+    return {"status": "ok"}
+
+
+@router.get("/{aid}/files")
+async def get_agent_files(
+    user: AuthedUser,
+    aid: AgentID,
+) -> List[UploadedFile]:
+    """Get an list of files associated with an agent."""
+    agent = await get_storage().get_agent(user.user_id, aid)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    return await get_storage().get_agent_files(aid)

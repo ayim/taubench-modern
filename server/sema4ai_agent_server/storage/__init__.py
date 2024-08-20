@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Sequence, Union
 from langchain_core.messages import AnyMessage
 
 from sema4ai_agent_server.agent_types.constants import FINISH_NODE_KEY
-from sema4ai_agent_server.schema import Assistant, Thread, UploadedFile, User
+from sema4ai_agent_server.schema import Agent, Thread, UploadedFile, User
 
 
 class BaseStorage(ABC):
@@ -23,39 +23,39 @@ class BaseStorage(ABC):
     async def _run_migrations(self):
         pass
 
-    async def list_assistants(self, user_id: str) -> List[Assistant]:
-        """List all assistants for the current user."""
+    async def list_agents(self, user_id: str) -> List[Agent]:
+        """List all agents for the current user."""
         pass
 
     @abstractmethod
-    async def list_all_assistants(self) -> List[Assistant]:
-        """List all assistants for all users."""
+    async def list_all_agents(self) -> List[Agent]:
+        """List all agents for all users."""
         pass
 
     @abstractmethod
-    async def get_assistant(
-        self, user_id: str, assistant_id: str
-    ) -> Optional[Assistant]:
-        """Get an assistant by ID."""
+    async def get_agent(
+        self, user_id: str, agent_id: str
+    ) -> Optional[Agent]:
+        """Get an agent by ID."""
         pass
 
     @abstractmethod
-    async def put_assistant(
+    async def put_agent(
         self,
         user_id: str,
-        assistant_id: str,
+        agent_id: str,
         *,
         name: str,
         config: dict,
         public: bool = False,
         metadata: Optional[dict],
-    ) -> Assistant:
-        """Modify an assistant."""
+    ) -> Agent:
+        """Modify an agent."""
         pass
 
     @abstractmethod
-    async def assistant_count(self) -> int:
-        """Get assistant row count"""
+    async def agent_count(self) -> int:
+        """Get agent row count"""
         pass
 
     @abstractmethod
@@ -100,7 +100,7 @@ class BaseStorage(ABC):
         user_id: str,
         thread_id: str,
         *,
-        assistant_id: str,
+        agent_id: str,
         name: str,
         metadata: Optional[dict],
     ) -> Thread:
@@ -118,13 +118,13 @@ class BaseStorage(ABC):
         pass
 
     @abstractmethod
-    async def delete_assistant(self, user_id: str, assistant_id: str) -> None:
-        """Delete an assistant by ID."""
+    async def delete_agent(self, user_id: str, agent_id: str) -> None:
+        """Delete an agent by ID."""
         pass
 
     @abstractmethod
-    async def get_assistant_files(self, assistant_id: str) -> list[UploadedFile]:
-        """Get a list of files associated with an assistant."""
+    async def get_agent_files(self, agent_id: str) -> list[UploadedFile]:
+        """Get a list of files associated with an agent."""
         pass
 
     @abstractmethod
@@ -134,7 +134,7 @@ class BaseStorage(ABC):
 
     @abstractmethod
     async def get_file(
-        self, owner: Union[Assistant, Thread], file_ref: str
+        self, owner: Union[Agent, Thread], file_ref: str
     ) -> Optional[UploadedFile]:
         """Get a file by ref."""
         pass
@@ -156,7 +156,7 @@ class BaseStorage(ABC):
         file_ref: str,
         file_hash: str,
         embedded: bool,
-        owner: Union[Assistant, Thread],
+        owner: Union[Agent, Thread],
         file_path_expiration: Optional[datetime],
     ) -> UploadedFile:
         """Add or update a file owner."""

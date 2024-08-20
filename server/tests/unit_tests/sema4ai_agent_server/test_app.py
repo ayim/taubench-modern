@@ -21,45 +21,45 @@ async def pool():
 
 
 @skip("TODO: Remove references to postgres and use sqlite for unit tests.")
-async def test_list_and_create_assistants(pool: asyncpg.pool.Pool) -> None:
-    """Test list and create assistants."""
+async def test_list_and_create_agents(pool: asyncpg.pool.Pool) -> None:
+    """Test list and create agents."""
     headers = {"Cookie": "opengpts_user_id=1"}
     aid = str(uuid4())
 
     async with pool.acquire() as conn:
-        assert len(await conn.fetch("SELECT * FROM assistant;")) == 0
+        assert len(await conn.fetch("SELECT * FROM agent;")) == 0
 
     async with get_client() as client:
         response = await client.get(
-            "/assistants/",
+            "/agents/",
             headers=headers,
         )
         assert response.status_code == 200
 
         assert response.json() == []
 
-        # Create an assistant
+        # Create an agent
         response = await client.put(
-            f"/assistants/{aid}",
+            f"/agents/{aid}",
             json={"name": "bobby", "config": {}, "public": False},
             headers=headers,
         )
         assert response.status_code == 200
         assert _project(response.json(), exclude_keys=["updated_at", "user_id"]) == {
-            "assistant_id": aid,
+            "id": aid,
             "config": {},
             "name": "bobby",
             "public": False,
         }
         async with pool.acquire() as conn:
-            assert len(await conn.fetch("SELECT * FROM assistant;")) == 1
+            assert len(await conn.fetch("SELECT * FROM agent;")) == 1
 
-        response = await client.get("/assistants/", headers=headers)
+        response = await client.get("/agents/", headers=headers)
         assert [
             _project(d, exclude_keys=["updated_at", "user_id"]) for d in response.json()
         ] == [
             {
-                "assistant_id": aid,
+                "id": aid,
                 "config": {},
                 "name": "bobby",
                 "public": False,
@@ -67,13 +67,13 @@ async def test_list_and_create_assistants(pool: asyncpg.pool.Pool) -> None:
         ]
 
         response = await client.put(
-            f"/assistants/{aid}",
+            f"/agents/{aid}",
             json={"name": "bobby", "config": {}, "public": False},
             headers=headers,
         )
 
         assert _project(response.json(), exclude_keys=["updated_at", "user_id"]) == {
-            "assistant_id": aid,
+            "id": aid,
             "config": {},
             "name": "bobby",
             "public": False,
@@ -81,7 +81,7 @@ async def test_list_and_create_assistants(pool: asyncpg.pool.Pool) -> None:
 
         # Check not visible to other users
         headers = {"Cookie": "opengpts_user_id=2"}
-        response = await client.get("/assistants/", headers=headers)
+        response = await client.get("/agents/", headers=headers)
         assert response.status_code == 200, response.text
         assert response.json() == []
 
@@ -95,9 +95,9 @@ async def test_threads() -> None:
 
     async with get_client() as client:
         response = await client.put(
-            f"/assistants/{aid}",
+            f"/agents/{aid}",
             json={
-                "name": "assistant",
+                "name": "agent",
                 "config": {"configurable": {"type": "chatbot"}},
                 "public": False,
             },
@@ -106,7 +106,7 @@ async def test_threads() -> None:
 
         response = await client.put(
             f"/threads/{tid}",
-            json={"name": "bobby", "assistant_id": aid},
+            json={"name": "bobby", "agent_id": aid},
             headers=headers,
         )
         assert response.status_code == 200, response.text
@@ -122,10 +122,10 @@ async def test_threads() -> None:
             _project(d, exclude_keys=["updated_at", "user_id"]) for d in response.json()
         ] == [
             {
-                "assistant_id": aid,
+                "agent_id": aid,
                 "name": "bobby",
                 "thread_id": tid,
-                "metadata": {"assistant_type": "chatbot"},
+                "metadata": {"agent_type": "chatbot"},
             }
         ]
 
