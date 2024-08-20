@@ -87,16 +87,7 @@ class PostgresStorage(BaseStorage):
                 "SELECT * FROM file_owners WHERE assistant_id = $1",
                 assistant_id,
             )
-            return [
-                UploadedFile(
-                    file_id=str(row["file_id"]),
-                    file_path=row["file_path"],
-                    file_ref=row["file_ref"],
-                    file_hash=row["file_hash"],
-                    embedded=row["embedded"],
-                )
-                for row in rows
-            ]
+            return parse_obj_as(List[UploadedFile], rows)
 
     async def get_thread_files(self, thread_id: str) -> list[UploadedFile]:
         """Get a list of files associated with a thread."""
@@ -107,16 +98,7 @@ class PostgresStorage(BaseStorage):
                 """,
                 thread_id,
             )
-            return [
-                UploadedFile(
-                    file_id=str(row["file_id"]),
-                    file_path=row["file_path"],
-                    file_ref=row["file_ref"],
-                    file_hash=row["file_hash"],
-                    embedded=row["embedded"],
-                )
-                for row in rows
-            ]
+            return parse_obj_as(List[UploadedFile], rows)
 
     async def get_file_by_id(self, file_id: str) -> Optional[UploadedFile]:
         """Get a file by id."""
@@ -128,15 +110,7 @@ class PostgresStorage(BaseStorage):
                 """,
                 file_id,
             )
-            if not row:
-                return None
-            return UploadedFile(
-                file_id=str(row["file_id"]),
-                file_path=row["file_path"],
-                file_ref=row["file_ref"],
-                file_hash=row["file_hash"],
-                embedded=row["embedded"],
-            )
+            return parse_obj_as(Optional[UploadedFile], row)
 
     async def get_file(
         self, owner: Union[Assistant, Thread], file_ref: str
@@ -158,15 +132,7 @@ class PostgresStorage(BaseStorage):
                 file_ref,
                 value,
             )
-            if not row:
-                return None
-            return UploadedFile(
-                file_id=str(row["file_id"]),
-                file_path=row["file_path"],
-                file_ref=row["file_ref"],
-                file_hash=row["file_hash"],
-                embedded=row["embedded"],
-            )
+            return parse_obj_as(Optional[UploadedFile], row)
 
     async def put_file_owner(
         self,

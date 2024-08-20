@@ -9,6 +9,7 @@ from uuid import uuid4
 
 import structlog
 from langchain_core.messages import AnyMessage
+from pydantic import parse_obj_as
 
 from sema4ai_agent_server.agent import AgentType, agent, get_agent_executor
 from sema4ai_agent_server.agent_types.constants import FINISH_NODE_KEY
@@ -372,13 +373,7 @@ class SqliteStorage(BaseStorage):
             user_row = cursor.fetchone()
 
             if user_row:
-                # Convert sqlite3.Row to a User object
-                user = User(
-                    user_id=user_row["user_id"],
-                    sub=user_row["sub"],
-                    created_at=user_row["created_at"],
-                )
-                return user, False
+                return parse_obj_as(User, user_row), False
 
             # SQLite doesn't support RETURNING *, so we need to manually fetch the created user.
             cursor.execute(
@@ -390,13 +385,7 @@ class SqliteStorage(BaseStorage):
             # Fetch the newly created user
             cursor.execute('SELECT * FROM "user" WHERE sub = ?', (sub,))
             new_user_row = cursor.fetchone()
-
-            new_user = User(
-                user_id=new_user_row["user_id"],
-                sub=new_user_row["sub"],
-                created_at=new_user_row["created_at"],
-            )
-            return new_user, True
+            return parse_obj_as(User, new_user_row), True
 
     async def delete_thread(self, user_id: str, thread_id: str):
         """Delete a thread by ID."""
@@ -430,16 +419,7 @@ class SqliteStorage(BaseStorage):
                 (assistant_id,),
             )
             rows = cursor.fetchall()
-            return [
-                UploadedFile(
-                    file_id=str(row["file_id"]),
-                    file_path=row["file_path"],
-                    file_ref=row["file_ref"],
-                    file_hash=row["file_hash"],
-                    embedded=row["embedded"],
-                )
-                for row in rows
-            ]
+            return parse_obj_as(List[UploadedFile], rows)
 
     async def get_thread_files(self, thread_id: str) -> list[UploadedFile]:
         """Get a list of files associated with a thread."""
@@ -453,16 +433,7 @@ class SqliteStorage(BaseStorage):
                 (thread_id,),
             )
             rows = cursor.fetchall()
-            return [
-                UploadedFile(
-                    file_id=str(row["file_id"]),
-                    file_path=row["file_path"],
-                    file_ref=row["file_ref"],
-                    file_hash=row["file_hash"],
-                    embedded=row["embedded"],
-                )
-                for row in rows
-            ]
+            return parse_obj_as(List[UploadedFile], rows)
 
     async def get_file_by_id(self, file_id: str) -> Optional[UploadedFile]:
         """Get a file by id."""
@@ -476,15 +447,7 @@ class SqliteStorage(BaseStorage):
                 (file_id,),
             )
             row = cursor.fetchone()
-            if not row:
-                return None
-            return UploadedFile(
-                file_id=str(row["file_id"]),
-                file_path=row["file_path"],
-                file_ref=row["file_ref"],
-                file_hash=row["file_hash"],
-                embedded=row["embedded"],
-            )
+            return parse_obj_as(Optional[UploadedFile], row)
 
     async def get_file(
         self, owner: Union[Assistant, Thread], file_ref: str
@@ -507,15 +470,7 @@ class SqliteStorage(BaseStorage):
                 (file_ref, value),
             )
             row = cursor.fetchone()
-            if not row:
-                return None
-            return UploadedFile(
-                file_id=str(row["file_id"]),
-                file_path=row["file_path"],
-                file_ref=row["file_ref"],
-                file_hash=row["file_hash"],
-                embedded=row["embedded"],
-            )
+            return parse_obj_as(Optional[UploadedFile], row)
 
     async def put_file_owner(
         self,

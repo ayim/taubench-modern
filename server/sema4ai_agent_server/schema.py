@@ -2,7 +2,6 @@ from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, Field
-from typing_extensions import TypedDict
 
 
 class User(BaseModel):
@@ -32,7 +31,7 @@ class Thread(BaseModel):
     metadata: Optional[dict] = Field(description="The thread metadata.")
 
 
-class UploadedFile(TypedDict):
+class UploadedFile(BaseModel):
     file_id: str
     """The ID of the file."""
     file_path: Optional[str]

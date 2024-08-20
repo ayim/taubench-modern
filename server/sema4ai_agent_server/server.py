@@ -99,11 +99,8 @@ async def _add_uploaded_messages(
     for stored_file in stored_files:
         if stored_file is None:
             continue
-        file_id = stored_file["file_id"]
-        file_ref = stored_file["file_ref"]
-
         # Generate a short, unique identifier for the tool call
-        short_id = hashlib.md5(file_id.encode()).hexdigest()[:8]
+        short_id = hashlib.md5(stored_file.file_id.encode()).hexdigest()[:8]
         tool_call_id = f"upload-{short_id}"
 
         # Get current thread state
@@ -125,7 +122,7 @@ async def _add_uploaded_messages(
         # Create tool response message
         tool_response_message = ToolMessage(
             tool_call_id=tool_call_id,
-            content=f'File uploaded: "{file_ref}"',
+            content=f'File uploaded: "{stored_file.file_ref}"',
             additional_kwargs={
                 "name": "upload_file",
             },
