@@ -42,7 +42,7 @@ class ThreadStatePostRequest(BaseModel):
 @router.get("/")
 async def list_threads(user: AuthedUser) -> List[Thread]:
     """List all threads for the current user."""
-    threads = await get_storage().list_threads(user["user_id"])
+    threads = await get_storage().list_threads(user.user_id)
     return threads
 
 
@@ -52,8 +52,8 @@ async def get_thread_state(
     tid: ThreadID,
 ):
     """Get state for a thread."""
-    thread = await get_storage().get_thread(user["user_id"], tid)
-    state = await get_storage().get_thread_state(user["user_id"], tid)
+    thread = await get_storage().get_thread(user.user_id, tid)
+    state = await get_storage().get_thread_state(user.user_id, tid)
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
     return state
@@ -67,10 +67,10 @@ async def add_thread_state(
     payload: ThreadStatePostRequest,
 ):
     """Add state to a thread."""
-    thread = await get_storage().get_thread(user["user_id"], tid)
+    thread = await get_storage().get_thread(user.user_id, tid)
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
-    return await get_storage().update_thread_state(user["user_id"], tid, payload.values)
+    return await get_storage().update_thread_state(user.user_id, tid, payload.values)
 
 
 @router.get("/{tid}/history")
@@ -79,9 +79,9 @@ async def get_thread_history(
     tid: ThreadID,
 ):
     """Get all past states for a thread."""
-    thread = await get_storage().get_thread(user["user_id"], tid)
+    thread = await get_storage().get_thread(user.user_id, tid)
     history = await get_storage().get_thread_history(
-        user_id=user["user_id"], thread_id=tid
+        user_id=user.user_id, thread_id=tid
     )
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
@@ -94,7 +94,7 @@ async def get_thread(
     tid: ThreadID,
 ) -> Thread:
     """Get a thread by ID."""
-    thread = await get_storage().get_thread(user["user_id"], tid)
+    thread = await get_storage().get_thread(user.user_id, tid)
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
     return thread
@@ -107,7 +107,7 @@ async def create_thread(
 ) -> Thread:
     """Create a thread."""
     thread = await get_storage().put_thread(
-        user["user_id"],
+        user.user_id,
         str(uuid4()),
         assistant_id=payload.assistant_id,
         name=payload.name,
@@ -116,7 +116,7 @@ async def create_thread(
     if payload.starting_message is not None:
         message = AIMessage(id=str(uuid4()), content=payload.starting_message)
         await get_storage().update_thread_state(
-            user_id=user["user_id"],
+            user_id=user.user_id,
             thread_id=thread["thread_id"],
             values={"messages": [message]},
         )
@@ -130,11 +130,11 @@ async def upsert_thread(
     payload: ThreadPutRequest,
 ) -> Thread:
     """Update a thread."""
-    thread = await get_storage().get_thread(user["user_id"], tid)
+    thread = await get_storage().get_thread(user.user_id, tid)
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
     return await get_storage().put_thread(
-        user["user_id"],
+        user.user_id,
         tid,
         assistant_id=payload.assistant_id,
         name=payload.name,
@@ -148,7 +148,7 @@ async def delete_thread(
     tid: ThreadID,
 ):
     """Delete a thread by ID."""
-    await get_storage().delete_thread(user["user_id"], tid)
+    await get_storage().delete_thread(user.user_id, tid)
     return {"status": "ok"}
 
 
@@ -158,7 +158,7 @@ async def get_thread_files(
     tid: ThreadID,
 ) -> List[UploadedFile]:
     """Get a list of files associated with a thread."""
-    thread = await get_storage().get_thread(user["user_id"], tid)
+    thread = await get_storage().get_thread(user.user_id, tid)
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
     return await get_storage().get_thread_files(tid)

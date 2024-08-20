@@ -65,7 +65,7 @@ async def _generate_welcome_message(
 @router.get("/")
 async def list_assistants(user: AuthedUser) -> List[Assistant]:
     """List all assistants for the current user."""
-    assistants = await get_storage().list_assistants(user["user_id"])
+    assistants = await get_storage().list_assistants(user.user_id)
     return assistants
 
 
@@ -87,7 +87,7 @@ async def get_assistant(
     aid: AssistantID,
 ) -> Assistant:
     """Get an assistant by ID."""
-    assistant = await get_storage().get_assistant(user["user_id"], aid)
+    assistant = await get_storage().get_assistant(user.user_id, aid)
     if not assistant:
         raise HTTPException(status_code=404, detail="Assistant not found")
     return assistant
@@ -99,14 +99,14 @@ async def create_assistant(
     payload: AssistantPayload,
 ) -> Assistant:
     """Create an assistant."""
-    msg = await _generate_welcome_message(user["user_id"], payload)
+    msg = await _generate_welcome_message(user.user_id, payload)
 
     metadata = payload.metadata or {}
     if msg is not None:
         metadata["welcome_message"] = msg
 
     return await get_storage().put_assistant(
-        user["user_id"],
+        user.user_id,
         str(uuid4()),
         name=payload.name,
         config=payload.config,
@@ -122,11 +122,11 @@ async def upsert_assistant(
     payload: AssistantPayload,
 ) -> Assistant:
     """Create or update an assistant."""
-    assistant = await get_storage().get_assistant(user["user_id"], aid)
+    assistant = await get_storage().get_assistant(user.user_id, aid)
     if not assistant:
         raise HTTPException(status_code=404, detail="Assistant not found")
 
-    msg = await _generate_welcome_message(user["user_id"], payload)
+    msg = await _generate_welcome_message(user.user_id, payload)
     metadata = assistant["metadata"] or {}
     if msg is not None:
         metadata["welcome_message"] = msg
@@ -136,7 +136,7 @@ async def upsert_assistant(
         metadata.update(payload.metadata)
 
     return await get_storage().put_assistant(
-        user["user_id"],
+        user.user_id,
         aid,
         name=payload.name,
         config=payload.config,
@@ -151,7 +151,7 @@ async def delete_assistant(
     aid: AssistantID,
 ):
     """Delete an assistant by ID."""
-    await get_storage().delete_assistant(user["user_id"], aid)
+    await get_storage().delete_assistant(user.user_id, aid)
     return {"status": "ok"}
 
 
@@ -161,7 +161,7 @@ async def get_assistant_files(
     aid: AssistantID,
 ) -> List[UploadedFile]:
     """Get an list of files associated with an assistant."""
-    assistant = await get_storage().get_assistant(user["user_id"], aid)
+    assistant = await get_storage().get_assistant(user.user_id, aid)
     if not assistant:
         raise HTTPException(status_code=404, detail="Assistant not found")
     return await get_storage().get_assistant_files(aid)

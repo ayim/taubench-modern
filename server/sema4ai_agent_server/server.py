@@ -61,13 +61,13 @@ async def ingest_files(
 
     assistant: Optional[Assistant] = None
     if assistant_id is not None:
-        assistant = await get_storage().get_assistant(user["user_id"], assistant_id)
+        assistant = await get_storage().get_assistant(user.user_id, assistant_id)
         if assistant is None:
             raise HTTPException(status_code=404, detail="Assistant not found.")
 
     thread: Optional[Thread] = None
     if thread_id is not None:
-        thread = await get_storage().get_thread(user["user_id"], thread_id)
+        thread = await get_storage().get_thread(user.user_id, thread_id)
         if thread is None:
             raise HTTPException(status_code=404, detail="Thread not found.")
 
@@ -107,7 +107,7 @@ async def _add_uploaded_messages(
         tool_call_id = f"upload-{short_id}"
 
         # Get current thread state
-        current_state = await get_storage().get_thread_state(user["user_id"], thread_id)
+        current_state = await get_storage().get_thread_state(user.user_id, thread_id)
         current_messages = current_state.get("messages", [])
 
         # Create tool call message
@@ -139,7 +139,7 @@ async def _add_uploaded_messages(
 
         # Update thread state with appended messages
         await get_storage().update_thread_state(
-            user["user_id"], thread_id, {"messages": updated_messages}
+            user.user_id, thread_id, {"messages": updated_messages}
         )
 
 
