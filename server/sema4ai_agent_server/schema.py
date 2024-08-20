@@ -10,22 +10,22 @@ class User(BaseModel):
     created_at: datetime = Field(description="The time the user was created.")
 
 
-class Assistant(BaseModel):
-    """Assistant model."""
+class Agent(BaseModel):
+    """Agent model."""
 
-    assistant_id: str = Field(description="The ID of the assistant.")
-    user_id: str = Field(description="The ID of the user that owns the assistant.")
-    name: str = Field(description="The name of the assistant.")
-    config: dict = Field(description="The assistant config.")
-    updated_at: datetime = Field(description="The last time the assistant was updated.")
-    public: bool = Field(description="Whether the assistant is public.")
-    metadata: Optional[dict] = Field(description="The assistant metadata.")
+    id: str = Field(description="The ID of the agent.")
+    user_id: str = Field(description="The ID of the user that owns the agent.")
+    name: str = Field(description="The name of the agent.")
+    config: dict = Field(description="The agent config.")
+    updated_at: datetime = Field(description="The last time the agent was updated.")
+    public: bool = Field(description="Whether the agent is public.")
+    metadata: Optional[dict] = Field(description="The agent metadata.")
 
 
 class Thread(BaseModel):
     thread_id: str = Field(description="The ID of the thread.")
     user_id: str = Field(description="The ID of the user.")
-    assistant_id: Optional[str] = Field(description="The ID of the assistant.")
+    agent_id: Optional[str] = Field(description="The ID of the agent.")
     name: str = Field(description="The name of the thread.")
     updated_at: datetime = Field(description="The last time the thread was updated.")
     metadata: Optional[dict] = Field(description="The thread metadata.")

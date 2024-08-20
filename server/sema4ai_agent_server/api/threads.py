@@ -20,7 +20,7 @@ class ThreadPostRequest(BaseModel):
     """Payload for creating a thread."""
 
     name: str = Field(..., description="The name of the thread.")
-    assistant_id: str = Field(..., description="The ID of the assistant to use.")
+    agent_id: str = Field(..., description="The ID of the agent to use.")
     starting_message: Optional[str] = Field(
         None, description="The starting AI message for the thread."
     )
@@ -30,7 +30,7 @@ class ThreadPutRequest(BaseModel):
     """Payload for updating a thread."""
 
     name: str = Field(..., description="The name of the thread.")
-    assistant_id: str = Field(..., description="The ID of the assistant to use.")
+    agent_id: str = Field(..., description="The ID of the agent to use.")
 
 
 class ThreadStatePostRequest(BaseModel):
@@ -109,7 +109,7 @@ async def create_thread(
     thread = await get_storage().put_thread(
         user.user_id,
         str(uuid4()),
-        assistant_id=payload.assistant_id,
+        agent_id=payload.agent_id,
         name=payload.name,
         metadata=None,
     )
@@ -136,7 +136,7 @@ async def upsert_thread(
     return await get_storage().put_thread(
         user.user_id,
         tid,
-        assistant_id=payload.assistant_id,
+        agent_id=payload.agent_id,
         name=payload.name,
         metadata=thread.metadata,
     )

@@ -17,7 +17,7 @@ from sema4ai_agent_server.constants import UPLOAD_DIR
 from sema4ai_agent_server.file_manager.option import get_file_manager
 from sema4ai_agent_server.lifespan import lifespan
 from sema4ai_agent_server.log_config import setup_logging
-from sema4ai_agent_server.schema import Assistant, Thread, UploadedFile
+from sema4ai_agent_server.schema import Agent, Thread, UploadedFile
 from sema4ai_agent_server.storage.option import get_storage
 from sema4ai_agent_server.tools import AvailableTools
 
@@ -42,7 +42,7 @@ def _get_hash(file_content: bytes) -> str:
     return hash.hexdigest()
 
 
-@app.post("/ingest", description="Upload files to the given assistant or thread.")
+@app.post("/ingest", description="Upload files to the given agent or thread.")
 async def ingest_files(
     files: list[UploadFile],
     user: AuthedUser,
@@ -51,19 +51,19 @@ async def ingest_files(
     """Ingest a list of files."""
     config = orjson.loads(config)
 
-    assistant_id = config["configurable"].get("assistant_id")
+    agent_id = config["configurable"].get("agent_id")
     thread_id = config["configurable"].get("thread_id")
 
-    if assistant_id is not None and thread_id is not None:
+    if agent_id is not None and thread_id is not None:
         raise HTTPException(
-            status_code=400, detail="Indicate either assistant_id or thread_id."
+            status_code=400, detail="Indicate either agent_id or thread_id."
         )
 
-    assistant: Optional[Assistant] = None
-    if assistant_id is not None:
-        assistant = await get_storage().get_assistant(user.user_id, assistant_id)
-        if assistant is None:
-            raise HTTPException(status_code=404, detail="Assistant not found.")
+    agent: Optional[Agent] = None
+    if agent_id is not None:
+        agent = await get_storage().get_agent(user.user_id, agent_id)
+        if agent is None:
+            raise HTTPException(status_code=404, detail="Agent not found.")
 
     thread: Optional[Thread] = None
     if thread_id is not None:
@@ -72,7 +72,7 @@ async def ingest_files(
             raise HTTPException(status_code=404, detail="Thread not found.")
 
     try:
-        stored_files = await _store_files(thread or assistant, files)
+        stored_files = await _store_files(thread or agent, files)
     except Exception as e:
         logger.exception("Failed to store a file", exception=e)
         raise HTTPException(status_code=500, detail=f"Failed to store a file: {str(e)}")
@@ -84,7 +84,7 @@ async def ingest_files(
 
 
 async def _store_files(
-    owner: Union[Assistant, Thread], files: list[UploadFile]
+    owner: Union[Agent, Thread], files: list[UploadFile]
 ) -> list[UploadedFile]:
     file_manager = get_file_manager()
     ret: list[UploadedFile] = []
@@ -148,7 +148,7 @@ async def health() -> dict:
 @app.get("/metrics")
 async def metrics() -> dict:
     return {
-        "agentCount": await get_storage().assistant_count(),
+        "agentCount": await get_storage().agent_count(),
         "threadCount": await get_storage().thread_count(),
     }
 
@@ -160,12 +160,12 @@ async def update_action_server_ports(port_map: dict[str, str]) -> dict:
         logger.error("Port map not provided.")
         raise HTTPException(status_code=400, detail="Port map not provided.")
 
-    assistants = await get_storage().list_all_assistants()
-    updated_assistants = []
+    agents = await get_storage().list_all_agents()
+    updated_agents = []
 
-    for assistant in assistants:
+    for agent in agents:
         updated = False
-        for tool in assistant.config.get("configurable", {}).get("tools", []):
+        for tool in agent.config.get("configurable", {}).get("tools", []):
             if tool["type"] != AvailableTools.ACTION_SERVER:
                 continue
 
@@ -187,24 +187,22 @@ async def update_action_server_ports(port_map: dict[str, str]) -> dict:
             )
             tool["config"]["url"] = new_url
             updated = True
-            logger.info(
-                f"Updated tool URL from {url} to {new_url} for {assistant.name}."
-            )
+            logger.info(f"Updated tool URL from {url} to {new_url} for {agent.name}.")
 
         if updated:
-            updated_assistants.append(assistant)
+            updated_agents.append(agent)
 
-    for assistant in updated_assistants:
-        await get_storage().put_assistant(
-            user_id=assistant.user_id,
-            assistant_id=assistant.assistant_id,
-            name=assistant.name,
-            config=assistant.config,
-            public=assistant.public,
-            metadata=assistant.metadata,
+    for agent in updated_agents:
+        await get_storage().put_agent(
+            user_id=agent.user_id,
+            agent_id=agent.id,
+            name=agent.name,
+            config=agent.config,
+            public=agent.public,
+            metadata=agent.metadata,
         )
 
-    logger.info(f"Ports updated for {len(updated_assistants)} assistants.")
+    logger.info(f"Ports updated for {len(updated_agents)} agents.")
     return {"status": "ok"}
 
 

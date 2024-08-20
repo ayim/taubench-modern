@@ -22,7 +22,7 @@ def test_embed_runnable() -> None:
         text_splitter=splitter,
         vectorstore=vectorstore,
         input_key="file_contents",
-        assistant_id="TheParrot",
+        agent_id="TheParrot",
     )
     # Simulate file data
     file_data = BytesIO(b"test data")

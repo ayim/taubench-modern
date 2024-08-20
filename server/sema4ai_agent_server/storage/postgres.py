@@ -9,9 +9,9 @@ import structlog
 from langchain_core.messages import AnyMessage
 from pydantic import parse_obj_as
 
-from sema4ai_agent_server.agent import AgentType, agent, get_agent_executor
+from sema4ai_agent_server.agent import AgentType, get_agent_executor, runnable_agent
 from sema4ai_agent_server.agent_types.constants import FINISH_NODE_KEY
-from sema4ai_agent_server.schema import Assistant, Thread, UploadedFile, User
+from sema4ai_agent_server.schema import Agent, Thread, UploadedFile, User
 from sema4ai_agent_server.storage import BaseStorage
 
 logger = structlog.get_logger()
@@ -62,15 +62,15 @@ class PostgresStorage(BaseStorage):
             raise Exception("Pool has not been created.")
         return self._pool
 
-    async def list_all_assistants(self) -> List[Assistant]:
+    async def list_all_agents(self) -> List[Agent]:
         async with self.get_pool().acquire() as conn:
-            assistants = await conn.fetch("SELECT * FROM assistant ")
-            return parse_obj_as(List[Assistant], assistants)
+            agents = await conn.fetch("SELECT * FROM agent ")
+            return parse_obj_as(List[Agent], agents)
 
-    async def assistant_count(self) -> int:
-        """Get assistant row count"""
+    async def agent_count(self) -> int:
+        """Get agent row count"""
         async with self.get_pool().acquire() as conn:
-            result = await conn.fetchrow("SELECT COUNT(*) FROM assistant")
+            result = await conn.fetchrow("SELECT COUNT(*) FROM agent")
             count = result[0]
             return count
 
@@ -80,12 +80,12 @@ class PostgresStorage(BaseStorage):
             count = result[0]
             return count
 
-    async def get_assistant_files(self, assistant_id: str) -> list[UploadedFile]:
-        """Get a list of files associated with an assistant."""
+    async def get_agent_files(self, agent_id: str) -> list[UploadedFile]:
+        """Get a list of files associated with an agent."""
         async with self.get_pool().acquire() as conn:
             rows = await conn.fetch(
-                "SELECT * FROM file_owners WHERE assistant_id = $1",
-                assistant_id,
+                "SELECT * FROM file_owners WHERE agent_id = $1",
+                agent_id,
             )
             return parse_obj_as(List[UploadedFile], rows)
 
@@ -113,12 +113,12 @@ class PostgresStorage(BaseStorage):
             return parse_obj_as(Optional[UploadedFile], row)
 
     async def get_file(
-        self, owner: Union[Assistant, Thread], file_ref: str
+        self, owner: Union[Agent, Thread], file_ref: str
     ) -> Optional[UploadedFile]:
         """Get a file by ref."""
-        if isinstance(owner, Assistant):
-            query = "assistant_id = $2"
-            value = owner.assistant_id
+        if isinstance(owner, Agent):
+            query = "agent_id = $2"
+            value = owner.id
         else:
             query = "thread_id = $2"
             value = owner.thread_id
@@ -141,19 +141,19 @@ class PostgresStorage(BaseStorage):
         file_ref: str,
         file_hash: str,
         embedded: bool,
-        owner: Union[Assistant, Thread],
+        owner: Union[Agent, Thread],
         file_path_expiration: Optional[datetime],
     ) -> UploadedFile:
-        if isinstance(owner, Assistant):
-            assistant_id = owner.assistant_id
+        if isinstance(owner, Agent):
+            agent_id = owner.id
             thread_id = None
         else:
-            assistant_id = None
+            agent_id = None
             thread_id = owner.thread_id
         async with self.get_pool().acquire() as conn:
             await conn.execute(
                 """
-                INSERT INTO file_owners (file_id, file_path, file_ref, file_hash, embedded, assistant_id, thread_id, file_path_expiration)
+                INSERT INTO file_owners (file_id, file_path, file_ref, file_hash, embedded, agent_id, thread_id, file_path_expiration)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                 ON CONFLICT(file_id)
                 DO UPDATE SET 
@@ -161,7 +161,7 @@ class PostgresStorage(BaseStorage):
                     file_path = EXCLUDED.file_path,
                     file_hash = EXCLUDED.file_hash,
                     embedded = EXCLUDED.embedded,
-                    assistant_id = EXCLUDED.assistant_id,
+                    agent_id = EXCLUDED.agent_id,
                     thread_id = EXCLUDED.thread_id
                 """,
                 file_id,
@@ -169,7 +169,7 @@ class PostgresStorage(BaseStorage):
                 file_ref,
                 file_hash,
                 embedded,
-                assistant_id,
+                agent_id,
                 thread_id,
                 file_path_expiration,
             )
@@ -249,65 +249,57 @@ class PostgresStorage(BaseStorage):
 
                     current_version = version
 
-    async def list_assistants(self, user_id: str) -> List[Assistant]:
-        """List all assistants for the current user."""
+    async def list_agents(self, user_id: str) -> List[Agent]:
+        """List all agents for the current user."""
         async with self.get_pool().acquire() as conn:
-            assistants = await conn.fetch(
-                "SELECT * FROM assistant WHERE user_id = $1", user_id
-            )
-            return parse_obj_as(List[Assistant], assistants)
+            agents = await conn.fetch("SELECT * FROM agent WHERE user_id = $1", user_id)
+            return parse_obj_as(List[Agent], agents)
 
-    async def get_assistant(
-        self, user_id: str, assistant_id: str
-    ) -> Optional[Assistant]:
-        """Get an assistant by ID."""
+    async def get_agent(self, user_id: str, agent_id: str) -> Optional[Agent]:
+        """Get an agent by ID."""
         async with self.get_pool().acquire() as conn:
             row = await conn.fetchrow(
-                "SELECT * FROM assistant WHERE assistant_id = $1 AND (user_id = $2 OR public IS true)",
-                assistant_id,
+                "SELECT * FROM agent WHERE id = $1 AND (user_id = $2 OR public IS true)",
+                agent_id,
                 user_id,
             )
-            return parse_obj_as(Optional[Assistant], row)
+            return parse_obj_as(Optional[Agent], row)
 
-    async def list_public_assistants(
-        self, assistant_ids: Sequence[str]
-    ) -> List[Assistant]:
-        """List all the public assistants."""
-        assistant_ids_tuple = tuple(
-            assistant_ids
-        )  # SQL requires a tuple for the IN operator.
-        placeholders = ", ".join("?" for _ in assistant_ids)
+    async def list_public_agents(self, agent_ids: Sequence[str]) -> List[Agent]:
+        """List all the public agents."""
+        agent_ids_tuple = tuple(agent_ids)  # SQL requires a tuple for the IN operator.
+        placeholders = ", ".join("?" for _ in agent_ids)
         conn = self.get_pool().acquire()
         cursor = conn.cursor()
         cursor.execute(
-            f"SELECT * FROM assistant WHERE assistant_id IN ({placeholders}) AND public = 1",
-            assistant_ids_tuple,
+            f"SELECT * FROM agent WHERE id IN ({placeholders}) AND public = 1",
+            agent_ids_tuple,
         )
         rows = cursor.fetchall()
-        return parse_obj_as(List[Assistant], rows)
+        return parse_obj_as(List[Agent], rows)
 
-    async def put_assistant(
+    async def put_agent(
         self,
         user_id: str,
-        assistant_id: str,
+        agent_id: str,
         *,
         name: str,
         config: dict,
         public: bool = False,
         metadata: Optional[dict],
-    ) -> Assistant:
-        """Modify an assistant.
+    ) -> Agent:
+        """Modify an agent.
 
         Args:
             user_id: The user ID.
-            assistant_id: The assistant ID.
-            name: The assistant name.
-            config: The assistant config.
-            public: Whether the assistant is public.
+            agent_id: The agent ID.
+            name: The agent name.
+            config: The agent config.
+            public: Whether the agent is public.
             metadata: Additional metadata.
 
         Returns:
-            return the assistant model if no exception is raised.
+            return the agent model if no exception is raised.
         """
         updated_at = datetime.now(timezone.utc)
         conn = self.get_pool().acquire()
@@ -315,8 +307,8 @@ class PostgresStorage(BaseStorage):
             async with conn.transaction():
                 await conn.execute(
                     (
-                        "INSERT INTO assistant (assistant_id, user_id, name, config, updated_at, public, metadata) VALUES ($1, $2, $3, $4, $5, $6, $7) "
-                        "ON CONFLICT (assistant_id) DO UPDATE SET "
+                        "INSERT INTO agent (id, user_id, name, config, updated_at, public, metadata) VALUES ($1, $2, $3, $4, $5, $6, $7) "
+                        "ON CONFLICT (id) DO UPDATE SET "
                         "user_id = EXCLUDED.user_id, "
                         "name = EXCLUDED.name, "
                         "config = EXCLUDED.config, "
@@ -324,7 +316,7 @@ class PostgresStorage(BaseStorage):
                         "public = EXCLUDED.public,"
                         "metadata = EXCLUDED.metadata;"
                     ),
-                    assistant_id,
+                    agent_id,
                     user_id,
                     name,
                     config,
@@ -332,8 +324,8 @@ class PostgresStorage(BaseStorage):
                     public,
                     metadata,
                 )
-        return Assistant(
-            assistant_id=assistant_id,
+        return Agent(
+            id=agent_id,
             user_id=user_id,
             name=name,
             config=config,
@@ -342,12 +334,12 @@ class PostgresStorage(BaseStorage):
             metadata=metadata,
         )
 
-    async def delete_assistant(self, user_id: str, assistant_id: str) -> None:
-        """Delete an assistant by ID."""
+    async def delete_agent(self, user_id: str, agent_id: str) -> None:
+        """Delete an agent by ID."""
         async with self.get_pool().acquire() as conn:
             await conn.execute(
-                "DELETE FROM assistant WHERE assistant_id = $1 AND user_id = $2",
-                assistant_id,
+                "DELETE FROM agent WHERE id = $1 AND user_id = $2",
+                agent_id,
                 user_id,
             )
 
@@ -387,15 +379,15 @@ class PostgresStorage(BaseStorage):
     ):
         """Add state to a thread."""
         thread = await self.get_thread(user_id, thread_id)
-        assistant_id = thread.assistant_id
-        assistant = await self.get_assistant(user_id, assistant_id)
-        config = assistant.config["configurable"] if assistant else {}
-        retval = agent.update_state(
+        agent_id = thread.agent_id
+        agent = await self.get_agent(user_id, agent_id)
+        config = agent.config["configurable"] if agent else {}
+        retval = runnable_agent.update_state(
             {
                 "configurable": {
                     **config,
                     "thread_id": thread_id,
-                    "assistant_id": assistant_id,
+                    "agent_id": agent_id,
                 }
             },
             values,
@@ -425,32 +417,30 @@ class PostgresStorage(BaseStorage):
         user_id: str,
         thread_id: str,
         *,
-        assistant_id: str,
+        agent_id: str,
         name: str,
         metadata: Optional[dict],
     ) -> Thread:
         """Modify a thread."""
         updated_at = datetime.now(timezone.utc)
-        assistant = await self.get_assistant(user_id, assistant_id)
+        agent = await self.get_agent(user_id, agent_id)
         metadata = (
-            {"assistant_type": assistant.config["configurable"]["type"]}
-            if assistant
-            else None
+            {"agent_type": agent.config["configurable"]["type"]} if agent else None
         )
         async with self.get_pool().acquire() as conn:
             await conn.execute(
                 (
-                    "INSERT INTO thread (thread_id, user_id, assistant_id, name, updated_at, metadata) VALUES ($1, $2, $3, $4, $5, $6) "
+                    "INSERT INTO thread (thread_id, user_id, agent_id, name, updated_at, metadata) VALUES ($1, $2, $3, $4, $5, $6) "
                     "ON CONFLICT (thread_id) DO UPDATE SET "
                     "user_id = EXCLUDED.user_id,"
-                    "assistant_id = EXCLUDED.assistant_id, "
+                    "agent_id = EXCLUDED.agent_id, "
                     "name = EXCLUDED.name, "
                     "updated_at = EXCLUDED.updated_at, "
                     "metadata = EXCLUDED.metadata;"
                 ),
                 thread_id,
                 user_id,
-                assistant_id,
+                agent_id,
                 name,
                 updated_at,
                 metadata,
@@ -458,7 +448,7 @@ class PostgresStorage(BaseStorage):
             return Thread(
                 thread_id=thread_id,
                 user_id=user_id,
-                assistant_id=assistant_id,
+                agent_id=agent_id,
                 name=name,
                 updated_at=updated_at,
                 metadata=metadata,

@@ -6,9 +6,9 @@ import time
 import requests
 
 
-def create_assistant(base_url):
-    """Creates a new assistant."""
-    url = f"{base_url}/assistants"
+def create_agent(base_url):
+    """Creates a new agent."""
+    url = f"{base_url}/agents"
     headers = {
         "Accept": "application/json",
         "Content-Type": "application/json",
@@ -31,21 +31,21 @@ def create_assistant(base_url):
 
     response = requests.post(url, headers=headers, json=data)
     if response.status_code == 200:
-        return response.json()["assistant_id"]
+        return response.json()["id"]
     else:
-        print(f"Error creating assistant: {response.status_code} {response.text}")
+        print(f"Error creating agent: {response.status_code} {response.text}")
         sys.exit(1)
 
 
-def create_thread(base_url, assistant_id):
-    """Creates a new thread for the given assistant."""
+def create_thread(base_url, agent_id):
+    """Creates a new thread for the given agent."""
     url = f"{base_url}/threads"
     headers = {
         "Accept": "application/json",
         "Content-Type": "application/json",
     }
     data = {
-        "assistant_id": assistant_id,
+        "agent_id": agent_id,
         "name": "Welcome",
         "starting_message": "Hello! I am a Sema4.ai Agent, here to assist you with a wide range of tasks. I can help you with:\n\n1. **Information Retrieval**: Providing accurate and up-to-date information on a variety of topics.\n2. **Task Automation**: Assisting with repetitive tasks, scheduling, and reminders.\n3. **Data Analysis**: Analyzing data and generating reports.\n4. **Technical Support**: Offering troubleshooting and technical assistance.\n5. **Content Creation**: Helping with writing, editing, and generating content.\n6. **Learning and Development**: Providing educational resources and personalized learning plans.\n\nFeel free to ask me anything, and I'll do my best to assist you!",
     }
@@ -156,16 +156,16 @@ def main():
     print("STARTING API INTERACTION TEST")
     print("=" * 50)
 
-    # Create assistant
-    print("\n1. CREATING ASSISTANT")
+    # Create agent
+    print("\n1. CREATING AGENT")
     print("-" * 50)
-    assistant_id = create_assistant(base_url)
-    print(f"  Created assistant with ID: {assistant_id}")
+    agent_id = create_agent(base_url)
+    print(f"  Created agent with ID: {agent_id}")
 
     # Create thread
     print("\n2. CREATING THREAD")
     print("-" * 50)
-    thread_id = create_thread(base_url, assistant_id)
+    thread_id = create_thread(base_url, agent_id)
     print(f"  Created thread with ID: {thread_id}")
 
     # Send a message and stream the response

@@ -121,7 +121,7 @@ class ConfigurableAgent(RunnableBinding):
     name: str = DEFAULT_NAME
     runbook: str = DEFAULT_RUNBOOK
     interrupt_before_action: bool = False
-    assistant_id: Optional[str] = None
+    agent_id: Optional[str] = None
     thread_id: Optional[str] = None
     user_id: Optional[str] = None
     reasoning_level: int = 0
@@ -134,7 +134,7 @@ class ConfigurableAgent(RunnableBinding):
         agent: AgentType = AgentType.GPT_35_TURBO,
         name: str = DEFAULT_NAME,
         runbook: str = DEFAULT_RUNBOOK,
-        assistant_id: Optional[str] = None,
+        agent_id: Optional[str] = None,
         thread_id: Optional[str] = None,
         interrupt_before_action: bool = False,
         reasoning_level: int = 0,
@@ -147,11 +147,11 @@ class ConfigurableAgent(RunnableBinding):
         _tools = []
         for _tool in tools:
             if _tool["type"] == AvailableTools.RETRIEVAL:
-                if assistant_id is None and thread_id is None:
+                if agent_id is None and thread_id is None:
                     raise ValueError(
-                        "Either assistant_id or thread_id must be provided if Retrieval tool is used"
+                        "Either agent_id or thread_id must be provided if Retrieval tool is used"
                     )
-                _tools.append(get_retrieval_tool(assistant_id, thread_id))
+                _tools.append(get_retrieval_tool(agent_id, thread_id))
             else:
                 tool_config = _tool.get("config", {})
                 _returned_tools = TOOLS[_tool["type"]](**tool_config)
@@ -198,7 +198,7 @@ class ConfigurablePlanExecute(RunnableBinding):
     name: str = DEFAULT_NAME
     runbook: str = DEFAULT_RUNBOOK
     interrupt_before_action: bool = False
-    assistant_id: Optional[str] = None
+    agent_id: Optional[str] = None
     thread_id: Optional[str] = None
     user_id: Optional[str] = None
     reasoning_level: Optional[int] = None
@@ -210,7 +210,7 @@ class ConfigurablePlanExecute(RunnableBinding):
         agent: AgentType = AgentType.GPT_35_TURBO,
         name: str = DEFAULT_NAME,
         runbook: str = DEFAULT_RUNBOOK,
-        assistant_id: Optional[str] = None,
+        agent_id: Optional[str] = None,
         thread_id: Optional[str] = None,
         interrupt_before_action: bool = False,
         reasoning_level: Optional[int] = None,
@@ -222,11 +222,11 @@ class ConfigurablePlanExecute(RunnableBinding):
         _tools = []
         for _tool in tools:
             if _tool["type"] == AvailableTools.RETRIEVAL:
-                if assistant_id is None or thread_id is None:
+                if agent_id is None or thread_id is None:
                     raise ValueError(
-                        "Both assistant_id and thread_id must be provided if Retrieval tool is used"
+                        "Both agent_id and thread_id must be provided if Retrieval tool is used"
                     )
-                _tools.append(get_retrieval_tool(assistant_id, thread_id))
+                _tools.append(get_retrieval_tool(agent_id, thread_id))
             else:
                 tool_config = _tool.get("config", {})
                 _returned_tools = TOOLS[_tool["type"]](**tool_config)
@@ -279,7 +279,7 @@ class ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(RunnableBin
     agent: AgentType
     runbook: str = DEFAULT_RUNBOOK
     interrupt_before_action: bool = False
-    assistant_id: Optional[str] = None
+    agent_id: Optional[str] = None
     thread_id: Optional[str] = None
     user_id: Optional[str] = None
 
@@ -289,7 +289,7 @@ class ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(RunnableBin
         tools: Sequence[Tool],
         agent: AgentType = AgentType.GPT_4O,
         runbook: str = DEFAULT_RUNBOOK,
-        assistant_id: Optional[str] = None,
+        agent_id: Optional[str] = None,
         thread_id: Optional[str] = None,
         interrupt_before_action: bool = False,
         kwargs: Optional[Mapping[str, Any]] = None,
@@ -300,11 +300,11 @@ class ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(RunnableBin
         _tools = []
         for _tool in tools:
             if _tool["type"] == AvailableTools.RETRIEVAL:
-                if assistant_id is None or thread_id is None:
+                if agent_id is None or thread_id is None:
                     raise ValueError(
-                        "Both assistant_id and thread_id must be provided if Retrieval tool is used"
+                        "Both agent_id and thread_id must be provided if Retrieval tool is used"
                     )
-                _tools.append(get_retrieval_tool(assistant_id, thread_id))
+                _tools.append(get_retrieval_tool(agent_id, thread_id))
             else:
                 tool_config = _tool.get("config", {})
                 _returned_tools = TOOLS[_tool["type"]](**tool_config)
@@ -352,7 +352,7 @@ chat_plan_execute = (
         agent=AgentType.GPT_35_TURBO,
         name=DEFAULT_NAME,
         runbook=DEFAULT_RUNBOOK,
-        assistant_id=None,
+        agent_id=None,
         thread_id=None,
         reasoning_level=0,
     )
@@ -365,9 +365,7 @@ chat_plan_execute = (
             name="Tool Confirmation",
             description="If Yes, you'll be prompted to continue before each tool is executed.\nIf No, tools will be executed automatically by the agent.",
         ),
-        assistant_id=ConfigurableField(
-            id="assistant_id", name="Assistant ID", is_shared=True
-        ),
+        agent_id=ConfigurableField(id="agent_id", name="Agent ID", is_shared=True),
         thread_id=ConfigurableField(id="thread_id", name="Thread ID", is_shared=True),
         tools=ConfigurableField(id="tools", name="Tools"),
         reasoning_level=ConfigurableField(
@@ -384,7 +382,7 @@ multi_agent_hierarchical_planning = (
         tools=[],
         agent=AgentType.GPT_4O,
         runbook=DEFAULT_RUNBOOK,
-        assistant_id=None,
+        agent_id=None,
         thread_id=None,
     )
     .configurable_fields(
@@ -395,22 +393,20 @@ multi_agent_hierarchical_planning = (
             name="Tool Confirmation",
             description="If Yes, you'll be prompted to continue before each tool is executed.\nIf No, tools will be executed automatically by the agent.",
         ),
-        assistant_id=ConfigurableField(
-            id="assistant_id", name="Assistant ID", is_shared=True
-        ),
+        agent_id=ConfigurableField(id="agent_id", name="Agent ID", is_shared=True),
         thread_id=ConfigurableField(id="thread_id", name="Thread ID", is_shared=True),
         tools=ConfigurableField(id="tools", name="Tools"),
     )
     .with_types(input_type=Dict[str, str], output_type=Sequence[AnyMessage])
 )
 
-agent: Pregel = (
+runnable_agent: Pregel = (
     ConfigurableAgent(
         agent=AgentType.GPT_35_TURBO,
         tools=[],
         name=DEFAULT_NAME,
         runbook=DEFAULT_RUNBOOK,
-        assistant_id=None,
+        agent_id=None,
         thread_id=None,
         reasoning_level=0,
         knowledge_files=None,
@@ -424,9 +420,7 @@ agent: Pregel = (
             name="Tool Confirmation",
             description="If Yes, you'll be prompted to continue before each tool is executed.\nIf No, tools will be executed automatically by the agent.",
         ),
-        assistant_id=ConfigurableField(
-            id="assistant_id", name="Assistant ID", is_shared=True
-        ),
+        agent_id=ConfigurableField(id="agent_id", name="Agent ID", is_shared=True),
         thread_id=ConfigurableField(id="thread_id", name="Thread ID", is_shared=True),
         tools=ConfigurableField(id="tools", name="Tools"),
         reasoning_level=ConfigurableField(
@@ -456,7 +450,7 @@ if __name__ == "__main__":
     from langchain.schema.messages import HumanMessage
 
     async def run():
-        async for m in agent.astream_events(
+        async for m in runnable_agent.astream_events(
             HumanMessage(content="whats your name"),
             config={"configurable": {"user_id": "2", "thread_id": "test1"}},
             version="v1",
