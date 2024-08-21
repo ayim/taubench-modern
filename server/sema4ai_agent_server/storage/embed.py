@@ -25,13 +25,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter, TextSplitte
 
 from sema4ai_agent_server.constants import VECTOR_DATABASE_PATH
 from sema4ai_agent_server.parsing import MIMETYPE_BASED_PARSER
-from sema4ai_agent_server.schema import (
-    MODEL,
-    AzureGPT,
-    OpenAIGPT4o,
-    OpenAIGPT4Turbo,
-    OpenAIGPT35Turbo,
-)
+from sema4ai_agent_server.schema import MODEL, AzureGPT, OpenAIGPT
 
 
 def _update_document_metadata(document: Document, owner_id: str, file_id: str) -> None:
@@ -138,7 +132,7 @@ def convert_to_blob(file: UploadFile) -> Blob:
 
 
 def get_embeddings(model: MODEL) -> Union[OpenAIEmbeddings, AzureOpenAIEmbeddings]:
-    if type(model) in (OpenAIGPT35Turbo, OpenAIGPT4Turbo, OpenAIGPT4o):
+    if isinstance(model, OpenAIGPT):
         return OpenAIEmbeddings(
             openai_api_key=model.config.openai_api_key.get_secret_value(),
         )

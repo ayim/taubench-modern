@@ -24,35 +24,22 @@ class LLMProvider(str, Enum):
     OLLAMA = "Ollama"
 
 
-class LLMType(str, Enum):
-    """
-    Enum for large language model types.
-    """
-
-    GPT_35_TURBO = "GPT-3.5 Turbo"
-    GPT_4_TURBO = "GPT-4 Turbo"
-    GPT_4O = "GPT-4o"
-    GEMINI_PRO = "Gemini Pro"
-    CLAUDE_35_SONNET = "Claude 3.5 Sonnet"
-    CLAUDE_3_OPUS = "Claude 3 Opus"
-    CLAUDE_3_SONNET = "Claude 3 Sonnet"
-    CLAUDE_3_HAIKU = "Claude 3 Haiku"
-    LLAMA_3 = "Llama 3"
-    UNSPECIFIED = ""
+class ModelConfig(BaseModel):
+    temperature: float = Field(description="The temperature.", default=0.0)
 
 
-class OpenAIGPTConfig(BaseModel):
+class OpenAIGPTConfig(ModelConfig):
     openai_api_key: SecretStr = Field(description="The OpenAI API key.")
 
 
-class AzureGPTConfig(BaseModel):
+class AzureGPTConfig(ModelConfig):
     deployment_name: str = Field(description="The Azure deployment name.")
     azure_endpoint: str = Field(description="The Azure endpoint.")
     openai_api_version: str = Field(description="The Azure API version.")
     openai_api_key: SecretStr = Field(description="The Azure API key.")
 
 
-class AnthropicClaudeConfig(BaseModel):
+class AnthropicClaudeConfig(ModelConfig):
     anthropic_api_key: SecretStr = Field(description="The Anthropic API key.")
 
 
@@ -65,97 +52,53 @@ class AmazonClaudeConfig(BaseModel):
     aws_secret_access_key: SecretStr = Field(description="The AWS secret access key.")
 
 
-class GoogleGeminiConfig(BaseModel):
+class GoogleGeminiConfig(ModelConfig):
     vertex_ai_credentials: SecretStr = Field(
         description="The Google Vertex AI credentials."
     )
 
 
-class OllamaConfig(BaseModel):
+class OllamaConfig(ModelConfig):
     ollama_base_url: str = Field(description="The Ollama base URL.")
 
 
-class OpenAIGPT35Turbo(BaseModel):
+class OpenAIGPT(BaseModel):
     provider: Literal[LLMProvider.OPENAI]
-    type: Literal[LLMType.GPT_35_TURBO]
-    config: OpenAIGPTConfig = Field(description="OpenAI GPT config.")
-
-
-class OpenAIGPT4Turbo(BaseModel):
-    provider: Literal[LLMProvider.OPENAI]
-    type: Literal[LLMType.GPT_4_TURBO]
-    config: OpenAIGPTConfig = Field(description="OpenAI GPT config.")
-
-
-class OpenAIGPT4o(BaseModel):
-    provider: Literal[LLMProvider.OPENAI]
-    type: Literal[LLMType.GPT_4O]
+    name: str = Field(description="The name of the model.", default="gpt-3.5-turbo")
     config: OpenAIGPTConfig = Field(description="OpenAI GPT config.")
 
 
 class AzureGPT(BaseModel):
     provider: Literal[LLMProvider.AZURE]
-    type: Literal[LLMType.UNSPECIFIED]
     config: AzureGPTConfig = Field(description="Azure GPT config.")
 
 
-class AnthropicClaude35Sonnet(BaseModel):
+class AnthropicClaude(BaseModel):
     provider: Literal[LLMProvider.ANTHROPIC]
-    type: Literal[LLMType.CLAUDE_35_SONNET]
+    name: str = Field(
+        description="The name of the model.", default="claude-3-5-sonnet-20240620"
+    )
     config: AnthropicClaudeConfig = Field(description="Anthropic Claude config.")
 
 
-class AnthropicClaude3Opus(BaseModel):
-    provider: Literal[LLMProvider.ANTHROPIC]
-    type: Literal[LLMType.CLAUDE_3_OPUS]
-    config: AnthropicClaudeConfig = Field(description="Anthropic Claude config.")
-
-
-class AnthropicClaude3Sonnet(BaseModel):
-    provider: Literal[LLMProvider.ANTHROPIC]
-    type: Literal[LLMType.CLAUDE_3_SONNET]
-    config: AnthropicClaudeConfig = Field(description="Anthropic Claude config.")
-
-
-class AnthropicClaude3Haiku(BaseModel):
-    provider: Literal[LLMProvider.ANTHROPIC]
-    type: Literal[LLMType.CLAUDE_3_HAIKU]
-    config: AnthropicClaudeConfig = Field(description="Anthropic Claude config.")
-
-
-class AmazonClaude35Sonnet(BaseModel):
+class AmazonClaude(BaseModel):
     provider: Literal[LLMProvider.AMAZON]
-    type: Literal[LLMType.CLAUDE_35_SONNET]
+    name: str = Field(
+        description="The name of the model.",
+        default="anthropic.claude-3-5-sonnet-20240620-v1:0",
+    )
     config: AmazonClaudeConfig = Field(description="Amazon Claude config.")
 
 
-class AmazonClaude3Opus(BaseModel):
-    provider: Literal[LLMProvider.AMAZON]
-    type: Literal[LLMType.CLAUDE_3_OPUS]
-    config: AmazonClaudeConfig = Field(description="Amazon Claude config.")
-
-
-class AmazonClaude3Sonnet(BaseModel):
-    provider: Literal[LLMProvider.AMAZON]
-    type: Literal[LLMType.CLAUDE_3_SONNET]
-    config: AmazonClaudeConfig = Field(description="Amazon Claude config.")
-
-
-class AmazonClaude3Haiku(BaseModel):
-    provider: Literal[LLMProvider.AMAZON]
-    type: Literal[LLMType.CLAUDE_3_HAIKU]
-    config: AmazonClaudeConfig = Field(description="Amazon Claude config.")
-
-
-class GoogleGeminiPro(BaseModel):
+class GoogleGemini(BaseModel):
     provider: Literal[LLMProvider.GOOGLE]
-    type: Literal[LLMType.GEMINI_PRO]
+    name: str = Field(description="The name of the model.", default="gemini-pro")
     config: GoogleGeminiConfig = Field(description="Google Gemini config.")
 
 
-class OllamaLlama3(BaseModel):
+class Ollama(BaseModel):
     provider: Literal[LLMProvider.OLLAMA]
-    type: Literal[LLMType.LLAMA_3]
+    name: str = Field(description="The name of the model.")
     config: OllamaConfig = Field(description="Ollama config.")
 
 
@@ -163,28 +106,11 @@ class OllamaLlama3(BaseModel):
 # and look for LLM's api key in environment variables. That breaks the app.
 # Instead we'll use a dummy model for such scenarios. During the request-response cycle
 # the actual model will be used.
-dummy_model = OpenAIGPT35Turbo(
-    provider=LLMProvider.OPENAI,
-    type=LLMType.GPT_35_TURBO,
-    config=OpenAIGPTConfig(openai_api_key="dummy"),
+dummy_model = OpenAIGPT(
+    provider=LLMProvider.OPENAI, config=OpenAIGPTConfig(openai_api_key="dummy")
 )
 
-MODEL = (
-    OpenAIGPT35Turbo
-    | OpenAIGPT4Turbo
-    | OpenAIGPT4o
-    | AzureGPT
-    | AnthropicClaude35Sonnet
-    | AnthropicClaude3Opus
-    | AnthropicClaude3Sonnet
-    | AnthropicClaude3Haiku
-    | AmazonClaude35Sonnet
-    | AmazonClaude3Opus
-    | AmazonClaude3Sonnet
-    | AmazonClaude3Haiku
-    | GoogleGeminiPro
-    | OllamaLlama3
-)
+MODEL = OpenAIGPT | AzureGPT | AnthropicClaude | AmazonClaude | GoogleGemini | Ollama
 
 
 class Agent(BaseModel):

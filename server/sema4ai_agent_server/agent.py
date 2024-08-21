@@ -14,14 +14,7 @@ from sema4ai_agent_server.agent_types.vitality_ai_multi_agent import (
     vitality_ai_new as vitality_ai,
 )
 from sema4ai_agent_server.llms import get_chat_model
-from sema4ai_agent_server.schema import (
-    MODEL,
-    AzureGPT,
-    OpenAIGPT4o,
-    OpenAIGPT4Turbo,
-    OpenAIGPT35Turbo,
-    dummy_model,
-)
+from sema4ai_agent_server.schema import MODEL, AzureGPT, OpenAIGPT, dummy_model
 from sema4ai_agent_server.storage.checkpoint import get_checkpointer
 from sema4ai_agent_server.tools import (
     TOOLS,
@@ -196,12 +189,7 @@ class ConfigurablePlanExecute(RunnableBinding):
                 else:
                     _tools.append(_returned_tools)
 
-        if type(model) not in (
-            OpenAIGPT35Turbo,
-            OpenAIGPT4Turbo,
-            OpenAIGPT4o,
-            AzureGPT,
-        ):
+        if type(model) not in (OpenAIGPT, AzureGPT):
             raise ValueError(f"Model {model} is not supported for PlanExecute.")
         llm = get_chat_model(model)
         _agent = get_plan_execute_agent(
@@ -262,12 +250,7 @@ class ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(RunnableBin
                     _tools.extend(_returned_tools)
                 else:
                     _tools.append(_returned_tools)
-        if type(model) not in (
-            OpenAIGPT35Turbo,
-            OpenAIGPT4Turbo,
-            OpenAIGPT4o,
-            AzureGPT,
-        ):
+        if type(model) not in (OpenAIGPT, AzureGPT):
             raise ValueError(f"Model {model} is not supported for PlanExecute.")
         llm = get_chat_model(model)
         _agent = vitality_ai.get_tools_agent_executor(
