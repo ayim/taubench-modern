@@ -190,29 +190,29 @@ class PostgresStorage(BaseStorage):
         migrations_path = Path(current_dir).parent / "migrations" / "postgres"
 
         async with self.get_pool().acquire() as conn:
-            # Check if schema_migrations table exists and create it if it doesn't
-            table_exists = await conn.fetchval(
+            # Check if migrations table exists and create it if it doesn't
+            migrations_table_exists = await conn.fetchval(
                 """
                 SELECT EXISTS (
-                    SELECT FROM information_schema.tables 
-                    WHERE table_name = 'schema_migrations'
+                    SELECT FROM information_schema.tables
+                    WHERE table_name = 'migrations'
                 );
                 """
             )
-            if not table_exists:
+            if not migrations_table_exists:
                 await conn.execute(
                     """
-                    CREATE TABLE schema_migrations (
+                    CREATE TABLE migrations (
                         version BIGINT PRIMARY KEY, dirty BOOLEAN NOT NULL
                     );
                     """
                 )
                 await conn.execute(
-                    "INSERT INTO schema_migrations (version, dirty) VALUES (0, FALSE);"
+                    "INSERT INTO migrations (version, dirty) VALUES (0, FALSE);"
                 )
 
             dirty_version = await conn.fetchval(
-                "SELECT version FROM schema_migrations WHERE dirty = TRUE;"
+                "SELECT version FROM migrations WHERE dirty = TRUE;"
             )
             if dirty_version:
                 raise Exception(
@@ -220,9 +220,7 @@ class PostgresStorage(BaseStorage):
                     "No migrations will be applied. Please fix it manually."
                 )
 
-            current_version = await conn.fetchval(
-                "SELECT version FROM schema_migrations;"
-            )
+            current_version = await conn.fetchval("SELECT version FROM migrations;")
             migration_files = sorted(
                 (f for f in os.listdir(migrations_path) if f.endswith(".up.sql")),
                 key=lambda x: int(x.split("_")[0]),
@@ -238,14 +236,14 @@ class PostgresStorage(BaseStorage):
 
                     # Set dirty flag
                     await conn.execute(
-                        "UPDATE schema_migrations SET version = $1, dirty = TRUE",
+                        "UPDATE migrations SET version = $1, dirty = TRUE",
                         version,
                     )
                     # Try to apply the migration
                     with open(os.path.join(migrations_path, migration), "r") as f:
                         await conn.execute(f.read())
                     # Unset dirty flag
-                    await conn.execute("UPDATE schema_migrations SET dirty = FALSE")
+                    await conn.execute("UPDATE migrations SET dirty = FALSE")
 
                     current_version = version
 

@@ -1,2 +1,0 @@
-ALTER TABLE thread
-ADD COLUMN metadata TEXT;
