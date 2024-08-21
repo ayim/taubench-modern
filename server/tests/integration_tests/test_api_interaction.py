@@ -1,6 +1,8 @@
 import argparse
 import json
+import os
 import sys
+import tempfile
 import time
 
 import requests
@@ -140,6 +142,29 @@ def get_thread_state(base_url, thread_id):
         return None
 
 
+def create_sample_file(content="This is a sample file for testing."):
+    temp_file = tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".txt")
+    temp_file.write(content)
+    temp_file.close()
+    return temp_file.name
+
+
+def upload_file_to_thread(base_url, thread_id, file_path):
+    url = f"{base_url}/threads/{thread_id}/files"
+    with open(file_path, "rb") as file:
+        files = {"files": (os.path.basename(file_path), file)}
+        response = requests.post(url, files=files)
+    return response
+
+
+def upload_file_to_agent(base_url, agent_id, file_path):
+    url = f"{base_url}/agents/{agent_id}/files"
+    with open(file_path, "rb") as file:
+        files = {"files": (os.path.basename(file_path), file)}
+        response = requests.post(url, files=files)
+    return response
+
+
 def main():
     parser = argparse.ArgumentParser(description="Interact with the API")
     parser.add_argument(
@@ -203,6 +228,73 @@ def main():
         print("  No AI message found in the thread state.")
         print("\n  Full thread state:")
         print(f"  {json.dumps(thread_state['full_state'], indent=2)}")
+
+    # 7. Test file upload to thread
+    print("\n7. TESTING FILE UPLOAD TO THREAD")
+    print("-" * 50)
+    sample_file = create_sample_file()
+    print(f"  Created sample file: {sample_file}")
+    response = upload_file_to_thread(base_url, thread_id, sample_file)
+    if response.status_code == 200:
+        print("  Successfully uploaded file to thread")
+        print(f"  Response: {json.dumps(response.json(), indent=2)}")
+    else:
+        print(
+            f"  Error uploading file to thread: {response.status_code} {response.text}"
+        )
+
+    # 8. Test file upload to agent
+    print("\n8. TESTING FILE UPLOAD TO AGENT")
+    print("-" * 50)
+    sample_file2 = create_sample_file()
+    response = upload_file_to_agent(base_url, agent_id, sample_file2)
+    if response.status_code == 200:
+        print("  Successfully uploaded file to agent")
+        print(f"  Response: {json.dumps(response.json(), indent=2)}")
+    else:
+        print(
+            f"  Error uploading file to agent: {response.status_code} {response.text}"
+        )
+
+    # 9. Test multiple file upload to thread
+    print("\n9. TESTING MULTIPLE FILE UPLOAD TO THREAD")
+    print("-" * 50)
+    sample_file3 = create_sample_file("This is another sample file for testing.")
+    sample_file4 = create_sample_file("This is another sample file for testing.")
+    files = [
+        ("files", (os.path.basename(sample_file3), open(sample_file3, "rb"))),
+        ("files", (os.path.basename(sample_file4), open(sample_file4, "rb"))),
+    ]
+    response = requests.post(f"{base_url}/threads/{thread_id}/files", files=files)
+    if response.status_code == 200:
+        print("  Successfully uploaded multiple files to thread")
+        print(f"  Response: {json.dumps(response.json(), indent=2)}")
+    else:
+        print(
+            f"  Error uploading multiple files to thread: {response.status_code} {response.text}"
+        )
+
+    # 10. Test multiple file upload to agent
+    print("\n10. TESTING MULTIPLE FILE UPLOAD TO AGENT")
+    print("-" * 50)
+    sample_file5 = create_sample_file("This is another sample file for testing.")
+    sample_file6 = create_sample_file("This is another sample file for testing.")
+    files = [
+        ("files", (os.path.basename(sample_file5), open(sample_file5, "rb"))),
+        ("files", (os.path.basename(sample_file6), open(sample_file6, "rb"))),
+    ]
+    response = requests.post(f"{base_url}/agents/{agent_id}/files", files=files)
+    if response.status_code == 200:
+        print("  Successfully uploaded multiple files to agent")
+        print(f"  Response: {json.dumps(response.json(), indent=2)}")
+    else:
+        print(
+            f"  Error uploading multiple files to agent: {response.status_code} {response.text}"
+        )
+
+    # Clean up temporary files
+    os.unlink(sample_file)
+    os.unlink(sample_file2)
 
     print("\n" + "=" * 50)
     print("API INTERACTION TEST COMPLETED")
