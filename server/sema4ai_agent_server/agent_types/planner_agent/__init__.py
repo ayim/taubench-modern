@@ -3,6 +3,7 @@ from typing import cast
 
 from langchain.tools import BaseTool
 from langchain_core.language_models.base import LanguageModelInput
+from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import (
     AIMessage,
     AnyMessage,
@@ -22,7 +23,6 @@ from sema4ai_agent_server.agent_types.constants import (
 )
 from sema4ai_agent_server.agent_types.planner_agent.models import (
     AGENT_TYPES,
-    AgentType,
     bind_tools,
     get_pydantic_output_parser,
 )
@@ -104,7 +104,7 @@ def _get_executor_outcome_messages(
 
 def get_plan_execute_agent(
     tools: list[BaseTool],
-    llm: AgentType,
+    llm: BaseChatModel,
     name: str,
     runbook: str,
     interrupt_before_action: bool,

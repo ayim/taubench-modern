@@ -2,6 +2,7 @@ from typing import Annotated, List, Optional, cast
 
 from langchain.tools import BaseTool
 from langchain_anthropic import ChatAnthropic
+from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import (
     AIMessage,
     BaseMessage,
@@ -27,7 +28,6 @@ from sema4ai_agent_server.utils import current_timestamp_with_iso_week_local
 
 # Define all possible LLM types
 # TODO: Support Fireworks by changing dependency to langchain_fireworks instead of the cummunity version
-AgentType = AzureChatOpenAI | ChatOpenAI | ChatAnthropic | ChatVertexAI
 AGENT_TYPES = (AzureChatOpenAI, ChatOpenAI, ChatAnthropic, ChatVertexAI)
 
 BASE_PROMPT_MESSAGES = [
@@ -102,7 +102,7 @@ class AgentState(BaseModel):
 
 def get_tools_agent_executor(
     tools: list[BaseTool],
-    llm: AgentType,
+    llm: BaseChatModel,
     name: str,
     runbook: str,
     reasoning_level: int,

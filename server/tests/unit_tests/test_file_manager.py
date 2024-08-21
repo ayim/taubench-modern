@@ -13,7 +13,7 @@ from sema4ai_agent_server.file_manager.base import (
 )
 from sema4ai_agent_server.file_manager.cloud import CloudFileManager
 from sema4ai_agent_server.file_manager.local import LocalFileManager
-from sema4ai_agent_server.schema import Agent, Thread, UploadedFile
+from sema4ai_agent_server.schema import Agent, Thread, UploadedFile, dummy_model
 from sema4ai_agent_server.storage.option import get_storage
 
 
@@ -21,6 +21,11 @@ from sema4ai_agent_server.storage.option import get_storage
 def temp_dir():
     with tempfile.TemporaryDirectory() as tmpdirname:
         yield tmpdirname
+
+
+@pytest.fixture
+def mock_vectorstore():
+    return Mock()
 
 
 class MockStorage:
@@ -44,12 +49,12 @@ def mock_requests():
 
 
 @pytest.fixture(params=[LocalFileManager, CloudFileManager])
-def file_manager(request, temp_dir, mock_requests):
+def file_manager(request, temp_dir, mock_requests, mock_vectorstore):
     if request.param == LocalFileManager:
-        manager = LocalFileManager()
+        manager = LocalFileManager(vectorstore=mock_vectorstore)
         manager.UPLOAD_DIR = temp_dir
     else:
-        manager = CloudFileManager()
+        manager = CloudFileManager(vectorstore=mock_vectorstore)
         manager.FILE_MANAGEMENT_API_URL = "https://example.com/api"
         manager._get_presigned_post = MagicMock(
             return_value={
@@ -89,6 +94,7 @@ def sample_owner():
         user_id=str(uuid4()),
         name="Test Assistant",
         config={},
+        model=dummy_model,
         updated_at=datetime.now(timezone.utc),
         public=False,
         metadata=None,

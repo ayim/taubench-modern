@@ -1,100 +1,63 @@
-import os
-from functools import lru_cache
-from urllib.parse import urlparse
+from typing import Optional
 
 import boto3
-import httpx
 import structlog
 from langchain_anthropic import ChatAnthropic
-from langchain_community.chat_models import BedrockChat, ChatFireworks
+from langchain_community.chat_models import BedrockChat
 from langchain_community.chat_models.ollama import ChatOllama
+from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_google_vertexai import ChatVertexAI
 from langchain_openai import AzureChatOpenAI, ChatOpenAI
+
+from sema4ai_agent_server.schema import MODEL, LLMProvider
 
 logger = structlog.get_logger(__name__)
 
 
-@lru_cache(maxsize=4)
-def get_openai_llm(model: str = "gpt-3.5-turbo", azure: bool = False):
-    proxy_url = os.getenv("PROXY_URL")
-    http_client = None
-    if proxy_url:
-        parsed_url = urlparse(proxy_url)
-        if parsed_url.scheme and parsed_url.netloc:
-            http_client = httpx.AsyncClient(proxies=proxy_url)
-        else:
-            logger.warn("Invalid proxy URL provided. Proceeding without proxy.")
-
-    if not azure:
-        try:
-            openai_model = model
-            llm = ChatOpenAI(
-                http_client=http_client,
-                model=openai_model,
-                temperature=0,
+def get_chat_model(model: MODEL) -> Optional[BaseChatModel]:
+    match model.provider:
+        case LLMProvider.OPENAI:
+            return ChatOpenAI(
+                model_name=model.name,
+                openai_api_key=model.config.openai_api_key.get_secret_value(),
+                temperature=model.config.temperature,
             )
-        except Exception as e:
-            logger.error(
-                f"Failed to instantiate ChatOpenAI due to: {str(e)}. Falling back to AzureChatOpenAI."
+        case LLMProvider.AZURE:
+            return AzureChatOpenAI(
+                deployment_name=model.config.deployment_name,
+                azure_endpoint=model.config.azure_endpoint,
+                openai_api_version=model.config.openai_api_version,
+                openai_api_key=model.config.openai_api_key.get_secret_value(),
+                temperature=model.config.temperature,
             )
-            llm = AzureChatOpenAI(
-                http_client=http_client,
-                temperature=0,
-                deployment_name=os.environ["AZURE_OPENAI_DEPLOYMENT_NAME"],
-                azure_endpoint=os.environ["AZURE_OPENAI_API_BASE"],
-                openai_api_version=os.environ["AZURE_OPENAI_API_VERSION"],
-                openai_api_key=os.environ["AZURE_OPENAI_API_KEY"],
+        case LLMProvider.ANTHROPIC:
+            return ChatAnthropic(
+                model=model.name,
+                anthropic_api_key=model.config.anthropic_api_key.get_secret_value(),
+                max_tokens=2000,
+                temperature=model.config.temperature,
             )
-    else:
-        llm = AzureChatOpenAI(
-            http_client=http_client,
-            temperature=0,
-            deployment_name=os.environ["AZURE_OPENAI_DEPLOYMENT_NAME"],
-            azure_endpoint=os.environ["AZURE_OPENAI_API_BASE"],
-            openai_api_version=os.environ["AZURE_OPENAI_API_VERSION"],
-            openai_api_key=os.environ["AZURE_OPENAI_API_KEY"],
-        )
-    return llm
-
-
-@lru_cache(maxsize=2)
-def get_anthropic_llm(bedrock: bool = False):
-    if bedrock:
-        client = boto3.client(
-            "bedrock-runtime",
-            region_name="us-west-2",
-            aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
-            aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
-        )
-        model = BedrockChat(model_id="anthropic.claude-v2", client=client)
-    else:
-        model = ChatAnthropic(
-            model_name="claude-3-haiku-20240307",
-            max_tokens_to_sample=2000,
-            temperature=0,
-        )
-    return model
-
-
-@lru_cache(maxsize=1)
-def get_google_llm():
-    return ChatVertexAI(
-        model_name="gemini-pro", convert_system_message_to_human=True, streaming=True
-    )
-
-
-@lru_cache(maxsize=1)
-def get_mixtral_fireworks():
-    return ChatFireworks(model="accounts/fireworks/models/mixtral-8x7b-instruct")
-
-
-@lru_cache(maxsize=1)
-def get_ollama_llm():
-    model_name = os.environ.get("OLLAMA_MODEL")
-    if not model_name:
-        model_name = "llama2"
-    ollama_base_url = os.environ.get("OLLAMA_BASE_URL")
-    if not ollama_base_url:
-        ollama_base_url = "http://localhost:11434"
-
-    return ChatOllama(model=model_name, base_url=ollama_base_url)
+        case LLMProvider.AMAZON:
+            client = boto3.client(
+                model.config.service_name,
+                region_name=model.config.region_name,
+                aws_access_key_id=model.config.aws_access_key_id.get_secret_value(),
+                aws_secret_access_key=model.config.aws_secret_access_key.get_secret_value(),
+            )
+            return BedrockChat(model_id=model.name, client=client)
+        case LLMProvider.GOOGLE:
+            return ChatVertexAI(
+                model_name=model.name,
+                convert_system_message_to_human=True,
+                streaming=True,
+                credentials=model.config.vertex_ai_credentials.get_secret_value(),
+                temperature=model.config.temperature,
+            )
+        case LLMProvider.OLLAMA:
+            return ChatOllama(
+                model=model.name,
+                base_url=model.config.ollama_base_url,
+                temperature=model.config.temperature,
+            )
+        case _:
+            return None

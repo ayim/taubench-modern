@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 from sema4ai_agent_server.api.files import _add_uploaded_messages, _store_files
 from sema4ai_agent_server.auth.handlers import AuthedUser
+from sema4ai_agent_server.file_manager.option import get_file_manager
 from sema4ai_agent_server.schema import Thread, UploadedFile
 from sema4ai_agent_server.storage.option import get_storage
 
@@ -179,8 +180,13 @@ async def upload_thread_files(
     if thread is None:
         raise HTTPException(status_code=404, detail="Thread not found")
 
+    agent = await get_storage().get_agent(user.user_id, thread.agent_id)
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    file_manager = get_file_manager(agent.model)
     try:
-        stored_files = await _store_files(thread, files)
+        stored_files = await _store_files(thread, files, file_manager)
     except Exception as e:
         logger.exception("Failed to store a file", exception=e)
         raise HTTPException(status_code=500, detail=f"Failed to store a file: {str(e)}")

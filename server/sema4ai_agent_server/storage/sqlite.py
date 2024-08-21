@@ -11,11 +11,18 @@ import structlog
 from langchain_core.messages import AnyMessage
 from pydantic import parse_obj_as
 
-from sema4ai_agent_server.agent import AgentType, get_agent_executor, runnable_agent
+from sema4ai_agent_server.agent import get_agent_executor, runnable_agent
 from sema4ai_agent_server.agent_types.constants import FINISH_NODE_KEY
 from sema4ai_agent_server.constants import DOMAIN_DATABASE_PATH
-from sema4ai_agent_server.schema import Agent, Thread, UploadedFile, User
-from sema4ai_agent_server.storage import BaseStorage
+from sema4ai_agent_server.schema import (
+    MODEL,
+    Agent,
+    Thread,
+    UploadedFile,
+    User,
+    dummy_model,
+)
+from sema4ai_agent_server.storage import BaseStorage, basemodel_secret_encoder_for_db
 
 logger = structlog.get_logger()
 
@@ -124,6 +131,9 @@ class SqliteStorage(BaseStorage):
                     if "config" in agent_data and agent_data["config"]
                     else {}
                 )
+                agent_data["model"] = parse_obj_as(
+                    MODEL, json.loads(agent_data["model"])
+                )
                 agent_data["metadata"] = (
                     json.loads(agent_data["metadata"])
                     if agent_data["metadata"] is not None
@@ -149,6 +159,9 @@ class SqliteStorage(BaseStorage):
                     json.loads(agent_data["config"])
                     if "config" in agent_data and agent_data["config"]
                     else {}
+                )
+                agent_data["model"] = parse_obj_as(
+                    MODEL, json.loads(agent_data["model"])
                 )
                 agent_data["metadata"] = (
                     json.loads(agent_data["metadata"])
@@ -177,6 +190,7 @@ class SqliteStorage(BaseStorage):
                 if "config" in agent_data and agent_data["config"]
                 else {}
             )
+            agent_data["model"] = parse_obj_as(MODEL, json.loads(agent_data["model"]))
             agent_data["metadata"] = (
                 json.loads(agent_data["metadata"])
                 if agent_data["metadata"] is not None
@@ -191,6 +205,7 @@ class SqliteStorage(BaseStorage):
         *,
         name: str,
         config: dict,
+        model: MODEL,
         public: bool = False,
         metadata: Optional[dict],
     ) -> Agent:
@@ -200,15 +215,17 @@ class SqliteStorage(BaseStorage):
             cursor = conn.cursor()
             # Convert the config dict to a JSON string for storage.
             config_str = json.dumps(config)
+            model_str = model.json(encoder=basemodel_secret_encoder_for_db)
             cursor.execute(
                 """
-                INSERT INTO agent (id, user_id, name, config, updated_at, public, metadata)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO agent (id, user_id, name, config, model, updated_at, public, metadata)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) 
                 DO UPDATE SET 
                     user_id = EXCLUDED.user_id, 
                     name = EXCLUDED.name, 
                     config = EXCLUDED.config, 
+                    model = EXCLUDED.model,
                     updated_at = EXCLUDED.updated_at, 
                     public = EXCLUDED.public,
                     metadata = EXCLUDED.metadata
@@ -218,6 +235,7 @@ class SqliteStorage(BaseStorage):
                     user_id,
                     name,
                     config_str,
+                    model_str,
                     updated_at.isoformat(),
                     public,
                     json.dumps(metadata),
@@ -229,6 +247,7 @@ class SqliteStorage(BaseStorage):
                 user_id=user_id,
                 name=name,
                 config=config,
+                model=model,
                 updated_at=updated_at,
                 public=public,
                 metadata=metadata,
@@ -289,7 +308,7 @@ class SqliteStorage(BaseStorage):
 
     async def get_thread_state(self, user_id: str, thread_id: str):
         """Get state for a thread."""
-        app = get_agent_executor([], AgentType.GPT_35_TURBO, "", "", False, 0, None)
+        app = get_agent_executor([], dummy_model, "", "", False, 0, None)
         state = app.get_state({"configurable": {"thread_id": thread_id}})
         return {
             "values": state.values,
@@ -323,7 +342,7 @@ class SqliteStorage(BaseStorage):
 
     async def get_thread_history(self, user_id: str, thread_id: str):
         """Get the history of a thread."""
-        app = get_agent_executor([], AgentType.GPT_35_TURBO, "", "", False, None)
+        app = get_agent_executor([], dummy_model, "", "", False, 0, None)
         return [
             {
                 "values": c.values,

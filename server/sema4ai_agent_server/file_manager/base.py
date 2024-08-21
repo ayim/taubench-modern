@@ -7,7 +7,7 @@ import structlog
 from fastapi import UploadFile
 
 from sema4ai_agent_server.schema import Agent, Thread, UploadedFile
-from sema4ai_agent_server.storage.embed import Blob, embed_runnable, vstore
+from sema4ai_agent_server.storage.embed import Blob, embed_runnable
 from sema4ai_agent_server.storage.option import get_storage
 
 logger = structlog.get_logger(__name__)
@@ -34,6 +34,9 @@ class FileEmbeddingFailed(UploadFailed):
 
 
 class BaseFileManager:
+    def __init__(self, vectorstore):
+        self.vectorstore = vectorstore
+
     async def upload(
         self,
         file: UploadFile,
@@ -48,7 +51,7 @@ class BaseFileManager:
         raise NotImplementedError()
 
     def _delete_embeddings(self, file_id: str) -> None:
-        vstore.delete_by_metadata("file_id", file_id)
+        self.vectorstore.delete_by_metadata("file_id", file_id)
 
     def _create_embeddings(
         self, blob: Blob, owner: Union[Agent, Thread], file_id: str
@@ -57,7 +60,13 @@ class BaseFileManager:
             owner_id = owner.id
         else:
             owner_id = owner.thread_id
-        config = {"configurable": {"owner_id": owner_id, "file_id": file_id}}
+        config = {
+            "configurable": {
+                "owner_id": owner_id,
+                "file_id": file_id,
+                "vectorstore": self.vectorstore,
+            }
+        }
         try:
             embed_runnable.invoke(blob, config)
         except ValueError:
