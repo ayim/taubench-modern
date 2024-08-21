@@ -220,9 +220,7 @@ class PostgresStorage(BaseStorage):
                     "No migrations will be applied. Please fix it manually."
                 )
 
-            current_version = await conn.fetchval(
-                "SELECT version FROM migrations;"
-            )
+            current_version = await conn.fetchval("SELECT version FROM migrations;")
             migration_files = sorted(
                 (f for f in os.listdir(migrations_path) if f.endswith(".up.sql")),
                 key=lambda x: int(x.split("_")[0]),

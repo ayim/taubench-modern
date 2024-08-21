@@ -49,19 +49,23 @@ class SqliteStorage(BaseStorage):
         with self._connect() as conn:
             cursor = conn.cursor()
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT name FROM sqlite_master WHERE type='table' AND name='migrations';
-            """)
+            """
+            )
             migrations_table_exists = cursor.fetchone() is not None
             if not migrations_table_exists:
-                cursor.execute("""
+                cursor.execute(
+                    """
                     CREATE TABLE migrations (
                         version INTEGER PRIMARY KEY, dirty BOOLEAN NOT NULL
                     );
-                """)
+                """
+                )
                 cursor.execute("INSERT INTO migrations (version, dirty) VALUES (0, 0);")
                 conn.commit()
-            
+
             cursor.execute("SELECT version FROM migrations WHERE dirty = 1")
             dirty_version = cursor.fetchone()
             if dirty_version:
@@ -69,7 +73,7 @@ class SqliteStorage(BaseStorage):
                     f"Migration {dirty_version[0]} is dirty. Please fix it manually. "
                     "No migrations will be applied. Please fix it manually."
                 )
-            
+
             # get current version
             cursor.execute("SELECT version FROM migrations;")
             current_version = cursor.fetchone()[0]
