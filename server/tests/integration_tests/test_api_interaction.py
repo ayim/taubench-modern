@@ -1,6 +1,8 @@
 import argparse
 import json
 import os
+import random
+import string
 import sys
 import tempfile
 import time
@@ -23,7 +25,7 @@ def create_agent(base_url):
                 "agent_type": "GPT 4o",
                 "interrupt_before_action": False,
                 "retrieval_description": "Can be used to look up information that was uploaded to this assistant.\nIf the user is referencing particular files, that is often a good hint that information may be here.\nIf the user asks a vague question, they are likely meaning to look up info from this retriever, and you should call it!",
-                "system_message": "You are an assistant with the following name: Hello.\nThe current date and time is: ${CURRENT_DATETIME}.\nYour instructions are:\nrunbook",
+                "system_message": "runbook",
                 "description": "description",
                 "tools": [],
                 "reasoning_level": 0,
@@ -94,10 +96,15 @@ def send_message(base_url, thread_id, message):
                     if message_part["type"] == "ai":
                         current_message = message_part["content"]
                         print(".", end="", flush=True)
-                        if "finish_reason" in message_part.get("response_metadata", {}):
+                        finish_reason = message_part.get("response_metadata", {}).get(
+                            "finish_reason"
+                        )
+                        if finish_reason == "stop":
                             print("\n  Final AI response:")
                             print(f"  {current_message}")
                             break
+                    if message_part["type"] == "tool_event":
+                        print(message_part)
 
     if not current_message:
         print("\n  No AI response received.")
@@ -142,17 +149,24 @@ def get_thread_state(base_url, thread_id):
         return None
 
 
-def create_sample_file(content="This is a sample file for testing."):
+def create_sample_file(content=None):
+    if content is None:
+        key = "".join(random.choices(string.ascii_lowercase, k=5))
+        value = "".join(random.choices(string.ascii_lowercase, k=5))
+        content = f"This is a sample file for testing. Key: {key}, Value: {value}"
+    else:
+        key, value = None, None
+
     temp_file = tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".txt")
     temp_file.write(content)
     temp_file.close()
-    return temp_file.name
+    return temp_file.name, key, value
 
 
 def upload_file_to_thread(base_url, thread_id, file_path):
     url = f"{base_url}/threads/{thread_id}/files"
     with open(file_path, "rb") as file:
-        files = {"files": (os.path.basename(file_path), file)}
+        files = {"files": (os.path.basename(file_path), file, "text/plain")}
         response = requests.post(url, files=files)
     return response
 
@@ -160,7 +174,7 @@ def upload_file_to_thread(base_url, thread_id, file_path):
 def upload_file_to_agent(base_url, agent_id, file_path):
     url = f"{base_url}/agents/{agent_id}/files"
     with open(file_path, "rb") as file:
-        files = {"files": (os.path.basename(file_path), file)}
+        files = {"files": (os.path.basename(file_path), file, "text/plain")}
         response = requests.post(url, files=files)
     return response
 
@@ -229,10 +243,14 @@ def main():
         print("\n  Full thread state:")
         print(f"  {json.dumps(thread_state['full_state'], indent=2)}")
 
+    key_value_pairs = []
+
     # 7. Test file upload to thread
     print("\n7. TESTING FILE UPLOAD TO THREAD")
     print("-" * 50)
-    sample_file = create_sample_file()
+    sample_file, key, value = create_sample_file()
+    if key and value:
+        key_value_pairs.append((key, value))
     print(f"  Created sample file: {sample_file}")
     response = upload_file_to_thread(base_url, thread_id, sample_file)
     if response.status_code == 200:
@@ -246,7 +264,9 @@ def main():
     # 8. Test file upload to agent
     print("\n8. TESTING FILE UPLOAD TO AGENT")
     print("-" * 50)
-    sample_file2 = create_sample_file()
+    sample_file2, key, value = create_sample_file()
+    if key and value:
+        key_value_pairs.append((key, value))
     response = upload_file_to_agent(base_url, agent_id, sample_file2)
     if response.status_code == 200:
         print("  Successfully uploaded file to agent")
@@ -259,11 +279,21 @@ def main():
     # 9. Test multiple file upload to thread
     print("\n9. TESTING MULTIPLE FILE UPLOAD TO THREAD")
     print("-" * 50)
-    sample_file3 = create_sample_file("This is another sample file for testing.")
-    sample_file4 = create_sample_file("This is another sample file for testing.")
+    sample_file3, key, value = create_sample_file()
+    if key and value:
+        key_value_pairs.append((key, value))
+    sample_file4, key, value = create_sample_file()
+    if key and value:
+        key_value_pairs.append((key, value))
     files = [
-        ("files", (os.path.basename(sample_file3), open(sample_file3, "rb"))),
-        ("files", (os.path.basename(sample_file4), open(sample_file4, "rb"))),
+        (
+            "files",
+            (os.path.basename(sample_file3), open(sample_file3, "rb"), "text/plain"),
+        ),
+        (
+            "files",
+            (os.path.basename(sample_file4), open(sample_file4, "rb"), "text/plain"),
+        ),
     ]
     response = requests.post(f"{base_url}/threads/{thread_id}/files", files=files)
     if response.status_code == 200:
@@ -277,11 +307,21 @@ def main():
     # 10. Test multiple file upload to agent
     print("\n10. TESTING MULTIPLE FILE UPLOAD TO AGENT")
     print("-" * 50)
-    sample_file5 = create_sample_file("This is another sample file for testing.")
-    sample_file6 = create_sample_file("This is another sample file for testing.")
+    sample_file5, key, value = create_sample_file()
+    if key and value:
+        key_value_pairs.append((key, value))
+    sample_file6, key, value = create_sample_file()
+    if key and value:
+        key_value_pairs.append((key, value))
     files = [
-        ("files", (os.path.basename(sample_file5), open(sample_file5, "rb"))),
-        ("files", (os.path.basename(sample_file6), open(sample_file6, "rb"))),
+        (
+            "files",
+            (os.path.basename(sample_file5), open(sample_file5, "rb"), "text/plain"),
+        ),
+        (
+            "files",
+            (os.path.basename(sample_file6), open(sample_file6, "rb"), "text/plain"),
+        ),
     ]
     response = requests.post(f"{base_url}/agents/{agent_id}/files", files=files)
     if response.status_code == 200:
@@ -295,6 +335,23 @@ def main():
     # Clean up temporary files
     os.unlink(sample_file)
     os.unlink(sample_file2)
+    os.unlink(sample_file3)
+    os.unlink(sample_file4)
+    os.unlink(sample_file5)
+    os.unlink(sample_file6)
+
+    # 11. Ask a question to retrieve a random key's value using the stream endpoint
+    print("\n11. RETRIEVING A RANDOM KEY'S VALUE (USING STREAM ENDPOINT)")
+    print("-" * 50)
+    if key_value_pairs:
+        random_key, expected_value = random.choice(key_value_pairs)
+        question = f"Use the Retriever tool to look up information in uploaded files. What is the value associated with the key '{random_key}'?"
+        print(f"  Asking question: {question}")
+        send_message(base_url, thread_id, question)
+
+        print(f"\n  Expected value: {expected_value}")
+    else:
+        print("  No key-value pairs were generated during file uploads.")
 
     print("\n" + "=" * 50)
     print("API INTERACTION TEST COMPLETED")

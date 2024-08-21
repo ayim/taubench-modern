@@ -202,7 +202,7 @@ class DallE(BaseTool):
 
 def get_retriever(agent_id: str, thread_id: str):
     return vstore.as_retriever(
-        search_kwargs={"filter": {"namespace": {"$in": [agent_id, thread_id]}}}
+        search_kwargs={"filter": {"owner_id": {"$in": [agent_id, thread_id]}}}
     )
 
 
