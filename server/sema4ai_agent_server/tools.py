@@ -25,7 +25,8 @@ from langchain_core.tools import Tool
 from typing_extensions import TypedDict
 
 from sema4ai_agent_server.action_server import ActionServerToolkit
-from sema4ai_agent_server.storage.embed import vstore
+from sema4ai_agent_server.schema import MODEL
+from sema4ai_agent_server.storage.embed import get_vector_store
 
 
 class DDGInput(BaseModel):
@@ -200,19 +201,18 @@ class DallE(BaseTool):
     )
 
 
-def get_retriever(agent_id: str, thread_id: str):
-    return vstore.as_retriever(
+def get_retriever(agent_id: str, thread_id: str, model: MODEL):
+    return get_vector_store(model).as_retriever(
         search_kwargs={"filter": {"owner_id": {"$in": [agent_id, thread_id]}}}
     )
 
 
-@lru_cache(maxsize=5)
-def get_retrieval_tool(agent_id: str, thread_id: str):
+def get_retrieval_tool(agent_id: str, thread_id: str, model: MODEL):
     description = """Can be used to look up information that was uploaded to this agent.
     If the user is referencing particular files, that is often a good hint that information may be here.
     If the user asks a vague question, they are likely meaning to look up info from this retriever, and you should call it!"""
     return create_retriever_tool(
-        get_retriever(agent_id, thread_id),
+        get_retriever(agent_id, thread_id, model),
         "Retriever",
         description,
     )

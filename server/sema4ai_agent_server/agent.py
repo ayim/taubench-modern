@@ -1,4 +1,3 @@
-from enum import Enum
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 
 from langchain_core.messages import AnyMessage
@@ -14,11 +13,14 @@ from sema4ai_agent_server.agent_types.tools_agent import get_tools_agent_executo
 from sema4ai_agent_server.agent_types.vitality_ai_multi_agent import (
     vitality_ai_new as vitality_ai,
 )
-from sema4ai_agent_server.llms import (
-    get_anthropic_llm,
-    get_google_llm,
-    get_ollama_llm,
-    get_openai_llm,
+from sema4ai_agent_server.llms import get_chat_model
+from sema4ai_agent_server.schema import (
+    MODEL,
+    AzureGPT,
+    OpenAIGPT4o,
+    OpenAIGPT4Turbo,
+    OpenAIGPT35Turbo,
+    dummy_model,
 )
 from sema4ai_agent_server.storage.checkpoint import get_checkpointer
 from sema4ai_agent_server.tools import (
@@ -57,17 +59,6 @@ Tool = Union[
 ]
 
 
-class AgentType(str, Enum):
-    GPT_35_TURBO = "GPT 3.5 Turbo"
-    GPT_4 = "GPT 4 Turbo"
-    GPT_4O = "GPT 4o"
-    AZURE_OPENAI = "GPT 4 (Azure OpenAI)"
-    CLAUDE2 = "Claude 2"
-    BEDROCK_CLAUDE2 = "Claude 2 (Amazon Bedrock)"
-    GEMINI = "GEMINI"
-    OLLAMA = "Ollama"
-
-
 DEFAULT_RUNBOOK = "You are a helpful agent."
 DEFAULT_NAME = "Agent"
 
@@ -77,32 +68,14 @@ CHECKPOINTER = get_checkpointer()
 
 def get_agent_executor(
     tools: list,
-    agent: AgentType,
+    model: MODEL,
     name: str,
     runbook: str,
     interrupt_before_action: bool,
     reasoning_level: int,
     knowledge_files: Optional[List[str]],
 ):
-    if agent == AgentType.GPT_35_TURBO:
-        llm = get_openai_llm()
-    elif agent == AgentType.GPT_4:
-        llm = get_openai_llm(model="gpt-4-turbo")
-    elif agent == AgentType.GPT_4O:
-        llm = get_openai_llm(model="gpt-4o")
-    elif agent == AgentType.AZURE_OPENAI:
-        llm = get_openai_llm(azure=True)
-    elif agent == AgentType.CLAUDE2:
-        llm = get_anthropic_llm()
-    elif agent == AgentType.BEDROCK_CLAUDE2:
-        llm = get_anthropic_llm(bedrock=True)
-    elif agent == AgentType.GEMINI:
-        llm = get_google_llm()
-    elif agent == AgentType.OLLAMA:
-        llm = get_ollama_llm()
-    else:
-        raise ValueError("Unexpected agent type")
-
+    llm = get_chat_model(model)
     return get_tools_agent_executor(
         tools,
         llm,
@@ -117,7 +90,7 @@ def get_agent_executor(
 
 class ConfigurableAgent(RunnableBinding):
     tools: Sequence[Tool]
-    agent: AgentType
+    model: Optional[MODEL] = None
     name: str = DEFAULT_NAME
     runbook: str = DEFAULT_RUNBOOK
     interrupt_before_action: bool = False
@@ -131,7 +104,7 @@ class ConfigurableAgent(RunnableBinding):
         self,
         *,
         tools: Sequence[Tool],
-        agent: AgentType = AgentType.GPT_35_TURBO,
+        model: Optional[MODEL] = None,
         name: str = DEFAULT_NAME,
         runbook: str = DEFAULT_RUNBOOK,
         agent_id: Optional[str] = None,
@@ -151,7 +124,7 @@ class ConfigurableAgent(RunnableBinding):
                     raise ValueError(
                         "Either agent_id or thread_id must be provided if Retrieval tool is used"
                     )
-                _tools.append(get_retrieval_tool(agent_id, thread_id))
+                _tools.append(get_retrieval_tool(agent_id, thread_id, model))
             else:
                 tool_config = _tool.get("config", {})
                 _returned_tools = TOOLS[_tool["type"]](**tool_config)
@@ -162,7 +135,7 @@ class ConfigurableAgent(RunnableBinding):
 
         _agent = get_agent_executor(
             _tools,
-            agent,
+            model,
             name,
             runbook,
             interrupt_before_action,
@@ -172,7 +145,7 @@ class ConfigurableAgent(RunnableBinding):
         agent_executor = _agent.with_config({"recursion_limit": 50})
         super().__init__(
             tools=tools,
-            agent=agent,
+            model=model,
             runbook=runbook,
             bound=agent_executor,
             kwargs=kwargs or {},
@@ -180,21 +153,9 @@ class ConfigurableAgent(RunnableBinding):
         )
 
 
-class LLMType(str, Enum):
-    GPT_35_TURBO = "GPT 3.5 Turbo"
-    GPT_4 = "GPT 4 Turbo"
-    GPT_4O = "GPT 4o"
-    AZURE_OPENAI = "GPT 4 (Azure OpenAI)"
-    CLAUDE2 = "Claude 2"
-    BEDROCK_CLAUDE2 = "Claude 2 (Amazon Bedrock)"
-    GEMINI = "GEMINI"
-    MIXTRAL = "Mixtral"
-    OLLAMA = "Ollama"
-
-
 class ConfigurablePlanExecute(RunnableBinding):
     tools: Sequence[Tool]
-    agent: AgentType
+    model: Optional[MODEL] = None
     name: str = DEFAULT_NAME
     runbook: str = DEFAULT_RUNBOOK
     interrupt_before_action: bool = False
@@ -207,7 +168,7 @@ class ConfigurablePlanExecute(RunnableBinding):
         self,
         *,
         tools: Sequence[Tool],
-        agent: AgentType = AgentType.GPT_35_TURBO,
+        model: Optional[MODEL] = None,
         name: str = DEFAULT_NAME,
         runbook: str = DEFAULT_RUNBOOK,
         agent_id: Optional[str] = None,
@@ -226,7 +187,7 @@ class ConfigurablePlanExecute(RunnableBinding):
                     raise ValueError(
                         "Both agent_id and thread_id must be provided if Retrieval tool is used"
                     )
-                _tools.append(get_retrieval_tool(agent_id, thread_id))
+                _tools.append(get_retrieval_tool(agent_id, thread_id, model))
             else:
                 tool_config = _tool.get("config", {})
                 _returned_tools = TOOLS[_tool["type"]](**tool_config)
@@ -234,26 +195,15 @@ class ConfigurablePlanExecute(RunnableBinding):
                     _tools.extend(_returned_tools)
                 else:
                     _tools.append(_returned_tools)
-        if agent == AgentType.GPT_35_TURBO:
-            llm = get_openai_llm()
-        elif agent == AgentType.GPT_4:
-            llm = get_openai_llm(model="gpt-4-turbo")
-        elif agent == AgentType.GPT_4O:
-            llm = get_openai_llm(model="gpt-4o")
-        elif agent == AgentType.AZURE_OPENAI:
-            llm = get_openai_llm(azure=True)
-        elif agent == AgentType.CLAUDE2:
-            raise NotImplementedError("Claude 2 is not supported for PlanExecute")
-        elif agent == AgentType.BEDROCK_CLAUDE2:
-            raise NotImplementedError("Claude 2 is not supported for PlanExecute")
-        elif agent == AgentType.GEMINI:
-            raise NotImplementedError("GEMINI is not supported for PlanExecute")
-        elif agent == AgentType.MIXTRAL:
-            raise NotImplementedError("Mixtral is not supported for PlanExecute")
-        elif agent == AgentType.OLLAMA:
-            raise NotImplementedError("Ollama is not supported for PlanExecute")
-        else:
-            raise ValueError("Unexpected llm type")
+
+        if type(model) not in (
+            OpenAIGPT35Turbo,
+            OpenAIGPT4Turbo,
+            OpenAIGPT4o,
+            AzureGPT,
+        ):
+            raise ValueError(f"Model {model} is not supported for PlanExecute.")
+        llm = get_chat_model(model)
         _agent = get_plan_execute_agent(
             _tools,
             llm,
@@ -266,7 +216,7 @@ class ConfigurablePlanExecute(RunnableBinding):
         agent_executor = _agent.with_config({"recursion_limit": 50})
         super().__init__(
             tools=tools,
-            agent=agent,
+            model=model,
             runbook=runbook,
             bound=agent_executor,
             kwargs=kwargs or {},
@@ -276,7 +226,7 @@ class ConfigurablePlanExecute(RunnableBinding):
 
 class ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(RunnableBinding):
     tools: Sequence[Tool]
-    agent: AgentType
+    model: Optional[MODEL] = None
     runbook: str = DEFAULT_RUNBOOK
     interrupt_before_action: bool = False
     agent_id: Optional[str] = None
@@ -287,7 +237,7 @@ class ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(RunnableBin
         self,
         *,
         tools: Sequence[Tool],
-        agent: AgentType = AgentType.GPT_4O,
+        model: Optional[MODEL] = None,
         runbook: str = DEFAULT_RUNBOOK,
         agent_id: Optional[str] = None,
         thread_id: Optional[str] = None,
@@ -304,7 +254,7 @@ class ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(RunnableBin
                     raise ValueError(
                         "Both agent_id and thread_id must be provided if Retrieval tool is used"
                     )
-                _tools.append(get_retrieval_tool(agent_id, thread_id))
+                _tools.append(get_retrieval_tool(agent_id, thread_id, model))
             else:
                 tool_config = _tool.get("config", {})
                 _returned_tools = TOOLS[_tool["type"]](**tool_config)
@@ -312,33 +262,21 @@ class ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(RunnableBin
                     _tools.extend(_returned_tools)
                 else:
                     _tools.append(_returned_tools)
-        if agent == AgentType.GPT_35_TURBO:
-            llm = get_openai_llm()
-        elif agent == AgentType.GPT_4:
-            llm = get_openai_llm(model="gpt-4-turbo")
-        elif agent == AgentType.GPT_4O:
-            llm = get_openai_llm(model="gpt-4o")
-        elif agent == AgentType.AZURE_OPENAI:
-            llm = get_openai_llm(azure=True)
-        elif agent == AgentType.CLAUDE2:
-            raise NotImplementedError("Claude 2 is not supported for PlanExecute")
-        elif agent == AgentType.BEDROCK_CLAUDE2:
-            raise NotImplementedError("Claude 2 is not supported for PlanExecute")
-        elif agent == AgentType.GEMINI:
-            raise NotImplementedError("GEMINI is not supported for PlanExecute")
-        elif agent == AgentType.MIXTRAL:
-            raise NotImplementedError("Mixtral is not supported for PlanExecute")
-        elif agent == AgentType.OLLAMA:
-            raise NotImplementedError("Ollama is not supported for PlanExecute")
-        else:
-            raise ValueError("Unexpected llm type")
+        if type(model) not in (
+            OpenAIGPT35Turbo,
+            OpenAIGPT4Turbo,
+            OpenAIGPT4o,
+            AzureGPT,
+        ):
+            raise ValueError(f"Model {model} is not supported for PlanExecute.")
+        llm = get_chat_model(model)
         _agent = vitality_ai.get_tools_agent_executor(
             _tools, llm, interrupt_before_action, CHECKPOINTER
         )
         agent_executor = _agent.with_config({"recursion_limit": 50})
         super().__init__(
             tools=tools,
-            agent=agent,
+            model=model,
             runbook=runbook,
             bound=agent_executor,
             kwargs=kwargs or {},
@@ -349,7 +287,7 @@ class ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(RunnableBin
 chat_plan_execute = (
     ConfigurablePlanExecute(
         tools=[],
-        agent=AgentType.GPT_35_TURBO,
+        model=dummy_model,
         name=DEFAULT_NAME,
         runbook=DEFAULT_RUNBOOK,
         agent_id=None,
@@ -357,7 +295,7 @@ chat_plan_execute = (
         reasoning_level=0,
     )
     .configurable_fields(
-        agent=ConfigurableField(id="agent_type", name="Agent Type"),
+        model=ConfigurableField(id="model", name="Model"),
         name=ConfigurableField(id="name", name="Agent Name"),
         runbook=ConfigurableField(id="runbook", name="Instructions"),
         interrupt_before_action=ConfigurableField(
@@ -380,13 +318,13 @@ chat_plan_execute = (
 multi_agent_hierarchical_planning = (
     ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(
         tools=[],
-        agent=AgentType.GPT_4O,
+        model=dummy_model,
         runbook=DEFAULT_RUNBOOK,
         agent_id=None,
         thread_id=None,
     )
     .configurable_fields(
-        agent=ConfigurableField(id="agent_type", name="Agent Type"),
+        model=ConfigurableField(id="model", name="Model"),
         runbook=ConfigurableField(id="runbook", name="Instructions"),
         interrupt_before_action=ConfigurableField(
             id="interrupt_before_action",
@@ -402,7 +340,7 @@ multi_agent_hierarchical_planning = (
 
 runnable_agent: Pregel = (
     ConfigurableAgent(
-        agent=AgentType.GPT_35_TURBO,
+        model=dummy_model,
         tools=[],
         name=DEFAULT_NAME,
         runbook=DEFAULT_RUNBOOK,
@@ -412,7 +350,7 @@ runnable_agent: Pregel = (
         knowledge_files=None,
     )
     .configurable_fields(
-        agent=ConfigurableField(id="agent_type", name="Agent Type"),
+        model=ConfigurableField(id="model", name="Model"),
         name=ConfigurableField(id="name", name="Agent Name"),
         runbook=ConfigurableField(id="runbook", name="Instructions"),
         interrupt_before_action=ConfigurableField(

@@ -7,7 +7,7 @@ from langchain_core.messages import AIMessage, ToolCall, ToolMessage
 from pydantic import BaseModel
 
 from sema4ai_agent_server.auth.handlers import AuthedUser
-from sema4ai_agent_server.file_manager.option import get_file_manager
+from sema4ai_agent_server.file_manager.base import BaseFileManager
 from sema4ai_agent_server.schema import Agent, Thread, UploadedFile
 from sema4ai_agent_server.storage.option import get_storage
 
@@ -50,9 +50,8 @@ async def get_file(payload: GetFilePayload, user: AuthedUser) -> UploadedFile:
 
 
 async def _store_files(
-    owner: Union[Agent, Thread], files: list[UploadFile]
+    owner: Union[Agent, Thread], files: list[UploadFile], file_manager: BaseFileManager
 ) -> list[UploadedFile]:
-    file_manager = get_file_manager()
     ret: list[UploadedFile] = []
     for file in files:
         ret.append(await file_manager.upload(file, owner))

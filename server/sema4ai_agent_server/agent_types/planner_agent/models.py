@@ -4,6 +4,7 @@ from langchain_anthropic import ChatAnthropic
 from langchain_anthropic.chat_models import convert_to_anthropic_tool
 from langchain_anthropic.output_parsers import ToolsOutputParser
 from langchain_core.language_models.base import LanguageModelInput
+from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import BaseMessage
 from langchain_core.pydantic_v1 import BaseModel
 from langchain_core.runnables import Runnable
@@ -16,7 +17,6 @@ from langchain_openai.output_parsers import PydanticToolsParser
 from vertexai.generative_models._generative_models import ToolConfig
 
 # Define supported agent types
-AgentType = AzureChatOpenAI | ChatOpenAI | ChatAnthropic | ChatVertexAI
 AGENT_TYPES = (AzureChatOpenAI, ChatOpenAI, ChatAnthropic, ChatVertexAI)
 
 
@@ -218,7 +218,7 @@ def bind_tools_to_vertex(
 
 
 def bind_tools(
-    llm: AgentType,
+    llm: BaseChatModel,
     tools: Sequence[dict[str, Any] | type[BaseModel] | Callable | BaseTool],
     *,
     tool_choice: dict | str | Literal["auto", "none"] | bool | None = None,
@@ -238,7 +238,7 @@ M = TypeVar("M", bound=BaseModel)
 
 
 def get_pydantic_output_parser(
-    llm: AgentType, schema: type[BaseModel]
+    llm: BaseChatModel, schema: type[BaseModel]
 ) -> PydanticToolsParser | ToolsOutputParser | PydanticFunctionsOutputParser:
     if isinstance(llm, (ChatOpenAI, AzureChatOpenAI)):
         return PydanticToolsParser(first_tool_only=True, tools=[schema])

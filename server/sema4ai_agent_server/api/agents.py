@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 from sema4ai_agent_server.agent import runnable_agent
 from sema4ai_agent_server.api.files import _store_files
 from sema4ai_agent_server.auth.handlers import AuthedUser
+from sema4ai_agent_server.file_manager.option import get_file_manager
 from sema4ai_agent_server.schema import MODEL, Agent, UploadedFile
 from sema4ai_agent_server.storage.option import get_storage
 
@@ -42,6 +43,7 @@ async def _generate_welcome_message(
         "configurable": {
             **payload.config.get("configurable", {}),
             "thread_id": thread.thread_id,
+            "model": payload.model,
         }
     }
     human_prompt = (
@@ -168,8 +170,9 @@ async def upload_agent_files(
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
 
+    file_manager = get_file_manager(agent.model)
     try:
-        stored_files = await _store_files(agent, files)
+        stored_files = await _store_files(agent, files, file_manager)
     except Exception as e:
         logger.exception("Failed to store a file", exception=e)
         raise HTTPException(status_code=500, detail=f"Failed to store a file: {str(e)}")

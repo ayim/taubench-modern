@@ -11,10 +11,17 @@ import structlog
 from langchain_core.messages import AnyMessage
 from pydantic import parse_obj_as
 
-from sema4ai_agent_server.agent import AgentType, get_agent_executor, runnable_agent
+from sema4ai_agent_server.agent import get_agent_executor, runnable_agent
 from sema4ai_agent_server.agent_types.constants import FINISH_NODE_KEY
 from sema4ai_agent_server.constants import DOMAIN_DATABASE_PATH
-from sema4ai_agent_server.schema import MODEL, Agent, Thread, UploadedFile, User
+from sema4ai_agent_server.schema import (
+    MODEL,
+    Agent,
+    Thread,
+    UploadedFile,
+    User,
+    dummy_model,
+)
 from sema4ai_agent_server.storage import BaseStorage, basemodel_secret_encoder_for_db
 
 logger = structlog.get_logger()
@@ -301,7 +308,7 @@ class SqliteStorage(BaseStorage):
 
     async def get_thread_state(self, user_id: str, thread_id: str):
         """Get state for a thread."""
-        app = get_agent_executor([], AgentType.GPT_35_TURBO, "", "", False, 0, None)
+        app = get_agent_executor([], dummy_model, "", "", False, 0, None)
         state = app.get_state({"configurable": {"thread_id": thread_id}})
         return {
             "values": state.values,
@@ -335,7 +342,7 @@ class SqliteStorage(BaseStorage):
 
     async def get_thread_history(self, user_id: str, thread_id: str):
         """Get the history of a thread."""
-        app = get_agent_executor([], AgentType.GPT_35_TURBO, "", "", False, None)
+        app = get_agent_executor([], dummy_model, "", "", False, 0, None)
         return [
             {
                 "values": c.values,

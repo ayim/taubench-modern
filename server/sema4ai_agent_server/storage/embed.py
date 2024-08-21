@@ -25,6 +25,13 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter, TextSplitte
 
 from sema4ai_agent_server.constants import VECTOR_DATABASE_PATH
 from sema4ai_agent_server.parsing import MIMETYPE_BASED_PARSER
+from sema4ai_agent_server.schema import (
+    MODEL,
+    AzureGPT,
+    OpenAIGPT4o,
+    OpenAIGPT4Turbo,
+    OpenAIGPT35Turbo,
+)
 
 
 def _update_document_metadata(document: Document, owner_id: str, file_id: str) -> None:
@@ -130,18 +137,19 @@ def convert_to_blob(file: UploadFile) -> Blob:
     )
 
 
-def get_embeddings() -> Union[OpenAIEmbeddings, AzureOpenAIEmbeddings]:
-    if os.environ.get("OPENAI_API_KEY"):
-        return OpenAIEmbeddings()
-    elif os.environ.get("AZURE_OPENAI_API_KEY"):
-        return AzureOpenAIEmbeddings(
-            azure_endpoint=os.environ.get("AZURE_OPENAI_API_BASE"),
-            azure_deployment=os.environ.get("AZURE_OPENAI_EMBEDDINGS_DEPLOYMENT_NAME"),
-            openai_api_version=os.environ.get("AZURE_OPENAI_API_VERSION"),
+def get_embeddings(model: MODEL) -> Union[OpenAIEmbeddings, AzureOpenAIEmbeddings]:
+    if type(model) in (OpenAIGPT35Turbo, OpenAIGPT4Turbo, OpenAIGPT4o):
+        return OpenAIEmbeddings(
+            openai_api_key=model.config.openai_api_key.get_secret_value(),
         )
-    raise ValueError(
-        "Either OPENAI_API_KEY or AZURE_OPENAI_API_KEY needs to be set for embeddings to work."
-    )
+    elif isinstance(model, AzureGPT):
+        return AzureOpenAIEmbeddings(
+            azure_endpoint=model.config.azure_endpoint,
+            azure_deployment=model.config.deployment_name,
+            openai_api_version=model.config.openai_api_version,
+            openai_api_key=model.config.openai_api_key.get_secret_value(),
+        )
+    raise ValueError(f"Unsupported model type {model} for embeddings.")
 
 
 class BaseVectorStoreWrapper(ABC):
@@ -157,29 +165,29 @@ class BaseVectorStoreWrapper(ABC):
         """
 
 
-def _get_pg_vector() -> VectorStore:
+def _get_pg_vector(model: MODEL) -> VectorStore:
     from sema4ai_agent_server.storage.pg_vector import get_pg_vector_wrapper
 
     return get_pg_vector_wrapper(
-        embedding_function=get_embeddings(),
+        embedding_function=get_embeddings(model),
     )
 
 
-def _get_chroma_vector() -> VectorStore:
+def _get_chroma_vector(model: MODEL) -> VectorStore:
     from sema4ai_agent_server.storage.chroma import ChromaWrapper
 
     return ChromaWrapper(
         persist_directory=VECTOR_DATABASE_PATH,
-        embedding_function=get_embeddings(),
+        embedding_function=get_embeddings(model),
     )
 
 
-def get_vector_store() -> VectorStore:
+def get_vector_store(model: MODEL) -> VectorStore:
     db_type = os.environ.get("S4_AGENT_SERVER_DB_TYPE", "sqlite")
     if db_type == "postgres":
-        return _get_pg_vector()
+        return _get_pg_vector(model)
     elif db_type == "sqlite":
-        return _get_chroma_vector()
+        return _get_chroma_vector(model)
     raise ValueError("Invalid storage type")
 
 
@@ -188,7 +196,7 @@ class EmbedRunnable(RunnableSerializable[BinaryIO, List[str]]):
 
     text_splitter: TextSplitter
     """Text splitter to use for splitting the text into chunks."""
-    vectorstore: VectorStore
+    vectorstore: Optional[VectorStore]
     """Vectorstore to embed into."""
     file_id: Optional[str]
     """ID of the file to embed."""
@@ -210,11 +218,8 @@ class EmbedRunnable(RunnableSerializable[BinaryIO, List[str]]):
         return out
 
 
-vstore = get_vector_store()
-
 embed_runnable = EmbedRunnable(
     text_splitter=RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200),
-    vectorstore=vstore,
 ).configurable_fields(
     owner_id=ConfigurableField(
         id="owner_id",
@@ -225,5 +230,10 @@ embed_runnable = EmbedRunnable(
         id="file_id",
         annotation=str,
         name="File ID",
+    ),
+    vectorstore=ConfigurableField(
+        id="vectorstore",
+        annotation=BaseVectorStoreWrapper,
+        name="Vectorstore",
     ),
 )

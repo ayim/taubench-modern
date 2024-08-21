@@ -159,6 +159,16 @@ class OllamaLlama3(BaseModel):
     config: OllamaConfig = Field(description="Ollama config.")
 
 
+# Need this due to how LangChain works. Some objects are initialized during runtime
+# and look for LLM's api key in environment variables. That breaks the app.
+# Instead we'll use a dummy model for such scenarios. During the request-response cycle
+# the actual model will be used.
+dummy_model = OpenAIGPT35Turbo(
+    provider=LLMProvider.OPENAI,
+    type=LLMType.GPT_35_TURBO,
+    config=OpenAIGPTConfig(openai_api_key="dummy"),
+)
+
 MODEL = (
     OpenAIGPT35Turbo
     | OpenAIGPT4Turbo
