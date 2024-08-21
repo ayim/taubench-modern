@@ -2,11 +2,12 @@ from typing import Annotated, List, Optional
 from uuid import uuid4
 
 import structlog
-from fastapi import APIRouter, HTTPException, Path
+from fastapi import APIRouter, HTTPException, Path, UploadFile
 from langchain_core.messages import HumanMessage
 from pydantic import BaseModel, Field
 
 from sema4ai_agent_server.agent import runnable_agent
+from sema4ai_agent_server.api.files import _store_files
 from sema4ai_agent_server.auth.handlers import AuthedUser
 from sema4ai_agent_server.schema import Agent, UploadedFile
 from sema4ai_agent_server.storage.option import get_storage
@@ -151,3 +152,24 @@ async def get_agent_files(
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     return await get_storage().get_agent_files(aid)
+
+
+@router.post("/{aid}/files")
+async def upload_agent_files(
+    files: list[UploadFile],
+    user: AuthedUser,
+    aid: AgentID,
+) -> List[UploadedFile]:
+    """Upload files to the given agent."""
+
+    agent = await get_storage().get_agent(user.user_id, aid)
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    try:
+        stored_files = await _store_files(agent, files)
+    except Exception as e:
+        logger.exception("Failed to store a file", exception=e)
+        raise HTTPException(status_code=500, detail=f"Failed to store a file: {str(e)}")
+
+    return stored_files

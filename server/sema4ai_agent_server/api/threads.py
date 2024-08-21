@@ -1,17 +1,20 @@
 from typing import Annotated, Any, Dict, List, Optional, Sequence, Union
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException, Path
+import structlog
+from fastapi import APIRouter, HTTPException, Path, UploadFile
 from langchain.schema.messages import AnyMessage
 from langchain_core.messages import AIMessage
 from pydantic import BaseModel, Field
 
+from sema4ai_agent_server.api.files import _add_uploaded_messages, _store_files
 from sema4ai_agent_server.auth.handlers import AuthedUser
 from sema4ai_agent_server.schema import Thread, UploadedFile
 from sema4ai_agent_server.storage.option import get_storage
 
-router = APIRouter()
+logger = structlog.get_logger(__name__)
 
+router = APIRouter()
 
 ThreadID = Annotated[str, Path(description="The ID of the thread.")]
 
@@ -162,3 +165,26 @@ async def get_thread_files(
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
     return await get_storage().get_thread_files(tid)
+
+
+@router.post("/{tid}/files")
+async def upload_thread_files(
+    files: list[UploadFile],
+    user: AuthedUser,
+    tid: ThreadID,
+) -> List[UploadedFile]:
+    """Upload files to the given agent."""
+
+    thread = await get_storage().get_thread(user.user_id, tid)
+    if thread is None:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    try:
+        stored_files = await _store_files(thread, files)
+    except Exception as e:
+        logger.exception("Failed to store a file", exception=e)
+        raise HTTPException(status_code=500, detail=f"Failed to store a file: {str(e)}")
+
+    await _add_uploaded_messages(stored_files, tid, user)
+
+    return stored_files
