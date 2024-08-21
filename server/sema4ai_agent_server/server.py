@@ -2,21 +2,16 @@ import argparse
 import hashlib
 import os
 from pathlib import Path
-from typing import Optional
 from urllib.parse import urlparse, urlunparse
 
-import orjson
 import structlog
-from fastapi import FastAPI, Form, UploadFile
+from fastapi import FastAPI
 from fastapi.exceptions import HTTPException
 
 from sema4ai_agent_server.api import router as api_router
-from sema4ai_agent_server.api.files import _add_uploaded_messages, _store_files
-from sema4ai_agent_server.auth.handlers import AuthedUser
 from sema4ai_agent_server.constants import UPLOAD_DIR
 from sema4ai_agent_server.lifespan import lifespan
 from sema4ai_agent_server.log_config import setup_logging
-from sema4ai_agent_server.schema import Agent, Thread, UploadedFile
 from sema4ai_agent_server.storage.option import get_storage
 from sema4ai_agent_server.tools import AvailableTools
 
@@ -39,47 +34,6 @@ def _get_hash(file_content: bytes) -> str:
     hash = hashlib.sha256()
     hash.update(file_content)
     return hash.hexdigest()
-
-
-@app.post("/ingest", description="Upload files to the given agent or thread.")
-async def ingest_files(
-    files: list[UploadFile],
-    user: AuthedUser,
-    config: str = Form(...),
-) -> list[UploadedFile]:
-    """Ingest a list of files."""
-    config = orjson.loads(config)
-
-    agent_id = config["configurable"].get("agent_id")
-    thread_id = config["configurable"].get("thread_id")
-
-    if agent_id is not None and thread_id is not None:
-        raise HTTPException(
-            status_code=400, detail="Indicate either agent_id or thread_id."
-        )
-
-    agent: Optional[Agent] = None
-    if agent_id is not None:
-        agent = await get_storage().get_agent(user.user_id, agent_id)
-        if agent is None:
-            raise HTTPException(status_code=404, detail="Agent not found.")
-
-    thread: Optional[Thread] = None
-    if thread_id is not None:
-        thread = await get_storage().get_thread(user.user_id, thread_id)
-        if thread is None:
-            raise HTTPException(status_code=404, detail="Thread not found.")
-
-    try:
-        stored_files = await _store_files(thread or agent, files)
-    except Exception as e:
-        logger.exception("Failed to store a file", exception=e)
-        raise HTTPException(status_code=500, detail=f"Failed to store a file: {str(e)}")
-
-    if thread_id:
-        await _add_uploaded_messages(stored_files, thread_id, user)
-
-    return stored_files
 
 
 @app.get("/health")

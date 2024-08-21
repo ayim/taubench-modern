@@ -179,6 +179,27 @@ def upload_file_to_agent(base_url, agent_id, file_path):
     return response
 
 
+def get_file(base_url, agent_id, thread_id, file_ref):
+    """Retrieves a file using the new get-file endpoint."""
+    url = f"{base_url}/get-file"
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+    }
+    data = {
+        "agent_id": agent_id,
+        "thread_id": thread_id,
+        "file_ref": file_ref,
+    }
+
+    response = requests.post(url, headers=headers, json=data)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        print(f"Error retrieving file: {response.status_code} {response.text}")
+        return None
+
+
 def main():
     parser = argparse.ArgumentParser(description="Interact with the API")
     parser.add_argument(
@@ -327,10 +348,27 @@ def main():
     if response.status_code == 200:
         print("  Successfully uploaded multiple files to agent")
         print(f"  Response: {json.dumps(response.json(), indent=2)}")
+        uploaded_files = response.json()
     else:
         print(
             f"  Error uploading multiple files to agent: {response.status_code} {response.text}"
         )
+        uploaded_files = []
+
+    # 11. Test get-file endpoint
+    print("\n11. TESTING GET-FILE ENDPOINT")
+    print("-" * 50)
+    if uploaded_files:
+        file_ref = uploaded_files[0]["file_ref"]
+        print(f"  Retrieving file with file_ref: {file_ref}")
+        file_info = get_file(base_url, agent_id, thread_id, file_ref)
+        if file_info:
+            print("  Successfully retrieved file information:")
+            print(f"  {json.dumps(file_info, indent=2)}")
+        else:
+            print("  Failed to retrieve file information")
+    else:
+        print("  No files available to test get-file endpoint")
 
     # Clean up temporary files
     os.unlink(sample_file)
@@ -340,8 +378,8 @@ def main():
     os.unlink(sample_file5)
     os.unlink(sample_file6)
 
-    # 11. Ask a question to retrieve a random key's value using the stream endpoint
-    print("\n11. RETRIEVING A RANDOM KEY'S VALUE (USING STREAM ENDPOINT)")
+    # 12. Ask a question to retrieve a random key's value using the stream endpoint
+    print("\n12. RETRIEVING A RANDOM KEY'S VALUE (USING STREAM ENDPOINT)")
     print("-" * 50)
     if key_value_pairs:
         random_key, expected_value = random.choice(key_value_pairs)
