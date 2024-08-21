@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 from sema4ai_agent_server.agent import runnable_agent
 from sema4ai_agent_server.api.files import _store_files
 from sema4ai_agent_server.auth.handlers import AuthedUser
-from sema4ai_agent_server.schema import Agent, UploadedFile
+from sema4ai_agent_server.schema import MODEL, Agent, UploadedFile
 from sema4ai_agent_server.storage.option import get_storage
 
 logger = structlog.get_logger(__name__)
@@ -22,6 +22,7 @@ class AgentPayload(BaseModel):
 
     name: str = Field(..., description="The name of the agent.")
     config: dict = Field(..., description="The agent config.")
+    model: MODEL = Field(..., description="LLM model configuration for the agent.")
     public: bool = Field(default=False, description="Whether the agent is public.")
     metadata: Optional[dict] = Field(
         default=None, description="Additional metadata for the agent."
@@ -97,6 +98,7 @@ async def create_agent(
         str(uuid4()),
         name=payload.name,
         config=payload.config,
+        model=payload.model,
         public=payload.public,
         metadata=metadata,
     )

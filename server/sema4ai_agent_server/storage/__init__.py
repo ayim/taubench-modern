@@ -3,9 +3,17 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Sequence, Union
 
 from langchain_core.messages import AnyMessage
+from pydantic import SecretBytes, SecretStr
 
 from sema4ai_agent_server.agent_types.constants import FINISH_NODE_KEY
-from sema4ai_agent_server.schema import Agent, Thread, UploadedFile, User
+from sema4ai_agent_server.schema import MODEL, Agent, Thread, UploadedFile, User
+
+
+def basemodel_secret_encoder_for_db(v: Any) -> Optional[str]:
+    """Without this, values will be stored like this: ********."""
+
+    if type(v) in (SecretStr, SecretBytes):
+        return v.get_secret_value() if v else None
 
 
 class BaseStorage(ABC):
@@ -45,6 +53,7 @@ class BaseStorage(ABC):
         *,
         name: str,
         config: dict,
+        model: MODEL,
         public: bool = False,
         metadata: Optional[dict],
     ) -> Agent:

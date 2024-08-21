@@ -21,6 +21,7 @@ CREATE TABLE agent (
     updated_at DATETIME DEFAULT (datetime('now')),
     public BOOLEAN NOT NULL CHECK (public IN (0,1)),
     metadata TEXT,
+    model TEXT,
     FOREIGN KEY (user_id) REFERENCES "user" (user_id)
 );
 

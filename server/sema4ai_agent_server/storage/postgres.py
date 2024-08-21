@@ -7,14 +7,24 @@ import asyncpg
 import orjson
 import structlog
 from langchain_core.messages import AnyMessage
-from pydantic import parse_obj_as
+from pydantic import BaseModel, parse_obj_as
 
 from sema4ai_agent_server.agent import AgentType, get_agent_executor, runnable_agent
 from sema4ai_agent_server.agent_types.constants import FINISH_NODE_KEY
-from sema4ai_agent_server.schema import Agent, Thread, UploadedFile, User
-from sema4ai_agent_server.storage import BaseStorage
+from sema4ai_agent_server.schema import MODEL, Agent, Thread, UploadedFile, User
+from sema4ai_agent_server.storage import BaseStorage, basemodel_secret_encoder_for_db
 
 logger = structlog.get_logger()
+
+
+def _json_encoder(v):
+    if isinstance(v, BaseModel):
+        return v.json(encoder=basemodel_secret_encoder_for_db)
+    return orjson.dumps(v).decode()
+
+
+def _json_decoder(v):
+    return orjson.loads(v)
 
 
 class PostgresStorage(BaseStorage):
@@ -43,14 +53,14 @@ class PostgresStorage(BaseStorage):
     async def _init_connection(self, conn) -> None:
         await conn.set_type_codec(
             "json",
-            encoder=lambda v: orjson.dumps(v).decode(),
-            decoder=orjson.loads,
+            encoder=_json_encoder,
+            decoder=_json_decoder,
             schema="pg_catalog",
         )
         await conn.set_type_codec(
             "jsonb",
-            encoder=lambda v: orjson.dumps(v).decode(),
-            decoder=orjson.loads,
+            encoder=_json_encoder,
+            decoder=_json_decoder,
             schema="pg_catalog",
         )
         await conn.set_type_codec(
@@ -283,6 +293,7 @@ class PostgresStorage(BaseStorage):
         *,
         name: str,
         config: dict,
+        model: MODEL,
         public: bool = False,
         metadata: Optional[dict],
     ) -> Agent:
@@ -305,11 +316,12 @@ class PostgresStorage(BaseStorage):
             async with conn.transaction():
                 await conn.execute(
                     (
-                        "INSERT INTO agent (id, user_id, name, config, updated_at, public, metadata) VALUES ($1, $2, $3, $4, $5, $6, $7) "
+                        "INSERT INTO agent (id, user_id, name, config, model, updated_at, public, metadata) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) "
                         "ON CONFLICT (id) DO UPDATE SET "
                         "user_id = EXCLUDED.user_id, "
                         "name = EXCLUDED.name, "
                         "config = EXCLUDED.config, "
+                        "model = EXCLUDED.model, "
                         "updated_at = EXCLUDED.updated_at, "
                         "public = EXCLUDED.public,"
                         "metadata = EXCLUDED.metadata;"
@@ -318,6 +330,7 @@ class PostgresStorage(BaseStorage):
                     user_id,
                     name,
                     config,
+                    model,
                     updated_at,
                     public,
                     metadata,
@@ -327,6 +340,7 @@ class PostgresStorage(BaseStorage):
             user_id=user_id,
             name=name,
             config=config,
+            model=model,
             updated_at=updated_at,
             public=public,
             metadata=metadata,

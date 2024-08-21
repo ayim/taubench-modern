@@ -21,6 +21,7 @@ CREATE TABLE agent (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
     public BOOLEAN NOT NULL,
     metadata JSONB,
+    model JSONB,
     CONSTRAINT fk_agent_user_id FOREIGN KEY (user_id) REFERENCES "user"(user_id)
 );
 
