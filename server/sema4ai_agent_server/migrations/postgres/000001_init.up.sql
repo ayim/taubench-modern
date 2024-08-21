@@ -1,3 +1,12 @@
+-- Legacy: hard resetting the database (can be removed in the future)
+DROP TABLE IF EXISTS file_owners;
+DROP TABLE IF EXISTS checkpoints;
+DROP TABLE IF EXISTS thread;
+DROP TABLE IF EXISTS agent;
+DROP TABLE IF EXISTS "user";
+DROP TABLE IF EXISTS schema_migrations;
+-- End of legacy
+
 CREATE TABLE "user" (
     user_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     sub VARCHAR(255) UNIQUE NOT NULL,

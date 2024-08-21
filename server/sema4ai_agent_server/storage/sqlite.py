@@ -43,30 +43,36 @@ class SqliteStorage(BaseStorage):
             conn.close()
 
     async def _run_migrations(self):
-        db_exists = os.path.exists(DOMAIN_DATABASE_PATH)
         current_dir = os.path.dirname(os.path.abspath(__file__))
         migrations_path = Path(current_dir).parent / "migrations" / "sqlite"
 
         with self._connect() as conn:
             cursor = conn.cursor()
 
-            current_version = 0
-            if db_exists:
-                # Check if migration_version table exists
-                cursor.execute(
-                    """
-                    SELECT name FROM sqlite_master WHERE type='table' AND name='migration_version';
-                """
+            cursor.execute("""
+                SELECT name FROM sqlite_master WHERE type='table' AND name='migrations';
+            """)
+            migrations_table_exists = cursor.fetchone() is not None
+            if not migrations_table_exists:
+                cursor.execute("""
+                    CREATE TABLE migrations (
+                        version INTEGER PRIMARY KEY, dirty BOOLEAN NOT NULL
+                    );
+                """)
+                cursor.execute("INSERT INTO migrations (version, dirty) VALUES (0, 0);")
+                conn.commit()
+            
+            cursor.execute("SELECT version FROM migrations WHERE dirty = 1")
+            dirty_version = cursor.fetchone()
+            if dirty_version:
+                raise Exception(
+                    f"Migration {dirty_version[0]} is dirty. Please fix it manually. "
+                    "No migrations will be applied. Please fix it manually."
                 )
-                if cursor.fetchone() is None:
-                    # Migration table does not exist, assume version 3
-                    current_version = 0
-                else:
-                    # Get the current migration version
-                    cursor.execute(
-                        "SELECT MAX(version) AS version FROM migration_version;"
-                    )
-                    current_version = cursor.fetchone()["version"]
+            
+            # get current version
+            cursor.execute("SELECT version FROM migrations;")
+            current_version = cursor.fetchone()[0]
 
             # List and sort migration files
             migration_files = sorted(
@@ -77,20 +83,25 @@ class SqliteStorage(BaseStorage):
             logger.info(f"Migrations found: {migration_files}")
             logger.info(f"Current migration version: {current_version}")
 
-            # Apply migrations that are newer than the current version
             for migration in migration_files:
                 version = int(migration.split("_")[0])
                 if version > current_version:
                     logger.info(f"Applying migration {migration}")
+
+                    # Set dirty flag
+                    cursor.execute(
+                        "UPDATE migrations SET version = ?, dirty = 1", (version,)
+                    )
+                    conn.commit()
+                    # Try to apply the migration
                     with open(os.path.join(migrations_path, migration), "r") as f:
-                        conn.executescript(f.read())
-                        current_version = (
-                            version  # Update current version after successful migration
-                        )
-            cursor.execute(
-                "INSERT INTO migration_version (version) VALUES (?);", (version,)
-            )
-            conn.commit()
+                        cursor.executescript(f.read())
+                        conn.commit()
+                    # Unset dirty flag
+                    cursor.execute("UPDATE migrations SET dirty = 0")
+                    conn.commit()
+
+                    current_version = version
 
     async def list_agents(self, user_id: str) -> List[Agent]:
         """List all agents for the current user."""

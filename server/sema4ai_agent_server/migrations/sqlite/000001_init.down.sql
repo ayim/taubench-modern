@@ -3,4 +3,3 @@ DROP TABLE IF EXISTS checkpoints;
 DROP TABLE IF EXISTS thread;
 DROP TABLE IF EXISTS agent;
 DROP TABLE IF EXISTS "user";
-DROP TABLE IF EXISTS migration_version;

@@ -1,8 +1,11 @@
-CREATE TABLE migration_version (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    version INTEGER NOT NULL,
-    applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
+-- Legacy: hard resetting the database (can be removed in the future)
+DROP TABLE IF EXISTS file_owners;
+DROP TABLE IF EXISTS checkpoints;
+DROP TABLE IF EXISTS thread;
+DROP TABLE IF EXISTS agent;
+DROP TABLE IF EXISTS "user";
+DROP TABLE IF EXISTS migration_version;
+-- End of legacy
 
 CREATE TABLE "user" (
     user_id TEXT PRIMARY KEY,
