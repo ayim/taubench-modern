@@ -1,5 +1,4 @@
 import argparse
-import hashlib
 import os
 from pathlib import Path
 from urllib.parse import urlparse, urlunparse
@@ -26,22 +25,16 @@ DB_TYPE = os.environ.get("S4_AGENT_SERVER_DB_TYPE", "sqlite").lower()
 # Get root of app, used to point to directory containing static files
 ROOT = Path(__file__).parent.parent
 
-app = FastAPI(title="OpenGPTs API", lifespan=lifespan)
+app = FastAPI(title="Sema4.ai Agent Server API", lifespan=lifespan)
 app.include_router(api_router)
 
 
-def _get_hash(file_content: bytes) -> str:
-    hash = hashlib.sha256()
-    hash.update(file_content)
-    return hash.hexdigest()
-
-
-@app.get("/health")
+@app.get("/api/v1/health")
 async def health() -> dict:
     return {"status": "ok"}
 
 
-@app.get("/metrics")
+@app.get("/api/v1/metrics")
 async def metrics() -> dict:
     return {
         "agentCount": await get_storage().agent_count(),
@@ -49,7 +42,7 @@ async def metrics() -> dict:
     }
 
 
-@app.post("/update-action-server-ports")
+@app.post("/api/v1/update-action-server-ports")
 async def update_action_server_ports(port_map: dict[str, str]) -> dict:
     logger.info(f"Updating action server ports: {port_map}")
     if not port_map:

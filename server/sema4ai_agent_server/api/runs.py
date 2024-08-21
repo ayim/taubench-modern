@@ -1,3 +1,4 @@
+import uuid
 from typing import Any, Dict, Optional, Sequence, Union
 
 import langsmith.client
@@ -6,7 +7,6 @@ from fastapi.exceptions import RequestValidationError
 from langchain.pydantic_v1 import ValidationError
 from langchain_core.messages import AnyMessage
 from langchain_core.runnables import RunnableConfig
-from langserve.schema import FeedbackCreateRequest
 from langserve.server import _unpack_input
 from langsmith.utils import tracing_is_enabled
 from pydantic import BaseModel, Field
@@ -96,7 +96,16 @@ async def _run_input_and_config(payload: CreateRunPayload, user_id: str):
     return input_, config, thread, agent
 
 
-@router.post("")
+runs = {}
+
+
+async def background_invoke(input_, config):
+    await runnable_agent.ainvoke(input_, config)
+    run_id = input_["run_id"]
+    await get_storage().update_async_run(run_id, "complete")
+
+
+@router.post("/async_invoke")
 async def create_run(
     payload: CreateRunPayload,
     user: AuthedUser,
@@ -104,8 +113,22 @@ async def create_run(
 ):
     """Create a run."""
     input_, config, _, _ = await _run_input_and_config(payload, user.user_id)
-    background_tasks.add_task(runnable_agent.ainvoke, input_, config)
-    return {"status": "ok"}  # TODO add a run id
+    run_id = str(uuid.uuid4())
+    input_["run_id"] = run_id
+    await get_storage().create_async_run(run_id, "in_progress")
+    background_tasks.add_task(background_invoke, input_, config)
+    return {
+        "status": "in_progress",
+        "run_id": run_id,
+    }
+
+
+@router.get("/{rid}/status")
+async def get_run_status(rid: str):
+    status = await get_storage().get_async_run_status(rid)
+    if not status:
+        raise HTTPException(status_code=404, detail="Run not found")
+    return {"run_id": rid, "status": status}
 
 
 @router.post("/stream")
@@ -132,48 +155,3 @@ async def invoke_run(
         if url := get_langsmith_thread_url(langsmith_client, thread.thread_id):
             await save_langsmith_thread_url(thread, url)
     return await invoke_state(runnable_agent, input_, config)
-
-
-@router.get("/input_schema")
-async def input_schema() -> dict:
-    """Return the input schema of the runnable."""
-    return runnable_agent.get_input_schema().schema()
-
-
-@router.get("/output_schema")
-async def output_schema() -> dict:
-    """Return the output schema of the runnable."""
-    return runnable_agent.get_output_schema().schema()
-
-
-@router.get("/config_schema")
-async def config_schema() -> dict:
-    """Return the config schema of the runnable."""
-    return runnable_agent.config_schema().schema()
-
-
-if langsmith_client:
-
-    @router.post("/feedback")
-    def create_run_feedback(feedback_create_req: FeedbackCreateRequest) -> dict:
-        """
-        Send feedback on an individual run to langsmith
-
-        Note that a successful response means that feedback was successfully
-        submitted. It does not guarantee that the feedback is recorded by
-        langsmith. Requests may be silently rejected if they are
-        unauthenticated or invalid by the server.
-        """
-
-        langsmith_client.create_feedback(
-            feedback_create_req.run_id,
-            feedback_create_req.key,
-            score=feedback_create_req.score,
-            value=feedback_create_req.value,
-            comment=feedback_create_req.comment,
-            source_info={
-                "from_langserve": True,
-            },
-        )
-
-        return {"status": "ok"}

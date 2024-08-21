@@ -210,7 +210,7 @@ def main():
     )
     args = parser.parse_args()
 
-    base_url = f"http://{args.host}:{args.port}"
+    base_url = f"http://{args.host}:{args.port}/api/v1"
 
     print("\n" + "=" * 50)
     print("STARTING API INTERACTION TEST")

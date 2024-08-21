@@ -564,3 +564,31 @@ class SqliteStorage(BaseStorage):
             conn.commit()
 
             return parse_obj_as(UploadedFile, row)
+
+    async def create_async_run(self, run_id: str, status: str) -> None:
+        with self._connect() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO async_runs (id, status) VALUES (?, ?)",
+                (status, run_id),
+            )
+            conn.commit()
+
+    async def update_async_run(self, run_id: str, status: str) -> None:
+        with self._connect() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE async_runs SET status = ?  WHERE id = ?",
+                (status, run_id),
+            )
+            conn.commit()
+
+    async def get_async_run_status(self, run_id: str) -> str:
+        """Get run status"""
+        with self._connect() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT status FROM async_runs WHERE id = ? ", (run_id,))
+            row = cursor.fetchone()
+            if not row:
+                return None
+            return row["status"]

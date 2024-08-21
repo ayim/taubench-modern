@@ -58,3 +58,8 @@ CREATE TABLE file_owners (
     CONSTRAINT unique_file_ref_agent UNIQUE (file_ref, agent_id),
     CONSTRAINT unique_file_ref_thread UNIQUE (file_ref, thread_id)
 );
+
+CREATE TABLE async_runs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    status VARCHAR(20) NOT NULL
+)

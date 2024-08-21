@@ -489,3 +489,24 @@ class PostgresStorage(BaseStorage):
             if not row:
                 raise ValueError(f"File with id {file_id} not found")
             return parse_obj_as(UploadedFile, row)
+
+    async def create_async_run(self, run_id: str, status: str) -> None:
+        async with self.get_pool().acquire() as conn:
+            await conn.execute(
+                "INSERT INTO async_runs (id, status) VALUES ($1, $2)", run_id, status
+            )
+
+    async def update_async_run(self, run_id: str, status: str) -> None:
+        async with self.get_pool().acquire() as conn:
+            await conn.execute(
+                "UPDATE async_runs SET status = $2  WHERE id = $1", run_id, status
+            )
+
+    async def get_async_run_status(self, run_id: str) -> str:
+        """Get run status"""
+        async with self.get_pool().acquire() as conn:
+            result = await conn.fetchrow(
+                "SELECT status FROM async_runs WHERE id = $1", run_id
+            )
+            status = result[0]
+            return status

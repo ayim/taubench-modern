@@ -166,3 +166,15 @@ class BaseStorage(ABC):
     ) -> UploadedFile:
         """Update file retrieve information"""
         pass
+
+    @abstractmethod
+    async def create_async_run(self, run_id: str, status: str) -> None:
+        pass
+
+    @abstractmethod
+    async def update_async_run(self, run_id: str, status: str) -> None:
+        pass
+
+    @abstractmethod
+    async def get_async_run_status(self, run_id: str) -> Optional[str]:
+        pass
