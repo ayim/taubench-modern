@@ -6,7 +6,14 @@ from langchain_core.messages import AnyMessage
 from pydantic import SecretBytes, SecretStr
 
 from sema4ai_agent_server.agent_types.constants import FINISH_NODE_KEY
-from sema4ai_agent_server.schema import MODEL, Agent, Thread, UploadedFile, User
+from sema4ai_agent_server.schema import (
+    MODEL,
+    Agent,
+    AgentArchitecture,
+    Thread,
+    UploadedFile,
+    User,
+)
 
 
 def basemodel_secret_encoder_for_db(v: Any) -> Optional[str]:
@@ -54,6 +61,7 @@ class BaseStorage(ABC):
         name: str,
         config: dict,
         model: MODEL,
+        architecture: AgentArchitecture,
         public: bool = False,
         metadata: Optional[dict],
     ) -> Agent:

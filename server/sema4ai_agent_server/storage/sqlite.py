@@ -17,6 +17,7 @@ from sema4ai_agent_server.constants import DOMAIN_DATABASE_PATH
 from sema4ai_agent_server.schema import (
     MODEL,
     Agent,
+    AgentArchitecture,
     Thread,
     UploadedFile,
     User,
@@ -206,6 +207,7 @@ class SqliteStorage(BaseStorage):
         name: str,
         config: dict,
         model: MODEL,
+        architecture: AgentArchitecture,
         public: bool = False,
         metadata: Optional[dict],
     ) -> Agent:
@@ -218,14 +220,15 @@ class SqliteStorage(BaseStorage):
             model_str = model.json(encoder=basemodel_secret_encoder_for_db)
             cursor.execute(
                 """
-                INSERT INTO agent (id, user_id, name, config, model, updated_at, public, metadata)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO agent (id, user_id, name, config, model, architecture, updated_at, public, metadata)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) 
                 DO UPDATE SET 
                     user_id = EXCLUDED.user_id, 
                     name = EXCLUDED.name, 
                     config = EXCLUDED.config, 
                     model = EXCLUDED.model,
+                    architecture = EXCLUDED.architecture,
                     updated_at = EXCLUDED.updated_at, 
                     public = EXCLUDED.public,
                     metadata = EXCLUDED.metadata
@@ -236,6 +239,7 @@ class SqliteStorage(BaseStorage):
                     name,
                     config_str,
                     model_str,
+                    architecture,
                     updated_at.isoformat(),
                     public,
                     json.dumps(metadata),
@@ -248,6 +252,7 @@ class SqliteStorage(BaseStorage):
                 name=name,
                 config=config,
                 model=model,
+                architecture=architecture,
                 updated_at=updated_at,
                 public=public,
                 metadata=metadata,

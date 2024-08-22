@@ -10,7 +10,7 @@ from sema4ai_agent_server.agent import runnable_agent
 from sema4ai_agent_server.api.files import _store_files
 from sema4ai_agent_server.auth.handlers import AuthedUser
 from sema4ai_agent_server.file_manager.option import get_file_manager
-from sema4ai_agent_server.schema import MODEL, Agent, UploadedFile
+from sema4ai_agent_server.schema import MODEL, Agent, AgentArchitecture, UploadedFile
 from sema4ai_agent_server.storage.option import get_storage
 
 logger = structlog.get_logger(__name__)
@@ -24,6 +24,9 @@ class AgentPayload(BaseModel):
     name: str = Field(..., description="The name of the agent.")
     config: dict = Field(..., description="The agent config.")
     model: MODEL = Field(..., description="LLM model configuration for the agent.")
+    architecture: AgentArchitecture = Field(
+        description="The cognitive architecture of the agent."
+    )
     public: bool = Field(default=False, description="Whether the agent is public.")
     metadata: Optional[dict] = Field(
         default=None, description="Additional metadata for the agent."
@@ -44,6 +47,7 @@ async def _generate_welcome_message(
             **payload.config.get("configurable", {}),
             "thread_id": thread.thread_id,
             "model": payload.model,
+            "type": AgentArchitecture.AGENT.value,
         }
     }
     human_prompt = (
@@ -101,6 +105,7 @@ async def create_agent(
         name=payload.name,
         config=payload.config,
         model=payload.model,
+        architecture=payload.architecture,
         public=payload.public,
         metadata=metadata,
     )
@@ -131,6 +136,8 @@ async def upsert_agent(
         aid,
         name=payload.name,
         config=payload.config,
+        model=payload.model,
+        architecture=payload.architecture,
         public=payload.public,
         metadata=metadata,
     )

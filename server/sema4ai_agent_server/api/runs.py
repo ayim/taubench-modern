@@ -61,6 +61,7 @@ async def _run_input_and_config(payload: CreateRunPayload, user_id: str):
             "name": agent.name,
             "knowledge_files": knowledge_files,
             "model": agent.model,
+            "type": agent.architecture,
         },
     }
 

@@ -14,6 +14,7 @@ from sema4ai_agent_server.agent_types.constants import FINISH_NODE_KEY
 from sema4ai_agent_server.schema import (
     MODEL,
     Agent,
+    AgentArchitecture,
     Thread,
     UploadedFile,
     User,
@@ -301,6 +302,7 @@ class PostgresStorage(BaseStorage):
         name: str,
         config: dict,
         model: MODEL,
+        architecture: AgentArchitecture,
         public: bool = False,
         metadata: Optional[dict],
     ) -> Agent:
@@ -311,6 +313,8 @@ class PostgresStorage(BaseStorage):
             agent_id: The agent ID.
             name: The agent name.
             config: The agent config.
+            model: The agent model.
+            architecture: The agent architecture.
             public: Whether the agent is public.
             metadata: Additional metadata.
 
@@ -323,12 +327,14 @@ class PostgresStorage(BaseStorage):
             async with conn.transaction():
                 await conn.execute(
                     (
-                        "INSERT INTO agent (id, user_id, name, config, model, updated_at, public, metadata) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) "
+                        "INSERT INTO agent (id, user_id, name, config, model, architecture, updated_at, public, metadata) "
+                        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) "
                         "ON CONFLICT (id) DO UPDATE SET "
                         "user_id = EXCLUDED.user_id, "
                         "name = EXCLUDED.name, "
                         "config = EXCLUDED.config, "
                         "model = EXCLUDED.model, "
+                        "architecture = EXCLUDED.architecture, "
                         "updated_at = EXCLUDED.updated_at, "
                         "public = EXCLUDED.public,"
                         "metadata = EXCLUDED.metadata;"
@@ -338,6 +344,7 @@ class PostgresStorage(BaseStorage):
                     name,
                     config,
                     model,
+                    architecture,
                     updated_at,
                     public,
                     metadata,
@@ -348,6 +355,7 @@ class PostgresStorage(BaseStorage):
             name=name,
             config=config,
             model=model,
+            architecture=architecture,
             updated_at=updated_at,
             public=public,
             metadata=metadata,
@@ -442,10 +450,6 @@ class PostgresStorage(BaseStorage):
     ) -> Thread:
         """Modify a thread."""
         updated_at = datetime.now(timezone.utc)
-        agent = await self.get_agent(user_id, agent_id)
-        metadata = (
-            {"agent_type": agent.config["configurable"]["type"]} if agent else None
-        )
         async with self.get_pool().acquire() as conn:
             await conn.execute(
                 (
