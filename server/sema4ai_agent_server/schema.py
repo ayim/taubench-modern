@@ -136,7 +136,6 @@ class Agent(BaseModel):
         description="The cognitive architecture of the agent."
     )
     updated_at: datetime = Field(description="The last time the agent was updated.")
-    public: bool = Field(description="Whether the agent is public.")
     metadata: Optional[dict] = Field(description="The agent metadata.")
 
 

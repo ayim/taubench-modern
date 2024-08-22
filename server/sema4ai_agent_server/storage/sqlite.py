@@ -179,7 +179,7 @@ class SqliteStorage(BaseStorage):
         with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM agent WHERE id = ? AND (user_id = ? OR public = 1)",
+                "SELECT * FROM agent WHERE id = ? AND user_id = ?",
                 (agent_id, user_id),
             )
             row = cursor.fetchone()
@@ -210,7 +210,6 @@ class SqliteStorage(BaseStorage):
         config: dict,
         model: MODEL,
         architecture: AgentArchitecture,
-        public: bool = False,
         metadata: Optional[dict],
     ) -> Agent:
         """Modify an agent."""
@@ -222,8 +221,8 @@ class SqliteStorage(BaseStorage):
             model_str = model.json(encoder=basemodel_secret_encoder_for_db)
             cursor.execute(
                 """
-                INSERT INTO agent (id, user_id, name, description, runbook, config, model, architecture, updated_at, public, metadata)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO agent (id, user_id, name, description, runbook, config, model, architecture, updated_at, metadata)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) 
                 DO UPDATE SET 
                     user_id = EXCLUDED.user_id, 
@@ -234,7 +233,6 @@ class SqliteStorage(BaseStorage):
                     model = EXCLUDED.model,
                     architecture = EXCLUDED.architecture,
                     updated_at = EXCLUDED.updated_at, 
-                    public = EXCLUDED.public,
                     metadata = EXCLUDED.metadata
                 """,
                 (
@@ -247,7 +245,6 @@ class SqliteStorage(BaseStorage):
                     model_str,
                     architecture,
                     updated_at.isoformat(),
-                    public,
                     json.dumps(metadata),
                 ),
             )
@@ -262,7 +259,6 @@ class SqliteStorage(BaseStorage):
                 model=model,
                 architecture=architecture,
                 updated_at=updated_at,
-                public=public,
                 metadata=metadata,
             )
 

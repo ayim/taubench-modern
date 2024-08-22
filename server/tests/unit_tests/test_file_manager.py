@@ -105,7 +105,6 @@ def sample_owner():
         model=dummy_model,
         architecture=AgentArchitecture.AGENT,
         updated_at=datetime.now(timezone.utc),
-        public=False,
         metadata=None,
     )
 

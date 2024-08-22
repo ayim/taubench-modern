@@ -29,7 +29,6 @@ class AgentPayload(BaseModel):
     architecture: AgentArchitecture = Field(
         description="The cognitive architecture of the agent."
     )
-    public: bool = Field(default=False, description="Whether the agent is public.")
     metadata: Optional[dict] = Field(
         default=None, description="Additional metadata for the agent."
     )
@@ -110,7 +109,6 @@ async def create_agent(
         config=payload.config,
         model=payload.model,
         architecture=payload.architecture,
-        public=payload.public,
         metadata=metadata,
     )
 
@@ -144,7 +142,6 @@ async def upsert_agent(
         config=payload.config,
         model=payload.model,
         architecture=payload.architecture,
-        public=payload.public,
         metadata=metadata,
     )
 

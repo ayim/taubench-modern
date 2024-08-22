@@ -64,7 +64,6 @@ class BaseStorage(ABC):
         config: dict,
         model: MODEL,
         architecture: AgentArchitecture,
-        public: bool = False,
         metadata: Optional[dict],
     ) -> Agent:
         """Modify an agent."""
