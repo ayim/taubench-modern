@@ -1,3 +1,4 @@
+import json
 import os
 from datetime import datetime, timezone
 from pathlib import Path
@@ -13,6 +14,7 @@ from sema4ai_agent_server.agent import get_agent_executor, runnable_agent
 from sema4ai_agent_server.agent_types.constants import FINISH_NODE_KEY
 from sema4ai_agent_server.schema import (
     MODEL,
+    ActionPackage,
     Agent,
     AgentArchitecture,
     AgentReasoning,
@@ -29,6 +31,10 @@ logger = structlog.get_logger()
 def _json_encoder(v):
     if isinstance(v, BaseModel):
         return v.json(encoder=basemodel_secret_encoder_for_db)
+    elif isinstance(v, list) and all(isinstance(i, BaseModel) for i in v):
+        return json.dumps(
+            [json.loads(i.json(encoder=basemodel_secret_encoder_for_db)) for i in v]
+        )
     return orjson.dumps(v).decode()
 
 
@@ -288,10 +294,10 @@ class PostgresStorage(BaseStorage):
         name: str,
         description: str,
         runbook: str,
-        config: dict,
         model: MODEL,
         architecture: AgentArchitecture,
         reasoning: AgentReasoning,
+        action_packages: list[ActionPackage],
         metadata: Optional[dict],
     ) -> Agent:
         """Modify an agent."""
@@ -301,17 +307,17 @@ class PostgresStorage(BaseStorage):
             async with conn.transaction():
                 await conn.execute(
                     (
-                        "INSERT INTO agent (id, user_id, name, description, runbook, config, model, architecture, reasoning, updated_at, metadata) "
+                        "INSERT INTO agent (id, user_id, name, description, runbook, model, architecture, reasoning, action_packages, updated_at, metadata) "
                         "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) "
                         "ON CONFLICT (id) DO UPDATE SET "
                         "user_id = EXCLUDED.user_id, "
                         "name = EXCLUDED.name, "
                         "description = EXCLUDED.description, "
                         "runbook = EXCLUDED.runbook, "
-                        "config = EXCLUDED.config, "
                         "model = EXCLUDED.model, "
                         "architecture = EXCLUDED.architecture, "
                         "reasoning = EXCLUDED.reasoning, "
+                        "action_packages = EXCLUDED.action_packages, "
                         "updated_at = EXCLUDED.updated_at, "
                         "metadata = EXCLUDED.metadata;"
                     ),
@@ -320,10 +326,10 @@ class PostgresStorage(BaseStorage):
                     name,
                     description,
                     runbook,
-                    config,
                     model,
                     architecture,
                     reasoning,
+                    action_packages,
                     updated_at,
                     metadata,
                 )
@@ -333,10 +339,10 @@ class PostgresStorage(BaseStorage):
             name=name,
             description=description,
             runbook=runbook,
-            config=config,
             model=model,
             architecture=architecture,
             reasoning=reasoning,
+            action_packages=action_packages,
             updated_at=updated_at,
             metadata=metadata,
         )
@@ -389,16 +395,8 @@ class PostgresStorage(BaseStorage):
         """Add state to a thread."""
         thread = await self.get_thread(user_id, thread_id)
         agent_id = thread.agent_id
-        agent = await self.get_agent(user_id, agent_id)
-        config = agent.config["configurable"] if agent else {}
         retval = runnable_agent.update_state(
-            {
-                "configurable": {
-                    **config,
-                    "thread_id": thread_id,
-                    "agent_id": agent_id,
-                }
-            },
+            {"configurable": {"thread_id": thread_id, "agent_id": agent_id}},
             values,
             as_node=as_node,
         )

@@ -16,6 +16,7 @@ from sema4ai_agent_server.agent_types.constants import FINISH_NODE_KEY
 from sema4ai_agent_server.constants import DOMAIN_DATABASE_PATH
 from sema4ai_agent_server.schema import (
     MODEL,
+    ActionPackage,
     Agent,
     AgentArchitecture,
     AgentReasoning,
@@ -124,17 +125,14 @@ class SqliteStorage(BaseStorage):
             cursor.execute("SELECT * FROM agent WHERE user_id = ?", (user_id,))
             rows = cursor.fetchall()
 
-            # Deserialize the 'config' field from a JSON string to a dict for each row
             agents = []
             for row in rows:
                 agent_data = dict(row)  # Convert sqlite3.Row to dict
-                agent_data["config"] = (
-                    json.loads(agent_data["config"])
-                    if "config" in agent_data and agent_data["config"]
-                    else {}
-                )
                 agent_data["model"] = parse_obj_as(
                     MODEL, json.loads(agent_data["model"])
+                )
+                agent_data["action_packages"] = parse_obj_as(
+                    list[ActionPackage], json.loads(agent_data["action_packages"])
                 )
                 agent_data["metadata"] = (
                     json.loads(agent_data["metadata"])
@@ -157,13 +155,11 @@ class SqliteStorage(BaseStorage):
             agents = []
             for row in rows:
                 agent_data = dict(row)
-                agent_data["config"] = (
-                    json.loads(agent_data["config"])
-                    if "config" in agent_data and agent_data["config"]
-                    else {}
-                )
                 agent_data["model"] = parse_obj_as(
                     MODEL, json.loads(agent_data["model"])
+                )
+                agent_data["action_packages"] = parse_obj_as(
+                    list[ActionPackage], json.loads(agent_data["action_packages"])
                 )
                 agent_data["metadata"] = (
                     json.loads(agent_data["metadata"])
@@ -187,12 +183,10 @@ class SqliteStorage(BaseStorage):
             if not row:
                 return None
             agent_data = dict(row)  # Convert sqlite3.Row to dict
-            agent_data["config"] = (
-                json.loads(agent_data["config"])
-                if "config" in agent_data and agent_data["config"]
-                else {}
-            )
             agent_data["model"] = parse_obj_as(MODEL, json.loads(agent_data["model"]))
+            agent_data["action_packages"] = parse_obj_as(
+                list[ActionPackage], json.loads(agent_data["action_packages"])
+            )
             agent_data["metadata"] = (
                 json.loads(agent_data["metadata"])
                 if agent_data["metadata"] is not None
@@ -208,22 +202,26 @@ class SqliteStorage(BaseStorage):
         name: str,
         description: str,
         runbook: str,
-        config: dict,
         model: MODEL,
         architecture: AgentArchitecture,
         reasoning: AgentReasoning,
+        action_packages: list[ActionPackage],
         metadata: Optional[dict],
     ) -> Agent:
         """Modify an agent."""
         updated_at = datetime.now(timezone.utc)
         with self._connect() as conn:
             cursor = conn.cursor()
-            # Convert the config dict to a JSON string for storage.
-            config_str = json.dumps(config)
             model_str = model.json(encoder=basemodel_secret_encoder_for_db)
+            action_packages_str = json.dumps(
+                [
+                    json.loads(p.json(encoder=basemodel_secret_encoder_for_db))
+                    for p in action_packages
+                ]
+            )
             cursor.execute(
                 """
-                INSERT INTO agent (id, user_id, name, description, runbook, config, model, architecture, reasoning, updated_at, metadata)
+                INSERT INTO agent (id, user_id, name, description, runbook, model, architecture, reasoning, action_packages, updated_at, metadata)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) 
                 DO UPDATE SET 
@@ -231,10 +229,10 @@ class SqliteStorage(BaseStorage):
                     name = EXCLUDED.name, 
                     description = EXCLUDED.description,
                     runbook = EXCLUDED.runbook,
-                    config = EXCLUDED.config, 
                     model = EXCLUDED.model,
                     architecture = EXCLUDED.architecture,
                     reasoning = EXCLUDED.reasoning,
+                    action_packages = EXCLUDED.action_packages,
                     updated_at = EXCLUDED.updated_at, 
                     metadata = EXCLUDED.metadata
                 """,
@@ -244,10 +242,10 @@ class SqliteStorage(BaseStorage):
                     name,
                     description,
                     runbook,
-                    config_str,
                     model_str,
                     architecture,
                     reasoning,
+                    action_packages_str,
                     updated_at.isoformat(),
                     json.dumps(metadata),
                 ),
@@ -259,10 +257,10 @@ class SqliteStorage(BaseStorage):
                 name=name,
                 description=description,
                 runbook=runbook,
-                config=config,
                 model=model,
                 architecture=architecture,
                 reasoning=reasoning,
+                action_packages=action_packages,
                 updated_at=updated_at,
                 metadata=metadata,
             )
@@ -341,16 +339,8 @@ class SqliteStorage(BaseStorage):
         """Add state to a thread."""
         thread = await self.get_thread(user_id, thread_id)
         agent_id = thread.agent_id
-        agent = await self.get_agent(user_id, agent_id)
-        config = agent.config["configurable"] if agent else {}
         retval = runnable_agent.update_state(
-            {
-                "configurable": {
-                    **config,
-                    "thread_id": thread_id,
-                    "agent_id": agent_id,
-                }
-            },
+            {"configurable": {"thread_id": thread_id, "agent_id": agent_id}},
             values,
             as_node=as_node,
         )

@@ -8,6 +8,7 @@ from pydantic import SecretBytes, SecretStr
 from sema4ai_agent_server.agent_types.constants import FINISH_NODE_KEY
 from sema4ai_agent_server.schema import (
     MODEL,
+    ActionPackage,
     Agent,
     AgentArchitecture,
     AgentReasoning,
@@ -62,10 +63,10 @@ class BaseStorage(ABC):
         name: str,
         description: str,
         runbook: str,
-        config: dict,
         model: MODEL,
         architecture: AgentArchitecture,
         reasoning: AgentReasoning,
+        action_packages: list[ActionPackage],
         metadata: Optional[dict],
     ) -> Agent:
         """Modify an agent."""
