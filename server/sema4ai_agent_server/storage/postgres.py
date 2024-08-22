@@ -15,6 +15,7 @@ from sema4ai_agent_server.schema import (
     MODEL,
     Agent,
     AgentArchitecture,
+    AgentReasoning,
     Thread,
     UploadedFile,
     User,
@@ -290,6 +291,7 @@ class PostgresStorage(BaseStorage):
         config: dict,
         model: MODEL,
         architecture: AgentArchitecture,
+        reasoning: AgentReasoning,
         metadata: Optional[dict],
     ) -> Agent:
         """Modify an agent."""
@@ -299,8 +301,8 @@ class PostgresStorage(BaseStorage):
             async with conn.transaction():
                 await conn.execute(
                     (
-                        "INSERT INTO agent (id, user_id, name, description, runbook, config, model, architecture, updated_at, metadata) "
-                        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) "
+                        "INSERT INTO agent (id, user_id, name, description, runbook, config, model, architecture, reasoning, updated_at, metadata) "
+                        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) "
                         "ON CONFLICT (id) DO UPDATE SET "
                         "user_id = EXCLUDED.user_id, "
                         "name = EXCLUDED.name, "
@@ -309,6 +311,7 @@ class PostgresStorage(BaseStorage):
                         "config = EXCLUDED.config, "
                         "model = EXCLUDED.model, "
                         "architecture = EXCLUDED.architecture, "
+                        "reasoning = EXCLUDED.reasoning, "
                         "updated_at = EXCLUDED.updated_at, "
                         "metadata = EXCLUDED.metadata;"
                     ),
@@ -320,6 +323,7 @@ class PostgresStorage(BaseStorage):
                     config,
                     model,
                     architecture,
+                    reasoning,
                     updated_at,
                     metadata,
                 )
@@ -332,6 +336,7 @@ class PostgresStorage(BaseStorage):
             config=config,
             model=model,
             architecture=architecture,
+            reasoning=reasoning,
             updated_at=updated_at,
             metadata=metadata,
         )
@@ -365,7 +370,9 @@ class PostgresStorage(BaseStorage):
 
     async def get_thread_state(self, user_id: str, thread_id: str):
         """Get state for a thread."""
-        app = get_agent_executor([], dummy_model, "", "", False, 0, None)
+        app = get_agent_executor(
+            [], dummy_model, "", "", False, AgentReasoning.DISABLED, None
+        )
         state = app.get_state({"configurable": {"thread_id": thread_id}})
         return {
             "values": state.values,
@@ -399,7 +406,9 @@ class PostgresStorage(BaseStorage):
 
     async def get_thread_history(self, user_id: str, thread_id: str):
         """Get the history of a thread."""
-        app = get_agent_executor([], dummy_model, "", "", False, 0, None)
+        app = get_agent_executor(
+            [], dummy_model, "", "", False, AgentReasoning.DISABLED, None
+        )
 
         history = []
         for c in app.get_state_history({"configurable": {"thread_id": thread_id}}):

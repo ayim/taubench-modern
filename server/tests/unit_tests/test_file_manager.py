@@ -16,6 +16,7 @@ from sema4ai_agent_server.file_manager.local import LocalFileManager
 from sema4ai_agent_server.schema import (
     Agent,
     AgentArchitecture,
+    AgentReasoning,
     Thread,
     UploadedFile,
     dummy_model,
@@ -104,6 +105,7 @@ def sample_owner():
         config={},
         model=dummy_model,
         architecture=AgentArchitecture.AGENT,
+        reasoning=AgentReasoning.DISABLED,
         updated_at=datetime.now(timezone.utc),
         metadata=None,
     )

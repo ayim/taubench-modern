@@ -9,9 +9,22 @@ import time
 
 import requests
 
+from sema4ai_agent_server.schema import (
+    AgentReasoning,
+    LLMProvider,
+    OpenAIGPT,
+    OpenAIGPTConfig,
+)
+from sema4ai_agent_server.storage import basemodel_secret_encoder_for_db
 
-def create_agent(base_url):
+
+def create_agent(base_url, openai_api_key):
     """Creates a new agent."""
+    model = OpenAIGPT(
+        provider=LLMProvider.OPENAI,
+        name="gpt-3.5-turbo",
+        config=OpenAIGPTConfig(temperature=0.0, openai_api_key=openai_api_key),
+    )
     url = f"{base_url}/agents"
     headers = {
         "Accept": "application/json",
@@ -19,18 +32,16 @@ def create_agent(base_url):
     }
     data = {
         "name": "Hello",
+        "description": "This is a test agent",
+        "runbook": "This is a test runbook",
         "config": {
             "configurable": {
-                "type": "agent",
-                "agent_type": "GPT 4o",
-                "interrupt_before_action": False,
-                "retrieval_description": "Can be used to look up information that was uploaded to this assistant.\nIf the user is referencing particular files, that is often a good hint that information may be here.\nIf the user asks a vague question, they are likely meaning to look up info from this retriever, and you should call it!",
-                "system_message": "runbook",
-                "description": "description",
                 "tools": [],
-                "reasoning_level": 0,
             }
         },
+        "model": json.loads(model.json(encoder=basemodel_secret_encoder_for_db)),
+        "architecture": "agent",
+        "reasoning": AgentReasoning.DISABLED,
     }
 
     response = requests.post(url, headers=headers, json=data)
@@ -208,6 +219,9 @@ def main():
     parser.add_argument(
         "--port", type=int, default=8100, help="API port (default: 8100)"
     )
+    parser.add_argument(
+        "--openai_api_key", type=str, default="", help="OpenAI API key."
+    )
     args = parser.parse_args()
 
     base_url = f"http://{args.host}:{args.port}/api/v1"
@@ -219,7 +233,7 @@ def main():
     # Create agent
     print("\n1. CREATING AGENT")
     print("-" * 50)
-    agent_id = create_agent(base_url)
+    agent_id = create_agent(base_url, args.openai_api_key)
     print(f"  Created agent with ID: {agent_id}")
 
     # Create thread

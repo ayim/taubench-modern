@@ -54,6 +54,7 @@ from sema4ai_agent_server.agent_types.tools_agent import (
     get_tools_agent_executor,
 )
 from sema4ai_agent_server.message_types import LiberalToolMessage
+from sema4ai_agent_server.schema import AgentReasoning
 from sema4ai_agent_server.utils import current_timestamp_with_iso_week_local
 
 logger: BoundLogger = get_logger(__name__)
@@ -108,7 +109,7 @@ def get_plan_execute_agent(
     name: str,
     runbook: str,
     interrupt_before_action: bool,
-    reasoning_level: int,
+    reasoning_level: AgentReasoning,
     checkpoint: BaseCheckpointSaver,
 ):
     """Create a plan and execute agent graph that uses a planner, executor, and replanner.
@@ -143,7 +144,7 @@ def get_plan_execute_agent(
                 "executed_plan": None,
                 "response": None,
             }
-        if reasoning_level > 0:
+        if reasoning_level != AgentReasoning.DISABLED:
             # Add the last human message to combined messages
             if state.combined:
                 if isinstance(last_message, HumanMessage):
@@ -156,7 +157,7 @@ def get_plan_execute_agent(
 
     async def offramper(state: PlanExecuteAgentState):
         """Decides if a plan is needed and writes the plan if so.
-        This node assumes reasoning_level == 0"""
+        This node assumes disabled reasoning."""
         logger.debug(f"offramper:state at start of node: {state.dict()}")
         prompt = PLANNER_PROMPTS[reasoning_level]
         messages = _get_messages(state.combined)
@@ -211,7 +212,7 @@ def get_plan_execute_agent(
 
     async def offramper_thinker(state: PlanExecuteAgentState):
         """Decides if a plan is needed and writes the plan if so.
-        This node assumes reasoning_level > 0"""
+        This node assumes reasoning is not disabled."""
         logger.debug(f"offramper_thinker: {state.dict()}")
         prompt = PLANNER_PROMPTS[reasoning_level]
         messages = _get_messages(state.combined)
@@ -306,7 +307,7 @@ def get_plan_execute_agent(
 
     async def step_executor(state: PlanExecuteAgentState):
         """This node executes the next step and updates the executed plan with results.
-        This node assumes reasoning_level == 0"""
+        This node assumes disabled reasoning."""
         executor_agent = get_tools_agent_executor(
             tools,
             llm,
@@ -352,7 +353,7 @@ def get_plan_execute_agent(
 
     async def step_executor_thinker(state: PlanExecuteAgentState):
         """This node executes the next step and updates the executed plan with results.
-        This node assumes reasoning_level > 0"""
+        This node assumes reasoning is not disabled."""
         executor_agent = get_tools_agent_executor(
             tools,
             llm,
@@ -405,7 +406,7 @@ def get_plan_execute_agent(
 
     async def replanner(state: PlanExecuteAgentState):
         """This node reviews the executed plan so far, compares it to the original plan,
-        and updates the current plan with the next steps. This node assumes reasoning_level == 0"""
+        and updates the current plan with the next steps. This node assumes disabled reasoning."""
         prompt = REPLANNER_PROMPTS[reasoning_level]
         messages = _get_messages_for_replanner(state.messages)
         replanner_agent: Runnable[LanguageModelInput, ReplannerResponse] = (
@@ -490,7 +491,7 @@ def get_plan_execute_agent(
 
     async def replanner_thinker(state: PlanExecuteAgentState):
         """This node reviews the executed plan so far, compares it to the original plan,
-        and updates the current plan with the next steps. This node assumes reasoning_level > 0"""
+        and updates the current plan with the next steps. This node assumes reasoning is not disabled."""
         prompt = REPLANNER_PROMPTS[reasoning_level]
         messages = _get_messages_for_replanner(state.combined)
         replanner_agent: Runnable[LanguageModelInput, ReplannerThinkerResponse] = (
@@ -622,7 +623,7 @@ def get_plan_execute_agent(
 
     # add nodes
     workflow.add_node("start_node", objective_parser_and_state_reset)
-    if reasoning_level > 0:
+    if reasoning_level != AgentReasoning.DISABLED:
         workflow.add_node("offramper", offramper_thinker)
         workflow.add_node("step_executor", step_executor_thinker)
         workflow.add_node("replanner", replanner_thinker)

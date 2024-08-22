@@ -10,7 +10,13 @@ from sema4ai_agent_server.agent import runnable_agent
 from sema4ai_agent_server.api.files import _store_files
 from sema4ai_agent_server.auth.handlers import AuthedUser
 from sema4ai_agent_server.file_manager.option import get_file_manager
-from sema4ai_agent_server.schema import MODEL, Agent, AgentArchitecture, UploadedFile
+from sema4ai_agent_server.schema import (
+    MODEL,
+    Agent,
+    AgentArchitecture,
+    AgentReasoning,
+    UploadedFile,
+)
 from sema4ai_agent_server.storage.option import get_storage
 
 logger = structlog.get_logger(__name__)
@@ -29,6 +35,7 @@ class AgentPayload(BaseModel):
     architecture: AgentArchitecture = Field(
         description="The cognitive architecture of the agent."
     )
+    reasoning: AgentReasoning = Field(description="The reasoning setting of the agent.")
     metadata: Optional[dict] = Field(
         default=None, description="Additional metadata for the agent."
     )
@@ -109,6 +116,7 @@ async def create_agent(
         config=payload.config,
         model=payload.model,
         architecture=payload.architecture,
+        reasoning=payload.reasoning,
         metadata=metadata,
     )
 
@@ -142,6 +150,7 @@ async def upsert_agent(
         config=payload.config,
         model=payload.model,
         architecture=payload.architecture,
+        reasoning=payload.reasoning,
         metadata=metadata,
     )
 

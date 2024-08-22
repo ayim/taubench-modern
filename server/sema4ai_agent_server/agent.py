@@ -14,7 +14,13 @@ from sema4ai_agent_server.agent_types.vitality_ai_multi_agent import (
     vitality_ai_new as vitality_ai,
 )
 from sema4ai_agent_server.llms import get_chat_model
-from sema4ai_agent_server.schema import MODEL, AzureGPT, OpenAIGPT, dummy_model
+from sema4ai_agent_server.schema import (
+    MODEL,
+    AgentReasoning,
+    AzureGPT,
+    OpenAIGPT,
+    dummy_model,
+)
 from sema4ai_agent_server.storage.checkpoint import get_checkpointer
 from sema4ai_agent_server.tools import (
     TOOLS,
@@ -65,7 +71,7 @@ def get_agent_executor(
     name: str,
     runbook: str,
     interrupt_before_action: bool,
-    reasoning_level: int,
+    reasoning_level: AgentReasoning,
     knowledge_files: Optional[List[str]],
 ):
     llm = get_chat_model(model)
@@ -90,7 +96,7 @@ class ConfigurableAgent(RunnableBinding):
     agent_id: Optional[str] = None
     thread_id: Optional[str] = None
     user_id: Optional[str] = None
-    reasoning_level: int = 0
+    reasoning_level: AgentReasoning = AgentReasoning.DISABLED
     knowledge_files: Optional[List[str]] = None
 
     def __init__(
@@ -103,7 +109,7 @@ class ConfigurableAgent(RunnableBinding):
         agent_id: Optional[str] = None,
         thread_id: Optional[str] = None,
         interrupt_before_action: bool = False,
-        reasoning_level: int = 0,
+        reasoning_level: AgentReasoning = AgentReasoning.DISABLED,
         knowledge_files: Optional[List[str]] = None,
         kwargs: Optional[Mapping[str, Any]] = None,
         config: Optional[Mapping[str, Any]] = None,
@@ -155,7 +161,7 @@ class ConfigurablePlanExecute(RunnableBinding):
     agent_id: Optional[str] = None
     thread_id: Optional[str] = None
     user_id: Optional[str] = None
-    reasoning_level: Optional[int] = None
+    reasoning_level: AgentReasoning = AgentReasoning.DISABLED
 
     def __init__(
         self,
@@ -167,7 +173,7 @@ class ConfigurablePlanExecute(RunnableBinding):
         agent_id: Optional[str] = None,
         thread_id: Optional[str] = None,
         interrupt_before_action: bool = False,
-        reasoning_level: Optional[int] = None,
+        reasoning_level: AgentReasoning = AgentReasoning.DISABLED,
         kwargs: Optional[Mapping[str, Any]] = None,
         config: Optional[Mapping[str, Any]] = None,
         **others: Any,
@@ -275,7 +281,7 @@ plan_execute = (
         runbook=DEFAULT_RUNBOOK,
         agent_id=None,
         thread_id=None,
-        reasoning_level=0,
+        reasoning_level=AgentReasoning.DISABLED,
     )
     .configurable_fields(
         model=ConfigurableField(id="model", name="Model"),
@@ -292,7 +298,7 @@ plan_execute = (
         reasoning_level=ConfigurableField(
             id="reasoning_level",
             name="Reasoning Level",
-            description="The level of reasoning the agent should use, 0 for no reasoning, 1 for succinct reasoning, 2 for verbose reasoning.",
+            description="The level of reasoning the agent should use.",
         ),
     )
     .with_types(input_type=Dict[str, str], output_type=Sequence[AnyMessage])
@@ -329,7 +335,7 @@ runnable_agent: Pregel = (
         runbook=DEFAULT_RUNBOOK,
         agent_id=None,
         thread_id=None,
-        reasoning_level=0,
+        reasoning_level=AgentReasoning.DISABLED,
         knowledge_files=None,
     )
     .configurable_fields(
@@ -347,7 +353,7 @@ runnable_agent: Pregel = (
         reasoning_level=ConfigurableField(
             id="reasoning_level",
             name="Reasoning Level",
-            description="The level of reasoning the agent should use, 0 for no reasoning, 1 for succinct reasoning, 2 for verbose reasoning.",
+            description="The level of reasoning the agent should use.",
         ),
         knowledge_files=ConfigurableField(
             id="knowledge_files",

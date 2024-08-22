@@ -1,5 +1,7 @@
 from langchain_core.prompts import ChatPromptTemplate
 
+from sema4ai_agent_server.schema import AgentReasoning
+
 PLAN_DESCRIPTION = """Plans are generally only required for more complex objectives which \
 would benefit from multiple rounds of interaction with various tools to complete, especially \
 where the expected output from one tool needs to be used as input into future tools. If you \
@@ -73,8 +75,8 @@ Your immediate instructions: <instructions>
 </instructions>"""
 
 
-PLANNER_PROMPTS: dict[int, ChatPromptTemplate] = {
-    0: ChatPromptTemplate.from_messages(
+PLANNER_PROMPTS: dict[AgentReasoning, ChatPromptTemplate] = {
+    AgentReasoning.DISABLED: ChatPromptTemplate.from_messages(
         [
             (
                 "system",
@@ -94,7 +96,7 @@ needed, assume every step will be followed."""
             ("placeholder", "{messages}"),
         ]
     ),
-    1: ChatPromptTemplate.from_messages(
+    AgentReasoning.ENABLED: ChatPromptTemplate.from_messages(
         [
             (
                 "system",
@@ -116,7 +118,7 @@ the first string is the reasoning why the step is needed and the second string i
             ("placeholder", "{messages}"),
         ]
     ),
-    2: ChatPromptTemplate.from_messages(
+    AgentReasoning.VERBOSE: ChatPromptTemplate.from_messages(
         [
             (
                 "system",
@@ -185,7 +187,7 @@ STEP_EXECUTOR_PROMPT = ChatPromptTemplate.from_messages(
     ]
 )
 STEP_REASONING_PROMPTS = {
-    1: ChatPromptTemplate.from_messages(
+    AgentReasoning.ENABLED: ChatPromptTemplate.from_messages(
         [
             ("system", step_executor_template()),
             ("placeholder", "{messages}"),
@@ -197,7 +199,7 @@ STEP_REASONING_PROMPTS = {
             ),
         ]
     ),
-    2: ChatPromptTemplate.from_messages(
+    AgentReasoning.VERBOSE: ChatPromptTemplate.from_messages(
         [
             ("system", step_executor_template()),
             ("placeholder", "{messages}"),
@@ -211,7 +213,7 @@ STEP_REASONING_PROMPTS = {
     ),
 }
 STEP_RETRY_REASONING_PROMPTS = {
-    1: ChatPromptTemplate.from_messages(
+    AgentReasoning.ENABLED: ChatPromptTemplate.from_messages(
         [
             ("system", step_executor_template()),
             ("placeholder", "{messages}"),
@@ -223,7 +225,7 @@ STEP_RETRY_REASONING_PROMPTS = {
             ),
         ]
     ),
-    2: ChatPromptTemplate.from_messages(
+    AgentReasoning.VERBOSE: ChatPromptTemplate.from_messages(
         [
             ("system", step_executor_template()),
             ("placeholder", "{messages}"),
@@ -273,7 +275,7 @@ Your immediate instructions: <instructions>
 
 
 REPLANNER_PROMPTS: dict[int, ChatPromptTemplate] = {
-    0: ChatPromptTemplate.from_messages(
+    AgentReasoning.DISABLED: ChatPromptTemplate.from_messages(
         [
             (
                 "system",
@@ -332,7 +334,7 @@ Remaining planned steps: <remaining_steps>
             ),
         ]
     ),
-    1: ChatPromptTemplate.from_messages(
+    AgentReasoning.ENABLED: ChatPromptTemplate.from_messages(
         [
             (
                 "system",
@@ -394,7 +396,7 @@ Remaining planned steps: <remaining_steps>
             ),
         ]
     ),
-    2: ChatPromptTemplate.from_messages(
+    AgentReasoning.VERBOSE: ChatPromptTemplate.from_messages(
         [
             (
                 "system",

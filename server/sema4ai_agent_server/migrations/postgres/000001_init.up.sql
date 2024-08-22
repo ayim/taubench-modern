@@ -24,6 +24,7 @@ CREATE TABLE agent (
     metadata JSONB,
     model JSONB,
     architecture TEXT NOT NULL,
+    reasoning TEXT NOT NULL,
     CONSTRAINT fk_agent_user_id FOREIGN KEY (user_id) REFERENCES "user"(user_id)
 );
 

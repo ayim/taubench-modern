@@ -10,6 +10,7 @@ from sema4ai_agent_server.schema import (
     MODEL,
     Agent,
     AgentArchitecture,
+    AgentReasoning,
     Thread,
     UploadedFile,
     User,
@@ -64,6 +65,7 @@ class BaseStorage(ABC):
         config: dict,
         model: MODEL,
         architecture: AgentArchitecture,
+        reasoning: AgentReasoning,
         metadata: Optional[dict],
     ) -> Agent:
         """Modify an agent."""

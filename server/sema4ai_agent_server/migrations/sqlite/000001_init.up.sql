@@ -24,6 +24,7 @@ CREATE TABLE agent (
     metadata TEXT,
     model TEXT,
     architecture TEXT NOT NULL,
+    reasoning TEXT NOT NULL,
     FOREIGN KEY (user_id) REFERENCES "user" (user_id)
 );
 
