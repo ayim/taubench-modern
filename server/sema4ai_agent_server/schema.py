@@ -122,6 +122,16 @@ class AgentArchitecture(str, Enum):
     PLAN_EXECUTE = "plan_execute"
 
 
+class AgentReasoning(str, Enum):
+    """
+    Enum for agent reasoning.
+    """
+
+    DISABLED = "disabled"
+    ENABLED = "enabled"
+    VERBOSE = "verbose"
+
+
 class Agent(BaseModel):
     """Agent model."""
 
@@ -135,6 +145,7 @@ class Agent(BaseModel):
     architecture: AgentArchitecture = Field(
         description="The cognitive architecture of the agent."
     )
+    reasoning: AgentReasoning = Field(description="The reasoning setting of the agent.")
     updated_at: datetime = Field(description="The last time the agent was updated.")
     metadata: Optional[dict] = Field(description="The agent metadata.")
 

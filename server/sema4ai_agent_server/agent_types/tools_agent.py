@@ -24,6 +24,7 @@ from sema4ai_agent_server.agent_types.constants import (
     FINISH_NODE_KEY,
 )
 from sema4ai_agent_server.message_types import LiberalToolMessage
+from sema4ai_agent_server.schema import AgentReasoning
 from sema4ai_agent_server.utils import current_timestamp_with_iso_week_local
 
 # Define all possible LLM types
@@ -45,7 +46,7 @@ EXECUTE_PROMPT_TEMPLATE = ChatPromptTemplate.from_messages(BASE_PROMPT_MESSAGES)
 # Keys off of the verbose levels in the configurable.
 REASONING_PROMPT_TEMPLATES = {
     # Consider adding "Respond with at most 2 sentances." in the level 1 prompt if it's still too verbose
-    1: ChatPromptTemplate.from_messages(
+    AgentReasoning.ENABLED: ChatPromptTemplate.from_messages(
         BASE_PROMPT_MESSAGES
         + [
             (
@@ -56,7 +57,7 @@ REASONING_PROMPT_TEMPLATES = {
             )
         ]
     ),
-    2: ChatPromptTemplate.from_messages(
+    AgentReasoning.VERBOSE: ChatPromptTemplate.from_messages(
         BASE_PROMPT_MESSAGES
         + [
             (
@@ -69,7 +70,7 @@ REASONING_PROMPT_TEMPLATES = {
     ),
 }
 RETRY_REASONING_TEMPLATES = {
-    1: ChatPromptTemplate.from_messages(
+    AgentReasoning.ENABLED: ChatPromptTemplate.from_messages(
         BASE_PROMPT_MESSAGES
         + [
             (
@@ -80,7 +81,7 @@ RETRY_REASONING_TEMPLATES = {
             )
         ]
     ),
-    2: ChatPromptTemplate.from_messages(
+    AgentReasoning.VERBOSE: ChatPromptTemplate.from_messages(
         BASE_PROMPT_MESSAGES
         + [
             (
@@ -105,15 +106,17 @@ def get_tools_agent_executor(
     llm: BaseChatModel,
     name: str,
     runbook: str,
-    reasoning_level: int,
+    reasoning_level: AgentReasoning,
     interrupt_before_action: bool,
     checkpoint: BaseCheckpointSaver,
     knowledge_files: Optional[List[str]],
     *,
     execute_template: ChatPromptTemplate = EXECUTE_PROMPT_TEMPLATE,
-    reasoning_templates: dict[int, ChatPromptTemplate] = REASONING_PROMPT_TEMPLATES,
+    reasoning_templates: dict[
+        AgentReasoning, ChatPromptTemplate
+    ] = REASONING_PROMPT_TEMPLATES,
     retry_reasoning_templates: dict[
-        int, ChatPromptTemplate
+        AgentReasoning, ChatPromptTemplate
     ] = RETRY_REASONING_TEMPLATES,
 ):
     if not isinstance(llm, AGENT_TYPES):
@@ -150,7 +153,7 @@ def get_tools_agent_executor(
     tool_executor = ToolExecutor(tools)
 
     executor_agent = execute_template | llm_with_tools
-    if reasoning_level > 0:
+    if reasoning_level != AgentReasoning.DISABLED:
         reasoning_agent = reasoning_templates[reasoning_level] | llm_with_tools
         retry_reasoning_agent = (
             retry_reasoning_templates[reasoning_level] | llm_with_tools
@@ -211,7 +214,7 @@ def get_tools_agent_executor(
         return {"reasoning": [response], "combined": [response]}
 
     async def agent(state: AgentState):
-        if reasoning_level > 0:
+        if reasoning_level != AgentReasoning.DISABLED:
             associated_reasoning_id = (
                 state.reasoning[-1].id if state.reasoning else None
             )
@@ -236,7 +239,7 @@ def get_tools_agent_executor(
                     "messages": _get_messages(state.messages),
                 }
             )
-        if reasoning_level > 0:
+        if reasoning_level != AgentReasoning.DISABLED:
             return {"messages": [response], "combined": [response]}
         else:
             return {"messages": [response]}
@@ -276,7 +279,7 @@ def get_tools_agent_executor(
             )
             for tool_call, response in zip(last_message.tool_calls, responses)
         ]
-        if reasoning_level > 0:
+        if reasoning_level != AgentReasoning.DISABLED:
             return {"messages": tool_messages, "combined": tool_messages}
         else:
             return {"messages": tool_messages}
@@ -286,20 +289,20 @@ def get_tools_agent_executor(
     # Define the two nodes we will cycle between
     workflow.add_node("agent", agent)
     workflow.add_node("action", call_tool)
-    if reasoning_level > 0:
+    if reasoning_level != AgentReasoning.DISABLED:
         workflow.add_node("reason", reasoning)
         workflow.add_node("retry_reason", retry_reasoning)
     workflow.add_node(FINISH_NODE_KEY, FINISH_NODE_ACTION)
 
     # Set the entrypoint as `agent`
     # This means that this node is the first one called
-    if reasoning_level > 0:
+    if reasoning_level != AgentReasoning.DISABLED:
         workflow.set_entry_point("reason")
     else:
         workflow.set_entry_point("agent")
     workflow.set_finish_point(FINISH_NODE_KEY)
 
-    if reasoning_level > 0:
+    if reasoning_level != AgentReasoning.DISABLED:
         # Use a conditional edge to check the LLM's output for errant tool calls.
         workflow.add_conditional_edges(
             "reason",
@@ -341,7 +344,7 @@ def get_tools_agent_executor(
 
     # We now add a normal edge from `tools` to `agent`.
     # This means that after `tools` is called, `agent` node is called next.
-    if reasoning_level > 0:
+    if reasoning_level != AgentReasoning.DISABLED:
         workflow.add_edge("action", "reason")
     else:
         workflow.add_edge("action", "agent")

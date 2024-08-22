@@ -18,6 +18,7 @@ from sema4ai_agent_server.schema import (
     MODEL,
     Agent,
     AgentArchitecture,
+    AgentReasoning,
     Thread,
     UploadedFile,
     User,
@@ -210,6 +211,7 @@ class SqliteStorage(BaseStorage):
         config: dict,
         model: MODEL,
         architecture: AgentArchitecture,
+        reasoning: AgentReasoning,
         metadata: Optional[dict],
     ) -> Agent:
         """Modify an agent."""
@@ -221,8 +223,8 @@ class SqliteStorage(BaseStorage):
             model_str = model.json(encoder=basemodel_secret_encoder_for_db)
             cursor.execute(
                 """
-                INSERT INTO agent (id, user_id, name, description, runbook, config, model, architecture, updated_at, metadata)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO agent (id, user_id, name, description, runbook, config, model, architecture, reasoning, updated_at, metadata)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) 
                 DO UPDATE SET 
                     user_id = EXCLUDED.user_id, 
@@ -232,6 +234,7 @@ class SqliteStorage(BaseStorage):
                     config = EXCLUDED.config, 
                     model = EXCLUDED.model,
                     architecture = EXCLUDED.architecture,
+                    reasoning = EXCLUDED.reasoning,
                     updated_at = EXCLUDED.updated_at, 
                     metadata = EXCLUDED.metadata
                 """,
@@ -244,6 +247,7 @@ class SqliteStorage(BaseStorage):
                     config_str,
                     model_str,
                     architecture,
+                    reasoning,
                     updated_at.isoformat(),
                     json.dumps(metadata),
                 ),
@@ -258,6 +262,7 @@ class SqliteStorage(BaseStorage):
                 config=config,
                 model=model,
                 architecture=architecture,
+                reasoning=reasoning,
                 updated_at=updated_at,
                 metadata=metadata,
             )
@@ -317,7 +322,9 @@ class SqliteStorage(BaseStorage):
 
     async def get_thread_state(self, user_id: str, thread_id: str):
         """Get state for a thread."""
-        app = get_agent_executor([], dummy_model, "", "", False, 0, None)
+        app = get_agent_executor(
+            [], dummy_model, "", "", False, AgentReasoning.DISABLED, None
+        )
         state = app.get_state({"configurable": {"thread_id": thread_id}})
         return {
             "values": state.values,
@@ -351,7 +358,9 @@ class SqliteStorage(BaseStorage):
 
     async def get_thread_history(self, user_id: str, thread_id: str):
         """Get the history of a thread."""
-        app = get_agent_executor([], dummy_model, "", "", False, 0, None)
+        app = get_agent_executor(
+            [], dummy_model, "", "", False, AgentReasoning.DISABLED, None
+        )
         return [
             {
                 "values": c.values,
