@@ -20,7 +20,6 @@ from sema4ai_agent_server.langsmith_client import (
 )
 from sema4ai_agent_server.storage.option import get_storage
 from sema4ai_agent_server.stream import astream_state, invoke_state, to_sse
-from sema4ai_agent_server.tools import AvailableTools
 
 router = APIRouter()
 langsmith_client = langsmith.client.Client() if tracing_is_enabled() else None
@@ -33,7 +32,6 @@ class CreateRunPayload(BaseModel):
     input: Optional[Union[Sequence[AnyMessage], Dict[str, Any]]] = Field(
         default_factory=dict
     )
-    config: Optional[RunnableConfig] = None
 
 
 async def _run_input_and_config(payload: CreateRunPayload, user_id: str):
@@ -45,16 +43,18 @@ async def _run_input_and_config(payload: CreateRunPayload, user_id: str):
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
 
-    knowledge_files = (None,)
+    knowledge_files = None
     if agent:
         uploaded_files = await get_storage().get_agent_files(agent.id)
         knowledge_files = [file.file_ref for file in uploaded_files]
 
+    thread_files = await get_storage().get_thread_files(thread.thread_id)
+    use_retrieval = (knowledge_files is not None and len(knowledge_files) > 0) or len(
+        thread_files
+    ) > 0
+
     config: RunnableConfig = {
-        **agent.config,
         "configurable": {
-            **agent.config["configurable"],
-            **((payload.config or {}).get("configurable") or {}),
             "user_id": user_id,
             "thread_id": thread.thread_id,
             "agent_id": agent.id,
@@ -64,26 +64,10 @@ async def _run_input_and_config(payload: CreateRunPayload, user_id: str):
             "model": agent.model,
             "type": agent.architecture,
             "reasoning_level": agent.reasoning,
+            "action_packages": agent.action_packages,
+            "use_retrieval": use_retrieval,
         },
     }
-
-    thread_files = await get_storage().get_thread_files(thread.thread_id)
-
-    # Add retriever tool if there are any files (knowledge or thread) and it's not already present
-    if knowledge_files or thread_files:
-        tools = config["configurable"].get("tools", [])
-        if not any(tool.get("type") == AvailableTools.RETRIEVAL for tool in tools):
-            tools.append(
-                {
-                    "type": AvailableTools.RETRIEVAL.value,
-                    "name": "Retrieval",
-                    "description": "Look up information in uploaded files.",
-                    "config": {
-                        "name": "Retrieval",
-                    },
-                }
-            )
-        config["configurable"]["tools"] = tools
 
     try:
         input_ = (
