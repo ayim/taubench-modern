@@ -28,6 +28,7 @@ CREATE TABLE agent (
     action_packages JSONB,
     CONSTRAINT fk_agent_user_id FOREIGN KEY (user_id) REFERENCES "user"(user_id)
 );
+CREATE UNIQUE INDEX idx_unique_agent_name ON agent (LOWER(name));
 
 CREATE TABLE thread (
     thread_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
