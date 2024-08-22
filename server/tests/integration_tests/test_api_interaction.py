@@ -139,7 +139,7 @@ def send_message(base_url, thread_id, message):
             if decoded_line.startswith("data: "):
                 data = json.loads(decoded_line[6:])
                 if isinstance(data, list) and len(data) > 0:
-                    message_part = data[0]
+                    message_part = data[-1]
                     if message_part["type"] == "ai":
                         current_message = message_part["content"]
                         print(".", end="", flush=True)
