@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from langchain_core.messages import AnyMessage
 from langchain_core.runnables import (
@@ -16,6 +16,7 @@ from sema4ai_agent_server.agent_types.vitality_ai_multi_agent import (
 from sema4ai_agent_server.llms import get_chat_model
 from sema4ai_agent_server.schema import (
     MODEL,
+    ActionPackage,
     AgentReasoning,
     AzureGPT,
     OpenAIGPT,
@@ -23,40 +24,9 @@ from sema4ai_agent_server.schema import (
 )
 from sema4ai_agent_server.storage.checkpoint import get_checkpointer
 from sema4ai_agent_server.tools import (
-    TOOLS,
-    ActionServer,
-    Arxiv,
-    AvailableTools,
-    Connery,
-    DallE,
-    DDGSearch,
-    PressReleases,
-    PubMed,
-    Retrieval,
-    SecFilings,
-    Tavily,
-    TavilyAnswer,
-    Wikipedia,
-    YouSearch,
+    get_action_server,
     get_retrieval_tool,
 )
-
-Tool = Union[
-    ActionServer,
-    Connery,
-    DDGSearch,
-    Arxiv,
-    YouSearch,
-    SecFilings,
-    PressReleases,
-    PubMed,
-    Wikipedia,
-    Tavily,
-    TavilyAnswer,
-    Retrieval,
-    DallE,
-]
-
 
 DEFAULT_RUNBOOK = "You are a helpful agent."
 DEFAULT_NAME = "Agent"
@@ -88,7 +58,8 @@ def get_agent_executor(
 
 
 class ConfigurableAgent(RunnableBinding):
-    tools: Sequence[Tool]
+    action_packages: Sequence[ActionPackage]
+    use_retrieval: bool = False
     model: Optional[MODEL] = None
     name: str = DEFAULT_NAME
     runbook: str = DEFAULT_RUNBOOK
@@ -102,12 +73,14 @@ class ConfigurableAgent(RunnableBinding):
     def __init__(
         self,
         *,
-        tools: Sequence[Tool],
+        action_packages: Sequence[ActionPackage],
+        use_retrieval: bool = False,
         model: Optional[MODEL] = None,
         name: str = DEFAULT_NAME,
         runbook: str = DEFAULT_RUNBOOK,
         agent_id: Optional[str] = None,
         thread_id: Optional[str] = None,
+        user_id: Optional[str] = None,
         interrupt_before_action: bool = False,
         reasoning_level: AgentReasoning = AgentReasoning.DISABLED,
         knowledge_files: Optional[List[str]] = None,
@@ -116,24 +89,25 @@ class ConfigurableAgent(RunnableBinding):
         **others: Any,
     ) -> None:
         others.pop("bound", None)
-        _tools = []
-        for _tool in tools:
-            if _tool["type"] == AvailableTools.RETRIEVAL:
-                if agent_id is None and thread_id is None:
-                    raise ValueError(
-                        "Either agent_id or thread_id must be provided if Retrieval tool is used"
-                    )
-                _tools.append(get_retrieval_tool(agent_id, thread_id, model))
-            else:
-                tool_config = _tool.get("config", {})
-                _returned_tools = TOOLS[_tool["type"]](**tool_config)
-                if isinstance(_returned_tools, list):
-                    _tools.extend(_returned_tools)
-                else:
-                    _tools.append(_returned_tools)
+        dynamic_headers = (
+            {
+                "x-invoked_by_assistant_id": agent_id,
+                "x-invoked_on_behalf_of_user_id": user_id,
+            }
+            if agent_id and user_id
+            else {}
+        )
+        tools = []
+        for action_package in action_packages:
+            action_package.additional_headers.update(dynamic_headers)
+            tools.extend(get_action_server(action_package))
+        if use_retrieval:
+            if agent_id is None and thread_id is None:
+                raise ValueError("agent_id or thread_id must be provided.")
+            tools.append(get_retrieval_tool(agent_id, thread_id, model))
 
         _agent = get_agent_executor(
-            _tools,
+            tools,
             model,
             name,
             runbook,
@@ -143,7 +117,8 @@ class ConfigurableAgent(RunnableBinding):
         )
         agent_executor = _agent.with_config({"recursion_limit": 50})
         super().__init__(
-            tools=tools,
+            action_packages=action_packages,
+            use_retrieval=use_retrieval,
             model=model,
             runbook=runbook,
             bound=agent_executor,
@@ -153,7 +128,8 @@ class ConfigurableAgent(RunnableBinding):
 
 
 class ConfigurablePlanExecute(RunnableBinding):
-    tools: Sequence[Tool]
+    action_packages: Sequence[ActionPackage]
+    use_retrieval: bool = False
     model: Optional[MODEL] = None
     name: str = DEFAULT_NAME
     runbook: str = DEFAULT_RUNBOOK
@@ -166,12 +142,14 @@ class ConfigurablePlanExecute(RunnableBinding):
     def __init__(
         self,
         *,
-        tools: Sequence[Tool],
+        action_packages: Sequence[ActionPackage],
+        use_retrieval: bool = False,
         model: Optional[MODEL] = None,
         name: str = DEFAULT_NAME,
         runbook: str = DEFAULT_RUNBOOK,
         agent_id: Optional[str] = None,
         thread_id: Optional[str] = None,
+        user_id: Optional[str] = None,
         interrupt_before_action: bool = False,
         reasoning_level: AgentReasoning = AgentReasoning.DISABLED,
         kwargs: Optional[Mapping[str, Any]] = None,
@@ -179,27 +157,28 @@ class ConfigurablePlanExecute(RunnableBinding):
         **others: Any,
     ) -> None:
         others.pop("bound", None)
-        _tools = []
-        for _tool in tools:
-            if _tool["type"] == AvailableTools.RETRIEVAL:
-                if agent_id is None or thread_id is None:
-                    raise ValueError(
-                        "Both agent_id and thread_id must be provided if Retrieval tool is used"
-                    )
-                _tools.append(get_retrieval_tool(agent_id, thread_id, model))
-            else:
-                tool_config = _tool.get("config", {})
-                _returned_tools = TOOLS[_tool["type"]](**tool_config)
-                if isinstance(_returned_tools, list):
-                    _tools.extend(_returned_tools)
-                else:
-                    _tools.append(_returned_tools)
+        dynamic_headers = (
+            {
+                "x-invoked_by_assistant_id": agent_id,
+                "x-invoked_on_behalf_of_user_id": user_id,
+            }
+            if agent_id and user_id
+            else {}
+        )
+        tools = []
+        for action_package in action_packages:
+            action_package.additional_headers.update(dynamic_headers)
+            tools.extend(get_action_server(action_package))
+        if use_retrieval:
+            if agent_id is None and thread_id is None:
+                raise ValueError("agent_id or thread_id must be provided.")
+            tools.append(get_retrieval_tool(agent_id, thread_id, model))
 
         if type(model) not in (OpenAIGPT, AzureGPT):
             raise ValueError(f"Model {model} is not supported for PlanExecute.")
         llm = get_chat_model(model)
         _agent = get_plan_execute_agent(
-            _tools,
+            tools,
             llm,
             name,
             runbook,
@@ -209,7 +188,8 @@ class ConfigurablePlanExecute(RunnableBinding):
         )
         agent_executor = _agent.with_config({"recursion_limit": 50})
         super().__init__(
-            tools=tools,
+            action_packages=action_packages,
+            use_retrieval=use_retrieval,
             model=model,
             runbook=runbook,
             bound=agent_executor,
@@ -219,7 +199,8 @@ class ConfigurablePlanExecute(RunnableBinding):
 
 
 class ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(RunnableBinding):
-    tools: Sequence[Tool]
+    action_packages: Sequence[ActionPackage]
+    use_retrieval: bool = False
     model: Optional[MODEL] = None
     runbook: str = DEFAULT_RUNBOOK
     interrupt_before_action: bool = False
@@ -230,41 +211,46 @@ class ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(RunnableBin
     def __init__(
         self,
         *,
-        tools: Sequence[Tool],
+        action_packages: Sequence[ActionPackage],
+        use_retrieval: bool = False,
         model: Optional[MODEL] = None,
         runbook: str = DEFAULT_RUNBOOK,
         agent_id: Optional[str] = None,
         thread_id: Optional[str] = None,
+        user_id: Optional[str] = None,
         interrupt_before_action: bool = False,
         kwargs: Optional[Mapping[str, Any]] = None,
         config: Optional[Mapping[str, Any]] = None,
         **others: Any,
     ) -> None:
         others.pop("bound", None)
-        _tools = []
-        for _tool in tools:
-            if _tool["type"] == AvailableTools.RETRIEVAL:
-                if agent_id is None or thread_id is None:
-                    raise ValueError(
-                        "Both agent_id and thread_id must be provided if Retrieval tool is used"
-                    )
-                _tools.append(get_retrieval_tool(agent_id, thread_id, model))
-            else:
-                tool_config = _tool.get("config", {})
-                _returned_tools = TOOLS[_tool["type"]](**tool_config)
-                if isinstance(_returned_tools, list):
-                    _tools.extend(_returned_tools)
-                else:
-                    _tools.append(_returned_tools)
+        dynamic_headers = (
+            {
+                "x-invoked_by_assistant_id": agent_id,
+                "x-invoked_on_behalf_of_user_id": user_id,
+            }
+            if agent_id and user_id
+            else {}
+        )
+        tools = []
+        for action_package in action_packages:
+            action_package.additional_headers.update(dynamic_headers)
+            tools.extend(get_action_server(action_package))
+        if use_retrieval:
+            if agent_id is None and thread_id is None:
+                raise ValueError("agent_id or thread_id must be provided.")
+            tools.append(get_retrieval_tool(agent_id, thread_id, model))
+
         if type(model) not in (OpenAIGPT, AzureGPT):
             raise ValueError(f"Model {model} is not supported for PlanExecute.")
         llm = get_chat_model(model)
         _agent = vitality_ai.get_tools_agent_executor(
-            _tools, llm, interrupt_before_action, CHECKPOINTER
+            tools, llm, interrupt_before_action, CHECKPOINTER
         )
         agent_executor = _agent.with_config({"recursion_limit": 50})
         super().__init__(
-            tools=tools,
+            action_packages=action_packages,
+            use_retrieval=use_retrieval,
             model=model,
             runbook=runbook,
             bound=agent_executor,
@@ -275,12 +261,14 @@ class ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(RunnableBin
 
 plan_execute = (
     ConfigurablePlanExecute(
-        tools=[],
+        action_packages=[],
+        use_retrieval=False,
         model=dummy_model,
         name=DEFAULT_NAME,
         runbook=DEFAULT_RUNBOOK,
         agent_id=None,
         thread_id=None,
+        user_id=None,
         reasoning_level=AgentReasoning.DISABLED,
     )
     .configurable_fields(
@@ -294,7 +282,9 @@ plan_execute = (
         ),
         agent_id=ConfigurableField(id="agent_id", name="Agent ID", is_shared=True),
         thread_id=ConfigurableField(id="thread_id", name="Thread ID", is_shared=True),
-        tools=ConfigurableField(id="tools", name="Tools"),
+        user_id=ConfigurableField(id="user_id", name="User ID", is_shared=True),
+        action_packages=ConfigurableField(id="action_packages", name="Action Packages"),
+        use_retrieval=ConfigurableField(id="use_retrieval", name="Use Retrieval"),
         reasoning_level=ConfigurableField(
             id="reasoning_level",
             name="Reasoning Level",
@@ -306,11 +296,13 @@ plan_execute = (
 
 multi_agent_hierarchical_planning = (
     ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(
-        tools=[],
+        action_packages=[],
+        use_retrieval=False,
         model=dummy_model,
         runbook=DEFAULT_RUNBOOK,
         agent_id=None,
         thread_id=None,
+        user_id=None,
     )
     .configurable_fields(
         model=ConfigurableField(id="model", name="Model"),
@@ -322,7 +314,9 @@ multi_agent_hierarchical_planning = (
         ),
         agent_id=ConfigurableField(id="agent_id", name="Agent ID", is_shared=True),
         thread_id=ConfigurableField(id="thread_id", name="Thread ID", is_shared=True),
-        tools=ConfigurableField(id="tools", name="Tools"),
+        user_id=ConfigurableField(id="user_id", name="User ID", is_shared=True),
+        action_packages=ConfigurableField(id="action_packages", name="Action Packages"),
+        use_retrieval=ConfigurableField(id="use_retrieval", name="Use Retrieval"),
     )
     .with_types(input_type=Dict[str, str], output_type=Sequence[AnyMessage])
 )
@@ -330,11 +324,13 @@ multi_agent_hierarchical_planning = (
 runnable_agent: Pregel = (
     ConfigurableAgent(
         model=dummy_model,
-        tools=[],
+        action_packages=[],
+        use_retrieval=False,
         name=DEFAULT_NAME,
         runbook=DEFAULT_RUNBOOK,
         agent_id=None,
         thread_id=None,
+        user_id=None,
         reasoning_level=AgentReasoning.DISABLED,
         knowledge_files=None,
     )
@@ -349,7 +345,9 @@ runnable_agent: Pregel = (
         ),
         agent_id=ConfigurableField(id="agent_id", name="Agent ID", is_shared=True),
         thread_id=ConfigurableField(id="thread_id", name="Thread ID", is_shared=True),
-        tools=ConfigurableField(id="tools", name="Tools"),
+        user_id=ConfigurableField(id="user_id", name="User ID", is_shared=True),
+        action_packages=ConfigurableField(id="action_packages", name="Action Packages"),
+        use_retrieval=ConfigurableField(id="use_retrieval", name="Use Retrieval"),
         reasoning_level=ConfigurableField(
             id="reasoning_level",
             name="Reasoning Level",

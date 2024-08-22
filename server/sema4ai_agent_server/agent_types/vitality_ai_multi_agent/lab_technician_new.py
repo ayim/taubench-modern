@@ -7,6 +7,7 @@ from langchain_core.prompts import (
     MessagesPlaceholder,
     SystemMessagePromptTemplate,
 )
+from langchain_core.tools import BaseTool
 from langchain_openai import ChatOpenAI
 
 from sema4ai_agent_server.agent_types.vitality_ai_multi_agent.data_retrieval_specilalist_new import (
@@ -22,7 +23,6 @@ from sema4ai_agent_server.agent_types.vitality_ai_multi_agent.state.planning_mod
 from sema4ai_agent_server.agent_types.vitality_ai_multi_agent.state.reasoning_audit import (
     VitalityReasoningLogEntry,
 )
-from sema4ai_agent_server.tools import BaseTool
 
 logger = logging.getLogger(__name__)
 

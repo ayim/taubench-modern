@@ -132,6 +132,33 @@ class AgentReasoning(str, Enum):
     VERBOSE = "verbose"
 
 
+class ActionPackage(BaseModel):
+    """
+    Action Package Definition.
+    """
+
+    name: str = Field(description="The name of the action package.")
+    organization: str = Field(description="The organization of the action package.")
+    version: str = Field(description="The version of the action package.")
+    url: str = Field(
+        description="URL of the action server that hosts the action package."
+    )
+    api_key: SecretStr = Field(
+        description="API Key of the action server that hosts the action package."
+    )
+    whitelist: str = Field(
+        description=(
+            "Whitelist of actions (comma separated) that are accepted in the action package. "
+            "An empty string value for whitelist implies usage of all actions."
+        ),
+        default="",
+    )
+    additional_headers: dict = Field(
+        description="Additional headers to be sent with the request to the action server.",
+        default_factory=dict,
+    )
+
+
 class Agent(BaseModel):
     """Agent model."""
 
@@ -140,12 +167,14 @@ class Agent(BaseModel):
     name: str = Field(description="The name of the agent.")
     description: str = Field(description="The description of the agent.")
     runbook: str = Field(description="The runbook for the agent.")
-    config: dict = Field(description="The agent config.")
     model: MODEL = Field(description="LLM model configuration for the agent.")
     architecture: AgentArchitecture = Field(
         description="The cognitive architecture of the agent."
     )
     reasoning: AgentReasoning = Field(description="The reasoning setting of the agent.")
+    action_packages: list[ActionPackage] = Field(
+        description="The action packages for the agent."
+    )
     updated_at: datetime = Field(description="The last time the agent was updated.")
     metadata: Optional[dict] = Field(description="The agent metadata.")
 

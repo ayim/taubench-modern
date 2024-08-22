@@ -12,6 +12,7 @@ from sema4ai_agent_server.auth.handlers import AuthedUser
 from sema4ai_agent_server.file_manager.option import get_file_manager
 from sema4ai_agent_server.schema import (
     MODEL,
+    ActionPackage,
     Agent,
     AgentArchitecture,
     AgentReasoning,
@@ -30,12 +31,14 @@ class AgentPayload(BaseModel):
     name: str = Field(..., description="The name of the agent.")
     description: str = Field(..., description="The description of the agent.")
     runbook: str = Field(..., description="The runbook for the agent.")
-    config: dict = Field(..., description="The agent config.")
     model: MODEL = Field(..., description="LLM model configuration for the agent.")
     architecture: AgentArchitecture = Field(
         description="The cognitive architecture of the agent."
     )
     reasoning: AgentReasoning = Field(description="The reasoning setting of the agent.")
+    action_packages: list[ActionPackage] = Field(
+        default=[], description="The action packages for the agent."
+    )
     metadata: Optional[dict] = Field(
         default=None, description="Additional metadata for the agent."
     )
@@ -52,7 +55,6 @@ async def _generate_welcome_message(
     )
     config = {
         "configurable": {
-            **payload.config.get("configurable", {}),
             "thread_id": thread.thread_id,
             "model": payload.model,
             "type": AgentArchitecture.AGENT.value,
@@ -113,10 +115,10 @@ async def create_agent(
         name=payload.name,
         description=payload.description,
         runbook=payload.runbook,
-        config=payload.config,
         model=payload.model,
         architecture=payload.architecture,
         reasoning=payload.reasoning,
+        action_packages=payload.action_packages,
         metadata=metadata,
     )
 
@@ -147,10 +149,10 @@ async def upsert_agent(
         name=payload.name,
         description=payload.description,
         runbook=payload.runbook,
-        config=payload.config,
         model=payload.model,
         architecture=payload.architecture,
         reasoning=payload.reasoning,
+        action_packages=payload.action_packages,
         metadata=metadata,
     )
 

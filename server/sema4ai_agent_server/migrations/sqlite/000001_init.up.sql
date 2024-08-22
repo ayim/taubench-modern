@@ -19,12 +19,12 @@ CREATE TABLE agent (
     name TEXT NOT NULL,
     description TEXT NOT NULL,
     runbook TEXT NOT NULL,
-    config TEXT NOT NULL,
     updated_at DATETIME DEFAULT (datetime('now')),
     metadata TEXT,
     model TEXT,
     architecture TEXT NOT NULL,
     reasoning TEXT NOT NULL,
+    action_packages TEXT,
     FOREIGN KEY (user_id) REFERENCES "user" (user_id)
 );
 

@@ -4,6 +4,7 @@ from datetime import date
 from uuid import uuid4
 
 from langchain_core.messages import AIMessage, ToolMessage
+from langchain_core.tools import BaseTool
 from langchain_openai import ChatOpenAI
 
 from sema4ai_agent_server.agent_types.vitality_ai_multi_agent.base_vitality_agent import (
@@ -21,7 +22,6 @@ from sema4ai_agent_server.agent_types.vitality_ai_multi_agent.tools_executor imp
     get_tools_executor,
 )
 from sema4ai_agent_server.storage.checkpoint import get_checkpointer
-from sema4ai_agent_server.tools import BaseTool
 
 logger = logging.getLogger(__name__)
 

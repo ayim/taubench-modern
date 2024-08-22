@@ -12,7 +12,6 @@ from sema4ai_agent_server.constants import UPLOAD_DIR
 from sema4ai_agent_server.lifespan import lifespan
 from sema4ai_agent_server.log_config import setup_logging
 from sema4ai_agent_server.storage.option import get_storage
-from sema4ai_agent_server.tools import AvailableTools
 
 setup_logging()
 logger = structlog.get_logger(__name__)
@@ -54,12 +53,8 @@ async def update_action_server_ports(port_map: dict[str, str]) -> dict:
 
     for agent in agents:
         updated = False
-        for tool in agent.config.get("configurable", {}).get("tools", []):
-            if tool["type"] != AvailableTools.ACTION_SERVER:
-                continue
-
-            url = tool["config"]["url"]
-            parts = urlparse(url)
+        for action_package in agent.action_packages:
+            parts = urlparse(action_package.url)
 
             if parts.port is None or str(parts.port) not in port_map:
                 continue
@@ -74,9 +69,11 @@ async def update_action_server_ports(port_map: dict[str, str]) -> dict:
                     parts.fragment,
                 )
             )
-            tool["config"]["url"] = new_url
+            action_package.url = new_url
             updated = True
-            logger.info(f"Updated tool URL from {url} to {new_url} for {agent.name}.")
+            logger.info(
+                f"Updated tool URL from {action_package.url} to {new_url} for {agent.name}."
+            )
 
         if updated:
             updated_agents.append(agent)
@@ -88,10 +85,10 @@ async def update_action_server_ports(port_map: dict[str, str]) -> dict:
             name=agent.name,
             description=agent.description,
             runbook=agent.runbook,
-            config=agent.config,
             model=agent.model,
             architecture=agent.architecture,
             reasoning=agent.reasoning,
+            action_packages=agent.action_packages,
             metadata=agent.metadata,
         )
 
