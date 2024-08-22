@@ -294,6 +294,7 @@ class PostgresStorage(BaseStorage):
         name: str,
         description: str,
         runbook: str,
+        version: str,
         model: MODEL,
         architecture: AgentArchitecture,
         reasoning: AgentReasoning,
@@ -307,13 +308,14 @@ class PostgresStorage(BaseStorage):
             async with conn.transaction():
                 await conn.execute(
                     (
-                        "INSERT INTO agent (id, user_id, name, description, runbook, model, architecture, reasoning, action_packages, updated_at, metadata) "
-                        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) "
+                        "INSERT INTO agent (id, user_id, name, description, runbook, version, model, architecture, reasoning, action_packages, updated_at, metadata) "
+                        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) "
                         "ON CONFLICT (id) DO UPDATE SET "
                         "user_id = EXCLUDED.user_id, "
                         "name = EXCLUDED.name, "
                         "description = EXCLUDED.description, "
                         "runbook = EXCLUDED.runbook, "
+                        "version = EXCLUDED.version, "
                         "model = EXCLUDED.model, "
                         "architecture = EXCLUDED.architecture, "
                         "reasoning = EXCLUDED.reasoning, "
@@ -326,6 +328,7 @@ class PostgresStorage(BaseStorage):
                     name,
                     description,
                     runbook,
+                    version,
                     model,
                     architecture,
                     reasoning,
@@ -339,6 +342,7 @@ class PostgresStorage(BaseStorage):
             name=name,
             description=description,
             runbook=runbook,
+            version=version,
             model=model,
             architecture=architecture,
             reasoning=reasoning,

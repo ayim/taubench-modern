@@ -19,6 +19,7 @@ CREATE TABLE agent (
     name TEXT NOT NULL,
     description TEXT NOT NULL,
     runbook TEXT NOT NULL,
+    version TEXT NOT NULL,
     updated_at DATETIME DEFAULT (datetime('now')),
     metadata TEXT,
     model TEXT,

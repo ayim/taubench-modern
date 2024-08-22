@@ -74,6 +74,7 @@ def create_agent(base_url, openai_api_key):
         "name": "Hello",
         "description": "This is a test agent",
         "runbook": "This is a test runbook",
+        "version": "0.0.1",
         "model": json.loads(model.json(encoder=basemodel_secret_encoder_for_db)),
         "architecture": "agent",
         "reasoning": AgentReasoning.DISABLED,

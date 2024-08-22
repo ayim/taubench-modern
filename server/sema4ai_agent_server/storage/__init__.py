@@ -63,6 +63,7 @@ class BaseStorage(ABC):
         name: str,
         description: str,
         runbook: str,
+        version: str,
         model: MODEL,
         architecture: AgentArchitecture,
         reasoning: AgentReasoning,

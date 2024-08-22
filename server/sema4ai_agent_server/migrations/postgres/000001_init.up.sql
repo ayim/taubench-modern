@@ -19,6 +19,7 @@ CREATE TABLE agent (
     name VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
     runbook TEXT NOT NULL,
+    version VARCHAR(255) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
     metadata JSONB,
     model JSONB,
