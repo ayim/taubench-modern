@@ -102,6 +102,7 @@ def sample_owner():
         name="Test agent",
         description="Test agent Description",
         runbook="Test agent Runbook",
+        version="0.0.1",
         model=dummy_model,
         architecture=AgentArchitecture.AGENT,
         reasoning=AgentReasoning.DISABLED,

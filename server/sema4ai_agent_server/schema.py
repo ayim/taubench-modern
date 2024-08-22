@@ -167,6 +167,7 @@ class Agent(BaseModel):
     name: str = Field(description="The name of the agent.")
     description: str = Field(description="The description of the agent.")
     runbook: str = Field(description="The runbook for the agent.")
+    version: str = Field(description="The version of the agent.")
     model: MODEL = Field(description="LLM model configuration for the agent.")
     architecture: AgentArchitecture = Field(
         description="The cognitive architecture of the agent."

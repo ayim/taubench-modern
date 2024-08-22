@@ -202,6 +202,7 @@ class SqliteStorage(BaseStorage):
         name: str,
         description: str,
         runbook: str,
+        version: str,
         model: MODEL,
         architecture: AgentArchitecture,
         reasoning: AgentReasoning,
@@ -221,14 +222,15 @@ class SqliteStorage(BaseStorage):
             )
             cursor.execute(
                 """
-                INSERT INTO agent (id, user_id, name, description, runbook, model, architecture, reasoning, action_packages, updated_at, metadata)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO agent (id, user_id, name, description, runbook, version, model, architecture, reasoning, action_packages, updated_at, metadata)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) 
                 DO UPDATE SET 
                     user_id = EXCLUDED.user_id, 
                     name = EXCLUDED.name, 
                     description = EXCLUDED.description,
                     runbook = EXCLUDED.runbook,
+                    version = EXCLUDED.version,
                     model = EXCLUDED.model,
                     architecture = EXCLUDED.architecture,
                     reasoning = EXCLUDED.reasoning,
@@ -242,6 +244,7 @@ class SqliteStorage(BaseStorage):
                     name,
                     description,
                     runbook,
+                    version,
                     model_str,
                     architecture,
                     reasoning,
@@ -257,6 +260,7 @@ class SqliteStorage(BaseStorage):
                 name=name,
                 description=description,
                 runbook=runbook,
+                version=version,
                 model=model,
                 architecture=architecture,
                 reasoning=reasoning,
