@@ -22,6 +22,8 @@ class AgentPayload(BaseModel):
     """Payload for creating an agent."""
 
     name: str = Field(..., description="The name of the agent.")
+    description: str = Field(..., description="The description of the agent.")
+    runbook: str = Field(..., description="The runbook for the agent.")
     config: dict = Field(..., description="The agent config.")
     model: MODEL = Field(..., description="LLM model configuration for the agent.")
     architecture: AgentArchitecture = Field(
@@ -103,6 +105,8 @@ async def create_agent(
         user.user_id,
         str(uuid4()),
         name=payload.name,
+        description=payload.description,
+        runbook=payload.runbook,
         config=payload.config,
         model=payload.model,
         architecture=payload.architecture,
@@ -135,6 +139,8 @@ async def upsert_agent(
         user.user_id,
         aid,
         name=payload.name,
+        description=payload.description,
+        runbook=payload.runbook,
         config=payload.config,
         model=payload.model,
         architecture=payload.architecture,

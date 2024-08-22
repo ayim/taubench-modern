@@ -128,6 +128,8 @@ class Agent(BaseModel):
     id: str = Field(description="The ID of the agent.")
     user_id: str = Field(description="The ID of the user that owns the agent.")
     name: str = Field(description="The name of the agent.")
+    description: str = Field(description="The description of the agent.")
+    runbook: str = Field(description="The runbook for the agent.")
     config: dict = Field(description="The agent config.")
     model: MODEL = Field(description="LLM model configuration for the agent.")
     architecture: AgentArchitecture = Field(

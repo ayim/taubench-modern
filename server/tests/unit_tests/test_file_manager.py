@@ -98,7 +98,9 @@ def sample_owner():
     return Agent(
         id=str(uuid4()),
         user_id=str(uuid4()),
-        name="Test Assistant",
+        name="Test agent",
+        description="Test agent Description",
+        runbook="Test agent Runbook",
         config={},
         model=dummy_model,
         architecture=AgentArchitecture.AGENT,

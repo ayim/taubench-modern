@@ -205,6 +205,8 @@ class SqliteStorage(BaseStorage):
         agent_id: str,
         *,
         name: str,
+        description: str,
+        runbook: str,
         config: dict,
         model: MODEL,
         architecture: AgentArchitecture,
@@ -220,12 +222,14 @@ class SqliteStorage(BaseStorage):
             model_str = model.json(encoder=basemodel_secret_encoder_for_db)
             cursor.execute(
                 """
-                INSERT INTO agent (id, user_id, name, config, model, architecture, updated_at, public, metadata)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO agent (id, user_id, name, description, runbook, config, model, architecture, updated_at, public, metadata)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) 
                 DO UPDATE SET 
                     user_id = EXCLUDED.user_id, 
                     name = EXCLUDED.name, 
+                    description = EXCLUDED.description,
+                    runbook = EXCLUDED.runbook,
                     config = EXCLUDED.config, 
                     model = EXCLUDED.model,
                     architecture = EXCLUDED.architecture,
@@ -237,6 +241,8 @@ class SqliteStorage(BaseStorage):
                     agent_id,
                     user_id,
                     name,
+                    description,
+                    runbook,
                     config_str,
                     model_str,
                     architecture,
@@ -250,6 +256,8 @@ class SqliteStorage(BaseStorage):
                 id=agent_id,
                 user_id=user_id,
                 name=name,
+                description=description,
+                runbook=runbook,
                 config=config,
                 model=model,
                 architecture=architecture,
