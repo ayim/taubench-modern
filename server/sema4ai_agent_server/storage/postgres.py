@@ -275,24 +275,9 @@ class PostgresStorage(BaseStorage):
         """Get an agent by ID."""
         async with self.get_pool().acquire() as conn:
             row = await conn.fetchrow(
-                "SELECT * FROM agent WHERE id = $1 AND (user_id = $2 OR public IS true)",
-                agent_id,
-                user_id,
+                "SELECT * FROM agent WHERE id = $1 AND user_id = $2", agent_id, user_id
             )
             return parse_obj_as(Optional[Agent], row)
-
-    async def list_public_agents(self, agent_ids: Sequence[str]) -> List[Agent]:
-        """List all the public agents."""
-        agent_ids_tuple = tuple(agent_ids)  # SQL requires a tuple for the IN operator.
-        placeholders = ", ".join("?" for _ in agent_ids)
-        conn = self.get_pool().acquire()
-        cursor = conn.cursor()
-        cursor.execute(
-            f"SELECT * FROM agent WHERE id IN ({placeholders}) AND public = 1",
-            agent_ids_tuple,
-        )
-        rows = cursor.fetchall()
-        return parse_obj_as(List[Agent], rows)
 
     async def put_agent(
         self,
@@ -305,7 +290,6 @@ class PostgresStorage(BaseStorage):
         config: dict,
         model: MODEL,
         architecture: AgentArchitecture,
-        public: bool = False,
         metadata: Optional[dict],
     ) -> Agent:
         """Modify an agent."""
@@ -315,8 +299,8 @@ class PostgresStorage(BaseStorage):
             async with conn.transaction():
                 await conn.execute(
                     (
-                        "INSERT INTO agent (id, user_id, name, description, runbook, config, model, architecture, updated_at, public, metadata) "
-                        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) "
+                        "INSERT INTO agent (id, user_id, name, description, runbook, config, model, architecture, updated_at, metadata) "
+                        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) "
                         "ON CONFLICT (id) DO UPDATE SET "
                         "user_id = EXCLUDED.user_id, "
                         "name = EXCLUDED.name, "
@@ -326,7 +310,6 @@ class PostgresStorage(BaseStorage):
                         "model = EXCLUDED.model, "
                         "architecture = EXCLUDED.architecture, "
                         "updated_at = EXCLUDED.updated_at, "
-                        "public = EXCLUDED.public,"
                         "metadata = EXCLUDED.metadata;"
                     ),
                     agent_id,
@@ -338,7 +321,6 @@ class PostgresStorage(BaseStorage):
                     model,
                     architecture,
                     updated_at,
-                    public,
                     metadata,
                 )
         return Agent(
@@ -351,7 +333,6 @@ class PostgresStorage(BaseStorage):
             model=model,
             architecture=architecture,
             updated_at=updated_at,
-            public=public,
             metadata=metadata,
         )
 

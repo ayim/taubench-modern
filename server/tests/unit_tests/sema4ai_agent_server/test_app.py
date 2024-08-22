@@ -41,7 +41,7 @@ async def test_list_and_create_agents(pool: asyncpg.pool.Pool) -> None:
         # Create an agent
         response = await client.put(
             f"/api/v1/agents/{aid}",
-            json={"name": "bobby", "config": {}, "public": False},
+            json={"name": "bobby", "config": {}},
             headers=headers,
         )
         assert response.status_code == 200
@@ -49,7 +49,6 @@ async def test_list_and_create_agents(pool: asyncpg.pool.Pool) -> None:
             "id": aid,
             "config": {},
             "name": "bobby",
-            "public": False,
         }
         async with pool.acquire() as conn:
             assert len(await conn.fetch("SELECT * FROM agent;")) == 1
@@ -57,18 +56,11 @@ async def test_list_and_create_agents(pool: asyncpg.pool.Pool) -> None:
         response = await client.get("/api/v1/agents/", headers=headers)
         assert [
             _project(d, exclude_keys=["updated_at", "user_id"]) for d in response.json()
-        ] == [
-            {
-                "id": aid,
-                "config": {},
-                "name": "bobby",
-                "public": False,
-            }
-        ]
+        ] == [{"id": aid, "config": {}, "name": "bobby"}]
 
         response = await client.put(
             f"/api/v1/agents/{aid}",
-            json={"name": "bobby", "config": {}, "public": False},
+            json={"name": "bobby", "config": {}},
             headers=headers,
         )
 
@@ -76,7 +68,6 @@ async def test_list_and_create_agents(pool: asyncpg.pool.Pool) -> None:
             "id": aid,
             "config": {},
             "name": "bobby",
-            "public": False,
         }
 
         # Check not visible to other users
@@ -96,11 +87,7 @@ async def test_threads() -> None:
     async with get_client() as client:
         response = await client.put(
             f"/api/v1/agents/{aid}",
-            json={
-                "name": "agent",
-                "config": {"configurable": {"type": "chatbot"}},
-                "public": False,
-            },
+            json={"name": "agent", "config": {"configurable": {"type": "chatbot"}}},
             headers=headers,
         )
 
