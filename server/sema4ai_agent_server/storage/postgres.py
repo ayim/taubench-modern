@@ -300,38 +300,28 @@ class PostgresStorage(BaseStorage):
         agent_id: str,
         *,
         name: str,
+        description: str,
+        runbook: str,
         config: dict,
         model: MODEL,
         architecture: AgentArchitecture,
         public: bool = False,
         metadata: Optional[dict],
     ) -> Agent:
-        """Modify an agent.
-
-        Args:
-            user_id: The user ID.
-            agent_id: The agent ID.
-            name: The agent name.
-            config: The agent config.
-            model: The agent model.
-            architecture: The agent architecture.
-            public: Whether the agent is public.
-            metadata: Additional metadata.
-
-        Returns:
-            return the agent model if no exception is raised.
-        """
+        """Modify an agent."""
         updated_at = datetime.now(timezone.utc)
         conn = self.get_pool().acquire()
         async with self.get_pool().acquire() as conn:
             async with conn.transaction():
                 await conn.execute(
                     (
-                        "INSERT INTO agent (id, user_id, name, config, model, architecture, updated_at, public, metadata) "
-                        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) "
+                        "INSERT INTO agent (id, user_id, name, description, runbook, config, model, architecture, updated_at, public, metadata) "
+                        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) "
                         "ON CONFLICT (id) DO UPDATE SET "
                         "user_id = EXCLUDED.user_id, "
                         "name = EXCLUDED.name, "
+                        "description = EXCLUDED.description, "
+                        "runbook = EXCLUDED.runbook, "
                         "config = EXCLUDED.config, "
                         "model = EXCLUDED.model, "
                         "architecture = EXCLUDED.architecture, "
@@ -342,6 +332,8 @@ class PostgresStorage(BaseStorage):
                     agent_id,
                     user_id,
                     name,
+                    description,
+                    runbook,
                     config,
                     model,
                     architecture,
@@ -353,6 +345,8 @@ class PostgresStorage(BaseStorage):
             id=agent_id,
             user_id=user_id,
             name=name,
+            description=description,
+            runbook=runbook,
             config=config,
             model=model,
             architecture=architecture,

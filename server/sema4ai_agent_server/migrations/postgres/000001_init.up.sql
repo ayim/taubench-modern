@@ -17,6 +17,8 @@ CREATE TABLE agent (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL,
     name VARCHAR(255) NOT NULL,
+    description TEXT NOT NULL,
+    runbook TEXT NOT NULL,
     config JSON NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
     public BOOLEAN NOT NULL,

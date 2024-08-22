@@ -59,6 +59,8 @@ class BaseStorage(ABC):
         agent_id: str,
         *,
         name: str,
+        description: str,
+        runbook: str,
         config: dict,
         model: MODEL,
         architecture: AgentArchitecture,

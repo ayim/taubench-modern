@@ -17,6 +17,8 @@ CREATE TABLE agent (
     id TEXT PRIMARY KEY NOT NULL,
     user_id TEXT NOT NULL,
     name TEXT NOT NULL,
+    description TEXT NOT NULL,
+    runbook TEXT NOT NULL,
     config TEXT NOT NULL,
     updated_at DATETIME DEFAULT (datetime('now')),
     public BOOLEAN NOT NULL CHECK (public IN (0,1)),

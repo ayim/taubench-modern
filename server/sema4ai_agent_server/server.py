@@ -86,6 +86,8 @@ async def update_action_server_ports(port_map: dict[str, str]) -> dict:
             user_id=agent.user_id,
             agent_id=agent.id,
             name=agent.name,
+            description=agent.description,
+            runbook=agent.runbook,
             config=agent.config,
             model=agent.model,
             architecture=agent.architecture,
