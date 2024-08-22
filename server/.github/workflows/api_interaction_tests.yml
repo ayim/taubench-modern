@@ -1,0 +1,113 @@
+name: API Interaction Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request: # Trigger on all PRs, ensuring required actions to be run.
+  workflow_dispatch: # Allows to trigger the workflow manually in GitHub UI
+
+jobs:
+  test-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.11'
+
+    - name: Install Poetry
+      run: |
+        curl -sSL https://install.python-poetry.org | python3 -
+
+    - name: Install dependencies
+      run: |
+        poetry install
+
+    - name: Enable uuid-ossp extension
+      run: |
+        PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -c 'CREATE EXTENSION IF NOT EXISTS "uuid-ossp";'
+
+    - name: Start application server (PostgreSQL)
+      run: |
+        poetry run uvicorn sema4ai_agent_server.server:app --host 0.0.0.0 --port 8100 &
+        sleep 10  # Give the server some time to start
+      env:
+        S4_AGENT_SERVER_DB_TYPE: postgres
+        SCARF_NO_ANALYTICS: "true"
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        POSTGRES_HOST: localhost
+        POSTGRES_PORT: 5432
+        POSTGRES_DB: postgres
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: postgres
+
+    - name: Run API interaction tests (PostgreSQL)
+      run: |
+        poetry run python tests/integration_tests/test_api_interaction.py
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+    - name: Upload log file
+      if: failure()
+      uses: actions/upload-artifact@v2
+      with:
+        name: server-logs-postgres
+        path: ./opengpts.log
+
+  test-sqlite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.11'
+
+    - name: Install Poetry
+      run: |
+        curl -sSL https://install.python-poetry.org | python3 -
+
+    - name: Install dependencies
+      run: |
+        poetry install
+
+    - name: Start application server (SQLite)
+      run: |
+        poetry run uvicorn sema4ai_agent_server.server:app --host 0.0.0.0 --port 8100 &
+        sleep 10  # Give the server some time to start
+      env:
+        S4_AGENT_SERVER_DB_TYPE: sqlite
+        SCARF_NO_ANALYTICS: "true"
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+    - name: Run API interaction tests (SQLite)
+      run: |
+        poetry run python tests/integration_tests/test_api_interaction.py
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+    - name: Upload log file
+      if: failure()
+      uses: actions/upload-artifact@v2
+      with:
+        name: server-logs-sqlite
+        path: ./opengpts.log
