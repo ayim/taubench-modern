@@ -597,7 +597,7 @@ class SqliteStorage(BaseStorage):
             cursor = conn.cursor()
             cursor.execute(
                 "INSERT INTO async_runs (id, status) VALUES (?, ?)",
-                (status, run_id),
+                (run_id, status),
             )
             conn.commit()
 
