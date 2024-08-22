@@ -13,7 +13,13 @@ from sema4ai_agent_server.file_manager.base import (
 )
 from sema4ai_agent_server.file_manager.cloud import CloudFileManager
 from sema4ai_agent_server.file_manager.local import LocalFileManager
-from sema4ai_agent_server.schema import Agent, Thread, UploadedFile, dummy_model
+from sema4ai_agent_server.schema import (
+    Agent,
+    AgentArchitecture,
+    Thread,
+    UploadedFile,
+    dummy_model,
+)
 from sema4ai_agent_server.storage.option import get_storage
 
 
@@ -95,6 +101,7 @@ def sample_owner():
         name="Test Assistant",
         config={},
         model=dummy_model,
+        architecture=AgentArchitecture.AGENT,
         updated_at=datetime.now(timezone.utc),
         public=False,
         metadata=None,

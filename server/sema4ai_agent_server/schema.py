@@ -113,6 +113,15 @@ dummy_model = OpenAIGPT(
 MODEL = OpenAIGPT | AzureGPT | AnthropicClaude | AmazonClaude | GoogleGemini | Ollama
 
 
+class AgentArchitecture(str, Enum):
+    """
+    Enum for agent cognitive architecture.
+    """
+
+    AGENT = "agent"
+    PLAN_EXECUTE = "plan_execute"
+
+
 class Agent(BaseModel):
     """Agent model."""
 
@@ -121,6 +130,9 @@ class Agent(BaseModel):
     name: str = Field(description="The name of the agent.")
     config: dict = Field(description="The agent config.")
     model: MODEL = Field(description="LLM model configuration for the agent.")
+    architecture: AgentArchitecture = Field(
+        description="The cognitive architecture of the agent."
+    )
     updated_at: datetime = Field(description="The last time the agent was updated.")
     public: bool = Field(description="Whether the agent is public.")
     metadata: Optional[dict] = Field(description="The agent metadata.")

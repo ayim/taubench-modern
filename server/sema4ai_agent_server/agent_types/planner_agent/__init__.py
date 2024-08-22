@@ -201,11 +201,12 @@ def get_plan_execute_agent(
             steps_message = AIMessage(content=plan.steps_as_string())
         else:
             plan = None
+            steps_message = None
         return {
             "plan_needed": initial_thinking_response.plan_needed_response == "plan",
             "original_plan": plan,
             "current_plan": plan,
-            "messages": [steps_message],
+            "messages": [steps_message] if steps_message else [],
         }
 
     async def offramper_thinker(state: PlanExecuteAgentState):

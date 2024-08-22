@@ -267,7 +267,7 @@ class ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(RunnableBin
         )
 
 
-chat_plan_execute = (
+plan_execute = (
     ConfigurablePlanExecute(
         tools=[],
         model=dummy_model,
@@ -359,7 +359,7 @@ runnable_agent: Pregel = (
         ConfigurableField(id="type", name="Bot Type"),
         default_key="agent",
         prefix_keys=True,
-        chat_plan_execute=chat_plan_execute,
+        plan_execute=plan_execute,
         multi_agent_hierarchical_planning=multi_agent_hierarchical_planning,
     )
     .with_types(input_type=Messages, output_type=Sequence[AnyMessage])

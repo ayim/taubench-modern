@@ -22,6 +22,7 @@ CREATE TABLE agent (
     public BOOLEAN NOT NULL CHECK (public IN (0,1)),
     metadata TEXT,
     model TEXT,
+    architecture TEXT NOT NULL,
     FOREIGN KEY (user_id) REFERENCES "user" (user_id)
 );
 
