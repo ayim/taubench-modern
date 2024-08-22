@@ -231,12 +231,12 @@ class ChatMessage(BaseModel):
     )
 
 
-class StreamRequest(BaseModel):
+class ChatRequest(BaseModel):
     """
-    A request to stream messages to the client.
+    A request to chat with an Agent Thread.
     """
 
-    input: List[ChatMessage] = Field(description="The messages to stream to the agent.")
+    input: List[ChatMessage] = Field(description="The messages to send to the agent.")
     thread_id: str = Field(description="The ID of the thread.")
 
     def get_langchain_messages(self):

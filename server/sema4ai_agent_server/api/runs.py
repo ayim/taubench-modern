@@ -12,7 +12,7 @@ from sema4ai_agent_server.langsmith_client import (
     get_langsmith_thread_url,
     save_langsmith_thread_url,
 )
-from sema4ai_agent_server.schema import StreamRequest
+from sema4ai_agent_server.schema import ChatRequest
 from sema4ai_agent_server.storage.option import get_storage
 from sema4ai_agent_server.stream import astream_state, invoke_state, to_sse
 
@@ -20,7 +20,7 @@ router = APIRouter()
 langsmith_client = langsmith.client.Client() if tracing_is_enabled() else None
 
 
-async def _run_input_and_config(payload: StreamRequest, user_id: str):
+async def _run_input_and_config(payload: ChatRequest, user_id: str):
     thread = await get_storage().get_thread(user_id, payload.thread_id)
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
@@ -67,7 +67,7 @@ async def background_invoke(input_, config):
 
 @router.post("/async_invoke")
 async def create_run(
-    payload: StreamRequest,
+    payload: ChatRequest,
     user: AuthedUser,
     background_tasks: BackgroundTasks,
 ):
@@ -93,7 +93,7 @@ async def get_run_status(rid: str):
 
 @router.post("/stream")
 async def stream_run(
-    payload: StreamRequest,
+    payload: ChatRequest,
     user: AuthedUser,
 ) -> EventSourceResponse:
     """Create a run."""
@@ -106,7 +106,7 @@ async def stream_run(
 
 @router.post("/invoke")
 async def invoke_run(
-    payload: StreamRequest,
+    payload: ChatRequest,
     user: AuthedUser,
 ):
     """Create a run."""
