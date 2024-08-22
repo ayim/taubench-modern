@@ -102,10 +102,10 @@ def sample_owner():
         name="Test agent",
         description="Test agent Description",
         runbook="Test agent Runbook",
-        config={},
         model=dummy_model,
         architecture=AgentArchitecture.AGENT,
         reasoning=AgentReasoning.DISABLED,
+        action_packages=[],
         updated_at=datetime.now(timezone.utc),
         metadata=None,
     )

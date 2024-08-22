@@ -74,14 +74,10 @@ def create_agent(base_url, openai_api_key):
         "name": "Hello",
         "description": "This is a test agent",
         "runbook": "This is a test runbook",
-        "config": {
-            "configurable": {
-                "tools": [],
-            }
-        },
         "model": json.loads(model.json(encoder=basemodel_secret_encoder_for_db)),
         "architecture": "agent",
         "reasoning": AgentReasoning.DISABLED,
+        "action_packages": [],
     }
 
     response = requests.post(url, headers=headers, json=data)

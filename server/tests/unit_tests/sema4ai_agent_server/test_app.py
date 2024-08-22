@@ -41,13 +41,12 @@ async def test_list_and_create_agents(pool: asyncpg.pool.Pool) -> None:
         # Create an agent
         response = await client.put(
             f"/api/v1/agents/{aid}",
-            json={"name": "bobby", "config": {}},
+            json={"name": "bobby"},
             headers=headers,
         )
         assert response.status_code == 200
         assert _project(response.json(), exclude_keys=["updated_at", "user_id"]) == {
             "id": aid,
-            "config": {},
             "name": "bobby",
         }
         async with pool.acquire() as conn:
@@ -56,17 +55,16 @@ async def test_list_and_create_agents(pool: asyncpg.pool.Pool) -> None:
         response = await client.get("/api/v1/agents/", headers=headers)
         assert [
             _project(d, exclude_keys=["updated_at", "user_id"]) for d in response.json()
-        ] == [{"id": aid, "config": {}, "name": "bobby"}]
+        ] == [{"id": aid, "name": "bobby"}]
 
         response = await client.put(
             f"/api/v1/agents/{aid}",
-            json={"name": "bobby", "config": {}},
+            json={"name": "bobby"},
             headers=headers,
         )
 
         assert _project(response.json(), exclude_keys=["updated_at", "user_id"]) == {
             "id": aid,
-            "config": {},
             "name": "bobby",
         }
 
@@ -87,7 +85,7 @@ async def test_threads() -> None:
     async with get_client() as client:
         response = await client.put(
             f"/api/v1/agents/{aid}",
-            json={"name": "agent", "config": {"configurable": {"type": "chatbot"}}},
+            json={"name": "agent"},
             headers=headers,
         )
 
