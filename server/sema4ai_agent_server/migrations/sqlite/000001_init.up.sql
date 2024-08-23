@@ -16,6 +16,7 @@ CREATE TABLE "user" (
 CREATE TABLE agent (
     id TEXT PRIMARY KEY NOT NULL,
     user_id TEXT NOT NULL,
+    status TEXT NOT NULL,
     name TEXT NOT NULL UNIQUE COLLATE NOCASE,
     description TEXT NOT NULL,
     runbook TEXT NOT NULL,

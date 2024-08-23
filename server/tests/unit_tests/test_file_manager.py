@@ -17,6 +17,7 @@ from sema4ai_agent_server.schema import (
     Agent,
     AgentArchitecture,
     AgentReasoning,
+    AgentStatus,
     Thread,
     UploadedFile,
     dummy_model,
@@ -99,6 +100,7 @@ def sample_owner():
     return Agent(
         id=str(uuid4()),
         user_id=str(uuid4()),
+        status=AgentStatus.READY,
         name="Test agent",
         description="Test agent Description",
         runbook="Test agent Runbook",

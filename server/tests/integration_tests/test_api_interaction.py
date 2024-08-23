@@ -15,6 +15,7 @@ from tqdm import tqdm
 
 from sema4ai_agent_server.schema import (
     AgentReasoning,
+    AgentStatus,
     LLMProvider,
     OpenAIGPT,
     OpenAIGPTConfig,
@@ -71,6 +72,7 @@ def create_agent(base_url, openai_api_key):
     }
 
     data = {
+        "status": AgentStatus.READY,
         "name": "Hello",
         "description": "This is a test agent",
         "runbook": "This is a test runbook",

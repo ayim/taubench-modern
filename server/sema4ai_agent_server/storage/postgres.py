@@ -18,6 +18,7 @@ from sema4ai_agent_server.schema import (
     Agent,
     AgentArchitecture,
     AgentReasoning,
+    AgentStatus,
     Thread,
     UploadedFile,
     User,
@@ -291,6 +292,7 @@ class PostgresStorage(BaseStorage):
         user_id: str,
         agent_id: str,
         *,
+        status: AgentStatus,
         name: str,
         description: str,
         runbook: str,
@@ -308,10 +310,11 @@ class PostgresStorage(BaseStorage):
             async with conn.transaction():
                 await conn.execute(
                     (
-                        "INSERT INTO agent (id, user_id, name, description, runbook, version, model, architecture, reasoning, action_packages, updated_at, metadata) "
-                        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) "
+                        "INSERT INTO agent (id, user_id, status, name, description, runbook, version, model, architecture, reasoning, action_packages, updated_at, metadata) "
+                        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) "
                         "ON CONFLICT (id) DO UPDATE SET "
                         "user_id = EXCLUDED.user_id, "
+                        "status = EXCLUDED.status, "
                         "name = EXCLUDED.name, "
                         "description = EXCLUDED.description, "
                         "runbook = EXCLUDED.runbook, "
@@ -325,6 +328,7 @@ class PostgresStorage(BaseStorage):
                     ),
                     agent_id,
                     user_id,
+                    status,
                     name,
                     description,
                     runbook,
@@ -339,6 +343,7 @@ class PostgresStorage(BaseStorage):
         return Agent(
             id=agent_id,
             user_id=user_id,
+            status=status,
             name=name,
             description=description,
             runbook=runbook,

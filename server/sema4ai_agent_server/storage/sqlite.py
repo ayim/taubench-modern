@@ -20,6 +20,7 @@ from sema4ai_agent_server.schema import (
     Agent,
     AgentArchitecture,
     AgentReasoning,
+    AgentStatus,
     Thread,
     UploadedFile,
     User,
@@ -199,6 +200,7 @@ class SqliteStorage(BaseStorage):
         user_id: str,
         agent_id: str,
         *,
+        status: AgentStatus,
         name: str,
         description: str,
         runbook: str,
@@ -222,11 +224,12 @@ class SqliteStorage(BaseStorage):
             )
             cursor.execute(
                 """
-                INSERT INTO agent (id, user_id, name, description, runbook, version, model, architecture, reasoning, action_packages, updated_at, metadata)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO agent (id, user_id, status, name, description, runbook, version, model, architecture, reasoning, action_packages, updated_at, metadata)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) 
                 DO UPDATE SET 
                     user_id = EXCLUDED.user_id, 
+                    status = EXCLUDED.status,
                     name = EXCLUDED.name, 
                     description = EXCLUDED.description,
                     runbook = EXCLUDED.runbook,
@@ -241,6 +244,7 @@ class SqliteStorage(BaseStorage):
                 (
                     agent_id,
                     user_id,
+                    status,
                     name,
                     description,
                     runbook,
@@ -257,6 +261,7 @@ class SqliteStorage(BaseStorage):
             return Agent(
                 id=agent_id,
                 user_id=user_id,
+                status=status,
                 name=name,
                 description=description,
                 runbook=runbook,
