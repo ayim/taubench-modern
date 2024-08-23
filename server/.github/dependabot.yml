@@ -1,27 +1,13 @@
 version: 2
 updates:
-  # Configuration for Python (pip) security updates - production only
-  - package-ecosystem: "pip"
-    directory: "/"
-    schedule:
-      interval: "daily"
-    open-pull-requests-limit: 3
-    allow:
-      - dependency-type: "production"
-    security-updates-only: true
-
-  # Configuration for Python (pip) version updates and dev dependency security updates
+  # Configuration for Python (pip)
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 3
-    allow:
-      - dependency-type: "all"
-    ignore:
-      - update-types: ["version-update:semver-major"]
     groups:
-      python-packages:
+      github-actions:
         patterns:
           - "*"
 
