@@ -1,7 +1,8 @@
 from datetime import datetime
 from enum import Enum
-from typing import Literal, Optional
+from typing import List, Literal, Optional
 
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from pydantic import BaseModel, Field, SecretStr
 
 
@@ -201,3 +202,62 @@ class UploadedFile(BaseModel):
     embedded: bool
     """Whether the file is embedded."""
     file_path_expiration: Optional[datetime] = None
+
+
+class ChatRole(str, Enum):
+    """
+    Enum for chat participant types.
+    """
+
+    AI = "ai"
+    HUMAN = "human"
+    SYSTEM = "system"
+    ACTION = "tool"
+
+
+class ChatMessage(BaseModel):
+    """
+    Represents a chat message in a thread.
+    A chat message can be from the ai, human, system, or action.
+    """
+
+    id: Optional[str] = Field(
+        description="The ID of the chat message. This can be a random UUID."
+    )
+    type: ChatRole = Field(description="The role of the chat message.")
+    content: str = Field(description="The message.")
+    example: bool = Field(
+        description="Whether the message is an example.", default=False
+    )
+
+
+class ChatRequest(BaseModel):
+    """
+    A request to chat with an Agent Thread.
+    """
+
+    input: List[ChatMessage] = Field(description="The messages to send to the agent.")
+    thread_id: str = Field(description="The ID of the thread.")
+
+    def get_langchain_messages(self):
+        """
+        Get the messages in LangChain format.
+        """
+        messages = []
+        for message in self.input:
+            match message.type:
+                case ChatRole.HUMAN:
+                    messages.append(
+                        HumanMessage(content=message.content, id=message.id)
+                    )
+                case ChatRole.AI:
+                    messages.append(AIMessage(content=message.content, id=message.id))
+                case ChatRole.SYSTEM:
+                    messages.append(
+                        SystemMessage(content=message.content, id=message.id)
+                    )
+                case ChatRole.ACTION:
+                    messages.append(ToolMessage(content=message.content, id=message.id))
+                case _:
+                    pass
+        return messages

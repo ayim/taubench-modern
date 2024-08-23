@@ -1,15 +1,9 @@
 import uuid
-from typing import Any, Dict, Optional, Sequence, Union
 
 import langsmith.client
 from fastapi import APIRouter, BackgroundTasks, HTTPException
-from fastapi.exceptions import RequestValidationError
-from langchain.pydantic_v1 import ValidationError
-from langchain_core.messages import AnyMessage
 from langchain_core.runnables import RunnableConfig
-from langserve.server import _unpack_input
 from langsmith.utils import tracing_is_enabled
-from pydantic import BaseModel, Field
 from sse_starlette import EventSourceResponse
 
 from sema4ai_agent_server.agent import runnable_agent
@@ -18,6 +12,7 @@ from sema4ai_agent_server.langsmith_client import (
     get_langsmith_thread_url,
     save_langsmith_thread_url,
 )
+from sema4ai_agent_server.schema import ChatRequest
 from sema4ai_agent_server.storage.option import get_storage
 from sema4ai_agent_server.stream import astream_state, invoke_state, to_sse
 
@@ -25,16 +20,7 @@ router = APIRouter()
 langsmith_client = langsmith.client.Client() if tracing_is_enabled() else None
 
 
-class CreateRunPayload(BaseModel):
-    """Payload for creating a run."""
-
-    thread_id: str
-    input: Optional[Union[Sequence[AnyMessage], Dict[str, Any]]] = Field(
-        default_factory=dict
-    )
-
-
-async def _run_input_and_config(payload: CreateRunPayload, user_id: str):
+async def _run_input_and_config(payload: ChatRequest, user_id: str):
     thread = await get_storage().get_thread(user_id, payload.thread_id)
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
@@ -69,22 +55,8 @@ async def _run_input_and_config(payload: CreateRunPayload, user_id: str):
         },
     }
 
-    try:
-        input_ = (
-            _unpack_input(
-                runnable_agent.get_input_schema(config).validate(payload.input)
-            )
-            if payload.input is not None
-            else None
-        )
-        input_ = {"messages": input_ or []}
-    except ValidationError as e:
-        raise RequestValidationError(e.errors(), body=payload)
-
+    input_ = {"messages": payload.get_langchain_messages()}
     return input_, config, thread, agent
-
-
-runs = {}
 
 
 async def background_invoke(input_, config):
@@ -95,7 +67,7 @@ async def background_invoke(input_, config):
 
 @router.post("/async_invoke")
 async def create_run(
-    payload: CreateRunPayload,
+    payload: ChatRequest,
     user: AuthedUser,
     background_tasks: BackgroundTasks,
 ):
@@ -121,9 +93,9 @@ async def get_run_status(rid: str):
 
 @router.post("/stream")
 async def stream_run(
-    payload: CreateRunPayload,
+    payload: ChatRequest,
     user: AuthedUser,
-):
+) -> EventSourceResponse:
     """Create a run."""
     input_, config, thread, _ = await _run_input_and_config(payload, user.user_id)
     if langsmith_client:
@@ -134,7 +106,7 @@ async def stream_run(
 
 @router.post("/invoke")
 async def invoke_run(
-    payload: CreateRunPayload,
+    payload: ChatRequest,
     user: AuthedUser,
 ):
     """Create a run."""
