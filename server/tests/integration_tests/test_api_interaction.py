@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 from tqdm import tqdm
 
 from sema4ai_agent_server.schema import (
+    AgentArchitecture,
     AgentReasoning,
     AgentStatus,
     LLMProvider,
@@ -32,9 +33,15 @@ def timestamp():
     return datetime.now().strftime("%H:%M:%S")
 
 
+HEADER_INDEX = 0
+
+
 def print_header(message):
-    print(f"\n{Fore.CYAN}{Style.BRIGHT}[{timestamp()}] {message}")
-    print(Fore.CYAN + "-" * 50)
+    global HEADER_INDEX
+    HEADER_INDEX += 1
+    header = f"[{timestamp()}] {HEADER_INDEX}. {message}"
+    print(f"\n{Fore.CYAN}{Style.BRIGHT}{header}")
+    print(Fore.CYAN + ("-" * len(header)))
 
 
 def print_success(message):
@@ -58,7 +65,12 @@ def assert_test(condition, message):
         test_results.append((True, message))
 
 
-def create_agent(base_url, openai_api_key):
+def create_agent(
+    base_url,
+    openai_api_key,
+    name: str = "Agent",
+    architecture=AgentArchitecture.AGENT,
+):
     """Creates a new agent."""
     model = OpenAIGPT(
         provider=LLMProvider.OPENAI,
@@ -73,12 +85,12 @@ def create_agent(base_url, openai_api_key):
 
     data = {
         "status": AgentStatus.READY,
-        "name": "Hello",
+        "name": name,
         "description": "This is a test agent",
         "runbook": "This is a test runbook",
         "version": "0.0.1",
         "model": json.loads(model.json(encoder=basemodel_secret_encoder_for_db)),
-        "architecture": "agent",
+        "architecture": architecture,
         "reasoning": AgentReasoning.DISABLED,
         "action_packages": [],
     }
@@ -89,6 +101,21 @@ def create_agent(base_url, openai_api_key):
     else:
         print(f"Error creating agent: {response.status_code} {response.text}")
         return None
+
+
+def delete_agent(base_url, agent_id):
+    """Delete an agent by ID."""
+    url = f"{base_url}/agents/{agent_id}"
+    try:
+        response = requests.delete(url)
+        if response.status_code == 200:
+            print_success(f"Successfully deleted agent with ID: {agent_id}")
+        else:
+            print_warning(
+                f"Unexpected status code {response.status_code} when deleting agent {agent_id}"
+            )
+    except Exception as e:
+        print_warning(f"Error occurred while deleting agent {agent_id}: {str(e)}")
 
 
 def create_thread(base_url, agent_id):
@@ -308,7 +335,7 @@ def upload_multiple_files(base_url, endpoint, id, file_paths):
 
 
 def test_agent_creation(base_url, openai_api_key):
-    print_header("1. CREATING AGENT")
+    print_header("CREATING AGENT")
     agent_id = create_agent(base_url, openai_api_key)
     assert_test(agent_id is not None, "Agent creation")
     if agent_id:
@@ -316,8 +343,22 @@ def test_agent_creation(base_url, openai_api_key):
     return agent_id
 
 
+def test_vitality_agent_creation(base_url, openai_api_key):
+    print_header("CREATING VITALITY AGENT")
+    agent_id = create_agent(
+        base_url,
+        openai_api_key,
+        name="Vital",
+        architecture=AgentArchitecture.MULTI_AGENT_HIERARCHICAL_PLANNING,
+    )
+    assert_test(agent_id is not None, "Agent creation")
+    if agent_id:
+        print_success(f"Created agent with ID: {agent_id}")
+    return agent_id
+
+
 def test_thread_creation(base_url, agent_id):
-    print_header("2. CREATING THREAD")
+    print_header("CREATING THREAD")
     thread_id = create_thread(base_url, agent_id)
     assert_test(thread_id is not None, "Thread creation")
     if thread_id:
@@ -326,7 +367,7 @@ def test_thread_creation(base_url, agent_id):
 
 
 def test_message_sending(base_url, thread_id):
-    print_header("3. SENDING MESSAGE AND STREAMING RESPONSE")
+    print_header("SENDING MESSAGE AND STREAMING RESPONSE")
     message = "question"
     print(f"Sending message: {message}")
     response = send_message(base_url, thread_id, message)
@@ -336,7 +377,7 @@ def test_message_sending(base_url, thread_id):
 
 
 def test_async_run(base_url, thread_id):
-    print_header("4. TESTING ASYNCHRONOUS RUN")
+    print_header("TESTING ASYNCHRONOUS RUN")
     async_message = "What's the weather like today?"
     print(f"Creating async run with message: {async_message}")
     async_run_response = create_async_run(base_url, thread_id, async_message)
@@ -376,7 +417,7 @@ def test_async_run(base_url, thread_id):
 
 
 def test_file_uploads(base_url, thread_id, agent_id):
-    print_header("5. TESTING FILE UPLOADS")
+    print_header("TESTING FILE UPLOADS")
 
     # Thread file upload
     thread_file, thread_key, thread_value = create_sample_file()
@@ -414,7 +455,7 @@ def test_file_uploads(base_url, thread_id, agent_id):
 
 
 def test_get_file(base_url, agent_id, thread_id, uploaded_files):
-    print_header("6. TESTING FILE RETRIEVAL")
+    print_header("TESTING FILE RETRIEVAL")
     if uploaded_files:
         file_ref = os.path.basename(uploaded_files[0])
         file_info = get_file(base_url, agent_id, thread_id, file_ref)
@@ -430,7 +471,7 @@ def test_get_file(base_url, agent_id, thread_id, uploaded_files):
 
 
 def test_retrieval(base_url, thread_id, key_value_pairs):
-    print_header("7. TESTING INFORMATION RETRIEVAL")
+    print_header("TESTING INFORMATION RETRIEVAL")
     if key_value_pairs:
         random_key, expected_value = random.choice(key_value_pairs)
         question = f"What is the value associated with the key '{random_key}'?"
@@ -480,6 +521,13 @@ def main():
     uploaded_files, key_value_pairs = test_file_uploads(base_url, thread_id, agent_id)
     test_get_file(base_url, agent_id, thread_id, uploaded_files)
     test_retrieval(base_url, thread_id, key_value_pairs)
+
+    vitality_agent_id = test_vitality_agent_creation(base_url, openai_api_key)
+
+    print_header("TEARDOWN")
+
+    delete_agent(base_url, agent_id)
+    delete_agent(base_url, vitality_agent_id)
 
     # Clean up files
     for file_path in uploaded_files:

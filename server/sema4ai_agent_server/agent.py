@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence
 from langchain_core.messages import AnyMessage
 from langchain_core.runnables import (
     ConfigurableField,
+    Runnable,
     RunnableBinding,
 )
 from langgraph.graph.message import Messages
@@ -17,6 +18,7 @@ from sema4ai_agent_server.llms import get_chat_model
 from sema4ai_agent_server.schema import (
     MODEL,
     ActionPackage,
+    AgentArchitecture,
     AgentReasoning,
     AzureGPT,
     OpenAIGPT,
@@ -321,6 +323,29 @@ multi_agent_hierarchical_planning = (
     .with_types(input_type=Dict[str, str], output_type=Sequence[AnyMessage])
 )
 
+# Add your architecture here.
+ARCHITECTURE_CONFIGS: Dict[AgentArchitecture, Runnable] = {
+    AgentArchitecture.PLAN_EXECUTE: plan_execute,
+    AgentArchitecture.MULTI_AGENT_HIERARCHICAL_PLANNING: multi_agent_hierarchical_planning,
+}
+
+# Completeness check
+missing_architectures = (
+    set(AgentArchitecture)
+    - set(ARCHITECTURE_CONFIGS.keys())
+    - {AgentArchitecture.AGENT}
+)
+if missing_architectures:
+    raise ValueError(
+        f"Missing configurations for architectures: {missing_architectures}"
+    )
+
+alternatives = {
+    arch.value: ARCHITECTURE_CONFIGS[arch]
+    for arch in AgentArchitecture
+    if arch != AgentArchitecture.AGENT
+}
+
 runnable_agent: Pregel = (
     ConfigurableAgent(
         model=dummy_model,
@@ -361,10 +386,9 @@ runnable_agent: Pregel = (
     )
     .configurable_alternatives(
         ConfigurableField(id="type", name="Bot Type"),
-        default_key="agent",
+        default_key=AgentArchitecture.AGENT.value,
         prefix_keys=True,
-        plan_execute=plan_execute,
-        multi_agent_hierarchical_planning=multi_agent_hierarchical_planning,
+        **alternatives,
     )
     .with_types(input_type=Messages, output_type=Sequence[AnyMessage])
 )

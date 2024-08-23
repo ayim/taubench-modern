@@ -121,6 +121,7 @@ class AgentArchitecture(str, Enum):
 
     AGENT = "agent"
     PLAN_EXECUTE = "plan_execute"
+    MULTI_AGENT_HIERARCHICAL_PLANNING = "multi_agent_hierarchical_planning"
 
 
 class AgentReasoning(str, Enum):
