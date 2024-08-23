@@ -6,10 +6,8 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 3
-    groups:
-      github-actions:
-        patterns:
-          - "*"
+    ignore:
+      - dependency-name: "sema4ai-agent-server"
 
   # Configuration for GitHub Actions
   - package-ecosystem: "github-actions"
