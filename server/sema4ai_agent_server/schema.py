@@ -5,6 +5,8 @@ from typing import List, Literal, Optional
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from pydantic import BaseModel, Field, SecretStr
 
+NOT_CONFIGURED = "SEMA4AI_FIELD_NOT_CONFIGURED"
+
 
 class User(BaseModel):
     user_id: str = Field(description="The ID of the user.")
@@ -30,37 +32,54 @@ class ModelConfig(BaseModel):
 
 
 class OpenAIGPTConfig(ModelConfig):
-    openai_api_key: SecretStr = Field(description="The OpenAI API key.")
+    openai_api_key: SecretStr = Field(
+        description="The OpenAI API key.", default=SecretStr(NOT_CONFIGURED)
+    )
 
 
 class AzureGPTConfig(ModelConfig):
-    deployment_name: str = Field(description="The Azure deployment name.")
-    azure_endpoint: str = Field(description="The Azure endpoint.")
-    openai_api_version: str = Field(description="The Azure API version.")
-    openai_api_key: SecretStr = Field(description="The Azure API key.")
+    deployment_name: str = Field(
+        description="The Azure deployment name.", default=NOT_CONFIGURED
+    )
+    azure_endpoint: str = Field(
+        description="The Azure endpoint.", default=NOT_CONFIGURED
+    )
+    openai_api_version: str = Field(
+        description="The Azure API version.", default=NOT_CONFIGURED
+    )
+    openai_api_key: SecretStr = Field(
+        description="The Azure API key.", default=SecretStr(NOT_CONFIGURED)
+    )
 
 
 class AnthropicClaudeConfig(ModelConfig):
-    anthropic_api_key: SecretStr = Field(description="The Anthropic API key.")
+    anthropic_api_key: SecretStr = Field(
+        description="The Anthropic API key.", default=SecretStr(NOT_CONFIGURED)
+    )
 
 
 class AmazonClaudeConfig(BaseModel):
-    service_name: str = Field(
-        description="The service name.", default="bedrock-runtime"
+    service_name: str = Field(description="The service name.", default=NOT_CONFIGURED)
+    region_name: str = Field(description="The region name.", default=NOT_CONFIGURED)
+    aws_access_key_id: SecretStr = Field(
+        description="The AWS access key ID.", default=SecretStr(NOT_CONFIGURED)
     )
-    region_name: str = Field(description="The region name.")
-    aws_access_key_id: SecretStr = Field(description="The AWS access key ID.")
-    aws_secret_access_key: SecretStr = Field(description="The AWS secret access key.")
+    aws_secret_access_key: SecretStr = Field(
+        description="The AWS secret access key.", default=SecretStr(NOT_CONFIGURED)
+    )
 
 
 class GoogleGeminiConfig(ModelConfig):
     vertex_ai_credentials: SecretStr = Field(
-        description="The Google Vertex AI credentials."
+        description="The Google Vertex AI credentials.",
+        default=SecretStr(NOT_CONFIGURED),
     )
 
 
 class OllamaConfig(ModelConfig):
-    ollama_base_url: str = Field(description="The Ollama base URL.")
+    ollama_base_url: str = Field(
+        description="The Ollama base URL.", default=NOT_CONFIGURED
+    )
 
 
 class OpenAIGPT(BaseModel):
@@ -143,10 +162,12 @@ class ActionPackage(BaseModel):
     organization: str = Field(description="The organization of the action package.")
     version: str = Field(description="The version of the action package.")
     url: str = Field(
-        description="URL of the action server that hosts the action package."
+        description="URL of the action server that hosts the action package.",
+        default=NOT_CONFIGURED,
     )
     api_key: SecretStr = Field(
-        description="API Key of the action server that hosts the action package."
+        description="API Key of the action server that hosts the action package.",
+        default=SecretStr(NOT_CONFIGURED),
     )
     whitelist: str = Field(
         description=(
