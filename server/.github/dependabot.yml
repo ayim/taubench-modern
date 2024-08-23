@@ -34,9 +34,6 @@ updates:
         update-types: ["version-update:semver-patch"]
       - dependency-name: "pandas"
         update-types: ["version-update:semver-minor"]
-    # Add job configuration to increase timeout
-    job:
-      maximum-runtime-minutes: 120
 
   # Configuration for GitHub Actions
   - package-ecosystem: "github-actions"
