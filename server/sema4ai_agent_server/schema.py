@@ -160,11 +160,22 @@ class ActionPackage(BaseModel):
     )
 
 
+class AgentStatus(str, Enum):
+    """
+    Enum for agent status.
+    """
+
+    FILE_UPLOADS_IN_PROGRESS = "file_uploads_in_progress"
+    FILE_UPLOADS_FAILED = "file_uploads_failed"
+    READY = "ready"
+
+
 class Agent(BaseModel):
     """Agent model."""
 
     id: str = Field(description="The ID of the agent.")
     user_id: str = Field(description="The ID of the user that owns the agent.")
+    status: AgentStatus = Field(description="The status of the agent.")
     name: str = Field(description="The name of the agent.")
     description: str = Field(description="The description of the agent.")
     runbook: str = Field(description="The runbook for the agent.")

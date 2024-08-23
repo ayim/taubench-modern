@@ -16,6 +16,7 @@ CREATE TABLE "user" (
 CREATE TABLE agent (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL,
+    status VARCHAR(20) NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
     runbook TEXT NOT NULL,

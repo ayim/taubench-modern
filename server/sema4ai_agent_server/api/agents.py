@@ -16,6 +16,7 @@ from sema4ai_agent_server.schema import (
     Agent,
     AgentArchitecture,
     AgentReasoning,
+    AgentStatus,
     UploadedFile,
 )
 from sema4ai_agent_server.storage.option import get_storage
@@ -113,6 +114,7 @@ async def create_agent(
     return await get_storage().put_agent(
         user.user_id,
         str(uuid4()),
+        status=AgentStatus.READY,
         name=payload.name,
         description=payload.description,
         runbook=payload.runbook,
@@ -148,6 +150,7 @@ async def upsert_agent(
     return await get_storage().put_agent(
         user.user_id,
         aid,
+        status=AgentStatus.READY,
         name=payload.name,
         description=payload.description,
         runbook=payload.runbook,
