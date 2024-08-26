@@ -13,7 +13,7 @@ npm i @sema4ai/agent-server-interface
 2. Usage:
 
 ```ts
-import type { components, paths, meta } from "@sema4ai/agent-server-interface";
+import { components, paths, meta } from "@sema4ai/agent-server-interface";
 
 // Schema objects
 type Agent = components["schemas"]["Agent"];
