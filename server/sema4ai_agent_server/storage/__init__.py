@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Sequence, Union
 
+from fastapi import HTTPException
 from langchain_core.messages import AnyMessage
 from pydantic import SecretBytes, SecretStr
 
@@ -18,6 +19,11 @@ from sema4ai_agent_server.schema import (
     UploadedFile,
     User,
 )
+
+
+class UniqueAgentNameError(HTTPException):
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        super().__init__(status_code=409, detail="Agent with this name already exists")
 
 
 def basemodel_secret_encoder_for_db(v: Any) -> Optional[str]:
@@ -74,6 +80,13 @@ class BaseStorage(ABC):
         metadata: AgentMetadata,
     ) -> Agent:
         """Modify an agent."""
+        pass
+
+    @abstractmethod
+    async def update_agent_status(
+        self, user_id: str, agent_id: str, status: AgentStatus
+    ) -> None:
+        """Update the status of an agent."""
         pass
 
     @abstractmethod

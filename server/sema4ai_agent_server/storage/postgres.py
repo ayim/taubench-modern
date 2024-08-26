@@ -25,9 +25,16 @@ from sema4ai_agent_server.schema import (
     User,
     dummy_model,
 )
-from sema4ai_agent_server.storage import BaseStorage, basemodel_secret_encoder_for_db
+from sema4ai_agent_server.storage import (
+    BaseStorage,
+    UniqueAgentNameError,
+    basemodel_secret_encoder_for_db,
+)
 
 logger = structlog.get_logger()
+
+
+UNIQUE_AGENT_NAME_CONSTRAINT_NAME = "idx_unique_agent_name"
 
 
 def _json_encoder(v):
@@ -309,38 +316,43 @@ class PostgresStorage(BaseStorage):
         conn = self.get_pool().acquire()
         async with self.get_pool().acquire() as conn:
             async with conn.transaction():
-                await conn.execute(
-                    (
-                        "INSERT INTO agent (id, user_id, status, name, description, runbook, version, model, architecture, reasoning, action_packages, updated_at, metadata) "
-                        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) "
-                        "ON CONFLICT (id) DO UPDATE SET "
-                        "user_id = EXCLUDED.user_id, "
-                        "status = EXCLUDED.status, "
-                        "name = EXCLUDED.name, "
-                        "description = EXCLUDED.description, "
-                        "runbook = EXCLUDED.runbook, "
-                        "version = EXCLUDED.version, "
-                        "model = EXCLUDED.model, "
-                        "architecture = EXCLUDED.architecture, "
-                        "reasoning = EXCLUDED.reasoning, "
-                        "action_packages = EXCLUDED.action_packages, "
-                        "updated_at = EXCLUDED.updated_at, "
-                        "metadata = EXCLUDED.metadata;"
-                    ),
-                    agent_id,
-                    user_id,
-                    status,
-                    name,
-                    description,
-                    runbook,
-                    version,
-                    model,
-                    architecture,
-                    reasoning,
-                    action_packages,
-                    updated_at,
-                    metadata,
-                )
+                try:
+                    await conn.execute(
+                        (
+                            "INSERT INTO agent (id, user_id, status, name, description, runbook, version, model, architecture, reasoning, action_packages, updated_at, metadata) "
+                            "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) "
+                            "ON CONFLICT (id) DO UPDATE SET "
+                            "user_id = EXCLUDED.user_id, "
+                            "status = EXCLUDED.status, "
+                            "name = EXCLUDED.name, "
+                            "description = EXCLUDED.description, "
+                            "runbook = EXCLUDED.runbook, "
+                            "version = EXCLUDED.version, "
+                            "model = EXCLUDED.model, "
+                            "architecture = EXCLUDED.architecture, "
+                            "reasoning = EXCLUDED.reasoning, "
+                            "action_packages = EXCLUDED.action_packages, "
+                            "updated_at = EXCLUDED.updated_at, "
+                            "metadata = EXCLUDED.metadata;"
+                        ),
+                        agent_id,
+                        user_id,
+                        status,
+                        name,
+                        description,
+                        runbook,
+                        version,
+                        model,
+                        architecture,
+                        reasoning,
+                        action_packages,
+                        updated_at,
+                        metadata,
+                    )
+                except asyncpg.exceptions.UniqueViolationError as e:
+                    if UNIQUE_AGENT_NAME_CONSTRAINT_NAME in str(e):
+                        raise UniqueAgentNameError()
+                    raise e
         return Agent(
             id=agent_id,
             user_id=user_id,
@@ -356,6 +368,18 @@ class PostgresStorage(BaseStorage):
             updated_at=updated_at,
             metadata=metadata,
         )
+
+    async def update_agent_status(
+        self, user_id: str, agent_id: str, status: AgentStatus
+    ) -> None:
+        """Update the status of an agent."""
+        async with self.get_pool().acquire() as conn:
+            await conn.execute(
+                "UPDATE agent SET status = $1 WHERE id = $2 AND user_id = $3",
+                status,
+                agent_id,
+                user_id,
+            )
 
     async def delete_agent(self, user_id: str, agent_id: str) -> None:
         """Delete an agent by ID."""
