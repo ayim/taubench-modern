@@ -77,6 +77,13 @@ class BaseStorage(ABC):
         pass
 
     @abstractmethod
+    async def update_agent_status(
+        self, user_id: str, agent_id: str, status: AgentStatus
+    ) -> None:
+        """Update the status of an agent."""
+        pass
+
+    @abstractmethod
     async def agent_count(self) -> int:
         """Get agent row count"""
         pass

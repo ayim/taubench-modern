@@ -270,6 +270,18 @@ class SqliteStorage(BaseStorage):
                 metadata=metadata,
             )
 
+    async def update_agent_status(
+        self, user_id: str, agent_id: str, status: AgentStatus
+    ) -> None:
+        """Update the status of an agent."""
+        with self._connect() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE agent SET status = ? WHERE id = ? AND user_id = ?",
+                (status, agent_id, user_id),
+            )
+            conn.commit()
+
     async def agent_count(self) -> int:
         """Get agent row count"""
         with self._connect() as conn:

@@ -357,6 +357,18 @@ class PostgresStorage(BaseStorage):
             metadata=metadata,
         )
 
+    async def update_agent_status(
+        self, user_id: str, agent_id: str, status: AgentStatus
+    ) -> None:
+        """Update the status of an agent."""
+        async with self.get_pool().acquire() as conn:
+            await conn.execute(
+                "UPDATE agent SET status = $1 WHERE id = $2 AND user_id = $3",
+                status,
+                agent_id,
+                user_id,
+            )
+
     async def delete_agent(self, user_id: str, agent_id: str) -> None:
         """Delete an agent by ID."""
         async with self.get_pool().acquire() as conn:

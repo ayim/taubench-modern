@@ -1,12 +1,22 @@
+import os
+import shutil
+import subprocess
+import tempfile
 from typing import Annotated, List, Optional
 from uuid import uuid4
 
+import aiohttp
 import structlog
-from fastapi import APIRouter, HTTPException, Path, UploadFile
+import yaml
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Path, UploadFile
 from langchain_core.messages import HumanMessage
 from pydantic import BaseModel, Field
 
 from sema4ai_agent_server.agent import runnable_agent
+from sema4ai_agent_server.agent_spec import (
+    create_agent_from_spec,
+    spec_contains_knowledge,
+)
 from sema4ai_agent_server.api.files import _store_files
 from sema4ai_agent_server.auth.handlers import AuthedUser
 from sema4ai_agent_server.file_manager.option import get_file_manager
@@ -44,6 +54,30 @@ class AgentPayload(BaseModel):
     )
     metadata: AgentMetadata = Field(
         ..., description="Additional metadata for the agent."
+    )
+
+
+class AgentPayloadPackageActions(BaseModel):
+    url: str = Field(..., description="The URL of action server.")
+    api_key: str = Field(..., description="The API key of action server.")
+
+
+class AgentPayloadPackageLangsmith(BaseModel):
+    project: str = Field(..., description="The project name of langsmith.")
+    api_key: str = Field(..., description="The API key of langsmith.")
+
+
+class AgentPayloadPackage(BaseModel):
+    """Payload for creating an agent via package."""
+
+    name: str = Field(..., description="The name of the agent.")
+    agent_package_url: str = Field(..., description="The URL of the agent package.")
+    model: MODEL = Field(..., description="LLM configuration for the agent.")
+    actions: AgentPayloadPackageActions = Field(
+        ..., description="The action server configuration."
+    )
+    langsmith: AgentPayloadPackageLangsmith = Field(
+        ..., description="The langsmith configuration."
     )
 
 
@@ -98,6 +132,102 @@ async def get_agent(
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     return agent
+
+
+@router.post("/package")
+async def create_agent_via_package(
+    user: AuthedUser,
+    payload: AgentPayloadPackage,
+    background_tasks: BackgroundTasks,
+) -> Agent:
+    root_dir = tempfile.mkdtemp()
+
+    try:
+        # Download the agent package
+        package_path = os.path.join(root_dir, "agent_package.zip")
+        async with aiohttp.ClientSession() as session:
+            async with session.get(payload.agent_package_url) as resp:
+                if resp.status == 200:
+                    with open(package_path, "wb") as f:
+                        f.write(await resp.read())
+                else:
+                    raise HTTPException(
+                        status_code=400, detail="Failed to download agent package"
+                    )
+
+        # Extract the agent package
+        output_path = os.path.join(root_dir, "output")
+        subprocess.run(
+            [
+                "agent-cli",
+                "package",
+                "extract",
+                "--package",
+                package_path,
+                "--output-dir",
+                output_path,
+            ],
+            check=True,
+        )
+        with open(os.path.join(output_path, "agent-spec.yaml"), "r") as f:
+            spec = yaml.safe_load(f)
+
+        # Create the agent
+        agent = await create_agent_from_spec(
+            spec=spec,
+            user_id=user.user_id,
+            agent_name=payload.name,
+            model=payload.model,
+            action_server_url=payload.actions.url,
+            action_server_api_key=payload.actions.api_key,
+        )
+
+        # Upload knowledge files in the background if the agent has knowledge
+        if spec_contains_knowledge(spec):
+            logger.info("Uploading knowledge files.")
+            knowledge_dir = os.path.join(output_path, "knowledge")
+            background_tasks.add_task(
+                _upload_knowledge_files, user, agent.id, root_dir, knowledge_dir
+            )
+        else:
+            logger.info("No knowledge files to upload. Skipping.")
+            shutil.rmtree(root_dir)
+
+        return agent
+
+    # Not using finally because background task needs to have access to the dir
+    except Exception as e:
+        shutil.rmtree(root_dir)
+        logger.exception("Failed to create agent via package", exception=e)
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+async def _upload_knowledge_files(
+    user: AuthedUser, aid: str, root_dir: str, knowledge_dir: str
+):
+    open_files = []
+    try:
+        upload_files = []
+        for root, _, files in os.walk(knowledge_dir):
+            for file in files:
+                f = open(os.path.join(root, file), "rb")
+                open_files.append(f)
+                upload_files.append(UploadFile(filename=file, file=f))
+
+        stored_files = await upload_agent_files(upload_files, user, aid)
+        logger.info(f"Successfully uploaded files: {stored_files}.")
+    except Exception as e:
+        await get_storage().update_agent_status(
+            user.user_id, aid, AgentStatus.FILE_UPLOADS_FAILED
+        )
+        logger.exception("Failed to upload files", exception=e)
+    else:
+        await get_storage().update_agent_status(user.user_id, aid, AgentStatus.READY)
+    finally:
+        # Close all opened files and remove the temporary directory
+        for f in open_files:
+            f.close()
+        shutil.rmtree(root_dir)
 
 
 @router.post("")
