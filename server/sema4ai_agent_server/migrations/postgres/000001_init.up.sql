@@ -22,7 +22,7 @@ CREATE TABLE agent (
     runbook TEXT NOT NULL,
     version VARCHAR(255) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
-    metadata JSONB,
+    metadata JSONB NOT NULL,
     model JSONB,
     architecture TEXT NOT NULL,
     reasoning TEXT NOT NULL,

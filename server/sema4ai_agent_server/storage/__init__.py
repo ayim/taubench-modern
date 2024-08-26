@@ -11,6 +11,7 @@ from sema4ai_agent_server.schema import (
     ActionPackage,
     Agent,
     AgentArchitecture,
+    AgentMetadata,
     AgentReasoning,
     AgentStatus,
     Thread,
@@ -70,7 +71,7 @@ class BaseStorage(ABC):
         architecture: AgentArchitecture,
         reasoning: AgentReasoning,
         action_packages: list[ActionPackage],
-        metadata: Optional[dict],
+        metadata: AgentMetadata,
     ) -> Agent:
         """Modify an agent."""
         pass

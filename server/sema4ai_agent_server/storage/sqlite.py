@@ -19,6 +19,7 @@ from sema4ai_agent_server.schema import (
     ActionPackage,
     Agent,
     AgentArchitecture,
+    AgentMetadata,
     AgentReasoning,
     AgentStatus,
     Thread,
@@ -135,10 +136,8 @@ class SqliteStorage(BaseStorage):
                 agent_data["action_packages"] = parse_obj_as(
                     list[ActionPackage], json.loads(agent_data["action_packages"])
                 )
-                agent_data["metadata"] = (
-                    json.loads(agent_data["metadata"])
-                    if agent_data["metadata"] is not None
-                    else None
+                agent_data["metadata"] = parse_obj_as(
+                    AgentMetadata, json.loads(agent_data["metadata"])
                 )
                 agent = Agent(**agent_data)
                 agents.append(agent)
@@ -162,10 +161,8 @@ class SqliteStorage(BaseStorage):
                 agent_data["action_packages"] = parse_obj_as(
                     list[ActionPackage], json.loads(agent_data["action_packages"])
                 )
-                agent_data["metadata"] = (
-                    json.loads(agent_data["metadata"])
-                    if agent_data["metadata"] is not None
-                    else None
+                agent_data["metadata"] = parse_obj_as(
+                    AgentMetadata, json.loads(agent_data["metadata"])
                 )
                 agent = Agent(**agent_data)
                 agents.append(agent)
@@ -188,10 +185,8 @@ class SqliteStorage(BaseStorage):
             agent_data["action_packages"] = parse_obj_as(
                 list[ActionPackage], json.loads(agent_data["action_packages"])
             )
-            agent_data["metadata"] = (
-                json.loads(agent_data["metadata"])
-                if agent_data["metadata"] is not None
-                else None
+            agent_data["metadata"] = parse_obj_as(
+                AgentMetadata, json.loads(agent_data["metadata"])
             )
             return Agent(**agent_data)
 
@@ -209,7 +204,7 @@ class SqliteStorage(BaseStorage):
         architecture: AgentArchitecture,
         reasoning: AgentReasoning,
         action_packages: list[ActionPackage],
-        metadata: Optional[dict],
+        metadata: AgentMetadata,
     ) -> Agent:
         """Modify an agent."""
         updated_at = datetime.now(timezone.utc)
@@ -222,6 +217,7 @@ class SqliteStorage(BaseStorage):
                     for p in action_packages
                 ]
             )
+            metadata_str = metadata.json(encoder=basemodel_secret_encoder_for_db)
             cursor.execute(
                 """
                 INSERT INTO agent (id, user_id, status, name, description, runbook, version, model, architecture, reasoning, action_packages, updated_at, metadata)
@@ -254,7 +250,7 @@ class SqliteStorage(BaseStorage):
                     reasoning,
                     action_packages_str,
                     updated_at.isoformat(),
-                    json.dumps(metadata),
+                    metadata_str,
                 ),
             )
             conn.commit()

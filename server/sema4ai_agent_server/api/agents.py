@@ -15,6 +15,7 @@ from sema4ai_agent_server.schema import (
     ActionPackage,
     Agent,
     AgentArchitecture,
+    AgentMetadata,
     AgentReasoning,
     AgentStatus,
     UploadedFile,
@@ -41,8 +42,8 @@ class AgentPayload(BaseModel):
     action_packages: list[ActionPackage] = Field(
         default=[], description="The action packages for the agent."
     )
-    metadata: Optional[dict] = Field(
-        default=None, description="Additional metadata for the agent."
+    metadata: AgentMetadata = Field(
+        ..., description="Additional metadata for the agent."
     )
 
 
@@ -107,9 +108,8 @@ async def create_agent(
     """Create an agent."""
     msg = await _generate_welcome_message(user.user_id, payload)
 
-    metadata = payload.metadata or {}
     if msg is not None:
-        metadata["welcome_message"] = msg
+        payload.metadata.welcome_message = msg
 
     return await get_storage().put_agent(
         user.user_id,
@@ -123,7 +123,7 @@ async def create_agent(
         architecture=payload.architecture,
         reasoning=payload.reasoning,
         action_packages=payload.action_packages,
-        metadata=metadata,
+        metadata=payload.metadata,
     )
 
 
@@ -139,13 +139,8 @@ async def upsert_agent(
         raise HTTPException(status_code=404, detail="Agent not found")
 
     msg = await _generate_welcome_message(user.user_id, payload)
-    metadata = agent.metadata or {}
     if msg is not None:
-        metadata["welcome_message"] = msg
-
-    # Update metadata with payload metadata
-    if payload.metadata:
-        metadata.update(payload.metadata)
+        payload.metadata.welcome_message = msg
 
     return await get_storage().put_agent(
         user.user_id,
@@ -159,7 +154,7 @@ async def upsert_agent(
         architecture=payload.architecture,
         reasoning=payload.reasoning,
         action_packages=payload.action_packages,
-        metadata=metadata,
+        metadata=payload.metadata,
     )
 
 
