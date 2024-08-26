@@ -25,7 +25,7 @@ DB_TYPE = os.environ.get("S4_AGENT_SERVER_DB_TYPE", "sqlite").lower()
 # Get root of app, used to point to directory containing static files
 ROOT = Path(__file__).parent.parent
 
-# Read current 
+# Read current Agent Server version
 with open("pyproject.toml", "rb") as f:
     pyproject_data = tomllib.load(f)
 version = pyproject_data["tool"]["poetry"]["version"]
