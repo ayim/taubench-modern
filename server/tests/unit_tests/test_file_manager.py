@@ -16,6 +16,8 @@ from sema4ai_agent_server.file_manager.local import LocalFileManager
 from sema4ai_agent_server.schema import (
     Agent,
     AgentArchitecture,
+    AgentMetadata,
+    AgentMode,
     AgentReasoning,
     AgentStatus,
     Thread,
@@ -110,7 +112,7 @@ def sample_owner():
         reasoning=AgentReasoning.DISABLED,
         action_packages=[],
         updated_at=datetime.now(timezone.utc),
-        metadata=None,
+        metadata=AgentMetadata(mode=AgentMode.CONVERSATIONAL),
     )
 
 
