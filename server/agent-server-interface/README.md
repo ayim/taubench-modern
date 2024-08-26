@@ -1,6 +1,6 @@
 # Sema4.ai Agent Server API Typescript interface
 
-This package provides Agent Server API interface.
+This package provides Agent Server API interface Typescript types.
 
 ## Usage
 
