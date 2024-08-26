@@ -1,6 +1,6 @@
 {
   "name": "@sema4ai/agent-server-interface",
-  "version": "0.1.0",
+  "version": "0.3.5",
   "description": "Sema4.ai Agent Server API Typescript interface",
   "type": "module",
   "author": {
@@ -13,10 +13,10 @@
     "url": "git://git@github.com:Sema4AI/opengpts-private.git"
   },
   "scripts": {
-    "build": "tsup",
     "generate:schema": "npx openapi-typescript http://localhost:8100/openapi.json -o ./src/schema.ts",
     "generate:meta": "tsx ./scripts/meta.ts http://localhost:8100/openapi.json",
-    "generate": "npm run generate:schema && npm run generate:meta"
+    "build:package": "tsup",
+    "build": "npm run generate:schema && npm run generate:meta && tsup"
   },
   "files": [
     "dist"

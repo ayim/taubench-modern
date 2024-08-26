@@ -1,4 +1,4 @@
 export const meta = {
-    "title": "Sema4.ai Agent Server API",
-    "version": "0.1.0"
+  "title": "Sema4.ai Agent Server API",
+  "version": "0.3.5"
 };

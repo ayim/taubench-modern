@@ -32,13 +32,10 @@ const version = meta.version;
 2. Generate the types and build the package:
 
 ```sh
-npm run generate
 npm run build
 ```
 
-3. Make sure the [package version](./package.json) matches the Agent Server version:
-
-4. Publish the package:
+3. Publish the package:
 
 ```sh
 npm publish

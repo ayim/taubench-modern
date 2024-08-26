@@ -4,6 +4,7 @@ from pathlib import Path
 from urllib.parse import urlparse, urlunparse
 
 import structlog
+import tomllib
 from fastapi import FastAPI
 from fastapi.exceptions import HTTPException
 
@@ -24,7 +25,12 @@ DB_TYPE = os.environ.get("S4_AGENT_SERVER_DB_TYPE", "sqlite").lower()
 # Get root of app, used to point to directory containing static files
 ROOT = Path(__file__).parent.parent
 
-app = FastAPI(title="Sema4.ai Agent Server API", lifespan=lifespan)
+# Read current 
+with open("pyproject.toml", "rb") as f:
+    pyproject_data = tomllib.load(f)
+version = pyproject_data["tool"]["poetry"]["version"]
+
+app = FastAPI(title="Sema4.ai Agent Server API", lifespan=lifespan, version=version)
 app.include_router(api_router)
 
 
