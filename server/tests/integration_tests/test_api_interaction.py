@@ -15,6 +15,8 @@ from tqdm import tqdm
 
 from sema4ai_agent_server.schema import (
     AgentArchitecture,
+    AgentMetadata,
+    AgentMode,
     AgentReasoning,
     AgentStatus,
     LLMProvider,
@@ -77,6 +79,7 @@ def create_agent(
         name="gpt-3.5-turbo",
         config=OpenAIGPTConfig(temperature=0.0, openai_api_key=openai_api_key),
     )
+    metadata = AgentMetadata(mode=AgentMode.CONVERSATIONAL)
     url = f"{base_url}/agents"
     headers = {
         "Accept": "application/json",
@@ -93,6 +96,7 @@ def create_agent(
         "architecture": architecture,
         "reasoning": AgentReasoning.DISABLED,
         "action_packages": [],
+        "metadata": json.loads(metadata.json(encoder=basemodel_secret_encoder_for_db)),
     }
 
     response = requests.post(url, headers=headers, json=data)
