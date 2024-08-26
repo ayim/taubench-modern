@@ -7,7 +7,6 @@ from typing import Any, Dict, List, Optional, Sequence, Union
 import asyncpg
 import orjson
 import structlog
-from fastapi import HTTPException
 from langchain_core.messages import AnyMessage
 from pydantic import BaseModel, parse_obj_as
 
@@ -26,7 +25,11 @@ from sema4ai_agent_server.schema import (
     User,
     dummy_model,
 )
-from sema4ai_agent_server.storage import BaseStorage, basemodel_secret_encoder_for_db
+from sema4ai_agent_server.storage import (
+    BaseStorage,
+    UniqueAgentNameError,
+    basemodel_secret_encoder_for_db,
+)
 
 logger = structlog.get_logger()
 
@@ -348,10 +351,7 @@ class PostgresStorage(BaseStorage):
                     )
                 except asyncpg.exceptions.UniqueViolationError as e:
                     if UNIQUE_AGENT_NAME_CONSTRAINT_NAME in str(e):
-                        raise HTTPException(
-                            status_code=409,
-                            detail="Agent with this name already exists",
-                        )
+                        raise UniqueAgentNameError()
                     raise e
         return Agent(
             id=agent_id,

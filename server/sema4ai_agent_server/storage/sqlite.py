@@ -27,7 +27,11 @@ from sema4ai_agent_server.schema import (
     User,
     dummy_model,
 )
-from sema4ai_agent_server.storage import BaseStorage, basemodel_secret_encoder_for_db
+from sema4ai_agent_server.storage import (
+    BaseStorage,
+    UniqueAgentNameError,
+    basemodel_secret_encoder_for_db,
+)
 
 logger = structlog.get_logger()
 
@@ -218,42 +222,50 @@ class SqliteStorage(BaseStorage):
                 ]
             )
             metadata_str = metadata.json(encoder=basemodel_secret_encoder_for_db)
-            cursor.execute(
-                """
-                INSERT INTO agent (id, user_id, status, name, description, runbook, version, model, architecture, reasoning, action_packages, updated_at, metadata)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(id) 
-                DO UPDATE SET 
-                    user_id = EXCLUDED.user_id, 
-                    status = EXCLUDED.status,
-                    name = EXCLUDED.name, 
-                    description = EXCLUDED.description,
-                    runbook = EXCLUDED.runbook,
-                    version = EXCLUDED.version,
-                    model = EXCLUDED.model,
-                    architecture = EXCLUDED.architecture,
-                    reasoning = EXCLUDED.reasoning,
-                    action_packages = EXCLUDED.action_packages,
-                    updated_at = EXCLUDED.updated_at, 
-                    metadata = EXCLUDED.metadata
-                """,
-                (
-                    agent_id,
-                    user_id,
-                    status,
-                    name,
-                    description,
-                    runbook,
-                    version,
-                    model_str,
-                    architecture,
-                    reasoning,
-                    action_packages_str,
-                    updated_at.isoformat(),
-                    metadata_str,
-                ),
-            )
-            conn.commit()
+            try:
+                cursor.execute(
+                    """
+                    INSERT INTO agent (id, user_id, status, name, description, runbook, version, model, architecture, reasoning, action_packages, updated_at, metadata)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(id) 
+                    DO UPDATE SET 
+                        user_id = EXCLUDED.user_id, 
+                        status = EXCLUDED.status,
+                        name = EXCLUDED.name, 
+                        description = EXCLUDED.description,
+                        runbook = EXCLUDED.runbook,
+                        version = EXCLUDED.version,
+                        model = EXCLUDED.model,
+                        architecture = EXCLUDED.architecture,
+                        reasoning = EXCLUDED.reasoning,
+                        action_packages = EXCLUDED.action_packages,
+                        updated_at = EXCLUDED.updated_at, 
+                        metadata = EXCLUDED.metadata
+                    """,
+                    (
+                        agent_id,
+                        user_id,
+                        status,
+                        name,
+                        description,
+                        runbook,
+                        version,
+                        model_str,
+                        architecture,
+                        reasoning,
+                        action_packages_str,
+                        updated_at.isoformat(),
+                        metadata_str,
+                    ),
+                )
+                conn.commit()
+            except sqlite3.IntegrityError as e:
+                if (
+                    e.sqlite_errorcode == sqlite3.SQLITE_CONSTRAINT_UNIQUE
+                    and "agent.name" in str(e)
+                ):
+                    raise UniqueAgentNameError()
+                raise e
             return Agent(
                 id=agent_id,
                 user_id=user_id,

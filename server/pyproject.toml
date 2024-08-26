@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{ include = "sema4ai_agent_server" }]
 
 [tool.poetry.dependencies]
-python = "^3.9.0,<3.12"
+python = "^3.11.0,<3.12"
 
 arxiv = "2.1.0"
 asyncpg = "0.29.0"
