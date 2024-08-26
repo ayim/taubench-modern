@@ -22,7 +22,7 @@ CREATE TABLE agent (
     runbook TEXT NOT NULL,
     version TEXT NOT NULL,
     updated_at DATETIME DEFAULT (datetime('now')),
-    metadata TEXT,
+    metadata TEXT NOT NULL,
     model TEXT,
     architecture TEXT NOT NULL,
     reasoning TEXT NOT NULL,

@@ -3,7 +3,7 @@ from enum import Enum
 from typing import List, Literal, Optional
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
-from pydantic import BaseModel, Field, SecretStr
+from pydantic import BaseModel, Field, SecretStr, root_validator
 
 NOT_CONFIGURED = "SEMA4AI_FIELD_NOT_CONFIGURED"
 
@@ -192,6 +192,59 @@ class AgentStatus(str, Enum):
     READY = "ready"
 
 
+class AgentMode(str, Enum):
+    """
+    Enum for agent mode.
+    """
+
+    CONVERSATIONAL = "conversational"
+    WORKER = "worker"
+
+
+class WorkerType(str, Enum):
+    """
+    Enum for worker type.
+    """
+
+    DOCUMENT_INTELLIGENCE = "Document Intelligence"
+
+
+class WorkerConfig(BaseModel):
+    """
+    Worker configuration for the agent.
+    """
+
+    type: WorkerType = Field(description="The type of worker.")
+    document_type: str = Field(description="The type of document.")
+
+
+class AgentMetadata(BaseModel):
+    """
+    Metadata for the agent.
+    """
+
+    mode: AgentMode = Field(description="The mode of the agent.")
+    worker_config: Optional[WorkerConfig] = Field(
+        description="Worker configuration, if in worker mode."
+    )
+    welcome_message: Optional[str] = Field(description="Welcome message for the agent.")
+
+    @root_validator
+    def validate_worker_config(cls, values):
+        mode = values.get("mode")
+        worker_config = values.get("worker_config")
+
+        if mode == AgentMode.WORKER and worker_config is None:
+            raise ValueError("worker_config must be set when mode is 'worker'")
+
+        if mode == AgentMode.CONVERSATIONAL and worker_config is not None:
+            raise ValueError(
+                "worker_config should not be set when mode is 'conversational'"
+            )
+
+        return values
+
+
 class Agent(BaseModel):
     """Agent model."""
 
@@ -211,7 +264,7 @@ class Agent(BaseModel):
         description="The action packages for the agent."
     )
     updated_at: datetime = Field(description="The last time the agent was updated.")
-    metadata: Optional[dict] = Field(description="The agent metadata.")
+    metadata: AgentMetadata = Field(description="The agent metadata.")
 
 
 class Thread(BaseModel):
