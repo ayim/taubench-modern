@@ -29,6 +29,8 @@ CREATE TABLE agent (
     action_packages JSONB,
     CONSTRAINT fk_agent_user_id FOREIGN KEY (user_id) REFERENCES "user"(user_id)
 );
+-- We are checking for this constraint in storage/postgres.py. If you change the name of the constraint,
+-- you must also change it there.
 CREATE UNIQUE INDEX idx_unique_agent_name ON agent (LOWER(name));
 
 CREATE TABLE thread (

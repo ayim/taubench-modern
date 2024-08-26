@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional, Sequence, Union
 import asyncpg
 import orjson
 import structlog
+from fastapi import HTTPException
 from langchain_core.messages import AnyMessage
 from pydantic import BaseModel, parse_obj_as
 
@@ -28,6 +29,9 @@ from sema4ai_agent_server.schema import (
 from sema4ai_agent_server.storage import BaseStorage, basemodel_secret_encoder_for_db
 
 logger = structlog.get_logger()
+
+
+UNIQUE_AGENT_NAME_CONSTRAINT_NAME = "idx_unique_agent_name"
 
 
 def _json_encoder(v):
@@ -309,38 +313,46 @@ class PostgresStorage(BaseStorage):
         conn = self.get_pool().acquire()
         async with self.get_pool().acquire() as conn:
             async with conn.transaction():
-                await conn.execute(
-                    (
-                        "INSERT INTO agent (id, user_id, status, name, description, runbook, version, model, architecture, reasoning, action_packages, updated_at, metadata) "
-                        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) "
-                        "ON CONFLICT (id) DO UPDATE SET "
-                        "user_id = EXCLUDED.user_id, "
-                        "status = EXCLUDED.status, "
-                        "name = EXCLUDED.name, "
-                        "description = EXCLUDED.description, "
-                        "runbook = EXCLUDED.runbook, "
-                        "version = EXCLUDED.version, "
-                        "model = EXCLUDED.model, "
-                        "architecture = EXCLUDED.architecture, "
-                        "reasoning = EXCLUDED.reasoning, "
-                        "action_packages = EXCLUDED.action_packages, "
-                        "updated_at = EXCLUDED.updated_at, "
-                        "metadata = EXCLUDED.metadata;"
-                    ),
-                    agent_id,
-                    user_id,
-                    status,
-                    name,
-                    description,
-                    runbook,
-                    version,
-                    model,
-                    architecture,
-                    reasoning,
-                    action_packages,
-                    updated_at,
-                    metadata,
-                )
+                try:
+                    await conn.execute(
+                        (
+                            "INSERT INTO agent (id, user_id, status, name, description, runbook, version, model, architecture, reasoning, action_packages, updated_at, metadata) "
+                            "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) "
+                            "ON CONFLICT (id) DO UPDATE SET "
+                            "user_id = EXCLUDED.user_id, "
+                            "status = EXCLUDED.status, "
+                            "name = EXCLUDED.name, "
+                            "description = EXCLUDED.description, "
+                            "runbook = EXCLUDED.runbook, "
+                            "version = EXCLUDED.version, "
+                            "model = EXCLUDED.model, "
+                            "architecture = EXCLUDED.architecture, "
+                            "reasoning = EXCLUDED.reasoning, "
+                            "action_packages = EXCLUDED.action_packages, "
+                            "updated_at = EXCLUDED.updated_at, "
+                            "metadata = EXCLUDED.metadata;"
+                        ),
+                        agent_id,
+                        user_id,
+                        status,
+                        name,
+                        description,
+                        runbook,
+                        version,
+                        model,
+                        architecture,
+                        reasoning,
+                        action_packages,
+                        updated_at,
+                        metadata,
+                    )
+                except asyncpg.exceptions.UniqueViolationError as e:
+                    if UNIQUE_AGENT_NAME_CONSTRAINT_NAME in str(e):
+                        raise HTTPException(
+                            status_code=409,
+                            detail="Agent with this name already exists",
+                        )
+                    raise e
         return Agent(
             id=agent_id,
             user_id=user_id,
