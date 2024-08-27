@@ -15,7 +15,9 @@ from pydantic import BaseModel, Field
 from sema4ai_agent_server.agent import runnable_agent
 from sema4ai_agent_server.agent_spec import (
     create_agent_from_spec,
+    spec_contains_action_packages,
     spec_contains_knowledge,
+    validate_spec,
 )
 from sema4ai_agent_server.api.files import _store_files
 from sema4ai_agent_server.auth.handlers import AuthedUser
@@ -57,14 +59,9 @@ class AgentPayload(BaseModel):
     )
 
 
-class AgentPayloadPackageActions(BaseModel):
+class AgentPayloadPackageActionServer(BaseModel):
     url: str = Field(..., description="The URL of action server.")
     api_key: str = Field(..., description="The API key of action server.")
-
-
-class AgentPayloadPackageLangsmith(BaseModel):
-    project: str = Field(..., description="The project name of langsmith.")
-    api_key: str = Field(..., description="The API key of langsmith.")
 
 
 class AgentPayloadPackage(BaseModel):
@@ -73,11 +70,8 @@ class AgentPayloadPackage(BaseModel):
     name: str = Field(..., description="The name of the agent.")
     agent_package_url: str = Field(..., description="The URL of the agent package.")
     model: MODEL = Field(..., description="LLM configuration for the agent.")
-    actions: AgentPayloadPackageActions = Field(
-        ..., description="The action server configuration."
-    )
-    langsmith: AgentPayloadPackageLangsmith = Field(
-        ..., description="The langsmith configuration."
+    action_servers: list[AgentPayloadPackageActionServer] = Field(
+        ..., description="Action Server configurations."
     )
 
 
@@ -171,6 +165,19 @@ async def create_agent_via_package(
         )
         with open(os.path.join(output_path, "agent-spec.yaml"), "r") as f:
             spec = yaml.safe_load(f)
+            validate_spec(spec, payload.model)
+
+        if spec_contains_action_packages(spec) and not payload.action_servers:
+            raise HTTPException(status_code=400, detail="Missing action server config.")
+
+        # Using the first action server for now. In the future, Control Room
+        # may provide us with a list of multiple action servers.
+        action_server_url = (
+            payload.action_servers[0].url if payload.action_servers else None
+        )
+        action_server_api_key = (
+            payload.action_servers[0].api_key if payload.action_servers else None
+        )
 
         # Create the agent
         agent = await create_agent_from_spec(
@@ -178,8 +185,8 @@ async def create_agent_via_package(
             user_id=user.user_id,
             agent_name=payload.name,
             model=payload.model,
-            action_server_url=payload.actions.url,
-            action_server_api_key=payload.actions.api_key,
+            action_server_url=action_server_url,
+            action_server_api_key=action_server_api_key,
         )
 
         # Upload knowledge files in the background if the agent has knowledge
@@ -199,7 +206,9 @@ async def create_agent_via_package(
     except Exception as e:
         shutil.rmtree(root_dir)
         logger.exception("Failed to create agent via package", exception=e)
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(
+            status_code=400, detail=e.detail if isinstance(e, HTTPException) else str(e)
+        )
 
 
 async def _upload_knowledge_files(
