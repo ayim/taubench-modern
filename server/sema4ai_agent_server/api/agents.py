@@ -10,7 +10,7 @@ import structlog
 import yaml
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Path, UploadFile
 from langchain_core.messages import HumanMessage
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 
 from sema4ai_agent_server.agent import runnable_agent
 from sema4ai_agent_server.agent_spec import (
@@ -57,7 +57,7 @@ class AgentPayload(BaseModel):
     )
 
 
-class AgentPayloadPackageActions(BaseModel):
+class AgentPayloadPackageActionServer(BaseModel):
     url: str = Field(..., description="The URL of action server.")
     api_key: str = Field(..., description="The API key of action server.")
 
@@ -73,12 +73,18 @@ class AgentPayloadPackage(BaseModel):
     name: str = Field(..., description="The name of the agent.")
     agent_package_url: str = Field(..., description="The URL of the agent package.")
     model: MODEL = Field(..., description="LLM configuration for the agent.")
-    actions: AgentPayloadPackageActions = Field(
-        ..., description="The action server configuration."
+    action_servers: list[AgentPayloadPackageActionServer] = Field(
+        ..., description="Action Server configurations."
     )
     langsmith: AgentPayloadPackageLangsmith = Field(
         ..., description="The langsmith configuration."
     )
+
+    @validator("action_servers")
+    def validate_action_servers(cls, v):
+        if not v:
+            raise ValueError("At least one action server must be provided.")
+        return v
 
 
 AgentID = Annotated[str, Path(description="The ID of the agent.")]
@@ -178,8 +184,8 @@ async def create_agent_via_package(
             user_id=user.user_id,
             agent_name=payload.name,
             model=payload.model,
-            action_server_url=payload.actions.url,
-            action_server_api_key=payload.actions.api_key,
+            action_server_url=payload.action_servers[0].url,
+            action_server_api_key=payload.action_servers[0].api_key,
         )
 
         # Upload knowledge files in the background if the agent has knowledge
