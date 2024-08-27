@@ -1,3 +1,4 @@
+from typing import Optional
 from uuid import uuid4
 
 from pydantic import parse_obj_as
@@ -18,24 +19,16 @@ async def create_agent_from_spec(
     user_id: str,
     agent_name: str,
     model: MODEL,
-    action_server_url: str,
-    action_server_api_key: str,
+    action_server_url: Optional[str],
+    action_server_api_key: Optional[str],
 ) -> Agent:
-    # Validate the agent spec
-    if spec["agent-package"]["spec-version"] != "v2":
-        raise Exception("Only v2 spec version is supported")
-    if len(spec["agent-package"]["agents"]) != 1:
-        raise Exception("Only one agent is supported")
-
     agent = _replace_dashes_with_underscores(spec["agent-package"]["agents"][0])
-    expected_provider = agent["model"]["provider"]
-    expected_name = agent["model"]["name"]
-    if model.provider != expected_provider or model.name != expected_name:
-        raise Exception(
-            f"Model mismatch. Expected: {expected_provider}/{expected_name}",
-        )
 
-    # Construct action packages with the provided configuration from payload
+    if agent["action_packages"] and (
+        action_server_url is None or action_server_api_key is None
+    ):
+        raise Exception("Action server URL and API key are required")
+
     action_packages = []
     for action_package in agent["action_packages"]:
         action_packages.append(
@@ -68,8 +61,26 @@ async def create_agent_from_spec(
     )
 
 
+def validate_spec(spec: dict, model: MODEL) -> None:
+    if spec["agent-package"]["spec-version"] != "v2":
+        raise Exception("Only v2 spec version is supported")
+    if len(spec["agent-package"]["agents"]) != 1:
+        raise Exception("Only one agent is supported")
+
+    expected_provider = spec["agent-package"]["agents"][0]["model"]["provider"]
+    expected_name = spec["agent-package"]["agents"][0]["model"]["name"]
+    if model.provider != expected_provider or model.name != expected_name:
+        raise Exception(
+            f"Model mismatch. Expected: {expected_provider}/{expected_name}",
+        )
+
+
 def spec_contains_knowledge(spec: dict) -> bool:
     return len(spec["agent-package"]["agents"][0]["knowledge"]) > 0
+
+
+def spec_contains_action_packages(spec: dict) -> bool:
+    return len(spec["agent-package"]["agents"][0]["action-packages"]) > 0
 
 
 def _replace_dashes_with_underscores(spec: dict) -> dict:
