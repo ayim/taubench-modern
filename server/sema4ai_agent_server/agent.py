@@ -95,8 +95,9 @@ class ConfigurableAgent(RunnableBinding):
             {
                 "x-invoked_by_assistant_id": agent_id,
                 "x-invoked_on_behalf_of_user_id": user_id,
+                "x-invoked_for_thread_id": thread_id,
             }
-            if agent_id and user_id
+            if agent_id and user_id and thread_id
             else {}
         )
         tools = []
@@ -163,8 +164,9 @@ class ConfigurablePlanExecute(RunnableBinding):
             {
                 "x-invoked_by_assistant_id": agent_id,
                 "x-invoked_on_behalf_of_user_id": user_id,
+                "x-invoked_for_thread_id": thread_id,
             }
-            if agent_id and user_id
+            if agent_id and user_id and thread_id
             else {}
         )
         tools = []
@@ -230,8 +232,9 @@ class ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(RunnableBin
             {
                 "x-invoked_by_assistant_id": agent_id,
                 "x-invoked_on_behalf_of_user_id": user_id,
+                "x-invoked_for_thread_id": thread_id,
             }
-            if agent_id and user_id
+            if agent_id and user_id and thread_id
             else {}
         )
         tools = []
