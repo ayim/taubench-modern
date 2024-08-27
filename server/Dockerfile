@@ -6,8 +6,8 @@ ARG TARGETARCH
 ARG TARGETVARIANT
 ARG AGENT_SERVER_PORT=8100
 # TODO need this for different OS. Hardcoded for now to unblock the platform team.
-ARG AGENT_CLI_URL=https://cdn.sema4.ai/agent-cli/releases/v0.0.15/linux64/agent-cli
-ARG ACTION_SERVER_URL=https://cdn.sema4.ai/action-server/releases/latest/linux64/action-server
+ARG AGENT_CLI_URL=https://cdn.sema4.ai/agent-cli/releases/v0.0.16/linux64/agent-cli
+ARG ACTION_SERVER_URL=https://cdn.sema4.ai/action-server/releases/0.18.0/linux64/action-server
 
 # Convert ARGs to ENVs
 ENV AGENT_SERVER_PORT=${AGENT_SERVER_PORT}
