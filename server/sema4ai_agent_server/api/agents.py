@@ -62,11 +62,6 @@ class AgentPayloadPackageActionServer(BaseModel):
     api_key: str = Field(..., description="The API key of action server.")
 
 
-class AgentPayloadPackageLangsmith(BaseModel):
-    project: str = Field(..., description="The project name of langsmith.")
-    api_key: str = Field(..., description="The API key of langsmith.")
-
-
 class AgentPayloadPackage(BaseModel):
     """Payload for creating an agent via package."""
 
@@ -75,9 +70,6 @@ class AgentPayloadPackage(BaseModel):
     model: MODEL = Field(..., description="LLM configuration for the agent.")
     action_servers: list[AgentPayloadPackageActionServer] = Field(
         ..., description="Action Server configurations."
-    )
-    langsmith: AgentPayloadPackageLangsmith = Field(
-        ..., description="The langsmith configuration."
     )
 
     @validator("action_servers")
