@@ -308,6 +308,15 @@ async def delete_agent(
     aid: AgentID,
 ):
     """Delete an agent by ID."""
+    agent = await get_storage().get_agent(user.user_id, aid)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    file_manager = get_file_manager()
+    files = await get_storage().get_agent_files(aid)
+    for file in files:
+        await file_manager.delete(file.file_id)
+
     await get_storage().delete_agent(user.user_id, aid)
     return {"status": "ok"}
 

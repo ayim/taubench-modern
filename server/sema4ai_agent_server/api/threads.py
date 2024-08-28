@@ -160,6 +160,15 @@ async def delete_thread(
     tid: ThreadID,
 ):
     """Delete a thread by ID."""
+    thread = await get_storage().get_thread(user.user_id, tid)
+    if not thread:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    file_manager = get_file_manager()
+    files = await get_storage().get_thread_files(tid)
+    for file in files:
+        await file_manager.delete(file.file_id)
+
     await get_storage().delete_thread(user.user_id, tid)
     return {"status": "ok"}
 
