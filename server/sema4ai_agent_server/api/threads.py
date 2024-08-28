@@ -192,9 +192,9 @@ async def upload_thread_files(
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
 
-    file_manager = get_file_manager(agent.model)
+    file_manager = get_file_manager()
     try:
-        stored_files = await _store_files(thread, files, file_manager)
+        stored_files = await _store_files(thread, files, file_manager, agent.model)
     except Exception as e:
         logger.exception("Failed to store a file", exception=e)
         raise HTTPException(status_code=500, detail=f"Failed to store a file: {str(e)}")

@@ -131,7 +131,9 @@ def convert_to_blob(file: UploadFile) -> Blob:
     )
 
 
-def get_embeddings(model: MODEL) -> Union[OpenAIEmbeddings, AzureOpenAIEmbeddings]:
+def get_embedding_function(
+    model: MODEL,
+) -> Union[OpenAIEmbeddings, AzureOpenAIEmbeddings]:
     if isinstance(model, OpenAIGPT):
         return OpenAIEmbeddings(
             openai_api_key=model.config.openai_api_key.get_secret_value(),
@@ -159,24 +161,24 @@ class BaseVectorStoreWrapper(ABC):
         """
 
 
-def _get_pg_vector(model: MODEL) -> VectorStore:
+def _get_pg_vector(model: Optional[MODEL]) -> BaseVectorStoreWrapper:
     from sema4ai_agent_server.storage.pg_vector import get_pg_vector_wrapper
 
     return get_pg_vector_wrapper(
-        embedding_function=get_embeddings(model),
+        embedding_function=get_embedding_function(model) if model else None,
     )
 
 
-def _get_chroma_vector(model: MODEL) -> VectorStore:
+def _get_chroma_vector(model: Optional[MODEL]) -> BaseVectorStoreWrapper:
     from sema4ai_agent_server.storage.chroma import ChromaWrapper
 
     return ChromaWrapper(
         persist_directory=VECTOR_DATABASE_PATH,
-        embedding_function=get_embeddings(model),
+        embedding_function=get_embedding_function(model) if model else None,
     )
 
 
-def get_vector_store(model: MODEL) -> VectorStore:
+def get_vector_store(model: Optional[MODEL] = None) -> BaseVectorStoreWrapper:
     db_type = os.environ.get("S4_AGENT_SERVER_DB_TYPE", "sqlite")
     if db_type == "postgres":
         return _get_pg_vector(model)
@@ -190,8 +192,8 @@ class EmbedRunnable(RunnableSerializable[BinaryIO, List[str]]):
 
     text_splitter: TextSplitter
     """Text splitter to use for splitting the text into chunks."""
-    vectorstore: Optional[VectorStore]
-    """Vectorstore to embed into."""
+    model: Optional[MODEL]
+    """Model to use for embedding."""
     file_id: Optional[str]
     """ID of the file to embed."""
     owner_id: Optional[str]
@@ -205,7 +207,7 @@ class EmbedRunnable(RunnableSerializable[BinaryIO, List[str]]):
             blob,
             MIMETYPE_BASED_PARSER,
             self.text_splitter,
-            self.vectorstore,
+            get_vector_store(self.model),
             self.owner_id,
             self.file_id,
         )
@@ -225,9 +227,9 @@ embed_runnable = EmbedRunnable(
         annotation=str,
         name="File ID",
     ),
-    vectorstore=ConfigurableField(
-        id="vectorstore",
-        annotation=BaseVectorStoreWrapper,
-        name="Vectorstore",
+    model=ConfigurableField(
+        id="model",
+        annotation=MODEL,
+        name="model",
     ),
 )
