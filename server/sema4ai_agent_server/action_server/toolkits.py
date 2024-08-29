@@ -20,8 +20,6 @@ from langchain_core.tools import BaseTool, StructuredTool, Tool
 from langchain_core.tracers.context import _tracing_v2_is_enabled
 from langsmith import Client
 
-logger = structlog.get_logger(__name__)
-
 from sema4ai_agent_server.action_server._common import (
     get_param_fields,
     model_to_dict,
@@ -30,6 +28,8 @@ from sema4ai_agent_server.action_server._common import (
 from sema4ai_agent_server.action_server._prompts import (
     API_CONTROLLER_PROMPT,
 )
+
+logger = structlog.get_logger(__name__)
 
 LLM_TRACE_HEADER = "X-action-trace"
 
