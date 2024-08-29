@@ -121,6 +121,7 @@ class ActionServerToolkit(BaseModel):
 
     @validator("url", pre=True, always=True)
     def append_trailing_slash(cls, v):
+        """Ensures that the url ends with a /."""
         # Action server url may not be a base url in the cloud environment.
         # It may be something like https://example.com/foo/bar. If the url
         # does not end with a /, urljoin will drop the last path component.
@@ -284,8 +285,14 @@ class ActionServerToolkit(BaseModel):
         except Exception:
             pass
 
-        url = urljoin(self.url, endpoint)
+        url = self._get_endpoint_root_url(endpoint)
 
         response = requests.post(url, headers=headers, data=json.dumps(data))
 
         return response.text
+
+    def _get_endpoint_root_url(self, endpoint: str) -> str:
+        # Without lstrip("/"), if self.url contains a path (e.g. https://example.com/foo/bar/),
+        # it gets overwritten by the endpoint (foo/bar gets lost).
+        # self.url will always end with a /, ensured by the validator.
+        return urljoin(self.url, endpoint.lstrip("/"))
