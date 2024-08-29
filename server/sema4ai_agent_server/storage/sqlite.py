@@ -128,7 +128,9 @@ class SqliteStorage(BaseStorage):
         with self._connect() as conn:
             conn.row_factory = sqlite3.Row  # Enable dictionary-like row access
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM agent WHERE user_id = ?", (user_id,))
+            cursor.execute(
+                "SELECT * FROM agent WHERE user_id = ? OR public = 1", (user_id,)
+            )
             rows = cursor.fetchall()
 
             agents = []
@@ -178,7 +180,7 @@ class SqliteStorage(BaseStorage):
         with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM agent WHERE id = ? AND user_id = ?",
+                "SELECT * FROM agent WHERE id = ? AND (user_id = ? OR public = 1)",
                 (agent_id, user_id),
             )
             row = cursor.fetchone()
@@ -199,6 +201,7 @@ class SqliteStorage(BaseStorage):
         user_id: str,
         agent_id: str,
         *,
+        public: bool,
         status: AgentStatus,
         name: str,
         description: str,
@@ -225,11 +228,12 @@ class SqliteStorage(BaseStorage):
             try:
                 cursor.execute(
                     """
-                    INSERT INTO agent (id, user_id, status, name, description, runbook, version, model, architecture, reasoning, action_packages, updated_at, metadata)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO agent (id, user_id, public, status, name, description, runbook, version, model, architecture, reasoning, action_packages, updated_at, metadata)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(id) 
                     DO UPDATE SET 
                         user_id = EXCLUDED.user_id, 
+                        public = EXCLUDED.public,
                         status = EXCLUDED.status,
                         name = EXCLUDED.name, 
                         description = EXCLUDED.description,
@@ -245,6 +249,7 @@ class SqliteStorage(BaseStorage):
                     (
                         agent_id,
                         user_id,
+                        public,
                         status,
                         name,
                         description,
@@ -269,6 +274,7 @@ class SqliteStorage(BaseStorage):
             return Agent(
                 id=agent_id,
                 user_id=user_id,
+                public=public,
                 status=status,
                 name=name,
                 description=description,

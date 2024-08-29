@@ -87,6 +87,7 @@ def create_agent(
     }
 
     data = {
+        "public": True,
         "status": AgentStatus.READY,
         "name": name,
         "description": "This is a test agent",

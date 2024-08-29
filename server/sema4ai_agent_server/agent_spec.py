@@ -17,6 +17,7 @@ async def create_agent_from_spec(
     *,
     spec: dict,
     user_id: str,
+    public: bool,
     agent_name: str,
     model: MODEL,
     action_server_url: Optional[str],
@@ -46,6 +47,7 @@ async def create_agent_from_spec(
     return await get_storage().put_agent(
         user_id,
         str(uuid4()),
+        public=public,
         status=AgentStatus.FILE_UPLOADS_IN_PROGRESS
         if agent["knowledge"]
         else AgentStatus.READY,

@@ -88,6 +88,7 @@ async def update_action_server_ports(port_map: dict[str, str]) -> dict:
         await get_storage().put_agent(
             user_id=agent.user_id,
             agent_id=agent.id,
+            public=agent.public,
             status=agent.status,
             name=agent.name,
             description=agent.description,

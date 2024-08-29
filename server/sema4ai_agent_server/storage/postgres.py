@@ -284,14 +284,18 @@ class PostgresStorage(BaseStorage):
     async def list_agents(self, user_id: str) -> List[Agent]:
         """List all agents for the current user."""
         async with self.get_pool().acquire() as conn:
-            agents = await conn.fetch("SELECT * FROM agent WHERE user_id = $1", user_id)
+            agents = await conn.fetch(
+                "SELECT * FROM agent WHERE user_id = $1 OR public IS true", user_id
+            )
             return parse_obj_as(List[Agent], agents)
 
     async def get_agent(self, user_id: str, agent_id: str) -> Optional[Agent]:
         """Get an agent by ID."""
         async with self.get_pool().acquire() as conn:
             row = await conn.fetchrow(
-                "SELECT * FROM agent WHERE id = $1 AND user_id = $2", agent_id, user_id
+                "SELECT * FROM agent WHERE id = $1 AND (user_id = $2 OR public IS true)",
+                agent_id,
+                user_id,
             )
             return parse_obj_as(Optional[Agent], row)
 
@@ -300,6 +304,7 @@ class PostgresStorage(BaseStorage):
         user_id: str,
         agent_id: str,
         *,
+        public: bool,
         status: AgentStatus,
         name: str,
         description: str,
@@ -319,10 +324,11 @@ class PostgresStorage(BaseStorage):
                 try:
                     await conn.execute(
                         (
-                            "INSERT INTO agent (id, user_id, status, name, description, runbook, version, model, architecture, reasoning, action_packages, updated_at, metadata) "
-                            "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) "
+                            "INSERT INTO agent (id, user_id, public, status, name, description, runbook, version, model, architecture, reasoning, action_packages, updated_at, metadata) "
+                            "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) "
                             "ON CONFLICT (id) DO UPDATE SET "
                             "user_id = EXCLUDED.user_id, "
+                            "public = EXCLUDED.public, "
                             "status = EXCLUDED.status, "
                             "name = EXCLUDED.name, "
                             "description = EXCLUDED.description, "
@@ -337,6 +343,7 @@ class PostgresStorage(BaseStorage):
                         ),
                         agent_id,
                         user_id,
+                        public,
                         status,
                         name,
                         description,
@@ -356,6 +363,7 @@ class PostgresStorage(BaseStorage):
         return Agent(
             id=agent_id,
             user_id=user_id,
+            public=public,
             status=status,
             name=name,
             description=description,

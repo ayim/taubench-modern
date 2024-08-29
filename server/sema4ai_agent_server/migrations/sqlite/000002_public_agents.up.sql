@@ -1,0 +1,5 @@
+ALTER TABLE agent
+ADD COLUMN public BOOLEAN NOT NULL DEFAULT 0;
+
+UPDATE agent
+SET public = 1;

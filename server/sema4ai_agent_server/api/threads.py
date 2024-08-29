@@ -110,6 +110,10 @@ async def create_thread(
     payload: ThreadPostRequest,
 ) -> Thread:
     """Create a thread."""
+    # Check if user has access to the agent
+    agent = await get_storage().get_agent(user.user_id, payload.agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
     thread = await get_storage().put_thread(
         user.user_id,
         str(uuid4()),
@@ -134,6 +138,10 @@ async def upsert_thread(
     payload: ThreadPutRequest,
 ) -> Thread:
     """Update a thread."""
+    # Check if user has access to the agent
+    agent = await get_storage().get_agent(user.user_id, payload.agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
     thread = await get_storage().get_thread(user.user_id, tid)
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
