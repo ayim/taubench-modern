@@ -7,6 +7,7 @@ from typing import Any, Callable, Dict, List, Optional, Set, TypedDict
 from urllib.parse import urljoin
 
 import requests
+import structlog
 from langchain_core.callbacks import CallbackManagerForToolRun
 from langchain_core.callbacks.base import BaseCallbackHandler
 from langchain_core.callbacks.manager import CallbackManager
@@ -18,6 +19,8 @@ from langchain_core.runnables import Runnable, RunnablePassthrough
 from langchain_core.tools import BaseTool, StructuredTool, Tool
 from langchain_core.tracers.context import _tracing_v2_is_enabled
 from langsmith import Client
+
+logger = structlog.get_logger(__name__)
 
 from sema4ai_agent_server.action_server._common import (
     get_param_fields,
@@ -131,16 +134,23 @@ class ActionServerToolkit(BaseModel):
             name.strip() for name in whitelist.split(",") if name.strip()
         ] or None
 
-        # Fetch and format the API spec
+        spec_url = urljoin(self.url, "openapi.json")
         try:
-            spec_url = urljoin(self.url, "openapi.json")
             response = requests.get(spec_url)
-            json_spec = response.json()
-            api_spec = reduce_openapi_spec(self.url, json_spec)
         except Exception:
-            raise ValueError(
-                f"Failed to fetch OpenAPI schema from Action Server - {self.url}"
-            )
+            logger.exception(f"Failed to fetch OpenAPI schema - {spec_url}")
+            raise ValueError(f"Failed to fetch OpenAPI schema - {spec_url}")
+
+        if response.status_code != 200:
+            logger.error(f"status code: {response.status_code}")
+            logger.error(f"response: {response.text}")
+            raise ValueError(f"Unexpected response from Action Server - {spec_url}")
+
+        try:
+            api_spec = reduce_openapi_spec(self.url, response.json())
+        except Exception:
+            logger.exception("Failed to reduce OpenAPI schema from Action Server")
+            raise ValueError("Failed to reduce OpenAPI schema from Action Server")
 
         # Prepare request tools
         self._run_details: dict = {}
