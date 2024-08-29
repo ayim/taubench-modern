@@ -42,6 +42,7 @@ router = APIRouter()
 class AgentPayload(BaseModel):
     """Payload for creating an agent."""
 
+    public: bool = Field(False, description="Whether the agent is public.")
     name: str = Field(..., description="The name of the agent.")
     description: str = Field(..., description="The description of the agent.")
     runbook: str = Field(..., description="The runbook for the agent.")
@@ -67,6 +68,7 @@ class AgentPayloadPackageActionServer(BaseModel):
 class AgentPayloadPackage(BaseModel):
     """Payload for creating an agent via package."""
 
+    public: bool = Field(True, description="Whether the agent is public.")
     name: str = Field(..., description="The name of the agent.")
     agent_package_url: str = Field(..., description="The URL of the agent package.")
     model: MODEL = Field(..., description="LLM configuration for the agent.")
@@ -183,6 +185,7 @@ async def create_agent_via_package(
         agent = await create_agent_from_spec(
             spec=spec,
             user_id=user.user_id,
+            public=payload.public,
             agent_name=payload.name,
             model=payload.model,
             action_server_url=action_server_url,
@@ -253,6 +256,7 @@ async def create_agent(
     return await get_storage().put_agent(
         user.user_id,
         str(uuid4()),
+        public=payload.public,
         status=AgentStatus.READY,
         name=payload.name,
         description=payload.description,
@@ -284,6 +288,7 @@ async def upsert_agent(
     return await get_storage().put_agent(
         user.user_id,
         aid,
+        public=payload.public,
         status=AgentStatus.READY,
         name=payload.name,
         description=payload.description,

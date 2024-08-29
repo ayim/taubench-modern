@@ -250,6 +250,7 @@ class Agent(BaseModel):
 
     id: str = Field(description="The ID of the agent.")
     user_id: str = Field(description="The ID of the user that owns the agent.")
+    public: bool = Field(description="Whether the agent is public.")
     status: AgentStatus = Field(description="The status of the agent.")
     name: str = Field(description="The name of the agent.")
     description: str = Field(description="The description of the agent.")
