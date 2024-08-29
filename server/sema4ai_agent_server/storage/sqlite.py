@@ -128,7 +128,9 @@ class SqliteStorage(BaseStorage):
         with self._connect() as conn:
             conn.row_factory = sqlite3.Row  # Enable dictionary-like row access
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM agent WHERE user_id = ? OR public = 1", (user_id,))
+            cursor.execute(
+                "SELECT * FROM agent WHERE user_id = ? OR public = 1", (user_id,)
+            )
             rows = cursor.fetchall()
 
             agents = []
