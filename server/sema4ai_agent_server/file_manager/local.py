@@ -6,7 +6,7 @@ import structlog
 from fastapi import UploadFile
 
 from sema4ai_agent_server.file_manager.base import BaseFileManager, get_hash
-from sema4ai_agent_server.schema import Agent, Thread, UploadedFile
+from sema4ai_agent_server.schema import MODEL, Agent, Thread, UploadedFile
 from sema4ai_agent_server.storage.embed import Blob, convert_to_blob
 from sema4ai_agent_server.storage.option import get_storage
 
@@ -39,6 +39,7 @@ class LocalFileManager(BaseFileManager):
         file_path: str,
         file: UploadFile,
         owner: Union[Agent, Thread],
+        model: MODEL,
     ) -> UploadedFile:
         await self._validate_file_uniqueness(file, owner)
 
@@ -48,7 +49,7 @@ class LocalFileManager(BaseFileManager):
 
         embeddable = self._is_embeddable(file)
         if embeddable:
-            self._create_embeddings(blob, owner, file_id)
+            self._create_embeddings(blob, owner, file_id, model)
 
         return await get_storage().put_file_owner(
             file_id,
@@ -64,6 +65,7 @@ class LocalFileManager(BaseFileManager):
         self,
         file: UploadFile,
         owner: Union[Agent, Thread],
+        model: MODEL,
     ) -> UploadedFile:
         file_id = str(uuid4())
         if isinstance(owner, Agent):
@@ -74,7 +76,7 @@ class LocalFileManager(BaseFileManager):
             os.path.join(UPLOAD_DIR, owner_id, file_id, file.filename)
         )
         try:
-            return await self._upload(file_id, file_path, file, owner)
+            return await self._upload(file_id, file_path, file, owner, model)
         except Exception as e:
             logger.exception(f"Failed to upload file {file.filename}")
             await self._revert_upload(file_id, file_path)

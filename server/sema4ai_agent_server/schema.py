@@ -187,8 +187,8 @@ class AgentStatus(str, Enum):
     Enum for agent status.
     """
 
-    FILE_UPLOADS_IN_PROGRESS = "file_uploads_in_progress"
-    FILE_UPLOADS_FAILED = "file_uploads_failed"
+    FILE_OPERATIONS_IN_PROGRESS = "file_operations_in_progress"
+    FILE_OPERATIONS_FAILED = "file_operations_failed"
     READY = "ready"
 
 

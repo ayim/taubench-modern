@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import List
+from typing import List, Optional
 
 from langchain_community.vectorstores import PGEmbedding, PGVector
 from langchain_community.vectorstores.pgembedding import EmbeddingStore
@@ -36,7 +36,7 @@ class PGVectorWrapper(PGVector, BaseVectorStoreWrapper):
             self.delete(ids)
 
 
-def get_pg_vector_wrapper(embedding_function: Embeddings) -> PGVectorWrapper:
+def get_pg_vector_wrapper(embedding_function: Optional[Embeddings]) -> PGVectorWrapper:
     PG_CONNECTION_STRING = PGVector.connection_string_from_db_params(
         driver="psycopg2",
         host=os.environ["POSTGRES_HOST"],

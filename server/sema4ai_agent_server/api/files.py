@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 from sema4ai_agent_server.auth.handlers import AuthedUser
 from sema4ai_agent_server.file_manager.base import BaseFileManager
-from sema4ai_agent_server.schema import Agent, Thread, UploadedFile
+from sema4ai_agent_server.schema import MODEL, Agent, Thread, UploadedFile
 from sema4ai_agent_server.storage.option import get_storage
 
 router = APIRouter()
@@ -50,11 +50,14 @@ async def get_file(payload: GetFilePayload, user: AuthedUser) -> UploadedFile:
 
 
 async def _store_files(
-    owner: Union[Agent, Thread], files: list[UploadFile], file_manager: BaseFileManager
+    owner: Union[Agent, Thread],
+    files: list[UploadFile],
+    file_manager: BaseFileManager,
+    model: MODEL,
 ) -> list[UploadedFile]:
     ret: list[UploadedFile] = []
     for file in files:
-        ret.append(await file_manager.upload(file, owner))
+        ret.append(await file_manager.upload(file, owner, model))
     return ret
 
 

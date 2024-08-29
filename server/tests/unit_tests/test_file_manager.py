@@ -33,11 +33,6 @@ def temp_dir():
         yield tmpdirname
 
 
-@pytest.fixture
-def mock_vectorstore():
-    return Mock()
-
-
 class MockStorage:
     def __init__(self):
         self.get_file = AsyncMock(return_value=None)
@@ -59,12 +54,12 @@ def mock_requests():
 
 
 @pytest.fixture(params=[LocalFileManager, CloudFileManager])
-def file_manager(request, temp_dir, mock_requests, mock_vectorstore):
+def file_manager(request, temp_dir, mock_requests):
     if request.param == LocalFileManager:
-        manager = LocalFileManager(vectorstore=mock_vectorstore)
+        manager = LocalFileManager()
         manager.UPLOAD_DIR = temp_dir
     else:
-        manager = CloudFileManager(vectorstore=mock_vectorstore)
+        manager = CloudFileManager()
         manager.FILE_MANAGEMENT_API_URL = "https://example.com/api"
         manager._get_presigned_post = MagicMock(
             return_value={
@@ -155,7 +150,7 @@ class TestFileManager:
     ):
         mock_embed_runnable.invoke.return_value = {"embeddings": [0.1, 0.2, 0.3]}
 
-        result = await file_manager.upload(sample_file, sample_owner)
+        result = await file_manager.upload(sample_file, sample_owner, dummy_model)
 
         assert result.file_ref == sample_uploaded_file.file_ref
         mock_embed_runnable.invoke.assert_called_once()

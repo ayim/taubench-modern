@@ -1,8 +1,10 @@
 from io import BytesIO
+from unittest.mock import patch
 
 from fastapi import UploadFile
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
+from sema4ai_agent_server.schema import dummy_model
 from sema4ai_agent_server.storage.embed import (
     EmbedRunnable,
     _guess_mimetype,
@@ -14,13 +16,9 @@ from tests.unit_tests.utils import InMemoryVectorStore
 
 def test_embed_runnable() -> None:
     """Test embed runnable"""
-    vectorstore = InMemoryVectorStore()
     splitter = RecursiveCharacterTextSplitter()
     runnable = EmbedRunnable(
-        text_splitter=splitter,
-        vectorstore=vectorstore,
-        input_key="file_contents",
-        agent_id="TheParrot",
+        text_splitter=splitter, owner_id="TheParrot", model=dummy_model
     )
     # Simulate file data
     file_data = BytesIO(b"test data")
@@ -30,7 +28,13 @@ def test_embed_runnable() -> None:
 
     # Convert the file to blob
     blob = convert_to_blob(file)
-    ids = runnable.invoke(blob)
+
+    with patch(
+        "sema4ai_agent_server.storage.embed.get_vector_store"
+    ) as mock_get_vector_store:
+        mock_get_vector_store.return_value = InMemoryVectorStore()
+        ids = runnable.invoke(blob)
+
     assert len(ids) == 1
 
 
