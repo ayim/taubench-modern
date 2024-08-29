@@ -102,6 +102,7 @@ def sample_owner():
     return Agent(
         id=str(uuid4()),
         user_id=str(uuid4()),
+        public=True,
         status=AgentStatus.READY,
         name="Test agent",
         description="Test agent Description",
