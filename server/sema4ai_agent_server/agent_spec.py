@@ -1,7 +1,10 @@
+import os
+import subprocess
 from typing import Optional
-from uuid import uuid4
 
-from pydantic import parse_obj_as
+import aiohttp
+import yaml
+from pydantic import BaseModel, parse_obj_as
 
 from sema4ai_agent_server.schema import (
     MODEL,
@@ -13,10 +16,17 @@ from sema4ai_agent_server.schema import (
 from sema4ai_agent_server.storage.option import get_storage
 
 
-async def create_agent_from_spec(
+class SpecFile(BaseModel):
+    name: str
+    embedded: bool
+    digest: str
+
+
+async def put_agent_from_spec(
     *,
     spec: dict,
     user_id: str,
+    agent_id: str,
     public: bool,
     agent_name: str,
     model: MODEL,
@@ -46,11 +56,9 @@ async def create_agent_from_spec(
     # Create the agent
     return await get_storage().put_agent(
         user_id,
-        str(uuid4()),
+        agent_id,
         public=public,
-        status=AgentStatus.FILE_UPLOADS_IN_PROGRESS
-        if agent["knowledge"]
-        else AgentStatus.READY,
+        status=AgentStatus.FILE_OPERATIONS_IN_PROGRESS,
         name=agent_name,
         description=agent["description"],
         runbook=agent["runbook"],
@@ -63,7 +71,12 @@ async def create_agent_from_spec(
     )
 
 
-def validate_spec(spec: dict, model: MODEL) -> None:
+def validate_spec(
+    spec: dict,
+    root_dir: str,
+    model: MODEL,
+    action_servers: list,
+) -> None:
     if spec["agent-package"]["spec-version"] != "v2":
         raise Exception("Only v2 spec version is supported")
     if len(spec["agent-package"]["agents"]) != 1:
@@ -76,13 +89,56 @@ def validate_spec(spec: dict, model: MODEL) -> None:
             f"Model mismatch. Expected: {expected_provider}/{expected_name}",
         )
 
+    if (
+        len(spec["agent-package"]["agents"][0]["action-packages"]) > 0
+        and not action_servers
+    ):
+        raise Exception("Missing action server config.")
 
-def spec_contains_knowledge(spec: dict) -> bool:
-    return len(spec["agent-package"]["agents"][0]["knowledge"]) > 0
+    files_in_spec = get_knowledge_files(spec)
+    files_in_dir = []
+    for _, _, files in os.walk(knowledge_dir(root_dir)):
+        files_in_dir = files
+    # Compare the number of files in the spec and the knowledge directory
+    if len(files_in_spec) != len(files_in_dir):
+        raise Exception("Knowledge files mismatch")
+    # Compare the files in the spec and the knowledge directory
+    for file in files_in_spec:
+        if file.name not in files_in_dir:
+            raise Exception(
+                f"Knowledge file {file.name} not found in knowledge directory"
+            )
 
 
-def spec_contains_action_packages(spec: dict) -> bool:
-    return len(spec["agent-package"]["agents"][0]["action-packages"]) > 0
+async def download_agent_package(root_dir: str, package_url: str) -> None:
+    async with aiohttp.ClientSession() as session:
+        async with session.get(package_url) as resp:
+            if resp.status == 200:
+                with open(package_file_path(root_dir), "wb") as f:
+                    f.write(await resp.read())
+            else:
+                raise Exception("Failed to download agent package")
+
+
+def get_spec(root_dir: str) -> dict:
+    subprocess.run(
+        [
+            "agent-cli",
+            "package",
+            "extract",
+            "--package",
+            package_file_path(root_dir),
+            "--output-dir",
+            output_dir(root_dir),
+        ],
+        check=True,
+    )
+    with open(spec_file_path(root_dir), "r") as f:
+        return yaml.safe_load(f)
+
+
+def get_knowledge_files(spec: dict) -> list[SpecFile]:
+    return parse_obj_as(list[SpecFile], spec["agent-package"]["agents"][0]["knowledge"])
 
 
 def _replace_dashes_with_underscores(spec: dict) -> dict:
@@ -95,3 +151,19 @@ def _replace_dashes_with_underscores(spec: dict) -> dict:
             return d
 
     return recursive_replace(spec)
+
+
+def output_dir(root_dir: str) -> str:
+    return os.path.join(root_dir, "output")
+
+
+def knowledge_dir(root_dir: str) -> str:
+    return os.path.join(output_dir(root_dir), "knowledge")
+
+
+def package_file_path(root_dir: str) -> str:
+    return os.path.join(root_dir, "agent_package.zip")
+
+
+def spec_file_path(root_dir: str) -> str:
+    return os.path.join(output_dir(root_dir), "agent-spec.yaml")
