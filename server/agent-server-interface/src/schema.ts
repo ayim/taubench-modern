@@ -69,6 +69,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/agents/package/{aid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Upsert Agent Via Package */
+        put: operations["upsert_agent_via_package_api_v1_agents_package__aid__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/package": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Agent Via Package */
+        post: operations["create_agent_via_package_api_v1_agents_package_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/agents": {
         parameters: {
             query?: never;
@@ -498,6 +532,11 @@ export interface components {
              * @description The ID of the user that owns the agent.
              */
             user_id: string;
+            /**
+             * Public
+             * @description Whether the agent is public.
+             */
+            public: boolean;
             /** @description The status of the agent. */
             status: components["schemas"]["AgentStatus"];
             /**
@@ -544,7 +583,7 @@ export interface components {
              * Metadata
              * @description The agent metadata.
              */
-            metadata?: Record<string, never>;
+            metadata: components["schemas"]["AgentMetadata"];
         };
         /**
          * AgentArchitecture
@@ -553,10 +592,40 @@ export interface components {
          */
         AgentArchitecture: "agent" | "plan_execute" | "multi_agent_hierarchical_planning";
         /**
+         * AgentMetadata
+         * @description Metadata for the agent.
+         */
+        AgentMetadata: {
+            /** @description The mode of the agent. */
+            mode: components["schemas"]["AgentMode"];
+            /**
+             * Worker Config
+             * @description Worker configuration, if in worker mode.
+             */
+            worker_config?: components["schemas"]["WorkerConfig"];
+            /**
+             * Welcome Message
+             * @description Welcome message for the agent.
+             */
+            welcome_message?: string;
+        };
+        /**
+         * AgentMode
+         * @description Enum for agent mode.
+         * @enum {string}
+         */
+        AgentMode: "conversational" | "worker";
+        /**
          * AgentPayload
          * @description Payload for creating an agent.
          */
         AgentPayload: {
+            /**
+             * Public
+             * @description Whether the agent is public.
+             * @default false
+             */
+            public: boolean;
             /**
              * Name
              * @description The name of the agent.
@@ -596,7 +665,52 @@ export interface components {
              * Metadata
              * @description Additional metadata for the agent.
              */
-            metadata?: Record<string, never>;
+            metadata: components["schemas"]["AgentMetadata"];
+        };
+        /**
+         * AgentPayloadPackage
+         * @description Payload for creating an agent via package.
+         */
+        AgentPayloadPackage: {
+            /**
+             * Public
+             * @description Whether the agent is public.
+             * @default true
+             */
+            public: boolean;
+            /**
+             * Name
+             * @description The name of the agent.
+             */
+            name: string;
+            /**
+             * Agent Package Url
+             * @description The URL of the agent package.
+             */
+            agent_package_url: string;
+            /**
+             * Model
+             * @description LLM configuration for the agent.
+             */
+            model: components["schemas"]["OpenAIGPT"] | components["schemas"]["AzureGPT"] | components["schemas"]["AnthropicClaude"] | components["schemas"]["AmazonClaude"] | components["schemas"]["GoogleGemini"] | components["schemas"]["Ollama"];
+            /**
+             * Action Servers
+             * @description Action Server configurations.
+             */
+            action_servers: components["schemas"]["AgentPayloadPackageActionServer"][];
+        };
+        /** AgentPayloadPackageActionServer */
+        AgentPayloadPackageActionServer: {
+            /**
+             * Url
+             * @description The URL of action server.
+             */
+            url: string;
+            /**
+             * Api Key
+             * @description The API key of action server.
+             */
+            api_key: string;
         };
         /**
          * AgentReasoning
@@ -609,7 +723,7 @@ export interface components {
          * @description Enum for agent status.
          * @enum {string}
          */
-        AgentStatus: "file_uploads_in_progress" | "file_uploads_failed" | "ready";
+        AgentStatus: "file_operations_in_progress" | "file_operations_failed" | "ready";
         /** AmazonClaude */
         AmazonClaude: {
             /**
@@ -1118,6 +1232,25 @@ export interface components {
             type: string;
         };
         /**
+         * WorkerConfig
+         * @description Worker configuration for the agent.
+         */
+        WorkerConfig: {
+            /** @description The type of worker. */
+            type: components["schemas"]["WorkerType"];
+            /**
+             * Document Type
+             * @description The type of document.
+             */
+            document_type: string;
+        };
+        /**
+         * WorkerType
+         * @description Enum for worker type.
+         * @enum {string}
+         */
+        WorkerType: "Document Intelligence";
+        /**
          * ChatMessage
          * @description Message that can be assigned an arbitrary speaker (i.e. role).
          */
@@ -1302,6 +1435,75 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upsert_agent_via_package_api_v1_agents_package__aid__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the agent. */
+                aid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentPayloadPackage"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Agent"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_agent_via_package_api_v1_agents_package_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentPayloadPackage"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Agent"];
                 };
             };
             /** @description Validation Error */
