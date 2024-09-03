@@ -13,6 +13,7 @@ from sema4ai_agent_server.schema import (
     Agent,
     AgentMetadata,
     AgentStatus,
+    LLMProvider,
 )
 from sema4ai_agent_server.storage.option import get_storage
 
@@ -86,13 +87,13 @@ def validate_spec(
 
     expected_provider = spec["agent-package"]["agents"][0]["model"]["provider"]
     expected_name = spec["agent-package"]["agents"][0]["model"]["name"]
-    if (
-        model.provider != expected_provider
-        or getattr(model, "name", "") != expected_name
-    ):
+    if model.provider != expected_provider:
         raise Exception(
-            f"Model mismatch. Expected: {expected_provider}/{expected_name}",
+            f"Expected provider {expected_provider}, got {model.provider.value}"
         )
+
+    if model.provider != LLMProvider.AZURE and model.name != expected_name:
+        raise Exception(f"Expected model {expected_name}, got {model.name}")
 
     if (
         len(spec["agent-package"]["agents"][0]["action-packages"]) > 0
