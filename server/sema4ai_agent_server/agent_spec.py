@@ -86,7 +86,10 @@ def validate_spec(
 
     expected_provider = spec["agent-package"]["agents"][0]["model"]["provider"]
     expected_name = spec["agent-package"]["agents"][0]["model"]["name"]
-    if model.provider != expected_provider or model.name != expected_name:
+    if (
+        model.provider != expected_provider
+        or getattr(model, "name", "") != expected_name
+    ):
         raise Exception(
             f"Model mismatch. Expected: {expected_provider}/{expected_name}",
         )
