@@ -1,5 +1,6 @@
 import os
 import subprocess
+from pathlib import Path
 from typing import Optional
 
 import aiohttp
@@ -24,6 +25,7 @@ class SpecFile(BaseModel):
 
 async def put_agent_from_spec(
     *,
+    root_dir: str,
     spec: dict,
     user_id: str,
     agent_id: str,
@@ -61,7 +63,7 @@ async def put_agent_from_spec(
         status=AgentStatus.FILE_OPERATIONS_IN_PROGRESS,
         name=agent_name,
         description=agent["description"],
-        runbook=agent["runbook"],
+        runbook=Path(runbook_file_path(root_dir)).read_text(),
         version=agent["version"],
         model=parse_obj_as(MODEL, model),
         architecture=agent["architecture"],
@@ -94,6 +96,14 @@ def validate_spec(
         and not action_servers
     ):
         raise Exception("Missing action server config.")
+
+    try:
+        with open(runbook_file_path(root_dir), "r") as f:
+            f.read()
+    except FileNotFoundError:
+        raise Exception("Runbook not found")
+    except IOError:
+        raise Exception("Error reading runbook")
 
     files_in_spec = get_knowledge_files(spec)
     files_in_dir = []
@@ -167,3 +177,7 @@ def package_file_path(root_dir: str) -> str:
 
 def spec_file_path(root_dir: str) -> str:
     return os.path.join(output_dir(root_dir), "agent-spec.yaml")
+
+
+def runbook_file_path(root_dir: str) -> str:
+    return os.path.join(output_dir(root_dir), "runbook.md")

@@ -159,6 +159,7 @@ async def upsert_agent_via_package(
 
         # Create the agent
         agent = await put_agent_from_spec(
+            root_dir=root_dir,
             spec=spec,
             user_id=user.user_id,
             agent_id=agent.id,
@@ -214,6 +215,7 @@ async def create_agent_via_package(
 
         # Create the agent
         agent = await put_agent_from_spec(
+            root_dir=root_dir,
             spec=spec,
             user_id=user.user_id,
             agent_id=str(uuid4()),
