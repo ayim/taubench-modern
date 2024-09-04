@@ -26,7 +26,7 @@ DB_TYPE = os.environ.get("S4_AGENT_SERVER_DB_TYPE", "sqlite").lower()
 ROOT = Path(__file__).parent.parent
 
 # Read current Agent Server version
-with open("pyproject.toml", "rb") as f:
+with open(ROOT / "pyproject.toml", "rb") as f:
     pyproject_data = tomllib.load(f)
 version = pyproject_data["tool"]["poetry"]["version"]
 
