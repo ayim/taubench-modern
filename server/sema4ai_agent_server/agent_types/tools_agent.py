@@ -23,6 +23,7 @@ from sema4ai_agent_server.agent_types.constants import (
     FINISH_NODE_ACTION,
     FINISH_NODE_KEY,
 )
+from sema4ai_agent_server.agent_types.utils import bind_tools
 from sema4ai_agent_server.message_types import LiberalToolMessage
 from sema4ai_agent_server.schema import AgentReasoning
 from sema4ai_agent_server.utils import current_timestamp_with_iso_week_local
@@ -69,30 +70,6 @@ REASONING_PROMPT_TEMPLATES = {
         ]
     ),
 }
-RETRY_REASONING_TEMPLATES = {
-    AgentReasoning.ENABLED: ChatPromptTemplate.from_messages(
-        BASE_PROMPT_MESSAGES
-        + [
-            (
-                "system",
-                "You provided a tool call with your thinking, which is not allowed at this time. "
-                "Please provide your thoughts without tool calls. You should succinctly explain why you are "
-                "thinking to call the tool.",
-            )
-        ]
-    ),
-    AgentReasoning.VERBOSE: ChatPromptTemplate.from_messages(
-        BASE_PROMPT_MESSAGES
-        + [
-            (
-                "system",
-                "You provided a tool call with your thinking, which is not allowed at this time. "
-                "Please provide your thoughts without tool calls. You should explain why you are thinking "
-                "to call the tool and which parameters you are thinking of using.",
-            )
-        ]
-    ),
-}
 
 
 class AgentState(BaseModel):
@@ -115,9 +92,6 @@ def get_tools_agent_executor(
     reasoning_templates: dict[
         AgentReasoning, ChatPromptTemplate
     ] = REASONING_PROMPT_TEMPLATES,
-    retry_reasoning_templates: dict[
-        AgentReasoning, ChatPromptTemplate
-    ] = RETRY_REASONING_TEMPLATES,
 ):
     if not isinstance(llm, AGENT_TYPES):
         raise ValueError(
@@ -147,16 +121,17 @@ def get_tools_agent_executor(
         return ""
 
     if tools:
-        llm_with_tools = llm.bind_tools(tools)
+        llm_with_tools = bind_tools(llm, tools)
+        llm_with_tools_no_choice = bind_tools(llm, tools, tool_choice="none")
     else:
         llm_with_tools = llm
+        llm_with_tools_no_choice = llm
     tool_executor = ToolExecutor(tools)
 
     executor_agent = execute_template | llm_with_tools
     if reasoning_level != AgentReasoning.DISABLED:
-        reasoning_agent = reasoning_templates[reasoning_level] | llm_with_tools
-        retry_reasoning_agent = (
-            retry_reasoning_templates[reasoning_level] | llm_with_tools
+        reasoning_agent = (
+            reasoning_templates[reasoning_level] | llm_with_tools_no_choice
         )
 
     async def reasoning(state: AgentState):
@@ -191,27 +166,6 @@ def get_tools_agent_executor(
             return {"reasoning": [response], "combined": [last_human_message, response]}
         else:
             return {"reasoning": [response], "combined": [response]}
-
-    async def check_reasoning(state: AgentState):
-        last_reasoning_msg = state.reasoning[-1]
-        if last_reasoning_msg.tool_calls:
-            return "retry"
-        else:
-            return "continue"
-
-    async def retry_reasoning(state: AgentState):
-        response = await retry_reasoning_agent.with_config(
-            {"metadata": {"reasoning": True}}
-        ).ainvoke(
-            {
-                "agent_name": name,
-                "current_datetime": current_timestamp_with_iso_week_local(),
-                "knowledge_files": format_knowledge_files(knowledge_files),
-                "runbook": runbook,
-                "messages": _get_messages(state.combined),
-            }
-        )
-        return {"reasoning": [response], "combined": [response]}
 
     async def agent(state: AgentState):
         if reasoning_level != AgentReasoning.DISABLED:
@@ -291,7 +245,6 @@ def get_tools_agent_executor(
     workflow.add_node("action", call_tool)
     if reasoning_level != AgentReasoning.DISABLED:
         workflow.add_node("reason", reasoning)
-        workflow.add_node("retry_reason", retry_reasoning)
     workflow.add_node(FINISH_NODE_KEY, FINISH_NODE_ACTION)
 
     # Set the entrypoint as `agent`
@@ -303,24 +256,7 @@ def get_tools_agent_executor(
     workflow.set_finish_point(FINISH_NODE_KEY)
 
     if reasoning_level != AgentReasoning.DISABLED:
-        # Use a conditional edge to check the LLM's output for errant tool calls.
-        workflow.add_conditional_edges(
-            "reason",
-            check_reasoning,
-            {
-                "retry": "retry_reason",
-                "continue": "agent",
-            },
-        )
-        # TODO: Do we need to add a max tries somehow?
-        workflow.add_conditional_edges(
-            "retry_reason",
-            check_reasoning,
-            {
-                "retry": "retry_reason",
-                "continue": "agent",
-            },
-        )
+        workflow.add_edge("reason", "agent")
     # We now add a conditional edge
     workflow.add_conditional_edges(
         # First, we define the start node. We use `agent`.
