@@ -31,7 +31,6 @@ from sema4ai_agent_server.agent_types.planner_agent.prompts import (
     REPLANNER_PROMPTS,
     STEP_EXECUTOR_PROMPT,
     STEP_REASONING_PROMPTS,
-    STEP_RETRY_REASONING_PROMPTS,
 )
 from sema4ai_agent_server.agent_types.planner_agent.schemas import (
     CompletedPlan,
@@ -319,7 +318,6 @@ def get_plan_execute_agent(
             None,
             execute_template=STEP_EXECUTOR_PROMPT,
             reasoning_templates=STEP_REASONING_PROMPTS,
-            retry_reasoning_templates=STEP_RETRY_REASONING_PROMPTS,
         )
         current_step = cast(PlanStep, state.current_plan.steps[0])
 
@@ -365,7 +363,6 @@ def get_plan_execute_agent(
             None,
             execute_template=STEP_EXECUTOR_PROMPT,
             reasoning_templates=STEP_REASONING_PROMPTS,
-            retry_reasoning_templates=STEP_RETRY_REASONING_PROMPTS,
         )
         current_step = cast(PlanStepWithThought, state.current_plan.steps[0])
 

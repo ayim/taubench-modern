@@ -212,32 +212,6 @@ STEP_REASONING_PROMPTS = {
         ]
     ),
 }
-STEP_RETRY_REASONING_PROMPTS = {
-    AgentReasoning.ENABLED: ChatPromptTemplate.from_messages(
-        [
-            ("system", step_executor_template()),
-            ("placeholder", "{messages}"),
-            (
-                "system",
-                "You provided a tool call with your thinking, which is not allowed at this time. "
-                "Please provide your thoughts without tool calls. You should succinctly explain why you are "
-                "thinking to call the tool.",
-            ),
-        ]
-    ),
-    AgentReasoning.VERBOSE: ChatPromptTemplate.from_messages(
-        [
-            ("system", step_executor_template()),
-            ("placeholder", "{messages}"),
-            (
-                "system",
-                "You provided a tool call with your thinking, which is not allowed at this time. "
-                "Please provide your thoughts without tool calls. You should explain why you are thinking "
-                "to call the tool and which parameters you are thinking of using.",
-            ),
-        ]
-    ),
-}
 
 
 # Replanner related prompts and messages
