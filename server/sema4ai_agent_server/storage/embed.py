@@ -140,10 +140,10 @@ def get_embedding_function(
         )
     elif isinstance(model, AzureGPT):
         return AzureOpenAIEmbeddings(
-            azure_endpoint=model.config.azure_endpoint,
-            azure_deployment=model.config.deployment_name,
-            openai_api_version=model.config.openai_api_version,
-            openai_api_key=model.config.openai_api_key.get_secret_value(),
+            azure_endpoint=model.config.embeddings_azure_endpoint,
+            azure_deployment=model.config.embeddings_deployment_name,
+            openai_api_version=model.config.embeddings_openai_api_version,
+            openai_api_key=model.config.embeddings_openai_api_key.get_secret_value(),
         )
     raise ValueError(f"Unsupported model type {model} for embeddings.")
 

@@ -1,11 +1,13 @@
+import re
 from datetime import datetime
 from enum import Enum
 from typing import List, Literal, Optional
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
-from pydantic import BaseModel, Field, SecretStr, root_validator
+from pydantic import BaseModel, Field, SecretStr, root_validator, validator
 
 NOT_CONFIGURED = "SEMA4AI_FIELD_NOT_CONFIGURED"
+AZURE_URL_PATTERN = r"^(https?://[^/]+)/openai/deployments/([^/]+)/(chat/completions|embeddings)\?api-version=(.+)$"
 
 
 class User(BaseModel):
@@ -38,18 +40,65 @@ class OpenAIGPTConfig(ModelConfig):
 
 
 class AzureGPTConfig(ModelConfig):
-    deployment_name: str = Field(
-        description="The Azure deployment name.", default=NOT_CONFIGURED
-    )
-    azure_endpoint: str = Field(
-        description="The Azure endpoint.", default=NOT_CONFIGURED
-    )
-    openai_api_version: str = Field(
-        description="The Azure API version.", default=NOT_CONFIGURED
-    )
-    openai_api_key: SecretStr = Field(
-        description="The Azure API key.", default=SecretStr(NOT_CONFIGURED)
-    )
+    chat_url: str = Field(default=NOT_CONFIGURED)
+    chat_openai_api_key: SecretStr = Field(default=SecretStr(NOT_CONFIGURED))
+    embeddings_url: str = Field(default=NOT_CONFIGURED)
+    embeddings_openai_api_key: SecretStr = Field(default=SecretStr(NOT_CONFIGURED))
+
+    @validator("chat_url", "embeddings_url")
+    def validate_url(cls, v, field):
+        """
+        chat_url format: <azure_endpoint>/openai/deployments/<deployment_name>/chat/completions?api-version=<openai_api_version>
+        embeddings_url format: <azure_endpoint>/openai/deployments/<deployment_name>/embeddings?api-version=<openai_api_version>
+        """
+
+        if v == NOT_CONFIGURED:
+            return v
+        url_type = "chat" if field.name == "chat_url" else "embeddings"
+        match = re.match(AZURE_URL_PATTERN, v)
+        if not match:
+            raise ValueError(f"Invalid {url_type} URL format")
+
+        endpoint_type = match.group(3)
+        if url_type == "chat" and endpoint_type != "chat/completions":
+            raise ValueError("Chat URL must end with 'chat/completions'")
+        if url_type == "embeddings" and endpoint_type != "embeddings":
+            raise ValueError("Embeddings URL must end with 'embeddings'")
+
+        return v
+
+    @property
+    def chat_deployment_name(self):
+        return self._get_url_component(self.chat_url, 2)
+
+    @property
+    def chat_azure_endpoint(self):
+        return self._get_url_component(self.chat_url, 1)
+
+    @property
+    def chat_openai_api_version(self):
+        return self._get_url_component(self.chat_url, 4)
+
+    @property
+    def embeddings_deployment_name(self):
+        return self._get_url_component(self.embeddings_url, 2)
+
+    @property
+    def embeddings_azure_endpoint(self):
+        return self._get_url_component(self.embeddings_url, 1)
+
+    @property
+    def embeddings_openai_api_version(self):
+        return self._get_url_component(self.embeddings_url, 4)
+
+    def _get_url_component(self, url, group):
+        if url == NOT_CONFIGURED:
+            return NOT_CONFIGURED
+        match = re.match(AZURE_URL_PATTERN, url)
+        return match.group(group) if match else NOT_CONFIGURED
+
+    class Config:
+        validate_assignment = True
 
 
 class AnthropicClaudeConfig(ModelConfig):
