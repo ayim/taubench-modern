@@ -1,3 +1,13 @@
+"""
+Provides tool binding methods that do not perform checks done by LangChain.
+
+The default `bind_tools` methods provided by LangChain checks things like if a tool
+choice of "auto" or "none" is provided with more than one tool at a time, which is
+valid but for some reason throws an error in their implementation.
+
+Other tools like the `pydantic_output_parser` method are available in this module.
+"""
+
 from typing import Any, Callable, Literal, Sequence, TypeVar
 
 from langchain_anthropic import ChatAnthropic
@@ -30,6 +40,8 @@ def bind_tools_to_open_ai(
     """Bind tool-like objects to this chat model.
 
     Assumes model is compatible with OpenAI tool-calling API.
+
+    Allows tool choices while binding additional tools to the model.
 
     Args:
         tools: A list of tool definitions to bind to this chat model.
@@ -83,6 +95,8 @@ def bind_tools_to_anthropic(
     **kwargs: Any,
 ) -> Runnable[LanguageModelInput, BaseMessage]:
     """Bind tool-like objects to this chat model.
+
+    Allows tool choices while binding additional tools to the model.
 
     Args:
         tools: A list of tool definitions to bind to this chat model.
@@ -157,7 +171,8 @@ def bind_tools_to_vertex(
 ) -> Runnable[LanguageModelInput, BaseMessage]:
     """Bind tool-like objects to this chat model.
 
-    Assumes model is compatible with Vertex tool-calling API.
+    Assumes model is compatible with Vertex tool-calling API. Allows tool choices
+    while binding additional tools to the model.
 
     Args:
         tools: A list of tool definitions to bind to this chat model.

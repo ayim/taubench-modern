@@ -23,6 +23,7 @@ from sema4ai_agent_server.agent_types.constants import (
     FINISH_NODE_ACTION,
     FINISH_NODE_KEY,
 )
+from sema4ai_agent_server.agent_types.utils import bind_tools
 from sema4ai_agent_server.message_types import LiberalToolMessage
 from sema4ai_agent_server.schema import AgentReasoning
 from sema4ai_agent_server.utils import current_timestamp_with_iso_week_local
@@ -120,8 +121,8 @@ def get_tools_agent_executor(
         return ""
 
     if tools:
-        llm_with_tools = llm.bind_tools(tools)
-        llm_with_tools_no_choice = llm.bind_tools(tools, tool_choice="none")
+        llm_with_tools = bind_tools(llm, tools)
+        llm_with_tools_no_choice = bind_tools(llm, tools, tool_choice="none")
     else:
         llm_with_tools = llm
         llm_with_tools_no_choice = llm
