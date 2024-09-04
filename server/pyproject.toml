@@ -1,10 +1,11 @@
 [tool.poetry]
 name = "sema4ai-agent-server"
-version = "0.3.18"
+version = "0.3.20"
 description = ""
 authors = ["Sema4.ai Engineering <engineering@sema4.ai>"]
 readme = "README.md"
 packages = [{ include = "sema4ai_agent_server" }]
+include = ["pyproject.toml"]
 
 [tool.poetry.dependencies]
 python = "^3.11.0,<3.12"
