@@ -24,10 +24,10 @@ def get_chat_model(model: MODEL) -> Optional[BaseChatModel]:
             )
         case LLMProvider.AZURE:
             return AzureChatOpenAI(
-                deployment_name=model.config.deployment_name,
-                azure_endpoint=model.config.azure_endpoint,
-                openai_api_version=model.config.openai_api_version,
-                openai_api_key=model.config.openai_api_key.get_secret_value(),
+                deployment_name=model.config.chat_deployment_name,
+                azure_endpoint=model.config.chat_azure_endpoint,
+                openai_api_version=model.config.chat_openai_api_version,
+                openai_api_key=model.config.chat_openai_api_key.get_secret_value(),
                 temperature=model.config.temperature,
             )
         case LLMProvider.ANTHROPIC:
