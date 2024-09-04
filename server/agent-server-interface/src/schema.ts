@@ -829,30 +829,27 @@ export interface components {
              */
             temperature: number;
             /**
-             * Deployment Name
-             * @description The Azure deployment name.
+             * Chat Url
              * @default SEMA4AI_FIELD_NOT_CONFIGURED
              */
-            deployment_name: string;
+            chat_url: string;
             /**
-             * Azure Endpoint
-             * @description The Azure endpoint.
-             * @default SEMA4AI_FIELD_NOT_CONFIGURED
-             */
-            azure_endpoint: string;
-            /**
-             * Openai Api Version
-             * @description The Azure API version.
-             * @default SEMA4AI_FIELD_NOT_CONFIGURED
-             */
-            openai_api_version: string;
-            /**
-             * Openai Api Key
+             * Chat Openai Api Key
              * Format: password
-             * @description The Azure API key.
              * @default **********
              */
-            openai_api_key: string;
+            chat_openai_api_key: string;
+            /**
+             * Embeddings Url
+             * @default SEMA4AI_FIELD_NOT_CONFIGURED
+             */
+            embeddings_url: string;
+            /**
+             * Embeddings Openai Api Key
+             * Format: password
+             * @default **********
+             */
+            embeddings_openai_api_key: string;
         };
         /** Body_upload_agent_files_api_v1_agents__aid__files_post */
         Body_upload_agent_files_api_v1_agents__aid__files_post: {
