@@ -14,9 +14,9 @@
   },
   "scripts": {
     "generate:schema": "npx openapi-typescript http://localhost:8100/openapi.json -o ./src/schema.ts",
-    "generate:meta": "tsx ./scripts/meta.ts http://localhost:8100/openapi.json",
+    "generate:spec": "tsx ./scripts/spec.ts http://localhost:8100/openapi.json",
     "build:package": "tsup",
-    "build": "npm run generate:schema && npm run generate:meta && tsup"
+    "build": "npm run generate:schema && npm run generate:spec && tsup"
   },
   "files": [
     "dist"
