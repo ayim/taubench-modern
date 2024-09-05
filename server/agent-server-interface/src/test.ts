@@ -1,7 +1,4 @@
-import { meta, paths, components } from "./index";
-
-// Agent Server meta
-const version = meta.version;
+import { paths, components } from "./index";
 
 // Schema objects
 type Agent = components["schemas"]["Agent"];
