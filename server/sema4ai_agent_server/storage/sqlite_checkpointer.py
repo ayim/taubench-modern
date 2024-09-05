@@ -2,7 +2,7 @@ import pickle
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Iterator, Optional
+from typing import Any, Iterator, Optional, Sequence
 
 from langchain_core.messages import BaseMessage
 from langchain_core.runnables import ConfigurableFieldSpec, RunnableConfig
@@ -10,7 +10,11 @@ from langgraph.checkpoint import (
     BaseCheckpointSaver,
     Checkpoint,
 )
-from langgraph.checkpoint.base import CheckpointThreadTs, CheckpointTuple
+from langgraph.checkpoint.base import (
+    CheckpointMetadata,
+    CheckpointThreadTs,
+    CheckpointTuple,
+)
 
 from sema4ai_agent_server.constants import DOMAIN_DATABASE_PATH
 
@@ -68,50 +72,60 @@ class SQLiteCheckpoint(BaseCheckpointSaver):
         return self.get_tuple(config)
 
     async def aput(
-        self, config: RunnableConfig, checkpoint: Checkpoint
+        self,
+        config: RunnableConfig,
+        checkpoint: Checkpoint,
+        metadata: CheckpointMetadata,
     ) -> RunnableConfig:
-        return self.put(config, checkpoint)
+        return self.put(config, checkpoint, metadata)
 
     async def alist(self, config: RunnableConfig) -> Iterator[CheckpointTuple]:
         return self.list(config)
 
+    async def aput_writes(
+        self, config: RunnableConfig, writes: list[tuple[str, Any]], task_id: str
+    ) -> None:
+        return self.put_writes(config, writes, task_id)
+
     def get_tuple(self, config: RunnableConfig) -> Optional[CheckpointTuple]:
         with self.cursor(transaction=False) as cur:
+            # find the latest checkpoint for the thread_id
             if config["configurable"].get("thread_ts"):
                 cur.execute(
-                    "SELECT checkpoint, parent_ts FROM checkpoints WHERE thread_id = ? AND thread_ts = ?",
+                    "SELECT thread_id, thread_ts, parent_ts, checkpoint, metadata FROM checkpoints WHERE thread_id = ? AND thread_ts = ?",
                     (
-                        config["configurable"]["thread_id"],
-                        config["configurable"]["thread_ts"],
+                        str(config["configurable"]["thread_id"]),
+                        str(config["configurable"]["thread_ts"]),
                     ),
                 )
-                if value := cur.fetchone():
-                    return CheckpointTuple(
-                        config,
-                        self.loads(value[0]),
-                        {
-                            "configurable": {
-                                "thread_id": config["configurable"]["thread_id"],
-                                "thread_ts": value[1],
-                            }
-                        }
-                        if value[1]
-                        else None,
-                    )
             else:
                 cur.execute(
-                    "SELECT thread_id, thread_ts, parent_ts, checkpoint FROM checkpoints WHERE thread_id = ? ORDER BY thread_ts DESC LIMIT 1",
-                    (config["configurable"]["thread_id"],),
+                    "SELECT thread_id, thread_ts, parent_ts, checkpoint, metadata FROM checkpoints WHERE thread_id = ? ORDER BY thread_ts DESC LIMIT 1",
+                    (str(config["configurable"]["thread_id"]),),
                 )
-                if value := cur.fetchone():
-                    return CheckpointTuple(
-                        {
-                            "configurable": {
-                                "thread_id": value[0],
-                                "thread_ts": value[1],
-                            }
-                        },
-                        self.loads(value[3]),
+            # if a checkpoint is found, return it
+            if value := cur.fetchone():
+                if not config["configurable"].get("thread_ts"):
+                    config = {
+                        "configurable": {
+                            "thread_id": value[0],
+                            "thread_ts": value[1],
+                        }
+                    }
+                # find any pending writes
+                cur.execute(
+                    "SELECT task_id, channel, value FROM writes WHERE thread_id = ? AND thread_ts = ?",
+                    (
+                        str(config["configurable"]["thread_id"]),
+                        str(config["configurable"]["thread_ts"]),
+                    ),
+                )
+                # deserialize the checkpoint and metadata
+                return CheckpointTuple(
+                    config,
+                    self.loads(value[3]),
+                    pickle.loads(value[4]) if value[4] is not None else {},
+                    (
                         {
                             "configurable": {
                                 "thread_id": value[0],
@@ -119,8 +133,13 @@ class SQLiteCheckpoint(BaseCheckpointSaver):
                             }
                         }
                         if value[2]
-                        else None,
-                    )
+                        else None
+                    ),
+                    [
+                        (task_id, channel, pickle.loads(value))
+                        for task_id, channel, value in cur
+                    ],
+                )
 
     def list(self, config: RunnableConfig) -> Iterator[CheckpointTuple]:
         with self.cursor(transaction=False) as cur:
@@ -142,7 +161,12 @@ class SQLiteCheckpoint(BaseCheckpointSaver):
                     else None,
                 )
 
-    def put(self, config: RunnableConfig, checkpoint: Checkpoint) -> RunnableConfig:
+    def put(
+        self,
+        config: RunnableConfig,
+        checkpoint: Checkpoint,
+        metadata: CheckpointMetadata,
+    ) -> RunnableConfig:
         thread_id = config["configurable"]["thread_id"]
         thread_ts = checkpoint["ts"]
         parent_ts = config["configurable"].get("thread_ts")
@@ -159,8 +183,14 @@ class SQLiteCheckpoint(BaseCheckpointSaver):
 
         with self.cursor() as cur:
             cur.execute(
-                "INSERT OR REPLACE INTO checkpoints (thread_id, thread_ts, parent_ts, checkpoint) VALUES (?, ?, ?, ?)",
-                (thread_id, thread_ts, parent_ts, pickle.dumps(checkpoint)),
+                "INSERT OR REPLACE INTO checkpoints (thread_id, thread_ts, parent_ts, checkpoint, metadata) VALUES (?, ?, ?, ?, ?)",
+                (
+                    thread_id,
+                    thread_ts,
+                    parent_ts,
+                    pickle.dumps(checkpoint),
+                    pickle.dumps(metadata),
+                ),
             )
 
         return {
@@ -169,3 +199,25 @@ class SQLiteCheckpoint(BaseCheckpointSaver):
                 "thread_ts": checkpoint["ts"],
             }
         }
+
+    def put_writes(
+        self,
+        config: RunnableConfig,
+        writes: Sequence[tuple[str, Any]],
+        task_id: str,
+    ) -> None:
+        with self.cursor() as cur:
+            cur.executemany(
+                "INSERT OR REPLACE INTO writes (thread_id, thread_ts, task_id, idx, channel, value) VALUES (?, ?, ?, ?, ?, ?)",
+                [
+                    (
+                        str(config["configurable"]["thread_id"]),
+                        str(config["configurable"]["thread_ts"]),
+                        task_id,
+                        idx,
+                        channel,
+                        pickle.dumps(value),
+                    )
+                    for idx, (channel, value) in enumerate(writes)
+                ],
+            )
