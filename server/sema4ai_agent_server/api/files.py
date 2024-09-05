@@ -72,7 +72,7 @@ async def _add_uploaded_messages(
         tool_call_id = f"upload-{short_id}"
 
         # Get current thread state
-        current_state = await get_storage().get_thread_state(user.user_id, thread_id)
+        current_state = await get_storage().get_thread_state(thread_id)
         current_messages = current_state.get("messages", [])
 
         # Create tool call message

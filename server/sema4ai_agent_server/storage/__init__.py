@@ -110,7 +110,7 @@ class BaseStorage(ABC):
         pass
 
     @abstractmethod
-    async def get_thread_state(self, user_id: str, thread_id: str):
+    async def get_thread_state(self, thread_id: str):
         """Get state for a thread."""
         pass
 
@@ -126,7 +126,7 @@ class BaseStorage(ABC):
         pass
 
     @abstractmethod
-    async def get_thread_history(self, user_id: str, thread_id: str):
+    async def get_thread_history(self, thread_id: str):
         """Get the history of a thread."""
         pass
 

@@ -416,7 +416,7 @@ class PostgresStorage(BaseStorage):
             )
             return parse_obj_as(Optional[Thread], thread)
 
-    async def get_thread_state(self, user_id: str, thread_id: str):
+    async def get_thread_state(self, thread_id: str):
         """Get state for a thread."""
         app = get_agent_executor(
             [], dummy_model, "", "", False, AgentReasoning.DISABLED, None
@@ -444,7 +444,7 @@ class PostgresStorage(BaseStorage):
         )
         return retval
 
-    async def get_thread_history(self, user_id: str, thread_id: str):
+    async def get_thread_history(self, thread_id: str):
         """Get the history of a thread."""
         app = get_agent_executor(
             [], dummy_model, "", "", False, AgentReasoning.DISABLED, None

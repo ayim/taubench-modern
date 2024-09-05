@@ -57,7 +57,7 @@ async def get_thread_state(
 ):
     """Get state for a thread."""
     thread = await get_storage().get_thread(user.user_id, tid)
-    state = await get_storage().get_thread_state(user.user_id, tid)
+    state = await get_storage().get_thread_state(tid)
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
     return state
@@ -84,9 +84,7 @@ async def get_thread_history(
 ):
     """Get all past states for a thread."""
     thread = await get_storage().get_thread(user.user_id, tid)
-    history = await get_storage().get_thread_history(
-        user_id=user.user_id, thread_id=tid
-    )
+    history = await get_storage().get_thread_history(tid)
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
     return history
