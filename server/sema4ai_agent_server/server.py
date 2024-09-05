@@ -14,7 +14,7 @@ from sema4ai_agent_server.log_config import setup_logging
 from sema4ai_agent_server.storage.option import get_storage
 
 # Do not change the version here. It is managed by versionbump (see versionbump.yaml)
-VERSION = "0.3.22"
+VERSION = "0.3.23"
 
 setup_logging()
 logger = structlog.get_logger(__name__)
