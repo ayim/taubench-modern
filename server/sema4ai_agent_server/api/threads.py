@@ -74,7 +74,7 @@ async def add_thread_state(
     thread = await get_storage().get_thread(user.user_id, tid)
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
-    return await get_storage().update_thread_state(user.user_id, tid, payload.values)
+    return await get_storage().update_thread_state(tid, payload.values)
 
 
 @router.get("/{tid}/history")
@@ -122,9 +122,7 @@ async def create_thread(
     if payload.starting_message is not None:
         message = AIMessage(id=str(uuid4()), content=payload.starting_message)
         await get_storage().update_thread_state(
-            user_id=user.user_id,
-            thread_id=thread.thread_id,
-            values={"messages": [message]},
+            thread_id=thread.thread_id, values={"messages": [message]}
         )
     return thread
 

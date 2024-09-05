@@ -104,5 +104,5 @@ async def _add_uploaded_messages(
 
         # Update thread state with appended messages
         await get_storage().update_thread_state(
-            user.user_id, thread_id, {"messages": updated_messages}
+            thread_id, {"messages": updated_messages}
         )

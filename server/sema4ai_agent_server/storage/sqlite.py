@@ -366,18 +366,13 @@ class SqliteStorage(BaseStorage):
 
     async def update_thread_state(
         self,
-        user_id: str,
         thread_id: str,
         values: Union[Sequence[AnyMessage], Dict[str, Any]],
         as_node: Optional[str] = FINISH_NODE_KEY,
     ):
         """Add state to a thread."""
-        thread = await self.get_thread(user_id, thread_id)
-        agent_id = thread.agent_id
         retval = runnable_agent.update_state(
-            {"configurable": {"thread_id": thread_id, "agent_id": agent_id}},
-            values,
-            as_node=as_node,
+            {"configurable": {"thread_id": thread_id}}, values, as_node=as_node
         )
         return retval
 

@@ -117,7 +117,6 @@ class BaseStorage(ABC):
     @abstractmethod
     async def update_thread_state(
         self,
-        user_id: str,
         thread_id: str,
         values: Union[Sequence[AnyMessage], Dict[str, Any]],
         as_node: Optional[str] = FINISH_NODE_KEY,
