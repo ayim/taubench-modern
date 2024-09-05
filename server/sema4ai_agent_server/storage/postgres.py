@@ -399,18 +399,29 @@ class PostgresStorage(BaseStorage):
             )
 
     async def list_threads(self, user_id: str) -> List[Thread]:
-        """List all threads for the current user."""
+        """List all threads for the current user and system threads."""
         async with self.get_pool().acquire() as conn:
             threads = await conn.fetch(
-                "SELECT * FROM thread WHERE user_id = $1", user_id
+                """
+                SELECT t.* 
+                FROM thread t
+                LEFT JOIN "user" u ON t.user_id = u.user_id
+                WHERE t.user_id = $1 OR u.sub LIKE 'tenant:%:system:system_user'
+                """,
+                user_id,
             )
             return parse_obj_as(List[Thread], threads)
 
     async def get_thread(self, user_id: str, thread_id: str) -> Optional[Thread]:
-        """Get a thread by ID."""
+        """Get a thread by ID, including system threads."""
         async with self.get_pool().acquire() as conn:
             thread = await conn.fetchrow(
-                "SELECT * FROM thread WHERE thread_id = $1 AND user_id = $2",
+                """
+                SELECT t.* 
+                FROM thread t
+                LEFT JOIN "user" u ON t.user_id = u.user_id
+                WHERE t.thread_id = $1 AND (t.user_id = $2 OR u.sub LIKE 'tenant:%:system:system_user')
+                """,
                 thread_id,
                 user_id,
             )
@@ -497,10 +508,20 @@ class PostgresStorage(BaseStorage):
             )
 
     async def delete_thread(self, user_id: str, thread_id: str):
-        """Delete a thread by ID."""
+        """Delete a thread by ID, including system threads."""
         async with self.get_pool().acquire() as conn:
             await conn.execute(
-                "DELETE FROM thread WHERE thread_id = $1 AND user_id = $2",
+                """
+                DELETE FROM thread
+                WHERE thread_id = $1 AND (
+                    user_id = $2 
+                    OR user_id IN (
+                        SELECT user_id 
+                        FROM "user" 
+                        WHERE sub LIKE 'tenant:%:system:system_user'
+                    )
+                )
+                """,
                 thread_id,
                 user_id,
             )

@@ -309,10 +309,18 @@ class SqliteStorage(BaseStorage):
             return count
 
     async def list_threads(self, user_id: str) -> List[Thread]:
-        """List all threads for the current user."""
+        """List all threads for the current user and system threads."""
         with self._connect() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM thread WHERE user_id = ?", (user_id,))
+            cursor.execute(
+                """
+                SELECT t.* 
+                FROM thread t
+                LEFT JOIN "user" u ON t.user_id = u.user_id
+                WHERE t.user_id = ? OR u.sub LIKE 'tenant:%:system:system_user'
+                """,
+                (user_id,),
+            )
             rows = cursor.fetchall()
             threads = []
             for row in rows:
@@ -327,11 +335,17 @@ class SqliteStorage(BaseStorage):
             return threads
 
     async def get_thread(self, user_id: str, thread_id: str) -> Optional[Thread]:
-        """Get a thread by ID."""
+        """Get a thread by ID, including system threads."""
         with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM thread WHERE thread_id = ? AND user_id = ?",
+                """
+                SELECT t.* 
+                FROM thread t
+                LEFT JOIN "user" u ON t.user_id = u.user_id
+                WHERE t.thread_id = ? 
+                AND (t.user_id = ? OR u.sub LIKE 'tenant:%:system:system_user')
+                """,
                 (thread_id, user_id),
             )
             row = cursor.fetchone()
@@ -458,11 +472,21 @@ class SqliteStorage(BaseStorage):
             return parse_obj_as(User, new_user_row), True
 
     async def delete_thread(self, user_id: str, thread_id: str):
-        """Delete a thread by ID."""
+        """Delete a thread by ID, including system threads."""
         with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "DELETE FROM thread WHERE thread_id = ? AND user_id = ?",
+                """
+                DELETE FROM thread
+                WHERE thread_id = ? AND (
+                    user_id = ? 
+                    OR user_id IN (
+                        SELECT user_id 
+                        FROM "user" 
+                        WHERE sub LIKE 'tenant:%:system:system_user'
+                    )
+                )
+                """,
                 (thread_id, user_id),
             )
             conn.commit()
