@@ -1,6 +1,6 @@
 {
   "name": "@sema4ai/agent-server-interface",
-  "version": "0.3.21",
+  "version": "0.3.23",
   "description": "Sema4.ai Agent Server API Typescript interface",
   "type": "module",
   "author": {

@@ -4,7 +4,6 @@ from pathlib import Path
 from urllib.parse import urlparse, urlunparse
 
 import structlog
-import tomllib
 from fastapi import FastAPI
 from fastapi.exceptions import HTTPException
 
@@ -13,6 +12,9 @@ from sema4ai_agent_server.constants import UPLOAD_DIR
 from sema4ai_agent_server.lifespan import lifespan
 from sema4ai_agent_server.log_config import setup_logging
 from sema4ai_agent_server.storage.option import get_storage
+
+# Do not change the version here. It is managed by versionbump (see versionbump.yaml)
+VERSION = "0.3.23"
 
 setup_logging()
 logger = structlog.get_logger(__name__)
@@ -24,13 +26,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 DB_TYPE = os.environ.get("S4_AGENT_SERVER_DB_TYPE", "sqlite").lower()
 # Get root of app, used to point to directory containing static files
 ROOT = Path(__file__).parent.parent
-
-# Read current Agent Server version
-with open(ROOT / "pyproject.toml", "rb") as f:
-    pyproject_data = tomllib.load(f)
-version = pyproject_data["tool"]["poetry"]["version"]
-
-app = FastAPI(title="Sema4.ai Agent Server API", lifespan=lifespan, version=version)
+app = FastAPI(title="Sema4.ai Agent Server API", lifespan=lifespan, version=VERSION)
 app.include_router(api_router)
 
 

@@ -1,6 +1,7 @@
 [tool.poetry]
 name = "sema4ai-agent-server"
-version = "0.3.22"
+# Do not change the version here. It is managed by versionbump (see versionbump.yaml)
+version = "0.3.23"
 description = ""
 authors = ["Sema4.ai Engineering <engineering@sema4.ai>"]
 readme = "README.md"
@@ -98,23 +99,6 @@ addopts = "--strict-markers --strict-config --durations=5 -vv"
 # parsing files. We can adjust on a per test basis later on.
 timeout = 30
 asyncio_mode = "auto"
-
-[tool.bumpversion]
-current_version = "0.2.1"
-search = "{current_version}"
-replace = "{new_version}"
-tag = true
-commit = true
-
-[[tool.bumpversion.files]]
-filename = "../README.md"
-search = "`{current_version}`"
-replace = "`{new_version}`"
-
-[[tool.bumpversion.files]]
-filename = "pyproject.toml"
-search = 'version = "{current_version}"'
-replace = 'version = "{new_version}"'
 
 [build-system]
 requires = ["poetry-core"]

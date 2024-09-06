@@ -110,14 +110,13 @@ class BaseStorage(ABC):
         pass
 
     @abstractmethod
-    async def get_thread_state(self, user_id: str, thread_id: str):
+    async def get_thread_state(self, thread_id: str):
         """Get state for a thread."""
         pass
 
     @abstractmethod
     async def update_thread_state(
         self,
-        user_id: str,
         thread_id: str,
         values: Union[Sequence[AnyMessage], Dict[str, Any]],
         as_node: Optional[str] = FINISH_NODE_KEY,
@@ -126,7 +125,7 @@ class BaseStorage(ABC):
         pass
 
     @abstractmethod
-    async def get_thread_history(self, user_id: str, thread_id: str):
+    async def get_thread_history(self, thread_id: str):
         """Get the history of a thread."""
         pass
 
