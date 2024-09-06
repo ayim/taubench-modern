@@ -171,13 +171,6 @@ class SQLiteCheckpoint(BaseCheckpointSaver):
         thread_ts = checkpoint["ts"]
         parent_ts = config["configurable"].get("thread_ts")
 
-        thread_ts = (
-            thread_ts.isoformat() if isinstance(thread_ts, datetime) else thread_ts
-        )
-        parent_ts = (
-            parent_ts.isoformat() if isinstance(parent_ts, datetime) else parent_ts
-        )
-
         if isinstance(parent_ts, list):
             parent_ts = None
 

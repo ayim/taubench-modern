@@ -267,7 +267,7 @@ class PostgresSaver(BaseCheckpointSaver):
                         config={
                             "configurable": {
                                 "thread_id": thread_id,
-                                "thread_ts": value[2].isoformat(),
+                                "thread_ts": value[2],
                             }
                         },
                         checkpoint=cast(Checkpoint, self.serde.loads(value[0])),
@@ -275,7 +275,7 @@ class PostgresSaver(BaseCheckpointSaver):
                         parent_config={
                             "configurable": {
                                 "thread_id": thread_id,
-                                "thread_ts": value[3].isoformat(),
+                                "thread_ts": value[3],
                             }
                         }
                         if value[3]
@@ -301,7 +301,7 @@ class PostgresSaver(BaseCheckpointSaver):
                         config={
                             "configurable": {
                                 "thread_id": thread_id,
-                                "thread_ts": value[2].isoformat(),
+                                "thread_ts": value[2],
                             }
                         },
                         checkpoint=cast(Checkpoint, self.serde.loads(value[0])),
@@ -309,7 +309,7 @@ class PostgresSaver(BaseCheckpointSaver):
                         parent_config={
                             "configurable": {
                                 "thread_id": thread_id,
-                                "thread_ts": value[3].isoformat(),
+                                "thread_ts": value[3],
                             }
                         }
                         if value[3]
@@ -391,7 +391,7 @@ class PostgresSaver(BaseCheckpointSaver):
                         parent_config={
                             "configurable": {
                                 "thread_id": thread_id,
-                                "thread_ts": value[2].isoformat(),
+                                "thread_ts": value[2],
                             }
                         }
                         if value[2]
@@ -478,7 +478,7 @@ class PostgresSaver(BaseCheckpointSaver):
                         parent_config={
                             "configurable": {
                                 "thread_id": thread_id,
-                                "thread_ts": value[2].isoformat(),
+                                "thread_ts": value[2],
                             }
                         }
                         if value[2]
