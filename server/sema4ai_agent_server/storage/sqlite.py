@@ -265,6 +265,7 @@ class SqliteStorage(BaseStorage):
                 )
                 conn.commit()
             except sqlite3.IntegrityError as e:
+                conn.commit()
                 if (
                     e.sqlite_errorcode == sqlite3.SQLITE_CONSTRAINT_UNIQUE
                     and "agent.name" in str(e)
