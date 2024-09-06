@@ -41,14 +41,14 @@ psycopg2-pool = "1.2"
 pydantic = "1.10.18"
 pyjwt = { extras = ["crypto"], version = "^2.8.0" }
 python-json-logger = "2.0.7"
-python-multipart = "0.0.6"
+python-multipart = "0.0.9"
 setuptools = "69.0.3"
 sse-starlette = "1.8.2"
 structlog = "24.1.0"
 tenacity = "8.4.1"
 tiktoken = "0.7.0"
 tomli-w = "1.0.0"
-unstructured = { extras = ["doc", "docx"], version = "^0.12.5" }
+unstructured = { extras = ["doc", "docx"], version = "0.15.9" }
 uvicorn = "0.23.2"
 wikipedia = "1.4.0"
 xmltodict = "0.13.0"
