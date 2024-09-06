@@ -6,11 +6,11 @@ from langgraph.checkpoint import BaseCheckpointSaver
 
 def get_postgres_checkpointer() -> BaseCheckpointSaver:
     from sema4ai_agent_server.storage.postgres_checkpointer import (
-        PickleCheckpointSerializer,
+        PicklePostgresSerializer,
         PostgresCheckpointer,
     )
 
-    return PostgresCheckpointer(serializer=PickleCheckpointSerializer())
+    return PostgresCheckpointer(serializer=PicklePostgresSerializer())
 
 
 def get_sqlite_checkpointer() -> BaseCheckpointSaver:

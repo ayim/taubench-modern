@@ -1,30 +1,46 @@
 """Implementation of a langgraph checkpoint saver using Postgres."""
+
 import abc
 import os
 import pickle
 from contextlib import asynccontextmanager, contextmanager
-from typing import AsyncGenerator, AsyncIterator, Generator, Optional, cast
+from typing import (
+    Any,
+    AsyncGenerator,
+    AsyncIterator,
+    Generator,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    cast,
+)
 
 import psycopg
 from langchain_core.runnables import ConfigurableFieldSpec, RunnableConfig
 from langgraph.checkpoint import BaseCheckpointSaver
-from langgraph.checkpoint.base import Checkpoint, CheckpointThreadTs, CheckpointTuple
+from langgraph.checkpoint.base import (
+    Checkpoint,
+    CheckpointMetadata,
+    CheckpointThreadTs,
+    CheckpointTuple,
+)
 from psycopg_pool import AsyncConnectionPool, ConnectionPool
 
 
-class CheckpointSerializer(abc.ABC):
+class PostgresSerializer(abc.ABC):
     """A serializer for serializing and deserializing objects to and from bytes."""
 
     @abc.abstractmethod
-    def dumps(self, obj: Checkpoint) -> bytes:
+    def dumps(self, obj: Any) -> bytes:
         """Serialize an object to bytes."""
 
     @abc.abstractmethod
-    def loads(self, data: bytes) -> Checkpoint:
+    def loads(self, data: bytes) -> Any:
         """Deserialize an object from bytes."""
 
 
-class PickleCheckpointSerializer(CheckpointSerializer):
+class PicklePostgresSerializer(PostgresSerializer):
     """Use the pickle module to serialize and deserialize objects.
 
     This serializer uses the pickle module to serialize and deserialize objects.
@@ -38,13 +54,13 @@ class PickleCheckpointSerializer(CheckpointSerializer):
         have serialized yourself and can guarantee the integrity of.
     """
 
-    def dumps(self, obj: Checkpoint) -> bytes:
+    def dumps(self, obj: Any) -> bytes:
         """Serialize an object to bytes."""
         return pickle.dumps(obj)
 
-    def loads(self, data: bytes) -> Checkpoint:
+    def loads(self, data: bytes) -> Any:
         """Deserialize an object from bytes."""
-        return cast(Checkpoint, pickle.loads(data))
+        return pickle.loads(data)
 
 
 def _get_dsn() -> str:
@@ -94,7 +110,7 @@ async def _get_async_connection() -> AsyncGenerator[psycopg.AsyncConnection, Non
 class PostgresSaver(BaseCheckpointSaver):
     """A checkpoint saver that uses Postgres to save checkpoints."""
 
-    serde: CheckpointSerializer
+    serde: PostgresSerializer
     """The serializer for serializing and deserializing objects to and from bytes."""
 
     class Config:
@@ -130,7 +146,12 @@ class PostgresSaver(BaseCheckpointSaver):
         async with _get_async_connection() as connection:
             yield connection
 
-    def put(self, config: RunnableConfig, checkpoint: Checkpoint) -> RunnableConfig:
+    def put(
+        self,
+        config: RunnableConfig,
+        checkpoint: Checkpoint,
+        metadata: CheckpointMetadata,
+    ) -> RunnableConfig:
         """Put the checkpoint for the given configuration.
 
         Args:
@@ -152,17 +173,20 @@ class PostgresSaver(BaseCheckpointSaver):
                 cur.execute(
                     """
                     INSERT INTO checkpoints 
-                        (thread_id, thread_ts, parent_ts, checkpoint)
+                        (thread_id, thread_ts, parent_ts, checkpoint, metadata)
                     VALUES 
-                        (%(thread_id)s, %(thread_ts)s, %(parent_ts)s, %(checkpoint)s)
+                        (%(thread_id)s, %(thread_ts)s, %(parent_ts)s, %(checkpoint)s, %(metadata)s)
                     ON CONFLICT (thread_id, thread_ts) 
-                    DO UPDATE SET checkpoint = EXCLUDED.checkpoint;
+                    DO UPDATE SET 
+                        checkpoint = EXCLUDED.checkpoint,
+                        metadata = EXCLUDED.metadata;
                     """,
                     {
                         "thread_id": thread_id,
                         "thread_ts": checkpoint["ts"],
                         "parent_ts": parent_ts if parent_ts else None,
                         "checkpoint": self.serde.dumps(checkpoint),
+                        "metadata": self.serde.dumps(metadata),
                     },
                 )
 
@@ -174,7 +198,10 @@ class PostgresSaver(BaseCheckpointSaver):
         }
 
     async def aput(
-        self, config: RunnableConfig, checkpoint: Checkpoint
+        self,
+        config: RunnableConfig,
+        checkpoint: Checkpoint,
+        metadata: CheckpointMetadata,
     ) -> RunnableConfig:
         """Put the checkpoint for the given configuration.
 
@@ -195,18 +222,21 @@ class PostgresSaver(BaseCheckpointSaver):
             async with conn.cursor() as cur:
                 await cur.execute(
                     """
-                    INSERT INTO 
-                        checkpoints (thread_id, thread_ts, parent_ts, checkpoint)
+                    INSERT INTO checkpoints 
+                        (thread_id, thread_ts, parent_ts, checkpoint, metadata)
                     VALUES 
-                        (%(thread_id)s, %(thread_ts)s, %(parent_ts)s, %(checkpoint)s)
+                        (%(thread_id)s, %(thread_ts)s, %(parent_ts)s, %(checkpoint)s, %(metadata)s)
                     ON CONFLICT (thread_id, thread_ts) 
-                    DO UPDATE SET checkpoint = EXCLUDED.checkpoint;
+                    DO UPDATE SET 
+                        checkpoint = EXCLUDED.checkpoint,
+                        metadata = EXCLUDED.metadata;
                     """,
                     {
                         "thread_id": thread_id,
                         "thread_ts": checkpoint["ts"],
                         "parent_ts": parent_ts if parent_ts else None,
                         "checkpoint": self.serde.dumps(checkpoint),
+                        "metadata": self.serde.dumps(metadata),
                     },
                 )
 
@@ -223,7 +253,7 @@ class PostgresSaver(BaseCheckpointSaver):
             with conn.cursor() as cur:
                 thread_id = config["configurable"]["thread_id"]
                 cur.execute(
-                    "SELECT checkpoint, thread_ts, parent_ts "
+                    "SELECT checkpoint, metadata, thread_ts, parent_ts "
                     "FROM checkpoints "
                     "WHERE thread_id = %(thread_id)s "
                     "ORDER BY thread_ts DESC",
@@ -233,20 +263,21 @@ class PostgresSaver(BaseCheckpointSaver):
                 )
                 for value in cur:
                     yield CheckpointTuple(
-                        {
+                        config={
                             "configurable": {
                                 "thread_id": thread_id,
-                                "thread_ts": value[1].isoformat(),
+                                "thread_ts": value[2],
                             }
                         },
-                        self.serde.loads(value[0]),
-                        {
+                        checkpoint=cast(Checkpoint, self.serde.loads(value[0])),
+                        metadata=cast(CheckpointMetadata, self.serde.loads(value[1])),
+                        parent_config={
                             "configurable": {
                                 "thread_id": thread_id,
-                                "thread_ts": value[2].isoformat(),
+                                "thread_ts": value[3],
                             }
                         }
-                        if value[2]
+                        if value[3]
                         else None,
                     )
 
@@ -256,7 +287,7 @@ class PostgresSaver(BaseCheckpointSaver):
             async with conn.cursor() as cur:
                 thread_id = config["configurable"]["thread_id"]
                 await cur.execute(
-                    "SELECT checkpoint, thread_ts, parent_ts "
+                    "SELECT checkpoint, metadata, thread_ts, parent_ts "
                     "FROM checkpoints "
                     "WHERE thread_id = %(thread_id)s "
                     "ORDER BY thread_ts DESC",
@@ -266,20 +297,21 @@ class PostgresSaver(BaseCheckpointSaver):
                 )
                 async for value in cur:
                     yield CheckpointTuple(
-                        {
+                        config={
                             "configurable": {
                                 "thread_id": thread_id,
-                                "thread_ts": value[1].isoformat(),
+                                "thread_ts": value[2],
                             }
                         },
-                        self.serde.loads(value[0]),
-                        {
+                        checkpoint=cast(Checkpoint, self.serde.loads(value[0])),
+                        metadata=cast(CheckpointMetadata, self.serde.loads(value[1])),
+                        parent_config={
                             "configurable": {
                                 "thread_id": thread_id,
-                                "thread_ts": value[2].isoformat(),
+                                "thread_ts": value[3],
                             }
                         }
-                        if value[2]
+                        if value[3]
                         else None,
                     )
 
@@ -302,9 +334,10 @@ class PostgresSaver(BaseCheckpointSaver):
         thread_ts = config["configurable"].get("thread_ts")
         with self._get_sync_connection() as conn:
             with conn.cursor() as cur:
+                # get the checkpoint requested or return the latest checkpoint
                 if thread_ts:
                     cur.execute(
-                        "SELECT checkpoint, parent_ts "
+                        "SELECT thread_id, thread_ts, parent_ts, checkpoint, metadata "
                         "FROM checkpoints "
                         "WHERE thread_id = %(thread_id)s AND thread_ts = %(thread_ts)s",
                         {
@@ -312,23 +345,9 @@ class PostgresSaver(BaseCheckpointSaver):
                             "thread_ts": thread_ts,
                         },
                     )
-                    value = cur.fetchone()
-                    if value:
-                        return CheckpointTuple(
-                            config,
-                            self.serde.loads(value[0]),
-                            {
-                                "configurable": {
-                                    "thread_id": thread_id,
-                                    "thread_ts": value[1].isoformat(),
-                                }
-                            }
-                            if value[1]
-                            else None,
-                        )
                 else:
                     cur.execute(
-                        "SELECT checkpoint, thread_ts, parent_ts "
+                        "SELECT thread_id, thread_ts, parent_ts, checkpoint, metadata "
                         "FROM checkpoints "
                         "WHERE thread_id = %(thread_id)s "
                         "ORDER BY thread_ts DESC LIMIT 1",
@@ -336,25 +355,51 @@ class PostgresSaver(BaseCheckpointSaver):
                             "thread_id": thread_id,
                         },
                     )
+                try:
                     value = cur.fetchone()
-                    if value:
-                        return CheckpointTuple(
-                            config={
-                                "configurable": {
-                                    "thread_id": thread_id,
-                                    "thread_ts": value[1].isoformat(),
-                                }
-                            },
-                            checkpoint=self.serde.loads(value[0]),
-                            parent_config={
-                                "configurable": {
-                                    "thread_id": thread_id,
-                                    "thread_ts": value[2].isoformat(),
-                                }
+                except psycopg.ProgrammingError:
+                    return None
+                if value:
+                    if not thread_ts:
+                        config = {
+                            "configurable": {
+                                "thread_id": value[0],
+                                "thread_ts": value[1],
                             }
-                            if value[2]
-                            else None,
-                        )
+                        }
+                        thread_id = value[0]
+                        thread_ts = value[1]
+                    # find any pending writes
+                    cur.execute(
+                        "SELECT task_id, channel, value "
+                        "FROM writes "
+                        "WHERE thread_id = %(thread_id)s AND thread_ts = %(thread_ts)s",
+                        {
+                            "thread_id": thread_id,
+                            "thread_ts": thread_ts,
+                        },
+                    )
+                    if value[4] is not None:
+                        metadata = cast(CheckpointMetadata, self.serde.loads(value[4]))
+                    else:
+                        metadata = {}
+                    return CheckpointTuple(
+                        config=config,
+                        checkpoint=cast(Checkpoint, self.serde.loads(value[3])),
+                        metadata=metadata,
+                        parent_config={
+                            "configurable": {
+                                "thread_id": thread_id,
+                                "thread_ts": value[2],
+                            }
+                        }
+                        if value[2]
+                        else None,
+                        pending_writes=[
+                            (task_id, channel, self.serde.loads(value))
+                            for task_id, channel, value in cur
+                        ],
+                    )
         return None
 
     async def aget_tuple(self, config: RunnableConfig) -> Optional[CheckpointTuple]:
@@ -376,9 +421,10 @@ class PostgresSaver(BaseCheckpointSaver):
         thread_ts = config["configurable"].get("thread_ts")
         async with self._get_async_connection() as conn:
             async with conn.cursor() as cur:
+                # get the checkpoint requested or return the latest checkpoint
                 if thread_ts:
-                    await cur.execute(
-                        "SELECT checkpoint, parent_ts "
+                    cur.execute(
+                        "SELECT thread_id, thread_ts, parent_ts, checkpoint, metadata "
                         "FROM checkpoints "
                         "WHERE thread_id = %(thread_id)s AND thread_ts = %(thread_ts)s",
                         {
@@ -386,23 +432,9 @@ class PostgresSaver(BaseCheckpointSaver):
                             "thread_ts": thread_ts,
                         },
                     )
-                    value = await cur.fetchone()
-                    if value:
-                        return CheckpointTuple(
-                            config,
-                            self.serde.loads(value[0]),
-                            {
-                                "configurable": {
-                                    "thread_id": thread_id,
-                                    "thread_ts": value[1].isoformat(),
-                                }
-                            }
-                            if value[1]
-                            else None,
-                        )
                 else:
-                    await cur.execute(
-                        "SELECT checkpoint, thread_ts, parent_ts "
+                    cur.execute(
+                        "SELECT thread_id, thread_ts, parent_ts, checkpoint, metadata "
                         "FROM checkpoints "
                         "WHERE thread_id = %(thread_id)s "
                         "ORDER BY thread_ts DESC LIMIT 1",
@@ -410,33 +442,143 @@ class PostgresSaver(BaseCheckpointSaver):
                             "thread_id": thread_id,
                         },
                     )
+                try:
                     value = await cur.fetchone()
-                    if value:
-                        return CheckpointTuple(
-                            config={
-                                "configurable": {
-                                    "thread_id": thread_id,
-                                    "thread_ts": value[1].isoformat(),
-                                }
-                            },
-                            checkpoint=self.serde.loads(value[0]),
-                            parent_config={
-                                "configurable": {
-                                    "thread_id": thread_id,
-                                    "thread_ts": value[2].isoformat(),
-                                }
+                except psycopg.ProgrammingError:
+                    return None
+                if value:
+                    if not thread_ts:
+                        config = {
+                            "configurable": {
+                                "thread_id": value[0],
+                                "thread_ts": value[1],
                             }
-                            if value[2]
-                            else None,
-                        )
+                        }
+                        thread_id = value[0]
+                        thread_ts = value[1]
+                    # find any pending writes
+                    cur.execute(
+                        "SELECT task_id, channel, value "
+                        "FROM writes "
+                        "WHERE thread_id = %(thread_id)s AND thread_ts = %(thread_ts)s",
+                        {
+                            "thread_id": thread_id,
+                            "thread_ts": thread_ts,
+                        },
+                    )
+                    if value[4] is not None:
+                        metadata = cast(CheckpointMetadata, self.serde.loads(value[4]))
+                    else:
+                        metadata = {}
+                    return CheckpointTuple(
+                        config=config,
+                        checkpoint=cast(Checkpoint, self.serde.loads(value[3])),
+                        metadata=metadata,
+                        parent_config={
+                            "configurable": {
+                                "thread_id": thread_id,
+                                "thread_ts": value[2],
+                            }
+                        }
+                        if value[2]
+                        else None,
+                        pending_writes=[
+                            (task_id, channel, self.serde.loads(val))
+                            for task_id, channel, val in await cur.fetchall()
+                        ],
+                    )
 
         return None
+
+    def put_writes(
+        self, config: RunnableConfig, writes: Sequence[tuple[str, Any]], task_id: str
+    ) -> None:
+        """Put the writes for the given configuration.
+
+        Args:
+            config: The configuration for the writes.
+                A dict with a `configurable` key which is a dict with
+                a `thread_id` key and an optional `thread_ts` key.
+                For example, { 'configurable': { 'thread_id': 'test_thread' } }
+            writes: The writes to persist.
+            task_id: The task ID for the writes.
+        """
+        thread_id = config["configurable"]["thread_id"]
+        thread_ts = config["configurable"]["thread_ts"]
+
+        with self._get_sync_connection() as conn:
+            with conn.cursor() as cur:
+                cur.executemany(
+                    """
+                    INSERT INTO writes 
+                        (thread_id, thread_ts, task_id, idx, channel, value)
+                    VALUES 
+                        (%(thread_id)s, %(thread_ts)s, %(task_id)s, %(idx)s, %(channel)s, %(value)s)
+                    ON CONFLICT (thread_id, thread_ts, task_id, idx) 
+                    DO UPDATE SET 
+                        channel = EXCLUDED.channel,
+                        value = EXCLUDED.value;
+                    """,
+                    [
+                        {
+                            "thread_id": thread_id,
+                            "thread_ts": thread_ts,
+                            "task_id": task_id,
+                            "idx": idx,
+                            "channel": channel,
+                            "value": self.serde.dumps(value),
+                        }
+                        for idx, (channel, value) in enumerate(writes)
+                    ],
+                )
+
+    async def aput_writes(
+        self, config: RunnableConfig, writes: List[Tuple[str | Any]], task_id: str
+    ) -> None:
+        """Put the writes for the given configuration.
+
+        Args:
+            config: The configuration for the writes.
+                A dict with a `configurable` key which is a dict with
+                a `thread_id` key and an optional `thread_ts` key.
+                For example, { 'configurable': { 'thread_id': 'test_thread' } }
+            writes: The writes to persist.
+            task_id: The task ID for the writes.
+        """
+        thread_id = config["configurable"]["thread_id"]
+        thread_ts = config["configurable"]["thread_ts"]
+
+        async with self._get_async_connection() as conn:
+            async with conn.cursor() as cur:
+                await cur.executemany(
+                    """
+                    INSERT INTO writes 
+                        (thread_id, thread_ts, task_id, idx, channel, value)
+                    VALUES 
+                        (%(thread_id)s, %(thread_ts)s, %(task_id)s, %(idx)s, %(channel)s, %(value)s)
+                    ON CONFLICT (thread_id, thread_ts, task_id, idx) 
+                    DO UPDATE SET 
+                        channel = EXCLUDED.channel,
+                        value = EXCLUDED.value;
+                    """,
+                    [
+                        {
+                            "thread_id": thread_id,
+                            "thread_ts": thread_ts,
+                            "task_id": task_id,
+                            "idx": idx,
+                            "channel": channel,
+                            "value": self.serde.dumps(value),
+                        }
+                        for idx, (channel, value) in enumerate(writes)
+                    ],
+                )
 
 
 class PostgresCheckpointer(PostgresSaver):
     serde = None
 
-    def __init__(self, serializer: CheckpointSerializer):
+    def __init__(self, serializer: PostgresSerializer):
         super().__init__()
         self.serde = serializer
         # self.sync_connection = sync_connection
