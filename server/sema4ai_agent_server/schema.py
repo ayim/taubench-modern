@@ -581,6 +581,28 @@ class Agent(AgentPayload):
 AGENT_LIST_ADAPTER = TypeAdapter(List[Agent])
 
 
+# Similar to the dummy_model, we must creat a dummy_agent to avoid breaking the app
+dummy_agent = Agent(
+    id="dummy",
+    user_id="dummy",
+    public=False,
+    status=AgentStatus.READY,
+    name="dummy",
+    description="dummy",
+    runbook="dummy",
+    version="dummy",
+    model=dummy_model,
+    architecture=AgentArchitecture.AGENT,
+    reasoning=AgentReasoning.DISABLED,
+    action_packages=[],
+    updated_at=datetime.now(),
+    metadata=AgentMetadata(mode=AgentMode.CONVERSATIONAL),
+)
+dummy_plan_execute_agent = dummy_agent.copy(
+    update={"architecture": AgentArchitecture.PLAN_EXECUTE}
+)
+
+
 class Thread(BaseModel):
     thread_id: StrWithUuidInput = Field(description="The ID of the thread.")
     user_id: StrWithUuidInput = Field(description="The ID of the user.")

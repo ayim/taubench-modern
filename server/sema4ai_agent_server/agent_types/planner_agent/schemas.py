@@ -6,6 +6,9 @@ from langchain_core.messages import AnyMessage, get_buffer_string
 from pydantic import BaseModel, Field, model_validator
 
 from sema4ai_agent_server.agent_types.tools_agent import AgentState
+from sema4ai_agent_server.schema import AzureGPT, OpenAIGPT
+
+SUPPORTED_MODELS = [OpenAIGPT, AzureGPT]
 
 STEP_FORMAT_SEPARATOR = " - "
 

@@ -9,8 +9,8 @@ from langchain_core.runnables import (
 from langgraph.graph.message import Messages
 from langgraph.pregel import Pregel
 
-from sema4ai_agent_server.agent_types.planner_agent import get_plan_execute_agent
-from sema4ai_agent_server.agent_types.tools_agent import get_tools_agent_executor
+from sema4ai_agent_server.agent_types.planner_agent import PlanExecuteAgentFactory
+from sema4ai_agent_server.agent_types.tools_agent import ToolsAgentFactory
 from sema4ai_agent_server.agent_types.vitality_ai_multi_agent import (
     vitality_ai_new as vitality_ai,
 )
@@ -18,11 +18,14 @@ from sema4ai_agent_server.llms import get_chat_model
 from sema4ai_agent_server.schema import (
     MODEL,
     ActionPackage,
+    Agent,
     AgentArchitecture,
     AgentReasoning,
     AzureGPT,
     OpenAIGPT,
+    Thread,
     User,
+    dummy_agent,
     dummy_model,
 )
 from sema4ai_agent_server.storage.checkpoint import get_checkpointer
@@ -38,90 +41,41 @@ DEFAULT_NAME = "Agent"
 CHECKPOINTER = get_checkpointer()
 
 
-def get_agent_executor(
-    tools: list,
-    model: MODEL,
-    name: str,
-    runbook: str,
-    interrupt_before_action: bool,
-    reasoning_level: AgentReasoning,
-    knowledge_files: Optional[List[str]],
-):
-    llm = get_chat_model(model)
-    return get_tools_agent_executor(
-        tools,
-        llm,
-        name,
-        runbook,
-        reasoning_level,
-        interrupt_before_action,
-        CHECKPOINTER,
-        knowledge_files,
-    )
-
-
+# TODO: Each of these Configurables should be in their own file.
 class ConfigurableAgent(RunnableBinding):
-    action_packages: Sequence[ActionPackage]
+    agent: Agent
+    thread: Optional[Thread] = None
     use_retrieval: bool = False
-    model: Optional[MODEL] = None
-    name: str = DEFAULT_NAME
-    runbook: str = DEFAULT_RUNBOOK
     interrupt_before_action: bool = False
-    agent_id: Optional[str] = None
-    thread_id: Optional[str] = None
-    user: Optional[User] = None
-    reasoning_level: AgentReasoning = AgentReasoning.DISABLED
     knowledge_files: Optional[List[str]] = None
 
     def __init__(
         self,
         *,
-        action_packages: Sequence[ActionPackage],
+        agent: Agent = None,
+        thread: Optional[Thread] = None,
         use_retrieval: bool = False,
-        model: Optional[MODEL] = None,
-        name: str = DEFAULT_NAME,
-        runbook: str = DEFAULT_RUNBOOK,
-        agent_id: Optional[str] = None,
-        thread_id: Optional[str] = None,
-        user: Optional[User] = None,
         interrupt_before_action: bool = False,
-        reasoning_level: AgentReasoning = AgentReasoning.DISABLED,
         knowledge_files: Optional[List[str]] = None,
         kwargs: Optional[Mapping[str, Any]] = None,
         config: Optional[Mapping[str, Any]] = None,
         **others: Any,
     ) -> None:
         others.pop("bound", None)
-        dynamic_headers = (
-            {
-                "x-invoked_by_assistant_id": agent_id,
-                "x-invoked_on_behalf_of_user_id": user.cr_user_id,
-                "x-invoked_for_thread_id": thread_id,
-            }
-            if agent_id and user and thread_id
-            else {}
-        )
-        tools = get_tools_from_action_packages(action_packages, dynamic_headers)
-        if use_retrieval:
-            if agent_id is None and thread_id is None:
-                raise ValueError("agent_id or thread_id must be provided.")
-            tools.append(get_retrieval_tool(agent_id, thread_id, model))
-
-        _agent = get_agent_executor(
-            tools,
-            model,
-            name,
-            runbook,
-            interrupt_before_action,
-            reasoning_level,
-            knowledge_files,
-        )
-        agent_executor = _agent.with_config({"recursion_limit": 100})
-        super().__init__(
-            action_packages=action_packages,
+        agent_factory = ToolsAgentFactory(
+            agent=agent,
+            thread=thread,  # TODO: thread may be None
             use_retrieval=use_retrieval,
-            model=model,
-            runbook=runbook,
+            interrupt_before_action=interrupt_before_action,
+            knowledge_files=knowledge_files,
+        )
+        agent_executor = agent_factory.create_agent(**others)
+        # TODO: I'm not sure these other params are actually needed on the Runnable
+        super().__init__(
+            # action_packages=action_packages,
+            use_retrieval=use_retrieval,
+            # model=model,
+            # runbook=runbook,
             bound=agent_executor,
             kwargs=kwargs or {},
             config=config or {},
@@ -129,68 +83,38 @@ class ConfigurableAgent(RunnableBinding):
 
 
 class ConfigurablePlanExecute(RunnableBinding):
-    action_packages: Sequence[ActionPackage]
+    agent: Agent
+    thread: Optional[Thread] = None
     use_retrieval: bool = False
-    model: Optional[MODEL] = None
-    name: str = DEFAULT_NAME
-    runbook: str = DEFAULT_RUNBOOK
     interrupt_before_action: bool = False
-    agent_id: Optional[str] = None
-    thread_id: Optional[str] = None
-    user: Optional[User] = None
-    reasoning_level: AgentReasoning = AgentReasoning.DISABLED
+    knowledge_files: Optional[List[str]] = None
 
     def __init__(
         self,
         *,
-        action_packages: Sequence[ActionPackage],
+        agent: Agent = None,
+        thread: Optional[Thread] = None,
         use_retrieval: bool = False,
-        model: Optional[MODEL] = None,
-        name: str = DEFAULT_NAME,
-        runbook: str = DEFAULT_RUNBOOK,
-        agent_id: Optional[str] = None,
-        thread_id: Optional[str] = None,
-        user: Optional[User] = None,
         interrupt_before_action: bool = False,
-        reasoning_level: AgentReasoning = AgentReasoning.DISABLED,
+        knowledge_files: Optional[List[str]] = None,
         kwargs: Optional[Mapping[str, Any]] = None,
         config: Optional[Mapping[str, Any]] = None,
         **others: Any,
     ) -> None:
         others.pop("bound", None)
-        dynamic_headers = (
-            {
-                "x-invoked_by_assistant_id": agent_id,
-                "x-invoked_on_behalf_of_user_id": user.cr_user_id,
-                "x-invoked_for_thread_id": thread_id,
-            }
-            if agent_id and user and thread_id
-            else {}
-        )
-        tools = get_tools_from_action_packages(action_packages, dynamic_headers)
-        if use_retrieval:
-            if agent_id is None and thread_id is None:
-                raise ValueError("agent_id or thread_id must be provided.")
-            tools.append(get_retrieval_tool(agent_id, thread_id, model))
-
-        if type(model) not in (OpenAIGPT, AzureGPT):
-            raise ValueError(f"Model {model} is not supported for PlanExecute.")
-        llm = get_chat_model(model)
-        _agent = get_plan_execute_agent(
-            tools,
-            llm,
-            name,
-            runbook,
-            interrupt_before_action,
-            reasoning_level,
-            CHECKPOINTER,
-        )
-        agent_executor = _agent.with_config({"recursion_limit": 100})
-        super().__init__(
-            action_packages=action_packages,
+        agent_factory = PlanExecuteAgentFactory(
+            agent=agent,
+            thread=thread,
             use_retrieval=use_retrieval,
-            model=model,
-            runbook=runbook,
+            interrupt_before_action=interrupt_before_action,
+            knowledge_files=knowledge_files,
+        )
+        agent_executor = agent_factory.create_agent(**others)
+        super().__init__(
+            # action_packages=action_packages,
+            use_retrieval=use_retrieval,
+            # model=model,
+            # runbook=runbook,
             bound=agent_executor,
             kwargs=kwargs or {},
             config=config or {},
@@ -256,11 +180,11 @@ class ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(RunnableBin
         )
 
 
+# TODO: This has not been updated to use factory
 plan_execute = (
     ConfigurablePlanExecute(
         action_packages=[],
         use_retrieval=False,
-        model=dummy_model,
         name=DEFAULT_NAME,
         runbook=DEFAULT_RUNBOOK,
         agent_id=None,
@@ -343,36 +267,22 @@ alternatives = {
 
 runnable_agent: Pregel = (
     ConfigurableAgent(
-        model=dummy_model,
-        action_packages=[],
+        agent=dummy_agent,
+        thread=None,
         use_retrieval=False,
-        name=DEFAULT_NAME,
-        runbook=DEFAULT_RUNBOOK,
-        agent_id=None,
-        thread_id=None,
-        user=None,
-        reasoning_level=AgentReasoning.DISABLED,
+        interrupt_before_action=False,
         knowledge_files=None,
     )
     .configurable_fields(
-        model=ConfigurableField(id="model", name="Model"),
-        name=ConfigurableField(id="name", name="Agent Name"),
-        runbook=ConfigurableField(id="runbook", name="Instructions"),
+        agent=ConfigurableField(id="agent", name="Agent", is_shared=True),
+        thread=ConfigurableField(id="thread", name="Thread", is_shared=True),
         interrupt_before_action=ConfigurableField(
             id="interrupt_before_action",
             name="Tool Confirmation",
             description="If Yes, you'll be prompted to continue before each tool is executed.\nIf No, tools will be executed automatically by the agent.",
         ),
-        agent_id=ConfigurableField(id="agent_id", name="Agent ID", is_shared=True),
-        thread_id=ConfigurableField(id="thread_id", name="Thread ID", is_shared=True),
-        user=ConfigurableField(id="user", name="User", is_shared=True),
         action_packages=ConfigurableField(id="action_packages", name="Action Packages"),
         use_retrieval=ConfigurableField(id="use_retrieval", name="Use Retrieval"),
-        reasoning_level=ConfigurableField(
-            id="reasoning_level",
-            name="Reasoning Level",
-            description="The level of reasoning the agent should use.",
-        ),
         knowledge_files=ConfigurableField(
             id="knowledge_files",
             name="Knowledge Files",

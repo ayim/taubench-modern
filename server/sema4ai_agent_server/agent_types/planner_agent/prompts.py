@@ -1,6 +1,6 @@
-from langchain_core.prompts import ChatPromptTemplate
-
-from sema4ai_agent_server.schema import AgentReasoning
+from sema4ai_agent_server.agent_types.factory import PredefinedChatPromptTemplate
+from sema4ai_agent_server.agent_types.utils import is_claude
+from sema4ai_agent_server.schema import Agent, AgentReasoning
 
 PLAN_DESCRIPTION = """Plans are generally only required for more complex objectives which \
 would benefit from multiple rounds of interaction with various tools to complete, especially \
@@ -46,8 +46,45 @@ sectors or stocks to invest in, and any risk management strategies."
 ]"""
 
 
-def planner_template(instructions: str) -> str:
-    return f"""We use XML tags to help structure our team instructions. Runbooks \
+class PlannerPromptTemplate(PredefinedChatPromptTemplate):
+    """Prompt template for the planner agent to decide if a plan is needed and to develop
+    the plan.
+
+    Invocation args for the template once initialized:
+
+    - name (`str`): The name of the agent team.
+    - datetime (`str`): The current datetime in ISO 8601 format.
+    - knowledge_files (`str`): The knowledge files available to the agent.
+    - runbook (`str`): The runbook for the team.
+    - messages (`list[AnyMessage]`): The messages in the conversation.
+
+    Args:
+
+        agent (Agent): Only `reasoning` level is used from the agent object.
+    """
+
+    def create_template_messages(self, agent: Agent = None) -> list[tuple[str, str]]:
+        beggining_of_thinking_prompt = """
+Based on the full conversation that follows, you must think about whether we need a plan to \
+respond to the user.{' BE SUCCINCT.' if reasoning_level == 1 else ''} Explain your thinking \
+about whether a plan is needed.
+
+If a plan is needed,{' succinctly' if reasoning_level == 1 else ''} explain your approach. \
+When developing the plan,{' succinctly' if reasoning_level == 1 else ''} think about each step \
+and why it is needed. Include your thoughts in the response tool call. 
+    """.strip()
+
+        beggining_of_non_thinking_prompt = """
+Based on the full conversation that follows, you must decide if we need a plan to respond to the user.
+    """.strip()
+
+        step_description = """
+Steps must be created as tuples of two strings: \
+the first string is the reasoning why the step is needed and the second string is the step itself.
+    """.strip()
+
+        prompt = f"""
+We use XML tags to help structure our team instructions. Runbooks \
 use markdown to format structured content.
 
 Our team name: <team_name>
@@ -66,82 +103,32 @@ What is a plan: <plan_description>
 {PLAN_DESCRIPTION}
 </plan_description>
 
+Knowledge files you have access to: <knowledge_files>
+{{knowledge_files}}
+</knowledge_files>
+
 Our runbook: <runbook>
 {{runbook}}
 </runbook>
 
 Your immediate instructions: <instructions>
-{instructions}
-</instructions>"""
+{beggining_of_thinking_prompt if agent.reasoning != AgentReasoning.DISABLED else beggining_of_non_thinking_prompt}
 
+The plan should be specific and each step should help to achieve the objective. The result of \
+the final step should be a complete meaningful response to the objective. The entire team is \
+relying on you to develop a complete plan for them, you must develop a full plan that will \
+accomplish the objective made up of multiple steps. Make sure each step has all the information \
+needed, assume every step will be followed.
 
-PLANNER_PROMPTS: dict[AgentReasoning, ChatPromptTemplate] = {
-    AgentReasoning.DISABLED: ChatPromptTemplate.from_messages(
-        [
-            (
-                "system",
-                planner_template(
-                    """Based on the full conversation that follows, you must decide \
-if we need a plan to respond to the user.
+{step_description if agent.reasoning != AgentReasoning.DISABLED else ""}
+</instructions>
+    """.strip()
 
-If a plan is required, develop a step by step plan for the team. This plan should involve \
-individual tasks that, when executed, will yield a meaninful response to the objective. \
-The steps should be specific and each step should help to achieve the objective. The result \
-of the final step should be a complete meaningful response to the objective. The entire \
-team is relying on you to develop a complete plan for them, you must develop a full \
-plan that accomplished the objective. Make sure each step has all the information \
-needed, assume every step will be followed."""
-                ),
-            ),
+        return [
+            ("system", prompt),
             ("placeholder", "{messages}"),
         ]
-    ),
-    AgentReasoning.ENABLED: ChatPromptTemplate.from_messages(
-        [
-            (
-                "system",
-                planner_template(
-                    """Based on the full conversation that follows, you must \
-think about whether we need a plan to respond to the user. BE SUCCINCT. \
-Succinctly explain your thinking about whether a plan is needed.
 
-If a plan is needed, succinctly explain your approach. When developing the plan, succinctly think about \
-each step and why it is needed. Include your thoughts in the response tool call. The plan should \
-be specific and each step should help to achieve the objective. The result of the final step should \
-be a complete meaningful response to the objective. The entire team is relying on you to \
-develop a complete plan for them, you must develop a full plan that will accomplish the objective \
-made up of multiple steps. Make sure each step has all the information \
-needed, assume every step will be followed. Steps must be created as tuples of two strings: \
-the first string is the reasoning why the step is needed and the second string is the step itself."""
-                ),
-            ),
-            ("placeholder", "{messages}"),
-        ]
-    ),
-    AgentReasoning.VERBOSE: ChatPromptTemplate.from_messages(
-        [
-            (
-                "system",
-                planner_template(
-                    """Based on the full conversation that follows, you must \
-think about whether we need a plan to respond to the user. \
-Explain your thinking about whether a plan is needed.
-
-If a plan is needed, explain your approach. When developing the plan, think about \
-each step, why it is needed, and what information is needed by the assigned team member to \
-complete it. Include your thoughts in the response tool call. The plan should \
-be specific and each step should help to achieve the objective. The result of the final step should \
-be a complete meaningful response to the objective. The entire team is relying on you to \
-develop a complete plan for them, you must develop a full plan that will accomplish the objective \
-made up of multiple steps. Make sure each step has all the information \
-needed, assume every step will be followed. Steps must be created as tuples of two strings: \
-the first string is the reasoning why the step is needed and the second string is the step itself."""
-                ),
-            ),
-            ("placeholder", "{messages}"),
-        ]
-    ),
-}
 
 # Step Executor Prompts
 STEP_EXECUTOR_ROLE = """You are part of a team of agents following the provided runbook. Your \
@@ -149,8 +136,8 @@ job is to execute the current step of the plan developed by the planner to compl
 provided by the user."""
 
 
-def step_executor_template() -> str:
-    return f"""We use XML tags to help structure our team instructions. Runbooks \
+STEP_EXECUTOR_TEMPLATE = f"""
+We use XML tags to help structure our team instructions. Runbooks \
 use markdown to format structured content.
 
 Our team name: <team_name>
@@ -165,6 +152,10 @@ Your role: <role>
 {STEP_EXECUTOR_ROLE}
 </role>
 
+Knowledge files you have access to: <knowledge_files>
+{{knowledge_files}}
+</knowledge_files>
+
 Our runbook: <runbook>
 {{runbook}}
 </runbook>
@@ -175,53 +166,68 @@ from the user and other members of your team. The last message in the thread wil
 directions to you. You must execute the step provided by the planner to the best of your ability. \
 You should assume that the overall objective may not be known to you, but you should focus on \
 completing the step provided to you.
-</instructions>"""
+</instructions>
+    """.strip()
 
 
 # Prompts to override subagent built in prompts
-STEP_EXECUTOR_PROMPT = ChatPromptTemplate.from_messages(
-    [
-        ("system", step_executor_template()),
-        ("placeholder", "{messages}"),
-        ("system", "Now execute the step provided above."),
-    ]
-)
+class StepExecutorPromptTemplate(PredefinedChatPromptTemplate):
+    """Prompt template for the step executor agent to execute the current step of the plan.
+
+    Invocation args for the template once initialized:
+
+    - agent_name (`str`): The name of the agent team.
+    - current_datetime (`str`): The current datetime in ISO 8601 format.
+    - knowledge_files (`str`): The knowledge files available to the agent.
+    - runbook (`str`): The runbook for the team.
+    - messages (`list[AnyMessage]`): The messages in the conversation.
+
+    Args:
+
+        agent (Agent): Not used, can be omitted.
+
+    """
+
+    def create_template_messages(self, agent: Agent = None) -> list[tuple[str, str]]:
+        return [
+            ("system", STEP_EXECUTOR_TEMPLATE),
+            ("placeholder", "{messages}"),
+            (
+                "human" if is_claude(agent.model) else "system",
+                "Now execute the step provided above.",
+            ),
+        ]
 
 
-def get_step_reasoning_prompts(
-    claude_mode: bool, reasoning: AgentReasoning
-) -> ChatPromptTemplate:
-    if claude_mode:
-        redirect_message_type = "human"
-    else:
-        redirect_message_type = "system"
-    if reasoning == AgentReasoning.ENABLED:
-        return ChatPromptTemplate.from_messages(
-            [
-                ("system", step_executor_template()),
-                ("placeholder", "{messages}"),
-                (
-                    redirect_message_type,
-                    "Think about your next response based on the conversation and instructions the planner "
-                    "provided. Then, succinctly sexplain why you are thinking to respond in this way. "
-                    "Focus on the most important aspects of your reasoning. ONLY PROVIDE REASONING.",
-                ),
-            ]
-        )
+class StepReasoningPromptTemplate(PredefinedChatPromptTemplate):
+    """Prompt template for the step executor agent to provide reasoning for their response.
 
-    elif reasoning == AgentReasoning.VERBOSE:
-        return ChatPromptTemplate.from_messages(
-            [
-                ("system", step_executor_template()),
-                ("placeholder", "{messages}"),
-                (
-                    redirect_message_type,
-                    "Think about your next response based on the conversation and instructions the planner "
-                    "provided. Then, explain why you are thinking to respond in this way. "
-                    "Focus on the most important aspects of your reasoning. ONLY PROVIDE REASONING.",
-                ),
-            ]
-        )
+    Invocation args for the template once initialized:
+
+    - agent_name (`str`): The name of the agent team.
+    - current_datetime (`str`): The current datetime in ISO 8601 format.
+    - knowledge_files (`str`): The knowledge files available to the agent.
+    - runbook (`str`): The runbook for the team.
+    - messages (`list[AnyMessage]`): The messages in the conversation.
+
+    Args:
+
+        agent (Agent): Only `reasoning` level is used from the agent object.
+
+    """
+
+    def create_template_messages(self, agent: Agent = None) -> list[tuple[str, str]]:
+        next_response_prompt = f"""
+Think about your next response based on the conversation and instructions the planner provided. \
+Then,{' succinctly' if agent.reasoning == AgentReasoning.ENABLED else ''} explain why you are thinking to respond in \
+this way. Focus on the most important aspects of your reasoning. ONLY PROVIDE REASONING.
+        """.strip()
+
+        return [
+            ("system", STEP_EXECUTOR_TEMPLATE),
+            ("placeholder", "{messages}"),
+            ("human" if is_claude(agent.model) else "system", next_response_prompt),
+        ]
 
 
 # Replanner related prompts and messages
@@ -229,9 +235,35 @@ REPLANNER_ROLE = """You are part of a team of agents following the provided runb
 job is to update the current plan to complete the objective provided by the user."""
 
 
-def replanner_template(instructions: str) -> str:
-    return f"""We use XML tags to help structure our team instructions. Runbooks \
-use markdown to format structured content.
+class ReplannerPromptTemplate(PredefinedChatPromptTemplate):
+    """Prompt template for the replanner agent to update the plan and respond to the user.
+
+    Invocation args for the template once initialized:
+
+    - name (`str`): The name of the agent team.
+    - datetime (`str`): The current datetime in ISO 8601 format.
+    - knowledge_files (`str`): The knowledge files available to the agent.
+    - runbook (`str`): The runbook for the team.
+    - objective (`str`): The objective provided by the user.
+    - last_step (`str`): The last step executed by the step executor.
+    - remaining_steps (`str`): The remaining steps in the plan.
+    - messages (`list[AnyMessage]`): The messages in the conversation.
+
+    Args:
+
+        agent (Agent): Only `reasoning` level is used from the agent object.
+
+    """
+
+    def create_template_messages(self, agent: Agent = None) -> list[tuple[str, str]]:
+        reasoning_step = f"""
+5. Using the response tool,{' succinctly' if agent.reasoning == AgentReasoning.ENABLED else ''} write out your thoughts for these points \
+in the "reasoning" field.
+    """.strip()
+
+        main_replanner_prompt = f"""
+We use XML tags to help structure our team instructions. Runbooks use markdown to \
+format structured content.
 
 Our team name: <team_name>
 {{name}}
@@ -249,22 +281,16 @@ What is a plan: <plan_description>
 {PLAN_DESCRIPTION}
 </plan_description>
 
+Knowledge files you have access to: <knowledge_files>
+{{knowledge_files}}
+</knowledge_files>
+
 Our runbook: <runbook>
 {{runbook}}
 </runbook>
 
 Your immediate instructions: <instructions>
-{instructions}
-</instructions>"""
-
-
-REPLANNER_PROMPTS: dict[int, ChatPromptTemplate] = {
-    AgentReasoning.DISABLED: ChatPromptTemplate.from_messages(
-        [
-            (
-                "system",
-                replanner_template(
-                    """The below objective is the last message from the user. Following that is \
+The below objective is the last message from the user. Following that is \
 your team's internal thread as the plan was executed. Finally, an additional system message \
 will be added to help you compare the last step executed at that point in the thread to \
 what was expected to be completed and the remaining steps in the plan.
@@ -279,10 +305,11 @@ assumption the user made when they provided you the objective.
 2. Consider if the objective is accomplished at this point.
 3. Consider if the last message in the thread provides a response to the objective.
 4. Consider if the remaining steps are appropriate based on your previous analysis.
+{reasoning_step if agent.reasoning != AgentReasoning.DISABLED else ''}
 
 Next:
 
-5. Set the "response_type" field based on the following criteria:
+1. Set the "response_type" field based on the following criteria:
     - If the objective is accomplished and the last message in the thread provides a response to \
 the objective, set the response type to "complete-as-is".
     - If the objective is accomplished but the last message in the thread does not provide a \
@@ -291,21 +318,20 @@ response to the objective, set the response type to "response-needed".
 response type to "update".
     - If the plan cannot be completed without more information or after prompting the user for \
 some sort of input, set the response type to "edge-case".
-6. Update the plan as needed based on your analysis. When doing so, remove steps that have already \
+2. Update the plan as needed based on your analysis. When doing so, remove steps that have already \
 been completed and only add steps to the plan that still NEED to be done. Assume these new steps \
 will be followed.
-8. Based on your analysis, write a final response or reply to the user to explain any edge cases \
+3. Based on your analysis, write a final response or reply to the user to explain any edge cases \
 encountered, if any.
+</instructions>
 
 Objective: <objective>
-{objective}
-</objective>"""
-                ),
-            ),
-            ("placeholder", "{messages}"),
-            (
-                "system",
-                """Now, compare the last step executed above to the expected step executed \
+{{objective}}
+</objective>
+        """.strip()
+
+        next_response_prompt = """
+Now, compare the last step executed above to the expected step executed \
 and remaining steps below and begin your analysis.
 
 Last step executed: <last_step>
@@ -314,132 +340,11 @@ Last step executed: <last_step>
 
 Remaining planned steps: <remaining_steps>
 {remaining_steps}
-</remaining_steps>""",
-            ),
-        ]
-    ),
-    AgentReasoning.ENABLED: ChatPromptTemplate.from_messages(
-        [
-            (
-                "system",
-                replanner_template(
-                    """The below objective is the last message from the user. Following that is \
-your team's internal thread as the plan was executed. Finally, an additional system message \
-will be added to help you compare the last step executed at that point in the thread to \
-what was expected to be completed and the remaining steps in the plan.
+</remaining_steps>
+        """.strip()
 
-Review the objective, the last step executed, and the team thread, then perform the \
-following in order:
-
-1. Determine if the last step was properly completed. If it was not, consider how to modify the \
-step and rest of the plan to ensure the objective is met. Consider how the agent had responded \
-and if that indicates there are problems with the way the step was written or with any underlying \
-assumption the user made when they provided you the objective.
-2. Consider if the objective is accomplished at this point.
-3. Consider if the last message in the thread provides a response to the objective.
-4. Consider if the remaining steps are appropriate based on your previous analysis.
-5. Using the response tool, succinctly write out your thoughts for these points in the "reasoning" field.
-
-Next:
-
-6. Set the "response_type" field based on the following criteria:
-    - If the objective is accomplished and the last message in the thread provides a response to \
-the objective, set the response type to "complete-as-is".
-    - If the objective is accomplished but the last message in the thread does not provide a \
-response to the objective, set the response type to "response-needed".
-    - If the work needed to respond to the objective is not done yet, update the plan and set the \
-response type to "update".
-    - If the plan cannot be completed without more information or after prompting the user for \
-some sort of input, set the response type to "edge-case".
-7. Update the plan as needed based on your analysis. When doing so, remove steps that have already \
-been completed and only add steps to the plan that still NEED to be done. Assume these new steps \
-will be followed. Be sure to follow the correct format by creating a tuple of two strings for \
-each step: the first string is the reasoning why the step is needed and the second string is \
-the step itself.
-8. Based on your analysis, write a final response or reply to the user to explain any edge cases \
-encountered, if any.
-
-Objective: <objective>
-{objective}
-</objective>"""
-                ),
-            ),
+        return [
+            ("system", main_replanner_prompt),
             ("placeholder", "{messages}"),
-            (
-                "system",
-                """Now, compare the last step executed above to the expected step executed \
-and remaining steps below and begin your analysis.
-             
-Last step executed: <last_step>
-{last_step}
-</last_step>
-
-Remaining planned steps: <remaining_steps>
-{remaining_steps}
-</remaining_steps>""",
-            ),
+            ("system", next_response_prompt),
         ]
-    ),
-    AgentReasoning.VERBOSE: ChatPromptTemplate.from_messages(
-        [
-            (
-                "system",
-                replanner_template(
-                    """The below objective is the last message from the user. Following that is \
-your team's internal thread as the plan was executed. Finally, an additional system message \
-will be added to help you compare the last step executed at that point in the thread to \
-what was expected to be completed and the remaining steps in the plan.
-
-Review the objective, the last step executed, and the team thread, then perform the \
-following in order:
-
-1. Determine if the last step was properly completed. If it was not, consider how to modify the \
-step and rest of the plan to ensure the objective is met. Consider how the agent had responded \
-and if that indicates there are problems with the way the step was written or with any underlying \
-assumption the user made when they provided you the objective.
-2. Consider if the objective is accomplished at this point.
-3. Consider if the last message in the thread provides a response to the objective.
-4. Consider if the remaining steps are appropriate based on your previous analysis.
-5. Using the response tool, write out your thoughts for these points in the "reasoning" field.
-
-Next:
-
-6. Set the "response_type" field based on the following criteria:
-    - If the objective is accomplished and the last message in the thread provides a response to \
-the objective, set the response type to "complete-as-is".
-    - If the objective is accomplished but the last message in the thread does not provide a \
-response to the objective, set the response type to "response-needed".
-    - If the work needed to respond to the objective is not done yet, update the plan and set the \
-response type to "update".
-    - If the plan cannot be completed without more information or after prompting the user for \
-some sort of input, set the response type to "edge-case".
-7. Update the plan as needed based on your analysis. When doing so, remove steps that have already \
-been completed and only add steps to the plan that still NEED to be done. Assume these new steps \
-will be followed. Be sure to follow the correct format by creating a tuple of two strings for \
-each step: the first string is the reasoning why the step is needed and the second string is \
-the step itself.
-8. Based on your analysis, write a final response or reply to the user to explain any edge cases \
-encountered, if any.
-
-Objective: <objective>
-{objective}
-</objective>"""
-                ),
-            ),
-            ("placeholder", "{messages}"),
-            (
-                "system",
-                """Now, compare the last step executed above to the expected step executed \
-and remaining steps below and begin your analysis.
-             
-Last step executed: <last_step>
-{last_step}
-</last_step>
-
-Remaining planned steps: <remaining_steps>
-{remaining_steps}
-</remaining_steps>""",
-            ),
-        ]
-    ),
-}

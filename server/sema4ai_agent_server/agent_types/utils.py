@@ -16,7 +16,15 @@ from langchain_anthropic.output_parsers import ToolsOutputParser
 from langchain_aws import ChatBedrockConverse
 from langchain_core.language_models.base import LanguageModelInput
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import BaseMessage
+from langchain_core.messages import (
+    AIMessage,
+    AnyMessage,
+    BaseMessage,
+    FunctionMessage,
+    HumanMessage,
+    ToolMessage,
+)
+from langchain_core.pydantic_v1 import BaseModel
 from langchain_core.runnables import Runnable
 from langchain_core.tools import BaseTool
 from langchain_core.utils.function_calling import convert_to_openai_tool
@@ -24,6 +32,14 @@ from langchain_google_vertexai import ChatVertexAI, PydanticFunctionsOutputParse
 from langchain_openai import AzureChatOpenAI, ChatOpenAI
 from langchain_openai.output_parsers import PydanticToolsParser
 from pydantic import BaseModel
+
+from sema4ai_agent_server.message_types import LiberalToolMessage
+from sema4ai_agent_server.schema import (
+    MODEL,
+    ActionPackage,
+    AmazonBedrock,
+    AnthropicClaude,
+)
 
 # Define supported agent types
 AGENT_TYPES = (AzureChatOpenAI, ChatOpenAI, ChatAnthropic, ChatVertexAI)
@@ -227,3 +243,67 @@ def get_pydantic_output_parser(
         return PydanticFunctionsOutputParser(
             first_tool_only=True, pydantic_schemas=[schema]
         )
+
+
+def clean_message(message: AnyMessage):
+    """Sanitizes a message by converting certain types to an appropriate type.
+
+    For example, this method converts a LiberalToolMessage type to ToolMessage type.
+    """
+    if isinstance(message, LiberalToolMessage):
+        _dict = message.model_dump(round_trip=True)
+        _dict["content"] = str(_dict["content"])
+        m_c = ToolMessage.model_construct(**_dict)
+        return m_c
+    elif isinstance(message, FunctionMessage):
+        # anthropic doesn't like function messages
+        return HumanMessage(content=str(message.content))
+    else:
+        return message
+
+
+def get_messages(
+    messages: list[AnyMessage], model: MODEL, *, continue_string="continue"
+) -> list[AnyMessage]:
+    """Sanitizes a message list by converting certain types to an
+    appropriate type.
+
+    For example, this method converts all LiberalToolMessage types to
+    ToolMessage types.
+    """
+    # TODO: Consider fixing conversation for AmazonBedrock so that it properly has turns...
+    sanitized_msgs = [clean_message(m) for m in messages]
+    if isinstance(model, (AmazonBedrock)):
+        # check if the first message is human, as that is required by bedrock
+        if not isinstance(sanitized_msgs[0], HumanMessage):
+            sanitized_msgs = [HumanMessage(content="Hi")] + sanitized_msgs
+
+    if is_claude(model):
+        # check if the first message is human, as that is required by bedrock
+        if not isinstance(sanitized_msgs[0], HumanMessage):
+            sanitized_msgs = [HumanMessage(content="Hi")] + sanitized_msgs
+        # Check that any groups of similar message types are separated by a human message
+        # to prevent LangChain from combining them, which doens't work with our metadata
+        new_msgs = []
+        for i, msg in enumerate(sanitized_msgs):
+            if i > 0 and type(msg) is type(sanitized_msgs[i - 1]):
+                new_msgs.append(HumanMessage(content=continue_string))
+            new_msgs.append(msg)
+        sanitized_msgs = new_msgs
+
+    return sanitized_msgs
+
+
+def format_knowledge_files(files: list[str]) -> str:
+    """Format a list of knowledge files into a prompt-injectable string."""
+    if files:
+        file_list = "\n".join(f"- {file}" for file in files)
+        return f"You have access to the following knowledge files:\n{file_list}"
+    return ""
+
+
+def is_claude(model: MODEL) -> bool:
+    """Check if the model is a Claude model."""
+    return (
+        isinstance(model, (AnthropicClaude, AmazonBedrock)) and "claude" in model.name
+    )
