@@ -30,7 +30,7 @@ from sema4ai_agent_server.schema import (
     AgentMetadata,
     AgentReasoning,
     AgentStatus,
-    SafeAgent,
+    RawAgent,
     UploadedFile,
 )
 from sema4ai_agent_server.storage.option import get_storage
@@ -119,6 +119,13 @@ async def list_agents(user: AuthedUser) -> List[Agent]:
     return agents
 
 
+@router.get("/raw")
+async def list_raw_agents(user: AuthedUser) -> List[RawAgent]:
+    """List all agents for the current user."""
+    agents = await get_storage().list_agents(user.user_id)
+    return [agent.raw() for agent in agents]
+
+
 @router.get("/{aid}")
 async def get_agent(
     user: AuthedUser,
@@ -131,16 +138,16 @@ async def get_agent(
     return agent
 
 
-@router.get("/{aid}/safe")
-async def get_safe_agent(
+@router.get("/{aid}/raw")
+async def get_raw_agent(
     user: AuthedUser,
     aid: AgentID,
-) -> SafeAgent:
+) -> RawAgent:
     """Get an agent by ID (sensitive data is masked)."""
     agent = await get_storage().get_agent(user.user_id, aid)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
-    return agent.safe()
+    return agent.raw()
 
 
 @router.put("/package/{aid}")
@@ -149,7 +156,7 @@ async def upsert_agent_via_package(
     aid: AgentID,
     payload: AgentPayloadPackage,
     background_tasks: BackgroundTasks,
-) -> SafeAgent:
+) -> Agent:
     root_dir = tempfile.mkdtemp()
 
     agent = await get_storage().get_agent(user.user_id, aid)
@@ -193,7 +200,7 @@ async def upsert_agent_via_package(
             get_knowledge_files(spec),
         )
 
-        return agent.safe()
+        return agent
 
     # Not using finally because background task needs to have access to the dir
     except Exception as e:
@@ -209,7 +216,7 @@ async def create_agent_via_package(
     user: AuthedUser,
     payload: AgentPayloadPackage,
     background_tasks: BackgroundTasks,
-) -> SafeAgent:
+) -> Agent:
     root_dir = tempfile.mkdtemp()
 
     try:
@@ -248,7 +255,7 @@ async def create_agent_via_package(
             existing_files,
             get_knowledge_files(spec),
         )
-        return agent.safe()
+        return agent
 
     # Not using finally because background task needs to have access to the dir
     except Exception as e:
@@ -346,14 +353,14 @@ def get_files_to_upload_and_delete(
 async def create_agent(
     user: AuthedUser,
     payload: AgentPayload,
-) -> Agent:
+) -> RawAgent:
     """Create an agent."""
     msg = await _generate_welcome_message(user.user_id, payload)
 
     if msg is not None:
         payload.metadata.welcome_message = msg
 
-    return await get_storage().put_agent(
+    agent = await get_storage().put_agent(
         user.user_id,
         str(uuid4()),
         public=payload.public,
@@ -368,6 +375,7 @@ async def create_agent(
         action_packages=payload.action_packages,
         metadata=payload.metadata,
     )
+    return agent.raw()
 
 
 @router.put("/{aid}")
@@ -375,7 +383,7 @@ async def upsert_agent(
     user: AuthedUser,
     aid: AgentID,
     payload: AgentPayload,
-) -> Agent:
+) -> RawAgent:
     """Create or update an agent."""
     agent = await get_storage().get_agent(user.user_id, aid)
     if not agent:
@@ -385,7 +393,7 @@ async def upsert_agent(
     if msg is not None:
         payload.metadata.welcome_message = msg
 
-    return await get_storage().put_agent(
+    agent = await get_storage().put_agent(
         user.user_id,
         aid,
         public=payload.public,
@@ -400,6 +408,7 @@ async def upsert_agent(
         action_packages=payload.action_packages,
         metadata=payload.metadata,
     )
+    return agent.raw()
 
 
 @router.delete("/{aid}")

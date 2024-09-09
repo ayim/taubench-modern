@@ -359,11 +359,7 @@ class BaseAgent(BaseModel):
     metadata: AgentMetadata = Field(description="The agent metadata.")
 
 
-class SafeAgent(BaseAgent):
-    ...
-
-
-class Agent(BaseAgent):
+class RawAgent(BaseAgent):
     """
     Agent model that does not mask sensitive information in its JSON representation.
 
@@ -375,8 +371,10 @@ class Agent(BaseAgent):
         # Ensure that SecretStr is not masked
         json_encoders = {SecretStr: lambda v: v.get_secret_value() if v else None}
 
-    def safe(self) -> SafeAgent:
-        return SafeAgent(**self.dict())
+
+class Agent(BaseAgent):
+    def raw(self) -> RawAgent:
+        return RawAgent(**self.dict())
 
 
 class Thread(BaseModel):
