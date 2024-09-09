@@ -3,7 +3,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, 0.3.x]
   pull_request: # Trigger on all PRs, ensuring required actions to be run.
   workflow_dispatch: # Allows to trigger the workflow manually in GitHub UI
 
