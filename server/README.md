@@ -2,7 +2,7 @@
 
 The Sema4.ai Agent Server provides the backend API services for both Sema4 Studio and Sema4 cloud.
 
-**Latest Release:** `0.3.23`
+**Latest Release:** `1.0.0`
 
 
 **Key Links**
