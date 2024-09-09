@@ -45,7 +45,7 @@ async def _run_input_and_config(payload: ChatRequest, user_id: str):
             "thread_id": thread.thread_id,
             "agent_id": agent.id,
             "name": agent.name,
-            "runbook": agent.runbook,
+            "runbook": agent.runbook.get_secret_value(),
             "knowledge_files": knowledge_files,
             "model": agent.model,
             "type": agent.architecture,

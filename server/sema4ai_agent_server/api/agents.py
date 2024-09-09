@@ -7,7 +7,7 @@ from uuid import uuid4
 import structlog
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Path, UploadFile
 from langchain_core.messages import HumanMessage
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, SecretStr
 
 from sema4ai_agent_server.agent import runnable_agent
 from sema4ai_agent_server.agent_spec import (
@@ -30,6 +30,7 @@ from sema4ai_agent_server.schema import (
     AgentMetadata,
     AgentReasoning,
     AgentStatus,
+    SafeAgent,
     UploadedFile,
 )
 from sema4ai_agent_server.storage.option import get_storage
@@ -45,7 +46,7 @@ class AgentPayload(BaseModel):
     public: bool = Field(False, description="Whether the agent is public.")
     name: str = Field(..., description="The name of the agent.")
     description: str = Field(..., description="The description of the agent.")
-    runbook: str = Field(..., description="The runbook for the agent.")
+    runbook: SecretStr = Field(..., description="The runbook for the agent.")
     version: str = Field(..., description="The version of the agent.")
     model: MODEL = Field(..., description="LLM model configuration for the agent.")
     architecture: AgentArchitecture = Field(
@@ -130,13 +131,25 @@ async def get_agent(
     return agent
 
 
+@router.get("/{aid}/safe")
+async def get_safe_agent(
+    user: AuthedUser,
+    aid: AgentID,
+) -> SafeAgent:
+    """Get an agent by ID (sensitive data is masked)."""
+    agent = await get_storage().get_agent(user.user_id, aid)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    return agent.safe()
+
+
 @router.put("/package/{aid}")
 async def upsert_agent_via_package(
     user: AuthedUser,
     aid: AgentID,
     payload: AgentPayloadPackage,
     background_tasks: BackgroundTasks,
-) -> Agent:
+) -> SafeAgent:
     root_dir = tempfile.mkdtemp()
 
     agent = await get_storage().get_agent(user.user_id, aid)
@@ -180,7 +193,7 @@ async def upsert_agent_via_package(
             get_knowledge_files(spec),
         )
 
-        return agent
+        return agent.safe()
 
     # Not using finally because background task needs to have access to the dir
     except Exception as e:
@@ -196,7 +209,7 @@ async def create_agent_via_package(
     user: AuthedUser,
     payload: AgentPayloadPackage,
     background_tasks: BackgroundTasks,
-) -> Agent:
+) -> SafeAgent:
     root_dir = tempfile.mkdtemp()
 
     try:
@@ -235,7 +248,7 @@ async def create_agent_via_package(
             existing_files,
             get_knowledge_files(spec),
         )
-        return agent
+        return agent.safe()
 
     # Not using finally because background task needs to have access to the dir
     except Exception as e:
@@ -347,7 +360,7 @@ async def create_agent(
         status=AgentStatus.READY,
         name=payload.name,
         description=payload.description,
-        runbook=payload.runbook,
+        runbook=payload.runbook.get_secret_value(),
         version=payload.version,
         model=payload.model,
         architecture=payload.architecture,
@@ -379,7 +392,7 @@ async def upsert_agent(
         status=AgentStatus.READY,
         name=payload.name,
         description=payload.description,
-        runbook=payload.runbook,
+        runbook=payload.runbook.get_secret_value(),
         version=payload.version,
         model=payload.model,
         architecture=payload.architecture,

@@ -331,8 +331,13 @@ class AgentMetadata(BaseModel):
         return values
 
 
-class Agent(BaseModel):
-    """Agent model."""
+class BaseAgent(BaseModel):
+    """
+    Agent model that always masks sensitive information.
+
+    Both .dict() and .json() will contain masked values for sensitive fields.
+    Ensures that logs and traces do not contain sensitive information.
+    """
 
     id: str = Field(description="The ID of the agent.")
     user_id: str = Field(description="The ID of the user that owns the agent.")
@@ -340,7 +345,7 @@ class Agent(BaseModel):
     status: AgentStatus = Field(description="The status of the agent.")
     name: str = Field(description="The name of the agent.")
     description: str = Field(description="The description of the agent.")
-    runbook: str = Field(description="The runbook for the agent.")
+    runbook: SecretStr = Field(description="The runbook for the agent.")
     version: str = Field(description="The version of the agent.")
     model: MODEL = Field(description="LLM model configuration for the agent.")
     architecture: AgentArchitecture = Field(
@@ -352,6 +357,26 @@ class Agent(BaseModel):
     )
     updated_at: datetime = Field(description="The last time the agent was updated.")
     metadata: AgentMetadata = Field(description="The agent metadata.")
+
+
+class SafeAgent(BaseAgent):
+    ...
+
+
+class Agent(BaseAgent):
+    """
+    Agent model that does not mask sensitive information in its JSON representation.
+
+    Logs and traces will still not contain sensitive information but clients can
+    view raw agent data.
+    """
+
+    class Config:
+        # Ensure that SecretStr is not masked
+        json_encoders = {SecretStr: lambda v: v.get_secret_value() if v else None}
+
+    def safe(self) -> SafeAgent:
+        return SafeAgent(**self.dict())
 
 
 class Thread(BaseModel):

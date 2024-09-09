@@ -90,7 +90,7 @@ async def update_action_server_ports(port_map: dict[str, str]) -> dict:
             status=agent.status,
             name=agent.name,
             description=agent.description,
-            runbook=agent.runbook,
+            runbook=agent.runbook.get_secret_value(),
             version=agent.version,
             model=agent.model,
             architecture=agent.architecture,
