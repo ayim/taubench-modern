@@ -415,7 +415,7 @@ async def upsert_agent(
 async def delete_agent(
     user: AuthedUser,
     aid: AgentID,
-):
+) -> dict[str, Agent]:
     """Delete an agent by ID."""
     agent = await get_storage().get_agent(user.user_id, aid)
     if not agent:
@@ -427,7 +427,7 @@ async def delete_agent(
         await file_manager.delete(file.file_id)
 
     await get_storage().delete_agent(user.user_id, aid)
-    return {"status": "ok"}
+    return {"deleted": agent}
 
 
 @router.get("/{aid}/files")
