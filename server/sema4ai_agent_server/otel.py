@@ -8,8 +8,6 @@ from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.resources import Resource
 
-from sema4ai_agent_server.server import VERSION
-
 logger = structlog.get_logger(__name__)
 
 
@@ -25,6 +23,8 @@ def setup_otel() -> None:
     if not otel_is_enabled():
         logger.info("OTEL is not enabled. Skipping setup.")
         return
+
+    from sema4ai_agent_server.server import VERSION
 
     logger.info("Setting up OTEL")
 
