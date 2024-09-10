@@ -43,7 +43,7 @@ CHECKPOINTER = get_checkpointer()
 
 # TODO: Each of these Configurables should be in their own file.
 class ConfigurableAgent(RunnableBinding):
-    agent: Agent
+    agent: Optional[Agent] = None
     thread: Optional[Thread] = None
     use_retrieval: bool = False
     interrupt_before_action: bool = False
@@ -69,11 +69,15 @@ class ConfigurableAgent(RunnableBinding):
             interrupt_before_action=interrupt_before_action,
             knowledge_files=knowledge_files,
         )
-        agent_executor = agent_factory.create_agent(**others)
+        agent_executor = agent_factory.compile_agent(**others)
         # TODO: I'm not sure these other params are actually needed on the Runnable
         super().__init__(
             # action_packages=action_packages,
+            agent=agent,
+            thread=thread,
             use_retrieval=use_retrieval,
+            interrupt_before_action=interrupt_before_action,
+            knowledge_files=knowledge_files,
             # model=model,
             # runbook=runbook,
             bound=agent_executor,
@@ -83,7 +87,7 @@ class ConfigurableAgent(RunnableBinding):
 
 
 class ConfigurablePlanExecute(RunnableBinding):
-    agent: Agent
+    agent: Optional[Agent]
     thread: Optional[Thread] = None
     use_retrieval: bool = False
     interrupt_before_action: bool = False
@@ -92,7 +96,7 @@ class ConfigurablePlanExecute(RunnableBinding):
     def __init__(
         self,
         *,
-        agent: Agent = None,
+        agent: Optional[Agent] = None,
         thread: Optional[Thread] = None,
         use_retrieval: bool = False,
         interrupt_before_action: bool = False,
@@ -109,10 +113,14 @@ class ConfigurablePlanExecute(RunnableBinding):
             interrupt_before_action=interrupt_before_action,
             knowledge_files=knowledge_files,
         )
-        agent_executor = agent_factory.create_agent(**others)
+        agent_executor = agent_factory.compile_agent(**others)
         super().__init__(
             # action_packages=action_packages,
+            agent=agent,
+            thread=thread,
             use_retrieval=use_retrieval,
+            interrupt_before_action=interrupt_before_action,
+            knowledge_files=knowledge_files,
             # model=model,
             # runbook=runbook,
             bound=agent_executor,
@@ -183,33 +191,25 @@ class ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(RunnableBin
 # TODO: This has not been updated to use factory
 plan_execute = (
     ConfigurablePlanExecute(
-        action_packages=[],
+        agent=dummy_plan_execute_agent,
+        thread=None,
         use_retrieval=False,
-        name=DEFAULT_NAME,
-        runbook=DEFAULT_RUNBOOK,
-        agent_id=None,
-        thread_id=None,
-        user=None,
-        reasoning_level=AgentReasoning.DISABLED,
+        interrupt_before_action=False,
+        knowledge_files=None,
     )
     .configurable_fields(
-        model=ConfigurableField(id="model", name="Model"),
-        name=ConfigurableField(id="name", name="Agent Name"),
-        runbook=ConfigurableField(id="runbook", name="Instructions"),
+        agent=ConfigurableField(id="agent", name="Agent", is_shared=True),
+        thread=ConfigurableField(id="thread", name="Thread", is_shared=True),
+        use_retrieval=ConfigurableField(id="use_retrieval", name="Use Retrieval"),
         interrupt_before_action=ConfigurableField(
             id="interrupt_before_action",
             name="Tool Confirmation",
             description="If Yes, you'll be prompted to continue before each tool is executed.\nIf No, tools will be executed automatically by the agent.",
         ),
-        agent_id=ConfigurableField(id="agent_id", name="Agent ID", is_shared=True),
-        thread_id=ConfigurableField(id="thread_id", name="Thread ID", is_shared=True),
-        user=ConfigurableField(id="user", name="User", is_shared=True),
-        action_packages=ConfigurableField(id="action_packages", name="Action Packages"),
-        use_retrieval=ConfigurableField(id="use_retrieval", name="Use Retrieval"),
-        reasoning_level=ConfigurableField(
-            id="reasoning_level",
-            name="Reasoning Level",
-            description="The level of reasoning the agent should use.",
+        knowledge_files=ConfigurableField(
+            id="knowledge_files",
+            name="Knowledge Files",
+            description="List of knowledge files available to the agent.",
         ),
     )
     .with_types(input_type=Dict[str, str], output_type=Sequence[AnyMessage])
@@ -276,13 +276,12 @@ runnable_agent: Pregel = (
     .configurable_fields(
         agent=ConfigurableField(id="agent", name="Agent", is_shared=True),
         thread=ConfigurableField(id="thread", name="Thread", is_shared=True),
+        use_retrieval=ConfigurableField(id="use_retrieval", name="Use Retrieval"),
         interrupt_before_action=ConfigurableField(
             id="interrupt_before_action",
             name="Tool Confirmation",
             description="If Yes, you'll be prompted to continue before each tool is executed.\nIf No, tools will be executed automatically by the agent.",
         ),
-        action_packages=ConfigurableField(id="action_packages", name="Action Packages"),
-        use_retrieval=ConfigurableField(id="use_retrieval", name="Use Retrieval"),
         knowledge_files=ConfigurableField(
             id="knowledge_files",
             name="Knowledge Files",

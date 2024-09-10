@@ -1,4 +1,11 @@
-from sema4ai_agent_server.agent_types.factory import PredefinedChatPromptTemplate
+from langchain_core.messages import AnyMessage
+from pydantic import Field
+
+from sema4ai_agent_server.agent_types.factory import (
+    BaseInputSpec,
+    PredefinedChatPromptTemplate,
+)
+from sema4ai_agent_server.agent_types.tools_agent import ToolsAgentBasePromptTemplate
 from sema4ai_agent_server.agent_types.utils import is_claude
 from sema4ai_agent_server.schema import Agent, AgentReasoning
 
@@ -46,22 +53,27 @@ sectors or stocks to invest in, and any risk management strategies."
 ]"""
 
 
+class PlannerInputSpec(BaseInputSpec):
+    name: str = Field(..., description="The name of the agent team.")
+    datetime: str = Field(..., description="The current datetime in ISO 8601 format.")
+    knowledge_files: str = Field(
+        ..., description="The knowledge files available to the agent."
+    )
+    runbook: str = Field(..., description="The runbook for the team.")
+    messages: list[AnyMessage] = Field(
+        ..., description="The messages in the conversation."
+    )
+
+
 class PlannerPromptTemplate(PredefinedChatPromptTemplate):
     """Prompt template for the planner agent to decide if a plan is needed and to develop
-    the plan.
-
-    Invocation args for the template once initialized:
-
-    - name (`str`): The name of the agent team.
-    - datetime (`str`): The current datetime in ISO 8601 format.
-    - knowledge_files (`str`): The knowledge files available to the agent.
-    - runbook (`str`): The runbook for the team.
-    - messages (`list[AnyMessage]`): The messages in the conversation.
+    the plan. Invocation of the template uses the PlannerInputSpec.
 
     Args:
-
         agent (Agent): Only `reasoning` level is used from the agent object.
     """
+
+    input_spec: type[PlannerInputSpec] = PlannerInputSpec
 
     def create_template_messages(self, agent: Agent = None) -> list[tuple[str, str]]:
         beggining_of_thinking_prompt = """
@@ -171,22 +183,8 @@ completing the step provided to you.
 
 
 # Prompts to override subagent built in prompts
-class StepExecutorPromptTemplate(PredefinedChatPromptTemplate):
-    """Prompt template for the step executor agent to execute the current step of the plan.
-
-    Invocation args for the template once initialized:
-
-    - agent_name (`str`): The name of the agent team.
-    - current_datetime (`str`): The current datetime in ISO 8601 format.
-    - knowledge_files (`str`): The knowledge files available to the agent.
-    - runbook (`str`): The runbook for the team.
-    - messages (`list[AnyMessage]`): The messages in the conversation.
-
-    Args:
-
-        agent (Agent): Not used, can be omitted.
-
-    """
+class StepExecutorPromptTemplate(ToolsAgentBasePromptTemplate):
+    """Prompt template for the step executor agent to execute the current step of the plan."""
 
     def create_template_messages(self, agent: Agent = None) -> list[tuple[str, str]]:
         return [
@@ -199,22 +197,8 @@ class StepExecutorPromptTemplate(PredefinedChatPromptTemplate):
         ]
 
 
-class StepReasoningPromptTemplate(PredefinedChatPromptTemplate):
-    """Prompt template for the step executor agent to provide reasoning for their response.
-
-    Invocation args for the template once initialized:
-
-    - agent_name (`str`): The name of the agent team.
-    - current_datetime (`str`): The current datetime in ISO 8601 format.
-    - knowledge_files (`str`): The knowledge files available to the agent.
-    - runbook (`str`): The runbook for the team.
-    - messages (`list[AnyMessage]`): The messages in the conversation.
-
-    Args:
-
-        agent (Agent): Only `reasoning` level is used from the agent object.
-
-    """
+class StepReasoningPromptTemplate(ToolsAgentBasePromptTemplate):
+    """Prompt template for the step executor agent to provide reasoning for their response."""
 
     def create_template_messages(self, agent: Agent = None) -> list[tuple[str, str]]:
         next_response_prompt = f"""
@@ -235,25 +219,33 @@ REPLANNER_ROLE = """You are part of a team of agents following the provided runb
 job is to update the current plan to complete the objective provided by the user."""
 
 
+class ReplannerInputSpec(BaseInputSpec):
+    name: str = Field(..., description="The name of the agent team.")
+    datetime: str = Field(..., description="The current datetime in ISO 8601 format.")
+    knowledge_files: str = Field(
+        ..., description="The knowledge files available to the agent."
+    )
+    runbook: str = Field(..., description="The runbook for the team.")
+    objective: str = Field(..., description="The objective provided by the user.")
+    last_step: str = Field(
+        ..., description="The last step executed by the step executor."
+    )
+    remaining_steps: str = Field(..., description="The remaining steps in the plan.")
+    messages: list[AnyMessage] = Field(
+        ..., description="The messages in the conversation."
+    )
+
+
 class ReplannerPromptTemplate(PredefinedChatPromptTemplate):
     """Prompt template for the replanner agent to update the plan and respond to the user.
 
-    Invocation args for the template once initialized:
-
-    - name (`str`): The name of the agent team.
-    - datetime (`str`): The current datetime in ISO 8601 format.
-    - knowledge_files (`str`): The knowledge files available to the agent.
-    - runbook (`str`): The runbook for the team.
-    - objective (`str`): The objective provided by the user.
-    - last_step (`str`): The last step executed by the step executor.
-    - remaining_steps (`str`): The remaining steps in the plan.
-    - messages (`list[AnyMessage]`): The messages in the conversation.
+    Invocation of the template uses the ReplannerInputSpec.
 
     Args:
-
         agent (Agent): Only `reasoning` level is used from the agent object.
-
     """
+
+    input_spec: type[ReplannerInputSpec] = ReplannerInputSpec
 
     def create_template_messages(self, agent: Agent = None) -> list[tuple[str, str]]:
         reasoning_step = f"""

@@ -1,22 +1,17 @@
 import time
-from typing import Annotated, Callable, List, Optional, cast
+from typing import Annotated, Any, Type, cast
 
-from langchain_anthropic import ChatAnthropic
-from langchain_aws import ChatBedrockConverse
 from langchain_core.messages import (
     AIMessage,
     BaseMessage,
     HumanMessage,
 )
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_vertexai import ChatVertexAI
-from langchain_openai import AzureChatOpenAI, ChatOpenAI
 from langgraph.graph import StateGraph
 from langgraph.graph.graph import CompiledGraph
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolExecutor, ToolInvocation
 from opentelemetry import metrics
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from sema4ai_agent_server.agent_types.constants import (
     FINISH_NODE_ACTION,
@@ -24,6 +19,7 @@ from sema4ai_agent_server.agent_types.constants import (
 )
 from sema4ai_agent_server.agent_types.factory import (
     AgentFactory,
+    BaseInputSpec,
     PredefinedChatPromptTemplate,
 )
 from sema4ai_agent_server.agent_types.utils import (
@@ -38,18 +34,23 @@ from sema4ai_agent_server.schema import (
     Agent,
     AgentArchitecture,
     AgentReasoning,
+    AmazonBedrock,
+    AnthropicClaude,
+    AzureGPT,
+    GoogleGemini,
+    OpenAIGPT,
 )
 from sema4ai_agent_server.utils import current_timestamp_with_iso_week_local
 
 # Define all possible LLM types
 # TODO: Support Fireworks by changing dependency to langchain_fireworks instead of the cummunity version
-SUPPORTED_MODELS = (
-    AzureChatOpenAI,
-    ChatOpenAI,
-    ChatAnthropic,
-    ChatVertexAI,
-    ChatBedrockConverse,
-)
+SUPPORTED_MODELS: list[Type] = [
+    OpenAIGPT,
+    AzureGPT,
+    AnthropicClaude,
+    AmazonBedrock,
+    GoogleGemini,
+]
 
 BASE_PROMPT_MESSAGES = [
     (
@@ -64,45 +65,32 @@ Your instructions are:
 ]
 
 
-class ExecutePromptTemplate(PredefinedChatPromptTemplate):
-    """The base prompt template used for the execute nodes in the agent graph.
+class ToolsAgentInputSpec(BaseInputSpec):
+    agent_name: str
+    current_datetime: str
+    knowledge_files: str
+    runbook: str
+    messages: list[BaseMessage]
 
-    Invocation requires the following input dict:
 
-    ```python
-    {
-        "agent_name": str,
-        "current_datetime": str,
-        "knowledge_files": str,
-        "runbook": str,
-        "messages": list[BaseMessage],
-    }
-    ```
-    """
+class ToolsAgentBasePromptTemplate(PredefinedChatPromptTemplate):
+    """The base prompt template used for the nodes in the tools agent graph."""
+
+    input_spec: type[ToolsAgentInputSpec] = ToolsAgentInputSpec
+
+
+class ExecutePromptTemplate(ToolsAgentBasePromptTemplate):
+    """The base prompt template used for the execute nodes in the agent graph."""
 
     def create_template_messages(self, agent: Agent = None) -> list[tuple[str, str]]:
         return BASE_PROMPT_MESSAGES
 
 
-class ReasoningPromptTemplate(PredefinedChatPromptTemplate):
-    """The base prompt template used for the reasoning nodes in the agent graph.
-
-    Invocation requires the following input dict:
-
-    ```python
-    {
-        "agent_name": str,
-        "current_datetime": str,
-        "knowledge_files": str,
-        "runbook": str,
-        "messages": list[BaseMessage],
-    }
-    ```
-    """
+class ReasoningPromptTemplate(ToolsAgentBasePromptTemplate):
+    """The base prompt template used for the reasoning nodes in the agent graph."""
 
     def create_template_messages(self, agent: Agent = None) -> list[tuple[str, str]]:
         reasoning_level = agent.reasoning or AgentReasoning.ENABLED
-
         match reasoning_level:
             case AgentReasoning.ENABLED:
                 reasoning_addendum = """
@@ -158,24 +146,34 @@ class ToolsAgentFactory(AgentFactory):
     """
 
     architecture = AgentArchitecture.AGENT
-    supported_models = SUPPORTED_MODELS
+    supported_models: list[Type] = SUPPORTED_MODELS
 
-    execute_template: type[ChatPromptTemplate] = Field(
+    execute_template: Type = Field(
         ExecutePromptTemplate,
         description="The chat prompt template used for the execute "
         "nodes in the agent graph.",
     )
-    reasoning_template: type[ChatPromptTemplate] = Field(
+    reasoning_template: Type = Field(
         ReasoningPromptTemplate,
         description="The chat prompt template used for the reasoning nodes "
         "in the agent graph.",
     )
 
-    def create_agent(
+    @field_validator("execute_template", "reasoning_template")
+    @classmethod
+    def validate_chat_prompt_template(cls, v: Any):
+        if not issubclass(v, PredefinedChatPromptTemplate):
+            raise ValueError(
+                "Chat prompt templates must be subclasses of PredefinedChatPromptTemplate."
+            )
+        return v
+
+    def compile_agent(
         self,
     ) -> CompiledGraph:
         tools = self.get_tools()
         llm = self.get_chat_model()
+        # TODO: May need to use get_agent() here instead of self.agent.
         if tools:
             llm_with_tools = bind_tools(llm, tools)
             llm_with_tools_no_choice = bind_tools(llm, tools, tool_choice="none")
@@ -215,13 +213,13 @@ class ToolsAgentFactory(AgentFactory):
             response = await reasoning_agent.with_config(
                 {"metadata": {"reasoning": True}}
             ).ainvoke(
-                {
-                    "agent_name": self.agent.name,
-                    "current_datetime": current_timestamp_with_iso_week_local(),
-                    "knowledge_files": format_knowledge_files(self.knowledge_files),
-                    "runbook": self.agent.runbook,
-                    "messages": get_messages(combined_messages),
-                }
+                ToolsAgentInputSpec(
+                    agent_name=self.agent.name,
+                    current_datetime=current_timestamp_with_iso_week_local(),
+                    knowledge_files=format_knowledge_files(self.knowledge_files),
+                    runbook=self.agent.runbook,
+                    messages=get_messages(combined_messages),
+                )
             )
             if fresh_state:
                 return {
@@ -251,23 +249,23 @@ class ToolsAgentFactory(AgentFactory):
                 response = await executor_agent.with_config(
                     {"metadata": {"associated_reasoning": associated_reasoning_id}}
                 ).ainvoke(
-                    {
-                        "agent_name": self.agent.name,
-                        "current_datetime": current_timestamp_with_iso_week_local(),
-                        "knowledge_files": format_knowledge_files(self.knowledge_files),
-                        "runbook": self.agent.runbook,
-                        "messages": get_messages(state.combined),
-                    }
+                    ToolsAgentInputSpec(
+                        agent_name=self.agent.name,
+                        current_datetime=current_timestamp_with_iso_week_local(),
+                        knowledge_files=format_knowledge_files(self.knowledge_files),
+                        runbook=self.agent.runbook,
+                        messages=get_messages(state.combined),
+                    )
                 )
             else:
                 response = await executor_agent.ainvoke(
-                    {
-                        "agent_name": self.agent.name,
-                        "current_datetime": current_timestamp_with_iso_week_local(),
-                        "knowledge_files": format_knowledge_files(self.knowledge_files),
-                        "runbook": self.agent.runbook,
-                        "messages": get_messages(state.messages),
-                    }
+                    ToolsAgentInputSpec(
+                        agent_name=self.agent.name,
+                        current_datetime=current_timestamp_with_iso_week_local(),
+                        knowledge_files=format_knowledge_files(self.knowledge_files),
+                        runbook=self.agent.runbook,
+                        messages=get_messages(state.messages),
+                    )
                 )
             if self.agent.advanced_config.reasoning != AgentReasoning.DISABLED:
                 return {"messages": [response], "combined": [response]}

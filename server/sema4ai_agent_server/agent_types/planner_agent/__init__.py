@@ -1,5 +1,5 @@
 import re
-from typing import cast
+from typing import Type, cast
 
 from langchain_core.language_models.base import LanguageModelInput
 from langchain_core.messages import (
@@ -18,8 +18,11 @@ from sema4ai_agent_server.agent_types.constants import (
     FINISH_NODE_KEY,
 )
 from sema4ai_agent_server.agent_types.factory import AgentFactory
+from sema4ai_agent_server.agent_types.factory import dummy_agent as dummy_tools_agent
 from sema4ai_agent_server.agent_types.planner_agent.prompts import (
+    PlannerInputSpec,
     PlannerPromptTemplate,
+    ReplannerInputSpec,
     ReplannerPromptTemplate,
     StepExecutorPromptTemplate,
     StepReasoningPromptTemplate,
@@ -56,6 +59,10 @@ from sema4ai_agent_server.utils import current_timestamp_with_iso_week_local
 
 logger: BoundLogger = get_logger(__name__)
 STEPS_CONTENT_PATTERN = re.compile(pattern=r"^\[.*\]$")
+
+dummy_agent = dummy_tools_agent.copy(
+    update={"architecture": AgentArchitecture.PLAN_EXECUTE}
+)
 
 
 def _reformat_step_message(m: AIMessage):
@@ -95,11 +102,14 @@ class PlanExecuteAgentFactory(AgentFactory):
     """
 
     architecture = AgentArchitecture.PLAN_EXECUTE
-    supported_models = SUPPORTED_MODELS
+    supported_models: list[Type] = SUPPORTED_MODELS
 
-    def create_agent(self, **kwargs) -> CompiledGraph:
+    default_agent = dummy_agent
+
+    def compile_agent(self, **kwargs) -> CompiledGraph:
         llm = self.get_chat_model()
         tools = self.get_tools()
+        agent = self.get_agent()
 
         async def objective_parser_and_state_reset(state: PlanExecuteAgentState):
             """Entry node to read the objective and clear the state."""
@@ -123,7 +133,7 @@ class PlanExecuteAgentFactory(AgentFactory):
                     "executed_plan": None,
                     "response": None,
                 }
-            if self.agent.reasoning != AgentReasoning.DISABLED:
+            if agent.advanced_config.reasoning != AgentReasoning.DISABLED:
                 # Add the last human message to combined messages
                 if state.combined:
                     if isinstance(last_message, HumanMessage):
@@ -138,15 +148,15 @@ class PlanExecuteAgentFactory(AgentFactory):
             """Decides if a plan is needed and writes the plan if so.
             This node assumes disabled reasoning."""
             logger.debug(f"offramper:state at start of node: {state!r}")
-            prompt = PlannerPromptTemplate(self.agent.reasoning)
+            prompt = PlannerPromptTemplate(agent.advanced_config.reasoning)
             messages = get_messages(state.combined)
-            input = {
-                "name": self.agent.name,
-                "datetime": current_timestamp_with_iso_week_local(),
-                "knowledge_files": _format_knowledge_files(self.knowledge_files),
-                "runbook": self.agent.runbook,
-                "messages": messages,
-            }
+            input = PlannerInputSpec(
+                name=agent.name,
+                datetime=current_timestamp_with_iso_week_local(),
+                knowledge_files=_format_knowledge_files(self.knowledge_files),
+                runbook=agent.runbook,
+                messages=messages,
+            )
             offramper_agent: Runnable[LanguageModelInput, InitialPlanningResponse] = (
                 prompt
                 | bind_tools(
@@ -183,15 +193,15 @@ class PlanExecuteAgentFactory(AgentFactory):
             """Decides if a plan is needed and writes the plan if so.
             This node assumes reasoning is not disabled."""
             logger.debug(f"offramper_thinker: {state!r}")
-            prompt = PlannerPromptTemplate(self.agent.reasoning)
+            prompt = PlannerPromptTemplate(agent.advanced_config.reasoning)
             messages = get_messages(state.combined)
-            input = {
-                "name": self.agent.name,
-                "datetime": current_timestamp_with_iso_week_local(),
-                "knowledge_files": _format_knowledge_files(self.knowledge_files),
-                "runbook": self.agent.runbook,
-                "messages": messages,
-            }
+            input = PlannerInputSpec(
+                name=agent.name,
+                datetime=current_timestamp_with_iso_week_local(),
+                knowledge_files=_format_knowledge_files(self.knowledge_files),
+                runbook=agent.runbook,
+                messages=messages,
+            )
             offramper_agent: Runnable[
                 LanguageModelInput, InitialThinkingPlanningResponse
             ] = (
@@ -251,13 +261,13 @@ class PlanExecuteAgentFactory(AgentFactory):
         async def direct_response(state: PlanExecuteAgentState):
             """Directly respond to the user as we have decided not to plan."""
             agent = ToolsAgentFactory(
-                agent=self.agent.copy(update={"architecture": AgentArchitecture.AGENT}),
+                agent=agent.copy(update={"architecture": AgentArchitecture.AGENT}),
                 thread=self.thread,
                 use_retrieval=self.use_retrieval,
                 interrupt_before_action=self.interrupt_before_action,
                 checkpoint=None,
                 knowledge_files=self.knowledge_files,
-            ).create_agent()
+            ).compile_agent()
             output = await agent.ainvoke(
                 {
                     "messages": state.messages,
@@ -277,7 +287,7 @@ class PlanExecuteAgentFactory(AgentFactory):
             """This node executes the next step and updates the executed plan with results.
             This node assumes disabled reasoning."""
             executor_agent = ToolsAgentFactory(
-                agent=self.agent.copy(update={"architecture": AgentArchitecture.AGENT}),
+                agent=agent.copy(update={"architecture": AgentArchitecture.AGENT}),
                 thread=self.thread,
                 use_retrieval=self.use_retrieval,
                 interrupt_before_action=self.interrupt_before_action,
@@ -285,7 +295,7 @@ class PlanExecuteAgentFactory(AgentFactory):
                 knowledge_files=self.knowledge_files,
                 execute_template=StepExecutorPromptTemplate,
                 reasoning_templates=StepReasoningPromptTemplate,
-            ).create_agent()
+            ).compile_agent()
             current_step = cast(PlanStep, state.current_plan.steps[0])
 
             # Isolate step executor from plan
@@ -320,7 +330,9 @@ class PlanExecuteAgentFactory(AgentFactory):
             """This node executes the next step and updates the executed plan with results.
             This node assumes reasoning is not disabled."""
             executor_agent = ToolsAgentFactory(
-                agent=self.agent.copy(update={"architecture": AgentArchitecture.AGENT}),
+                agent=agent.model_copy(
+                    update={"architecture": AgentArchitecture.AGENT}
+                ),
                 thread=self.thread,
                 use_retrieval=self.use_retrieval,
                 interrupt_before_action=self.interrupt_before_action,
@@ -328,7 +340,7 @@ class PlanExecuteAgentFactory(AgentFactory):
                 knowledge_files=self.knowledge_files,
                 execute_template=StepExecutorPromptTemplate,
                 reasoning_templates=StepReasoningPromptTemplate,
-            ).create_agent()
+            ).compile_agent()
             current_step = cast(PlanStepWithThought, state.current_plan.steps[0])
 
             # Isolate step executor from plan
@@ -369,7 +381,7 @@ class PlanExecuteAgentFactory(AgentFactory):
         async def replanner(state: PlanExecuteAgentState):
             """This node reviews the executed plan so far, compares it to the original plan,
             and updates the current plan with the next steps. This node assumes disabled reasoning."""
-            prompt = ReplannerPromptTemplate(self.agent.reasoning)
+            prompt = ReplannerPromptTemplate(agent.advanced_config.reasoning)
             messages = get_messages_for_replanner(state.messages)
             replanner_agent: Runnable[LanguageModelInput, ReplannerResponse] = (
                 prompt
@@ -385,16 +397,16 @@ class PlanExecuteAgentFactory(AgentFactory):
                 objective="", steps=state.current_plan.steps[1:]
             ).steps_as_string()
 
-            replanner_input = {
-                "name": self.agent.name,
-                "datetime": current_timestamp_with_iso_week_local(),
-                "knowledge_files": _format_knowledge_files(self.knowledge_files),
-                "runbook": self.agent.runbook,
-                "messages": messages,
-                "last_step": last_step.step,
-                "remaining_steps": remaining_steps,
-                "objective": state.objective,
-            }
+            replanner_input = ReplannerInputSpec(
+                name=agent.name,
+                datetime=current_timestamp_with_iso_week_local(),
+                knowledge_files=_format_knowledge_files(self.knowledge_files),
+                runbook=agent.runbook,
+                messages=messages,
+                last_step=last_step.step,
+                remaining_steps=remaining_steps,
+                objective=state.objective,
+            )
             replanner_response: ReplannerResponse = await replanner_agent.with_config(
                 {
                     "metadata": {
@@ -457,7 +469,7 @@ class PlanExecuteAgentFactory(AgentFactory):
         async def replanner_thinker(state: PlanExecuteAgentState):
             """This node reviews the executed plan so far, compares it to the original plan,
             and updates the current plan with the next steps. This node assumes reasoning is not disabled."""
-            prompt = ReplannerPromptTemplate(self.agent.reasoning)
+            prompt = ReplannerPromptTemplate(agent.advanced_config.reasoning)
             messages = get_messages_for_replanner(state.combined)
             replanner_agent: Runnable[LanguageModelInput, ReplannerThinkerResponse] = (
                 prompt
@@ -473,16 +485,16 @@ class PlanExecuteAgentFactory(AgentFactory):
                 objective="", steps=state.current_plan.steps[1:], thought=""
             )
 
-            replanner_input = {
-                "name": self.agent.name,
-                "datetime": current_timestamp_with_iso_week_local(),
-                "knowledge_files": _format_knowledge_files(self.knowledge_files),
-                "runbook": self.agent.runbook,
-                "messages": messages,
-                "last_step": last_step.step,
-                "remaining_steps": remaining_steps.steps_as_string(),
-                "objective": state.objective,
-            }
+            replanner_input = ReplannerInputSpec(
+                name=agent.name,
+                datetime=current_timestamp_with_iso_week_local(),
+                knowledge_files=_format_knowledge_files(self.knowledge_files),
+                runbook=agent.runbook,
+                messages=messages,
+                last_step=last_step.step,
+                remaining_steps=remaining_steps.steps_as_string(),
+                objective=state.objective,
+            )
             replanner_response: ReplannerThinkerResponse = (
                 await replanner_agent.with_config(
                     {
@@ -594,7 +606,7 @@ class PlanExecuteAgentFactory(AgentFactory):
 
         # add nodes
         workflow.add_node("start_node", objective_parser_and_state_reset)
-        if self.agent.reasoning != AgentReasoning.DISABLED:
+        if agent.advanced_config.reasoning != AgentReasoning.DISABLED:
             workflow.add_node("offramper", offramper_thinker)
             workflow.add_node("step_executor", step_executor_thinker)
             workflow.add_node("replanner", replanner_thinker)

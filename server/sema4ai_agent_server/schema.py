@@ -638,6 +638,17 @@ class EmbeddingStatus(str, Enum):
     FAILURE = "failure"
 
 
+# Used to avoid breaking the app as part of agent factory creation
+dummy_thread = Thread(
+    thread_id="dummy",
+    user_id="dummy",
+    agent_id="dummy",
+    name="dummy",
+    updated_at=datetime.now(),
+    metadata={},
+)
+
+
 class UploadedFile(BaseModel):
     file_id: StrWithUuidInput = Field(description="The ID of the file.")
     file_path: str | None = Field(None, description="The path of the file.")
