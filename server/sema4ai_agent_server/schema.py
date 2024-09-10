@@ -1,6 +1,7 @@
 import re
 from datetime import datetime
 from enum import Enum
+from functools import cached_property
 from typing import List, Literal, Optional
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
@@ -14,6 +15,42 @@ class User(BaseModel):
     user_id: str = Field(description="The ID of the user.")
     sub: str = Field(description="The sub of the user (from a JWT token).")
     created_at: datetime = Field(description="The time the user was created.")
+
+    @cached_property
+    def _parsed_sub(self) -> dict[str, Optional[str]]:
+        """
+        Control Room sub formats:
+
+        tenant:<ID>:user:<ID>
+        tenant:<ID>:system:<ID>
+        tenant:<ID>
+        """
+        pattern = r"^tenant:([^:]+)(?::(?P<type>user|system):(?P<id>[^:]+))?$"
+        match = re.match(pattern, self.sub)
+
+        if not match:
+            return {"tenant": None, "user": None, "system": None}
+
+        result = {"tenant": match.group(1), "user": None, "system": None}
+        if match.group("type"):
+            result[match.group("type")] = match.group("id")
+
+        return result
+
+    @property
+    def cr_tenant_id(self) -> Optional[str]:
+        """Control Room Tenant ID"""
+        return self._parsed_sub["tenant"]
+
+    @property
+    def cr_user_id(self) -> Optional[str]:
+        """Control Room User ID"""
+        return self._parsed_sub["user"]
+
+    @property
+    def cr_system_id(self) -> Optional[str]:
+        """Control Room System ID"""
+        return self._parsed_sub["system"]
 
 
 class LLMProvider(str, Enum):

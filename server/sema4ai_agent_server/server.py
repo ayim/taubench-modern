@@ -11,12 +11,14 @@ from sema4ai_agent_server.api import router as api_router
 from sema4ai_agent_server.constants import UPLOAD_DIR
 from sema4ai_agent_server.lifespan import lifespan
 from sema4ai_agent_server.log_config import setup_logging
+from sema4ai_agent_server.otel import setup_otel
 from sema4ai_agent_server.storage.option import get_storage
 
 # Do not change the version here. It is managed by versionbump (see versionbump.yaml)
 VERSION = "1.0.0"
 
 setup_logging()
+setup_otel()
 logger = structlog.get_logger(__name__)
 
 # Ensure UPLOAD_DIR exists

@@ -14,6 +14,13 @@ services:
     volumes:
       - ./postgres-volume:/var/lib/postgresql/data
       - ./pg_init.sql:/docker-entrypoint-initdb.d/init_db.sql
+  otel-collector:
+    image: otel/opentelemetry-collector:latest
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "4318:4318"
   backend:
     container_name: opengpts-backend
     build:
@@ -26,5 +33,9 @@ services:
       - "8100:8100"
     environment:
       POSTGRES_HOST: "postgres"
+      OTEL_COLLECTOR_URL: "http://otel-collector:4318"
     command:
       - --reload
+    depends_on:
+      - postgres
+      - otel-collector

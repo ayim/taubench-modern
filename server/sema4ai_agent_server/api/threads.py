@@ -5,11 +5,13 @@ import structlog
 from fastapi import APIRouter, HTTPException, Path, UploadFile
 from langchain.schema.messages import AnyMessage
 from langchain_core.messages import AIMessage
+from opentelemetry import metrics
 from pydantic import BaseModel, Field
 
 from sema4ai_agent_server.api.files import _add_uploaded_messages, _store_files
 from sema4ai_agent_server.auth.handlers import AuthedUser
 from sema4ai_agent_server.file_manager.option import get_file_manager
+from sema4ai_agent_server.otel import otel_is_enabled
 from sema4ai_agent_server.schema import Thread, UploadedFile
 from sema4ai_agent_server.storage.option import get_storage
 
@@ -18,6 +20,13 @@ logger = structlog.get_logger(__name__)
 router = APIRouter()
 
 ThreadID = Annotated[str, Path(description="The ID of the thread.")]
+
+if otel_is_enabled():
+    meter = metrics.get_meter(__name__)
+    thread_counter = meter.create_counter(
+        name="sema4ai.agent_server.thread_counter",
+        description="Number of threads created",
+    )
 
 
 class ThreadPostRequest(BaseModel):
@@ -124,6 +133,19 @@ async def create_thread(
         await get_storage().update_thread_state(
             thread_id=thread.thread_id, values={"messages": [message]}
         )
+
+    if otel_is_enabled():
+        thread_counter.add(
+            1,
+            {
+                "agentId": thread.agent_id,
+                "threadId": thread.thread_id,
+                # NoneType fails to be encoded so we use "None" instead
+                "userId": user.cr_user_id if user.cr_user_id else "None",
+                "systemId": user.cr_system_id if user.cr_system_id else "None",
+            },
+        )
+
     return thread
 
 
