@@ -8,6 +8,8 @@ from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.resources import Resource
 
+from sema4ai_agent_server.server import VERSION
+
 logger = structlog.get_logger(__name__)
 
 
@@ -27,7 +29,9 @@ def setup_otel() -> None:
     logger.info("Setting up OTEL")
 
     otel_collector_url = get_otel_collector_url()
-    resource = Resource(attributes={"service.name": "sema4ai-agent-server"})
+    resource = Resource(
+        attributes={"service.name": "agent-server", "service.version": VERSION}
+    )
     otlp_exporter = OTLPMetricExporter(endpoint=f"{otel_collector_url}/v1/metrics")
     reader = PeriodicExportingMetricReader(
         exporter=otlp_exporter, export_interval_millis=15000
