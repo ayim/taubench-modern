@@ -2,7 +2,7 @@ import re
 from datetime import datetime
 from enum import Enum
 from functools import cached_property
-from typing import Annotated, Any, List, Literal, Self, Union
+from typing import Annotated, Any, List, Literal, Self, TypedDict, Union
 from uuid import UUID
 
 from anthropic import APIError as AnthropiAPIError
@@ -15,6 +15,7 @@ from langchain_core.messages import (
     SystemMessage,
     ToolMessage,
 )
+from langchain_core.runnables import RunnableConfig
 from openai import APIError as OpenaiAPIError
 from pydantic import (
     BaseModel,
@@ -306,6 +307,14 @@ class AgentArchitecture(str, Enum):
     MULTI_AGENT_HIERARCHICAL_PLANNING = "multi_agent_hierarchical_planning"
 
 
+# Keep updated with the AgentArchitecture enum for use in other type hints
+AGENT_ARCHITECTURE_LITERAL = Literal[
+    AgentArchitecture.AGENT,
+    AgentArchitecture.PLAN_EXECUTE,
+    AgentArchitecture.MULTI_AGENT_HIERARCHICAL_PLANNING,
+]
+
+
 class AgentReasoning(str, Enum):
     """
     Enum for agent reasoning.
@@ -558,6 +567,24 @@ class AgentPayload(BaseModel):
         if isinstance(v, (str, bytes, bytearray)):
             return AgentAdvancedConfig.model_validate_json(v)
         return v
+
+    def to_agent(self, user_id: str) -> "Agent":
+        """Generates a temp agent object that can be used to call the LLM API."""
+        return Agent(
+            id="temp",
+            user_id=user_id,
+            public=self.public,
+            name=self.name,
+            description=self.description,
+            runbook=self.runbook,
+            version=self.version,
+            model=self.model,
+            architecture=self.advanced_config.architecture,
+            reasoning=self.advanced_config.reasoning,
+            action_packages=self.action_packages,
+            updated_at=datetime.now(),
+            metadata=self.metadata,
+        )
 
 
 class Agent(AgentPayload):
@@ -887,3 +914,35 @@ AgentStreamEvent = Annotated[
     Field(discriminator="event"),
 ]
 AgentStreamEventAdapter = TypeAdapter(AgentStreamEvent)
+
+
+class AgentServerRunnableConfigurable(TypedDict):
+    """Configurable data used by the agent server when invoking runnables
+    compiled from the AgentFactory.
+    """
+
+    agent: Agent
+    """The agent to use."""
+
+    thread: Thread
+    """The thread the agent should be called on."""
+
+    use_retrieval: bool
+    """Whether to use retrieval tools."""
+
+    interrupt_before_action: bool
+    """Whether to interrupt before actions are called to allow for user review."""
+
+    knowledge_files: List[UploadedFile]
+    """Knowledge files available to the agent."""
+
+    type: AGENT_ARCHITECTURE_LITERAL
+    """The type of agent architecture."""
+
+
+class AgentServerRunnableConfig(RunnableConfig):
+    """Standard runnable config used by the agent server when invoking runnables
+    compiled from the AgentFactory.
+    """
+
+    configurable: AgentServerRunnableConfigurable

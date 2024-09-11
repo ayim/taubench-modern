@@ -16,11 +16,12 @@ from langchain_core.messages import (
     ToolCall,
     message_chunk_to_message,
 )
-from langchain_core.runnables import Runnable, RunnableConfig
+from langchain_core.runnables import Runnable
 
 from sema4ai_agent_server.langsmith_client import Langsmith, trace
 from sema4ai_agent_server.message_types import ToolEventMessage
 from sema4ai_agent_server.schema import (
+    AgentServerRunnableConfig,
     AgentStreamEvent,
     StreamDataAdapter,
     StreamDataEvent,
@@ -55,7 +56,7 @@ def _flatten_content_text(msg: T) -> T:
 async def invoke_state(
     app: Runnable,
     input: Union[Sequence[AnyMessage], Dict[str, Any]],
-    config: RunnableConfig,
+    config: AgentServerRunnableConfig,
     ls: Optional[Langsmith] = None,
 ) -> MessagesStream:
     """Return messages from the runnable."""
@@ -66,7 +67,7 @@ async def invoke_state(
 async def astream_state(
     app: Runnable,
     input: Union[Sequence[AnyMessage], Dict[str, Any]],
-    config: RunnableConfig,
+    config: AgentServerRunnableConfig,
     ls: Optional[Langsmith] = None,
 ) -> MessagesStream:
     """Stream messages from the runnable."""

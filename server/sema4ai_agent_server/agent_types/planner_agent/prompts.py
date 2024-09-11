@@ -6,7 +6,7 @@ from sema4ai_agent_server.agent_types.factory import (
     PredefinedChatPromptTemplate,
 )
 from sema4ai_agent_server.agent_types.tools_agent import ToolsAgentBasePromptTemplate
-from sema4ai_agent_server.agent_types.utils import is_claude
+from sema4ai_agent_server.agent_types.utils import is_claude, is_reasoning
 from sema4ai_agent_server.schema import Agent, AgentReasoning
 
 PLAN_DESCRIPTION = """Plans are generally only required for more complex objectives which \
@@ -76,13 +76,14 @@ class PlannerPromptTemplate(PredefinedChatPromptTemplate):
     input_spec: type[PlannerInputSpec] = PlannerInputSpec
 
     def create_template_messages(self, agent: Agent = None) -> list[tuple[str, str]]:
-        beggining_of_thinking_prompt = """
+        beggining_of_thinking_prompt = f"""
 Based on the full conversation that follows, you must think about whether we need a plan to \
-respond to the user.{' BE SUCCINCT.' if reasoning_level == 1 else ''} Explain your thinking \
-about whether a plan is needed.
+respond to the user.{' BE SUCCINCT.' if is_reasoning(agent, AgentReasoning.ENABLED) else ''} \
+Explain your thinking about whether a plan is needed.
 
-If a plan is needed,{' succinctly' if reasoning_level == 1 else ''} explain your approach. \
-When developing the plan,{' succinctly' if reasoning_level == 1 else ''} think about each step \
+If a plan is needed,{' succinctly' if is_reasoning(agent, AgentReasoning.ENABLED) else ''} \
+explain your approach. When developing the plan,\
+{' succinctly' if is_reasoning(agent, AgentReasoning.ENABLED) else ''} think about each step \
 and why it is needed. Include your thoughts in the response tool call. 
     """.strip()
 
@@ -124,7 +125,7 @@ Our runbook: <runbook>
 </runbook>
 
 Your immediate instructions: <instructions>
-{beggining_of_thinking_prompt if agent.reasoning != AgentReasoning.DISABLED else beggining_of_non_thinking_prompt}
+{beggining_of_thinking_prompt if is_reasoning(agent) else beggining_of_non_thinking_prompt}
 
 The plan should be specific and each step should help to achieve the objective. The result of \
 the final step should be a complete meaningful response to the objective. The entire team is \
@@ -132,7 +133,7 @@ relying on you to develop a complete plan for them, you must develop a full plan
 accomplish the objective made up of multiple steps. Make sure each step has all the information \
 needed, assume every step will be followed.
 
-{step_description if agent.reasoning != AgentReasoning.DISABLED else ""}
+{step_description if is_reasoning(agent) else ""}
 </instructions>
     """.strip()
 
@@ -203,7 +204,7 @@ class StepReasoningPromptTemplate(ToolsAgentBasePromptTemplate):
     def create_template_messages(self, agent: Agent = None) -> list[tuple[str, str]]:
         next_response_prompt = f"""
 Think about your next response based on the conversation and instructions the planner provided. \
-Then,{' succinctly' if agent.reasoning == AgentReasoning.ENABLED else ''} explain why you are thinking to respond in \
+Then,{' succinctly' if is_reasoning(agent, AgentReasoning.ENABLED) else ''} explain why you are thinking to respond in \
 this way. Focus on the most important aspects of your reasoning. ONLY PROVIDE REASONING.
         """.strip()
 
@@ -249,7 +250,7 @@ class ReplannerPromptTemplate(PredefinedChatPromptTemplate):
 
     def create_template_messages(self, agent: Agent = None) -> list[tuple[str, str]]:
         reasoning_step = f"""
-5. Using the response tool,{' succinctly' if agent.reasoning == AgentReasoning.ENABLED else ''} write out your thoughts for these points \
+5. Using the response tool,{' succinctly' if is_reasoning(agent, AgentReasoning.ENABLED) else ''} write out your thoughts for these points \
 in the "reasoning" field.
     """.strip()
 
@@ -297,7 +298,7 @@ assumption the user made when they provided you the objective.
 2. Consider if the objective is accomplished at this point.
 3. Consider if the last message in the thread provides a response to the objective.
 4. Consider if the remaining steps are appropriate based on your previous analysis.
-{reasoning_step if agent.reasoning != AgentReasoning.DISABLED else ''}
+{reasoning_step if is_reasoning(agent) else ''}
 
 Next:
 

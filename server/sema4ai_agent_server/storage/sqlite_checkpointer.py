@@ -16,6 +16,7 @@ from langgraph.checkpoint.base import (
 from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 
 from sema4ai_agent_server.constants import DOMAIN_DATABASE_PATH
+from sema4ai_agent_server.schema import AgentServerRunnableConfig
 from sema4ai_agent_server.storage.utils import search_where
 
 
@@ -68,7 +69,7 @@ class SQLiteCheckpoint(BaseCheckpointSaver):
 
     async def aput(
         self,
-        config: RunnableConfig,
+        config: AgentServerRunnableConfig | RunnableConfig,
         checkpoint: Checkpoint,
         metadata: CheckpointMetadata,
         new_versions: ChannelVersions,
@@ -86,7 +87,10 @@ class SQLiteCheckpoint(BaseCheckpointSaver):
         return self.list(config, filter=filter, before=before, limit=limit)
 
     async def aput_writes(
-        self, config: RunnableConfig, writes: list[tuple[str, Any]], task_id: str
+        self,
+        config: AgentServerRunnableConfig | RunnableConfig,
+        writes: list[tuple[str, Any]],
+        task_id: str,
     ) -> None:
         return self.put_writes(config, writes, task_id)
 
@@ -216,7 +220,7 @@ class SQLiteCheckpoint(BaseCheckpointSaver):
 
     def put(
         self,
-        config: RunnableConfig,
+        config: AgentServerRunnableConfig | RunnableConfig,
         checkpoint: Checkpoint,
         metadata: CheckpointMetadata,
         new_versions: ChannelVersions,
@@ -249,7 +253,7 @@ class SQLiteCheckpoint(BaseCheckpointSaver):
 
     def put_writes(
         self,
-        config: RunnableConfig,
+        config: AgentServerRunnableConfig | RunnableConfig,
         writes: Sequence[tuple[str, Any]],
         task_id: str,
     ) -> None:

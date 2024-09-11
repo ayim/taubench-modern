@@ -148,7 +148,7 @@ class PlanExecuteAgentFactory(AgentFactory):
             """Decides if a plan is needed and writes the plan if so.
             This node assumes disabled reasoning."""
             logger.debug(f"offramper:state at start of node: {state!r}")
-            prompt = PlannerPromptTemplate(agent.advanced_config.reasoning)
+            prompt = PlannerPromptTemplate(agent)
             messages = get_messages(state.combined)
             input = PlannerInputSpec(
                 name=agent.name,
@@ -193,7 +193,7 @@ class PlanExecuteAgentFactory(AgentFactory):
             """Decides if a plan is needed and writes the plan if so.
             This node assumes reasoning is not disabled."""
             logger.debug(f"offramper_thinker: {state!r}")
-            prompt = PlannerPromptTemplate(agent.advanced_config.reasoning)
+            prompt = PlannerPromptTemplate(agent)
             messages = get_messages(state.combined)
             input = PlannerInputSpec(
                 name=agent.name,
@@ -260,7 +260,7 @@ class PlanExecuteAgentFactory(AgentFactory):
 
         async def direct_response(state: PlanExecuteAgentState):
             """Directly respond to the user as we have decided not to plan."""
-            agent = ToolsAgentFactory(
+            executor_agent = ToolsAgentFactory(
                 agent=agent.copy(update={"architecture": AgentArchitecture.AGENT}),
                 thread=self.thread,
                 use_retrieval=self.use_retrieval,
@@ -268,7 +268,7 @@ class PlanExecuteAgentFactory(AgentFactory):
                 checkpoint=None,
                 knowledge_files=self.knowledge_files,
             ).compile_agent()
-            output = await agent.ainvoke(
+            output = await executor_agent.ainvoke(
                 {
                     "messages": state.messages,
                     "reasoning": state.reasoning,
@@ -381,7 +381,7 @@ class PlanExecuteAgentFactory(AgentFactory):
         async def replanner(state: PlanExecuteAgentState):
             """This node reviews the executed plan so far, compares it to the original plan,
             and updates the current plan with the next steps. This node assumes disabled reasoning."""
-            prompt = ReplannerPromptTemplate(agent.advanced_config.reasoning)
+            prompt = ReplannerPromptTemplate(agent)
             messages = get_messages_for_replanner(state.messages)
             replanner_agent: Runnable[LanguageModelInput, ReplannerResponse] = (
                 prompt
@@ -469,7 +469,7 @@ class PlanExecuteAgentFactory(AgentFactory):
         async def replanner_thinker(state: PlanExecuteAgentState):
             """This node reviews the executed plan so far, compares it to the original plan,
             and updates the current plan with the next steps. This node assumes reasoning is not disabled."""
-            prompt = ReplannerPromptTemplate(agent.advanced_config.reasoning)
+            prompt = ReplannerPromptTemplate(agent)
             messages = get_messages_for_replanner(state.combined)
             replanner_agent: Runnable[LanguageModelInput, ReplannerThinkerResponse] = (
                 prompt

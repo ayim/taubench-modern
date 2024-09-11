@@ -13,13 +13,11 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    field_validator,
     model_validator,
 )
 
 from sema4ai_agent_server.llms import get_chat_model
 from sema4ai_agent_server.schema import (
-    MODEL,
     Agent,
     AgentArchitecture,
     AmazonBedrock,
@@ -50,18 +48,17 @@ class BaseInputSpec(BaseModel):
     """A base input spec for the chat prompt template.
 
     Define all fields to be used as the input to your PredefinedChatPromptTemplate
-    in this class. Metadata will be attached to the runnable's config and will not
+    in this class. Metadata will be merged with the runnable's config and will not
     be included in the input when the model is exported as a dictionary.
     """
 
-    # TODO: I cannot figure out how to hide this field from pylance effectively so that
-    #       it doesn't show up in the autocompletion suggestions.
     runnable_config: RunnableConfig | None = Field(
         None,
         description="An optional config that will be merged with the config of the "
         "chat prompt template when it is run.",
         exclude=True,
         repr=False,
+        init=False,
     )
 
 
@@ -208,10 +205,7 @@ class AgentFactory(BaseModel, ABC):
     )
 
     @abstractmethod
-    def compile_agent(
-        self,
-        **kwargs,
-    ) -> CompiledGraph:
+    def compile_agent(self, **kwargs) -> CompiledGraph:
         """Create an agent based on this factory's configuration.
 
         Args:

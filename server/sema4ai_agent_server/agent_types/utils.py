@@ -17,14 +17,11 @@ from langchain_aws import ChatBedrockConverse
 from langchain_core.language_models.base import LanguageModelInput
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import (
-    AIMessage,
     AnyMessage,
     BaseMessage,
     FunctionMessage,
     HumanMessage,
-    ToolMessage,
 )
-from langchain_core.pydantic_v1 import BaseModel
 from langchain_core.runnables import Runnable
 from langchain_core.tools import BaseTool
 from langchain_core.utils.function_calling import convert_to_openai_tool
@@ -33,10 +30,10 @@ from langchain_openai import AzureChatOpenAI, ChatOpenAI
 from langchain_openai.output_parsers import PydanticToolsParser
 from pydantic import BaseModel
 
-from sema4ai_agent_server.message_types import LiberalToolMessage
 from sema4ai_agent_server.schema import (
     MODEL,
-    ActionPackage,
+    Agent,
+    AgentReasoning,
     AmazonBedrock,
     AnthropicClaude,
 )
@@ -250,12 +247,7 @@ def clean_message(message: AnyMessage):
 
     For example, this method converts a LiberalToolMessage type to ToolMessage type.
     """
-    if isinstance(message, LiberalToolMessage):
-        _dict = message.model_dump(round_trip=True)
-        _dict["content"] = str(_dict["content"])
-        m_c = ToolMessage.model_construct(**_dict)
-        return m_c
-    elif isinstance(message, FunctionMessage):
+    if isinstance(message, FunctionMessage):
         # anthropic doesn't like function messages
         return HumanMessage(content=str(message.content))
     else:
@@ -307,3 +299,19 @@ def is_claude(model: MODEL) -> bool:
     return (
         isinstance(model, (AnthropicClaude, AmazonBedrock)) and "claude" in model.name
     )
+
+
+def is_reasoning(agent: Agent, level: AgentReasoning | None = None) -> bool:
+    """Helper function to check if an agent is reasoning and at what
+    level if desired. This is primarily used to reduce the number of
+    checks for reasoning in the codebase.
+
+    Args:
+        agent: The agent to check reasoning for.
+        level: The level of reasoning to check for. If None, it will
+            check if the agent is reasoning at all.
+    """
+    if level is not None:
+        return agent.advanced_config.reasoning == level
+    else:
+        return agent.advanced_config.reasoning != AgentReasoning.DISABLED

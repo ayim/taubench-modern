@@ -2,7 +2,6 @@ import uuid
 from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
-from langchain_core.runnables import RunnableConfig
 from opentelemetry import metrics
 from sse_starlette import EventSourceResponse
 
@@ -17,6 +16,8 @@ from sema4ai_agent_server.langsmith_client import (
 from sema4ai_agent_server.otel import otel_is_enabled
 from sema4ai_agent_server.schema import (
     Agent,
+    AgentServerRunnableConfig,
+    AgentServerRunnableConfigurable,
     AgentStreamEvent,
     ChatRequest,
     Thread,
@@ -69,21 +70,16 @@ async def _run_input_and_config(payload: ChatRequest, user: User):
         thread_files
     ) > 0
 
-    config: RunnableConfig = {
-        "configurable": {
-            "user": user,
-            "thread_id": thread.thread_id,
-            "agent_id": agent.id,
-            "name": agent.name,
-            "runbook": agent.runbook.get_secret_value(),
-            "knowledge_files": knowledge_files,
-            "model": agent.model,
-            "type": agent.advanced_config.architecture,
-            "reasoning_level": agent.advanced_config.reasoning,
-            "action_packages": agent.action_packages,
-            "use_retrieval": use_retrieval,
-        },
-    }
+    config = AgentServerRunnableConfig(
+        configurable=AgentServerRunnableConfigurable(
+            agent=agent,  # TODO: Need to handle secret strings deeper in the stack from here
+            thread=thread,
+            use_retrieval=use_retrieval,
+            interrupt_before_action=False,  # TODO: Where does this come from?
+            knowledge_files=knowledge_files,
+            type=agent.advanced_config.architecture.value,
+        ),
+    )
 
     input_ = {"messages": payload.get_langchain_messages()}
     return input_, config, thread, agent

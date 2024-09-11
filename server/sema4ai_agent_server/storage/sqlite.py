@@ -22,12 +22,10 @@ from sema4ai_agent_server.schema import (
     Agent,
     AgentAdvancedConfig,
     AgentMetadata,
-    AgentReasoning,
     EmbeddingStatus,
     Thread,
     UploadedFile,
     User,
-    dummy_model,
 )
 from sema4ai_agent_server.storage import (
     BaseStorage,

@@ -27,6 +27,7 @@ from sema4ai_agent_server.agent_types.utils import (
     format_knowledge_files,
     get_messages,
     is_claude,
+    is_reasoning,
 )
 from sema4ai_agent_server.message_types import ToolMessage
 from sema4ai_agent_server.otel import otel_is_enabled
@@ -168,12 +169,12 @@ class ToolsAgentFactory(AgentFactory):
             )
         return v
 
-    def compile_agent(
-        self,
-    ) -> CompiledGraph:
+    def compile_agent(self, **kwargs) -> CompiledGraph:
         tools = self.get_tools()
         llm = self.get_chat_model()
-        # TODO: May need to use get_agent() here instead of self.agent.
+        tools_agent = self.get_agent()
+        runbook = tools_agent.runbook.get_secret_value()
+
         if tools:
             llm_with_tools = bind_tools(llm, tools)
             llm_with_tools_no_choice = bind_tools(llm, tools, tool_choice="none")
@@ -185,7 +186,7 @@ class ToolsAgentFactory(AgentFactory):
         executor_agent = self.execute_template(self.agent) | llm_with_tools
         if self.agent.advanced_config.reasoning != AgentReasoning.DISABLED:
             reasoning_agent = (
-                self.reasoning_template(self.agent) | llm_with_tools_no_choice
+                self.reasoning_template(tools_agent) | llm_with_tools_no_choice
             )
 
         async def reasoning(state: AgentState):
@@ -214,10 +215,10 @@ class ToolsAgentFactory(AgentFactory):
                 {"metadata": {"reasoning": True}}
             ).ainvoke(
                 ToolsAgentInputSpec(
-                    agent_name=self.agent.name,
+                    agent_name=tools_agent.name,
                     current_datetime=current_timestamp_with_iso_week_local(),
                     knowledge_files=format_knowledge_files(self.knowledge_files),
-                    runbook=self.agent.runbook,
+                    runbook=runbook,
                     messages=get_messages(combined_messages),
                 )
             )
@@ -235,7 +236,7 @@ class ToolsAgentFactory(AgentFactory):
                 return {"reasoning": [response], "combined": [response]}
 
         async def agent(state: AgentState):
-            if self.agent.advanced_config.reasoning != AgentReasoning.DISABLED:
+            if is_reasoning(tools_agent):
                 associated_reasoning_id = (
                     state.reasoning[-1].id if state.reasoning else None
                 )
@@ -250,24 +251,24 @@ class ToolsAgentFactory(AgentFactory):
                     {"metadata": {"associated_reasoning": associated_reasoning_id}}
                 ).ainvoke(
                     ToolsAgentInputSpec(
-                        agent_name=self.agent.name,
+                        agent_name=tools_agent.name,
                         current_datetime=current_timestamp_with_iso_week_local(),
                         knowledge_files=format_knowledge_files(self.knowledge_files),
-                        runbook=self.agent.runbook,
+                        runbook=runbook,
                         messages=get_messages(state.combined),
                     )
                 )
             else:
                 response = await executor_agent.ainvoke(
                     ToolsAgentInputSpec(
-                        agent_name=self.agent.name,
+                        agent_name=tools_agent.name,
                         current_datetime=current_timestamp_with_iso_week_local(),
                         knowledge_files=format_knowledge_files(self.knowledge_files),
-                        runbook=self.agent.runbook,
+                        runbook=runbook,
                         messages=get_messages(state.messages),
                     )
                 )
-            if self.agent.advanced_config.reasoning != AgentReasoning.DISABLED:
+            if is_reasoning(tools_agent):
                 return {"messages": [response], "combined": [response]}
             else:
                 return {"messages": [response]}
@@ -320,7 +321,7 @@ class ToolsAgentFactory(AgentFactory):
                         action_failure_counter.add(1)
                     else:
                         action_success_counter.add(1)
-            if self.agent.advanced_config.reasoning != AgentReasoning.DISABLED:
+            if is_reasoning(tools_agent):
                 return {"messages": tool_messages, "combined": tool_messages}
             else:
                 return {"messages": tool_messages}
@@ -330,18 +331,18 @@ class ToolsAgentFactory(AgentFactory):
         # Define the two nodes we will cycle between
         workflow.add_node("agent", agent)
         workflow.add_node("action", call_tool)
-        if self.agent.advanced_config.reasoning != AgentReasoning.DISABLED:
+        if is_reasoning(tools_agent):
             workflow.add_node("reason", reasoning)
         workflow.add_node(FINISH_NODE_KEY, FINISH_NODE_ACTION)
 
         # entrypoint and finishpoint
-        if self.agent.advanced_config.reasoning != AgentReasoning.DISABLED:
+        if is_reasoning(tools_agent):
             workflow.set_entry_point("reason")
         else:
             workflow.set_entry_point("agent")
         workflow.set_finish_point(FINISH_NODE_KEY)
 
-        if self.agent.advanced_config.reasoning != AgentReasoning.DISABLED:
+        if is_reasoning(tools_agent):
             workflow.add_edge("reason", "agent")
 
         # Conditional edges
@@ -354,7 +355,7 @@ class ToolsAgentFactory(AgentFactory):
             },
         )
 
-        if self.agent.advanced_config.reasoning != AgentReasoning.DISABLED:
+        if is_reasoning(tools_agent):
             workflow.add_edge("action", "reason")
         else:
             workflow.add_edge("action", "agent")

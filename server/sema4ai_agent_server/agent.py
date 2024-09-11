@@ -20,7 +20,6 @@ from sema4ai_agent_server.schema import (
     ActionPackage,
     Agent,
     AgentArchitecture,
-    AgentReasoning,
     AzureGPT,
     OpenAIGPT,
     Thread,
@@ -67,6 +66,7 @@ class ConfigurableAgent(RunnableBinding):
             thread=thread,  # TODO: thread may be None
             use_retrieval=use_retrieval,
             interrupt_before_action=interrupt_before_action,
+            checkpoint=CHECKPOINTER,
             knowledge_files=knowledge_files,
         )
         agent_executor = agent_factory.compile_agent(**others)
@@ -111,6 +111,7 @@ class ConfigurablePlanExecute(RunnableBinding):
             thread=thread,
             use_retrieval=use_retrieval,
             interrupt_before_action=interrupt_before_action,
+            checkpoint=CHECKPOINTER,
             knowledge_files=knowledge_files,
         )
         agent_executor = agent_factory.compile_agent(**others)

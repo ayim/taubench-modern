@@ -38,6 +38,9 @@ def timestamp():
 
 HEADER_INDEX = 0
 
+ran_number = random.randint(1, 1000)
+ran_agent_name = f"TestAgent-{ran_number}"
+
 
 def print_header(message):
     global HEADER_INDEX
@@ -71,7 +74,7 @@ def assert_test(condition, message):
 def create_agent(
     base_url,
     openai_api_key,
-    name: str | None = None,
+    name: str = ran_agent_name,
     architecture=AgentArchitecture.AGENT,
 ):
     """Creates a new agent."""
@@ -381,7 +384,7 @@ def test_message_sending(base_url, thread_id):
     message = "question"
     print(f"Sending message: {message}")
     response = send_message(base_url, thread_id, message)
-    assert_test(response is not None, "Message sending and response")
+    assert_test(response is not None and response != "", "Message sending and response")
     if response:
         print_success("Received response from the agent")
 

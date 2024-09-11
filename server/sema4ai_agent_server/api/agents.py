@@ -21,6 +21,7 @@ from sema4ai_agent_server.agent_spec import (
     save_agent_package,
     validate_spec,
 )
+from sema4ai_agent_server.agent_types.utils import is_claude
 from sema4ai_agent_server.auth.handlers import AuthedUser
 from sema4ai_agent_server.file_manager.base import (
     BaseFileManager,
@@ -97,7 +98,7 @@ class AgentPayloadPackage(BaseModel):
 AgentID = Annotated[str, Path(description="The ID of the agent.")]
 
 
-async def _generate_welcome_message(user_id: str, model: MODEL) -> str | None:
+async def _generate_welcome_message(user_id: str, payload: AgentPayload) -> str | None:
     thread = await get_storage().put_thread(
         user_id,
         str(uuid4()),
@@ -108,15 +109,12 @@ async def _generate_welcome_message(user_id: str, model: MODEL) -> str | None:
     )
     config = {
         "configurable": {
-            "thread_id": thread.thread_id,
-            "model": model,
+            "agent": payload.to_agent(user_id),
+            "thread": thread,
             "type": AgentArchitecture.AGENT.value,
         }
     }
-    if (
-        model.provider in [LLMProvider.AMAZON, LLMProvider.ANTHROPIC]
-        and "claude" in model.name
-    ):
+    if is_claude(payload.model):
         # Claude models are trained so they cannot represent themselves as anything but
         # Claude from Anthropic, so we can't generate a welcome message for them.
         return None

@@ -25,6 +25,7 @@ from langgraph.checkpoint.base import (
 )
 from pydantic import ConfigDict
 
+from sema4ai_agent_server.schema import AgentServerRunnableConfig
 from sema4ai_agent_server.storage.postgres_conn import PostgresConnectionManager
 from sema4ai_agent_server.storage.utils import search_where
 
@@ -150,7 +151,7 @@ class PostgresSaver(BaseCheckpointSaver, PostgresConnectionManager):
 
     def put(
         self,
-        config: RunnableConfig,
+        config: AgentServerRunnableConfig | RunnableConfig,
         checkpoint: Checkpoint,
         metadata: CheckpointMetadata,
         new_versions: ChannelVersions,
@@ -196,7 +197,7 @@ class PostgresSaver(BaseCheckpointSaver, PostgresConnectionManager):
 
     async def aput(
         self,
-        config: RunnableConfig,
+        config: AgentServerRunnableConfig | RunnableConfig,
         checkpoint: Checkpoint,
         metadata: CheckpointMetadata,
         new_versions: ChannelVersions,
