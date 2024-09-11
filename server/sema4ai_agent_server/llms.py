@@ -13,6 +13,8 @@ from sema4ai_agent_server.schema import MODEL, LLMProvider
 
 logger = structlog.get_logger(__name__)
 
+DEFAULT_MAX_RETRIES = 5
+
 
 def get_chat_model(model: MODEL) -> Optional[BaseChatModel]:
     match model.provider:
@@ -21,6 +23,7 @@ def get_chat_model(model: MODEL) -> Optional[BaseChatModel]:
                 model_name=model.name,
                 openai_api_key=model.config.openai_api_key.get_secret_value(),
                 temperature=model.config.temperature,
+                max_retries=DEFAULT_MAX_RETRIES,
             )
         case LLMProvider.AZURE:
             return AzureChatOpenAI(
@@ -29,6 +32,7 @@ def get_chat_model(model: MODEL) -> Optional[BaseChatModel]:
                 openai_api_version=model.config.chat_openai_api_version,
                 openai_api_key=model.config.chat_openai_api_key.get_secret_value(),
                 temperature=model.config.temperature,
+                max_retries=DEFAULT_MAX_RETRIES,
             )
         case LLMProvider.ANTHROPIC:
             return ChatAnthropic(
@@ -36,6 +40,7 @@ def get_chat_model(model: MODEL) -> Optional[BaseChatModel]:
                 anthropic_api_key=model.config.anthropic_api_key.get_secret_value(),
                 max_tokens=2000,
                 temperature=model.config.temperature,
+                max_retries=DEFAULT_MAX_RETRIES,
             )
         case LLMProvider.AMAZON:
             client = boto3.client(
@@ -52,6 +57,7 @@ def get_chat_model(model: MODEL) -> Optional[BaseChatModel]:
                 streaming=True,
                 credentials=model.config.vertex_ai_credentials.get_secret_value(),
                 temperature=model.config.temperature,
+                max_retries=DEFAULT_MAX_RETRIES,
             )
         case LLMProvider.OLLAMA:
             return ChatOllama(
