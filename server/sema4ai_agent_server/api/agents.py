@@ -7,7 +7,7 @@ from uuid import uuid4
 import structlog
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Path, UploadFile
 from langchain_core.messages import HumanMessage
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, SecretStr
 
 from sema4ai_agent_server.agent import runnable_agent
 from sema4ai_agent_server.agent_spec import (
@@ -30,6 +30,7 @@ from sema4ai_agent_server.schema import (
     AgentMetadata,
     AgentReasoning,
     AgentStatus,
+    RawAgent,
     UploadedFile,
 )
 from sema4ai_agent_server.storage.option import get_storage
@@ -45,7 +46,7 @@ class AgentPayload(BaseModel):
     public: bool = Field(False, description="Whether the agent is public.")
     name: str = Field(..., description="The name of the agent.")
     description: str = Field(..., description="The description of the agent.")
-    runbook: str = Field(..., description="The runbook for the agent.")
+    runbook: SecretStr = Field(..., description="The runbook for the agent.")
     version: str = Field(..., description="The version of the agent.")
     model: MODEL = Field(..., description="LLM model configuration for the agent.")
     architecture: AgentArchitecture = Field(
@@ -118,6 +119,13 @@ async def list_agents(user: AuthedUser) -> List[Agent]:
     return agents
 
 
+@router.get("/raw")
+async def list_raw_agents(user: AuthedUser) -> List[RawAgent]:
+    """List all agents for the current user."""
+    agents = await get_storage().list_agents(user.user_id)
+    return [agent.raw() for agent in agents]
+
+
 @router.get("/{aid}")
 async def get_agent(
     user: AuthedUser,
@@ -128,6 +136,18 @@ async def get_agent(
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     return agent
+
+
+@router.get("/{aid}/raw")
+async def get_raw_agent(
+    user: AuthedUser,
+    aid: AgentID,
+) -> RawAgent:
+    """Get an agent by ID (sensitive data is masked)."""
+    agent = await get_storage().get_agent(user.user_id, aid)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    return agent.raw()
 
 
 @router.put("/package/{aid}")
@@ -333,21 +353,21 @@ def get_files_to_upload_and_delete(
 async def create_agent(
     user: AuthedUser,
     payload: AgentPayload,
-) -> Agent:
+) -> RawAgent:
     """Create an agent."""
     msg = await _generate_welcome_message(user.user_id, payload)
 
     if msg is not None:
         payload.metadata.welcome_message = msg
 
-    return await get_storage().put_agent(
+    agent = await get_storage().put_agent(
         user.user_id,
         str(uuid4()),
         public=payload.public,
         status=AgentStatus.READY,
         name=payload.name,
         description=payload.description,
-        runbook=payload.runbook,
+        runbook=payload.runbook.get_secret_value(),
         version=payload.version,
         model=payload.model,
         architecture=payload.architecture,
@@ -355,6 +375,7 @@ async def create_agent(
         action_packages=payload.action_packages,
         metadata=payload.metadata,
     )
+    return agent.raw()
 
 
 @router.put("/{aid}")
@@ -362,7 +383,7 @@ async def upsert_agent(
     user: AuthedUser,
     aid: AgentID,
     payload: AgentPayload,
-) -> Agent:
+) -> RawAgent:
     """Create or update an agent."""
     agent = await get_storage().get_agent(user.user_id, aid)
     if not agent:
@@ -372,14 +393,14 @@ async def upsert_agent(
     if msg is not None:
         payload.metadata.welcome_message = msg
 
-    return await get_storage().put_agent(
+    agent = await get_storage().put_agent(
         user.user_id,
         aid,
         public=payload.public,
         status=AgentStatus.READY,
         name=payload.name,
         description=payload.description,
-        runbook=payload.runbook,
+        runbook=payload.runbook.get_secret_value(),
         version=payload.version,
         model=payload.model,
         architecture=payload.architecture,
@@ -387,13 +408,14 @@ async def upsert_agent(
         action_packages=payload.action_packages,
         metadata=payload.metadata,
     )
+    return agent.raw()
 
 
 @router.delete("/{aid}")
 async def delete_agent(
     user: AuthedUser,
     aid: AgentID,
-):
+) -> dict[str, Agent]:
     """Delete an agent by ID."""
     agent = await get_storage().get_agent(user.user_id, aid)
     if not agent:
@@ -405,7 +427,7 @@ async def delete_agent(
         await file_manager.delete(file.file_id)
 
     await get_storage().delete_agent(user.user_id, aid)
-    return {"status": "ok"}
+    return {"deleted": agent}
 
 
 @router.get("/{aid}/files")

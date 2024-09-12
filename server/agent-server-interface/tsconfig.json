@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "lib": ["es2021"],
     "esModuleInterop": true,
     "noImplicitAny": true,
     "moduleResolution": "node"

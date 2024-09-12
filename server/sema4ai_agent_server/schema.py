@@ -1,6 +1,7 @@
 import re
 from datetime import datetime
 from enum import Enum
+from functools import cached_property
 from typing import List, Literal, Optional
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
@@ -14,6 +15,42 @@ class User(BaseModel):
     user_id: str = Field(description="The ID of the user.")
     sub: str = Field(description="The sub of the user (from a JWT token).")
     created_at: datetime = Field(description="The time the user was created.")
+
+    @cached_property
+    def _parsed_sub(self) -> dict[str, Optional[str]]:
+        """
+        Control Room sub formats:
+
+        tenant:<ID>:user:<ID>
+        tenant:<ID>:system:<ID>
+        tenant:<ID>
+        """
+        pattern = r"^tenant:([^:]+)(?::(?P<type>user|system):(?P<id>[^:]+))?$"
+        match = re.match(pattern, self.sub)
+
+        if not match:
+            return {"tenant": None, "user": None, "system": None}
+
+        result = {"tenant": match.group(1), "user": None, "system": None}
+        if match.group("type"):
+            result[match.group("type")] = match.group("id")
+
+        return result
+
+    @property
+    def cr_tenant_id(self) -> Optional[str]:
+        """Control Room Tenant ID"""
+        return self._parsed_sub["tenant"]
+
+    @property
+    def cr_user_id(self) -> Optional[str]:
+        """Control Room User ID"""
+        return self._parsed_sub["user"]
+
+    @property
+    def cr_system_id(self) -> Optional[str]:
+        """Control Room System ID"""
+        return self._parsed_sub["system"]
 
 
 class LLMProvider(str, Enum):
@@ -294,8 +331,13 @@ class AgentMetadata(BaseModel):
         return values
 
 
-class Agent(BaseModel):
-    """Agent model."""
+class BaseAgent(BaseModel):
+    """
+    Agent model that always masks sensitive information.
+
+    Both .dict() and .json() will contain masked values for sensitive fields.
+    Ensures that logs and traces do not contain sensitive information.
+    """
 
     id: str = Field(description="The ID of the agent.")
     user_id: str = Field(description="The ID of the user that owns the agent.")
@@ -303,7 +345,7 @@ class Agent(BaseModel):
     status: AgentStatus = Field(description="The status of the agent.")
     name: str = Field(description="The name of the agent.")
     description: str = Field(description="The description of the agent.")
-    runbook: str = Field(description="The runbook for the agent.")
+    runbook: SecretStr = Field(description="The runbook for the agent.")
     version: str = Field(description="The version of the agent.")
     model: MODEL = Field(description="LLM model configuration for the agent.")
     architecture: AgentArchitecture = Field(
@@ -315,6 +357,24 @@ class Agent(BaseModel):
     )
     updated_at: datetime = Field(description="The last time the agent was updated.")
     metadata: AgentMetadata = Field(description="The agent metadata.")
+
+
+class RawAgent(BaseAgent):
+    """
+    Agent model that does not mask sensitive information in its JSON representation.
+
+    Logs and traces will still not contain sensitive information but clients can
+    view raw agent data.
+    """
+
+    class Config:
+        # Ensure that SecretStr is not masked
+        json_encoders = {SecretStr: lambda v: v.get_secret_value() if v else None}
+
+
+class Agent(BaseAgent):
+    def raw(self) -> RawAgent:
+        return RawAgent(**self.dict())
 
 
 class Thread(BaseModel):
