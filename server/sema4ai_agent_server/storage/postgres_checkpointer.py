@@ -17,9 +17,10 @@ from typing import (
 )
 
 import psycopg
+from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.runnables import ConfigurableFieldSpec, RunnableConfig
-from langgraph.checkpoint import BaseCheckpointSaver
 from langgraph.checkpoint.base import (
+    BaseCheckpointSaver,
     Checkpoint,
     CheckpointMetadata,
     CheckpointThreadTs,

@@ -3,7 +3,7 @@ import os
 from typing import Annotated, Literal
 
 from langchain_core.messages import AnyMessage, get_buffer_string
-from langchain_core.pydantic_v1 import BaseModel, Field
+from pydantic import BaseModel, Field
 
 from sema4ai_agent_server.agent_types.tools_agent import AgentState
 

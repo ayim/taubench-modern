@@ -1,7 +1,7 @@
 import os
 from typing import Callable, Dict, Final
 
-from langgraph.checkpoint import BaseCheckpointSaver
+from langgraph.checkpoint.base import BaseCheckpointSaver
 
 
 def get_postgres_checkpointer() -> BaseCheckpointSaver:

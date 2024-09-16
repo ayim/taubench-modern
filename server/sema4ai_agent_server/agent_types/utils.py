@@ -16,7 +16,6 @@ from langchain_anthropic.output_parsers import ToolsOutputParser
 from langchain_core.language_models.base import LanguageModelInput
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import BaseMessage
-from langchain_core.pydantic_v1 import BaseModel
 from langchain_core.runnables import Runnable
 from langchain_core.tools import BaseTool
 from langchain_core.tools import tool as tool_from_callable
@@ -24,6 +23,7 @@ from langchain_core.utils.function_calling import convert_to_openai_tool
 from langchain_google_vertexai import ChatVertexAI, PydanticFunctionsOutputParser
 from langchain_openai import AzureChatOpenAI, ChatOpenAI
 from langchain_openai.output_parsers import PydanticToolsParser
+from pydantic import BaseModel
 from vertexai.generative_models._generative_models import ToolConfig
 
 # Define supported agent types
@@ -114,7 +114,7 @@ def bind_tools_to_anthropic(
         .. code-block:: python
 
             from langchain_anthropic import ChatAnthropic
-            from langchain_core.pydantic_v1 import BaseModel, Field
+            from pydantic import BaseModel, Field
 
             class GetWeather(BaseModel):
                 '''Get the current weather in a given location'''

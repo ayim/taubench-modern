@@ -12,7 +12,7 @@ from langchain_core.messages import (
     ToolMessage,
 )
 from langchain_core.runnables import Runnable
-from langgraph.checkpoint import BaseCheckpointSaver
+from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph.message import StateGraph
 from structlog import get_logger
 from structlog.stdlib import BoundLogger

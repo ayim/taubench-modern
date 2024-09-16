@@ -14,17 +14,17 @@ from langchain_core.callbacks.manager import CallbackManager
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
-from langchain_core.pydantic_v1 import (
+from langchain_core.runnables import Runnable, RunnablePassthrough
+from langchain_core.tools import BaseTool, StructuredTool, Tool
+from langchain_core.tracers.context import _tracing_v2_is_enabled
+from langsmith import Client
+from pydantic import (
     BaseModel,
     Field,
     PrivateAttr,
     create_model,
     validator,
 )
-from langchain_core.runnables import Runnable, RunnablePassthrough
-from langchain_core.tools import BaseTool, StructuredTool, Tool
-from langchain_core.tracers.context import _tracing_v2_is_enabled
-from langsmith import Client
 
 from sema4ai_agent_server.action_server._common import (
     get_param_fields,

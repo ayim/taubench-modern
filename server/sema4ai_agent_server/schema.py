@@ -2,10 +2,18 @@ import re
 from datetime import datetime
 from enum import Enum
 from functools import cached_property
-from typing import List, Literal, Optional
+from typing import List, Literal, Optional, Self
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
-from pydantic import BaseModel, Field, SecretStr, root_validator, validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SecretStr,
+    ValidationInfo,
+    field_validator,
+    model_validator,
+)
 
 NOT_CONFIGURED = "SEMA4AI_FIELD_NOT_CONFIGURED"
 AZURE_URL_PATTERN = r"^(https?://[^/]+)/openai/deployments/([^/]+)/(chat/completions|embeddings)\?api-version=(.+)$"
@@ -77,13 +85,16 @@ class OpenAIGPTConfig(ModelConfig):
 
 
 class AzureGPTConfig(ModelConfig):
+    model_config = ConfigDict(validate_assignment=True)
+
     chat_url: str = Field(default=NOT_CONFIGURED)
     chat_openai_api_key: SecretStr = Field(default=SecretStr(NOT_CONFIGURED))
     embeddings_url: str = Field(default=NOT_CONFIGURED)
     embeddings_openai_api_key: SecretStr = Field(default=SecretStr(NOT_CONFIGURED))
 
-    @validator("chat_url", "embeddings_url")
-    def validate_url(cls, v, field):
+    @field_validator("chat_url", "embeddings_url")
+    @classmethod
+    def validate_url(cls, v: str, info: ValidationInfo):
         """
         chat_url format: <azure_endpoint>/openai/deployments/<deployment_name>/chat/completions?api-version=<openai_api_version>
         embeddings_url format: <azure_endpoint>/openai/deployments/<deployment_name>/embeddings?api-version=<openai_api_version>
@@ -91,7 +102,7 @@ class AzureGPTConfig(ModelConfig):
 
         if v == NOT_CONFIGURED:
             return v
-        url_type = "chat" if field.name == "chat_url" else "embeddings"
+        url_type = "chat" if info.field_name == "chat_url" else "embeddings"
         match = re.match(AZURE_URL_PATTERN, v)
         if not match:
             raise ValueError(f"Invalid {url_type} URL format")
@@ -133,9 +144,6 @@ class AzureGPTConfig(ModelConfig):
             return NOT_CONFIGURED
         match = re.match(AZURE_URL_PATTERN, url)
         return match.group(group) if match else NOT_CONFIGURED
-
-    class Config:
-        validate_assignment = True
 
 
 class AnthropicClaudeConfig(ModelConfig):
@@ -315,20 +323,17 @@ class AgentMetadata(BaseModel):
     )
     welcome_message: Optional[str] = Field(description="Welcome message for the agent.")
 
-    @root_validator
-    def validate_worker_config(cls, values):
-        mode = values.get("mode")
-        worker_config = values.get("worker_config")
-
-        if mode == AgentMode.WORKER and worker_config is None:
+    @model_validator(mode="after")
+    def validate_worker_config(self) -> Self:
+        if self.mode == AgentMode.WORKER and self.worker_config is None:
             raise ValueError("worker_config must be set when mode is 'worker'")
 
-        if mode == AgentMode.CONVERSATIONAL and worker_config is not None:
+        if self.mode == AgentMode.CONVERSATIONAL and self.worker_config is not None:
             raise ValueError(
                 "worker_config should not be set when mode is 'conversational'"
             )
 
-        return values
+        return self
 
 
 class BaseAgent(BaseModel):
@@ -367,14 +372,14 @@ class RawAgent(BaseAgent):
     view raw agent data.
     """
 
-    class Config:
-        # Ensure that SecretStr is not masked
-        json_encoders = {SecretStr: lambda v: v.get_secret_value() if v else None}
+    model_config = ConfigDict(
+        json_encoders={SecretStr: lambda v: v.get_secret_value() if v else None}
+    )
 
 
 class Agent(BaseAgent):
     def raw(self) -> RawAgent:
-        return RawAgent(**self.dict())
+        return RawAgent(**self.model_dump(mode="json"))  # TODO: Check mode value
 
 
 class Thread(BaseModel):

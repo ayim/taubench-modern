@@ -91,7 +91,7 @@ def _guess_mimetype(file_name: str, file_bytes: bytes) -> str:
     if file_bytes.startswith(b"%PDF"):
         return "application/pdf"
     elif file_bytes.startswith(
-        (b"\x50\x4B\x03\x04", b"\x50\x4B\x05\x06", b"\x50\x4B\x07\x08")
+        (b"\x50\x4b\x03\x04", b"\x50\x4b\x05\x06", b"\x50\x4b\x07\x08")
     ):
         return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     elif file_bytes.startswith(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"):
@@ -133,7 +133,7 @@ def convert_to_blob(file: UploadFile) -> Blob:
 
 def get_embedding_function(
     model: MODEL,
-) -> Union[OpenAIEmbeddings, AzureOpenAIEmbeddings]:
+) -> Union[OpenAIEmbeddings, AzureOpenAIEmbeddings, BedrockEmbeddings]:
     if isinstance(model, OpenAIGPT):
         return OpenAIEmbeddings(
             openai_api_key=model.config.openai_api_key.get_secret_value(),
