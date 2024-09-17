@@ -342,7 +342,6 @@ class BaseAgent(BaseModel):
     id: str = Field(description="The ID of the agent.")
     user_id: str = Field(description="The ID of the user that owns the agent.")
     public: bool = Field(description="Whether the agent is public.")
-    status: AgentStatus = Field(description="The status of the agent.")
     name: str = Field(description="The name of the agent.")
     description: str = Field(description="The description of the agent.")
     runbook: SecretStr = Field(description="The runbook for the agent.")
@@ -386,6 +385,17 @@ class Thread(BaseModel):
     metadata: Optional[dict] = Field(description="The thread metadata.")
 
 
+class EmbeddingStatus(str, Enum):
+    """
+    Enum for embedding status.
+    """
+
+    PENDING = "pending"
+    IN_PROGRESS = "in_progress"
+    SUCCESS = "success"
+    FAILURE = "failure"
+
+
 class UploadedFile(BaseModel):
     file_id: str
     """The ID of the file."""
@@ -398,6 +408,13 @@ class UploadedFile(BaseModel):
     embedded: bool
     """Whether the file is embedded."""
     file_path_expiration: Optional[datetime] = None
+    embedding_status: Optional[EmbeddingStatus]
+    """The embedding status of the file."""
+    file_path_expiration: Optional[datetime] = None
+    agent_id: Optional[str] = None
+    """The ID of the agent that uploaded the file."""
+    thread_id: Optional[str] = None
+    """The ID of the thread that uploaded the file."""
 
 
 class ChatRole(str, Enum):
