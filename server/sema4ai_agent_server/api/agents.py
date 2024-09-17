@@ -25,11 +25,18 @@ from sema4ai_agent_server.file_manager.option import get_file_manager
 from sema4ai_agent_server.schema import (
     MODEL,
     ActionPackage,
+    ActionServerNotConfigured,
     Agent,
     AgentArchitecture,
     AgentMetadata,
+    AgentNotReadyIssues,
     AgentReasoning,
     AgentStatus,
+    EmbeddingFileFailed,
+    EmbeddingFileInProgress,
+    EmbeddingFilePending,
+    EmbeddingStatus,
+    ModelNotConfigured,
     RawAgent,
     UploadedFile,
 )
@@ -148,6 +155,44 @@ async def get_raw_agent(
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     return agent.raw()
+
+
+@router.get("/{aid}/status")
+async def get_agent_status(user: AuthedUser, aid: AgentID) -> AgentStatus:
+    agent = await get_storage().get_agent(user.user_id, aid)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    issues: list[AgentNotReadyIssues] = []
+
+    # Check if the model is configured
+    model_is_configured, fields = agent.model.config.is_configured()
+    if not model_is_configured:
+        issues.append(ModelNotConfigured(fields=fields))
+
+    # Check if the action server is configured
+    for action_package in agent.action_packages:
+        action_package_is_configured, fields = action_package.is_configured()
+        if not action_package_is_configured:
+            issues.append(
+                ActionServerNotConfigured(
+                    action_package_name=action_package.name, fields=fields
+                )
+            )
+
+    # Check if the files are embedded successfully
+    files = await get_storage().get_agent_files(aid)
+    for file in files:
+        if not file.embedded:
+            continue
+        if file.embedding_status == EmbeddingStatus.PENDING:
+            issues.append(EmbeddingFilePending(file_ref=file.file_ref))
+        elif file.embedding_status == EmbeddingStatus.IN_PROGRESS:
+            issues.append(EmbeddingFileInProgress(file_ref=file.file_ref))
+        elif file.embedding_status == EmbeddingStatus.FAILURE:
+            issues.append(EmbeddingFileFailed(file_ref=file.file_ref))
+
+    return AgentStatus(ready=len(issues) == 0, issues=issues)
 
 
 @router.put("/package/{aid}")
