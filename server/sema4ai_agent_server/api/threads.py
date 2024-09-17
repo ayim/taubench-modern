@@ -2,17 +2,17 @@ from typing import Annotated, Any, Dict, List, Optional, Sequence, Union
 from uuid import uuid4
 
 import structlog
-from fastapi import APIRouter, HTTPException, Path, UploadFile
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Path, UploadFile
 from langchain.schema.messages import AnyMessage
 from langchain_core.messages import AIMessage
 from opentelemetry import metrics
 from pydantic import BaseModel, Field
 
-from sema4ai_agent_server.api.files import _add_uploaded_messages, _store_files
+from sema4ai_agent_server.api.files import _add_uploaded_messages
 from sema4ai_agent_server.auth.handlers import AuthedUser
 from sema4ai_agent_server.file_manager.option import get_file_manager
 from sema4ai_agent_server.otel import otel_is_enabled
-from sema4ai_agent_server.schema import Thread, UploadedFile
+from sema4ai_agent_server.schema import Thread, UploadedFile, UploadFileRequest
 from sema4ai_agent_server.storage.option import get_storage
 
 logger = structlog.get_logger(__name__)
@@ -208,6 +208,7 @@ async def upload_thread_files(
     files: list[UploadFile],
     user: AuthedUser,
     tid: ThreadID,
+    background_tasks: BackgroundTasks,
 ) -> List[UploadedFile]:
     """Upload files to the given agent."""
 
@@ -221,11 +222,14 @@ async def upload_thread_files(
 
     file_manager = get_file_manager()
     try:
-        stored_files = await _store_files(thread, files, file_manager, agent.model)
+        stored_files = await file_manager.upload(
+            [UploadFileRequest(file=f) for f in files], thread
+        )
     except Exception as e:
         logger.exception("Failed to store a file", exception=e)
         raise HTTPException(status_code=500, detail=f"Failed to store a file: {str(e)}")
 
     await _add_uploaded_messages(stored_files, tid, user)
 
+    background_tasks.add_task(file_manager.create_missing_embeddings, thread)
     return stored_files

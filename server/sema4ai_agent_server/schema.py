@@ -488,6 +488,12 @@ class UploadedFile(BaseModel):
     """The ID of the thread that uploaded the file."""
 
 
+class UploadFileRequest(BaseModel):
+    file: UploadFile
+    embedded: Optional[bool] = None
+    """If None, it will be inferred from file type."""
+
+
 class ChatRole(str, Enum):
     """
     Enum for chat participant types.

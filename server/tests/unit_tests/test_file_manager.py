@@ -19,7 +19,6 @@ from sema4ai_agent_server.schema import (
     AgentMetadata,
     AgentMode,
     AgentReasoning,
-    AgentStatus,
     Thread,
     UploadedFile,
     dummy_model,
@@ -98,7 +97,6 @@ def sample_owner():
         id=str(uuid4()),
         user_id=str(uuid4()),
         public=True,
-        status=AgentStatus.READY,
         name="Test agent",
         description="Test agent Description",
         runbook="Test agent Runbook",
@@ -185,6 +183,7 @@ class TestFileManager:
             expired_file.file_ref,
             expired_file.file_hash,
             expired_file.embedded,
+            expired_file.embedding_status,
             sample_owner,
             expired_file.file_path_expiration,
         )

@@ -18,7 +18,6 @@ from sema4ai_agent_server.schema import (
     AgentMetadata,
     AgentMode,
     AgentReasoning,
-    AgentStatus,
     LLMProvider,
     OpenAIGPT,
     OpenAIGPTConfig,
@@ -88,7 +87,6 @@ def create_agent(
 
     data = {
         "public": True,
-        "status": AgentStatus.READY,
         "name": name,
         "description": "This is a test agent",
         "runbook": "This is a test runbook",
