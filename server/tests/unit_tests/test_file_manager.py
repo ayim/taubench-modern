@@ -21,6 +21,7 @@ from sema4ai_agent_server.schema import (
     AgentReasoning,
     Thread,
     UploadedFile,
+    UploadFileRequest,
     dummy_model,
 )
 from sema4ai_agent_server.storage.option import get_storage
@@ -148,10 +149,10 @@ class TestFileManager:
     ):
         mock_embed_runnable.invoke.return_value = {"embeddings": [0.1, 0.2, 0.3]}
 
-        result = await file_manager.upload(sample_file, sample_owner, dummy_model)
-
-        assert result.file_ref == sample_uploaded_file.file_ref
-        mock_embed_runnable.invoke.assert_called_once()
+        results = await file_manager.upload(
+            [UploadFileRequest(file=sample_file)], sample_owner
+        )
+        assert results[0].file_ref == sample_uploaded_file.file_ref
 
     async def test_refresh_file_paths(
         self,

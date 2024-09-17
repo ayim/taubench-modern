@@ -523,6 +523,7 @@ def main():
     test_async_run(base_url, thread_id)
     uploaded_files, key_value_pairs = test_file_uploads(base_url, thread_id, agent_id)
     test_get_file(base_url, agent_id, thread_id, uploaded_files)
+    time.sleep(3)  # Wait for embeddings to be created by the background job
     test_retrieval(base_url, thread_id, key_value_pairs)
 
     vitality_agent_id = test_vitality_agent_creation(base_url, openai_api_key)
