@@ -7,7 +7,7 @@ from uuid import uuid4
 import structlog
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Path, UploadFile
 from langchain_core.messages import HumanMessage
-from pydantic import BaseModel, Field, SecretStr
+from pydantic import BaseModel, Field, SecretStr, root_validator
 
 from sema4ai_agent_server.agent import runnable_agent
 from sema4ai_agent_server.agent_spec import (
@@ -17,6 +17,7 @@ from sema4ai_agent_server.agent_spec import (
     get_spec,
     knowledge_dir,
     put_agent_from_spec,
+    save_agent_package,
     validate_spec,
 )
 from sema4ai_agent_server.auth.handlers import AuthedUser
@@ -79,13 +80,26 @@ class AgentPayloadPackage(BaseModel):
 
     public: bool = Field(True, description="Whether the agent is public.")
     name: str = Field(..., description="The name of the agent.")
-    agent_package: str = Field(
-        ..., description="The URL of the package or base64 encoded package."
+    agent_package_url: Optional[str] = Field(
+        None, description="The URL of the agent package."
+    )
+    agent_package_base64: Optional[str] = Field(
+        None, description="Base64 encoded agent package."
     )
     model: MODEL = Field(..., description="LLM configuration for the agent.")
     action_servers: list[AgentPayloadPackageActionServer] = Field(
         ..., description="Action Server configurations."
     )
+
+    @root_validator
+    def validate_package_source(cls, values):
+        url = values.get("agent_package_url")
+        base64 = values.get("agent_package_base64")
+        if (url is None) == (base64 is None):
+            raise ValueError(
+                "Exactly one of agent_package_url or agent_package_base64 must be provided"
+            )
+        return values
 
 
 AgentID = Annotated[str, Path(description="The ID of the agent.")]
@@ -210,7 +224,10 @@ async def upsert_agent_via_package(
         raise HTTPException(status_code=404, detail="Agent not found")
 
     try:
-        await download_agent_package(root_dir, payload.agent_package)
+        if payload.agent_package_url is not None:
+            await download_agent_package(root_dir, payload.agent_package_url)
+        else:
+            await save_agent_package(root_dir, payload.agent_package_base64)
         spec = get_spec(root_dir)
         validate_spec(spec, root_dir, payload.model)
 
@@ -272,7 +289,10 @@ async def create_agent_via_package(
     root_dir = tempfile.mkdtemp()
 
     try:
-        await download_agent_package(root_dir, payload.agent_package)
+        if payload.agent_package_url is not None:
+            await download_agent_package(root_dir, payload.agent_package_url)
+        else:
+            await save_agent_package(root_dir, payload.agent_package_base64)
         spec = get_spec(root_dir)
         validate_spec(spec, root_dir, payload.model)
 

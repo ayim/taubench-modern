@@ -1,6 +1,5 @@
 import base64
 import os
-import re
 import subprocess
 from pathlib import Path
 from typing import Optional
@@ -112,21 +111,21 @@ def validate_spec(spec: dict, root_dir: str, model: MODEL) -> None:
             )
 
 
-async def download_agent_package(root_dir: str, package: str) -> None:
-    # Check if the package is a URL or base64 encoded
-    if re.match(r"^https?://", package):
-        async with aiohttp.ClientSession() as session:
-            async with session.get(package) as resp:
-                if resp.status == 200:
-                    content = await resp.read()
-                else:
-                    raise Exception("Failed to download agent package")
-    else:
-        try:
-            content = base64.b64decode(package)
-        except Exception:
-            raise Exception("Invalid base64 encoded package")
+async def download_agent_package(root_dir: str, package_url: str) -> None:
+    async with aiohttp.ClientSession() as session:
+        async with session.get(package_url) as resp:
+            if resp.status == 200:
+                with open(package_file_path(root_dir), "wb") as f:
+                    f.write(await resp.read())
+            else:
+                raise Exception("Failed to download agent package")
 
+
+async def save_agent_package(root_dir: str, package_base64: str) -> None:
+    try:
+        content = base64.b64decode(package_base64)
+    except Exception:
+        raise Exception("Invalid base64 encoded package")
     with open(package_file_path(root_dir), "wb") as f:
         f.write(content)
 
