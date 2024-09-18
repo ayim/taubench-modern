@@ -7,7 +7,7 @@ from uuid import uuid4
 import structlog
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Path, UploadFile
 from langchain_core.messages import HumanMessage
-from pydantic import BaseModel, Field, SecretStr
+from pydantic import BaseModel, Field, SecretStr, root_validator
 
 from sema4ai_agent_server.agent import runnable_agent
 from sema4ai_agent_server.agent_spec import (
@@ -17,21 +17,30 @@ from sema4ai_agent_server.agent_spec import (
     get_spec,
     knowledge_dir,
     put_agent_from_spec,
+    save_agent_package,
     validate_spec,
 )
-from sema4ai_agent_server.api.files import _store_files
 from sema4ai_agent_server.auth.handlers import AuthedUser
+from sema4ai_agent_server.file_manager.base import BaseFileManager
 from sema4ai_agent_server.file_manager.option import get_file_manager
 from sema4ai_agent_server.schema import (
     MODEL,
     ActionPackage,
+    ActionServerNotConfigured,
     Agent,
     AgentArchitecture,
     AgentMetadata,
+    AgentNotReadyIssues,
     AgentReasoning,
     AgentStatus,
+    EmbeddingFileFailed,
+    EmbeddingFileInProgress,
+    EmbeddingFilePending,
+    EmbeddingStatus,
+    ModelNotConfigured,
     RawAgent,
     UploadedFile,
+    UploadFileRequest,
 )
 from sema4ai_agent_server.storage.option import get_storage
 
@@ -71,26 +80,39 @@ class AgentPayloadPackage(BaseModel):
 
     public: bool = Field(True, description="Whether the agent is public.")
     name: str = Field(..., description="The name of the agent.")
-    agent_package_url: str = Field(..., description="The URL of the agent package.")
+    agent_package_url: Optional[str] = Field(
+        None, description="The URL of the agent package."
+    )
+    agent_package_base64: Optional[str] = Field(
+        None, description="Base64 encoded agent package."
+    )
     model: MODEL = Field(..., description="LLM configuration for the agent.")
     action_servers: list[AgentPayloadPackageActionServer] = Field(
         ..., description="Action Server configurations."
     )
 
+    @root_validator
+    def validate_package_source(cls, values):
+        url = values.get("agent_package_url")
+        base64 = values.get("agent_package_base64")
+        if (url is None) == (base64 is None):
+            raise ValueError(
+                "Exactly one of agent_package_url or agent_package_base64 must be provided"
+            )
+        return values
+
 
 AgentID = Annotated[str, Path(description="The ID of the agent.")]
 
 
-async def _generate_welcome_message(
-    user_id: str, payload: AgentPayload
-) -> Optional[str]:
+async def _generate_welcome_message(user_id: str, model: MODEL) -> Optional[str]:
     thread = await get_storage().put_thread(
         user_id, str(uuid4()), agent_id=None, name="", metadata=None
     )
     config = {
         "configurable": {
             "thread_id": thread.thread_id,
-            "model": payload.model,
+            "model": model,
             "type": AgentArchitecture.AGENT.value,
         }
     }
@@ -150,6 +172,44 @@ async def get_raw_agent(
     return agent.raw()
 
 
+@router.get("/{aid}/status")
+async def get_agent_status(user: AuthedUser, aid: AgentID) -> AgentStatus:
+    agent = await get_storage().get_agent(user.user_id, aid)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    issues: list[AgentNotReadyIssues] = []
+
+    # Check if the model is configured
+    model_is_configured, fields = agent.model.config.is_configured()
+    if not model_is_configured:
+        issues.append(ModelNotConfigured(fields=fields))
+
+    # Check if the action server is configured
+    for action_package in agent.action_packages:
+        action_package_is_configured, fields = action_package.is_configured()
+        if not action_package_is_configured:
+            issues.append(
+                ActionServerNotConfigured(
+                    action_package_name=action_package.name, fields=fields
+                )
+            )
+
+    # Check if the files are embedded successfully
+    files = await get_storage().get_agent_files(aid)
+    for file in files:
+        if not file.embedded:
+            continue
+        if file.embedding_status == EmbeddingStatus.PENDING:
+            issues.append(EmbeddingFilePending(file_ref=file.file_ref))
+        elif file.embedding_status == EmbeddingStatus.IN_PROGRESS:
+            issues.append(EmbeddingFileInProgress(file_ref=file.file_ref))
+        elif file.embedding_status == EmbeddingStatus.FAILURE:
+            issues.append(EmbeddingFileFailed(file_ref=file.file_ref))
+
+    return AgentStatus(ready=len(issues) == 0, issues=issues)
+
+
 @router.put("/package/{aid}")
 async def upsert_agent_via_package(
     user: AuthedUser,
@@ -164,9 +224,12 @@ async def upsert_agent_via_package(
         raise HTTPException(status_code=404, detail="Agent not found")
 
     try:
-        await download_agent_package(root_dir, payload.agent_package_url)
+        if payload.agent_package_url is not None:
+            await download_agent_package(root_dir, payload.agent_package_url)
+        else:
+            await save_agent_package(root_dir, payload.agent_package_base64)
         spec = get_spec(root_dir)
-        validate_spec(spec, root_dir, payload.model, payload.action_servers)
+        validate_spec(spec, root_dir, payload.model)
 
         # Using the first action server for now. In the future, Control Room
         # may provide us with a list of multiple action servers.
@@ -190,25 +253,33 @@ async def upsert_agent_via_package(
             action_server_api_key=action_server_api_key,
         )
 
+        file_manager = get_file_manager()
         existing_files = await get_storage().get_agent_files(agent.id)
-        background_tasks.add_task(
-            _put_files,
-            user,
-            agent.id,
-            root_dir,
-            existing_files,
-            get_knowledge_files(spec),
-        )
+        try:
+            await _put_files(
+                agent,
+                knowledge_dir(root_dir),
+                existing_files,
+                get_knowledge_files(spec),
+                file_manager,
+            )
+        except Exception as e:
+            logger.exception("Failed to upload files", exception=e)
+            await delete_agent(user, agent.id)
+            raise e
 
+        background_tasks.add_task(
+            file_manager.create_missing_embeddings, agent.model, agent
+        )
         return agent
 
-    # Not using finally because background task needs to have access to the dir
     except Exception as e:
-        shutil.rmtree(root_dir)
         logger.exception("Failed to update agent via package", exception=e)
         raise HTTPException(
             status_code=400, detail=e.detail if isinstance(e, HTTPException) else str(e)
         )
+    finally:
+        shutil.rmtree(root_dir)
 
 
 @router.post("/package")
@@ -220,9 +291,12 @@ async def create_agent_via_package(
     root_dir = tempfile.mkdtemp()
 
     try:
-        await download_agent_package(root_dir, payload.agent_package_url)
+        if payload.agent_package_url is not None:
+            await download_agent_package(root_dir, payload.agent_package_url)
+        else:
+            await save_agent_package(root_dir, payload.agent_package_base64)
         spec = get_spec(root_dir)
-        validate_spec(spec, root_dir, payload.model, payload.action_servers)
+        validate_spec(spec, root_dir, payload.model)
 
         # Using the first action server for now. In the future, Control Room
         # may provide us with a list of multiple action servers.
@@ -246,32 +320,40 @@ async def create_agent_via_package(
             action_server_api_key=action_server_api_key,
         )
 
-        existing_files = []
+        file_manager = get_file_manager()
+        try:
+            await _put_files(
+                agent,
+                knowledge_dir(root_dir),
+                [],
+                get_knowledge_files(spec),
+                file_manager,
+            )
+        except Exception as e:
+            logger.exception("Failed to upload files", exception=e)
+            await delete_agent(user, agent.id)
+            raise e
+
         background_tasks.add_task(
-            _put_files,
-            user,
-            agent.id,
-            root_dir,
-            existing_files,
-            get_knowledge_files(spec),
+            file_manager.create_missing_embeddings, agent.model, agent
         )
         return agent
 
-    # Not using finally because background task needs to have access to the dir
     except Exception as e:
-        shutil.rmtree(root_dir)
         logger.exception("Failed to create agent via package", exception=e)
         raise HTTPException(
             status_code=400, detail=e.detail if isinstance(e, HTTPException) else str(e)
         )
+    finally:
+        shutil.rmtree(root_dir)
 
 
 async def _put_files(
-    user: AuthedUser,
-    aid: str,
-    root_dir: str,
+    agent: Agent,
+    knowledge_dir: str,
     existing_files: list[UploadedFile],
     new_files: list[SpecFile],
+    file_manager: BaseFileManager,
 ):
     """
     Given existing files and new files, takes care of ensuring the
@@ -293,27 +375,22 @@ async def _put_files(
             logger.info(f"Deleted file: {file.file_ref}")
 
         if files_to_upload:
-            upload_files: list[UploadFile] = []
+            upload_files: list[UploadFileRequest] = []
             for file in files_to_upload:
-                f = open(os.path.join(knowledge_dir(root_dir), file.name), "rb")
+                f = open(os.path.join(knowledge_dir, file.name), "rb")
                 open_files.append(f)
-                upload_files.append(UploadFile(filename=file.name, file=f))
+                upload_files.append(
+                    UploadFileRequest(
+                        file=UploadFile(filename=file.name, file=f),
+                        embedded=file.embedded,
+                    )
+                )
 
-            stored_files = await upload_agent_files(upload_files, user, aid)
+            stored_files = await file_manager.upload(upload_files, agent)
             logger.info(f"Successfully uploaded files: {stored_files}.")
-
-    except Exception as e:
-        await get_storage().update_agent_status(
-            user.user_id, aid, AgentStatus.FILE_OPERATIONS_FAILED
-        )
-        logger.exception("Failed to upload files", exception=e)
-    else:
-        await get_storage().update_agent_status(user.user_id, aid, AgentStatus.READY)
     finally:
-        # Close all opened files and remove the temporary directory
         for f in open_files:
             f.close()
-        shutil.rmtree(root_dir)
 
 
 def get_files_to_upload_and_delete(
@@ -355,16 +432,16 @@ async def create_agent(
     payload: AgentPayload,
 ) -> RawAgent:
     """Create an agent."""
-    msg = await _generate_welcome_message(user.user_id, payload)
-
-    if msg is not None:
-        payload.metadata.welcome_message = msg
+    model_is_configured, _ = payload.model.config.is_configured()
+    if model_is_configured:
+        msg = await _generate_welcome_message(user.user_id, payload.model)
+        if msg is not None:
+            payload.metadata.welcome_message = msg
 
     agent = await get_storage().put_agent(
         user.user_id,
         str(uuid4()),
         public=payload.public,
-        status=AgentStatus.READY,
         name=payload.name,
         description=payload.description,
         runbook=payload.runbook.get_secret_value(),
@@ -389,15 +466,16 @@ async def upsert_agent(
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
 
-    msg = await _generate_welcome_message(user.user_id, payload)
-    if msg is not None:
-        payload.metadata.welcome_message = msg
+    model_is_configured, _ = payload.model.config.is_configured()
+    if model_is_configured:
+        msg = await _generate_welcome_message(user.user_id, payload.model)
+        if msg is not None:
+            payload.metadata.welcome_message = msg
 
     agent = await get_storage().put_agent(
         user.user_id,
         aid,
         public=payload.public,
-        status=AgentStatus.READY,
         name=payload.name,
         description=payload.description,
         runbook=payload.runbook.get_secret_value(),
@@ -447,6 +525,7 @@ async def upload_agent_files(
     files: list[UploadFile],
     user: AuthedUser,
     aid: AgentID,
+    background_tasks: BackgroundTasks,
 ) -> List[UploadedFile]:
     """Upload files to the given agent."""
 
@@ -456,9 +535,14 @@ async def upload_agent_files(
 
     file_manager = get_file_manager()
     try:
-        stored_files = await _store_files(agent, files, file_manager, agent.model)
+        stored_files = await file_manager.upload(
+            [UploadFileRequest(file=f) for f in files], agent
+        )
     except Exception as e:
         logger.exception("Failed to store a file", exception=e)
         raise HTTPException(status_code=500, detail=f"Failed to store a file: {str(e)}")
 
+    background_tasks.add_task(
+        file_manager.create_missing_embeddings, agent.model, agent
+    )
     return stored_files

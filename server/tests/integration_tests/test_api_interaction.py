@@ -11,6 +11,7 @@ from datetime import datetime
 import requests
 from colorama import Fore, Style, init
 from dotenv import load_dotenv
+from pydantic import parse_obj_as
 from tqdm import tqdm
 
 from sema4ai_agent_server.schema import (
@@ -88,7 +89,6 @@ def create_agent(
 
     data = {
         "public": True,
-        "status": AgentStatus.READY,
         "name": name,
         "description": "This is a test agent",
         "runbook": "This is a test runbook",
@@ -308,6 +308,12 @@ def upload_file_to_agent(base_url, agent_id, file_path):
     return response
 
 
+def get_agent_status(base_url, agent_id) -> AgentStatus:
+    url = f"{base_url}/agents/{agent_id}/status"
+    response = requests.get(url)
+    return parse_obj_as(AgentStatus, response.json())
+
+
 def get_file(base_url, agent_id, thread_id, file_ref):
     """Retrieves a file using the new get-file endpoint."""
     url = f"{base_url}/get-file"
@@ -493,6 +499,25 @@ def test_retrieval(base_url, thread_id, key_value_pairs):
         print_warning("No key-value pairs available for testing retrieval")
 
 
+def wait_for_agent_readiness(base_url, agent_id):
+    print_header("WAITING FOR AGENT READINESS")
+    start_time = time.time()
+    timeout = 20  # 20 seconds timeout
+
+    while True:
+        status = get_agent_status(base_url, agent_id)
+        if status.ready:
+            print_success("Agent is ready")
+            return
+
+        if time.time() - start_time > timeout:
+            raise TimeoutError(
+                f"Agent {agent_id} did not become ready within {timeout} seconds"
+            )
+
+        time.sleep(0.5)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Interact with the API")
     parser.add_argument(
@@ -520,6 +545,7 @@ def main():
         sys.exit(1)
 
     agent_id = test_agent_creation(base_url, openai_api_key)
+    wait_for_agent_readiness(base_url, agent_id)
     thread_id = test_thread_creation(base_url, agent_id)
     test_message_sending(base_url, thread_id)
     test_async_run(base_url, thread_id)

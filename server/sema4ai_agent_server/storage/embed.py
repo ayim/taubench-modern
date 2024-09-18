@@ -78,7 +78,7 @@ def embed_blob(
     return ids
 
 
-def _guess_mimetype(file_name: str, file_bytes: bytes) -> str:
+def guess_mimetype(file_name: str, file_bytes: bytes) -> str:
     """Guess the mime-type of a file based on its name or bytes."""
     # Guess based on the file extension
     mime_type, _ = mimetypes.guess_type(file_name)
@@ -123,7 +123,7 @@ def convert_to_blob(file: UploadFile) -> Blob:
     if not isinstance(file_name, str):
         raise TypeError(f"Expected string for file name, got {type(file_name)}")
 
-    mimetype = _guess_mimetype(file_name, file_data)
+    mimetype = guess_mimetype(file_name, file_data)
     return Blob.from_data(
         data=file_data,
         path=file_name,
