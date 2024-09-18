@@ -268,7 +268,9 @@ async def upsert_agent_via_package(
             await delete_agent(user, agent.id)
             raise e
 
-        background_tasks.add_task(file_manager.create_missing_embeddings, agent)
+        background_tasks.add_task(
+            file_manager.create_missing_embeddings, agent.model, agent
+        )
         return agent
 
     except Exception as e:
@@ -332,7 +334,9 @@ async def create_agent_via_package(
             await delete_agent(user, agent.id)
             raise e
 
-        background_tasks.add_task(file_manager.create_missing_embeddings, agent)
+        background_tasks.add_task(
+            file_manager.create_missing_embeddings, agent.model, agent
+        )
         return agent
 
     except Exception as e:
@@ -538,5 +542,7 @@ async def upload_agent_files(
         logger.exception("Failed to store a file", exception=e)
         raise HTTPException(status_code=500, detail=f"Failed to store a file: {str(e)}")
 
-    background_tasks.add_task(file_manager.create_missing_embeddings, agent)
+    background_tasks.add_task(
+        file_manager.create_missing_embeddings, agent.model, agent
+    )
     return stored_files

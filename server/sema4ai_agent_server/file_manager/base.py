@@ -92,16 +92,20 @@ class BaseFileManager:
                 file.file_id, embedding_status=EmbeddingStatus.SUCCESS
             )
 
-    async def create_missing_embeddings(self, agent: Agent) -> None:
-        model_is_configured, _ = agent.model.config.is_configured()
+    async def create_missing_embeddings(
+        self, model: MODEL, owner: Union[Agent, Thread]
+    ) -> None:
+        model_is_configured, _ = model.config.is_configured()
         if not model_is_configured:
-            logger.info(
-                f"Skipping creating file embeddings for {agent.name}. "
-                "Model is not configured."
-            )
+            logger.info("Skipping creating file embeddings. Model is not configured.")
             return
 
-        files = await get_storage().get_agent_files(agent.id)
+        files = []
+        if isinstance(owner, Agent):
+            files = await get_storage().get_agent_files(owner.id)
+        elif isinstance(owner, Thread):
+            files = await get_storage().get_thread_files(owner.thread_id)
+
         for file in files:
             if file.embedded and file.embedding_status in (
                 EmbeddingStatus.PENDING,
@@ -109,7 +113,7 @@ class BaseFileManager:
             ):
                 logger.info(f"Creating embeddings for {file.file_ref}")
                 try:
-                    await self.create_embeddings(file, agent.model)
+                    await self.create_embeddings(file, model)
                 except FileEmbeddingFailed:
                     pass
             else:

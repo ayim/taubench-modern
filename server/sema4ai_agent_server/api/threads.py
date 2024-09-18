@@ -231,5 +231,7 @@ async def upload_thread_files(
 
     await _add_uploaded_messages(stored_files, tid, user)
 
-    background_tasks.add_task(file_manager.create_missing_embeddings, thread)
+    background_tasks.add_task(
+        file_manager.create_missing_embeddings, agent.model, thread
+    )
     return stored_files
