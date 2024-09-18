@@ -8,7 +8,7 @@ import asyncpg
 import orjson
 import structlog
 from langchain_core.messages import AnyMessage
-from pydantic import BaseModel, parse_obj_as
+from pydantic import BaseModel, TypeAdapter, parse_obj_as
 
 from sema4ai_agent_server.agent import get_agent_executor, runnable_agent
 from sema4ai_agent_server.agent_types.constants import FINISH_NODE_KEY

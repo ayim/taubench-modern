@@ -142,9 +142,10 @@ async def list_agents(user: AuthedUser) -> List[Agent]:
 
 
 @router.get("/raw")
-async def list_raw_agents(user: AuthedUser) -> List[RawAgent]:
+async def list_raw_agents(user: AuthedUser) -> List[Agent]:
     """List all agents for the current user."""
     agents = await get_storage().list_agents(user.user_id)
+    # TODO: How to get fastapi to utilize the "raw" context when serializing?
     return [agent.raw() for agent in agents]
 
 
