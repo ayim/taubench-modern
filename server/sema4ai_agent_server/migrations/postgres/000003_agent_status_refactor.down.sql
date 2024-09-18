@@ -1,0 +1,5 @@
+ALTER TABLE agent
+ADD COLUMN status VARCHAR(32) NOT NULL DEFAULT 'ready';
+
+ALTER TABLE file_owners
+DROP COLUMN IF EXISTS embedding_status;

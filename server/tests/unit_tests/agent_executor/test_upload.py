@@ -7,8 +7,8 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from sema4ai_agent_server.schema import dummy_model
 from sema4ai_agent_server.storage.embed import (
     EmbedRunnable,
-    _guess_mimetype,
     convert_to_blob,
+    guess_mimetype,
 )
 from tests.unit_tests.fixtures import get_sample_paths
 from tests.unit_tests.utils import InMemoryVectorStore
@@ -43,7 +43,7 @@ def test_mimetype_guessing() -> None:
     name_to_mime = {}
     for file in sorted(get_sample_paths()):
         data = file.read_bytes()
-        name_to_mime[file.name] = _guess_mimetype(file.name, data)
+        name_to_mime[file.name] = guess_mimetype(file.name, data)
 
     assert {
         "sample.docx": (

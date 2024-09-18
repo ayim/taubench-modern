@@ -1,3 +1,4 @@
+import base64
 import os
 import subprocess
 from pathlib import Path
@@ -12,7 +13,6 @@ from sema4ai_agent_server.schema import (
     ActionPackage,
     Agent,
     AgentMetadata,
-    AgentStatus,
     LLMProvider,
 )
 from sema4ai_agent_server.storage.option import get_storage
@@ -37,22 +37,21 @@ async def put_agent_from_spec(
     action_server_api_key: Optional[str],
 ) -> Agent:
     agent = _replace_dashes_with_underscores(spec["agent-package"]["agents"][0])
-
-    if agent["action_packages"] and (
-        action_server_url is None or action_server_api_key is None
-    ):
-        raise Exception("Action server URL and API key are required")
-
     action_packages = []
     for action_package in agent["action_packages"]:
+        # When not configured, url and api_key will be set to NOT_CONFIGURED by default
+        config = {}
+        if action_server_url:
+            config["url"] = action_server_url
+        if action_server_api_key:
+            config["api_key"] = action_server_api_key
         action_packages.append(
             ActionPackage(
                 name=action_package["name"],
                 organization=action_package["organization"],
                 version=action_package["version"],
                 whitelist=action_package["whitelist"],
-                api_key=action_server_api_key,
-                url=action_server_url,
+                **config,
             )
         )
 
@@ -61,12 +60,11 @@ async def put_agent_from_spec(
         user_id,
         agent_id,
         public=public,
-        status=AgentStatus.FILE_OPERATIONS_IN_PROGRESS,
         name=agent_name,
         description=agent["description"],
         runbook=Path(runbook_file_path(root_dir)).read_text(),
         version=agent["version"],
-        model=parse_obj_as(MODEL, model),
+        model=model,
         architecture=agent["architecture"],
         reasoning=agent["reasoning"],
         action_packages=parse_obj_as(list[ActionPackage], action_packages),
@@ -74,12 +72,7 @@ async def put_agent_from_spec(
     )
 
 
-def validate_spec(
-    spec: dict,
-    root_dir: str,
-    model: MODEL,
-    action_servers: list,
-) -> None:
+def validate_spec(spec: dict, root_dir: str, model: MODEL) -> None:
     if spec["agent-package"]["spec-version"] != "v2":
         raise Exception("Only v2 spec version is supported")
     if len(spec["agent-package"]["agents"]) != 1:
@@ -94,12 +87,6 @@ def validate_spec(
 
     if model.provider != LLMProvider.AZURE and model.name != expected_name:
         raise Exception(f"Expected model {expected_name}, got {model.name}")
-
-    if (
-        len(spec["agent-package"]["agents"][0]["action-packages"]) > 0
-        and not action_servers
-    ):
-        raise Exception("Missing action server config.")
 
     try:
         with open(runbook_file_path(root_dir), "r") as f:
@@ -132,6 +119,15 @@ async def download_agent_package(root_dir: str, package_url: str) -> None:
                     f.write(await resp.read())
             else:
                 raise Exception("Failed to download agent package")
+
+
+async def save_agent_package(root_dir: str, package_base64: str) -> None:
+    try:
+        content = base64.b64decode(package_base64)
+    except Exception:
+        raise Exception("Invalid base64 encoded package")
+    with open(package_file_path(root_dir), "wb") as f:
+        f.write(content)
 
 
 def get_spec(root_dir: str) -> dict:

@@ -2,8 +2,9 @@ import re
 from datetime import datetime
 from enum import Enum
 from functools import cached_property
-from typing import List, Literal, Optional
+from typing import List, Literal, Optional, Union
 
+from fastapi import UploadFile
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from pydantic import BaseModel, Field, SecretStr, root_validator, validator
 
@@ -66,17 +67,32 @@ class LLMProvider(str, Enum):
     OLLAMA = "Ollama"
 
 
-class ModelConfig(BaseModel):
-    temperature: float = Field(description="The temperature.", default=0.0)
+class ConfigurationMixin:
+    def is_configured(self) -> tuple[bool, list[str]]:
+        fields_not_configured = []
+        for field_name, field_value in self.__dict__.items():
+            if isinstance(field_value, SecretStr):
+                if field_value.get_secret_value() == NOT_CONFIGURED:
+                    fields_not_configured.append(field_name)
+            elif field_value == NOT_CONFIGURED:
+                fields_not_configured.append(field_name)
+
+        return len(fields_not_configured) == 0, fields_not_configured
+
+
+class ModelConfig(BaseModel, ConfigurationMixin):
+    ...
 
 
 class OpenAIGPTConfig(ModelConfig):
+    temperature: float = Field(description="The temperature.", default=0.0)
     openai_api_key: SecretStr = Field(
         description="The OpenAI API key.", default=SecretStr(NOT_CONFIGURED)
     )
 
 
 class AzureGPTConfig(ModelConfig):
+    temperature: float = Field(description="The temperature.", default=0.0)
     chat_url: str = Field(default=NOT_CONFIGURED)
     chat_openai_api_key: SecretStr = Field(default=SecretStr(NOT_CONFIGURED))
     embeddings_url: str = Field(default=NOT_CONFIGURED)
@@ -139,12 +155,13 @@ class AzureGPTConfig(ModelConfig):
 
 
 class AnthropicClaudeConfig(ModelConfig):
+    temperature: float = Field(description="The temperature.", default=0.0)
     anthropic_api_key: SecretStr = Field(
         description="The Anthropic API key.", default=SecretStr(NOT_CONFIGURED)
     )
 
 
-class AmazonClaudeConfig(BaseModel):
+class AmazonClaudeConfig(ModelConfig):
     service_name: str = Field(description="The service name.", default=NOT_CONFIGURED)
     region_name: str = Field(description="The region name.", default=NOT_CONFIGURED)
     aws_access_key_id: SecretStr = Field(
@@ -156,6 +173,7 @@ class AmazonClaudeConfig(BaseModel):
 
 
 class GoogleGeminiConfig(ModelConfig):
+    temperature: float = Field(description="The temperature.", default=0.0)
     vertex_ai_credentials: SecretStr = Field(
         description="The Google Vertex AI credentials.",
         default=SecretStr(NOT_CONFIGURED),
@@ -163,6 +181,7 @@ class GoogleGeminiConfig(ModelConfig):
 
 
 class OllamaConfig(ModelConfig):
+    temperature: float = Field(description="The temperature.", default=0.0)
     ollama_base_url: str = Field(
         description="The Ollama base URL.", default=NOT_CONFIGURED
     )
@@ -239,7 +258,7 @@ class AgentReasoning(str, Enum):
     VERBOSE = "verbose"
 
 
-class ActionPackage(BaseModel):
+class ActionPackage(BaseModel, ConfigurationMixin):
     """
     Action Package Definition.
     """
@@ -268,14 +287,66 @@ class ActionPackage(BaseModel):
     )
 
 
-class AgentStatus(str, Enum):
-    """
-    Enum for agent status.
-    """
+class AgentNotReadyIssueType(str, Enum):
+    MODEL_NOT_CONFIGURED = "model_not_configured"
+    ACTION_SERVER_NOT_CONFIGURED = "action_server_not_configured"
+    EMBEDDING_FILES_PENDING = "embedding_files_pending"
+    EMBEDDING_FILES_IN_PROGRESS = "embedding_files_in_progress"
+    EMBEDDING_FILES_FAILED = "embedding_files_failed"
 
-    FILE_OPERATIONS_IN_PROGRESS = "file_operations_in_progress"
-    FILE_OPERATIONS_FAILED = "file_operations_failed"
-    READY = "ready"
+
+class AgentNotReadyIssue(BaseModel):
+    type: AgentNotReadyIssueType
+
+
+class ModelNotConfigured(AgentNotReadyIssue):
+    type: Literal[
+        AgentNotReadyIssueType.MODEL_NOT_CONFIGURED
+    ] = AgentNotReadyIssueType.MODEL_NOT_CONFIGURED
+    fields: list[str]
+
+
+class ActionServerNotConfigured(AgentNotReadyIssue):
+    type: Literal[
+        AgentNotReadyIssueType.ACTION_SERVER_NOT_CONFIGURED
+    ] = AgentNotReadyIssueType.ACTION_SERVER_NOT_CONFIGURED
+    action_package_name: str
+    fields: list[str]
+
+
+class EmbeddingFilePending(AgentNotReadyIssue):
+    type: Literal[
+        AgentNotReadyIssueType.EMBEDDING_FILES_PENDING
+    ] = AgentNotReadyIssueType.EMBEDDING_FILES_PENDING
+    file_ref: str
+
+
+class EmbeddingFileInProgress(AgentNotReadyIssue):
+    type: Literal[
+        AgentNotReadyIssueType.EMBEDDING_FILES_IN_PROGRESS
+    ] = AgentNotReadyIssueType.EMBEDDING_FILES_IN_PROGRESS
+    file_ref: str
+
+
+class EmbeddingFileFailed(AgentNotReadyIssue):
+    type: Literal[
+        AgentNotReadyIssueType.EMBEDDING_FILES_FAILED
+    ] = AgentNotReadyIssueType.EMBEDDING_FILES_FAILED
+    file_ref: str
+
+
+AgentNotReadyIssues = Union[
+    ModelNotConfigured,
+    ActionServerNotConfigured,
+    EmbeddingFilePending,
+    EmbeddingFileInProgress,
+    EmbeddingFileFailed,
+]
+
+
+class AgentStatus(BaseModel):
+    ready: bool
+    issues: list[AgentNotReadyIssues]
 
 
 class AgentMode(str, Enum):
@@ -342,7 +413,6 @@ class BaseAgent(BaseModel):
     id: str = Field(description="The ID of the agent.")
     user_id: str = Field(description="The ID of the user that owns the agent.")
     public: bool = Field(description="Whether the agent is public.")
-    status: AgentStatus = Field(description="The status of the agent.")
     name: str = Field(description="The name of the agent.")
     description: str = Field(description="The description of the agent.")
     runbook: SecretStr = Field(description="The runbook for the agent.")
@@ -386,6 +456,17 @@ class Thread(BaseModel):
     metadata: Optional[dict] = Field(description="The thread metadata.")
 
 
+class EmbeddingStatus(str, Enum):
+    """
+    Enum for embedding status.
+    """
+
+    PENDING = "pending"
+    IN_PROGRESS = "in_progress"
+    SUCCESS = "success"
+    FAILURE = "failure"
+
+
 class UploadedFile(BaseModel):
     file_id: str
     """The ID of the file."""
@@ -398,6 +479,19 @@ class UploadedFile(BaseModel):
     embedded: bool
     """Whether the file is embedded."""
     file_path_expiration: Optional[datetime] = None
+    embedding_status: Optional[EmbeddingStatus]
+    """The embedding status of the file."""
+    file_path_expiration: Optional[datetime] = None
+    agent_id: Optional[str] = None
+    """The ID of the agent that uploaded the file."""
+    thread_id: Optional[str] = None
+    """The ID of the thread that uploaded the file."""
+
+
+class UploadFileRequest(BaseModel):
+    file: UploadFile
+    embedded: Optional[bool] = None
+    """If None, it will be inferred from file type."""
 
 
 class ChatRole(str, Enum):
