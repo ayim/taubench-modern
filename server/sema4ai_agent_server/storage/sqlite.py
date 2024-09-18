@@ -21,7 +21,7 @@ from sema4ai_agent_server.schema import (
     AgentArchitecture,
     AgentMetadata,
     AgentReasoning,
-    AgentStatus,
+    EmbeddingStatus,
     Thread,
     UploadedFile,
     User,
@@ -202,7 +202,6 @@ class SqliteStorage(BaseStorage):
         agent_id: str,
         *,
         public: bool,
-        status: AgentStatus,
         name: str,
         description: str,
         runbook: str,
@@ -228,13 +227,12 @@ class SqliteStorage(BaseStorage):
             try:
                 cursor.execute(
                     """
-                    INSERT INTO agent (id, user_id, public, status, name, description, runbook, version, model, architecture, reasoning, action_packages, updated_at, metadata)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO agent (id, user_id, public, name, description, runbook, version, model, architecture, reasoning, action_packages, updated_at, metadata)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(id) 
                     DO UPDATE SET 
                         user_id = EXCLUDED.user_id, 
                         public = EXCLUDED.public,
-                        status = EXCLUDED.status,
                         name = EXCLUDED.name, 
                         description = EXCLUDED.description,
                         runbook = EXCLUDED.runbook,
@@ -250,7 +248,6 @@ class SqliteStorage(BaseStorage):
                         agent_id,
                         user_id,
                         public,
-                        status,
                         name,
                         description,
                         runbook,
@@ -276,7 +273,6 @@ class SqliteStorage(BaseStorage):
                 id=agent_id,
                 user_id=user_id,
                 public=public,
-                status=status,
                 name=name,
                 description=description,
                 runbook=runbook,
@@ -288,18 +284,6 @@ class SqliteStorage(BaseStorage):
                 updated_at=updated_at,
                 metadata=metadata,
             )
-
-    async def update_agent_status(
-        self, user_id: str, agent_id: str, status: AgentStatus
-    ) -> None:
-        """Update the status of an agent."""
-        with self._connect() as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                "UPDATE agent SET status = ? WHERE id = ? AND user_id = ?",
-                (status, agent_id, user_id),
-            )
-            conn.commit()
 
     async def agent_count(self) -> int:
         """Get agent row count"""
@@ -574,6 +558,7 @@ class SqliteStorage(BaseStorage):
         file_ref: str,
         file_hash: str,
         embedded: bool,
+        embedding_status: Optional[EmbeddingStatus],
         owner: Union[Agent, Thread],
         file_path_expiration: Optional[datetime],
     ) -> UploadedFile:
@@ -587,16 +572,18 @@ class SqliteStorage(BaseStorage):
             cursor = conn.cursor()
             cursor.execute(
                 """
-                INSERT INTO file_owners (file_id, file_path, file_ref, file_hash, embedded, agent_id, thread_id, file_path_expiration)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO file_owners (file_id, file_path, file_ref, file_hash, embedded, embedding_status, agent_id, thread_id, file_path_expiration)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(file_id)
                 DO UPDATE SET 
                     file_id = EXCLUDED.file_id,
                     file_path = EXCLUDED.file_path,
                     file_hash = EXCLUDED.file_hash,
                     embedded = EXCLUDED.embedded,
+                    embedding_status = EXCLUDED.embedding_status,
                     agent_id = EXCLUDED.agent_id,
-                    thread_id = EXCLUDED.thread_id
+                    thread_id = EXCLUDED.thread_id,
+                    file_path_expiration = EXCLUDED.file_path_expiration
                 """,
                 (
                     file_id,
@@ -604,6 +591,7 @@ class SqliteStorage(BaseStorage):
                     file_ref,
                     file_hash,
                     embedded,
+                    embedding_status,
                     agent_id,
                     thread_id,
                     file_path_expiration,
@@ -616,6 +604,10 @@ class SqliteStorage(BaseStorage):
                 file_ref=file_ref,
                 file_hash=file_hash,
                 embedded=embedded,
+                embedding_status=embedding_status,
+                file_path_expiration=file_path_expiration,
+                agent_id=agent_id,
+                thread_id=thread_id,
             )
 
     async def delete_file(self, file_id: str) -> None:
@@ -646,6 +638,23 @@ class SqliteStorage(BaseStorage):
             conn.commit()
 
             return parse_obj_as(UploadedFile, row)
+
+    async def update_file_embedding_status(
+        self, file_id: str, *, embedding_status: EmbeddingStatus
+    ) -> None:
+        with self._connect() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                UPDATE file_owners
+                SET embedding_status = ? 
+                WHERE file_id = ?
+                """,
+                (embedding_status, file_id),
+            )
+            if cursor.rowcount == 0:
+                raise ValueError(f"File with id {file_id} not found")
+            conn.commit()
 
     async def create_async_run(self, run_id: str, status: str) -> None:
         with self._connect() as conn:
