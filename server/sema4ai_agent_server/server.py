@@ -6,6 +6,7 @@ from urllib.parse import urlparse, urlunparse
 import structlog
 from fastapi import FastAPI
 from fastapi.exceptions import HTTPException
+from fastapi.responses import ORJSONResponse
 
 from sema4ai_agent_server.api import router as api_router
 from sema4ai_agent_server.constants import UPLOAD_DIR
@@ -28,7 +29,12 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 DB_TYPE = os.environ.get("S4_AGENT_SERVER_DB_TYPE", "sqlite").lower()
 # Get root of app, used to point to directory containing static files
 ROOT = Path(__file__).parent.parent
-app = FastAPI(title="Sema4.ai Agent Server API", lifespan=lifespan, version=VERSION)
+app = FastAPI(
+    title="Sema4.ai Agent Server API",
+    lifespan=lifespan,
+    version=VERSION,
+    default_response_class=ORJSONResponse,  # Use more efficient JSON serialization
+)
 app.include_router(api_router)
 
 

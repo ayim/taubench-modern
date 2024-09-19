@@ -7,6 +7,7 @@ from langchain_core.messages import AIMessage, ToolCall, ToolMessage
 from pydantic import BaseModel
 
 from sema4ai_agent_server.auth.handlers import AuthedUser
+from sema4ai_agent_server.responses import PydanticResponse
 from sema4ai_agent_server.schema import UploadedFile
 from sema4ai_agent_server.storage.option import get_storage
 
@@ -19,8 +20,8 @@ class GetFilePayload(BaseModel):
     file_ref: str
 
 
-@router.post("/get-file")
-async def get_file(payload: GetFilePayload, user: AuthedUser) -> UploadedFile:
+@router.post("/get-file", response_model=UploadedFile, response_class=PydanticResponse)
+async def get_file(payload: GetFilePayload, user: AuthedUser):
     """Retrieve an UploadedFile object."""
     storage = get_storage()
 
@@ -45,7 +46,7 @@ async def get_file(payload: GetFilePayload, user: AuthedUser) -> UploadedFile:
     if not file:
         raise HTTPException(status_code=404, detail="File not found")
 
-    return file
+    return PydanticResponse(file)
 
 
 async def _add_uploaded_messages(

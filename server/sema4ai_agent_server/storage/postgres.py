@@ -1,19 +1,20 @@
-import json
 import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Union
 
 import asyncpg
-import orjson
 import structlog
 from langchain_core.messages import AnyMessage
-from pydantic import BaseModel, TypeAdapter, parse_obj_as
 
 from sema4ai_agent_server.agent import get_agent_executor, runnable_agent
 from sema4ai_agent_server.agent_types.constants import FINISH_NODE_KEY
 from sema4ai_agent_server.schema import (
+    AGENT_LIST_ADAPTER,
     MODEL,
+    RAW_CONTEXT,
+    THREAD_LIST_ADAPTER,
+    UPLOADED_FILE_LIST_ADAPTER,
     ActionPackage,
     Agent,
     AgentArchitecture,
@@ -28,27 +29,12 @@ from sema4ai_agent_server.schema import (
 from sema4ai_agent_server.storage import (
     BaseStorage,
     UniqueAgentNameError,
-    basemodel_secret_encoder_for_db,
 )
 
 logger = structlog.get_logger()
 
 
 UNIQUE_AGENT_NAME_CONSTRAINT_NAME = "idx_unique_agent_name"
-
-
-def _json_encoder(v):
-    if isinstance(v, BaseModel):
-        return v.json(encoder=basemodel_secret_encoder_for_db)
-    elif isinstance(v, list) and all(isinstance(i, BaseModel) for i in v):
-        return json.dumps(
-            [json.loads(i.json(encoder=basemodel_secret_encoder_for_db)) for i in v]
-        )
-    return orjson.dumps(v).decode()
-
-
-def _json_decoder(v):
-    return orjson.loads(v)
 
 
 class PostgresStorage(BaseStorage):
@@ -76,18 +62,6 @@ class PostgresStorage(BaseStorage):
 
     async def _init_connection(self, conn) -> None:
         await conn.set_type_codec(
-            "json",
-            encoder=_json_encoder,
-            decoder=_json_decoder,
-            schema="pg_catalog",
-        )
-        await conn.set_type_codec(
-            "jsonb",
-            encoder=_json_encoder,
-            decoder=_json_decoder,
-            schema="pg_catalog",
-        )
-        await conn.set_type_codec(
             "uuid", encoder=lambda v: str(v), decoder=lambda v: v, schema="pg_catalog"
         )
 
@@ -99,7 +73,7 @@ class PostgresStorage(BaseStorage):
     async def list_all_agents(self) -> List[Agent]:
         async with self.get_pool().acquire() as conn:
             agents = await conn.fetch("SELECT * FROM agent ")
-            return parse_obj_as(List[Agent], agents)
+            return AGENT_LIST_ADAPTER.validate_python(agents)
 
     async def agent_count(self) -> int:
         """Get agent row count"""
@@ -121,7 +95,7 @@ class PostgresStorage(BaseStorage):
                 "SELECT * FROM file_owners WHERE agent_id = $1",
                 agent_id,
             )
-            return parse_obj_as(List[UploadedFile], rows)
+            return UPLOADED_FILE_LIST_ADAPTER.validate_python(rows)
 
     async def get_thread_files(self, thread_id: str) -> list[UploadedFile]:
         """Get a list of files associated with a thread."""
@@ -132,7 +106,7 @@ class PostgresStorage(BaseStorage):
                 """,
                 thread_id,
             )
-            return parse_obj_as(List[UploadedFile], rows)
+            return UPLOADED_FILE_LIST_ADAPTER.validate_python(rows)
 
     async def get_file_by_id(self, file_id: str) -> Optional[UploadedFile]:
         """Get a file by id."""
@@ -144,7 +118,9 @@ class PostgresStorage(BaseStorage):
                 """,
                 file_id,
             )
-            return parse_obj_as(Optional[UploadedFile], row)
+            if not row:
+                return None
+            return UploadedFile.model_validate(row)
 
     async def get_file(
         self, owner: Union[Agent, Thread], file_ref: str
@@ -166,7 +142,9 @@ class PostgresStorage(BaseStorage):
                 file_ref,
                 value,
             )
-            return parse_obj_as(Optional[UploadedFile], row)
+            if not row:
+                return None
+            return UploadedFile.model_validate(row)
 
     async def put_file_owner(
         self,
@@ -185,12 +163,27 @@ class PostgresStorage(BaseStorage):
         else:
             agent_id = None
             thread_id = owner.thread_id
+        new_file = UploadedFile(
+            file_id=file_id,
+            file_path=file_path,
+            file_ref=file_ref,
+            file_hash=file_hash,
+            embedded=embedded,
+            embedding_status=embedding_status,
+            file_path_expiration=file_path_expiration,
+            agent_id=agent_id,
+            thread_id=thread_id,
+        )
         async with self.get_pool().acquire() as conn:
             await conn.execute(
                 """
-                INSERT INTO file_owners (file_id, file_path, file_ref, file_hash, embedded, embedding_status, agent_id, thread_id, file_path_expiration)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-                ON CONFLICT(file_id)
+                INSERT INTO file_owners (
+                    file_id, file_path, file_ref, file_hash, embedded, embedding_status, agent_id,
+                    thread_id, file_path_expiration
+                ) VALUES (
+                    $file_id, $file_path, $file_ref, $file_hash, $embedded, $embedding_status,
+                    $agent_id, $thread_id, $file_path_expiration
+                ) ON CONFLICT(file_id)
                 DO UPDATE SET 
                     file_id = EXCLUDED.file_id,
                     file_path = EXCLUDED.file_path,
@@ -201,27 +194,9 @@ class PostgresStorage(BaseStorage):
                     thread_id = EXCLUDED.thread_id,
                     file_path_expiration = EXCLUDED.file_path_expiration
                 """,
-                file_id,
-                file_path,
-                file_ref,
-                file_hash,
-                embedded,
-                embedding_status,
-                agent_id,
-                thread_id,
-                file_path_expiration,
+                **new_file.model_dump(mode="json"),
             )
-            return UploadedFile(
-                file_id=file_id,
-                file_path=file_path,
-                file_ref=file_ref,
-                file_hash=file_hash,
-                embedded=embedded,
-                embedding_status=embedding_status,
-                file_path_expiration=file_path_expiration,
-                agent_id=agent_id,
-                thread_id=thread_id,
-            )
+            return new_file
 
     async def delete_file(self, file_id: str) -> None:
         async with self.get_pool().acquire() as conn:
@@ -292,10 +267,10 @@ class PostgresStorage(BaseStorage):
     async def list_agents(self, user_id: str) -> List[Agent]:
         """List all agents for the current user."""
         async with self.get_pool().acquire() as conn:
-            agents = await conn.fetch(
+            rows = await conn.fetch(
                 "SELECT * FROM agent WHERE user_id = $1 OR public IS true", user_id
             )
-            return parse_obj_as(List[Agent], agents)
+            return AGENT_LIST_ADAPTER.validate_python(rows)
 
     async def get_agent(self, user_id: str, agent_id: str) -> Optional[Agent]:
         """Get an agent by ID."""
@@ -305,7 +280,7 @@ class PostgresStorage(BaseStorage):
                 agent_id,
                 user_id,
             )
-            return parse_obj_as(Optional[Agent], row)
+            return Agent.model_validate(row) if row else None
 
     async def put_agent(
         self,
@@ -325,47 +300,7 @@ class PostgresStorage(BaseStorage):
     ) -> Agent:
         """Modify an agent."""
         updated_at = datetime.now(timezone.utc)
-        conn = self.get_pool().acquire()
-        async with self.get_pool().acquire() as conn:
-            async with conn.transaction():
-                try:
-                    await conn.execute(
-                        (
-                            "INSERT INTO agent (id, user_id, public, name, description, runbook, version, model, architecture, reasoning, action_packages, updated_at, metadata) "
-                            "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) "
-                            "ON CONFLICT (id) DO UPDATE SET "
-                            "user_id = EXCLUDED.user_id, "
-                            "public = EXCLUDED.public, "
-                            "name = EXCLUDED.name, "
-                            "description = EXCLUDED.description, "
-                            "runbook = EXCLUDED.runbook, "
-                            "version = EXCLUDED.version, "
-                            "model = EXCLUDED.model, "
-                            "architecture = EXCLUDED.architecture, "
-                            "reasoning = EXCLUDED.reasoning, "
-                            "action_packages = EXCLUDED.action_packages, "
-                            "updated_at = EXCLUDED.updated_at, "
-                            "metadata = EXCLUDED.metadata;"
-                        ),
-                        agent_id,
-                        user_id,
-                        public,
-                        name,
-                        description,
-                        runbook,
-                        version,
-                        model,
-                        architecture,
-                        reasoning,
-                        action_packages,
-                        updated_at,
-                        metadata,
-                    )
-                except asyncpg.exceptions.UniqueViolationError as e:
-                    if UNIQUE_AGENT_NAME_CONSTRAINT_NAME in str(e):
-                        raise UniqueAgentNameError()
-                    raise e
-        return Agent(
+        new_agent = Agent(
             id=agent_id,
             user_id=user_id,
             public=public,
@@ -380,6 +315,38 @@ class PostgresStorage(BaseStorage):
             updated_at=updated_at,
             metadata=metadata,
         )
+        async with self.get_pool().acquire() as conn:
+            async with conn.transaction():
+                try:
+                    await conn.execute(
+                        """
+                        INSERT INTO agent (
+                            id, user_id, public, name, description, runbook, version, model, 
+                            architecture, reasoning, action_packages, updated_at, metadata
+                        ) VALUES (
+                            $id, $user_id, $public, $name, $description, $runbook, $version, $model,
+                            $architecture, $reasoning, $action_packages, $updated_at, $metadata
+                        ) ON CONFLICT (id) DO UPDATE SET
+                            user_id = EXCLUDED.user_id,
+                            public = EXCLUDED.public,
+                            name = EXCLUDED.name,
+                            description = EXCLUDED.description,
+                            runbook = EXCLUDED.runbook,
+                            version = EXCLUDED.version,
+                            model = EXCLUDED.model,
+                            architecture = EXCLUDED.architecture,
+                            reasoning = EXCLUDED.reasoning,
+                            action_packages = EXCLUDED.action_packages,
+                            updated_at = EXCLUDED.updated_at,
+                            metadata = EXCLUDED.metadata;
+                        """,
+                        **new_agent.model_dump(mode="json", context=RAW_CONTEXT),
+                    )
+                except asyncpg.exceptions.UniqueViolationError as e:
+                    if UNIQUE_AGENT_NAME_CONSTRAINT_NAME in str(e):
+                        raise UniqueAgentNameError()
+                    raise e
+        return new_agent
 
     async def delete_agent(self, user_id: str, agent_id: str) -> None:
         """Delete an agent by ID."""
@@ -393,7 +360,7 @@ class PostgresStorage(BaseStorage):
     async def list_threads(self, user_id: str) -> List[Thread]:
         """List all threads for the current user and system threads."""
         async with self.get_pool().acquire() as conn:
-            threads = await conn.fetch(
+            rows = await conn.fetch(
                 """
                 SELECT t.* 
                 FROM thread t
@@ -402,12 +369,12 @@ class PostgresStorage(BaseStorage):
                 """,
                 user_id,
             )
-            return parse_obj_as(List[Thread], threads)
+            return THREAD_LIST_ADAPTER.validate_python(rows)
 
     async def get_thread(self, user_id: str, thread_id: str) -> Optional[Thread]:
         """Get a thread by ID, including system threads."""
         async with self.get_pool().acquire() as conn:
-            thread = await conn.fetchrow(
+            row = await conn.fetchrow(
                 """
                 SELECT t.* 
                 FROM thread t
@@ -417,7 +384,7 @@ class PostgresStorage(BaseStorage):
                 thread_id,
                 user_id,
             )
-            return parse_obj_as(Optional[Thread], thread)
+            return Thread.model_validate(row) if row else None
 
     async def get_thread_state(self, thread_id: str):
         """Get state for a thread."""
@@ -472,32 +439,31 @@ class PostgresStorage(BaseStorage):
     ) -> Thread:
         """Modify a thread."""
         updated_at = datetime.now(timezone.utc)
+        new_thread = Thread(
+            thread_id=thread_id,
+            user_id=user_id,
+            agent_id=agent_id,
+            name=name,
+            updated_at=updated_at,
+            metadata=metadata,
+        )
         async with self.get_pool().acquire() as conn:
             await conn.execute(
-                (
-                    "INSERT INTO thread (thread_id, user_id, agent_id, name, updated_at, metadata) VALUES ($1, $2, $3, $4, $5, $6) "
-                    "ON CONFLICT (thread_id) DO UPDATE SET "
-                    "user_id = EXCLUDED.user_id,"
-                    "agent_id = EXCLUDED.agent_id, "
-                    "name = EXCLUDED.name, "
-                    "updated_at = EXCLUDED.updated_at, "
-                    "metadata = EXCLUDED.metadata;"
-                ),
-                thread_id,
-                user_id,
-                agent_id,
-                name,
-                updated_at,
-                metadata,
+                """
+                INSERT INTO thread (
+                    thread_id, user_id, agent_id, name, updated_at, metadata
+                ) VALUES (
+                    $thread_id, $user_id, $agent_id, $name, $updated_at, $metadata
+                ) ON CONFLICT (thread_id) DO UPDATE SET
+                    user_id = EXCLUDED.user_id,
+                    agent_id = EXCLUDED.agent_id,
+                    name = EXCLUDED.name,
+                    updated_at = EXCLUDED.updated_at,
+                    metadata = EXCLUDED.metadata;
+                """,
+                **new_thread.model_dump(mode="json"),
             )
-            return Thread(
-                thread_id=thread_id,
-                user_id=user_id,
-                agent_id=agent_id,
-                name=name,
-                updated_at=updated_at,
-                metadata=metadata,
-            )
+            return new_thread
 
     async def delete_thread(self, user_id: str, thread_id: str):
         """Delete a thread by ID, including system threads."""
@@ -521,12 +487,12 @@ class PostgresStorage(BaseStorage):
     async def get_or_create_user(self, sub: str) -> tuple[User, bool]:
         """Returns a tuple of the user and a boolean indicating whether the user was created."""
         async with self.get_pool().acquire() as conn:
-            if user := await conn.fetchrow('SELECT * FROM "user" WHERE sub = $1', sub):
-                return parse_obj_as(User, user), False
-            user = await conn.fetchrow(
+            if row := await conn.fetchrow('SELECT * FROM "user" WHERE sub = $1', sub):
+                return User.model_validate(row), False
+            row = await conn.fetchrow(
                 'INSERT INTO "user" (sub) VALUES ($1) RETURNING *', sub
             )
-            return parse_obj_as(User, user), True
+            return User.model_validate(row), True
 
     async def update_file_retrieve_information(
         self, file_id: str, *, file_path: str, file_path_expiration: datetime
@@ -545,7 +511,7 @@ class PostgresStorage(BaseStorage):
             )
             if not row:
                 raise ValueError(f"File with id {file_id} not found")
-            return parse_obj_as(UploadedFile, row)
+            return UploadedFile.model_validate(row)
 
     async def update_file_embedding_status(
         self, file_id: str, *, embedding_status: EmbeddingStatus

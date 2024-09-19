@@ -121,6 +121,8 @@ async def stream_run(
     user: AuthedUser,
 ) -> EventSourceResponse:
     """Create a run."""
+    # TODO: Performance gains may be possible as part of implementing stream protocol v2.
+    #       We should consider using StreamingResponse based on performance tests.
     input_, config, thread, agent = await _run_input_and_config(payload, user.user_id)
     if langsmith_client:
         if url := get_langsmith_thread_url(langsmith_client, thread.thread_id):

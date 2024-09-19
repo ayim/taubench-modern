@@ -15,6 +15,7 @@ from sema4ai_agent_server.constants import DOMAIN_DATABASE_PATH
 from sema4ai_agent_server.schema import (
     AGENT_LIST_ADAPTER,
     MODEL,
+    RAW_CONTEXT,
     THREAD_LIST_ADAPTER,
     UPLOADED_FILE_LIST_ADAPTER,
     ActionPackage,
@@ -152,9 +153,7 @@ class SqliteStorage(BaseStorage):
                 (agent_id, user_id),
             )
             row = cursor.fetchone()
-            if not row:
-                return None
-            return Agent.validate_model(dict(row))
+            return Agent.validate_model(dict(row)) if row else None
 
     async def put_agent(
         self,
@@ -212,7 +211,7 @@ class SqliteStorage(BaseStorage):
                         updated_at = EXCLUDED.updated_at, 
                         metadata = EXCLUDED.metadata
                     """,
-                    new_agent.model_dump(mode="json", context="raw"),
+                    new_agent.model_dump(mode="json", context=RAW_CONTEXT),
                 )
                 conn.commit()
             except sqlite3.IntegrityError as e:
@@ -265,9 +264,7 @@ class SqliteStorage(BaseStorage):
                 (thread_id, user_id),
             )
             row = cursor.fetchone()
-            if not row:
-                return None
-            return Thread.model_validate(dict(row))
+            return Thread.model_validate(dict(row)) if row else None
 
     async def thread_count(self) -> int:
         """Get thread row count."""
@@ -450,9 +447,7 @@ class SqliteStorage(BaseStorage):
                 (file_id,),
             )
             row = cursor.fetchone()
-            if not row:
-                return None
-            return UploadedFile.model_validate(dict(row))
+            return UploadedFile.model_validate(dict(row)) if row else None
 
     async def get_file(
         self, owner: Union[Agent, Thread], file_ref: str
@@ -475,9 +470,7 @@ class SqliteStorage(BaseStorage):
                 (file_ref, value),
             )
             row = cursor.fetchone()
-            if not row:
-                return None
-            return UploadedFile.model_validate(dict(row))
+            return UploadedFile.model_validate(dict(row)) if row else None
 
     async def put_file_owner(
         self,
@@ -567,9 +560,7 @@ class SqliteStorage(BaseStorage):
             row = cursor.fetchone()
             conn.commit()
 
-            if not row:
-                return None
-            return UploadedFile.model_validate(dict(row))
+            return UploadedFile.model_validate(dict(row)) if row else None
 
     async def update_file_embedding_status(
         self, file_id: str, *, embedding_status: EmbeddingStatus
@@ -612,6 +603,4 @@ class SqliteStorage(BaseStorage):
             cursor = conn.cursor()
             cursor.execute("SELECT status FROM async_runs WHERE id = ? ", (run_id,))
             row = cursor.fetchone()
-            if not row:
-                return None
-            return row["status"]
+            return row["status"] if row else None

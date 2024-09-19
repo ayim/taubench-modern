@@ -1,13 +1,13 @@
 import os
 import shutil
 import tempfile
-from typing import Annotated, List, Optional
+from typing import Annotated, List, Optional, Self
 from uuid import uuid4
 
 import structlog
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Path, UploadFile
 from langchain_core.messages import HumanMessage
-from pydantic import BaseModel, Field, SecretStr, root_validator
+from pydantic import BaseModel, Field, SecretStr, model_validator, root_validator
 
 from sema4ai_agent_server.agent import runnable_agent
 from sema4ai_agent_server.agent_spec import (
@@ -23,8 +23,12 @@ from sema4ai_agent_server.agent_spec import (
 from sema4ai_agent_server.auth.handlers import AuthedUser
 from sema4ai_agent_server.file_manager.base import BaseFileManager
 from sema4ai_agent_server.file_manager.option import get_file_manager
+from sema4ai_agent_server.responses import PydanticResponse, TypeAdapterResponse
 from sema4ai_agent_server.schema import (
+    AGENT_LIST_ADAPTER,
     MODEL,
+    RAW_CONTEXT,
+    UPLOADED_FILE_LIST_ADAPTER,
     ActionPackage,
     ActionServerNotConfigured,
     Agent,
@@ -91,15 +95,15 @@ class AgentPayloadPackage(BaseModel):
         ..., description="Action Server configurations."
     )
 
-    @root_validator
-    def validate_package_source(cls, values):
-        url = values.get("agent_package_url")
-        base64 = values.get("agent_package_base64")
+    @model_validator(mode="after")
+    def validate_package_source(self) -> Self:
+        url = self.agent_package_url
+        base64 = self.agent_package_base64
         if (url is None) == (base64 is None):
             raise ValueError(
                 "Exactly one of agent_package_url or agent_package_base64 must be provided"
             )
-        return values
+        return self
 
 
 AgentID = Annotated[str, Path(description="The ID of the agent.")]
@@ -134,47 +138,44 @@ async def _generate_welcome_message(user_id: str, model: MODEL) -> Optional[str]
     return welcome_message
 
 
-@router.get("/")
-async def list_agents(user: AuthedUser) -> List[Agent]:
+@router.get("/", response_model=List[Agent], response_class=TypeAdapterResponse)
+async def list_agents(user: AuthedUser):
     """List all agents for the current user."""
     agents = await get_storage().list_agents(user.user_id)
-    return agents
+    return TypeAdapterResponse(agents, adapter=AGENT_LIST_ADAPTER)
 
 
-@router.get("/raw")
-async def list_raw_agents(user: AuthedUser) -> List[Agent]:
+@router.get("/raw", response_model=List[Agent], response_class=TypeAdapterResponse)
+async def list_raw_agents(user: AuthedUser):
     """List all agents for the current user."""
     agents = await get_storage().list_agents(user.user_id)
-    # TODO: How to get fastapi to utilize the "raw" context when serializing?
-    return [agent.raw() for agent in agents]
+    return TypeAdapterResponse(
+        agents, adapter=AGENT_LIST_ADAPTER, ser_context=RAW_CONTEXT
+    )
 
 
-@router.get("/{aid}")
-async def get_agent(
-    user: AuthedUser,
-    aid: AgentID,
-) -> Agent:
+@router.get("/{aid}", response_model=Agent, response_class=PydanticResponse)
+async def get_agent(user: AuthedUser, aid: AgentID):
     """Get an agent by ID."""
     agent = await get_storage().get_agent(user.user_id, aid)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
-    return agent
+    return PydanticResponse(agent)
 
 
-@router.get("/{aid}/raw")
-async def get_raw_agent(
-    user: AuthedUser,
-    aid: AgentID,
-) -> RawAgent:
+@router.get("/{aid}/raw", response_model=Agent, response_class=PydanticResponse)
+async def get_raw_agent(user: AuthedUser, aid: AgentID):
     """Get an agent by ID (sensitive data is masked)."""
     agent = await get_storage().get_agent(user.user_id, aid)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
-    return agent.raw()
+    return PydanticResponse(agent, ser_context=RAW_CONTEXT)
 
 
-@router.get("/{aid}/status")
-async def get_agent_status(user: AuthedUser, aid: AgentID) -> AgentStatus:
+@router.get(
+    "/{aid}/status", response_model=AgentStatus, response_class=PydanticResponse
+)
+async def get_agent_status(user: AuthedUser, aid: AgentID):
     agent = await get_storage().get_agent(user.user_id, aid)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
@@ -208,16 +209,16 @@ async def get_agent_status(user: AuthedUser, aid: AgentID) -> AgentStatus:
         elif file.embedding_status == EmbeddingStatus.FAILURE:
             issues.append(EmbeddingFileFailed(file_ref=file.file_ref))
 
-    return AgentStatus(ready=len(issues) == 0, issues=issues)
+    return PydanticResponse(AgentStatus(ready=len(issues) == 0, issues=issues))
 
 
-@router.put("/package/{aid}")
+@router.put("/package/{aid}", response_model=Agent, response_class=PydanticResponse)
 async def upsert_agent_via_package(
     user: AuthedUser,
     aid: AgentID,
     payload: AgentPayloadPackage,
     background_tasks: BackgroundTasks,
-) -> Agent:
+):
     root_dir = tempfile.mkdtemp()
 
     agent = await get_storage().get_agent(user.user_id, aid)
@@ -272,7 +273,7 @@ async def upsert_agent_via_package(
         background_tasks.add_task(
             file_manager.create_missing_embeddings, agent.model, agent
         )
-        return agent
+        return PydanticResponse(agent)
 
     except Exception as e:
         logger.exception("Failed to update agent via package", exception=e)
@@ -283,12 +284,12 @@ async def upsert_agent_via_package(
         shutil.rmtree(root_dir)
 
 
-@router.post("/package")
+@router.post("/package", response_model=Agent, response_class=PydanticResponse)
 async def create_agent_via_package(
     user: AuthedUser,
     payload: AgentPayloadPackage,
     background_tasks: BackgroundTasks,
-) -> Agent:
+):
     root_dir = tempfile.mkdtemp()
 
     try:
@@ -338,7 +339,7 @@ async def create_agent_via_package(
         background_tasks.add_task(
             file_manager.create_missing_embeddings, agent.model, agent
         )
-        return agent
+        return PydanticResponse(agent)
 
     except Exception as e:
         logger.exception("Failed to create agent via package", exception=e)
@@ -427,11 +428,11 @@ def get_files_to_upload_and_delete(
     return files_to_upload, files_to_delete
 
 
-@router.post("")
+@router.post("", response_model=Agent, response_class=PydanticResponse)
 async def create_agent(
     user: AuthedUser,
     payload: AgentPayload,
-) -> RawAgent:
+):
     """Create an agent."""
     model_is_configured, _ = payload.model.config.is_configured()
     if model_is_configured:
@@ -453,15 +454,15 @@ async def create_agent(
         action_packages=payload.action_packages,
         metadata=payload.metadata,
     )
-    return agent.raw()
+    return PydanticResponse(agent, ser_context=RAW_CONTEXT)
 
 
-@router.put("/{aid}")
+@router.put("/{aid}", response_model=Agent, response_class=PydanticResponse)
 async def upsert_agent(
     user: AuthedUser,
     aid: AgentID,
     payload: AgentPayload,
-) -> RawAgent:
+):
     """Create or update an agent."""
     agent = await get_storage().get_agent(user.user_id, aid)
     if not agent:
@@ -487,7 +488,7 @@ async def upsert_agent(
         action_packages=payload.action_packages,
         metadata=payload.metadata,
     )
-    return agent.raw()
+    return PydanticResponse(agent, ser_context=RAW_CONTEXT)
 
 
 @router.delete("/{aid}")
@@ -509,25 +510,34 @@ async def delete_agent(
     return {"deleted": agent}
 
 
-@router.get("/{aid}/files")
+@router.get(
+    "/{aid}/files",
+    response_model=List[UploadedFile],
+    response_class=TypeAdapterResponse,
+)
 async def get_agent_files(
     user: AuthedUser,
     aid: AgentID,
-) -> List[UploadedFile]:
+):
     """Get an list of files associated with an agent."""
     agent = await get_storage().get_agent(user.user_id, aid)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
-    return await get_storage().get_agent_files(aid)
+    agent_files = await get_storage().get_agent_files(aid)
+    return TypeAdapterResponse(agent_files, adapter=UPLOADED_FILE_LIST_ADAPTER)
 
 
-@router.post("/{aid}/files")
+@router.post(
+    "/{aid}/files",
+    response_model=List[UploadedFile],
+    response_class=TypeAdapterResponse,
+)
 async def upload_agent_files(
     files: list[UploadFile],
     user: AuthedUser,
     aid: AgentID,
     background_tasks: BackgroundTasks,
-) -> List[UploadedFile]:
+):
     """Upload files to the given agent."""
 
     agent = await get_storage().get_agent(user.user_id, aid)
@@ -546,4 +556,4 @@ async def upload_agent_files(
     background_tasks.add_task(
         file_manager.create_missing_embeddings, agent.model, agent
     )
-    return stored_files
+    return TypeAdapterResponse(stored_files, adapter=UPLOADED_FILE_LIST_ADAPTER)

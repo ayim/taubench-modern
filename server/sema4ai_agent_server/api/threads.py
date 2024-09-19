@@ -12,7 +12,14 @@ from sema4ai_agent_server.api.files import _add_uploaded_messages
 from sema4ai_agent_server.auth.handlers import AuthedUser
 from sema4ai_agent_server.file_manager.option import get_file_manager
 from sema4ai_agent_server.otel import otel_is_enabled
-from sema4ai_agent_server.schema import Thread, UploadedFile, UploadFileRequest
+from sema4ai_agent_server.responses import PydanticResponse, TypeAdapterResponse
+from sema4ai_agent_server.schema import (
+    THREAD_LIST_ADAPTER,
+    UPLOADED_FILE_LIST_ADAPTER,
+    Thread,
+    UploadedFile,
+    UploadFileRequest,
+)
 from sema4ai_agent_server.storage.option import get_storage
 
 logger = structlog.get_logger(__name__)
@@ -52,11 +59,11 @@ class ThreadStatePostRequest(BaseModel):
     values: Union[Sequence[AnyMessage], Dict[str, Any]]
 
 
-@router.get("/")
-async def list_threads(user: AuthedUser) -> List[Thread]:
+@router.get("/", response_model=List[Thread], response_class=TypeAdapterResponse)
+async def list_threads(user: AuthedUser):
     """List all threads for the current user."""
     threads = await get_storage().list_threads(user.user_id)
-    return threads
+    return TypeAdapterResponse(threads, adapter=THREAD_LIST_ADAPTER)
 
 
 @router.get("/{tid}/state")
@@ -99,23 +106,23 @@ async def get_thread_history(
     return history
 
 
-@router.get("/{tid}")
+@router.get("/{tid}", response_model=Thread, response_class=PydanticResponse)
 async def get_thread(
     user: AuthedUser,
     tid: ThreadID,
-) -> Thread:
+):
     """Get a thread by ID."""
     thread = await get_storage().get_thread(user.user_id, tid)
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
-    return thread
+    return PydanticResponse(thread)
 
 
-@router.post("")
+@router.post("", resposne_model=Thread, response_class=PydanticResponse)
 async def create_thread(
     user: AuthedUser,
     payload: ThreadPostRequest,
-) -> Thread:
+):
     """Create a thread."""
     # Check if user has access to the agent
     agent = await get_storage().get_agent(user.user_id, payload.agent_id)
@@ -146,15 +153,15 @@ async def create_thread(
             },
         )
 
-    return thread
+    return PydanticResponse(thread)
 
 
-@router.put("/{tid}")
+@router.put("/{tid}", response_model=Thread, response_class=PydanticResponse)
 async def upsert_thread(
     user: AuthedUser,
     tid: ThreadID,
     payload: ThreadPutRequest,
-) -> Thread:
+):
     """Update a thread."""
     # Check if user has access to the agent
     agent = await get_storage().get_agent(user.user_id, payload.agent_id)
@@ -163,13 +170,14 @@ async def upsert_thread(
     thread = await get_storage().get_thread(user.user_id, tid)
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
-    return await get_storage().put_thread(
+    thread = await get_storage().put_thread(
         user.user_id,
         tid,
         agent_id=payload.agent_id,
         name=payload.name,
         metadata=thread.metadata,
     )
+    return PydanticResponse(thread)
 
 
 @router.delete("/{tid}")
@@ -191,25 +199,34 @@ async def delete_thread(
     return {"status": "ok"}
 
 
-@router.get("/{tid}/files")
+@router.get(
+    "/{tid}/files",
+    response_model=List[UploadedFile],
+    response_class=TypeAdapterResponse,
+)
 async def get_thread_files(
     user: AuthedUser,
     tid: ThreadID,
-) -> List[UploadedFile]:
+):
     """Get a list of files associated with a thread."""
     thread = await get_storage().get_thread(user.user_id, tid)
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
-    return await get_storage().get_thread_files(tid)
+    thread_files = await get_storage().get_thread_files(tid)
+    return TypeAdapterResponse(thread_files, adapter=UPLOADED_FILE_LIST_ADAPTER)
 
 
-@router.post("/{tid}/files")
+@router.post(
+    "/{tid}/files",
+    response_model=List[UploadedFile],
+    response_class=TypeAdapterResponse,
+)
 async def upload_thread_files(
     files: list[UploadFile],
     user: AuthedUser,
     tid: ThreadID,
     background_tasks: BackgroundTasks,
-) -> List[UploadedFile]:
+):
     """Upload files to the given agent."""
 
     thread = await get_storage().get_thread(user.user_id, tid)
@@ -234,4 +251,4 @@ async def upload_thread_files(
     background_tasks.add_task(
         file_manager.create_missing_embeddings, agent.model, thread
     )
-    return stored_files
+    return TypeAdapterResponse(stored_files, adapter=UPLOADED_FILE_LIST_ADAPTER)

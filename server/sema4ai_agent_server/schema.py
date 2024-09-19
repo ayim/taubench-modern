@@ -28,11 +28,14 @@ DICT_ADAPTER = TypeAdapter(dict)
 def ser_secret_str(
     value: SecretStr, nxt: SerializerFunctionWrapHandler, info: SerializationInfo
 ) -> str:
-    """Serializer function which unmasks secret strings if the context is 'raw'."""
-    if str(info.context) == "raw":
+    """Serializer function which unmasks secret strings if the context's "raw"
+    key is set to True."""
+    if info.context.get("raw", False):
         value = value.get_secret_value()
     return nxt(value)
 
+
+RAW_CONTEXT = {"raw": True}
 
 SerializableSecretStr = Annotated[SecretStr, WrapSerializer(ser_secret_str)]
 
