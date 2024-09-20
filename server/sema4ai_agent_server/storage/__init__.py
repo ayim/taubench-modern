@@ -68,6 +68,7 @@ class BaseStorage(ABC):
         user_id: str,
         agent_id: str,
         *,
+        public: bool,
         name: str,
         description: str,
         runbook: str,

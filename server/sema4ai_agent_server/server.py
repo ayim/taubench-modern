@@ -1,11 +1,9 @@
 import argparse
 import os
 from pathlib import Path
-from urllib.parse import urlparse, urlunparse
 
 import structlog
 from fastapi import FastAPI
-from fastapi.exceptions import HTTPException
 
 from sema4ai_agent_server.api import router as api_router
 from sema4ai_agent_server.constants import UPLOAD_DIR
@@ -43,64 +41,6 @@ async def metrics() -> dict:
         "agentCount": await get_storage().agent_count(),
         "threadCount": await get_storage().thread_count(),
     }
-
-
-@app.post("/api/v1/update-action-server-ports")
-async def update_action_server_ports(port_map: dict[str, str]) -> dict:
-    logger.info(f"Updating action server ports: {port_map}")
-    if not port_map:
-        logger.error("Port map not provided.")
-        raise HTTPException(status_code=400, detail="Port map not provided.")
-
-    agents = await get_storage().list_all_agents()
-    updated_agents = []
-
-    for agent in agents:
-        updated = False
-        for action_package in agent.action_packages:
-            parts = urlparse(action_package.url)
-
-            if parts.port is None or str(parts.port) not in port_map:
-                continue
-
-            new_url = urlunparse(
-                (
-                    parts.scheme,
-                    f"{parts.hostname}:{port_map[str(parts.port)]}",
-                    parts.path,
-                    parts.params,
-                    parts.query,
-                    parts.fragment,
-                )
-            )
-            action_package.url = new_url
-            updated = True
-            logger.info(
-                f"Updated tool URL from {action_package.url} to {new_url} for {agent.name}."
-            )
-
-        if updated:
-            updated_agents.append(agent)
-
-    for agent in updated_agents:
-        await get_storage().put_agent(
-            user_id=agent.user_id,
-            agent_id=agent.id,
-            public=agent.public,
-            status=agent.status,
-            name=agent.name,
-            description=agent.description,
-            runbook=agent.runbook.get_secret_value(),
-            version=agent.version,
-            model=agent.model,
-            architecture=agent.architecture,
-            reasoning=agent.reasoning,
-            action_packages=agent.action_packages,
-            metadata=agent.metadata,
-        )
-
-    logger.info(f"Ports updated for {len(updated_agents)} agents.")
-    return {"status": "ok"}
 
 
 def main():
