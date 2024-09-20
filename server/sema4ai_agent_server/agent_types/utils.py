@@ -8,8 +8,9 @@ valid but for some reason throws an error in their implementation.
 Other tools like the `pydantic_output_parser` method are available in this module.
 """
 
-from typing import Any, Callable, Literal, Sequence, TypeVar
+from typing import Any, Callable, Literal, Sequence, Type, TypeVar
 
+from deprecated import deprecated
 from langchain_anthropic import ChatAnthropic
 from langchain_anthropic.chat_models import convert_to_anthropic_tool
 from langchain_anthropic.output_parsers import ToolsOutputParser
@@ -32,16 +33,23 @@ AGENT_TYPES = (AzureChatOpenAI, ChatOpenAI, ChatAnthropic, ChatVertexAI)
 
 def bind_tools_to_open_ai(
     llm: ChatOpenAI | AzureChatOpenAI,
-    tools: Sequence[dict[str, Any] | type[BaseModel] | Callable | BaseTool],
+    tools: Sequence[dict[str, Any] | type[BaseModel] | Type | Callable | BaseTool],
     *,
-    tool_choice: dict | str | Literal["auto", "none"] | bool | None = None,
+    tool_choice: dict
+    | str
+    | Literal["auto", "none", "required", "any"]
+    | bool
+    | None = None,
+    strict: bool | None = None,
     **kwargs: Any,
 ) -> Runnable[LanguageModelInput, BaseMessage]:
     """Bind tool-like objects to this chat model.
 
     Assumes model is compatible with OpenAI tool-calling API.
 
-    Allows tool choices while binding additional tools to the model.
+    Duplicate of the `bind_tools` method for both OpenAI and AzuerChatOpenAI
+    because the LangChain implementation of `bind_tools` for AzureChatOpenAI
+    has not been updated to allow for `tool_choice="required"` or `tool_choice="any"`.
 
     Args:
         tools: A list of tool definitions to bind to this chat model.
@@ -57,26 +65,31 @@ def bind_tools_to_open_ai(
             :class:`~langchain.runnable.Runnable` constructor.
     """
 
-    formatted_tools = [convert_to_openai_tool(tool) for tool in tools]
-    if tool_choice is not None and tool_choice:
+    formatted_tools = [convert_to_openai_tool(tool, strict=strict) for tool in tools]
+    if tool_choice:
         if isinstance(tool_choice, str):
-            if tool_choice not in ("auto", "none"):
+            # tool_choice is a tool/function name
+            if tool_choice not in ("auto", "none", "any", "required"):
                 tool_choice = {
                     "type": "function",
                     "function": {"name": tool_choice},
                 }
+            # 'any' is not natively supported by OpenAI API.
+            # We support 'any' since other models use this instead of 'required'.
+            if tool_choice == "any":
+                tool_choice = "required"
         elif isinstance(tool_choice, bool):
-            tool_choice = {
-                "type": "function",
-                "function": {"name": formatted_tools[0]["function"]["name"]},
-            }
+            tool_choice = "required"
         elif isinstance(tool_choice, dict):
-            if tool_choice["function"]["name"] not in [
-                tool["function"]["name"] for tool in formatted_tools
-            ]:
+            tool_names = [
+                formatted_tool["function"]["name"] for formatted_tool in formatted_tools
+            ]
+            if not any(
+                tool_name == tool_choice["function"]["name"] for tool_name in tool_names
+            ):
                 raise ValueError(
                     f"Tool choice {tool_choice} was specified, but the only "
-                    f"provided tools were {[tool['function']['name'] for tool in formatted_tools]}."
+                    f"provided tools were {tool_names}."
                 )
         else:
             raise ValueError(
@@ -87,6 +100,7 @@ def bind_tools_to_open_ai(
     return llm.bind(tools=formatted_tools, **kwargs)
 
 
+@deprecated
 def bind_tools_to_anthropic(
     llm: ChatAnthropic,
     tools: Sequence[dict[str, Any] | type[BaseModel] | Callable | BaseTool],
@@ -94,9 +108,12 @@ def bind_tools_to_anthropic(
     tool_choice: dict | str | Literal["auto", "none"] | bool | None = None,
     **kwargs: Any,
 ) -> Runnable[LanguageModelInput, BaseMessage]:
-    """Bind tool-like objects to this chat model.
+    """**Deprecated in favor of direct usage of `bind_tools` method.**
+
+    Bind tool-like objects to this chat model.
 
     Allows tool choices while binding additional tools to the model.
+
 
     Args:
         tools: A list of tool definitions to bind to this chat model.
@@ -134,34 +151,10 @@ def bind_tools_to_anthropic(
             #     id='run-87b1331e-9251-4a68-acef-f0a018b639cc-0'
             # )
     """  # noqa: E501
-    formatted_tools = [convert_to_anthropic_tool(tool) for tool in tools]
-    if tool_choice is not None and tool_choice:
-        if isinstance(tool_choice, str):
-            if tool_choice not in ("auto", "none"):
-                tool_choice = {
-                    "type": "tool",
-                    "name": tool_choice,
-                }
-        elif isinstance(tool_choice, bool):
-            tool_choice = {
-                "type": "tool",
-                "name": formatted_tools[0]["name"],
-            }
-        elif isinstance(tool_choice, dict):
-            if tool_choice["name"] not in [tool["name"] for tool in formatted_tools]:
-                raise ValueError(
-                    f"Tool choice {tool_choice} was specified, but the only "
-                    f"provided tools were {[tool['name'] for tool in formatted_tools]}."
-                )
-        else:
-            raise ValueError(
-                f"Unrecognized tool_choice type. Expected str, bool or dict. "
-                f"Received: {tool_choice}"
-            )
-        kwargs["tool_choice"] = tool_choice
-    return llm.bind(tools=formatted_tools, **kwargs)
+    return llm.bind_tools(tools, tool_choice=tool_choice, **kwargs)
 
 
+@deprecated
 def bind_tools_to_vertex(
     llm: ChatVertexAI,
     tools: Sequence[dict[str, Any] | type[BaseModel] | Callable | BaseTool],
@@ -169,7 +162,10 @@ def bind_tools_to_vertex(
     tool_choice: dict | str | Literal["auto", "none"] | bool | None = None,
     **kwargs: Any,
 ) -> Runnable[LanguageModelInput, BaseMessage]:
-    """Bind tool-like objects to this chat model.
+    """**Deprecated in favor of direct usage of `bind_tools` method, which
+    includes support for ToolConfig objects.**
+
+    Bind tool-like objects to this chat model.
 
     Assumes model is compatible with Vertex tool-calling API. Allows tool choices
     while binding additional tools to the model.
@@ -186,65 +182,31 @@ def bind_tools_to_vertex(
         **kwargs: Any additional parameters to pass to the
             :class:`~langchain.runnable.Runnable` constructor.
     """
-    formatted_tools = []
-    for schema in tools:
-        if isinstance(schema, BaseTool) or (
-            isinstance(schema, type) and issubclass(schema, BaseModel)
-        ):
-            formatted_tools.append(schema)
-        elif callable(schema):
-            formatted_tools.append(tool_from_callable(schema))  # type: ignore
-        else:
-            raise ValueError("Tool must be a BaseTool, Pydantic model, or callable.")
 
-    if tool_choice is not None and tool_choice and llm._is_gemini_advanced:
-        if isinstance(tool_choice, (str, list)):
-            if tool_choice not in ("auto", "none"):
-                if isinstance(tool_choice, str):
-                    tool_choice = [tool_choice]
-                tool_config = {
-                    "function_calling_config": {
-                        "mode": ToolConfig.FunctionCallingConfig.Mode.ANY,
-                        "allowed_function_names": tool_choice,
-                    }
-                }
-        elif isinstance(tool_choice, bool):
-            try:
-                name = formatted_tools[0]["name"]
-            except (KeyError, TypeError):
-                try:
-                    name = formatted_tools[0].name
-                except AttributeError:
-                    name = formatted_tools[0].__name__
-            tool_config = {
-                "function_calling_config": {
-                    "mode": ToolConfig.FunctionCallingConfig.Mode.ANY,
-                    "allowed_function_names": [name],
-                }
-            }
-        else:
-            raise ValueError(
-                f"Unrecognized tool_choice type. Expected str or bool. "
-                f"Received: {tool_choice}"
-            )
-        kwargs["tool_config"] = tool_config
-
-    return llm.bind(functions=formatted_tools, **kwargs)
+    return llm.bind_tools(tools, tool_choice=tool_choice, **kwargs)
 
 
 def bind_tools(
     llm: BaseChatModel,
-    tools: Sequence[dict[str, Any] | type[BaseModel] | Callable | BaseTool],
+    tools: Sequence[dict[str, Any] | type[BaseModel] | Type | Callable | BaseTool],
     *,
-    tool_choice: dict | str | Literal["auto", "none"] | bool | None = None,
+    tool_choice: dict
+    | str
+    | Literal["auto", "none", "required", "any"]
+    | bool
+    | None = None,
     **kwargs: Any,
 ) -> Runnable[LanguageModelInput, BaseMessage]:
+    """Convenience method to bind tools to a chat model.
+
+    For Vertex models, you may want to bind directly if using ToolConfig.
+    """
     if isinstance(llm, (ChatOpenAI, AzureChatOpenAI)):
         return bind_tools_to_open_ai(llm, tools, tool_choice=tool_choice, **kwargs)
     elif isinstance(llm, ChatAnthropic):
-        return bind_tools_to_anthropic(llm, tools, tool_choice=tool_choice, **kwargs)
+        return llm.bind_tools(tools, tool_choice=tool_choice, **kwargs)
     elif isinstance(llm, ChatVertexAI):
-        return bind_tools_to_vertex(llm, tools, tool_choice=tool_choice, **kwargs)
+        return llm.bind_tools(tools, tool_choice=tool_choice, **kwargs)
     else:
         raise TypeError(f"Unsupported agent type: {type(llm)}")
 

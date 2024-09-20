@@ -26,13 +26,6 @@ class UniqueAgentNameError(HTTPException):
         super().__init__(status_code=409, detail="Agent with this name already exists")
 
 
-def basemodel_secret_encoder_for_db(v: Any) -> Optional[str]:
-    """Without this, values will be stored like this: ********."""
-
-    if type(v) in (SecretStr, SecretBytes):
-        return v.get_secret_value() if v else None
-
-
 class BaseStorage(ABC):
     """Base class for storage backends."""
 

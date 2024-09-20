@@ -1,21 +1,22 @@
 import pickle
 import sqlite3
-from contextlib import contextmanager
-from typing import Any, Iterator, Optional, Sequence
+from contextlib import closing, contextmanager
+from typing import Any, Dict, Iterator, Sequence
 
 from langchain_core.messages import BaseMessage
-from langchain_core.runnables import ConfigurableFieldSpec, RunnableConfig
-from langgraph.checkpoint import (
-    BaseCheckpointSaver,
-    Checkpoint,
-)
+from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.base import (
+    WRITES_IDX_MAP,
+    BaseCheckpointSaver,
+    ChannelVersions,
+    Checkpoint,
     CheckpointMetadata,
-    CheckpointThreadTs,
     CheckpointTuple,
+    get_checkpoint_id,
 )
 
 from sema4ai_agent_server.constants import DOMAIN_DATABASE_PATH
+from sema4ai_agent_server.storage.utils import search_where
 
 
 @contextmanager
@@ -31,7 +32,7 @@ def _connect_sqlite():
 class SQLiteCheckpoint(BaseCheckpointSaver):
     serde = None
 
-    def loads(self, value: bytes) -> Checkpoint:
+    def load_checkpoint(self, value: bytes) -> Checkpoint:
         loaded: Checkpoint = pickle.loads(value)
         for key, value in loaded["channel_values"].items():
             if isinstance(value, list) and all(
@@ -42,19 +43,14 @@ class SQLiteCheckpoint(BaseCheckpointSaver):
                 ]
         return loaded
 
-    @property
-    def config_specs(self) -> list[ConfigurableFieldSpec]:
-        return [
-            ConfigurableFieldSpec(
-                id="thread_id",
-                annotation=Optional[str],
-                name="Thread ID",
-                description=None,
-                default=None,
-                is_shared=True,
-            ),
-            CheckpointThreadTs,
-        ]
+    def load_metadata(self, value: bytes | None) -> CheckpointMetadata | Dict:
+        return pickle.loads(value) if value is not None else {}
+
+    def loads(self, data: bytes) -> Any:
+        return pickle.loads(data)
+
+    def dumps(self, obj: Any) -> bytes:
+        return pickle.dumps(obj)
 
     @contextmanager
     def cursor(self, transaction: bool = True):
@@ -67,7 +63,7 @@ class SQLiteCheckpoint(BaseCheckpointSaver):
                     conn.commit()
                 cur.close()
 
-    async def aget_tuple(self, config: RunnableConfig) -> Optional[CheckpointTuple]:
+    async def aget_tuple(self, config: RunnableConfig) -> CheckpointTuple | None:
         return self.get_tuple(config)
 
     async def aput(
@@ -75,73 +71,148 @@ class SQLiteCheckpoint(BaseCheckpointSaver):
         config: RunnableConfig,
         checkpoint: Checkpoint,
         metadata: CheckpointMetadata,
+        new_versions: ChannelVersions,
     ) -> RunnableConfig:
-        return self.put(config, checkpoint, metadata)
+        return self.put(config, checkpoint, metadata, new_versions)
 
-    async def alist(self, config: RunnableConfig) -> Iterator[CheckpointTuple]:
-        return self.list(config)
+    async def alist(
+        self,
+        config: RunnableConfig | None,
+        *,
+        filter: Dict[str, Any] | None = None,
+        before: RunnableConfig | None = None,
+        limit: int | None = None,
+    ) -> Iterator[CheckpointTuple]:
+        return self.list(config, filter=filter, before=before, limit=limit)
 
     async def aput_writes(
         self, config: RunnableConfig, writes: list[tuple[str, Any]], task_id: str
     ) -> None:
         return self.put_writes(config, writes, task_id)
 
-    def get_tuple(self, config: RunnableConfig) -> Optional[CheckpointTuple]:
+    def get_tuple(self, config: RunnableConfig) -> CheckpointTuple | None:
+        checkpoint_ns = config["configurable"].get("checkpoint_ns", "")
         with self.cursor(transaction=False) as cur:
             # find the latest checkpoint for the thread_id
-            if config["configurable"].get("thread_ts"):
+            if checkpoint_id := get_checkpoint_id(config):
                 cur.execute(
-                    "SELECT thread_id, thread_ts, parent_ts, checkpoint, metadata FROM checkpoints WHERE thread_id = ? AND thread_ts = ?",
+                    "SELECT thread_id, checkpoint_id, parent_checkpoint_id, checkpoint, metadata FROM checkpoints WHERE thread_id = ? AND checkpoint_ns = ? AND checkpoint_id = ?",
                     (
                         str(config["configurable"]["thread_id"]),
-                        str(config["configurable"]["thread_ts"]),
+                        checkpoint_ns,
+                        checkpoint_id,
                     ),
                 )
             else:
                 cur.execute(
-                    "SELECT thread_id, thread_ts, parent_ts, checkpoint, metadata FROM checkpoints WHERE thread_id = ? ORDER BY thread_ts DESC LIMIT 1",
-                    (str(config["configurable"]["thread_id"]),),
+                    "SELECT thread_id, checkpoint_id, parent_checkpoint_id, checkpoint, metadata FROM checkpoints WHERE thread_id = ? AND checkpoint_ns = ? ORDER BY checkpoint_id DESC LIMIT 1",
+                    (str(config["configurable"]["thread_id"]), checkpoint_ns),
                 )
             # if a checkpoint is found, return it
             if value := cur.fetchone():
-                if not config["configurable"].get("thread_ts"):
+                thread_id, checkpoint_id, parent_checkpoint_id, checkpoint, metadata = (
+                    value
+                )
+                if not get_checkpoint_id(config):
                     config = {
                         "configurable": {
-                            "thread_id": value[0],
-                            "thread_ts": value[1],
+                            "thread_id": thread_id,
+                            "checkpoint_ns": checkpoint_ns,
+                            "checkpoint_id": checkpoint_id,
                         }
                     }
                 # find any pending writes
                 cur.execute(
-                    "SELECT task_id, channel, value FROM writes WHERE thread_id = ? AND thread_ts = ?",
+                    "SELECT task_id, channel, value FROM writes WHERE thread_id = ? AND checkpoint_ns = ? AND checkpoint_id = ? ORDER BY task_id, idx",
                     (
                         str(config["configurable"]["thread_id"]),
-                        str(config["configurable"]["thread_ts"]),
+                        checkpoint_ns,
+                        str(config["configurable"]["checkpoint_id"]),
                     ),
                 )
                 # deserialize the checkpoint and metadata
                 return CheckpointTuple(
                     config,
-                    self.loads(value[3]),
-                    pickle.loads(value[4]) if value[4] is not None else {},
+                    self.load_checkpoint(checkpoint),
+                    self.load_metadata(metadata),
                     (
                         {
                             "configurable": {
-                                "thread_id": value[0],
-                                "thread_ts": value[2],
+                                "thread_id": thread_id,
+                                "checkpoint_ns": checkpoint_ns,
+                                "checkpoint_id": parent_checkpoint_id,
                             }
                         }
-                        if value[2]
+                        if parent_checkpoint_id
                         else None
                     ),
                     [
-                        (task_id, channel, pickle.loads(value))
+                        (task_id, channel, self.loads(value))
                         for task_id, channel, value in cur
                     ],
                 )
+        return None
 
-    def list(self, config: RunnableConfig) -> Iterator[CheckpointTuple]:
-        with self.cursor(transaction=False) as cur:
+    def list(
+        self,
+        config: RunnableConfig | None,
+        *,
+        filter: Dict[str, Any] | None = None,
+        before: RunnableConfig | None = None,
+        limit: int | None = None,
+    ) -> Iterator[CheckpointTuple]:
+        where, param_values = search_where(config, filter, before, flavor="sqlite")
+        query = f"""SELECT thread_id, checkpoint_ns, checkpoint_id, parent_checkpoint_id, checkpoint, metadata
+        FROM checkpoints
+        {where}
+        ORDER BY checkpoint_id DESC"""
+        if limit:
+            query += f" LIMIT {limit}"
+        with self.cursor(transaction=False) as cur, _connect_sqlite() as wconn:
+            with closing(wconn.cursor()) as wcur:
+                cur.execute(query, param_values)
+                for (
+                    thread_id,
+                    checkpoint_ns,
+                    checkpoint_id,
+                    parent_checkpoint_id,
+                    checkpoint,
+                    metadata,
+                ) in cur:
+                    wcur.execute(
+                        "SELECT task_id, channel, value FROM writes WHERE thread_id = ? AND checkpoint_ns = ? AND checkpoint_id = ? ORDER BY task_id, idx",
+                        (
+                            thread_id,
+                            checkpoint_ns,
+                            checkpoint_id,
+                        ),
+                    )
+                    yield CheckpointTuple(
+                        {
+                            "configurable": {
+                                "thread_id": thread_id,
+                                "checkpoint_ns": checkpoint_ns,
+                                "checkpoint_id": checkpoint_id,
+                            }
+                        },
+                        self.load_checkpoint(checkpoint),
+                        self.load_metadata(metadata),
+                        (
+                            {
+                                "configurable": {
+                                    "thread_id": thread_id,
+                                    "checkpoint_ns": checkpoint_ns,
+                                    "checkpoint_id": parent_checkpoint_id,
+                                }
+                            }
+                            if parent_checkpoint_id
+                            else None
+                        ),
+                        [
+                            (task_id, channel, self.loads(value))
+                            for task_id, channel, value in wcur
+                        ],
+                    )
             cur.execute(
                 "SELECT thread_id, thread_ts, parent_ts, checkpoint FROM checkpoints WHERE thread_id = ? ORDER BY thread_ts DESC",
                 (config["configurable"]["thread_id"],),
@@ -149,7 +220,7 @@ class SQLiteCheckpoint(BaseCheckpointSaver):
             for thread_id, thread_ts, parent_ts, value in cur:
                 yield CheckpointTuple(
                     {"configurable": {"thread_id": thread_id, "thread_ts": thread_ts}},
-                    self.loads(value),
+                    self.load_checkpoint(value),
                     {
                         "configurable": {
                             "thread_id": thread_id,
@@ -165,30 +236,31 @@ class SQLiteCheckpoint(BaseCheckpointSaver):
         config: RunnableConfig,
         checkpoint: Checkpoint,
         metadata: CheckpointMetadata,
+        new_versions: ChannelVersions,
     ) -> RunnableConfig:
-        thread_id = config["configurable"]["thread_id"]
-        thread_ts = checkpoint["ts"]
-        parent_ts = config["configurable"].get("thread_ts")
-
-        if isinstance(parent_ts, list):
-            parent_ts = None
+        thread_id = str(config["configurable"]["thread_id"])
+        checkpoint_ns = config["configurable"]["checkpoint_ns"]
+        parent_checkpoint_id = config["configurable"].get("checkpoint_id")
+        serialized_checkpoint = self.dumps(checkpoint)
+        serialized_metadata = self.dumps(metadata)
 
         with self.cursor() as cur:
             cur.execute(
-                "INSERT OR REPLACE INTO checkpoints (thread_id, thread_ts, parent_ts, checkpoint, metadata) VALUES (?, ?, ?, ?, ?)",
+                "INSERT OR REPLACE INTO checkpoints (thread_id, checkpoint_ns, checkpoint_id, parent_checkpoint_id, checkpoint, metadata) VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (
                     thread_id,
-                    thread_ts,
-                    parent_ts,
-                    pickle.dumps(checkpoint),
-                    pickle.dumps(metadata),
+                    checkpoint_ns,
+                    checkpoint["id"],
+                    parent_checkpoint_id,
+                    serialized_checkpoint,
+                    serialized_metadata,
                 ),
             )
-
         return {
             "configurable": {
                 "thread_id": thread_id,
-                "thread_ts": checkpoint["ts"],
+                "checkpoint_ns": checkpoint_ns,
+                "checkpoint_id": checkpoint["id"],
             }
         }
 
@@ -198,17 +270,23 @@ class SQLiteCheckpoint(BaseCheckpointSaver):
         writes: Sequence[tuple[str, Any]],
         task_id: str,
     ) -> None:
+        query = (
+            "INSERT OR REPLACE INTO writes (thread_id, checkpoint_ns, checkpoint_id, task_id, idx, channel, value) VALUES (?, ?, ?, ?, ?, ?, ?)"
+            if all(w[0] in WRITES_IDX_MAP for w in writes)
+            else "INSERT OR IGNORE INTO writes (thread_id, checkpoint_ns, checkpoint_id, task_id, idx, channel, value) VALUES (?, ?, ?, ?, ?, ?, ?)"
+        )
         with self.cursor() as cur:
             cur.executemany(
-                "INSERT OR REPLACE INTO writes (thread_id, thread_ts, task_id, idx, channel, value) VALUES (?, ?, ?, ?, ?, ?)",
+                query,
                 [
                     (
                         str(config["configurable"]["thread_id"]),
-                        str(config["configurable"]["thread_ts"]),
+                        str(config["configurable"]["checkpoint_ns"]),
+                        str(config["configurable"]["checkpoint_id"]),
                         task_id,
-                        idx,
+                        WRITES_IDX_MAP.get(channel, idx),
                         channel,
-                        pickle.dumps(value),
+                        self.dumps(value),
                     )
                     for idx, (channel, value) in enumerate(writes)
                 ],

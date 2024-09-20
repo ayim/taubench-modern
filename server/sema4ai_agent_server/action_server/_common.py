@@ -155,16 +155,3 @@ def get_param_fields(endpoint_spec: dict) -> dict:
         fields[key] = field_info
 
     return fields
-
-
-def model_to_dict(
-    item: Union[BaseModel, List, Dict[str, Any]],
-) -> Any:
-    if isinstance(item, BaseModel):
-        return item.dict()
-    elif isinstance(item, dict):
-        return {key: model_to_dict(value) for key, value in item.items()}
-    elif isinstance(item, list):
-        return [model_to_dict(element) for element in item]
-    else:
-        return item

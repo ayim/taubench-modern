@@ -102,9 +102,9 @@ def get_tools_agent_executor(
         msgs = []
         for m in messages:
             if isinstance(m, LiberalToolMessage):
-                _dict = m.dict()
+                _dict = m.model_dump(round_trip=True)
                 _dict["content"] = str(_dict["content"])
-                m_c = ToolMessage(**_dict)
+                m_c = ToolMessage.model_construct(**_dict)
                 msgs.append(m_c)
             elif isinstance(m, FunctionMessage):
                 # anthropic doesn't like function messages

@@ -6,9 +6,10 @@ from typing import Optional
 
 import aiohttp
 import yaml
-from pydantic import BaseModel, parse_obj_as
+from pydantic import BaseModel, TypeAdapter
 
 from sema4ai_agent_server.schema import (
+    ACTION_PKG_LIST_ADAPTER,
     MODEL,
     ActionPackage,
     Agent,
@@ -22,6 +23,9 @@ class SpecFile(BaseModel):
     name: str
     embedded: bool
     digest: str
+
+
+SPECFILE_LIST_ADAPTER = TypeAdapter(list[SpecFile])
 
 
 async def put_agent_from_spec(
@@ -67,8 +71,8 @@ async def put_agent_from_spec(
         model=model,
         architecture=agent["architecture"],
         reasoning=agent["reasoning"],
-        action_packages=parse_obj_as(list[ActionPackage], action_packages),
-        metadata=parse_obj_as(AgentMetadata, agent["metadata"]),
+        action_packages=ACTION_PKG_LIST_ADAPTER.validate_python(action_packages),
+        metadata=AgentMetadata.model_validate(agent["metadata"]),
     )
 
 
@@ -148,7 +152,9 @@ def get_spec(root_dir: str) -> dict:
 
 
 def get_knowledge_files(spec: dict) -> list[SpecFile]:
-    return parse_obj_as(list[SpecFile], spec["agent-package"]["agents"][0]["knowledge"])
+    return SPECFILE_LIST_ADAPTER.validate_python(
+        spec["agent-package"]["agents"][0]["knowledge"]
+    )
 
 
 def _replace_dashes_with_underscores(spec: dict) -> dict:

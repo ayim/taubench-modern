@@ -266,6 +266,7 @@ dummy_model = OpenAIGPT(
     provider=LLMProvider.OPENAI, config=OpenAIGPTConfig(openai_api_key="dummy")
 )
 
+# TODO: If we unify models to the same base class, do we need this?
 MODEL = OpenAIGPT | AzureGPT | AnthropicClaude | AmazonClaude | GoogleGemini | Ollama
 
 

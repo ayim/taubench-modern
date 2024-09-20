@@ -13,6 +13,7 @@ from sema4ai_agent_server.constants import UPLOAD_DIR
 from sema4ai_agent_server.lifespan import lifespan
 from sema4ai_agent_server.log_config import setup_logging
 from sema4ai_agent_server.otel import setup_otel
+from sema4ai_agent_server.schema import Agent
 from sema4ai_agent_server.storage.option import get_storage
 
 # Do not change the version here. It is managed by versionbump (see versionbump.yaml)
@@ -59,7 +60,7 @@ async def update_action_server_ports(port_map: dict[str, str]) -> dict:
         raise HTTPException(status_code=400, detail="Port map not provided.")
 
     agents = await get_storage().list_all_agents()
-    updated_agents = []
+    updated_agents: list[Agent] = []
 
     for agent in agents:
         updated = False
@@ -89,11 +90,11 @@ async def update_action_server_ports(port_map: dict[str, str]) -> dict:
             updated_agents.append(agent)
 
     for agent in updated_agents:
+        # TODO: Put agent status elsewhere? This was being updated here...
         await get_storage().put_agent(
             user_id=agent.user_id,
             agent_id=agent.id,
             public=agent.public,
-            status=agent.status,
             name=agent.name,
             description=agent.description,
             runbook=agent.runbook.get_secret_value(),

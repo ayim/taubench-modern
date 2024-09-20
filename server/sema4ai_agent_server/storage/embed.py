@@ -133,7 +133,7 @@ def convert_to_blob(file: UploadFile) -> Blob:
 
 def get_embedding_function(
     model: MODEL,
-) -> Union[OpenAIEmbeddings, AzureOpenAIEmbeddings, BedrockEmbeddings]:
+) -> Union[OpenAIEmbeddings, AzureOpenAIEmbeddings]:
     if isinstance(model, OpenAIGPT):
         return OpenAIEmbeddings(
             openai_api_key=model.config.openai_api_key.get_secret_value(),

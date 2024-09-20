@@ -1,27 +1,27 @@
--- langchain v0.2.0 sets checkpoint['id'] to thread_ts so all timestamp fields must
--- actually support text. These do monocrementally increment so then can still be sorted, but
--- they are not actually timestamps.
+-- langchain v0.3.0 modifies the checkpoint schema significantly. Backwards compatibility is
+-- not guaranteed.
 -- 
 -- Step 1: Create a new table with the new schema
 CREATE TABLE IF NOT EXISTS new_checkpoints (
     thread_id TEXT NOT NULL,
-    thread_ts TEXT NOT NULL,
-    parent_ts TEXT,
+    checkpoint_ns TEXT NOT NULL DEFAULT '',
+    checkpoint_id TEXT NOT NULL,
+    parent_checkpoint_id TEXT,
     checkpoint BLOB,
     metadata BLOB,
-    PRIMARY KEY (thread_id, thread_ts)
+    PRIMARY KEY (thread_id, checkpoint_ns, checkpoint_id)
 );
 -- Step 2: Copy the data from the old table to the new table
 INSERT INTO new_checkpoints (
         thread_id,
-        thread_ts,
-        parent_ts,
+        checkpoint_id, -- was thread_ts
+        parent_checkpoint_id, -- was parent_ts
         checkpoint,
         metadata
     )
 SELECT thread_id,
     thread_ts,
-    thread_ts,
+    parent_ts,
     checkpoint,
     CAST('{}' AS BLOB)
 FROM checkpoints;
@@ -33,10 +33,17 @@ ALTER TABLE new_checkpoints
 -- writes table added in langchain v0.1.7
 CREATE TABLE IF NOT EXISTS writes (
     thread_id TEXT NOT NULL,
-    thread_ts TEXT NOT NULL,
+    checkpoint_ns TEXT NOT NULL DEFAULT '',
+    checkpoint_id TEXT NOT NULL,
     task_id TEXT NOT NULL,
     idx INTEGER NOT NULL,
     channel TEXT NOT NULL,
     value BLOB,
-    PRIMARY KEY (thread_id, thread_ts, task_id, idx)
+    PRIMARY KEY (
+        thread_id,
+        checkpoint_ns,
+        checkpoint_id,
+        task_id,
+        idx
+    )
 );
