@@ -8,7 +8,11 @@ import requests
 import structlog
 from fastapi import UploadFile
 
-from sema4ai_agent_server.file_manager.base import BaseFileManager, get_hash
+from sema4ai_agent_server.file_manager.base import (
+    BaseFileManager,
+    RemoteFileUploadData,
+    get_hash,
+)
 from sema4ai_agent_server.schema import (
     Agent,
     EmbeddingStatus,
@@ -172,3 +176,31 @@ class CloudFileManager(BaseFileManager):
         except requests.RequestException as e:
             logger.exception(f"Failed to download file {file_id}: {str(e)}")
             raise e
+
+    async def request_remote_file_upload(
+        self, thread: Thread, file_name: str
+    ) -> RemoteFileUploadData:
+        file_id = str(uuid4())
+        file_ref = await self.generate_unique_file_ref(thread, file_name)
+        presigned_post = self._get_presigned_post(file_id)
+        return RemoteFileUploadData(
+            url=presigned_post["url"],
+            form_data=presigned_post["form_data"],
+            file_id=file_id,
+            file_ref=file_ref,
+        )
+
+    async def confirm_remote_file_upload(
+        self, thread: Thread, file_ref: str, file_id: str
+    ) -> UploadedFile:
+        file = await get_storage().put_file_owner(
+            file_id=file_id,
+            file_path=None,
+            file_ref=file_ref,
+            file_hash=get_hash(b""),
+            embedded=False,
+            embedding_status=None,
+            owner=thread,
+            file_path_expiration=datetime.now(timezone.utc),
+        )
+        return file

@@ -7,6 +7,7 @@ from langchain_core.messages import AIMessage, ToolCall, ToolMessage
 from pydantic import BaseModel
 
 from sema4ai_agent_server.auth.handlers import AuthedUser
+from sema4ai_agent_server.file_manager.option import get_file_manager
 from sema4ai_agent_server.schema import UploadedFile
 from sema4ai_agent_server.storage.option import get_storage
 
@@ -45,7 +46,8 @@ async def get_file(payload: GetFilePayload, user: AuthedUser) -> UploadedFile:
     if not file:
         raise HTTPException(status_code=404, detail="File not found")
 
-    return file
+    files = await get_file_manager().refresh_file_paths([file])
+    return files[0]
 
 
 async def _add_uploaded_messages(

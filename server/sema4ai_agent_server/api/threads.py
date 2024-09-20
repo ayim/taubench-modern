@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 
 from sema4ai_agent_server.api.files import _add_uploaded_messages
 from sema4ai_agent_server.auth.handlers import AuthedUser
+from sema4ai_agent_server.file_manager.base import RemoteFileUploadData
 from sema4ai_agent_server.file_manager.option import get_file_manager
 from sema4ai_agent_server.otel import otel_is_enabled
 from sema4ai_agent_server.schema import Thread, UploadedFile, UploadFileRequest
@@ -50,6 +51,15 @@ class ThreadStatePostRequest(BaseModel):
     """Payload for adding state to a thread."""
 
     values: Union[Sequence[AnyMessage], Dict[str, Any]]
+
+
+class RequestRemoteFileUploadPayload(BaseModel):
+    file_name: str
+
+
+class ConfirmRemoteFileUploadPayload(BaseModel):
+    file_ref: str
+    file_id: str
 
 
 @router.get("/")
@@ -235,3 +245,33 @@ async def upload_thread_files(
         file_manager.create_missing_embeddings, agent.model, thread
     )
     return stored_files
+
+
+@router.post("/{tid}/files/request-upload")
+async def request_remote_file_upload(
+    payload: RequestRemoteFileUploadPayload, user: AuthedUser, tid: ThreadID
+) -> RemoteFileUploadData:
+    thread = await get_storage().get_thread(user.user_id, tid)
+    if not thread:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    response = await get_file_manager().request_remote_file_upload(
+        thread=thread, file_name=payload.file_name
+    )
+    return response
+
+
+@router.post("/{tid}/files/confirm-upload")
+async def confirm_remote_file_upload(
+    payload: ConfirmRemoteFileUploadPayload, user: AuthedUser, tid: ThreadID
+) -> UploadedFile:
+    thread = await get_storage().get_thread(user.user_id, tid)
+    if not thread:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    file = await get_file_manager().confirm_remote_file_upload(
+        thread=thread, file_ref=payload.file_ref, file_id=payload.file_id
+    )
+    files = await get_file_manager().refresh_file_paths([file])
+    await _add_uploaded_messages(files, tid, user)
+    return files[0]

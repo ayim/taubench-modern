@@ -1,10 +1,13 @@
 import hashlib
 import os
+import random
+import string
 from enum import Enum
 from typing import Union
 
 import structlog
 from fastapi import UploadFile
+from pydantic import BaseModel
 
 from sema4ai_agent_server.schema import (
     MODEL,
@@ -43,6 +46,13 @@ class FileAlreadyExists(UploadFailed):
 
 class FileEmbeddingFailed(UploadFailed):
     reason = FileUploadFailReason.EMBEDDING_FAILED
+
+
+class RemoteFileUploadData(BaseModel):
+    url: str
+    form_data: dict
+    file_id: str
+    file_ref: str
 
 
 class BaseFileManager:
@@ -132,6 +142,31 @@ class BaseFileManager:
     ) -> None:
         if await get_storage().get_file(owner, file.filename):
             raise FileAlreadyExists()
+
+    async def generate_unique_file_ref(
+        self, owner: Union[Agent, Thread], file_name: str
+    ) -> str:
+        file_base, file_ext = os.path.splitext(file_name)
+        file_ref = file_name
+        for _ in range(10):
+            file = await get_storage().get_file(owner, file_ref)
+            if not file:
+                break
+            suffix = "".join(random.choices(string.ascii_lowercase, k=6))
+            file_ref = f"{file_base}_{suffix}{file_ext}"
+        else:
+            raise Exception(f"Failed to generate a unique file ref for {file_name}")
+        return file_ref
+
+    async def request_remote_file_upload(
+        self, thread: Thread, file_name: str
+    ) -> RemoteFileUploadData:
+        raise NotImplementedError()
+
+    async def confirm_remote_file_upload(
+        self, thread: Thread, file_ref: str, file_id: str
+    ) -> UploadedFile:
+        raise NotImplementedError()
 
 
 def get_hash(file_data: bytes) -> str:
