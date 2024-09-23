@@ -7,7 +7,7 @@ from uuid import uuid4
 import structlog
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Path, UploadFile
 from langchain_core.messages import HumanMessage
-from pydantic import BaseModel, Field, SecretStr, model_validator, root_validator
+from pydantic import BaseModel, Field, SecretStr, model_validator
 
 from sema4ai_agent_server.agent import runnable_agent
 from sema4ai_agent_server.agent_spec import (
@@ -42,7 +42,6 @@ from sema4ai_agent_server.schema import (
     EmbeddingFilePending,
     EmbeddingStatus,
     ModelNotConfigured,
-    RawAgent,
     UploadedFile,
     UploadFileRequest,
 )

@@ -122,8 +122,9 @@ class ActionServerToolkit(BaseModel):
     """Enable reporting Langsmith trace to Action Server runs"""
     _run_details: dict = PrivateAttr({})
 
-    @field_validator("url", mode="after", always=True)
-    def append_trailing_slash(self, v: str) -> str:
+    @field_validator("url")
+    @classmethod
+    def append_trailing_slash(cls, v: str) -> str:
         """Ensures that the url ends with a /."""
         # Action server url may not be a base url in the cloud environment.
         # It may be something like https://example.com/foo/bar. If the url

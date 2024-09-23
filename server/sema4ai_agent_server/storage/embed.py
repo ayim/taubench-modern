@@ -22,10 +22,17 @@ from langchain_core.runnables import (
 from langchain_core.vectorstores import VectorStore
 from langchain_openai import AzureOpenAIEmbeddings, OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter, TextSplitter
+from pydantic import ConfigDict, Field
 
 from sema4ai_agent_server.constants import VECTOR_DATABASE_PATH
 from sema4ai_agent_server.parsing import MIMETYPE_BASED_PARSER
-from sema4ai_agent_server.schema import MODEL, AzureGPT, OpenAIGPT
+from sema4ai_agent_server.schema import (
+    MODEL,
+    NOT_CONFIGURED,
+    AzureGPT,
+    OpenAIGPT,
+    dummy_model,
+)
 
 
 def _update_document_metadata(document: Document, owner_id: str, file_id: str) -> None:
@@ -190,17 +197,16 @@ def get_vector_store(model: Optional[MODEL] = None) -> BaseVectorStoreWrapper:
 class EmbedRunnable(RunnableSerializable[BinaryIO, List[str]]):
     """Runnable for embedding files into a vectorstore."""
 
-    text_splitter: TextSplitter
-    """Text splitter to use for splitting the text into chunks."""
-    model: Optional[MODEL]
-    """Model to use for embedding."""
-    file_id: Optional[str]
-    """ID of the file to embed."""
-    owner_id: Optional[str]
-    """ID of the file owner (agent or thread)."""
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    class Config:
-        arbitrary_types_allowed = True
+    text_splitter: TextSplitter = Field(
+        ..., description="Text splitter to use for splitting the text into chunks."
+    )
+    model: MODEL | None = Field(None, description="Model to use for embedding.")
+    file_id: str | None = Field(None, description="ID of the file to embed.")
+    owner_id: str | None = Field(
+        None, description="ID of the file owner (agent or thread)."
+    )
 
     def invoke(self, blob: Blob, config: Optional[RunnableConfig] = None) -> List[str]:
         out = embed_blob(
@@ -216,6 +222,9 @@ class EmbedRunnable(RunnableSerializable[BinaryIO, List[str]]):
 
 embed_runnable = EmbedRunnable(
     text_splitter=RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200),
+    model=dummy_model,
+    file_id=NOT_CONFIGURED,
+    owner_id=NOT_CONFIGURED,
 ).configurable_fields(
     owner_id=ConfigurableField(
         id="owner_id",

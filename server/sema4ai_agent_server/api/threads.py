@@ -118,7 +118,7 @@ async def get_thread(
     return PydanticResponse(thread)
 
 
-@router.post("", resposne_model=Thread, response_class=PydanticResponse)
+@router.post("", response_model=Thread, response_class=PydanticResponse)
 async def create_thread(
     user: AuthedUser,
     payload: ThreadPostRequest,
