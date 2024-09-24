@@ -1,14 +1,10 @@
 """Implementation of a langgraph checkpoint saver using Postgres."""
 
 import abc
-import os
 import pickle
-from contextlib import aclosing, asynccontextmanager, closing, contextmanager
 from typing import (
     Any,
-    AsyncGenerator,
     AsyncIterator,
-    Generator,
     Iterator,
     List,
     Sequence,
@@ -27,9 +23,9 @@ from langgraph.checkpoint.base import (
     CheckpointTuple,
     get_checkpoint_id,
 )
-from psycopg_pool import AsyncConnectionPool, ConnectionPool
 from pydantic import ConfigDict
 
+from sema4ai_agent_server.storage.postgres_conn import PostgresConnectionManager
 from sema4ai_agent_server.storage.utils import search_where
 
 
@@ -68,51 +64,7 @@ class PicklePostgresSerializer(PostgresSerializer):
         return pickle.loads(data)
 
 
-def _get_dsn() -> str:
-    """Get the DSN for the Postgres connection."""
-    database = (os.environ["POSTGRES_DB"],)
-    user = (os.environ["POSTGRES_USER"],)
-    password = (os.environ["POSTGRES_PASSWORD"],)
-    host = (os.environ["POSTGRES_HOST"],)
-    port = (os.environ["POSTGRES_PORT"],)
-    return f"postgresql://{user[0]}:{password[0]}@{host[0]}:{port[0]}/{database[0]}"
-
-
-_sync_pool = None
-
-
-@contextmanager
-def _get_sync_connection() -> Generator[psycopg.Connection, None, None]:
-    """Get the connection to the Postgres database."""
-    global _sync_pool
-    if _sync_pool is None:
-        _sync_pool = ConnectionPool(
-            conninfo=_get_dsn(),
-            max_size=20,
-        )
-    with _sync_pool.connection() as conn:
-        yield conn
-
-
-_async_pool = None
-
-
-@asynccontextmanager
-async def _get_async_connection() -> AsyncGenerator[psycopg.AsyncConnection, None]:
-    """Get the connection to the Postgres database."""
-    global _async_pool
-    if _async_pool is None:
-        print("Initializing async_connection")
-        conn_info = _get_dsn()
-        _async_pool = AsyncConnectionPool(
-            conninfo=conn_info,
-            max_size=20,
-        )
-    async with _async_pool.connection() as conn:
-        yield conn
-
-
-class PostgresSaver(BaseCheckpointSaver):
+class PostgresSaver(BaseCheckpointSaver, PostgresConnectionManager):
     """A checkpoint saver that uses Postgres to save checkpoints."""
 
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
@@ -120,11 +72,12 @@ class PostgresSaver(BaseCheckpointSaver):
     serde: PostgresSerializer
     """The serializer for serializing and deserializing objects to and from bytes."""
 
-    UPSERT_CHECKPOINTS_SQL = """
+    UPSERT_CHECKPOINT_SQL = """
         INSERT INTO checkpoints 
             (thread_id, checkpoint_ns, checkpoint_id, parent_checkpoint_id, checkpoint, metadata)
         VALUES 
-            ($thread_id, $checkpoint_ns, $checkpoint_id, $parent_checkpoint_id, $checkpoint, $metadata)
+            (%(thread_id)s, %(checkpoint_ns)s, %(checkpoint_id)s, %(parent_checkpoint_id)s, 
+            %(checkpoint)s, %(metadata)s)
         ON CONFLICT (thread_id, checkpoint_ns, checkpoint_id)
         DO UPDATE SET
             checkpoint = EXCLUDED.checkpoint,
@@ -134,7 +87,8 @@ class PostgresSaver(BaseCheckpointSaver):
         INSERT INTO writes
             (thread_id, checkpoint_ns, checkpoint_id, task_id, idx, channel, value)
         VALUES
-            ($thread_id, $checkpoint_ns, $checkpoint_id, $task_id, $idx, $channel, $value)
+            (%(thread_id)s, %(checkpoint_ns)s, %(checkpoint_id)s, %(task_id)s, %(idx)s,
+            %(channel)s, %(value)s)
         ON CONFLICT (thread_id, checkpoint_ns, checkpoint_id, task_id, idx) DO UPDATE SET
             channel = EXCLUDED.channel,
             value = EXCLUDED.value;
@@ -143,18 +97,20 @@ class PostgresSaver(BaseCheckpointSaver):
         INSERT INTO writes
             (thread_id, checkpoint_ns, checkpoint_id, task_id, idx, channel, value)
         VALUES
-            ($thread_id, $checkpoint_ns, $checkpoint_id, $task_id, $idx, $channel, $value)
+            (%(thread_id)s, %(checkpoint_ns)s, %(checkpoint_id)s, %(task_id)s, %(idx)s,
+            %(channel)s, %(value)s)
         ON CONFLICT (thread_id, checkpoint_ns, checkpoint_id, task_id, idx) DO NOTHING;
     """
     SELECT_CHECKPOINT_SQL = """
         SELECT thread_id, checkpoint_id, parent_checkpoint_id, checkpoint, metadata
         FROM checkpoints
-        WHERE thread_id = $thread_id AND checkpoint_ns = $checkpoint_ns AND checkpoint_id = $checkpoint_id
+        WHERE thread_id = %(thread_id)s AND checkpoint_ns = %(checkpoint_ns)s
+            AND checkpoint_id = %(checkpoint_id)s
     """
     SELECT_RECENT_CHECKPOINT_SQL = """
         SELECT thread_id, checkpoint_id, parent_checkpoint_id, checkpoint, metadata
         FROM checkpoints
-        WHERE thread_id = $thread_id AND checkpoint_ns = $checkpoint_ns
+        WHERE thread_id = %(thread_id)s AND checkpoint_ns = %(checkpoint_ns)s
         ORDER BY checkpoint_id DESC LIMIT 1
     """
     SELECT_CHECKPOINTS_TEMPLATE = """
@@ -166,37 +122,10 @@ class PostgresSaver(BaseCheckpointSaver):
     SELECT_WRITES_SQL = """
         SELECT task_id, channel, value
         FROM writes
-        WHERE thread_id = $thread_id AND checkpoint_ns = $checkpoint_ns AND checkpoint_id = $checkpoint_id
+        WHERE thread_id = %(thread_id)s AND checkpoint_ns = %(checkpoint_ns)s
+            AND checkpoint_id = %(checkpoint_id)s
         ORDER BY task_id, idx
     """
-
-    @contextmanager
-    def _get_sync_connection(self) -> Generator[psycopg.Connection, None, None]:
-        """Get the connection to the Postgres database."""
-        with _get_sync_connection() as connection:
-            yield connection
-
-    @contextmanager
-    def _sync_cursor(self) -> Generator[psycopg.Cursor, None, None]:
-        """Get the cursor for the Postgres database."""
-        with self._get_sync_connection() as conn:
-            with conn.cursor() as cur:
-                yield cur
-
-    @asynccontextmanager
-    async def _get_async_connection(
-        self,
-    ) -> AsyncGenerator[psycopg.AsyncConnection, None]:
-        """Get the connection to the Postgres database."""
-        async with _get_async_connection() as connection:
-            yield connection
-
-    @asynccontextmanager
-    async def _async_cursor(self) -> AsyncGenerator[psycopg.AsyncCursor, None]:
-        """Get the cursor for the Postgres database."""
-        async with self._get_async_connection() as conn:
-            async with conn.cursor() as cur:
-                yield cur
 
     def _dump_writes(
         self,
@@ -244,9 +173,9 @@ class PostgresSaver(BaseCheckpointSaver):
         checkpoint_ns = config["configurable"]["checkpoint_ns"]
         parent_checkpoint_id = config["configurable"].get("checkpoint_id")
 
-        with self._sync_cursor() as cur:
+        with self.sync_cursor() as cur:
             cur.execute(
-                self.UPSERT_CHECKPOINTS_SQL,
+                self.UPSERT_CHECKPOINT_SQL,
                 {
                     "thread_id": thread_id,
                     "checkpoint_ns": checkpoint_ns,
@@ -289,9 +218,9 @@ class PostgresSaver(BaseCheckpointSaver):
         checkpoint_ns = config["configurable"]["checkpoint_ns"]
         parent_checkpoint_id = config["configurable"].get("checkpoint_id")
 
-        async with self._async_cursor() as cur:
+        async with self.async_cursor() as cur:
             await cur.execute(
-                self.UPSERT_CHECKPOINTS_SQL,
+                self.UPSERT_CHECKPOINT_SQL,
                 {
                     "thread_id": thread_id,
                     "checkpoint_ns": checkpoint_ns,
@@ -330,7 +259,7 @@ class PostgresSaver(BaseCheckpointSaver):
             if all(w[0] in WRITES_IDX_MAP for w in writes)
             else self.INSERT_WRITES_SQL
         )
-        with self._sync_cursor() as cur:
+        with self.sync_cursor() as cur:
             cur.executemany(
                 query,
                 self._dump_writes(
@@ -358,7 +287,7 @@ class PostgresSaver(BaseCheckpointSaver):
             if all(w[0] in WRITES_IDX_MAP for w in writes)
             else self.INSERT_WRITES_SQL
         )
-        async with self._async_cursor() as cur:
+        async with self.async_cursor() as cur:
             await cur.executemany(
                 query,
                 self._dump_writes(
@@ -394,9 +323,8 @@ class PostgresSaver(BaseCheckpointSaver):
             query += f" LIMIT {limit}"
         thread_id = config["configurable"]["thread_id"]
 
-        # TODO: Check that postgres will support two cursors at the same time
-        with self._sync_cursor() as cur, self._get_sync_connection() as wconn:
-            with closing(wconn.cursor()) as wcur:
+        with self.sync_cursor() as cur, self.get_sync_connection() as wconn:
+            with wconn.cursor() as wcur:
                 cur.execute(query, param_values)
                 for (
                     thread_id,
@@ -468,8 +396,8 @@ class PostgresSaver(BaseCheckpointSaver):
         thread_id = config["configurable"]["thread_id"]
 
         # TODO: Check that postgres will support two cursors at the same time and check if the async cursor is working
-        async with self._async_cursor() as cur, self._get_async_connection() as wconn:
-            async with aclosing(wconn.cursor()) as wcur:
+        async with self.async_cursor() as cur, self.get_async_connection() as wconn:
+            async with wconn.cursor() as wcur:
                 cur.execute(query, param_values)
                 async for (
                     thread_id,
@@ -528,7 +456,7 @@ class PostgresSaver(BaseCheckpointSaver):
                 None if no matching checkpoint was found.
         """
         checkpoint_ns = config["configurable"].get("checkpoint_ns", "")
-        with self._sync_cursor() as cur:
+        with self.sync_cursor() as cur:
             # get the checkpoint requested or return the latest checkpoint
             if checkpoint_id := get_checkpoint_id(config):
                 cur.execute(
@@ -613,10 +541,10 @@ class PostgresSaver(BaseCheckpointSaver):
                 None if no matching checkpoint was found.
         """
         checkpoint_ns = config["configurable"].get("checkpoint_ns", "")
-        async with self._async_cursor() as cur:
+        async with self.async_cursor() as cur:
             # get the checkpoint requested or return the latest checkpoint
             if checkpoint_id := get_checkpoint_id(config):
-                cur.execute(
+                await cur.execute(
                     self.SELECT_CHECKPOINT_SQL,
                     {
                         "thread_id": config["configurable"]["thread_id"],
@@ -625,7 +553,7 @@ class PostgresSaver(BaseCheckpointSaver):
                     },
                 )
             else:
-                cur.execute(
+                await cur.execute(
                     self.SELECT_RECENT_CHECKPOINT_SQL,
                     {
                         "thread_id": config["configurable"]["thread_id"],
@@ -689,5 +617,3 @@ class PostgresCheckpointer(PostgresSaver):
     def __init__(self, serializer: PostgresSerializer):
         super().__init__()
         self.serde = serializer
-        # self.sync_connection = sync_connection
-        # self.async_connection = async_connection

@@ -2,7 +2,8 @@ import re
 from datetime import datetime
 from enum import Enum
 from functools import cached_property
-from typing import Annotated, Any, List, Literal, Optional, Self, Union
+from typing import Annotated, Any, List, Literal, Self, Union
+from uuid import UUID
 
 from fastapi import UploadFile
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
@@ -31,8 +32,9 @@ def ser_secret_str(
     """Serializer function which unmasks secret strings if the context's "raw"
     key is set to True."""
     if info.context is not None and info.context.get("raw", False):
-        value = value.get_secret_value()
-    return nxt(value)
+        return value.get_secret_value()
+    else:
+        return nxt(value, info)
 
 
 RAW_CONTEXT = {"raw": True}
@@ -45,8 +47,14 @@ class User(BaseModel):
     sub: str = Field(description="The sub of the user (from a JWT token).")
     created_at: datetime = Field(description="The time the user was created.")
 
+    @field_validator("user_id", mode="before")
+    @classmethod
+    def validate_user_id(cls, v: Any) -> str:
+        if isinstance(v, UUID):
+            return str(v)
+
     @cached_property
-    def _parsed_sub(self) -> dict[str, Optional[str]]:
+    def _parsed_sub(self) -> dict[str, str] | None:
         """
         Control Room sub formats:
 
@@ -67,17 +75,17 @@ class User(BaseModel):
         return result
 
     @property
-    def cr_tenant_id(self) -> Optional[str]:
+    def cr_tenant_id(self) -> str | None:
         """Control Room Tenant ID"""
         return self._parsed_sub["tenant"]
 
     @property
-    def cr_user_id(self) -> Optional[str]:
+    def cr_user_id(self) -> str | None:
         """Control Room User ID"""
         return self._parsed_sub["user"]
 
     @property
-    def cr_system_id(self) -> Optional[str]:
+    def cr_system_id(self) -> str | None:
         """Control Room System ID"""
         return self._parsed_sub["system"]
 
@@ -416,10 +424,12 @@ class AgentMetadata(BaseModel):
     """
 
     mode: AgentMode = Field(description="The mode of the agent.")
-    worker_config: Optional[WorkerConfig] = Field(
-        description="Worker configuration, if in worker mode."
+    worker_config: WorkerConfig | None = Field(
+        None, description="Worker configuration, if in worker mode."
     )
-    welcome_message: Optional[str] = Field(description="Welcome message for the agent.")
+    welcome_message: str | None = Field(
+        None, description="Welcome message for the agent."
+    )
 
     @model_validator(mode="after")
     def validate_worker_config(self) -> Self:
@@ -450,32 +460,36 @@ class Agent(BaseModel):
     description: str = Field(description="The description of the agent.")
     runbook: SerializableSecretStr = Field(description="The runbook for the agent.")
     version: str = Field(description="The version of the agent.")
-    model: MODEL = Field(description="LLM model configuration for the agent.")
+    model: Annotated[MODEL, "jsonb"] = Field(
+        description="LLM model configuration for the agent."
+    )
     architecture: AgentArchitecture = Field(
         description="The cognitive architecture of the agent."
     )
     reasoning: AgentReasoning = Field(description="The reasoning setting of the agent.")
-    action_packages: list[ActionPackage] = Field(
+    action_packages: Annotated[list[ActionPackage], "jsonb"] = Field(
         description="The action packages for the agent."
     )
     updated_at: datetime = Field(description="The last time the agent was updated.")
-    metadata: AgentMetadata = Field(description="The agent metadata.")
+    metadata: Annotated[AgentMetadata, "jsonb"] = Field(
+        description="The agent metadata."
+    )
 
-    @field_validator("model")
+    @field_validator("model", mode="before")
     @classmethod
     def validate_model(cls, v: Any) -> MODEL:
         if isinstance(v, (str, bytes, bytearray)):
             return MODEL.model_validate_json(v)
         return v
 
-    @field_validator("action_packages")
+    @field_validator("action_packages", mode="before")
     @classmethod
     def validate_action_packages(cls, v: Any) -> list[ActionPackage]:
         if isinstance(v, (str, bytes, bytearray)):
             return ACTION_PKG_LIST_ADAPTER.validate_json(v)
         return v
 
-    @field_validator("metadata")
+    @field_validator("metadata", mode="before")
     @classmethod
     def validate_metadata(cls, v: Any) -> AgentMetadata:
         if isinstance(v, (str, bytes, bytearray)):
@@ -489,10 +503,12 @@ AGENT_LIST_ADAPTER = TypeAdapter(List[Agent])
 class Thread(BaseModel):
     thread_id: str = Field(description="The ID of the thread.")
     user_id: str = Field(description="The ID of the user.")
-    agent_id: Optional[str] = Field(description="The ID of the agent.")
+    agent_id: str | None = Field(None, description="The ID of the agent.")
     name: str = Field(description="The name of the thread.")
     updated_at: datetime = Field(description="The last time the thread was updated.")
-    metadata: Optional[dict] = Field(description="The thread metadata.")
+    metadata: Annotated[dict | None, "jsonb"] = Field(
+        None, description="The thread metadata."
+    )
 
     @field_validator("metadata")
     @classmethod
@@ -518,22 +534,22 @@ class EmbeddingStatus(str, Enum):
 
 class UploadedFile(BaseModel):
     file_id: str = Field(description="The ID of the file.")
-    file_path: Optional[str] = Field(description="The path of the file.")
+    file_path: str | None = Field(None, description="The path of the file.")
     file_ref: str = Field(description="Key for the file access.")
     file_hash: str = Field(description="The hash of the file.")
     embedded: bool = Field(description="Whether the file is embedded.")
-    file_path_expiration: Optional[datetime] = Field(
+    file_path_expiration: datetime | None = Field(
         default=None,
         description="The expiration date of the file path.",
     )
-    embedding_status: Optional[EmbeddingStatus] = Field(
-        description="The embedding status of the file."
+    embedding_status: EmbeddingStatus | None = Field(
+        None, description="The embedding status of the file."
     )
-    agent_id: Optional[str] = Field(
+    agent_id: str | None = Field(
         default=None,
         description="The ID of the agent that uploaded the file.",
     )
-    thread_id: Optional[str] = Field(
+    thread_id: str | None = Field(
         default=None,
         description="The ID of the thread that uploaded the file.",
     )
@@ -544,7 +560,7 @@ UPLOADED_FILE_LIST_ADAPTER = TypeAdapter(List[UploadedFile])
 
 class UploadFileRequest(BaseModel):
     file: UploadFile
-    embedded: Optional[bool] = Field(
+    embedded: bool | None = Field(
         default=None,
         description="Whether the file is embedded. If None, it will be inferred "
         "from file type.",
@@ -568,8 +584,8 @@ class ChatMessage(BaseModel):
     A chat message can be from the ai, human, system, or action.
     """
 
-    id: Optional[str] = Field(
-        description="The ID of the chat message. This can be a random UUID."
+    id: str | None = Field(
+        None, description="The ID of the chat message. This can be a random UUID."
     )
     type: ChatRole = Field(description="The role of the chat message.")
     content: str = Field(description="The message.")

@@ -2,10 +2,11 @@
 
 from typing import Any, Dict, Literal, Optional, Sequence, Tuple
 
-import asyncpg
 import orjson
 from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.base import get_checkpoint_id
+from psycopg.types.json import Jsonb
+from pydantic import BaseModel
 
 
 def _metadata_predicate(
@@ -108,9 +109,18 @@ def search_where(
     return ("WHERE " + " AND ".join(wheres) if wheres else "", param_values)
 
 
-def pg_row_to_dict(row: asyncpg.Record) -> Dict[str, Any]:
-    return {k: row[k] for k in row.keys()}
+def model_dump_for_postgres(
+    obj: BaseModel, context: dict[str, Any] | None = None, **kwargs: Any
+) -> Dict[str, Any]:
+    """Dump a Pydantic model to a JSON-serializable dict for PostgreSQL.
 
+    This method converts a Pydantic model to a dict, wrapping any fields
+    annotated in the model with 'jsonb' in the PostgreSQL Jsonb wrapper.
+    """
+    dumped = obj.model_dump(context=context, **kwargs)
+    for key in dumped.keys():
+        key_metadata = obj.model_fields[key].metadata
+        if "jsonb" in key_metadata:
+            dumped[key] = Jsonb(dumped[key])
 
-def pg_rows_to_list(rows: Sequence[asyncpg.Record]) -> Sequence[Dict[str, Any]]:
-    return [pg_row_to_dict(row) for row in rows]
+    return dumped
