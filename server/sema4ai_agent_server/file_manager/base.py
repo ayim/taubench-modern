@@ -2,11 +2,10 @@ import hashlib
 import os
 import random
 import string
-from enum import Enum
 from typing import Union
 
 import structlog
-from fastapi import UploadFile
+from fastapi import HTTPException, UploadFile
 from pydantic import BaseModel
 
 from sema4ai_agent_server.schema import (
@@ -30,22 +29,9 @@ logger = structlog.get_logger(__name__)
 NON_EMBEDDABLE_EXTENSIONS = {".csv", ".xls", ".xlsx", ".json", ".xml"}
 
 
-class FileUploadFailReason(str, Enum):
-    ALREADY_EXISTS = "file_already_exists"
-    EMBEDDING_FAILED = "file_embedding_failed"
-    UNKNOWN = "unknown"
-
-
-class UploadFailed(Exception):
-    reason: FileUploadFailReason = FileUploadFailReason.UNKNOWN
-
-
-class FileAlreadyExists(UploadFailed):
-    reason = FileUploadFailReason.ALREADY_EXISTS
-
-
-class FileEmbeddingFailed(UploadFailed):
-    reason = FileUploadFailReason.EMBEDDING_FAILED
+class InvalidFileUploadError(HTTPException):
+    def __init__(self, message: str, *args: object, **kwargs: object) -> None:
+        super().__init__(status_code=400, detail=message)
 
 
 class RemoteFileUploadData(BaseModel):
@@ -96,7 +82,7 @@ class BaseFileManager:
             await get_storage().update_file_embedding_status(
                 file.file_id, embedding_status=EmbeddingStatus.FAILURE
             )
-            raise FileEmbeddingFailed()
+            raise e
         else:
             await get_storage().update_file_embedding_status(
                 file.file_id, embedding_status=EmbeddingStatus.SUCCESS
@@ -124,7 +110,7 @@ class BaseFileManager:
                 logger.info(f"Creating embeddings for {file.file_ref}")
                 try:
                     await self.create_embeddings(file, model)
-                except FileEmbeddingFailed:
+                except Exception:
                     pass
             else:
                 logger.info(
@@ -137,11 +123,12 @@ class BaseFileManager:
         file_extension = os.path.splitext(file.filename)[1].lower()
         return file_extension not in NON_EMBEDDABLE_EXTENSIONS
 
-    async def _validate_file_uniqueness(
-        self, file: UploadFile, owner: Union[Agent, Thread]
-    ) -> None:
-        if await get_storage().get_file(owner, file.filename):
-            raise FileAlreadyExists()
+    def _validate_files_pre_upload(self, files: list[UploadFileRequest]) -> None:
+        file_names = [f.file.filename for f in files]
+        if len(file_names) != len(set(file_names)):
+            raise InvalidFileUploadError("File names must be unique")
+        if any(f.file.filename == "" for f in files):
+            raise InvalidFileUploadError("File names must not be empty")
 
     async def generate_unique_file_ref(
         self, owner: Union[Agent, Thread], file_name: str

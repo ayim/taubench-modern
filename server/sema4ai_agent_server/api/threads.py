@@ -263,13 +263,9 @@ async def upload_thread_files(
         raise HTTPException(status_code=404, detail="Agent not found")
 
     file_manager = get_file_manager()
-    try:
-        stored_files = await file_manager.upload(
-            [UploadFileRequest(file=f) for f in files], thread
-        )
-    except Exception as e:
-        logger.exception("Failed to store a file", exception=e)
-        raise HTTPException(status_code=500, detail=f"Failed to store a file: {str(e)}")
+    stored_files = await file_manager.upload(
+        [UploadFileRequest(file=f) for f in files], thread
+    )
 
     await _add_uploaded_messages(stored_files, tid, user)
 

@@ -101,7 +101,6 @@ class CloudFileManager(BaseFileManager):
         owner: Union[Agent, Thread],
         embedded: bool,
     ) -> UploadedFile:
-        await self._validate_file_uniqueness(file, owner)
         blob = convert_to_blob(file)
         file_hash = await self._store(blob, file_id)
         file_path = self._get_presigned_url(file_id, file.filename)
@@ -120,6 +119,7 @@ class CloudFileManager(BaseFileManager):
         self, files: list[UploadFileRequest], owner: Union[Agent, Thread]
     ) -> list[UploadedFile]:
         """Uploads all files or none to ensure consistency."""
+        self._validate_files_pre_upload(files)
         uploaded_files: list[UploadedFile] = []
         for f in files:
             file_id = str(uuid4())

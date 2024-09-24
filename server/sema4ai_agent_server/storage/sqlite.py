@@ -30,6 +30,7 @@ from sema4ai_agent_server.schema import (
 from sema4ai_agent_server.storage import (
     BaseStorage,
     UniqueAgentNameError,
+    UniqueFileRefError,
     basemodel_secret_encoder_for_db,
 )
 
@@ -267,7 +268,7 @@ class SqliteStorage(BaseStorage):
                     e.sqlite_errorcode == sqlite3.SQLITE_CONSTRAINT_UNIQUE
                     and "agent.name" in str(e)
                 ):
-                    raise UniqueAgentNameError()
+                    raise UniqueAgentNameError(name)
                 raise e
             return Agent(
                 id=agent_id,
@@ -570,34 +571,43 @@ class SqliteStorage(BaseStorage):
             thread_id = owner.thread_id
         with self._connect() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                """
-                INSERT INTO file_owners (file_id, file_path, file_ref, file_hash, embedded, embedding_status, agent_id, thread_id, file_path_expiration)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(file_id)
-                DO UPDATE SET 
-                    file_id = EXCLUDED.file_id,
-                    file_path = EXCLUDED.file_path,
-                    file_hash = EXCLUDED.file_hash,
-                    embedded = EXCLUDED.embedded,
-                    embedding_status = EXCLUDED.embedding_status,
-                    agent_id = EXCLUDED.agent_id,
-                    thread_id = EXCLUDED.thread_id,
-                    file_path_expiration = EXCLUDED.file_path_expiration
-                """,
-                (
-                    file_id,
-                    file_path,
-                    file_ref,
-                    file_hash,
-                    embedded,
-                    embedding_status,
-                    agent_id,
-                    thread_id,
-                    file_path_expiration,
-                ),
-            )
-            conn.commit()
+            try:
+                cursor.execute(
+                    """
+                    INSERT INTO file_owners (file_id, file_path, file_ref, file_hash, embedded, embedding_status, agent_id, thread_id, file_path_expiration)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(file_id)
+                    DO UPDATE SET 
+                        file_id = EXCLUDED.file_id,
+                        file_path = EXCLUDED.file_path,
+                        file_hash = EXCLUDED.file_hash,
+                        embedded = EXCLUDED.embedded,
+                        embedding_status = EXCLUDED.embedding_status,
+                        agent_id = EXCLUDED.agent_id,
+                        thread_id = EXCLUDED.thread_id,
+                        file_path_expiration = EXCLUDED.file_path_expiration
+                    """,
+                    (
+                        file_id,
+                        file_path,
+                        file_ref,
+                        file_hash,
+                        embedded,
+                        embedding_status,
+                        agent_id,
+                        thread_id,
+                        file_path_expiration,
+                    ),
+                )
+                conn.commit()
+            except sqlite3.IntegrityError as e:
+                conn.commit()
+                if (
+                    e.sqlite_errorcode == sqlite3.SQLITE_CONSTRAINT_UNIQUE
+                    and "file_owners.file_ref" in str(e)
+                ):
+                    raise UniqueFileRefError(file_ref)
+                raise e
             return UploadedFile(
                 file_id=file_id,
                 file_path=file_path,

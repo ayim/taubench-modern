@@ -28,6 +28,7 @@ from sema4ai_agent_server.schema import (
 from sema4ai_agent_server.storage import (
     BaseStorage,
     UniqueAgentNameError,
+    UniqueFileRefError,
     basemodel_secret_encoder_for_db,
 )
 
@@ -35,6 +36,8 @@ logger = structlog.get_logger()
 
 
 UNIQUE_AGENT_NAME_CONSTRAINT_NAME = "idx_unique_agent_name"
+UNIQUE_FILE_REF_AGENT_CONSTRAINT_NAME = "unique_file_ref_agent"
+UNIQUE_FILE_REF_THREAD_CONSTRAINT_NAME = "unique_file_ref_thread"
 
 
 def _json_encoder(v):
@@ -186,31 +189,38 @@ class PostgresStorage(BaseStorage):
             agent_id = None
             thread_id = owner.thread_id
         async with self.get_pool().acquire() as conn:
-            await conn.execute(
-                """
-                INSERT INTO file_owners (file_id, file_path, file_ref, file_hash, embedded, embedding_status, agent_id, thread_id, file_path_expiration)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-                ON CONFLICT(file_id)
-                DO UPDATE SET 
-                    file_id = EXCLUDED.file_id,
-                    file_path = EXCLUDED.file_path,
-                    file_hash = EXCLUDED.file_hash,
-                    embedded = EXCLUDED.embedded,
-                    embedding_status = EXCLUDED.embedding_status,
-                    agent_id = EXCLUDED.agent_id,
-                    thread_id = EXCLUDED.thread_id,
-                    file_path_expiration = EXCLUDED.file_path_expiration
-                """,
-                file_id,
-                file_path,
-                file_ref,
-                file_hash,
-                embedded,
-                embedding_status,
-                agent_id,
-                thread_id,
-                file_path_expiration,
-            )
+            try:
+                await conn.execute(
+                    """
+                    INSERT INTO file_owners (file_id, file_path, file_ref, file_hash, embedded, embedding_status, agent_id, thread_id, file_path_expiration)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                    ON CONFLICT(file_id)
+                    DO UPDATE SET 
+                        file_id = EXCLUDED.file_id,
+                        file_path = EXCLUDED.file_path,
+                        file_hash = EXCLUDED.file_hash,
+                        embedded = EXCLUDED.embedded,
+                        embedding_status = EXCLUDED.embedding_status,
+                        agent_id = EXCLUDED.agent_id,
+                        thread_id = EXCLUDED.thread_id,
+                        file_path_expiration = EXCLUDED.file_path_expiration
+                    """,
+                    file_id,
+                    file_path,
+                    file_ref,
+                    file_hash,
+                    embedded,
+                    embedding_status,
+                    agent_id,
+                    thread_id,
+                    file_path_expiration,
+                )
+            except asyncpg.exceptions.UniqueViolationError as e:
+                if UNIQUE_FILE_REF_AGENT_CONSTRAINT_NAME in str(
+                    e
+                ) or UNIQUE_FILE_REF_THREAD_CONSTRAINT_NAME in str(e):
+                    raise UniqueFileRefError(file_ref)
+                raise e
             return UploadedFile(
                 file_id=file_id,
                 file_path=file_path,
@@ -363,7 +373,7 @@ class PostgresStorage(BaseStorage):
                     )
                 except asyncpg.exceptions.UniqueViolationError as e:
                     if UNIQUE_AGENT_NAME_CONSTRAINT_NAME in str(e):
-                        raise UniqueAgentNameError()
+                        raise UniqueAgentNameError(name)
                     raise e
         return Agent(
             id=agent_id,

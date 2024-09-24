@@ -534,13 +534,9 @@ async def upload_agent_files(
         raise HTTPException(status_code=404, detail="Agent not found")
 
     file_manager = get_file_manager()
-    try:
-        stored_files = await file_manager.upload(
-            [UploadFileRequest(file=f) for f in files], agent
-        )
-    except Exception as e:
-        logger.exception("Failed to store a file", exception=e)
-        raise HTTPException(status_code=500, detail=f"Failed to store a file: {str(e)}")
+    stored_files = await file_manager.upload(
+        [UploadFileRequest(file=f) for f in files], agent
+    )
 
     background_tasks.add_task(
         file_manager.create_missing_embeddings, agent.model, agent

@@ -52,7 +52,6 @@ class LocalFileManager(BaseFileManager):
         owner: Union[Agent, Thread],
         embedded: bool,
     ) -> UploadedFile:
-        await self._validate_file_uniqueness(file, owner)
         blob = convert_to_blob(file)
         file_hash = await self._store(blob, file_path)
         return await get_storage().put_file_owner(
@@ -70,6 +69,7 @@ class LocalFileManager(BaseFileManager):
         self, files: list[UploadFileRequest], owner: Union[Agent, Thread]
     ) -> list[UploadedFile]:
         """Uploads all files or none to ensure consistency."""
+        self._validate_files_pre_upload(files)
         owner_id = owner.id if isinstance(owner, Agent) else owner.thread_id
         uploaded_files: list[UploadedFile] = []
         for f in files:
