@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Union
 
 import asyncpg
+import orjson
 import structlog
 from langchain_core.messages import AnyMessage
 
@@ -30,6 +31,7 @@ from sema4ai_agent_server.storage import (
     BaseStorage,
     UniqueAgentNameError,
 )
+from sema4ai_agent_server.storage.utils import pg_row_to_dict, pg_rows_to_list
 
 logger = structlog.get_logger()
 
@@ -62,6 +64,18 @@ class PostgresStorage(BaseStorage):
 
     async def _init_connection(self, conn) -> None:
         await conn.set_type_codec(
+            "json",
+            encoder=lambda v: v,  # Let Pydantic handle the encoding
+            decoder=orjson.loads,
+            schema="pg_catalog",
+        )
+        await conn.set_type_codec(
+            "jsonb",
+            encoder=lambda v: v,  # Let Pydantic handle the encoding
+            decoder=orjson.loads,
+            schema="pg_catalog",
+        )
+        await conn.set_type_codec(
             "uuid", encoder=lambda v: str(v), decoder=lambda v: v, schema="pg_catalog"
         )
 
@@ -72,8 +86,8 @@ class PostgresStorage(BaseStorage):
 
     async def list_all_agents(self) -> List[Agent]:
         async with self.get_pool().acquire() as conn:
-            agents = await conn.fetch("SELECT * FROM agent ")
-            return AGENT_LIST_ADAPTER.validate_python(agents)
+            rows = await conn.fetch("SELECT * FROM agent ")
+            return AGENT_LIST_ADAPTER.validate_python(pg_rows_to_list(rows))
 
     async def agent_count(self) -> int:
         """Get agent row count"""
@@ -95,7 +109,7 @@ class PostgresStorage(BaseStorage):
                 "SELECT * FROM file_owners WHERE agent_id = $1",
                 agent_id,
             )
-            return UPLOADED_FILE_LIST_ADAPTER.validate_python(rows)
+            return UPLOADED_FILE_LIST_ADAPTER.validate_python(pg_rows_to_list(rows))
 
     async def get_thread_files(self, thread_id: str) -> list[UploadedFile]:
         """Get a list of files associated with a thread."""
@@ -112,15 +126,11 @@ class PostgresStorage(BaseStorage):
         """Get a file by id."""
         async with self.get_pool().acquire() as conn:
             row = await conn.fetchrow(
-                """
-                SELECT * FROM file_owners
-                WHERE file_id = $1
-                """,
-                file_id,
+                "SELECT * FROM file_owners WHERE file_id = $1", file_id
             )
             if not row:
                 return None
-            return UploadedFile.model_validate(row)
+            return UploadedFile.model_validate(pg_row_to_dict(row))
 
     async def get_file(
         self, owner: Union[Agent, Thread], file_ref: str
@@ -144,7 +154,7 @@ class PostgresStorage(BaseStorage):
             )
             if not row:
                 return None
-            return UploadedFile.model_validate(row)
+            return UploadedFile.model_validate(pg_row_to_dict(row))
 
     async def put_file_owner(
         self,
@@ -270,7 +280,7 @@ class PostgresStorage(BaseStorage):
             rows = await conn.fetch(
                 "SELECT * FROM agent WHERE user_id = $1 OR public IS true", user_id
             )
-            return AGENT_LIST_ADAPTER.validate_python(rows)
+            return AGENT_LIST_ADAPTER.validate_python(pg_rows_to_list(rows))
 
     async def get_agent(self, user_id: str, agent_id: str) -> Optional[Agent]:
         """Get an agent by ID."""
@@ -280,7 +290,7 @@ class PostgresStorage(BaseStorage):
                 agent_id,
                 user_id,
             )
-            return Agent.model_validate(row) if row else None
+            return Agent.model_validate(pg_row_to_dict(row)) if row else None
 
     async def put_agent(
         self,
@@ -369,7 +379,7 @@ class PostgresStorage(BaseStorage):
                 """,
                 user_id,
             )
-            return THREAD_LIST_ADAPTER.validate_python(rows)
+            return THREAD_LIST_ADAPTER.validate_python(pg_rows_to_list(rows))
 
     async def get_thread(self, user_id: str, thread_id: str) -> Optional[Thread]:
         """Get a thread by ID, including system threads."""
@@ -384,7 +394,7 @@ class PostgresStorage(BaseStorage):
                 thread_id,
                 user_id,
             )
-            return Thread.model_validate(row) if row else None
+            return Thread.model_validate(pg_row_to_dict(row)) if row else None
 
     async def get_thread_state(self, thread_id: str):
         """Get state for a thread."""
@@ -488,11 +498,11 @@ class PostgresStorage(BaseStorage):
         """Returns a tuple of the user and a boolean indicating whether the user was created."""
         async with self.get_pool().acquire() as conn:
             if row := await conn.fetchrow('SELECT * FROM "user" WHERE sub = $1', sub):
-                return User.model_validate(row), False
+                return User.model_validate(pg_row_to_dict(row)), False
             row = await conn.fetchrow(
                 'INSERT INTO "user" (sub) VALUES ($1) RETURNING *', sub
             )
-            return User.model_validate(row), True
+            return User.model_validate(pg_row_to_dict(row)), True
 
     async def update_file_retrieve_information(
         self, file_id: str, *, file_path: str, file_path_expiration: datetime
@@ -511,7 +521,7 @@ class PostgresStorage(BaseStorage):
             )
             if not row:
                 raise ValueError(f"File with id {file_id} not found")
-            return UploadedFile.model_validate(row)
+            return UploadedFile.model_validate(pg_row_to_dict(row))
 
     async def update_file_embedding_status(
         self, file_id: str, *, embedding_status: EmbeddingStatus

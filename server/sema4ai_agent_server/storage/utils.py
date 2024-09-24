@@ -2,6 +2,7 @@
 
 from typing import Any, Dict, Literal, Optional, Sequence, Tuple
 
+import asyncpg
 import orjson
 from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.base import get_checkpoint_id
@@ -105,3 +106,11 @@ def search_where(
         param_values.append(get_checkpoint_id(before))
 
     return ("WHERE " + " AND ".join(wheres) if wheres else "", param_values)
+
+
+def pg_row_to_dict(row: asyncpg.Record) -> Dict[str, Any]:
+    return {k: row[k] for k in row.keys()}
+
+
+def pg_rows_to_list(rows: Sequence[asyncpg.Record]) -> Sequence[Dict[str, Any]]:
+    return [pg_row_to_dict(row) for row in rows]

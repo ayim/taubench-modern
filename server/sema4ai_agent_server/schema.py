@@ -30,7 +30,7 @@ def ser_secret_str(
 ) -> str:
     """Serializer function which unmasks secret strings if the context's "raw"
     key is set to True."""
-    if info.context.get("raw", False):
+    if info.context is not None and info.context.get("raw", False):
         value = value.get_secret_value()
     return nxt(value)
 
