@@ -1,7 +1,6 @@
 import hashlib
 import os
-import random
-import string
+import re
 from typing import Union
 
 import structlog
@@ -133,17 +132,31 @@ class BaseFileManager:
     async def generate_unique_file_ref(
         self, owner: Union[Agent, Thread], file_name: str
     ) -> str:
+        files = []
+        if isinstance(owner, Agent):
+            files = await get_storage().get_agent_files(owner.id)
+        elif isinstance(owner, Thread):
+            files = await get_storage().get_thread_files(owner.thread_id)
+
+        existing_refs = {file.file_ref for file in files}
+        if file_name not in existing_refs:
+            return file_name
+
         file_base, file_ext = os.path.splitext(file_name)
-        file_ref = file_name
-        for _ in range(10):
-            file = await get_storage().get_file(owner, file_ref)
-            if not file:
-                break
-            suffix = "".join(random.choices(string.ascii_lowercase, k=6))
-            file_ref = f"{file_base}_{suffix}{file_ext}"
-        else:
-            raise Exception(f"Failed to generate a unique file ref for {file_name}")
-        return file_ref
+        # Example file_ref: "data (1).csv", "data (2).csv", ...
+        pattern = re.compile(
+            rf"^{re.escape(file_base)} \((\d+)\){re.escape(file_ext)}$"
+        )
+
+        max_index = 0
+        for file_ref in existing_refs:
+            match = pattern.match(file_ref)
+            if match:
+                index = int(match.group(1))
+                max_index = max(max_index, index)
+
+        new_file_ref = f"{file_base} ({max_index + 1}){file_ext}"
+        return new_file_ref
 
     async def request_remote_file_upload(
         self, thread: Thread, file_name: str
