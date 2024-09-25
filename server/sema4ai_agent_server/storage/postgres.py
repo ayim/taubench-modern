@@ -41,6 +41,8 @@ UNIQUE_AGENT_NAME_CONSTRAINT_NAME = "idx_unique_agent_name"
 
 
 class PostgresStorage(BaseStorage, PostgresConnectionManager):
+    # TODO: Consider using Pydantic models as row factories when appropriate, see
+    # https://www.psycopg.org/psycopg3/docs/advanced/typing.html#example-returning-records-as-pydantic-models
     _is_setup: bool = False
 
     async def setup(self) -> None:

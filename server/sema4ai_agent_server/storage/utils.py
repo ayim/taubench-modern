@@ -109,18 +109,40 @@ def search_where(
     return ("WHERE " + " AND ".join(wheres) if wheres else "", param_values)
 
 
+# There is likely a better way to implement these model dumps by using some sort
+# of fancy WrapSerializers in the schema. I tried that but Pydantic refused to
+# work for me so I must be missing something. These are the simplest workarounds
+# that preserves the idea that the schema should be the source of truth for the
+# data model. - @kylie-bee
 def model_dump_for_postgres(
     obj: BaseModel, context: dict[str, Any] | None = None, **kwargs: Any
 ) -> Dict[str, Any]:
     """Dump a Pydantic model to a JSON-serializable dict for PostgreSQL.
 
     This method converts a Pydantic model to a dict, wrapping any fields
-    annotated in the model with 'jsonb' in the PostgreSQL Jsonb wrapper.
+    annotated in the model with 'db_json' in the PostgreSQL Jsonb wrapper.
     """
     dumped = obj.model_dump(context=context, **kwargs)
     for key in dumped.keys():
         key_metadata = obj.model_fields[key].metadata
-        if "jsonb" in key_metadata:
+        if "db_json" in key_metadata:
             dumped[key] = Jsonb(dumped[key])
+
+    return dumped
+
+
+def model_dump_for_sqlite(
+    obj: BaseModel, context: dict[str, Any] | None = None, **kwargs: Any
+) -> Dict[str, Any]:
+    """Dump a Pydantic model to JSON-serializable dict for SQLite.
+
+    This method dumps any nested models marked with 'db_json' metadata as JSON
+    strings for SQLite.
+    """
+    dumped = obj.model_dump(context=context, **kwargs)
+    for key in dumped.keys():
+        key_metadata = obj.model_fields[key].metadata
+        if "db_json" in key_metadata:
+            dumped[key] = orjson.dumps(dumped[key]).decode("utf-8")
 
     return dumped

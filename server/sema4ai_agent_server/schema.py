@@ -275,6 +275,7 @@ dummy_model = OpenAIGPT(
 
 # TODO: If we unify models to the same base class, do we need this?
 MODEL = OpenAIGPT | AzureGPT | AnthropicClaude | AmazonClaude | GoogleGemini | Ollama
+MODEL_ADAPTER = TypeAdapter(MODEL)
 
 
 class AgentArchitecture(str, Enum):
@@ -461,26 +462,26 @@ class Agent(BaseModel):
     description: str = Field(description="The description of the agent.")
     runbook: SerializableSecretStr = Field(description="The runbook for the agent.")
     version: str = Field(description="The version of the agent.")
-    model: Annotated[MODEL, "jsonb"] = Field(
+    model: Annotated[MODEL, "db_json"] = Field(
         description="LLM model configuration for the agent."
     )
     architecture: AgentArchitecture = Field(
         description="The cognitive architecture of the agent."
     )
     reasoning: AgentReasoning = Field(description="The reasoning setting of the agent.")
-    action_packages: Annotated[list[ActionPackage], "jsonb"] = Field(
+    action_packages: Annotated[list[ActionPackage], "db_json"] = Field(
         description="The action packages for the agent."
     )
     updated_at: datetime = Field(description="The last time the agent was updated.")
-    metadata: Annotated[AgentMetadata, "jsonb"] = Field(
+    metadata: Annotated[AgentMetadata, "db_json"] = Field(
         description="The agent metadata."
     )
 
     @field_validator("model", mode="before")
     @classmethod
-    def validate_model(cls, v: Any) -> MODEL:
+    def validate_model_field(cls, v: Any) -> MODEL:
         if isinstance(v, (str, bytes, bytearray)):
-            return MODEL.model_validate_json(v)
+            return MODEL_ADAPTER.validate_json(v)
         return v
 
     @field_validator("action_packages", mode="before")
@@ -507,15 +508,17 @@ class Thread(BaseModel):
     agent_id: StrWithUuidInput | None = Field(None, description="The ID of the agent.")
     name: str = Field(description="The name of the thread.")
     updated_at: datetime = Field(description="The last time the thread was updated.")
-    metadata: Annotated[dict | None, "jsonb"] = Field(
+    metadata: Annotated[dict | None, "db_json"] = Field(
         None, description="The thread metadata."
     )
 
-    @field_validator("metadata")
+    @field_validator("metadata", mode="before")
     @classmethod
-    def validate_metadata(cls, v: Any) -> dict:
-        if isinstance(v, (str, bytes, bytearray)):
+    def validate_metadata(cls, v: Any) -> dict | None:
+        if isinstance(v, (str, bytes, bytearray)) and v != "null":
             return DICT_ADAPTER.validate_json(v)
+        elif v == "null":
+            return None
         return v
 
 

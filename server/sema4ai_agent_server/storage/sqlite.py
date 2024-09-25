@@ -33,6 +33,7 @@ from sema4ai_agent_server.storage import (
     BaseStorage,
     UniqueAgentNameError,
 )
+from sema4ai_agent_server.storage.utils import model_dump_for_sqlite
 
 logger = structlog.get_logger()
 
@@ -153,7 +154,7 @@ class SqliteStorage(BaseStorage):
                 (agent_id, user_id),
             )
             row = cursor.fetchone()
-            return Agent.validate_model(dict(row)) if row else None
+            return Agent.model_validate(dict(row)) if row else None
 
     async def put_agent(
         self,
@@ -211,7 +212,7 @@ class SqliteStorage(BaseStorage):
                         updated_at = EXCLUDED.updated_at, 
                         metadata = EXCLUDED.metadata
                     """,
-                    new_agent.model_dump(mode="json", context=RAW_CONTEXT),
+                    model_dump_for_sqlite(new_agent, RAW_CONTEXT),
                 )
                 conn.commit()
             except sqlite3.IntegrityError as e:
@@ -337,7 +338,7 @@ class SqliteStorage(BaseStorage):
             cursor.execute(
                 """
                 INSERT INTO thread (thread_id, user_id, agent_id, name, updated_at, metadata)
-                VALUES (:thread_id, :user_id, :agent_id, :name, :update_at, :metadata)
+                VALUES (:thread_id, :user_id, :agent_id, :name, :updated_at, :metadata)
                 ON CONFLICT(thread_id) 
                 DO UPDATE SET
                     user_id = EXCLUDED.user_id,
@@ -346,7 +347,7 @@ class SqliteStorage(BaseStorage):
                     updated_at = EXCLUDED.updated_at,
                     metadata = EXCLUDED.metadata
                 """,
-                new_thread.model_dump(mode="json"),
+                model_dump_for_sqlite(new_thread, RAW_CONTEXT),
             )
             conn.commit()
             return new_thread
@@ -359,7 +360,7 @@ class SqliteStorage(BaseStorage):
             user_row = cursor.fetchone()
 
             if user_row:
-                return User.model_validate(user_row), False
+                return User.model_validate(dict(user_row)), False
 
             # SQLite doesn't support RETURNING *, so we need to manually fetch the created user.
             cursor.execute(
@@ -371,7 +372,7 @@ class SqliteStorage(BaseStorage):
             # Fetch the newly created user
             cursor.execute('SELECT * FROM "user" WHERE sub = ?', (sub,))
             new_user_row = cursor.fetchone()
-            return User.model_validate(new_user_row), True
+            return User.model_validate(dict(new_user_row)), True
 
     async def delete_thread(self, user_id: str, thread_id: str):
         """Delete a thread by ID, including system threads."""
