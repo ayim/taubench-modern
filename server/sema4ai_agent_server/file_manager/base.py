@@ -26,6 +26,7 @@ from sema4ai_agent_server.storage.option import get_storage
 logger = structlog.get_logger(__name__)
 
 NON_EMBEDDABLE_EXTENSIONS = {".csv", ".xls", ".xlsx", ".json", ".xml"}
+MISSING_FILE_HASH = "SEMA4AI_MISSING_FILE_HASH"
 
 
 class InvalidFileUploadError(HTTPException):

@@ -6,6 +6,7 @@ import structlog
 from fastapi import UploadFile
 
 from sema4ai_agent_server.file_manager.base import (
+    MISSING_FILE_HASH,
     BaseFileManager,
     RemoteFileUploadData,
     get_hash,
@@ -138,7 +139,7 @@ class LocalFileManager(BaseFileManager):
             file_id=file_id,
             file_path=self._build_file_path(thread.thread_id, file_id, file_ref),
             file_ref=file_ref,
-            file_hash=get_hash(b""),
+            file_hash=MISSING_FILE_HASH,
             embedded=False,
             embedding_status=None,
             owner=thread,
