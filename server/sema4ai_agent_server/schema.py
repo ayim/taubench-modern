@@ -9,6 +9,7 @@ from fastapi import UploadFile
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from pydantic import (
     BaseModel,
+    BeforeValidator,
     ConfigDict,
     Field,
     SecretStr,
@@ -41,17 +42,15 @@ RAW_CONTEXT = {"raw": True}
 
 SerializableSecretStr = Annotated[SecretStr, WrapSerializer(ser_secret_str)]
 
+StrWithUuidInput = Annotated[
+    str, BeforeValidator(lambda v: str(v) if isinstance(v, UUID) else v)
+]
+
 
 class User(BaseModel):
-    user_id: str = Field(description="The ID of the user.")
+    user_id: StrWithUuidInput = Field(description="The ID of the user.")
     sub: str = Field(description="The sub of the user (from a JWT token).")
     created_at: datetime = Field(description="The time the user was created.")
-
-    @field_validator("user_id", mode="before")
-    @classmethod
-    def validate_user_id(cls, v: Any) -> str:
-        if isinstance(v, UUID):
-            return str(v)
 
     @cached_property
     def _parsed_sub(self) -> dict[str, str] | None:
@@ -453,8 +452,10 @@ class Agent(BaseModel):
     model_dump or model_dump_json).
     """
 
-    id: str = Field(description="The ID of the agent.")
-    user_id: str = Field(description="The ID of the user that owns the agent.")
+    id: StrWithUuidInput = Field(description="The ID of the agent.")
+    user_id: StrWithUuidInput = Field(
+        description="The ID of the user that owns the agent."
+    )
     public: bool = Field(description="Whether the agent is public.")
     name: str = Field(description="The name of the agent.")
     description: str = Field(description="The description of the agent.")
@@ -501,9 +502,9 @@ AGENT_LIST_ADAPTER = TypeAdapter(List[Agent])
 
 
 class Thread(BaseModel):
-    thread_id: str = Field(description="The ID of the thread.")
-    user_id: str = Field(description="The ID of the user.")
-    agent_id: str | None = Field(None, description="The ID of the agent.")
+    thread_id: StrWithUuidInput = Field(description="The ID of the thread.")
+    user_id: StrWithUuidInput = Field(description="The ID of the user.")
+    agent_id: StrWithUuidInput | None = Field(None, description="The ID of the agent.")
     name: str = Field(description="The name of the thread.")
     updated_at: datetime = Field(description="The last time the thread was updated.")
     metadata: Annotated[dict | None, "jsonb"] = Field(
@@ -533,7 +534,7 @@ class EmbeddingStatus(str, Enum):
 
 
 class UploadedFile(BaseModel):
-    file_id: str = Field(description="The ID of the file.")
+    file_id: StrWithUuidInput = Field(description="The ID of the file.")
     file_path: str | None = Field(None, description="The path of the file.")
     file_ref: str = Field(description="Key for the file access.")
     file_hash: str = Field(description="The hash of the file.")
@@ -545,11 +546,11 @@ class UploadedFile(BaseModel):
     embedding_status: EmbeddingStatus | None = Field(
         None, description="The embedding status of the file."
     )
-    agent_id: str | None = Field(
+    agent_id: StrWithUuidInput | None = Field(
         default=None,
         description="The ID of the agent that uploaded the file.",
     )
-    thread_id: str | None = Field(
+    thread_id: StrWithUuidInput | None = Field(
         default=None,
         description="The ID of the thread that uploaded the file.",
     )
@@ -584,7 +585,7 @@ class ChatMessage(BaseModel):
     A chat message can be from the ai, human, system, or action.
     """
 
-    id: str | None = Field(
+    id: StrWithUuidInput | None = Field(
         None, description="The ID of the chat message. This can be a random UUID."
     )
     type: ChatRole = Field(description="The role of the chat message.")
@@ -600,7 +601,7 @@ class ChatRequest(BaseModel):
     """
 
     input: List[ChatMessage] = Field(description="The messages to send to the agent.")
-    thread_id: str = Field(description="The ID of the thread.")
+    thread_id: StrWithUuidInput = Field(description="The ID of the thread.")
 
     def get_langchain_messages(self):
         """

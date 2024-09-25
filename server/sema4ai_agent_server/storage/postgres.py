@@ -7,7 +7,6 @@ import structlog
 from langchain_core.messages import AnyMessage
 from psycopg.errors import UniqueViolation
 from psycopg.rows import dict_row
-from psycopg.types.json import Jsonb
 
 from sema4ai_agent_server.agent import get_agent_executor, runnable_agent
 from sema4ai_agent_server.agent_types.constants import FINISH_NODE_KEY
@@ -88,7 +87,7 @@ class PostgresStorage(BaseStorage, PostgresConnectionManager):
                 """
                 SELECT * FROM file_owners WHERE thread_id = %s
                 """,
-                thread_id,
+                (thread_id,),
             )
             rows = await cur.fetchall()
             return UPLOADED_FILE_LIST_ADAPTER.validate_python(rows)
@@ -360,7 +359,7 @@ class PostgresStorage(BaseStorage, PostgresConnectionManager):
                 SELECT t.* 
                 FROM thread t
                 LEFT JOIN "user" u ON t.user_id = u.user_id
-                WHERE t.user_id = %s OR u.sub LIKE 'tenant:%:system:system_user'
+                WHERE t.user_id = %s OR u.sub LIKE 'tenant:%%:system:system_user'
                 """,
                 (user_id,),
             )
@@ -375,7 +374,7 @@ class PostgresStorage(BaseStorage, PostgresConnectionManager):
                 SELECT t.* 
                 FROM thread t
                 LEFT JOIN "user" u ON t.user_id = u.user_id
-                WHERE t.thread_id = %s AND (t.user_id = %s OR u.sub LIKE 'tenant:%:system:system_user')
+                WHERE t.thread_id = %s AND (t.user_id = %s OR u.sub LIKE 'tenant:%%:system:system_user')
                 """,
                 (
                     thread_id,
@@ -507,7 +506,7 @@ class PostgresStorage(BaseStorage, PostgresConnectionManager):
                 UPDATE file_owners
                 SET file_path = %s, file_path_expiration = %s
                 WHERE file_id = %s
-                RETURNING *
+                RETURNING *;
                 """,
                 (
                     file_id,
@@ -531,8 +530,8 @@ class PostgresStorage(BaseStorage, PostgresConnectionManager):
                 WHERE file_id = %s
                 """,
                 (
-                    file_id,
                     embedding_status,
+                    file_id,
                 ),
             )
             if cur.rowcount == 0:
@@ -541,13 +540,13 @@ class PostgresStorage(BaseStorage, PostgresConnectionManager):
     async def create_async_run(self, run_id: str, status: str) -> None:
         async with self.async_cursor() as cur:
             await cur.execute(
-                "INSERT INTO async_runs (id, status) VALUES (%s, %s)", (run_id, status)
+                "INSERT INTO async_runs (id, status) VALUES (%s, %s);", (run_id, status)
             )
 
     async def update_async_run(self, run_id: str, status: str) -> None:
         async with self.async_cursor() as cur:
             await cur.execute(
-                "UPDATE async_runs SET status = %s  WHERE id = %s", (run_id, status)
+                "UPDATE async_runs SET status = %s  WHERE id = %s", (status, run_id)
             )
 
     async def get_async_run_status(self, run_id: str) -> str:
@@ -555,4 +554,4 @@ class PostgresStorage(BaseStorage, PostgresConnectionManager):
         async with self.async_cursor() as cur:
             await cur.execute("SELECT status FROM async_runs WHERE id = %s", (run_id,))
             result = await cur.fetchone()
-            return result.status
+            return result[0]

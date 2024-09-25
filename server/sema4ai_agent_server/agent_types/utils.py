@@ -12,20 +12,17 @@ from typing import Any, Callable, Literal, Sequence, Type, TypeVar
 
 from deprecated import deprecated
 from langchain_anthropic import ChatAnthropic
-from langchain_anthropic.chat_models import convert_to_anthropic_tool
 from langchain_anthropic.output_parsers import ToolsOutputParser
 from langchain_core.language_models.base import LanguageModelInput
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import BaseMessage
 from langchain_core.runnables import Runnable
 from langchain_core.tools import BaseTool
-from langchain_core.tools import tool as tool_from_callable
 from langchain_core.utils.function_calling import convert_to_openai_tool
 from langchain_google_vertexai import ChatVertexAI, PydanticFunctionsOutputParser
 from langchain_openai import AzureChatOpenAI, ChatOpenAI
 from langchain_openai.output_parsers import PydanticToolsParser
 from pydantic import BaseModel
-from vertexai.generative_models._generative_models import ToolConfig
 
 # Define supported agent types
 AGENT_TYPES = (AzureChatOpenAI, ChatOpenAI, ChatAnthropic, ChatVertexAI)

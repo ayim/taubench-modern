@@ -14,8 +14,10 @@ CREATE TABLE IF NOT EXISTS new_checkpoints (
 -- Step 2: Copy the data from the old table to the new table
 INSERT INTO new_checkpoints (
         thread_id,
-        checkpoint_id, -- was thread_ts
-        parent_checkpoint_id, -- was parent_ts
+        checkpoint_id,
+        -- was thread_ts
+        parent_checkpoint_id,
+        -- was parent_ts
         checkpoint,
         metadata
     )
@@ -47,3 +49,6 @@ CREATE TABLE IF NOT EXISTS writes (
         idx
     )
 );
+-- Remove existing vector stores and embeddings
+DROP TABLE IF EXISTS langchain_pg_collection CASCADE;
+DROP TABLE IF EXISTS langchain_pg_embedding CASCADE;

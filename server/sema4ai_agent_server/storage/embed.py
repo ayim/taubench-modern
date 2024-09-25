@@ -7,10 +7,11 @@ from __future__ import annotations
 
 import mimetypes
 import os
-from abc import ABC, abstractmethod
+from asyncio import get_event_loop
 from typing import BinaryIO, List, Optional, Union
 
 from fastapi import UploadFile
+from langchain_chroma import Chroma
 from langchain_community.document_loaders.base import BaseBlobParser
 from langchain_core.document_loaders.blob_loaders import Blob
 from langchain_core.documents import Document
@@ -21,10 +22,11 @@ from langchain_core.runnables import (
 )
 from langchain_core.vectorstores import VectorStore
 from langchain_openai import AzureOpenAIEmbeddings, OpenAIEmbeddings
+from langchain_postgres import PGVector
 from langchain_text_splitters import RecursiveCharacterTextSplitter, TextSplitter
 from pydantic import ConfigDict, Field
 
-from sema4ai_agent_server.constants import VECTOR_DATABASE_PATH
+from sema4ai_agent_server.constants import VECTOR_COLLECTION_NAME, VECTOR_DATABASE_PATH
 from sema4ai_agent_server.parsing import MIMETYPE_BASED_PARSER
 from sema4ai_agent_server.schema import (
     MODEL,
@@ -54,7 +56,7 @@ def _sanitize_document_content(document: Document) -> Document:
     document.page_content = document.page_content.replace("\x00", "x")
 
 
-def embed_blob(
+async def aembed_blob(
     blob: Blob,
     parser: BaseBlobParser,
     text_splitter: TextSplitter,
@@ -76,11 +78,11 @@ def embed_blob(
         docs_to_index.extend(docs)
 
         if len(docs_to_index) >= batch_size:
-            ids.extend(vectorstore.add_documents(docs_to_index))
+            ids.extend(await vectorstore.aadd_documents(docs_to_index))
             docs_to_index = []
 
     if docs_to_index:
-        ids.extend(vectorstore.add_documents(docs_to_index))
+        ids.extend(await vectorstore.aadd_documents(docs_to_index))
 
     return ids
 
@@ -155,37 +157,32 @@ def get_embedding_function(
     raise ValueError(f"Unsupported model type {model} for embeddings.")
 
 
-class BaseVectorStoreWrapper(ABC):
-    @abstractmethod
-    def delete_by_metadata(self, metadata_key: str, metadata_value: str) -> None:
-        """
-        Enables deletion of embeddings by metadata values.
-
-        For example, to delete embeddings for a specific file, set metadata_key to
-        "file_id" and metadata_value to <file_id>. Similarly, to delete embeddings for
-        a specific owner (agent or thread), set metadata_key to "owner_id" and
-        metadata_value to <owner_id>.
-        """
-
-
-def _get_pg_vector(model: Optional[MODEL]) -> BaseVectorStoreWrapper:
-    from sema4ai_agent_server.storage.pg_vector import get_pg_vector_wrapper
-
-    return get_pg_vector_wrapper(
-        embedding_function=get_embedding_function(model) if model else None,
+def _get_pg_vector(model: Optional[MODEL]) -> PGVector:
+    pg_connection_string = PGVector.connection_string_from_db_params(
+        driver="psycopg",
+        host=os.environ["POSTGRES_HOST"],
+        port=int(os.environ["POSTGRES_PORT"]),
+        database=os.environ["POSTGRES_DB"],
+        user=os.environ["POSTGRES_USER"],
+        password=os.environ["POSTGRES_PASSWORD"],
+    )
+    return PGVector(
+        embeddings=get_embedding_function(model) if model else None,
+        connection=pg_connection_string,
+        use_jsonb=True,
+        async_mode=True,
     )
 
 
-def _get_chroma_vector(model: Optional[MODEL]) -> BaseVectorStoreWrapper:
-    from sema4ai_agent_server.storage.chroma import ChromaWrapper
-
-    return ChromaWrapper(
+def _get_chroma_vector(model: Optional[MODEL]) -> VectorStore:
+    return Chroma(
+        collection_name=VECTOR_COLLECTION_NAME,
         persist_directory=VECTOR_DATABASE_PATH,
         embedding_function=get_embedding_function(model) if model else None,
     )
 
 
-def get_vector_store(model: Optional[MODEL] = None) -> BaseVectorStoreWrapper:
+def get_vector_store(model: Optional[MODEL] = None) -> VectorStore:
     db_type = os.environ.get("S4_AGENT_SERVER_DB_TYPE", "sqlite")
     if db_type == "postgres":
         return _get_pg_vector(model)
@@ -208,8 +205,16 @@ class EmbedRunnable(RunnableSerializable[BinaryIO, List[str]]):
         None, description="ID of the file owner (agent or thread)."
     )
 
+    # PGVector doesn't support sync mode, so we use async mode in all cases. Chroma
+    # won't be affected by this because sync mode is invoked directly from the async
+    # base methods from VectorStore.
     def invoke(self, blob: Blob, config: Optional[RunnableConfig] = None) -> List[str]:
-        out = embed_blob(
+        return get_event_loop().run_until_complete(self.ainvoke(blob, config))
+
+    async def ainvoke(
+        self, blob: Blob, config: Optional[RunnableConfig] = None
+    ) -> List[str]:
+        out = await aembed_blob(
             blob,
             MIMETYPE_BASED_PARSER,
             self.text_splitter,

@@ -1,4 +1,4 @@
-from typing import Annotated, Any, Dict, List, Optional, Sequence, Union
+from typing import Annotated, Any, Dict, List, Sequence, Union
 from uuid import uuid4
 
 import structlog
@@ -41,7 +41,7 @@ class ThreadPostRequest(BaseModel):
 
     name: str = Field(..., description="The name of the thread.")
     agent_id: str = Field(..., description="The ID of the agent to use.")
-    starting_message: Optional[str] = Field(
+    starting_message: str | None = Field(
         None, description="The starting AI message for the thread."
     )
 
@@ -196,6 +196,7 @@ async def delete_thread(
         await file_manager.delete(file.file_id)
 
     await get_storage().delete_thread(user.user_id, tid)
+    # TODO: Update return to match how delete_agent works
     return {"status": "ok"}
 
 

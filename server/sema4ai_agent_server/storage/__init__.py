@@ -4,7 +4,6 @@ from typing import Any, Dict, List, Optional, Sequence, Union
 
 from fastapi import HTTPException
 from langchain_core.messages import AnyMessage
-from pydantic import SecretBytes, SecretStr
 
 from sema4ai_agent_server.agent_types.constants import FINISH_NODE_KEY
 from sema4ai_agent_server.schema import (

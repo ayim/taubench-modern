@@ -1,9 +1,9 @@
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, List, Set, Tuple, Union
+from typing import Any, List, Set, Tuple, Union
 
 from langchain_core.utils.json_schema import dereference_refs
-from pydantic import BaseModel, Field, create_model
+from pydantic import Field, create_model
 
 
 @dataclass(frozen=True)

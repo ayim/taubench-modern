@@ -134,17 +134,17 @@ class PostgresSaver(BaseCheckpointSaver, PostgresConnectionManager):
         checkpoint_id: str,
         task_id: str,
         writes: Sequence[Tuple[str, Any]],
-    ) -> list[tuple[str, str, str, str, int, str, bytes]]:
+    ) -> list[dict[str, str | bytes]]:
         return [
-            (
-                thread_id,
-                checkpoint_ns,
-                checkpoint_id,
-                task_id,
-                WRITES_IDX_MAP.get(channel, idx),
-                channel,
-                self.serde.dumps(value),
-            )
+            {
+                "thread_id": thread_id,
+                "checkpoint_ns": checkpoint_ns,
+                "checkpoint_id": checkpoint_id,
+                "task_id": task_id,
+                "idx": WRITES_IDX_MAP.get(channel, idx),
+                "channel": channel,
+                "value": self.serde.dumps(value),
+            }
             for idx, (channel, value) in enumerate(writes)
         ]
 
@@ -199,6 +199,7 @@ class PostgresSaver(BaseCheckpointSaver, PostgresConnectionManager):
         config: RunnableConfig,
         checkpoint: Checkpoint,
         metadata: CheckpointMetadata,
+        new_versions: ChannelVersions,
     ) -> RunnableConfig:
         """Save a checkpoint to the database.
 
@@ -436,7 +437,7 @@ class PostgresSaver(BaseCheckpointSaver, PostgresConnectionManager):
                         else None,
                         pending_writes=[
                             (task_id, channel, self.serde.loads(value))
-                            for task_id, channel, value in wcur
+                            async for task_id, channel, value in wcur
                         ],
                     )
 
