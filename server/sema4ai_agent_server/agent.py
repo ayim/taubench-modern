@@ -118,7 +118,7 @@ class ConfigurableAgent(RunnableBinding):
             reasoning_level,
             knowledge_files,
         )
-        agent_executor = _agent.with_config({"recursion_limit": 50})
+        agent_executor = _agent.with_config({"recursion_limit": 100})
         super().__init__(
             action_packages=action_packages,
             use_retrieval=use_retrieval,
@@ -190,7 +190,7 @@ class ConfigurablePlanExecute(RunnableBinding):
             reasoning_level,
             CHECKPOINTER,
         )
-        agent_executor = _agent.with_config({"recursion_limit": 50})
+        agent_executor = _agent.with_config({"recursion_limit": 100})
         super().__init__(
             action_packages=action_packages,
             use_retrieval=use_retrieval,
@@ -252,7 +252,7 @@ class ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(RunnableBin
         _agent = vitality_ai.get_tools_agent_executor(
             tools, llm, interrupt_before_action, CHECKPOINTER
         )
-        agent_executor = _agent.with_config({"recursion_limit": 50})
+        agent_executor = _agent.with_config({"recursion_limit": 100})
         super().__init__(
             action_packages=action_packages,
             use_retrieval=use_retrieval,

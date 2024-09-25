@@ -14,7 +14,7 @@ from sema4ai_agent_server.schema import (
     AgentArchitecture,
     AgentMetadata,
     AgentReasoning,
-    AgentStatus,
+    EmbeddingStatus,
     Thread,
     UploadedFile,
     User,
@@ -68,7 +68,7 @@ class BaseStorage(ABC):
         user_id: str,
         agent_id: str,
         *,
-        status: AgentStatus,
+        public: bool,
         name: str,
         description: str,
         runbook: str,
@@ -80,13 +80,6 @@ class BaseStorage(ABC):
         metadata: AgentMetadata,
     ) -> Agent:
         """Modify an agent."""
-        pass
-
-    @abstractmethod
-    async def update_agent_status(
-        self, user_id: str, agent_id: str, status: AgentStatus
-    ) -> None:
-        """Update the status of an agent."""
         pass
 
     @abstractmethod
@@ -191,6 +184,7 @@ class BaseStorage(ABC):
         file_ref: str,
         file_hash: str,
         embedded: bool,
+        embedding_status: Optional[EmbeddingStatus],
         owner: Union[Agent, Thread],
         file_path_expiration: Optional[datetime],
     ) -> UploadedFile:
@@ -202,6 +196,13 @@ class BaseStorage(ABC):
         self, file_id: str, *, file_path: str, file_path_expiration: datetime
     ) -> UploadedFile:
         """Update file retrieve information"""
+        pass
+
+    @abstractmethod
+    async def update_file_embedding_status(
+        self, file_id: str, *, embedding_status: EmbeddingStatus
+    ) -> None:
+        """Update file embedding status"""
         pass
 
     @abstractmethod
