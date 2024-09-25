@@ -375,6 +375,11 @@ class WorkerConfig(BaseModel):
     document_type: str = Field(description="The type of document.")
 
 
+class QuestionGroup(BaseModel):
+    title: str = Field(description="The title of the question group.")
+    questions: list[str] = Field(description="The questions in the group.")
+
+
 class AgentMetadata(BaseModel):
     """
     Metadata for the agent.
@@ -385,6 +390,9 @@ class AgentMetadata(BaseModel):
         description="Worker configuration, if in worker mode."
     )
     welcome_message: Optional[str] = Field(description="Welcome message for the agent.")
+    question_groups: list[QuestionGroup] = Field(
+        description="Question groups for the agent.", default_factory=list
+    )
 
     @root_validator
     def validate_worker_config(cls, values):
