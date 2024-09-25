@@ -5,13 +5,17 @@ git-tag: true            # Whether to create a git tag for the version bump.
 
 files:                   # The files to update with the new version.
   - path: "pyproject.toml"
-    replace: "version = \"{version}\"" # The search string to replace in the file.
+    replace:
+      - "version = \"{version}\"" # The search string to replace in the file.
 
   - path: "README.md"
-    replace: "**Latest Release:** `{version}`"
+    replace:
+      - "**Latest Release:** `{version}`"
 
   - path: "agent-server-interface/package.json"
-    replace: "\"version\": \"{version}\""
+    replace:
+      - "\"version\": \"{version}\""
 
   - path: "sema4ai_agent_server/server.py"
-    replace: "VERSION = \"{version}\""
+    replace:
+      - "VERSION = \"{version}\""
