@@ -19,6 +19,7 @@ from sema4ai_agent_server.api.files import _add_uploaded_messages
 from sema4ai_agent_server.auth.handlers import AuthedUser
 from sema4ai_agent_server.file_manager.base import RemoteFileUploadData
 from sema4ai_agent_server.file_manager.option import get_file_manager
+from sema4ai_agent_server.llms import ContextStats, get_context_stats
 from sema4ai_agent_server.otel import otel_is_enabled
 from sema4ai_agent_server.responses import PydanticResponse, TypeAdapterResponse
 from sema4ai_agent_server.schema import (
@@ -367,3 +368,26 @@ async def confirm_remote_file_upload(
     files = await get_file_manager().refresh_file_paths([file])
     await _add_uploaded_messages(files, tid, user)
     return PydanticResponse(files[0])
+
+
+@router.get(
+    "/{tid}/context-stats",
+    response_model=ContextStats,
+    response_class=PydanticResponse,
+)
+async def context_stats(user: AuthedUser, tid: ThreadID):
+    thread = await get_storage().get_thread(user.user_id, tid)
+    if not thread:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    agent = await get_storage().get_agent(user.user_id, thread.agent_id)
+    if agent is None:
+        detail = "Unattached thread. Unable to process stats without model info."
+        raise HTTPException(status_code=422, detail=detail)
+
+    state = await get_storage().get_thread_state(tid)
+    try:
+        return PydanticResponse(get_context_stats(agent.model, state))
+    except ValueError as e:
+        logger.exception("Failed to get context stats")
+        raise HTTPException(status_code=400, detail=str(e))

@@ -1,19 +1,78 @@
-from typing import Optional
+from typing import Callable, Optional
 
 import boto3
 import structlog
+import tiktoken
 from langchain_anthropic import ChatAnthropic
 from langchain_community.chat_models import BedrockChat
 from langchain_community.chat_models.ollama import ChatOllama
 from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.messages import BaseMessage
 from langchain_google_vertexai import ChatVertexAI
 from langchain_openai import AzureChatOpenAI, ChatOpenAI
+from pydantic import BaseModel
 
 from sema4ai_agent_server.schema import MODEL, LLMProvider
 
 logger = structlog.get_logger(__name__)
 
 DEFAULT_MAX_RETRIES = 5
+CONTEXT_WINDOW_SIZES = {
+    LLMProvider.OPENAI: {
+        "gpt-3.5-turbo": 16385,
+        "gpt-4-turbo": 128000,
+        "gpt-4o": 128000,
+        "gpt-4o-mini": 128000,
+    },
+}
+
+
+class ContextStats(BaseModel):
+    context_window_size: Optional[int]
+    tokens_per_message: dict[str, int]
+
+
+def get_context_stats(model: MODEL, thread_state: dict) -> ContextStats:
+    if model.provider not in (LLMProvider.OPENAI, LLMProvider.AZURE):
+        raise ValueError(f"Unsupported model provider: {model.provider}")
+    context_window_size = _get_context_window_size(model)
+    messages = thread_state.get("values", {}).get("messages", [])
+    return ContextStats(
+        context_window_size=context_window_size,
+        tokens_per_message=_count_tokens_per_message(model, messages),
+    )
+
+
+def _get_context_window_size(model: MODEL) -> Optional[int]:
+    if model.provider == LLMProvider.AZURE:
+        # TODO we don't know which model is used
+        return None
+    return CONTEXT_WINDOW_SIZES.get(model.provider, {}).get(model.name)
+
+
+def _token_counter(model: MODEL) -> Callable[[str], int]:
+    match model.provider:
+        case LLMProvider.OPENAI:
+            try:
+                # Raise KeyError if the model name is not recognized
+                encoding = tiktoken.encoding_for_model(model.name)
+            except KeyError:
+                encoding = tiktoken.get_encoding("cl100k_base")
+            return lambda s: len(encoding.encode(s))
+
+        case LLMProvider.AZURE:
+            encoding = tiktoken.get_encoding("cl100k_base")
+            return lambda s: len(encoding.encode(s))
+
+        case _:
+            return lambda s: len(s) // 4
+
+
+def _count_tokens_per_message(
+    model: MODEL, messages: list[BaseMessage]
+) -> dict[str, int]:
+    counter = _token_counter(model)
+    return {m.id: counter(m.content) for m in messages}
 
 
 def get_chat_model(model: MODEL) -> Optional[BaseChatModel]:
