@@ -314,20 +314,16 @@ def get_agent_status(base_url, agent_id) -> AgentStatus:
     return parse_obj_as(AgentStatus, response.json())
 
 
-def get_file(base_url, agent_id, thread_id, file_ref):
+def get_file_by_ref(base_url, thread_id, file_ref):
     """Retrieves a file using the new get-file endpoint."""
-    url = f"{base_url}/get-file"
+    url = f"{base_url}/threads/{thread_id}/file-by-ref"
     headers = {
         "Accept": "application/json",
         "Content-Type": "application/json",
     }
-    data = {
-        "agent_id": agent_id,
-        "thread_id": thread_id,
-        "file_ref": file_ref,
-    }
+    params = {"file_ref": file_ref}
 
-    response = requests.post(url, headers=headers, json=data)
+    response = requests.get(url, headers=headers, params=params)
     if response.status_code == 200:
         return response.json()
     else:
@@ -442,11 +438,12 @@ def test_file_uploads(base_url, thread_id, agent_id):
 
     # Multiple file uploads
     multi_files = [create_sample_file()[0] for _ in range(4)]
+    agent_files, thread_files = multi_files[:2], multi_files[2:]
     thread_multi_response = upload_multiple_files(
-        base_url, "threads", thread_id, multi_files[:2]
+        base_url, "threads", thread_id, agent_files
     )
     agent_multi_response = upload_multiple_files(
-        base_url, "agents", agent_id, multi_files[2:]
+        base_url, "agents", agent_id, thread_files
     )
 
     assert_test(
@@ -459,20 +456,24 @@ def test_file_uploads(base_url, thread_id, agent_id):
     total_files = 1 + 1 + 2 + 2  # 1 thread, 1 agent, 2 multi-thread, 2 multi-agent
     print_success(f"Successfully uploaded {total_files} files")
 
-    return [thread_file, agent_file] + multi_files, [
-        (thread_key, thread_value),
-        (agent_key, agent_value),
-    ]
+    return (
+        [agent_file] + agent_files,
+        [thread_file] + thread_files,
+        [
+            (thread_key, thread_value),
+            (agent_key, agent_value),
+        ],
+    )
 
 
-def test_get_file(base_url, agent_id, thread_id, uploaded_files):
+def test_get_file(base_url, thread_id, uploaded_thread_files):
     print_header("TESTING FILE RETRIEVAL")
-    if uploaded_files:
-        file_ref = os.path.basename(uploaded_files[0])
-        file_info = get_file(base_url, agent_id, thread_id, file_ref)
+    if uploaded_thread_files:
+        file_ref = os.path.basename(uploaded_thread_files[0])
+        file_info = get_file_by_ref(base_url, thread_id, file_ref)
         assert_test(file_info is not None, "File information retrieval")
         assert_test(
-            file_info["file_ref"] == file_ref,
+            file_ref in file_info["file_url"],
             "Retrieved file_ref matches the requested one",
         )
         if file_info:
@@ -549,8 +550,10 @@ def main():
     thread_id = test_thread_creation(base_url, agent_id)
     test_message_sending(base_url, thread_id)
     test_async_run(base_url, thread_id)
-    uploaded_files, key_value_pairs = test_file_uploads(base_url, thread_id, agent_id)
-    test_get_file(base_url, agent_id, thread_id, uploaded_files)
+    uploaded_agent_files, uploaded_thread_files, key_value_pairs = test_file_uploads(
+        base_url, thread_id, agent_id
+    )
+    test_get_file(base_url, thread_id, uploaded_thread_files)
     test_retrieval(base_url, thread_id, key_value_pairs)
 
     vitality_agent_id = test_vitality_agent_creation(base_url, openai_api_key)
@@ -561,7 +564,7 @@ def main():
     delete_agent(base_url, vitality_agent_id)
 
     # Clean up files
-    for file_path in uploaded_files:
+    for file_path in uploaded_agent_files + uploaded_thread_files:
         os.unlink(file_path)
 
     # Summarize test results

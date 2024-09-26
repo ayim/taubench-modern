@@ -5,7 +5,12 @@ from uuid import uuid4
 import structlog
 from fastapi import UploadFile
 
-from sema4ai_agent_server.file_manager.base import BaseFileManager, get_hash
+from sema4ai_agent_server.file_manager.base import (
+    MISSING_FILE_HASH,
+    BaseFileManager,
+    RemoteFileUploadData,
+    get_hash,
+)
 from sema4ai_agent_server.schema import (
     Agent,
     EmbeddingStatus,
@@ -48,7 +53,6 @@ class LocalFileManager(BaseFileManager):
         owner: Union[Agent, Thread],
         embedded: bool,
     ) -> UploadedFile:
-        await self._validate_file_uniqueness(file, owner)
         blob = convert_to_blob(file)
         file_hash = await self._store(blob, file_path)
         return await get_storage().put_file_owner(
@@ -66,13 +70,12 @@ class LocalFileManager(BaseFileManager):
         self, files: list[UploadFileRequest], owner: Union[Agent, Thread]
     ) -> list[UploadedFile]:
         """Uploads all files or none to ensure consistency."""
+        self._validate_files_pre_upload(files)
         owner_id = owner.id if isinstance(owner, Agent) else owner.thread_id
         uploaded_files: list[UploadedFile] = []
         for f in files:
             file_id = str(uuid4())
-            file_path = os.path.abspath(
-                os.path.join(UPLOAD_DIR, owner_id, file_id, f.file.filename)
-            )
+            file_path = self._build_file_path(owner_id, file_id, f.file.filename)
             embedded = (
                 f.embedded if f.embedded is not None else self._is_embeddable(f.file)
             )
@@ -112,3 +115,34 @@ class LocalFileManager(BaseFileManager):
         except FileNotFoundError:
             logger.exception(f"File not found: {file.file_path}")
             raise
+
+    def _build_file_path(self, owner_id: str, file_id: str, file_ref: str) -> str:
+        return os.path.abspath(os.path.join(UPLOAD_DIR, owner_id, file_id, file_ref))
+
+    async def request_remote_file_upload(
+        self, thread: Thread, file_name: str
+    ) -> RemoteFileUploadData:
+        file_id = str(uuid4())
+        file_ref = await self.generate_unique_file_ref(thread, file_name)
+        url = self._build_file_path(thread.thread_id, file_id, file_ref)
+        return RemoteFileUploadData(
+            url=url,
+            form_data={},
+            file_id=file_id,
+            file_ref=file_ref,
+        )
+
+    async def confirm_remote_file_upload(
+        self, thread: Thread, file_ref: str, file_id: str
+    ) -> UploadedFile:
+        file = await get_storage().put_file_owner(
+            file_id=file_id,
+            file_path=self._build_file_path(thread.thread_id, file_id, file_ref),
+            file_ref=file_ref,
+            file_hash=MISSING_FILE_HASH,
+            embedded=False,
+            embedding_status=None,
+            owner=thread,
+            file_path_expiration=None,
+        )
+        return file

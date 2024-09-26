@@ -8,7 +8,12 @@ import requests
 import structlog
 from fastapi import UploadFile
 
-from sema4ai_agent_server.file_manager.base import BaseFileManager, get_hash
+from sema4ai_agent_server.file_manager.base import (
+    MISSING_FILE_HASH,
+    BaseFileManager,
+    RemoteFileUploadData,
+    get_hash,
+)
 from sema4ai_agent_server.schema import (
     Agent,
     EmbeddingStatus,
@@ -97,7 +102,6 @@ class CloudFileManager(BaseFileManager):
         owner: Union[Agent, Thread],
         embedded: bool,
     ) -> UploadedFile:
-        await self._validate_file_uniqueness(file, owner)
         blob = convert_to_blob(file)
         file_hash = await self._store(blob, file_id)
         file_path = self._get_presigned_url(file_id, file.filename)
@@ -116,6 +120,7 @@ class CloudFileManager(BaseFileManager):
         self, files: list[UploadFileRequest], owner: Union[Agent, Thread]
     ) -> list[UploadedFile]:
         """Uploads all files or none to ensure consistency."""
+        self._validate_files_pre_upload(files)
         uploaded_files: list[UploadedFile] = []
         for f in files:
             file_id = str(uuid4())
@@ -172,3 +177,31 @@ class CloudFileManager(BaseFileManager):
         except requests.RequestException as e:
             logger.exception(f"Failed to download file {file_id}: {str(e)}")
             raise e
+
+    async def request_remote_file_upload(
+        self, thread: Thread, file_name: str
+    ) -> RemoteFileUploadData:
+        file_id = str(uuid4())
+        file_ref = await self.generate_unique_file_ref(thread, file_name)
+        presigned_post = self._get_presigned_post(file_id)
+        return RemoteFileUploadData(
+            url=presigned_post["url"],
+            form_data=presigned_post["form_data"],
+            file_id=file_id,
+            file_ref=file_ref,
+        )
+
+    async def confirm_remote_file_upload(
+        self, thread: Thread, file_ref: str, file_id: str
+    ) -> UploadedFile:
+        file = await get_storage().put_file_owner(
+            file_id=file_id,
+            file_path=None,
+            file_ref=file_ref,
+            file_hash=MISSING_FILE_HASH,
+            embedded=False,
+            embedding_status=None,
+            owner=thread,
+            file_path_expiration=datetime.now(timezone.utc),
+        )
+        return file
