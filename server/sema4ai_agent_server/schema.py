@@ -472,7 +472,6 @@ class AgentPayload(BaseModel):
     action_packages: Annotated[list[ActionPackage], "db_json"] = Field(
         default_factory=list, description="The action packages for the agent."
     )
-    updated_at: datetime = Field(description="The last time the agent was updated.")
     metadata: Annotated[AgentMetadata, "db_json"] = Field(
         description="The agent metadata."
     )
@@ -496,6 +495,7 @@ class AgentPayload(BaseModel):
     def validate_metadata(cls, v: Any) -> AgentMetadata:
         if isinstance(v, (str, bytes, bytearray)):
             return AgentMetadata.model_validate_json(v)
+        return v
 
 
 class Agent(AgentPayload):
