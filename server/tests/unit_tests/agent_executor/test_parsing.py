@@ -15,6 +15,7 @@ def test_list_of_supported_mimetypes() -> None:
         "application/pdf",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "text/html",
+        "text/markdown",
         "text/plain",
     ]
 
@@ -38,5 +39,5 @@ def test_attempt_to_parse_each_fixture() -> None:
         except Exception as e:
             raise AssertionError(f"Failed to parse {path}") from e
 
-    known_missing = {"application/msword"}
+    known_missing = {"application/msword", "text/markdown"}
     assert set(SUPPORTED_MIMETYPES) - known_missing == seen_mimetypes

@@ -17,3 +17,7 @@ def event_loop(request):
     loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
     loop.close()
+
+
+# Exclude the integration_tests directory from the pytest collection
+collect_ignore = ["integration_tests"]

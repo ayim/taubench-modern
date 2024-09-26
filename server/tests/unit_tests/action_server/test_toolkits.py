@@ -93,34 +93,25 @@ Strictly adhere to the schema."""
 
         desc = "The columns that make up the row"
         expected = {
-            "description": "the rows to be added to the sheet",
-            "allOf": [
-                {
-                    "title": "Rows To Add",
-                    "type": "object",
-                    "properties": {
-                        "rows": {
-                            "title": "Rows",
-                            "description": "The rows that need to be added",
-                            "type": "array",
-                            "items": {
-                                "title": "Row",
-                                "type": "object",
-                                "properties": {
-                                    "columns": {
-                                        "title": "Columns",
-                                        "description": desc,
-                                        "type": "array",
-                                        "items": {"type": "string"},
-                                    }
-                                },
-                                "required": ["columns"],
-                            },
-                        }
+            "type": "object",
+            "properties": {
+                "rows": {
+                    "description": "The rows that need to be added",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "columns": {
+                                "description": desc,
+                                "type": "array",
+                                "items": {"type": "string"},
+                            }
+                        },
+                        "required": ["columns"],
                     },
-                    "required": ["rows"],
                 }
-            ],
+            },
+            "required": ["rows"],
         }
         assert params["properties"]["rows_to_add"] == expected
 
@@ -256,132 +247,131 @@ def test_get_tools_with_multi_level_nesting_and_field_requirements() -> None:
 
         openai_func_spec = convert_to_openai_function(create_event_tool)
         params = openai_func_spec["parameters"]
-        recurrence = params["properties"]["event"]["allOf"][0]["properties"][
-            "recurrence"
-        ]
+        recurrence = params["properties"]["event"]["properties"]["recurrence"]
 
         assert recurrence == {
-            "title": "Recurrence",
-            "description": "The recurrence of the event",
-            "allOf": [
+            "anyOf": [
                 {
-                    "title": "Recurrence",
-                    "type": "object",
                     "properties": {
                         "pattern": {
+                            "properties": {
+                                "dayOfMonth": {
+                                    "anyOf": [{"type": "integer"}, {"type": "null"}],
+                                    "default": None,
+                                    "description": "The day of the month on which the event occurs. Required if type is absoluteMonthly or absoluteYearly",
+                                    "title": "Dayofmonth",
+                                },
+                                "daysOfWeek": {
+                                    "description": "A collection of the days of the week on which the event occurs.If type is relativeMonthly or relativeYearly, and daysOfWeek specifies more than one day, the event falls on the first day that satisfies the pattern.Required if type is weekly, relativeMonthly, or relativeYearly",
+                                    "items": {"type": "string"},
+                                    "title": "Daysofweek",
+                                    "type": "array",
+                                },
+                                "firstDayOfWeek": {
+                                    "anyOf": [{"type": "string"}, {"type": "null"}],
+                                    "default": None,
+                                    "description": "The first day of the week on which the event occurs.Default is sunday. Required if type is weekly",
+                                    "title": "Firstdayofweek",
+                                },
+                                "index": {
+                                    "anyOf": [{"type": "string"}, {"type": "null"}],
+                                    "default": None,
+                                    "description": "Specifies on which instance of the allowed days specified in daysOfWeek the event occurs, counted from the first instance in the month. The possible values are: first, second, third, fourth, last.Default is first. Optional and used if type is relativeMonthly or relativeYearly",
+                                    "title": "Index",
+                                },
+                                "interval": {
+                                    "description": "The number of units between occurrences, where units can be in days, weeks, months, or years, depending on the type",
+                                    "title": "Interval",
+                                    "type": "integer",
+                                },
+                                "month": {
+                                    "anyOf": [{"type": "integer"}, {"type": "null"}],
+                                    "default": None,
+                                    "description": "The month in which the event occurs. This is a number from 1 to 12",
+                                    "title": "Month",
+                                },
+                                "type": {
+                                    "description": "The recurrence pattern type: daily, weekly, absoluteMonthly, relativeMonthly, absoluteYearly, relativeYearly",
+                                    "title": "Type",
+                                    "type": "string",
+                                },
+                            },
+                            "required": ["type", "interval", "daysOfWeek"],
                             "title": "Pattern",
-                            "description": "The frequency of an event",
-                            "allOf": [
-                                {
-                                    "title": "Pattern",
-                                    "type": "object",
-                                    "properties": {
-                                        "type": {
-                                            "title": "Type",
-                                            "description": "The recurrence pattern type: daily, weekly, absoluteMonthly, relativeMonthly, absoluteYearly, relativeYearly",
-                                            "type": "string",
-                                        },
-                                        "interval": {
-                                            "title": "Interval",
-                                            "description": "The number of units between occurrences, where units can be in days, weeks, months, or years, depending on the type",
-                                            "type": "integer",
-                                        },
-                                        "daysOfWeek": {
-                                            "title": "Daysofweek",
-                                            "description": "A collection of the days of the week on which the event occurs.If type is relativeMonthly or relativeYearly, and daysOfWeek specifies more than one day, the event falls on the first day that satisfies the pattern.Required if type is weekly, relativeMonthly, or relativeYearly",
-                                            "type": "array",
-                                            "items": {"type": "string"},
-                                        },
-                                        "dayOfMonth": {
-                                            "title": "Dayofmonth",
-                                            "description": "The day of the month on which the event occurs. Required if type is absoluteMonthly or absoluteYearly",
-                                            "type": "integer",
-                                        },
-                                        "firstDayOfWeek": {
-                                            "title": "Firstdayofweek",
-                                            "description": "The first day of the week on which the event occurs.Default is sunday. Required if type is weekly",
-                                            "type": "string",
-                                        },
-                                        "index": {
-                                            "title": "Index",
-                                            "description": "Specifies on which instance of the allowed days specified in daysOfWeek the event occurs, counted from the first instance in the month. The possible values are: first, second, third, fourth, last.Default is first. Optional and used if type is relativeMonthly or relativeYearly",
-                                            "type": "string",
-                                        },
-                                        "month": {
-                                            "title": "Month",
-                                            "description": "The month in which the event occurs. This is a number from 1 to 12",
-                                            "type": "integer",
-                                        },
-                                    },
-                                    "required": ["type", "interval", "daysOfWeek"],
-                                }
-                            ],
+                            "type": "object",
                         },
                         "range": {
+                            "properties": {
+                                "endDate": {
+                                    "anyOf": [{"type": "string"}, {"type": "null"}],
+                                    "default": None,
+                                    "description": "The date to stop applying the recurrence pattern. Depending on the recurrence pattern of the event, the last occurrence of the meeting may not be this date.Required if type is endDate.",
+                                    "title": "Enddate",
+                                },
+                                "numberOfOccurrences": {
+                                    "anyOf": [{"type": "integer"}, {"type": "null"}],
+                                    "default": None,
+                                    "description": "The number of times to repeat the event. Required and must be positive if type is numbered.",
+                                    "title": "Numberofoccurrences",
+                                },
+                                "startDate": {
+                                    "description": "The date to start applying the recurrence pattern. The first occurrence of the meeting may be this date or later, depending on the recurrence pattern of the event. Must be the same value as the start property of the recurring event.",
+                                    "title": "Startdate",
+                                    "type": "string",
+                                },
+                                "type": {
+                                    "description": "The recurrence range. The possible values are: endDate, noEnd, numbered.endDate -> Range with end date and requires: type, startDate, endDatenoEnd -> Range without an end date and requires: type, startDatenumbered -> Range with specific number of occurrences and requires: type, startDate, numberOfOccurrences",
+                                    "title": "Type",
+                                    "type": "string",
+                                },
+                            },
+                            "required": ["type", "startDate"],
                             "title": "Range",
-                            "description": "The duration of an event",
-                            "allOf": [
-                                {
-                                    "title": "Range",
-                                    "type": "object",
-                                    "properties": {
-                                        "type": {
-                                            "title": "Type",
-                                            "description": "The recurrence range. The possible values are: endDate, noEnd, numbered.endDate -> Range with end date and requires: type, startDate, endDatenoEnd -> Range without an end date and requires: type, startDatenumbered -> Range with specific number of occurrences and requires: type, startDate, numberOfOccurrences",
-                                            "type": "string",
-                                        },
-                                        "startDate": {
-                                            "title": "Startdate",
-                                            "description": "The date to start applying the recurrence pattern. The first occurrence of the meeting may be this date or later, depending on the recurrence pattern of the event. Must be the same value as the start property of the recurring event.",
-                                            "type": "string",
-                                        },
-                                        "endDate": {
-                                            "title": "Enddate",
-                                            "description": "The date to stop applying the recurrence pattern. Depending on the recurrence pattern of the event, the last occurrence of the meeting may not be this date.Required if type is endDate.",
-                                            "type": "string",
-                                        },
-                                        "numberOfOccurrences": {
-                                            "title": "Numberofoccurrences",
-                                            "description": "The number of times to repeat the event. Required and must be positive if type is numbered.",
-                                            "type": "integer",
-                                        },
-                                    },
-                                    "required": ["type", "startDate"],
-                                }
-                            ],
+                            "type": "object",
                         },
                     },
                     "required": ["pattern", "range"],
-                }
+                    "title": "Recurrence",
+                    "type": "object",
+                },
+                {"type": "null"},
             ],
+            "default": None,
+            "description": "The recurrence of the event",
         }
 
-        attendees = params["properties"]["event"]["allOf"][0]["properties"]["attendees"]
+        attendees = params["properties"]["event"]["properties"]["attendees"]
 
         assert attendees == {
-            "title": "Attendees",
-            "description": "The list of attendees",
-            "type": "array",
-            "items": {
-                "title": "AddAttendee",
-                "type": "object",
-                "properties": {
-                    "type": {
-                        "title": "Type",
-                        "description": "The attendee type: required, optional, resource",
-                        "type": "string",
+            "anyOf": [
+                {
+                    "items": {
+                        "properties": {
+                            "email": {
+                                "description": "The email address of the attendee",
+                                "title": "Email",
+                                "type": "string",
+                            },
+                            "name": {
+                                "anyOf": [{"type": "string"}, {"type": "null"}],
+                                "default": None,
+                                "description": "The name of the attendee",
+                                "title": "Name",
+                            },
+                            "type": {
+                                "description": "The attendee type: required, optional, resource",
+                                "title": "Type",
+                                "type": "string",
+                            },
+                        },
+                        "required": ["type", "email"],
+                        "title": "AddAttendee",
+                        "type": "object",
                     },
-                    "email": {
-                        "title": "Email",
-                        "description": "The email address of the attendee",
-                        "type": "string",
-                    },
-                    "name": {
-                        "title": "Name",
-                        "description": "The name of the attendee",
-                        "type": "string",
-                    },
+                    "type": "array",
                 },
-                "required": ["type", "email"],
-            },
+                {"type": "null"},
+            ],
+            "default": None,
+            "description": "The list of attendees",
         }

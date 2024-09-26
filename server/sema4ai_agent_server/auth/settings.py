@@ -28,7 +28,7 @@ class JWTSettingsBase(BaseSettings):
 class JWTSettingsLocal(JWTSettingsBase):
     decode_key_b64: str
     alg: str
-    decode_key: str = None
+    decode_key: str | None = None
 
     @model_validator(mode="after")
     def set_decode_key(self) -> Self:
