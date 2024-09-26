@@ -1,19 +1,21 @@
-import json
 import os
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any, Dict, List, Sequence, Union
 
-import asyncpg
-import orjson
 import structlog
 from langchain_core.messages import AnyMessage
-from pydantic import BaseModel, parse_obj_as
+from psycopg.errors import UniqueViolation
+from psycopg.rows import dict_row
 
 from sema4ai_agent_server.agent import get_agent_executor, runnable_agent
 from sema4ai_agent_server.agent_types.constants import FINISH_NODE_KEY
 from sema4ai_agent_server.schema import (
+    AGENT_LIST_ADAPTER,
     MODEL,
+    RAW_CONTEXT,
+    THREAD_LIST_ADAPTER,
+    UPLOADED_FILE_LIST_ADAPTER,
     ActionPackage,
     Agent,
     AgentArchitecture,
@@ -29,8 +31,9 @@ from sema4ai_agent_server.storage import (
     BaseStorage,
     UniqueAgentNameError,
     UniqueFileRefError,
-    basemodel_secret_encoder_for_db,
 )
+from sema4ai_agent_server.storage.postgres_conn import PostgresConnectionManager
+from sema4ai_agent_server.storage.utils import model_dump_for_postgres
 
 logger = structlog.get_logger()
 
@@ -40,147 +43,108 @@ UNIQUE_FILE_REF_AGENT_CONSTRAINT_NAME = "unique_file_ref_agent"
 UNIQUE_FILE_REF_THREAD_CONSTRAINT_NAME = "unique_file_ref_thread"
 
 
-def _json_encoder(v):
-    if isinstance(v, BaseModel):
-        return v.json(encoder=basemodel_secret_encoder_for_db)
-    elif isinstance(v, list) and all(isinstance(i, BaseModel) for i in v):
-        return json.dumps(
-            [json.loads(i.json(encoder=basemodel_secret_encoder_for_db)) for i in v]
-        )
-    return orjson.dumps(v).decode()
-
-
-def _json_decoder(v):
-    return orjson.loads(v)
-
-
-class PostgresStorage(BaseStorage):
-    _pool: asyncpg.pool.Pool = None
+class PostgresStorage(BaseStorage, PostgresConnectionManager):
+    # TODO: Consider using Pydantic models as row factories when appropriate, see
+    # https://www.psycopg.org/psycopg3/docs/advanced/typing.html#example-returning-records-as-pydantic-models
     _is_setup: bool = False
 
     async def setup(self) -> None:
         if self._is_setup:
             return
-        self._pool = await asyncpg.create_pool(
-            database=os.environ["POSTGRES_DB"],
-            user=os.environ["POSTGRES_USER"],
-            password=os.environ["POSTGRES_PASSWORD"],
-            host=os.environ["POSTGRES_HOST"],
-            port=os.environ["POSTGRES_PORT"],
-            init=self._init_connection,
-        )
         await self._run_migrations()
         self._is_setup = True
 
     async def teardown(self) -> None:
-        await self._pool.close()
-        self._pool = None
         self._is_setup = False
 
-    async def _init_connection(self, conn) -> None:
-        await conn.set_type_codec(
-            "json",
-            encoder=_json_encoder,
-            decoder=_json_decoder,
-            schema="pg_catalog",
-        )
-        await conn.set_type_codec(
-            "jsonb",
-            encoder=_json_encoder,
-            decoder=_json_decoder,
-            schema="pg_catalog",
-        )
-        await conn.set_type_codec(
-            "uuid", encoder=lambda v: str(v), decoder=lambda v: v, schema="pg_catalog"
-        )
-
-    def get_pool(self) -> asyncpg.pool.Pool:
-        if not self._pool:
-            raise Exception("Pool has not been created.")
-        return self._pool
-
     async def list_all_agents(self) -> List[Agent]:
-        async with self.get_pool().acquire() as conn:
-            agents = await conn.fetch("SELECT * FROM agent ")
-            return parse_obj_as(List[Agent], agents)
+        async with self.async_cursor(dict_row) as cur:
+            await cur.execute("SELECT * FROM agent ")
+            rows = await cur.fetchall()
+            return AGENT_LIST_ADAPTER.validate_python(rows)
 
     async def agent_count(self) -> int:
         """Get agent row count"""
-        async with self.get_pool().acquire() as conn:
-            result = await conn.fetchrow("SELECT COUNT(*) FROM agent")
-            count = result[0]
-            return count
+        async with self.async_cursor() as cur:
+            await cur.execute("SELECT COUNT(*) FROM agent")
+            result = await cur.fetchone()
+            return result[0]
 
     async def thread_count(self) -> int:
-        async with self.get_pool().acquire() as conn:
-            result = await conn.fetchrow("SELECT COUNT(*) FROM thread")
-            count = result[0]
-            return count
+        async with self.async_cursor() as cur:
+            await cur.execute("SELECT COUNT(*) FROM thread")
+            result = await cur.fetchone()
+            return result[0]
 
     async def get_agent_files(self, agent_id: str) -> list[UploadedFile]:
         """Get a list of files associated with an agent."""
-        async with self.get_pool().acquire() as conn:
-            rows = await conn.fetch(
-                "SELECT * FROM file_owners WHERE agent_id = $1",
-                agent_id,
+        async with self.async_cursor(dict_row) as cur:
+            await cur.execute(
+                "SELECT * FROM file_owners WHERE agent_id = %s", (agent_id,)
             )
-            return parse_obj_as(List[UploadedFile], rows)
+            rows = await cur.fetchall()
+            return UPLOADED_FILE_LIST_ADAPTER.validate_python(rows)
 
     async def get_thread_files(self, thread_id: str) -> list[UploadedFile]:
         """Get a list of files associated with a thread."""
-        async with self.get_pool().acquire() as conn:
-            rows = await conn.fetch(
+        async with self.async_cursor(dict_row) as cur:
+            await cur.execute(
                 """
-                SELECT * FROM file_owners WHERE thread_id = $1
+                SELECT * FROM file_owners WHERE thread_id = %s
                 """,
-                thread_id,
+                (thread_id,),
             )
-            return parse_obj_as(List[UploadedFile], rows)
+            rows = await cur.fetchall()
+            return UPLOADED_FILE_LIST_ADAPTER.validate_python(rows)
 
-    async def get_file_by_id(self, file_id: str) -> Optional[UploadedFile]:
+    async def get_file_by_id(self, file_id: str) -> UploadedFile | None:
         """Get a file by id."""
-        async with self.get_pool().acquire() as conn:
-            row = await conn.fetchrow(
-                """
-                SELECT * FROM file_owners
-                WHERE file_id = $1
-                """,
-                file_id,
+        async with self.async_cursor(dict_row) as cur:
+            await cur.execute(
+                "SELECT * FROM file_owners WHERE file_id = %s", (file_id,)
             )
-            return parse_obj_as(Optional[UploadedFile], row)
+            row = await cur.fetchone()
+            if not row:
+                return None
+            return UploadedFile.model_validate(row)
 
     async def get_file(
         self, owner: Union[Agent, Thread], file_ref: str
-    ) -> Optional[UploadedFile]:
+    ) -> UploadedFile | None:
         """Get a file by ref."""
         if isinstance(owner, Agent):
-            query = "agent_id = $2"
+            query = "agent_id = %s"
             value = owner.id
         else:
-            query = "thread_id = $2"
+            query = "thread_id = %s"
             value = owner.thread_id
-        async with self.get_pool().acquire() as conn:
-            row = await conn.fetchrow(
+        async with self.async_cursor(dict_row) as cur:
+            await cur.execute(
                 f"""
                 SELECT * FROM file_owners
-                WHERE file_ref = $1
+                WHERE file_ref = %s
                 AND {query}
                 """,
-                file_ref,
-                value,
+                (
+                    file_ref,
+                    value,
+                ),
             )
-            return parse_obj_as(Optional[UploadedFile], row)
+            row = await cur.fetchone()
+            if not row:
+                return None
+            return UploadedFile.model_validate(row)
 
     async def put_file_owner(
         self,
         file_id: str,
-        file_path: Optional[str],
+        file_path: str | None,
         file_ref: str,
         file_hash: str,
         embedded: bool,
-        embedding_status: Optional[EmbeddingStatus],
+        embedding_status: EmbeddingStatus | None,
         owner: Union[Agent, Thread],
-        file_path_expiration: Optional[datetime],
+        file_path_expiration: datetime | None,
     ) -> UploadedFile:
         if isinstance(owner, Agent):
             agent_id = owner.id
@@ -188,13 +152,28 @@ class PostgresStorage(BaseStorage):
         else:
             agent_id = None
             thread_id = owner.thread_id
-        async with self.get_pool().acquire() as conn:
+        new_file = UploadedFile(
+            file_id=file_id,
+            file_path=file_path,
+            file_ref=file_ref,
+            file_hash=file_hash,
+            embedded=embedded,
+            embedding_status=embedding_status,
+            file_path_expiration=file_path_expiration,
+            agent_id=agent_id,
+            thread_id=thread_id,
+        )
+        async with self.async_cursor() as cur:
             try:
-                await conn.execute(
+                await cur.execute(
                     """
-                    INSERT INTO file_owners (file_id, file_path, file_ref, file_hash, embedded, embedding_status, agent_id, thread_id, file_path_expiration)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-                    ON CONFLICT(file_id)
+                    INSERT INTO file_owners (
+                        file_id, file_path, file_ref, file_hash, embedded, embedding_status, agent_id,
+                        thread_id, file_path_expiration
+                    ) VALUES (
+                        %(file_id)s, %(file_path)s, %(file_ref)s, %(file_hash)s, %(embedded)s,
+                        %(embedding_status)s, %(agent_id)s, %(thread_id)s, %(file_path_expiration)s
+                    ) ON CONFLICT(file_id)
                     DO UPDATE SET 
                         file_id = EXCLUDED.file_id,
                         file_path = EXCLUDED.file_path,
@@ -205,45 +184,28 @@ class PostgresStorage(BaseStorage):
                         thread_id = EXCLUDED.thread_id,
                         file_path_expiration = EXCLUDED.file_path_expiration
                     """,
-                    file_id,
-                    file_path,
-                    file_ref,
-                    file_hash,
-                    embedded,
-                    embedding_status,
-                    agent_id,
-                    thread_id,
-                    file_path_expiration,
+                    model_dump_for_postgres(new_file, context=RAW_CONTEXT),
                 )
-            except asyncpg.exceptions.UniqueViolationError as e:
+            except UniqueViolation as e:
                 if UNIQUE_FILE_REF_AGENT_CONSTRAINT_NAME in str(
                     e
                 ) or UNIQUE_FILE_REF_THREAD_CONSTRAINT_NAME in str(e):
                     raise UniqueFileRefError(file_ref)
                 raise e
-            return UploadedFile(
-                file_id=file_id,
-                file_path=file_path,
-                file_ref=file_ref,
-                file_hash=file_hash,
-                embedded=embedded,
-                embedding_status=embedding_status,
-                file_path_expiration=file_path_expiration,
-                agent_id=agent_id,
-                thread_id=thread_id,
-            )
+
+            return new_file
 
     async def delete_file(self, file_id: str) -> None:
-        async with self.get_pool().acquire() as conn:
-            await conn.execute("DELETE FROM file_owners WHERE file_id = $1", file_id)
+        async with self.async_cursor() as cur:
+            await cur.execute("DELETE FROM file_owners WHERE file_id = %s", (file_id,))
 
     async def _run_migrations(self):
         current_dir = os.path.dirname(os.path.abspath(__file__))
         migrations_path = Path(current_dir).parent / "migrations" / "postgres"
 
-        async with self.get_pool().acquire() as conn:
+        async with self.async_cursor() as cur:
             # Check if migrations table exists and create it if it doesn't
-            migrations_table_exists = await conn.fetchval(
+            await cur.execute(
                 """
                 SELECT EXISTS (
                     SELECT FROM information_schema.tables
@@ -251,28 +213,32 @@ class PostgresStorage(BaseStorage):
                 );
                 """
             )
+            results = await cur.fetchone()
+            migrations_table_exists = results[0] if results else False
             if not migrations_table_exists:
-                await conn.execute(
+                await cur.execute(
                     """
                     CREATE TABLE migrations (
                         version BIGINT PRIMARY KEY, dirty BOOLEAN NOT NULL
                     );
                     """
                 )
-                await conn.execute(
+                await cur.execute(
                     "INSERT INTO migrations (version, dirty) VALUES (0, FALSE);"
                 )
 
-            dirty_version = await conn.fetchval(
-                "SELECT version FROM migrations WHERE dirty = TRUE;"
-            )
+            await cur.execute("SELECT version FROM migrations WHERE dirty = TRUE;")
+            results = await cur.fetchone()
+            dirty_version = results[0] if results else None
             if dirty_version:
                 raise Exception(
                     f"Migration {dirty_version} is dirty. "
                     "No migrations will be applied. Please fix it manually."
                 )
 
-            current_version = await conn.fetchval("SELECT version FROM migrations;")
+            await cur.execute("SELECT version FROM migrations;")
+            results = await cur.fetchone()
+            current_version = results[0] if results else 0
             migration_files = sorted(
                 (f for f in os.listdir(migrations_path) if f.endswith(".up.sql")),
                 key=lambda x: int(x.split("_")[0]),
@@ -287,35 +253,38 @@ class PostgresStorage(BaseStorage):
                     logger.info(f"Applying migration {migration}")
 
                     # Set dirty flag
-                    await conn.execute(
-                        "UPDATE migrations SET version = $1, dirty = TRUE",
-                        version,
+                    await cur.execute(
+                        "UPDATE migrations SET version = %s, dirty = TRUE", (version,)
                     )
                     # Try to apply the migration
                     with open(os.path.join(migrations_path, migration), "r") as f:
-                        await conn.execute(f.read())
+                        await cur.execute(f.read())
                     # Unset dirty flag
-                    await conn.execute("UPDATE migrations SET dirty = FALSE")
+                    await cur.execute("UPDATE migrations SET dirty = FALSE")
 
                     current_version = version
 
     async def list_agents(self, user_id: str) -> List[Agent]:
         """List all agents for the current user."""
-        async with self.get_pool().acquire() as conn:
-            agents = await conn.fetch(
-                "SELECT * FROM agent WHERE user_id = $1 OR public IS true", user_id
+        async with self.async_cursor(dict_row) as cur:
+            await cur.execute(
+                "SELECT * FROM agent WHERE user_id = %s OR public IS true", (user_id,)
             )
-            return parse_obj_as(List[Agent], agents)
+            rows = await cur.fetchall()
+            return AGENT_LIST_ADAPTER.validate_python(rows)
 
-    async def get_agent(self, user_id: str, agent_id: str) -> Optional[Agent]:
+    async def get_agent(self, user_id: str, agent_id: str) -> Agent | None:
         """Get an agent by ID."""
-        async with self.get_pool().acquire() as conn:
-            row = await conn.fetchrow(
-                "SELECT * FROM agent WHERE id = $1 AND (user_id = $2 OR public IS true)",
-                agent_id,
-                user_id,
+        async with self.async_cursor(dict_row) as cur:
+            await cur.execute(
+                "SELECT * FROM agent WHERE id = %s AND (user_id = %s OR public IS true)",
+                (
+                    agent_id,
+                    user_id,
+                ),
             )
-            return parse_obj_as(Optional[Agent], row)
+            row = await cur.fetchone()
+            return Agent.model_validate(row) if row else None
 
     async def put_agent(
         self,
@@ -335,47 +304,7 @@ class PostgresStorage(BaseStorage):
     ) -> Agent:
         """Modify an agent."""
         updated_at = datetime.now(timezone.utc)
-        conn = self.get_pool().acquire()
-        async with self.get_pool().acquire() as conn:
-            async with conn.transaction():
-                try:
-                    await conn.execute(
-                        (
-                            "INSERT INTO agent (id, user_id, public, name, description, runbook, version, model, architecture, reasoning, action_packages, updated_at, metadata) "
-                            "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) "
-                            "ON CONFLICT (id) DO UPDATE SET "
-                            "user_id = EXCLUDED.user_id, "
-                            "public = EXCLUDED.public, "
-                            "name = EXCLUDED.name, "
-                            "description = EXCLUDED.description, "
-                            "runbook = EXCLUDED.runbook, "
-                            "version = EXCLUDED.version, "
-                            "model = EXCLUDED.model, "
-                            "architecture = EXCLUDED.architecture, "
-                            "reasoning = EXCLUDED.reasoning, "
-                            "action_packages = EXCLUDED.action_packages, "
-                            "updated_at = EXCLUDED.updated_at, "
-                            "metadata = EXCLUDED.metadata;"
-                        ),
-                        agent_id,
-                        user_id,
-                        public,
-                        name,
-                        description,
-                        runbook,
-                        version,
-                        model,
-                        architecture,
-                        reasoning,
-                        action_packages,
-                        updated_at,
-                        metadata,
-                    )
-                except asyncpg.exceptions.UniqueViolationError as e:
-                    if UNIQUE_AGENT_NAME_CONSTRAINT_NAME in str(e):
-                        raise UniqueAgentNameError(name)
-                    raise e
-        return Agent(
+        new_agent = Agent(
             id=agent_id,
             user_id=user_id,
             public=public,
@@ -390,44 +319,82 @@ class PostgresStorage(BaseStorage):
             updated_at=updated_at,
             metadata=metadata,
         )
+        async with self.async_cursor() as cur:
+            try:
+                await cur.execute(
+                    """
+                    INSERT INTO agent (
+                        id, user_id, public, name, description, runbook, version, model, 
+                        architecture, reasoning, action_packages, updated_at, metadata
+                    ) VALUES (
+                        %(id)s, %(user_id)s, %(public)s, %(name)s, %(description)s, %(runbook)s,
+                        %(version)s, %(model)s, %(architecture)s, %(reasoning)s,
+                        %(action_packages)s, %(updated_at)s, %(metadata)s
+                    ) ON CONFLICT (id) DO UPDATE SET
+                        user_id = EXCLUDED.user_id,
+                        public = EXCLUDED.public,
+                        name = EXCLUDED.name,
+                        description = EXCLUDED.description,
+                        runbook = EXCLUDED.runbook,
+                        version = EXCLUDED.version,
+                        model = EXCLUDED.model,
+                        architecture = EXCLUDED.architecture,
+                        reasoning = EXCLUDED.reasoning,
+                        action_packages = EXCLUDED.action_packages,
+                        updated_at = EXCLUDED.updated_at,
+                        metadata = EXCLUDED.metadata;
+                    """,
+                    model_dump_for_postgres(new_agent, context=RAW_CONTEXT),
+                )
+            except UniqueViolation as e:
+                if UNIQUE_AGENT_NAME_CONSTRAINT_NAME in str(e):
+                    raise UniqueAgentNameError(name)
+                raise e
+        return new_agent
 
     async def delete_agent(self, user_id: str, agent_id: str) -> None:
         """Delete an agent by ID."""
-        async with self.get_pool().acquire() as conn:
-            await conn.execute(
-                "DELETE FROM agent WHERE id = $1 AND user_id = $2",
-                agent_id,
-                user_id,
+        async with self.async_cursor() as cur:
+            await cur.execute(
+                "DELETE FROM agent WHERE id = %s AND user_id = %s",
+                (
+                    agent_id,
+                    user_id,
+                ),
             )
 
     async def list_threads(self, user_id: str) -> List[Thread]:
         """List all threads for the current user and system threads."""
-        async with self.get_pool().acquire() as conn:
-            threads = await conn.fetch(
+        async with self.async_cursor(dict_row) as cur:
+            await cur.execute(
                 """
                 SELECT t.* 
                 FROM thread t
                 LEFT JOIN "user" u ON t.user_id = u.user_id
-                WHERE t.user_id = $1 OR u.sub LIKE 'tenant:%:system:system_user'
+                WHERE t.user_id = %s OR u.sub LIKE 'tenant:%%:system:system_user'
                 """,
-                user_id,
+                (user_id,),
             )
-            return parse_obj_as(List[Thread], threads)
+            rows = await cur.fetchall()
+            return THREAD_LIST_ADAPTER.validate_python(rows)
 
-    async def get_thread(self, user_id: str, thread_id: str) -> Optional[Thread]:
+    async def get_thread(self, user_id: str, thread_id: str) -> Thread | None:
         """Get a thread by ID, including system threads."""
-        async with self.get_pool().acquire() as conn:
-            thread = await conn.fetchrow(
+        async with self.async_cursor(dict_row) as cur:
+            await cur.execute(
                 """
                 SELECT t.* 
                 FROM thread t
                 LEFT JOIN "user" u ON t.user_id = u.user_id
-                WHERE t.thread_id = $1 AND (t.user_id = $2 OR u.sub LIKE 'tenant:%:system:system_user')
+                WHERE t.thread_id = %s AND (t.user_id = %s OR u.sub LIKE 'tenant:%%:system:system_user')
                 """,
-                thread_id,
-                user_id,
+                (
+                    thread_id,
+                    user_id,
+                ),
             )
-            return parse_obj_as(Optional[Thread], thread)
+            row = await cur.fetchone()
+            return Thread.model_validate(row) if row else None
 
     async def get_thread_state(self, thread_id: str):
         """Get state for a thread."""
@@ -444,7 +411,7 @@ class PostgresStorage(BaseStorage):
         self,
         thread_id: str,
         values: Union[Sequence[AnyMessage], Dict[str, Any]],
-        as_node: Optional[str] = FINISH_NODE_KEY,
+        as_node: str | None = FINISH_NODE_KEY,
     ):
         """Add state to a thread."""
         retval = runnable_agent.update_state(
@@ -478,119 +445,125 @@ class PostgresStorage(BaseStorage):
         *,
         agent_id: str,
         name: str,
-        metadata: Optional[dict],
+        metadata: dict | None,
     ) -> Thread:
         """Modify a thread."""
         updated_at = datetime.now(timezone.utc)
-        async with self.get_pool().acquire() as conn:
-            await conn.execute(
-                (
-                    "INSERT INTO thread (thread_id, user_id, agent_id, name, updated_at, metadata) VALUES ($1, $2, $3, $4, $5, $6) "
-                    "ON CONFLICT (thread_id) DO UPDATE SET "
-                    "user_id = EXCLUDED.user_id,"
-                    "agent_id = EXCLUDED.agent_id, "
-                    "name = EXCLUDED.name, "
-                    "updated_at = EXCLUDED.updated_at, "
-                    "metadata = EXCLUDED.metadata;"
-                ),
-                thread_id,
-                user_id,
-                agent_id,
-                name,
-                updated_at,
-                metadata,
+        new_thread = Thread(
+            thread_id=thread_id,
+            user_id=user_id,
+            agent_id=agent_id,
+            name=name,
+            updated_at=updated_at,
+            metadata=metadata,
+        )
+        async with self.async_cursor() as cur:
+            await cur.execute(
+                """
+                INSERT INTO thread (
+                    thread_id, user_id, agent_id, name, updated_at, metadata
+                ) VALUES (
+                    %(thread_id)s, %(user_id)s, %(agent_id)s, %(name)s, %(updated_at)s,
+                    %(metadata)s
+                ) ON CONFLICT (thread_id) DO UPDATE SET
+                    user_id = EXCLUDED.user_id,
+                    agent_id = EXCLUDED.agent_id,
+                    name = EXCLUDED.name,
+                    updated_at = EXCLUDED.updated_at,
+                    metadata = EXCLUDED.metadata;
+                """,
+                model_dump_for_postgres(new_thread, context=RAW_CONTEXT),
             )
-            return Thread(
-                thread_id=thread_id,
-                user_id=user_id,
-                agent_id=agent_id,
-                name=name,
-                updated_at=updated_at,
-                metadata=metadata,
-            )
+            return new_thread
 
     async def delete_thread(self, user_id: str, thread_id: str):
         """Delete a thread by ID, including system threads."""
-        async with self.get_pool().acquire() as conn:
-            await conn.execute(
+        async with self.async_cursor() as cur:
+            await cur.execute(
                 """
                 DELETE FROM thread
-                WHERE thread_id = $1 AND (
-                    user_id = $2 
+                WHERE thread_id = %s AND (
+                    user_id = %s 
                     OR user_id IN (
                         SELECT user_id 
                         FROM "user" 
-                        WHERE sub LIKE 'tenant:%:system:system_user'
+                        WHERE sub LIKE 'tenant:%%:system:system_user'
                     )
                 )
                 """,
-                thread_id,
-                user_id,
+                (
+                    thread_id,
+                    user_id,
+                ),
             )
 
     async def get_or_create_user(self, sub: str) -> tuple[User, bool]:
         """Returns a tuple of the user and a boolean indicating whether the user was created."""
-        async with self.get_pool().acquire() as conn:
-            if user := await conn.fetchrow('SELECT * FROM "user" WHERE sub = $1', sub):
-                return parse_obj_as(User, user), False
-            user = await conn.fetchrow(
-                'INSERT INTO "user" (sub) VALUES ($1) RETURNING *', sub
+        async with self.async_cursor(dict_row) as cur:
+            await cur.execute('SELECT * FROM "user" WHERE sub = %s', (sub,))
+            if row := await cur.fetchone():
+                return User.model_validate(row), False
+            await cur.execute(
+                'INSERT INTO "user" (sub) VALUES (%s) RETURNING *', (sub,)
             )
-            return parse_obj_as(User, user), True
+            row = await cur.fetchone()
+            return User.model_validate(row), True
 
     async def update_file_retrieve_information(
         self, file_id: str, *, file_path: str, file_path_expiration: datetime
     ) -> UploadedFile:
-        async with self.get_pool().acquire() as conn:
-            row = await conn.fetchrow(
+        async with self.async_cursor(dict_row) as cur:
+            await cur.execute(
                 """
                 UPDATE file_owners
-                SET file_path = $2, file_path_expiration = $3
-                WHERE file_id = $1
-                RETURNING *
+                SET file_path = %s, file_path_expiration = %s
+                WHERE file_id = %s
+                RETURNING *;
                 """,
-                file_id,
-                file_path,
-                file_path_expiration,
+                (
+                    file_id,
+                    file_path,
+                    file_path_expiration,
+                ),
             )
+            row = await cur.fetchone()
             if not row:
                 raise ValueError(f"File with id {file_id} not found")
-            return parse_obj_as(UploadedFile, row)
+            return UploadedFile.model_validate(row)
 
     async def update_file_embedding_status(
         self, file_id: str, *, embedding_status: EmbeddingStatus
     ) -> None:
-        async with self.get_pool().acquire() as conn:
-            row = await conn.fetchrow(
+        async with self.async_cursor() as cur:
+            await cur.execute(
                 """
                 UPDATE file_owners
-                SET embedding_status = $2 
-                WHERE file_id = $1
-                RETURNING *
+                SET embedding_status = %s 
+                WHERE file_id = %s
                 """,
-                file_id,
-                embedding_status,
+                (
+                    embedding_status,
+                    file_id,
+                ),
             )
-            if not row:
+            if cur.rowcount == 0:
                 raise ValueError(f"File with id {file_id} not found")
 
     async def create_async_run(self, run_id: str, status: str) -> None:
-        async with self.get_pool().acquire() as conn:
-            await conn.execute(
-                "INSERT INTO async_runs (id, status) VALUES ($1, $2)", run_id, status
+        async with self.async_cursor() as cur:
+            await cur.execute(
+                "INSERT INTO async_runs (id, status) VALUES (%s, %s);", (run_id, status)
             )
 
     async def update_async_run(self, run_id: str, status: str) -> None:
-        async with self.get_pool().acquire() as conn:
-            await conn.execute(
-                "UPDATE async_runs SET status = $2  WHERE id = $1", run_id, status
+        async with self.async_cursor() as cur:
+            await cur.execute(
+                "UPDATE async_runs SET status = %s  WHERE id = %s", (status, run_id)
             )
 
     async def get_async_run_status(self, run_id: str) -> str:
         """Get run status"""
-        async with self.get_pool().acquire() as conn:
-            result = await conn.fetchrow(
-                "SELECT status FROM async_runs WHERE id = $1", run_id
-            )
-            status = result[0]
-            return status
+        async with self.async_cursor() as cur:
+            await cur.execute("SELECT status FROM async_runs WHERE id = %s", (run_id,))
+            result = await cur.fetchone()
+            return result[0]

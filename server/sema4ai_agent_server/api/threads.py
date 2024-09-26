@@ -1,20 +1,33 @@
 from pathlib import Path
-from typing import Annotated, Any, Dict, List, Optional, Sequence, Union
+from typing import Annotated, Any, Dict, List, Sequence, Union
 from uuid import uuid4
 
 import structlog
 from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile
-from langchain.schema.messages import AnyMessage
-from langchain_core.messages import AIMessage
+from langchain_core.messages import (
+    AIMessage,
+    ChatMessage,
+    FunctionMessage,
+    HumanMessage,
+    SystemMessage,
+    ToolMessage,
+)
 from opentelemetry import metrics
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Discriminator, Field, Tag
 
 from sema4ai_agent_server.api.files import _add_uploaded_messages
 from sema4ai_agent_server.auth.handlers import AuthedUser
 from sema4ai_agent_server.file_manager.base import RemoteFileUploadData
 from sema4ai_agent_server.file_manager.option import get_file_manager
 from sema4ai_agent_server.otel import otel_is_enabled
-from sema4ai_agent_server.schema import Thread, UploadedFile, UploadFileRequest
+from sema4ai_agent_server.responses import PydanticResponse, TypeAdapterResponse
+from sema4ai_agent_server.schema import (
+    THREAD_LIST_ADAPTER,
+    UPLOADED_FILE_LIST_ADAPTER,
+    Thread,
+    UploadedFile,
+    UploadFileRequest,
+)
 from sema4ai_agent_server.storage.option import get_storage
 
 logger = structlog.get_logger(__name__)
@@ -31,12 +44,40 @@ if otel_is_enabled():
     )
 
 
+# Vendored from langchain_core.utils.messages v0.3 to remove chunks as inputs.
+def _get_type(v: Any) -> str:
+    """Get the type associated with the object for serialization purposes."""
+    if isinstance(v, dict) and "type" in v:
+        return v["type"]
+    elif hasattr(v, "type"):
+        return v.type
+    else:
+        raise TypeError(
+            f"Expected either a dictionary with a 'type' key or an object "
+            f"with a 'type' attribute. Instead got type {type(v)}."
+        )
+
+
+AnyNonChunkMessage = Annotated[
+    Union[
+        Annotated[AIMessage, Tag(tag="ai")],
+        Annotated[HumanMessage, Tag(tag="human")],
+        Annotated[ChatMessage, Tag(tag="chat")],
+        Annotated[SystemMessage, Tag(tag="system")],
+        Annotated[FunctionMessage, Tag(tag="function")],
+        Annotated[ToolMessage, Tag(tag="tool")],
+    ],
+    Field(discriminator=Discriminator(_get_type)),
+]
+# End of vendored code
+
+
 class ThreadPostRequest(BaseModel):
     """Payload for creating a thread."""
 
     name: str = Field(..., description="The name of the thread.")
     agent_id: str = Field(..., description="The ID of the agent to use.")
-    starting_message: Optional[str] = Field(
+    starting_message: str | None = Field(
         None, description="The starting AI message for the thread."
     )
 
@@ -51,7 +92,7 @@ class ThreadPutRequest(BaseModel):
 class ThreadStatePostRequest(BaseModel):
     """Payload for adding state to a thread."""
 
-    values: Union[Sequence[AnyMessage], Dict[str, Any]]
+    values: Union[Sequence[AnyNonChunkMessage], Dict[str, Any]]
 
 
 class RequestRemoteFileUploadPayload(BaseModel):
@@ -76,11 +117,11 @@ class FileByRefResponse(BaseModel):
         return cls(file_url=file_url)
 
 
-@router.get("/")
-async def list_threads(user: AuthedUser) -> List[Thread]:
+@router.get("/", response_model=List[Thread], response_class=TypeAdapterResponse)
+async def list_threads(user: AuthedUser):
     """List all threads for the current user."""
     threads = await get_storage().list_threads(user.user_id)
-    return threads
+    return TypeAdapterResponse(threads, adapter=THREAD_LIST_ADAPTER)
 
 
 @router.get("/{tid}/state")
@@ -123,23 +164,23 @@ async def get_thread_history(
     return history
 
 
-@router.get("/{tid}")
+@router.get("/{tid}", response_model=Thread, response_class=PydanticResponse)
 async def get_thread(
     user: AuthedUser,
     tid: ThreadID,
-) -> Thread:
+):
     """Get a thread by ID."""
     thread = await get_storage().get_thread(user.user_id, tid)
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
-    return thread
+    return PydanticResponse(thread)
 
 
-@router.post("")
+@router.post("", response_model=Thread, response_class=PydanticResponse)
 async def create_thread(
     user: AuthedUser,
     payload: ThreadPostRequest,
-) -> Thread:
+):
     """Create a thread."""
     # Check if user has access to the agent
     agent = await get_storage().get_agent(user.user_id, payload.agent_id)
@@ -170,15 +211,15 @@ async def create_thread(
             },
         )
 
-    return thread
+    return PydanticResponse(thread)
 
 
-@router.put("/{tid}")
+@router.put("/{tid}", response_model=Thread, response_class=PydanticResponse)
 async def upsert_thread(
     user: AuthedUser,
     tid: ThreadID,
     payload: ThreadPutRequest,
-) -> Thread:
+):
     """Update a thread."""
     # Check if user has access to the agent
     agent = await get_storage().get_agent(user.user_id, payload.agent_id)
@@ -187,13 +228,14 @@ async def upsert_thread(
     thread = await get_storage().get_thread(user.user_id, tid)
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
-    return await get_storage().put_thread(
+    thread = await get_storage().put_thread(
         user.user_id,
         tid,
         agent_id=payload.agent_id,
         name=payload.name,
         metadata=thread.metadata,
     )
+    return PydanticResponse(thread)
 
 
 @router.delete("/{tid}")
@@ -212,15 +254,20 @@ async def delete_thread(
         await file_manager.delete(file.file_id)
 
     await get_storage().delete_thread(user.user_id, tid)
+    # TODO: Update return to match how delete_agent works
     return {"status": "ok"}
 
 
-@router.get("/{tid}/file-by-ref")
+@router.get(
+    "/{tid}/file-by-ref",
+    response_model=FileByRefResponse,
+    response_class=PydanticResponse,
+)
 async def get_file_by_ref(
     user: AuthedUser,
     tid: ThreadID,
     file_ref: str,
-) -> FileByRefResponse:
+):
     thread = await get_storage().get_thread(user.user_id, tid)
     if thread is None:
         raise HTTPException(status_code=404, detail="Thread not found")
@@ -230,28 +277,37 @@ async def get_file_by_ref(
         raise HTTPException(status_code=404, detail="File not found")
 
     files = await get_file_manager().refresh_file_paths([file])
-    return FileByRefResponse.from_file(files[0])
+    return PydanticResponse(FileByRefResponse.from_file(files[0]))
 
 
-@router.get("/{tid}/files")
+@router.get(
+    "/{tid}/files",
+    response_model=List[UploadedFile],
+    response_class=TypeAdapterResponse,
+)
 async def get_thread_files(
     user: AuthedUser,
     tid: ThreadID,
-) -> List[UploadedFile]:
+):
     """Get a list of files associated with a thread."""
     thread = await get_storage().get_thread(user.user_id, tid)
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
-    return await get_storage().get_thread_files(tid)
+    thread_files = await get_storage().get_thread_files(tid)
+    return TypeAdapterResponse(thread_files, adapter=UPLOADED_FILE_LIST_ADAPTER)
 
 
-@router.post("/{tid}/files")
+@router.post(
+    "/{tid}/files",
+    response_model=List[UploadedFile],
+    response_class=TypeAdapterResponse,
+)
 async def upload_thread_files(
     files: list[UploadFile],
     user: AuthedUser,
     tid: ThreadID,
     background_tasks: BackgroundTasks,
-) -> List[UploadedFile]:
+):
     """Upload files to the given agent."""
 
     thread = await get_storage().get_thread(user.user_id, tid)
@@ -272,13 +328,17 @@ async def upload_thread_files(
     background_tasks.add_task(
         file_manager.create_missing_embeddings, agent.model, thread
     )
-    return stored_files
+    return TypeAdapterResponse(stored_files, adapter=UPLOADED_FILE_LIST_ADAPTER)
 
 
-@router.post("/{tid}/files/request-upload")
+@router.post(
+    "/{tid}/files/request-upload",
+    response_model=RemoteFileUploadData,
+    response_class=PydanticResponse,
+)
 async def request_remote_file_upload(
     payload: RequestRemoteFileUploadPayload, user: AuthedUser, tid: ThreadID
-) -> RemoteFileUploadData:
+):
     thread = await get_storage().get_thread(user.user_id, tid)
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
@@ -286,13 +346,17 @@ async def request_remote_file_upload(
     response = await get_file_manager().request_remote_file_upload(
         thread=thread, file_name=payload.file_name
     )
-    return response
+    return PydanticResponse(response)
 
 
-@router.post("/{tid}/files/confirm-upload")
+@router.post(
+    "/{tid}/files/confirm-upload",
+    response_model=UploadedFile,
+    response_class=PydanticResponse,
+)
 async def confirm_remote_file_upload(
     payload: ConfirmRemoteFileUploadPayload, user: AuthedUser, tid: ThreadID
-) -> UploadedFile:
+):
     thread = await get_storage().get_thread(user.user_id, tid)
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
@@ -302,4 +366,4 @@ async def confirm_remote_file_upload(
     )
     files = await get_file_manager().refresh_file_paths([file])
     await _add_uploaded_messages(files, tid, user)
-    return files[0]
+    return PydanticResponse(files[0])

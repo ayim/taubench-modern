@@ -2,7 +2,7 @@ import operator
 from typing import Annotated, Any, Dict, List, Literal, Optional
 
 from langchain_core.messages import AnyMessage
-from langchain_core.pydantic_v1 import BaseModel, Field
+from pydantic import BaseModel, Field
 
 from sema4ai_agent_server.agent_types.vitality_ai_multi_agent.state.planning_models import (
     PLAN_ACTION,

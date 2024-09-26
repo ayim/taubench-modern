@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from langchain_core.pydantic_v1 import BaseModel, Field
+from pydantic import BaseModel, Field
 
 from sema4ai_agent_server.agent_types.vitality_ai_multi_agent.state.reasoning_audit import (
     VitalityReasoningLogEntry,

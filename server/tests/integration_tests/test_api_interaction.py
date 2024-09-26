@@ -11,10 +11,10 @@ from datetime import datetime
 import requests
 from colorama import Fore, Style, init
 from dotenv import load_dotenv
-from pydantic import parse_obj_as
 from tqdm import tqdm
 
 from sema4ai_agent_server.schema import (
+    RAW_CONTEXT,
     AgentArchitecture,
     AgentMetadata,
     AgentMode,
@@ -24,7 +24,6 @@ from sema4ai_agent_server.schema import (
     OpenAIGPT,
     OpenAIGPTConfig,
 )
-from sema4ai_agent_server.storage import basemodel_secret_encoder_for_db
 
 load_dotenv()
 init(autoreset=True)  # Initialize colorama
@@ -71,7 +70,7 @@ def assert_test(condition, message):
 def create_agent(
     base_url,
     openai_api_key,
-    name: str = "Agent",
+    name: str | None = None,
     architecture=AgentArchitecture.AGENT,
 ):
     """Creates a new agent."""
@@ -86,18 +85,19 @@ def create_agent(
         "Accept": "application/json",
         "Content-Type": "application/json",
     }
-
+    if name is None:
+        name = f"Test Agent {timestamp()}"
     data = {
         "public": True,
         "name": name,
         "description": "This is a test agent",
         "runbook": "This is a test runbook",
         "version": "0.0.1",
-        "model": json.loads(model.json(encoder=basemodel_secret_encoder_for_db)),
+        "model": model.model_dump(mode="json", context=RAW_CONTEXT),
         "architecture": architecture,
         "reasoning": AgentReasoning.DISABLED,
         "action_packages": [],
-        "metadata": json.loads(metadata.json(encoder=basemodel_secret_encoder_for_db)),
+        "metadata": metadata.model_dump(mode="json", context=RAW_CONTEXT),
     }
 
     response = requests.post(url, headers=headers, json=data)
@@ -311,7 +311,7 @@ def upload_file_to_agent(base_url, agent_id, file_path):
 def get_agent_status(base_url, agent_id) -> AgentStatus:
     url = f"{base_url}/agents/{agent_id}/status"
     response = requests.get(url)
-    return parse_obj_as(AgentStatus, response.json())
+    return AgentStatus.model_validate_json(response.text)
 
 
 def get_file_by_ref(base_url, thread_id, file_ref):
@@ -401,6 +401,9 @@ def test_async_run(base_url, thread_id):
                 status_response = get_run_status(base_url, run_id)
                 if status_response and status_response["status"] == "complete":
                     pbar.update(100 - pbar.n)
+                    # fail if pbar is full
+                    if pbar.n > 100:
+                        assert_test(False, "async poll failure, pbar overflow")
                     break
                 if status_response is None:
                     assert_test(status_response, "async poll failure")

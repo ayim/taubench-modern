@@ -41,7 +41,7 @@ lint format: PYTHON_FILES=.
 lint_diff format_diff: PYTHON_FILES=$(shell git diff --relative=. --name-only --diff-filter=d master | grep -E '\.py$$|\.ipynb$$')
 
 lint lint_diff:
-	poetry run ruff .
+	poetry run ruff check .
 	poetry run ruff format $(PYTHON_FILES) --check
 
 format format_diff:

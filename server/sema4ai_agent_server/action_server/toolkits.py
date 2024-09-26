@@ -14,21 +14,22 @@ from langchain_core.callbacks.manager import CallbackManager
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
-from langchain_core.pydantic_v1 import (
-    BaseModel,
-    Field,
-    PrivateAttr,
-    create_model,
-    validator,
-)
 from langchain_core.runnables import Runnable, RunnablePassthrough
 from langchain_core.tools import BaseTool, StructuredTool, Tool
 from langchain_core.tracers.context import _tracing_v2_is_enabled
 from langsmith import Client
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    PrivateAttr,
+    create_model,
+    field_validator,
+)
+from pydantic_core import to_jsonable_python
 
 from sema4ai_agent_server.action_server._common import (
     get_param_fields,
-    model_to_dict,
     reduce_openapi_spec,
 )
 from sema4ai_agent_server.action_server._prompts import (
@@ -109,6 +110,8 @@ class ActionServerRequestTool(BaseTool):
 class ActionServerToolkit(BaseModel):
     """Toolkit exposing Robocorp Action Server provided actions as individual tools."""
 
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     url: str = Field(exclude=True)
     """Action Server URL"""
     api_key: str = Field(exclude=True, default="")
@@ -119,8 +122,9 @@ class ActionServerToolkit(BaseModel):
     """Enable reporting Langsmith trace to Action Server runs"""
     _run_details: dict = PrivateAttr({})
 
-    @validator("url", pre=True, always=True)
-    def append_trailing_slash(cls, v):
+    @field_validator("url")
+    @classmethod
+    def append_trailing_slash(cls, v: str) -> str:
         """Ensures that the url ends with a /."""
         # Action server url may not be a base url in the cloud environment.
         # It may be something like https://example.com/foo/bar. If the url
@@ -129,9 +133,6 @@ class ActionServerToolkit(BaseModel):
         if v and not v.endswith("/"):
             return v + "/"
         return v
-
-    class Config:
-        arbitrary_types_allowed = True
 
     def get_tools(
         self,
@@ -258,7 +259,7 @@ class ActionServerToolkit(BaseModel):
         _DynamicToolInputSchema = create_model("DynamicToolInputSchema", **fields)
 
         def dynamic_func(**data: dict[str, Any]) -> str:
-            return self._action_request(endpoint, **model_to_dict(data))
+            return self._action_request(endpoint, **to_jsonable_python(data))
 
         dynamic_func.__name__ = tools_args["name"]
         dynamic_func.__doc__ = tools_args["description"]

@@ -4,7 +4,6 @@ from typing import Any, Dict, List, Optional, Sequence, Union
 
 from fastapi import HTTPException
 from langchain_core.messages import AnyMessage
-from pydantic import SecretBytes, SecretStr
 
 from sema4ai_agent_server.agent_types.constants import FINISH_NODE_KEY
 from sema4ai_agent_server.schema import (
@@ -29,13 +28,6 @@ class UniqueAgentNameError(HTTPException):
 class UniqueFileRefError(HTTPException):
     def __init__(self, file_ref: str, *args: object, **kwargs: object) -> None:
         super().__init__(status_code=409, detail=f"File '{file_ref}' already exists")
-
-
-def basemodel_secret_encoder_for_db(v: Any) -> Optional[str]:
-    """Without this, values will be stored like this: ********."""
-
-    if type(v) in (SecretStr, SecretBytes):
-        return v.get_secret_value() if v else None
 
 
 class BaseStorage(ABC):

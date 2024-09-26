@@ -41,12 +41,10 @@ class JWTAuthBase(AuthHandler):
         return user
 
     @abstractmethod
-    def decode_token(self, token: str, decode_key: str) -> dict:
-        ...
+    def decode_token(self, token: str, decode_key: str) -> dict: ...
 
     @abstractmethod
-    def get_decode_key(self, token: str) -> str:
-        ...
+    def get_decode_key(self, token: str) -> str: ...
 
 
 class JWTAuthLocal(JWTAuthBase):

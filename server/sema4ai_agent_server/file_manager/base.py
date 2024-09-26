@@ -56,8 +56,8 @@ class BaseFileManager:
     async def read_file_contents(self, file_id: str) -> bytes:
         raise NotImplementedError()
 
-    def _delete_embeddings(self, file_id: str) -> None:
-        get_vector_store().delete_by_metadata("file_id", file_id)
+    async def _delete_embeddings(self, file_id: str) -> None:
+        await get_vector_store().adelete_by_file_id(file_id)
 
     async def create_embeddings(self, file: UploadedFile, model: MODEL) -> None:
         owner_id = file.agent_id if file.agent_id else file.thread_id
@@ -76,7 +76,7 @@ class BaseFileManager:
             file.file_id, embedding_status=EmbeddingStatus.IN_PROGRESS
         )
         try:
-            embed_runnable.invoke(blob, config)
+            await embed_runnable.ainvoke(blob, config)
         except Exception as e:
             logger.exception(f"Failed to embed file {file.file_ref}", exception=e)
             await get_storage().update_file_embedding_status(

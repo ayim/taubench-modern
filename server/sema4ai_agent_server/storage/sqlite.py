@@ -1,4 +1,3 @@
-import json
 import os
 import sqlite3
 from contextlib import contextmanager
@@ -9,13 +8,16 @@ from uuid import uuid4
 
 import structlog
 from langchain_core.messages import AnyMessage
-from pydantic import parse_obj_as
 
 from sema4ai_agent_server.agent import get_agent_executor, runnable_agent
 from sema4ai_agent_server.agent_types.constants import FINISH_NODE_KEY
 from sema4ai_agent_server.constants import DOMAIN_DATABASE_PATH
 from sema4ai_agent_server.schema import (
+    AGENT_LIST_ADAPTER,
     MODEL,
+    RAW_CONTEXT,
+    THREAD_LIST_ADAPTER,
+    UPLOADED_FILE_LIST_ADAPTER,
     ActionPackage,
     Agent,
     AgentArchitecture,
@@ -31,8 +33,8 @@ from sema4ai_agent_server.storage import (
     BaseStorage,
     UniqueAgentNameError,
     UniqueFileRefError,
-    basemodel_secret_encoder_for_db,
 )
+from sema4ai_agent_server.storage.utils import model_dump_for_sqlite
 
 logger = structlog.get_logger()
 
@@ -127,54 +129,22 @@ class SqliteStorage(BaseStorage):
     async def list_agents(self, user_id: str) -> List[Agent]:
         """List all agents for the current user."""
         with self._connect() as conn:
-            conn.row_factory = sqlite3.Row  # Enable dictionary-like row access
             cursor = conn.cursor()
             cursor.execute(
                 "SELECT * FROM agent WHERE user_id = ? OR public = 1", (user_id,)
             )
             rows = cursor.fetchall()
 
-            agents = []
-            for row in rows:
-                agent_data = dict(row)  # Convert sqlite3.Row to dict
-                agent_data["model"] = parse_obj_as(
-                    MODEL, json.loads(agent_data["model"])
-                )
-                agent_data["action_packages"] = parse_obj_as(
-                    list[ActionPackage], json.loads(agent_data["action_packages"])
-                )
-                agent_data["metadata"] = parse_obj_as(
-                    AgentMetadata, json.loads(agent_data["metadata"])
-                )
-                agent = Agent(**agent_data)
-                agents.append(agent)
-
-            return agents
+            return AGENT_LIST_ADAPTER.validate_python([dict(row) for row in rows])
 
     async def list_all_agents(self) -> List[Agent]:
         """List all agents for all users."""
         with self._connect() as conn:
-            conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM agent")
             rows = cursor.fetchall()
 
-            agents = []
-            for row in rows:
-                agent_data = dict(row)
-                agent_data["model"] = parse_obj_as(
-                    MODEL, json.loads(agent_data["model"])
-                )
-                agent_data["action_packages"] = parse_obj_as(
-                    list[ActionPackage], json.loads(agent_data["action_packages"])
-                )
-                agent_data["metadata"] = parse_obj_as(
-                    AgentMetadata, json.loads(agent_data["metadata"])
-                )
-                agent = Agent(**agent_data)
-                agents.append(agent)
-
-            return agents
+            return AGENT_LIST_ADAPTER.validate_python([dict(row) for row in rows])
 
     async def get_agent(self, user_id: str, agent_id: str) -> Optional[Agent]:
         """Get an agent by ID."""
@@ -185,17 +155,7 @@ class SqliteStorage(BaseStorage):
                 (agent_id, user_id),
             )
             row = cursor.fetchone()
-            if not row:
-                return None
-            agent_data = dict(row)  # Convert sqlite3.Row to dict
-            agent_data["model"] = parse_obj_as(MODEL, json.loads(agent_data["model"]))
-            agent_data["action_packages"] = parse_obj_as(
-                list[ActionPackage], json.loads(agent_data["action_packages"])
-            )
-            agent_data["metadata"] = parse_obj_as(
-                AgentMetadata, json.loads(agent_data["metadata"])
-            )
-            return Agent(**agent_data)
+            return Agent.model_validate(dict(row)) if row else None
 
     async def put_agent(
         self,
@@ -215,21 +175,29 @@ class SqliteStorage(BaseStorage):
     ) -> Agent:
         """Modify an agent."""
         updated_at = datetime.now(timezone.utc)
+        # validate first
+        new_agent = Agent(
+            id=agent_id,
+            user_id=user_id,
+            public=public,
+            name=name,
+            description=description,
+            runbook=runbook,
+            version=version,
+            model=model,
+            architecture=architecture,
+            reasoning=reasoning,
+            action_packages=action_packages,
+            updated_at=updated_at,
+            metadata=metadata,
+        )
         with self._connect() as conn:
             cursor = conn.cursor()
-            model_str = model.json(encoder=basemodel_secret_encoder_for_db)
-            action_packages_str = json.dumps(
-                [
-                    json.loads(p.json(encoder=basemodel_secret_encoder_for_db))
-                    for p in action_packages
-                ]
-            )
-            metadata_str = metadata.json(encoder=basemodel_secret_encoder_for_db)
             try:
                 cursor.execute(
                     """
                     INSERT INTO agent (id, user_id, public, name, description, runbook, version, model, architecture, reasoning, action_packages, updated_at, metadata)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (:id, :user_id, :public, :name, :description, :runbook, :version, :model, :architecture, :reasoning, :action_packages, :updated_at, :metadata)
                     ON CONFLICT(id) 
                     DO UPDATE SET 
                         user_id = EXCLUDED.user_id, 
@@ -245,21 +213,7 @@ class SqliteStorage(BaseStorage):
                         updated_at = EXCLUDED.updated_at, 
                         metadata = EXCLUDED.metadata
                     """,
-                    (
-                        agent_id,
-                        user_id,
-                        public,
-                        name,
-                        description,
-                        runbook,
-                        version,
-                        model_str,
-                        architecture,
-                        reasoning,
-                        action_packages_str,
-                        updated_at.isoformat(),
-                        metadata_str,
-                    ),
+                    model_dump_for_sqlite(new_agent, RAW_CONTEXT),
                 )
                 conn.commit()
             except sqlite3.IntegrityError as e:
@@ -270,21 +224,7 @@ class SqliteStorage(BaseStorage):
                 ):
                     raise UniqueAgentNameError(name)
                 raise e
-            return Agent(
-                id=agent_id,
-                user_id=user_id,
-                public=public,
-                name=name,
-                description=description,
-                runbook=runbook,
-                version=version,
-                model=model,
-                architecture=architecture,
-                reasoning=reasoning,
-                action_packages=action_packages,
-                updated_at=updated_at,
-                metadata=metadata,
-            )
+            return new_agent
 
     async def agent_count(self) -> int:
         """Get agent row count"""
@@ -308,17 +248,8 @@ class SqliteStorage(BaseStorage):
                 (user_id,),
             )
             rows = cursor.fetchall()
-            threads = []
-            for row in rows:
-                thread_data = dict(row)
-                thread_data["metadata"] = (
-                    json.loads(thread_data["metadata"])
-                    if thread_data["metadata"] is not None
-                    else None
-                )
-                thread = Thread(**thread_data)
-                threads.append(thread)
-            return threads
+
+            return THREAD_LIST_ADAPTER.validate_python([dict(row) for row in rows])
 
     async def get_thread(self, user_id: str, thread_id: str) -> Optional[Thread]:
         """Get a thread by ID, including system threads."""
@@ -335,15 +266,7 @@ class SqliteStorage(BaseStorage):
                 (thread_id, user_id),
             )
             row = cursor.fetchone()
-            if not row:
-                return None
-            thread_data = dict(row)
-            thread_data["metadata"] = (
-                json.loads(thread_data["metadata"])
-                if thread_data["metadata"] is not None
-                else None
-            )
-            return Thread(**thread_data)
+            return Thread.model_validate(dict(row)) if row else None
 
     async def thread_count(self) -> int:
         """Get thread row count."""
@@ -402,38 +325,33 @@ class SqliteStorage(BaseStorage):
     ) -> Thread:
         """Modify a thread."""
         updated_at = datetime.now(timezone.utc)
+        # validate first
+        new_thread = Thread(
+            thread_id=thread_id,
+            user_id=user_id,
+            agent_id=agent_id,
+            name=name,
+            updated_at=updated_at,
+            metadata=metadata,
+        )
         with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """
                 INSERT INTO thread (thread_id, user_id, agent_id, name, updated_at, metadata)
-                VALUES (?, ?, ?, ?, ?, ?)
+                VALUES (:thread_id, :user_id, :agent_id, :name, :updated_at, :metadata)
                 ON CONFLICT(thread_id) 
-                DO UPDATE SET 
+                DO UPDATE SET
                     user_id = EXCLUDED.user_id,
                     agent_id = EXCLUDED.agent_id, 
                     name = EXCLUDED.name, 
                     updated_at = EXCLUDED.updated_at,
                     metadata = EXCLUDED.metadata
                 """,
-                (
-                    thread_id,
-                    user_id,
-                    agent_id,
-                    name,
-                    updated_at,
-                    json.dumps(metadata),
-                ),
+                model_dump_for_sqlite(new_thread, RAW_CONTEXT),
             )
             conn.commit()
-            return Thread(
-                thread_id=thread_id,
-                user_id=user_id,
-                agent_id=agent_id,
-                name=name,
-                updated_at=updated_at,
-                metadata=metadata,
-            )
+            return new_thread
 
     async def get_or_create_user(self, sub: str) -> tuple[User, bool]:
         """Returns a tuple of the user and a boolean indicating whether the user was created."""
@@ -443,7 +361,7 @@ class SqliteStorage(BaseStorage):
             user_row = cursor.fetchone()
 
             if user_row:
-                return parse_obj_as(User, user_row), False
+                return User.model_validate(dict(user_row)), False
 
             # SQLite doesn't support RETURNING *, so we need to manually fetch the created user.
             cursor.execute(
@@ -455,7 +373,7 @@ class SqliteStorage(BaseStorage):
             # Fetch the newly created user
             cursor.execute('SELECT * FROM "user" WHERE sub = ?', (sub,))
             new_user_row = cursor.fetchone()
-            return parse_obj_as(User, new_user_row), True
+            return User.model_validate(dict(new_user_row)), True
 
     async def delete_thread(self, user_id: str, thread_id: str):
         """Delete a thread by ID, including system threads."""
@@ -499,7 +417,9 @@ class SqliteStorage(BaseStorage):
                 (agent_id,),
             )
             rows = cursor.fetchall()
-            return parse_obj_as(List[UploadedFile], rows)
+            return UPLOADED_FILE_LIST_ADAPTER.validate_python(
+                [dict(row) for row in rows]
+            )
 
     async def get_thread_files(self, thread_id: str) -> list[UploadedFile]:
         """Get a list of files associated with a thread."""
@@ -513,7 +433,9 @@ class SqliteStorage(BaseStorage):
                 (thread_id,),
             )
             rows = cursor.fetchall()
-            return parse_obj_as(List[UploadedFile], rows)
+            return UPLOADED_FILE_LIST_ADAPTER.validate_python(
+                [dict(row) for row in rows]
+            )
 
     async def get_file_by_id(self, file_id: str) -> Optional[UploadedFile]:
         """Get a file by id."""
@@ -527,7 +449,7 @@ class SqliteStorage(BaseStorage):
                 (file_id,),
             )
             row = cursor.fetchone()
-            return parse_obj_as(Optional[UploadedFile], row)
+            return UploadedFile.model_validate(dict(row)) if row else None
 
     async def get_file(
         self, owner: Union[Agent, Thread], file_ref: str
@@ -550,7 +472,7 @@ class SqliteStorage(BaseStorage):
                 (file_ref, value),
             )
             row = cursor.fetchone()
-            return parse_obj_as(Optional[UploadedFile], row)
+            return UploadedFile.model_validate(dict(row)) if row else None
 
     async def put_file_owner(
         self,
@@ -569,6 +491,17 @@ class SqliteStorage(BaseStorage):
         else:
             agent_id = None
             thread_id = owner.thread_id
+        new_uploaded_file = UploadedFile(
+            file_id=file_id,
+            file_path=file_path,
+            file_ref=file_ref,
+            file_hash=file_hash,
+            embedded=embedded,
+            embedding_status=embedding_status,
+            file_path_expiration=file_path_expiration,
+            agent_id=agent_id,
+            thread_id=thread_id,
+        )
         with self._connect() as conn:
             cursor = conn.cursor()
             try:
@@ -588,15 +521,15 @@ class SqliteStorage(BaseStorage):
                         file_path_expiration = EXCLUDED.file_path_expiration
                     """,
                     (
-                        file_id,
-                        file_path,
-                        file_ref,
-                        file_hash,
-                        embedded,
-                        embedding_status,
-                        agent_id,
-                        thread_id,
-                        file_path_expiration,
+                        new_uploaded_file.file_id,
+                        new_uploaded_file.file_path,
+                        new_uploaded_file.file_ref,
+                        new_uploaded_file.file_hash,
+                        new_uploaded_file.embedded,
+                        new_uploaded_file.embedding_status,
+                        new_uploaded_file.agent_id,
+                        new_uploaded_file.thread_id,
+                        new_uploaded_file.file_path_expiration,
                     ),
                 )
                 conn.commit()
@@ -608,17 +541,7 @@ class SqliteStorage(BaseStorage):
                 ):
                     raise UniqueFileRefError(file_ref)
                 raise e
-            return UploadedFile(
-                file_id=file_id,
-                file_path=file_path,
-                file_ref=file_ref,
-                file_hash=file_hash,
-                embedded=embedded,
-                embedding_status=embedding_status,
-                file_path_expiration=file_path_expiration,
-                agent_id=agent_id,
-                thread_id=thread_id,
-            )
+        return new_uploaded_file
 
     async def delete_file(self, file_id: str) -> None:
         with self._connect() as conn:
@@ -647,7 +570,7 @@ class SqliteStorage(BaseStorage):
             row = cursor.fetchone()
             conn.commit()
 
-            return parse_obj_as(UploadedFile, row)
+            return UploadedFile.model_validate(dict(row)) if row else None
 
     async def update_file_embedding_status(
         self, file_id: str, *, embedding_status: EmbeddingStatus
@@ -690,6 +613,4 @@ class SqliteStorage(BaseStorage):
             cursor = conn.cursor()
             cursor.execute("SELECT status FROM async_runs WHERE id = ? ", (run_id,))
             row = cursor.fetchone()
-            if not row:
-                return None
-            return row["status"]
+            return row["status"] if row else None

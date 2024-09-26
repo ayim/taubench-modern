@@ -1,31 +1,32 @@
 """Implementation of a langgraph checkpoint saver using Postgres."""
 
 import abc
-import os
 import pickle
-from contextlib import asynccontextmanager, contextmanager
 from typing import (
     Any,
-    AsyncGenerator,
     AsyncIterator,
-    Generator,
+    Iterator,
     List,
-    Optional,
     Sequence,
     Tuple,
     cast,
 )
 
 import psycopg
-from langchain_core.runnables import ConfigurableFieldSpec, RunnableConfig
-from langgraph.checkpoint import BaseCheckpointSaver
+from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.base import (
+    WRITES_IDX_MAP,
+    BaseCheckpointSaver,
+    ChannelVersions,
     Checkpoint,
     CheckpointMetadata,
-    CheckpointThreadTs,
     CheckpointTuple,
+    get_checkpoint_id,
 )
-from psycopg_pool import AsyncConnectionPool, ConnectionPool
+from pydantic import ConfigDict
+
+from sema4ai_agent_server.storage.postgres_conn import PostgresConnectionManager
+from sema4ai_agent_server.storage.utils import search_where
 
 
 class PostgresSerializer(abc.ABC):
@@ -63,137 +64,133 @@ class PicklePostgresSerializer(PostgresSerializer):
         return pickle.loads(data)
 
 
-def _get_dsn() -> str:
-    """Get the DSN for the Postgres connection."""
-    database = (os.environ["POSTGRES_DB"],)
-    user = (os.environ["POSTGRES_USER"],)
-    password = (os.environ["POSTGRES_PASSWORD"],)
-    host = (os.environ["POSTGRES_HOST"],)
-    port = (os.environ["POSTGRES_PORT"],)
-    return f"postgresql://{user[0]}:{password[0]}@{host[0]}:{port[0]}/{database[0]}"
-
-
-_sync_pool = None
-
-
-@contextmanager
-def _get_sync_connection() -> Generator[psycopg.Connection, None, None]:
-    """Get the connection to the Postgres database."""
-    global _sync_pool
-    if _sync_pool is None:
-        _sync_pool = ConnectionPool(
-            conninfo=_get_dsn(),
-            max_size=20,
-        )
-    with _sync_pool.connection() as conn:
-        yield conn
-
-
-_async_pool = None
-
-
-@asynccontextmanager
-async def _get_async_connection() -> AsyncGenerator[psycopg.AsyncConnection, None]:
-    """Get the connection to the Postgres database."""
-    global _async_pool
-    if _async_pool is None:
-        print("Initializing async_connection")
-        conn_info = _get_dsn()
-        _async_pool = AsyncConnectionPool(
-            conninfo=conn_info,
-            max_size=20,
-        )
-    async with _async_pool.connection() as conn:
-        yield conn
-
-
-class PostgresSaver(BaseCheckpointSaver):
+class PostgresSaver(BaseCheckpointSaver, PostgresConnectionManager):
     """A checkpoint saver that uses Postgres to save checkpoints."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
 
     serde: PostgresSerializer
     """The serializer for serializing and deserializing objects to and from bytes."""
 
-    class Config:
-        arbitrary_types_allowed = True
-        extra = "forbid"
+    UPSERT_CHECKPOINT_SQL = """
+        INSERT INTO checkpoints 
+            (thread_id, checkpoint_ns, checkpoint_id, parent_checkpoint_id, checkpoint, metadata)
+        VALUES 
+            (%(thread_id)s, %(checkpoint_ns)s, %(checkpoint_id)s, %(parent_checkpoint_id)s, 
+            %(checkpoint)s, %(metadata)s)
+        ON CONFLICT (thread_id, checkpoint_ns, checkpoint_id)
+        DO UPDATE SET
+            checkpoint = EXCLUDED.checkpoint,
+            metadata = EXCLUDED.metadata;
+    """
+    UPSERT_WRITES_SQL = """
+        INSERT INTO writes
+            (thread_id, checkpoint_ns, checkpoint_id, task_id, idx, channel, value)
+        VALUES
+            (%(thread_id)s, %(checkpoint_ns)s, %(checkpoint_id)s, %(task_id)s, %(idx)s,
+            %(channel)s, %(value)s)
+        ON CONFLICT (thread_id, checkpoint_ns, checkpoint_id, task_id, idx) DO UPDATE SET
+            channel = EXCLUDED.channel,
+            value = EXCLUDED.value;
+    """
+    INSERT_WRITES_SQL = """
+        INSERT INTO writes
+            (thread_id, checkpoint_ns, checkpoint_id, task_id, idx, channel, value)
+        VALUES
+            (%(thread_id)s, %(checkpoint_ns)s, %(checkpoint_id)s, %(task_id)s, %(idx)s,
+            %(channel)s, %(value)s)
+        ON CONFLICT (thread_id, checkpoint_ns, checkpoint_id, task_id, idx) DO NOTHING;
+    """
+    SELECT_CHECKPOINT_SQL = """
+        SELECT thread_id, checkpoint_id, parent_checkpoint_id, checkpoint, metadata
+        FROM checkpoints
+        WHERE thread_id = %(thread_id)s AND checkpoint_ns = %(checkpoint_ns)s
+            AND checkpoint_id = %(checkpoint_id)s
+    """
+    SELECT_RECENT_CHECKPOINT_SQL = """
+        SELECT thread_id, checkpoint_id, parent_checkpoint_id, checkpoint, metadata
+        FROM checkpoints
+        WHERE thread_id = %(thread_id)s AND checkpoint_ns = %(checkpoint_ns)s
+        ORDER BY checkpoint_id DESC LIMIT 1
+    """
+    SELECT_CHECKPOINTS_TEMPLATE = """
+        SELECT thread_id, checkpoint_ns, checkpoint_id, parent_checkpoint_id, checkpoint, metadata
+        FROM checkpoints
+        {where}
+        ORDER BY checkpoint_id DESC
+    """
+    SELECT_WRITES_SQL = """
+        SELECT task_id, channel, value
+        FROM writes
+        WHERE thread_id = %(thread_id)s AND checkpoint_ns = %(checkpoint_ns)s
+            AND checkpoint_id = %(checkpoint_id)s
+        ORDER BY task_id, idx
+    """
 
-    @property
-    def config_specs(self) -> list[ConfigurableFieldSpec]:
-        """Return the configuration specs for this runnable."""
-        return [
-            ConfigurableFieldSpec(
-                id="thread_id",
-                annotation=Optional[str],
-                name="Thread ID",
-                description=None,
-                default=None,
-                is_shared=True,
-            ),
-            CheckpointThreadTs,
-        ]
-
-    @contextmanager
-    def _get_sync_connection(self) -> Generator[psycopg.Connection, None, None]:
-        """Get the connection to the Postgres database."""
-        with _get_sync_connection() as connection:
-            yield connection
-
-    @asynccontextmanager
-    async def _get_async_connection(
+    def _dump_writes(
         self,
-    ) -> AsyncGenerator[psycopg.AsyncConnection, None]:
-        """Get the connection to the Postgres database."""
-        async with _get_async_connection() as connection:
-            yield connection
+        thread_id: str,
+        checkpoint_ns: str,
+        checkpoint_id: str,
+        task_id: str,
+        writes: Sequence[Tuple[str, Any]],
+    ) -> list[dict[str, str | bytes]]:
+        return [
+            {
+                "thread_id": thread_id,
+                "checkpoint_ns": checkpoint_ns,
+                "checkpoint_id": checkpoint_id,
+                "task_id": task_id,
+                "idx": WRITES_IDX_MAP.get(channel, idx),
+                "channel": channel,
+                "value": self.serde.dumps(value),
+            }
+            for idx, (channel, value) in enumerate(writes)
+        ]
 
     def put(
         self,
         config: RunnableConfig,
         checkpoint: Checkpoint,
         metadata: CheckpointMetadata,
+        new_versions: ChannelVersions,
     ) -> RunnableConfig:
-        """Put the checkpoint for the given configuration.
+        """Save a checkpoint to the database.
+
+        This method saves a checkpoint to the Postgres database. The checkpoint is associated
+        with the provided config and its parent config (if any).
 
         Args:
-            config: The configuration for the checkpoint.
-                A dict with a `configurable` key which is a dict with
-                a `thread_id` key and an optional `thread_ts` key.
-                For example, { 'configurable': { 'thread_id': 'test_thread' } }
-            checkpoint: The checkpoint to persist.
+            config (RunnableConfig): The config associated with the checkpoint.
+            checkpoint (Checkpoint): The checkpoint to persist.
+            metadata (CheckpointMetadata): Additional metadata to save with the checkpoint.
+            new_versions (ChannelVersions): New channel versions as of this write.
 
         Returns:
-            The RunnableConfig that describes the checkpoint that was just created.
-            It'll contain the `thread_id` and `thread_ts` of the checkpoint.
+            RunnableConfig: Updated configuration after storing the checkpoint.
         """
         thread_id = config["configurable"]["thread_id"]
-        parent_ts = config["configurable"].get("thread_ts")
+        checkpoint_ns = config["configurable"]["checkpoint_ns"]
+        parent_checkpoint_id = config["configurable"].get("checkpoint_id")
 
-        with self._get_sync_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    INSERT INTO checkpoints 
-                        (thread_id, thread_ts, parent_ts, checkpoint, metadata)
-                    VALUES 
-                        (%(thread_id)s, %(thread_ts)s, %(parent_ts)s, %(checkpoint)s, %(metadata)s)
-                    ON CONFLICT (thread_id, thread_ts) 
-                    DO UPDATE SET 
-                        checkpoint = EXCLUDED.checkpoint,
-                        metadata = EXCLUDED.metadata;
-                    """,
-                    {
-                        "thread_id": thread_id,
-                        "thread_ts": checkpoint["ts"],
-                        "parent_ts": parent_ts if parent_ts else None,
-                        "checkpoint": self.serde.dumps(checkpoint),
-                        "metadata": self.serde.dumps(metadata),
-                    },
-                )
+        with self.sync_cursor() as cur:
+            cur.execute(
+                self.UPSERT_CHECKPOINT_SQL,
+                {
+                    "thread_id": thread_id,
+                    "checkpoint_ns": checkpoint_ns,
+                    "checkpoint_id": checkpoint["id"],
+                    "parent_checkpoint_id": parent_checkpoint_id,
+                    "checkpoint": self.serde.dumps(checkpoint),
+                    "metadata": self.serde.dumps(metadata),
+                },
+            )
 
         return {
             "configurable": {
                 "thread_id": thread_id,
-                "thread_ts": checkpoint["ts"],
+                "checkpoint_ns": checkpoint_ns,
+                "checkpoint_id": checkpoint["id"],
             },
         }
 
@@ -202,377 +199,417 @@ class PostgresSaver(BaseCheckpointSaver):
         config: RunnableConfig,
         checkpoint: Checkpoint,
         metadata: CheckpointMetadata,
+        new_versions: ChannelVersions,
     ) -> RunnableConfig:
-        """Put the checkpoint for the given configuration.
+        """Save a checkpoint to the database.
+
+        This method saves a checkpoint to the Postgres database. The checkpoint is associated
+        with the provided config and its parent config (if any).
 
         Args:
-            config: The configuration for the checkpoint.
-                A dict with a `configurable` key which is a dict with
-                a `thread_id` key and an optional `thread_ts` key.
-                For example, { 'configurable': { 'thread_id': 'test_thread' } }
-            checkpoint: The checkpoint to persist.
+            config (RunnableConfig): The config associated with the checkpoint.
+            checkpoint (Checkpoint): The checkpoint to persist.
+            metadata (CheckpointMetadata): Additional metadata to save with the checkpoint.
+            new_versions (ChannelVersions): New channel versions as of this write.
 
         Returns:
-            The RunnableConfig that describes the checkpoint that was just created.
-            It'll contain the `thread_id` and `thread_ts` of the checkpoint.
+            RunnableConfig: Updated configuration after storing the checkpoint.
         """
         thread_id = config["configurable"]["thread_id"]
-        parent_ts = config["configurable"].get("thread_ts")
-        async with self._get_async_connection() as conn:
-            async with conn.cursor() as cur:
-                await cur.execute(
-                    """
-                    INSERT INTO checkpoints 
-                        (thread_id, thread_ts, parent_ts, checkpoint, metadata)
-                    VALUES 
-                        (%(thread_id)s, %(thread_ts)s, %(parent_ts)s, %(checkpoint)s, %(metadata)s)
-                    ON CONFLICT (thread_id, thread_ts) 
-                    DO UPDATE SET 
-                        checkpoint = EXCLUDED.checkpoint,
-                        metadata = EXCLUDED.metadata;
-                    """,
-                    {
-                        "thread_id": thread_id,
-                        "thread_ts": checkpoint["ts"],
-                        "parent_ts": parent_ts if parent_ts else None,
-                        "checkpoint": self.serde.dumps(checkpoint),
-                        "metadata": self.serde.dumps(metadata),
-                    },
-                )
+        checkpoint_ns = config["configurable"]["checkpoint_ns"]
+        parent_checkpoint_id = config["configurable"].get("checkpoint_id")
+
+        async with self.async_cursor() as cur:
+            await cur.execute(
+                self.UPSERT_CHECKPOINT_SQL,
+                {
+                    "thread_id": thread_id,
+                    "checkpoint_ns": checkpoint_ns,
+                    "checkpoint_id": checkpoint["id"],
+                    "parent_checkpoint_id": parent_checkpoint_id,
+                    "checkpoint": self.serde.dumps(checkpoint),
+                    "metadata": self.serde.dumps(metadata),
+                },
+            )
 
         return {
             "configurable": {
                 "thread_id": thread_id,
-                "thread_ts": checkpoint["ts"],
+                "checkpoint_ns": checkpoint_ns,
+                "checkpoint_id": checkpoint["id"],
             },
         }
-
-    def list(self, config: RunnableConfig) -> Generator[CheckpointTuple, None, None]:
-        """Get all the checkpoints for the given configuration."""
-        with self._get_sync_connection() as conn:
-            with conn.cursor() as cur:
-                thread_id = config["configurable"]["thread_id"]
-                cur.execute(
-                    "SELECT checkpoint, metadata, thread_ts, parent_ts "
-                    "FROM checkpoints "
-                    "WHERE thread_id = %(thread_id)s "
-                    "ORDER BY thread_ts DESC",
-                    {
-                        "thread_id": thread_id,
-                    },
-                )
-                for value in cur:
-                    yield CheckpointTuple(
-                        config={
-                            "configurable": {
-                                "thread_id": thread_id,
-                                "thread_ts": value[2],
-                            }
-                        },
-                        checkpoint=cast(Checkpoint, self.serde.loads(value[0])),
-                        metadata=cast(CheckpointMetadata, self.serde.loads(value[1])),
-                        parent_config={
-                            "configurable": {
-                                "thread_id": thread_id,
-                                "thread_ts": value[3],
-                            }
-                        }
-                        if value[3]
-                        else None,
-                    )
-
-    async def alist(self, config: RunnableConfig) -> AsyncIterator[CheckpointTuple]:
-        """Get all the checkpoints for the given configuration."""
-        async with self._get_async_connection() as conn:
-            async with conn.cursor() as cur:
-                thread_id = config["configurable"]["thread_id"]
-                await cur.execute(
-                    "SELECT checkpoint, metadata, thread_ts, parent_ts "
-                    "FROM checkpoints "
-                    "WHERE thread_id = %(thread_id)s "
-                    "ORDER BY thread_ts DESC",
-                    {
-                        "thread_id": thread_id,
-                    },
-                )
-                async for value in cur:
-                    yield CheckpointTuple(
-                        config={
-                            "configurable": {
-                                "thread_id": thread_id,
-                                "thread_ts": value[2],
-                            }
-                        },
-                        checkpoint=cast(Checkpoint, self.serde.loads(value[0])),
-                        metadata=cast(CheckpointMetadata, self.serde.loads(value[1])),
-                        parent_config={
-                            "configurable": {
-                                "thread_id": thread_id,
-                                "thread_ts": value[3],
-                            }
-                        }
-                        if value[3]
-                        else None,
-                    )
-
-    def get_tuple(self, config: RunnableConfig) -> Optional[CheckpointTuple]:
-        """Get the checkpoint tuple for the given configuration.
-
-        Args:
-            config: The configuration for the checkpoint.
-                A dict with a `configurable` key which is a dict with
-                a `thread_id` key and an optional `thread_ts` key.
-                For example, { 'configurable': { 'thread_id': 'test_thread' } }
-
-        Returns:
-            The checkpoint tuple for the given configuration if it exists,
-            otherwise None.
-
-            If thread_ts is None, the latest checkpoint is returned if it exists.
-        """
-        thread_id = config["configurable"]["thread_id"]
-        thread_ts = config["configurable"].get("thread_ts")
-        with self._get_sync_connection() as conn:
-            with conn.cursor() as cur:
-                # get the checkpoint requested or return the latest checkpoint
-                if thread_ts:
-                    cur.execute(
-                        "SELECT thread_id, thread_ts, parent_ts, checkpoint, metadata "
-                        "FROM checkpoints "
-                        "WHERE thread_id = %(thread_id)s AND thread_ts = %(thread_ts)s",
-                        {
-                            "thread_id": thread_id,
-                            "thread_ts": thread_ts,
-                        },
-                    )
-                else:
-                    cur.execute(
-                        "SELECT thread_id, thread_ts, parent_ts, checkpoint, metadata "
-                        "FROM checkpoints "
-                        "WHERE thread_id = %(thread_id)s "
-                        "ORDER BY thread_ts DESC LIMIT 1",
-                        {
-                            "thread_id": thread_id,
-                        },
-                    )
-                try:
-                    value = cur.fetchone()
-                except psycopg.ProgrammingError:
-                    return None
-                if value:
-                    if not thread_ts:
-                        config = {
-                            "configurable": {
-                                "thread_id": value[0],
-                                "thread_ts": value[1],
-                            }
-                        }
-                        thread_id = value[0]
-                        thread_ts = value[1]
-                    # find any pending writes
-                    cur.execute(
-                        "SELECT task_id, channel, value "
-                        "FROM writes "
-                        "WHERE thread_id = %(thread_id)s AND thread_ts = %(thread_ts)s",
-                        {
-                            "thread_id": thread_id,
-                            "thread_ts": thread_ts,
-                        },
-                    )
-                    if value[4] is not None:
-                        metadata = cast(CheckpointMetadata, self.serde.loads(value[4]))
-                    else:
-                        metadata = {}
-                    return CheckpointTuple(
-                        config=config,
-                        checkpoint=cast(Checkpoint, self.serde.loads(value[3])),
-                        metadata=metadata,
-                        parent_config={
-                            "configurable": {
-                                "thread_id": thread_id,
-                                "thread_ts": value[2],
-                            }
-                        }
-                        if value[2]
-                        else None,
-                        pending_writes=[
-                            (task_id, channel, self.serde.loads(value))
-                            for task_id, channel, value in cur
-                        ],
-                    )
-        return None
-
-    async def aget_tuple(self, config: RunnableConfig) -> Optional[CheckpointTuple]:
-        """Get the checkpoint tuple for the given configuration.
-
-        Args:
-            config: The configuration for the checkpoint.
-                A dict with a `configurable` key which is a dict with
-                a `thread_id` key and an optional `thread_ts` key.
-                For example, { 'configurable': { 'thread_id': 'test_thread' } }
-
-        Returns:
-            The checkpoint tuple for the given configuration if it exists,
-            otherwise None.
-
-            If thread_ts is None, the latest checkpoint is returned if it exists.
-        """
-        thread_id = config["configurable"]["thread_id"]
-        thread_ts = config["configurable"].get("thread_ts")
-        async with self._get_async_connection() as conn:
-            async with conn.cursor() as cur:
-                # get the checkpoint requested or return the latest checkpoint
-                if thread_ts:
-                    cur.execute(
-                        "SELECT thread_id, thread_ts, parent_ts, checkpoint, metadata "
-                        "FROM checkpoints "
-                        "WHERE thread_id = %(thread_id)s AND thread_ts = %(thread_ts)s",
-                        {
-                            "thread_id": thread_id,
-                            "thread_ts": thread_ts,
-                        },
-                    )
-                else:
-                    cur.execute(
-                        "SELECT thread_id, thread_ts, parent_ts, checkpoint, metadata "
-                        "FROM checkpoints "
-                        "WHERE thread_id = %(thread_id)s "
-                        "ORDER BY thread_ts DESC LIMIT 1",
-                        {
-                            "thread_id": thread_id,
-                        },
-                    )
-                try:
-                    value = await cur.fetchone()
-                except psycopg.ProgrammingError:
-                    return None
-                if value:
-                    if not thread_ts:
-                        config = {
-                            "configurable": {
-                                "thread_id": value[0],
-                                "thread_ts": value[1],
-                            }
-                        }
-                        thread_id = value[0]
-                        thread_ts = value[1]
-                    # find any pending writes
-                    cur.execute(
-                        "SELECT task_id, channel, value "
-                        "FROM writes "
-                        "WHERE thread_id = %(thread_id)s AND thread_ts = %(thread_ts)s",
-                        {
-                            "thread_id": thread_id,
-                            "thread_ts": thread_ts,
-                        },
-                    )
-                    if value[4] is not None:
-                        metadata = cast(CheckpointMetadata, self.serde.loads(value[4]))
-                    else:
-                        metadata = {}
-                    return CheckpointTuple(
-                        config=config,
-                        checkpoint=cast(Checkpoint, self.serde.loads(value[3])),
-                        metadata=metadata,
-                        parent_config={
-                            "configurable": {
-                                "thread_id": thread_id,
-                                "thread_ts": value[2],
-                            }
-                        }
-                        if value[2]
-                        else None,
-                        pending_writes=[
-                            (task_id, channel, self.serde.loads(val))
-                            for task_id, channel, val in await cur.fetchall()
-                        ],
-                    )
-
-        return None
 
     def put_writes(
         self, config: RunnableConfig, writes: Sequence[tuple[str, Any]], task_id: str
     ) -> None:
-        """Put the writes for the given configuration.
+        """Store intermediate writes linked to a checkpoint.
+
+        This method saves intermediate writes associated with a checkpoint to the Postgres database.
 
         Args:
-            config: The configuration for the writes.
-                A dict with a `configurable` key which is a dict with
-                a `thread_id` key and an optional `thread_ts` key.
-                For example, { 'configurable': { 'thread_id': 'test_thread' } }
-            writes: The writes to persist.
-            task_id: The task ID for the writes.
+            config (RunnableConfig): Configuration of the related checkpoint.
+            writes (List[Tuple[str, Any]]): List of writes to store.
+            task_id (str): Identifier for the task creating the writes.
         """
         thread_id = config["configurable"]["thread_id"]
-        thread_ts = config["configurable"]["thread_ts"]
-
-        with self._get_sync_connection() as conn:
-            with conn.cursor() as cur:
-                cur.executemany(
-                    """
-                    INSERT INTO writes 
-                        (thread_id, thread_ts, task_id, idx, channel, value)
-                    VALUES 
-                        (%(thread_id)s, %(thread_ts)s, %(task_id)s, %(idx)s, %(channel)s, %(value)s)
-                    ON CONFLICT (thread_id, thread_ts, task_id, idx) 
-                    DO UPDATE SET 
-                        channel = EXCLUDED.channel,
-                        value = EXCLUDED.value;
-                    """,
-                    [
-                        {
-                            "thread_id": thread_id,
-                            "thread_ts": thread_ts,
-                            "task_id": task_id,
-                            "idx": idx,
-                            "channel": channel,
-                            "value": self.serde.dumps(value),
-                        }
-                        for idx, (channel, value) in enumerate(writes)
-                    ],
-                )
+        checkpoint_ns = config["configurable"]["checkpoint_ns"]
+        checkpoint_id = config["configurable"]["checkpoint_id"]
+        query = (
+            self.UPSERT_WRITES_SQL
+            if all(w[0] in WRITES_IDX_MAP for w in writes)
+            else self.INSERT_WRITES_SQL
+        )
+        with self.sync_cursor() as cur:
+            cur.executemany(
+                query,
+                self._dump_writes(
+                    thread_id, checkpoint_ns, checkpoint_id, task_id, writes
+                ),
+            )
 
     async def aput_writes(
         self, config: RunnableConfig, writes: List[Tuple[str | Any]], task_id: str
     ) -> None:
-        """Put the writes for the given configuration.
+        """Store intermediate writes linked to a checkpoint.
+
+        This method saves intermediate writes associated with a checkpoint to the Postgres database.
 
         Args:
-            config: The configuration for the writes.
-                A dict with a `configurable` key which is a dict with
-                a `thread_id` key and an optional `thread_ts` key.
-                For example, { 'configurable': { 'thread_id': 'test_thread' } }
-            writes: The writes to persist.
-            task_id: The task ID for the writes.
+            config (RunnableConfig): Configuration of the related checkpoint.
+            writes (List[Tuple[str, Any]]): List of writes to store.
+            task_id (str): Identifier for the task creating the writes.
         """
         thread_id = config["configurable"]["thread_id"]
-        thread_ts = config["configurable"]["thread_ts"]
+        checkpoint_ns = config["configurable"]["checkpoint_ns"]
+        checkpoint_id = config["configurable"]["checkpoint_id"]
+        query = (
+            self.UPSERT_WRITES_SQL
+            if all(w[0] in WRITES_IDX_MAP for w in writes)
+            else self.INSERT_WRITES_SQL
+        )
+        async with self.async_cursor() as cur:
+            await cur.executemany(
+                query,
+                self._dump_writes(
+                    thread_id, checkpoint_ns, checkpoint_id, task_id, writes
+                ),
+            )
 
-        async with self._get_async_connection() as conn:
-            async with conn.cursor() as cur:
-                await cur.executemany(
-                    """
-                    INSERT INTO writes 
-                        (thread_id, thread_ts, task_id, idx, channel, value)
-                    VALUES 
-                        (%(thread_id)s, %(thread_ts)s, %(task_id)s, %(idx)s, %(channel)s, %(value)s)
-                    ON CONFLICT (thread_id, thread_ts, task_id, idx) 
-                    DO UPDATE SET 
-                        channel = EXCLUDED.channel,
-                        value = EXCLUDED.value;
-                    """,
-                    [
+    def list(
+        self,
+        config: RunnableConfig | None,
+        *,
+        filter: dict[str, Any] | None = None,
+        before: RunnableConfig | None = None,
+        limit: int | None = None,
+    ) -> Iterator[CheckpointTuple]:
+        """List checkpoints from the database.
+
+        This method retrieves a list of checkpoint tuples from the Postgres database based
+        on the provided config. The checkpoints are ordered by checkpoint ID in descending order (newest first).
+
+        Args:
+            config (RunnableConfig): The config to use for listing the checkpoints.
+            filter (Dict[str, Any] | None): Additional filtering criteria for metadata. Defaults to None.
+            before (RunnableConfig | None): If provided, only checkpoints before the specified checkpoint ID are returned. Defaults to None.
+            limit (int | None): The maximum number of checkpoints to return. Defaults to None.
+
+        Yields:
+            Iterator[CheckpointTuple]: An iterator of checkpoint tuples.
+        """
+        where, param_values = search_where(config, filter, before, "postgres")
+        query = self.SELECT_CHECKPOINTS_TEMPLATE.format(where=where)
+        if limit:
+            query += f" LIMIT {limit}"
+        thread_id = config["configurable"]["thread_id"]
+
+        with self.sync_cursor() as cur, self.get_sync_connection() as wconn:
+            with wconn.cursor() as wcur:
+                cur.execute(query, param_values)
+                for (
+                    thread_id,
+                    checkpoint_ns,
+                    checkpoint_id,
+                    parent_checkpoint_id,
+                    checkpoint,
+                    metadata,
+                ) in cur:
+                    wcur.execute(
+                        self.SELECT_WRITES_SQL,
                         {
                             "thread_id": thread_id,
-                            "thread_ts": thread_ts,
-                            "task_id": task_id,
-                            "idx": idx,
-                            "channel": channel,
-                            "value": self.serde.dumps(value),
+                            "checkpoint_ns": checkpoint_ns,
+                            "checkpoint_id": checkpoint_id,
+                        },
+                    )
+                    yield CheckpointTuple(
+                        config={
+                            "configurable": {
+                                "thread_id": thread_id,
+                                "checkpoint_ns": checkpoint_ns,
+                                "checkpoint_id": checkpoint_id,
+                            }
+                        },
+                        checkpoint=self.serde.loads(checkpoint),
+                        metadata=self.serde.loads(metadata),
+                        parent_config={
+                            "configurable": {
+                                "thread_id": thread_id,
+                                "checkpoint_ns": checkpoint_ns,
+                                "checkpoint_id": parent_checkpoint_id,
+                            }
                         }
-                        for idx, (channel, value) in enumerate(writes)
+                        if parent_checkpoint_id
+                        else None,
+                        pending_writes=[
+                            (task_id, channel, self.serde.loads(value))
+                            for task_id, channel, value in wcur
+                        ],
+                    )
+
+    async def alist(
+        self,
+        config: RunnableConfig | None,
+        *,
+        filter: dict[str, Any] | None = None,
+        before: RunnableConfig | None = None,
+        limit: int | None = None,
+    ) -> AsyncIterator[CheckpointTuple]:
+        """List checkpoints from the database.
+
+        This method retrieves a list of checkpoint tuples from the Postgres database based
+        on the provided config. The checkpoints are ordered by checkpoint ID in descending order (newest first).
+
+        Args:
+            config (RunnableConfig): The config to use for listing the checkpoints.
+            filter (Dict[str, Any] | None): Additional filtering criteria for metadata. Defaults to None.
+            before (RunnableConfig | None): If provided, only checkpoints before the specified checkpoint ID are returned. Defaults to None.
+            limit (int | None): The maximum number of checkpoints to return. Defaults to None.
+
+        Yields:
+            Iterator[CheckpointTuple]: An iterator of checkpoint tuples.
+        """
+        where, param_values = search_where(config, filter, before, "postgres")
+        query = self.SELECT_CHECKPOINTS_TEMPLATE.format(where=where)
+        if limit:
+            query += f" LIMIT {limit}"
+        thread_id = config["configurable"]["thread_id"]
+
+        # TODO: Check that postgres will support two cursors at the same time and check if the async cursor is working
+        async with self.async_cursor() as cur, self.get_async_connection() as wconn:
+            async with wconn.cursor() as wcur:
+                await cur.execute(query, param_values)
+                async for (
+                    thread_id,
+                    checkpoint_ns,
+                    checkpoint_id,
+                    parent_checkpoint_id,
+                    checkpoint,
+                    metadata,
+                ) in cur:
+                    await wcur.execute(
+                        self.SELECT_WRITES_SQL,
+                        {
+                            "thread_id": thread_id,
+                            "checkpoint_ns": checkpoint_ns,
+                            "checkpoint_id": checkpoint_id,
+                        },
+                    )
+                    yield CheckpointTuple(
+                        config={
+                            "configurable": {
+                                "thread_id": thread_id,
+                                "checkpoint_ns": checkpoint_ns,
+                                "checkpoint_id": checkpoint_id,
+                            }
+                        },
+                        checkpoint=self.serde.loads(checkpoint),
+                        metadata=self.serde.loads(metadata),
+                        parent_config={
+                            "configurable": {
+                                "thread_id": thread_id,
+                                "checkpoint_ns": checkpoint_ns,
+                                "checkpoint_id": parent_checkpoint_id,
+                            }
+                        }
+                        if parent_checkpoint_id
+                        else None,
+                        pending_writes=[
+                            (task_id, channel, self.serde.loads(value))
+                            async for task_id, channel, value in wcur
+                        ],
+                    )
+
+    def get_tuple(self, config: RunnableConfig) -> CheckpointTuple | None:
+        """Get a checkpoint tuple from the database.
+
+        This method retrieves a checkpoint tuple from the Postgres database based on the
+        provided config. If the config contains a "checkpoint_id" key, the checkpoint with
+        the matching thread ID and timestamp is retrieved. Otherwise, the latest checkpoint
+        for the given thread ID is retrieved.
+
+        Args:
+            config (RunnableConfig): The config to use for retrieving the checkpoint.
+
+        Returns:
+            CheckpointTuple | None: The retrieved checkpoint tuple, or
+                None if no matching checkpoint was found.
+        """
+        checkpoint_ns = config["configurable"].get("checkpoint_ns", "")
+        with self.sync_cursor() as cur:
+            # get the checkpoint requested or return the latest checkpoint
+            if checkpoint_id := get_checkpoint_id(config):
+                cur.execute(
+                    self.SELECT_CHECKPOINT_SQL,
+                    {
+                        "thread_id": config["configurable"]["thread_id"],
+                        "checkpoint_ns": checkpoint_ns,
+                        "checkpoint_id": checkpoint_id,
+                    },
+                )
+            else:
+                cur.execute(
+                    self.SELECT_RECENT_CHECKPOINT_SQL,
+                    {
+                        "thread_id": config["configurable"]["thread_id"],
+                        "checkpoint_ns": checkpoint_ns,
+                    },
+                )
+            # if a checkpoint is found, return it
+            try:
+                value = cur.fetchone()
+            except psycopg.ProgrammingError:
+                return None
+            if value:
+                thread_id, checkpoint_id, parent_checkpoint_id, checkpoint, metadata = (
+                    value
+                )
+                if not get_checkpoint_id(config):
+                    config = {
+                        "configurable": {
+                            "thread_id": thread_id,
+                            "checkpoint_ns": checkpoint_ns,
+                            "checkpoint_id": checkpoint_id,
+                        }
+                    }
+                # find any pending writes
+                cur.execute(
+                    self.SELECT_WRITES_SQL,
+                    {
+                        "thread_id": thread_id,
+                        "checkpoint_ns": checkpoint_ns,
+                        "checkpoint_id": checkpoint_id,
+                    },
+                )
+                if metadata is not None:
+                    metadata = cast(CheckpointMetadata, self.serde.loads(metadata))
+                else:
+                    metadata = {}
+                return CheckpointTuple(
+                    config=config,
+                    checkpoint=cast(Checkpoint, self.serde.loads(checkpoint)),
+                    metadata=metadata,
+                    parent_config={
+                        "configurable": {
+                            "thread_id": thread_id,
+                            "checkpoint_ns": checkpoint_ns,
+                            "checkpoint_id": parent_checkpoint_id,
+                        }
+                    }
+                    if parent_checkpoint_id
+                    else None,
+                    pending_writes=[
+                        (task_id, channel, self.serde.loads(value))
+                        for task_id, channel, value in cur
                     ],
                 )
+        return None
+
+    async def aget_tuple(self, config: RunnableConfig) -> CheckpointTuple | None:
+        """Get a checkpoint tuple from the database.
+
+        This method retrieves a checkpoint tuple from the Postgres database based on the
+        provided config. If the config contains a "checkpoint_id" key, the checkpoint with
+        the matching thread ID and timestamp is retrieved. Otherwise, the latest checkpoint
+        for the given thread ID is retrieved.
+
+        Args:
+            config (RunnableConfig): The config to use for retrieving the checkpoint.
+
+        Returns:
+            CheckpointTuple | None: The retrieved checkpoint tuple, or
+                None if no matching checkpoint was found.
+        """
+        checkpoint_ns = config["configurable"].get("checkpoint_ns", "")
+        async with self.async_cursor() as cur:
+            # get the checkpoint requested or return the latest checkpoint
+            if checkpoint_id := get_checkpoint_id(config):
+                await cur.execute(
+                    self.SELECT_CHECKPOINT_SQL,
+                    {
+                        "thread_id": config["configurable"]["thread_id"],
+                        "checkpoint_ns": checkpoint_ns,
+                        "checkpoint_id": checkpoint_id,
+                    },
+                )
+            else:
+                await cur.execute(
+                    self.SELECT_RECENT_CHECKPOINT_SQL,
+                    {
+                        "thread_id": config["configurable"]["thread_id"],
+                        "checkpoint_ns": checkpoint_ns,
+                    },
+                )
+            # if a checkpoint is found, return it
+            try:
+                value = await cur.fetchone()
+            except psycopg.ProgrammingError:
+                return None
+            if value:
+                thread_id, checkpoint_id, parent_checkpoint_id, checkpoint, metadata = (
+                    value
+                )
+                if not get_checkpoint_id(config):
+                    config = {
+                        "configurable": {
+                            "thread_id": thread_id,
+                            "checkpoint_ns": checkpoint_ns,
+                            "checkpoint_id": checkpoint_id,
+                        }
+                    }
+                # find any pending writes
+                await cur.execute(
+                    self.SELECT_WRITES_SQL,
+                    {
+                        "thread_id": thread_id,
+                        "checkpoint_ns": checkpoint_ns,
+                        "checkpoint_id": checkpoint_id,
+                    },
+                )
+                if metadata is not None:
+                    metadata = cast(CheckpointMetadata, self.serde.loads(metadata))
+                else:
+                    metadata = {}
+                return CheckpointTuple(
+                    config=config,
+                    checkpoint=cast(Checkpoint, self.serde.loads(checkpoint)),
+                    metadata=metadata,
+                    parent_config={
+                        "configurable": {
+                            "thread_id": thread_id,
+                            "checkpoint_ns": checkpoint_ns,
+                            "checkpoint_id": parent_checkpoint_id,
+                        }
+                    }
+                    if parent_checkpoint_id
+                    else None,
+                    pending_writes=[
+                        (task_id, channel, self.serde.loads(value))
+                        for task_id, channel, value in await cur.fetchall()
+                    ],
+                )
+        return None
 
 
 class PostgresCheckpointer(PostgresSaver):
@@ -581,19 +618,3 @@ class PostgresCheckpointer(PostgresSaver):
     def __init__(self, serializer: PostgresSerializer):
         super().__init__()
         self.serde = serializer
-        # self.sync_connection = sync_connection
-        # self.async_connection = async_connection
-
-    @property
-    def config_specs(self) -> list[ConfigurableFieldSpec]:
-        return [
-            ConfigurableFieldSpec(
-                id="thread_id",
-                annotation=Optional[str],
-                name="Thread ID",
-                description=None,
-                default=None,
-                is_shared=True,
-            ),
-            CheckpointThreadTs,
-        ]

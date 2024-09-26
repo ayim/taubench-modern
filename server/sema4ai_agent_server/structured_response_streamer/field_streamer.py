@@ -1,7 +1,6 @@
 from typing import (
     AsyncGenerator,
     Literal,
-    TypedDict,
 )
 
 import orjson
@@ -11,6 +10,7 @@ from langchain_core.messages import (
     ToolCall,
 )
 from pydantic import BaseModel, PrivateAttr
+from typing_extensions import TypedDict
 
 FieldStreamerYieldType = AIMessageChunk | None
 FieldStreamerSendType = tuple[ToolCall | None, AIMessageChunk]

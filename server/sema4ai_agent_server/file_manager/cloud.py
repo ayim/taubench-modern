@@ -140,7 +140,7 @@ class CloudFileManager(BaseFileManager):
 
     async def delete(self, file_id: str) -> None:
         await self._delete_stored_file(file_id)
-        self._delete_embeddings(file_id)
+        await self._delete_embeddings(file_id)
         await get_storage().delete_file(file_id)
 
     async def refresh_file_paths(self, files: list[UploadedFile]) -> list[UploadedFile]:

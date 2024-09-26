@@ -2,23 +2,58 @@ import re
 from datetime import datetime
 from enum import Enum
 from functools import cached_property
-from typing import List, Literal, Optional, Union
+from typing import Annotated, Any, List, Literal, Self, Union
+from uuid import UUID
 
 from fastapi import UploadFile
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
-from pydantic import BaseModel, Field, SecretStr, root_validator, validator
+from pydantic import (
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    SecretStr,
+    SerializationInfo,
+    SerializerFunctionWrapHandler,
+    TypeAdapter,
+    ValidationInfo,
+    field_validator,
+    model_validator,
+)
+from pydantic.functional_serializers import WrapSerializer
 
 NOT_CONFIGURED = "SEMA4AI_FIELD_NOT_CONFIGURED"
 AZURE_URL_PATTERN = r"^(https?://[^/]+)/openai/deployments/([^/]+)/(chat/completions|embeddings)\?api-version=(.+)$"
+DICT_ADAPTER = TypeAdapter(dict)
+
+
+def ser_secret_str(
+    value: SecretStr, nxt: SerializerFunctionWrapHandler, info: SerializationInfo
+) -> str:
+    """Serializer function which unmasks secret strings if the context's "raw"
+    key is set to True."""
+    if info.context is not None and info.context.get("raw", False):
+        return value.get_secret_value()
+    else:
+        return nxt(value, info)
+
+
+RAW_CONTEXT = {"raw": True}
+
+SerializableSecretStr = Annotated[SecretStr, WrapSerializer(ser_secret_str)]
+
+StrWithUuidInput = Annotated[
+    str, BeforeValidator(lambda v: str(v) if isinstance(v, UUID) else v)
+]
 
 
 class User(BaseModel):
-    user_id: str = Field(description="The ID of the user.")
+    user_id: StrWithUuidInput = Field(description="The ID of the user.")
     sub: str = Field(description="The sub of the user (from a JWT token).")
     created_at: datetime = Field(description="The time the user was created.")
 
     @cached_property
-    def _parsed_sub(self) -> dict[str, Optional[str]]:
+    def _parsed_sub(self) -> dict[str, str] | None:
         """
         Control Room sub formats:
 
@@ -39,17 +74,17 @@ class User(BaseModel):
         return result
 
     @property
-    def cr_tenant_id(self) -> Optional[str]:
+    def cr_tenant_id(self) -> str | None:
         """Control Room Tenant ID"""
         return self._parsed_sub["tenant"]
 
     @property
-    def cr_user_id(self) -> Optional[str]:
+    def cr_user_id(self) -> str | None:
         """Control Room User ID"""
         return self._parsed_sub["user"]
 
     @property
-    def cr_system_id(self) -> Optional[str]:
+    def cr_system_id(self) -> str | None:
         """Control Room System ID"""
         return self._parsed_sub["system"]
 
@@ -80,26 +115,32 @@ class ConfigurationMixin:
         return len(fields_not_configured) == 0, fields_not_configured
 
 
-class ModelConfig(BaseModel, ConfigurationMixin):
-    ...
+class ModelConfig(BaseModel, ConfigurationMixin): ...
 
 
 class OpenAIGPTConfig(ModelConfig):
     temperature: float = Field(description="The temperature.", default=0.0)
-    openai_api_key: SecretStr = Field(
+    openai_api_key: SerializableSecretStr = Field(
         description="The OpenAI API key.", default=SecretStr(NOT_CONFIGURED)
     )
 
 
 class AzureGPTConfig(ModelConfig):
+    model_config = ConfigDict(validate_assignment=True)
+
     temperature: float = Field(description="The temperature.", default=0.0)
     chat_url: str = Field(default=NOT_CONFIGURED)
-    chat_openai_api_key: SecretStr = Field(default=SecretStr(NOT_CONFIGURED))
+    chat_openai_api_key: SerializableSecretStr = Field(
+        default=SecretStr(NOT_CONFIGURED)
+    )
     embeddings_url: str = Field(default=NOT_CONFIGURED)
-    embeddings_openai_api_key: SecretStr = Field(default=SecretStr(NOT_CONFIGURED))
+    embeddings_openai_api_key: SerializableSecretStr = Field(
+        default=SecretStr(NOT_CONFIGURED)
+    )
 
-    @validator("chat_url", "embeddings_url")
-    def validate_url(cls, v, field):
+    @field_validator("chat_url", "embeddings_url")
+    @classmethod
+    def validate_url(cls, v: str, info: ValidationInfo):
         """
         chat_url format: <azure_endpoint>/openai/deployments/<deployment_name>/chat/completions?api-version=<openai_api_version>
         embeddings_url format: <azure_endpoint>/openai/deployments/<deployment_name>/embeddings?api-version=<openai_api_version>
@@ -107,7 +148,7 @@ class AzureGPTConfig(ModelConfig):
 
         if v == NOT_CONFIGURED:
             return v
-        url_type = "chat" if field.name == "chat_url" else "embeddings"
+        url_type = "chat" if info.field_name == "chat_url" else "embeddings"
         match = re.match(AZURE_URL_PATTERN, v)
         if not match:
             raise ValueError(f"Invalid {url_type} URL format")
@@ -150,13 +191,10 @@ class AzureGPTConfig(ModelConfig):
         match = re.match(AZURE_URL_PATTERN, url)
         return match.group(group) if match else NOT_CONFIGURED
 
-    class Config:
-        validate_assignment = True
-
 
 class AnthropicClaudeConfig(ModelConfig):
     temperature: float = Field(description="The temperature.", default=0.0)
-    anthropic_api_key: SecretStr = Field(
+    anthropic_api_key: SerializableSecretStr = Field(
         description="The Anthropic API key.", default=SecretStr(NOT_CONFIGURED)
     )
 
@@ -164,17 +202,17 @@ class AnthropicClaudeConfig(ModelConfig):
 class AmazonClaudeConfig(ModelConfig):
     service_name: str = Field(description="The service name.", default=NOT_CONFIGURED)
     region_name: str = Field(description="The region name.", default=NOT_CONFIGURED)
-    aws_access_key_id: SecretStr = Field(
+    aws_access_key_id: SerializableSecretStr = Field(
         description="The AWS access key ID.", default=SecretStr(NOT_CONFIGURED)
     )
-    aws_secret_access_key: SecretStr = Field(
+    aws_secret_access_key: SerializableSecretStr = Field(
         description="The AWS secret access key.", default=SecretStr(NOT_CONFIGURED)
     )
 
 
 class GoogleGeminiConfig(ModelConfig):
     temperature: float = Field(description="The temperature.", default=0.0)
-    vertex_ai_credentials: SecretStr = Field(
+    vertex_ai_credentials: SerializableSecretStr = Field(
         description="The Google Vertex AI credentials.",
         default=SecretStr(NOT_CONFIGURED),
     )
@@ -235,7 +273,9 @@ dummy_model = OpenAIGPT(
     provider=LLMProvider.OPENAI, config=OpenAIGPTConfig(openai_api_key="dummy")
 )
 
+# TODO: If we unify models to the same base class, do we need this?
 MODEL = OpenAIGPT | AzureGPT | AnthropicClaude | AmazonClaude | GoogleGemini | Ollama
+MODEL_ADAPTER = TypeAdapter(MODEL)
 
 
 class AgentArchitecture(str, Enum):
@@ -270,7 +310,7 @@ class ActionPackage(BaseModel, ConfigurationMixin):
         description="URL of the action server that hosts the action package.",
         default=NOT_CONFIGURED,
     )
-    api_key: SecretStr = Field(
+    api_key: SerializableSecretStr = Field(
         description="API Key of the action server that hosts the action package.",
         default=SecretStr(NOT_CONFIGURED),
     )
@@ -287,6 +327,9 @@ class ActionPackage(BaseModel, ConfigurationMixin):
     )
 
 
+ACTION_PKG_LIST_ADAPTER = TypeAdapter(List[ActionPackage])
+
+
 class AgentNotReadyIssueType(str, Enum):
     MODEL_NOT_CONFIGURED = "model_not_configured"
     ACTION_SERVER_NOT_CONFIGURED = "action_server_not_configured"
@@ -300,38 +343,38 @@ class AgentNotReadyIssue(BaseModel):
 
 
 class ModelNotConfigured(AgentNotReadyIssue):
-    type: Literal[
+    type: Literal[AgentNotReadyIssueType.MODEL_NOT_CONFIGURED] = (
         AgentNotReadyIssueType.MODEL_NOT_CONFIGURED
-    ] = AgentNotReadyIssueType.MODEL_NOT_CONFIGURED
+    )
     fields: list[str]
 
 
 class ActionServerNotConfigured(AgentNotReadyIssue):
-    type: Literal[
+    type: Literal[AgentNotReadyIssueType.ACTION_SERVER_NOT_CONFIGURED] = (
         AgentNotReadyIssueType.ACTION_SERVER_NOT_CONFIGURED
-    ] = AgentNotReadyIssueType.ACTION_SERVER_NOT_CONFIGURED
+    )
     action_package_name: str
     fields: list[str]
 
 
 class EmbeddingFilePending(AgentNotReadyIssue):
-    type: Literal[
+    type: Literal[AgentNotReadyIssueType.EMBEDDING_FILES_PENDING] = (
         AgentNotReadyIssueType.EMBEDDING_FILES_PENDING
-    ] = AgentNotReadyIssueType.EMBEDDING_FILES_PENDING
+    )
     file_ref: str
 
 
 class EmbeddingFileInProgress(AgentNotReadyIssue):
-    type: Literal[
+    type: Literal[AgentNotReadyIssueType.EMBEDDING_FILES_IN_PROGRESS] = (
         AgentNotReadyIssueType.EMBEDDING_FILES_IN_PROGRESS
-    ] = AgentNotReadyIssueType.EMBEDDING_FILES_IN_PROGRESS
+    )
     file_ref: str
 
 
 class EmbeddingFileFailed(AgentNotReadyIssue):
-    type: Literal[
+    type: Literal[AgentNotReadyIssueType.EMBEDDING_FILES_FAILED] = (
         AgentNotReadyIssueType.EMBEDDING_FILES_FAILED
-    ] = AgentNotReadyIssueType.EMBEDDING_FILES_FAILED
+    )
     file_ref: str
 
 
@@ -386,82 +429,116 @@ class AgentMetadata(BaseModel):
     """
 
     mode: AgentMode = Field(description="The mode of the agent.")
-    worker_config: Optional[WorkerConfig] = Field(
-        description="Worker configuration, if in worker mode."
+    worker_config: WorkerConfig | None = Field(
+        None, description="Worker configuration, if in worker mode."
     )
-    welcome_message: Optional[str] = Field(description="Welcome message for the agent.")
+    welcome_message: str | None = Field(
+        None, description="Welcome message for the agent."
+    )
     question_groups: list[QuestionGroup] = Field(
         description="Question groups for the agent.", default_factory=list
     )
 
-    @root_validator
-    def validate_worker_config(cls, values):
-        mode = values.get("mode")
-        worker_config = values.get("worker_config")
-
-        if mode == AgentMode.WORKER and worker_config is None:
+    @model_validator(mode="after")
+    def validate_worker_config(self) -> Self:
+        if self.mode == AgentMode.WORKER and self.worker_config is None:
             raise ValueError("worker_config must be set when mode is 'worker'")
 
-        if mode == AgentMode.CONVERSATIONAL and worker_config is not None:
+        if self.mode == AgentMode.CONVERSATIONAL and self.worker_config is not None:
             raise ValueError(
                 "worker_config should not be set when mode is 'conversational'"
             )
 
-        return values
+        return self
 
 
-class BaseAgent(BaseModel):
-    """
-    Agent model that always masks sensitive information.
+class AgentPayload(BaseModel):
+    """Payload for creating an agent."""
 
-    Both .dict() and .json() will contain masked values for sensitive fields.
-    Ensures that logs and traces do not contain sensitive information.
-    """
-
-    id: str = Field(description="The ID of the agent.")
-    user_id: str = Field(description="The ID of the user that owns the agent.")
-    public: bool = Field(description="Whether the agent is public.")
-    name: str = Field(description="The name of the agent.")
-    description: str = Field(description="The description of the agent.")
-    runbook: SecretStr = Field(description="The runbook for the agent.")
-    version: str = Field(description="The version of the agent.")
-    model: MODEL = Field(description="LLM model configuration for the agent.")
+    public: bool = Field(False, description="Whether the agent is public.")
+    name: str = Field(..., description="The name of the agent.")
+    description: str = Field(..., description="The description of the agent.")
+    runbook: SerializableSecretStr = Field(
+        ..., description="The runbook for the agent."
+    )
+    version: str = Field(..., description="The version of the agent.")
+    model: Annotated[MODEL, "db_json"] = Field(
+        ..., description="LLM model configuration for the agent."
+    )
     architecture: AgentArchitecture = Field(
         description="The cognitive architecture of the agent."
     )
     reasoning: AgentReasoning = Field(description="The reasoning setting of the agent.")
-    action_packages: list[ActionPackage] = Field(
-        description="The action packages for the agent."
+    action_packages: Annotated[list[ActionPackage], "db_json"] = Field(
+        default_factory=list, description="The action packages for the agent."
+    )
+    metadata: Annotated[AgentMetadata, "db_json"] = Field(
+        description="The agent metadata."
+    )
+
+    @field_validator("model", mode="before")
+    @classmethod
+    def validate_model_field(cls, v: Any) -> MODEL:
+        if isinstance(v, (str, bytes, bytearray)):
+            return MODEL_ADAPTER.validate_json(v)
+        return v
+
+    @field_validator("action_packages", mode="before")
+    @classmethod
+    def validate_action_packages(cls, v: Any) -> list[ActionPackage]:
+        if isinstance(v, (str, bytes, bytearray)):
+            return ACTION_PKG_LIST_ADAPTER.validate_json(v)
+        return v
+
+    @field_validator("metadata", mode="before")
+    @classmethod
+    def validate_metadata(cls, v: Any) -> AgentMetadata:
+        if isinstance(v, (str, bytes, bytearray)):
+            return AgentMetadata.model_validate_json(v)
+        return v
+
+
+class Agent(AgentPayload):
+    """
+    Agent model that masks sensitive information unless serialized with special
+    context.
+
+    SecretStr fields will be masked during serialization unless a serialization
+    context of "raw" is provided when dumping the model (works with either
+    model_dump or model_dump_json).
+    """
+
+    id: StrWithUuidInput = Field(description="The ID of the agent.")
+    user_id: StrWithUuidInput = Field(
+        description="The ID of the user that owns the agent."
     )
     updated_at: datetime = Field(description="The last time the agent was updated.")
-    metadata: AgentMetadata = Field(description="The agent metadata.")
 
 
-class RawAgent(BaseAgent):
-    """
-    Agent model that does not mask sensitive information in its JSON representation.
-
-    Logs and traces will still not contain sensitive information but clients can
-    view raw agent data.
-    """
-
-    class Config:
-        # Ensure that SecretStr is not masked
-        json_encoders = {SecretStr: lambda v: v.get_secret_value() if v else None}
-
-
-class Agent(BaseAgent):
-    def raw(self) -> RawAgent:
-        return RawAgent(**self.dict())
+AGENT_LIST_ADAPTER = TypeAdapter(List[Agent])
 
 
 class Thread(BaseModel):
-    thread_id: str = Field(description="The ID of the thread.")
-    user_id: str = Field(description="The ID of the user.")
-    agent_id: Optional[str] = Field(description="The ID of the agent.")
+    thread_id: StrWithUuidInput = Field(description="The ID of the thread.")
+    user_id: StrWithUuidInput = Field(description="The ID of the user.")
+    agent_id: StrWithUuidInput | None = Field(None, description="The ID of the agent.")
     name: str = Field(description="The name of the thread.")
     updated_at: datetime = Field(description="The last time the thread was updated.")
-    metadata: Optional[dict] = Field(description="The thread metadata.")
+    metadata: Annotated[dict | None, "db_json"] = Field(
+        None, description="The thread metadata."
+    )
+
+    @field_validator("metadata", mode="before")
+    @classmethod
+    def validate_metadata(cls, v: Any) -> dict | None:
+        if isinstance(v, (str, bytes, bytearray)) and v != "null":
+            return DICT_ADAPTER.validate_json(v)
+        elif v == "null":
+            return None
+        return v
+
+
+THREAD_LIST_ADAPTER = TypeAdapter(List[Thread])
 
 
 class EmbeddingStatus(str, Enum):
@@ -476,30 +553,38 @@ class EmbeddingStatus(str, Enum):
 
 
 class UploadedFile(BaseModel):
-    file_id: str
-    """The ID of the file."""
-    file_path: Optional[str]
-    """The path of the file."""
-    file_ref: str
-    """Key for the file access."""
-    file_hash: str
-    """The hash of the file."""
-    embedded: bool
-    """Whether the file is embedded."""
-    file_path_expiration: Optional[datetime] = None
-    embedding_status: Optional[EmbeddingStatus]
-    """The embedding status of the file."""
-    file_path_expiration: Optional[datetime] = None
-    agent_id: Optional[str] = None
-    """The ID of the agent that uploaded the file."""
-    thread_id: Optional[str] = None
-    """The ID of the thread that uploaded the file."""
+    file_id: StrWithUuidInput = Field(description="The ID of the file.")
+    file_path: str | None = Field(None, description="The path of the file.")
+    file_ref: str = Field(description="Key for the file access.")
+    file_hash: str = Field(description="The hash of the file.")
+    embedded: bool = Field(description="Whether the file is embedded.")
+    file_path_expiration: datetime | None = Field(
+        default=None,
+        description="The expiration date of the file path.",
+    )
+    embedding_status: EmbeddingStatus | None = Field(
+        None, description="The embedding status of the file."
+    )
+    agent_id: StrWithUuidInput | None = Field(
+        default=None,
+        description="The ID of the agent that uploaded the file.",
+    )
+    thread_id: StrWithUuidInput | None = Field(
+        default=None,
+        description="The ID of the thread that uploaded the file.",
+    )
+
+
+UPLOADED_FILE_LIST_ADAPTER = TypeAdapter(List[UploadedFile])
 
 
 class UploadFileRequest(BaseModel):
     file: UploadFile
-    embedded: Optional[bool] = None
-    """If None, it will be inferred from file type."""
+    embedded: bool | None = Field(
+        default=None,
+        description="Whether the file is embedded. If None, it will be inferred "
+        "from file type.",
+    )
 
 
 class ChatRole(str, Enum):
@@ -519,8 +604,8 @@ class ChatMessage(BaseModel):
     A chat message can be from the ai, human, system, or action.
     """
 
-    id: Optional[str] = Field(
-        description="The ID of the chat message. This can be a random UUID."
+    id: StrWithUuidInput | None = Field(
+        None, description="The ID of the chat message. This can be a random UUID."
     )
     type: ChatRole = Field(description="The role of the chat message.")
     content: str = Field(description="The message.")
@@ -535,7 +620,7 @@ class ChatRequest(BaseModel):
     """
 
     input: List[ChatMessage] = Field(description="The messages to send to the agent.")
-    thread_id: str = Field(description="The ID of the thread.")
+    thread_id: StrWithUuidInput = Field(description="The ID of the thread.")
 
     def get_langchain_messages(self):
         """

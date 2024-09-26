@@ -14,12 +14,13 @@ from sema4ai_agent_server.auth.settings import (
 from sema4ai_agent_server.auth.settings import (
     settings as auth_settings,
 )
+from sema4ai_agent_server.responses import PydanticResponse
 from sema4ai_agent_server.server import app
 from tests.unit_tests.sema4ai_agent_server.helpers import get_client
 
 
-@app.get("/me")
-async def me(user: AuthedUser) -> dict:
+@app.get("/me", response_model=AuthedUser, response_class=PydanticResponse)
+async def me(user: AuthedUser):
     return user
 
 

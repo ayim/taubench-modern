@@ -8,9 +8,9 @@ from langchain_core.messages import (
     ToolMessage,
     merge_content,
 )
-from langchain_core.pydantic_v1 import Field
 from langchain_core.utils._merge import merge_dicts
 from langgraph.graph.message import Messages, add_messages
+from pydantic import Field
 
 
 class LiberalFunctionMessage(FunctionMessage):

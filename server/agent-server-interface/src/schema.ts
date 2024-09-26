@@ -41,6 +41,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/agents/raw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Raw Agents
+         * @description List all agents for the current user.
+         */
+        get: operations["list_raw_agents_api_v1_agents_raw_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/agents/{aid}": {
         parameters: {
             query?: never;
@@ -64,6 +84,43 @@ export interface paths {
          * @description Delete an agent by ID.
          */
         delete: operations["delete_agent_api_v1_agents__aid__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/{aid}/raw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Raw Agent
+         * @description Get an agent by ID (sensitive data is masked).
+         */
+        get: operations["get_raw_agent_api_v1_agents__aid__raw_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/{aid}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Agent Status */
+        get: operations["get_agent_status_api_v1_agents__aid__status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -141,6 +198,23 @@ export interface paths {
          * @description Upload files to the given agent.
          */
         post: operations["upload_agent_files_api_v1_agents__aid__files_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/{aid}/action-server-config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Action Server Config */
+        put: operations["update_action_server_config_api_v1_agents__aid__action_server_config_put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -336,6 +410,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/threads/{tid}/file-by-ref": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get File By Ref */
+        get: operations["get_file_by_ref_api_v1_threads__tid__file_by_ref_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/threads/{tid}/files": {
         parameters: {
             query?: never;
@@ -360,7 +451,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/get-file": {
+    "/api/v1/threads/{tid}/files/request-upload": {
         parameters: {
             query?: never;
             header?: never;
@@ -369,11 +460,25 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /**
-         * Get File
-         * @description Retrieve an UploadedFile object.
-         */
-        post: operations["get_file_api_v1_get_file_post"];
+        /** Request Remote File Upload */
+        post: operations["request_remote_file_upload_api_v1_threads__tid__files_request_upload_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/threads/{tid}/files/confirm-upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm Remote File Upload */
+        post: operations["confirm_remote_file_upload_api_v1_threads__tid__files_confirm_upload_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -414,23 +519,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/update-action-server-ports": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Update Action Server Ports */
-        post: operations["update_action_server_ports_api_v1_update_action_server_ports_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -438,6 +526,12 @@ export interface components {
         /**
          * AIMessage
          * @description Message from an AI.
+         *
+         *     AIMessage is returned from a chat model as a response to a prompt.
+         *
+         *     This message represents the output of the model and consists of both
+         *     the raw output as returned by the model together standardized fields
+         *     (e.g., tool calls, usage metadata) added by the LangChain framework.
          */
         AIMessage: {
             /** Content */
@@ -449,13 +543,14 @@ export interface components {
             /**
              * Type
              * @default ai
+             * @constant
              * @enum {string}
              */
             type: "ai";
             /** Name */
-            name?: string;
+            name?: string | null;
             /** Id */
-            id?: string;
+            id?: string | null;
             /**
              * Example
              * @default false
@@ -471,6 +566,9 @@ export interface components {
              * @default []
              */
             invalid_tool_calls: components["schemas"]["InvalidToolCall"][];
+            usage_metadata?: components["schemas"]["UsageMetadata"] | null;
+        } & {
+            [key: string]: unknown;
         };
         /**
          * ActionPackage
@@ -517,28 +615,36 @@ export interface components {
              */
             additional_headers?: Record<string, never>;
         };
+        /** ActionServerNotConfigured */
+        ActionServerNotConfigured: {
+            /**
+             * Type
+             * @default action_server_not_configured
+             * @constant
+             * @enum {string}
+             */
+            type: "action_server_not_configured";
+            /** Action Package Name */
+            action_package_name: string;
+            /** Fields */
+            fields: string[];
+        };
         /**
          * Agent
-         * @description Agent model.
+         * @description Agent model that masks sensitive information unless serialized with special
+         *     context.
+         *
+         *     SecretStr fields will be masked during serialization unless a serialization
+         *     context of "raw" is provided when dumping the model (works with either
+         *     model_dump or model_dump_json).
          */
         Agent: {
             /**
-             * Id
-             * @description The ID of the agent.
-             */
-            id: string;
-            /**
-             * User Id
-             * @description The ID of the user that owns the agent.
-             */
-            user_id: string;
-            /**
              * Public
              * @description Whether the agent is public.
+             * @default false
              */
             public: boolean;
-            /** @description The status of the agent. */
-            status: components["schemas"]["AgentStatus"];
             /**
              * Name
              * @description The name of the agent.
@@ -551,6 +657,7 @@ export interface components {
             description: string;
             /**
              * Runbook
+             * Format: password
              * @description The runbook for the agent.
              */
             runbook: string;
@@ -572,18 +679,25 @@ export interface components {
              * Action Packages
              * @description The action packages for the agent.
              */
-            action_packages: components["schemas"]["ActionPackage"][];
+            action_packages?: components["schemas"]["ActionPackage"][];
             /**
              * Updated At
              * Format: date-time
              * @description The last time the agent was updated.
              */
             updated_at: string;
-            /**
-             * Metadata
-             * @description The agent metadata.
-             */
+            /** @description The agent metadata. */
             metadata: components["schemas"]["AgentMetadata"];
+            /**
+             * Id
+             * @description The ID of the agent.
+             */
+            id: string;
+            /**
+             * User Id
+             * @description The ID of the user that owns the agent.
+             */
+            user_id: string;
         };
         /**
          * AgentArchitecture
@@ -598,16 +712,18 @@ export interface components {
         AgentMetadata: {
             /** @description The mode of the agent. */
             mode: components["schemas"]["AgentMode"];
-            /**
-             * Worker Config
-             * @description Worker configuration, if in worker mode.
-             */
-            worker_config?: components["schemas"]["WorkerConfig"];
+            /** @description Worker configuration, if in worker mode. */
+            worker_config?: components["schemas"]["WorkerConfig"] | null;
             /**
              * Welcome Message
              * @description Welcome message for the agent.
              */
-            welcome_message?: string;
+            welcome_message?: string | null;
+            /**
+             * Question Groups
+             * @description Question groups for the agent.
+             */
+            question_groups?: components["schemas"]["QuestionGroup"][];
         };
         /**
          * AgentMode
@@ -638,6 +754,7 @@ export interface components {
             description: string;
             /**
              * Runbook
+             * Format: password
              * @description The runbook for the agent.
              */
             runbook: string;
@@ -658,13 +775,15 @@ export interface components {
             /**
              * Action Packages
              * @description The action packages for the agent.
-             * @default []
              */
-            action_packages: components["schemas"]["ActionPackage"][];
+            action_packages?: components["schemas"]["ActionPackage"][];
             /**
-             * Metadata
-             * @description Additional metadata for the agent.
+             * Updated At
+             * Format: date-time
+             * @description The last time the agent was updated.
              */
+            updated_at: string;
+            /** @description The agent metadata. */
             metadata: components["schemas"]["AgentMetadata"];
         };
         /**
@@ -687,7 +806,12 @@ export interface components {
              * Agent Package Url
              * @description The URL of the agent package.
              */
-            agent_package_url: string;
+            agent_package_url?: string | null;
+            /**
+             * Agent Package Base64
+             * @description Base64 encoded agent package.
+             */
+            agent_package_base64?: string | null;
             /**
              * Model
              * @description LLM configuration for the agent.
@@ -718,16 +842,18 @@ export interface components {
          * @enum {string}
          */
         AgentReasoning: "disabled" | "enabled" | "verbose";
-        /**
-         * AgentStatus
-         * @description Enum for agent status.
-         * @enum {string}
-         */
-        AgentStatus: "file_operations_in_progress" | "file_operations_failed" | "ready";
+        /** AgentStatus */
+        AgentStatus: {
+            /** Ready */
+            ready: boolean;
+            /** Issues */
+            issues: (components["schemas"]["ModelNotConfigured"] | components["schemas"]["ActionServerNotConfigured"] | components["schemas"]["EmbeddingFilePending"] | components["schemas"]["EmbeddingFileInProgress"] | components["schemas"]["EmbeddingFileFailed"])[];
+        };
         /** AmazonClaude */
         AmazonClaude: {
             /**
              * Provider
+             * @constant
              * @enum {string}
              */
             provider: "Amazon";
@@ -737,10 +863,7 @@ export interface components {
              * @default anthropic.claude-3-5-sonnet-20240620-v1:0
              */
             name: string;
-            /**
-             * Config
-             * @description Amazon Claude config.
-             */
+            /** @description Amazon Claude config. */
             config: components["schemas"]["AmazonClaudeConfig"];
         };
         /** AmazonClaudeConfig */
@@ -776,6 +899,7 @@ export interface components {
         AnthropicClaude: {
             /**
              * Provider
+             * @constant
              * @enum {string}
              */
             provider: "Anthropic";
@@ -785,10 +909,7 @@ export interface components {
              * @default claude-3-5-sonnet-20240620
              */
             name: string;
-            /**
-             * Config
-             * @description Anthropic Claude config.
-             */
+            /** @description Anthropic Claude config. */
             config: components["schemas"]["AnthropicClaudeConfig"];
         };
         /** AnthropicClaudeConfig */
@@ -811,13 +932,11 @@ export interface components {
         AzureGPT: {
             /**
              * Provider
+             * @constant
              * @enum {string}
              */
             provider: "Azure";
-            /**
-             * Config
-             * @description Azure GPT config.
-             */
+            /** @description Azure GPT config. */
             config: components["schemas"]["AzureGPTConfig"];
         };
         /** AzureGPTConfig */
@@ -883,9 +1002,70 @@ export interface components {
          * @enum {string}
          */
         ChatRole: "ai" | "human" | "system" | "tool";
+        /** ConfirmRemoteFileUploadPayload */
+        ConfirmRemoteFileUploadPayload: {
+            /** File Ref */
+            file_ref: string;
+            /** File Id */
+            file_id: string;
+        };
+        /** EmbeddingFileFailed */
+        EmbeddingFileFailed: {
+            /**
+             * Type
+             * @default embedding_files_failed
+             * @constant
+             * @enum {string}
+             */
+            type: "embedding_files_failed";
+            /** File Ref */
+            file_ref: string;
+        };
+        /** EmbeddingFileInProgress */
+        EmbeddingFileInProgress: {
+            /**
+             * Type
+             * @default embedding_files_in_progress
+             * @constant
+             * @enum {string}
+             */
+            type: "embedding_files_in_progress";
+            /** File Ref */
+            file_ref: string;
+        };
+        /** EmbeddingFilePending */
+        EmbeddingFilePending: {
+            /**
+             * Type
+             * @default embedding_files_pending
+             * @constant
+             * @enum {string}
+             */
+            type: "embedding_files_pending";
+            /** File Ref */
+            file_ref: string;
+        };
+        /**
+         * EmbeddingStatus
+         * @description Enum for embedding status.
+         * @enum {string}
+         */
+        EmbeddingStatus: "pending" | "in_progress" | "success" | "failure";
+        /** FileByRefResponse */
+        FileByRefResponse: {
+            /** File Url */
+            file_url: string;
+        };
         /**
          * FunctionMessage
-         * @description Message for passing the result of executing a function back to a model.
+         * @description Message for passing the result of executing a tool back to a model.
+         *
+         *     FunctionMessage are an older version of the ToolMessage schema, and
+         *     do not contain the tool_call_id field.
+         *
+         *     The tool_call_id field is used to associate the tool call request with the
+         *     tool call response. This is useful in situations where a chat model is able
+         *     to request multiple tool calls in parallel.
          */
         FunctionMessage: {
             /** Content */
@@ -897,33 +1077,22 @@ export interface components {
             /**
              * Type
              * @default function
+             * @constant
              * @enum {string}
              */
             type: "function";
             /** Name */
             name: string;
             /** Id */
-            id?: string;
-        };
-        /** GetFilePayload */
-        GetFilePayload: {
-            /**
-             * Agent Id
-             * Format: uuid
-             */
-            agent_id: string;
-            /**
-             * Thread Id
-             * Format: uuid
-             */
-            thread_id: string;
-            /** File Ref */
-            file_ref: string;
+            id?: string | null;
+        } & {
+            [key: string]: unknown;
         };
         /** GoogleGemini */
         GoogleGemini: {
             /**
              * Provider
+             * @constant
              * @enum {string}
              */
             provider: "Google";
@@ -933,10 +1102,7 @@ export interface components {
              * @default gemini-pro
              */
             name: string;
-            /**
-             * Config
-             * @description Google Gemini config.
-             */
+            /** @description Google Gemini config. */
             config: components["schemas"]["GoogleGeminiConfig"];
         };
         /** GoogleGeminiConfig */
@@ -963,6 +1129,27 @@ export interface components {
         /**
          * HumanMessage
          * @description Message from a human.
+         *
+         *     HumanMessages are messages that are passed in from a human to the model.
+         *
+         *     Example:
+         *
+         *         .. code-block:: python
+         *
+         *             from langchain_core.messages import HumanMessage, SystemMessage
+         *
+         *             messages = [
+         *                 SystemMessage(
+         *                     content="You are a helpful assistant! Your name is Bob."
+         *                 ),
+         *                 HumanMessage(
+         *                     content="What is your name?"
+         *                 )
+         *             ]
+         *
+         *             # Instantiate a chat model and invoke it with the messages
+         *             model = ...
+         *             print(model.invoke(messages))
          */
         HumanMessage: {
             /** Content */
@@ -974,34 +1161,62 @@ export interface components {
             /**
              * Type
              * @default human
+             * @constant
              * @enum {string}
              */
             type: "human";
             /** Name */
-            name?: string;
+            name?: string | null;
             /** Id */
-            id?: string;
+            id?: string | null;
             /**
              * Example
              * @default false
              */
             example: boolean;
+        } & {
+            [key: string]: unknown;
         };
-        /** InvalidToolCall */
+        /**
+         * InvalidToolCall
+         * @description Allowance for errors made by LLM.
+         *
+         *     Here we add an `error` key to surface errors made during generation
+         *     (e.g., invalid JSON arguments.)
+         */
         InvalidToolCall: {
             /** Name */
-            name: string;
+            name: string | null;
             /** Args */
-            args: string;
+            args: string | null;
             /** Id */
-            id: string;
+            id: string | null;
             /** Error */
-            error: string;
+            error: string | null;
+            /**
+             * Type
+             * @constant
+             * @enum {string}
+             */
+            type?: "invalid_tool_call";
+        };
+        /** ModelNotConfigured */
+        ModelNotConfigured: {
+            /**
+             * Type
+             * @default model_not_configured
+             * @constant
+             * @enum {string}
+             */
+            type: "model_not_configured";
+            /** Fields */
+            fields: string[];
         };
         /** Ollama */
         Ollama: {
             /**
              * Provider
+             * @constant
              * @enum {string}
              */
             provider: "Ollama";
@@ -1010,10 +1225,7 @@ export interface components {
              * @description The name of the model.
              */
             name: string;
-            /**
-             * Config
-             * @description Ollama config.
-             */
+            /** @description Ollama config. */
             config: components["schemas"]["OllamaConfig"];
         };
         /** OllamaConfig */
@@ -1035,6 +1247,7 @@ export interface components {
         OpenAIGPT: {
             /**
              * Provider
+             * @constant
              * @enum {string}
              */
             provider: "OpenAI";
@@ -1044,10 +1257,7 @@ export interface components {
              * @default gpt-3.5-turbo
              */
             name: string;
-            /**
-             * Config
-             * @description OpenAI GPT config.
-             */
+            /** @description OpenAI GPT config. */
             config: components["schemas"]["OpenAIGPTConfig"];
         };
         /** OpenAIGPTConfig */
@@ -1066,10 +1276,59 @@ export interface components {
              */
             openai_api_key: string;
         };
+        /** QuestionGroup */
+        QuestionGroup: {
+            /**
+             * Title
+             * @description The title of the question group.
+             */
+            title: string;
+            /**
+             * Questions
+             * @description The questions in the group.
+             */
+            questions: string[];
+        };
+        /** RemoteFileUploadData */
+        RemoteFileUploadData: {
+            /** Url */
+            url: string;
+            /** Form Data */
+            form_data: Record<string, never>;
+            /** File Id */
+            file_id: string;
+            /** File Ref */
+            file_ref: string;
+        };
+        /** RequestRemoteFileUploadPayload */
+        RequestRemoteFileUploadPayload: {
+            /** File Name */
+            file_name: string;
+        };
         /**
          * SystemMessage
-         * @description Message for priming AI behavior, usually passed in as the first of a sequence
+         * @description Message for priming AI behavior.
+         *
+         *     The system message is usually passed in as the first of a sequence
          *     of input messages.
+         *
+         *     Example:
+         *
+         *         .. code-block:: python
+         *
+         *             from langchain_core.messages import HumanMessage, SystemMessage
+         *
+         *             messages = [
+         *                 SystemMessage(
+         *                     content="You are a helpful assistant! Your name is Bob."
+         *                 ),
+         *                 HumanMessage(
+         *                     content="What is your name?"
+         *                 )
+         *             ]
+         *
+         *             # Define a chat model and invoke it with the messages
+         *             print(model.invoke(messages))
          */
         SystemMessage: {
             /** Content */
@@ -1081,13 +1340,16 @@ export interface components {
             /**
              * Type
              * @default system
+             * @constant
              * @enum {string}
              */
             type: "system";
             /** Name */
-            name?: string;
+            name?: string | null;
             /** Id */
-            id?: string;
+            id?: string | null;
+        } & {
+            [key: string]: unknown;
         };
         /** Thread */
         Thread: {
@@ -1105,7 +1367,7 @@ export interface components {
              * Agent Id
              * @description The ID of the agent.
              */
-            agent_id?: string;
+            agent_id?: string | null;
             /**
              * Name
              * @description The name of the thread.
@@ -1121,7 +1383,7 @@ export interface components {
              * Metadata
              * @description The thread metadata.
              */
-            metadata?: Record<string, never>;
+            metadata?: Record<string, never> | null;
         };
         /**
          * ThreadPostRequest
@@ -1142,7 +1404,7 @@ export interface components {
              * Starting Message
              * @description The starting AI message for the thread.
              */
-            starting_message?: string;
+            starting_message?: string | null;
         };
         /**
          * ThreadPutRequest
@@ -1168,18 +1430,77 @@ export interface components {
             /** Values */
             values: (components["schemas"]["AIMessage"] | components["schemas"]["HumanMessage"] | components["schemas"]["langchain_core__messages__chat__ChatMessage"] | components["schemas"]["SystemMessage"] | components["schemas"]["FunctionMessage"] | components["schemas"]["ToolMessage"])[] | Record<string, never>;
         };
-        /** ToolCall */
+        /**
+         * ToolCall
+         * @description Represents a request to call a tool.
+         *
+         *     Example:
+         *
+         *         .. code-block:: python
+         *
+         *             {
+         *                 "name": "foo",
+         *                 "args": {"a": 1},
+         *                 "id": "123"
+         *             }
+         *
+         *         This represents a request to call the tool named "foo" with arguments {"a": 1}
+         *         and an identifier of "123".
+         */
         ToolCall: {
             /** Name */
             name: string;
             /** Args */
             args: Record<string, never>;
             /** Id */
-            id: string;
+            id: string | null;
+            /**
+             * Type
+             * @constant
+             * @enum {string}
+             */
+            type?: "tool_call";
         };
         /**
          * ToolMessage
          * @description Message for passing the result of executing a tool back to a model.
+         *
+         *     ToolMessages contain the result of a tool invocation. Typically, the result
+         *     is encoded inside the `content` field.
+         *
+         *     Example: A ToolMessage representing a result of 42 from a tool call with id
+         *
+         *         .. code-block:: python
+         *
+         *             from langchain_core.messages import ToolMessage
+         *
+         *             ToolMessage(content='42', tool_call_id='call_Jja7J89XsjrOLA5r!MEOW!SL')
+         *
+         *
+         *     Example: A ToolMessage where only part of the tool output is sent to the model
+         *         and the full output is passed in to artifact.
+         *
+         *         .. versionadded:: 0.2.17
+         *
+         *         .. code-block:: python
+         *
+         *             from langchain_core.messages import ToolMessage
+         *
+         *             tool_output = {
+         *                 "stdout": "From the graph we can see that the correlation between x and y is ...",
+         *                 "stderr": None,
+         *                 "artifacts": {"type": "image", "base64_data": "/9j/4gIcSU..."},
+         *             }
+         *
+         *             ToolMessage(
+         *                 content=tool_output["stdout"],
+         *                 artifact=tool_output,
+         *                 tool_call_id='call_Jja7J89XsjrOLA5r!MEOW!SL',
+         *             )
+         *
+         *     The tool_call_id field is used to associate the tool call request with the
+         *     tool call response. This is useful in situations where a chat model is able
+         *     to request multiple tool calls in parallel.
          */
         ToolMessage: {
             /** Content */
@@ -1191,33 +1512,95 @@ export interface components {
             /**
              * Type
              * @default tool
+             * @constant
              * @enum {string}
              */
             type: "tool";
             /** Name */
-            name?: string;
+            name?: string | null;
             /** Id */
-            id?: string;
+            id?: string | null;
             /** Tool Call Id */
             tool_call_id: string;
+            /** Artifact */
+            artifact?: unknown;
+            /**
+             * Status
+             * @default success
+             * @enum {string}
+             */
+            status: "success" | "error";
+        } & {
+            [key: string]: unknown;
         };
         /** UploadedFile */
         UploadedFile: {
-            /** File Id */
+            /**
+             * File Id
+             * @description The ID of the file.
+             */
             file_id: string;
-            /** File Path */
-            file_path?: string;
-            /** File Ref */
+            /**
+             * File Path
+             * @description The path of the file.
+             */
+            file_path?: string | null;
+            /**
+             * File Ref
+             * @description Key for the file access.
+             */
             file_ref: string;
-            /** File Hash */
+            /**
+             * File Hash
+             * @description The hash of the file.
+             */
             file_hash: string;
-            /** Embedded */
+            /**
+             * Embedded
+             * @description Whether the file is embedded.
+             */
             embedded: boolean;
             /**
              * File Path Expiration
-             * Format: date-time
+             * @description The expiration date of the file path.
              */
-            file_path_expiration?: string;
+            file_path_expiration?: string | null;
+            /** @description The embedding status of the file. */
+            embedding_status?: components["schemas"]["EmbeddingStatus"] | null;
+            /**
+             * Agent Id
+             * @description The ID of the agent that uploaded the file.
+             */
+            agent_id?: string | null;
+            /**
+             * Thread Id
+             * @description The ID of the thread that uploaded the file.
+             */
+            thread_id?: string | null;
+        };
+        /**
+         * UsageMetadata
+         * @description Usage metadata for a message, such as token counts.
+         *
+         *     This is a standard representation of token usage that is consistent across models.
+         *
+         *     Example:
+         *
+         *         .. code-block:: python
+         *
+         *             {
+         *                 "input_tokens": 10,
+         *                 "output_tokens": 20,
+         *                 "total_tokens": 30
+         *             }
+         */
+        UsageMetadata: {
+            /** Input Tokens */
+            input_tokens: number;
+            /** Output Tokens */
+            output_tokens: number;
+            /** Total Tokens */
+            total_tokens: number;
         };
         /** ValidationError */
         ValidationError: {
@@ -1244,6 +1627,7 @@ export interface components {
         /**
          * WorkerType
          * @description Enum for worker type.
+         * @constant
          * @enum {string}
          */
         WorkerType: "Document Intelligence";
@@ -1261,15 +1645,18 @@ export interface components {
             /**
              * Type
              * @default chat
+             * @constant
              * @enum {string}
              */
             type: "chat";
             /** Name */
-            name?: string;
+            name?: string | null;
             /** Id */
-            id?: string;
+            id?: string | null;
             /** Role */
             role: string;
+        } & {
+            [key: string]: unknown;
         };
         /**
          * ChatMessage
@@ -1281,7 +1668,7 @@ export interface components {
              * Id
              * @description The ID of the chat message. This can be a random UUID.
              */
-            id?: string;
+            id?: string | null;
             /** @description The role of the chat message. */
             type: components["schemas"]["ChatRole"];
             /**
@@ -1326,6 +1713,26 @@ export interface operations {
         };
     };
     list_agents_api_v1_agents__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Agent"][];
+                };
+            };
+        };
+    };
+    list_raw_agents_api_v1_agents_raw_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -1431,7 +1838,73 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": {
+                        [key: string]: components["schemas"]["Agent"];
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_raw_agent_api_v1_agents__aid__raw_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the agent. */
+                aid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Agent"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_agent_status_api_v1_agents__aid__status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the agent. */
+                aid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentStatus"];
                 };
             };
             /** @description Validation Error */
@@ -1615,6 +2088,42 @@ export interface operations {
             };
         };
     };
+    update_action_server_config_api_v1_agents__aid__action_server_config_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the agent. */
+                aid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentPayloadPackageActionServer"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     create_run_api_v1_runs_async_invoke_post: {
         parameters: {
             query?: never;
@@ -1770,7 +2279,6 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description The ID of the thread. */
                 tid: string;
             };
             cookie?: never;
@@ -1802,7 +2310,6 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description The ID of the thread. */
                 tid: string;
             };
             cookie?: never;
@@ -1838,7 +2345,6 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description The ID of the thread. */
                 tid: string;
             };
             cookie?: never;
@@ -1870,7 +2376,6 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description The ID of the thread. */
                 tid: string;
             };
             cookie?: never;
@@ -1902,7 +2407,6 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description The ID of the thread. */
                 tid: string;
             };
             cookie?: never;
@@ -1938,7 +2442,6 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description The ID of the thread. */
                 tid: string;
             };
             cookie?: never;
@@ -1998,12 +2501,44 @@ export interface operations {
             };
         };
     };
+    get_file_by_ref_api_v1_threads__tid__file_by_ref_get: {
+        parameters: {
+            query: {
+                file_ref: string;
+            };
+            header?: never;
+            path: {
+                tid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileByRefResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_thread_files_api_v1_threads__tid__files_get: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description The ID of the thread. */
                 tid: string;
             };
             cookie?: never;
@@ -2035,7 +2570,6 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description The ID of the thread. */
                 tid: string;
             };
             cookie?: never;
@@ -2066,16 +2600,53 @@ export interface operations {
             };
         };
     };
-    get_file_api_v1_get_file_post: {
+    request_remote_file_upload_api_v1_threads__tid__files_request_upload_post: {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                tid: string;
+            };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["GetFilePayload"];
+                "application/json": components["schemas"]["RequestRemoteFileUploadPayload"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemoteFileUploadData"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_remote_file_upload_api_v1_threads__tid__files_confirm_upload_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmRemoteFileUploadPayload"];
             };
         };
         responses: {
@@ -2135,41 +2706,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": Record<string, never>;
-                };
-            };
-        };
-    };
-    update_action_server_ports_api_v1_update_action_server_ports_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    [key: string]: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": Record<string, never>;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

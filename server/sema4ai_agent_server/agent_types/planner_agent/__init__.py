@@ -12,7 +12,7 @@ from langchain_core.messages import (
     ToolMessage,
 )
 from langchain_core.runnables import Runnable
-from langgraph.checkpoint import BaseCheckpointSaver
+from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph.message import StateGraph
 from structlog import get_logger
 from structlog.stdlib import BoundLogger
@@ -62,9 +62,9 @@ STEPS_CONTENT_PATTERN = re.compile(pattern=r"^\[.*\]$")
 
 def _clean_message(m: AnyMessage):
     if isinstance(m, LiberalToolMessage):
-        _dict = m.dict()
+        _dict = m.model_dump(round_trip=True)
         _dict["content"] = str(_dict["content"])
-        m_c = ToolMessage(**_dict)
+        m_c = ToolMessage.model_construct(**_dict)
         return m_c
     elif isinstance(m, FunctionMessage):
         # anthropic doesn't like function messages
@@ -157,7 +157,7 @@ def get_plan_execute_agent(
     async def offramper(state: PlanExecuteAgentState):
         """Decides if a plan is needed and writes the plan if so.
         This node assumes disabled reasoning."""
-        logger.debug(f"offramper:state at start of node: {state.dict()}")
+        logger.debug(f"offramper:state at start of node: {state!r}")
         prompt = PLANNER_PROMPTS[reasoning_level]
         messages = _get_messages(state.combined)
         input = {
@@ -212,7 +212,7 @@ def get_plan_execute_agent(
     async def offramper_thinker(state: PlanExecuteAgentState):
         """Decides if a plan is needed and writes the plan if so.
         This node assumes reasoning is not disabled."""
-        logger.debug(f"offramper_thinker: {state.dict()}")
+        logger.debug(f"offramper_thinker: {state!r}")
         prompt = PLANNER_PROMPTS[reasoning_level]
         messages = _get_messages(state.combined)
         input = {
@@ -375,7 +375,7 @@ def get_plan_execute_agent(
         messages_for_executor.append(AIMessage(content=combined_message))
 
         output = await executor_agent.ainvoke({"combined": messages_for_executor})
-        output_agent_state = AgentState(**output)
+        output_agent_state = AgentState.model_validate(output)
 
         new_combined_messages = [
             m for m in output_agent_state.combined if m not in state.combined

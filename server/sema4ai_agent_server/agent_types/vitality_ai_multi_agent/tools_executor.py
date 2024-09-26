@@ -16,10 +16,10 @@ from langchain_core.agents import AgentFinish
 from langchain_core.language_models.base import LanguageModelLike
 from langchain_core.messages import BaseMessage, SystemMessage, ToolMessage
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.pydantic_v1 import BaseModel
 from langchain_core.runnables import RunnablePassthrough
 from langgraph.graph import END, StateGraph
 from langgraph.prebuilt.tool_executor import ToolExecutor
+from pydantic import BaseModel
 
 
 class ExecAgentState(BaseModel):

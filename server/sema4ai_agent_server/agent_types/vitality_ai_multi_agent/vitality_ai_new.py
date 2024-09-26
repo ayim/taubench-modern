@@ -1,7 +1,7 @@
 from langchain.tools import BaseTool
 from langchain_core.language_models.base import LanguageModelLike
 from langchain_openai import ChatOpenAI
-from langgraph.checkpoint import BaseCheckpointSaver
+from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph.message import StateGraph
 from structlog import get_logger
 
