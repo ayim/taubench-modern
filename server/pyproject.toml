@@ -79,11 +79,18 @@ agent-server = "sema4ai_agent_server.server:main"
 [[tool.poetry.source]]
 name = "pypi-public"
 url = "https://pypi.org/simple/"
+priority = "primary"
+
 
 [[tool.poetry.source]]
 name = "codeartifact"
 url = "https://sema4ai-710450854638.d.codeartifact.eu-west-1.amazonaws.com/pypi/agent-server/"
 priority = "supplemental"
+
+
+[[tool.poetry.source]]
+name = "PyPI"
+priority = "primary"
 
 [tool.coverage.run]
 omit = ["tests/*"]
