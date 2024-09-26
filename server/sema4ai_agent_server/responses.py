@@ -1,7 +1,8 @@
 """Module contains custom responses and related for the FastAPI application."""
 
-from typing import Any
+from typing import Any, Mapping
 
+from fastapi import BackgroundTasks
 from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel, TypeAdapter
 
@@ -28,10 +29,23 @@ class PydanticResponse(ORJSONResponse):
     """
 
     def __init__(
-        self, content: BaseModel, ser_context: dict[str, Any] = None, **kwargs: Any
+        self,
+        content: BaseModel,
+        ser_context: dict[str, Any] = None,
+        *,
+        status_code: int = 200,
+        headers: Mapping[str, str] | None = None,
+        media_type: str | None = None,
+        background: BackgroundTasks | None = None,
     ):
         self.ser_context = ser_context
-        super().__init__(content, **kwargs)
+        super().__init__(
+            content,
+            status_code=status_code,
+            headers=headers,
+            media_type=media_type,
+            background=background,
+        )
 
     def render(self, content: Any) -> bytes:
         if hasattr(content, "model_dump_json"):
@@ -67,11 +81,21 @@ class TypeAdapterResponse(ORJSONResponse):
         content: Any,
         adapter: Any,
         ser_context: dict[str, Any] | None = None,
-        **kwargs: Any,
+        *,
+        status_code: int = 200,
+        headers: Mapping[str, str] | None = None,
+        media_type: str | None = None,
+        background: BackgroundTasks | None = None,
     ):
         self.adapter: TypeAdapter = adapter
         self.ser_context = ser_context
-        super().__init__(content, **kwargs)
+        super().__init__(
+            content,
+            status_code=status_code,
+            headers=headers,
+            media_type=media_type,
+            background=background,
+        )
 
     def render(self, content: Any) -> bytes:
         try:
