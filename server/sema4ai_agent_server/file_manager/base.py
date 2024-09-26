@@ -133,6 +133,8 @@ class BaseFileManager:
     async def generate_unique_file_ref(
         self, owner: Union[Agent, Thread], file_name: str
     ) -> str:
+        # TODO 2 concurrent requests to generate the unique file ref for the same
+        # owner could end up generating the same id for both.
         files = []
         if isinstance(owner, Agent):
             files = await get_storage().get_agent_files(owner.id)
