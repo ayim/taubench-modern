@@ -1,7 +1,7 @@
 import os
 import shutil
 import tempfile
-from typing import Annotated, List, Optional, Self
+from typing import Annotated, List, Self
 from uuid import uuid4
 
 import structlog
