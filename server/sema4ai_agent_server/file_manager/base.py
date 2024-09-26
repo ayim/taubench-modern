@@ -124,11 +124,53 @@ class BaseFileManager:
         return file_extension not in NON_EMBEDDABLE_EXTENSIONS
 
     def _validate_files_pre_upload(self, files: list[UploadFileRequest]) -> None:
+        # https://stackoverflow.com/questions/1976007/what-characters-are-forbidden-in-windows-and-linux-directory-names/31976060#31976060
+        FORBIDDEN_UNIX_CHARACTERS = {"/"}
+        FORBIDDEN_WINDOWS_CHARACTERS = {"<", ">", ":", '"', "/", "\\", "|", "?", "*"}
+        RESERVED_UNIX_FILE_NAMES = {".", ".."}
+        RESERVED_WINDOWS_FILE_NAMES = {
+            "CON",
+            "PRN",
+            "AUX",
+            "NUL",
+            "COM1",
+            "COM2",
+            "COM3",
+            "COM4",
+            "COM5",
+            "COM6",
+            "COM7",
+            "COM8",
+            "COM9",
+            "LPT1",
+            "LPT2",
+            "LPT3",
+            "LPT4",
+            "LPT5",
+            "LPT6",
+            "LPT7",
+            "LPT8",
+            "LPT9",
+        }
+
         file_names = [f.file.filename for f in files]
         if len(file_names) != len(set(file_names)):
             raise InvalidFileUploadError("File names must be unique")
-        if any(f.file.filename == "" for f in files):
-            raise InvalidFileUploadError("File names must not be empty")
+
+        for f in files:
+            filename = f.file.filename
+            file_base, _ = os.path.splitext(filename)
+            if (
+                filename == ""
+                or filename in RESERVED_WINDOWS_FILE_NAMES
+                or file_base in RESERVED_WINDOWS_FILE_NAMES
+                or filename in RESERVED_UNIX_FILE_NAMES
+            ):
+                raise InvalidFileUploadError(f"Invalid file name: {filename}")
+
+            forbidden_chars = FORBIDDEN_UNIX_CHARACTERS | FORBIDDEN_WINDOWS_CHARACTERS
+            if any(char in filename for char in forbidden_chars):
+                raise InvalidFileUploadError(f"Invalid file name: {filename}")
 
     async def generate_unique_file_ref(
         self, owner: Union[Agent, Thread], file_name: str
