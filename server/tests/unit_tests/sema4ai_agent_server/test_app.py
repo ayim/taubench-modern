@@ -4,8 +4,8 @@ from typing import Optional, Sequence
 from unittest import skip
 from uuid import uuid4
 
-import asyncpg
 import pytest
+from psycopg_pool.pool import ConnectionPool
 
 from tests.unit_tests.sema4ai_agent_server.helpers import get_client
 
@@ -22,7 +22,7 @@ async def pool():
 
 
 @skip("TODO: Remove references to postgres and use sqlite for unit tests.")
-async def test_list_and_create_agents(pool: asyncpg.pool.Pool) -> None:
+async def test_list_and_create_agents(pool: ConnectionPool) -> None:
     """Test list and create agents."""
     headers = {"Cookie": "opengpts_user_id=1"}
     aid = str(uuid4())
