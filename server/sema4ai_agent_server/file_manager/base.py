@@ -57,6 +57,7 @@ class BaseFileManager:
         raise NotImplementedError()
 
     async def _delete_embeddings(self, file_ids: list[str]) -> None:
+        # TODO: Update to use adelete_by_file_id once implemented
         await get_vector_store().adelete(file_ids)
 
     async def create_embeddings(self, file: UploadedFile, model: MODEL) -> None:

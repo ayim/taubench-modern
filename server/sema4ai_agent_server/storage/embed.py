@@ -11,7 +11,6 @@ from asyncio import get_event_loop
 from typing import BinaryIO, List, Optional, Union
 
 from fastapi import UploadFile
-from langchain_chroma import Chroma
 from langchain_community.document_loaders.base import BaseBlobParser
 from langchain_core.document_loaders.blob_loaders import Blob
 from langchain_core.documents import Document
@@ -22,7 +21,6 @@ from langchain_core.runnables import (
 )
 from langchain_core.vectorstores import VectorStore
 from langchain_openai import AzureOpenAIEmbeddings, OpenAIEmbeddings
-from langchain_postgres import PGVector
 from langchain_text_splitters import RecursiveCharacterTextSplitter, TextSplitter
 from pydantic import ConfigDict, Field
 
@@ -35,6 +33,7 @@ from sema4ai_agent_server.schema import (
     OpenAIGPT,
     dummy_model,
 )
+from sema4ai_agent_server.storage.vectorstore import ChromaVector, PostgresVector
 
 
 def _update_document_metadata(document: Document, owner_id: str, file_id: str) -> None:
@@ -157,8 +156,8 @@ def get_embedding_function(
     raise ValueError(f"Unsupported model type {model} for embeddings.")
 
 
-def _get_pg_vector(model: Optional[MODEL]) -> PGVector:
-    pg_connection_string = PGVector.connection_string_from_db_params(
+def _get_pg_vector(model: Optional[MODEL]) -> PostgresVector:
+    pg_connection_string = PostgresVector.connection_string_from_db_params(
         driver="psycopg",
         host=os.environ["POSTGRES_HOST"],
         port=int(os.environ["POSTGRES_PORT"]),
@@ -166,7 +165,7 @@ def _get_pg_vector(model: Optional[MODEL]) -> PGVector:
         user=os.environ["POSTGRES_USER"],
         password=os.environ["POSTGRES_PASSWORD"],
     )
-    return PGVector(
+    return PostgresVector(
         embeddings=get_embedding_function(model) if model else None,
         connection=pg_connection_string,
         use_jsonb=True,
@@ -174,8 +173,8 @@ def _get_pg_vector(model: Optional[MODEL]) -> PGVector:
     )
 
 
-def _get_chroma_vector(model: Optional[MODEL]) -> VectorStore:
-    return Chroma(
+def _get_chroma_vector(model: Optional[MODEL]) -> ChromaVector:
+    return ChromaVector(
         collection_name=VECTOR_COLLECTION_NAME,
         persist_directory=VECTOR_DATABASE_PATH,
         embedding_function=get_embedding_function(model) if model else None,
