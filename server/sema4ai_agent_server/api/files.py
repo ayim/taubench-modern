@@ -1,52 +1,14 @@
 import hashlib
 from typing import List
-from uuid import UUID
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from langchain_core.messages import AIMessage, ToolCall, ToolMessage
-from pydantic import BaseModel
 
 from sema4ai_agent_server.auth.handlers import AuthedUser
-from sema4ai_agent_server.responses import PydanticResponse
 from sema4ai_agent_server.schema import UploadedFile
 from sema4ai_agent_server.storage.option import get_storage
 
 router = APIRouter()
-
-
-class GetFilePayload(BaseModel):
-    agent_id: UUID
-    thread_id: UUID
-    file_ref: str
-
-
-@router.post("/get-file", response_model=UploadedFile, response_class=PydanticResponse)
-async def get_file(payload: GetFilePayload, user: AuthedUser):
-    """Retrieve an UploadedFile object."""
-    storage = get_storage()
-
-    # Check if the user has access to the thread
-    thread = await storage.get_thread(str(user.user_id), str(payload.thread_id))
-    if not thread:
-        raise HTTPException(status_code=404, detail="Thread not found or access denied")
-
-    if thread.agent_id != str(payload.agent_id):
-        raise HTTPException(status_code=404, detail="Agent and thread mismatch")
-
-    # Try to get the file from the thread first
-    file = await storage.get_file(thread, payload.file_ref)
-
-    if not file:
-        # If not found in thread, try to get the file from the agent
-        agent = await storage.get_agent(str(user.user_id), str(payload.agent_id))
-        if not agent:
-            raise HTTPException(status_code=404, detail="Agent not found")
-        file = await storage.get_file(agent, payload.file_ref)
-
-    if not file:
-        raise HTTPException(status_code=404, detail="File not found")
-
-    return PydanticResponse(file)
 
 
 async def _add_uploaded_messages(

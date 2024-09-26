@@ -32,6 +32,7 @@ from sema4ai_agent_server.schema import (
 from sema4ai_agent_server.storage import (
     BaseStorage,
     UniqueAgentNameError,
+    UniqueFileRefError,
 )
 from sema4ai_agent_server.storage.utils import model_dump_for_sqlite
 
@@ -221,7 +222,7 @@ class SqliteStorage(BaseStorage):
                     e.sqlite_errorcode == sqlite3.SQLITE_CONSTRAINT_UNIQUE
                     and "agent.name" in str(e)
                 ):
-                    raise UniqueAgentNameError()
+                    raise UniqueAgentNameError(name)
                 raise e
             return new_agent
 
@@ -504,34 +505,43 @@ class SqliteStorage(BaseStorage):
         )
         with self._connect() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                """
-                INSERT INTO file_owners (file_id, file_path, file_ref, file_hash, embedded, embedding_status, agent_id, thread_id, file_path_expiration)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(file_id)
-                DO UPDATE SET 
-                    file_id = EXCLUDED.file_id,
-                    file_path = EXCLUDED.file_path,
-                    file_hash = EXCLUDED.file_hash,
-                    embedded = EXCLUDED.embedded,
-                    embedding_status = EXCLUDED.embedding_status,
-                    agent_id = EXCLUDED.agent_id,
-                    thread_id = EXCLUDED.thread_id,
-                    file_path_expiration = EXCLUDED.file_path_expiration
-                """,
-                (
-                    new_uploaded_file.file_id,
-                    new_uploaded_file.file_path,
-                    new_uploaded_file.file_ref,
-                    new_uploaded_file.file_hash,
-                    new_uploaded_file.embedded,
-                    new_uploaded_file.embedding_status,
-                    new_uploaded_file.agent_id,
-                    new_uploaded_file.thread_id,
-                    new_uploaded_file.file_path_expiration,
-                ),
-            )
-            conn.commit()
+            try:
+                cursor.execute(
+                    """
+                    INSERT INTO file_owners (file_id, file_path, file_ref, file_hash, embedded, embedding_status, agent_id, thread_id, file_path_expiration)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(file_id)
+                    DO UPDATE SET 
+                        file_id = EXCLUDED.file_id,
+                        file_path = EXCLUDED.file_path,
+                        file_hash = EXCLUDED.file_hash,
+                        embedded = EXCLUDED.embedded,
+                        embedding_status = EXCLUDED.embedding_status,
+                        agent_id = EXCLUDED.agent_id,
+                        thread_id = EXCLUDED.thread_id,
+                        file_path_expiration = EXCLUDED.file_path_expiration
+                    """,
+                    (
+                        new_uploaded_file.file_id,
+                        new_uploaded_file.file_path,
+                        new_uploaded_file.file_ref,
+                        new_uploaded_file.file_hash,
+                        new_uploaded_file.embedded,
+                        new_uploaded_file.embedding_status,
+                        new_uploaded_file.agent_id,
+                        new_uploaded_file.thread_id,
+                        new_uploaded_file.file_path_expiration,
+                    ),
+                )
+                conn.commit()
+            except sqlite3.IntegrityError as e:
+                conn.commit()
+                if (
+                    e.sqlite_errorcode == sqlite3.SQLITE_CONSTRAINT_UNIQUE
+                    and "file_owners.file_ref" in str(e)
+                ):
+                    raise UniqueFileRefError(file_ref)
+                raise e
         return new_uploaded_file
 
     async def delete_file(self, file_id: str) -> None:

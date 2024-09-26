@@ -21,8 +21,13 @@ from sema4ai_agent_server.schema import (
 
 
 class UniqueAgentNameError(HTTPException):
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        super().__init__(status_code=409, detail="Agent with this name already exists")
+    def __init__(self, name: str, *args: object, **kwargs: object) -> None:
+        super().__init__(status_code=409, detail=f"Agent '{name}' already exists")
+
+
+class UniqueFileRefError(HTTPException):
+    def __init__(self, file_ref: str, *args: object, **kwargs: object) -> None:
+        super().__init__(status_code=409, detail=f"File '{file_ref}' already exists")
 
 
 class BaseStorage(ABC):

@@ -1,10 +1,11 @@
 import hashlib
 import os
-from enum import Enum
+import re
 from typing import Union
 
 import structlog
-from fastapi import UploadFile
+from fastapi import HTTPException, UploadFile
+from pydantic import BaseModel
 
 from sema4ai_agent_server.schema import (
     MODEL,
@@ -25,34 +26,19 @@ from sema4ai_agent_server.storage.option import get_storage
 logger = structlog.get_logger(__name__)
 
 NON_EMBEDDABLE_EXTENSIONS = {".csv", ".xls", ".xlsx", ".json", ".xml"}
+MISSING_FILE_HASH = "SEMA4AI_MISSING_FILE_HASH"
 
 
-class FileUploadFailReason(str, Enum):
-    ALREADY_EXISTS = "file_already_exists"
-    EMBEDDING_FAILED = "file_embedding_failed"
-    UNKNOWN = "unknown"
+class InvalidFileUploadError(HTTPException):
+    def __init__(self, message: str, *args: object, **kwargs: object) -> None:
+        super().__init__(status_code=400, detail=message)
 
 
-class UploadFailed(Exception):
-    reason: FileUploadFailReason = FileUploadFailReason.UNKNOWN
-
-    def __init__(
-        self, file_id: str | None = None, file_name: str | None = None, *args: object
-    ) -> None:
-        if file_name:
-            self.file_id = file_id
-            self.file_name = file_name
-            super().__init__(file_name, *args)
-        else:
-            super().__init__(*args)
-
-
-class FileAlreadyExists(UploadFailed):
-    reason = FileUploadFailReason.ALREADY_EXISTS
-
-
-class FileEmbeddingFailed(UploadFailed):
-    reason = FileUploadFailReason.EMBEDDING_FAILED
+class RemoteFileUploadData(BaseModel):
+    url: str
+    form_data: dict
+    file_id: str
+    file_ref: str
 
 
 class BaseFileManager:
@@ -96,7 +82,7 @@ class BaseFileManager:
             await get_storage().update_file_embedding_status(
                 file.file_id, embedding_status=EmbeddingStatus.FAILURE
             )
-            raise FileEmbeddingFailed(file_id=file.file_id, file_name=file.file_ref)
+            raise e
         else:
             await get_storage().update_file_embedding_status(
                 file.file_id, embedding_status=EmbeddingStatus.SUCCESS
@@ -124,7 +110,7 @@ class BaseFileManager:
                 logger.info(f"Creating embeddings for {file.file_ref}")
                 try:
                     await self.create_embeddings(file, model)
-                except FileEmbeddingFailed:
+                except Exception:
                     pass
             else:
                 logger.info(
@@ -137,11 +123,95 @@ class BaseFileManager:
         file_extension = os.path.splitext(file.filename)[1].lower()
         return file_extension not in NON_EMBEDDABLE_EXTENSIONS
 
-    async def _validate_file_uniqueness(
-        self, file: UploadFile, owner: Union[Agent, Thread]
-    ) -> None:
-        if await get_storage().get_file(owner, file.filename):
-            raise FileAlreadyExists(file_name=file.filename)
+    def _validate_files_pre_upload(self, files: list[UploadFileRequest]) -> None:
+        # https://stackoverflow.com/questions/1976007/what-characters-are-forbidden-in-windows-and-linux-directory-names/31976060#31976060
+        FORBIDDEN_UNIX_CHARACTERS = {"/"}
+        FORBIDDEN_WINDOWS_CHARACTERS = {"<", ">", ":", '"', "/", "\\", "|", "?", "*"}
+        RESERVED_UNIX_FILE_NAMES = {".", ".."}
+        RESERVED_WINDOWS_FILE_NAMES = {
+            "CON",
+            "PRN",
+            "AUX",
+            "NUL",
+            "COM1",
+            "COM2",
+            "COM3",
+            "COM4",
+            "COM5",
+            "COM6",
+            "COM7",
+            "COM8",
+            "COM9",
+            "LPT1",
+            "LPT2",
+            "LPT3",
+            "LPT4",
+            "LPT5",
+            "LPT6",
+            "LPT7",
+            "LPT8",
+            "LPT9",
+        }
+
+        file_names = [f.file.filename for f in files]
+        if len(file_names) != len(set(file_names)):
+            raise InvalidFileUploadError("File names must be unique")
+
+        for f in files:
+            filename = f.file.filename
+            file_base, _ = os.path.splitext(filename)
+            if (
+                filename == ""
+                or filename in RESERVED_WINDOWS_FILE_NAMES
+                or file_base in RESERVED_WINDOWS_FILE_NAMES
+                or filename in RESERVED_UNIX_FILE_NAMES
+            ):
+                raise InvalidFileUploadError(f"Invalid file name: {filename}")
+
+            forbidden_chars = FORBIDDEN_UNIX_CHARACTERS | FORBIDDEN_WINDOWS_CHARACTERS
+            if any(char in filename for char in forbidden_chars):
+                raise InvalidFileUploadError(f"Invalid file name: {filename}")
+
+    async def generate_unique_file_ref(
+        self, owner: Union[Agent, Thread], file_name: str
+    ) -> str:
+        # TODO 2 concurrent requests to generate the unique file ref for the same
+        # owner could end up generating the same id for both.
+        files = []
+        if isinstance(owner, Agent):
+            files = await get_storage().get_agent_files(owner.id)
+        elif isinstance(owner, Thread):
+            files = await get_storage().get_thread_files(owner.thread_id)
+
+        existing_refs = {file.file_ref for file in files}
+        if file_name not in existing_refs:
+            return file_name
+
+        file_base, file_ext = os.path.splitext(file_name)
+        # Example file_ref: "data (1).csv", "data (2).csv", ...
+        pattern = re.compile(
+            rf"^{re.escape(file_base)} \((\d+)\){re.escape(file_ext)}$"
+        )
+
+        max_index = 0
+        for file_ref in existing_refs:
+            match = pattern.match(file_ref)
+            if match:
+                index = int(match.group(1))
+                max_index = max(max_index, index)
+
+        new_file_ref = f"{file_base} ({max_index + 1}){file_ext}"
+        return new_file_ref
+
+    async def request_remote_file_upload(
+        self, thread: Thread, file_name: str
+    ) -> RemoteFileUploadData:
+        raise NotImplementedError()
+
+    async def confirm_remote_file_upload(
+        self, thread: Thread, file_ref: str, file_id: str
+    ) -> UploadedFile:
+        raise NotImplementedError()
 
 
 def get_hash(file_data: bytes) -> str:

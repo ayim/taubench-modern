@@ -1,8 +1,9 @@
+from pathlib import Path
 from typing import Annotated, Any, Dict, List, Sequence, Union
 from uuid import uuid4
 
 import structlog
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Path, UploadFile
+from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile
 from langchain.schema.messages import AnyMessage
 from langchain_core.messages import AIMessage
 from opentelemetry import metrics
@@ -10,6 +11,7 @@ from pydantic import BaseModel, Field
 
 from sema4ai_agent_server.api.files import _add_uploaded_messages
 from sema4ai_agent_server.auth.handlers import AuthedUser
+from sema4ai_agent_server.file_manager.base import RemoteFileUploadData
 from sema4ai_agent_server.file_manager.option import get_file_manager
 from sema4ai_agent_server.otel import otel_is_enabled
 from sema4ai_agent_server.responses import PydanticResponse, TypeAdapterResponse
@@ -57,6 +59,50 @@ class ThreadStatePostRequest(BaseModel):
     """Payload for adding state to a thread."""
 
     values: Union[Sequence[AnyMessage], Dict[str, Any]]
+
+
+class RequestRemoteFileUploadPayload(BaseModel):
+    file_name: str
+
+
+class ConfirmRemoteFileUploadPayload(BaseModel):
+    file_ref: str
+    file_id: str
+
+
+class FileByRefResponse(BaseModel):
+    # In Studio: file:///home/my-file.pdf. in ACE: https://pre-signed-get-url.com
+    file_url: str
+
+    @classmethod
+    def from_file(cls, file: UploadedFile) -> "FileByRefResponse":
+        if file.file_path.startswith(("http", "https")):
+            file_url = file.file_path
+        else:
+            file_url = Path(file.file_path).as_uri()
+        return cls(file_url=file_url)
+
+
+class RequestRemoteFileUploadPayload(BaseModel):
+    file_name: str
+
+
+class ConfirmRemoteFileUploadPayload(BaseModel):
+    file_ref: str
+    file_id: str
+
+
+class FileByRefResponse(BaseModel):
+    # In Studio: file:///home/my-file.pdf. in ACE: https://pre-signed-get-url.com
+    file_url: str
+
+    @classmethod
+    def from_file(cls, file: UploadedFile) -> "FileByRefResponse":
+        if file.file_path.startswith(("http", "https")):
+            file_url = file.file_path
+        else:
+            file_url = Path(file.file_path).as_uri()
+        return cls(file_url=file_url)
 
 
 @router.get("/", response_model=List[Thread], response_class=TypeAdapterResponse)
@@ -200,6 +246,46 @@ async def delete_thread(
     return {"status": "ok"}
 
 
+@router.get("/{tid}/file-by-ref")
+async def get_file_by_ref(
+    user: AuthedUser,
+    tid: ThreadID,
+    file_ref: str,
+) -> FileByRefResponse:
+    thread = await get_storage().get_thread(user.user_id, tid)
+    if thread is None:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    file = await get_storage().get_file(thread, file_ref)
+    if file is None:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    files = await get_file_manager().refresh_file_paths([file])
+    return FileByRefResponse.from_file(files[0])
+
+
+@router.get(
+    "/{tid}/file-by-ref",
+    response_model=FileByRefResponse,
+    response_class=PydanticResponse,
+)
+async def get_file_by_ref(
+    user: AuthedUser,
+    tid: ThreadID,
+    file_ref: str,
+):
+    thread = await get_storage().get_thread(user.user_id, tid)
+    if thread is None:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    file = await get_storage().get_file(thread, file_ref)
+    if file is None:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    files = await get_file_manager().refresh_file_paths([file])
+    return PydanticResponse(FileByRefResponse.from_file(files[0]))
+
+
 @router.get(
     "/{tid}/files",
     response_model=List[UploadedFile],
@@ -239,13 +325,9 @@ async def upload_thread_files(
         raise HTTPException(status_code=404, detail="Agent not found")
 
     file_manager = get_file_manager()
-    try:
-        stored_files = await file_manager.upload(
-            [UploadFileRequest(file=f) for f in files], thread
-        )
-    except Exception as e:
-        logger.exception("Failed to store a file", exception=e)
-        raise HTTPException(status_code=500, detail=f"Failed to store a file: {str(e)}")
+    stored_files = await file_manager.upload(
+        [UploadFileRequest(file=f) for f in files], thread
+    )
 
     await _add_uploaded_messages(stored_files, tid, user)
 
@@ -253,3 +335,33 @@ async def upload_thread_files(
         file_manager.create_missing_embeddings, agent.model, thread
     )
     return TypeAdapterResponse(stored_files, adapter=UPLOADED_FILE_LIST_ADAPTER)
+
+
+@router.post("/{tid}/files/request-upload")
+async def request_remote_file_upload(
+    payload: RequestRemoteFileUploadPayload, user: AuthedUser, tid: ThreadID
+) -> RemoteFileUploadData:
+    thread = await get_storage().get_thread(user.user_id, tid)
+    if not thread:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    response = await get_file_manager().request_remote_file_upload(
+        thread=thread, file_name=payload.file_name
+    )
+    return response
+
+
+@router.post("/{tid}/files/confirm-upload")
+async def confirm_remote_file_upload(
+    payload: ConfirmRemoteFileUploadPayload, user: AuthedUser, tid: ThreadID
+) -> UploadedFile:
+    thread = await get_storage().get_thread(user.user_id, tid)
+    if not thread:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    file = await get_file_manager().confirm_remote_file_upload(
+        thread=thread, file_ref=payload.file_ref, file_id=payload.file_id
+    )
+    files = await get_file_manager().refresh_file_paths([file])
+    await _add_uploaded_messages(files, tid, user)
+    return files[0]

@@ -30,6 +30,7 @@ from sema4ai_agent_server.schema import (
 from sema4ai_agent_server.storage import (
     BaseStorage,
     UniqueAgentNameError,
+    UniqueFileRefError,
 )
 from sema4ai_agent_server.storage.postgres_conn import PostgresConnectionManager
 from sema4ai_agent_server.storage.utils import model_dump_for_postgres
@@ -38,6 +39,8 @@ logger = structlog.get_logger()
 
 
 UNIQUE_AGENT_NAME_CONSTRAINT_NAME = "idx_unique_agent_name"
+UNIQUE_FILE_REF_AGENT_CONSTRAINT_NAME = "unique_file_ref_agent"
+UNIQUE_FILE_REF_THREAD_CONSTRAINT_NAME = "unique_file_ref_thread"
 
 
 class PostgresStorage(BaseStorage, PostgresConnectionManager):
@@ -161,27 +164,35 @@ class PostgresStorage(BaseStorage, PostgresConnectionManager):
             thread_id=thread_id,
         )
         async with self.async_cursor() as cur:
-            await cur.execute(
-                """
-                INSERT INTO file_owners (
-                    file_id, file_path, file_ref, file_hash, embedded, embedding_status, agent_id,
-                    thread_id, file_path_expiration
-                ) VALUES (
-                    %(file_id)s, %(file_path)s, %(file_ref)s, %(file_hash)s, %(embedded)s,
-                    %(embedding_status)s, %(agent_id)s, %(thread_id)s, %(file_path_expiration)s
-                ) ON CONFLICT(file_id)
-                DO UPDATE SET 
-                    file_id = EXCLUDED.file_id,
-                    file_path = EXCLUDED.file_path,
-                    file_hash = EXCLUDED.file_hash,
-                    embedded = EXCLUDED.embedded,
-                    embedding_status = EXCLUDED.embedding_status,
-                    agent_id = EXCLUDED.agent_id,
-                    thread_id = EXCLUDED.thread_id,
-                    file_path_expiration = EXCLUDED.file_path_expiration
-                """,
-                model_dump_for_postgres(new_file, context=RAW_CONTEXT),
-            )
+            try:
+                await cur.execute(
+                    """
+                    INSERT INTO file_owners (
+                        file_id, file_path, file_ref, file_hash, embedded, embedding_status, agent_id,
+                        thread_id, file_path_expiration
+                    ) VALUES (
+                        %(file_id)s, %(file_path)s, %(file_ref)s, %(file_hash)s, %(embedded)s,
+                        %(embedding_status)s, %(agent_id)s, %(thread_id)s, %(file_path_expiration)s
+                    ) ON CONFLICT(file_id)
+                    DO UPDATE SET 
+                        file_id = EXCLUDED.file_id,
+                        file_path = EXCLUDED.file_path,
+                        file_hash = EXCLUDED.file_hash,
+                        embedded = EXCLUDED.embedded,
+                        embedding_status = EXCLUDED.embedding_status,
+                        agent_id = EXCLUDED.agent_id,
+                        thread_id = EXCLUDED.thread_id,
+                        file_path_expiration = EXCLUDED.file_path_expiration
+                    """,
+                    model_dump_for_postgres(new_file, context=RAW_CONTEXT),
+                )
+            except UniqueViolation as e:
+                if UNIQUE_FILE_REF_AGENT_CONSTRAINT_NAME in str(
+                    e
+                ) or UNIQUE_FILE_REF_THREAD_CONSTRAINT_NAME in str(e):
+                    raise UniqueFileRefError(file_ref)
+                raise e
+
             return new_file
 
     async def delete_file(self, file_id: str) -> None:
@@ -337,7 +348,7 @@ class PostgresStorage(BaseStorage, PostgresConnectionManager):
                 )
             except UniqueViolation as e:
                 if UNIQUE_AGENT_NAME_CONSTRAINT_NAME in str(e):
-                    raise UniqueAgentNameError()
+                    raise UniqueAgentNameError(name)
                 raise e
         return new_agent
 

@@ -548,23 +548,9 @@ async def upload_agent_files(
         raise HTTPException(status_code=404, detail="Agent not found")
 
     file_manager = get_file_manager()
-    errors = []
-    for f in files:
-        try:
-            stored_files = await file_manager.upload([UploadFileRequest(file=f)], agent)
-        except FileAlreadyExists as e:
-            logger.exception(
-                f"Failed to store file, already exists: {str(e.file_name)}"
-            )
-            errors.append(f"File already exists: {str(e.file_name)}")
-        except UploadFailed as e:
-            logger.exception("Failed to store a file", exception=e)
-            errors.append(
-                f"Failed to store a file: {str(e.file_id) or str(e.file_name) or 'unknown'}"
-            )
-    if errors:
-        # TODO: This should likely be improved to help the user understand the errors better.
-        raise HTTPException(status_code=400, detail=errors)
+    stored_files = await file_manager.upload(
+        [UploadFileRequest(file=f) for f in files], agent
+    )
 
     background_tasks.add_task(
         file_manager.create_missing_embeddings, agent.model, agent
