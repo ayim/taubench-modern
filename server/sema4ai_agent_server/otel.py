@@ -4,9 +4,11 @@ from typing import Optional
 import structlog
 from opentelemetry import metrics
 from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
+from opentelemetry.instrumentation.langchain import LangchainInstrumentor
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.resources import Resource
+from traceloop.sdk import Traceloop
 
 logger = structlog.get_logger(__name__)
 
@@ -29,6 +31,12 @@ def setup_otel() -> None:
     logger.info("Setting up OTEL")
 
     otel_collector_url = get_otel_collector_url()
+
+    # OpenLLMetry setup
+    os.environ["TRACELOOP_BASE_URL"] = otel_collector_url
+    Traceloop.init()
+    LangchainInstrumentor().instrument()
+
     resource = Resource(
         attributes={"service.name": "agent-server", "service.version": VERSION}
     )
@@ -38,5 +46,4 @@ def setup_otel() -> None:
     )
     meter_provider = MeterProvider(resource=resource, metric_readers=[reader])
     metrics.set_meter_provider(meter_provider)
-
     logger.info("OTEL setup complete")

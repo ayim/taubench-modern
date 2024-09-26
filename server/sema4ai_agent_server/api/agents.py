@@ -570,3 +570,34 @@ async def upload_agent_files(
         file_manager.create_missing_embeddings, agent.model, agent
     )
     return TypeAdapterResponse(stored_files, adapter=UPLOADED_FILE_LIST_ADAPTER)
+
+
+@router.put("/{aid}/action-server-config")
+async def update_action_server_config(
+    user: AuthedUser,
+    aid: AgentID,
+    payload: AgentPayloadPackageActionServer,
+) -> dict:
+    agent = await get_storage().get_agent(user.user_id, aid)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    for action_package in agent.action_packages:
+        action_package.url = payload.url
+        action_package.api_key = payload.api_key
+
+    await get_storage().put_agent(
+        user_id=agent.user_id,
+        agent_id=agent.id,
+        public=agent.public,
+        name=agent.name,
+        description=agent.description,
+        runbook=agent.runbook.get_secret_value(),
+        version=agent.version,
+        model=agent.model,
+        architecture=agent.architecture,
+        reasoning=agent.reasoning,
+        action_packages=agent.action_packages,
+        metadata=agent.metadata,
+    )
+    return {"status": "ok"}
