@@ -1,4 +1,5 @@
 """Test the server and client together."""
+
 from typing import Optional, Sequence
 from unittest import skip
 from uuid import uuid4

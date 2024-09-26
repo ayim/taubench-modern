@@ -1,4 +1,5 @@
 """Test embed utilities."""
+
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Type
 
 from langchain.schema import Document
