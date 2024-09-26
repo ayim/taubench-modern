@@ -243,8 +243,7 @@ class PostgresStorage(BaseStorage, PostgresConnectionManager):
 
                     # Set dirty flag
                     await cur.execute(
-                        "UPDATE migrations SET version = %s, dirty = TRUE",
-                        version,
+                        "UPDATE migrations SET version = %s, dirty = TRUE", (version,)
                     )
                     # Try to apply the migration
                     with open(os.path.join(migrations_path, migration), "r") as f:
