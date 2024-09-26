@@ -33,7 +33,11 @@ from sema4ai_agent_server.schema import (
     OpenAIGPT,
     dummy_model,
 )
-from sema4ai_agent_server.storage.vectorstore import ChromaVector, PostgresVector
+from sema4ai_agent_server.storage.vectorstore import (
+    ChromaVector,
+    PostgresVector,
+    VectorStoreBase,
+)
 
 
 def _update_document_metadata(document: Document, owner_id: str, file_id: str) -> None:
@@ -157,7 +161,7 @@ def get_embedding_function(
 
 
 def _get_pg_vector(model: Optional[MODEL]) -> PostgresVector:
-    pg_connection_string = PostgresVector.connection_string_from_db_params(
+    connection_string = PostgresVector.connection_string_from_db_params(
         driver="psycopg",
         host=os.environ["POSTGRES_HOST"],
         port=int(os.environ["POSTGRES_PORT"]),
@@ -167,7 +171,7 @@ def _get_pg_vector(model: Optional[MODEL]) -> PostgresVector:
     )
     return PostgresVector(
         embeddings=get_embedding_function(model) if model else None,
-        connection=pg_connection_string,
+        connection_string=connection_string,
         use_jsonb=True,
         async_mode=True,
     )
@@ -181,7 +185,7 @@ def _get_chroma_vector(model: Optional[MODEL]) -> ChromaVector:
     )
 
 
-def get_vector_store(model: Optional[MODEL] = None) -> VectorStore:
+def get_vector_store(model: Optional[MODEL] = None) -> VectorStoreBase:
     db_type = os.environ.get("S4_AGENT_SERVER_DB_TYPE", "sqlite")
     if db_type == "postgres":
         return _get_pg_vector(model)

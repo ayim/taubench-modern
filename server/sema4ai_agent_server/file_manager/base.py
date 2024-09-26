@@ -56,9 +56,8 @@ class BaseFileManager:
     async def read_file_contents(self, file_id: str) -> bytes:
         raise NotImplementedError()
 
-    async def _delete_embeddings(self, file_ids: list[str]) -> None:
-        # TODO: Update to use adelete_by_file_id once implemented
-        await get_vector_store().adelete(file_ids)
+    async def _delete_embeddings(self, file_id: str) -> None:
+        await get_vector_store().adelete_by_file_id(file_id)
 
     async def create_embeddings(self, file: UploadedFile, model: MODEL) -> None:
         owner_id = file.agent_id if file.agent_id else file.thread_id
