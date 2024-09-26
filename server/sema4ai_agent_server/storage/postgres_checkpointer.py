@@ -399,7 +399,7 @@ class PostgresSaver(BaseCheckpointSaver, PostgresConnectionManager):
         # TODO: Check that postgres will support two cursors at the same time and check if the async cursor is working
         async with self.async_cursor() as cur, self.get_async_connection() as wconn:
             async with wconn.cursor() as wcur:
-                cur.execute(query, param_values)
+                await cur.execute(query, param_values)
                 async for (
                     thread_id,
                     checkpoint_ns,
@@ -408,7 +408,7 @@ class PostgresSaver(BaseCheckpointSaver, PostgresConnectionManager):
                     checkpoint,
                     metadata,
                 ) in cur:
-                    wcur.execute(
+                    await wcur.execute(
                         self.SELECT_WRITES_SQL,
                         {
                             "thread_id": thread_id,
@@ -579,7 +579,7 @@ class PostgresSaver(BaseCheckpointSaver, PostgresConnectionManager):
                         }
                     }
                 # find any pending writes
-                cur.execute(
+                await cur.execute(
                     self.SELECT_WRITES_SQL,
                     {
                         "thread_id": thread_id,
