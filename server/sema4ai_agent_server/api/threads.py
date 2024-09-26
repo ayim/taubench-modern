@@ -83,28 +83,6 @@ class FileByRefResponse(BaseModel):
         return cls(file_url=file_url)
 
 
-class RequestRemoteFileUploadPayload(BaseModel):
-    file_name: str
-
-
-class ConfirmRemoteFileUploadPayload(BaseModel):
-    file_ref: str
-    file_id: str
-
-
-class FileByRefResponse(BaseModel):
-    # In Studio: file:///home/my-file.pdf. in ACE: https://pre-signed-get-url.com
-    file_url: str
-
-    @classmethod
-    def from_file(cls, file: UploadedFile) -> "FileByRefResponse":
-        if file.file_path.startswith(("http", "https")):
-            file_url = file.file_path
-        else:
-            file_url = Path(file.file_path).as_uri()
-        return cls(file_url=file_url)
-
-
 @router.get("/", response_model=List[Thread], response_class=TypeAdapterResponse)
 async def list_threads(user: AuthedUser):
     """List all threads for the current user."""
@@ -246,24 +224,6 @@ async def delete_thread(
     return {"status": "ok"}
 
 
-@router.get("/{tid}/file-by-ref")
-async def get_file_by_ref(
-    user: AuthedUser,
-    tid: ThreadID,
-    file_ref: str,
-) -> FileByRefResponse:
-    thread = await get_storage().get_thread(user.user_id, tid)
-    if thread is None:
-        raise HTTPException(status_code=404, detail="Thread not found")
-
-    file = await get_storage().get_file(thread, file_ref)
-    if file is None:
-        raise HTTPException(status_code=404, detail="File not found")
-
-    files = await get_file_manager().refresh_file_paths([file])
-    return FileByRefResponse.from_file(files[0])
-
-
 @router.get(
     "/{tid}/file-by-ref",
     response_model=FileByRefResponse,
@@ -337,10 +297,14 @@ async def upload_thread_files(
     return TypeAdapterResponse(stored_files, adapter=UPLOADED_FILE_LIST_ADAPTER)
 
 
-@router.post("/{tid}/files/request-upload")
+@router.post(
+    "/{tid}/files/request-upload",
+    response_model=RemoteFileUploadData,
+    response_class=PydanticResponse,
+)
 async def request_remote_file_upload(
     payload: RequestRemoteFileUploadPayload, user: AuthedUser, tid: ThreadID
-) -> RemoteFileUploadData:
+):
     thread = await get_storage().get_thread(user.user_id, tid)
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
@@ -348,13 +312,17 @@ async def request_remote_file_upload(
     response = await get_file_manager().request_remote_file_upload(
         thread=thread, file_name=payload.file_name
     )
-    return response
+    return PydanticResponse(response)
 
 
-@router.post("/{tid}/files/confirm-upload")
+@router.post(
+    "/{tid}/files/confirm-upload",
+    response_model=UploadedFile,
+    response_class=PydanticResponse,
+)
 async def confirm_remote_file_upload(
     payload: ConfirmRemoteFileUploadPayload, user: AuthedUser, tid: ThreadID
-) -> UploadedFile:
+):
     thread = await get_storage().get_thread(user.user_id, tid)
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
@@ -364,4 +332,4 @@ async def confirm_remote_file_upload(
     )
     files = await get_file_manager().refresh_file_paths([file])
     await _add_uploaded_messages(files, tid, user)
-    return files[0]
+    return PydanticResponse(files[0])

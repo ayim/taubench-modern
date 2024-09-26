@@ -491,7 +491,6 @@ class SqliteStorage(BaseStorage):
         else:
             agent_id = None
             thread_id = owner.thread_id
-        # Attempt to validate first
         new_uploaded_file = UploadedFile(
             file_id=file_id,
             file_path=file_path,

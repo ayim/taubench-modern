@@ -23,8 +23,6 @@ from sema4ai_agent_server.agent_spec import (
 from sema4ai_agent_server.auth.handlers import AuthedUser
 from sema4ai_agent_server.file_manager.base import (
     BaseFileManager,
-    FileAlreadyExists,
-    UploadFailed,
 )
 from sema4ai_agent_server.file_manager.option import get_file_manager
 from sema4ai_agent_server.responses import PydanticResponse, TypeAdapterResponse
