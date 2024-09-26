@@ -37,8 +37,8 @@ async def put_agent_from_spec(
     public: bool,
     agent_name: str,
     model: MODEL,
-    action_server_url: Optional[str],
-    action_server_api_key: Optional[str],
+    action_server_url: str | None,
+    action_server_api_key: str | None,
 ) -> Agent:
     agent = _replace_dashes_with_underscores(spec["agent-package"]["agents"][0])
     action_packages = []
