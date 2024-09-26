@@ -87,10 +87,10 @@ class AgentPayloadPackage(BaseModel):
 
     public: bool = Field(True, description="Whether the agent is public.")
     name: str = Field(..., description="The name of the agent.")
-    agent_package_url: Optional[str] = Field(
+    agent_package_url: str | None = Field(
         None, description="The URL of the agent package."
     )
-    agent_package_base64: Optional[str] = Field(
+    agent_package_base64: str | None = Field(
         None, description="Base64 encoded agent package."
     )
     model: MODEL = Field(..., description="LLM configuration for the agent.")
@@ -112,7 +112,7 @@ class AgentPayloadPackage(BaseModel):
 AgentID = Annotated[str, Path(description="The ID of the agent.")]
 
 
-async def _generate_welcome_message(user_id: str, model: MODEL) -> Optional[str]:
+async def _generate_welcome_message(user_id: str, model: MODEL) -> str | None:
     thread = await get_storage().put_thread(
         user_id, str(uuid4()), agent_id=None, name="", metadata=None
     )
