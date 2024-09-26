@@ -513,9 +513,6 @@ class Agent(AgentPayload):
         description="The ID of the user that owns the agent."
     )
     updated_at: datetime = Field(description="The last time the agent was updated.")
-    metadata: Annotated[AgentMetadata, "db_json"] = Field(
-        ..., description="The agent metadata."
-    )
 
 
 AGENT_LIST_ADAPTER = TypeAdapter(List[Agent])
