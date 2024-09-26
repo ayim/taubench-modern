@@ -4,10 +4,16 @@ from uuid import uuid4
 
 import structlog
 from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile
-from langchain.schema.messages import AnyMessage
-from langchain_core.messages import AIMessage
+from langchain_core.messages import (
+    AIMessage,
+    ChatMessage,
+    FunctionMessage,
+    HumanMessage,
+    SystemMessage,
+    ToolMessage,
+)
 from opentelemetry import metrics
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Discriminator, Field, Tag
 
 from sema4ai_agent_server.api.files import _add_uploaded_messages
 from sema4ai_agent_server.auth.handlers import AuthedUser
@@ -38,6 +44,34 @@ if otel_is_enabled():
     )
 
 
+# Vendored from langchain_core.utils.messages v0.3 to remove chunks as inputs.
+def _get_type(v: Any) -> str:
+    """Get the type associated with the object for serialization purposes."""
+    if isinstance(v, dict) and "type" in v:
+        return v["type"]
+    elif hasattr(v, "type"):
+        return v.type
+    else:
+        raise TypeError(
+            f"Expected either a dictionary with a 'type' key or an object "
+            f"with a 'type' attribute. Instead got type {type(v)}."
+        )
+
+
+AnyNonChunkMessage = Annotated[
+    Union[
+        Annotated[AIMessage, Tag(tag="ai")],
+        Annotated[HumanMessage, Tag(tag="human")],
+        Annotated[ChatMessage, Tag(tag="chat")],
+        Annotated[SystemMessage, Tag(tag="system")],
+        Annotated[FunctionMessage, Tag(tag="function")],
+        Annotated[ToolMessage, Tag(tag="tool")],
+    ],
+    Field(discriminator=Discriminator(_get_type)),
+]
+# End of vendored code
+
+
 class ThreadPostRequest(BaseModel):
     """Payload for creating a thread."""
 
@@ -58,7 +92,7 @@ class ThreadPutRequest(BaseModel):
 class ThreadStatePostRequest(BaseModel):
     """Payload for adding state to a thread."""
 
-    values: Union[Sequence[AnyMessage], Dict[str, Any]]
+    values: Union[Sequence[AnyNonChunkMessage], Dict[str, Any]]
 
 
 class RequestRemoteFileUploadPayload(BaseModel):

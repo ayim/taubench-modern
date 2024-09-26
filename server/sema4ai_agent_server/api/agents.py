@@ -31,13 +31,11 @@ from sema4ai_agent_server.schema import (
     MODEL,
     RAW_CONTEXT,
     UPLOADED_FILE_LIST_ADAPTER,
-    ActionPackage,
     ActionServerNotConfigured,
     Agent,
     AgentArchitecture,
-    AgentMetadata,
     AgentNotReadyIssues,
-    AgentReasoning,
+    AgentPayload,
     AgentStatus,
     EmbeddingFileFailed,
     EmbeddingFileInProgress,
@@ -52,27 +50,6 @@ from sema4ai_agent_server.storage.option import get_storage
 logger = structlog.get_logger(__name__)
 
 router = APIRouter()
-
-
-class AgentPayload(BaseModel):
-    """Payload for creating an agent."""
-
-    public: bool = Field(False, description="Whether the agent is public.")
-    name: str = Field(..., description="The name of the agent.")
-    description: str = Field(..., description="The description of the agent.")
-    runbook: SecretStr = Field(..., description="The runbook for the agent.")
-    version: str = Field(..., description="The version of the agent.")
-    model: MODEL = Field(..., description="LLM model configuration for the agent.")
-    architecture: AgentArchitecture = Field(
-        description="The cognitive architecture of the agent."
-    )
-    reasoning: AgentReasoning = Field(description="The reasoning setting of the agent.")
-    action_packages: list[ActionPackage] = Field(
-        default=[], description="The action packages for the agent."
-    )
-    metadata: AgentMetadata = Field(
-        ..., description="Additional metadata for the agent."
-    )
 
 
 class AgentPayloadPackageActionServer(BaseModel):

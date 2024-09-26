@@ -452,33 +452,25 @@ class AgentMetadata(BaseModel):
         return self
 
 
-class Agent(BaseModel):
-    """
-    Agent model that always masks sensitive information.
+class AgentPayload(BaseModel):
+    """Payload for creating an agent."""
 
-    SecretStr fields will be masked during serialization unless a serialization
-    context of "raw" is provided when dumping the model (works with either
-    model_dump or model_dump_json).
-    """
-
-    id: StrWithUuidInput = Field(description="The ID of the agent.")
-    user_id: StrWithUuidInput = Field(
-        description="The ID of the user that owns the agent."
+    public: bool = Field(False, description="Whether the agent is public.")
+    name: str = Field(..., description="The name of the agent.")
+    description: str = Field(..., description="The description of the agent.")
+    runbook: SerializableSecretStr = Field(
+        ..., description="The runbook for the agent."
     )
-    public: bool = Field(description="Whether the agent is public.")
-    name: str = Field(description="The name of the agent.")
-    description: str = Field(description="The description of the agent.")
-    runbook: SerializableSecretStr = Field(description="The runbook for the agent.")
-    version: str = Field(description="The version of the agent.")
+    version: str = Field(..., description="The version of the agent.")
     model: Annotated[MODEL, "db_json"] = Field(
-        description="LLM model configuration for the agent."
+        ..., description="LLM model configuration for the agent."
     )
     architecture: AgentArchitecture = Field(
         description="The cognitive architecture of the agent."
     )
     reasoning: AgentReasoning = Field(description="The reasoning setting of the agent.")
     action_packages: Annotated[list[ActionPackage], "db_json"] = Field(
-        description="The action packages for the agent."
+        default_factory=list, description="The action packages for the agent."
     )
     updated_at: datetime = Field(description="The last time the agent was updated.")
     metadata: Annotated[AgentMetadata, "db_json"] = Field(
@@ -504,7 +496,26 @@ class Agent(BaseModel):
     def validate_metadata(cls, v: Any) -> AgentMetadata:
         if isinstance(v, (str, bytes, bytearray)):
             return AgentMetadata.model_validate_json(v)
-        return v
+
+
+class Agent(AgentPayload):
+    """
+    Agent model that masks sensitive information unless serialized with special
+    context.
+
+    SecretStr fields will be masked during serialization unless a serialization
+    context of "raw" is provided when dumping the model (works with either
+    model_dump or model_dump_json).
+    """
+
+    id: StrWithUuidInput = Field(description="The ID of the agent.")
+    user_id: StrWithUuidInput = Field(
+        description="The ID of the user that owns the agent."
+    )
+    updated_at: datetime = Field(description="The last time the agent was updated.")
+    metadata: Annotated[AgentMetadata, "db_json"] = Field(
+        ..., description="The agent metadata."
+    )
 
 
 AGENT_LIST_ADAPTER = TypeAdapter(List[Agent])

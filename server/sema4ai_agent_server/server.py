@@ -32,6 +32,7 @@ app = FastAPI(
     lifespan=lifespan,
     version=VERSION,
     default_response_class=ORJSONResponse,  # Use more efficient JSON serialization
+    separate_input_output_schemas=False,  # TODO: Remove when FrontEnd is ready to handle it
 )
 app.include_router(api_router)
 
