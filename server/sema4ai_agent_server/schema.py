@@ -199,9 +199,9 @@ class AnthropicClaudeConfig(ModelConfig):
     )
 
 
-class AmazonClaudeConfig(ModelConfig):
-    service_name: str = Field(description="The service name.", default=NOT_CONFIGURED)
-    region_name: str = Field(description="The region name.", default=NOT_CONFIGURED)
+class AmazonBedrockConfig(ModelConfig):
+    service_name: Literal["bedrock-runtime"] = "bedrock-runtime"
+    region_name: str = Field(description="The region name.", default="us-east-1")
     aws_access_key_id: SerializableSecretStr = Field(
         description="The AWS access key ID.", default=SecretStr(NOT_CONFIGURED)
     )
@@ -244,13 +244,13 @@ class AnthropicClaude(BaseModel):
     config: AnthropicClaudeConfig = Field(description="Anthropic Claude config.")
 
 
-class AmazonClaude(BaseModel):
+class AmazonBedrock(BaseModel):
     provider: Literal[LLMProvider.AMAZON]
     name: str = Field(
-        description="The name of the model.",
+        description="The name of the model to use.",
         default="anthropic.claude-3-5-sonnet-20240620-v1:0",
     )
-    config: AmazonClaudeConfig = Field(description="Amazon Claude config.")
+    config: AmazonBedrockConfig = Field(description="Amazon Claude config.")
 
 
 class GoogleGemini(BaseModel):
@@ -274,7 +274,10 @@ dummy_model = OpenAIGPT(
 )
 
 # TODO: If we unify models to the same base class, do we need this?
-MODEL = OpenAIGPT | AzureGPT | AnthropicClaude | AmazonClaude | GoogleGemini | Ollama
+MODEL = Annotated[
+    OpenAIGPT | AzureGPT | AnthropicClaude | AmazonBedrock | GoogleGemini | Ollama,
+    Field(discriminator="provider"),
+]
 MODEL_ADAPTER = TypeAdapter(MODEL)
 
 

@@ -2,6 +2,7 @@ from typing import Annotated, List, Optional, cast
 
 from langchain.tools import BaseTool
 from langchain_anthropic import ChatAnthropic
+from langchain_aws import ChatBedrockConverse
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import (
     AIMessage,
@@ -30,7 +31,13 @@ from sema4ai_agent_server.utils import current_timestamp_with_iso_week_local
 
 # Define all possible LLM types
 # TODO: Support Fireworks by changing dependency to langchain_fireworks instead of the cummunity version
-AGENT_TYPES = (AzureChatOpenAI, ChatOpenAI, ChatAnthropic, ChatVertexAI)
+AGENT_TYPES = (
+    AzureChatOpenAI,
+    ChatOpenAI,
+    ChatAnthropic,
+    ChatVertexAI,
+    ChatBedrockConverse,
+)
 
 BASE_PROMPT_MESSAGES = [
     (
@@ -112,6 +119,10 @@ def get_tools_agent_executor(
             else:
                 msgs.append(m)
 
+        if isinstance(llm, (ChatBedrockConverse)):
+            # check if the first message is human, as that is required by bedrock
+            if not isinstance(msgs[0], HumanMessage):
+                msgs = [HumanMessage(content="Hi")] + msgs
         return msgs
 
     def format_knowledge_files(files):

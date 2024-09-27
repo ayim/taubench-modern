@@ -4,7 +4,7 @@ import boto3
 import structlog
 import tiktoken
 from langchain_anthropic import ChatAnthropic
-from langchain_community.chat_models import BedrockChat
+from langchain_aws import ChatBedrockConverse
 from langchain_community.chat_models.ollama import ChatOllama
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import BaseMessage
@@ -111,7 +111,7 @@ def get_chat_model(model: MODEL) -> Optional[BaseChatModel]:
                 aws_access_key_id=model.config.aws_access_key_id.get_secret_value(),
                 aws_secret_access_key=model.config.aws_secret_access_key.get_secret_value(),
             )
-            return BedrockChat(model_id=model.name, client=client)
+            return ChatBedrockConverse(model=model.name, client=client)
         case LLMProvider.GOOGLE:
             return ChatVertexAI(
                 model_name=model.name,

@@ -13,6 +13,7 @@ from typing import Any, Callable, Literal, Sequence, Type, TypeVar
 from deprecated import deprecated
 from langchain_anthropic import ChatAnthropic
 from langchain_anthropic.output_parsers import ToolsOutputParser
+from langchain_aws import ChatBedrockConverse
 from langchain_core.language_models.base import LanguageModelInput
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import BaseMessage
@@ -203,6 +204,10 @@ def bind_tools(
     elif isinstance(llm, ChatAnthropic):
         return llm.bind_tools(tools, tool_choice=tool_choice, **kwargs)
     elif isinstance(llm, ChatVertexAI):
+        return llm.bind_tools(tools, tool_choice=tool_choice, **kwargs)
+    elif isinstance(llm, ChatBedrockConverse):
+        if isinstance(tool_choice, str) and tool_choice.lower() == "none":
+            tool_choice = None
         return llm.bind_tools(tools, tool_choice=tool_choice, **kwargs)
     else:
         raise TypeError(f"Unsupported agent type: {type(llm)}")

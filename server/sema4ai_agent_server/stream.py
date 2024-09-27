@@ -4,6 +4,7 @@ from typing import (
     Dict,
     Optional,
     Sequence,
+    TypeVar,
     Union,
 )
 
@@ -33,6 +34,18 @@ from sema4ai_agent_server.structured_response_streamer import (
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
 MessagesStream = AsyncIterator[Union[list[AnyMessage], str]]
+T = TypeVar("T", bound=BaseMessage)
+
+
+def _flatten_content_text(msg: T) -> T:
+    if isinstance(msg.content, list):
+        # Note that Anthropic's API docs make me believe there should only ever be
+        # one text component in the content list, but I'm not sure if that's true.
+        all_text = [
+            c.get("text", "") for c in msg.content if c.get("type", "") == "text"
+        ]
+        msg.content = "".join(all_text)
+    return msg
 
 
 async def invoke_state(
@@ -157,11 +170,21 @@ async def astream_state(
                     logger.debug(
                         f"astream_state:on_chat_model_stream:final metadata: {message.response_metadata}"
                     )
-                messages[message.id] = message
+                # Regarding Anthropic, at this point we can either strip the "text" component from
+                # the content list on the message or we can leave it and tell the Frontend to
+                # handle it. The below implements the former, but that might not be the best choice.
+                messages[message.id] = _flatten_content_text(message)
             else:
-                messages[message.id] += message
+                messages[message.id] += _flatten_content_text(message)
                 # TODO: Check if this works for other LLMs besides OpenAI.
-                if message.response_metadata.get("finish_reason") == "tool_calls":
+                if (
+                    # OpenAI
+                    messages[message.id].response_metadata.get("finish_reason")
+                    == "tool_calls"
+                    # Anthropic
+                    or messages[message.id].response_metadata.get("stopReason")
+                    == "tool_use"
+                ):
                     tool_calls = messages[message.id].tool_calls
                 else:
                     tool_calls = []
@@ -169,6 +192,9 @@ async def astream_state(
         elif event["event"] == "on_tool_start":
             # Explicitly send tool start events to the front end
             logger.debug(f"astream_state:on_tool_start:event: {event}")
+
+            if not tool_calls:
+                messages[-1]
 
             for tool_call in tool_calls:
                 if tool_call["name"] == event["name"] and all(
