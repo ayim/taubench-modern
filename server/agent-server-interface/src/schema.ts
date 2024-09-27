@@ -485,6 +485,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/threads/{tid}/context-stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Context Stats */
+        get: operations["context_stats_api_v1_threads__tid__context_stats_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health": {
         parameters: {
             query?: never;
@@ -680,12 +697,6 @@ export interface components {
              * @description The action packages for the agent.
              */
             action_packages?: components["schemas"]["ActionPackage"][];
-            /**
-             * Updated At
-             * Format: date-time
-             * @description The last time the agent was updated.
-             */
-            updated_at: string;
             /** @description The agent metadata. */
             metadata: components["schemas"]["AgentMetadata"];
             /**
@@ -698,6 +709,12 @@ export interface components {
              * @description The ID of the user that owns the agent.
              */
             user_id: string;
+            /**
+             * Updated At
+             * Format: date-time
+             * @description The last time the agent was updated.
+             */
+            updated_at: string;
         };
         /**
          * AgentArchitecture
@@ -777,12 +794,6 @@ export interface components {
              * @description The action packages for the agent.
              */
             action_packages?: components["schemas"]["ActionPackage"][];
-            /**
-             * Updated At
-             * Format: date-time
-             * @description The last time the agent was updated.
-             */
-            updated_at: string;
             /** @description The agent metadata. */
             metadata: components["schemas"]["AgentMetadata"];
         };
@@ -1008,6 +1019,15 @@ export interface components {
             file_ref: string;
             /** File Id */
             file_id: string;
+        };
+        /** ContextStats */
+        ContextStats: {
+            /** Context Window Size */
+            context_window_size: number;
+            /** Tokens Per Message */
+            tokens_per_message: {
+                [key: string]: number;
+            };
         };
         /** EmbeddingFileFailed */
         EmbeddingFileFailed: {
@@ -2657,6 +2677,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UploadedFile"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    context_stats_api_v1_threads__tid__context_stats_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContextStats"];
                 };
             };
             /** @description Validation Error */

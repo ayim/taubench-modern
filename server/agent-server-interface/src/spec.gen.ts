@@ -1358,6 +1358,48 @@
         }
       }
     },
+    "/api/v1/threads/{tid}/context-stats": {
+      "get": {
+        "tags": [
+          "threads"
+        ],
+        "summary": "Context Stats",
+        "operationId": "context_stats_api_v1_threads__tid__context_stats_get",
+        "parameters": [
+          {
+            "name": "tid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Tid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContextStats"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/health": {
       "get": {
         "summary": "Health",
@@ -1653,12 +1695,6 @@
             "title": "Action Packages",
             "description": "The action packages for the agent."
           },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Updated At",
-            "description": "The last time the agent was updated."
-          },
           "metadata": {
             "$ref": "#/components/schemas/AgentMetadata",
             "description": "The agent metadata."
@@ -1672,6 +1708,12 @@
             "type": "string",
             "title": "User Id",
             "description": "The ID of the user that owns the agent."
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At",
+            "description": "The last time the agent was updated."
           }
         },
         "type": "object",
@@ -1683,10 +1725,10 @@
           "model",
           "architecture",
           "reasoning",
-          "updated_at",
           "metadata",
           "id",
-          "user_id"
+          "user_id",
+          "updated_at"
         ],
         "title": "Agent",
         "description": "Agent model that masks sensitive information unless serialized with special\ncontext.\n\nSecretStr fields will be masked during serialization unless a serialization\ncontext of \"raw\" is provided when dumping the model (works with either\nmodel_dump or model_dump_json)."
@@ -1825,12 +1867,6 @@
             "title": "Action Packages",
             "description": "The action packages for the agent."
           },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Updated At",
-            "description": "The last time the agent was updated."
-          },
           "metadata": {
             "$ref": "#/components/schemas/AgentMetadata",
             "description": "The agent metadata."
@@ -1845,7 +1881,6 @@
           "model",
           "architecture",
           "reasoning",
-          "updated_at",
           "metadata"
         ],
         "title": "AgentPayload",
@@ -2251,6 +2286,27 @@
           "file_id"
         ],
         "title": "ConfirmRemoteFileUploadPayload"
+      },
+      "ContextStats": {
+        "properties": {
+          "context_window_size": {
+            "type": "integer",
+            "title": "Context Window Size"
+          },
+          "tokens_per_message": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Tokens Per Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "context_window_size",
+          "tokens_per_message"
+        ],
+        "title": "ContextStats"
       },
       "EmbeddingFileFailed": {
         "properties": {
