@@ -28,7 +28,7 @@ CONTEXT_WINDOW_SIZES = {
 
 
 class ContextStats(BaseModel):
-    context_window_size: Optional[int]
+    context_window_size: int
     tokens_per_message: dict[str, int]
 
 
@@ -43,11 +43,14 @@ def get_context_stats(model: MODEL, thread_state: dict) -> ContextStats:
     )
 
 
-def _get_context_window_size(model: MODEL) -> Optional[int]:
+def _get_context_window_size(model: MODEL) -> int:
+    default_gpt_size = 128000
     if model.provider == LLMProvider.AZURE:
-        # TODO we don't know which model is used
-        return None
-    return CONTEXT_WINDOW_SIZES.get(model.provider, {}).get(model.name)
+        # We don't know which model is used so we return the most common size for GPTs
+        return default_gpt_size
+    return CONTEXT_WINDOW_SIZES.get(model.provider, {}).get(
+        model.name, default_gpt_size
+    )
 
 
 def _token_counter(model: MODEL) -> Callable[[str], int]:
