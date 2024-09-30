@@ -554,7 +554,6 @@ export interface components {
             name?: string | null;
             /**
              * Id
-             * @description Unique identifier for the message.
              * @default
              */
             id: string;
@@ -1078,7 +1077,6 @@ export interface components {
             name?: string | null;
             /**
              * Id
-             * @description Unique identifier for the message.
              * @default
              */
             id: string;
@@ -1136,7 +1134,6 @@ export interface components {
             name?: string | null;
             /**
              * Id
-             * @description Unique identifier for the message.
              * @default
              */
             id: string;
@@ -1288,7 +1285,6 @@ export interface components {
             name?: string | null;
             /**
              * Id
-             * @description Unique identifier for the message.
              * @default
              */
             id: string;
@@ -1419,7 +1415,6 @@ export interface components {
             name?: string | null;
             /**
              * Id
-             * @description Unique identifier for the message.
              * @default
              */
             id: string;
@@ -1548,7 +1543,6 @@ export interface components {
             name?: string | null;
             /**
              * Id
-             * @description Unique identifier for the message.
              * @default
              */
             id: string;

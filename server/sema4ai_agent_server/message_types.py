@@ -127,7 +127,7 @@ class ToolEventMessage(BaseMessage):
 
 
 class BaseMessageWithID(BaseMessage):
-    id: str = Field(default="", description="Unique identifier for the message.")
+    id: str = ""
 
 
 class AIMessage(BaseMessageWithID, LangChainAIMessage): ...

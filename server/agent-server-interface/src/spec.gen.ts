@@ -1490,7 +1490,6 @@
           "id": {
             "type": "string",
             "title": "Id",
-            "description": "Unique identifier for the message.",
             "default": ""
           },
           "example": {
@@ -2473,7 +2472,6 @@
           "id": {
             "type": "string",
             "title": "Id",
-            "description": "Unique identifier for the message.",
             "default": ""
           }
         },
@@ -2595,7 +2593,6 @@
           "id": {
             "type": "string",
             "title": "Id",
-            "description": "Unique identifier for the message.",
             "default": ""
           },
           "example": {
@@ -2909,7 +2906,6 @@
           "id": {
             "type": "string",
             "title": "Id",
-            "description": "Unique identifier for the message.",
             "default": ""
           }
         },
@@ -3163,7 +3159,6 @@
           "id": {
             "type": "string",
             "title": "Id",
-            "description": "Unique identifier for the message.",
             "default": ""
           },
           "tool_call_id": {
@@ -3419,7 +3414,6 @@
           "id": {
             "type": "string",
             "title": "Id",
-            "description": "Unique identifier for the message.",
             "default": ""
           },
           "role": {
