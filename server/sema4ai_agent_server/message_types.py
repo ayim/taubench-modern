@@ -127,6 +127,7 @@ class ToolEventMessage(BaseMessage):
 # Message types with required IDs used for output from Agent Server.
 class RequireIDMixin(BaseModel):
     id: str = ""
+    name: str = ""
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)

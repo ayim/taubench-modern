@@ -1482,15 +1482,9 @@
             "default": "ai"
           },
           "name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name"
+            "type": "string",
+            "title": "Name",
+            "default": ""
           },
           "id": {
             "type": "string",
@@ -1730,6 +1724,7 @@
           "model",
           "architecture",
           "reasoning",
+          "action_packages",
           "metadata",
           "id",
           "user_id",
@@ -1897,6 +1892,7 @@
           "model",
           "architecture",
           "reasoning",
+          "action_packages",
           "metadata"
         ],
         "title": "AgentPayload",
@@ -2470,7 +2466,8 @@
           },
           "name": {
             "type": "string",
-            "title": "Name"
+            "title": "Name",
+            "default": ""
           },
           "id": {
             "type": "string",
@@ -2481,8 +2478,7 @@
         "additionalProperties": true,
         "type": "object",
         "required": [
-          "content",
-          "name"
+          "content"
         ],
         "title": "FunctionMessage",
         "description": "Message for passing the result of executing a tool back to a model.\n\nFunctionMessage are an older version of the ToolMessage schema, and\ndo not contain the tool_call_id field.\n\nThe tool_call_id field is used to associate the tool call request with the\ntool call response. This is useful in situations where a chat model is able\nto request multiple tool calls in parallel."
@@ -2589,15 +2585,9 @@
             "default": "human"
           },
           "name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name"
+            "type": "string",
+            "title": "Name",
+            "default": ""
           },
           "id": {
             "type": "string",
@@ -2907,15 +2897,9 @@
             "default": "system"
           },
           "name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name"
+            "type": "string",
+            "title": "Name",
+            "default": ""
           },
           "id": {
             "type": "string",
@@ -3165,15 +3149,9 @@
             "default": "tool"
           },
           "name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name"
+            "type": "string",
+            "title": "Name",
+            "default": ""
           },
           "id": {
             "type": "string",
@@ -3425,15 +3403,9 @@
             "default": "chat"
           },
           "name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name"
+            "type": "string",
+            "title": "Name",
+            "default": ""
           },
           "id": {
             "type": "string",

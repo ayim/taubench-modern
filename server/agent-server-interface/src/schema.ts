@@ -564,8 +564,11 @@ export interface components {
              * @enum {string}
              */
             type: "ai";
-            /** Name */
-            name?: string | null;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
             /**
              * Id
              * @default
@@ -699,7 +702,7 @@ export interface components {
              * Action Packages
              * @description The action packages for the agent.
              */
-            action_packages?: components["schemas"]["ActionPackage"][];
+            action_packages: components["schemas"]["ActionPackage"][];
             /** @description The agent metadata. */
             metadata: components["schemas"]["AgentMetadata"];
             /**
@@ -796,7 +799,7 @@ export interface components {
              * Action Packages
              * @description The action packages for the agent.
              */
-            action_packages?: components["schemas"]["ActionPackage"][];
+            action_packages: components["schemas"]["ActionPackage"][];
             /** @description The agent metadata. */
             metadata: components["schemas"]["AgentMetadata"];
         };
@@ -1102,7 +1105,10 @@ export interface components {
              * @enum {string}
              */
             type: "function";
-            /** Name */
+            /**
+             * Name
+             * @default
+             */
             name: string;
             /**
              * Id
@@ -1188,8 +1194,11 @@ export interface components {
              * @enum {string}
              */
             type: "human";
-            /** Name */
-            name?: string | null;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
             /**
              * Id
              * @default
@@ -1368,8 +1377,11 @@ export interface components {
              * @enum {string}
              */
             type: "system";
-            /** Name */
-            name?: string | null;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
             /**
              * Id
              * @default
@@ -1543,8 +1555,11 @@ export interface components {
              * @enum {string}
              */
             type: "tool";
-            /** Name */
-            name?: string | null;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
             /**
              * Id
              * @default
@@ -1679,8 +1694,11 @@ export interface components {
              * @enum {string}
              */
             type: "chat";
-            /** Name */
-            name?: string | null;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
             /**
              * Id
              * @default
