@@ -1,4 +1,5 @@
 from typing import (
+    Any,
     AsyncGenerator,
     Literal,
 )
@@ -9,7 +10,11 @@ from langchain_core.messages import (
     AIMessageChunk,
     ToolCall,
 )
-from pydantic import BaseModel, PrivateAttr
+from pydantic import (
+    BaseModel,
+    PrivateAttr,
+    computed_field,
+)
 from typing_extensions import TypedDict
 
 FieldStreamerYieldType = AIMessageChunk | None
@@ -61,20 +66,39 @@ class FieldStreamerContext(BaseModel):
 
     _logger: structlog.stdlib.BoundLogger = PrivateAttr()
 
-    def __init__(self, **data):
-        super().__init__(**data)
+    def model_post_init(self, ctx: Any) -> None:
         self._logger = structlog.get_logger(
             f"{__name__}.FieldStreamer.{self.field_key}"
         )
+        self._logger.debug("Initializing field streamer")
+        if self.field_destination == "reasoning":
+            self.metadata = {
+                "sema4ai_metadata": {
+                    "reasoning": True,
+                    "streamed_from_field": self.field_key,
+                }
+            }
+        elif self.associated_reasoning is not None:
+            self.metadata = {
+                "sema4ai_metadata": {
+                    "associated_reasoning": f"{self.associated_reasoning}_{self.message_id}",
+                    "streamed_from_field": self.field_key,
+                }
+            }
+        else:
+            self.metadata = {
+                "sema4ai_metadata": {
+                    "streamed_from_field": self.field_key,
+                }
+            }
+        self._logger.debug(f"Initialized field streamer for key '{self.field_key}'")
 
-    @property
-    def logger(self) -> structlog.stdlib.BoundLogger:
-        return self._logger
-
+    @computed_field
     @property
     def field_msg_id(self) -> str:
         return f"{self.message_id}_{self.field_key}"
 
+    @computed_field
     @property
     def tool_call_field_value(self) -> str | None:
         if self.tool_call is None:
@@ -88,6 +112,7 @@ class StringFieldStreamerContext(FieldStreamerContext):
     field_type: Literal["string"] = "string"
     previous_length: int = 0
 
+    @computed_field
     @property
     def stringy_field_value(self) -> str:
         return str(self.tool_call_field_value)
@@ -100,44 +125,10 @@ class JsonFieldStreamerContext(FieldStreamerContext):
     full_content: str = ""
     buffered_content: str = ""
 
+    @computed_field
     @property
     def args_chunk(self) -> str:
         return self.ai_message_chunk.tool_call_chunks[0]["args"]
-
-
-def init_field_streamer(ctx: FieldStreamerContext) -> None:
-    """Initializes the field streamer with the given context."""
-    ctx.logger.debug("Initializing field streamer")
-    if ctx.field_destination not in ["message", "reasoning"]:
-        raise ValueError(
-            f"Field destination for key '{ctx.field_key}' must be either 'message' or "
-            f"'reasoning'. Got: {ctx.field_destination}"
-        )
-    if ctx.field_type not in ["string", "json"]:
-        raise ValueError(
-            f"Field type for key '{ctx.field_key}' must be either 'string' or 'json'. Got: {ctx.field_type}"
-        )
-    if ctx.field_destination == "reasoning":
-        ctx.metadata = {
-            "sema4ai_metadata": {
-                "reasoning": True,
-                "streamed_from_field": ctx.field_key,
-            }
-        }
-    elif ctx.associated_reasoning is not None:
-        ctx.metadata = {
-            "sema4ai_metadata": {
-                "associated_reasoning": f"{ctx.associated_reasoning}_{ctx.message_id}",
-                "streamed_from_field": ctx.field_key,
-            }
-        }
-    else:
-        ctx.metadata = {
-            "sema4ai_metadata": {
-                "streamed_from_field": ctx.field_key,
-            }
-        }
-    ctx.logger.debug(f"Initialized field streamer for key '{ctx.field_key}'")
 
 
 def parse_received_values(ctx: FieldStreamerContext) -> None:
@@ -149,7 +140,6 @@ def parse_received_values(ctx: FieldStreamerContext) -> None:
     ctx.tool_call, ctx.ai_message_chunk = ctx.received_values
 
 
-# TODO: consider using a general CASE statement or similar
 def should_wait(ctx: FieldStreamerContext) -> bool:
     """Returns True if the streamer is waiting for more values."""
     if not ctx.tool_call:
@@ -158,7 +148,7 @@ def should_wait(ctx: FieldStreamerContext) -> bool:
     if ctx.ai_message_chunk.response_metadata.get("finish_reason") == "stop":
         ctx.last_sent_type = "stop"
         raise StopStreamerLoop("Finish reason is stop. Generator exhausted.")
-    ctx.logger.debug(f"Tool call field value: '{ctx.tool_call_field_value}'")
+    ctx._logger.debug(f"Tool call field value: '{ctx.tool_call_field_value}'")
     if ctx.tool_call_field_value is None:
         # There is a tool call, but this streamer's field value is not there
         # or the tool call is empty.
@@ -180,7 +170,7 @@ def create_str_metadata_chunk(
     ctx: StringFieldStreamerContext,
 ) -> AIMessageChunk:
     """Creates the initial metadata chunk for a string field."""
-    ctx.logger.debug("Creating initial metadata chunk for string field")
+    ctx._logger.debug("Creating initial metadata chunk for string field")
     ctx.last_sent_type = "metadata"
     return AIMessageChunk(
         content="",
@@ -191,9 +181,9 @@ def create_str_metadata_chunk(
 
 def create_str_content_chunk(ctx: StringFieldStreamerContext) -> AIMessageChunk:
     """Creates the content chunk for a string field."""
-    ctx.logger.debug("Creating content chunk for string field")
+    ctx._logger.debug("Creating content chunk for string field")
     ctx.new_part = ctx.stringy_field_value[ctx.previous_length :]
-    ctx.logger.debug(f"New part: '{ctx.new_part}'")
+    ctx._logger.debug(f"New part: '{ctx.new_part}'")
 
     if ctx.last_sent_type in ["metadata", "content"] and not ctx.new_part:
         raise StopStreamerLoop("No new content to send, generator exhausted.")
@@ -218,10 +208,10 @@ def is_initial_json_chunk(ctx: JsonFieldStreamerContext) -> bool:
 
 def create_json_metadata_chunk(ctx: JsonFieldStreamerContext) -> AIMessageChunk:
     """Creates the initial metadata chunk for a json field."""
-    ctx.logger.debug("Creating initial metadata chunk for json field")
+    ctx._logger.debug("Creating initial metadata chunk for json field")
     # buffer first args chunk
     ctx.buffered_content = ctx.args_chunk
-    ctx.logger.debug(f"Buffered content: '{ctx.buffered_content}'")
+    ctx._logger.debug(f"Buffered content: '{ctx.buffered_content}'")
     ctx.last_sent_type = "metadata"
     return AIMessageChunk(
         content="",
@@ -242,7 +232,7 @@ def is_first_content_json_chunk(ctx: JsonFieldStreamerContext) -> bool:
 def parse_first_new_part(ctx: JsonFieldStreamerContext) -> None:
     """Parses the first new part of a json field by finding the first
     opening bracket and starting the new part from there."""
-    ctx.logger.debug("Parsing first new part of json field")
+    ctx._logger.debug("Parsing first new part of json field")
     if "{" in ctx.new_part and "[" in ctx.new_part:
         opening_brace_index = min(ctx.new_part.find("{"), ctx.new_part.find("["))
     elif "{" in ctx.new_part:
@@ -267,7 +257,7 @@ def parse_new_part(ctx: JsonFieldStreamerContext) -> None:
     for char in ctx.new_part:
         last_message += char
         ctx.full_content += char
-        ctx.logger.debug(f"Attempting to parse content: '{ctx.full_content}'")
+        ctx._logger.debug(f"Attempting to parse content: '{ctx.full_content}'")
         try:
             _ = orjson.loads(ctx.full_content)
         except orjson.JSONDecodeError:
@@ -279,7 +269,7 @@ def parse_new_part(ctx: JsonFieldStreamerContext) -> None:
 
 def create_json_content_chunk(ctx: JsonFieldStreamerContext) -> AIMessageChunk:
     """Creates a content chunk for a json field."""
-    ctx.logger.debug("Creating content chunk for json field")
+    ctx._logger.debug("Creating content chunk for json field")
     is_end = False
     if is_first_content_json_chunk(ctx):
         parse_first_new_part(ctx)
@@ -288,7 +278,7 @@ def create_json_content_chunk(ctx: JsonFieldStreamerContext) -> AIMessageChunk:
             parse_new_part(ctx)
         except StopStreamerLoop:
             is_end = True
-    ctx.logger.debug(f"New part: '{ctx.new_part}'")
+    ctx._logger.debug(f"New part: '{ctx.new_part}'")
 
     if not is_end:
         ctx.last_sent_type = "content"
@@ -307,7 +297,7 @@ def create_json_content_chunk(ctx: JsonFieldStreamerContext) -> AIMessageChunk:
 
 def create_stop_msg(ctx: FieldStreamerContext) -> AIMessageChunk:
     if ctx.last_sent_type not in ["none", "stop"]:
-        ctx.logger.debug("Sending stop message.")
+        ctx._logger.debug("Sending stop message.")
         ctx.last_sent_type = "stop"
         return AIMessageChunk(
             content="",
@@ -315,7 +305,7 @@ def create_stop_msg(ctx: FieldStreamerContext) -> AIMessageChunk:
             id=ctx.field_msg_id,
         )
     else:
-        ctx.logger.debug("No need to send stop message.")
+        ctx._logger.debug("No need to send stop message.")
 
 
 # Main generator function
@@ -345,14 +335,15 @@ async def field_streamer(
             field_destination=field_destination,
             associated_reasoning=associated_reasoning,
         )
-    init_field_streamer(ctx)
 
     ctx.received_values = yield None  # Yield None on successful initialization
 
     # Main event loop
     try:
         while ctx.last_sent_type != "stop":
-            ctx.logger.debug(f"Main loop top, received values: '{ctx.received_values}'")
+            ctx._logger.debug(
+                f"Main loop top, received values: '{ctx.received_values}'"
+            )
             parse_received_values(ctx)
             if should_wait(ctx):
                 ctx.last_sent_type = "none"
@@ -374,13 +365,13 @@ async def field_streamer(
                 else:
                     # Prepend any buffered content
                     ctx.new_part = ctx.buffered_content + ctx.args_chunk
-                    ctx.logger.debug(f"Unparsed chunk: '{ctx.new_part}'")
+                    ctx._logger.debug(f"Unparsed chunk: '{ctx.new_part}'")
                     ctx.buffered_content = ""
                     ctx.received_values = yield create_json_content_chunk(ctx)
                     continue
 
     except StopStreamerLoop as ex:
-        ctx.logger.debug(f"Main loop broken: {ex}")
+        ctx._logger.debug(f"Main loop broken: {ex}")
     finally:
         # Cleanup
         yield create_stop_msg(ctx)
