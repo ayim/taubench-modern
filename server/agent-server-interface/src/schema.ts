@@ -540,16 +540,7 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /**
-         * AIMessage
-         * @description Message from an AI.
-         *
-         *     AIMessage is returned from a chat model as a response to a prompt.
-         *
-         *     This message represents the output of the model and consists of both
-         *     the raw output as returned by the model together standardized fields
-         *     (e.g., tool calls, usage metadata) added by the LangChain framework.
-         */
+        /** AIMessage */
         AIMessage: {
             /** Content */
             content: string | (string | Record<string, never>)[];
@@ -557,17 +548,16 @@ export interface components {
             additional_kwargs?: Record<string, never>;
             /** Response Metadata */
             response_metadata?: Record<string, never>;
-            /**
-             * Type
-             * @default ai
-             * @constant
-             * @enum {string}
-             */
-            type: "ai";
+            /** Type */
+            type: string;
             /** Name */
             name?: string | null;
-            /** Id */
-            id?: string | null;
+            /**
+             * Id
+             * @description Unique identifier for the message.
+             * @default
+             */
+            id: string;
             /**
              * Example
              * @default false
@@ -687,7 +677,7 @@ export interface components {
              * Model
              * @description LLM model configuration for the agent.
              */
-            model: components["schemas"]["OpenAIGPT"] | components["schemas"]["AzureGPT"] | components["schemas"]["AnthropicClaude"] | components["schemas"]["AmazonClaude"] | components["schemas"]["GoogleGemini"] | components["schemas"]["Ollama"];
+            model: components["schemas"]["OpenAIGPT"] | components["schemas"]["AzureGPT"] | components["schemas"]["AnthropicClaude"] | components["schemas"]["AmazonBedrock"] | components["schemas"]["GoogleGemini"] | components["schemas"]["Ollama"];
             /** @description The cognitive architecture of the agent. */
             architecture: components["schemas"]["AgentArchitecture"];
             /** @description The reasoning setting of the agent. */
@@ -784,7 +774,7 @@ export interface components {
              * Model
              * @description LLM model configuration for the agent.
              */
-            model: components["schemas"]["OpenAIGPT"] | components["schemas"]["AzureGPT"] | components["schemas"]["AnthropicClaude"] | components["schemas"]["AmazonClaude"] | components["schemas"]["GoogleGemini"] | components["schemas"]["Ollama"];
+            model: components["schemas"]["OpenAIGPT"] | components["schemas"]["AzureGPT"] | components["schemas"]["AnthropicClaude"] | components["schemas"]["AmazonBedrock"] | components["schemas"]["GoogleGemini"] | components["schemas"]["Ollama"];
             /** @description The cognitive architecture of the agent. */
             architecture: components["schemas"]["AgentArchitecture"];
             /** @description The reasoning setting of the agent. */
@@ -827,7 +817,7 @@ export interface components {
              * Model
              * @description LLM configuration for the agent.
              */
-            model: components["schemas"]["OpenAIGPT"] | components["schemas"]["AzureGPT"] | components["schemas"]["AnthropicClaude"] | components["schemas"]["AmazonClaude"] | components["schemas"]["GoogleGemini"] | components["schemas"]["Ollama"];
+            model: components["schemas"]["OpenAIGPT"] | components["schemas"]["AzureGPT"] | components["schemas"]["AnthropicClaude"] | components["schemas"]["AmazonBedrock"] | components["schemas"]["GoogleGemini"] | components["schemas"]["Ollama"];
             /**
              * Action Servers
              * @description Action Server configurations.
@@ -860,35 +850,35 @@ export interface components {
             /** Issues */
             issues: (components["schemas"]["ModelNotConfigured"] | components["schemas"]["ActionServerNotConfigured"] | components["schemas"]["EmbeddingFilePending"] | components["schemas"]["EmbeddingFileInProgress"] | components["schemas"]["EmbeddingFileFailed"])[];
         };
-        /** AmazonClaude */
-        AmazonClaude: {
+        /** AmazonBedrock */
+        AmazonBedrock: {
             /**
-             * Provider
-             * @constant
+             * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
             provider: "Amazon";
             /**
              * Name
-             * @description The name of the model.
+             * @description The name of the model to use.
              * @default anthropic.claude-3-5-sonnet-20240620-v1:0
              */
             name: string;
             /** @description Amazon Claude config. */
-            config: components["schemas"]["AmazonClaudeConfig"];
+            config: components["schemas"]["AmazonBedrockConfig"];
         };
-        /** AmazonClaudeConfig */
-        AmazonClaudeConfig: {
+        /** AmazonBedrockConfig */
+        AmazonBedrockConfig: {
             /**
              * Service Name
-             * @description The service name.
-             * @default SEMA4AI_FIELD_NOT_CONFIGURED
+             * @default bedrock-runtime
+             * @constant
+             * @enum {string}
              */
-            service_name: string;
+            service_name: "bedrock-runtime";
             /**
              * Region Name
              * @description The region name.
-             * @default SEMA4AI_FIELD_NOT_CONFIGURED
+             * @default us-east-1
              */
             region_name: string;
             /**
@@ -909,8 +899,7 @@ export interface components {
         /** AnthropicClaude */
         AnthropicClaude: {
             /**
-             * Provider
-             * @constant
+             * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
             provider: "Anthropic";
@@ -942,8 +931,7 @@ export interface components {
         /** AzureGPT */
         AzureGPT: {
             /**
-             * Provider
-             * @constant
+             * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
             provider: "Azure";
@@ -1076,17 +1064,7 @@ export interface components {
             /** File Url */
             file_url: string;
         };
-        /**
-         * FunctionMessage
-         * @description Message for passing the result of executing a tool back to a model.
-         *
-         *     FunctionMessage are an older version of the ToolMessage schema, and
-         *     do not contain the tool_call_id field.
-         *
-         *     The tool_call_id field is used to associate the tool call request with the
-         *     tool call response. This is useful in situations where a chat model is able
-         *     to request multiple tool calls in parallel.
-         */
+        /** FunctionMessage */
         FunctionMessage: {
             /** Content */
             content: string | (string | Record<string, never>)[];
@@ -1094,25 +1072,23 @@ export interface components {
             additional_kwargs?: Record<string, never>;
             /** Response Metadata */
             response_metadata?: Record<string, never>;
-            /**
-             * Type
-             * @default function
-             * @constant
-             * @enum {string}
-             */
-            type: "function";
+            /** Type */
+            type: string;
             /** Name */
-            name: string;
-            /** Id */
-            id?: string | null;
+            name?: string | null;
+            /**
+             * Id
+             * @description Unique identifier for the message.
+             * @default
+             */
+            id: string;
         } & {
             [key: string]: unknown;
         };
         /** GoogleGemini */
         GoogleGemini: {
             /**
-             * Provider
-             * @constant
+             * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
             provider: "Google";
@@ -1146,31 +1122,7 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
-        /**
-         * HumanMessage
-         * @description Message from a human.
-         *
-         *     HumanMessages are messages that are passed in from a human to the model.
-         *
-         *     Example:
-         *
-         *         .. code-block:: python
-         *
-         *             from langchain_core.messages import HumanMessage, SystemMessage
-         *
-         *             messages = [
-         *                 SystemMessage(
-         *                     content="You are a helpful assistant! Your name is Bob."
-         *                 ),
-         *                 HumanMessage(
-         *                     content="What is your name?"
-         *                 )
-         *             ]
-         *
-         *             # Instantiate a chat model and invoke it with the messages
-         *             model = ...
-         *             print(model.invoke(messages))
-         */
+        /** HumanMessage */
         HumanMessage: {
             /** Content */
             content: string | (string | Record<string, never>)[];
@@ -1178,17 +1130,16 @@ export interface components {
             additional_kwargs?: Record<string, never>;
             /** Response Metadata */
             response_metadata?: Record<string, never>;
-            /**
-             * Type
-             * @default human
-             * @constant
-             * @enum {string}
-             */
-            type: "human";
+            /** Type */
+            type: string;
             /** Name */
             name?: string | null;
-            /** Id */
-            id?: string | null;
+            /**
+             * Id
+             * @description Unique identifier for the message.
+             * @default
+             */
+            id: string;
             /**
              * Example
              * @default false
@@ -1235,8 +1186,7 @@ export interface components {
         /** Ollama */
         Ollama: {
             /**
-             * Provider
-             * @constant
+             * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
             provider: "Ollama";
@@ -1266,8 +1216,7 @@ export interface components {
         /** OpenAIGPT */
         OpenAIGPT: {
             /**
-             * Provider
-             * @constant
+             * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
             provider: "OpenAI";
@@ -1325,31 +1274,7 @@ export interface components {
             /** File Name */
             file_name: string;
         };
-        /**
-         * SystemMessage
-         * @description Message for priming AI behavior.
-         *
-         *     The system message is usually passed in as the first of a sequence
-         *     of input messages.
-         *
-         *     Example:
-         *
-         *         .. code-block:: python
-         *
-         *             from langchain_core.messages import HumanMessage, SystemMessage
-         *
-         *             messages = [
-         *                 SystemMessage(
-         *                     content="You are a helpful assistant! Your name is Bob."
-         *                 ),
-         *                 HumanMessage(
-         *                     content="What is your name?"
-         *                 )
-         *             ]
-         *
-         *             # Define a chat model and invoke it with the messages
-         *             print(model.invoke(messages))
-         */
+        /** SystemMessage */
         SystemMessage: {
             /** Content */
             content: string | (string | Record<string, never>)[];
@@ -1357,17 +1282,16 @@ export interface components {
             additional_kwargs?: Record<string, never>;
             /** Response Metadata */
             response_metadata?: Record<string, never>;
-            /**
-             * Type
-             * @default system
-             * @constant
-             * @enum {string}
-             */
-            type: "system";
+            /** Type */
+            type: string;
             /** Name */
             name?: string | null;
-            /** Id */
-            id?: string | null;
+            /**
+             * Id
+             * @description Unique identifier for the message.
+             * @default
+             */
+            id: string;
         } & {
             [key: string]: unknown;
         };
@@ -1448,7 +1372,7 @@ export interface components {
          */
         ThreadStatePostRequest: {
             /** Values */
-            values: (components["schemas"]["AIMessage"] | components["schemas"]["HumanMessage"] | components["schemas"]["langchain_core__messages__chat__ChatMessage"] | components["schemas"]["SystemMessage"] | components["schemas"]["FunctionMessage"] | components["schemas"]["ToolMessage"])[] | Record<string, never>;
+            values: (components["schemas"]["AIMessage"] | components["schemas"]["HumanMessage"] | components["schemas"]["sema4ai_agent_server__message_types__ChatMessage"] | components["schemas"]["SystemMessage"] | components["schemas"]["FunctionMessage"] | components["schemas"]["ToolMessage"])[] | Record<string, never>;
         };
         /**
          * ToolCall
@@ -1481,47 +1405,7 @@ export interface components {
              */
             type?: "tool_call";
         };
-        /**
-         * ToolMessage
-         * @description Message for passing the result of executing a tool back to a model.
-         *
-         *     ToolMessages contain the result of a tool invocation. Typically, the result
-         *     is encoded inside the `content` field.
-         *
-         *     Example: A ToolMessage representing a result of 42 from a tool call with id
-         *
-         *         .. code-block:: python
-         *
-         *             from langchain_core.messages import ToolMessage
-         *
-         *             ToolMessage(content='42', tool_call_id='call_Jja7J89XsjrOLA5r!MEOW!SL')
-         *
-         *
-         *     Example: A ToolMessage where only part of the tool output is sent to the model
-         *         and the full output is passed in to artifact.
-         *
-         *         .. versionadded:: 0.2.17
-         *
-         *         .. code-block:: python
-         *
-         *             from langchain_core.messages import ToolMessage
-         *
-         *             tool_output = {
-         *                 "stdout": "From the graph we can see that the correlation between x and y is ...",
-         *                 "stderr": None,
-         *                 "artifacts": {"type": "image", "base64_data": "/9j/4gIcSU..."},
-         *             }
-         *
-         *             ToolMessage(
-         *                 content=tool_output["stdout"],
-         *                 artifact=tool_output,
-         *                 tool_call_id='call_Jja7J89XsjrOLA5r!MEOW!SL',
-         *             )
-         *
-         *     The tool_call_id field is used to associate the tool call request with the
-         *     tool call response. This is useful in situations where a chat model is able
-         *     to request multiple tool calls in parallel.
-         */
+        /** ToolMessage */
         ToolMessage: {
             /** Content */
             content: string | (string | Record<string, never>)[];
@@ -1529,17 +1413,16 @@ export interface components {
             additional_kwargs?: Record<string, never>;
             /** Response Metadata */
             response_metadata?: Record<string, never>;
-            /**
-             * Type
-             * @default tool
-             * @constant
-             * @enum {string}
-             */
-            type: "tool";
+            /** Type */
+            type: string;
             /** Name */
             name?: string | null;
-            /** Id */
-            id?: string | null;
+            /**
+             * Id
+             * @description Unique identifier for the message.
+             * @default
+             */
+            id: string;
             /** Tool Call Id */
             tool_call_id: string;
             /** Artifact */
@@ -1651,28 +1534,24 @@ export interface components {
          * @enum {string}
          */
         WorkerType: "Document Intelligence";
-        /**
-         * ChatMessage
-         * @description Message that can be assigned an arbitrary speaker (i.e. role).
-         */
-        langchain_core__messages__chat__ChatMessage: {
+        /** ChatMessage */
+        sema4ai_agent_server__message_types__ChatMessage: {
             /** Content */
             content: string | (string | Record<string, never>)[];
             /** Additional Kwargs */
             additional_kwargs?: Record<string, never>;
             /** Response Metadata */
             response_metadata?: Record<string, never>;
-            /**
-             * Type
-             * @default chat
-             * @constant
-             * @enum {string}
-             */
-            type: "chat";
+            /** Type */
+            type: string;
             /** Name */
             name?: string | null;
-            /** Id */
-            id?: string | null;
+            /**
+             * Id
+             * @description Unique identifier for the message.
+             * @default
+             */
+            id: string;
             /** Role */
             role: string;
         } & {

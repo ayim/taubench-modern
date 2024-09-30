@@ -6,7 +6,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Sema4.ai Agent Server API",
-    "version": "1.0.0"
+    "version": "1.0.1"
   },
   "paths": {
     "/api/v1/ok": {
@@ -1474,12 +1474,7 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "ai"
-            ],
-            "const": "ai",
-            "title": "Type",
-            "default": "ai"
+            "title": "Type"
           },
           "name": {
             "anyOf": [
@@ -1493,15 +1488,10 @@
             "title": "Name"
           },
           "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Id"
+            "type": "string",
+            "title": "Id",
+            "description": "Unique identifier for the message.",
+            "default": ""
           },
           "example": {
             "type": "boolean",
@@ -1538,10 +1528,10 @@
         "additionalProperties": true,
         "type": "object",
         "required": [
-          "content"
+          "content",
+          "type"
         ],
-        "title": "AIMessage",
-        "description": "Message from an AI.\n\nAIMessage is returned from a chat model as a response to a prompt.\n\nThis message represents the output of the model and consists of both\nthe raw output as returned by the model together standardized fields\n(e.g., tool calls, usage metadata) added by the LangChain framework."
+        "title": "AIMessage"
       },
       "ActionPackage": {
         "properties": {
@@ -1656,7 +1646,7 @@
             "description": "The version of the agent."
           },
           "model": {
-            "anyOf": [
+            "oneOf": [
               {
                 "$ref": "#/components/schemas/OpenAIGPT"
               },
@@ -1667,7 +1657,7 @@
                 "$ref": "#/components/schemas/AnthropicClaude"
               },
               {
-                "$ref": "#/components/schemas/AmazonClaude"
+                "$ref": "#/components/schemas/AmazonBedrock"
               },
               {
                 "$ref": "#/components/schemas/GoogleGemini"
@@ -1677,7 +1667,18 @@
               }
             ],
             "title": "Model",
-            "description": "LLM model configuration for the agent."
+            "description": "LLM model configuration for the agent.",
+            "discriminator": {
+              "propertyName": "provider",
+              "mapping": {
+                "Amazon": "#/components/schemas/AmazonBedrock",
+                "Anthropic": "#/components/schemas/AnthropicClaude",
+                "Azure": "#/components/schemas/AzureGPT",
+                "Google": "#/components/schemas/GoogleGemini",
+                "Ollama": "#/components/schemas/Ollama",
+                "OpenAI": "#/components/schemas/OpenAIGPT"
+              }
+            }
           },
           "architecture": {
             "$ref": "#/components/schemas/AgentArchitecture",
@@ -1828,7 +1829,7 @@
             "description": "The version of the agent."
           },
           "model": {
-            "anyOf": [
+            "oneOf": [
               {
                 "$ref": "#/components/schemas/OpenAIGPT"
               },
@@ -1839,7 +1840,7 @@
                 "$ref": "#/components/schemas/AnthropicClaude"
               },
               {
-                "$ref": "#/components/schemas/AmazonClaude"
+                "$ref": "#/components/schemas/AmazonBedrock"
               },
               {
                 "$ref": "#/components/schemas/GoogleGemini"
@@ -1849,7 +1850,18 @@
               }
             ],
             "title": "Model",
-            "description": "LLM model configuration for the agent."
+            "description": "LLM model configuration for the agent.",
+            "discriminator": {
+              "propertyName": "provider",
+              "mapping": {
+                "Amazon": "#/components/schemas/AmazonBedrock",
+                "Anthropic": "#/components/schemas/AnthropicClaude",
+                "Azure": "#/components/schemas/AzureGPT",
+                "Google": "#/components/schemas/GoogleGemini",
+                "Ollama": "#/components/schemas/Ollama",
+                "OpenAI": "#/components/schemas/OpenAIGPT"
+              }
+            }
           },
           "architecture": {
             "$ref": "#/components/schemas/AgentArchitecture",
@@ -1924,7 +1936,7 @@
             "description": "Base64 encoded agent package."
           },
           "model": {
-            "anyOf": [
+            "oneOf": [
               {
                 "$ref": "#/components/schemas/OpenAIGPT"
               },
@@ -1935,7 +1947,7 @@
                 "$ref": "#/components/schemas/AnthropicClaude"
               },
               {
-                "$ref": "#/components/schemas/AmazonClaude"
+                "$ref": "#/components/schemas/AmazonBedrock"
               },
               {
                 "$ref": "#/components/schemas/GoogleGemini"
@@ -1945,7 +1957,18 @@
               }
             ],
             "title": "Model",
-            "description": "LLM configuration for the agent."
+            "description": "LLM configuration for the agent.",
+            "discriminator": {
+              "propertyName": "provider",
+              "mapping": {
+                "Amazon": "#/components/schemas/AmazonBedrock",
+                "Anthropic": "#/components/schemas/AnthropicClaude",
+                "Azure": "#/components/schemas/AzureGPT",
+                "Google": "#/components/schemas/GoogleGemini",
+                "Ollama": "#/components/schemas/Ollama",
+                "OpenAI": "#/components/schemas/OpenAIGPT"
+              }
+            }
           },
           "action_servers": {
             "items": {
@@ -2032,7 +2055,7 @@
         ],
         "title": "AgentStatus"
       },
-      "AmazonClaude": {
+      "AmazonBedrock": {
         "properties": {
           "provider": {
             "type": "string",
@@ -2045,11 +2068,11 @@
           "name": {
             "type": "string",
             "title": "Name",
-            "description": "The name of the model.",
+            "description": "The name of the model to use.",
             "default": "anthropic.claude-3-5-sonnet-20240620-v1:0"
           },
           "config": {
-            "$ref": "#/components/schemas/AmazonClaudeConfig",
+            "$ref": "#/components/schemas/AmazonBedrockConfig",
             "description": "Amazon Claude config."
           }
         },
@@ -2058,21 +2081,24 @@
           "provider",
           "config"
         ],
-        "title": "AmazonClaude"
+        "title": "AmazonBedrock"
       },
-      "AmazonClaudeConfig": {
+      "AmazonBedrockConfig": {
         "properties": {
           "service_name": {
             "type": "string",
+            "enum": [
+              "bedrock-runtime"
+            ],
+            "const": "bedrock-runtime",
             "title": "Service Name",
-            "description": "The service name.",
-            "default": "SEMA4AI_FIELD_NOT_CONFIGURED"
+            "default": "bedrock-runtime"
           },
           "region_name": {
             "type": "string",
             "title": "Region Name",
             "description": "The region name.",
-            "default": "SEMA4AI_FIELD_NOT_CONFIGURED"
+            "default": "us-east-1"
           },
           "aws_access_key_id": {
             "type": "string",
@@ -2092,7 +2118,7 @@
           }
         },
         "type": "object",
-        "title": "AmazonClaudeConfig"
+        "title": "AmazonBedrockConfig"
       },
       "AnthropicClaude": {
         "properties": {
@@ -2431,18 +2457,9 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "function"
-            ],
-            "const": "function",
-            "title": "Type",
-            "default": "function"
+            "title": "Type"
           },
           "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "id": {
             "anyOf": [
               {
                 "type": "string"
@@ -2451,17 +2468,22 @@
                 "type": "null"
               }
             ],
-            "title": "Id"
+            "title": "Name"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Unique identifier for the message.",
+            "default": ""
           }
         },
         "additionalProperties": true,
         "type": "object",
         "required": [
           "content",
-          "name"
+          "type"
         ],
-        "title": "FunctionMessage",
-        "description": "Message for passing the result of executing a tool back to a model.\n\nFunctionMessage are an older version of the ToolMessage schema, and\ndo not contain the tool_call_id field.\n\nThe tool_call_id field is used to associate the tool call request with the\ntool call response. This is useful in situations where a chat model is able\nto request multiple tool calls in parallel."
+        "title": "FunctionMessage"
       },
       "GoogleGemini": {
         "properties": {
@@ -2557,12 +2579,7 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "human"
-            ],
-            "const": "human",
-            "title": "Type",
-            "default": "human"
+            "title": "Type"
           },
           "name": {
             "anyOf": [
@@ -2576,15 +2593,10 @@
             "title": "Name"
           },
           "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Id"
+            "type": "string",
+            "title": "Id",
+            "description": "Unique identifier for the message.",
+            "default": ""
           },
           "example": {
             "type": "boolean",
@@ -2595,10 +2607,10 @@
         "additionalProperties": true,
         "type": "object",
         "required": [
-          "content"
+          "content",
+          "type"
         ],
-        "title": "HumanMessage",
-        "description": "Message from a human.\n\nHumanMessages are messages that are passed in from a human to the model.\n\nExample:\n\n    .. code-block:: python\n\n        from langchain_core.messages import HumanMessage, SystemMessage\n\n        messages = [\n            SystemMessage(\n                content=\"You are a helpful assistant! Your name is Bob.\"\n            ),\n            HumanMessage(\n                content=\"What is your name?\"\n            )\n        ]\n\n        # Instantiate a chat model and invoke it with the messages\n        model = ...\n        print(model.invoke(messages))"
+        "title": "HumanMessage"
       },
       "InvalidToolCall": {
         "properties": {
@@ -2881,12 +2893,7 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "system"
-            ],
-            "const": "system",
-            "title": "Type",
-            "default": "system"
+            "title": "Type"
           },
           "name": {
             "anyOf": [
@@ -2900,24 +2907,19 @@
             "title": "Name"
           },
           "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Id"
+            "type": "string",
+            "title": "Id",
+            "description": "Unique identifier for the message.",
+            "default": ""
           }
         },
         "additionalProperties": true,
         "type": "object",
         "required": [
-          "content"
+          "content",
+          "type"
         ],
-        "title": "SystemMessage",
-        "description": "Message for priming AI behavior.\n\nThe system message is usually passed in as the first of a sequence\nof input messages.\n\nExample:\n\n    .. code-block:: python\n\n        from langchain_core.messages import HumanMessage, SystemMessage\n\n        messages = [\n            SystemMessage(\n                content=\"You are a helpful assistant! Your name is Bob.\"\n            ),\n            HumanMessage(\n                content=\"What is your name?\"\n            )\n        ]\n\n        # Define a chat model and invoke it with the messages\n        print(model.invoke(messages))"
+        "title": "SystemMessage"
       },
       "Thread": {
         "properties": {
@@ -3044,7 +3046,7 @@
                       "$ref": "#/components/schemas/HumanMessage"
                     },
                     {
-                      "$ref": "#/components/schemas/langchain_core__messages__chat__ChatMessage"
+                      "$ref": "#/components/schemas/sema4ai_agent_server__message_types__ChatMessage"
                     },
                     {
                       "$ref": "#/components/schemas/SystemMessage"
@@ -3145,12 +3147,7 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "tool"
-            ],
-            "const": "tool",
-            "title": "Type",
-            "default": "tool"
+            "title": "Type"
           },
           "name": {
             "anyOf": [
@@ -3164,15 +3161,10 @@
             "title": "Name"
           },
           "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Id"
+            "type": "string",
+            "title": "Id",
+            "description": "Unique identifier for the message.",
+            "default": ""
           },
           "tool_call_id": {
             "type": "string",
@@ -3195,10 +3187,10 @@
         "type": "object",
         "required": [
           "content",
+          "type",
           "tool_call_id"
         ],
-        "title": "ToolMessage",
-        "description": "Message for passing the result of executing a tool back to a model.\n\nToolMessages contain the result of a tool invocation. Typically, the result\nis encoded inside the `content` field.\n\nExample: A ToolMessage representing a result of 42 from a tool call with id\n\n    .. code-block:: python\n\n        from langchain_core.messages import ToolMessage\n\n        ToolMessage(content='42', tool_call_id='call_Jja7J89XsjrOLA5r!MEOW!SL')\n\n\nExample: A ToolMessage where only part of the tool output is sent to the model\n    and the full output is passed in to artifact.\n\n    .. versionadded:: 0.2.17\n\n    .. code-block:: python\n\n        from langchain_core.messages import ToolMessage\n\n        tool_output = {\n            \"stdout\": \"From the graph we can see that the correlation between x and y is ...\",\n            \"stderr\": None,\n            \"artifacts\": {\"type\": \"image\", \"base64_data\": \"/9j/4gIcSU...\"},\n        }\n\n        ToolMessage(\n            content=tool_output[\"stdout\"],\n            artifact=tool_output,\n            tool_call_id='call_Jja7J89XsjrOLA5r!MEOW!SL',\n        )\n\nThe tool_call_id field is used to associate the tool call request with the\ntool call response. This is useful in situations where a chat model is able\nto request multiple tool calls in parallel."
+        "title": "ToolMessage"
       },
       "UploadedFile": {
         "properties": {
@@ -3378,7 +3370,7 @@
         "title": "WorkerType",
         "description": "Enum for worker type."
       },
-      "langchain_core__messages__chat__ChatMessage": {
+      "sema4ai_agent_server__message_types__ChatMessage": {
         "properties": {
           "content": {
             "anyOf": [
@@ -3411,12 +3403,7 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "chat"
-            ],
-            "const": "chat",
-            "title": "Type",
-            "default": "chat"
+            "title": "Type"
           },
           "name": {
             "anyOf": [
@@ -3430,15 +3417,10 @@
             "title": "Name"
           },
           "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Id"
+            "type": "string",
+            "title": "Id",
+            "description": "Unique identifier for the message.",
+            "default": ""
           },
           "role": {
             "type": "string",
@@ -3449,10 +3431,10 @@
         "type": "object",
         "required": [
           "content",
+          "type",
           "role"
         ],
-        "title": "ChatMessage",
-        "description": "Message that can be assigned an arbitrary speaker (i.e. role)."
+        "title": "ChatMessage"
       },
       "sema4ai_agent_server__schema__ChatMessage": {
         "properties": {
