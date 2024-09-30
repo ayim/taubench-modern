@@ -148,8 +148,8 @@ class FunctionMessage(BaseMessageWithID, LangChainFunctionMessage): ...
 class ToolMessage(BaseMessageWithID, LangChainToolMessage): ...
 
 
-# Vendored from langchain_core.utils.messages v0.3 to remove chunks as inputs.
 def _get_type(v: Any) -> str:
+    # Vendored from langchain_core.utils.messages v0.3 to remove chunks as inputs.
     """Get the type associated with the object for serialization purposes."""
     if isinstance(v, dict) and "type" in v:
         return v["type"]
@@ -160,9 +160,6 @@ def _get_type(v: Any) -> str:
             f"Expected either a dictionary with a 'type' key or an object "
             f"with a 'type' attribute. Instead got type {type(v)}."
         )
-
-
-# End of vendored code
 
 
 AnyNonChunkMessage = Annotated[
