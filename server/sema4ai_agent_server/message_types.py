@@ -26,6 +26,7 @@ from langchain_core.messages import (
 )
 from langchain_core.utils._merge import merge_dicts
 from langgraph.graph.message import Messages, add_messages
+from openai import BaseModel
 from pydantic import Discriminator, Field, Tag
 
 
@@ -126,26 +127,26 @@ class ToolEventMessage(BaseMessage):
 # Message types with required IDs used for output from Agent Server.
 
 
-class BaseMessageWithID(BaseMessage):
+class RequireIDMixin(BaseModel):
     id: str = ""
 
 
-class AIMessage(BaseMessageWithID, LangChainAIMessage): ...
+class AIMessage(RequireIDMixin, LangChainAIMessage): ...
 
 
-class HumanMessage(BaseMessageWithID, LangChainHumanMessage): ...
+class HumanMessage(RequireIDMixin, LangChainHumanMessage): ...
 
 
-class ChatMessage(BaseMessageWithID, LangChainChatMessage): ...
+class ChatMessage(RequireIDMixin, LangChainChatMessage): ...
 
 
-class SystemMessage(BaseMessageWithID, LangChainSystemMessage): ...
+class SystemMessage(RequireIDMixin, LangChainSystemMessage): ...
 
 
-class FunctionMessage(BaseMessageWithID, LangChainFunctionMessage): ...
+class FunctionMessage(RequireIDMixin, LangChainFunctionMessage): ...
 
 
-class ToolMessage(BaseMessageWithID, LangChainToolMessage): ...
+class ToolMessage(RequireIDMixin, LangChainToolMessage): ...
 
 
 def _get_type(v: Any) -> str:

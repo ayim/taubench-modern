@@ -548,8 +548,13 @@ export interface components {
             additional_kwargs?: Record<string, never>;
             /** Response Metadata */
             response_metadata?: Record<string, never>;
-            /** Type */
-            type: string;
+            /**
+             * Type
+             * @default ai
+             * @constant
+             * @enum {string}
+             */
+            type: "ai";
             /** Name */
             name?: string | null;
             /**
@@ -1071,10 +1076,15 @@ export interface components {
             additional_kwargs?: Record<string, never>;
             /** Response Metadata */
             response_metadata?: Record<string, never>;
-            /** Type */
-            type: string;
+            /**
+             * Type
+             * @default function
+             * @constant
+             * @enum {string}
+             */
+            type: "function";
             /** Name */
-            name?: string | null;
+            name: string;
             /**
              * Id
              * @default
@@ -1128,8 +1138,13 @@ export interface components {
             additional_kwargs?: Record<string, never>;
             /** Response Metadata */
             response_metadata?: Record<string, never>;
-            /** Type */
-            type: string;
+            /**
+             * Type
+             * @default human
+             * @constant
+             * @enum {string}
+             */
+            type: "human";
             /** Name */
             name?: string | null;
             /**
@@ -1279,8 +1294,13 @@ export interface components {
             additional_kwargs?: Record<string, never>;
             /** Response Metadata */
             response_metadata?: Record<string, never>;
-            /** Type */
-            type: string;
+            /**
+             * Type
+             * @default system
+             * @constant
+             * @enum {string}
+             */
+            type: "system";
             /** Name */
             name?: string | null;
             /**
@@ -1409,8 +1429,13 @@ export interface components {
             additional_kwargs?: Record<string, never>;
             /** Response Metadata */
             response_metadata?: Record<string, never>;
-            /** Type */
-            type: string;
+            /**
+             * Type
+             * @default tool
+             * @constant
+             * @enum {string}
+             */
+            type: "tool";
             /** Name */
             name?: string | null;
             /**
@@ -1537,8 +1562,13 @@ export interface components {
             additional_kwargs?: Record<string, never>;
             /** Response Metadata */
             response_metadata?: Record<string, never>;
-            /** Type */
-            type: string;
+            /**
+             * Type
+             * @default chat
+             * @constant
+             * @enum {string}
+             */
+            type: "chat";
             /** Name */
             name?: string | null;
             /**

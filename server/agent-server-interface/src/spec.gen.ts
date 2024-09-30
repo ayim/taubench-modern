@@ -1474,7 +1474,12 @@
           },
           "type": {
             "type": "string",
-            "title": "Type"
+            "enum": [
+              "ai"
+            ],
+            "const": "ai",
+            "title": "Type",
+            "default": "ai"
           },
           "name": {
             "anyOf": [
@@ -1527,8 +1532,7 @@
         "additionalProperties": true,
         "type": "object",
         "required": [
-          "content",
-          "type"
+          "content"
         ],
         "title": "AIMessage"
       },
@@ -2456,17 +2460,15 @@
           },
           "type": {
             "type": "string",
-            "title": "Type"
+            "enum": [
+              "function"
+            ],
+            "const": "function",
+            "title": "Type",
+            "default": "function"
           },
           "name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Name"
           },
           "id": {
@@ -2479,7 +2481,7 @@
         "type": "object",
         "required": [
           "content",
-          "type"
+          "name"
         ],
         "title": "FunctionMessage"
       },
@@ -2577,7 +2579,12 @@
           },
           "type": {
             "type": "string",
-            "title": "Type"
+            "enum": [
+              "human"
+            ],
+            "const": "human",
+            "title": "Type",
+            "default": "human"
           },
           "name": {
             "anyOf": [
@@ -2604,8 +2611,7 @@
         "additionalProperties": true,
         "type": "object",
         "required": [
-          "content",
-          "type"
+          "content"
         ],
         "title": "HumanMessage"
       },
@@ -2890,7 +2896,12 @@
           },
           "type": {
             "type": "string",
-            "title": "Type"
+            "enum": [
+              "system"
+            ],
+            "const": "system",
+            "title": "Type",
+            "default": "system"
           },
           "name": {
             "anyOf": [
@@ -2912,8 +2923,7 @@
         "additionalProperties": true,
         "type": "object",
         "required": [
-          "content",
-          "type"
+          "content"
         ],
         "title": "SystemMessage"
       },
@@ -3143,7 +3153,12 @@
           },
           "type": {
             "type": "string",
-            "title": "Type"
+            "enum": [
+              "tool"
+            ],
+            "const": "tool",
+            "title": "Type",
+            "default": "tool"
           },
           "name": {
             "anyOf": [
@@ -3182,7 +3197,6 @@
         "type": "object",
         "required": [
           "content",
-          "type",
           "tool_call_id"
         ],
         "title": "ToolMessage"
@@ -3398,7 +3412,12 @@
           },
           "type": {
             "type": "string",
-            "title": "Type"
+            "enum": [
+              "chat"
+            ],
+            "const": "chat",
+            "title": "Type",
+            "default": "chat"
           },
           "name": {
             "anyOf": [
@@ -3425,7 +3444,6 @@
         "type": "object",
         "required": [
           "content",
-          "type",
           "role"
         ],
         "title": "ChatMessage"
