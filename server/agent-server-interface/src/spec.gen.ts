@@ -6,7 +6,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Sema4.ai Agent Server API",
-    "version": "1.0.0"
+    "version": "1.0.1"
   },
   "paths": {
     "/api/v1/ok": {
@@ -1482,26 +1482,14 @@
             "default": "ai"
           },
           "name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name"
+            "type": "string",
+            "title": "Name",
+            "default": ""
           },
           "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Id"
+            "type": "string",
+            "title": "Id",
+            "default": ""
           },
           "example": {
             "type": "boolean",
@@ -1656,7 +1644,7 @@
             "description": "The version of the agent."
           },
           "model": {
-            "anyOf": [
+            "oneOf": [
               {
                 "$ref": "#/components/schemas/OpenAIGPT"
               },
@@ -1667,7 +1655,7 @@
                 "$ref": "#/components/schemas/AnthropicClaude"
               },
               {
-                "$ref": "#/components/schemas/AmazonClaude"
+                "$ref": "#/components/schemas/AmazonBedrock"
               },
               {
                 "$ref": "#/components/schemas/GoogleGemini"
@@ -1677,7 +1665,18 @@
               }
             ],
             "title": "Model",
-            "description": "LLM model configuration for the agent."
+            "description": "LLM model configuration for the agent.",
+            "discriminator": {
+              "propertyName": "provider",
+              "mapping": {
+                "Amazon": "#/components/schemas/AmazonBedrock",
+                "Anthropic": "#/components/schemas/AnthropicClaude",
+                "Azure": "#/components/schemas/AzureGPT",
+                "Google": "#/components/schemas/GoogleGemini",
+                "Ollama": "#/components/schemas/Ollama",
+                "OpenAI": "#/components/schemas/OpenAIGPT"
+              }
+            }
           },
           "architecture": {
             "$ref": "#/components/schemas/AgentArchitecture",
@@ -1725,6 +1724,7 @@
           "model",
           "architecture",
           "reasoning",
+          "action_packages",
           "metadata",
           "id",
           "user_id",
@@ -1828,7 +1828,7 @@
             "description": "The version of the agent."
           },
           "model": {
-            "anyOf": [
+            "oneOf": [
               {
                 "$ref": "#/components/schemas/OpenAIGPT"
               },
@@ -1839,7 +1839,7 @@
                 "$ref": "#/components/schemas/AnthropicClaude"
               },
               {
-                "$ref": "#/components/schemas/AmazonClaude"
+                "$ref": "#/components/schemas/AmazonBedrock"
               },
               {
                 "$ref": "#/components/schemas/GoogleGemini"
@@ -1849,7 +1849,18 @@
               }
             ],
             "title": "Model",
-            "description": "LLM model configuration for the agent."
+            "description": "LLM model configuration for the agent.",
+            "discriminator": {
+              "propertyName": "provider",
+              "mapping": {
+                "Amazon": "#/components/schemas/AmazonBedrock",
+                "Anthropic": "#/components/schemas/AnthropicClaude",
+                "Azure": "#/components/schemas/AzureGPT",
+                "Google": "#/components/schemas/GoogleGemini",
+                "Ollama": "#/components/schemas/Ollama",
+                "OpenAI": "#/components/schemas/OpenAIGPT"
+              }
+            }
           },
           "architecture": {
             "$ref": "#/components/schemas/AgentArchitecture",
@@ -1881,6 +1892,7 @@
           "model",
           "architecture",
           "reasoning",
+          "action_packages",
           "metadata"
         ],
         "title": "AgentPayload",
@@ -1924,7 +1936,7 @@
             "description": "Base64 encoded agent package."
           },
           "model": {
-            "anyOf": [
+            "oneOf": [
               {
                 "$ref": "#/components/schemas/OpenAIGPT"
               },
@@ -1935,7 +1947,7 @@
                 "$ref": "#/components/schemas/AnthropicClaude"
               },
               {
-                "$ref": "#/components/schemas/AmazonClaude"
+                "$ref": "#/components/schemas/AmazonBedrock"
               },
               {
                 "$ref": "#/components/schemas/GoogleGemini"
@@ -1945,7 +1957,18 @@
               }
             ],
             "title": "Model",
-            "description": "LLM configuration for the agent."
+            "description": "LLM configuration for the agent.",
+            "discriminator": {
+              "propertyName": "provider",
+              "mapping": {
+                "Amazon": "#/components/schemas/AmazonBedrock",
+                "Anthropic": "#/components/schemas/AnthropicClaude",
+                "Azure": "#/components/schemas/AzureGPT",
+                "Google": "#/components/schemas/GoogleGemini",
+                "Ollama": "#/components/schemas/Ollama",
+                "OpenAI": "#/components/schemas/OpenAIGPT"
+              }
+            }
           },
           "action_servers": {
             "items": {
@@ -2032,7 +2055,7 @@
         ],
         "title": "AgentStatus"
       },
-      "AmazonClaude": {
+      "AmazonBedrock": {
         "properties": {
           "provider": {
             "type": "string",
@@ -2045,11 +2068,11 @@
           "name": {
             "type": "string",
             "title": "Name",
-            "description": "The name of the model.",
+            "description": "The name of the model to use.",
             "default": "anthropic.claude-3-5-sonnet-20240620-v1:0"
           },
           "config": {
-            "$ref": "#/components/schemas/AmazonClaudeConfig",
+            "$ref": "#/components/schemas/AmazonBedrockConfig",
             "description": "Amazon Claude config."
           }
         },
@@ -2058,21 +2081,24 @@
           "provider",
           "config"
         ],
-        "title": "AmazonClaude"
+        "title": "AmazonBedrock"
       },
-      "AmazonClaudeConfig": {
+      "AmazonBedrockConfig": {
         "properties": {
           "service_name": {
             "type": "string",
+            "enum": [
+              "bedrock-runtime"
+            ],
+            "const": "bedrock-runtime",
             "title": "Service Name",
-            "description": "The service name.",
-            "default": "SEMA4AI_FIELD_NOT_CONFIGURED"
+            "default": "bedrock-runtime"
           },
           "region_name": {
             "type": "string",
             "title": "Region Name",
             "description": "The region name.",
-            "default": "SEMA4AI_FIELD_NOT_CONFIGURED"
+            "default": "us-east-1"
           },
           "aws_access_key_id": {
             "type": "string",
@@ -2092,7 +2118,7 @@
           }
         },
         "type": "object",
-        "title": "AmazonClaudeConfig"
+        "title": "AmazonBedrockConfig"
       },
       "AnthropicClaude": {
         "properties": {
@@ -2440,25 +2466,19 @@
           },
           "name": {
             "type": "string",
-            "title": "Name"
+            "title": "Name",
+            "default": ""
           },
           "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Id"
+            "type": "string",
+            "title": "Id",
+            "default": ""
           }
         },
         "additionalProperties": true,
         "type": "object",
         "required": [
-          "content",
-          "name"
+          "content"
         ],
         "title": "FunctionMessage",
         "description": "Message for passing the result of executing a tool back to a model.\n\nFunctionMessage are an older version of the ToolMessage schema, and\ndo not contain the tool_call_id field.\n\nThe tool_call_id field is used to associate the tool call request with the\ntool call response. This is useful in situations where a chat model is able\nto request multiple tool calls in parallel."
@@ -2565,26 +2585,14 @@
             "default": "human"
           },
           "name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name"
+            "type": "string",
+            "title": "Name",
+            "default": ""
           },
           "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Id"
+            "type": "string",
+            "title": "Id",
+            "default": ""
           },
           "example": {
             "type": "boolean",
@@ -2889,26 +2897,14 @@
             "default": "system"
           },
           "name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name"
+            "type": "string",
+            "title": "Name",
+            "default": ""
           },
           "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Id"
+            "type": "string",
+            "title": "Id",
+            "default": ""
           }
         },
         "additionalProperties": true,
@@ -3044,7 +3040,7 @@
                       "$ref": "#/components/schemas/HumanMessage"
                     },
                     {
-                      "$ref": "#/components/schemas/langchain_core__messages__chat__ChatMessage"
+                      "$ref": "#/components/schemas/sema4ai_agent_server__message_types__ChatMessage"
                     },
                     {
                       "$ref": "#/components/schemas/SystemMessage"
@@ -3153,26 +3149,14 @@
             "default": "tool"
           },
           "name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name"
+            "type": "string",
+            "title": "Name",
+            "default": ""
           },
           "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Id"
+            "type": "string",
+            "title": "Id",
+            "default": ""
           },
           "tool_call_id": {
             "type": "string",
@@ -3378,7 +3362,7 @@
         "title": "WorkerType",
         "description": "Enum for worker type."
       },
-      "langchain_core__messages__chat__ChatMessage": {
+      "sema4ai_agent_server__message_types__ChatMessage": {
         "properties": {
           "content": {
             "anyOf": [
@@ -3419,26 +3403,14 @@
             "default": "chat"
           },
           "name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name"
+            "type": "string",
+            "title": "Name",
+            "default": ""
           },
           "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Id"
+            "type": "string",
+            "title": "Id",
+            "default": ""
           },
           "role": {
             "type": "string",

@@ -564,10 +564,16 @@ export interface components {
              * @enum {string}
              */
             type: "ai";
-            /** Name */
-            name?: string | null;
-            /** Id */
-            id?: string | null;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /**
+             * Id
+             * @default
+             */
+            id: string;
             /**
              * Example
              * @default false
@@ -687,7 +693,7 @@ export interface components {
              * Model
              * @description LLM model configuration for the agent.
              */
-            model: components["schemas"]["OpenAIGPT"] | components["schemas"]["AzureGPT"] | components["schemas"]["AnthropicClaude"] | components["schemas"]["AmazonClaude"] | components["schemas"]["GoogleGemini"] | components["schemas"]["Ollama"];
+            model: components["schemas"]["OpenAIGPT"] | components["schemas"]["AzureGPT"] | components["schemas"]["AnthropicClaude"] | components["schemas"]["AmazonBedrock"] | components["schemas"]["GoogleGemini"] | components["schemas"]["Ollama"];
             /** @description The cognitive architecture of the agent. */
             architecture: components["schemas"]["AgentArchitecture"];
             /** @description The reasoning setting of the agent. */
@@ -696,7 +702,7 @@ export interface components {
              * Action Packages
              * @description The action packages for the agent.
              */
-            action_packages?: components["schemas"]["ActionPackage"][];
+            action_packages: components["schemas"]["ActionPackage"][];
             /** @description The agent metadata. */
             metadata: components["schemas"]["AgentMetadata"];
             /**
@@ -784,7 +790,7 @@ export interface components {
              * Model
              * @description LLM model configuration for the agent.
              */
-            model: components["schemas"]["OpenAIGPT"] | components["schemas"]["AzureGPT"] | components["schemas"]["AnthropicClaude"] | components["schemas"]["AmazonClaude"] | components["schemas"]["GoogleGemini"] | components["schemas"]["Ollama"];
+            model: components["schemas"]["OpenAIGPT"] | components["schemas"]["AzureGPT"] | components["schemas"]["AnthropicClaude"] | components["schemas"]["AmazonBedrock"] | components["schemas"]["GoogleGemini"] | components["schemas"]["Ollama"];
             /** @description The cognitive architecture of the agent. */
             architecture: components["schemas"]["AgentArchitecture"];
             /** @description The reasoning setting of the agent. */
@@ -793,7 +799,7 @@ export interface components {
              * Action Packages
              * @description The action packages for the agent.
              */
-            action_packages?: components["schemas"]["ActionPackage"][];
+            action_packages: components["schemas"]["ActionPackage"][];
             /** @description The agent metadata. */
             metadata: components["schemas"]["AgentMetadata"];
         };
@@ -827,7 +833,7 @@ export interface components {
              * Model
              * @description LLM configuration for the agent.
              */
-            model: components["schemas"]["OpenAIGPT"] | components["schemas"]["AzureGPT"] | components["schemas"]["AnthropicClaude"] | components["schemas"]["AmazonClaude"] | components["schemas"]["GoogleGemini"] | components["schemas"]["Ollama"];
+            model: components["schemas"]["OpenAIGPT"] | components["schemas"]["AzureGPT"] | components["schemas"]["AnthropicClaude"] | components["schemas"]["AmazonBedrock"] | components["schemas"]["GoogleGemini"] | components["schemas"]["Ollama"];
             /**
              * Action Servers
              * @description Action Server configurations.
@@ -860,35 +866,35 @@ export interface components {
             /** Issues */
             issues: (components["schemas"]["ModelNotConfigured"] | components["schemas"]["ActionServerNotConfigured"] | components["schemas"]["EmbeddingFilePending"] | components["schemas"]["EmbeddingFileInProgress"] | components["schemas"]["EmbeddingFileFailed"])[];
         };
-        /** AmazonClaude */
-        AmazonClaude: {
+        /** AmazonBedrock */
+        AmazonBedrock: {
             /**
-             * Provider
-             * @constant
+             * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
             provider: "Amazon";
             /**
              * Name
-             * @description The name of the model.
+             * @description The name of the model to use.
              * @default anthropic.claude-3-5-sonnet-20240620-v1:0
              */
             name: string;
             /** @description Amazon Claude config. */
-            config: components["schemas"]["AmazonClaudeConfig"];
+            config: components["schemas"]["AmazonBedrockConfig"];
         };
-        /** AmazonClaudeConfig */
-        AmazonClaudeConfig: {
+        /** AmazonBedrockConfig */
+        AmazonBedrockConfig: {
             /**
              * Service Name
-             * @description The service name.
-             * @default SEMA4AI_FIELD_NOT_CONFIGURED
+             * @default bedrock-runtime
+             * @constant
+             * @enum {string}
              */
-            service_name: string;
+            service_name: "bedrock-runtime";
             /**
              * Region Name
              * @description The region name.
-             * @default SEMA4AI_FIELD_NOT_CONFIGURED
+             * @default us-east-1
              */
             region_name: string;
             /**
@@ -909,8 +915,7 @@ export interface components {
         /** AnthropicClaude */
         AnthropicClaude: {
             /**
-             * Provider
-             * @constant
+             * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
             provider: "Anthropic";
@@ -942,8 +947,7 @@ export interface components {
         /** AzureGPT */
         AzureGPT: {
             /**
-             * Provider
-             * @constant
+             * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
             provider: "Azure";
@@ -1101,18 +1105,23 @@ export interface components {
              * @enum {string}
              */
             type: "function";
-            /** Name */
+            /**
+             * Name
+             * @default
+             */
             name: string;
-            /** Id */
-            id?: string | null;
+            /**
+             * Id
+             * @default
+             */
+            id: string;
         } & {
             [key: string]: unknown;
         };
         /** GoogleGemini */
         GoogleGemini: {
             /**
-             * Provider
-             * @constant
+             * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
             provider: "Google";
@@ -1185,10 +1194,16 @@ export interface components {
              * @enum {string}
              */
             type: "human";
-            /** Name */
-            name?: string | null;
-            /** Id */
-            id?: string | null;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /**
+             * Id
+             * @default
+             */
+            id: string;
             /**
              * Example
              * @default false
@@ -1235,8 +1250,7 @@ export interface components {
         /** Ollama */
         Ollama: {
             /**
-             * Provider
-             * @constant
+             * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
             provider: "Ollama";
@@ -1266,8 +1280,7 @@ export interface components {
         /** OpenAIGPT */
         OpenAIGPT: {
             /**
-             * Provider
-             * @constant
+             * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
             provider: "OpenAI";
@@ -1364,10 +1377,16 @@ export interface components {
              * @enum {string}
              */
             type: "system";
-            /** Name */
-            name?: string | null;
-            /** Id */
-            id?: string | null;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /**
+             * Id
+             * @default
+             */
+            id: string;
         } & {
             [key: string]: unknown;
         };
@@ -1448,7 +1467,7 @@ export interface components {
          */
         ThreadStatePostRequest: {
             /** Values */
-            values: (components["schemas"]["AIMessage"] | components["schemas"]["HumanMessage"] | components["schemas"]["langchain_core__messages__chat__ChatMessage"] | components["schemas"]["SystemMessage"] | components["schemas"]["FunctionMessage"] | components["schemas"]["ToolMessage"])[] | Record<string, never>;
+            values: (components["schemas"]["AIMessage"] | components["schemas"]["HumanMessage"] | components["schemas"]["sema4ai_agent_server__message_types__ChatMessage"] | components["schemas"]["SystemMessage"] | components["schemas"]["FunctionMessage"] | components["schemas"]["ToolMessage"])[] | Record<string, never>;
         };
         /**
          * ToolCall
@@ -1536,10 +1555,16 @@ export interface components {
              * @enum {string}
              */
             type: "tool";
-            /** Name */
-            name?: string | null;
-            /** Id */
-            id?: string | null;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /**
+             * Id
+             * @default
+             */
+            id: string;
             /** Tool Call Id */
             tool_call_id: string;
             /** Artifact */
@@ -1655,7 +1680,7 @@ export interface components {
          * ChatMessage
          * @description Message that can be assigned an arbitrary speaker (i.e. role).
          */
-        langchain_core__messages__chat__ChatMessage: {
+        sema4ai_agent_server__message_types__ChatMessage: {
             /** Content */
             content: string | (string | Record<string, never>)[];
             /** Additional Kwargs */
@@ -1669,10 +1694,16 @@ export interface components {
              * @enum {string}
              */
             type: "chat";
-            /** Name */
-            name?: string | null;
-            /** Id */
-            id?: string | null;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /**
+             * Id
+             * @default
+             */
+            id: string;
             /** Role */
             role: string;
         } & {

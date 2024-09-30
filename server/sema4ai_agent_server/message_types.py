@@ -1,23 +1,40 @@
-from typing import Any, Literal, get_args
+from typing import Annotated, Any, Literal, Union, get_args
 
+from langchain_core.messages import (
+    AIMessage as LangChainAIMessage,
+)
 from langchain_core.messages import (
     AnyMessage,
     BaseMessage,
-    FunctionMessage,
     MessageLikeRepresentation,
-    ToolMessage,
     merge_content,
+)
+from langchain_core.messages import (
+    ChatMessage as LangChainChatMessage,
+)
+from langchain_core.messages import (
+    FunctionMessage as LangChainFunctionMessage,
+)
+from langchain_core.messages import (
+    HumanMessage as LangChainHumanMessage,
+)
+from langchain_core.messages import (
+    SystemMessage as LangChainSystemMessage,
+)
+from langchain_core.messages import (
+    ToolMessage as LangChainToolMessage,
 )
 from langchain_core.utils._merge import merge_dicts
 from langgraph.graph.message import Messages, add_messages
-from pydantic import Field
+from openai import BaseModel
+from pydantic import Discriminator, Field, Tag
 
 
-class LiberalFunctionMessage(FunctionMessage):
+class LiberalFunctionMessage(LangChainFunctionMessage):
     content: Any
 
 
-class LiberalToolMessage(ToolMessage):
+class LiberalToolMessage(LangChainToolMessage):
     content: Any
 
 
@@ -105,3 +122,62 @@ class ToolEventMessage(BaseMessage):
                 self.response_metadata, other.response_metadata
             ),
         )
+
+
+# Message types with required IDs used for output from Agent Server.
+class RequireIDMixin(BaseModel):
+    id: str = ""
+    name: str = ""
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if not cls.__doc__:
+            for base in reversed(cls.__bases__):
+                if base.__doc__:
+                    cls.__doc__ = base.__doc__
+                    break
+
+
+class AIMessage(RequireIDMixin, LangChainAIMessage): ...
+
+
+class HumanMessage(RequireIDMixin, LangChainHumanMessage): ...
+
+
+class ChatMessage(RequireIDMixin, LangChainChatMessage): ...
+
+
+class SystemMessage(RequireIDMixin, LangChainSystemMessage): ...
+
+
+class FunctionMessage(RequireIDMixin, LangChainFunctionMessage): ...
+
+
+class ToolMessage(RequireIDMixin, LangChainToolMessage): ...
+
+
+def _get_type(v: Any) -> str:
+    # Vendored from langchain_core.utils.messages v0.3 to remove chunks as inputs.
+    """Get the type associated with the object for serialization purposes."""
+    if isinstance(v, dict) and "type" in v:
+        return v["type"]
+    elif hasattr(v, "type"):
+        return v.type
+    else:
+        raise TypeError(
+            f"Expected either a dictionary with a 'type' key or an object "
+            f"with a 'type' attribute. Instead got type {type(v)}."
+        )
+
+
+AnyNonChunkMessage = Annotated[
+    Union[
+        Annotated[AIMessage, Tag(tag="ai")],
+        Annotated[HumanMessage, Tag(tag="human")],
+        Annotated[ChatMessage, Tag(tag="chat")],
+        Annotated[SystemMessage, Tag(tag="system")],
+        Annotated[FunctionMessage, Tag(tag="function")],
+        Annotated[ToolMessage, Tag(tag="tool")],
+    ],
+    Field(discriminator=Discriminator(_get_type)),
+]

@@ -473,7 +473,7 @@ class AgentPayload(BaseModel):
     )
     reasoning: AgentReasoning = Field(description="The reasoning setting of the agent.")
     action_packages: Annotated[list[ActionPackage], "db_json"] = Field(
-        default_factory=list, description="The action packages for the agent."
+        description="The action packages for the agent."
     )
     metadata: Annotated[AgentMetadata, "db_json"] = Field(
         description="The agent metadata."
