@@ -175,19 +175,8 @@ def get_plan_execute_agent(
             )
             | get_pydantic_output_parser(llm, InitialPlanningResponse)
         )
-        initial_thinking_response: InitialPlanningResponse = (
-            offramper_agent.with_config(
-                {
-                    "metadata": {
-                        "structured_response_config": {
-                            "model_name": "InitialPlanningResponse",
-                            "fields": [
-                                ("steps", "message", "json"),
-                            ],
-                        }
-                    }
-                }
-            ).invoke(input)
+        initial_thinking_response: InitialPlanningResponse = offramper_agent.invoke(
+            input
         )
         is_plannig = initial_thinking_response.plan_needed_response == "plan"
         if is_plannig:
@@ -198,15 +187,12 @@ def get_plan_execute_agent(
                 objective=state.objective,
                 steps=plan_steps,
             )
-            steps_message = AIMessage(content=plan.steps_as_string())
         else:
             plan = None
-            steps_message = None
         return {
             "plan_needed": initial_thinking_response.plan_needed_response == "plan",
             "original_plan": plan,
             "current_plan": plan,
-            "messages": [steps_message] if steps_message else [],
         }
 
     async def offramper_thinker(state: PlanExecuteAgentState):
@@ -436,7 +422,6 @@ def get_plan_execute_agent(
                         "model_name": "ReplannerResponse",
                         "fields": [
                             ("response", "message"),
-                            ("new_steps", "message", "json"),
                             ("edge_case_reply", "message"),
                         ],
                     }
