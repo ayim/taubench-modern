@@ -125,28 +125,28 @@ class ToolEventMessage(BaseMessage):
 
 
 # Message types with required IDs used for output from Agent Server.
-
-
-class RequireIDMixin(BaseModel):
+class AIMessage(LangChainAIMessage):
     id: str = ""
 
 
-class AIMessage(RequireIDMixin, LangChainAIMessage): ...
+class HumanMessage(LangChainHumanMessage):
+    id: str = ""
 
 
-class HumanMessage(RequireIDMixin, LangChainHumanMessage): ...
+class ChatMessage(LangChainChatMessage):
+    id: str = ""
 
 
-class ChatMessage(RequireIDMixin, LangChainChatMessage): ...
+class SystemMessage(LangChainSystemMessage):
+    id: str = ""
 
 
-class SystemMessage(RequireIDMixin, LangChainSystemMessage): ...
+class FunctionMessage(LangChainFunctionMessage):
+    id: str = ""
 
 
-class FunctionMessage(RequireIDMixin, LangChainFunctionMessage): ...
-
-
-class ToolMessage(RequireIDMixin, LangChainToolMessage): ...
+class ToolMessage(LangChainToolMessage):
+    id: str = ""
 
 
 def _get_type(v: Any) -> str:
