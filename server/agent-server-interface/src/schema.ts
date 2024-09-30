@@ -540,7 +540,16 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /** AIMessage */
+        /**
+         * AIMessage
+         * @description Message from an AI.
+         *
+         *     AIMessage is returned from a chat model as a response to a prompt.
+         *
+         *     This message represents the output of the model and consists of both
+         *     the raw output as returned by the model together standardized fields
+         *     (e.g., tool calls, usage metadata) added by the LangChain framework.
+         */
         AIMessage: {
             /** Content */
             content: string | (string | Record<string, never>)[];
@@ -1068,7 +1077,17 @@ export interface components {
             /** File Url */
             file_url: string;
         };
-        /** FunctionMessage */
+        /**
+         * FunctionMessage
+         * @description Message for passing the result of executing a tool back to a model.
+         *
+         *     FunctionMessage are an older version of the ToolMessage schema, and
+         *     do not contain the tool_call_id field.
+         *
+         *     The tool_call_id field is used to associate the tool call request with the
+         *     tool call response. This is useful in situations where a chat model is able
+         *     to request multiple tool calls in parallel.
+         */
         FunctionMessage: {
             /** Content */
             content: string | (string | Record<string, never>)[];
@@ -1130,7 +1149,31 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
-        /** HumanMessage */
+        /**
+         * HumanMessage
+         * @description Message from a human.
+         *
+         *     HumanMessages are messages that are passed in from a human to the model.
+         *
+         *     Example:
+         *
+         *         .. code-block:: python
+         *
+         *             from langchain_core.messages import HumanMessage, SystemMessage
+         *
+         *             messages = [
+         *                 SystemMessage(
+         *                     content="You are a helpful assistant! Your name is Bob."
+         *                 ),
+         *                 HumanMessage(
+         *                     content="What is your name?"
+         *                 )
+         *             ]
+         *
+         *             # Instantiate a chat model and invoke it with the messages
+         *             model = ...
+         *             print(model.invoke(messages))
+         */
         HumanMessage: {
             /** Content */
             content: string | (string | Record<string, never>)[];
@@ -1286,7 +1329,31 @@ export interface components {
             /** File Name */
             file_name: string;
         };
-        /** SystemMessage */
+        /**
+         * SystemMessage
+         * @description Message for priming AI behavior.
+         *
+         *     The system message is usually passed in as the first of a sequence
+         *     of input messages.
+         *
+         *     Example:
+         *
+         *         .. code-block:: python
+         *
+         *             from langchain_core.messages import HumanMessage, SystemMessage
+         *
+         *             messages = [
+         *                 SystemMessage(
+         *                     content="You are a helpful assistant! Your name is Bob."
+         *                 ),
+         *                 HumanMessage(
+         *                     content="What is your name?"
+         *                 )
+         *             ]
+         *
+         *             # Define a chat model and invoke it with the messages
+         *             print(model.invoke(messages))
+         */
         SystemMessage: {
             /** Content */
             content: string | (string | Record<string, never>)[];
@@ -1421,7 +1488,47 @@ export interface components {
              */
             type?: "tool_call";
         };
-        /** ToolMessage */
+        /**
+         * ToolMessage
+         * @description Message for passing the result of executing a tool back to a model.
+         *
+         *     ToolMessages contain the result of a tool invocation. Typically, the result
+         *     is encoded inside the `content` field.
+         *
+         *     Example: A ToolMessage representing a result of 42 from a tool call with id
+         *
+         *         .. code-block:: python
+         *
+         *             from langchain_core.messages import ToolMessage
+         *
+         *             ToolMessage(content='42', tool_call_id='call_Jja7J89XsjrOLA5r!MEOW!SL')
+         *
+         *
+         *     Example: A ToolMessage where only part of the tool output is sent to the model
+         *         and the full output is passed in to artifact.
+         *
+         *         .. versionadded:: 0.2.17
+         *
+         *         .. code-block:: python
+         *
+         *             from langchain_core.messages import ToolMessage
+         *
+         *             tool_output = {
+         *                 "stdout": "From the graph we can see that the correlation between x and y is ...",
+         *                 "stderr": None,
+         *                 "artifacts": {"type": "image", "base64_data": "/9j/4gIcSU..."},
+         *             }
+         *
+         *             ToolMessage(
+         *                 content=tool_output["stdout"],
+         *                 artifact=tool_output,
+         *                 tool_call_id='call_Jja7J89XsjrOLA5r!MEOW!SL',
+         *             )
+         *
+         *     The tool_call_id field is used to associate the tool call request with the
+         *     tool call response. This is useful in situations where a chat model is able
+         *     to request multiple tool calls in parallel.
+         */
         ToolMessage: {
             /** Content */
             content: string | (string | Record<string, never>)[];
@@ -1554,7 +1661,10 @@ export interface components {
          * @enum {string}
          */
         WorkerType: "Document Intelligence";
-        /** ChatMessage */
+        /**
+         * ChatMessage
+         * @description Message that can be assigned an arbitrary speaker (i.e. role).
+         */
         sema4ai_agent_server__message_types__ChatMessage: {
             /** Content */
             content: string | (string | Record<string, never>)[];
