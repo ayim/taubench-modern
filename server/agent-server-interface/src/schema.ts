@@ -1212,20 +1212,14 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
-        /**
-         * InvalidToolCall
-         * @description Allowance for errors made by LLM.
-         *
-         *     Here we add an `error` key to surface errors made during generation
-         *     (e.g., invalid JSON arguments.)
-         */
+        /** InvalidToolCall */
         InvalidToolCall: {
             /** Name */
             name: string | null;
             /** Args */
             args: string | null;
             /** Id */
-            id: string | null;
+            id: string;
             /** Error */
             error: string | null;
             /**
@@ -1469,30 +1463,14 @@ export interface components {
             /** Values */
             values: (components["schemas"]["AIMessage"] | components["schemas"]["HumanMessage"] | components["schemas"]["sema4ai_agent_server__message_types__ChatMessage"] | components["schemas"]["SystemMessage"] | components["schemas"]["FunctionMessage"] | components["schemas"]["ToolMessage"])[] | Record<string, never>;
         };
-        /**
-         * ToolCall
-         * @description Represents a request to call a tool.
-         *
-         *     Example:
-         *
-         *         .. code-block:: python
-         *
-         *             {
-         *                 "name": "foo",
-         *                 "args": {"a": 1},
-         *                 "id": "123"
-         *             }
-         *
-         *         This represents a request to call the tool named "foo" with arguments {"a": 1}
-         *         and an identifier of "123".
-         */
+        /** ToolCall */
         ToolCall: {
             /** Name */
             name: string;
             /** Args */
             args: Record<string, never>;
             /** Id */
-            id: string | null;
+            id: string;
             /**
              * Type
              * @constant

@@ -6,7 +6,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Sema4.ai Agent Server API",
-    "version": "1.0.1"
+    "version": "1.0.3"
   },
   "paths": {
     "/api/v1/ok": {
@@ -2633,14 +2633,7 @@
             "title": "Args"
           },
           "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Id"
           },
           "error": {
@@ -2670,8 +2663,7 @@
           "id",
           "error"
         ],
-        "title": "InvalidToolCall",
-        "description": "Allowance for errors made by LLM.\n\nHere we add an `error` key to surface errors made during generation\n(e.g., invalid JSON arguments.)"
+        "title": "InvalidToolCall"
       },
       "ModelNotConfigured": {
         "properties": {
@@ -3080,14 +3072,7 @@
             "title": "Args"
           },
           "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Id"
           },
           "type": {
@@ -3105,8 +3090,7 @@
           "args",
           "id"
         ],
-        "title": "ToolCall",
-        "description": "Represents a request to call a tool.\n\nExample:\n\n    .. code-block:: python\n\n        {\n            \"name\": \"foo\",\n            \"args\": {\"a\": 1},\n            \"id\": \"123\"\n        }\n\n    This represents a request to call the tool named \"foo\" with arguments {\"a\": 1}\n    and an identifier of \"123\"."
+        "title": "ToolCall"
       },
       "ToolMessage": {
         "properties": {
