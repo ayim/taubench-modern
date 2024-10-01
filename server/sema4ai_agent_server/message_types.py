@@ -24,6 +24,10 @@ from langchain_core.messages import (
 from langchain_core.messages import (
     ToolMessage as LangChainToolMessage,
 )
+from langchain_core.messages.tool import (
+    InvalidToolCall as LangChainInvalidToolCall,
+    ToolCall as LangChainToolCall,
+)
 from langchain_core.utils._merge import merge_dicts
 from langgraph.graph.message import Messages, add_messages
 from openai import BaseModel
@@ -138,7 +142,17 @@ class RequireIDMixin(BaseModel):
                     break
 
 
-class AIMessage(RequireIDMixin, LangChainAIMessage): ...
+class ToolCall(LangChainToolCall):
+    id: str
+
+
+class InvalidToolCall(LangChainInvalidToolCall):
+    id: str
+
+
+class AIMessage(RequireIDMixin, LangChainAIMessage):
+    tool_calls: list[ToolCall] = []
+    invalid_tool_calls: list[InvalidToolCall] = []
 
 
 class HumanMessage(RequireIDMixin, LangChainHumanMessage): ...
