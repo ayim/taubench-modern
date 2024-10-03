@@ -573,7 +573,7 @@ async def update_action_server_config(
     response_model=AgentStats,
     response_class=PydanticResponse,
 )
-async def get_agent_threads_messages_files_count(
+async def get_agent_stats(
     user: AuthedUser,
     aid: AgentID,
 ):
