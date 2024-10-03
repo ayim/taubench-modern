@@ -647,3 +647,13 @@ class ChatRequest(BaseModel):
                 case _:
                     pass
         return messages
+
+
+class AgentThreadsMessagesFilesCount(BaseModel):
+    threads_count: int = Field(description="Number of threads of the agent.")
+    messages_count: int = Field(
+        description="Number of messages in all threads of the agent."
+    )
+    files_count: int = Field(
+        description="Number of files for the agent and agent threads."
+    )

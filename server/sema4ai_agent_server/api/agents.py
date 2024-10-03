@@ -37,6 +37,7 @@ from sema4ai_agent_server.schema import (
     AgentNotReadyIssues,
     AgentPayload,
     AgentStatus,
+    AgentThreadsMessagesFilesCount,
     EmbeddingFileFailed,
     EmbeddingFileInProgress,
     EmbeddingFilePending,
@@ -565,3 +566,41 @@ async def update_action_server_config(
         metadata=agent.metadata,
     )
     return {"status": "ok"}
+
+
+@router.get(
+    "/{aid}/count",
+    response_model=AgentThreadsMessagesFilesCount,
+    response_class=PydanticResponse,
+)
+async def get_agent_threads_messages_files_count(
+    user: AuthedUser,
+    aid: AgentID,
+):
+    """return no of threads, messages and files count for the agent"""
+    agent = await get_storage().get_agent(user.user_id, aid)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    agent_threads = await get_storage().list_agent_threads(agent_id=aid)
+    threads_count = len(agent_threads)
+    messages_count = 0
+    files_count = 0
+    agent_files = await get_storage().get_agent_files(aid)
+    files_count += len(agent_files)
+    for thread in agent_threads:
+        print("thread", thread)
+        print("thread_id", thread.thread_id)
+        thread_state = await get_storage().get_thread_state(thread.thread_id)
+        print(thread_state)
+        messages_count += len(thread_state["messages"])
+
+        thread_files = await get_storage().get_thread_files(thread.thread_id)
+        files_count += len(thread_files)
+
+    return PydanticResponse(
+        AgentThreadsMessagesFilesCount(
+            threads_count=threads_count,
+            messages_count=messages_count,
+            files_count=files_count,
+        )
+    )
