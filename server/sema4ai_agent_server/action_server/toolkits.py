@@ -14,7 +14,7 @@ from langchain_core.callbacks.manager import CallbackManager
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
-from langchain_core.runnables import Runnable, RunnablePassthrough
+from langchain_core.runnables import Runnable, RunnablePassthrough, RunnableConfig
 from langchain_core.tools import BaseTool, StructuredTool, Tool
 from langchain_core.tracers.context import _tracing_v2_is_enabled
 from langsmith import Client
@@ -258,8 +258,11 @@ class ActionServerToolkit(BaseModel):
         fields = get_param_fields(docs)
         _DynamicToolInputSchema = create_model("DynamicToolInputSchema", **fields)
 
-        def dynamic_func(**data: dict[str, Any]) -> str:
-            return self._action_request(endpoint, **to_jsonable_python(data))
+        def dynamic_func(*args: Any, _config: RunnableConfig, **kwargs: Any) -> str:
+            tool_call_id = _config.get("configurable", {}).get("tool_call_id")
+            return self._action_request(
+                endpoint, tool_call_id, **to_jsonable_python(kwargs)
+            )
 
         dynamic_func.__name__ = tools_args["name"]
         dynamic_func.__doc__ = tools_args["description"]
@@ -270,12 +273,16 @@ class ActionServerToolkit(BaseModel):
             **tools_args,
         )
 
-    def _action_request(self, endpoint: str, **data: dict[str, Any]) -> str:
+    def _action_request(
+        self, endpoint: str, tool_call_id: Optional[str] = None, **data: dict[str, Any]
+    ) -> str:
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
             **self.additional_headers,
         }
+        if tool_call_id is not None:
+            headers["x-action_invocation_id"] = tool_call_id
 
         try:
             if self.report_trace and "run_id" in self._run_details:

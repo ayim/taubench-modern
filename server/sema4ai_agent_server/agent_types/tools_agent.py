@@ -222,19 +222,18 @@ def get_tools_agent_executor(
     # Define the function to execute tools
     async def call_tool(state: AgentState):
         actions: list[ToolInvocation] = []
+        configs: list[dict] = []
         # Based on the continue condition
         # we know the last message involves a function call
         last_message = cast(AIMessage, state.messages[-1])
         for tool_call in last_message.tool_calls:
             # We construct a ToolInvocation from the function_call
             actions.append(
-                ToolInvocation(
-                    tool=tool_call["name"],
-                    tool_input=tool_call["args"],
-                )
+                ToolInvocation(tool=tool_call["name"], tool_input=tool_call["args"])
             )
+            configs.append({"tool_call_id": tool_call["id"]})
         # We call the tool_executor and get back a response
-        responses = await tool_executor.abatch(actions)
+        responses = await tool_executor.abatch(actions, config=configs)
         # We use the response to create a ToolMessage
         tool_messages = [
             LiberalToolMessage(
