@@ -42,6 +42,7 @@ from sema4ai_agent_server.schema import (
     EmbeddingFilePending,
     EmbeddingStatus,
     ModelNotConfigured,
+    SerializableSecretStr,
     UploadedFile,
     UploadFileRequest,
 )
@@ -54,7 +55,9 @@ router = APIRouter()
 
 class AgentPayloadPackageActionServer(BaseModel):
     url: str = Field(..., description="The URL of action server.")
-    api_key: str = Field(..., description="The API key of action server.")
+    api_key: SerializableSecretStr = Field(
+        ..., description="The API key of action server."
+    )
 
 
 class AgentPayloadPackage(BaseModel):
