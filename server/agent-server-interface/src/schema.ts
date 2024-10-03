@@ -849,6 +849,7 @@ export interface components {
             url: string;
             /**
              * Api Key
+             * Format: password
              * @description The API key of action server.
              */
             api_key: string;
