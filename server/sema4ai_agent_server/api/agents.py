@@ -34,6 +34,7 @@ from sema4ai_agent_server.schema import (
     ActionServerNotConfigured,
     Agent,
     AgentArchitecture,
+    AgentMetrics,
     AgentNotReadyIssues,
     AgentPayload,
     AgentStatus,
@@ -565,3 +566,38 @@ async def update_action_server_config(
         metadata=agent.metadata,
     )
     return {"status": "ok"}
+
+
+@router.get(
+    "/{aid}/metrics",
+    response_model=AgentMetrics,
+    response_class=PydanticResponse,
+)
+async def get_agent_stats(
+    user: AuthedUser,
+    aid: AgentID,
+):
+    """return no of threads, messages and files count for the agent"""
+    agent = await get_storage().get_agent(user.user_id, aid)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    agent_threads = await get_storage().list_agent_threads(agent_id=aid)
+    threads_count = len(agent_threads)
+    messages_count = 0
+    files_count = 0
+    agent_files = await get_storage().get_agent_files(aid)
+    files_count += len(agent_files)
+    for thread in agent_threads:
+        thread_state = await get_storage().get_thread_state(thread.thread_id)
+        messages_count += len(thread_state["values"]["messages"])
+
+        thread_files = await get_storage().get_thread_files(thread.thread_id)
+        files_count += len(thread_files)
+
+    return PydanticResponse(
+        AgentMetrics(
+            threads_count=threads_count,
+            messages_count=messages_count,
+            files_count=files_count,
+        )
+    )

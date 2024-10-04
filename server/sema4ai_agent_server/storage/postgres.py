@@ -567,3 +567,17 @@ class PostgresStorage(BaseStorage, PostgresConnectionManager):
             await cur.execute("SELECT status FROM async_runs WHERE id = %s", (run_id,))
             result = await cur.fetchone()
             return result[0]
+
+    async def list_agent_threads(self, agent_id: str) -> List[Thread]:
+        """List all threads for the current agent."""
+        async with self.async_cursor(dict_row) as cur:
+            await cur.execute(
+                """
+                SELECT t.* 
+                FROM thread t
+                WHERE t.agent_id = %s
+                """,
+                (agent_id,),
+            )
+            rows = await cur.fetchall()
+            return THREAD_LIST_ADAPTER.validate_python(rows)
