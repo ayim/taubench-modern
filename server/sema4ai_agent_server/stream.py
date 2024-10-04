@@ -24,6 +24,7 @@ from openai import (
     APIResponseValidationError,
     APIStatusError,
 )
+from pydantic import ValidationError
 
 from sema4ai_agent_server.message_types import ToolEventMessage
 from sema4ai_agent_server.structured_response_streamer import (
@@ -245,6 +246,9 @@ _serializer = WellKnownLCSerializer()
 
 
 def _get_status_code_and_message(e: Exception) -> tuple[int | None, str]:
+    # TODO: As customized agent graphs come into play, we need to develop a unified error handling
+    # strategy that can handle errors from different sources and allows graph authors to customize
+    # error messages.
     status_code, message = 500, "Internal Server Error"
     if isinstance(e, APIStatusError):
         status_code = e.status_code
@@ -260,6 +264,27 @@ def _get_status_code_and_message(e: Exception) -> tuple[int | None, str]:
         status_code = None
         message = e.message
     return status_code, message
+
+
+def _get_error_event(e: Exception) -> dict:
+    if isinstance(e, ValidationError):
+        # Handle Pydantic validation errors
+        return {
+            "event": "error",
+            "data": {
+                "status_code": 500,
+                "message": orjson.loads((e.json(include_url=False))),
+            },
+        }
+    else:
+        # Handle general errors and OpenAI API errors
+        status_code, message = _get_status_code_and_message(e)
+        return {
+            "event": "error",
+            "data": orjson.dumps(
+                {"status_code": status_code, "message": message}
+            ).decode(),
+        }
 
 
 async def to_sse(messages_stream: MessagesStream) -> AsyncIterator[dict]:
@@ -283,9 +308,7 @@ async def to_sse(messages_stream: MessagesStream) -> AsyncIterator[dict]:
                 }
     except Exception as e:
         logger.warn("error in stream", exc_info=True)
-        status_code, message = _get_status_code_and_message(e)
-        data = orjson.dumps({"status_code": status_code, "message": message}).decode()
-        yield {"event": "error", "data": data}
+        yield _get_error_event(e)
 
     # Send an end event to signal the end of the stream
     yield {"event": "end"}
