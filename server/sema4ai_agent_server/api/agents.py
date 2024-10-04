@@ -34,9 +34,9 @@ from sema4ai_agent_server.schema import (
     ActionServerNotConfigured,
     Agent,
     AgentArchitecture,
+    AgentMetrics,
     AgentNotReadyIssues,
     AgentPayload,
-    AgentStats,
     AgentStatus,
     EmbeddingFileFailed,
     EmbeddingFileInProgress,
@@ -569,8 +569,8 @@ async def update_action_server_config(
 
 
 @router.get(
-    "/{aid}/stats",
-    response_model=AgentStats,
+    "/{aid}/metrics",
+    response_model=AgentMetrics,
     response_class=PydanticResponse,
 )
 async def get_agent_stats(
@@ -595,7 +595,7 @@ async def get_agent_stats(
         files_count += len(thread_files)
 
     return PydanticResponse(
-        AgentStats(
+        AgentMetrics(
             threads_count=threads_count,
             messages_count=messages_count,
             files_count=files_count,
