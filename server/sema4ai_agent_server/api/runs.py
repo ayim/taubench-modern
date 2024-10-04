@@ -24,7 +24,7 @@ langsmith_client = langsmith.client.Client() if tracing_is_enabled() else None
 if otel_is_enabled():
     meter = metrics.get_meter(__name__)
     run_counter = meter.create_counter(
-        name="sema4ai.agent_server.run_counter",
+        name="sema4ai.agent_server.runs",
         description="Number of runs created",
     )
 
