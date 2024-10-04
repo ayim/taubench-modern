@@ -33,7 +33,7 @@ ThreadID = Annotated[str, Path(description="The ID of the thread.")]
 if otel_is_enabled():
     meter = metrics.get_meter(__name__)
     thread_counter = meter.create_counter(
-        name="sema4ai.agent_server.thread_counter",
+        name="sema4ai.agent_server.threads",
         description="Number of threads created",
     )
 
