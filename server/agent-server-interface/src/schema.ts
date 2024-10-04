@@ -221,6 +221,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/agents/{aid}/metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Agent Stats
+         * @description return no of threads, messages and files count for the agent
+         */
+        get: operations["get_agent_stats_api_v1_agents__aid__metrics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/runs/async_invoke": {
         parameters: {
             query?: never;
@@ -747,6 +767,24 @@ export interface components {
              * @description Question groups for the agent.
              */
             question_groups?: components["schemas"]["QuestionGroup"][];
+        };
+        /** AgentMetrics */
+        AgentMetrics: {
+            /**
+             * Threads Count
+             * @description Number of threads of the agent.
+             */
+            threads_count: number;
+            /**
+             * Messages Count
+             * @description Number of messages in all threads of the agent.
+             */
+            messages_count: number;
+            /**
+             * Files Count
+             * @description Number of files for the agent and agent threads.
+             */
+            files_count: number;
         };
         /**
          * AgentMode
@@ -2141,6 +2179,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": Record<string, never>;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_agent_stats_api_v1_agents__aid__metrics_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the agent. */
+                aid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentMetrics"];
                 };
             };
             /** @description Validation Error */
