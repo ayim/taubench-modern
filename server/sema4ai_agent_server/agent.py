@@ -95,7 +95,7 @@ class ConfigurableAgent(RunnableBinding):
         dynamic_headers = (
             {
                 "x-invoked_by_assistant_id": agent_id,
-                "x-invoked_on_behalf_of_user_id": user.user_id,
+                "x-invoked_on_behalf_of_user_id": user.cr_user_id,
                 "x-invoked_for_thread_id": thread_id,
             }
             if agent_id and user and thread_id
@@ -164,7 +164,7 @@ class ConfigurablePlanExecute(RunnableBinding):
         dynamic_headers = (
             {
                 "x-invoked_by_assistant_id": agent_id,
-                "x-invoked_on_behalf_of_user_id": user.user_id,
+                "x-invoked_on_behalf_of_user_id": user.cr_user_id,
                 "x-invoked_for_thread_id": thread_id,
             }
             if agent_id and user and thread_id
@@ -232,7 +232,7 @@ class ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(RunnableBin
         dynamic_headers = (
             {
                 "x-invoked_by_assistant_id": agent_id,
-                "x-invoked_on_behalf_of_user_id": user.user_id,
+                "x-invoked_on_behalf_of_user_id": user.cr_user_id,
                 "x-invoked_for_thread_id": thread_id,
             }
             if agent_id and user and thread_id
