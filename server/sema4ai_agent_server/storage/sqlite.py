@@ -614,3 +614,19 @@ class SqliteStorage(BaseStorage):
             cursor.execute("SELECT status FROM async_runs WHERE id = ? ", (run_id,))
             row = cursor.fetchone()
             return row["status"] if row else None
+
+    async def list_agent_threads(self, agent_id: str) -> List[Thread]:
+        """List all threads for the current agent."""
+        with self._connect() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT t.* 
+                FROM thread t
+                WHERE t.agent_id = ?
+                """,
+                (agent_id,),
+            )
+            rows = cursor.fetchall()
+
+            return THREAD_LIST_ADAPTER.validate_python([dict(row) for row in rows])

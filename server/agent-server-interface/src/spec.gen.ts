@@ -6,7 +6,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Sema4.ai Agent Server API",
-    "version": "1.0.4"
+    "version": "1.0.7"
   },
   "paths": {
     "/api/v1/ok": {
@@ -592,6 +592,51 @@
                 "schema": {
                   "type": "object",
                   "title": "Response Update Action Server Config Api V1 Agents  Aid  Action Server Config Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agents/{aid}/metrics": {
+      "get": {
+        "tags": [
+          "agents"
+        ],
+        "summary": "Get Agent Stats",
+        "description": "return no of threads, messages and files count for the agent",
+        "operationId": "get_agent_stats_api_v1_agents__aid__metrics_get",
+        "parameters": [
+          {
+            "name": "aid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The ID of the agent.",
+              "title": "Aid"
+            },
+            "description": "The ID of the agent."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentMetrics"
                 }
               }
             }
@@ -1788,6 +1833,32 @@
         "title": "AgentMetadata",
         "description": "Metadata for the agent."
       },
+      "AgentMetrics": {
+        "properties": {
+          "threads_count": {
+            "type": "integer",
+            "title": "Threads Count",
+            "description": "Number of threads of the agent."
+          },
+          "messages_count": {
+            "type": "integer",
+            "title": "Messages Count",
+            "description": "Number of messages in all threads of the agent."
+          },
+          "files_count": {
+            "type": "integer",
+            "title": "Files Count",
+            "description": "Number of files for the agent and agent threads."
+          }
+        },
+        "type": "object",
+        "required": [
+          "threads_count",
+          "messages_count",
+          "files_count"
+        ],
+        "title": "AgentMetrics"
+      },
       "AgentMode": {
         "type": "string",
         "enum": [
@@ -1997,8 +2068,10 @@
           },
           "api_key": {
             "type": "string",
+            "format": "password",
             "title": "Api Key",
-            "description": "The API key of action server."
+            "description": "The API key of action server.",
+            "writeOnly": true
           }
         },
         "type": "object",

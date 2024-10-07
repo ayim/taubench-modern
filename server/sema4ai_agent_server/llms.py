@@ -32,6 +32,13 @@ class ContextStats(BaseModel):
     tokens_per_message: dict[str, int]
 
 
+def get_context_summary(stats: ContextStats) -> dict[str, int]:
+    return {
+        "context_window_size": stats.context_window_size,
+        "total_tokens": sum(stats.tokens_per_message.values()),
+    }
+
+
 def get_context_stats(model: MODEL, thread_state: dict) -> ContextStats:
     if model.provider not in (LLMProvider.OPENAI, LLMProvider.AZURE):
         raise ValueError(f"Unsupported model provider: {model.provider}")
