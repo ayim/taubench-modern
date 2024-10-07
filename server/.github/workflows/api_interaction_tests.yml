@@ -116,7 +116,7 @@ jobs:
       run: |
         poetry run uvicorn sema4ai_agent_server.server:app --host 0.0.0.0 --port 8100 &
         if [ "$RUNNER_OS" == "Windows" ]; then
-          sleep 20
+          sleep 25
         else
           sleep 10
         fi  # Give the server some time to start
