@@ -35,6 +35,8 @@ def _run_counter_attrs(
     return {
         "agentId": agent.id,
         "threadId": thread.thread_id,
+        "provider": agent.model.provider,
+        "model": agent.model.name,
         # NoneType fails to be encoded so we use "None" instead
         "userId": user.cr_user_id if user.cr_user_id else "None",
         "systemId": user.cr_system_id if user.cr_system_id else "None",
