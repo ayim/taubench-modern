@@ -23,6 +23,7 @@ from sema4ai_agent_server.schema import (
     AzureGPT,
     OpenAIGPT,
     dummy_model,
+    User,
 )
 from sema4ai_agent_server.storage.checkpoint import get_checkpointer
 from sema4ai_agent_server.tools import (
@@ -68,7 +69,7 @@ class ConfigurableAgent(RunnableBinding):
     interrupt_before_action: bool = False
     agent_id: Optional[str] = None
     thread_id: Optional[str] = None
-    user_id: Optional[str] = None
+    user: Optional[User] = None
     reasoning_level: AgentReasoning = AgentReasoning.DISABLED
     knowledge_files: Optional[List[str]] = None
 
@@ -82,7 +83,7 @@ class ConfigurableAgent(RunnableBinding):
         runbook: str = DEFAULT_RUNBOOK,
         agent_id: Optional[str] = None,
         thread_id: Optional[str] = None,
-        user_id: Optional[str] = None,
+        user: Optional[User] = None,
         interrupt_before_action: bool = False,
         reasoning_level: AgentReasoning = AgentReasoning.DISABLED,
         knowledge_files: Optional[List[str]] = None,
@@ -94,10 +95,10 @@ class ConfigurableAgent(RunnableBinding):
         dynamic_headers = (
             {
                 "x-invoked_by_assistant_id": agent_id,
-                "x-invoked_on_behalf_of_user_id": user_id,
+                "x-invoked_on_behalf_of_user_id": user.cr_user_id,
                 "x-invoked_for_thread_id": thread_id,
             }
-            if agent_id and user_id and thread_id
+            if agent_id and user and thread_id
             else {}
         )
         tools = []
@@ -139,7 +140,7 @@ class ConfigurablePlanExecute(RunnableBinding):
     interrupt_before_action: bool = False
     agent_id: Optional[str] = None
     thread_id: Optional[str] = None
-    user_id: Optional[str] = None
+    user: Optional[User] = None
     reasoning_level: AgentReasoning = AgentReasoning.DISABLED
 
     def __init__(
@@ -152,7 +153,7 @@ class ConfigurablePlanExecute(RunnableBinding):
         runbook: str = DEFAULT_RUNBOOK,
         agent_id: Optional[str] = None,
         thread_id: Optional[str] = None,
-        user_id: Optional[str] = None,
+        user: Optional[User] = None,
         interrupt_before_action: bool = False,
         reasoning_level: AgentReasoning = AgentReasoning.DISABLED,
         kwargs: Optional[Mapping[str, Any]] = None,
@@ -163,10 +164,10 @@ class ConfigurablePlanExecute(RunnableBinding):
         dynamic_headers = (
             {
                 "x-invoked_by_assistant_id": agent_id,
-                "x-invoked_on_behalf_of_user_id": user_id,
+                "x-invoked_on_behalf_of_user_id": user.cr_user_id,
                 "x-invoked_for_thread_id": thread_id,
             }
-            if agent_id and user_id and thread_id
+            if agent_id and user and thread_id
             else {}
         )
         tools = []
@@ -210,7 +211,7 @@ class ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(RunnableBin
     interrupt_before_action: bool = False
     agent_id: Optional[str] = None
     thread_id: Optional[str] = None
-    user_id: Optional[str] = None
+    user: Optional[User] = None
 
     def __init__(
         self,
@@ -221,7 +222,7 @@ class ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(RunnableBin
         runbook: str = DEFAULT_RUNBOOK,
         agent_id: Optional[str] = None,
         thread_id: Optional[str] = None,
-        user_id: Optional[str] = None,
+        user: Optional[User] = None,
         interrupt_before_action: bool = False,
         kwargs: Optional[Mapping[str, Any]] = None,
         config: Optional[Mapping[str, Any]] = None,
@@ -231,10 +232,10 @@ class ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(RunnableBin
         dynamic_headers = (
             {
                 "x-invoked_by_assistant_id": agent_id,
-                "x-invoked_on_behalf_of_user_id": user_id,
+                "x-invoked_on_behalf_of_user_id": user.cr_user_id,
                 "x-invoked_for_thread_id": thread_id,
             }
-            if agent_id and user_id and thread_id
+            if agent_id and user and thread_id
             else {}
         )
         tools = []
@@ -273,7 +274,7 @@ plan_execute = (
         runbook=DEFAULT_RUNBOOK,
         agent_id=None,
         thread_id=None,
-        user_id=None,
+        user=None,
         reasoning_level=AgentReasoning.DISABLED,
     )
     .configurable_fields(
@@ -287,7 +288,7 @@ plan_execute = (
         ),
         agent_id=ConfigurableField(id="agent_id", name="Agent ID", is_shared=True),
         thread_id=ConfigurableField(id="thread_id", name="Thread ID", is_shared=True),
-        user_id=ConfigurableField(id="user_id", name="User ID", is_shared=True),
+        user=ConfigurableField(id="user", name="User", is_shared=True),
         action_packages=ConfigurableField(id="action_packages", name="Action Packages"),
         use_retrieval=ConfigurableField(id="use_retrieval", name="Use Retrieval"),
         reasoning_level=ConfigurableField(
@@ -307,7 +308,7 @@ multi_agent_hierarchical_planning = (
         runbook=DEFAULT_RUNBOOK,
         agent_id=None,
         thread_id=None,
-        user_id=None,
+        user=None,
     )
     .configurable_fields(
         model=ConfigurableField(id="model", name="Model"),
@@ -319,7 +320,7 @@ multi_agent_hierarchical_planning = (
         ),
         agent_id=ConfigurableField(id="agent_id", name="Agent ID", is_shared=True),
         thread_id=ConfigurableField(id="thread_id", name="Thread ID", is_shared=True),
-        user_id=ConfigurableField(id="user_id", name="User ID", is_shared=True),
+        user=ConfigurableField(id="user", name="User", is_shared=True),
         action_packages=ConfigurableField(id="action_packages", name="Action Packages"),
         use_retrieval=ConfigurableField(id="use_retrieval", name="Use Retrieval"),
     )
@@ -358,7 +359,7 @@ runnable_agent: Pregel = (
         runbook=DEFAULT_RUNBOOK,
         agent_id=None,
         thread_id=None,
-        user_id=None,
+        user=None,
         reasoning_level=AgentReasoning.DISABLED,
         knowledge_files=None,
     )
@@ -373,7 +374,7 @@ runnable_agent: Pregel = (
         ),
         agent_id=ConfigurableField(id="agent_id", name="Agent ID", is_shared=True),
         thread_id=ConfigurableField(id="thread_id", name="Thread ID", is_shared=True),
-        user_id=ConfigurableField(id="user_id", name="User ID", is_shared=True),
+        user=ConfigurableField(id="user", name="User", is_shared=True),
         action_packages=ConfigurableField(id="action_packages", name="Action Packages"),
         use_retrieval=ConfigurableField(id="use_retrieval", name="Use Retrieval"),
         reasoning_level=ConfigurableField(
@@ -395,18 +396,3 @@ runnable_agent: Pregel = (
     )
     .with_types(input_type=Messages, output_type=Sequence[AnyMessage])
 )
-
-if __name__ == "__main__":
-    import asyncio
-
-    from langchain.schema.messages import HumanMessage
-
-    async def run():
-        async for m in runnable_agent.astream_events(
-            HumanMessage(content="whats your name"),
-            config={"configurable": {"user_id": "2", "thread_id": "test1"}},
-            version="v1",
-        ):
-            print(m)
-
-    asyncio.run(run())

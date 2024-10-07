@@ -11,7 +11,11 @@ from sema4ai_agent_server.api.files import _add_uploaded_messages
 from sema4ai_agent_server.auth.handlers import AuthedUser
 from sema4ai_agent_server.file_manager.base import RemoteFileUploadData
 from sema4ai_agent_server.file_manager.option import get_file_manager
-from sema4ai_agent_server.llms import ContextStats, get_context_stats
+from sema4ai_agent_server.llms import (
+    ContextStats,
+    get_context_stats,
+    get_context_summary,
+)
 from sema4ai_agent_server.message_types import AIMessage, AnyNonChunkMessage
 from sema4ai_agent_server.otel import otel_is_enabled
 from sema4ai_agent_server.responses import PydanticResponse, TypeAdapterResponse
@@ -33,8 +37,18 @@ ThreadID = Annotated[str, Path(description="The ID of the thread.")]
 if otel_is_enabled():
     meter = metrics.get_meter(__name__)
     thread_counter = meter.create_counter(
-        name="sema4ai.agent_server.thread_counter",
+        name="sema4ai.agent_server.threads",
         description="Number of threads created",
+    )
+    token_counter = meter.create_up_down_counter(
+        name="sema4ai.agent_server.tokens",
+        description="Total number of tokens in the thread",
+        unit="1",
+    )
+    message_counter = meter.create_up_down_counter(
+        name="sema4ai.agent_server.messages",
+        description="Total number of messages in the thread",
+        unit="1",
     )
 
 
@@ -100,6 +114,31 @@ async def get_thread_state(
     state = await get_storage().get_thread_state(tid)
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
+    if otel_is_enabled():
+        agent = await get_storage().get_agent(user.user_id, thread.agent_id)
+        stats = get_context_stats(agent.model, state)
+        summary = get_context_summary(stats)
+        attributes = {
+            "agent_id": thread.agent_id,
+            "thread_id": thread.thread_id,
+            "llm.provider": agent.model.provider,
+            "llm.model": agent.model.name,
+            # NoneType fails to be encoded so we use "None" instead
+            "user_id": user.cr_user_id if user.cr_user_id else "None",
+            "system_id": user.cr_system_id if user.cr_system_id else "None",
+        }
+        message_counter.add(
+            len(stats.tokens_per_message),
+            attributes,
+        )
+
+        token_attributes = {key: value for key, value in attributes.items()}
+        token_attributes["context_window_size"] = summary["context_window_size"]
+        token_counter.add(
+            summary["total_tokens"],
+            token_attributes,
+        )
+
     return state
 
 
@@ -169,11 +208,11 @@ async def create_thread(
         thread_counter.add(
             1,
             {
-                "agentId": thread.agent_id,
-                "threadId": thread.thread_id,
+                "agent_id": thread.agent_id,
+                "thread_id": thread.thread_id,
                 # NoneType fails to be encoded so we use "None" instead
-                "userId": user.cr_user_id if user.cr_user_id else "None",
-                "systemId": user.cr_system_id if user.cr_system_id else "None",
+                "user_id": user.cr_user_id if user.cr_user_id else "None",
+                "system_id": user.cr_system_id if user.cr_system_id else "None",
             },
         )
 

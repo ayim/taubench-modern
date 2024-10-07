@@ -213,3 +213,8 @@ class BaseStorage(ABC):
     @abstractmethod
     async def get_async_run_status(self, run_id: str) -> Optional[str]:
         pass
+
+    @abstractmethod
+    async def list_agent_threads(self, agent_id: str) -> List[Thread]:
+        """List all threads for the current agent."""
+        pass

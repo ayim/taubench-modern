@@ -14,7 +14,7 @@ from sema4ai_agent_server.langsmith_client import (
     save_langsmith_thread_url,
 )
 from sema4ai_agent_server.otel import otel_is_enabled
-from sema4ai_agent_server.schema import Agent, ChatRequest, Thread
+from sema4ai_agent_server.schema import Agent, ChatRequest, Thread, User
 from sema4ai_agent_server.storage.option import get_storage
 from sema4ai_agent_server.stream import astream_state, invoke_state, to_sse
 
@@ -24,7 +24,7 @@ langsmith_client = langsmith.client.Client() if tracing_is_enabled() else None
 if otel_is_enabled():
     meter = metrics.get_meter(__name__)
     run_counter = meter.create_counter(
-        name="sema4ai.agent_server.run_counter",
+        name="sema4ai.agent_server.runs",
         description="Number of runs created",
     )
 
@@ -33,21 +33,23 @@ def _run_counter_attrs(
     user: AuthedUser, thread: Thread, agent: Agent, type: str
 ) -> dict:
     return {
-        "agentId": agent.id,
-        "threadId": thread.thread_id,
+        "agent_id": agent.id,
+        "thread_id": thread.thread_id,
+        "llm.provider": agent.model.provider,
+        "llm.model": agent.model.name,
         # NoneType fails to be encoded so we use "None" instead
-        "userId": user.cr_user_id if user.cr_user_id else "None",
-        "systemId": user.cr_system_id if user.cr_system_id else "None",
+        "user_id": user.cr_user_id if user.cr_user_id else "None",
+        "system_id": user.cr_system_id if user.cr_system_id else "None",
         "type": type,
     }
 
 
-async def _run_input_and_config(payload: ChatRequest, user_id: str):
-    thread = await get_storage().get_thread(user_id, payload.thread_id)
+async def _run_input_and_config(payload: ChatRequest, user: User):
+    thread = await get_storage().get_thread(user.user_id, payload.thread_id)
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
 
-    agent = await get_storage().get_agent(user_id, str(thread.agent_id))
+    agent = await get_storage().get_agent(user.user_id, str(thread.agent_id))
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
 
@@ -63,7 +65,7 @@ async def _run_input_and_config(payload: ChatRequest, user_id: str):
 
     config: RunnableConfig = {
         "configurable": {
-            "user_id": user_id,
+            "user": user,
             "thread_id": thread.thread_id,
             "agent_id": agent.id,
             "name": agent.name,
@@ -94,7 +96,7 @@ async def create_run(
     background_tasks: BackgroundTasks,
 ):
     """Create a run."""
-    input_, config, thread, agent = await _run_input_and_config(payload, user.user_id)
+    input_, config, thread, agent = await _run_input_and_config(payload, user)
     run_id = str(uuid.uuid4())
     input_["run_id"] = run_id
     await get_storage().create_async_run(run_id, "in_progress")
@@ -123,7 +125,7 @@ async def stream_run(
     """Create a run."""
     # TODO: Performance gains may be possible as part of implementing stream protocol v2.
     #       We should consider using StreamingResponse based on performance tests.
-    input_, config, thread, agent = await _run_input_and_config(payload, user.user_id)
+    input_, config, thread, agent = await _run_input_and_config(payload, user)
     if langsmith_client:
         if url := get_langsmith_thread_url(langsmith_client, thread.thread_id):
             await save_langsmith_thread_url(thread, url)
@@ -138,7 +140,7 @@ async def invoke_run(
     user: AuthedUser,
 ):
     """Create a run."""
-    input_, config, thread, agent = await _run_input_and_config(payload, user.user_id)
+    input_, config, thread, agent = await _run_input_and_config(payload, user)
     if langsmith_client:
         if url := get_langsmith_thread_url(langsmith_client, thread.thread_id):
             await save_langsmith_thread_url(thread, url)
