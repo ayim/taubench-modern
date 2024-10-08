@@ -8,7 +8,6 @@ from typing import (
     Union,
 )
 
-import orjson
 import structlog
 from langchain_core.messages import (
     AnyMessage,
@@ -18,18 +17,10 @@ from langchain_core.messages import (
     message_chunk_to_message,
 )
 from langchain_core.runnables import Runnable, RunnableConfig
-from langserve.serialization import WellKnownLCSerializer
-from openai import (
-    APIConnectionError,
-    APIResponseValidationError,
-    APIStatusError,
-)
-from pydantic import ValidationError
 
 from sema4ai_agent_server.message_types import ToolEventMessage
 from sema4ai_agent_server.schema import (
     AgentStreamEvent,
-    AgentStreamEventAdapter,
     StreamDataAdapter,
     StreamDataEvent,
     StreamEndEvent,
@@ -253,60 +244,12 @@ async def astream_state(
                 yield [messages[output_message.id]]
 
 
-_serializer = WellKnownLCSerializer()
-
-
-def _get_status_code_and_message(e: Exception) -> tuple[int | None, str]:
-    # TODO: As customized agent graphs come into play, we need to develop a unified error handling
-    # strategy that can handle errors from different sources and allows graph authors to customize
-    # error messages.
-    status_code, message = 500, "Internal Server Error"
-    if isinstance(e, APIStatusError):
-        status_code = e.status_code
-        message = (
-            e.response.json().get("error", {}).get("message", "Something went wrong.")
-        )
-    elif isinstance(e, APIConnectionError):
-        # No connection established, so no status code.
-        status_code = None
-        message = e.message
-    elif isinstance(e, APIResponseValidationError):
-        # Validation error by openai-python SDK (instead of OpenAI's API), so no status code.
-        status_code = None
-        message = e.message
-    return status_code, message
-
-
-def _get_error_event(e: Exception) -> dict:
-    if isinstance(e, ValidationError):
-        # Handle Pydantic validation errors
-        return {
-            "event": "error",
-            "data": {
-                "status_code": 500,
-                "message": orjson.loads((e.json(include_url=False))),
-            },
-        }
-    else:
-        # Handle general errors and OpenAI API errors
-        status_code, message = _get_status_code_and_message(e)
-        return {
-            "event": "error",
-            "data": orjson.dumps(
-                {"status_code": status_code, "message": message}
-            ).decode(),
-        }
-
-
 def _chunk_to_event(chunk: str | list[AnyMessage]) -> AgentStreamEvent:
     if isinstance(chunk, str):
         return StreamMetadataEvent(data=StreamMetadata(run_id=chunk))
     else:
-        return StreamDataEvent(
-            data=StreamDataAdapter.validate_python(
-                [message_chunk_to_message(msg) for msg in chunk]
-            )
-        )
+        messages = [message_chunk_to_message(msg) for msg in chunk]
+        return StreamDataEvent(data=StreamDataAdapter.validate_python(messages))
 
 
 def _error_to_event(e: Exception) -> AgentStreamEvent:
@@ -318,26 +261,11 @@ async def to_sse(messages_stream: MessagesStream) -> AsyncIterator[dict]:
     try:
         async for chunk in messages_stream:
             out_event = _chunk_to_event(chunk)
-            yield out_event.model_dump_json()
-            # EventSourceResponse expects a string for data
-            # so after serializing into bytes, we decode into utf-8
-            # to get a string.
-            # if isinstance(chunk, str):
-            #     yield {
-            #         "event": "metadata",
-            #         "data": orjson.dumps({"run_id": chunk}).decode(),
-            #     }
-            # else:
-            #     yield {
-            #         "event": "data",
-            #         "data": _serializer.dumps(
-            #             [message_chunk_to_message(msg) for msg in chunk]
-            #         ).decode(),
-            #     }
+            yield out_event.to_sse()
     except Exception as e:
         logger.warn("error in stream", exc_info=True)
         out_event = _error_to_event(e)
-        yield out_event.model_dump_json()
+        yield out_event.to_sse()
 
     # Send an end event to signal the end of the stream
-    yield StreamEndEvent().model_dump_json()
+    yield StreamEndEvent().to_sse()

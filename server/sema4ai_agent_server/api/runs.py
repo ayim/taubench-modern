@@ -130,13 +130,37 @@ async def get_run_status(rid: str):
     response_class=EventSourceResponse,
     responses={
         200: {
+            "description": "A stream of Server-Sent Events containing AgentStreamEvents.",
             "content": {
                 "text/event-stream": {
-                    "schema": AgentStreamEventAdapter.json_schema(),
-                },
+                    "schema": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/StreamMetadataEvent",
+                            },
+                            {
+                                "$ref": "#/components/schemas/StreamDataEvent",
+                            },
+                            {
+                                "$ref": "#/components/schemas/StreamErrorEvent",
+                            },
+                            {
+                                "$ref": "#/components/schemas/StreamEndEvent",
+                            },
+                        ],
+                        "discriminator": {
+                            "propertyName": "event",
+                            "mapping": {
+                                "metadata": "#/components/schemas/StreamMetadataEvent",
+                                "data": "#/components/schemas/StreamDataEvent",
+                                "error": "#/components/schemas/StreamErrorEvent",
+                                "end": "#/components/schemas/StreamEndEvent",
+                            },
+                        },
+                    },
+                }
             },
-            "description": "Stream of events.",
-        }
+        },
     },
 )
 async def stream_run(

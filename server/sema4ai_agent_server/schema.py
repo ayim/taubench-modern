@@ -34,8 +34,9 @@ from pydantic import (
 )
 from pydantic.functional_serializers import WrapSerializer
 from pydantic_core import ErrorDetails
+from sse_starlette import ServerSentEvent
 
-from sema4ai_agent_server.message_types import AnyNonChunkMessage
+from sema4ai_agent_server.message_types import AnyNonChunkStreamedMessage
 
 NOT_CONFIGURED = "SEMA4AI_FIELD_NOT_CONFIGURED"
 AZURE_URL_PATTERN = r"^(https?://[^/]+)/openai/deployments/([^/]+)/(chat/completions|embeddings)\?api-version=(.+)$"
@@ -682,7 +683,7 @@ class StreamMetadata(BaseModel):
     run_id: str = Field(description="The run ID.")
 
 
-StreamDataType = list[AnyNonChunkMessage]
+StreamDataType = list[AnyNonChunkStreamedMessage]
 StreamDataAdapter = TypeAdapter(StreamDataType)
 
 
@@ -727,12 +728,27 @@ class StreamErrorData(BaseModel):
 class BaseStreamEvent(BaseModel):
     """
     A stream event emitted by the agent server when streaming a
-    chat request. This model must be initialized with a raw chunk of data
-    emitted from the message stream.
+    chat request.
     """
 
-    event: str = Field(description="The event type.")
-    data: Any = Field(description="The event data.")
+    event: Literal["metadata", "data", "error", "end"] = Field(
+        description="The event type."
+    )
+    data: StreamMetadata | StreamDataType | StreamErrorData | None = Field(
+        description="The event data."
+    )
+
+    def to_sse(self) -> ServerSentEvent:
+        """
+        Converts the stream event into a ServerSentEvent instance.
+        """
+        if self.event == "data":
+            data = StreamDataAdapter.dump_json(self.data).decode()
+        elif self.event != "end":
+            data = self.data.model_dump_json()
+        else:
+            data = None
+        return ServerSentEvent(data=data, event=self.event)
 
 
 class StreamMetadataEvent(BaseStreamEvent):
