@@ -14,7 +14,7 @@ from langchain_core.callbacks.manager import CallbackManager
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
-from langchain_core.runnables import Runnable, RunnablePassthrough, RunnableConfig
+from langchain_core.runnables import Runnable, RunnableConfig, RunnablePassthrough
 from langchain_core.tools import BaseTool, StructuredTool, Tool
 from langchain_core.tracers.context import _tracing_v2_is_enabled
 from langsmith import Client

@@ -2,9 +2,9 @@ from abc import ABC, abstractmethod
 from uuid import UUID
 
 from langchain_chroma import Chroma
+from langchain_community.vectorstores import PGEmbedding
 from langchain_core.vectorstores import VectorStore
 from langchain_postgres import PGVector
-from langchain_community.vectorstores import PGEmbedding
 from sqlalchemy.orm import Session
 
 

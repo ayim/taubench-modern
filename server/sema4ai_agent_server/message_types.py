@@ -26,6 +26,8 @@ from langchain_core.messages import (
 )
 from langchain_core.messages.tool import (
     InvalidToolCall as LangChainInvalidToolCall,
+)
+from langchain_core.messages.tool import (
     ToolCall as LangChainToolCall,
 )
 from langchain_core.utils._merge import merge_dicts
