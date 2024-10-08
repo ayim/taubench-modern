@@ -33,13 +33,13 @@ def _run_counter_attrs(
     user: AuthedUser, thread: Thread, agent: Agent, type: str
 ) -> dict:
     return {
-        "agentId": agent.id,
-        "threadId": thread.thread_id,
-        "provider": agent.model.provider,
-        "model": agent.model.name,
+        "agent_id": agent.id,
+        "thread_id": thread.thread_id,
+        "llm.provider": agent.model.provider,
+        "llm.model": agent.model.name,
         # NoneType fails to be encoded so we use "None" instead
-        "userId": user.cr_user_id if user.cr_user_id else "None",
-        "systemId": user.cr_system_id if user.cr_system_id else "None",
+        "user_id": user.cr_user_id if user.cr_user_id else "None",
+        "system_id": user.cr_system_id if user.cr_system_id else "None",
         "type": type,
     }
 
