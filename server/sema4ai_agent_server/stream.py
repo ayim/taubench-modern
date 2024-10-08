@@ -27,6 +27,17 @@ from openai import (
 from pydantic import ValidationError
 
 from sema4ai_agent_server.message_types import ToolEventMessage
+from sema4ai_agent_server.schema import (
+    AgentStreamEvent,
+    AgentStreamEventAdapter,
+    StreamDataAdapter,
+    StreamDataEvent,
+    StreamEndEvent,
+    StreamErrorData,
+    StreamErrorEvent,
+    StreamMetadata,
+    StreamMetadataEvent,
+)
 from sema4ai_agent_server.structured_response_streamer import (
     StructuredResponseStreamerType,
     structured_response_streamer,
@@ -287,28 +298,46 @@ def _get_error_event(e: Exception) -> dict:
         }
 
 
+def _chunk_to_event(chunk: str | list[AnyMessage]) -> AgentStreamEvent:
+    if isinstance(chunk, str):
+        return StreamMetadataEvent(data=StreamMetadata(run_id=chunk))
+    else:
+        return StreamDataEvent(
+            data=StreamDataAdapter.validate_python(
+                [message_chunk_to_message(msg) for msg in chunk]
+            )
+        )
+
+
+def _error_to_event(e: Exception) -> AgentStreamEvent:
+    return StreamErrorEvent(data=StreamErrorData.from_error(e))
+
+
 async def to_sse(messages_stream: MessagesStream) -> AsyncIterator[dict]:
     """Consume the stream into an EventSourceResponse"""
     try:
         async for chunk in messages_stream:
+            out_event = _chunk_to_event(chunk)
+            yield out_event.model_dump_json()
             # EventSourceResponse expects a string for data
             # so after serializing into bytes, we decode into utf-8
             # to get a string.
-            if isinstance(chunk, str):
-                yield {
-                    "event": "metadata",
-                    "data": orjson.dumps({"run_id": chunk}).decode(),
-                }
-            else:
-                yield {
-                    "event": "data",
-                    "data": _serializer.dumps(
-                        [message_chunk_to_message(msg) for msg in chunk]
-                    ).decode(),
-                }
+            # if isinstance(chunk, str):
+            #     yield {
+            #         "event": "metadata",
+            #         "data": orjson.dumps({"run_id": chunk}).decode(),
+            #     }
+            # else:
+            #     yield {
+            #         "event": "data",
+            #         "data": _serializer.dumps(
+            #             [message_chunk_to_message(msg) for msg in chunk]
+            #         ).decode(),
+            #     }
     except Exception as e:
         logger.warn("error in stream", exc_info=True)
-        yield _get_error_event(e)
+        out_event = _error_to_event(e)
+        yield out_event.model_dump_json()
 
     # Send an end event to signal the end of the stream
-    yield {"event": "end"}
+    yield StreamEndEvent().model_dump_json()

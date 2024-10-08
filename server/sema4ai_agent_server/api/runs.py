@@ -14,7 +14,14 @@ from sema4ai_agent_server.langsmith_client import (
     save_langsmith_thread_url,
 )
 from sema4ai_agent_server.otel import otel_is_enabled
-from sema4ai_agent_server.schema import Agent, ChatRequest, Thread, User
+from sema4ai_agent_server.schema import (
+    Agent,
+    AgentStreamEvent,
+    AgentStreamEventAdapter,
+    ChatRequest,
+    Thread,
+    User,
+)
 from sema4ai_agent_server.storage.option import get_storage
 from sema4ai_agent_server.stream import astream_state, invoke_state, to_sse
 
@@ -117,11 +124,25 @@ async def get_run_status(rid: str):
     return {"run_id": rid, "status": status}
 
 
-@router.post("/stream")
+@router.post(
+    "/stream",
+    response_model=AgentStreamEvent,
+    response_class=EventSourceResponse,
+    responses={
+        200: {
+            "content": {
+                "text/event-stream": {
+                    "schema": AgentStreamEventAdapter.json_schema(),
+                },
+            },
+            "description": "Stream of events.",
+        }
+    },
+)
 async def stream_run(
     payload: ChatRequest,
     user: AuthedUser,
-) -> EventSourceResponse:
+):
     """Create a run."""
     # TODO: Performance gains may be possible as part of implementing stream protocol v2.
     #       We should consider using StreamingResponse based on performance tests.

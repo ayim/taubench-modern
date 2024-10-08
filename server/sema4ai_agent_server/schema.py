@@ -5,22 +5,37 @@ from functools import cached_property
 from typing import Annotated, Any, List, Literal, Self, Union
 from uuid import UUID
 
+from anthropic import APIError as AnthropiAPIError
+from boto3.exceptions import Boto3Error
+from botocore.exceptions import BotoCoreError
 from fastapi import UploadFile
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
+from langchain_core.messages import (
+    AIMessage,
+    HumanMessage,
+    SystemMessage,
+    ToolMessage,
+    message_chunk_to_message,
+)
+from openai import APIError as OpenaiAPIError
 from pydantic import (
     BaseModel,
     BeforeValidator,
     ConfigDict,
     Field,
+    PrivateAttr,
     SecretStr,
     SerializationInfo,
     SerializerFunctionWrapHandler,
     TypeAdapter,
+    ValidationError,
     ValidationInfo,
     field_validator,
     model_validator,
 )
 from pydantic.functional_serializers import WrapSerializer
+from pydantic_core import ErrorDetails
+
+from sema4ai_agent_server.message_types import AnyNonChunkMessage
 
 NOT_CONFIGURED = "SEMA4AI_FIELD_NOT_CONFIGURED"
 AZURE_URL_PATTERN = r"^(https?://[^/]+)/openai/deployments/([^/]+)/(chat/completions|embeddings)\?api-version=(.+)$"
@@ -657,3 +672,141 @@ class AgentMetrics(BaseModel):
     files_count: int = Field(
         description="Number of files for the agent and agent threads."
     )
+
+
+class StreamMetadata(BaseModel):
+    """
+    Metadata emitted by the agent server when streaming a chat request.
+    """
+
+    run_id: str = Field(description="The run ID.")
+
+
+StreamDataType = list[AnyNonChunkMessage]
+StreamDataAdapter = TypeAdapter(StreamDataType)
+
+
+class StreamErrorData(BaseModel):
+    """
+    Error data emitted by the agent server when streaming a chat request.
+    """
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    status_code: int = Field(description="The status code associated with the error.")
+    message: str | list[ErrorDetails] = Field(description="The error message.")
+    _exception: Exception = PrivateAttr()
+
+    @classmethod
+    def from_error(cls, error: Exception) -> Self:
+        """Converts the provided exception into a StreamErrorData instance."""
+        # TODO: Expand on for future custom error handling for custom graphs
+        if isinstance(
+            error, (OpenaiAPIError, AnthropiAPIError, Boto3Error, BotoCoreError)
+        ):
+            try:
+                return cls(
+                    status_code=error.status_code,
+                    message=error.json()
+                    .get("error", {})
+                    .get("message", "Something went wrong."),
+                    _exception=error,
+                )
+            except Exception:
+                # TODO: This might leak too much info
+                return cls(status_code=500, message=str(error), _exception=error)
+        if isinstance(error, ValidationError):
+            return cls(
+                status_code=500,
+                message=error.errors(include_url=False),
+                _exception=error,
+            )
+        return cls(status_code=500, message="Internal server error.", _exception=error)
+
+
+class BaseStreamEvent(BaseModel):
+    """
+    A stream event emitted by the agent server when streaming a
+    chat request. This model must be initialized with a raw chunk of data
+    emitted from the message stream.
+    """
+
+    event: str = Field(description="The event type.")
+    data: Any = Field(description="The event data.")
+
+
+class StreamMetadataEvent(BaseStreamEvent):
+    event: Literal["metadata"] = "metadata"
+    data: StreamMetadata
+
+
+class StreamDataEvent(BaseStreamEvent):
+    event: Literal["data"] = "data"
+    data: StreamDataType
+
+
+class StreamErrorEvent(BaseStreamEvent):
+    event: Literal["error"] = "error"
+    data: StreamErrorData
+
+
+class StreamEndEvent(BaseStreamEvent):
+    event: Literal["end"] = "end"
+    data: None = None
+
+
+AgentStreamEvent = Annotated[
+    StreamMetadataEvent | StreamDataEvent | StreamErrorEvent | StreamEndEvent,
+    Field(discriminator="event"),
+]
+AgentStreamEventAdapter = TypeAdapter(AgentStreamEvent)
+
+
+class OLDAgentStreamEvent(BaseModel):
+    """
+    A stream event emitted by the agent server when streaming a
+    chat request. This model must be initialized with a raw chunk of data
+    emitted from the message stream.
+    """
+
+    event: Literal["metadata", "data", "error", "end"] = Field(
+        description="The event type."
+    )
+    data: StreamMetadata | StreamDataType | StreamErrorData | None = Field(
+        description="The event data."
+    )
+
+    @classmethod
+    def from_chunk(cls, chunk: str) -> Self:
+        """
+        Converts a raw chunk of data emitted from the message stream into a
+        StreamEvent instance.
+        """
+        if isinstance(chunk, str):
+            return cls(event="metadata", data=StreamMetadata(run_id=chunk))
+        else:
+            return cls(
+                event="data",
+                data=StreamDataAdapter.validate_python(
+                    [message_chunk_to_message(msg) for msg in chunk]
+                ),
+            )
+
+    @classmethod
+    def from_error(cls, error: Exception) -> Self:
+        """
+        Converts an error into a stream event.
+        """
+        return cls(event="error", data=StreamErrorData.from_error(error))
+
+    @model_validator(mode="after")
+    def validate_event_type(self) -> Self:
+        if self.event == "data" and not isinstance(self.data, list):
+            raise ValueError("Data must be a list of messages.")
+        if self.event == "error" and not isinstance(self.data, StreamErrorData):
+            raise ValueError("Data must be a StreamErrorData instance.")
+        if self.event == "metadata" and not isinstance(self.data, StreamMetadata):
+            raise ValueError("Data must be a StreamMetadata instance.")
+        if self.event == "end" and self.data is not None:
+            raise ValueError("Data must be None for end events.")
+        return self
