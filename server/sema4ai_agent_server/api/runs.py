@@ -17,7 +17,6 @@ from sema4ai_agent_server.otel import otel_is_enabled
 from sema4ai_agent_server.schema import (
     Agent,
     AgentStreamEvent,
-    AgentStreamEventAdapter,
     ChatRequest,
     Thread,
     User,
