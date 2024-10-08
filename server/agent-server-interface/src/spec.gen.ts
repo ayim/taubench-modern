@@ -6,7 +6,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Sema4.ai Agent Server API",
-    "version": "1.0.7"
+    "version": "1.0.8"
   },
   "paths": {
     "/api/v1/ok": {
