@@ -1,4 +1,3 @@
-import pickle
 import sqlite3
 from contextlib import closing, contextmanager
 from typing import Any, Dict, Iterator, Sequence
@@ -14,6 +13,7 @@ from langgraph.checkpoint.base import (
     CheckpointTuple,
     get_checkpoint_id,
 )
+from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 
 from sema4ai_agent_server.constants import DOMAIN_DATABASE_PATH
 from sema4ai_agent_server.storage.utils import search_where
@@ -30,10 +30,10 @@ def _connect_sqlite():
 
 
 class SQLiteCheckpoint(BaseCheckpointSaver):
-    serde = None
+    serde = JsonPlusSerializer()
 
     def load_checkpoint(self, value: bytes) -> Checkpoint:
-        loaded: Checkpoint = pickle.loads(value)
+        loaded: Checkpoint = self.serde.loads(value)
         for key, value in loaded["channel_values"].items():
             if isinstance(value, list) and all(
                 isinstance(v, BaseMessage) for v in value
@@ -44,13 +44,13 @@ class SQLiteCheckpoint(BaseCheckpointSaver):
         return loaded
 
     def load_metadata(self, value: bytes | None) -> CheckpointMetadata | Dict:
-        return pickle.loads(value) if value is not None else {}
+        return self.serde.loads(value)
 
     def loads(self, data: bytes) -> Any:
-        return pickle.loads(data)
+        return self.serde.loads(data)
 
     def dumps(self, obj: Any) -> bytes:
-        return pickle.dumps(obj)
+        return self.serde.dumps(obj)
 
     @contextmanager
     def cursor(self, transaction: bool = True):
@@ -213,23 +213,6 @@ class SQLiteCheckpoint(BaseCheckpointSaver):
                             for task_id, channel, value in wcur
                         ],
                     )
-            cur.execute(
-                "SELECT thread_id, thread_ts, parent_ts, checkpoint FROM checkpoints WHERE thread_id = ? ORDER BY thread_ts DESC",
-                (config["configurable"]["thread_id"],),
-            )
-            for thread_id, thread_ts, parent_ts, value in cur:
-                yield CheckpointTuple(
-                    {"configurable": {"thread_id": thread_id, "thread_ts": thread_ts}},
-                    self.load_checkpoint(value),
-                    {
-                        "configurable": {
-                            "thread_id": thread_id,
-                            "thread_ts": parent_ts,
-                        }
-                    }
-                    if parent_ts
-                    else None,
-                )
 
     def put(
         self,

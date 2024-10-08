@@ -2,15 +2,13 @@ import os
 from typing import Callable, Dict, Final
 
 from langgraph.checkpoint.base import BaseCheckpointSaver
+from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 
 
 def get_postgres_checkpointer() -> BaseCheckpointSaver:
-    from sema4ai_agent_server.storage.postgres_checkpointer import (
-        PicklePostgresSerializer,
-        PostgresCheckpointer,
-    )
+    from sema4ai_agent_server.storage.postgres_checkpointer import PostgresCheckpointer
 
-    return PostgresCheckpointer(serializer=PicklePostgresSerializer())
+    return PostgresCheckpointer(serializer=JsonPlusSerializer())
 
 
 def get_sqlite_checkpointer() -> BaseCheckpointSaver:
