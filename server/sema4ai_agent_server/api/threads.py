@@ -40,13 +40,13 @@ if otel_is_enabled():
         name="sema4ai.agent_server.threads",
         description="Number of threads created",
     )
-    token_guage = meter.create_gauge(
-        name="sema4ai.agent_server.token_count",
+    token_counter = meter.create_up_down_counter(
+        name="sema4ai.agent_server.tokens",
         description="Total number of tokens in the thread",
         unit="1",
     )
-    message_guage = meter.create_gauge(
-        name="sema4ai.agent_server.message_count",
+    message_counter = meter.create_up_down_counter(
+        name="sema4ai.agent_server.messages",
         description="Total number of messages in the thread",
         unit="1",
     )
@@ -119,22 +119,22 @@ async def get_thread_state(
         stats = get_context_stats(agent.model, state)
         summary = get_context_summary(stats)
         attributes = {
-            "agentId": thread.agent_id,
-            "threadId": thread.thread_id,
-            "provider": agent.model.provider,
-            "model": agent.model.name,
+            "agent_id": thread.agent_id,
+            "thread_id": thread.thread_id,
+            "llm.provider": agent.model.provider,
+            "llm.model": agent.model.name,
             # NoneType fails to be encoded so we use "None" instead
-            "userId": user.cr_user_id if user.cr_user_id else "None",
-            "systemId": user.cr_system_id if user.cr_system_id else "None",
+            "user_id": user.cr_user_id if user.cr_user_id else "None",
+            "system_id": user.cr_system_id if user.cr_system_id else "None",
         }
-        message_guage.set(
+        message_counter.add(
             len(stats.tokens_per_message),
             attributes,
         )
 
         token_attributes = {key: value for key, value in attributes.items()}
-        token_attributes["contextWindowSize"] = summary["context_window_size"]
-        token_guage.set(
+        token_attributes["context_window_size"] = summary["context_window_size"]
+        token_counter.add(
             summary["total_tokens"],
             token_attributes,
         )
@@ -208,11 +208,11 @@ async def create_thread(
         thread_counter.add(
             1,
             {
-                "agentId": thread.agent_id,
-                "threadId": thread.thread_id,
+                "agent_id": thread.agent_id,
+                "thread_id": thread.thread_id,
                 # NoneType fails to be encoded so we use "None" instead
-                "userId": user.cr_user_id if user.cr_user_id else "None",
-                "systemId": user.cr_system_id if user.cr_system_id else "None",
+                "user_id": user.cr_user_id if user.cr_user_id else "None",
+                "system_id": user.cr_system_id if user.cr_system_id else "None",
             },
         )
 
