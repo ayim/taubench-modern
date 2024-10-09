@@ -561,59 +561,6 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /**
-         * AIMessage
-         * @description Message from an AI.
-         *
-         *     AIMessage is returned from a chat model as a response to a prompt.
-         *
-         *     This message represents the output of the model and consists of both
-         *     the raw output as returned by the model together standardized fields
-         *     (e.g., tool calls, usage metadata) added by the LangChain framework.
-         */
-        AIMessage: {
-            /** Content */
-            content: string | (string | Record<string, never>)[];
-            /** Additional Kwargs */
-            additional_kwargs?: Record<string, never>;
-            /** Response Metadata */
-            response_metadata?: Record<string, never>;
-            /**
-             * Type
-             * @default ai
-             * @constant
-             * @enum {string}
-             */
-            type: "ai";
-            /**
-             * Name
-             * @default
-             */
-            name: string;
-            /**
-             * Id
-             * @default
-             */
-            id: string;
-            /**
-             * Example
-             * @default false
-             */
-            example: boolean;
-            /**
-             * Tool Calls
-             * @default []
-             */
-            tool_calls: components["schemas"]["ToolCall"][];
-            /**
-             * Invalid Tool Calls
-             * @default []
-             */
-            invalid_tool_calls: components["schemas"]["InvalidToolCall"][];
-            usage_metadata?: components["schemas"]["UsageMetadata"] | null;
-        } & {
-            [key: string]: unknown;
-        };
-        /**
          * ActionPackage
          * @description Action Package Definition.
          */
@@ -1114,48 +1061,23 @@ export interface components {
          * @enum {string}
          */
         EmbeddingStatus: "pending" | "in_progress" | "success" | "failure";
+        /** ErrorDetails */
+        ErrorDetails: {
+            /** Type */
+            type: string;
+            /** Loc */
+            loc: (number | string)[];
+            /** Msg */
+            msg: string;
+            /** Input */
+            input: unknown;
+            /** Ctx */
+            ctx?: Record<string, never>;
+        };
         /** FileByRefResponse */
         FileByRefResponse: {
             /** File Url */
             file_url: string;
-        };
-        /**
-         * FunctionMessage
-         * @description Message for passing the result of executing a tool back to a model.
-         *
-         *     FunctionMessage are an older version of the ToolMessage schema, and
-         *     do not contain the tool_call_id field.
-         *
-         *     The tool_call_id field is used to associate the tool call request with the
-         *     tool call response. This is useful in situations where a chat model is able
-         *     to request multiple tool calls in parallel.
-         */
-        FunctionMessage: {
-            /** Content */
-            content: string | (string | Record<string, never>)[];
-            /** Additional Kwargs */
-            additional_kwargs?: Record<string, never>;
-            /** Response Metadata */
-            response_metadata?: Record<string, never>;
-            /**
-             * Type
-             * @default function
-             * @constant
-             * @enum {string}
-             */
-            type: "function";
-            /**
-             * Name
-             * @default
-             */
-            name: string;
-            /**
-             * Id
-             * @default
-             */
-            id: string;
-        } & {
-            [key: string]: unknown;
         };
         /** GoogleGemini */
         GoogleGemini: {
@@ -1193,80 +1115,6 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
-        };
-        /**
-         * HumanMessage
-         * @description Message from a human.
-         *
-         *     HumanMessages are messages that are passed in from a human to the model.
-         *
-         *     Example:
-         *
-         *         .. code-block:: python
-         *
-         *             from langchain_core.messages import HumanMessage, SystemMessage
-         *
-         *             messages = [
-         *                 SystemMessage(
-         *                     content="You are a helpful assistant! Your name is Bob."
-         *                 ),
-         *                 HumanMessage(
-         *                     content="What is your name?"
-         *                 )
-         *             ]
-         *
-         *             # Instantiate a chat model and invoke it with the messages
-         *             model = ...
-         *             print(model.invoke(messages))
-         */
-        HumanMessage: {
-            /** Content */
-            content: string | (string | Record<string, never>)[];
-            /** Additional Kwargs */
-            additional_kwargs?: Record<string, never>;
-            /** Response Metadata */
-            response_metadata?: Record<string, never>;
-            /**
-             * Type
-             * @default human
-             * @constant
-             * @enum {string}
-             */
-            type: "human";
-            /**
-             * Name
-             * @default
-             */
-            name: string;
-            /**
-             * Id
-             * @default
-             */
-            id: string;
-            /**
-             * Example
-             * @default false
-             */
-            example: boolean;
-        } & {
-            [key: string]: unknown;
-        };
-        /** InvalidToolCall */
-        InvalidToolCall: {
-            /** Name */
-            name: string | null;
-            /** Args */
-            args: string | null;
-            /** Id */
-            id: string;
-            /** Error */
-            error: string | null;
-            /**
-             * Type
-             * @constant
-             * @enum {string}
-             */
-            type?: "invalid_tool_call";
         };
         /** ModelNotConfigured */
         ModelNotConfigured: {
@@ -1371,57 +1219,70 @@ export interface components {
             /** File Name */
             file_name: string;
         };
-        /**
-         * SystemMessage
-         * @description Message for priming AI behavior.
-         *
-         *     The system message is usually passed in as the first of a sequence
-         *     of input messages.
-         *
-         *     Example:
-         *
-         *         .. code-block:: python
-         *
-         *             from langchain_core.messages import HumanMessage, SystemMessage
-         *
-         *             messages = [
-         *                 SystemMessage(
-         *                     content="You are a helpful assistant! Your name is Bob."
-         *                 ),
-         *                 HumanMessage(
-         *                     content="What is your name?"
-         *                 )
-         *             ]
-         *
-         *             # Define a chat model and invoke it with the messages
-         *             print(model.invoke(messages))
-         */
-        SystemMessage: {
-            /** Content */
-            content: string | (string | Record<string, never>)[];
-            /** Additional Kwargs */
-            additional_kwargs?: Record<string, never>;
-            /** Response Metadata */
-            response_metadata?: Record<string, never>;
+        /** StreamDataEvent */
+        StreamDataEvent: {
             /**
-             * Type
-             * @default system
-             * @constant
+             * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            type: "system";
+            event: "data";
+            /** Data */
+            data: (components["schemas"]["langchain_core__messages__ai__AIMessage"] | components["schemas"]["langchain_core__messages__human__HumanMessage"] | components["schemas"]["langchain_core__messages__chat__ChatMessage"] | components["schemas"]["langchain_core__messages__system__SystemMessage"] | components["schemas"]["langchain_core__messages__function__FunctionMessage"] | components["schemas"]["langchain_core__messages__tool__ToolMessage"] | components["schemas"]["ToolEventMessage"])[];
+        };
+        /** StreamEndEvent */
+        StreamEndEvent: {
             /**
-             * Name
-             * @default
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
              */
-            name: string;
+            event: "end";
+            /** Data */
+            data?: null;
+        };
+        /**
+         * StreamErrorData
+         * @description Error data emitted by the agent server when streaming a chat request.
+         */
+        StreamErrorData: {
             /**
-             * Id
-             * @default
+             * Status Code
+             * @description The status code associated with the error.
              */
-            id: string;
-        } & {
-            [key: string]: unknown;
+            status_code: number;
+            /**
+             * Message
+             * @description The error message.
+             */
+            message: string | components["schemas"]["ErrorDetails"][];
+        };
+        /** StreamErrorEvent */
+        StreamErrorEvent: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            event: "error";
+            data: components["schemas"]["StreamErrorData"];
+        };
+        /**
+         * StreamMetadata
+         * @description Metadata emitted by the agent server when streaming a chat request.
+         */
+        StreamMetadata: {
+            /**
+             * Run Id
+             * @description The run ID.
+             */
+            run_id: string;
+        };
+        /** StreamMetadataEvent */
+        StreamMetadataEvent: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            event: "metadata";
+            data: components["schemas"]["StreamMetadata"];
         };
         /** Thread */
         Thread: {
@@ -1500,65 +1361,16 @@ export interface components {
          */
         ThreadStatePostRequest: {
             /** Values */
-            values: (components["schemas"]["AIMessage"] | components["schemas"]["HumanMessage"] | components["schemas"]["sema4ai_agent_server__message_types__ChatMessage"] | components["schemas"]["SystemMessage"] | components["schemas"]["FunctionMessage"] | components["schemas"]["ToolMessage"])[] | Record<string, never>;
-        };
-        /** ToolCall */
-        ToolCall: {
-            /** Name */
-            name: string;
-            /** Args */
-            args: Record<string, never>;
-            /** Id */
-            id: string;
-            /**
-             * Type
-             * @constant
-             * @enum {string}
-             */
-            type?: "tool_call";
+            values: (components["schemas"]["sema4ai_agent_server__message_types__AIMessage"] | components["schemas"]["sema4ai_agent_server__message_types__HumanMessage"] | components["schemas"]["sema4ai_agent_server__message_types__ChatMessage"] | components["schemas"]["sema4ai_agent_server__message_types__SystemMessage"] | components["schemas"]["sema4ai_agent_server__message_types__FunctionMessage"] | components["schemas"]["sema4ai_agent_server__message_types__ToolMessage"])[] | Record<string, never>;
         };
         /**
-         * ToolMessage
-         * @description Message for passing the result of executing a tool back to a model.
-         *
-         *     ToolMessages contain the result of a tool invocation. Typically, the result
-         *     is encoded inside the `content` field.
-         *
-         *     Example: A ToolMessage representing a result of 42 from a tool call with id
-         *
-         *         .. code-block:: python
-         *
-         *             from langchain_core.messages import ToolMessage
-         *
-         *             ToolMessage(content='42', tool_call_id='call_Jja7J89XsjrOLA5r!MEOW!SL')
-         *
-         *
-         *     Example: A ToolMessage where only part of the tool output is sent to the model
-         *         and the full output is passed in to artifact.
-         *
-         *         .. versionadded:: 0.2.17
-         *
-         *         .. code-block:: python
-         *
-         *             from langchain_core.messages import ToolMessage
-         *
-         *             tool_output = {
-         *                 "stdout": "From the graph we can see that the correlation between x and y is ...",
-         *                 "stderr": None,
-         *                 "artifacts": {"type": "image", "base64_data": "/9j/4gIcSU..."},
-         *             }
-         *
-         *             ToolMessage(
-         *                 content=tool_output["stdout"],
-         *                 artifact=tool_output,
-         *                 tool_call_id='call_Jja7J89XsjrOLA5r!MEOW!SL',
-         *             )
-         *
-         *     The tool_call_id field is used to associate the tool call request with the
-         *     tool call response. This is useful in situations where a chat model is able
-         *     to request multiple tool calls in parallel.
+         * ToolEventMessage
+         * @description Messages between the system/caller and a tool. This message may represent either
+         *     a call to a tool or the response, or both. The `run_id` field is used to track
+         *     the tool call and response. The `input` field is used to pass arguments to
+         *     the tool and the output is the response.
          */
-        ToolMessage: {
+        ToolEventMessage: {
             /** Content */
             content: string | (string | Record<string, never>)[];
             /** Additional Kwargs */
@@ -1567,31 +1379,21 @@ export interface components {
             response_metadata?: Record<string, never>;
             /**
              * Type
-             * @default tool
+             * @default tool_event
              * @constant
              * @enum {string}
              */
-            type: "tool";
-            /**
-             * Name
-             * @default
-             */
-            name: string;
-            /**
-             * Id
-             * @default
-             */
-            id: string;
+            type: "tool_event";
+            /** Name */
+            name?: string | null;
+            /** Id */
+            id?: string | null;
             /** Tool Call Id */
-            tool_call_id: string;
-            /** Artifact */
-            artifact?: unknown;
-            /**
-             * Status
-             * @default success
-             * @enum {string}
-             */
-            status: "success" | "error";
+            tool_call_id?: string | null;
+            /** Input */
+            input?: Record<string, never>;
+            /** Output */
+            output?: unknown;
         } & {
             [key: string]: unknown;
         };
@@ -1694,6 +1496,388 @@ export interface components {
          */
         WorkerType: "Document Intelligence";
         /**
+         * AIMessage
+         * @description Message from an AI.
+         *
+         *     AIMessage is returned from a chat model as a response to a prompt.
+         *
+         *     This message represents the output of the model and consists of both
+         *     the raw output as returned by the model together standardized fields
+         *     (e.g., tool calls, usage metadata) added by the LangChain framework.
+         */
+        langchain_core__messages__ai__AIMessage: {
+            /** Content */
+            content: string | (string | Record<string, never>)[];
+            /** Additional Kwargs */
+            additional_kwargs?: Record<string, never>;
+            /** Response Metadata */
+            response_metadata?: Record<string, never>;
+            /**
+             * Type
+             * @default ai
+             * @constant
+             * @enum {string}
+             */
+            type: "ai";
+            /** Name */
+            name?: string | null;
+            /** Id */
+            id?: string | null;
+            /**
+             * Example
+             * @default false
+             */
+            example: boolean;
+            /**
+             * Tool Calls
+             * @default []
+             */
+            tool_calls: components["schemas"]["langchain_core__messages__tool__ToolCall"][];
+            /**
+             * Invalid Tool Calls
+             * @default []
+             */
+            invalid_tool_calls: components["schemas"]["langchain_core__messages__tool__InvalidToolCall"][];
+            usage_metadata?: components["schemas"]["UsageMetadata"] | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * ChatMessage
+         * @description Message that can be assigned an arbitrary speaker (i.e. role).
+         */
+        langchain_core__messages__chat__ChatMessage: {
+            /** Content */
+            content: string | (string | Record<string, never>)[];
+            /** Additional Kwargs */
+            additional_kwargs?: Record<string, never>;
+            /** Response Metadata */
+            response_metadata?: Record<string, never>;
+            /**
+             * Type
+             * @default chat
+             * @constant
+             * @enum {string}
+             */
+            type: "chat";
+            /** Name */
+            name?: string | null;
+            /** Id */
+            id?: string | null;
+            /** Role */
+            role: string;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * FunctionMessage
+         * @description Message for passing the result of executing a tool back to a model.
+         *
+         *     FunctionMessage are an older version of the ToolMessage schema, and
+         *     do not contain the tool_call_id field.
+         *
+         *     The tool_call_id field is used to associate the tool call request with the
+         *     tool call response. This is useful in situations where a chat model is able
+         *     to request multiple tool calls in parallel.
+         */
+        langchain_core__messages__function__FunctionMessage: {
+            /** Content */
+            content: string | (string | Record<string, never>)[];
+            /** Additional Kwargs */
+            additional_kwargs?: Record<string, never>;
+            /** Response Metadata */
+            response_metadata?: Record<string, never>;
+            /**
+             * Type
+             * @default function
+             * @constant
+             * @enum {string}
+             */
+            type: "function";
+            /** Name */
+            name: string;
+            /** Id */
+            id?: string | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * HumanMessage
+         * @description Message from a human.
+         *
+         *     HumanMessages are messages that are passed in from a human to the model.
+         *
+         *     Example:
+         *
+         *         .. code-block:: python
+         *
+         *             from langchain_core.messages import HumanMessage, SystemMessage
+         *
+         *             messages = [
+         *                 SystemMessage(
+         *                     content="You are a helpful assistant! Your name is Bob."
+         *                 ),
+         *                 HumanMessage(
+         *                     content="What is your name?"
+         *                 )
+         *             ]
+         *
+         *             # Instantiate a chat model and invoke it with the messages
+         *             model = ...
+         *             print(model.invoke(messages))
+         */
+        langchain_core__messages__human__HumanMessage: {
+            /** Content */
+            content: string | (string | Record<string, never>)[];
+            /** Additional Kwargs */
+            additional_kwargs?: Record<string, never>;
+            /** Response Metadata */
+            response_metadata?: Record<string, never>;
+            /**
+             * Type
+             * @default human
+             * @constant
+             * @enum {string}
+             */
+            type: "human";
+            /** Name */
+            name?: string | null;
+            /** Id */
+            id?: string | null;
+            /**
+             * Example
+             * @default false
+             */
+            example: boolean;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * SystemMessage
+         * @description Message for priming AI behavior.
+         *
+         *     The system message is usually passed in as the first of a sequence
+         *     of input messages.
+         *
+         *     Example:
+         *
+         *         .. code-block:: python
+         *
+         *             from langchain_core.messages import HumanMessage, SystemMessage
+         *
+         *             messages = [
+         *                 SystemMessage(
+         *                     content="You are a helpful assistant! Your name is Bob."
+         *                 ),
+         *                 HumanMessage(
+         *                     content="What is your name?"
+         *                 )
+         *             ]
+         *
+         *             # Define a chat model and invoke it with the messages
+         *             print(model.invoke(messages))
+         */
+        langchain_core__messages__system__SystemMessage: {
+            /** Content */
+            content: string | (string | Record<string, never>)[];
+            /** Additional Kwargs */
+            additional_kwargs?: Record<string, never>;
+            /** Response Metadata */
+            response_metadata?: Record<string, never>;
+            /**
+             * Type
+             * @default system
+             * @constant
+             * @enum {string}
+             */
+            type: "system";
+            /** Name */
+            name?: string | null;
+            /** Id */
+            id?: string | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * InvalidToolCall
+         * @description Allowance for errors made by LLM.
+         *
+         *     Here we add an `error` key to surface errors made during generation
+         *     (e.g., invalid JSON arguments.)
+         */
+        langchain_core__messages__tool__InvalidToolCall: {
+            /** Name */
+            name: string | null;
+            /** Args */
+            args: string | null;
+            /** Id */
+            id: string | null;
+            /** Error */
+            error: string | null;
+            /**
+             * Type
+             * @constant
+             * @enum {string}
+             */
+            type?: "invalid_tool_call";
+        };
+        /**
+         * ToolCall
+         * @description Represents a request to call a tool.
+         *
+         *     Example:
+         *
+         *         .. code-block:: python
+         *
+         *             {
+         *                 "name": "foo",
+         *                 "args": {"a": 1},
+         *                 "id": "123"
+         *             }
+         *
+         *         This represents a request to call the tool named "foo" with arguments {"a": 1}
+         *         and an identifier of "123".
+         */
+        langchain_core__messages__tool__ToolCall: {
+            /** Name */
+            name: string;
+            /** Args */
+            args: Record<string, never>;
+            /** Id */
+            id: string | null;
+            /**
+             * Type
+             * @constant
+             * @enum {string}
+             */
+            type?: "tool_call";
+        };
+        /**
+         * ToolMessage
+         * @description Message for passing the result of executing a tool back to a model.
+         *
+         *     ToolMessages contain the result of a tool invocation. Typically, the result
+         *     is encoded inside the `content` field.
+         *
+         *     Example: A ToolMessage representing a result of 42 from a tool call with id
+         *
+         *         .. code-block:: python
+         *
+         *             from langchain_core.messages import ToolMessage
+         *
+         *             ToolMessage(content='42', tool_call_id='call_Jja7J89XsjrOLA5r!MEOW!SL')
+         *
+         *
+         *     Example: A ToolMessage where only part of the tool output is sent to the model
+         *         and the full output is passed in to artifact.
+         *
+         *         .. versionadded:: 0.2.17
+         *
+         *         .. code-block:: python
+         *
+         *             from langchain_core.messages import ToolMessage
+         *
+         *             tool_output = {
+         *                 "stdout": "From the graph we can see that the correlation between x and y is ...",
+         *                 "stderr": None,
+         *                 "artifacts": {"type": "image", "base64_data": "/9j/4gIcSU..."},
+         *             }
+         *
+         *             ToolMessage(
+         *                 content=tool_output["stdout"],
+         *                 artifact=tool_output,
+         *                 tool_call_id='call_Jja7J89XsjrOLA5r!MEOW!SL',
+         *             )
+         *
+         *     The tool_call_id field is used to associate the tool call request with the
+         *     tool call response. This is useful in situations where a chat model is able
+         *     to request multiple tool calls in parallel.
+         */
+        langchain_core__messages__tool__ToolMessage: {
+            /** Content */
+            content: string | (string | Record<string, never>)[];
+            /** Additional Kwargs */
+            additional_kwargs?: Record<string, never>;
+            /** Response Metadata */
+            response_metadata?: Record<string, never>;
+            /**
+             * Type
+             * @default tool
+             * @constant
+             * @enum {string}
+             */
+            type: "tool";
+            /** Name */
+            name?: string | null;
+            /** Id */
+            id?: string | null;
+            /** Tool Call Id */
+            tool_call_id: string;
+            /** Artifact */
+            artifact?: unknown;
+            /**
+             * Status
+             * @default success
+             * @enum {string}
+             */
+            status: "success" | "error";
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * AIMessage
+         * @description Message from an AI.
+         *
+         *     AIMessage is returned from a chat model as a response to a prompt.
+         *
+         *     This message represents the output of the model and consists of both
+         *     the raw output as returned by the model together standardized fields
+         *     (e.g., tool calls, usage metadata) added by the LangChain framework.
+         */
+        sema4ai_agent_server__message_types__AIMessage: {
+            /** Content */
+            content: string | (string | Record<string, never>)[];
+            /** Additional Kwargs */
+            additional_kwargs?: Record<string, never>;
+            /** Response Metadata */
+            response_metadata?: Record<string, never>;
+            /**
+             * Type
+             * @default ai
+             * @constant
+             * @enum {string}
+             */
+            type: "ai";
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /**
+             * Id
+             * @default
+             */
+            id: string;
+            /**
+             * Example
+             * @default false
+             */
+            example: boolean;
+            /**
+             * Tool Calls
+             * @default []
+             */
+            tool_calls: components["schemas"]["sema4ai_agent_server__message_types__ToolCall"][];
+            /**
+             * Invalid Tool Calls
+             * @default []
+             */
+            invalid_tool_calls: components["schemas"]["sema4ai_agent_server__message_types__InvalidToolCall"][];
+            usage_metadata?: components["schemas"]["UsageMetadata"] | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
          * ChatMessage
          * @description Message that can be assigned an arbitrary speaker (i.e. role).
          */
@@ -1723,6 +1907,263 @@ export interface components {
             id: string;
             /** Role */
             role: string;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * FunctionMessage
+         * @description Message for passing the result of executing a tool back to a model.
+         *
+         *     FunctionMessage are an older version of the ToolMessage schema, and
+         *     do not contain the tool_call_id field.
+         *
+         *     The tool_call_id field is used to associate the tool call request with the
+         *     tool call response. This is useful in situations where a chat model is able
+         *     to request multiple tool calls in parallel.
+         */
+        sema4ai_agent_server__message_types__FunctionMessage: {
+            /** Content */
+            content: string | (string | Record<string, never>)[];
+            /** Additional Kwargs */
+            additional_kwargs?: Record<string, never>;
+            /** Response Metadata */
+            response_metadata?: Record<string, never>;
+            /**
+             * Type
+             * @default function
+             * @constant
+             * @enum {string}
+             */
+            type: "function";
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /**
+             * Id
+             * @default
+             */
+            id: string;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * HumanMessage
+         * @description Message from a human.
+         *
+         *     HumanMessages are messages that are passed in from a human to the model.
+         *
+         *     Example:
+         *
+         *         .. code-block:: python
+         *
+         *             from langchain_core.messages import HumanMessage, SystemMessage
+         *
+         *             messages = [
+         *                 SystemMessage(
+         *                     content="You are a helpful assistant! Your name is Bob."
+         *                 ),
+         *                 HumanMessage(
+         *                     content="What is your name?"
+         *                 )
+         *             ]
+         *
+         *             # Instantiate a chat model and invoke it with the messages
+         *             model = ...
+         *             print(model.invoke(messages))
+         */
+        sema4ai_agent_server__message_types__HumanMessage: {
+            /** Content */
+            content: string | (string | Record<string, never>)[];
+            /** Additional Kwargs */
+            additional_kwargs?: Record<string, never>;
+            /** Response Metadata */
+            response_metadata?: Record<string, never>;
+            /**
+             * Type
+             * @default human
+             * @constant
+             * @enum {string}
+             */
+            type: "human";
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /**
+             * Id
+             * @default
+             */
+            id: string;
+            /**
+             * Example
+             * @default false
+             */
+            example: boolean;
+        } & {
+            [key: string]: unknown;
+        };
+        /** InvalidToolCall */
+        sema4ai_agent_server__message_types__InvalidToolCall: {
+            /** Name */
+            name: string | null;
+            /** Args */
+            args: string | null;
+            /** Id */
+            id: string;
+            /** Error */
+            error: string | null;
+            /**
+             * Type
+             * @constant
+             * @enum {string}
+             */
+            type?: "invalid_tool_call";
+        };
+        /**
+         * SystemMessage
+         * @description Message for priming AI behavior.
+         *
+         *     The system message is usually passed in as the first of a sequence
+         *     of input messages.
+         *
+         *     Example:
+         *
+         *         .. code-block:: python
+         *
+         *             from langchain_core.messages import HumanMessage, SystemMessage
+         *
+         *             messages = [
+         *                 SystemMessage(
+         *                     content="You are a helpful assistant! Your name is Bob."
+         *                 ),
+         *                 HumanMessage(
+         *                     content="What is your name?"
+         *                 )
+         *             ]
+         *
+         *             # Define a chat model and invoke it with the messages
+         *             print(model.invoke(messages))
+         */
+        sema4ai_agent_server__message_types__SystemMessage: {
+            /** Content */
+            content: string | (string | Record<string, never>)[];
+            /** Additional Kwargs */
+            additional_kwargs?: Record<string, never>;
+            /** Response Metadata */
+            response_metadata?: Record<string, never>;
+            /**
+             * Type
+             * @default system
+             * @constant
+             * @enum {string}
+             */
+            type: "system";
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /**
+             * Id
+             * @default
+             */
+            id: string;
+        } & {
+            [key: string]: unknown;
+        };
+        /** ToolCall */
+        sema4ai_agent_server__message_types__ToolCall: {
+            /** Name */
+            name: string;
+            /** Args */
+            args: Record<string, never>;
+            /** Id */
+            id: string;
+            /**
+             * Type
+             * @constant
+             * @enum {string}
+             */
+            type?: "tool_call";
+        };
+        /**
+         * ToolMessage
+         * @description Message for passing the result of executing a tool back to a model.
+         *
+         *     ToolMessages contain the result of a tool invocation. Typically, the result
+         *     is encoded inside the `content` field.
+         *
+         *     Example: A ToolMessage representing a result of 42 from a tool call with id
+         *
+         *         .. code-block:: python
+         *
+         *             from langchain_core.messages import ToolMessage
+         *
+         *             ToolMessage(content='42', tool_call_id='call_Jja7J89XsjrOLA5r!MEOW!SL')
+         *
+         *
+         *     Example: A ToolMessage where only part of the tool output is sent to the model
+         *         and the full output is passed in to artifact.
+         *
+         *         .. versionadded:: 0.2.17
+         *
+         *         .. code-block:: python
+         *
+         *             from langchain_core.messages import ToolMessage
+         *
+         *             tool_output = {
+         *                 "stdout": "From the graph we can see that the correlation between x and y is ...",
+         *                 "stderr": None,
+         *                 "artifacts": {"type": "image", "base64_data": "/9j/4gIcSU..."},
+         *             }
+         *
+         *             ToolMessage(
+         *                 content=tool_output["stdout"],
+         *                 artifact=tool_output,
+         *                 tool_call_id='call_Jja7J89XsjrOLA5r!MEOW!SL',
+         *             )
+         *
+         *     The tool_call_id field is used to associate the tool call request with the
+         *     tool call response. This is useful in situations where a chat model is able
+         *     to request multiple tool calls in parallel.
+         */
+        sema4ai_agent_server__message_types__ToolMessage: {
+            /** Content */
+            content: string | (string | Record<string, never>)[];
+            /** Additional Kwargs */
+            additional_kwargs?: Record<string, never>;
+            /** Response Metadata */
+            response_metadata?: Record<string, never>;
+            /**
+             * Type
+             * @default tool
+             * @constant
+             * @enum {string}
+             */
+            type: "tool";
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /**
+             * Id
+             * @default
+             */
+            id: string;
+            /** Tool Call Id */
+            tool_call_id: string;
+            /** Artifact */
+            artifact?: unknown;
+            /**
+             * Status
+             * @default success
+             * @enum {string}
+             */
+            status: "success" | "error";
         } & {
             [key: string]: unknown;
         };
@@ -2301,13 +2742,13 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Successful Response */
+            /** @description A stream of Server-Sent Events containing AgentStreamEvents. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "text/event-stream": components["schemas"]["StreamMetadataEvent"] | components["schemas"]["StreamDataEvent"] | components["schemas"]["StreamErrorEvent"] | components["schemas"]["StreamEndEvent"];
                 };
             };
             /** @description Validation Error */

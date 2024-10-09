@@ -26,6 +26,8 @@ from langchain_core.messages import (
 )
 from langchain_core.messages.tool import (
     InvalidToolCall as LangChainInvalidToolCall,
+)
+from langchain_core.messages.tool import (
     ToolCall as LangChainToolCall,
 )
 from langchain_core.utils._merge import merge_dicts
@@ -192,6 +194,20 @@ AnyNonChunkMessage = Annotated[
         Annotated[SystemMessage, Tag(tag="system")],
         Annotated[FunctionMessage, Tag(tag="function")],
         Annotated[ToolMessage, Tag(tag="tool")],
+    ],
+    Field(discriminator=Discriminator(_get_type)),
+]
+
+# This is required because of how we've made `id` and `name` required for our overriden types.
+AnyNonChunkStreamedMessage = Annotated[
+    Union[
+        Annotated[LangChainAIMessage, Tag(tag="ai")],
+        Annotated[LangChainHumanMessage, Tag(tag="human")],
+        Annotated[LangChainChatMessage, Tag(tag="chat")],
+        Annotated[LangChainSystemMessage, Tag(tag="system")],
+        Annotated[LangChainFunctionMessage, Tag(tag="function")],
+        Annotated[LangChainToolMessage, Tag(tag="tool")],
+        Annotated[ToolEventMessage, Tag(tag="tool_event")],
     ],
     Field(discriminator=Discriminator(_get_type)),
 ]
