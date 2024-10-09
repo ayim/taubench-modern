@@ -49,9 +49,9 @@ jobs:
       run: |
         PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -c 'CREATE EXTENSION IF NOT EXISTS "uuid-ossp";'
 
-    - name: Enable embedding extension
+    - name: Delete existing pg collection tables if they exist
       run: |
-        PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -c 'CREATE EXTENSION IF NOT EXISTS embedding;'
+        PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -c 'DROP TABLE IF EXISTS langchain_pg_collection CASCADE;'
 
     - name: Start application server (PostgreSQL)
       run: |
