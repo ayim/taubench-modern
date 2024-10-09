@@ -1,9 +1,9 @@
 import operator
 import os
-from typing import Annotated, Literal
+from typing import Annotated, Literal, Self
 
 from langchain_core.messages import AnyMessage, get_buffer_string
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from sema4ai_agent_server.agent_types.tools_agent import AgentState
 
@@ -202,6 +202,12 @@ class InitialThinkingPlanningResponse(BaseModel):
         "the rest of the team, they are counting on you to be thorough.",
     )
 
+    @model_validator(mode="after")
+    def validate_steps(self) -> Self:
+        if self.plan_needed_response == "plan" and self.steps is None:
+            raise ValueError("A plan is needed, but no steps were provided.")
+        return self
+
 
 class InitialPlanningResponse(BaseModel):
     """Your initial planning response, including the plan if needed."""
@@ -217,6 +223,12 @@ class InitialPlanningResponse(BaseModel):
         "You are responsible for generating a complete plan that will be followed by "
         "the rest of the team, they are counting on you to be thorough.",
     )
+
+    @model_validator(mode="after")
+    def validate_steps(self) -> Self:
+        if self.plan_needed_response == "plan" and self.steps is None:
+            raise ValueError("A plan is needed, but no steps were provided.")
+        return self
 
 
 ### Step Executor Responses
@@ -289,6 +301,18 @@ class ReplannerThinkerResponse(BaseModel):
         "The reply to the user explaining the edge case.",
     )
 
+    @model_validator(mode="after")
+    def validate_per_response_type(self) -> Self:
+        match self.response_type:
+            case "response-needed" | "edge-case":
+                if self.response is None:
+                    raise ValueError("A response is needed, but none was provided.")
+            case "update":
+                if self.new_steps is None:
+                    raise ValueError("New steps are needed, but none were provided.")
+            case _:
+                return Self
+
 
 class ReplannerResponse(BaseModel):
     """Whether the current plan is complete or needs to be updated, and how to update
@@ -314,3 +338,15 @@ class ReplannerResponse(BaseModel):
         description="Only use this parameter if the response_type is 'edge-case'. "
         "The reply to the user explaining the edge case.",
     )
+
+    @model_validator(mode="after")
+    def validate_per_response_type(self) -> Self:
+        match self.response_type:
+            case "response-needed" | "edge-case":
+                if self.response is None:
+                    raise ValueError("A response is needed, but none was provided.")
+            case "update":
+                if self.new_steps is None:
+                    raise ValueError("New steps are needed, but none were provided.")
+            case _:
+                return Self
