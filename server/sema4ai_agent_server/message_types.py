@@ -164,3 +164,17 @@ AnyNonChunkMessage = Annotated[
     ],
     Field(discriminator=Discriminator(_get_type)),
 ]
+
+# This is required because of how we've made `id` and `name` required for our overriden types.
+AnyNonChunkStreamedMessage = Annotated[
+    Union[
+        Annotated[LangChainAIMessage, Tag(tag="ai")],
+        Annotated[LangChainHumanMessage, Tag(tag="human")],
+        Annotated[LangChainChatMessage, Tag(tag="chat")],
+        Annotated[LangChainSystemMessage, Tag(tag="system")],
+        Annotated[LangChainFunctionMessage, Tag(tag="function")],
+        Annotated[LangChainToolMessage, Tag(tag="tool")],
+        Annotated[ToolEventMessage, Tag(tag="tool_event")],
+    ],
+    Field(discriminator=Discriminator(_get_type)),
+]
