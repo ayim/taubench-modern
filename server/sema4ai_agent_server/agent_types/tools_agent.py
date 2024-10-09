@@ -104,6 +104,15 @@ def get_tools_agent_executor(
         raise ValueError(
             f"Expected an LLM with one of type {AGENT_TYPES}, got {type(llm)}."
         )
+    if (
+        isinstance(llm, ChatBedrockConverse)
+        and llm.provider.lower() == "anthropic"
+        and "claude" in llm.model_id
+    ):
+        # Set Claude mode, which requires conversational turns.
+        claude_mode = True
+    else:
+        claude_mode = False
 
     def _get_messages(messages):
         msgs = []
@@ -119,7 +128,7 @@ def get_tools_agent_executor(
             else:
                 msgs.append(m)
 
-        if isinstance(llm, (ChatBedrockConverse)):
+        if claude_mode:
             # check if the first message is human, as that is required by bedrock
             if not isinstance(msgs[0], HumanMessage):
                 msgs = [HumanMessage(content="Hi")] + msgs
@@ -183,6 +192,10 @@ def get_tools_agent_executor(
             associated_reasoning_id = (
                 state.reasoning[-1].id if state.reasoning else None
             )
+            if claude_mode and state.combined[-1].id == associated_reasoning_id:
+                # If the last message in the combined thread is the last reasoning message, then we
+                # must inject a Human message to adhere to the Claude mode requirement.
+                state.combined += [HumanMessage(content="Continue")]
             response = await executor_agent.with_config(
                 {"metadata": {"associated_reasoning": associated_reasoning_id}}
             ).ainvoke(
