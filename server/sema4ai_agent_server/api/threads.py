@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import structlog
 from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile
+from langchain_core.messages import AIMessage
 from opentelemetry import metrics
 from pydantic import BaseModel, Field
 
@@ -16,7 +17,7 @@ from sema4ai_agent_server.llms import (
     get_context_stats,
     get_context_summary,
 )
-from sema4ai_agent_server.message_types import AIMessage, AnyNonChunkMessage
+from sema4ai_agent_server.message_types import AnyNonChunkMessage
 from sema4ai_agent_server.otel import otel_is_enabled
 from sema4ai_agent_server.responses import PydanticResponse, TypeAdapterResponse
 from sema4ai_agent_server.schema import (
@@ -122,7 +123,7 @@ async def get_thread_state(
             "agent_id": thread.agent_id,
             "thread_id": thread.thread_id,
             "llm.provider": agent.model.provider,
-            "llm.model": agent.model.name,
+            "llm.model": getattr(agent.model, "name", ""),
             # NoneType fails to be encoded so we use "None" instead
             "user_id": user.cr_user_id if user.cr_user_id else "None",
             "system_id": user.cr_system_id if user.cr_system_id else "None",

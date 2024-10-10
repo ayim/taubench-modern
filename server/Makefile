@@ -14,10 +14,10 @@ TEST_FILE ?= tests/unit_tests/
 
 # Define variables for API interaction test
 API_HOST ?= localhost
-API_PORT ?= 8100
+API_PORT ?= 8000
 
 start:
-	poetry run uvicorn sema4ai_agent_server.server:app --port 8100 --log-config log_config.json
+	poetry run uvicorn sema4ai_agent_server.server:app --port 8000 --log-config log_config.json
 
 migrate-postgres:
 	migrate -database postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)?sslmode=disable -path ./sema4ai_agent_server/migrations/postgres up
@@ -46,7 +46,7 @@ lint lint_diff:
 
 format format_diff:
 	poetry run ruff format $(PYTHON_FILES)
-	poetry run ruff --select I --fix $(PYTHON_FILES)
+	poetry run ruff check --select I --fix $(PYTHON_FILES)
 
 spell_check:
 	poetry run codespell --toml pyproject.toml
@@ -102,7 +102,7 @@ help:
 	@echo 'test_watch                   - run tests in watch mode'
 	@echo 'test_api_interaction         - run API interaction test'
 	@echo '  API_HOST=<host>            - specify API host (default: localhost)'
-	@echo '  API_PORT=<port>            - specify API port (default: 8100)'
+	@echo '  API_PORT=<port>            - specify API port (default: 8000)'
 	@echo '-- GIT HOOKS --'
 	@echo 'install-hooks                - install Git pre-commit and pre-push hooks'
 	@echo 'uninstall-hooks              - uninstall Git hooks'

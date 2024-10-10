@@ -32,8 +32,10 @@ from sema4ai_agent_server.storage import (
     UniqueAgentNameError,
     UniqueFileRefError,
 )
+from sema4ai_agent_server.storage.embed import get_vector_store
 from sema4ai_agent_server.storage.postgres_conn import PostgresConnectionManager
 from sema4ai_agent_server.storage.utils import model_dump_for_postgres
+from sema4ai_agent_server.storage.vectorstore import PostgresVector
 
 logger = structlog.get_logger()
 
@@ -52,6 +54,8 @@ class PostgresStorage(BaseStorage, PostgresConnectionManager):
         if self._is_setup:
             return
         await self._run_migrations()
+        pgvector: PostgresVector = get_vector_store()
+        await pgvector.acreate_collection()
         self._is_setup = True
 
     async def teardown(self) -> None:

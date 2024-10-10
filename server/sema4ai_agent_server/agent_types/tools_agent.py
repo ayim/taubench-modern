@@ -25,7 +25,6 @@ from sema4ai_agent_server.agent_types.constants import (
     FINISH_NODE_KEY,
 )
 from sema4ai_agent_server.agent_types.utils import bind_tools
-from sema4ai_agent_server.message_types import LiberalToolMessage
 from sema4ai_agent_server.schema import AgentReasoning
 from sema4ai_agent_server.utils import current_timestamp_with_iso_week_local
 
@@ -104,22 +103,26 @@ def get_tools_agent_executor(
         raise ValueError(
             f"Expected an LLM with one of type {AGENT_TYPES}, got {type(llm)}."
         )
+    if (
+        isinstance(llm, ChatBedrockConverse)
+        and llm.provider.lower() == "anthropic"
+        and "claude" in llm.model_id
+    ):
+        # Set Claude mode, which requires conversational turns.
+        claude_mode = True
+    else:
+        claude_mode = False
 
     def _get_messages(messages):
         msgs = []
         for m in messages:
-            if isinstance(m, LiberalToolMessage):
-                _dict = m.model_dump(round_trip=True)
-                _dict["content"] = str(_dict["content"])
-                m_c = ToolMessage.model_construct(**_dict)
-                msgs.append(m_c)
-            elif isinstance(m, FunctionMessage):
+            if isinstance(m, FunctionMessage):
                 # anthropic doesn't like function messages
                 msgs.append(HumanMessage(content=str(m.content)))
             else:
                 msgs.append(m)
 
-        if isinstance(llm, (ChatBedrockConverse)):
+        if claude_mode:
             # check if the first message is human, as that is required by bedrock
             if not isinstance(msgs[0], HumanMessage):
                 msgs = [HumanMessage(content="Hi")] + msgs
@@ -183,6 +186,10 @@ def get_tools_agent_executor(
             associated_reasoning_id = (
                 state.reasoning[-1].id if state.reasoning else None
             )
+            if claude_mode and state.combined[-1].id == associated_reasoning_id:
+                # If the last message in the combined thread is the last reasoning message, then we
+                # must inject a Human message to adhere to the Claude mode requirement.
+                state.combined += [HumanMessage(content="Continue")]
             response = await executor_agent.with_config(
                 {"metadata": {"associated_reasoning": associated_reasoning_id}}
             ).ainvoke(
@@ -236,10 +243,10 @@ def get_tools_agent_executor(
         responses = await tool_executor.abatch(actions, config=configs)
         # We use the response to create a ToolMessage
         tool_messages = [
-            LiberalToolMessage(
+            ToolMessage(
                 tool_call_id=tool_call["id"],
                 name=tool_call["name"],
-                content=response,
+                content=str(response),
             )
             for tool_call, response in zip(last_message.tool_calls, responses)
         ]

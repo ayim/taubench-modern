@@ -10,7 +10,9 @@ import os
 from asyncio import get_event_loop
 from typing import BinaryIO, List, Optional, Union
 
+import boto3
 from fastapi import UploadFile
+from langchain_aws import BedrockEmbeddings
 from langchain_community.document_loaders.base import BaseBlobParser
 from langchain_core.document_loaders.blob_loaders import Blob
 from langchain_core.documents import Document
@@ -24,11 +26,12 @@ from langchain_openai import AzureOpenAIEmbeddings, OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter, TextSplitter
 from pydantic import ConfigDict, Field
 
-from sema4ai_agent_server.constants import VECTOR_COLLECTION_NAME, VECTOR_DATABASE_PATH
+from sema4ai_agent_server.constants import VECTOR_DATABASE_PATH
 from sema4ai_agent_server.parsing import MIMETYPE_BASED_PARSER
 from sema4ai_agent_server.schema import (
     MODEL,
     NOT_CONFIGURED,
+    AmazonBedrock,
     AzureGPT,
     OpenAIGPT,
     dummy_model,
@@ -157,6 +160,14 @@ def get_embedding_function(
             openai_api_version=model.config.embeddings_openai_api_version,
             openai_api_key=model.config.embeddings_openai_api_key.get_secret_value(),
         )
+    elif isinstance(model, AmazonBedrock):
+        client = boto3.client(
+            model.config.service_name,
+            region_name=model.config.region_name,
+            aws_access_key_id=model.config.aws_access_key_id.get_secret_value(),
+            aws_secret_access_key=model.config.aws_secret_access_key.get_secret_value(),
+        )
+        return BedrockEmbeddings(client=client, model_id="amazon.titan-embed-text-v2:0")
     raise ValueError(f"Unsupported model type {model} for embeddings.")
 
 
@@ -179,7 +190,11 @@ def _get_pg_vector(model: Optional[MODEL]) -> PostgresVector:
 
 def _get_chroma_vector(model: Optional[MODEL]) -> ChromaVector:
     return ChromaVector(
-        collection_name=VECTOR_COLLECTION_NAME,
+        # OpenAI's vector size is 1536, while AWS's titan model generates vectors with size 1024.
+        # Chroma can't use the same collection for both, because it will throw an error when
+        # adding documents with mismatched vector sizes. So, we use model provider as the
+        # collection name to avoid this issue.
+        collection_name=model.provider.value,
         persist_directory=VECTOR_DATABASE_PATH,
         embedding_function=get_embedding_function(model) if model else None,
     )

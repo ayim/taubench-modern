@@ -14,7 +14,7 @@ from sema4ai_agent_server.otel import setup_otel
 from sema4ai_agent_server.storage.option import get_storage
 
 # Do not change the version here. It is managed by versionbump (see versionbump.yaml)
-VERSION = "1.0.7"
+VERSION = "1.0.10"
 
 setup_logging()
 setup_otel()
@@ -58,8 +58,8 @@ def main():
         "-p",
         "--port",
         type=int,
-        default=8100,
-        help="Port to run the HTTP server on. Default is 8100.",
+        default=8000,
+        help="Port to run the HTTP server on. Default is 8000.",
     )
     parser.add_argument(
         "-r",

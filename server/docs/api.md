@@ -3,7 +3,7 @@
 This documentation covers how to get started with the API that backs OpenGPTs.
 This allows you to easily integrate it with a different frontend of your choice.
 
-For full API documentation, see [localhost:8100/docs](localhost:8100/docs) after deployment.
+For full API documentation, see [localhost:8000/docs](localhost:8000/docs) after deployment.
 
 If you want to see the API docs before deployment, check out the [hosted docs here](https://opengpts-example-vz4y4ooboq-uc.a.run.app/docs).
 
@@ -12,17 +12,18 @@ When using JWT auth, you will need to include the JWT in the `Authorization` hea
 
 ## Create an Assistant
 
-First, let's use the API to create an assistant. 
+First, let's use the API to create an assistant.
 This should look something like:
 
 ```python
 import requests
-requests.post('http://127.0.0.1:8100/assistants', json={
+requests.post('http://127.0.0.1:8000/assistants', json={
   "name": "bar",
   "config": {"configurable": {}},
   "public": True
 }, cookies= {"opengpts_user_id": "foo"}).content
 ```
+
 This is creating an assistant with name `"bar"`, with default configuration, that is public, and is associated with user `"foo"`.
 
 This should return something like:
@@ -32,7 +33,6 @@ b'{"assistant_id":"9c7d7e6e-654b-4eaa-b160-f19f922fc63b","name":"string","config
 ```
 
 The config parameters allows you to set the LLM used, the instructions of the assistant and also the tools used.
-
 
 ```
 {
@@ -47,6 +47,7 @@ The config parameters allows you to set the LLM used, the instructions of the as
   "public": True
 }
 ```
+
 This creates an assistant with the name `"bar"`, with GPT 3.5 Turbo, with a prompt `"You are a helpful assistant"` using the Wikipedia tool , that is public.
 
 Available tools names can be found in the AvailableTools class in backend/packages/gizmo-agent/gizmo_agent/tools.py
@@ -61,7 +62,7 @@ Notably different from OpenAI's assistant API, we require starting the thread wi
 
 ```python
 import requests
-requests.post('http://127.0.0.1:8100/threads', cookies= {"opengpts_user_id": "foo"}, json={
+requests.post('http://127.0.0.1:8000/threads', cookies= {"opengpts_user_id": "foo"}, json={
     "name": "hi",
     "assistant_id": "9c7d7e6e-654b-4eaa-b160-f19f922fc63b"
 }).content
@@ -82,14 +83,17 @@ We can check the thread, and see that it is currently empty:
 ```python
 import requests
 requests.get(
-    'http://127.0.0.1:8100/threads/231dc7f3-33ee-4040-98fe-27f6e2aa8b2b/state', 
+    'http://127.0.0.1:8000/threads/231dc7f3-33ee-4040-98fe-27f6e2aa8b2b/state', 
     cookies= {"opengpts_user_id": "foo"}
 ).content
 ```
+
 ```shell
 b'{"values":[]}'
 ```
+
 For RAGBot:
+
 ```shell
 b'{"values":{"messages":[]}}'
 ```
@@ -99,7 +103,7 @@ Let's add a message to the thread!
 ```python
 import requests
 requests.post(
-    'http://127.0.0.1:8100/threads/231dc7f3-33ee-4040-98fe-27f6e2aa8b2b/state', 
+    'http://127.0.0.1:8000/threads/231dc7f3-33ee-4040-98fe-27f6e2aa8b2b/state', 
     cookies= {"opengpts_user_id": "foo"}, json={
         "values": [{
             "content": "hi! my name is bob",
@@ -108,7 +112,9 @@ requests.post(
     }
 ).content
 ```
+
 For RAGBot:
+
 ```
 {
     "values": {
@@ -125,14 +131,17 @@ If we now run the command to see the thread, we can see that there is now a mess
 ```python
 import requests
 requests.get(
-    'http://127.0.0.1:8100/threads/231dc7f3-33ee-4040-98fe-27f6e2aa8b2b/state', 
+    'http://127.0.0.1:8000/threads/231dc7f3-33ee-4040-98fe-27f6e2aa8b2b/state', 
     cookies= {"opengpts_user_id": "foo"}
 ).content
 ```
+
 ```shell
 b'{"values":[{"content":"hi! my name is bob","additional_kwargs":{},"type":"human","example":false}],"next":[]}'
 ```
+
 For RAGBot:
+
 ```shell
 b'{"values":{"messages":[...]},"next":[]}'
 ```
@@ -143,7 +152,7 @@ We can now run the assistant on that thread.
 
 ```python
 import requests
-requests.post('http://127.0.0.1:8100/runs', cookies= {"opengpts_user_id": "foo"}, json={
+requests.post('http://127.0.0.1:8000/runs', cookies= {"opengpts_user_id": "foo"}, json={
     "assistant_id": "9c7d7e6e-654b-4eaa-b160-f19f922fc63b",
     "thread_id": "231dc7f3-33ee-4040-98fe-27f6e2aa8b2b",
     "input": {
@@ -151,18 +160,22 @@ requests.post('http://127.0.0.1:8100/runs', cookies= {"opengpts_user_id": "foo"}
     }
 }).content
 ```
+
 This runs the thread with the same id that we just created, with the assistant that we created, with no additional input messages (see below for how to add input messages).
 
 If we now check the thread, we can see (after a bit) that there is a message from the AI.
 
 ```python
 import requests
-requests.get('http://127.0.0.1:8100/threads/231dc7f3-33ee-4040-98fe-27f6e2aa8b2b/state', cookies= {"opengpts_user_id": "foo"}).content
+requests.get('http://127.0.0.1:8000/threads/231dc7f3-33ee-4040-98fe-27f6e2aa8b2b/state', cookies= {"opengpts_user_id": "foo"}).content
 ```
+
 ```shell
 b'{"values":[{"content":"hi! my name is bob","additional_kwargs":{},"type":"human","example":false},{"content":"Hello, Bob! How can I assist you today?","additional_kwargs":{"agent":{"return_values":{"output":"Hello, Bob! How can I assist you today?"},"log":"Hello, Bob! How can I assist you today?","type":"AgentFinish"}},"type":"ai","example":false}],"next":[]}'
 ```
+
 For RAGBot:
+
 ```shell
 b'{"values":{"messages":[...]},"next":[]}'
 ```
@@ -174,7 +187,7 @@ Continuing the example above, we can run:
 
 ```python
 import requests
-requests.post('http://127.0.0.1:8100/runs', cookies= {"opengpts_user_id": "foo"}, json={
+requests.post('http://127.0.0.1:8000/runs', cookies= {"opengpts_user_id": "foo"}, json={
     "assistant_id": "9c7d7e6e-654b-4eaa-b160-f19f922fc63b",
     "thread_id": "231dc7f3-33ee-4040-98fe-27f6e2aa8b2b",
     "input": {
@@ -190,18 +203,21 @@ Then, if we call the threads endpoint after a bit we can see the human message -
 
 ```python
 import requests
-requests.get('http://127.0.0.1:8100/threads/231dc7f3-33ee-4040-98fe-27f6e2aa8b2b/state', cookies= {"opengpts_user_id": "foo"}).content
+requests.get('http://127.0.0.1:8000/threads/231dc7f3-33ee-4040-98fe-27f6e2aa8b2b/state', cookies= {"opengpts_user_id": "foo"}).content
 ```
 
 ```shell
 b'{"values":[{"content":"hi! my name is bob","additional_kwargs":{},"type":"human","example":false},{"content":"Hello, Bob! How can I assist you today?","additional_kwargs":{"agent":{"return_values":{"output":"Hello, Bob! How can I assist you today?"},"log":"Hello, Bob! How can I assist you today?","type":"AgentFinish"}},"type":"ai","example":false},{"content":"whats my name? respond in spanish","additional_kwargs":{},"type":"human","example":false},{"content":"Tu nombre es Bob.","additional_kwargs":{"agent":{"return_values":{"output":"Tu nombre es Bob."},"log":"Tu nombre es Bob.","type":"AgentFinish"}},"type":"ai","example":false}],"next":[]}'
 ```
+
 For RAGBot:
+
 ```shell
 b'{"values":{"messages":[...]},"next":[]}'
 ```
 
 ## Stream
+
 One thing we can do is stream back responses.
 This works for both messages as well as tokens.
 Below is an example of streaming back tokens for a response.
@@ -210,7 +226,7 @@ Below is an example of streaming back tokens for a response.
 import requests
 import json
 response = requests.post(
-    'http://127.0.0.1:8100/runs/stream', 
+    'http://127.0.0.1:8000/runs/stream', 
     cookies= {"opengpts_user_id": "foo"}, json={
     "assistant_id": "9c7d7e6e-654b-4eaa-b160-f19f922fc63b",
     "thread_id": "231dc7f3-33ee-4040-98fe-27f6e2aa8b2b",

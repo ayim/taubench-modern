@@ -14,7 +14,13 @@ from sema4ai_agent_server.langsmith_client import (
     save_langsmith_thread_url,
 )
 from sema4ai_agent_server.otel import otel_is_enabled
-from sema4ai_agent_server.schema import Agent, ChatRequest, Thread, User
+from sema4ai_agent_server.schema import (
+    Agent,
+    AgentStreamEvent,
+    ChatRequest,
+    Thread,
+    User,
+)
 from sema4ai_agent_server.storage.option import get_storage
 from sema4ai_agent_server.stream import astream_state, invoke_state, to_sse
 
@@ -36,7 +42,7 @@ def _run_counter_attrs(
         "agent_id": agent.id,
         "thread_id": thread.thread_id,
         "llm.provider": agent.model.provider,
-        "llm.model": agent.model.name,
+        "llm.model": getattr(agent.model, "name", ""),
         # NoneType fails to be encoded so we use "None" instead
         "user_id": user.cr_user_id if user.cr_user_id else "None",
         "system_id": user.cr_system_id if user.cr_system_id else "None",
@@ -117,11 +123,49 @@ async def get_run_status(rid: str):
     return {"run_id": rid, "status": status}
 
 
-@router.post("/stream")
+@router.post(
+    "/stream",
+    response_model=AgentStreamEvent,
+    response_class=EventSourceResponse,
+    responses={
+        200: {
+            "description": "A stream of Server-Sent Events containing AgentStreamEvents.",
+            "content": {
+                "text/event-stream": {
+                    "schema": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/StreamMetadataEvent",
+                            },
+                            {
+                                "$ref": "#/components/schemas/StreamDataEvent",
+                            },
+                            {
+                                "$ref": "#/components/schemas/StreamErrorEvent",
+                            },
+                            {
+                                "$ref": "#/components/schemas/StreamEndEvent",
+                            },
+                        ],
+                        "discriminator": {
+                            "propertyName": "event",
+                            "mapping": {
+                                "metadata": "#/components/schemas/StreamMetadataEvent",
+                                "data": "#/components/schemas/StreamDataEvent",
+                                "error": "#/components/schemas/StreamErrorEvent",
+                                "end": "#/components/schemas/StreamEndEvent",
+                            },
+                        },
+                    },
+                }
+            },
+        },
+    },
+)
 async def stream_run(
     payload: ChatRequest,
     user: AuthedUser,
-) -> EventSourceResponse:
+):
     """Create a run."""
     # TODO: Performance gains may be possible as part of implementing stream protocol v2.
     #       We should consider using StreamingResponse based on performance tests.

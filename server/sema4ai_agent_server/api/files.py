@@ -46,10 +46,19 @@ async def _add_uploaded_messages(
             },
         )
 
+        # User may ask a question about the file right after uploading it.
+        # Anthropic will break in this case because human message will immediately
+        # follow the tool call message, which is not allowed. So we add an AI
+        # message here. https://github.com/langchain-ai/langchain-aws/issues/141
+        tool_ai_summary_message = AIMessage(
+            content=f'File uploaded: "{stored_file.file_ref}"'
+        )
+
         # Append new messages to existing messages
         updated_messages = current_messages + [
             tool_call_message,
             tool_response_message,
+            tool_ai_summary_message,
         ]
 
         # Update thread state with appended messages

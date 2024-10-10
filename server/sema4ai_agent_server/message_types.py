@@ -1,14 +1,9 @@
-from typing import Annotated, Any, Literal, Union, get_args
+from typing import Annotated, Any, Literal, Union
 
 from langchain_core.messages import (
     AIMessage as LangChainAIMessage,
 )
-from langchain_core.messages import (
-    AnyMessage,
-    BaseMessage,
-    MessageLikeRepresentation,
-    merge_content,
-)
+from langchain_core.messages import BaseMessage, merge_content
 from langchain_core.messages import (
     ChatMessage as LangChainChatMessage,
 )
@@ -26,46 +21,13 @@ from langchain_core.messages import (
 )
 from langchain_core.messages.tool import (
     InvalidToolCall as LangChainInvalidToolCall,
+)
+from langchain_core.messages.tool import (
     ToolCall as LangChainToolCall,
 )
 from langchain_core.utils._merge import merge_dicts
-from langgraph.graph.message import Messages, add_messages
 from openai import BaseModel
 from pydantic import Discriminator, Field, Tag
-
-
-class LiberalFunctionMessage(LangChainFunctionMessage):
-    content: Any
-
-
-class LiberalToolMessage(LangChainToolMessage):
-    content: Any
-
-
-def _convert_pydantic_dict_to_message(
-    data: MessageLikeRepresentation,
-) -> MessageLikeRepresentation:
-    if (
-        isinstance(data, dict)
-        and "content" in data
-        and isinstance(data.get("type"), str)
-    ):
-        for cls in get_args(AnyMessage):
-            if data["type"] == cls(content="").type:
-                return cls(**data)
-    return data
-
-
-def add_messages_liberal(left: Messages, right: Messages):
-    # coerce to list
-    if not isinstance(left, list):
-        left = [left]
-    if not isinstance(right, list):
-        right = [right]
-    return add_messages(
-        [_convert_pydantic_dict_to_message(m) for m in left],
-        [_convert_pydantic_dict_to_message(m) for m in right],
-    )
 
 
 class ToolEventMessage(BaseMessage):
@@ -142,6 +104,13 @@ class RequireIDMixin(BaseModel):
                     break
 
 
+# NOTE
+# Message classes defined below should only be used for typing purposes to accomodate
+# the front-end temporarily until a better solution is found. Instances of these
+# classes should not end up in thread state, otherwise checkpointer's serde will
+# not work since it expects original LangChain classes.
+
+
 class ToolCall(LangChainToolCall):
     id: str
 
@@ -192,6 +161,20 @@ AnyNonChunkMessage = Annotated[
         Annotated[SystemMessage, Tag(tag="system")],
         Annotated[FunctionMessage, Tag(tag="function")],
         Annotated[ToolMessage, Tag(tag="tool")],
+    ],
+    Field(discriminator=Discriminator(_get_type)),
+]
+
+# This is required because of how we've made `id` and `name` required for our overriden types.
+AnyNonChunkStreamedMessage = Annotated[
+    Union[
+        Annotated[LangChainAIMessage, Tag(tag="ai")],
+        Annotated[LangChainHumanMessage, Tag(tag="human")],
+        Annotated[LangChainChatMessage, Tag(tag="chat")],
+        Annotated[LangChainSystemMessage, Tag(tag="system")],
+        Annotated[LangChainFunctionMessage, Tag(tag="function")],
+        Annotated[LangChainToolMessage, Tag(tag="tool")],
+        Annotated[ToolEventMessage, Tag(tag="tool_event")],
     ],
     Field(discriminator=Discriminator(_get_type)),
 ]
