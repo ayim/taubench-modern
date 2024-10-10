@@ -55,7 +55,7 @@ jobs:
 
     - name: Start application server (PostgreSQL)
       run: |
-        poetry run uvicorn sema4ai_agent_server.server:app --host 0.0.0.0 --port 8100 &
+        poetry run uvicorn sema4ai_agent_server.server:app --host 0.0.0.0 --port 8000 &
         sleep 10  # Give the server some time to start
       env:
         S4_AGENT_SERVER_DB_TYPE: postgres
@@ -118,7 +118,7 @@ jobs:
     - name: Start application server (SQLite)
       shell: bash
       run: |
-        poetry run uvicorn sema4ai_agent_server.server:app --host 0.0.0.0 --port 8100 &
+        poetry run uvicorn sema4ai_agent_server.server:app --host 0.0.0.0 --port 8000 &
         if [ "$RUNNER_OS" == "Windows" ]; then
           sleep 25
         else
