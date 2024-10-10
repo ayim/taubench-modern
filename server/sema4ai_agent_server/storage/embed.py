@@ -10,7 +10,9 @@ import os
 from asyncio import get_event_loop
 from typing import BinaryIO, List, Optional, Union
 
+import boto3
 from fastapi import UploadFile
+from langchain_aws import BedrockEmbeddings
 from langchain_community.document_loaders.base import BaseBlobParser
 from langchain_core.document_loaders.blob_loaders import Blob
 from langchain_core.documents import Document
@@ -29,6 +31,7 @@ from sema4ai_agent_server.parsing import MIMETYPE_BASED_PARSER
 from sema4ai_agent_server.schema import (
     MODEL,
     NOT_CONFIGURED,
+    AmazonBedrock,
     AzureGPT,
     OpenAIGPT,
     dummy_model,
@@ -157,6 +160,14 @@ def get_embedding_function(
             openai_api_version=model.config.embeddings_openai_api_version,
             openai_api_key=model.config.embeddings_openai_api_key.get_secret_value(),
         )
+    elif isinstance(model, AmazonBedrock):
+        client = boto3.client(
+            model.config.service_name,
+            region_name=model.config.region_name,
+            aws_access_key_id=model.config.aws_access_key_id.get_secret_value(),
+            aws_secret_access_key=model.config.aws_secret_access_key.get_secret_value(),
+        )
+        return BedrockEmbeddings(client=client, model_id="amazon.titan-embed-text-v2:0")
     raise ValueError(f"Unsupported model type {model} for embeddings.")
 
 
