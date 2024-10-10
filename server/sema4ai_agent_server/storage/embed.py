@@ -26,7 +26,7 @@ from langchain_openai import AzureOpenAIEmbeddings, OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter, TextSplitter
 from pydantic import ConfigDict, Field
 
-from sema4ai_agent_server.constants import VECTOR_COLLECTION_NAME, VECTOR_DATABASE_PATH
+from sema4ai_agent_server.constants import VECTOR_DATABASE_PATH
 from sema4ai_agent_server.parsing import MIMETYPE_BASED_PARSER
 from sema4ai_agent_server.schema import (
     MODEL,
@@ -190,7 +190,11 @@ def _get_pg_vector(model: Optional[MODEL]) -> PostgresVector:
 
 def _get_chroma_vector(model: Optional[MODEL]) -> ChromaVector:
     return ChromaVector(
-        collection_name=VECTOR_COLLECTION_NAME,
+        # OpenAI's vector size is 1536, while AWS's titan model generates vectors with size 1024.
+        # Chroma can't use the same collection for both, because it will throw an error when
+        # adding documents with mismatched vector sizes. So, we use model provider as the
+        # collection name to avoid this issue.
+        collection_name=model.provider.value,
         persist_directory=VECTOR_DATABASE_PATH,
         embedding_function=get_embedding_function(model) if model else None,
     )
