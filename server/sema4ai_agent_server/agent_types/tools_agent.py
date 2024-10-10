@@ -103,15 +103,12 @@ def get_tools_agent_executor(
         raise ValueError(
             f"Expected an LLM with one of type {AGENT_TYPES}, got {type(llm)}."
         )
-    if (
+    # Set Claude mode, which requires conversational turns.
+    claude_mode = (
         isinstance(llm, ChatBedrockConverse)
         and llm.provider.lower() == "anthropic"
         and "claude" in llm.model_id
-    ):
-        # Set Claude mode, which requires conversational turns.
-        claude_mode = True
-    else:
-        claude_mode = False
+    )
 
     def _get_messages(messages):
         msgs = []
@@ -126,6 +123,13 @@ def get_tools_agent_executor(
             # check if the first message is human, as that is required by bedrock
             if not isinstance(msgs[0], HumanMessage):
                 msgs = [HumanMessage(content="Hi")] + msgs
+            # Check that any groups of similar message types are separated by a human message
+            new_msgs = []
+            for i, msg in enumerate(msgs):
+                if i > 0 and type(msg) is type(msgs[i - 1]):
+                    new_msgs.append(HumanMessage(content="Continue"))
+                new_msgs.append(msg)
+            msgs = new_msgs
         return msgs
 
     def format_knowledge_files(files):
