@@ -11,6 +11,7 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 opengpts.db
+agentserver.db
 
 # Python artifacts
 __pycache__/
