@@ -77,4 +77,4 @@ poetry install
 
 # Start the backend server using uvicorn
 echo "🚀 Starting the Agent Server..."
-poetry run uvicorn sema4ai_agent_server.server:app --host 0.0.0.0 --port 8100 --reload
+poetry run uvicorn sema4ai_agent_server.server:app --host 0.0.0.0 --port 8000 --reload

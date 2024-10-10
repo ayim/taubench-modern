@@ -58,8 +58,8 @@ def main():
         "-p",
         "--port",
         type=int,
-        default=8100,
-        help="Port to run the HTTP server on. Default is 8100.",
+        default=8000,
+        help="Port to run the HTTP server on. Default is 8000.",
     )
     parser.add_argument(
         "-r",

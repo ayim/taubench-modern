@@ -4,7 +4,7 @@ FROM python:3.11
 ARG TARGETOS
 ARG TARGETARCH
 ARG TARGETVARIANT
-ARG AGENT_SERVER_PORT=8100
+ARG AGENT_SERVER_PORT=8000
 # TODO need this for different OS. Hardcoded for now to unblock the platform team.
 ARG AGENT_CLI_URL=https://cdn.sema4.ai/agent-cli/releases/v0.0.17/linux64/agent-cli
 ARG ACTION_SERVER_URL=https://cdn.sema4.ai/action-server/releases/0.18.0/linux64/action-server
