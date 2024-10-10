@@ -9,7 +9,6 @@ from langchain_core.messages import (
     AnyMessage,
     FunctionMessage,
     HumanMessage,
-    ToolMessage,
 )
 from langchain_core.runnables import Runnable
 from langgraph.checkpoint.base import BaseCheckpointSaver
@@ -52,7 +51,6 @@ from sema4ai_agent_server.agent_types.utils import (
     bind_tools,
     get_pydantic_output_parser,
 )
-from sema4ai_agent_server.message_types import LiberalToolMessage
 from sema4ai_agent_server.schema import AgentReasoning
 from sema4ai_agent_server.utils import current_timestamp_with_iso_week_local
 
@@ -61,12 +59,7 @@ STEPS_CONTENT_PATTERN = re.compile(pattern=r"^\[.*\]$")
 
 
 def _clean_message(m: AnyMessage):
-    if isinstance(m, LiberalToolMessage):
-        _dict = m.model_dump(round_trip=True)
-        _dict["content"] = str(_dict["content"])
-        m_c = ToolMessage.model_construct(**_dict)
-        return m_c
-    elif isinstance(m, FunctionMessage):
+    if isinstance(m, FunctionMessage):
         # anthropic doesn't like function messages
         return HumanMessage(content=str(m.content))
     else:

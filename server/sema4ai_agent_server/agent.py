@@ -22,8 +22,8 @@ from sema4ai_agent_server.schema import (
     AgentReasoning,
     AzureGPT,
     OpenAIGPT,
-    dummy_model,
     User,
+    dummy_model,
 )
 from sema4ai_agent_server.storage.checkpoint import get_checkpointer
 from sema4ai_agent_server.tools import (
