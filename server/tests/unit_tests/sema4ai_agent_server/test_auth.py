@@ -36,7 +36,7 @@ async def test_noop():
     sub = "user_noop"
 
     async with get_client() as client:
-        response = await client.get("/me", cookies={"opengpts_user_id": sub})
+        response = await client.get("/me", cookies={"agent_server_user_id": sub})
         assert response.status_code == 200
         assert response.json()["sub"] == sub
 
