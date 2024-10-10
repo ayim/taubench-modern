@@ -175,6 +175,7 @@ class SqliteStorage(BaseStorage):
     ) -> Agent:
         """Modify an agent."""
         updated_at = datetime.now(timezone.utc)
+        created_at = datetime.now(timezone.utc)
         # validate first
         new_agent = Agent(
             id=agent_id,
@@ -189,6 +190,7 @@ class SqliteStorage(BaseStorage):
             reasoning=reasoning,
             action_packages=action_packages,
             updated_at=updated_at,
+            created_at=created_at,
             metadata=metadata,
         )
         with self._connect() as conn:

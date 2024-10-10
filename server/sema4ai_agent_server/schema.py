@@ -531,6 +531,7 @@ class Agent(AgentPayload):
         description="The ID of the user that owns the agent."
     )
     updated_at: datetime = Field(description="The last time the agent was updated.")
+    created_at: datetime = Field(description="The time the agent was created.")
 
 
 AGENT_LIST_ADAPTER = TypeAdapter(List[Agent])
