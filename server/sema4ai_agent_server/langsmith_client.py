@@ -51,4 +51,5 @@ async def save_langsmith_thread_url(thread: Thread, url: str) -> None:
             agent_id=thread.agent_id,
             name=thread.name,
             metadata=metadata,
+            created_at=thread.created_at,
         )

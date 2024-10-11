@@ -452,6 +452,7 @@ class PostgresStorage(BaseStorage, PostgresConnectionManager):
         agent_id: str,
         name: str,
         metadata: dict | None,
+        created_at: datetime,
     ) -> Thread:
         """Modify a thread."""
         updated_at = datetime.now(timezone.utc)
@@ -460,6 +461,7 @@ class PostgresStorage(BaseStorage, PostgresConnectionManager):
             user_id=user_id,
             agent_id=agent_id,
             name=name,
+            created_at=created_at,
             updated_at=updated_at,
             metadata=metadata,
         )
@@ -467,10 +469,10 @@ class PostgresStorage(BaseStorage, PostgresConnectionManager):
             await cur.execute(
                 """
                 INSERT INTO thread (
-                    thread_id, user_id, agent_id, name, updated_at, metadata
+                    thread_id, user_id, agent_id, name, updated_at, metadata, created_at
                 ) VALUES (
                     %(thread_id)s, %(user_id)s, %(agent_id)s, %(name)s, %(updated_at)s,
-                    %(metadata)s
+                    %(metadata)s, %(created_at)s
                 ) ON CONFLICT (thread_id) DO UPDATE SET
                     user_id = EXCLUDED.user_id,
                     agent_id = EXCLUDED.agent_id,

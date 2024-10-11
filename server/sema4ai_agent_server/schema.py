@@ -542,6 +542,7 @@ class Thread(BaseModel):
     user_id: StrWithUuidInput = Field(description="The ID of the user.")
     agent_id: StrWithUuidInput | None = Field(None, description="The ID of the agent.")
     name: str = Field(description="The name of the thread.")
+    created_at: datetime = Field(description="The time the thread was updated.")
     updated_at: datetime = Field(description="The last time the thread was updated.")
     metadata: Annotated[dict | None, "db_json"] = Field(
         None, description="The thread metadata."

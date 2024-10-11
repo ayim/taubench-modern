@@ -324,6 +324,7 @@ class SqliteStorage(BaseStorage):
         agent_id: str,
         name: str,
         metadata: Optional[dict],
+        created_at: datetime,
     ) -> Thread:
         """Modify a thread."""
         updated_at = datetime.now(timezone.utc)
@@ -335,20 +336,22 @@ class SqliteStorage(BaseStorage):
             name=name,
             updated_at=updated_at,
             metadata=metadata,
+            created_at=created_at,
         )
         with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                INSERT INTO thread (thread_id, user_id, agent_id, name, updated_at, metadata)
-                VALUES (:thread_id, :user_id, :agent_id, :name, :updated_at, :metadata)
+                INSERT INTO thread (thread_id, user_id, agent_id, name, updated_at, metadata, created_at)
+                VALUES (:thread_id, :user_id, :agent_id, :name, :updated_at, :metadata, :created_at)
                 ON CONFLICT(thread_id) 
                 DO UPDATE SET
                     user_id = EXCLUDED.user_id,
                     agent_id = EXCLUDED.agent_id, 
                     name = EXCLUDED.name, 
                     updated_at = EXCLUDED.updated_at,
-                    metadata = EXCLUDED.metadata
+                    metadata = EXCLUDED.metadata,
+                    created_at = EXCLUDED.created_at
                 """,
                 model_dump_for_sqlite(new_thread, RAW_CONTEXT),
             )

@@ -94,7 +94,12 @@ AgentID = Annotated[str, Path(description="The ID of the agent.")]
 
 async def _generate_welcome_message(user_id: str, model: MODEL) -> str | None:
     thread = await get_storage().put_thread(
-        user_id, str(uuid4()), agent_id=None, name="", metadata=None
+        user_id,
+        str(uuid4()),
+        agent_id=None,
+        name="",
+        metadata=None,
+        created_at=datetime.datetime.now(datetime.timezone.utc),
     )
     config = {
         "configurable": {
