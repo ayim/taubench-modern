@@ -1,4 +1,5 @@
 import base64
+import datetime
 import os
 import subprocess
 from pathlib import Path
@@ -72,6 +73,7 @@ async def put_agent_from_spec(
         reasoning=agent["reasoning"],
         action_packages=ACTION_PKG_LIST_ADAPTER.validate_python(action_packages),
         metadata=AgentMetadata.model_validate(agent["metadata"]),
+        created_at=datetime.datetime.now(datetime.timezone.utc),
     )
 
 

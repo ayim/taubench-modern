@@ -305,10 +305,10 @@ class PostgresStorage(BaseStorage, PostgresConnectionManager):
         reasoning: AgentReasoning,
         action_packages: list[ActionPackage],
         metadata: AgentMetadata,
+        created_at: datetime,
     ) -> Agent:
         """Modify an agent."""
         updated_at = datetime.now(timezone.utc)
-        created_at = datetime.now(timezone.utc)
         new_agent = Agent(
             id=agent_id,
             user_id=user_id,
