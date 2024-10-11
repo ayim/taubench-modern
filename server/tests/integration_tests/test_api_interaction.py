@@ -528,7 +528,7 @@ def main():
         "--host", default="localhost", help="API host (default: localhost)"
     )
     parser.add_argument(
-        "--port", type=int, default=8100, help="API port (default: 8100)"
+        "--port", type=int, default=8000, help="API port (default: 8000)"
     )
     parser.add_argument(
         "--openai_api_key", type=str, default=None, help="OpenAI API key."

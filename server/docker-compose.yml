@@ -30,7 +30,7 @@ services:
     volumes:
       - .:/app
     ports:
-      - "8100:8100"
+      - "8000:8000"
     environment:
       POSTGRES_HOST: "postgres"
       OTEL_COLLECTOR_URL: "http://otel-collector:4318"
