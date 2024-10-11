@@ -308,6 +308,7 @@ class PostgresStorage(BaseStorage, PostgresConnectionManager):
     ) -> Agent:
         """Modify an agent."""
         updated_at = datetime.now(timezone.utc)
+        created_at = datetime.now(timezone.utc)
         new_agent = Agent(
             id=agent_id,
             user_id=user_id,
@@ -321,6 +322,7 @@ class PostgresStorage(BaseStorage, PostgresConnectionManager):
             reasoning=reasoning,
             action_packages=action_packages,
             updated_at=updated_at,
+            created_at=created_at,
             metadata=metadata,
         )
         async with self.async_cursor() as cur:
