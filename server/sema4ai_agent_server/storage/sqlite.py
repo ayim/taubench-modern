@@ -198,8 +198,8 @@ class SqliteStorage(BaseStorage):
             try:
                 cursor.execute(
                     """
-                    INSERT INTO agent (id, user_id, public, name, description, runbook, version, model, architecture, reasoning, action_packages, updated_at, metadata)
-                    VALUES (:id, :user_id, :public, :name, :description, :runbook, :version, :model, :architecture, :reasoning, :action_packages, :updated_at, :metadata)
+                    INSERT INTO agent (id, user_id, public, name, description, runbook, version, model, architecture, reasoning, action_packages, updated_at, metadata, created_at)
+                    VALUES (:id, :user_id, :public, :name, :description, :runbook, :version, :model, :architecture, :reasoning, :action_packages, :updated_at, :metadata, :created_at)
                     ON CONFLICT(id) 
                     DO UPDATE SET 
                         user_id = EXCLUDED.user_id, 
@@ -213,7 +213,8 @@ class SqliteStorage(BaseStorage):
                         reasoning = EXCLUDED.reasoning,
                         action_packages = EXCLUDED.action_packages,
                         updated_at = EXCLUDED.updated_at, 
-                        metadata = EXCLUDED.metadata
+                        metadata = EXCLUDED.metadata,
+                        created_at=EXCLUDED.created_at
                     """,
                     model_dump_for_sqlite(new_agent, RAW_CONTEXT),
                 )
