@@ -134,9 +134,13 @@ async def get_thread_state(
         )
 
         token_attributes = {key: value for key, value in attributes.items()}
-        token_attributes["context_window_size"] = summary["context_window_size"]
+        token_attributes["context_window_size"] = (
+            summary.context_window_size
+            if summary.context_window_size is not None
+            else "None"
+        )
         token_counter.add(
-            summary["total_tokens"],
+            summary.total_tokens,
             token_attributes,
         )
 
