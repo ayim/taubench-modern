@@ -107,6 +107,7 @@ def sample_owner():
         reasoning=AgentReasoning.DISABLED,
         action_packages=[],
         updated_at=datetime.now(timezone.utc),
+        created_at=datetime.now(timezone.utc),
         metadata=AgentMetadata(mode=AgentMode.CONVERSATIONAL),
     )
 

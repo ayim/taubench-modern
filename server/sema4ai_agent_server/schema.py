@@ -7,7 +7,7 @@ from uuid import UUID
 
 from anthropic import APIError as AnthropiAPIError
 from boto3.exceptions import Boto3Error
-from botocore.exceptions import BotoCoreError
+from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import UploadFile
 from langchain_core.messages import (
     AIMessage,
@@ -531,6 +531,7 @@ class Agent(AgentPayload):
         description="The ID of the user that owns the agent."
     )
     updated_at: datetime = Field(description="The last time the agent was updated.")
+    created_at: datetime = Field(description="The time the agent was created.")
 
 
 AGENT_LIST_ADAPTER = TypeAdapter(List[Agent])
@@ -541,6 +542,7 @@ class Thread(BaseModel):
     user_id: StrWithUuidInput = Field(description="The ID of the user.")
     agent_id: StrWithUuidInput | None = Field(None, description="The ID of the agent.")
     name: str = Field(description="The name of the thread.")
+    created_at: datetime = Field(description="The time the thread was updated.")
     updated_at: datetime = Field(description="The last time the thread was updated.")
     metadata: Annotated[dict | None, "db_json"] = Field(
         None, description="The thread metadata."
@@ -700,18 +702,51 @@ class StreamErrorData(BaseModel):
     @classmethod
     def from_error(cls, error: Exception) -> Self:
         """Converts the provided exception into a StreamErrorData instance."""
-        # TODO: Expand on for future custom error handling for custom graphs
+        # TODO: Expand on for future custom error handling for custom graphs. Future custom
+        # error types should be unified across the server and include attributes related
+        # to the current provider, model, and other relevant information, as well as
+        # allow for control of what is provided to the client/user.
         if isinstance(
-            error, (OpenaiAPIError, AnthropiAPIError, Boto3Error, BotoCoreError)
+            error,
+            (OpenaiAPIError, AnthropiAPIError, Boto3Error, BotoCoreError, ClientError),
         ):
             try:
-                return cls(
-                    status_code=error.status_code,
-                    message=error.json()
-                    .get("error", {})
-                    .get("message", "Something went wrong."),
-                    _exception=error,
-                )
+                if isinstance(error, OpenaiAPIError):
+                    return cls(
+                        status_code=getattr(error, "status_code", 500),
+                        message=f"Stream failed due to model API error: {error.message}",
+                        _exception=error,
+                    )
+                if isinstance(error, AnthropiAPIError):
+                    return cls(
+                        status_code=getattr(error, "status_code", 500),
+                        message=f"Stream failed due to model API error: {error.message}",
+                        _exception=error,
+                    )
+                if isinstance(error, Boto3Error):
+                    return cls(
+                        status_code=500,
+                        message=f"Stream failed due to model API error: {str(error)}",
+                        _exception=error,
+                    )
+                if isinstance(error, BotoCoreError):
+                    return cls(
+                        status_code=500,
+                        message=f"Stream failed due to model API error: {str(error)}",
+                        _exception=error,
+                    )
+                if isinstance(error, ClientError):
+                    if "Input is too long" in str(error):
+                        return cls(
+                            status_code=400,
+                            message=f"Stream failed due to model API error: {str(error)}",
+                            _exception=error,
+                        )
+                    return cls(
+                        status_code=500,
+                        message=f"Stream failed due to model API error: {str(error)}",
+                        _exception=error,
+                    )
             except Exception:
                 # TODO: This might leak too much info
                 return cls(status_code=500, message=str(error), _exception=error)

@@ -194,7 +194,7 @@ def _get_chroma_vector(model: Optional[MODEL]) -> ChromaVector:
         # Chroma can't use the same collection for both, because it will throw an error when
         # adding documents with mismatched vector sizes. So, we use model provider as the
         # collection name to avoid this issue.
-        collection_name=model.provider.value,
+        collection_name=model.provider.value or "default",
         persist_directory=VECTOR_DATABASE_PATH,
         embedding_function=get_embedding_function(model) if model else None,
     )

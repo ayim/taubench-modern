@@ -1,0 +1,2 @@
+ALTER TABLE agent DROP COLUMN IF EXISTS created_at;
+ALTER TABLE thread DROP COLUMN IF EXISTS created_at;

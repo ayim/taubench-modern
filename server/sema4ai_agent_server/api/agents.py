@@ -1,3 +1,4 @@
+import datetime
 import os
 import shutil
 import tempfile
@@ -93,7 +94,12 @@ AgentID = Annotated[str, Path(description="The ID of the agent.")]
 
 async def _generate_welcome_message(user_id: str, model: MODEL) -> str | None:
     thread = await get_storage().put_thread(
-        user_id, str(uuid4()), agent_id=None, name="", metadata=None
+        user_id,
+        str(uuid4()),
+        agent_id=None,
+        name="",
+        metadata=None,
+        created_at=datetime.datetime.now(datetime.timezone.utc),
     )
     config = {
         "configurable": {
@@ -435,6 +441,7 @@ async def create_agent(
         reasoning=payload.reasoning,
         action_packages=payload.action_packages,
         metadata=payload.metadata,
+        created_at=datetime.datetime.now(datetime.timezone.utc),
     )
     return PydanticResponse(agent, ser_context=RAW_CONTEXT)
 
@@ -469,6 +476,7 @@ async def upsert_agent(
         reasoning=payload.reasoning,
         action_packages=payload.action_packages,
         metadata=payload.metadata,
+        created_at=agent.created_at,
     )
     return PydanticResponse(agent, ser_context=RAW_CONTEXT)
 
@@ -564,6 +572,7 @@ async def update_action_server_config(
         reasoning=agent.reasoning,
         action_packages=agent.action_packages,
         metadata=agent.metadata,
+        created_at=agent.created_at,
     )
     return {"status": "ok"}
 
