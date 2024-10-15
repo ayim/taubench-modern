@@ -24,7 +24,7 @@ async def pool():
 @skip("TODO: Remove references to postgres and use sqlite for unit tests.")
 async def test_list_and_create_agents(pool: ConnectionPool) -> None:
     """Test list and create agents."""
-    headers = {"Cookie": "opengpts_user_id=1"}
+    headers = {"Cookie": "agent_server_user_id=1"}
     aid = str(uuid4())
 
     async with pool.acquire() as conn:
@@ -70,7 +70,7 @@ async def test_list_and_create_agents(pool: ConnectionPool) -> None:
         }
 
         # Check not visible to other users
-        headers = {"Cookie": "opengpts_user_id=2"}
+        headers = {"Cookie": "agent_server_user_id=2"}
         response = await client.get("/api/v1/agents/", headers=headers)
         assert response.status_code == 200, response.text
         assert response.json() == []
@@ -79,7 +79,7 @@ async def test_list_and_create_agents(pool: ConnectionPool) -> None:
 @skip("TODO: Remove references to postgres and use sqlite for unit tests.")
 async def test_threads() -> None:
     """Test put thread."""
-    headers = {"Cookie": "opengpts_user_id=1"}
+    headers = {"Cookie": "agent_server_user_id=1"}
     aid = str(uuid4())
     tid = str(uuid4())
 
@@ -117,6 +117,6 @@ async def test_threads() -> None:
 
         response = await client.put(
             f"/api/v1/threads/{tid}",
-            headers={"Cookie": "opengpts_user_id=2"},
+            headers={"Cookie": "agent_server_user_id=2"},
         )
         assert response.status_code == 422
