@@ -106,7 +106,11 @@ def get_tools_agent_executor(
             f"Expected an LLM with one of type {AGENT_TYPES}, got {type(llm)}."
         )
     # Set Claude mode, which requires conversational turns.
-    claude_mode = isinstance(llm, ChatBedrockConverse) and "claude" in llm.model_id
+    claude_mode = (
+        isinstance(llm, ChatBedrockConverse)
+        and llm.provider.lower() == "anthropic"
+        and "claude" in llm.model_id
+    )
 
     def _get_messages(messages):
         msgs = []
