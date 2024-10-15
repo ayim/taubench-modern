@@ -688,6 +688,12 @@ export interface components {
              * @description The last time the agent was updated.
              */
             updated_at: string;
+            /**
+             * Created At
+             * Format: date-time
+             * @description The time the agent was created.
+             */
+            created_at: string;
         };
         /**
          * AgentArchitecture
@@ -1306,6 +1312,12 @@ export interface components {
              * @description The name of the thread.
              */
             name: string;
+            /**
+             * Created At
+             * Format: date-time
+             * @description The time the thread was updated.
+             */
+            created_at: string;
             /**
              * Updated At
              * Format: date-time
