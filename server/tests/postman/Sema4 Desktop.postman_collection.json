@@ -135,6 +135,18 @@
 								"type": "text/javascript",
 								"packages": {}
 							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let responseData = pm.response.json()\r",
+									"let threadId = responseData.thread_id\r",
+									"pm.collectionVariables.set('thread_id', threadId)"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
 						}
 					],
 					"request": {
@@ -446,6 +458,18 @@
 							"script": {
 								"exec": [
 									"pm.variables.set(\"randomNumber\", Math.floor(Math.random() * 1000));"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let responseData = pm.response.json()\r",
+									"let agentId = responseData.id\r",
+									"pm.collectionVariables.set('agent_id', agentId)"
 								],
 								"type": "text/javascript",
 								"packages": {}
@@ -995,7 +1019,7 @@
 		},
 		{
 			"key": "agent_id",
-			"value": "f9c07fa1-586f-4b8f-8a4f-7e64135e58fe",
+			"value": "48c9c147-5126-468f-a0d3-79d689ac8306",
 			"type": "string"
 		},
 		{

@@ -6,7 +6,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Sema4.ai Agent Server API",
-    "version": "1.0.10"
+    "version": "1.0.11"
   },
   "paths": {
     "/api/v1/ok": {
@@ -2323,7 +2323,14 @@
       "ContextStats": {
         "properties": {
           "context_window_size": {
-            "type": "integer",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Context Window Size"
           },
           "tokens_per_message": {
