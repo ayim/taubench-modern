@@ -6,7 +6,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Sema4.ai Agent Server API",
-    "version": "1.0.11"
+    "version": "1.0.12"
   },
   "paths": {
     "/api/v1/ok": {
@@ -1692,6 +1692,12 @@
             "format": "date-time",
             "title": "Updated At",
             "description": "The last time the agent was updated."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "The time the agent was created."
           }
         },
         "type": "object",
@@ -1707,7 +1713,8 @@
           "metadata",
           "id",
           "user_id",
-          "updated_at"
+          "updated_at",
+          "created_at"
         ],
         "title": "Agent",
         "description": "Agent model that masks sensitive information unless serialized with special\ncontext.\n\nSecretStr fields will be masked during serialization unless a serialization\ncontext of \"raw\" is provided when dumping the model (works with either\nmodel_dump or model_dump_json)."
@@ -2906,6 +2913,12 @@
             "title": "Name",
             "description": "The name of the thread."
           },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "The time the thread was updated."
+          },
           "updated_at": {
             "type": "string",
             "format": "date-time",
@@ -2930,6 +2943,7 @@
           "thread_id",
           "user_id",
           "name",
+          "created_at",
           "updated_at"
         ],
         "title": "Thread"
