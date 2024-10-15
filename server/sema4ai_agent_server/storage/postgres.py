@@ -331,11 +331,11 @@ class PostgresStorage(BaseStorage, PostgresConnectionManager):
                     """
                     INSERT INTO agent (
                         id, user_id, public, name, description, runbook, version, model, 
-                        architecture, reasoning, action_packages, updated_at, metadata
+                        architecture, reasoning, action_packages, updated_at, metadata, created_at
                     ) VALUES (
                         %(id)s, %(user_id)s, %(public)s, %(name)s, %(description)s, %(runbook)s,
                         %(version)s, %(model)s, %(architecture)s, %(reasoning)s,
-                        %(action_packages)s, %(updated_at)s, %(metadata)s
+                        %(action_packages)s, %(updated_at)s, %(metadata)s, %(created_at)s
                     ) ON CONFLICT (id) DO UPDATE SET
                         user_id = EXCLUDED.user_id,
                         public = EXCLUDED.public,
@@ -348,7 +348,8 @@ class PostgresStorage(BaseStorage, PostgresConnectionManager):
                         reasoning = EXCLUDED.reasoning,
                         action_packages = EXCLUDED.action_packages,
                         updated_at = EXCLUDED.updated_at,
-                        metadata = EXCLUDED.metadata;
+                        metadata = EXCLUDED.metadata,
+                        created_at = EXCLUDED.created_at;
                     """,
                     model_dump_for_postgres(new_agent, context=RAW_CONTEXT),
                 )
@@ -478,7 +479,8 @@ class PostgresStorage(BaseStorage, PostgresConnectionManager):
                     agent_id = EXCLUDED.agent_id,
                     name = EXCLUDED.name,
                     updated_at = EXCLUDED.updated_at,
-                    metadata = EXCLUDED.metadata;
+                    metadata = EXCLUDED.metadata,
+                    created_at = EXCLUDED.created_at;
                 """,
                 model_dump_for_postgres(new_thread, context=RAW_CONTEXT),
             )
