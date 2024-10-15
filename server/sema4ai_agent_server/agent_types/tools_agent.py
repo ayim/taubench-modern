@@ -25,6 +25,7 @@ from sema4ai_agent_server.agent_types.constants import (
     FINISH_NODE_KEY,
 )
 from sema4ai_agent_server.agent_types.utils import bind_tools
+from sema4ai_agent_server.message_types import SystemMessage
 from sema4ai_agent_server.schema import AgentReasoning
 from sema4ai_agent_server.utils import current_timestamp_with_iso_week_local
 
@@ -76,6 +77,7 @@ REASONING_PROMPT_TEMPLATES = {
         ]
     ),
 }
+CONTINUE = "Continue"
 
 
 class AgentState(BaseModel):
@@ -124,10 +126,11 @@ def get_tools_agent_executor(
             if not isinstance(msgs[0], HumanMessage):
                 msgs = [HumanMessage(content="Hi")] + msgs
             # Check that any groups of similar message types are separated by a human message
+            # to prevent LangChain from combining them, which doens't work with our metadata
             new_msgs = []
             for i, msg in enumerate(msgs):
                 if i > 0 and type(msg) is type(msgs[i - 1]):
-                    new_msgs.append(HumanMessage(content="Continue"))
+                    new_msgs.append(HumanMessage(content=CONTINUE))
                 new_msgs.append(msg)
             msgs = new_msgs
         return msgs
@@ -167,7 +170,13 @@ def get_tools_agent_executor(
             combined_messages = state.combined + [last_human_message]
         else:
             combined_messages = state.combined
-        response = await reasoning_agent.with_config(
+        if claude_mode:
+            if isinstance(combined_messages[-1], SystemMessage):
+                # If the last message is a system message in Claude mode, we must convert it to Human.
+                combined_messages[-1] = HumanMessage(
+                    content=combined_messages[-1].content
+                )
+        response: AIMessage = await reasoning_agent.with_config(
             {"metadata": {"reasoning": True}}
         ).ainvoke(
             {
@@ -178,6 +187,10 @@ def get_tools_agent_executor(
                 "messages": _get_messages(combined_messages),
             }
         )
+        if response.tool_calls:
+            # If the reasoning message contains a tool call, we must drop it
+            response.tool_calls = []
+            response.invalid_tool_calls = []
         if fresh_state:
             return {"reasoning": [response], "combined": combined_messages + [response]}
         elif last_human_message:
@@ -193,7 +206,7 @@ def get_tools_agent_executor(
             if claude_mode and state.combined[-1].id == associated_reasoning_id:
                 # If the last message in the combined thread is the last reasoning message, then we
                 # must inject a Human message to adhere to the Claude mode requirement.
-                state.combined += [HumanMessage(content="Continue")]
+                state.combined += [HumanMessage(content=CONTINUE)]
             response = await executor_agent.with_config(
                 {"metadata": {"associated_reasoning": associated_reasoning_id}}
             ).ainvoke(
@@ -228,7 +241,7 @@ def get_tools_agent_executor(
             return "end"
         # Otherwise if there is, we continue
         else:
-            return "continue"
+            return CONTINUE
 
     # Define the function to execute tools
     async def call_tool(state: AgentState):
@@ -293,7 +306,7 @@ def get_tools_agent_executor(
         # Based on which one it matches, that node will then be called.
         {
             # If `tools`, then we call the tool node.
-            "continue": "action",
+            CONTINUE: "action",
             # Otherwise we finish.
             "end": FINISH_NODE_KEY,
         },
