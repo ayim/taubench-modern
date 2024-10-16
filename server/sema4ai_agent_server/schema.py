@@ -450,11 +450,20 @@ class AgentAdvancedConfig(BaseModel):
         description="The cognitive architecture of the agent."
     )
     reasoning: AgentReasoning = Field(description="The reasoning setting of the agent.")
-    recursion_limit: int = Field(
+    recursion_limit: int | None = Field(
         default=100,
         description="The maximum number of node steps allowed before the agent "
         "automatically terminates.",
     )
+
+    @model_validator(mode="after")
+    def validate_recursion_limit(self) -> Self:
+        if self.recursion_limit is None:
+            self.recursion_limit = 100
+        if self.recursion_limit is not None and self.recursion_limit < 0:
+            raise ValueError("recursion_limit must be greater than or equal to 0")
+
+        return self
 
 
 class AgentMetadata(BaseModel):

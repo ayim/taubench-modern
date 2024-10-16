@@ -1724,7 +1724,14 @@
             "description": "The reasoning setting of the agent."
           },
           "recursion_limit": {
-            "type": "integer",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Recursion Limit",
             "description": "The maximum number of node steps allowed before the agent automatically terminates.",
             "default": 100

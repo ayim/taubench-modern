@@ -706,7 +706,7 @@ export interface components {
              * @description The maximum number of node steps allowed before the agent automatically terminates.
              * @default 100
              */
-            recursion_limit: number;
+            recursion_limit: number | null;
         };
         /**
          * AgentArchitecture
