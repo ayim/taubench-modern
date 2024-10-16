@@ -103,14 +103,12 @@ async def _generate_welcome_message(user_id: str, model: MODEL) -> str | None:
         }
     }
     if "claude" in model.name:
-        human_prompt = (
-            "Introduce yourself as an agent working for Sema4.ai and "
-            "tell me what you're capable of."
-        )
-    else:
-        human_prompt = (
-            "Introduce yourself as a Sema4.ai Agent and tell me what you're capable of."
-        )
+        # Claude models are trained so they cannot represent themselves as anything but
+        # Claude from Anthropic, so we can't generate a welcome message for them.
+        return None
+    human_prompt = (
+        "Introduce yourself as a Sema4.ai Agent and tell me what you're capable of."
+    )
     input = {"messages": [HumanMessage(content=human_prompt, id=str(uuid4()))]}
 
     try:
