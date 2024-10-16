@@ -20,7 +20,7 @@ from sema4ai_agent_server.schema import (
     UPLOADED_FILE_LIST_ADAPTER,
     ActionPackage,
     Agent,
-    AgentArchitecture,
+    AgentAdvancedConfig,
     AgentMetadata,
     AgentReasoning,
     EmbeddingStatus,
@@ -168,8 +168,7 @@ class SqliteStorage(BaseStorage):
         runbook: str,
         version: str,
         model: MODEL,
-        architecture: AgentArchitecture,
-        reasoning: AgentReasoning,
+        advanced_config: AgentAdvancedConfig,
         action_packages: list[ActionPackage],
         metadata: AgentMetadata,
         created_at: datetime,
@@ -186,8 +185,7 @@ class SqliteStorage(BaseStorage):
             runbook=runbook,
             version=version,
             model=model,
-            architecture=architecture,
-            reasoning=reasoning,
+            advanced_config=advanced_config,
             action_packages=action_packages,
             updated_at=updated_at,
             created_at=created_at,
@@ -198,8 +196,8 @@ class SqliteStorage(BaseStorage):
             try:
                 cursor.execute(
                     """
-                    INSERT INTO agent (id, user_id, public, name, description, runbook, version, model, architecture, reasoning, action_packages, updated_at, metadata, created_at)
-                    VALUES (:id, :user_id, :public, :name, :description, :runbook, :version, :model, :architecture, :reasoning, :action_packages, :updated_at, :metadata, :created_at)
+                    INSERT INTO agent (id, user_id, public, name, description, runbook, version, model, advanced_config, action_packages, updated_at, metadata, created_at)
+                    VALUES (:id, :user_id, :public, :name, :description, :runbook, :version, :model, :advanced_config, :action_packages, :updated_at, :metadata, :created_at)
                     ON CONFLICT(id) 
                     DO UPDATE SET 
                         user_id = EXCLUDED.user_id, 
@@ -209,8 +207,7 @@ class SqliteStorage(BaseStorage):
                         runbook = EXCLUDED.runbook,
                         version = EXCLUDED.version,
                         model = EXCLUDED.model,
-                        architecture = EXCLUDED.architecture,
-                        reasoning = EXCLUDED.reasoning,
+                        advanced_config = EXCLUDED.advanced_config,
                         action_packages = EXCLUDED.action_packages,
                         updated_at = EXCLUDED.updated_at, 
                         metadata = EXCLUDED.metadata,

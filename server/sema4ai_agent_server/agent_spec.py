@@ -13,6 +13,7 @@ from sema4ai_agent_server.schema import (
     MODEL,
     ActionPackage,
     Agent,
+    AgentAdvancedConfig,
     AgentMetadata,
     LLMProvider,
 )
@@ -69,8 +70,10 @@ async def put_agent_from_spec(
         runbook=Path(runbook_file_path(root_dir)).read_text(),
         version=agent["version"],
         model=model,
-        architecture=agent["architecture"],
-        reasoning=agent["reasoning"],
+        # TODO: Update agent spec to support the Advanced Config directly.
+        advanced_config=AgentAdvancedConfig(
+            architecture=agent["architecture"], reasoning=agent["reasoning"]
+        ),
         action_packages=ACTION_PKG_LIST_ADAPTER.validate_python(action_packages),
         metadata=AgentMetadata.model_validate(agent["metadata"]),
         created_at=datetime.datetime.now(datetime.timezone.utc),
