@@ -2343,14 +2343,7 @@
       "ContextStats": {
         "properties": {
           "context_window_size": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "integer",
             "title": "Context Window Size"
           },
           "tokens_per_message": {

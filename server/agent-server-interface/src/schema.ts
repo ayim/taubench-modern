@@ -1029,7 +1029,7 @@ export interface components {
         /** ContextStats */
         ContextStats: {
             /** Context Window Size */
-            context_window_size: number | null;
+            context_window_size: number;
             /** Tokens Per Message */
             tokens_per_message: {
                 [key: string]: number;
