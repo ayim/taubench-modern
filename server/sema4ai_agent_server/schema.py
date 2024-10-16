@@ -451,13 +451,15 @@ class AgentAdvancedConfig(BaseModel):
     )
     reasoning: AgentReasoning = Field(description="The reasoning setting of the agent.")
     recursion_limit: int | None = Field(
-        default=100,
+        None,
         description="The maximum number of node steps allowed before the agent "
-        "automatically terminates.",
+        "automatically terminates. Defaults to 100.",
     )
 
     @model_validator(mode="after")
     def validate_recursion_limit(self) -> Self:
+        # Default must be set via validation or the agent-server-interface will
+        # set this field as required instead of allow it to be optional.
         if self.recursion_limit is None:
             self.recursion_limit = 100
         if self.recursion_limit is not None and self.recursion_limit < 0:

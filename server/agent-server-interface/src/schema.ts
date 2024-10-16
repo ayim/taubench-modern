@@ -703,10 +703,9 @@ export interface components {
             reasoning: components["schemas"]["AgentReasoning"];
             /**
              * Recursion Limit
-             * @description The maximum number of node steps allowed before the agent automatically terminates.
-             * @default 100
+             * @description The maximum number of node steps allowed before the agent automatically terminates. Defaults to 100.
              */
-            recursion_limit: number | null;
+            recursion_limit?: number | null;
         };
         /**
          * AgentArchitecture
