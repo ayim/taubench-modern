@@ -688,6 +688,12 @@ export interface components {
              * @description The last time the agent was updated.
              */
             updated_at: string;
+            /**
+             * Created At
+             * Format: date-time
+             * @description The time the agent was created.
+             */
+            created_at: string;
         };
         /**
          * AgentArchitecture
@@ -1013,7 +1019,7 @@ export interface components {
         /** ContextStats */
         ContextStats: {
             /** Context Window Size */
-            context_window_size: number;
+            context_window_size: number | null;
             /** Tokens Per Message */
             tokens_per_message: {
                 [key: string]: number;
@@ -1306,6 +1312,12 @@ export interface components {
              * @description The name of the thread.
              */
             name: string;
+            /**
+             * Created At
+             * Format: date-time
+             * @description The time the thread was updated.
+             */
+            created_at: string;
             /**
              * Updated At
              * Format: date-time

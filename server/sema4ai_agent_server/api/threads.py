@@ -1,3 +1,4 @@
+import datetime
 from pathlib import Path
 from typing import Annotated, Any, Dict, List, Sequence, Union
 from uuid import uuid4
@@ -202,6 +203,7 @@ async def create_thread(
         agent_id=payload.agent_id,
         name=payload.name,
         metadata=None,
+        created_at=datetime.datetime.now(datetime.timezone.utc),
     )
     if payload.starting_message is not None:
         message = AIMessage(id=str(uuid4()), content=payload.starting_message)
@@ -244,6 +246,7 @@ async def upsert_thread(
         agent_id=payload.agent_id,
         name=payload.name,
         metadata=thread.metadata,
+        created_at=thread.created_at,
     )
     return PydanticResponse(thread)
 

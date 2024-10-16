@@ -22,7 +22,7 @@ services:
     ports:
       - "4318:4318"
   backend:
-    container_name: opengpts-backend
+    container_name: agent-server
     build:
       context: .
     env_file:

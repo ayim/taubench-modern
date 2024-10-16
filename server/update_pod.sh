@@ -6,7 +6,7 @@ set -e
 NAMESPACE="ten-0c8a9114-fddc-4251-b546-13b99bd7dd9e"
 SERVICE_NAME="agent-server"
 PORT_TO_FORWARD=8000
-ECR_REPO="024848458368.dkr.ecr.us-east-1.amazonaws.com/manual/ace/opengpts-backend"
+ECR_REPO="024848458368.dkr.ecr.us-east-1.amazonaws.com/manual/ace/agent-server"
 DEPLOYMENT_NAME="agents-backend"
 POD_LABEL="app=backend"  # Correct label for the agents-backend deployment
 # AWS region (replace with your region if different)
@@ -81,7 +81,7 @@ build_and_push_image() {
 update_deployment() {
     local new_image="${ECR_REPO}:${NEW_TAG}"
     echo "Updating deployment to use new image: $new_image"
-    kubectl set image deployment/$DEPLOYMENT_NAME opengpts-backend=$new_image -n $NAMESPACE
+    kubectl set image deployment/$DEPLOYMENT_NAME agent-server=$new_image -n $NAMESPACE
     echo "Waiting for rollout to complete..."
     kubectl rollout status deployment/$DEPLOYMENT_NAME -n $NAMESPACE
 }

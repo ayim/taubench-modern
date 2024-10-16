@@ -172,6 +172,7 @@ class SqliteStorage(BaseStorage):
         reasoning: AgentReasoning,
         action_packages: list[ActionPackage],
         metadata: AgentMetadata,
+        created_at: datetime,
     ) -> Agent:
         """Modify an agent."""
         updated_at = datetime.now(timezone.utc)
@@ -189,6 +190,7 @@ class SqliteStorage(BaseStorage):
             reasoning=reasoning,
             action_packages=action_packages,
             updated_at=updated_at,
+            created_at=created_at,
             metadata=metadata,
         )
         with self._connect() as conn:
@@ -196,8 +198,8 @@ class SqliteStorage(BaseStorage):
             try:
                 cursor.execute(
                     """
-                    INSERT INTO agent (id, user_id, public, name, description, runbook, version, model, architecture, reasoning, action_packages, updated_at, metadata)
-                    VALUES (:id, :user_id, :public, :name, :description, :runbook, :version, :model, :architecture, :reasoning, :action_packages, :updated_at, :metadata)
+                    INSERT INTO agent (id, user_id, public, name, description, runbook, version, model, architecture, reasoning, action_packages, updated_at, metadata, created_at)
+                    VALUES (:id, :user_id, :public, :name, :description, :runbook, :version, :model, :architecture, :reasoning, :action_packages, :updated_at, :metadata, :created_at)
                     ON CONFLICT(id) 
                     DO UPDATE SET 
                         user_id = EXCLUDED.user_id, 
@@ -211,7 +213,8 @@ class SqliteStorage(BaseStorage):
                         reasoning = EXCLUDED.reasoning,
                         action_packages = EXCLUDED.action_packages,
                         updated_at = EXCLUDED.updated_at, 
-                        metadata = EXCLUDED.metadata
+                        metadata = EXCLUDED.metadata,
+                        created_at=EXCLUDED.created_at
                     """,
                     model_dump_for_sqlite(new_agent, RAW_CONTEXT),
                 )
@@ -322,6 +325,7 @@ class SqliteStorage(BaseStorage):
         agent_id: str,
         name: str,
         metadata: Optional[dict],
+        created_at: datetime,
     ) -> Thread:
         """Modify a thread."""
         updated_at = datetime.now(timezone.utc)
@@ -333,20 +337,22 @@ class SqliteStorage(BaseStorage):
             name=name,
             updated_at=updated_at,
             metadata=metadata,
+            created_at=created_at,
         )
         with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                INSERT INTO thread (thread_id, user_id, agent_id, name, updated_at, metadata)
-                VALUES (:thread_id, :user_id, :agent_id, :name, :updated_at, :metadata)
+                INSERT INTO thread (thread_id, user_id, agent_id, name, updated_at, metadata, created_at)
+                VALUES (:thread_id, :user_id, :agent_id, :name, :updated_at, :metadata, :created_at)
                 ON CONFLICT(thread_id) 
                 DO UPDATE SET
                     user_id = EXCLUDED.user_id,
                     agent_id = EXCLUDED.agent_id, 
                     name = EXCLUDED.name, 
                     updated_at = EXCLUDED.updated_at,
-                    metadata = EXCLUDED.metadata
+                    metadata = EXCLUDED.metadata,
+                    created_at = EXCLUDED.created_at
                 """,
                 model_dump_for_sqlite(new_thread, RAW_CONTEXT),
             )
