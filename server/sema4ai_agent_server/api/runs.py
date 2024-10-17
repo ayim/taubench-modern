@@ -1,17 +1,18 @@
 import uuid
+from typing import Optional
 
-import langsmith.client
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from langchain_core.runnables import RunnableConfig
-from langsmith.utils import tracing_is_enabled
 from opentelemetry import metrics
 from sse_starlette import EventSourceResponse
 
 from sema4ai_agent_server.agent import runnable_agent
 from sema4ai_agent_server.auth.handlers import AuthedUser
 from sema4ai_agent_server.langsmith_client import (
-    get_langsmith_thread_url,
+    Langsmith,
+    get_langsmith,
     save_langsmith_thread_url,
+    trace,
 )
 from sema4ai_agent_server.otel import otel_is_enabled
 from sema4ai_agent_server.schema import (
@@ -25,7 +26,6 @@ from sema4ai_agent_server.storage.option import get_storage
 from sema4ai_agent_server.stream import astream_state, invoke_state, to_sse
 
 router = APIRouter()
-langsmith_client = langsmith.client.Client() if tracing_is_enabled() else None
 
 if otel_is_enabled():
     meter = metrics.get_meter(__name__)
@@ -89,8 +89,9 @@ async def _run_input_and_config(payload: ChatRequest, user: User):
     return input_, config, thread, agent
 
 
-async def background_invoke(input_, config):
-    await runnable_agent.ainvoke(input_, config)
+async def background_invoke(input_, config, ls: Optional[Langsmith] = None):
+    with trace(ls):
+        await runnable_agent.ainvoke(input_, config)
     run_id = input_["run_id"]
     await get_storage().update_async_run(run_id, "complete")
 
@@ -106,7 +107,9 @@ async def create_run(
     run_id = str(uuid.uuid4())
     input_["run_id"] = run_id
     await get_storage().create_async_run(run_id, "in_progress")
-    background_tasks.add_task(background_invoke, input_, config)
+    if ls := get_langsmith(agent):
+        await save_langsmith_thread_url(ls, thread)
+    background_tasks.add_task(background_invoke, input_, config, ls)
     if otel_is_enabled():
         run_counter.add(1, _run_counter_attrs(user, thread, agent, "async_invoke"))
     return {
@@ -170,12 +173,13 @@ async def stream_run(
     # TODO: Performance gains may be possible as part of implementing stream protocol v2.
     #       We should consider using StreamingResponse based on performance tests.
     input_, config, thread, agent = await _run_input_and_config(payload, user)
-    if langsmith_client:
-        if url := get_langsmith_thread_url(langsmith_client, thread.thread_id):
-            await save_langsmith_thread_url(thread, url)
+    if ls := get_langsmith(agent):
+        await save_langsmith_thread_url(ls, thread)
     if otel_is_enabled():
         run_counter.add(1, _run_counter_attrs(user, thread, agent, "stream"))
-    return EventSourceResponse(to_sse(astream_state(runnable_agent, input_, config)))
+    return EventSourceResponse(
+        to_sse(astream_state(runnable_agent, input_, config, ls))
+    )
 
 
 @router.post("/invoke")
@@ -185,9 +189,8 @@ async def invoke_run(
 ):
     """Create a run."""
     input_, config, thread, agent = await _run_input_and_config(payload, user)
-    if langsmith_client:
-        if url := get_langsmith_thread_url(langsmith_client, thread.thread_id):
-            await save_langsmith_thread_url(thread, url)
+    if ls := get_langsmith(agent):
+        await save_langsmith_thread_url(ls, thread)
     if otel_is_enabled():
         run_counter.add(1, _run_counter_attrs(user, thread, agent, "invoke"))
-    return await invoke_state(runnable_agent, input_, config)
+    return await invoke_state(runnable_agent, input_, config, ls)
