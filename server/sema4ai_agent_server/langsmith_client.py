@@ -53,11 +53,7 @@ def _get_credentials_from_env() -> Optional[LangsmithCredentials]:
 def _get_credentials_from_agent(agent: Agent) -> Optional[LangsmithCredentials]:
     if agent.advanced_config.langsmith is None:
         return None
-    return LangsmithCredentials(
-        api_key=agent.advanced_config.langsmith.api_key.get_secret_value(),
-        api_url=agent.advanced_config.langsmith.api_url,
-        project_name=agent.advanced_config.langsmith.project_name,
-    )
+    return agent.advanced_config.langsmith
 
 
 def get_langsmith(agent: Agent) -> Optional[Langsmith]:
