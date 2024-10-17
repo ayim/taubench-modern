@@ -43,6 +43,7 @@ from sema4ai_agent_server.schema import (
     EmbeddingFileInProgress,
     EmbeddingFilePending,
     EmbeddingStatus,
+    LLMProvider,
     ModelNotConfigured,
     SerializableSecretStr,
     UploadedFile,
@@ -108,7 +109,10 @@ async def _generate_welcome_message(user_id: str, model: MODEL) -> str | None:
             "type": AgentArchitecture.AGENT.value,
         }
     }
-    if "claude" in model.name:
+    if (
+        model.provider in [LLMProvider.AMAZON, LLMProvider.ANTHROPIC]
+        and "claude" in model.name
+    ):
         # Claude models are trained so they cannot represent themselves as anything but
         # Claude from Anthropic, so we can't generate a welcome message for them.
         return None

@@ -117,7 +117,7 @@ def get_plan_execute_agent(
     async def objective_parser_and_state_reset(state: PlanExecuteAgentState):
         """Entry node to read the objective and clear the state."""
         logger.debug(
-            f"objective_parser_and_state_reset:state at start of node: {state.dict()}"
+            f"objective_parser_and_state_reset:state at start of node: {state!r}"
         )
         last_message = state.messages[-1]
         if state.response_type == "edge-case":
@@ -152,7 +152,7 @@ def get_plan_execute_agent(
         This node assumes disabled reasoning."""
         logger.debug(f"offramper:state at start of node: {state!r}")
         prompt = PLANNER_PROMPTS[reasoning_level]
-        messages = _get_messages(state.combined)
+        messages = _get_messages(state.messages)
         input = {
             "name": name,
             "datetime": current_timestamp_with_iso_week_local(),
