@@ -706,6 +706,8 @@ export interface components {
              * @description The maximum number of node steps allowed before the agent automatically terminates. Defaults to 100.
              */
             recursion_limit?: number | null;
+            /** @description The Langsmith credentials for the agent. */
+            langsmith?: components["schemas"]["LangsmithCredentials"] | null;
         };
         /**
          * AgentArchitecture
@@ -839,6 +841,8 @@ export interface components {
              * @description Action Server configurations.
              */
             action_servers: components["schemas"]["AgentPayloadPackageActionServer"][];
+            /** @description The langsmith credentials for the agent. */
+            langsmith?: components["schemas"]["LangsmithCredentials"] | null;
         };
         /** AgentPayloadPackageActionServer */
         AgentPayloadPackageActionServer: {
@@ -1130,6 +1134,28 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /**
+         * LangsmithCredentials
+         * @description Langsmith credentials for the agent.
+         */
+        LangsmithCredentials: {
+            /**
+             * Api Key
+             * Format: password
+             * @description The API key for hosted Langsmith instance.
+             */
+            api_key: string;
+            /**
+             * Api Url
+             * @description The API URL for hosted Langsmith instance.
+             */
+            api_url: string;
+            /**
+             * Project Name
+             * @description The name of the Langsmith project.
+             */
+            project_name: string;
         };
         /** ModelNotConfigured */
         ModelNotConfigured: {
