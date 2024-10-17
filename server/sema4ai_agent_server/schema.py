@@ -441,6 +441,18 @@ class QuestionGroup(BaseModel):
     questions: list[str] = Field(description="The questions in the group.")
 
 
+class LangsmithCredentials(BaseModel):
+    """
+    Langsmith credentials for the agent.
+    """
+
+    api_key: SerializableSecretStr = Field(
+        ..., description="The API key for hosted Langsmith instance."
+    )
+    api_url: str = Field(..., description="The API URL for hosted Langsmith instance.")
+    project_name: str = Field(..., description="The name of the Langsmith project.")
+
+
 class AgentAdvancedConfig(BaseModel):
     """
     Advanced configuration options for the agent.
@@ -454,6 +466,9 @@ class AgentAdvancedConfig(BaseModel):
         None,
         description="The maximum number of node steps allowed before the agent "
         "automatically terminates. Defaults to 100.",
+    )
+    langsmith: LangsmithCredentials | None = Field(
+        None, description="The Langsmith credentials for the agent."
     )
 
     @model_validator(mode="after")
