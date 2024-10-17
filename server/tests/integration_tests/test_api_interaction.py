@@ -15,6 +15,7 @@ from tqdm import tqdm
 
 from sema4ai_agent_server.schema import (
     RAW_CONTEXT,
+    AgentAdvancedConfig,
     AgentArchitecture,
     AgentMetadata,
     AgentMode,
@@ -80,6 +81,9 @@ def create_agent(
         config=OpenAIGPTConfig(temperature=0.0, openai_api_key=openai_api_key),
     )
     metadata = AgentMetadata(mode=AgentMode.CONVERSATIONAL)
+    advanced_config = AgentAdvancedConfig(
+        architecture=architecture, reasoning=AgentReasoning.DISABLED
+    )
     url = f"{base_url}/agents"
     headers = {
         "Accept": "application/json",
@@ -94,8 +98,7 @@ def create_agent(
         "runbook": "This is a test runbook",
         "version": "0.0.1",
         "model": model.model_dump(mode="json", context=RAW_CONTEXT),
-        "architecture": architecture,
-        "reasoning": AgentReasoning.DISABLED,
+        "advanced_config": advanced_config.model_dump(mode="json", context=RAW_CONTEXT),
         "action_packages": [],
         "metadata": metadata.model_dump(mode="json", context=RAW_CONTEXT),
     }

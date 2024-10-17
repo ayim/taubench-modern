@@ -34,12 +34,12 @@ CONTEXT_WINDOW_SIZES = {
 
 
 class ContextStats(BaseModel):
-    context_window_size: Optional[int]
+    context_window_size: int
     tokens_per_message: dict[str, int]
 
 
 class ContextSummary(BaseModel):
-    context_window_size: Optional[int]
+    context_window_size: int
     total_tokens: int
 
 
@@ -65,15 +65,18 @@ def get_context_stats(model: MODEL, thread_state: dict) -> ContextStats:
     )
 
 
-def _get_context_window_size(model: MODEL) -> Optional[int]:
+def _get_context_window_size(model: MODEL) -> int:
     match model.provider:
         case LLMProvider.OPENAI | LLMProvider.AMAZON:
-            return CONTEXT_WINDOW_SIZES.get(model.provider, {}).get(model.name)
+            try:
+                return CONTEXT_WINDOW_SIZES.get(model.provider, {}).get(model.name)
+            except KeyError:
+                raise ValueError(f"Unsupported model name: {model.name}")
         case LLMProvider.AZURE:
             # We don't know which model is used so we return the most common size for GPTs
             return 128000
         case _:
-            return None
+            raise ValueError(f"Unsupported model provider: {model.provider}")
 
 
 def _token_counter(model: MODEL) -> Callable[[str], int]:

@@ -15,6 +15,7 @@ from sema4ai_agent_server.file_manager.cloud import CloudFileManager
 from sema4ai_agent_server.file_manager.local import LocalFileManager
 from sema4ai_agent_server.schema import (
     Agent,
+    AgentAdvancedConfig,
     AgentArchitecture,
     AgentMetadata,
     AgentMode,
@@ -103,8 +104,9 @@ def sample_owner():
         runbook="Test agent Runbook",
         version="0.0.1",
         model=dummy_model,
-        architecture=AgentArchitecture.AGENT,
-        reasoning=AgentReasoning.DISABLED,
+        advanced_config=AgentAdvancedConfig(
+            architecture=AgentArchitecture.AGENT, reasoning=AgentReasoning.DISABLED
+        ),
         action_packages=[],
         updated_at=datetime.now(timezone.utc),
         created_at=datetime.now(timezone.utc),

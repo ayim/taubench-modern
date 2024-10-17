@@ -441,6 +441,33 @@ class QuestionGroup(BaseModel):
     questions: list[str] = Field(description="The questions in the group.")
 
 
+class AgentAdvancedConfig(BaseModel):
+    """
+    Advanced configuration options for the agent.
+    """
+
+    architecture: AgentArchitecture = Field(
+        description="The cognitive architecture of the agent."
+    )
+    reasoning: AgentReasoning = Field(description="The reasoning setting of the agent.")
+    recursion_limit: int | None = Field(
+        None,
+        description="The maximum number of node steps allowed before the agent "
+        "automatically terminates. Defaults to 100.",
+    )
+
+    @model_validator(mode="after")
+    def validate_recursion_limit(self) -> Self:
+        # Default must be set via validation or the agent-server-interface will
+        # set this field as required instead of allow it to be optional.
+        if self.recursion_limit is None:
+            self.recursion_limit = 100
+        if self.recursion_limit is not None and self.recursion_limit < 0:
+            raise ValueError("recursion_limit must be greater than or equal to 0")
+
+        return self
+
+
 class AgentMetadata(BaseModel):
     """
     Metadata for the agent.
@@ -483,10 +510,9 @@ class AgentPayload(BaseModel):
     model: Annotated[MODEL, "db_json"] = Field(
         ..., description="LLM model configuration for the agent."
     )
-    architecture: AgentArchitecture = Field(
-        description="The cognitive architecture of the agent."
+    advanced_config: Annotated[AgentAdvancedConfig, "db_json"] = Field(
+        description="Advanced configuration options for the agent."
     )
-    reasoning: AgentReasoning = Field(description="The reasoning setting of the agent.")
     action_packages: Annotated[list[ActionPackage], "db_json"] = Field(
         description="The action packages for the agent."
     )
@@ -513,6 +539,13 @@ class AgentPayload(BaseModel):
     def validate_metadata(cls, v: Any) -> AgentMetadata:
         if isinstance(v, (str, bytes, bytearray)):
             return AgentMetadata.model_validate_json(v)
+        return v
+
+    @field_validator("advanced_config", mode="before")
+    @classmethod
+    def validate_advanced_config(cls, v: Any) -> AgentAdvancedConfig:
+        if isinstance(v, (str, bytes, bytearray)):
+            return AgentAdvancedConfig.model_validate_json(v)
         return v
 
 

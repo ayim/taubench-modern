@@ -661,10 +661,7 @@ export interface components {
              * @description LLM model configuration for the agent.
              */
             model: components["schemas"]["OpenAIGPT"] | components["schemas"]["AzureGPT"] | components["schemas"]["AnthropicClaude"] | components["schemas"]["AmazonBedrock"] | components["schemas"]["GoogleGemini"] | components["schemas"]["Ollama"];
-            /** @description The cognitive architecture of the agent. */
-            architecture: components["schemas"]["AgentArchitecture"];
-            /** @description The reasoning setting of the agent. */
-            reasoning: components["schemas"]["AgentReasoning"];
+            advanced_config: components["schemas"]["AgentAdvancedConfig"];
             /**
              * Action Packages
              * @description The action packages for the agent.
@@ -694,6 +691,21 @@ export interface components {
              * @description The time the agent was created.
              */
             created_at: string;
+        };
+        /**
+         * AgentAdvancedConfig
+         * @description Advanced configuration options for the agent.
+         */
+        AgentAdvancedConfig: {
+            /** @description The cognitive architecture of the agent. */
+            architecture: components["schemas"]["AgentArchitecture"];
+            /** @description The reasoning setting of the agent. */
+            reasoning: components["schemas"]["AgentReasoning"];
+            /**
+             * Recursion Limit
+             * @description The maximum number of node steps allowed before the agent automatically terminates. Defaults to 100.
+             */
+            recursion_limit?: number | null;
         };
         /**
          * AgentArchitecture
@@ -782,10 +794,7 @@ export interface components {
              * @description LLM model configuration for the agent.
              */
             model: components["schemas"]["OpenAIGPT"] | components["schemas"]["AzureGPT"] | components["schemas"]["AnthropicClaude"] | components["schemas"]["AmazonBedrock"] | components["schemas"]["GoogleGemini"] | components["schemas"]["Ollama"];
-            /** @description The cognitive architecture of the agent. */
-            architecture: components["schemas"]["AgentArchitecture"];
-            /** @description The reasoning setting of the agent. */
-            reasoning: components["schemas"]["AgentReasoning"];
+            advanced_config: components["schemas"]["AgentAdvancedConfig"];
             /**
              * Action Packages
              * @description The action packages for the agent.
@@ -1019,7 +1028,7 @@ export interface components {
         /** ContextStats */
         ContextStats: {
             /** Context Window Size */
-            context_window_size: number | null;
+            context_window_size: number;
             /** Tokens Per Message */
             tokens_per_message: {
                 [key: string]: number;

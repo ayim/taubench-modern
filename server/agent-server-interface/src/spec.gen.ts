@@ -6,7 +6,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Sema4.ai Agent Server API",
-    "version": "1.0.12"
+    "version": "1.0.13"
   },
   "paths": {
     "/api/v1/ok": {
@@ -1657,13 +1657,8 @@
               }
             }
           },
-          "architecture": {
-            "$ref": "#/components/schemas/AgentArchitecture",
-            "description": "The cognitive architecture of the agent."
-          },
-          "reasoning": {
-            "$ref": "#/components/schemas/AgentReasoning",
-            "description": "The reasoning setting of the agent."
+          "advanced_config": {
+            "$ref": "#/components/schemas/AgentAdvancedConfig"
           },
           "action_packages": {
             "items": {
@@ -1707,8 +1702,7 @@
           "runbook",
           "version",
           "model",
-          "architecture",
-          "reasoning",
+          "advanced_config",
           "action_packages",
           "metadata",
           "id",
@@ -1718,6 +1712,37 @@
         ],
         "title": "Agent",
         "description": "Agent model that masks sensitive information unless serialized with special\ncontext.\n\nSecretStr fields will be masked during serialization unless a serialization\ncontext of \"raw\" is provided when dumping the model (works with either\nmodel_dump or model_dump_json)."
+      },
+      "AgentAdvancedConfig": {
+        "properties": {
+          "architecture": {
+            "$ref": "#/components/schemas/AgentArchitecture",
+            "description": "The cognitive architecture of the agent."
+          },
+          "reasoning": {
+            "$ref": "#/components/schemas/AgentReasoning",
+            "description": "The reasoning setting of the agent."
+          },
+          "recursion_limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recursion Limit",
+            "description": "The maximum number of node steps allowed before the agent automatically terminates. Defaults to 100."
+          }
+        },
+        "type": "object",
+        "required": [
+          "architecture",
+          "reasoning"
+        ],
+        "title": "AgentAdvancedConfig",
+        "description": "Advanced configuration options for the agent."
       },
       "AgentArchitecture": {
         "type": "string",
@@ -1874,13 +1899,8 @@
               }
             }
           },
-          "architecture": {
-            "$ref": "#/components/schemas/AgentArchitecture",
-            "description": "The cognitive architecture of the agent."
-          },
-          "reasoning": {
-            "$ref": "#/components/schemas/AgentReasoning",
-            "description": "The reasoning setting of the agent."
+          "advanced_config": {
+            "$ref": "#/components/schemas/AgentAdvancedConfig"
           },
           "action_packages": {
             "items": {
@@ -1902,8 +1922,7 @@
           "runbook",
           "version",
           "model",
-          "architecture",
-          "reasoning",
+          "advanced_config",
           "action_packages",
           "metadata"
         ],
@@ -2330,14 +2349,7 @@
       "ContextStats": {
         "properties": {
           "context_window_size": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "integer",
             "title": "Context Window Size"
           },
           "tokens_per_message": {
