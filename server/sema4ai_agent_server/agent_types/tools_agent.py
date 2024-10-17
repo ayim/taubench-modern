@@ -1,3 +1,4 @@
+import time
 from typing import Annotated, List, Optional, cast
 
 from langchain.tools import BaseTool
@@ -18,6 +19,7 @@ from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import StateGraph
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolExecutor, ToolInvocation
+from opentelemetry import metrics
 from pydantic import BaseModel
 
 from sema4ai_agent_server.agent_types.constants import (
@@ -26,6 +28,7 @@ from sema4ai_agent_server.agent_types.constants import (
 )
 from sema4ai_agent_server.agent_types.utils import bind_tools
 from sema4ai_agent_server.message_types import SystemMessage
+from sema4ai_agent_server.otel import otel_is_enabled
 from sema4ai_agent_server.schema import AgentReasoning
 from sema4ai_agent_server.utils import current_timestamp_with_iso_week_local
 
@@ -78,6 +81,22 @@ REASONING_PROMPT_TEMPLATES = {
     ),
 }
 CONTINUE = "Continue"
+
+if otel_is_enabled():
+    meter = metrics.get_meter(__name__)
+    action_success_counter = meter.create_counter(
+        name="sema4ai.agent_server.action_server.success",
+        description="Number of successful action server calls",
+    )
+    action_failure_counter = meter.create_counter(
+        name="sema4ai.agent_server.action_server.failure",
+        description="Number of failed action server calls",
+    )
+    action_latency_histogram = meter.create_histogram(
+        name="sema4ai.agent_server.action_server.response_duration",
+        description="The duration of action server requests in milliseconds",
+        unit="ms",
+    )
 
 
 class AgentState(BaseModel):
@@ -257,16 +276,29 @@ def get_tools_agent_executor(
             )
             configs.append({"tool_call_id": tool_call["id"]})
         # We call the tool_executor and get back a response
+        start_time = time.time()
         responses = await tool_executor.abatch(actions, config=configs)
-        # We use the response to create a ToolMessage
-        tool_messages = [
-            ToolMessage(
-                tool_call_id=tool_call["id"],
-                name=tool_call["name"],
-                content=str(response),
+        end_time = time.time()
+        if otel_is_enabled():
+            # Since actions are batched, we approximate the latency per action
+            action_latency_histogram.record(
+                round((end_time - start_time) * 1000 / len(actions))
             )
-            for tool_call, response in zip(last_message.tool_calls, responses)
-        ]
+        # We use the response to create a ToolMessage
+        tool_messages = []
+        for tool_call, response in zip(last_message.tool_calls, responses):
+            tool_messages.append(
+                ToolMessage(
+                    tool_call_id=tool_call["id"],
+                    name=tool_call["name"],
+                    content=str(response),
+                )
+            )
+            if otel_is_enabled():
+                if response == '"This action failed."':
+                    action_failure_counter.add(1)
+                else:
+                    action_success_counter.add(1)
         if reasoning_level != AgentReasoning.DISABLED:
             return {"messages": tool_messages, "combined": tool_messages}
         else:
