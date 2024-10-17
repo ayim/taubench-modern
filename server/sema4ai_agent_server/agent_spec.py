@@ -15,6 +15,7 @@ from sema4ai_agent_server.schema import (
     Agent,
     AgentAdvancedConfig,
     AgentMetadata,
+    LangsmithCredentials,
     LLMProvider,
 )
 from sema4ai_agent_server.storage.option import get_storage
@@ -40,6 +41,7 @@ async def put_agent_from_spec(
     model: MODEL,
     action_server_url: str | None,
     action_server_api_key: str | None,
+    langsmith: LangsmithCredentials | None,
 ) -> Agent:
     agent = _replace_dashes_with_underscores(spec["agent-package"]["agents"][0])
     action_packages = []
@@ -72,7 +74,9 @@ async def put_agent_from_spec(
         model=model,
         # TODO: Update agent spec to support the Advanced Config directly.
         advanced_config=AgentAdvancedConfig(
-            architecture=agent["architecture"], reasoning=agent["reasoning"]
+            architecture=agent["architecture"],
+            reasoning=agent["reasoning"],
+            langsmith=langsmith,
         ),
         action_packages=ACTION_PKG_LIST_ADAPTER.validate_python(action_packages),
         metadata=AgentMetadata.model_validate(agent["metadata"]),

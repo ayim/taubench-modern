@@ -43,6 +43,7 @@ from sema4ai_agent_server.schema import (
     EmbeddingFileInProgress,
     EmbeddingFilePending,
     EmbeddingStatus,
+    LangsmithCredentials,
     LLMProvider,
     ModelNotConfigured,
     SerializableSecretStr,
@@ -77,6 +78,9 @@ class AgentPayloadPackage(BaseModel):
     model: MODEL = Field(..., description="LLM configuration for the agent.")
     action_servers: list[AgentPayloadPackageActionServer] = Field(
         ..., description="Action Server configurations."
+    )
+    langsmith: LangsmithCredentials | None = Field(
+        None, description="The langsmith credentials for the agent."
     )
 
     @model_validator(mode="after")
@@ -249,6 +253,7 @@ async def upsert_agent_via_package(
             model=payload.model,
             action_server_url=action_server_url,
             action_server_api_key=action_server_api_key,
+            langsmith=payload.langsmith,
         )
 
         file_manager = get_file_manager()
@@ -316,6 +321,7 @@ async def create_agent_via_package(
             model=payload.model,
             action_server_url=action_server_url,
             action_server_api_key=action_server_api_key,
+            langsmith=payload.langsmith,
         )
 
         file_manager = get_file_manager()

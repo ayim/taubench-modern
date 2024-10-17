@@ -6,7 +6,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Sema4.ai Agent Server API",
-    "version": "1.0.13"
+    "version": "1.0.14"
   },
   "paths": {
     "/api/v1/ok": {
@@ -1734,6 +1734,17 @@
             ],
             "title": "Recursion Limit",
             "description": "The maximum number of node steps allowed before the agent automatically terminates. Defaults to 100."
+          },
+          "langsmith": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LangsmithCredentials"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The Langsmith credentials for the agent."
           }
         },
         "type": "object",
@@ -2008,6 +2019,17 @@
             "type": "array",
             "title": "Action Servers",
             "description": "Action Server configurations."
+          },
+          "langsmith": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LangsmithCredentials"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The langsmith credentials for the agent."
           }
         },
         "type": "object",
@@ -2558,6 +2580,35 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "LangsmithCredentials": {
+        "properties": {
+          "api_key": {
+            "type": "string",
+            "format": "password",
+            "title": "Api Key",
+            "description": "The API key for hosted Langsmith instance.",
+            "writeOnly": true
+          },
+          "api_url": {
+            "type": "string",
+            "title": "Api Url",
+            "description": "The API URL for hosted Langsmith instance."
+          },
+          "project_name": {
+            "type": "string",
+            "title": "Project Name",
+            "description": "The name of the Langsmith project."
+          }
+        },
+        "type": "object",
+        "required": [
+          "api_key",
+          "api_url",
+          "project_name"
+        ],
+        "title": "LangsmithCredentials",
+        "description": "Langsmith credentials for the agent."
       },
       "ModelNotConfigured": {
         "properties": {
