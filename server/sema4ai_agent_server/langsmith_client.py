@@ -10,18 +10,11 @@ from langchain_core.tracers.langchain import LangChainTracer
 from langsmith import Client
 from langsmith.schemas import TracerSession
 from langsmith.utils import LangSmithNotFoundError
-from pydantic import BaseModel
 
-from sema4ai_agent_server.schema import Agent, Thread
+from sema4ai_agent_server.schema import Agent, LangsmithCredentials, Thread
 from sema4ai_agent_server.storage.option import get_storage
 
 logger = structlog.get_logger(__name__)
-
-
-class LangsmithCredentials(BaseModel):
-    api_key: str
-    api_url: str
-    project_name: str
 
 
 # Using a dataclass instead of Pydantic's BaseModel, because `Client` is
@@ -81,7 +74,10 @@ def get_langsmith(agent: Agent) -> Optional[Langsmith]:
         logger.info("Not using langsmith")
         return None
 
-    client = Client(api_key=credentials.api_key, api_url=credentials.api_url)
+    client = Client(
+        api_key=credentials.api_key.get_secret_value(),
+        api_url=credentials.api_url,
+    )
     try:
         project = _get_or_create_project(client, credentials.project_name)
     except Exception:
