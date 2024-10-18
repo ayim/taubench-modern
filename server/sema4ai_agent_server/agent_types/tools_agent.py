@@ -27,7 +27,6 @@ from sema4ai_agent_server.agent_types.constants import (
     FINISH_NODE_KEY,
 )
 from sema4ai_agent_server.agent_types.utils import bind_tools
-from sema4ai_agent_server.message_types import SystemMessage
 from sema4ai_agent_server.otel import otel_is_enabled
 from sema4ai_agent_server.schema import AgentReasoning
 from sema4ai_agent_server.utils import current_timestamp_with_iso_week_local
