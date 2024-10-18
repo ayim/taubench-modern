@@ -1,5 +1,5 @@
 import time
-from typing import Annotated, List, Optional, cast
+from typing import Annotated, Callable, List, Optional, cast
 
 from langchain.tools import BaseTool
 from langchain_anthropic import ChatAnthropic
@@ -54,32 +54,44 @@ Your instructions are:
     ("placeholder", "{messages}"),
 ]
 EXECUTE_PROMPT_TEMPLATE = ChatPromptTemplate.from_messages(BASE_PROMPT_MESSAGES)
+
+
 # Keys off of the verbose levels in the configurable.
-REASONING_PROMPT_TEMPLATES = {
+def get_reasoning_prompt_template(
+    claude_mode: bool, reasoning: AgentReasoning
+) -> ChatPromptTemplate:
     # Consider adding "Respond with at most 2 sentances." in the level 1 prompt if it's still too verbose
-    AgentReasoning.ENABLED: ChatPromptTemplate.from_messages(
-        BASE_PROMPT_MESSAGES
-        + [
-            (
-                "system",
-                "Think about your next response based on the conversation so far and succinctly "
-                "explain why you are thinking to respond in this way. Focus on the most important aspects "
-                "of your reasoning. ONLY PROVIDE REASONING.",
-            )
-        ]
-    ),
-    AgentReasoning.VERBOSE: ChatPromptTemplate.from_messages(
-        BASE_PROMPT_MESSAGES
-        + [
-            (
-                "system",
-                "Think about your next response based on the conversation so far and explain "
-                "why you are thinking to respond in this way. If you are thinking about calling tools, "
-                "also explain what parameters you are thinking of using and why. ONLY PROVIDE REASONING.",
-            )
-        ]
-    ),
-}
+    if claude_mode:
+        redirect_message_type = "human"
+    else:
+        redirect_message_type = "system"
+    if reasoning == AgentReasoning.ENABLED:
+        return ChatPromptTemplate.from_messages(
+            BASE_PROMPT_MESSAGES
+            + [
+                (
+                    redirect_message_type,
+                    "Think about your next response based on the conversation so far and succinctly "
+                    "explain why you are thinking to respond in this way. Focus on the most important aspects "
+                    "of your reasoning. ONLY PROVIDE REASONING.",
+                )
+            ]
+        )
+
+    elif reasoning == AgentReasoning.VERBOSE:
+        return ChatPromptTemplate.from_messages(
+            BASE_PROMPT_MESSAGES
+            + [
+                (
+                    redirect_message_type,
+                    "Think about your next response based on the conversation so far and explain "
+                    "why you are thinking to respond in this way. If you are thinking about calling tools, "
+                    "also explain what parameters you are thinking of using and why. ONLY PROVIDE REASONING.",
+                )
+            ]
+        )
+
+
 CONTINUE = "Continue"
 
 if otel_is_enabled():
@@ -116,9 +128,9 @@ def get_tools_agent_executor(
     knowledge_files: Optional[List[str]],
     *,
     execute_template: ChatPromptTemplate = EXECUTE_PROMPT_TEMPLATE,
-    reasoning_templates: dict[
-        AgentReasoning, ChatPromptTemplate
-    ] = REASONING_PROMPT_TEMPLATES,
+    reasoning_templates: Callable[
+        [bool, AgentReasoning], ChatPromptTemplate
+    ] = get_reasoning_prompt_template,
 ):
     if not isinstance(llm, AGENT_TYPES):
         raise ValueError(
@@ -171,7 +183,7 @@ def get_tools_agent_executor(
     executor_agent = execute_template | llm_with_tools
     if reasoning_level != AgentReasoning.DISABLED:
         reasoning_agent = (
-            reasoning_templates[reasoning_level] | llm_with_tools_no_choice
+            reasoning_templates(claude_mode, reasoning_level) | llm_with_tools_no_choice
         )
 
     async def reasoning(state: AgentState):
@@ -190,11 +202,9 @@ def get_tools_agent_executor(
         else:
             combined_messages = state.combined
         if claude_mode:
-            if isinstance(combined_messages[-1], SystemMessage):
-                # If the last message is a system message in Claude mode, we must convert it to Human.
-                combined_messages[-1] = HumanMessage(
-                    content=combined_messages[-1].content
-                )
+            if isinstance(combined_messages[-1], ToolMessage):
+                # If the last message is a tool message, we need to inject an AI message.
+                combined_messages += [AIMessage(content="Acknowledged")]
         response: AIMessage = await reasoning_agent.with_config(
             {"metadata": {"reasoning": True}}
         ).ainvoke(
