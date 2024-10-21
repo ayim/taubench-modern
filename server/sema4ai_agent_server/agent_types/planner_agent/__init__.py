@@ -24,7 +24,7 @@ from sema4ai_agent_server.agent_types.planner_agent.prompts import (
     PLANNER_PROMPTS,
     REPLANNER_PROMPTS,
     STEP_EXECUTOR_PROMPT,
-    STEP_REASONING_PROMPTS,
+    get_step_reasoning_prompts,
 )
 from sema4ai_agent_server.agent_types.planner_agent.schemas import (
     CompletedPlan,
@@ -296,7 +296,7 @@ def get_plan_execute_agent(
             None,  # Subagent should not have a checkpointer
             None,
             execute_template=STEP_EXECUTOR_PROMPT,
-            reasoning_templates=STEP_REASONING_PROMPTS,
+            reasoning_templates=get_step_reasoning_prompts,
         )
         current_step = cast(PlanStep, state.current_plan.steps[0])
 
@@ -341,7 +341,7 @@ def get_plan_execute_agent(
             None,  # Subagent should not have a checkpointer
             None,
             execute_template=STEP_EXECUTOR_PROMPT,
-            reasoning_templates=STEP_REASONING_PROMPTS,
+            reasoning_templates=get_step_reasoning_prompts,
         )
         current_step = cast(PlanStepWithThought, state.current_plan.steps[0])
 
