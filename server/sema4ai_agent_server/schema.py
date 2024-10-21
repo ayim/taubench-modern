@@ -339,10 +339,6 @@ class ActionPackage(BaseModel, ConfigurationMixin):
         ),
         default="",
     )
-    additional_headers: dict = Field(
-        description="Additional headers to be sent with the request to the action server.",
-        default_factory=dict,
-    )
 
 
 ACTION_PKG_LIST_ADAPTER = TypeAdapter(List[ActionPackage])
