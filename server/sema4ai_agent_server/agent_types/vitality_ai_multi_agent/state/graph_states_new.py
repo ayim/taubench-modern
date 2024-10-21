@@ -79,13 +79,16 @@ class VitalityAIModel(BaseModel):
 
     type: Literal["vitality_model_state"] = "vitality_model_state"
 
-    id: Optional[str]
+    id: str | None = Field(None)
 
-    # The original user query or ongoing queries
-    input: Optional[str]
+    input: str | None = Field(
+        None, description="The original user query or ongoing queries."
+    )
 
-    # The current plan consisting of tasks to be executed by different agents
-    plan: Optional[Plan]
+    plan: Plan | None = Field(
+        None,
+        description="The current plan consisting of tasks to be executed by different agents.",
+    )
 
     # Records of tasks for the current plan that have been executed. Initilaitize tasks to empty list.
     # When a task is executed, the response is added to this list as a tuple of task and response
@@ -102,8 +105,9 @@ class VitalityAIModel(BaseModel):
     # Reflection report from the Reflective Practitioner
     reflection_report: Optional[str] = ""
 
-    # Final or interim responses to the user
-    response: Optional[str]
+    response: str | None = Field(
+        None, description="Final or interim responses to the user."
+    )
 
     # Audit log for capturing the reasoning and decision-making process of various agents in the Vitality AI system.
     vitality_reasoning_audit: Optional[VitalityAgentReasoningAuditLog] = Field(
@@ -244,7 +248,9 @@ class VitalityAIModel(BaseModel):
 
 
 class VitalityAIModelConversationV2(BaseModel):
-    vitality_state: Optional[VitalityAIModel]
+    vitality_state: VitalityAIModel | None = Field(
+        None, description="The state of the Vitality AI Model."
+    )
     messages: Annotated[list[AnyMessage], operator.add]
     reasoning: Annotated[list[AnyMessage], operator.add]
     history: Annotated[list[AnyMessage], operator.add]
