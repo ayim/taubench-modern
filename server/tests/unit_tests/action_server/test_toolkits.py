@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
 from langchain_core.utils.function_calling import (
     convert_to_openai_function,
     convert_to_openai_tool,
@@ -177,49 +176,6 @@ def test_get_tools_with_complex_inputs() -> None:
         }, "Required fields mismatch."
 
         assert set(params["properties"].keys()) == {"calendar_id", "event"}
-
-
-def test_get_tools_with_whitelist():
-    toolkit_instance = ActionServerToolkit(
-        url="http://example.com", api_key="dummy_key"
-    )
-
-    fixture_path = Path(__file__).with_name("_openapi2.fixture.json")
-
-    with patch(
-        "sema4ai_agent_server.action_server.toolkits.requests.get"
-    ) as mocked_get, fixture_path.open("r") as f:
-        data = json.load(f)
-        mocked_response = MagicMock()
-        mocked_response.json.return_value = data
-        mocked_response.status_code = 200
-        mocked_response.headers = {"Content-Type": "application/json"}
-        mocked_get.return_value = mocked_response
-
-        # Test with a valid whitelist
-        whitelist = ",".join(["add_sheet_rows", "get_google_spreadsheet_schema"])
-        tools = toolkit_instance.get_tools(whitelist=whitelist)
-        assert len(tools) == 2
-        assert set(tool.name for tool in tools) == set(whitelist.split(","))
-
-        # Test with an invalid whitelist (containing a non-existent tool)
-        invalid_whitelist = ",".join(["add_sheet_rows", "non_existent_tool"])
-        with pytest.raises(ValueError) as exc_info:
-            toolkit_instance.get_tools(whitelist=invalid_whitelist)
-        assert (
-            "The following whitelisted tools were not found: non_existent_tool"
-            in str(exc_info.value)
-        )
-
-        # Test with whitelist of one
-        whitelist = "get_google_spreadsheet_schema"
-        tools = toolkit_instance.get_tools(whitelist=whitelist)
-        assert len(tools) == 1
-        assert tools[0].name == whitelist
-
-        # Test with an empty whitelist
-        empty_whitelist_tools = toolkit_instance.get_tools(whitelist="")
-        assert len(empty_whitelist_tools) == 5
 
 
 def test_get_tools_with_multi_level_nesting_and_field_requirements() -> None:

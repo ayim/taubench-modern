@@ -6,7 +6,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Sema4.ai Agent Server API",
-    "version": "1.0.15"
+    "version": "1.0.16"
   },
   "paths": {
     "/api/v1/ok": {
@@ -1546,11 +1546,6 @@
             "title": "Whitelist",
             "description": "Whitelist of actions (comma separated) that are accepted in the action package. An empty string value for whitelist implies usage of all actions.",
             "default": ""
-          },
-          "additional_headers": {
-            "type": "object",
-            "title": "Additional Headers",
-            "description": "Additional headers to be sent with the request to the action server."
           }
         },
         "type": "object",

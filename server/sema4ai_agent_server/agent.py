@@ -27,8 +27,8 @@ from sema4ai_agent_server.schema import (
 )
 from sema4ai_agent_server.storage.checkpoint import get_checkpointer
 from sema4ai_agent_server.tools import (
-    get_action_server,
     get_retrieval_tool,
+    get_tools_from_action_packages,
 )
 
 DEFAULT_RUNBOOK = "You are a helpful agent."
@@ -101,10 +101,7 @@ class ConfigurableAgent(RunnableBinding):
             if agent_id and user and thread_id
             else {}
         )
-        tools = []
-        for action_package in action_packages:
-            action_package.additional_headers.update(dynamic_headers)
-            tools.extend(get_action_server(action_package))
+        tools = get_tools_from_action_packages(action_packages, dynamic_headers)
         if use_retrieval:
             if agent_id is None and thread_id is None:
                 raise ValueError("agent_id or thread_id must be provided.")
@@ -170,10 +167,7 @@ class ConfigurablePlanExecute(RunnableBinding):
             if agent_id and user and thread_id
             else {}
         )
-        tools = []
-        for action_package in action_packages:
-            action_package.additional_headers.update(dynamic_headers)
-            tools.extend(get_action_server(action_package))
+        tools = get_tools_from_action_packages(action_packages, dynamic_headers)
         if use_retrieval:
             if agent_id is None and thread_id is None:
                 raise ValueError("agent_id or thread_id must be provided.")
@@ -238,10 +232,7 @@ class ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(RunnableBin
             if agent_id and user and thread_id
             else {}
         )
-        tools = []
-        for action_package in action_packages:
-            action_package.additional_headers.update(dynamic_headers)
-            tools.extend(get_action_server(action_package))
+        tools = get_tools_from_action_packages(action_packages, dynamic_headers)
         if use_retrieval:
             if agent_id is None and thread_id is None:
                 raise ValueError("agent_id or thread_id must be provided.")
