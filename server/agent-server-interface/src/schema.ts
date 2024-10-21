@@ -599,11 +599,6 @@ export interface components {
              * @default
              */
             whitelist: string;
-            /**
-             * Additional Headers
-             * @description Additional headers to be sent with the request to the action server.
-             */
-            additional_headers?: Record<string, never>;
         };
         /** ActionServerNotConfigured */
         ActionServerNotConfigured: {
