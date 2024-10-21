@@ -186,32 +186,42 @@ STEP_EXECUTOR_PROMPT = ChatPromptTemplate.from_messages(
         ("system", "Now execute the step provided above."),
     ]
 )
-STEP_REASONING_PROMPTS = {
-    AgentReasoning.ENABLED: ChatPromptTemplate.from_messages(
-        [
-            ("system", step_executor_template()),
-            ("placeholder", "{messages}"),
-            (
-                "system",
-                "Think about your next response based on the conversation and instructions the planner "
-                "provided. Then, succinctly sexplain why you are thinking to respond in this way. "
-                "Focus on the most important aspects of your reasoning. ONLY PROVIDE REASONING.",
-            ),
-        ]
-    ),
-    AgentReasoning.VERBOSE: ChatPromptTemplate.from_messages(
-        [
-            ("system", step_executor_template()),
-            ("placeholder", "{messages}"),
-            (
-                "system",
-                "Think about your next response based on the conversation and instructions the planner "
-                "provided. Then, explain why you are thinking to respond in this way. "
-                "Focus on the most important aspects of your reasoning. ONLY PROVIDE REASONING.",
-            ),
-        ]
-    ),
-}
+
+
+def get_step_reasoning_prompts(
+    claude_mode: bool, reasoning: AgentReasoning
+) -> ChatPromptTemplate:
+    if claude_mode:
+        redirect_message_type = "human"
+    else:
+        redirect_message_type = "system"
+    if reasoning == AgentReasoning.ENABLED:
+        return ChatPromptTemplate.from_messages(
+            [
+                ("system", step_executor_template()),
+                ("placeholder", "{messages}"),
+                (
+                    redirect_message_type,
+                    "Think about your next response based on the conversation and instructions the planner "
+                    "provided. Then, succinctly sexplain why you are thinking to respond in this way. "
+                    "Focus on the most important aspects of your reasoning. ONLY PROVIDE REASONING.",
+                ),
+            ]
+        )
+
+    elif reasoning == AgentReasoning.VERBOSE:
+        return ChatPromptTemplate.from_messages(
+            [
+                ("system", step_executor_template()),
+                ("placeholder", "{messages}"),
+                (
+                    redirect_message_type,
+                    "Think about your next response based on the conversation and instructions the planner "
+                    "provided. Then, explain why you are thinking to respond in this way. "
+                    "Focus on the most important aspects of your reasoning. ONLY PROVIDE REASONING.",
+                ),
+            ]
+        )
 
 
 # Replanner related prompts and messages
