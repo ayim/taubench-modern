@@ -32,6 +32,8 @@ class VitalityReasoningLogEntry(BaseModel):
     def serialize(self) -> Dict[str, Any]:
         """Convert the log entry into a dictionary."""
         additional_info = self.additional_info
+        if not additional_info:
+            additional_info = {}
         for key, value in additional_info.items():
             if isinstance(value, datetime):
                 additional_info[key] = value.isoformat()
