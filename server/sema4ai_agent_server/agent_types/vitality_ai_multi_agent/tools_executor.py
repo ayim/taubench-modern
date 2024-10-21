@@ -19,17 +19,19 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from langgraph.graph import END, StateGraph
 from langgraph.prebuilt.tool_executor import ToolExecutor
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class ExecAgentState(BaseModel):
     # The input string
-    input: str
+    input: str = Field(..., description="The input string")
     # The list of previous messages in the conversation
-    chat_history: list[BaseMessage]
+    chat_history: list[BaseMessage] = Field(..., description="The chat history")
     # The outcome of a given call to the agent
     # Needs `None` as a valid type, since this is what this will start as
-    agent_outcome: list[OpenAIToolAgentAction | AgentFinish] | None
+    agent_outcome: list[OpenAIToolAgentAction | AgentFinish] | None = Field(
+        None, description="The outcome of the agent"
+    )
     # List of actions and corresponding observations
     # Here we annotate this with `operator.add` to indicate that operations to
     # this state should be ADDED to the existing values (not overwrite it)
