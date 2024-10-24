@@ -58,7 +58,6 @@ class BaseInputSpec(BaseModel):
         "chat prompt template when it is run.",
         exclude=True,
         repr=False,
-        init=False,
     )
 
 

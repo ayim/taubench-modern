@@ -625,7 +625,7 @@ dummy_agent = Agent(
     updated_at=datetime.now(),
     metadata=AgentMetadata(mode=AgentMode.CONVERSATIONAL),
 )
-dummy_plan_execute_agent = dummy_agent.copy(
+dummy_plan_execute_agent = dummy_agent.model_copy(
     update={"architecture": AgentArchitecture.PLAN_EXECUTE}
 )
 

@@ -26,6 +26,7 @@ from sema4ai_agent_server.schema import (
     User,
     dummy_agent,
     dummy_model,
+    dummy_plan_execute_agent,
 )
 from sema4ai_agent_server.storage.checkpoint import get_checkpointer
 from sema4ai_agent_server.tools import (

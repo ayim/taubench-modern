@@ -45,7 +45,6 @@ from sema4ai_agent_server.schema import (
     EmbeddingFilePending,
     EmbeddingStatus,
     LangsmithCredentials,
-    LLMProvider,
     ModelNotConfigured,
     SerializableSecretStr,
     UploadedFile,
