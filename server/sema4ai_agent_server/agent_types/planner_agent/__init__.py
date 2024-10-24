@@ -56,8 +56,6 @@ from sema4ai_agent_server.agent_types.utils import (
 )
 from sema4ai_agent_server.schema import (
     AgentArchitecture,
-    AgentReasoning,
-    dummy_agent,
     dummy_plan_execute_agent,
 )
 from sema4ai_agent_server.utils import current_timestamp_with_iso_week_local
@@ -106,6 +104,7 @@ class PlanExecuteAgentFactory(AgentFactory):
     supported_models: list[Type] = SUPPORTED_MODELS
 
     default_agent = dummy_plan_execute_agent
+    name_for_logging = "plan_execute_agent"
 
     def create_graph(self, **kwargs) -> CompiledGraph:
         llm = self.get_chat_model()

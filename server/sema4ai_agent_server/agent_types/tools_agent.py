@@ -40,6 +40,7 @@ from sema4ai_agent_server.schema import (
     AzureGPT,
     GoogleGemini,
     OpenAIGPT,
+    dummy_agent,
 )
 from sema4ai_agent_server.utils import current_timestamp_with_iso_week_local
 
@@ -91,7 +92,10 @@ class ReasoningPromptTemplate(ToolsAgentBasePromptTemplate):
     """The base prompt template used for the reasoning nodes in the agent graph."""
 
     def create_template_messages(self, agent: Agent = None) -> list[tuple[str, str]]:
-        reasoning_level = agent.reasoning or AgentReasoning.ENABLED
+        if agent is None:
+            reasoning_level = AgentReasoning.ENABLED
+        else:
+            reasoning_level = agent.advanced_config.reasoning
         match reasoning_level:
             case AgentReasoning.ENABLED:
                 reasoning_addendum = """
@@ -148,6 +152,9 @@ class ToolsAgentFactory(AgentFactory):
 
     architecture = AgentArchitecture.AGENT
     supported_models: list[Type] = SUPPORTED_MODELS
+
+    default_agent = dummy_agent
+    name_for_logging = "tools_agent"
 
     execute_template: Type = Field(
         ExecutePromptTemplate,
