@@ -169,7 +169,7 @@ class ToolsAgentFactory(AgentFactory):
             )
         return v
 
-    def compile_agent(self, **kwargs) -> CompiledGraph:
+    def create_graph(self, **kwargs) -> CompiledGraph:
         tools = self.get_tools()
         llm = self.get_chat_model()
         tools_agent = self.get_agent()
@@ -360,7 +360,4 @@ class ToolsAgentFactory(AgentFactory):
         else:
             workflow.add_edge("action", "agent")
 
-        return workflow.compile(
-            checkpointer=self.checkpoint,
-            interrupt_before=["action"] if self.interrupt_before_action else None,
-        ).with_config({"recursion_limit": self.agent.advanced_config.recursion_limit})
+        return workflow

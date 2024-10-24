@@ -613,7 +613,6 @@ dummy_agent = Agent(
     id="dummy",
     user_id="dummy",
     public=False,
-    status=AgentStatus.READY,
     name="dummy",
     description="dummy",
     runbook="dummy",

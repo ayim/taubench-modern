@@ -18,7 +18,6 @@ from sema4ai_agent_server.agent_types.constants import (
     FINISH_NODE_KEY,
 )
 from sema4ai_agent_server.agent_types.factory import AgentFactory
-from sema4ai_agent_server.agent_types.factory import dummy_agent as dummy_tools_agent
 from sema4ai_agent_server.agent_types.planner_agent.prompts import (
     PlannerInputSpec,
     PlannerPromptTemplate,
@@ -53,16 +52,18 @@ from sema4ai_agent_server.agent_types.utils import (
     clean_message,
     get_messages,
     get_pydantic_output_parser,
+    is_reasoning,
 )
-from sema4ai_agent_server.schema import AgentArchitecture, AgentReasoning
+from sema4ai_agent_server.schema import (
+    AgentArchitecture,
+    AgentReasoning,
+    dummy_agent,
+    dummy_plan_execute_agent,
+)
 from sema4ai_agent_server.utils import current_timestamp_with_iso_week_local
 
 logger: BoundLogger = get_logger(__name__)
 STEPS_CONTENT_PATTERN = re.compile(pattern=r"^\[.*\]$")
-
-dummy_agent = dummy_tools_agent.copy(
-    update={"architecture": AgentArchitecture.PLAN_EXECUTE}
-)
 
 
 def _reformat_step_message(m: AIMessage):
@@ -104,9 +105,9 @@ class PlanExecuteAgentFactory(AgentFactory):
     architecture = AgentArchitecture.PLAN_EXECUTE
     supported_models: list[Type] = SUPPORTED_MODELS
 
-    default_agent = dummy_agent
+    default_agent = dummy_plan_execute_agent
 
-    def compile_agent(self, **kwargs) -> CompiledGraph:
+    def create_graph(self, **kwargs) -> CompiledGraph:
         llm = self.get_chat_model()
         tools = self.get_tools()
         agent = self.get_agent()
@@ -114,7 +115,7 @@ class PlanExecuteAgentFactory(AgentFactory):
         async def objective_parser_and_state_reset(state: PlanExecuteAgentState):
             """Entry node to read the objective and clear the state."""
             logger.debug(
-                f"objective_parser_and_state_reset:state at start of node: {state.dict()}"
+                f"objective_parser_and_state_reset:state at start of node: {state!r}"
             )
             last_message = state.messages[-1]
             if state.response_type == "edge-case":
@@ -133,7 +134,7 @@ class PlanExecuteAgentFactory(AgentFactory):
                     "executed_plan": None,
                     "response": None,
                 }
-            if agent.advanced_config.reasoning != AgentReasoning.DISABLED:
+            if is_reasoning(agent):
                 # Add the last human message to combined messages
                 if state.combined:
                     if isinstance(last_message, HumanMessage):
@@ -178,15 +179,12 @@ class PlanExecuteAgentFactory(AgentFactory):
                     objective=state.objective,
                     steps=plan_steps,
                 )
-                steps_message = AIMessage(content=plan.steps_as_string())
             else:
                 plan = None
-                steps_message = None
             return {
                 "plan_needed": initial_thinking_response.plan_needed_response == "plan",
                 "original_plan": plan,
                 "current_plan": plan,
-                "messages": [steps_message] if steps_message else [],
             }
 
         async def offramper_thinker(state: PlanExecuteAgentState):
@@ -261,12 +259,15 @@ class PlanExecuteAgentFactory(AgentFactory):
         async def direct_response(state: PlanExecuteAgentState):
             """Directly respond to the user as we have decided not to plan."""
             executor_agent = ToolsAgentFactory(
-                agent=agent.copy(update={"architecture": AgentArchitecture.AGENT}),
+                agent=agent.model_copy(
+                    update={"architecture": AgentArchitecture.AGENT}
+                ),
                 thread=self.thread,
                 use_retrieval=self.use_retrieval,
                 interrupt_before_action=self.interrupt_before_action,
                 checkpoint=None,
                 knowledge_files=self.knowledge_files,
+                name_for_logging="direct_response_agent",
             ).compile_agent()
             output = await executor_agent.ainvoke(
                 {
@@ -275,7 +276,7 @@ class PlanExecuteAgentFactory(AgentFactory):
                     "combined": state.combined,
                 }
             )
-            output_agent_state = AgentState(**output)
+            output_agent_state = AgentState.model_validate(output)
             return {
                 "response": output_agent_state.messages[-1].content,
                 "messages": output_agent_state.messages,
@@ -287,7 +288,9 @@ class PlanExecuteAgentFactory(AgentFactory):
             """This node executes the next step and updates the executed plan with results.
             This node assumes disabled reasoning."""
             executor_agent = ToolsAgentFactory(
-                agent=agent.copy(update={"architecture": AgentArchitecture.AGENT}),
+                agent=agent.model_copy(
+                    update={"architecture": AgentArchitecture.AGENT}
+                ),
                 thread=self.thread,
                 use_retrieval=self.use_retrieval,
                 interrupt_before_action=self.interrupt_before_action,
@@ -295,6 +298,7 @@ class PlanExecuteAgentFactory(AgentFactory):
                 knowledge_files=self.knowledge_files,
                 execute_template=StepExecutorPromptTemplate,
                 reasoning_templates=StepReasoningPromptTemplate,
+                name_for_logging="step_executor_agent",
             ).compile_agent()
             current_step = cast(PlanStep, state.current_plan.steps[0])
 
@@ -340,6 +344,7 @@ class PlanExecuteAgentFactory(AgentFactory):
                 knowledge_files=self.knowledge_files,
                 execute_template=StepExecutorPromptTemplate,
                 reasoning_templates=StepReasoningPromptTemplate,
+                name_for_logging="step_executor_agent",
             ).compile_agent()
             current_step = cast(PlanStepWithThought, state.current_plan.steps[0])
 
@@ -606,7 +611,7 @@ class PlanExecuteAgentFactory(AgentFactory):
 
         # add nodes
         workflow.add_node("start_node", objective_parser_and_state_reset)
-        if agent.advanced_config.reasoning != AgentReasoning.DISABLED:
+        if is_reasoning(agent):
             workflow.add_node("offramper", offramper_thinker)
             workflow.add_node("step_executor", step_executor_thinker)
             workflow.add_node("replanner", replanner_thinker)
@@ -637,6 +642,4 @@ class PlanExecuteAgentFactory(AgentFactory):
             "replanner", should_end, {True: FINISH_NODE_KEY, False: "step_executor"}
         )
 
-        return workflow.compile(checkpointer=self.checkpoint).with_config(
-            {"recursion_limit": self.agent.advanced_config.recursion_limit}
-        )
+        return workflow

@@ -190,7 +190,6 @@ class ConfigurableVitalityMultiAgentPlanningHierarchicalArchitecture(RunnableBin
         )
 
 
-# TODO: This has not been updated to use factory
 plan_execute = (
     ConfigurablePlanExecute(
         agent=dummy_plan_execute_agent,

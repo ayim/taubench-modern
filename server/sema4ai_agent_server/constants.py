@@ -8,3 +8,4 @@ DOMAIN_DATABASE_PATH = str(DATA_DIR / "agentserver.db")
 UPLOAD_DIR = str(DATA_DIR / "uploads")
 LOG_FILE_PATH = str(LOG_DIR / "agent-server.log")
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
+DEBUG_MODE = LOG_LEVEL in ["DEBUG", "TRACE"]

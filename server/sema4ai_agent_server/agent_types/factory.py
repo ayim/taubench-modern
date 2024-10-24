@@ -8,6 +8,7 @@ from langchain_core.prompts.chat import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
 from langchain_core.runnables.config import merge_configs
 from langgraph.checkpoint.base import BaseCheckpointSaver
+from langgraph.graph import StateGraph
 from langgraph.graph.graph import CompiledGraph
 from pydantic import (
     BaseModel,
@@ -16,6 +17,7 @@ from pydantic import (
     model_validator,
 )
 
+from sema4ai_agent_server.constants import DEBUG_MODE
 from sema4ai_agent_server.llms import get_chat_model
 from sema4ai_agent_server.schema import (
     Agent,
@@ -194,6 +196,13 @@ class AgentFactory(BaseModel, ABC):
         exclude=True,
         const=True,
     )
+    name_for_logging: str = Field(
+        "agent",
+        description="The name used for logging purposes. This is primarily used in "
+        "Langsmith traces.",
+        exclude=True,
+        const=True,
+    )
 
     default_agent: Agent = Field(
         dummy_agent,
@@ -204,8 +213,19 @@ class AgentFactory(BaseModel, ABC):
     )
 
     @abstractmethod
+    def create_graph(self, **kwargs) -> StateGraph:
+        """Create a uncompiled version of the agent.
+
+        Args:
+            **kwargs: Additional keyword arguments passed to the agent factory.
+
+        Returns:
+            StateGraph: An uncompiled graph from this factory's configuration.
+        """
+        pass
+
     def compile_agent(self, **kwargs) -> CompiledGraph:
-        """Create an agent based on this factory's configuration.
+        """Compile the agent graph based on the factory's configuration.
 
         Args:
             **kwargs: Additional keyword arguments passed to the agent factory.
@@ -213,10 +233,18 @@ class AgentFactory(BaseModel, ABC):
         Returns:
             CompiledGraph: A compiled graph from this factory's configuration.
         """
-        pass
+        graph = self.create_graph(**kwargs)
+        compiled_graph = graph.compile(
+            checkpointer=self.checkpoint,
+            interrupt_before=["action"] if self.interrupt_before_action else None,
+            debug=DEBUG_MODE,
+        )
+        compiled_graph = self.create_graph(**kwargs).compile()
+        compiled_graph.name = self.name_for_logging
+        return compiled_graph
 
     def __call__(self, **kwargs):
-        return self.compile_agent(**kwargs)
+        return self.create_graph(**kwargs)
 
     def get_agent(self) -> Agent:
         """Get the agent object for the factory, if set to None, returns
