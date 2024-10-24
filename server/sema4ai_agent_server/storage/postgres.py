@@ -589,7 +589,7 @@ class PostgresStorage(BaseStorage, PostgresConnectionManager):
             rows = await cur.fetchall()
             return THREAD_LIST_ADAPTER.validate_python(rows)
 
-    async def get_system_user_id(self) -> str:
+    async def get_system_user_id(self) -> str | None:
         """get the user_id of the system user"""
         async with self.async_cursor(dict_row) as cur:
             await cur.execute(
