@@ -634,12 +634,12 @@ class SqliteStorage(BaseStorage):
 
             return THREAD_LIST_ADAPTER.validate_python([dict(row) for row in rows])
 
-    async def get_system_user_id(self) -> User:
+    async def get_system_user_id(self) -> str:
         """get the user_id of the system user"""
         with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 'SELECT * FROM "user" WHERE sub LIKE "tenant:%%:system:system_user"'
             )
-            row = cursor.fetchone()
-            return User.model_validate(dict(row))
+            if row := cursor.fetchone():
+                return row["user_id"]

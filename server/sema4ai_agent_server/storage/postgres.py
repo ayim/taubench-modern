@@ -589,11 +589,11 @@ class PostgresStorage(BaseStorage, PostgresConnectionManager):
             rows = await cur.fetchall()
             return THREAD_LIST_ADAPTER.validate_python(rows)
 
-    async def get_system_user_id(self) -> User:
+    async def get_system_user_id(self) -> str:
         """get the user_id of the system user"""
         async with self.async_cursor(dict_row) as cur:
             await cur.execute(
                 """SELECT * FROM "user" WHERE sub LIKE 'tenant:%%:system:system_user'"""
             )
-            rows = await cur.fetchall()
-            return THREAD_LIST_ADAPTER.validate_python(rows)
+            if row := await cur.fetchone():
+                return row["user_id"]
