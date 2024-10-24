@@ -7,7 +7,6 @@ from langchain_core.messages import (
     HumanMessage,
 )
 from langgraph.graph import StateGraph
-from langgraph.graph.graph import CompiledGraph
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolExecutor, ToolInvocation
 from opentelemetry import metrics
@@ -176,7 +175,7 @@ class ToolsAgentFactory(AgentFactory):
             )
         return v
 
-    def create_graph(self, **kwargs) -> CompiledGraph:
+    def create_graph(self, **kwargs) -> StateGraph:
         tools = self.get_tools()
         llm = self.get_chat_model()
         tools_agent = self.get_agent()

@@ -8,7 +8,6 @@ from langchain_core.messages import (
     HumanMessage,
 )
 from langchain_core.runnables import Runnable
-from langgraph.graph.graph import CompiledGraph
 from langgraph.graph.message import StateGraph
 from structlog import get_logger
 from structlog.stdlib import BoundLogger
@@ -106,7 +105,7 @@ class PlanExecuteAgentFactory(AgentFactory):
     default_agent = dummy_plan_execute_agent
     name_for_logging = "plan_execute_agent"
 
-    def create_graph(self, **kwargs) -> CompiledGraph:
+    def create_graph(self, **kwargs) -> StateGraph:
         llm = self.get_chat_model()
         tools = self.get_tools()
         agent = self.get_agent()
