@@ -3,7 +3,7 @@ import { testAzureConfiguration } from './azure';
 import { AzureLLMModelValueName, ModelConfigurationType } from './azure/types';
 import { OpenAIModelValueName } from './openAI/types';
 import { AmazonLLMModelValueName } from './amazon/types';
-import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
+import { BedrockRuntimeClient } from '@aws-sdk/client-bedrock-runtime';
 import { testAmazonConfiguration } from './amazon';
 import { BedrockRuntimeServiceException } from '@aws-sdk/client-bedrock-runtime';
 

@@ -1,3 +1,4 @@
+import { validateRequiredFields } from '../utils/validation';
 import { AzureLLMConfiguration, ModelConfigurationType, TestAzureLLMConfigurationResponse } from './types';
 
 export const testAzureConfiguration = async (
@@ -22,11 +23,12 @@ export const testAzureConfiguration = async (
     };
   })();
 
-  if (!endpointUrl || !apiKey) {
-    const missingFields = [];
-    if (!endpointUrl) missingFields.push(endpointValueKey);
-    if (!apiKey) missingFields.push(apiKeyValueKey);
+  const missingFields = validateRequiredFields([
+    { value: endpointUrl, fieldName: endpointValueKey },
+    { value: apiKey, fieldName: apiKeyValueKey },
+  ]);
 
+  if (missingFields) {
     return {
       success: false,
       error: {

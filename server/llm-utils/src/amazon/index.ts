@@ -5,6 +5,7 @@ import {
 } from '@aws-sdk/client-bedrock-runtime';
 import { TestLLMConfigurationResponse } from '../types';
 import { AmazonLLMConfiguration } from './types';
+import { validateRequiredFields } from '../utils/validation';
 
 export const testAmazonConfiguration = async (
   configuration: AmazonLLMConfiguration,
@@ -14,12 +15,14 @@ export const testAmazonConfiguration = async (
     config: { aws_secret_access_key, aws_access_key_id, region_name },
   } = configuration;
 
-  if (!model || !aws_access_key_id || !aws_secret_access_key || !region_name) {
-    const missingFields = [];
-    if (!model) missingFields.push('model');
-    if (!aws_access_key_id) missingFields.push('aws_access_key_id');
-    if (!aws_secret_access_key) missingFields.push('aws_secret_access_key');
-    if (!region_name) missingFields.push('region_name');
+  const missingFields = validateRequiredFields([
+    { value: model, fieldName: 'model' },
+    { value: aws_access_key_id, fieldName: 'aws_access_key_id' },
+    { value: aws_secret_access_key, fieldName: 'aws_secret_access_key' },
+    { value: region_name, fieldName: 'region_name' },
+  ]);
+
+  if (missingFields) {
     return {
       success: false,
       error: {
