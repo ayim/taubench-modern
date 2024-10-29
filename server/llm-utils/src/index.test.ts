@@ -1,8 +1,5 @@
 import { testLLMConfiguration } from '.';
 import { testAzureConfiguration } from './azure';
-import { AzureLLMModelValueName, ModelConfigurationType } from './azure/types';
-import { OpenAIModelValueName } from './openAI/types';
-import { AmazonLLMModelValueName } from './amazon/types';
 import { BedrockRuntimeClient } from '@aws-sdk/client-bedrock-runtime';
 import { testAmazonConfiguration } from './amazon';
 import { BedrockRuntimeServiceException } from '@aws-sdk/client-bedrock-runtime';
@@ -15,7 +12,7 @@ describe('testLLMConfiguration - OpenAI', () => {
   it('should fail validation with missing API key', async () => {
     const mockOpenAIConfig = {
       provider: 'OpenAI' as const,
-      model: OpenAIModelValueName.GPT_4O,
+      model: 'gpt-4o' as const,
       config: {},
     };
 
@@ -35,7 +32,7 @@ describe('testLLMConfiguration - OpenAI', () => {
   it('should fail with invalid API key', async () => {
     const mockOpenAIConfig = {
       provider: 'OpenAI' as const,
-      model: OpenAIModelValueName.GPT_4O,
+      model: 'gpt-4o' as const,
       config: {
         openai_api_key: 'invalid-api-key',
         temperature: 0.5,
@@ -70,8 +67,8 @@ describe('testAzureConfiguration', () => {
   it('should fail validation with missing fields - missing chat_url', async () => {
     const config = {
       provider: 'Azure' as const,
-      model: AzureLLMModelValueName.GPT_4_AZURE,
-      type: ModelConfigurationType.LLM,
+      model: 'gpt-4' as const,
+      type: 'llm' as const,
       config: {
         chat_openai_api_key: '',
       },
@@ -92,8 +89,8 @@ describe('testAzureConfiguration', () => {
   it('should fail with invalid API key', async () => {
     const config = {
       provider: 'Azure' as const,
-      model: AzureLLMModelValueName.GPT_4_AZURE,
-      type: ModelConfigurationType.Embedding,
+      model: 'gpt-4' as const,
+      type: 'embedding' as const,
       config: {
         embeddings_url: 'https://example.com/embeddings',
         embeddings_openai_api_key: 'invalid-api-key',
@@ -120,8 +117,8 @@ describe('testAzureConfiguration', () => {
   it('should fail with invalid Endpoint URL', async () => {
     const config = {
       provider: 'Azure' as const,
-      model: AzureLLMModelValueName.GPT_4_AZURE,
-      type: ModelConfigurationType.LLM,
+      model: 'gpt-4' as const,
+      type: 'llm' as const,
       config: {
         chat_url: 'https://invalid-url.com',
         chat_openai_api_key: 'valid-key',
@@ -148,8 +145,8 @@ describe('testAzureConfiguration', () => {
   it('should handle unknown errors', async () => {
     const config = {
       provider: 'Azure' as const,
-      model: AzureLLMModelValueName.GPT_4_AZURE,
-      type: ModelConfigurationType.LLM,
+      model: 'gpt-4' as const,
+      type: 'llm' as const,
       config: {
         chat_url: 'https://example.com',
         chat_openai_api_key: 'valid-key',
@@ -176,8 +173,8 @@ describe('testAzureConfiguration', () => {
   it('should handle network errors', async () => {
     const config = {
       provider: 'Azure' as const,
-      model: AzureLLMModelValueName.GPT_4_AZURE,
-      type: ModelConfigurationType.LLM,
+      model: 'gpt-4' as const,
+      type: 'llm' as const,
       config: {
         chat_url: 'https://example.com',
         chat_openai_api_key: 'valid-key',
@@ -201,8 +198,8 @@ describe('testAzureConfiguration', () => {
   it('should return success for valid configuration', async () => {
     const config = {
       provider: 'Azure' as const,
-      model: AzureLLMModelValueName.GPT_4_AZURE,
-      type: ModelConfigurationType.LLM,
+      model: 'gpt-4' as const,
+      type: 'llm' as const,
       config: {
         chat_url: 'https://example.com',
         chat_openai_api_key: 'valid-key',
@@ -236,7 +233,7 @@ describe('testAmazonConfiguration', () => {
   it('should fail validation with missing fields', async () => {
     const config = {
       provider: 'Amazon' as const,
-      model: AmazonLLMModelValueName.ANTHROPIC_3_5_SONNET,
+      model: 'anthropic.claude-3-5-sonnet-20240620-v1:0' as const,
       config: {
         aws_access_key_id: 'test-key',
         // aws_secret_access_key is missing
@@ -274,7 +271,7 @@ describe('testAmazonConfiguration', () => {
 
     const config = {
       provider: 'Amazon' as const,
-      model: AmazonLLMModelValueName.ANTHROPIC_3_5_SONNET,
+      model: 'anthropic.claude-3-5-sonnet-20240620-v1:0' as const,
       config: {
         aws_access_key_id: 'invalid-key',
         aws_secret_access_key: 'valid-secret',
@@ -312,7 +309,7 @@ describe('testAmazonConfiguration', () => {
 
     const config = {
       provider: 'Amazon' as const,
-      model: AmazonLLMModelValueName.ANTHROPIC_3_5_SONNET,
+      model: 'anthropic.claude-3-5-sonnet-20240620-v1:0' as const,
       config: {
         aws_access_key_id: 'valid-key',
         aws_secret_access_key: 'invalid-secret',
@@ -342,7 +339,7 @@ describe('testAmazonConfiguration', () => {
 
     const config = {
       provider: 'Amazon' as const,
-      model: AmazonLLMModelValueName.ANTHROPIC_3_5_SONNET,
+      model: 'anthropic.claude-3-5-sonnet-20240620-v1:0' as const,
       config: {
         aws_access_key_id: 'valid-key',
         aws_secret_access_key: 'valid-secret',
@@ -370,7 +367,7 @@ describe('testAmazonConfiguration', () => {
 
     const config = {
       provider: 'Amazon' as const,
-      model: AmazonLLMModelValueName.ANTHROPIC_3_5_SONNET,
+      model: 'anthropic.claude-3-5-sonnet-20240620-v1:0' as const,
       config: {
         aws_access_key_id: 'valid-key',
         aws_secret_access_key: 'valid-secret',
@@ -400,7 +397,7 @@ describe('testAmazonConfiguration', () => {
 
     const config = {
       provider: 'Amazon' as const,
-      model: AmazonLLMModelValueName.ANTHROPIC_3_5_SONNET,
+      model: 'anthropic.claude-3-5-sonnet-20240620-v1:0' as const,
       config: {
         aws_access_key_id: 'valid-key',
         aws_secret_access_key: 'valid-secret',
@@ -426,7 +423,7 @@ describe('testAmazonConfiguration', () => {
 
     const config = {
       provider: 'Amazon' as const,
-      model: AmazonLLMModelValueName.ANTHROPIC_3_5_SONNET,
+      model: 'anthropic.claude-3-5-sonnet-20240620-v1:0' as const,
       config: {
         aws_access_key_id: 'valid-key',
         aws_secret_access_key: 'valid-secret',

@@ -1,21 +1,12 @@
 import * as ASInterface from '@sema4ai/agent-server-interface';
 import { TestLLMConfigurationResponse } from '../types';
 
-export enum ModelConfigurationType {
-  LLM = 'llm',
-  Embedding = 'embedding',
-}
-
 export type AzureModelInfo = ASInterface.components['schemas']['AzureGPT'] & { name: string };
 
-export enum AzureLLMModelValueName {
-  GPT_4_AZURE = 'gpt-4',
-}
-
 export type AzureLLMConfiguration = {
-  type: ModelConfigurationType;
-  provider: AzureModelInfo['provider'];
-  model: AzureLLMModelValueName;
+  type: 'llm' | 'embedding';
+  provider: 'Azure';
+  model: 'gpt-4';
   config: Partial<AzureModelInfo['config']>;
 };
 
@@ -24,7 +15,7 @@ export type TestAzureLLMConfigurationResponse =
       success: true;
       data: {
         model: string;
-        provider: AzureModelInfo['provider'];
+        provider: 'Azure';
       };
     }
   | (TestLLMConfigurationResponse & { success: false });
