@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from functools import cache
 from typing import Any, Dict, Self, Type
 
 from langchain.tools import BaseTool, Tool
@@ -147,14 +148,17 @@ class AgentFactory(BaseModel, ABC):
     """An abstract factory class used to create agents for different configurations.
 
     This class defines the interface between the server components and the agent
-    graph components. The primary method of which is the create_agent method which
-    must return a CompiledGraph object for the given configuration.
+    graph components. The primary method of which is the create_graph method which
+    must return a StateGraph object for the given configuration. Compilation will
+    happen within the factory's compile_agent method which will return a CompiledGraph
+    object. Users of factory classes should call the compile_agent method to get the
+    compiled graph for the agent.
 
     This class additionally contains shared methods and properties used by all
     agent factories.
 
     As a shortcut, the class defines itself as callable so that you can directly
-    call the factory to call the create_agent method.
+    call the factory to call the compile_agent method.
     """
 
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="allow")
@@ -246,6 +250,7 @@ class AgentFactory(BaseModel, ABC):
     def __call__(self, **kwargs):
         return self.create_graph(**kwargs)
 
+    @cache
     def get_agent(self) -> Agent:
         """Get the agent object for the factory, if set to None, returns
         the default agent.
@@ -287,6 +292,7 @@ class AgentFactory(BaseModel, ABC):
             self.agent.id, self.thread.thread_id, self.agent.model
         )
 
+    @cache
     def get_tools(self) -> list[BaseTool]:
         """Get all tools used by the agent graph including action
         packages and retrieval tools.
@@ -297,6 +303,7 @@ class AgentFactory(BaseModel, ABC):
         else:
             return self.get_tools_from_action_packages() + [self.get_retrieval_tool()]
 
+    @cache
     def get_chat_model(self) -> BaseChatModel | None:
         """Get the chat model for the agent."""
         if self.agent is None:
