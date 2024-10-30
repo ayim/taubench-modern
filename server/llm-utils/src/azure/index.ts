@@ -1,5 +1,5 @@
 import { validateRequiredFields } from '../utils/validation';
-import { AzureLLMConfiguration, ModelConfigurationType, TestAzureLLMConfigurationResponse } from './types';
+import { AzureLLMConfiguration, TestAzureLLMConfigurationResponse } from './types';
 
 export const testAzureConfiguration = async (
   configuration: AzureLLMConfiguration,
@@ -7,7 +7,7 @@ export const testAzureConfiguration = async (
   const { type: configurationType, config, provider, model } = configuration;
 
   const { endpointUrl, apiKey, endpointValueKey, apiKeyValueKey } = (() => {
-    if (configurationType === ModelConfigurationType.LLM) {
+    if (configurationType === 'llm') {
       return {
         endpointUrl: config.chat_url,
         apiKey: config.chat_openai_api_key,
@@ -55,7 +55,7 @@ export const testAzureConfiguration = async (
         'api-key': apiKey,
       },
       body: JSON.stringify(
-        configurationType === ModelConfigurationType.LLM
+        configurationType === 'llm'
           ? {
               messages: [
                 {

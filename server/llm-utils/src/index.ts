@@ -4,6 +4,8 @@ import { testOpenAiConfiguration } from './openAI';
 import { testAzureConfiguration } from './azure';
 import { testAmazonConfiguration } from './amazon';
 
+export { LLMConfiguration } from './types';
+
 export const testLLMConfiguration = async (
   configuration: LLMConfiguration,
 ): Promise<TestLLMConfigurationResponse> => {
