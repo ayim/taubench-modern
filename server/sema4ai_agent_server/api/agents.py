@@ -603,22 +603,20 @@ async def get_agent_stats(
         raise HTTPException(status_code=404, detail="Agent not found")
     system_user_id = await get_storage().get_system_user_id()
     agent_threads = await get_storage().list_agent_threads(agent_id=aid)
-    agent_user_threads = [
-        thread
-        for thread in agent_threads
-        if thread.user_id in [user.user_id, system_user_id]
-    ]
-    threads_count = len(agent_user_threads)
+    threads_count = 0
     messages_count = 0
     files_count = 0
     agent_files = await get_storage().get_agent_files(aid)
     files_count += len(agent_files)
-    for thread in agent_user_threads:
-        thread_state = await get_storage().get_thread_state(thread.thread_id)
-        messages_count += len(thread_state["values"]["messages"])
+    for thread in agent_threads:
+        if thread.user_id in [user.user_id, system_user_id]:
+            threads_count += 1
 
-        thread_files = await get_storage().get_thread_files(thread.thread_id)
-        files_count += len(thread_files)
+            thread_state = await get_storage().get_thread_state(thread.thread_id)
+            messages_count += len(thread_state["values"]["messages"])
+
+            thread_files = await get_storage().get_thread_files(thread.thread_id)
+            files_count += len(thread_files)
 
     return PydanticResponse(
         AgentMetrics(
