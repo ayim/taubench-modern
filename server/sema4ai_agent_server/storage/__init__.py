@@ -218,6 +218,6 @@ class BaseStorage(ABC):
         pass
 
     @abstractmethod
-    async def get_system_user_id(self) -> User:
+    async def get_system_user_id(self) -> str | None:
         """get the user_id of the system user"""
         pass
