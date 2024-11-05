@@ -55,7 +55,7 @@ jobs:
       - name: Start application server (SQLite)
         shell: bash
         run: |
-          poetry run uvicorn sema4ai_agent_server.server:app --host 0.0.0.0 --port 8000 &
+          poetry run uvicorn sema4ai_agent_server.server:app --host localhost --port 8000 &
           sleep 20
         env:
           S4_AGENT_SERVER_DB_TYPE: sqlite
