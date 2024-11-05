@@ -92,11 +92,7 @@ class FileByRefResponse(BaseModel):
 
     @classmethod
     def from_file(cls, file: UploadedFile) -> "FileByRefResponse":
-        if file.file_path.startswith(("http", "https")):
-            file_url = file.file_path
-        else:
-            file_url = Path(file.file_path).as_uri()
-        return cls(file_url=file_url)
+        return cls(file_url=file.file_path)
 
 
 @router.get("/", response_model=List[Thread], response_class=TypeAdapterResponse)
