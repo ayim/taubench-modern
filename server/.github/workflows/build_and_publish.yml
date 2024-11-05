@@ -67,6 +67,7 @@ jobs:
       - name: Publish Agent Server Interface to NPM
         run: |
           cd ./agent-server-interface
+          npm install
           npm run build
           npm publish
         env:
