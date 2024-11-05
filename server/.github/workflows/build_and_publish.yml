@@ -52,6 +52,17 @@ jobs:
         with:
           node-version: 18
 
+      - name: Creating .npmrc
+        run: |
+          cat << EOF > "./.npmrc"
+            registry=https://registry.npmjs.org/
+            @robocorp:registry=https://npm.pkg.github.com/
+            @sema4ai:registry=https://npm.pkg.github.com/
+            //npm.pkg.github.com/:_authToken=$NODE_AUTH_TOKEN
+          EOF
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_AUTH_TOKEN}}
+
       - name: Start application server (SQLite)
         shell: bash
         run: |
@@ -70,5 +81,5 @@ jobs:
           npm install
           npm run build
           npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+#        env:
+#          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
