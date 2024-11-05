@@ -47,6 +47,11 @@ jobs:
           draft: false
           prerelease: false
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
       - name: Start application server (SQLite)
         shell: bash
         run: |
@@ -57,10 +62,7 @@ jobs:
           SCARF_NO_ANALYTICS: "true"
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
+
 
       - name: Publish Agent Server Interface to NPM
         run: |
