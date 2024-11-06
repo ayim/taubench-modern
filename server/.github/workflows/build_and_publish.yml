@@ -80,7 +80,7 @@ jobs:
           cd ./agent-server-interface
           npm install
           npm run build
-          npm config
+          npm config list
           npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
