@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "agent-server-types"
+version = "0.1.0"
+description = "Shared types for the agent server and agent architecture plugins."
+authors = ["Sema4.ai Engineering <engineering@sema4.ai>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11.0,<3.12"
+pydantic = ">=2,<3"
+langchain-core = "^0.3.15"
+
+[tool.poetry.group.lint.dependencies]
+ruff = "^0.7.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
