@@ -52,17 +52,6 @@ jobs:
         with:
           node-version: 18
 
-      - name: Creating .npmrc
-        run: |
-          cat << EOF > "./.npmrc"
-            registry=https://registry.npmjs.org/
-            @robocorp:registry=https://npm.pkg.github.com/
-            @sema4ai:registry=https://npm.pkg.github.com/
-            //npm.pkg.github.com/:_authToken=$NODE_AUTH_TOKEN
-          EOF
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_AUTH_TOKEN}}
-
       - name: Start application server (SQLite)
         shell: bash
         run: |
@@ -78,6 +67,12 @@ jobs:
       - name: Publish Agent Server Interface to NPM
         run: |
           cd ./agent-server-interface
+          cat << EOF > "./.npmrc"
+          registry=https://registry.npmjs.org/
+          @robocorp:registry=https://npm.pkg.github.com/
+          @sema4ai:registry=https://npm.pkg.github.com/
+          //npm.pkg.github.com/:_authToken=$NODE_AUTH_TOKEN
+          EOF
           npm install
           npm run build
           npm config list
