@@ -46,3 +46,36 @@ jobs:
           files: ./dist/*
           draft: false
           prerelease: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Start application server (SQLite)
+        shell: bash
+        run: |
+          poetry run uvicorn sema4ai_agent_server.server:app --host localhost --port 8000 &
+          sleep 20
+        env:
+          S4_AGENT_SERVER_DB_TYPE: sqlite
+          SCARF_NO_ANALYTICS: "true"
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+
+
+      - name: Publish Agent Server Interface to NPM
+        run: |
+          cd ./agent-server-interface
+          cat << EOF > "./.npmrc"
+          registry=https://registry.npmjs.org/
+          @robocorp:registry=https://npm.pkg.github.com/
+          @sema4ai:registry=https://npm.pkg.github.com/
+          //npm.pkg.github.com/:_authToken=$NODE_AUTH_TOKEN
+          EOF
+          npm install
+          npm run build
+          npm config list
+          npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}

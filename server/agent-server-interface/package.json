@@ -1,6 +1,6 @@
 {
   "name": "@sema4ai/agent-server-interface",
-  "version": "1.0.17",
+  "version": "1.0.18-alpha.10",
   "description": "Sema4.ai Agent Server API Typescript interface",
   "type": "module",
   "author": {
@@ -10,7 +10,7 @@
   },
   "license": "SEE LICENSE IN LICENSE",
   "repository": {
-    "url": "git://git@github.com:Sema4AI/opengpts-private.git"
+    "url": "git://git@github.com/Sema4AI/opengpts-private.git"
   },
   "scripts": {
     "generate:schema": "npx openapi-typescript http://localhost:8000/openapi.json -o ./src/schema.ts",
