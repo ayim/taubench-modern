@@ -1,6 +1,7 @@
 import uuid
 from typing import Optional
 
+from agent_server_types import Agent, ChatRequest, Thread
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from opentelemetry import metrics
 from sse_starlette import EventSourceResponse
@@ -15,16 +16,14 @@ from sema4ai_agent_server.langsmith_client import (
 )
 from sema4ai_agent_server.otel import otel_is_enabled
 from sema4ai_agent_server.schema import (
-    Agent,
     AgentServerRunnableConfig,
     AgentServerRunnableConfigurable,
     AgentStreamEvent,
-    ChatRequest,
-    Thread,
     User,
 )
 from sema4ai_agent_server.storage.option import get_storage
 from sema4ai_agent_server.stream import astream_state, invoke_state, to_sse
+from sema4ai_agent_server.utils import convert_chat_to_langchain
 
 router = APIRouter()
 
@@ -77,11 +76,10 @@ async def _run_input_and_config(payload: ChatRequest, user: User):
             use_retrieval=use_retrieval,
             interrupt_before_action=False,  # TODO: Where does this come from?
             knowledge_files=knowledge_files,
-            type=agent.advanced_config.architecture.value,
         ),
     )
 
-    input_ = {"messages": payload.get_langchain_messages()}
+    input_ = {"messages": convert_chat_to_langchain(payload)}
     return input_, config, thread, agent
 
 

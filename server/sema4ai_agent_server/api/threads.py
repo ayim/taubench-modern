@@ -4,6 +4,12 @@ from typing import Annotated, Any, Dict, List, Sequence, Union
 from uuid import uuid4
 
 import structlog
+from agent_server_types import (
+    THREAD_LIST_ADAPTER,
+    UPLOADED_FILE_LIST_ADAPTER,
+    Thread,
+    UploadedFile,
+)
 from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile
 from langchain_core.messages import AIMessage
 from opentelemetry import metrics
@@ -21,13 +27,7 @@ from sema4ai_agent_server.llms import (
 from sema4ai_agent_server.message_types import AnyNonChunkMessage
 from sema4ai_agent_server.otel import otel_is_enabled
 from sema4ai_agent_server.responses import PydanticResponse, TypeAdapterResponse
-from sema4ai_agent_server.schema import (
-    THREAD_LIST_ADAPTER,
-    UPLOADED_FILE_LIST_ADAPTER,
-    Thread,
-    UploadedFile,
-    UploadFileRequest,
-)
+from sema4ai_agent_server.schema import UploadFileRequest
 from sema4ai_agent_server.storage.option import get_storage
 
 logger = structlog.get_logger(__name__)

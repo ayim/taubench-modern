@@ -4,13 +4,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Sequence, Union
 
 import structlog
-from langchain_core.messages import AnyMessage
-from psycopg.errors import UniqueViolation
-from psycopg.rows import dict_row
-
-from sema4ai_agent_server.agent import runnable_agent
-from sema4ai_agent_server.agent_types.constants import FINISH_NODE_KEY
-from sema4ai_agent_server.schema import (
+from agent_architecture import FINISH_NODE_KEY
+from agent_server_types import (
     AGENT_LIST_ADAPTER,
     MODEL,
     RAW_CONTEXT,
@@ -23,8 +18,13 @@ from sema4ai_agent_server.schema import (
     EmbeddingStatus,
     Thread,
     UploadedFile,
-    User,
 )
+from langchain_core.messages import AnyMessage
+from psycopg.errors import UniqueViolation
+from psycopg.rows import dict_row
+
+from sema4ai_agent_server.agent import runnable_agent
+from sema4ai_agent_server.schema import User
 from sema4ai_agent_server.storage import (
     BaseStorage,
     UniqueAgentNameError,

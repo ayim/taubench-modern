@@ -1,11 +1,24 @@
-from datetime import datetime
+from agent_server_types import ChatRequest, ChatRole
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 
 
-def current_timestamp_with_iso_week_local():
-    now = datetime.now().astimezone()
-    iso_timestamp = now.replace(second=0, microsecond=0).isoformat()
-    day_of_week = now.strftime("%A")
-    # ISO week number
-    week_number = now.strftime("%V")
-    formatted_string = f"{iso_timestamp} [{day_of_week}, Week {week_number}]"
-    return formatted_string
+def convert_chat_to_langchain(
+    request: ChatRequest,
+) -> list[HumanMessage | AIMessage | SystemMessage | ToolMessage]:
+    """
+    Convert a ChatRequest to a list of Langchain messages.
+    """
+    messages = []
+    for message in request.input:
+        match message.type:
+            case ChatRole.HUMAN:
+                messages.append(HumanMessage(content=message.content, id=message.id))
+            case ChatRole.AI:
+                messages.append(AIMessage(content=message.content, id=message.id))
+            case ChatRole.SYSTEM:
+                messages.append(SystemMessage(content=message.content, id=message.id))
+            case ChatRole.ACTION:
+                messages.append(ToolMessage(content=message.content, id=message.id))
+            case _:
+                pass
+    return messages

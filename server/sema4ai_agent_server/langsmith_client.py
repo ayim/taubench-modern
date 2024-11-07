@@ -5,13 +5,13 @@ from functools import lru_cache
 from typing import Generator, Optional
 
 import structlog
+from agent_server_types import Agent, LangsmithCredentials, Thread
 from langchain_core.tracers.context import tracing_v2_callback_var
 from langchain_core.tracers.langchain import LangChainTracer
 from langsmith import Client
 from langsmith.schemas import TracerSession
 from langsmith.utils import LangSmithNotFoundError
 
-from sema4ai_agent_server.schema import Agent, LangsmithCredentials, Thread
 from sema4ai_agent_server.storage.option import get_storage
 
 logger = structlog.get_logger(__name__)

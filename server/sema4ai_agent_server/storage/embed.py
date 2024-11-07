@@ -11,6 +11,14 @@ from asyncio import get_event_loop
 from typing import BinaryIO, List, Optional, Union
 
 import boto3
+from agent_server_types import (
+    MODEL,
+    NOT_CONFIGURED,
+    AmazonBedrock,
+    AzureGPT,
+    OpenAIGPT,
+    dummy_model,
+)
 from fastapi import UploadFile
 from langchain_aws import BedrockEmbeddings
 from langchain_community.document_loaders.base import BaseBlobParser
@@ -28,14 +36,6 @@ from pydantic import ConfigDict, Field
 
 from sema4ai_agent_server.constants import VECTOR_DATABASE_PATH
 from sema4ai_agent_server.parsing import MIMETYPE_BASED_PARSER
-from sema4ai_agent_server.schema import (
-    MODEL,
-    NOT_CONFIGURED,
-    AmazonBedrock,
-    AzureGPT,
-    OpenAIGPT,
-    dummy_model,
-)
 from sema4ai_agent_server.storage.vectorstore import (
     ChromaVector,
     PostgresVector,
@@ -171,7 +171,7 @@ def get_embedding_function(
     raise ValueError(f"Unsupported model type {model} for embeddings.")
 
 
-def _get_pg_vector(model: Optional[MODEL]) -> PostgresVector:
+def get_pg_vector(model: Optional[MODEL]) -> PostgresVector:
     connection_string = PostgresVector.connection_string_from_db_params(
         driver="psycopg",
         host=os.environ["POSTGRES_HOST"],
@@ -188,7 +188,7 @@ def _get_pg_vector(model: Optional[MODEL]) -> PostgresVector:
     )
 
 
-def _get_chroma_vector(model: Optional[MODEL]) -> ChromaVector:
+def get_chroma_vector(model: Optional[MODEL]) -> ChromaVector:
     return ChromaVector(
         # OpenAI's vector size is 1536, while AWS's titan model generates vectors with size 1024.
         # Chroma can't use the same collection for both, because it will throw an error when
@@ -203,9 +203,9 @@ def _get_chroma_vector(model: Optional[MODEL]) -> ChromaVector:
 def get_vector_store(model: Optional[MODEL] = None) -> VectorStoreBase:
     db_type = os.environ.get("S4_AGENT_SERVER_DB_TYPE", "sqlite")
     if db_type == "postgres":
-        return _get_pg_vector(model)
+        return get_pg_vector(model)
     elif db_type == "sqlite":
-        return _get_chroma_vector(model)
+        return get_chroma_vector(model)
     raise ValueError("Invalid storage type")
 
 

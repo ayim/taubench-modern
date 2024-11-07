@@ -105,7 +105,9 @@ def sample_owner():
         version="0.0.1",
         model=dummy_model,
         advanced_config=AgentAdvancedConfig(
-            architecture=AgentArchitecture.AGENT, reasoning=AgentReasoning.DISABLED
+            # TODO: Update with plugin name from base plugin
+            architecture=AgentArchitecture.AGENT,
+            reasoning=AgentReasoning.DISABLED,
         ),
         action_packages=[],
         updated_at=datetime.now(timezone.utc),

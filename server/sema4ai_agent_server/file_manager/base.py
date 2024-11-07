@@ -4,17 +4,17 @@ import re
 from typing import Union
 
 import structlog
-from fastapi import HTTPException, UploadFile
-from pydantic import BaseModel
-
-from sema4ai_agent_server.schema import (
+from agent_server_types import (
     MODEL,
     Agent,
     EmbeddingStatus,
     Thread,
     UploadedFile,
-    UploadFileRequest,
 )
+from fastapi import HTTPException, UploadFile
+from pydantic import BaseModel
+
+from sema4ai_agent_server.schema import UploadFileRequest
 from sema4ai_agent_server.storage.embed import (
     Blob,
     embed_runnable,
