@@ -57,9 +57,9 @@ traceloop-sdk = "^0.33.5"
 langchain-aws = "^0.2.1"
 # TODO: Update for package system
 agent-server-types = { path = "../agent-server-types", develop = true }
+agent-architecture-openai-plan-execute = { path = "../agent-architecture-openai-plan-execute", develop = true }
+agent-architecture-claude-tools = { path = "../agent-architecture-claude-tools", develop = true }
 agent-architecture = {path = "../agent-architecture", develop = true}
-agent-architecture-openai-plan-execute = {path = "../agent-architecture-openai-plan-execute", develop = true}
-agent-architecture-claude-tools = {path = "../agent-architecture-claude-tools", develop = true}
 
 [tool.poetry.group.dev.dependencies]
 uvicorn = "^0.30.6"

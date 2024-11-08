@@ -16,6 +16,7 @@ from langgraph.pregel import Pregel
 from pydantic import Field
 
 from sema4ai_agent_server.agent_architecture_manager import agent_architectures
+from sema4ai_agent_server.kernal import AgentServerKernal
 from sema4ai_agent_server.storage.checkpoint import get_checkpointer
 
 DEFAULT_RUNBOOK = "You are a helpful agent."
@@ -23,6 +24,7 @@ DEFAULT_NAME = "Agent"
 
 
 CHECKPOINTER = get_checkpointer()
+KERNAL = AgentServerKernal()
 
 
 class ConfigurableAgent(RunnableBinding):
@@ -75,10 +77,10 @@ class ConfigurableAgent(RunnableBinding):
             interrupt_before_action=interrupt_before_action,
             checkpointer=checkpointer,
             knowledge_files=knowledge_files,
+            kernal=KERNAL,
         )
         agent_executor = agent_factory.compile_agent(**others)
         super().__init__(
-            agent_factory_class=agent_factory_class,
             agent=agent,
             thread=thread,
             use_retrieval=use_retrieval,
@@ -99,12 +101,6 @@ runnable_agent: Pregel = (
         knowledge_files=None,
     )
     .configurable_fields(
-        agent_factory_class=ConfigurableField(
-            id="agent_factory_class",
-            name="Agent Factory Class",
-            description="The agent factory class to use. If provided as a string, it "
-            "must be the fully qualified class name.",
-        ),
         agent=ConfigurableField(id="agent", name="Agent", is_shared=True),
         thread=ConfigurableField(id="thread", name="Thread", is_shared=True),
         use_retrieval=ConfigurableField(id="use_retrieval", name="Use Retrieval"),
