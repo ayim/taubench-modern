@@ -163,7 +163,7 @@ class AmazonBedrock(BaseModel):
     provider: Literal[LLMProvider.AMAZON]
     name: str = Field(
         description="The name of the model to use.",
-        default="anthropic.claude-3-5-sonnet-20240620-v1:0",
+        default="us.anthropic.claude-3-5-sonnet-20241022-v2:0",
     )
     config: AmazonBedrockConfig = Field(description="Amazon Claude config.")
 
