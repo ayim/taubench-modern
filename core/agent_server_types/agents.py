@@ -248,8 +248,10 @@ class AgentPayload(BaseModel):
     @field_validator("model", mode="before")
     @classmethod
     def validate_model_field(cls, v: Any) -> MODEL:
-        if isinstance(v, (str, bytes, bytearray)):
+        if isinstance(v, (str, bytes, bytearray)) and v != "null":
             return MODEL_ADAPTER.validate_json(v)
+        elif v == "null":
+            raise ValueError("Model configuration cannot be null")
         return v
 
     @field_validator("action_packages", mode="before")
