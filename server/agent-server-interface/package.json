@@ -10,7 +10,7 @@
   },
   "license": "SEE LICENSE IN LICENSE",
   "repository": {
-    "url": "git://git@github.com/Sema4AI/opengpts-private.git"
+    "url": "git://git@github.com/Sema4AI/agent-server.git"
   },
   "scripts": {
     "generate:schema": "npx openapi-typescript http://localhost:8000/openapi.json -o ./src/schema.ts",
