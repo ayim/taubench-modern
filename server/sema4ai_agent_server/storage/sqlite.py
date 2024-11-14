@@ -633,3 +633,13 @@ class SqliteStorage(BaseStorage):
             rows = cursor.fetchall()
 
             return THREAD_LIST_ADAPTER.validate_python([dict(row) for row in rows])
+
+    async def get_system_user_id(self) -> str | None:
+        """get the user_id of the system user"""
+        with self._connect() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                'SELECT user_id FROM "user" WHERE sub LIKE "tenant:%%:system:system_user"'
+            )
+            if row := cursor.fetchone():
+                return row["user_id"]
