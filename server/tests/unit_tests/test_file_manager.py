@@ -6,6 +6,17 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 from uuid import uuid4
 
 import pytest
+from agent_server_types import (
+    DEFAULT_ARCHITECTURE,
+    Agent,
+    AgentAdvancedConfig,
+    AgentMetadata,
+    AgentMode,
+    AgentReasoning,
+    Thread,
+    UploadedFile,
+    dummy_model,
+)
 from fastapi import UploadFile
 
 from sema4ai_agent_server.file_manager.base import (
@@ -13,18 +24,7 @@ from sema4ai_agent_server.file_manager.base import (
 )
 from sema4ai_agent_server.file_manager.cloud import CloudFileManager
 from sema4ai_agent_server.file_manager.local import LocalFileManager
-from sema4ai_agent_server.schema import (
-    Agent,
-    AgentAdvancedConfig,
-    AgentArchitecture,
-    AgentMetadata,
-    AgentMode,
-    AgentReasoning,
-    Thread,
-    UploadedFile,
-    UploadFileRequest,
-    dummy_model,
-)
+from sema4ai_agent_server.schema import UploadFileRequest
 from sema4ai_agent_server.storage.option import get_storage
 
 
@@ -105,8 +105,7 @@ def sample_owner():
         version="0.0.1",
         model=dummy_model,
         advanced_config=AgentAdvancedConfig(
-            # TODO: Update with plugin name from base plugin
-            architecture=AgentArchitecture.AGENT,
+            architecture=DEFAULT_ARCHITECTURE,
             reasoning=AgentReasoning.DISABLED,
         ),
         action_packages=[],

@@ -692,8 +692,12 @@ export interface components {
          * @description Advanced configuration options for the agent.
          */
         AgentAdvancedConfig: {
-            /** @description The cognitive architecture of the agent. */
-            architecture: components["schemas"]["AgentArchitecture"];
+            /**
+             * Architecture
+             * @description The cognitive architecture of the agent.
+             * @enum {string}
+             */
+            architecture: "agent_architecture_openai_plan_execute" | "agent_architecture_claude_tools" | "agent_architecture_openai_tools";
             /** @description The reasoning setting of the agent. */
             reasoning: components["schemas"]["AgentReasoning"];
             /**
@@ -704,12 +708,6 @@ export interface components {
             /** @description The Langsmith credentials for the agent. */
             langsmith?: components["schemas"]["LangsmithCredentials"] | null;
         };
-        /**
-         * AgentArchitecture
-         * @description Enum for agent cognitive architecture.
-         * @enum {string}
-         */
-        AgentArchitecture: "agent" | "plan_execute" | "multi_agent_hierarchical_planning";
         /**
          * AgentMetadata
          * @description Metadata for the agent.
@@ -876,7 +874,7 @@ export interface components {
             /**
              * Name
              * @description The name of the model to use.
-             * @default anthropic.claude-3-5-sonnet-20240620-v1:0
+             * @default us.anthropic.claude-3-5-sonnet-20241022-v2:0
              */
             name: string;
             /** @description Amazon Claude config. */
@@ -1004,7 +1002,7 @@ export interface components {
              * Input
              * @description The messages to send to the agent.
              */
-            input: components["schemas"]["sema4ai_agent_server__schema__ChatMessage"][];
+            input: components["schemas"]["agent_server_types__threads__ChatMessage"][];
             /**
              * Thread Id
              * @description The ID of the thread.
@@ -1131,6 +1129,32 @@ export interface components {
             detail?: components["schemas"]["ValidationError"][];
         };
         /**
+         * InputTokenDetails
+         * @description Breakdown of input token counts.
+         *
+         *     Does *not* need to sum to full input token count. Does *not* need to have all keys.
+         *
+         *     Example:
+         *
+         *         .. code-block:: python
+         *
+         *             {
+         *                 "audio": 10,
+         *                 "cache_creation": 200,
+         *                 "cache_read": 100,
+         *             }
+         *
+         *     .. versionadded:: 0.3.9
+         */
+        InputTokenDetails: {
+            /** Audio */
+            audio?: number;
+            /** Cache Creation */
+            cache_creation?: number;
+            /** Cache Read */
+            cache_read?: number;
+        };
+        /**
          * LangsmithCredentials
          * @description Langsmith credentials for the agent.
          */
@@ -1225,6 +1249,29 @@ export interface components {
              * @default **********
              */
             openai_api_key: string;
+        };
+        /**
+         * OutputTokenDetails
+         * @description Breakdown of output token counts.
+         *
+         *     Does *not* need to sum to full output token count. Does *not* need to have all keys.
+         *
+         *     Example:
+         *
+         *         .. code-block:: python
+         *
+         *             {
+         *                 "audio": 10,
+         *                 "reasoning": 200,
+         *             }
+         *
+         *     .. versionadded:: 0.3.9
+         */
+        OutputTokenDetails: {
+            /** Audio */
+            audio?: number;
+            /** Reasoning */
+            reasoning?: number;
         };
         /** QuestionGroup */
         QuestionGroup: {
@@ -1495,10 +1542,23 @@ export interface components {
          *         .. code-block:: python
          *
          *             {
-         *                 "input_tokens": 10,
-         *                 "output_tokens": 20,
-         *                 "total_tokens": 30
+         *                 "input_tokens": 350,
+         *                 "output_tokens": 240,
+         *                 "total_tokens": 590,
+         *                 "input_token_details": {
+         *                     "audio": 10,
+         *                     "cache_creation": 200,
+         *                     "cache_read": 100,
+         *                 },
+         *                 "output_token_details": {
+         *                     "audio": 10,
+         *                     "reasoning": 200,
+         *                 }
          *             }
+         *
+         *     .. versionchanged:: 0.3.9
+         *
+         *         Added ``input_token_details`` and ``output_token_details``.
          */
         UsageMetadata: {
             /** Input Tokens */
@@ -1507,6 +1567,8 @@ export interface components {
             output_tokens: number;
             /** Total Tokens */
             total_tokens: number;
+            input_token_details?: components["schemas"]["InputTokenDetails"];
+            output_token_details?: components["schemas"]["OutputTokenDetails"];
         };
         /** ValidationError */
         ValidationError: {
@@ -1537,6 +1599,31 @@ export interface components {
          * @enum {string}
          */
         WorkerType: "Document Intelligence";
+        /**
+         * ChatMessage
+         * @description Represents a chat message in a thread.
+         *     A chat message can be from the ai, human, system, or action.
+         */
+        agent_server_types__threads__ChatMessage: {
+            /**
+             * Id
+             * @description The ID of the chat message. This can be a random UUID.
+             */
+            id?: string | null;
+            /** @description The role of the chat message. */
+            type: components["schemas"]["ChatRole"];
+            /**
+             * Content
+             * @description The message.
+             */
+            content: string;
+            /**
+             * Example
+             * @description Whether the message is an example.
+             * @default false
+             */
+            example: boolean;
+        };
         /**
          * AIMessage
          * @description Message from an AI.
@@ -2208,31 +2295,6 @@ export interface components {
             status: "success" | "error";
         } & {
             [key: string]: unknown;
-        };
-        /**
-         * ChatMessage
-         * @description Represents a chat message in a thread.
-         *     A chat message can be from the ai, human, system, or action.
-         */
-        sema4ai_agent_server__schema__ChatMessage: {
-            /**
-             * Id
-             * @description The ID of the chat message. This can be a random UUID.
-             */
-            id?: string | null;
-            /** @description The role of the chat message. */
-            type: components["schemas"]["ChatRole"];
-            /**
-             * Content
-             * @description The message.
-             */
-            content: string;
-            /**
-             * Example
-             * @description Whether the message is an example.
-             * @default false
-             */
-            example: boolean;
         };
     };
     responses: never;

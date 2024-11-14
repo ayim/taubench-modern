@@ -9,14 +9,9 @@ import time
 from datetime import datetime
 
 import requests
-from colorama import Fore, Style, init
-from dotenv import load_dotenv
-from tqdm import tqdm
-
-from sema4ai_agent_server.schema import (
+from agent_server_types import (
+    DEFAULT_ARCHITECTURE,
     RAW_CONTEXT,
-    AgentAdvancedConfig,
-    AgentArchitecture,
     AgentMetadata,
     AgentMode,
     AgentReasoning,
@@ -24,6 +19,13 @@ from sema4ai_agent_server.schema import (
     LLMProvider,
     OpenAIGPT,
     OpenAIGPTConfig,
+)
+from colorama import Fore, Style, init
+from dotenv import load_dotenv
+from tqdm import tqdm
+
+from sema4ai_agent_server.schema import (
+    AgentAdvancedConfig,
 )
 
 load_dotenv()
@@ -75,7 +77,7 @@ def create_agent(
     base_url,
     openai_api_key,
     name: str = ran_agent_name,
-    architecture=AgentArchitecture.AGENT,
+    architecture=DEFAULT_ARCHITECTURE,
 ):
     """Creates a new agent."""
     model = OpenAIGPT(
@@ -356,20 +358,6 @@ def test_agent_creation(base_url, openai_api_key):
     return agent_id
 
 
-def test_vitality_agent_creation(base_url, openai_api_key):
-    print_header("CREATING VITALITY AGENT")
-    agent_id = create_agent(
-        base_url,
-        openai_api_key,
-        name="Vital",
-        architecture=AgentArchitecture.MULTI_AGENT_HIERARCHICAL_PLANNING,
-    )
-    assert_test(agent_id is not None, "Agent creation")
-    if agent_id:
-        print_success(f"Created agent with ID: {agent_id}")
-    return agent_id
-
-
 def test_thread_creation(base_url, agent_id):
     print_header("CREATING THREAD")
     thread_id = create_thread(base_url, agent_id)
@@ -565,12 +553,9 @@ def main():
     test_get_file(base_url, thread_id, uploaded_thread_files)
     test_retrieval(base_url, thread_id, key_value_pairs)
 
-    vitality_agent_id = test_vitality_agent_creation(base_url, openai_api_key)
-
     print_header("TEARDOWN")
 
     delete_agent(base_url, agent_id)
-    delete_agent(base_url, vitality_agent_id)
 
     # Clean up files
     for file_path in uploaded_agent_files + uploaded_thread_files:

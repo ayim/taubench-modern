@@ -3,8 +3,12 @@ from datetime import datetime
 from functools import cached_property
 from typing import Annotated, List, Literal, Self, TypedDict
 
-from agent_server_types import Agent, StrWithUuidInput, Thread, UploadedFile
-from agent_server_types import AgentAdvancedConfig as BaseAgentAdvancedConfig
+from agent_server_types import (
+    Agent,
+    StrWithUuidInput,
+    Thread,
+    UploadedFile,
+)
 from anthropic import APIError as AnthropiAPIError
 from boto3.exceptions import Boto3Error
 from botocore.exceptions import BotoCoreError, ClientError
@@ -18,12 +22,10 @@ from pydantic import (
     PrivateAttr,
     TypeAdapter,
     ValidationError,
-    field_validator,
 )
 from pydantic_core import ErrorDetails
 from sse_starlette import ServerSentEvent
 
-from sema4ai_agent_server.agent_architecture_manager import architecture_names
 from sema4ai_agent_server.message_types import AnyNonChunkStreamedMessage
 
 
@@ -67,30 +69,6 @@ class User(BaseModel):
     def cr_system_id(self) -> str | None:
         """Control Room System ID"""
         return self._parsed_sub["system"]
-
-
-class AgentAdvancedConfig(BaseAgentAdvancedConfig):
-    # This class exists so the OpenAPI schema can be customized by the Server
-    # based on the dynamically loaded and registered architectures.
-    architecture: str = Field(
-        ...,
-        description="The cognitive architecture of the agent.",
-        examples=architecture_names,
-    )
-
-    @field_validator("architecture")
-    def validate_architecture(cls, value: str) -> str:
-        if value not in architecture_names:
-            raise ValueError(
-                f"Invalid architecture '{value}'. Must be one of {architecture_names}."
-            )
-        return value
-
-    model_config = {
-        "json_schema_extra": {
-            "properties": {"architecture": {"enum": architecture_names}}
-        }
-    }
 
 
 class UploadFileRequest(BaseModel):
