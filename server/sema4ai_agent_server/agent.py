@@ -99,6 +99,7 @@ runnable_agent: Pregel = (
         use_retrieval=False,
         interrupt_before_action=False,
         knowledge_files=None,
+        checkpointer=CHECKPOINTER,
     )
     .configurable_fields(
         agent=ConfigurableField(id="agent", name="Agent", is_shared=True),
