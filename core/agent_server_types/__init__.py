@@ -65,6 +65,8 @@ from .threads import (
     dummy_thread,
 )
 
+__version__ = "0.1.0"
+
 __all__ = [
     "ACTION_PKG_LIST_ADAPTER",
     "AGENT_LIST_ADAPTER",
