@@ -20,8 +20,10 @@ from pydantic import (
     ConfigDict,
     Field,
     PrivateAttr,
+    SerializerFunctionWrapHandler,
     TypeAdapter,
     ValidationError,
+    field_serializer,
 )
 from pydantic_core import ErrorDetails
 from sse_starlette import ServerSentEvent
@@ -102,6 +104,29 @@ class StreamErrorData(BaseModel):
     status_code: int = Field(description="The status code associated with the error.")
     message: str | list[ErrorDetails] = Field(description="The error message.")
     _exception: Exception = PrivateAttr()
+
+    @field_serializer("message", mode="wrap")
+    def serialize_message(
+        self, message: str | list[ErrorDetails], nxt: SerializerFunctionWrapHandler
+    ) -> str | list[str]:
+        try:
+            return nxt(message)
+        except Exception:
+            if isinstance(message, list):
+                return [self._safe_serialize_error_detail(err) for err in message]
+            else:
+                return message
+
+    def _safe_serialize_error_detail(
+        self, error_detail: ErrorDetails
+    ) -> dict[str, str]:
+        return {
+            "loc": error_detail.get("loc"),
+            "msg": error_detail.get("msg"),
+            "type": error_detail.get("type"),
+            "input": repr(error_detail.get("input", None)),
+            "ctx": repr(error_detail.get("ctx", None)),
+        }
 
     @classmethod
     def from_error(cls, error: Exception) -> Self:
