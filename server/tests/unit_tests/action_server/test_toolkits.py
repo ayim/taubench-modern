@@ -4,12 +4,11 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+from agent_architecture.action_server.toolkits import ActionServerToolkit
 from langchain_core.utils.function_calling import (
     convert_to_openai_function,
     convert_to_openai_tool,
 )
-
-from sema4ai_agent_server.action_server.toolkits import ActionServerToolkit
 
 from ._fixtures import FakeChatLLMT
 

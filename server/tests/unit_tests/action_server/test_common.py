@@ -4,7 +4,7 @@ import json
 import unittest
 from pathlib import Path
 
-from sema4ai_agent_server.action_server._common import reduce_openapi_spec
+from agent_architecture.action_server._common import reduce_openapi_spec
 
 from ._fixtures import openapi_endpoint_doc_mock
 

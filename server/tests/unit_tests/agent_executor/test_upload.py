@@ -1,10 +1,10 @@
 from io import BytesIO
 from unittest.mock import patch
 
+from agent_server_types import dummy_model
 from fastapi import UploadFile
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
-from sema4ai_agent_server.schema import dummy_model
 from sema4ai_agent_server.storage.embed import (
     EmbedRunnable,
     convert_to_blob,

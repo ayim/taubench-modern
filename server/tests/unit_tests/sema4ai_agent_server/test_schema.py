@@ -1,7 +1,6 @@
 import pytest
+from agent_server_types import NOT_CONFIGURED, AzureGPTConfig
 from pydantic import ValidationError
-
-from sema4ai_agent_server.schema import NOT_CONFIGURED, AzureGPTConfig
 
 valid_chat_url = "https://example1.openai.azure.com/openai/deployments/my-chat-deployment/chat/completions?api-version=2023-05-15"
 valid_embeddings_url = "https://example2.openai.azure.com/openai/deployments/my-embeddings-deployment/embeddings?api-version=2023-10-15"
