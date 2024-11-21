@@ -12,6 +12,7 @@ import requests
 from agent_server_types import (
     DEFAULT_ARCHITECTURE,
     RAW_CONTEXT,
+    AgentAdvancedConfig,
     AgentMetadata,
     AgentMode,
     AgentReasoning,
@@ -23,10 +24,6 @@ from agent_server_types import (
 from colorama import Fore, Style, init
 from dotenv import load_dotenv
 from tqdm import tqdm
-
-from sema4ai_agent_server.schema import (
-    AgentAdvancedConfig,
-)
 
 load_dotenv()
 init(autoreset=True)  # Initialize colorama
