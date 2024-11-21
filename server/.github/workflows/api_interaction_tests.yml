@@ -62,7 +62,7 @@ jobs:
     - name: Start application server (PostgreSQL)
       run: |
         poetry run uvicorn sema4ai_agent_server.server:app --host 0.0.0.0 --port 8000 &
-        sleep 10  # Give the server some time to start
+        sleep 20  # Give the server some time to start
       env:
         S4_AGENT_SERVER_DB_TYPE: postgres
         SCARF_NO_ANALYTICS: "true"
