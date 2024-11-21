@@ -117,6 +117,12 @@ jobs:
       run: |
         poetry config virtualenvs.in-project true
 
+    - name: Configure Poetry Git Credentials
+      run: chmod +x ./scripts/configure_git_credentials.sh && ./scripts/configure_git_credentials.sh
+      env:
+        GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
+        GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+
     - name: Install dependencies
       shell: bash
       run: poetry install --no-interaction
