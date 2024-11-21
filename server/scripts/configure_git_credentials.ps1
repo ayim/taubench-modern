@@ -21,3 +21,4 @@ foreach ($match in $gitDependencies.Matches) {
     $repoUrl = $match.Value -replace '.*git = "(https://github.com/[^"]+)".*', '$1'
     Configure-PoetryForRepo -repoUrl $repoUrl
 }
+poetry config --list
