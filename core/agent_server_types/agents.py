@@ -17,7 +17,15 @@ from agent_server_types.constants import (
     DEFAULT_ARCHITECTURE,
     NOT_CONFIGURED,
 )
-from agent_server_types.models import MODEL, MODEL_ADAPTER, dummy_model
+from agent_server_types.models import (
+    MODEL,
+    MODEL_ADAPTER,
+    AmazonBedrock,
+    AnthropicClaude,
+    AzureGPT,
+    OpenAIGPT,
+    dummy_model,
+)
 
 
 class AgentReasoning(StrEnum):
@@ -169,7 +177,7 @@ class AgentAdvancedConfig(BaseModel):
     """
 
     architecture: str = Field(
-        description="The cognitive architecture of the agent.",
+        description="The agent's architecture.",
     )
     reasoning: AgentReasoning = Field(description="The reasoning setting of the agent.")
     recursion_limit: int | None = Field(
@@ -274,6 +282,19 @@ class AgentPayload(BaseModel):
         if isinstance(v, (str, bytes, bytearray)):
             return AgentAdvancedConfig.model_validate_json(v)
         return v
+
+    @model_validator(mode="after")
+    def translate_old_architecture(self) -> Self:
+        """Translate old architecture names to new architecture names."""
+        # TODO: TECH DEBT - Remove this function after all agents are updated to use the new architecture names.
+        if self.advanced_config.architecture == "agent":
+            if isinstance(self.model, (AnthropicClaude, AmazonBedrock)):
+                self.advanced_config.architecture = "agent_architecture_claude_tools"
+            else:
+                self.advanced_config.architecture = "agent_architecture_openai_tools"
+        elif self.advanced_config.architecture == "plan_execute":
+            self.advanced_config.architecture = "agent_architecture_plan_execute"
+        return self
 
     def to_agent(self, user_id: str) -> "Agent":
         """Generates a temp agent object that can be used to call the LLM API."""
