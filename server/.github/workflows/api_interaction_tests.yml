@@ -117,13 +117,17 @@ jobs:
       run: |
         poetry config virtualenvs.in-project true
 
-    - name: Configure Poetry Git Credentials
+    - name: Configure Poetry Git Credentials (Linux and macOS)
+      if: runner.os != 'Windows'
       run: |
-        if [ "$RUNNER_OS" == "Windows" ]; then
-          pwsh ./scripts/configure_git_credentials.ps1 -GIT_USERNAME $env:GIT_USERNAME -GIT_TOKEN $env:GIT_TOKEN
-        else
-          chmod +x ./scripts/configure_git_credentials.sh && ./scripts/configure_git_credentials.sh
-        fi
+        chmod +x ./scripts/configure_git_credentials.sh && ./scripts/configure_git_credentials.sh
+      env:
+        GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
+        GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+
+    - name: Configure Poetry Git Credentials (Windows)
+      if: runner.os == 'Windows'
+      run: pwsh ./scripts/configure_git_credentials.ps1 -GIT_USERNAME $env:GIT_USERNAME -GIT_TOKEN $env:GIT_TOKEN
       env:
         GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
         GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
