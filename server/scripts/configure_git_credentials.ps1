@@ -1,24 +1,16 @@
-
-param (
-    [string]$GIT_USERNAME,
-    [string]$GIT_TOKEN
-)
-
+# Function to configure Poetry for a given repository
 function Configure-PoetryForRepo {
     param (
-        [string]$repoUrl
+        [string]$repo_url
     )
-    $repoName = $repoUrl -replace 'https://github.com/([^/]+)/([^/]+).git', '$1/$2'
-    poetry config repositories.$repoName $repoUrl
-    poetry config http-basic.$repoName $GIT_USERNAME $GIT_TOKEN
+    $repo_name = $repo_url -replace 'https://github.com/([^/]+)/([^/]+)\.git', '$1/$2'
+
+    poetry config "repositories.$repo_name" $repo_url
+    poetry config "http-basic.$repo_name" $env:GIT_USERNAME $env:GIT_TOKEN
 }
 
 # Read the pyproject.toml file and find all dependencies with a git source
-$pyprojectContent = Get-Content -Path "pyproject.toml"
-$gitDependencies = $pyprojectContent | Select-String -Pattern 'git = "https://github.com/' -AllMatches
-
-foreach ($match in $gitDependencies.Matches) {
-    $repoUrl = $match.Value -replace '.*git = "(https://github.com/[^"]+)".*', '$1'
-    Configure-PoetryForRepo -repoUrl $repoUrl
+Get-Content pyproject.toml | Select-String 'git = "https://github.com/' | ForEach-Object {
+    $repo_url = $_.Line -replace '.*git = "(https://github.com/[^"]+)".*', '$1'
+    Configure-PoetryForRepo $repo_url
 }
-poetry config --list
