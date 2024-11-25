@@ -9,7 +9,7 @@
   },
   "license": "SEE LICENSE IN LICENSE",
   "repository": {
-    "url": "git://git@github.com:Sema4AI/opengpts-private.git"
+    "url": "git://git@github.com:Sema4AI/agent-server.git"
   },
   "scripts": {
     "build:package": "tsup",

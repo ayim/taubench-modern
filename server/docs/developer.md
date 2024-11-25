@@ -2,7 +2,7 @@
 
 ## Quickstart with Docker
 
-This project supports a Docker-based setup, streamlining installation and execution. It automatically builds images for the frontend and backend and sets up Postgres using docker-compose.
+This project supports a Docker-based setup, streamlining installation and execution. It automatically sets up the backend service with Postgres using docker-compose.
 
 1. **Prerequisites:**  
    Ensure you have `Docker` and `docker-compose` installed on your system.
@@ -11,8 +11,8 @@ This project supports a Docker-based setup, streamlining installation and execut
    Obtain the project files by cloning the repository.
 
    ```shell
-   git clone https://github.com/Sema4AI/opengpts-private.git
-   cd opengpts-private
+   git clone https://github.com/Sema4AI/agent-server.git
+   cd agent-server
    ```
 
 3. **Set Up Environment Variables:**  
@@ -27,7 +27,7 @@ This project supports a Docker-based setup, streamlining installation and execut
 
    # Setup for Postgres. Docker compose will use these values to set up the database.
    POSTGRES_PORT=5432
-   POSTGRES_DB=opengpts
+   POSTGRES_DB=agentserver
    POSTGRES_USER=postgres
    POSTGRES_PASSWORD=...
    ```
@@ -41,13 +41,10 @@ This project supports a Docker-based setup, streamlining installation and execut
    docker compose up
    ```
 
-   This command builds the Docker images for the frontend and backend from their respective Dockerfiles and starts all   necessary services, including Postgres.
+   This command builds the Docker image for the backend from its Dockerfile and starts all necessary services, including Postgres.
 
-5. **Access the Application:**  
-   With the services running, access the frontend at [http://localhost:5173](http://localhost:5173), substituting `5173` with the designated port number.
-
-6. **Rebuilding After Changes:**  
-   If you make changes to either the frontend or backend, rebuild the Docker images to reflect these changes. Run:
+5. **Rebuilding After Changes:**  
+   If you make changes to the backend, rebuild the Docker images to reflect these changes. Run:
 
    ```shell
    docker compose up --build
@@ -64,15 +61,15 @@ This command rebuilds the images with your latest changes and restarts the servi
 
    ```shell
    pyenv install 3.11
-   pyenv virtualenv 3.11 opengpts
-   pyenv activate opengpts
+   pyenv virtualenv 3.11 agentserver
+   pyenv activate agentserver
    ```
 
    If you are using `anaconda`, you can create a new virtual environment with:
 
    ```shell
-   conda create -n opengpts python=3.11 pip
-   conda activate opengpts
+   conda create -n agentserver python=3.11 pip
+   conda activate agentserver
    ```
 
    Once your Python environment is set up, you can install the project dependencies:
@@ -99,7 +96,7 @@ This command rebuilds the images with your latest changes and restarts the servi
    ```shell
    export POSTGRES_HOST=localhost
    export POSTGRES_PORT=5432
-   export POSTGRES_DB=opengpts
+   export POSTGRES_DB=agentserver
    export POSTGRES_USER=postgres
    export POSTGRES_PASSWORD=...
    ```
@@ -107,13 +104,13 @@ This command rebuilds the images with your latest changes and restarts the servi
 4. **Create the database**
 
    ```shell
-   createdb opengpts
+   createdb agentserver
    ```
 
 5. **Connect to the database and create the `postgres` role**
 
    ```shell
-   psql -d opengpts
+   psql -d agentserver
    ```
 
    ```sql
@@ -138,14 +135,13 @@ This command rebuilds the images with your latest changes and restarts the servi
 7. **Install backend dependencies**
 
    ```shell
-   cd backend
    poetry install
    ```
 
 ### Using `local_start.sh` Script
 
 1. **Prerequisites**
-   Ensure you have Python 3.11+ installed on your system, along with `poetry`, `make`, and `docker-compose`. 
+   Ensure you have Python 3.11+ installed on your system, along with `poetry`, `make`, and `docker-compose`.
 
 2. **Run the Script**
    The `local_start.sh` script is provided to simplify the process of setting up and starting the backend server. It handles the following tasks:
@@ -155,11 +151,12 @@ This command rebuilds the images with your latest changes and restarts the servi
    - Starts the Agent Server
 
    To run the script:
+
    ```shell
    ./local_start.sh
    ```
 
-This will start the necessary services and backend server, making the application available.
+This will start the necessary services and backend server.
 
 ## Git Hooks and Makefile
 
@@ -168,6 +165,7 @@ This project uses Git hooks to ensure code quality and Makefile to streamline de
 ### Git Hooks
 
 Two Git hooks are available:
+
 - Pre-commit hook: Runs formatting and linting checks
 - Pre-push hook: Runs unit tests
 
