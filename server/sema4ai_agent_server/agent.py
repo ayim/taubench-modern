@@ -48,6 +48,7 @@ class ConfigurableAgent(RunnableBinding):
     knowledge_files: list[str] | None = Field(
         None, description="A list of knowledge files used by the agent."
     )
+    # Other fields
     checkpointer: BaseCheckpointSaver | None = Field(
         None,
         description="A checkpoint saver object used to save checkpoints for the agent.",
@@ -75,7 +76,7 @@ class ConfigurableAgent(RunnableBinding):
             thread=thread,
             use_retrieval=use_retrieval,
             interrupt_before_action=interrupt_before_action,
-            checkpointer=checkpointer,
+            checkpointer=checkpointer or CHECKPOINTER,
             knowledge_files=knowledge_files,
             kernal=KERNAL,
         )
@@ -99,7 +100,6 @@ runnable_agent: Pregel = (
         use_retrieval=False,
         interrupt_before_action=False,
         knowledge_files=None,
-        checkpointer=CHECKPOINTER,
     )
     .configurable_fields(
         agent=ConfigurableField(id="agent", name="Agent", is_shared=True),

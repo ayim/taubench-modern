@@ -18,6 +18,10 @@ from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 from sema4ai_agent_server.constants import DOMAIN_DATABASE_PATH
 from sema4ai_agent_server.schema import AgentServerRunnableConfig
 from sema4ai_agent_server.storage.utils import search_where
+from sema4ai_agent_server.utils import (
+    convert_runnable_to_langchain,
+    get_thread_id_from_config,
+)
 
 
 @contextmanager
@@ -64,7 +68,9 @@ class SQLiteCheckpoint(BaseCheckpointSaver):
                     conn.commit()
                 cur.close()
 
-    async def aget_tuple(self, config: RunnableConfig) -> CheckpointTuple | None:
+    async def aget_tuple(
+        self, config: AgentServerRunnableConfig | RunnableConfig
+    ) -> CheckpointTuple | None:
         return self.get_tuple(config)
 
     async def aput(
@@ -78,10 +84,10 @@ class SQLiteCheckpoint(BaseCheckpointSaver):
 
     async def alist(
         self,
-        config: RunnableConfig | None,
+        config: AgentServerRunnableConfig | RunnableConfig | None,
         *,
         filter: Dict[str, Any] | None = None,
-        before: RunnableConfig | None = None,
+        before: AgentServerRunnableConfig | RunnableConfig | None = None,
         limit: int | None = None,
     ) -> Iterator[CheckpointTuple]:
         return self.list(config, filter=filter, before=before, limit=limit)
@@ -94,7 +100,9 @@ class SQLiteCheckpoint(BaseCheckpointSaver):
     ) -> None:
         return self.put_writes(config, writes, task_id)
 
-    def get_tuple(self, config: RunnableConfig) -> CheckpointTuple | None:
+    def get_tuple(
+        self, config: AgentServerRunnableConfig | RunnableConfig
+    ) -> CheckpointTuple | None:
         checkpoint_ns = config["configurable"].get("checkpoint_ns", "")
         with self.cursor(transaction=False) as cur:
             # find the latest checkpoint for the thread_id
@@ -102,7 +110,7 @@ class SQLiteCheckpoint(BaseCheckpointSaver):
                 cur.execute(
                     "SELECT thread_id, checkpoint_id, parent_checkpoint_id, checkpoint, metadata FROM checkpoints WHERE thread_id = ? AND checkpoint_ns = ? AND checkpoint_id = ?",
                     (
-                        str(config["configurable"]["thread_id"]),
+                        get_thread_id_from_config(config),
                         checkpoint_ns,
                         checkpoint_id,
                     ),
@@ -110,7 +118,7 @@ class SQLiteCheckpoint(BaseCheckpointSaver):
             else:
                 cur.execute(
                     "SELECT thread_id, checkpoint_id, parent_checkpoint_id, checkpoint, metadata FROM checkpoints WHERE thread_id = ? AND checkpoint_ns = ? ORDER BY checkpoint_id DESC LIMIT 1",
-                    (str(config["configurable"]["thread_id"]), checkpoint_ns),
+                    (get_thread_id_from_config(config), checkpoint_ns),
                 )
             # if a checkpoint is found, return it
             if value := cur.fetchone():
@@ -129,9 +137,9 @@ class SQLiteCheckpoint(BaseCheckpointSaver):
                 cur.execute(
                     "SELECT task_id, channel, value FROM writes WHERE thread_id = ? AND checkpoint_ns = ? AND checkpoint_id = ? ORDER BY task_id, idx",
                     (
-                        str(config["configurable"]["thread_id"]),
+                        get_thread_id_from_config(config),
                         checkpoint_ns,
-                        str(config["configurable"]["checkpoint_id"]),
+                        get_checkpoint_id(config),
                     ),
                 )
                 # deserialize the checkpoint and metadata
@@ -159,10 +167,10 @@ class SQLiteCheckpoint(BaseCheckpointSaver):
 
     def list(
         self,
-        config: RunnableConfig | None,
+        config: AgentServerRunnableConfig | RunnableConfig | None,
         *,
         filter: Dict[str, Any] | None = None,
-        before: RunnableConfig | None = None,
+        before: AgentServerRunnableConfig | RunnableConfig | None = None,
         limit: int | None = None,
     ) -> Iterator[CheckpointTuple]:
         where, param_values = search_where(config, filter, before, flavor="sqlite")
@@ -225,8 +233,8 @@ class SQLiteCheckpoint(BaseCheckpointSaver):
         metadata: CheckpointMetadata,
         new_versions: ChannelVersions,
     ) -> RunnableConfig:
-        thread_id = str(config["configurable"]["thread_id"])
-        checkpoint_ns = config["configurable"]["checkpoint_ns"]
+        thread_id = get_thread_id_from_config(config)
+        checkpoint_ns = config["configurable"].get("checkpoint_ns", "")
         parent_checkpoint_id = config["configurable"].get("checkpoint_id")
         serialized_checkpoint = self.dumps(checkpoint)
         serialized_metadata = self.dumps(metadata)
@@ -267,9 +275,9 @@ class SQLiteCheckpoint(BaseCheckpointSaver):
                 query,
                 [
                     (
-                        str(config["configurable"]["thread_id"]),
-                        str(config["configurable"]["checkpoint_ns"]),
-                        str(config["configurable"]["checkpoint_id"]),
+                        get_thread_id_from_config(config),
+                        str(config["configurable"].get("checkpoint_ns", "")),
+                        get_checkpoint_id(config),
                         task_id,
                         WRITES_IDX_MAP.get(channel, idx),
                         channel,

@@ -694,10 +694,10 @@ export interface components {
         AgentAdvancedConfig: {
             /**
              * Architecture
-             * @description The cognitive architecture of the agent.
+             * @description The agent's architecture.
              * @enum {string}
              */
-            architecture: "agent_architecture_openai_plan_execute" | "agent_architecture_claude_tools" | "agent_architecture_openai_tools";
+            architecture: "agent_architecture_claude_tools" | "agent_architecture_openai_tools" | "agent_architecture_openai_plan_execute";
             /** @description The reasoning setting of the agent. */
             reasoning: components["schemas"]["AgentReasoning"];
             /**

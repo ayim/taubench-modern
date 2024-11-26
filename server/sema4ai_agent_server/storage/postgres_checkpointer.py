@@ -28,6 +28,7 @@ from pydantic import ConfigDict
 from sema4ai_agent_server.schema import AgentServerRunnableConfig
 from sema4ai_agent_server.storage.postgres_conn import PostgresConnectionManager
 from sema4ai_agent_server.storage.utils import search_where
+from sema4ai_agent_server.utils import get_thread_id_from_config
 
 
 class PostgresSerializer(abc.ABC):
@@ -170,8 +171,8 @@ class PostgresSaver(BaseCheckpointSaver, PostgresConnectionManager):
         Returns:
             RunnableConfig: Updated configuration after storing the checkpoint.
         """
-        thread_id = config["configurable"]["thread_id"]
-        checkpoint_ns = config["configurable"]["checkpoint_ns"]
+        thread_id = get_thread_id_from_config(config)
+        checkpoint_ns = config["configurable"].get("checkpoint_ns", "")
         parent_checkpoint_id = config["configurable"].get("checkpoint_id")
 
         with self.sync_cursor() as cur:
@@ -216,8 +217,8 @@ class PostgresSaver(BaseCheckpointSaver, PostgresConnectionManager):
         Returns:
             RunnableConfig: Updated configuration after storing the checkpoint.
         """
-        thread_id = config["configurable"]["thread_id"]
-        checkpoint_ns = config["configurable"]["checkpoint_ns"]
+        thread_id = get_thread_id_from_config(config)
+        checkpoint_ns = config["configurable"].get("checkpoint_ns")
         parent_checkpoint_id = config["configurable"].get("checkpoint_id")
 
         async with self.async_cursor() as cur:
@@ -242,7 +243,10 @@ class PostgresSaver(BaseCheckpointSaver, PostgresConnectionManager):
         }
 
     def put_writes(
-        self, config: RunnableConfig, writes: Sequence[tuple[str, Any]], task_id: str
+        self,
+        config: AgentServerRunnableConfig | RunnableConfig,
+        writes: Sequence[tuple[str, Any]],
+        task_id: str,
     ) -> None:
         """Store intermediate writes linked to a checkpoint.
 
@@ -253,9 +257,9 @@ class PostgresSaver(BaseCheckpointSaver, PostgresConnectionManager):
             writes (List[Tuple[str, Any]]): List of writes to store.
             task_id (str): Identifier for the task creating the writes.
         """
-        thread_id = config["configurable"]["thread_id"]
-        checkpoint_ns = config["configurable"]["checkpoint_ns"]
-        checkpoint_id = config["configurable"]["checkpoint_id"]
+        thread_id = get_thread_id_from_config(config)
+        checkpoint_ns = config["configurable"].get("checkpoint_ns", "")
+        checkpoint_id = get_checkpoint_id(config)
         query = (
             self.UPSERT_WRITES_SQL
             if all(w[0] in WRITES_IDX_MAP for w in writes)
@@ -270,7 +274,10 @@ class PostgresSaver(BaseCheckpointSaver, PostgresConnectionManager):
             )
 
     async def aput_writes(
-        self, config: RunnableConfig, writes: List[Tuple[str | Any]], task_id: str
+        self,
+        config: AgentServerRunnableConfig | RunnableConfig,
+        writes: List[Tuple[str | Any]],
+        task_id: str,
     ) -> None:
         """Store intermediate writes linked to a checkpoint.
 
@@ -281,9 +288,9 @@ class PostgresSaver(BaseCheckpointSaver, PostgresConnectionManager):
             writes (List[Tuple[str, Any]]): List of writes to store.
             task_id (str): Identifier for the task creating the writes.
         """
-        thread_id = config["configurable"]["thread_id"]
-        checkpoint_ns = config["configurable"]["checkpoint_ns"]
-        checkpoint_id = config["configurable"]["checkpoint_id"]
+        thread_id = get_thread_id_from_config(config)
+        checkpoint_ns = config["configurable"].get("checkpoint_ns", "")
+        checkpoint_id = get_checkpoint_id(config)
         query = (
             self.UPSERT_WRITES_SQL
             if all(w[0] in WRITES_IDX_MAP for w in writes)
@@ -299,10 +306,10 @@ class PostgresSaver(BaseCheckpointSaver, PostgresConnectionManager):
 
     def list(
         self,
-        config: RunnableConfig | None,
+        config: AgentServerRunnableConfig | RunnableConfig | None,
         *,
         filter: dict[str, Any] | None = None,
-        before: RunnableConfig | None = None,
+        before: AgentServerRunnableConfig | RunnableConfig | None = None,
         limit: int | None = None,
     ) -> Iterator[CheckpointTuple]:
         """List checkpoints from the database.
@@ -323,7 +330,7 @@ class PostgresSaver(BaseCheckpointSaver, PostgresConnectionManager):
         query = self.SELECT_CHECKPOINTS_TEMPLATE.format(where=where)
         if limit:
             query += f" LIMIT {limit}"
-        thread_id = config["configurable"]["thread_id"]
+        thread_id = get_thread_id_from_config(config)
 
         with self.sync_cursor() as cur, self.get_sync_connection() as wconn:
             with wconn.cursor() as wcur:
@@ -371,10 +378,10 @@ class PostgresSaver(BaseCheckpointSaver, PostgresConnectionManager):
 
     async def alist(
         self,
-        config: RunnableConfig | None,
+        config: AgentServerRunnableConfig | RunnableConfig | None,
         *,
         filter: dict[str, Any] | None = None,
-        before: RunnableConfig | None = None,
+        before: AgentServerRunnableConfig | RunnableConfig | None = None,
         limit: int | None = None,
     ) -> AsyncIterator[CheckpointTuple]:
         """List checkpoints from the database.
@@ -395,7 +402,7 @@ class PostgresSaver(BaseCheckpointSaver, PostgresConnectionManager):
         query = self.SELECT_CHECKPOINTS_TEMPLATE.format(where=where)
         if limit:
             query += f" LIMIT {limit}"
-        thread_id = config["configurable"]["thread_id"]
+        thread_id = get_thread_id_from_config(config)
 
         # TODO: Check that postgres will support two cursors at the same time and check if the async cursor is working
         async with self.async_cursor() as cur, self.get_async_connection() as wconn:
@@ -442,7 +449,9 @@ class PostgresSaver(BaseCheckpointSaver, PostgresConnectionManager):
                         ],
                     )
 
-    def get_tuple(self, config: RunnableConfig) -> CheckpointTuple | None:
+    def get_tuple(
+        self, config: AgentServerRunnableConfig | RunnableConfig
+    ) -> CheckpointTuple | None:
         """Get a checkpoint tuple from the database.
 
         This method retrieves a checkpoint tuple from the Postgres database based on the
@@ -464,7 +473,7 @@ class PostgresSaver(BaseCheckpointSaver, PostgresConnectionManager):
                 cur.execute(
                     self.SELECT_CHECKPOINT_SQL,
                     {
-                        "thread_id": config["configurable"]["thread_id"],
+                        "thread_id": get_thread_id_from_config(config),
                         "checkpoint_ns": checkpoint_ns,
                         "checkpoint_id": checkpoint_id,
                     },
@@ -473,7 +482,7 @@ class PostgresSaver(BaseCheckpointSaver, PostgresConnectionManager):
                 cur.execute(
                     self.SELECT_RECENT_CHECKPOINT_SQL,
                     {
-                        "thread_id": config["configurable"]["thread_id"],
+                        "thread_id": get_thread_id_from_config(config),
                         "checkpoint_ns": checkpoint_ns,
                     },
                 )
@@ -527,7 +536,9 @@ class PostgresSaver(BaseCheckpointSaver, PostgresConnectionManager):
                 )
         return None
 
-    async def aget_tuple(self, config: RunnableConfig) -> CheckpointTuple | None:
+    async def aget_tuple(
+        self, config: AgentServerRunnableConfig | RunnableConfig
+    ) -> CheckpointTuple | None:
         """Get a checkpoint tuple from the database.
 
         This method retrieves a checkpoint tuple from the Postgres database based on the
@@ -549,7 +560,7 @@ class PostgresSaver(BaseCheckpointSaver, PostgresConnectionManager):
                 await cur.execute(
                     self.SELECT_CHECKPOINT_SQL,
                     {
-                        "thread_id": config["configurable"]["thread_id"],
+                        "thread_id": get_thread_id_from_config(config),
                         "checkpoint_ns": checkpoint_ns,
                         "checkpoint_id": checkpoint_id,
                     },
@@ -558,7 +569,7 @@ class PostgresSaver(BaseCheckpointSaver, PostgresConnectionManager):
                 await cur.execute(
                     self.SELECT_RECENT_CHECKPOINT_SQL,
                     {
-                        "thread_id": config["configurable"]["thread_id"],
+                        "thread_id": get_thread_id_from_config(config),
                         "checkpoint_ns": checkpoint_ns,
                     },
                 )
