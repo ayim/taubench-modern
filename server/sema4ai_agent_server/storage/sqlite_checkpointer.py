@@ -18,10 +18,7 @@ from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 from sema4ai_agent_server.constants import DOMAIN_DATABASE_PATH
 from sema4ai_agent_server.schema import AgentServerRunnableConfig
 from sema4ai_agent_server.storage.utils import search_where
-from sema4ai_agent_server.utils import (
-    convert_runnable_to_langchain,
-    get_thread_id_from_config,
-)
+from sema4ai_agent_server.utils import get_thread_id_from_config
 
 
 @contextmanager
