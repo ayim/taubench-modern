@@ -7,12 +7,8 @@ from typing import Any, Dict, List, Optional, Sequence, Union
 from uuid import uuid4
 
 import structlog
-from langchain_core.messages import AnyMessage
-
-from sema4ai_agent_server.agent import get_agent_executor, runnable_agent
-from sema4ai_agent_server.agent_types.constants import FINISH_NODE_KEY
-from sema4ai_agent_server.constants import DOMAIN_DATABASE_PATH
-from sema4ai_agent_server.schema import (
+from agent_architecture import FINISH_NODE_KEY
+from agent_server_types import (
     AGENT_LIST_ADAPTER,
     MODEL,
     RAW_CONTEXT,
@@ -22,13 +18,15 @@ from sema4ai_agent_server.schema import (
     Agent,
     AgentAdvancedConfig,
     AgentMetadata,
-    AgentReasoning,
     EmbeddingStatus,
     Thread,
     UploadedFile,
-    User,
-    dummy_model,
 )
+from langchain_core.messages import AnyMessage
+
+from sema4ai_agent_server.agent import runnable_agent
+from sema4ai_agent_server.constants import DOMAIN_DATABASE_PATH
+from sema4ai_agent_server.schema import User
 from sema4ai_agent_server.storage import (
     BaseStorage,
     UniqueAgentNameError,
@@ -278,10 +276,8 @@ class SqliteStorage(BaseStorage):
 
     async def get_thread_state(self, thread_id: str):
         """Get state for a thread."""
-        app = get_agent_executor(
-            [], dummy_model, "", "", False, AgentReasoning.DISABLED, None
-        )
-        state = app.get_state({"configurable": {"thread_id": thread_id}})
+        # TODO: importing runnable_agent might be too heavy for this method
+        state = runnable_agent.get_state({"configurable": {"thread_id": thread_id}})
         return {
             "values": state.values,
             "next": state.next,
@@ -294,6 +290,7 @@ class SqliteStorage(BaseStorage):
         as_node: Optional[str] = FINISH_NODE_KEY,
     ):
         """Add state to a thread."""
+        # TODO: importing runnable_agent might be too heavy for this method
         retval = runnable_agent.update_state(
             {"configurable": {"thread_id": thread_id}}, values, as_node=as_node
         )
@@ -301,9 +298,7 @@ class SqliteStorage(BaseStorage):
 
     async def get_thread_history(self, thread_id: str):
         """Get the history of a thread."""
-        app = get_agent_executor(
-            [], dummy_model, "", "", False, AgentReasoning.DISABLED, None
-        )
+        # TODO: importing runnable_agent might be too heavy for this method
         return [
             {
                 "values": c.values,
@@ -311,7 +306,9 @@ class SqliteStorage(BaseStorage):
                 "config": c.config,
                 "parent": c.parent_config,
             }
-            for c in app.get_state_history({"configurable": {"thread_id": thread_id}})
+            for c in runnable_agent.get_state_history(
+                {"configurable": {"thread_id": thread_id}}
+            )
         ]
 
     async def put_thread(

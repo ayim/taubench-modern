@@ -2,11 +2,8 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Sequence, Union
 
-from fastapi import HTTPException
-from langchain_core.messages import AnyMessage
-
-from sema4ai_agent_server.agent_types.constants import FINISH_NODE_KEY
-from sema4ai_agent_server.schema import (
+from agent_architecture import FINISH_NODE_KEY
+from agent_server_types import (
     MODEL,
     ActionPackage,
     Agent,
@@ -15,8 +12,11 @@ from sema4ai_agent_server.schema import (
     EmbeddingStatus,
     Thread,
     UploadedFile,
-    User,
 )
+from fastapi import HTTPException
+from langchain_core.messages import AnyMessage
+
+from sema4ai_agent_server.schema import User
 
 
 class UniqueAgentNameError(HTTPException):

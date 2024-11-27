@@ -1,12 +1,15 @@
 """Vendored utils from langgraph-checkpoint-postgres library."""
 
-from typing import Any, Dict, Literal, Optional, Sequence, Tuple
+from typing import Any, Dict, Literal, Sequence, Tuple
 
 import orjson
 from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.base import get_checkpoint_id
 from psycopg.types.json import Jsonb
 from pydantic import BaseModel
+
+from sema4ai_agent_server.schema import AgentServerRunnableConfig
+from sema4ai_agent_server.utils import get_thread_id_from_config
 
 
 def _metadata_predicate(
@@ -60,9 +63,9 @@ def _metadata_predicate(
 
 
 def search_where(
-    config: Optional[RunnableConfig],
-    filter: Optional[Dict[str, Any]],
-    before: Optional[RunnableConfig] = None,
+    config: AgentServerRunnableConfig | RunnableConfig | None,
+    filter: Dict[str, Any] | None,
+    before: AgentServerRunnableConfig | RunnableConfig | None = None,
     flavor: Literal["sqlite", "postgres"] = "sqlite",
 ) -> Tuple[str, Sequence[Any]]:
     """Return WHERE clause predicates for (a)search() given metadata filter
@@ -79,7 +82,7 @@ def search_where(
     # construct predicate for config filter
     if config is not None:
         wheres.append("thread_id = ?" if flavor == "sqlite" else "thread_id = %s")
-        param_values.append(config["configurable"]["thread_id"])
+        param_values.append(get_thread_id_from_config(config))
         checkpoint_ns = config["configurable"].get("checkpoint_ns")
         if checkpoint_ns is not None:
             wheres.append(

@@ -6,6 +6,26 @@ from typing import Annotated, List, Self
 from uuid import uuid4
 
 import structlog
+from agent_server_types import (
+    AGENT_LIST_ADAPTER,
+    MODEL,
+    RAW_CONTEXT,
+    UPLOADED_FILE_LIST_ADAPTER,
+    ActionServerNotConfigured,
+    Agent,
+    AgentMetrics,
+    AgentNotReadyIssues,
+    AgentPayload,
+    AgentStatus,
+    EmbeddingFileFailed,
+    EmbeddingFileInProgress,
+    EmbeddingFilePending,
+    EmbeddingStatus,
+    LangsmithCredentials,
+    ModelNotConfigured,
+    SerializableSecretStr,
+    UploadedFile,
+)
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Path, UploadFile
 from langchain_core.messages import HumanMessage
 from pydantic import BaseModel, Field, model_validator
@@ -28,26 +48,8 @@ from sema4ai_agent_server.file_manager.base import (
 from sema4ai_agent_server.file_manager.option import get_file_manager
 from sema4ai_agent_server.responses import PydanticResponse, TypeAdapterResponse
 from sema4ai_agent_server.schema import (
-    AGENT_LIST_ADAPTER,
-    MODEL,
-    RAW_CONTEXT,
-    UPLOADED_FILE_LIST_ADAPTER,
-    ActionServerNotConfigured,
-    Agent,
-    AgentArchitecture,
-    AgentMetrics,
-    AgentNotReadyIssues,
-    AgentPayload,
-    AgentStatus,
-    EmbeddingFileFailed,
-    EmbeddingFileInProgress,
-    EmbeddingFilePending,
-    EmbeddingStatus,
-    LangsmithCredentials,
-    LLMProvider,
-    ModelNotConfigured,
-    SerializableSecretStr,
-    UploadedFile,
+    AgentServerRunnableConfig,
+    AgentServerRunnableConfigurable,
     UploadFileRequest,
 )
 from sema4ai_agent_server.storage.option import get_storage
@@ -55,6 +57,10 @@ from sema4ai_agent_server.storage.option import get_storage
 logger = structlog.get_logger(__name__)
 
 router = APIRouter()
+
+
+# TODO: FastAPI schema will likely be wrong in relation to architecture because
+# it is not using the server implementation of AdvancedConfig.
 
 
 class AgentPayloadPackageActionServer(BaseModel):
@@ -97,7 +103,11 @@ class AgentPayloadPackage(BaseModel):
 AgentID = Annotated[str, Path(description="The ID of the agent.")]
 
 
-async def _generate_welcome_message(user_id: str, model: MODEL) -> str | None:
+async def _generate_welcome_message(user_id: str, payload: AgentPayload) -> str | None:
+    if "claude" in str(payload.model).lower():
+        # Claude models are trained so they cannot represent themselves as anything but
+        # Claude from Anthropic, so we can't generate a welcome message for them.
+        return None
     thread = await get_storage().put_thread(
         user_id,
         str(uuid4()),
@@ -106,20 +116,12 @@ async def _generate_welcome_message(user_id: str, model: MODEL) -> str | None:
         metadata=None,
         created_at=datetime.datetime.now(datetime.timezone.utc),
     )
-    config = {
-        "configurable": {
-            "thread_id": thread.thread_id,
-            "model": model,
-            "type": AgentArchitecture.AGENT.value,
-        }
-    }
-    if (
-        model.provider in [LLMProvider.AMAZON, LLMProvider.ANTHROPIC]
-        and "claude" in model.name
-    ):
-        # Claude models are trained so they cannot represent themselves as anything but
-        # Claude from Anthropic, so we can't generate a welcome message for them.
-        return None
+    config = AgentServerRunnableConfig(
+        configurable=AgentServerRunnableConfigurable(
+            agent=payload.to_agent(user_id),
+            thread=thread,
+        )
+    )
     human_prompt = (
         "Introduce yourself as a Sema4.ai Agent and tell me what you're capable of."
     )
@@ -438,7 +440,7 @@ async def create_agent(
     """Create an agent."""
     model_is_configured, _ = payload.model.config.is_configured()
     if model_is_configured:
-        msg = await _generate_welcome_message(user.user_id, payload.model)
+        msg = await _generate_welcome_message(user.user_id, payload)
         if msg is not None:
             payload.metadata.welcome_message = msg
 
@@ -472,7 +474,7 @@ async def upsert_agent(
 
     model_is_configured, _ = payload.model.config.is_configured()
     if model_is_configured:
-        msg = await _generate_welcome_message(user.user_id, payload.model)
+        msg = await _generate_welcome_message(user.user_id, payload)
         if msg is not None:
             payload.metadata.welcome_message = msg
 

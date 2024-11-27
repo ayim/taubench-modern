@@ -4,8 +4,10 @@ from pathlib import Path
 
 import structlog
 from fastapi import FastAPI
+from fastapi.openapi.utils import get_openapi
 from fastapi.responses import ORJSONResponse
 
+from sema4ai_agent_server.agent_architecture_manager import architecture_names
 from sema4ai_agent_server.api import router as api_router
 from sema4ai_agent_server.constants import UPLOAD_DIR
 from sema4ai_agent_server.lifespan import lifespan
@@ -14,7 +16,7 @@ from sema4ai_agent_server.otel import setup_otel
 from sema4ai_agent_server.storage.option import get_storage
 
 # Do not change the version here. It is managed by versionbump (see versionbump.yaml)
-VERSION = "1.0.18-alpha.10"
+VERSION = "1.1.0"
 
 setup_logging()
 setup_otel()
@@ -35,6 +37,30 @@ app = FastAPI(
     separate_input_output_schemas=False,  # TODO: Remove when FrontEnd is ready to handle it
 )
 app.include_router(api_router)
+
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    openapi_schema = get_openapi(
+        title="Sema4.ai Agent Server API",
+        version=VERSION,
+        routes=app.routes,
+        separate_input_output_schemas=False,  # TODO: Remove when FrontEnd is ready to handle it
+    )
+    # Get the list of architecture names
+    components: dict = openapi_schema.get("components", {})
+    schemas: dict = components.get("schemas", {})
+    agent_advanced_config_schema: dict = schemas.get("AgentAdvancedConfig", {})
+    properties: dict = agent_advanced_config_schema.get("properties", {})
+    architecture_field = properties.get("architecture", {})
+    # Set the enum property for the architecture field
+    architecture_field["enum"] = architecture_names
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi
 
 
 @app.get("/api/v1/health")

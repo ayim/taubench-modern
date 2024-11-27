@@ -9,14 +9,10 @@ import time
 from datetime import datetime
 
 import requests
-from colorama import Fore, Style, init
-from dotenv import load_dotenv
-from tqdm import tqdm
-
-from sema4ai_agent_server.schema import (
+from agent_server_types import (
+    DEFAULT_ARCHITECTURE,
     RAW_CONTEXT,
     AgentAdvancedConfig,
-    AgentArchitecture,
     AgentMetadata,
     AgentMode,
     AgentReasoning,
@@ -25,6 +21,9 @@ from sema4ai_agent_server.schema import (
     OpenAIGPT,
     OpenAIGPTConfig,
 )
+from colorama import Fore, Style, init
+from dotenv import load_dotenv
+from tqdm import tqdm
 
 load_dotenv()
 init(autoreset=True)  # Initialize colorama
@@ -37,6 +36,9 @@ def timestamp():
 
 
 HEADER_INDEX = 0
+
+ran_number = random.randint(1, 1000)
+ran_agent_name = f"TestAgent-{ran_number}"
 
 
 def print_header(message):
@@ -71,8 +73,8 @@ def assert_test(condition, message):
 def create_agent(
     base_url,
     openai_api_key,
-    name: str | None = None,
-    architecture=AgentArchitecture.AGENT,
+    name: str = ran_agent_name,
+    architecture=DEFAULT_ARCHITECTURE,
 ):
     """Creates a new agent."""
     model = OpenAIGPT(
@@ -353,20 +355,6 @@ def test_agent_creation(base_url, openai_api_key):
     return agent_id
 
 
-def test_vitality_agent_creation(base_url, openai_api_key):
-    print_header("CREATING VITALITY AGENT")
-    agent_id = create_agent(
-        base_url,
-        openai_api_key,
-        name="Vital",
-        architecture=AgentArchitecture.MULTI_AGENT_HIERARCHICAL_PLANNING,
-    )
-    assert_test(agent_id is not None, "Agent creation")
-    if agent_id:
-        print_success(f"Created agent with ID: {agent_id}")
-    return agent_id
-
-
 def test_thread_creation(base_url, agent_id):
     print_header("CREATING THREAD")
     thread_id = create_thread(base_url, agent_id)
@@ -381,7 +369,7 @@ def test_message_sending(base_url, thread_id):
     message = "question"
     print(f"Sending message: {message}")
     response = send_message(base_url, thread_id, message)
-    assert_test(response is not None, "Message sending and response")
+    assert_test(response is not None and response != "", "Message sending and response")
     if response:
         print_success("Received response from the agent")
 
@@ -562,12 +550,9 @@ def main():
     test_get_file(base_url, thread_id, uploaded_thread_files)
     test_retrieval(base_url, thread_id, key_value_pairs)
 
-    vitality_agent_id = test_vitality_agent_creation(base_url, openai_api_key)
-
     print_header("TEARDOWN")
 
     delete_agent(base_url, agent_id)
-    delete_agent(base_url, vitality_agent_id)
 
     # Clean up files
     for file_path in uploaded_agent_files + uploaded_thread_files:

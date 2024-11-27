@@ -1,18 +1,10 @@
-from abc import ABC, abstractmethod
 from uuid import UUID
 
+from agent_server_types import VectorStoreBase
 from langchain_chroma import Chroma
 from langchain_community.vectorstores import PGEmbedding
-from langchain_core.vectorstores import VectorStore
 from langchain_postgres import PGVector
 from sqlalchemy.orm import Session
-
-
-class VectorStoreBase(VectorStore, ABC):
-    @abstractmethod
-    async def adelete_by_file_id(self, file_id: str | UUID) -> None:
-        """Delete a vector by it's metadata key file_id."""
-        pass
 
 
 class PostgresVector(PGVector, VectorStoreBase):

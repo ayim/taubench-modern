@@ -1,11 +1,11 @@
 import hashlib
 from typing import List
 
+from agent_server_types import UploadedFile
 from fastapi import APIRouter
 from langchain_core.messages import AIMessage, ToolCall, ToolMessage
 
 from sema4ai_agent_server.auth.handlers import AuthedUser
-from sema4ai_agent_server.schema import UploadedFile
 from sema4ai_agent_server.storage.option import get_storage
 
 router = APIRouter()

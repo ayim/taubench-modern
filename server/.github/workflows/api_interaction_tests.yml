@@ -42,6 +42,12 @@ jobs:
       run: |
         poetry config virtualenvs.in-project true
 
+    - name: Configure Poetry Git Credentials
+      run: chmod +x ./scripts/configure_git_credentials.sh && ./scripts/configure_git_credentials.sh
+      env:
+        GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
+        GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+
     - name: Install dependencies
       run: poetry install --no-interaction
 
@@ -56,7 +62,7 @@ jobs:
     - name: Start application server (PostgreSQL)
       run: |
         poetry run uvicorn sema4ai_agent_server.server:app --host 0.0.0.0 --port 8000 &
-        sleep 10  # Give the server some time to start
+        sleep 20  # Give the server some time to start
       env:
         S4_AGENT_SERVER_DB_TYPE: postgres
         SCARF_NO_ANALYTICS: "true"
@@ -110,6 +116,21 @@ jobs:
       shell: bash
       run: |
         poetry config virtualenvs.in-project true
+
+    - name: Configure Poetry Git Credentials (Linux and macOS)
+      if: runner.os != 'Windows'
+      run: |
+        chmod +x ./scripts/configure_git_credentials.sh && ./scripts/configure_git_credentials.sh
+      env:
+        GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
+        GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+
+    - name: Configure Poetry Git Credentials (Windows)
+      if: runner.os == 'Windows'
+      run: pwsh ./scripts/configure_git_credentials.ps1 -GIT_USERNAME $env:GIT_USERNAME -GIT_TOKEN $env:GIT_TOKEN
+      env:
+        GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
+        GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
 
     - name: Install dependencies
       shell: bash

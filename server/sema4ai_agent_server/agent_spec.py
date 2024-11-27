@@ -6,9 +6,7 @@ from pathlib import Path
 
 import aiohttp
 import yaml
-from pydantic import BaseModel, TypeAdapter
-
-from sema4ai_agent_server.schema import (
+from agent_server_types import (
     ACTION_PKG_LIST_ADAPTER,
     MODEL,
     ActionPackage,
@@ -18,6 +16,8 @@ from sema4ai_agent_server.schema import (
     LangsmithCredentials,
     LLMProvider,
 )
+from pydantic import BaseModel, TypeAdapter
+
 from sema4ai_agent_server.storage.option import get_storage
 
 

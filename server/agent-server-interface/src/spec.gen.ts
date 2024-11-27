@@ -6,7 +6,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Sema4.ai Agent Server API",
-    "version": "1.0.17"
+    "version": "1.0.18-alpha.10"
   },
   "paths": {
     "/api/v1/ok": {
@@ -1711,8 +1711,14 @@
       "AgentAdvancedConfig": {
         "properties": {
           "architecture": {
-            "$ref": "#/components/schemas/AgentArchitecture",
-            "description": "The cognitive architecture of the agent."
+            "type": "string",
+            "title": "Architecture",
+            "description": "The agent's architecture.",
+            "enum": [
+              "agent_architecture_claude_tools",
+              "agent_architecture_openai_tools",
+              "agent_architecture_openai_plan_execute"
+            ]
           },
           "reasoning": {
             "$ref": "#/components/schemas/AgentReasoning",
@@ -1749,16 +1755,6 @@
         ],
         "title": "AgentAdvancedConfig",
         "description": "Advanced configuration options for the agent."
-      },
-      "AgentArchitecture": {
-        "type": "string",
-        "enum": [
-          "agent",
-          "plan_execute",
-          "multi_agent_hierarchical_planning"
-        ],
-        "title": "AgentArchitecture",
-        "description": "Enum for agent cognitive architecture."
       },
       "AgentMetadata": {
         "properties": {
@@ -2119,7 +2115,7 @@
             "type": "string",
             "title": "Name",
             "description": "The name of the model to use.",
-            "default": "anthropic.claude-3-5-sonnet-20240620-v1:0"
+            "default": "us.anthropic.claude-3-5-sonnet-20241022-v2:0"
           },
           "config": {
             "$ref": "#/components/schemas/AmazonBedrockConfig",
@@ -2314,7 +2310,7 @@
         "properties": {
           "input": {
             "items": {
-              "$ref": "#/components/schemas/sema4ai_agent_server__schema__ChatMessage"
+              "$ref": "#/components/schemas/agent_server_types__threads__ChatMessage"
             },
             "type": "array",
             "title": "Input",
@@ -2576,6 +2572,25 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "InputTokenDetails": {
+        "properties": {
+          "audio": {
+            "type": "integer",
+            "title": "Audio"
+          },
+          "cache_creation": {
+            "type": "integer",
+            "title": "Cache Creation"
+          },
+          "cache_read": {
+            "type": "integer",
+            "title": "Cache Read"
+          }
+        },
+        "type": "object",
+        "title": "InputTokenDetails",
+        "description": "Breakdown of input token counts.\n\nDoes *not* need to sum to full input token count. Does *not* need to have all keys.\n\nExample:\n\n    .. code-block:: python\n\n        {\n            \"audio\": 10,\n            \"cache_creation\": 200,\n            \"cache_read\": 100,\n        }\n\n.. versionadded:: 0.3.9"
+      },
       "LangsmithCredentials": {
         "properties": {
           "api_key": {
@@ -2723,6 +2738,21 @@
         },
         "type": "object",
         "title": "OpenAIGPTConfig"
+      },
+      "OutputTokenDetails": {
+        "properties": {
+          "audio": {
+            "type": "integer",
+            "title": "Audio"
+          },
+          "reasoning": {
+            "type": "integer",
+            "title": "Reasoning"
+          }
+        },
+        "type": "object",
+        "title": "OutputTokenDetails",
+        "description": "Breakdown of output token counts.\n\nDoes *not* need to sum to full output token count. Does *not* need to have all keys.\n\nExample:\n\n    .. code-block:: python\n\n        {\n            \"audio\": 10,\n            \"reasoning\": 200,\n        }\n\n.. versionadded:: 0.3.9"
       },
       "QuestionGroup": {
         "properties": {
@@ -3297,6 +3327,12 @@
           "total_tokens": {
             "type": "integer",
             "title": "Total Tokens"
+          },
+          "input_token_details": {
+            "$ref": "#/components/schemas/InputTokenDetails"
+          },
+          "output_token_details": {
+            "$ref": "#/components/schemas/OutputTokenDetails"
           }
         },
         "type": "object",
@@ -3306,7 +3342,7 @@
           "total_tokens"
         ],
         "title": "UsageMetadata",
-        "description": "Usage metadata for a message, such as token counts.\n\nThis is a standard representation of token usage that is consistent across models.\n\nExample:\n\n    .. code-block:: python\n\n        {\n            \"input_tokens\": 10,\n            \"output_tokens\": 20,\n            \"total_tokens\": 30\n        }"
+        "description": "Usage metadata for a message, such as token counts.\n\nThis is a standard representation of token usage that is consistent across models.\n\nExample:\n\n    .. code-block:: python\n\n        {\n            \"input_tokens\": 350,\n            \"output_tokens\": 240,\n            \"total_tokens\": 590,\n            \"input_token_details\": {\n                \"audio\": 10,\n                \"cache_creation\": 200,\n                \"cache_read\": 100,\n            },\n            \"output_token_details\": {\n                \"audio\": 10,\n                \"reasoning\": 200,\n            }\n        }\n\n.. versionchanged:: 0.3.9\n\n    Added ``input_token_details`` and ``output_token_details``."
       },
       "ValidationError": {
         "properties": {
@@ -3369,6 +3405,44 @@
         "const": "Document Intelligence",
         "title": "WorkerType",
         "description": "Enum for worker type."
+      },
+      "agent_server_types__threads__ChatMessage": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "The ID of the chat message. This can be a random UUID."
+          },
+          "type": {
+            "$ref": "#/components/schemas/ChatRole",
+            "description": "The role of the chat message."
+          },
+          "content": {
+            "type": "string",
+            "title": "Content",
+            "description": "The message."
+          },
+          "example": {
+            "type": "boolean",
+            "title": "Example",
+            "description": "Whether the message is an example.",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "content"
+        ],
+        "title": "ChatMessage",
+        "description": "Represents a chat message in a thread.\nA chat message can be from the ai, human, system, or action."
       },
       "langchain_core__messages__ai__AIMessage": {
         "properties": {
@@ -4451,44 +4525,6 @@
         ],
         "title": "ToolMessage",
         "description": "Message for passing the result of executing a tool back to a model.\n\nToolMessages contain the result of a tool invocation. Typically, the result\nis encoded inside the `content` field.\n\nExample: A ToolMessage representing a result of 42 from a tool call with id\n\n    .. code-block:: python\n\n        from langchain_core.messages import ToolMessage\n\n        ToolMessage(content='42', tool_call_id='call_Jja7J89XsjrOLA5r!MEOW!SL')\n\n\nExample: A ToolMessage where only part of the tool output is sent to the model\n    and the full output is passed in to artifact.\n\n    .. versionadded:: 0.2.17\n\n    .. code-block:: python\n\n        from langchain_core.messages import ToolMessage\n\n        tool_output = {\n            \"stdout\": \"From the graph we can see that the correlation between x and y is ...\",\n            \"stderr\": None,\n            \"artifacts\": {\"type\": \"image\", \"base64_data\": \"/9j/4gIcSU...\"},\n        }\n\n        ToolMessage(\n            content=tool_output[\"stdout\"],\n            artifact=tool_output,\n            tool_call_id='call_Jja7J89XsjrOLA5r!MEOW!SL',\n        )\n\nThe tool_call_id field is used to associate the tool call request with the\ntool call response. This is useful in situations where a chat model is able\nto request multiple tool calls in parallel."
-      },
-      "sema4ai_agent_server__schema__ChatMessage": {
-        "properties": {
-          "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Id",
-            "description": "The ID of the chat message. This can be a random UUID."
-          },
-          "type": {
-            "$ref": "#/components/schemas/ChatRole",
-            "description": "The role of the chat message."
-          },
-          "content": {
-            "type": "string",
-            "title": "Content",
-            "description": "The message."
-          },
-          "example": {
-            "type": "boolean",
-            "title": "Example",
-            "description": "Whether the message is an example.",
-            "default": false
-          }
-        },
-        "type": "object",
-        "required": [
-          "type",
-          "content"
-        ],
-        "title": "ChatMessage",
-        "description": "Represents a chat message in a thread.\nA chat message can be from the ai, human, system, or action."
       }
     }
   }
