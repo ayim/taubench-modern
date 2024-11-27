@@ -55,10 +55,10 @@ langchain-postgres = "^0.0.12"
 traceloop-sdk = "^0.33.5"
 langchain-aws = "^0.2.1"
 # TODO: Update for package system
-agent-server-types = { git = "https://github.com/Sema4AI/agent-server-types.git", tag = "v1.0.0-alpha.4" }
-agent-architecture = { git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.0.0-alpha.4" }
-agent-architecture-openai-plan-execute = { git = "https://github.com/Sema4AI/agent-architecture-openai-plan-execute.git", tag = "v1.0.0-alpha.8" }
-agent-architecture-claude-tools = { git = "https://github.com/Sema4AI/agent-architecture-claude-tools.git", tag = "v1.0.0-alpha.8" }
+agent-server-types = { git = "https://github.com/Sema4AI/agent-server-types.git", tag = "v1.0.0" }
+agent-architecture = { git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.0.0" }
+agent-architecture-openai-plan-execute = { git = "https://github.com/Sema4AI/agent-architecture-openai-plan-execute.git", tag = "v1.0.0" }
+agent-architecture-claude-tools = { git = "https://github.com/Sema4AI/agent-architecture-claude-tools.git", tag = "v1.0.0" }
 
 [tool.poetry.group.dev.dependencies]
 uvicorn = "^0.30.6"
