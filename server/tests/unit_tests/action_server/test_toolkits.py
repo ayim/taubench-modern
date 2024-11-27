@@ -26,9 +26,10 @@ def test_get_tools_success() -> None:
 
     fixture_path = Path(__file__).with_name("_openapi2.fixture.json")
 
-    with patch(
-        "sema4ai_agent_server.action_server.toolkits.requests.get"
-    ) as mocked_get, fixture_path.open("r") as f:
+    with (
+        patch("agent_architecture.action_server.toolkits.requests.get") as mocked_get,
+        fixture_path.open("r") as f,
+    ):
         data = json.load(f)  # Using json.load directly on the file object
         mocked_response = MagicMock()
         mocked_response.json.return_value = data
@@ -121,9 +122,10 @@ def test_get_tools_with_complex_inputs() -> None:
 
     fixture_path = Path(__file__).with_name("_openapi3.fixture.json")
 
-    with patch(
-        "sema4ai_agent_server.action_server.toolkits.requests.get"
-    ) as mocked_get, fixture_path.open("r") as f:
+    with (
+        patch("agent_architecture.action_server.toolkits.requests.get") as mocked_get,
+        fixture_path.open("r") as f,
+    ):
         data = json.load(f)  # Using json.load directly on the file object
         mocked_response = MagicMock()
         mocked_response.json.return_value = data
@@ -185,9 +187,10 @@ def test_get_tools_with_multi_level_nesting_and_field_requirements() -> None:
 
     fixture_path = Path(__file__).with_name("_openapi4.fixture.json")
 
-    with patch(
-        "sema4ai_agent_server.action_server.toolkits.requests.get"
-    ) as mocked_get, fixture_path.open("r") as f:
+    with (
+        patch("agent_architecture.action_server.toolkits.requests.get") as mocked_get,
+        fixture_path.open("r") as f,
+    ):
         data = json.load(f)  # Using json.load directly on the file object
         mocked_response = MagicMock()
         mocked_response.json.return_value = data
