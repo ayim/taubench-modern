@@ -25,7 +25,6 @@ class LLMProvider(StrEnum):
     OPENAI = "OpenAI"
     AZURE = "Azure"
     ANTHROPIC = "Anthropic"
-    GOOGLE = "Google"
     AMAZON = "Amazon"
     OLLAMA = "Ollama"
 
@@ -125,14 +124,6 @@ class AmazonBedrockConfig(ModelConfig):
     )
 
 
-class GoogleGeminiConfig(ModelConfig):
-    temperature: float = Field(description="The temperature.", default=0.0)
-    vertex_ai_credentials: SerializableSecretStr = Field(
-        description="The Google Vertex AI credentials.",
-        default=SecretStr(NOT_CONFIGURED),
-    )
-
-
 class OllamaConfig(ModelConfig):
     temperature: float = Field(description="The temperature.", default=0.0)
     ollama_base_url: str = Field(
@@ -168,12 +159,6 @@ class AmazonBedrock(BaseModel):
     config: AmazonBedrockConfig = Field(description="Amazon Claude config.")
 
 
-class GoogleGemini(BaseModel):
-    provider: Literal[LLMProvider.GOOGLE]
-    name: str = Field(description="The name of the model.", default="gemini-pro")
-    config: GoogleGeminiConfig = Field(description="Google Gemini config.")
-
-
 class Ollama(BaseModel):
     provider: Literal[LLMProvider.OLLAMA]
     name: str = Field(description="The name of the model.")
@@ -190,7 +175,7 @@ dummy_model = OpenAIGPT(
 
 # TODO: If we unify models to the same base class, do we need this?
 MODEL = Annotated[
-    OpenAIGPT | AzureGPT | AnthropicClaude | AmazonBedrock | GoogleGemini | Ollama,
+    OpenAIGPT | AzureGPT | AnthropicClaude | AmazonBedrock | Ollama,
     Field(discriminator="provider"),
 ]
 MODEL_ADAPTER = TypeAdapter(MODEL)
