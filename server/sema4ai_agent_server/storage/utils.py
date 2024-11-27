@@ -1,6 +1,6 @@
 """Vendored utils from langgraph-checkpoint-postgres library."""
 
-from typing import Any, Dict, Literal, Optional, Sequence, Tuple
+from typing import Any, Dict, Literal, Sequence, Tuple
 
 import orjson
 from langchain_core.runnables import RunnableConfig
