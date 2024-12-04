@@ -6,7 +6,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Sema4.ai Agent Server API",
-    "version": "1.0.18-alpha.10"
+    "version": "1.1.0"
   },
   "paths": {
     "/api/v1/ok": {
@@ -1561,9 +1561,6 @@
         "properties": {
           "type": {
             "type": "string",
-            "enum": [
-              "action_server_not_configured"
-            ],
             "const": "action_server_not_configured",
             "title": "Type",
             "default": "action_server_not_configured"
@@ -1632,9 +1629,6 @@
                 "$ref": "#/components/schemas/AmazonBedrock"
               },
               {
-                "$ref": "#/components/schemas/GoogleGemini"
-              },
-              {
                 "$ref": "#/components/schemas/Ollama"
               }
             ],
@@ -1646,7 +1640,6 @@
                 "Amazon": "#/components/schemas/AmazonBedrock",
                 "Anthropic": "#/components/schemas/AnthropicClaude",
                 "Azure": "#/components/schemas/AzureGPT",
-                "Google": "#/components/schemas/GoogleGemini",
                 "Ollama": "#/components/schemas/Ollama",
                 "OpenAI": "#/components/schemas/OpenAIGPT"
               }
@@ -1715,9 +1708,11 @@
             "title": "Architecture",
             "description": "The agent's architecture.",
             "enum": [
-              "agent_architecture_claude_tools",
               "agent_architecture_openai_tools",
-              "agent_architecture_openai_plan_execute"
+              "agent_architecture_openai_plan_execute",
+              "agent_architecture_claude_tools",
+              "agent",
+              "plan_execute"
             ]
           },
           "reasoning": {
@@ -1881,9 +1876,6 @@
                 "$ref": "#/components/schemas/AmazonBedrock"
               },
               {
-                "$ref": "#/components/schemas/GoogleGemini"
-              },
-              {
                 "$ref": "#/components/schemas/Ollama"
               }
             ],
@@ -1895,14 +1887,14 @@
                 "Amazon": "#/components/schemas/AmazonBedrock",
                 "Anthropic": "#/components/schemas/AnthropicClaude",
                 "Azure": "#/components/schemas/AzureGPT",
-                "Google": "#/components/schemas/GoogleGemini",
                 "Ollama": "#/components/schemas/Ollama",
                 "OpenAI": "#/components/schemas/OpenAIGPT"
               }
             }
           },
           "advanced_config": {
-            "$ref": "#/components/schemas/AgentAdvancedConfig"
+            "$ref": "#/components/schemas/AgentAdvancedConfig",
+            "description": "Advanced configuration options for the agent."
           },
           "action_packages": {
             "items": {
@@ -1983,9 +1975,6 @@
                 "$ref": "#/components/schemas/AmazonBedrock"
               },
               {
-                "$ref": "#/components/schemas/GoogleGemini"
-              },
-              {
                 "$ref": "#/components/schemas/Ollama"
               }
             ],
@@ -1997,7 +1986,6 @@
                 "Amazon": "#/components/schemas/AmazonBedrock",
                 "Anthropic": "#/components/schemas/AnthropicClaude",
                 "Azure": "#/components/schemas/AzureGPT",
-                "Google": "#/components/schemas/GoogleGemini",
                 "Ollama": "#/components/schemas/Ollama",
                 "OpenAI": "#/components/schemas/OpenAIGPT"
               }
@@ -2105,9 +2093,6 @@
         "properties": {
           "provider": {
             "type": "string",
-            "enum": [
-              "Amazon"
-            ],
             "const": "Amazon",
             "title": "Provider"
           },
@@ -2133,9 +2118,6 @@
         "properties": {
           "service_name": {
             "type": "string",
-            "enum": [
-              "bedrock-runtime"
-            ],
             "const": "bedrock-runtime",
             "title": "Service Name",
             "default": "bedrock-runtime"
@@ -2170,9 +2152,6 @@
         "properties": {
           "provider": {
             "type": "string",
-            "enum": [
-              "Anthropic"
-            ],
             "const": "Anthropic",
             "title": "Provider"
           },
@@ -2218,9 +2197,6 @@
         "properties": {
           "provider": {
             "type": "string",
-            "enum": [
-              "Azure"
-            ],
             "const": "Azure",
             "title": "Provider"
           },
@@ -2384,9 +2360,6 @@
         "properties": {
           "type": {
             "type": "string",
-            "enum": [
-              "embedding_files_failed"
-            ],
             "const": "embedding_files_failed",
             "title": "Type",
             "default": "embedding_files_failed"
@@ -2406,9 +2379,6 @@
         "properties": {
           "type": {
             "type": "string",
-            "enum": [
-              "embedding_files_in_progress"
-            ],
             "const": "embedding_files_in_progress",
             "title": "Type",
             "default": "embedding_files_in_progress"
@@ -2428,9 +2398,6 @@
         "properties": {
           "type": {
             "type": "string",
-            "enum": [
-              "embedding_files_pending"
-            ],
             "const": "embedding_files_pending",
             "title": "Type",
             "default": "embedding_files_pending"
@@ -2511,54 +2478,6 @@
         ],
         "title": "FileByRefResponse"
       },
-      "GoogleGemini": {
-        "properties": {
-          "provider": {
-            "type": "string",
-            "enum": [
-              "Google"
-            ],
-            "const": "Google",
-            "title": "Provider"
-          },
-          "name": {
-            "type": "string",
-            "title": "Name",
-            "description": "The name of the model.",
-            "default": "gemini-pro"
-          },
-          "config": {
-            "$ref": "#/components/schemas/GoogleGeminiConfig",
-            "description": "Google Gemini config."
-          }
-        },
-        "type": "object",
-        "required": [
-          "provider",
-          "config"
-        ],
-        "title": "GoogleGemini"
-      },
-      "GoogleGeminiConfig": {
-        "properties": {
-          "temperature": {
-            "type": "number",
-            "title": "Temperature",
-            "description": "The temperature.",
-            "default": 0
-          },
-          "vertex_ai_credentials": {
-            "type": "string",
-            "format": "password",
-            "title": "Vertex Ai Credentials",
-            "description": "The Google Vertex AI credentials.",
-            "default": "**********",
-            "writeOnly": true
-          }
-        },
-        "type": "object",
-        "title": "GoogleGeminiConfig"
-      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -2624,9 +2543,6 @@
         "properties": {
           "type": {
             "type": "string",
-            "enum": [
-              "model_not_configured"
-            ],
             "const": "model_not_configured",
             "title": "Type",
             "default": "model_not_configured"
@@ -2649,9 +2565,6 @@
         "properties": {
           "provider": {
             "type": "string",
-            "enum": [
-              "Ollama"
-            ],
             "const": "Ollama",
             "title": "Provider"
           },
@@ -2695,9 +2608,6 @@
         "properties": {
           "provider": {
             "type": "string",
-            "enum": [
-              "OpenAI"
-            ],
             "const": "OpenAI",
             "title": "Provider"
           },
@@ -2822,9 +2732,6 @@
         "properties": {
           "event": {
             "type": "string",
-            "enum": [
-              "data"
-            ],
             "const": "data",
             "title": "Event",
             "default": "data"
@@ -2869,9 +2776,6 @@
         "properties": {
           "event": {
             "type": "string",
-            "enum": [
-              "end"
-            ],
             "const": "end",
             "title": "Event",
             "default": "end"
@@ -2919,9 +2823,6 @@
         "properties": {
           "event": {
             "type": "string",
-            "enum": [
-              "error"
-            ],
             "const": "error",
             "title": "Event",
             "default": "error"
@@ -2955,9 +2856,6 @@
         "properties": {
           "event": {
             "type": "string",
-            "enum": [
-              "metadata"
-            ],
             "const": "metadata",
             "title": "Event",
             "default": "metadata"
@@ -3166,9 +3064,6 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "tool_event"
-            ],
             "const": "tool_event",
             "title": "Type",
             "default": "tool_event"
@@ -3402,7 +3297,6 @@
         "enum": [
           "Document Intelligence"
         ],
-        "const": "Document Intelligence",
         "title": "WorkerType",
         "description": "Enum for worker type."
       },
@@ -3477,9 +3371,6 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "ai"
-            ],
             "const": "ai",
             "title": "Type",
             "default": "ai"
@@ -3579,9 +3470,6 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "chat"
-            ],
             "const": "chat",
             "title": "Type",
             "default": "chat"
@@ -3655,9 +3543,6 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "function"
-            ],
             "const": "function",
             "title": "Type",
             "default": "function"
@@ -3720,9 +3605,6 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "human"
-            ],
             "const": "human",
             "title": "Type",
             "default": "human"
@@ -3796,9 +3678,6 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "system"
-            ],
             "const": "system",
             "title": "Type",
             "default": "system"
@@ -3882,9 +3761,6 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "invalid_tool_call"
-            ],
             "const": "invalid_tool_call",
             "title": "Type"
           }
@@ -3922,9 +3798,6 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "tool_call"
-            ],
             "const": "tool_call",
             "title": "Type"
           }
@@ -3971,9 +3844,6 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "tool"
-            ],
             "const": "tool",
             "title": "Type",
             "default": "tool"
@@ -4059,9 +3929,6 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "ai"
-            ],
             "const": "ai",
             "title": "Type",
             "default": "ai"
@@ -4149,9 +4016,6 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "chat"
-            ],
             "const": "chat",
             "title": "Type",
             "default": "chat"
@@ -4213,9 +4077,6 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "function"
-            ],
             "const": "function",
             "title": "Type",
             "default": "function"
@@ -4272,9 +4133,6 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "human"
-            ],
             "const": "human",
             "title": "Type",
             "default": "human"
@@ -4344,9 +4202,6 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "invalid_tool_call"
-            ],
             "const": "invalid_tool_call",
             "title": "Type"
           }
@@ -4393,9 +4248,6 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "system"
-            ],
             "const": "system",
             "title": "Type",
             "default": "system"
@@ -4435,9 +4287,6 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "tool_call"
-            ],
             "const": "tool_call",
             "title": "Type"
           }
@@ -4483,9 +4332,6 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "tool"
-            ],
             "const": "tool",
             "title": "Type",
             "default": "tool"

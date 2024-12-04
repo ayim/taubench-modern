@@ -16,7 +16,7 @@ from sema4ai_agent_server.otel import setup_otel
 from sema4ai_agent_server.storage.option import get_storage
 
 # Do not change the version here. It is managed by versionbump (see versionbump.yaml)
-VERSION = "1.1.0"
+VERSION = "1.1.1"
 
 setup_logging()
 setup_otel()
@@ -54,8 +54,9 @@ def custom_openapi():
     agent_advanced_config_schema: dict = schemas.get("AgentAdvancedConfig", {})
     properties: dict = agent_advanced_config_schema.get("properties", {})
     architecture_field = properties.get("architecture", {})
-    # Set the enum property for the architecture field
-    architecture_field["enum"] = architecture_names
+    # Set the enum property for the architecture field,
+    # this includes the agent and plan_execute options for backwards compatibility.
+    architecture_field["enum"] = architecture_names + ["agent", "plan_execute"]
     app.openapi_schema = openapi_schema
     return app.openapi_schema
 

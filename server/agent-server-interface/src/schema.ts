@@ -606,7 +606,6 @@ export interface components {
              * Type
              * @default action_server_not_configured
              * @constant
-             * @enum {string}
              */
             type: "action_server_not_configured";
             /** Action Package Name */
@@ -655,7 +654,7 @@ export interface components {
              * Model
              * @description LLM model configuration for the agent.
              */
-            model: components["schemas"]["OpenAIGPT"] | components["schemas"]["AzureGPT"] | components["schemas"]["AnthropicClaude"] | components["schemas"]["AmazonBedrock"] | components["schemas"]["GoogleGemini"] | components["schemas"]["Ollama"];
+            model: components["schemas"]["OpenAIGPT"] | components["schemas"]["AzureGPT"] | components["schemas"]["AnthropicClaude"] | components["schemas"]["AmazonBedrock"] | components["schemas"]["Ollama"];
             advanced_config: components["schemas"]["AgentAdvancedConfig"];
             /**
              * Action Packages
@@ -697,7 +696,7 @@ export interface components {
              * @description The agent's architecture.
              * @enum {string}
              */
-            architecture: "agent_architecture_claude_tools" | "agent_architecture_openai_tools" | "agent_architecture_openai_plan_execute";
+            architecture: "agent_architecture_openai_tools" | "agent_architecture_openai_plan_execute" | "agent_architecture_claude_tools" | "agent" | "plan_execute";
             /** @description The reasoning setting of the agent. */
             reasoning: components["schemas"]["AgentReasoning"];
             /**
@@ -788,7 +787,8 @@ export interface components {
              * Model
              * @description LLM model configuration for the agent.
              */
-            model: components["schemas"]["OpenAIGPT"] | components["schemas"]["AzureGPT"] | components["schemas"]["AnthropicClaude"] | components["schemas"]["AmazonBedrock"] | components["schemas"]["GoogleGemini"] | components["schemas"]["Ollama"];
+            model: components["schemas"]["OpenAIGPT"] | components["schemas"]["AzureGPT"] | components["schemas"]["AnthropicClaude"] | components["schemas"]["AmazonBedrock"] | components["schemas"]["Ollama"];
+            /** @description Advanced configuration options for the agent. */
             advanced_config: components["schemas"]["AgentAdvancedConfig"];
             /**
              * Action Packages
@@ -828,7 +828,7 @@ export interface components {
              * Model
              * @description LLM configuration for the agent.
              */
-            model: components["schemas"]["OpenAIGPT"] | components["schemas"]["AzureGPT"] | components["schemas"]["AnthropicClaude"] | components["schemas"]["AmazonBedrock"] | components["schemas"]["GoogleGemini"] | components["schemas"]["Ollama"];
+            model: components["schemas"]["OpenAIGPT"] | components["schemas"]["AzureGPT"] | components["schemas"]["AnthropicClaude"] | components["schemas"]["AmazonBedrock"] | components["schemas"]["Ollama"];
             /**
              * Action Servers
              * @description Action Server configurations.
@@ -886,7 +886,6 @@ export interface components {
              * Service Name
              * @default bedrock-runtime
              * @constant
-             * @enum {string}
              */
             service_name: "bedrock-runtime";
             /**
@@ -1037,7 +1036,6 @@ export interface components {
              * Type
              * @default embedding_files_failed
              * @constant
-             * @enum {string}
              */
             type: "embedding_files_failed";
             /** File Ref */
@@ -1049,7 +1047,6 @@ export interface components {
              * Type
              * @default embedding_files_in_progress
              * @constant
-             * @enum {string}
              */
             type: "embedding_files_in_progress";
             /** File Ref */
@@ -1061,7 +1058,6 @@ export interface components {
              * Type
              * @default embedding_files_pending
              * @constant
-             * @enum {string}
              */
             type: "embedding_files_pending";
             /** File Ref */
@@ -1090,38 +1086,6 @@ export interface components {
         FileByRefResponse: {
             /** File Url */
             file_url: string;
-        };
-        /** GoogleGemini */
-        GoogleGemini: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            provider: "Google";
-            /**
-             * Name
-             * @description The name of the model.
-             * @default gemini-pro
-             */
-            name: string;
-            /** @description Google Gemini config. */
-            config: components["schemas"]["GoogleGeminiConfig"];
-        };
-        /** GoogleGeminiConfig */
-        GoogleGeminiConfig: {
-            /**
-             * Temperature
-             * @description The temperature.
-             * @default 0
-             */
-            temperature: number;
-            /**
-             * Vertex Ai Credentials
-             * Format: password
-             * @description The Google Vertex AI credentials.
-             * @default **********
-             */
-            vertex_ai_credentials: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -1182,7 +1146,6 @@ export interface components {
              * Type
              * @default model_not_configured
              * @constant
-             * @enum {string}
              */
             type: "model_not_configured";
             /** Fields */
@@ -1470,7 +1433,6 @@ export interface components {
              * Type
              * @default tool_event
              * @constant
-             * @enum {string}
              */
             type: "tool_event";
             /** Name */
@@ -1595,7 +1557,6 @@ export interface components {
         /**
          * WorkerType
          * @description Enum for worker type.
-         * @constant
          * @enum {string}
          */
         WorkerType: "Document Intelligence";
@@ -1645,7 +1606,6 @@ export interface components {
              * Type
              * @default ai
              * @constant
-             * @enum {string}
              */
             type: "ai";
             /** Name */
@@ -1686,7 +1646,6 @@ export interface components {
              * Type
              * @default chat
              * @constant
-             * @enum {string}
              */
             type: "chat";
             /** Name */
@@ -1720,7 +1679,6 @@ export interface components {
              * Type
              * @default function
              * @constant
-             * @enum {string}
              */
             type: "function";
             /** Name */
@@ -1766,7 +1724,6 @@ export interface components {
              * Type
              * @default human
              * @constant
-             * @enum {string}
              */
             type: "human";
             /** Name */
@@ -1817,7 +1774,6 @@ export interface components {
              * Type
              * @default system
              * @constant
-             * @enum {string}
              */
             type: "system";
             /** Name */
@@ -1846,7 +1802,6 @@ export interface components {
             /**
              * Type
              * @constant
-             * @enum {string}
              */
             type?: "invalid_tool_call";
         };
@@ -1877,7 +1832,6 @@ export interface components {
             /**
              * Type
              * @constant
-             * @enum {string}
              */
             type?: "tool_call";
         };
@@ -1933,7 +1887,6 @@ export interface components {
              * Type
              * @default tool
              * @constant
-             * @enum {string}
              */
             type: "tool";
             /** Name */
@@ -1974,7 +1927,6 @@ export interface components {
              * Type
              * @default ai
              * @constant
-             * @enum {string}
              */
             type: "ai";
             /**
@@ -2021,7 +1973,6 @@ export interface components {
              * Type
              * @default chat
              * @constant
-             * @enum {string}
              */
             type: "chat";
             /**
@@ -2061,7 +2012,6 @@ export interface components {
              * Type
              * @default function
              * @constant
-             * @enum {string}
              */
             type: "function";
             /**
@@ -2113,7 +2063,6 @@ export interface components {
              * Type
              * @default human
              * @constant
-             * @enum {string}
              */
             type: "human";
             /**
@@ -2147,7 +2096,6 @@ export interface components {
             /**
              * Type
              * @constant
-             * @enum {string}
              */
             type?: "invalid_tool_call";
         };
@@ -2187,7 +2135,6 @@ export interface components {
              * Type
              * @default system
              * @constant
-             * @enum {string}
              */
             type: "system";
             /**
@@ -2214,7 +2161,6 @@ export interface components {
             /**
              * Type
              * @constant
-             * @enum {string}
              */
             type?: "tool_call";
         };
@@ -2270,7 +2216,6 @@ export interface components {
              * Type
              * @default tool
              * @constant
-             * @enum {string}
              */
             type: "tool";
             /**
