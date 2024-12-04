@@ -41,8 +41,8 @@ jobs:
 
     - name: Start application server
       run: |
-        poetry run uvicorn sema4ai_agent_server.server:app --host 0.0.0.0 --port 8000 &
-        sleep 10
+        poetry run uvicorn sema4ai_agent_server.server:app --host localhost --port 8000 &
+        sleep 20
       env:
         S4_AGENT_SERVER_DB_TYPE: sqlite
         SCARF_NO_ANALYTICS: "true"
@@ -54,7 +54,14 @@ jobs:
         node-version: 18
 
     - name: Install dependencies
-      run: npm install
+      run: |
+        cat << EOF > "./.npmrc"
+        registry=https://registry.npmjs.org/
+        @robocorp:registry=https://npm.pkg.github.com/
+        @sema4ai:registry=https://npm.pkg.github.com/
+        //npm.pkg.github.com/:_authToken=$NODE_AUTH_TOKEN
+        EOF
+        npm install
       working-directory: ./agent-server-interface
 
     - name: Build agent-server-interface
