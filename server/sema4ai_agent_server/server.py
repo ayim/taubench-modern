@@ -55,8 +55,8 @@ def custom_openapi():
     properties: dict = agent_advanced_config_schema.get("properties", {})
     architecture_field = properties.get("architecture", {})
     # Set the enum property for the architecture field,
-    # this includes the agent and plan_execute options for backwards compatibility.
-    architecture_field["enum"] = architecture_names + ["agent", "plan_execute"]
+    # sorting to ensure consistent order across environments
+    architecture_field["enum"] = sorted(architecture_names + ["agent", "plan_execute"])
     app.openapi_schema = openapi_schema
     return app.openapi_schema
 
