@@ -1708,10 +1708,10 @@
             "title": "Architecture",
             "description": "The agent's architecture.",
             "enum": [
-              "agent_architecture_openai_tools",
-              "agent_architecture_openai_plan_execute",
-              "agent_architecture_claude_tools",
               "agent",
+              "agent_architecture_claude_tools",
+              "agent_architecture_openai_plan_execute",
+              "agent_architecture_openai_tools",
               "plan_execute"
             ]
           },
