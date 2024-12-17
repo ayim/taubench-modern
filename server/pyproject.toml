@@ -14,14 +14,14 @@ arxiv = "^2.1.0"
 beautifulsoup4 = "^4.12.3"
 boto3 = "^1.35.19"
 duckduckgo-search = "^6.2.11"
-fastapi = "^0.115.6"  # Secure, compatible version
+fastapi = "^0.115.6"                                                                                                                       # Secure, compatible version
 fireworks-ai = "^0.15.1"
 httpx = "^0.27.2"
 jmespath = "^1.0.1"
 kay = "^0.1.2"
 langchain-anthropic = "^0.2.0"
 langchain-chroma = "^0.1.4"
-langchain-community = "^0.3.12"  # Latest secure version
+langchain-community = "^0.3.12"                                                                                                            # Latest secure version
 langchain-core = "^0.3.25"
 langchain-openai = "^0.2.12"
 langchain = "^0.3.12"
@@ -35,15 +35,15 @@ psycopg = { extras = ["binary", "pool"], version = "^3.2.2" }
 pydantic = ">=2,<3"
 pyjwt = { extras = ["crypto"], version = "^2.9.0" }
 python-json-logger = "2.0.7"
-python-multipart = "^0.0.18"  # Secure version
+python-multipart = "^0.0.18"                                                                                                               # Secure version
 setuptools = "^75.1.0"
 sse-starlette = "^2.1.3"
 structlog = "^24.4.0"
 tenacity = ">=8.4.1,<9.0.0"
 tiktoken = "^0.7.0"
 tomli-w = "^1.0.0"
-unstructured = { extras = ["doc", "docx"], version = "^0.15.12" }
-uvicorn = "^0.34.0"  # Fix for security issues
+unstructured = { extras = ["doc", "docx"], version = "^0.16.11" }
+uvicorn = "^0.34.0"                                                                                                                        # Fix for security issues
 wikipedia = "^1.4.0"
 xmltodict = "^0.13.0"
 pydantic-settings = "^2.5.2"
