@@ -137,6 +137,9 @@ async def astream_state(
                     "sema4ai_metadata": event.get("metadata", {})
                 }
 
+                if metadata["sema4ai_metadata"].get("stream_to_frontend") is False:
+                    continue
+
                 # Handle Structured Responses
                 structured_response_config = metadata["sema4ai_metadata"].get(
                     "structured_response_config", {}
