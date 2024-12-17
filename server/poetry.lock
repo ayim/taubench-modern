@@ -1022,7 +1022,6 @@ files = [
     {file = "cryptography-44.0.0-cp37-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:761817a3377ef15ac23cd7834715081791d4ec77f9297ee694ca1ee9c2c7e5eb"},
     {file = "cryptography-44.0.0-cp37-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:3c672a53c0fb4725a29c303be906d3c1fa99c32f58abe008a82705f9ee96f40b"},
     {file = "cryptography-44.0.0-cp37-abi3-manylinux_2_34_aarch64.whl", hash = "sha256:4ac4c9f37eba52cb6fbeaf5b59c152ea976726b865bd4cf87883a7e7006cc543"},
-    {file = "cryptography-44.0.0-cp37-abi3-manylinux_2_34_x86_64.whl", hash = "sha256:60eb32934076fa07e4316b7b2742fa52cbb190b42c2df2863dbc4230a0a9b385"},
     {file = "cryptography-44.0.0-cp37-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:ed3534eb1090483c96178fcb0f8893719d96d5274dfde98aa6add34614e97c8e"},
     {file = "cryptography-44.0.0-cp37-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:f3f6fdfa89ee2d9d496e2c087cebef9d4fcbb0ad63c40e821b39f74bf48d9c5e"},
     {file = "cryptography-44.0.0-cp37-abi3-win32.whl", hash = "sha256:eb33480f1bad5b78233b0ad3e1b0be21e8ef1da745d8d2aecbb20671658b9053"},
@@ -1033,7 +1032,6 @@ files = [
     {file = "cryptography-44.0.0-cp39-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:c5eb858beed7835e5ad1faba59e865109f3e52b3783b9ac21e7e47dc5554e289"},
     {file = "cryptography-44.0.0-cp39-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:f53c2c87e0fb4b0c00fa9571082a057e37690a8f12233306161c8f4b819960b7"},
     {file = "cryptography-44.0.0-cp39-abi3-manylinux_2_34_aarch64.whl", hash = "sha256:9e6fc8a08e116fb7c7dd1f040074c9d7b51d74a8ea40d4df2fc7aa08b76b9e6c"},
-    {file = "cryptography-44.0.0-cp39-abi3-manylinux_2_34_x86_64.whl", hash = "sha256:9abcc2e083cbe8dde89124a47e5e53ec38751f0d7dfd36801008f316a127d7ba"},
     {file = "cryptography-44.0.0-cp39-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:d2436114e46b36d00f8b72ff57e598978b37399d2786fd39793c36c6d5cb1c64"},
     {file = "cryptography-44.0.0-cp39-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:a01956ddfa0a6790d594f5b34fc1bfa6098aca434696a03cfdbe469b8ed79285"},
     {file = "cryptography-44.0.0-cp39-abi3-win32.whl", hash = "sha256:eca27345e1214d1b9f9490d200f9db5a874479be914199194e746c893788d417"},
@@ -1254,18 +1252,18 @@ reference = "pypi-public"
 
 [[package]]
 name = "fastapi"
-version = "0.114.2"
+version = "0.115.6"
 description = "FastAPI framework, high performance, easy to learn, fast to code, ready for production"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "fastapi-0.114.2-py3-none-any.whl", hash = "sha256:44474a22913057b1acb973ab90f4b671ba5200482e7622816d79105dcece1ac5"},
-    {file = "fastapi-0.114.2.tar.gz", hash = "sha256:0adb148b62edb09e8c6eeefa3ea934e8f276dabc038c5a82989ea6346050c3da"},
+    {file = "fastapi-0.115.6-py3-none-any.whl", hash = "sha256:e9240b29e36fa8f4bb7290316988e90c381e5092e0cbe84e7818cc3713bcf305"},
+    {file = "fastapi-0.115.6.tar.gz", hash = "sha256:9ec46f7addc14ea472958a96aae5b5de65f39721a46aaf5705c480d9a8b76654"},
 ]
 
 [package.dependencies]
 pydantic = ">=1.7.4,<1.8 || >1.8,<1.8.1 || >1.8.1,<2.0.0 || >2.0.0,<2.0.1 || >2.0.1,<2.1.0 || >2.1.0,<3.0.0"
-starlette = ">=0.37.2,<0.39.0"
+starlette = ">=0.40.0,<0.42.0"
 typing-extensions = ">=4.8.0"
 
 [package.extras]
@@ -2315,20 +2313,20 @@ reference = "pypi-public"
 
 [[package]]
 name = "langchain"
-version = "0.3.8"
+version = "0.3.12"
 description = "Building applications with LLMs through composability"
 optional = false
 python-versions = ">=3.9,<4.0"
 files = [
-    {file = "langchain-0.3.8-py3-none-any.whl", hash = "sha256:5cae404da30bf6730639a9ad85d3bf4fbb350c0038e5a0b81890e5883b4cff5c"},
-    {file = "langchain-0.3.8.tar.gz", hash = "sha256:1cbbf7379b5b2f11b751fc527016f29ee5fe8a2697d166b52b7b5c63fc9702f9"},
+    {file = "langchain-0.3.12-py3-none-any.whl", hash = "sha256:581ad93a9de12e4b957bc2af9ba8482eb86e3930e84c4ee20ed677da5e2311cd"},
+    {file = "langchain-0.3.12.tar.gz", hash = "sha256:0d8247afbf37beb263b4adc29f7aa8a5ae83c43a6941894e2f9ba39d5c869e3b"},
 ]
 
 [package.dependencies]
 aiohttp = ">=3.8.3,<4.0.0"
-langchain-core = ">=0.3.21,<0.4.0"
-langchain-text-splitters = ">=0.3.0,<0.4.0"
-langsmith = ">=0.1.17,<0.2.0"
+langchain-core = ">=0.3.25,<0.4.0"
+langchain-text-splitters = ">=0.3.3,<0.4.0"
+langsmith = ">=0.1.17,<0.3"
 numpy = {version = ">=1.22.4,<2", markers = "python_version < \"3.12\""}
 pydantic = ">=2.7.4,<3.0.0"
 PyYAML = ">=5.3"
@@ -2409,23 +2407,23 @@ reference = "pypi-public"
 
 [[package]]
 name = "langchain-community"
-version = "0.3.4"
+version = "0.3.12"
 description = "Community contributed LangChain integrations."
 optional = false
 python-versions = ">=3.9,<4.0"
 files = [
-    {file = "langchain_community-0.3.4-py3-none-any.whl", hash = "sha256:67a44d3db8ba14a8abae67c8f611e6dc20002446439e761f673c7dffa506fb85"},
-    {file = "langchain_community-0.3.4.tar.gz", hash = "sha256:80c7e6491788449b8a6e7a31444ff8ebb5c32242f67a65aa33d56ad35a7b5b5c"},
+    {file = "langchain_community-0.3.12-py3-none-any.whl", hash = "sha256:5a993c931d46dc07fcdfcdfa4d87095c5a15d37ff32b0c16e9ecf6f5caa58c9c"},
+    {file = "langchain_community-0.3.12.tar.gz", hash = "sha256:b4694f34c7214dede03fe5a75e9f335e16bd788dfa6ca279302ad357bf0d0fc4"},
 ]
 
 [package.dependencies]
 aiohttp = ">=3.8.3,<4.0.0"
 dataclasses-json = ">=0.5.7,<0.7"
 httpx-sse = ">=0.4.0,<0.5.0"
-langchain = ">=0.3.6,<0.4.0"
-langchain-core = ">=0.3.14,<0.4.0"
-langsmith = ">=0.1.125,<0.2.0"
-numpy = {version = ">=1,<2", markers = "python_version < \"3.12\""}
+langchain = ">=0.3.12,<0.4.0"
+langchain-core = ">=0.3.25,<0.4.0"
+langsmith = ">=0.1.125,<0.3"
+numpy = {version = ">=1.22.4,<2", markers = "python_version < \"3.12\""}
 pydantic-settings = ">=2.4.0,<3.0.0"
 PyYAML = ">=5.3"
 requests = ">=2,<3"
@@ -2439,18 +2437,18 @@ reference = "pypi-public"
 
 [[package]]
 name = "langchain-core"
-version = "0.3.21"
+version = "0.3.25"
 description = "Building applications with LLMs through composability"
 optional = false
 python-versions = ">=3.9,<4.0"
 files = [
-    {file = "langchain_core-0.3.21-py3-none-any.whl", hash = "sha256:7e723dff80946a1198976c6876fea8326dc82566ef9bcb5f8d9188f738733665"},
-    {file = "langchain_core-0.3.21.tar.gz", hash = "sha256:561b52b258ffa50a9fb11d7a1940ebfd915654d1ec95b35e81dfd5ee84143411"},
+    {file = "langchain_core-0.3.25-py3-none-any.whl", hash = "sha256:e10581c6c74ba16bdc6fdf16b00cced2aa447cc4024ed19746a1232918edde38"},
+    {file = "langchain_core-0.3.25.tar.gz", hash = "sha256:fdb8df41e5cdd928c0c2551ebbde1cea770ee3c64598395367ad77ddf9acbae7"},
 ]
 
 [package.dependencies]
 jsonpatch = ">=1.33,<2.0"
-langsmith = ">=0.1.125,<0.2.0"
+langsmith = ">=0.1.125,<0.3"
 packaging = ">=23.2,<25"
 pydantic = {version = ">=2.5.2,<3.0.0", markers = "python_full_version < \"3.12.4\""}
 PyYAML = ">=5.3"
@@ -2464,18 +2462,18 @@ reference = "pypi-public"
 
 [[package]]
 name = "langchain-openai"
-version = "0.2.10"
+version = "0.2.12"
 description = "An integration package connecting OpenAI and LangChain"
 optional = false
 python-versions = ">=3.9,<4.0"
 files = [
-    {file = "langchain_openai-0.2.10-py3-none-any.whl", hash = "sha256:b06a14d99ab81343f23ced83de21fc1cfcd79c9fb96fdbd9070ad018038c5602"},
-    {file = "langchain_openai-0.2.10.tar.gz", hash = "sha256:878200a84d80353fc47720631bf591157e56b6a3923e5f7b13c7f61c82999b50"},
+    {file = "langchain_openai-0.2.12-py3-none-any.whl", hash = "sha256:916965c45584d9ea565825ad3bb7629b1ff57f12f36d4b937e5b7d65903839d6"},
+    {file = "langchain_openai-0.2.12.tar.gz", hash = "sha256:8b92096623065a2820e89aa5fb0a262fb109d56c346e3b09ba319af424c45cd1"},
 ]
 
 [package.dependencies]
 langchain-core = ">=0.3.21,<0.4.0"
-openai = ">=1.54.0,<2.0.0"
+openai = ">=1.55.3,<2.0.0"
 tiktoken = ">=0.7,<1"
 
 [package.source]
@@ -2509,17 +2507,17 @@ reference = "pypi-public"
 
 [[package]]
 name = "langchain-text-splitters"
-version = "0.3.2"
+version = "0.3.3"
 description = "LangChain text splitting utilities"
 optional = false
 python-versions = ">=3.9,<4.0"
 files = [
-    {file = "langchain_text_splitters-0.3.2-py3-none-any.whl", hash = "sha256:0db28c53f41d1bc024cdb3b1646741f6d46d5371e90f31e7e7c9fbe75d01c726"},
-    {file = "langchain_text_splitters-0.3.2.tar.gz", hash = "sha256:81e6515d9901d6dd8e35fb31ccd4f30f76d44b771890c789dc835ef9f16204df"},
+    {file = "langchain_text_splitters-0.3.3-py3-none-any.whl", hash = "sha256:c2f8650457685072971edc8c52c9f8826496b3307f28004a7fd09eb32d4d819f"},
+    {file = "langchain_text_splitters-0.3.3.tar.gz", hash = "sha256:c596958dcab15fdfe0627fd36ce9d588d0a7e35593af70cd10d0a4a06d69b3ee"},
 ]
 
 [package.dependencies]
-langchain-core = ">=0.3.15,<0.4.0"
+langchain-core = ">=0.3.25,<0.4.0"
 
 [package.source]
 type = "legacy"
@@ -2547,19 +2545,19 @@ reference = "pypi-public"
 
 [[package]]
 name = "langgraph"
-version = "0.2.53"
+version = "0.2.59"
 description = "Building stateful, multi-actor applications with LLMs"
 optional = false
 python-versions = ">=3.9.0,<4.0"
 files = [
-    {file = "langgraph-0.2.53-py3-none-any.whl", hash = "sha256:b34b67d0a12ae0ba6f03af97ad0f744bc609bd0328e8b734618cc039985cfdea"},
-    {file = "langgraph-0.2.53.tar.gz", hash = "sha256:b83232a04f2b536cbeac542f9ad7e0265f41ac6b7c6706ba8e031e0e80cb13a6"},
+    {file = "langgraph-0.2.59-py3-none-any.whl", hash = "sha256:9b2d1331bbdcea96cfffde8e88700776118f4583d15f6a3423fc4482fe84ae56"},
+    {file = "langgraph-0.2.59.tar.gz", hash = "sha256:61cb5dd409878641fe8a12e9d7928a7524caa3e54ab12bc883feeaba4a5ba618"},
 ]
 
 [package.dependencies]
-langchain-core = ">=0.2.43,<0.3.0 || >0.3.0,<0.3.1 || >0.3.1,<0.3.2 || >0.3.2,<0.3.3 || >0.3.3,<0.3.4 || >0.3.4,<0.3.5 || >0.3.5,<0.3.6 || >0.3.6,<0.3.7 || >0.3.7,<0.3.8 || >0.3.8,<0.3.9 || >0.3.9,<0.3.10 || >0.3.10,<0.3.11 || >0.3.11,<0.3.12 || >0.3.12,<0.3.13 || >0.3.13,<0.3.14 || >0.3.14,<0.4.0"
+langchain-core = ">=0.2.43,<0.3.0 || >0.3.0,<0.3.1 || >0.3.1,<0.3.2 || >0.3.2,<0.3.3 || >0.3.3,<0.3.4 || >0.3.4,<0.3.5 || >0.3.5,<0.3.6 || >0.3.6,<0.3.7 || >0.3.7,<0.3.8 || >0.3.8,<0.3.9 || >0.3.9,<0.3.10 || >0.3.10,<0.3.11 || >0.3.11,<0.3.12 || >0.3.12,<0.3.13 || >0.3.13,<0.3.14 || >0.3.14,<0.3.15 || >0.3.15,<0.3.16 || >0.3.16,<0.3.17 || >0.3.17,<0.3.18 || >0.3.18,<0.3.19 || >0.3.19,<0.3.20 || >0.3.20,<0.3.21 || >0.3.21,<0.3.22 || >0.3.22,<0.4.0"
 langgraph-checkpoint = ">=2.0.4,<3.0.0"
-langgraph-sdk = ">=0.1.32,<0.2.0"
+langgraph-sdk = ">=0.1.42,<0.2.0"
 
 [package.source]
 type = "legacy"
@@ -2588,18 +2586,17 @@ reference = "pypi-public"
 
 [[package]]
 name = "langgraph-sdk"
-version = "0.1.36"
+version = "0.1.46"
 description = "SDK for interacting with LangGraph API"
 optional = false
 python-versions = ">=3.9.0,<4.0.0"
 files = [
-    {file = "langgraph_sdk-0.1.36-py3-none-any.whl", hash = "sha256:b11e1f0bc67631134d09d50c812dc73f9eb30394764ae1144d7d2a786a715355"},
-    {file = "langgraph_sdk-0.1.36.tar.gz", hash = "sha256:2a2c651b7851ba15aeaab7e4e3ea7fd8357ef1cb0b592f264916fa990cdda6e7"},
+    {file = "langgraph_sdk-0.1.46-py3-none-any.whl", hash = "sha256:2b1d56b9a3c6918202504853b6aa2d749f1915f9ab8f692143eb15ecf8859b5f"},
+    {file = "langgraph_sdk-0.1.46.tar.gz", hash = "sha256:5e5ecbbffc9110548af87554c2e29e79f67980f6d59edc3975da59849f1eae02"},
 ]
 
 [package.dependencies]
 httpx = ">=0.25.2"
-httpx-sse = ">=0.4.0"
 orjson = ">=3.10.1"
 
 [package.source]
@@ -3473,13 +3470,13 @@ reference = "pypi-public"
 
 [[package]]
 name = "openai"
-version = "1.55.2"
+version = "1.57.4"
 description = "The official Python library for the openai API"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "openai-1.55.2-py3-none-any.whl", hash = "sha256:3027c7fa4a33ed759f4a3d076093fcfa1c55658660c889bec33f651e2dc77922"},
-    {file = "openai-1.55.2.tar.gz", hash = "sha256:5cc0b1162b65dcdf670b4b41448f18dd470d2724ca04821ab1e86b6b4e88650b"},
+    {file = "openai-1.57.4-py3-none-any.whl", hash = "sha256:7def1ab2d52f196357ce31b9cfcf4181529ce00838286426bb35be81c035dafb"},
+    {file = "openai-1.57.4.tar.gz", hash = "sha256:a8f071a3e9198e2818f63aade68e759417b9f62c0971bdb83de82504b70b77f7"},
 ]
 
 [package.dependencies]
@@ -5839,17 +5836,14 @@ reference = "pypi-public"
 
 [[package]]
 name = "python-multipart"
-version = "0.0.9"
+version = "0.0.18"
 description = "A streaming multipart parser for Python"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "python_multipart-0.0.9-py3-none-any.whl", hash = "sha256:97ca7b8ea7b05f977dc3849c3ba99d51689822fab725c3703af7c866a0c2b215"},
-    {file = "python_multipart-0.0.9.tar.gz", hash = "sha256:03f54688c663f1b7977105f021043b0793151e4cb1c1a9d4a11fc13d622c4026"},
+    {file = "python_multipart-0.0.18-py3-none-any.whl", hash = "sha256:efe91480f485f6a361427a541db4796f9e1591afc0fb8e7a4ba06bfbc6708996"},
+    {file = "python_multipart-0.0.18.tar.gz", hash = "sha256:7a68db60c8bfb82e460637fa4750727b45af1d5e2ed215593f917f64694d34fe"},
 ]
-
-[package.extras]
-dev = ["atomicwrites (==1.4.1)", "attrs (==23.2.0)", "coverage (==7.4.1)", "hatch", "invoke (==2.2.0)", "more-itertools (==10.2.0)", "pbr (==6.0.0)", "pluggy (==1.4.0)", "py (==1.11.0)", "pytest (==8.0.0)", "pytest-cov (==4.1.0)", "pytest-timeout (==2.2.0)", "pyyaml (==6.0.1)", "ruff (==0.2.1)"]
 
 [package.source]
 type = "legacy"
@@ -6567,13 +6561,13 @@ reference = "pypi-public"
 
 [[package]]
 name = "starlette"
-version = "0.38.6"
+version = "0.41.3"
 description = "The little ASGI library that shines."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "starlette-0.38.6-py3-none-any.whl", hash = "sha256:4517a1409e2e73ee4951214ba012052b9e16f60e90d73cfb06192c19203bbb05"},
-    {file = "starlette-0.38.6.tar.gz", hash = "sha256:863a1588f5574e70a821dadefb41e4881ea451a47a3cd1b4df359d4ffefe5ead"},
+    {file = "starlette-0.41.3-py3-none-any.whl", hash = "sha256:44cedb2b7c77a9de33a8b74b2b90e9f50d11fcf25d8270ea525ad71a25374ff7"},
+    {file = "starlette-0.41.3.tar.gz", hash = "sha256:0e4ab3d16522a255be6b28260b938eae2482f98ce5cc934cb08dce8dc3ba5835"},
 ]
 
 [package.dependencies]
@@ -7111,20 +7105,20 @@ reference = "pypi-public"
 
 [[package]]
 name = "uvicorn"
-version = "0.30.6"
+version = "0.34.0"
 description = "The lightning-fast ASGI server."
 optional = false
-python-versions = ">=3.8"
+python-versions = ">=3.9"
 files = [
-    {file = "uvicorn-0.30.6-py3-none-any.whl", hash = "sha256:65fd46fe3fda5bdc1b03b94eb634923ff18cd35b2f084813ea79d1f103f711b5"},
-    {file = "uvicorn-0.30.6.tar.gz", hash = "sha256:4b15decdda1e72be08209e860a1e10e92439ad5b97cf44cc945fcbee66fc5788"},
+    {file = "uvicorn-0.34.0-py3-none-any.whl", hash = "sha256:023dc038422502fa28a09c7a30bf2b6991512da7dcdb8fd35fe57cfc154126f4"},
+    {file = "uvicorn-0.34.0.tar.gz", hash = "sha256:404051050cd7e905de2c9a7e61790943440b3416f49cb409f965d9dcd0fa73e9"},
 ]
 
 [package.dependencies]
 click = ">=7.0"
 colorama = {version = ">=0.4", optional = true, markers = "sys_platform == \"win32\" and extra == \"standard\""}
 h11 = ">=0.8"
-httptools = {version = ">=0.5.0", optional = true, markers = "extra == \"standard\""}
+httptools = {version = ">=0.6.3", optional = true, markers = "extra == \"standard\""}
 python-dotenv = {version = ">=0.13", optional = true, markers = "extra == \"standard\""}
 pyyaml = {version = ">=5.1", optional = true, markers = "extra == \"standard\""}
 uvloop = {version = ">=0.14.0,<0.15.0 || >0.15.0,<0.15.1 || >0.15.1", optional = true, markers = "(sys_platform != \"win32\" and sys_platform != \"cygwin\") and platform_python_implementation != \"PyPy\" and extra == \"standard\""}
@@ -7132,7 +7126,7 @@ watchfiles = {version = ">=0.13", optional = true, markers = "extra == \"standar
 websockets = {version = ">=10.4", optional = true, markers = "extra == \"standard\""}
 
 [package.extras]
-standard = ["colorama (>=0.4)", "httptools (>=0.5.0)", "python-dotenv (>=0.13)", "pyyaml (>=5.1)", "uvloop (>=0.14.0,!=0.15.0,!=0.15.1)", "watchfiles (>=0.13)", "websockets (>=10.4)"]
+standard = ["colorama (>=0.4)", "httptools (>=0.6.3)", "python-dotenv (>=0.13)", "pyyaml (>=5.1)", "uvloop (>=0.14.0,!=0.15.0,!=0.15.1)", "watchfiles (>=0.13)", "websockets (>=10.4)"]
 
 [package.source]
 type = "legacy"
@@ -7695,4 +7689,4 @@ reference = "pypi-public"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11.0,<3.12"
-content-hash = "0313704625199b96c1e19aa27b880c3c69ba3441dabad419ffcad208457e39d1"
+content-hash = "397e3ba36eaef30ed8c933e6f1167728faf5749576c5f12eee983b67ea50f1d9"
