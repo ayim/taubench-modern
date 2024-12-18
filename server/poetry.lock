@@ -2,7 +2,7 @@
 
 [[package]]
 name = "agent-architecture"
-version = "1.0.0"
+version = "1.0.1"
 description = "Core framework and default cognitive architecture for agents."
 optional = false
 python-versions = "^3.11.0,<3.12"
@@ -19,12 +19,12 @@ structlog = "^24.4.0"
 [package.source]
 type = "git"
 url = "https://github.com/Sema4AI/agent-architecture.git"
-reference = "v1.0.0"
-resolved_reference = "b183ecc9854304197901e2b22ae350535d375c8e"
+reference = "v1.0.1"
+resolved_reference = "8a8ad4bdee754dbe246ff4a4139e7d7696160cdf"
 
 [[package]]
 name = "agent-architecture-claude-tools"
-version = "1.0.0"
+version = "1.0.1"
 description = "Tool using cognitive architecture for agents supporting Anthropic Claude LLMs."
 optional = false
 python-versions = "^3.11.0,<3.12"
@@ -32,17 +32,17 @@ files = []
 develop = false
 
 [package.dependencies]
-agent-architecture = {git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.0.0"}
+agent-architecture = {git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.0.1"}
 
 [package.source]
 type = "git"
 url = "https://github.com/Sema4AI/agent-architecture-claude-tools.git"
-reference = "v1.0.0"
-resolved_reference = "a7977982fc66ed635e410eefaaa65608addd767c"
+reference = "v1.0.1"
+resolved_reference = "698e39e0922c13b00ed4d861305101bab99bdcf5"
 
 [[package]]
 name = "agent-architecture-openai-plan-execute"
-version = "1.0.0"
+version = "1.0.1"
 description = "Plan execute cognitive architecture for agents with support for OpenAI LLMs."
 optional = false
 python-versions = "^3.11.0,<3.12"
@@ -50,13 +50,13 @@ files = []
 develop = false
 
 [package.dependencies]
-agent-architecture = {git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.0.0"}
+agent-architecture = {git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.0.1"}
 
 [package.source]
 type = "git"
 url = "https://github.com/Sema4AI/agent-architecture-openai-plan-execute.git"
-reference = "v1.0.0"
-resolved_reference = "c38c8367849ec0619571642815ced7da3542ace9"
+reference = "v1.0.1"
+resolved_reference = "a434bf508b873ecd42a1b658cc0dd14d22eeb35d"
 
 [[package]]
 name = "agent-server-types"
@@ -7295,4 +7295,4 @@ reference = "pypi-public"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11.0,<3.12"
-content-hash = "89429d38ded219062874c070e883ca4cd0d619e5102bb4b2404cbdd8d0dbe0b8"
+content-hash = "ed9d87198185a8afca1835457e75c665cb373ae858096edd46f307dbbbe319a3"
