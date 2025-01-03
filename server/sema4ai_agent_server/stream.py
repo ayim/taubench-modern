@@ -201,6 +201,9 @@ async def astream_state(
                         tool_calls = []
                 yield [messages[message.id]]
             elif event["event"] == "on_tool_start":
+                metadata = event.get("metadata", {})
+                if metadata.get("stream_to_frontend") is False:
+                    continue
                 # Explicitly send tool start events to the front end
                 logger.debug(f"astream_state:on_tool_start:event: {event}")
 
@@ -218,7 +221,7 @@ async def astream_state(
                     id=event["run_id"],
                     tool_call_id=tool_call_id,
                     input=event["data"]["input"],
-                    response_metadata=event.get("metadata", {}),
+                    response_metadata=metadata,
                 )
                 logger.debug(
                     f"astream_state:on_tool_start:input_message: {input_message}"
@@ -231,6 +234,9 @@ async def astream_state(
                     messages[input_message.id] += input_message
                     yield [messages[input_message.id]]
             elif event["event"] == "on_tool_end":
+                metadata = event.get("metadata", {})
+                if metadata.get("stream_to_frontend") is False:
+                    continue
                 # Explicitly send tool end events to the front end
                 logger.debug(f"astream_state:on_tool_end:event: {event}")
                 try:
@@ -242,7 +248,7 @@ async def astream_state(
                     id=event["run_id"],
                     tool_call_id=tool_call_id,
                     output=event["data"]["output"],
-                    response_metadata=event.get("metadata", {}),
+                    response_metadata=metadata,
                 )
                 logger.debug(
                     f"astream_state:on_tool_end:output_message: {output_message}"
