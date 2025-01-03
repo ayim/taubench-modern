@@ -26,7 +26,7 @@ from pydantic import (
     field_serializer,
 )
 from pydantic_core import ErrorDetails
-from sse_starlette import EventSourceResponse
+from sse_starlette.sse import ServerSentEvent
 
 from sema4ai_agent_server.message_types import AnyNonChunkStreamedMessage
 
@@ -201,7 +201,7 @@ class BaseStreamEvent(BaseModel):
         description="The event data."
     )
 
-    def to_sse(self) -> EventSourceResponse:
+    def to_sse(self) -> ServerSentEvent:
         """
         Converts the stream event into a ServerSentEvent instance.
         """
@@ -211,7 +211,7 @@ class BaseStreamEvent(BaseModel):
             data = self.data.model_dump_json()
         else:
             data = None
-        return EventSourceResponse(data=data, event=self.event)
+        return ServerSentEvent(data=data, event=self.event)
 
 
 class StreamMetadataEvent(BaseStreamEvent):
