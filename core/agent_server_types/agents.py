@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 from enum import StrEnum
 from typing import Annotated, Any, List, Literal, Self, Union
@@ -365,3 +366,19 @@ dummy_agent = Agent(
     metadata=AgentMetadata(mode=AgentMode.CONVERSATIONAL),
     created_at=datetime.now(),
 )
+
+
+class Memory(BaseModel):
+    """Memory for the agent."""
+
+    agent_id: str = Field(description="The ID of the agent.")
+    runbook_sections: None | Annotated[dict[str, str], "db_json"] = Field(
+        description="The runbook sections for the agent."
+    )
+
+    @field_validator("runbook_sections", mode="before")
+    @classmethod
+    def validate_runbook_sections(cls, v: Any) -> dict[str, str]:
+        if isinstance(v, (str, bytes, bytearray)):
+            return json.loads(v)
+        return v
