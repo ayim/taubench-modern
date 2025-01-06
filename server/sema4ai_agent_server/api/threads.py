@@ -42,15 +42,13 @@ if otel_is_enabled():
         name="sema4ai.agent_server.threads",
         description="Number of threads created",
     )
-    token_counter = meter.create_up_down_counter(
+    token_counter = meter.create_counter(
         name="sema4ai.agent_server.tokens",
         description="Total number of tokens in the thread",
-        unit="1",
     )
-    message_counter = meter.create_up_down_counter(
+    message_counter = meter.create_counter(
         name="sema4ai.agent_server.messages",
         description="Total number of messages in the thread",
-        unit="1",
     )
 
 
