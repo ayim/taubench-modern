@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "agent-architecture-default"
+version = "1.0.2"
+description = "Tool using cognitive architecture for agents supporting OpenAI LLMs."
+authors = ["Sema4.ai Engineering <engineering@sema4.ai>"]
+readme = "README.md"
+packages = [{ include = "agent_architecture_default" }]
+
+[tool.poetry.dependencies]
+python = "^3.11.0,<3.12"
+agent-architecture = { git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.0.2" }
+
+[tool.poetry.plugins."agent_architectures"]
+agent_architecture_claude_tools = "agent_architecture_default:OpenaiToolsAgentArchitecture"
+
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
