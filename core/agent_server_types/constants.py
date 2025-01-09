@@ -9,5 +9,5 @@ RAW_CONTEXT = {"raw": True}
 that the value should be serialized in its raw form.
 """
 
-DEFAULT_ARCHITECTURE = "agent_architecture_openai_tools"
+DEFAULT_ARCHITECTURE = "agent_architecture_default"
 """Base agent architecture name."""
