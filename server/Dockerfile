@@ -34,7 +34,7 @@ COPY pyproject.toml poetry.lock* ./
 
 # Install all dependencies
 RUN poetry config virtualenvs.create false \
-    && poetry install --no-interaction --no-ansi
+    && poetry install --no-interaction --no-ansi --no-root
 
 # Copy the rest of application code
 COPY sema4ai_agent_server/ sema4ai_agent_server/
