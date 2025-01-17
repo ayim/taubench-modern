@@ -1,0 +1,13 @@
+name: Sync main to dev
+
+on:
+  pull_request:
+    branches: [main]
+    types: [closed]
+
+jobs:
+  merge_main_to_dev:
+    uses: Sema4AI/agent-server-team-gh-workflows/.github/workflows/sync_main_dev.yml@v0.1.0
+    with:
+      dev_branch_name: "development"
+      main_branch_name: "main"
