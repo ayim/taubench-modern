@@ -1,0 +1,14 @@
+name: Release Workflow
+
+on: workflow_dispatch
+
+jobs:
+  release:
+    uses: Sema4AI/agent-server-team-gh-workflows/.github/workflows/release.yml@v0.1.0
+    with:
+      python_version: "3.11"
+      go_version: "1.22.2"
+      versionbump_version: "v0.7.0"
+    secrets:
+      GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
+      GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
