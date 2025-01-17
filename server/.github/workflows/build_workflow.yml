@@ -1,0 +1,31 @@
+name: Build and Release Python Distribution
+
+on:
+  pull_request:
+    branches:
+      - main
+      - release
+      - release-*
+    types:
+      - closed
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build-and-release:
+    if: >
+      (github.event_name == 'workflow_call' || 
+       github.event_name == 'workflow_dispatch') ||
+      (github.event_name == 'pull_request' &&
+       github.event.pull_request.merged == true &&
+       startsWith(github.event.pull_request.title, 'Release Version') &&
+       (
+         github.event.pull_request.base.ref == 'main' ||
+         startsWith(github.event.pull_request.base.ref, 'release')
+       ))
+    uses: Sema4AI/agent-server-team-gh-workflows/.github/workflows/build_and_release_wheels.yml@v0.1.0
+    secrets:
+      GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
+      GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
