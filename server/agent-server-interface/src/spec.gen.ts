@@ -6,7 +6,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Sema4.ai Agent Server API",
-    "version": "1.1.2"
+    "version": "1.1.3"
   },
   "paths": {
     "/api/v1/ok": {
@@ -1710,8 +1710,8 @@
             "enum": [
               "agent",
               "agent_architecture_claude_tools",
+              "agent_architecture_default",
               "agent_architecture_openai_plan_execute",
-              "agent_architecture_openai_tools",
               "plan_execute"
             ]
           },
