@@ -41,7 +41,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install deps
-        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/install_deps@v0.2.0
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/install_deps@v0.3.0
         with:
           git_username: ${{ secrets.GIT_USERNAME }}
           git_token: ${{ secrets.GIT_TOKEN }}
@@ -95,7 +95,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install deps
-        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/install_deps@v0.2.0
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/install_deps@v0.3.0
         with:
           git_username: ${{ secrets.GIT_USERNAME }}
           git_token: ${{ secrets.GIT_TOKEN }}

@@ -14,11 +14,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout and Pull Latest
-        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v0.2.0
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v0.3.0
 
       - name: Set up versionbump
         id: setup_versionbump
-        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/setup_versionbump@v0.2.0
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/setup_versionbump@v0.3.0
 
       - name: Download artifacts
         uses: actions/download-artifact@v4
@@ -53,6 +53,6 @@ jobs:
           fi
 
       - name: Create GitHub Release
-        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/create_gh_release@v0.2.0
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/create_gh_release@v0.3.0
         with:
           release_version: ${{ steps.setup_versionbump.outputs.current_version }}

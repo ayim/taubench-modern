@@ -37,10 +37,10 @@ jobs:
 
     steps:
       - name: Checkout and Pull Latest
-        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v0.2.0
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v0.3.0
 
       - name: Install Dependencies
-        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/install_deps@v0.2.0
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/install_deps@v0.3.0
         with:
           git_username: ${{ secrets.GIT_USERNAME }}
           git_token: ${{ secrets.GIT_TOKEN }}
@@ -50,7 +50,7 @@ jobs:
 
       - name: Set up versionbump
         id: setup_versionbump
-        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/setup_versionbump@v0.2.0
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/setup_versionbump@v0.3.0
 
       - name: Build wheels and source distribution
         # We only need wheels and source distribution from Ubuntu

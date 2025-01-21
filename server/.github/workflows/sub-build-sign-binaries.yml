@@ -37,11 +37,11 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout and Pull Latest
-        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v0.2.0
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v0.3.0
 
       - name: Setup Versionbump and Get Current Version
         id: setup_versionbump
-        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/setup_versionbump@v0.2.0
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/setup_versionbump@v0.3.0
 
       - name: Download Build Artifacts
         uses: actions/download-artifact@v4
@@ -73,11 +73,11 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout and Pull Latest
-        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v0.2.0
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v0.3.0
 
       - name: Setup Versionbump and Get Current Version
         id: setup_versionbump
-        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/setup_versionbump@v0.2.0
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/setup_versionbump@v0.3.0
 
       - name: Download Build Artifacts
         uses: actions/download-artifact@v4
