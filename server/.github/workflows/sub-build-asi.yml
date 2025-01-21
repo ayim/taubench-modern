@@ -37,7 +37,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install deps and start server
-        uses: ./github/actions/install-deps-start-server
+        uses: ./.github/actions/install-deps-start-server
         with:
           git_username: ${{ secrets.GIT_USERNAME }}
           git_token: ${{ secrets.GIT_TOKEN }}
@@ -45,7 +45,7 @@ jobs:
           openai_api_key: ${{ secrets.OPENAI_API_KEY }}
 
       - name: Install NPM Dependencies
-        uses: ./github/actions/install-npm-deps
+        uses: ./.github/actions/install-npm-deps
         with:
           node_version: ${{ inputs.node_version }}
           npm_auth_token: ${{ secrets.NPM_AUTH_TOKEN }}

@@ -18,7 +18,7 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Install deps
+    - name: Install dependencies
       uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/install_deps@v0.1.0
       with:
         git_username: ${{ inputs.git_username }}
@@ -26,6 +26,7 @@ runs:
         python_version: ${{ inputs.python_version }}
 
     - name: Start application server
+      shell: bash
       run: |
         poetry run agent-server &
         sleep 20
