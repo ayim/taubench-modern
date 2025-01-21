@@ -3,17 +3,28 @@ name: Sign Agent Server Binaries
 on:
   workflow_call:
     secrets:
-      - MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI
-      - MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI
-      - MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI
-      - MACOS_SIGNING_CERT_SEMA4AI
-      - MACOS_SIGNING_CERT_PASSWORD_SEMA4AI
-      - MACOS_SIGNING_CERT_NAME_SEMA4AI
-      - WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI
-      - WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI
-      - WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI
-      - WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI
-      - WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI
+      MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI:
+        required: true
+      MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI:
+        required: true
+      MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI:
+        required: true
+      MACOS_SIGNING_CERT_SEMA4AI:
+        required: true
+      MACOS_SIGNING_CERT_PASSWORD_SEMA4AI:
+        required: true
+      MACOS_SIGNING_CERT_NAME_SEMA4AI:
+        required: true
+      WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI:
+        required: true
+      WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI:
+        required: true
+      WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI:
+        required: true
+      WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI:
+        required: true
+      WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI:
+        required: true
 
 defaults:
   run:
@@ -21,7 +32,7 @@ defaults:
 
 jobs:
   sign-mac-arm64:
-    Name: Sign Mac Arm64 Binary
+    name: Sign Mac Arm64 Binary
     timeout-minutes: 5
     runs-on: macos-latest
     steps:
@@ -30,7 +41,7 @@ jobs:
 
       - name: Setup Versionbump and Get Current Version
         id: setup_versionbump
-        uses: SemaiAI/agent-server-team-gh-workflows/.github/actions/setup_versionbump@v0.2.0
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/setup_versionbump@v0.2.0
 
       - name: Download Build Artifacts
         uses: actions/download-artifact@v4
@@ -66,7 +77,7 @@ jobs:
 
       - name: Setup Versionbump and Get Current Version
         id: setup_versionbump
-        uses: SemaiAI/agent-server-team-gh-workflows/.github/actions/setup_versionbump@v0.2.0
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/setup_versionbump@v0.2.0
 
       - name: Download Build Artifacts
         uses: actions/download-artifact@v4

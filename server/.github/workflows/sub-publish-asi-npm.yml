@@ -6,13 +6,13 @@ on:
   workflow_call:
     inputs:
       node_version:
-        description: 'Node version to use'
+        description: "Node version to use"
         required: false
         type: string
-        default: '18'
+        default: "18"
     secrets:
       NPM_AUTH_TOKEN:
-        description: 'Node authentication token'
+        description: "Node authentication token"
         required: true
 
 defaults:
@@ -30,7 +30,7 @@ jobs:
 
       - name: Set up versionbump
         id: setup_versionbump
-        uses: SemaiAI/agent-server-team-gh-workflows/.github/actions/setup_versionbump@v0.2.0
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/setup_versionbump@v0.2.0
 
       - name: Download Agent Server Interface artifacts
         uses: actions/download-artifact@v4
@@ -44,7 +44,7 @@ jobs:
           mv download/agent-server-interface-artifacts/* agent-server-interface/dist/
 
       - name: Install Node Dependencies
-        uses: ./.github/actions/install_npm_deps
+        uses: ./.github/actions/install-npm-deps
         with:
           node_version: ${{ inputs.node_version }}
           npm_auth_token: ${{ secrets.NPM_AUTH_TOKEN }}
@@ -52,4 +52,3 @@ jobs:
       - name: Publish Agent Server Interface to NPM
         working-directory: ./agent-server-interface
         run: npm publish
-

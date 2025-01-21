@@ -18,7 +18,7 @@ jobs:
 
       - name: Set up versionbump
         id: setup_versionbump
-        uses: SemaiAI/agent-server-team-gh-workflows/.github/actions/setup_versionbump@v0.2.0
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/setup_versionbump@v0.2.0
 
       - name: Download artifacts
         uses: actions/download-artifact@v4
@@ -56,6 +56,3 @@ jobs:
         uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/create_gh_release@v0.2.0
         with:
           release_version: ${{ steps.setup_versionbump.outputs.current_version }}
-
-
-

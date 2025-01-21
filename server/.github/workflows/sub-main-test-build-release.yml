@@ -66,13 +66,13 @@ on:
 
 jobs:
   unit-tests:
-    uses: ./.github/workflows/subworkflows/tests/unit_tests.yml
+    uses: ./.github/workflows/sub-test-unit-tests.yml
     secrets:
       GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
       GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
 
   integration-tests:
-    uses: ./.github/workflows/subworkflows/tests/api_interaction_tests.yml
+    uses: ./.github/workflows/sub-test-api-integration.yml
     with:
       python_version: ${{ inputs.python_version }}
     secrets:
@@ -81,7 +81,7 @@ jobs:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
   check-asi:
-    uses: ./.github/workflows/subworkflows/tests/asi_check.yml
+    uses: ./.github/workflows/sub-test-asi-check.yml
     with:
       python_version: ${{ inputs.python_version }}
       node_version: ${{ inputs.node_version }}
@@ -92,7 +92,7 @@ jobs:
       NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
 
   build-agent-server:
-    uses: ./.github/workflows/subworkflows/builds/build_agent_server.yml
+    uses: ./.github/workflows/sub-build-agent-server.yml
     needs: [unit-tests, integration-tests]
     with:
       python_version: ${{ inputs.python_version }}
@@ -101,7 +101,7 @@ jobs:
       GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
 
   sign-binaries:
-    uses: ./.github/workflows/subworkflows/builds/sign_binaries.yml
+    uses: ./.github/workflows/sub-build-sign-binaries.yml
     needs: [build-agent-server]
     secrets:
       MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI: ${{ secrets.MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI }}
@@ -117,7 +117,7 @@ jobs:
       WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI }}
 
   build-asi:
-    uses: ./.github/workflows/subworkflows/builds/build_asi.yml
+    uses: ./.github/workflows/sub-build-asi.yml
     needs: [check-asi]
     with:
       python_version: ${{ inputs.python_version }}
@@ -128,9 +128,11 @@ jobs:
       NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
 
   release-agent-server-gh:
-    uses: ./.github/workflows/subworkflows/publish/publish_agent_server_gh.yml
+    uses: ./.github/workflows/sub-publish-agent-server-gh.yml
     needs: [build-agent-server]
 
   publish-asi-npm-package:
-    uses: ./.github/workflows/subworkflows/publish/publish_asi_npm.yml
+    uses: ./.github/workflows/sub-publish-asi-npm.yml
     needs: [build-asi]
+    secrets:
+      NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}

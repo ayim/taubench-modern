@@ -12,13 +12,13 @@ on:
 
 jobs:
   unit-tests:
-    uses: ./.github/workflows/subworkflows/tests/unit_tests.yml
+    uses: ./.github/workflows/sub-test-unit-tests.yml
     secrets:
       GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
       GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
 
   api-interaction-tests:
-    uses: ./.github/workflows/subworkflows/tests/api_interaction_tests.yml
+    uses: ./.github/workflows/sub-test-api-integration.yml
     with:
       python_version: "3.11"
     secrets:
@@ -27,7 +27,7 @@ jobs:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
   asi-check:
-    uses: ./.github/workflows/subworkflows/tests/asi_check.yml
+    uses: ./.github/workflows/sub-test-asi-check.yml
     secrets:
       GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
       GIT_TOKEN: ${{ secrets.GIT_TOKEN }}

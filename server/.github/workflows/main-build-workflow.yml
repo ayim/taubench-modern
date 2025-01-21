@@ -25,7 +25,7 @@ jobs:
          github.event.pull_request.base.ref == 'main' ||
          startsWith(github.event.pull_request.base.ref, 'release')
        ))
-    uses: ./.github/workflows/subworkflows/test_build_release.yml
+    uses: ./.github/workflows/sub-main-test-build-release.yml
     with:
       python_version: "3.11"
       node_version: 18
