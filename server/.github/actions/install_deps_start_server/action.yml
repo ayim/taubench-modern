@@ -1,0 +1,35 @@
+name: 'Install Dependencies and Start Agent Server'
+description: 'Installs dependencies and starts the Agent Server'
+
+inputs:
+  git_username:
+    description: 'Username for Git operations'
+    required: true
+  git_token:
+    description: 'Token for Git operations'
+    required: true
+  python_version:
+    description: 'Python version to use'
+    required: true
+  openai_api_key:
+    description: 'OpenAI API key'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install deps
+      uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/install_deps@v0.1.0
+      with:
+        git_username: ${{ inputs.git_username }}
+        git_token: ${{ inputs.git_token }}
+        python_version: ${{ inputs.python_version }}
+
+    - name: Start application server
+      run: |
+        poetry run agent-server &
+        sleep 20
+      env:
+        S4_AGENT_SERVER_DB_TYPE: sqlite
+        SCARF_NO_ANALYTICS: "true"
+        OPENAI_API_KEY: ${{ inputs.openai_api_key }}

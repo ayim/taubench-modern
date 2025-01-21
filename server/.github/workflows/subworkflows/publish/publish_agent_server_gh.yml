@@ -1,0 +1,61 @@
+name: Publish Agent Server to GitHub Releases
+
+# This job should generally be the last in a series of jobs that test and build.
+
+on:
+  workflow_call:
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  publish-to-gh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout and Pull Latest
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v0.2.0
+
+      - name: Set up versionbump
+        id: setup_versionbump
+        uses: SemaiAI/agent-server-team-gh-workflows/.github/actions/setup_versionbump@v0.2.0
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: download
+
+      - name: Move Agent Server Interface Artifacts
+        run: |
+          mkdir -p agent-server-interface/dist/
+          mv download/agent-server-interface-artifacts/* agent-server-interface/dist/
+
+      - name: Package Binaries into Archives
+        run: |
+          mkdir -p dist
+          if [ -d "download/agent-server-win-x64-signed" ]; then
+            cd download/agent-server-win-x64-signed
+            zip -r agent-server_windows_x64.zip agent-server.exe
+            mv agent-server_windows_x64.zip ../../dist/
+            cd ../../
+          fi
+          if [ -d "download/agent-server-mac-arm64-signed" ]; then
+            cd download/agent-server-mac-arm64-signed
+            tar -czf agent-server_macos_arm64.tar.gz agent-server
+            mv agent-server_macos_arm64.tar.gz ../../dist/
+            cd ../../
+          fi
+          if [ -d "download/agent-server-build-ubuntu-latest-x64/dist" ]; then
+            cd download/agent-server-build-ubuntu-latest-x64/dist
+            tar -czf agent-server_ubuntu_x64.tar.gz agent-server_*
+            mv agent-server_ubuntu_x64.tar.gz ../../../dist/
+            cd ../../../
+          fi
+
+      - name: Create GitHub Release
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/create_gh_release@v0.2.0
+        with:
+          release_version: ${{ steps.setup_versionbump.outputs.current_version }}
+
+
+

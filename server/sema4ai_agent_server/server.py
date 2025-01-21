@@ -16,7 +16,7 @@ from sema4ai_agent_server.otel import setup_otel
 from sema4ai_agent_server.storage.option import get_storage
 
 # Do not change the version here. It is managed by versionbump (see versionbump.yaml)
-VERSION = "1.1.3"
+VERSION = "1.1.4-alpha.26"
 
 setup_logging()
 setup_otel()
@@ -82,21 +82,25 @@ def main():
 
     parser = argparse.ArgumentParser(description="Run the Sema4.ai Agent Server.")
     parser.add_argument(
-        "-p",
+        "--host",
+        type=str,
+        default="0.0.0.0",
+        help="Host address to run the HTTP server on. Default is '0.0.0.0'.",
+    )
+    parser.add_argument(
         "--port",
         type=int,
         default=8000,
         help="Port to run the HTTP server on. Default is 8000.",
     )
     parser.add_argument(
-        "-r",
         "--reload",
         action="store_true",
         help="Enable auto-reload of the server on code changes.",
     )
 
     args = parser.parse_args()
-    uvicorn.run("server:app", host="0.0.0.0", port=args.port, reload=args.reload)
+    uvicorn.run(app, host=args.host, port=args.port, reload=args.reload)
 
 
 if __name__ == "__main__":

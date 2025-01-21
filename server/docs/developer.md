@@ -117,82 +117,8 @@ This command rebuilds the images with your latest changes and restarts the servi
    CREATE ROLE postgres WITH LOGIN SUPERUSER CREATEDB CREATEROLE;
    ```
 
-6. **Install Golang Migrate**
-
-   Database migrations are managed with [golang-migrate](https://github.com/golang-migrate/migrate).
-
-   On MacOS, you can install it with `brew install golang-migrate`. Instructions for other OSs or the Golang toolchain,
-   can be found [here](https://github.com/golang-migrate/migrate/blob/master/cmd/migrate/README.md#installation).
-
-   Once `golang-migrate` is installed, you can run all the migrations with:
-
-   ```shell
-   make migrate-postgres
-   ```
-
-   This will enable the backend to use Postgres as a vector database and create the initial tables.
-
-7. **Install backend dependencies**
+6. **Install backend dependencies**
 
    ```shell
    poetry install
    ```
-
-### Using `local_start.sh` Script
-
-1. **Prerequisites**
-   Ensure you have Python 3.11+ installed on your system, along with `poetry`, `make`, and `docker-compose`.
-
-2. **Run the Script**
-   The `local_start.sh` script is provided to simplify the process of setting up and starting the backend server. It handles the following tasks:
-   - Starts a PostgreSQL service using Docker
-   - Applies database migrations for PostgreSQL
-   - Installs Python dependencies
-   - Starts the Agent Server
-
-   To run the script:
-
-   ```shell
-   ./local_start.sh
-   ```
-
-This will start the necessary services and backend server.
-
-## Git Hooks and Makefile
-
-This project uses Git hooks to ensure code quality and Makefile to streamline development tasks.
-
-### Git Hooks
-
-Two Git hooks are available:
-
-- Pre-commit hook: Runs formatting and linting checks
-- Pre-push hook: Runs unit tests
-
-To install the hooks:
-
-```shell
-make install-hooks
-```
-
-To uninstall the hooks:
-
-```shell
-make uninstall-hooks
-```
-
-### Makefile Commands
-
-The project includes several Makefile commands to assist with development:
-
-- `make format`: Run code formatters
-- `make lint`: Run linters
-- `make test`: Run unit tests
-- `make install-hooks`: Install Git hooks
-- `make uninstall-hooks`: Uninstall Git hooks
-
-For a full list of available commands, run:
-
-```shell
-make help
-```

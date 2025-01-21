@@ -1,0 +1,136 @@
+name: Test, Build and Release Agent Server
+
+# This workflow is the full Agent Server pipeline, but the conditional
+# logic to decide whether to run it is large, so it is in the higher level build
+# workflow.
+
+on:
+  workflow_call:
+    inputs:
+      python_version:
+        description: "Python version to use"
+        required: false
+        type: string
+        default: "3.11"
+      node_version:
+        description: "Node version to use"
+        required: false
+        type: string
+        default: "18"
+    secrets:
+      GIT_USERNAME:
+        description: "Username for Git operations"
+        required: true
+      GIT_TOKEN:
+        description: "Token for Git operations"
+        required: true
+      OPENAI_API_KEY:
+        description: "OpenAI API key"
+        required: true
+      NPM_AUTH_TOKEN:
+        description: "Node authentication token"
+        required: true
+      MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI:
+        description: "MacOS App ID for notarization"
+        required: true
+      MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI:
+        description: "MacOS App ID password for notarization"
+        required: true
+      MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI:
+        description: "MacOS Team ID for notarization"
+        required: true
+      MACOS_SIGNING_CERT_SEMA4AI:
+        description: "MacOS signing certificate"
+        required: true
+      MACOS_SIGNING_CERT_PASSWORD_SEMA4AI:
+        description: "MacOS signing certificate password"
+        required: true
+      MACOS_SIGNING_CERT_NAME_SEMA4AI:
+        description: "MacOS signing certificate name"
+        required: true
+      WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI:
+        description: "Windows sign Azure Key Vault URL"
+        required: true
+      WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI:
+        description: "Windows sign Azure Key Vault client ID"
+        required: true
+      WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI:
+        description: "Windows sign Azure Key Vault tenant ID"
+        required: true
+      WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI:
+        description: "Windows sign Azure Key Vault client secret"
+        required: true
+      WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI:
+        description: "Windows sign Azure Key Vault certificate name"
+        required: true
+
+jobs:
+  unit-tests:
+    uses: ./.github/workflows/subworkflows/tests/unit_tests.yml
+    secrets:
+      GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
+      GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+
+  integration-tests:
+    uses: ./.github/workflows/subworkflows/tests/api_interaction_tests.yml
+    with:
+      python_version: ${{ inputs.python_version }}
+    secrets:
+      GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
+      GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+  check-asi:
+    uses: ./.github/workflows/subworkflows/tests/asi_check.yml
+    with:
+      python_version: ${{ inputs.python_version }}
+      node_version: ${{ inputs.node_version }}
+    secrets:
+      GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
+      GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+
+  build-agent-server:
+    uses: ./.github/workflows/subworkflows/builds/build_agent_server.yml
+    needs: [unit-tests, integration-tests]
+    with:
+      python_version: ${{ inputs.python_version }}
+    secrets:
+      GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
+      GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+
+  sign-binaries:
+    uses: ./.github/workflows/subworkflows/builds/sign_binaries.yml
+    needs: [build-agent-server]
+    secrets:
+      MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI: ${{ secrets.MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI }}
+      MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI: ${{ secrets.MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI }}
+      MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI: ${{ secrets.MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI }}
+      MACOS_SIGNING_CERT_SEMA4AI: ${{ secrets.MACOS_SIGNING_CERT_SEMA4AI }}
+      MACOS_SIGNING_CERT_PASSWORD_SEMA4AI: ${{ secrets.MACOS_SIGNING_CERT_PASSWORD_SEMA4AI }}
+      MACOS_SIGNING_CERT_NAME_SEMA4AI: ${{ secrets.MACOS_SIGNING_CERT_NAME_SEMA4AI }}
+      WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI }}
+      WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI }}
+      WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI }}
+      WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI }}
+      WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI }}
+
+  build-asi:
+    uses: ./.github/workflows/subworkflows/builds/build_asi.yml
+    needs: [check-asi]
+    with:
+      python_version: ${{ inputs.python_version }}
+      node_version: ${{ inputs.node_version }}
+    secrets:
+      GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
+      GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+      NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+
+  release-agent-server-gh:
+    uses: ./.github/workflows/subworkflows/publish/publish_agent_server_gh.yml
+    needs: [build-agent-server]
+
+  publish-asi-npm-package:
+    uses: ./.github/workflows/subworkflows/publish/publish_asi_npm.yml
+    needs: [build-asi]

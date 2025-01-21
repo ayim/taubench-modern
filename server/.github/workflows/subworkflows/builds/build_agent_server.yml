@@ -1,0 +1,72 @@
+name: Build Agent Server
+
+on:
+  workflow_call:
+    inputs:
+      python_version:
+        description: 'Python version to use'
+        required: false
+        type: string
+        default: '3.11'
+    secrets:
+      GIT_USERNAME:
+        description: 'Username for Git operations'
+        required: true
+      GIT_TOKEN:
+        description: 'Token for Git operations'
+        required: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build-agent-server:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            arch: x64
+          # Windows is disabled until we have a more powerful private runner because
+          # analysis on GitHub runners is too slow
+          # - os: windows-latest
+          #   arch: x64
+          - os: macos-latest # macOS on ARM (GitHub provides arm by default)
+            arch: arm64
+
+    steps:
+      - name: Checkout and Pull Latest
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v0.2.0
+      
+      - name: Install Dependencies
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/install_deps@v0.2.0
+        with:
+          git_username: ${{ secrets.GIT_USERNAME }}
+          git_token: ${{ secrets.GIT_TOKEN }}
+          python_version: ${{ inputs.python_version }}
+          pre_poetry_requirements_file_path: "invoke_requirements.txt"
+          additional_poetry_groups: "build"
+
+      - name: Set up versionbump
+        id: setup_versionbump
+        uses: SemaiAI/agent-server-team-gh-workflows/.github/actions/setup_versionbump@v0.2.0
+
+      - name: Build wheels and source distribution
+        # We only need wheels and source distribution from Ubuntu
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: poetry build
+  
+      - name: Build Agent Server Binary
+        uses: ./.github/actions/build_server_binary
+        with:
+          release_version: ${{ steps.setup_versionbump.outputs.current_version }}
+          os_name: ${{ matrix.os }}
+          machine_arch: ${{ matrix.arch }}
+
+      - name: Upload Agent Server Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-server-build-${{ matrix.os }}-${{ matrix.arch }}
+
+      

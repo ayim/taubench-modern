@@ -1,0 +1,55 @@
+name: Publish Agent Server Interface to NPM
+
+# This job requires that a build ASI exist in the pipeline artifacts to be downloaded.
+
+on:
+  workflow_call:
+    inputs:
+      node_version:
+        description: 'Node version to use'
+        required: false
+        type: string
+        default: '18'
+    secrets:
+      NPM_AUTH_TOKEN:
+        description: 'Node authentication token'
+        required: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  publish-asi-npm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout and Pull Latest
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v0.2.0
+
+      - name: Set up versionbump
+        id: setup_versionbump
+        uses: SemaiAI/agent-server-team-gh-workflows/.github/actions/setup_versionbump@v0.2.0
+
+      - name: Download Agent Server Interface artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: agent-server-interface-artifacts
+          path: download
+
+      - name: Move Agent Server Interface artifacts
+        run: |
+          mkdir -p agent-server-interface/dist/
+          mv download/agent-server-interface-artifacts/* agent-server-interface/dist/
+
+      - name: Install Node Dependencies
+        uses: ./.github/actions/install_npm_deps
+        with:
+          node_version: ${{ inputs.node_version }}
+          npm_auth_token: ${{ secrets.NPM_AUTH_TOKEN }}
+
+      - name: Publish Agent Server Interface to NPM
+        working-directory: ./agent-server-interface
+        run: npm publish
+

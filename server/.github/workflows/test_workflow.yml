@@ -1,0 +1,35 @@
+name: Test Agent Server
+
+on:
+  push:
+    branches:
+      - main
+      - release
+      - release-*
+      - development
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  unit-tests:
+    uses: ./.github/workflows/subworkflows/tests/unit_tests.yml
+    secrets:
+      GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
+      GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+
+  api-interaction-tests:
+    uses: ./.github/workflows/subworkflows/tests/api_interaction_tests.yml
+    with:
+      python_version: "3.11"
+    secrets:
+      GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
+      GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+  asi-check:
+    uses: ./.github/workflows/subworkflows/tests/asi_check.yml
+    secrets:
+      GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
+      GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}

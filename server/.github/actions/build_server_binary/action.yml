@@ -1,0 +1,52 @@
+name: Build Agent Server Binary
+description: |
+  This action builds the Agent Server Binary for the Sema4AI Agent Server. The
+  binary is built for the target platform and architecture specified in the
+  action inputs and must match the platform of the current runner. The binary
+  will be built into the `dist` directory of the repository inside of a folder
+  named for the target platform and architecture.
+
+  This action assumes the repository has already been checked out and the
+  appropriate dependencies including the `build` Poetry group has been 
+  installed in the runner.
+
+inputs:
+  release_version:
+    description: 'The version of the release to build the binary for.'
+    required: true
+    default: 'v0.0.0'
+  os_name:
+    description: |
+      The name of the target operating system. You may provide the GitHub 
+      runner name and "-latest" and similar will be stripped off.
+    required: true
+    default: 'ubuntu'
+  machine_arch:
+    description: 'The architecture of the target machine.'
+    required: true
+    default: 'x64'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Check OS Name
+      shell: bash
+      run: |
+        os_name="${{ inputs.os_name }}"
+        os_name="${os_name%%-*}"
+        echo "OS_NAME=${os_name}" >> $GITHUB_ENV
+
+    - name: Build executable
+      shell: bash
+      run: >
+        invoke build --onefile --ci --no-wheels
+        --name=agent-server
+        --dist-path=dist/agent-server_${{ inputs.release_version }}_${{ env.OS_NAME }}_${{ inputs.machine_arch }}
+
+    - name: Set Executable bit for Linux and MacOS
+      shell: bash
+      run: |
+        if [[ "$(uname -s)" == "Linux" || "$(uname -s)" == "Darwin" ]]; then
+          chmod +x dist/agent-server_${{ inputs.release_version }}_${{ env.OS_NAME }}_${{ inputs.machine_arch }}/agent-server
+        fi
+        

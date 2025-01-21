@@ -1,0 +1,131 @@
+name: API Interaction Tests
+
+on:
+  workflow_call:
+    inputs:
+      python_version:
+        description: "Python version to use"
+        required: false
+        type: string
+        default: "3.11"
+    secrets:
+      GIT_USERNAME:
+        description: "Username for Git operations"
+        required: true
+      GIT_TOKEN:
+        description: "Token for Git operations"
+        required: true
+      OPENAI_API_KEY:
+        description: "OpenAI API key"
+        required: true
+
+jobs:
+  test-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install deps
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/install_deps@v0.2.0
+        with:
+          git_username: ${{ secrets.GIT_USERNAME }}
+          git_token: ${{ secrets.GIT_TOKEN }}
+          python_version: ${{ inputs.python_version }}
+
+      - name: Enable uuid-ossp extension
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -c 'CREATE EXTENSION IF NOT EXISTS "uuid-ossp";'
+
+      - name: Delete existing pg collection tables if they exist
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -c 'DROP TABLE IF EXISTS langchain_pg_collection CASCADE;'
+
+      - name: Start application server (PostgreSQL)
+        # Runs using default settings, which should be 0.0.0.0:8000
+        run: |
+          poetry run agent-server &
+          sleep 20  # Give the server some time to start
+        env:
+          S4_AGENT_SERVER_DB_TYPE: postgres
+          SCARF_NO_ANALYTICS: "true"
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_DB: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+
+      - name: Run API interaction tests (PostgreSQL)
+        # TODO: Update to pytest when api interaction tests are fixed.
+        run: |
+          poetry run python tests/integration_tests/test_api_interaction.py
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      - name: Upload log file
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-logs-postgres
+          path: ./agent-server.log
+
+  test-sqlite:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install deps
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/install_deps@v0.2.0
+        with:
+          git_username: ${{ secrets.GIT_USERNAME }}
+          git_token: ${{ secrets.GIT_TOKEN }}
+          python_version: ${{ inputs.python_version }}
+
+      - name: Start application server (SQLite)
+        shell: bash
+        # Runs using default settings which should be 0.0.0.0:8000
+        run: |
+          poetry run agent-server &
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            sleep 25
+          else
+            sleep 10
+          fi  # Give the server some time to start
+        env:
+          S4_AGENT_SERVER_DB_TYPE: sqlite
+          SCARF_NO_ANALYTICS: "true"
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      - name: Run API interaction tests (SQLite)
+        shell: bash
+        run: |
+          poetry run python tests/integration_tests/test_api_interaction.py
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      - name: Upload log file
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-logs-sqlite-${{ matrix.os }}
+          path: ./agent-server.log

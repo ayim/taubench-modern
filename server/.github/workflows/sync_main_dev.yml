@@ -7,7 +7,7 @@ on:
 
 jobs:
   merge_main_to_dev:
-    uses: Sema4AI/agent-server-team-gh-workflows/.github/workflows/sync_main_dev.yml@v0.1.0
+    uses: Sema4AI/agent-server-team-gh-workflows/.github/workflows/sync_main_dev.yml@v0.2.0
     with:
       dev_branch_name: "development"
       main_branch_name: "main"
