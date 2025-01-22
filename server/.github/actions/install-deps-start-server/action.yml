@@ -19,7 +19,7 @@ runs:
   using: 'composite'
   steps:
     - name: Install dependencies
-      uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/install_deps@v0.1.0
+      uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/install_deps@v0.4.0
       with:
         git_username: ${{ inputs.git_username }}
         git_token: ${{ inputs.git_token }}
@@ -28,7 +28,7 @@ runs:
     - name: Start application server
       shell: bash
       run: |
-        poetry run agent-server &
+        poetry run agent-server --host localhost --port 8000 &
         sleep 20
       env:
         S4_AGENT_SERVER_DB_TYPE: sqlite
