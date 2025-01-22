@@ -134,7 +134,7 @@ jobs:
 
   release-agent-server-gh:
     uses: ./.github/workflows/sub-publish-agent-server-gh.yml
-    needs: [build-agent-server]
+    needs: [build-agent-server, sign-binaries]
 
   publish-asi-npm-package:
     uses: ./.github/workflows/sub-publish-asi-npm.yml

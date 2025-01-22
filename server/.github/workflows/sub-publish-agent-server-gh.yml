@@ -14,45 +14,103 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout and Pull Latest
-        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v0.3.0
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v0.4.0
 
       - name: Set up versionbump
         id: setup_versionbump
-        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/setup_versionbump@v0.3.0
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/setup_versionbump@v0.4.0
 
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
+          pattern: agent-server-{build-ubuntu-*,*-signed}
           path: download
 
-      - name: Move Agent Server Interface Artifacts
+      - name: Move wheels and source distribution to dist
         run: |
-          mkdir -p agent-server-interface/dist/
-          mv download/agent-server-interface-artifacts/* agent-server-interface/dist/
+          mkdir -p dist
+          # Find ubuntu build folder
+          ubuntu_folder=$(find download -type d -name "agent-server-build-ubuntu*")
+          echo "Found ubuntu folder for wheels: $ubuntu_folder"
+          if [ -n "$ubuntu_folder" ] && [ -d "$ubuntu_folder" ]; then
+            # Check if wheels exist
+            if compgen -G "$ubuntu_folder/sema4ai_agent_server-*.whl" > /dev/null; then
+              mv "$ubuntu_folder"/sema4ai_agent_server-*.whl dist/
+              echo "Successfully moved wheel files to dist"
+            else
+              echo "Warning: No wheel files found in $ubuntu_folder"
+            fi
+            # Check if source distribution exists
+            if compgen -G "$ubuntu_folder/sema4ai_agent_server-*.tar.gz" > /dev/null; then
+              mv "$ubuntu_folder"/sema4ai_agent_server-*.tar.gz dist/
+              echo "Successfully moved source distribution to dist"
+            else
+              echo "Warning: No source distribution found in $ubuntu_folder"
+            fi
+          else
+            echo "Error: Ubuntu build folder not found"
+            exit 1
+          fi
 
       - name: Package Binaries into Archives
         run: |
           mkdir -p dist
-          if [ -d "download/agent-server-win-x64-signed" ]; then
-            cd download/agent-server-win-x64-signed
-            zip -r agent-server_windows_x64.zip agent-server.exe
-            mv agent-server_windows_x64.zip ../../dist/
+          # Find windows x64 signed folder
+          windows_folder=$(find download -type d -name "agent-server-windows*-x64-signed")
+          echo "Found windows folder: $windows_folder"
+          if [ -n "$windows_folder" ] && [ -d "$windows_folder" ]; then
+            cd "$windows_folder"
+            zip -r agent-server-${{ steps.setup_versionbump.outputs.current_version }}-windows-x64.zip agent-server.exe
+            echo "Successfully created zip of agent server: $(ls agent-server-${{ steps.setup_versionbump.outputs.current_version }}-windows-x64.zip)"
+            mv agent-server-${{ steps.setup_versionbump.outputs.current_version }}-windows-x64.zip ../../dist/
+            echo "Successfully moved zip of agent server to dist: $(ls ../../dist/agent-server-${{ steps.setup_versionbump.outputs.current_version }}-windows-x64.zip)"
             cd ../../
+          else
+            echo "Warning: Windows binary folder not found or invalid"
           fi
-          if [ -d "download/agent-server-mac-arm64-signed" ]; then
-            cd download/agent-server-mac-arm64-signed
-            tar -czf agent-server_macos_arm64.tar.gz agent-server
-            mv agent-server_macos_arm64.tar.gz ../../dist/
+
+          # Find macos arm64 signed folder
+          macos_folder=$(find download -type d -name "agent-server-mac*-arm64-signed")
+          echo "Found macos folder: $macos_folder"
+          if [ -n "$macos_folder" ] && [ -d "$macos_folder" ]; then
+            cd "$macos_folder"
+            tar -czf agent-server-${{ steps.setup_versionbump.outputs.current_version }}-macos-arm64.tar.gz agent-server
+            echo "Successfully created tar of agent server: $(ls agent-server-${{ steps.setup_versionbump.outputs.current_version }}-macos-arm64.tar.gz)"
+            mv agent-server-${{ steps.setup_versionbump.outputs.current_version }}-macos-arm64.tar.gz ../../dist/
+            echo "Successfully moved tar of agent server to dist: $(ls ../../dist/agent-server-${{ steps.setup_versionbump.outputs.current_version }}-macos-arm64.tar.gz)"
             cd ../../
+          else
+            echo "Warning: macOS binary folder not found or invalid"
           fi
-          if [ -d "download/agent-server-build-ubuntu-latest-x64/dist" ]; then
-            cd download/agent-server-build-ubuntu-latest-x64/dist
-            tar -czf agent-server_ubuntu_x64.tar.gz agent-server_*
-            mv agent-server_ubuntu_x64.tar.gz ../../../dist/
-            cd ../../../
+
+          # Find ubuntu x64 build folder
+          ubuntu_folder=$(find download -type d -name "agent-server-build-ubuntu*-x64")
+          echo "Found ubuntu folder: $ubuntu_folder"
+          if [ -n "$ubuntu_folder" ] && [ -d "$ubuntu_folder" ]; then
+            cd "$ubuntu_folder"
+            if [ -f "agent-server" ]; then
+              tar -czf agent-server-${{ steps.setup_versionbump.outputs.current_version }}-ubuntu-x64.tar.gz agent-server
+              echo "Successfully created tar of agent server: $(ls agent-server-${{ steps.setup_versionbump.outputs.current_version }}-ubuntu-x64.tar.gz)"
+              mv agent-server-${{ steps.setup_versionbump.outputs.current_version }}-ubuntu-x64.tar.gz ../../dist/
+              echo "Successfully moved tar of agent server to dist: $(ls ../../dist/agent-server-${{ steps.setup_versionbump.outputs.current_version }}-ubuntu-x64.tar.gz)"
+            elif [ -f "dist/agent-server" ]; then
+              cd dist
+              tar -czf agent-server-${{ steps.setup_versionbump.outputs.current_version }}-ubuntu-x64.tar.gz agent-server
+              echo "Successfully created tar of agent server: $(ls agent-server-${{ steps.setup_versionbump.outputs.current_version }}-ubuntu-x64.tar.gz)"
+              mv agent-server-${{ steps.setup_versionbump.outputs.current_version }}-ubuntu-x64.tar.gz ../../dist/
+              echo "Successfully moved tar of agent server to dist: $(ls ../../dist/agent-server-${{ steps.setup_versionbump.outputs.current_version }}-ubuntu-x64.tar.gz)"
+            else
+              echo "Error: Could not find agent-server binary in Ubuntu build folder"
+              ls -R
+              exit 1
+            fi
+            cd ../../
+          else
+            echo "Error: Ubuntu binary folder not found or invalid"
+            exit 1
           fi
 
       - name: Create GitHub Release
-        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/create_gh_release@v0.3.0
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/create_gh_release@v0.4.0
         with:
           release_version: ${{ steps.setup_versionbump.outputs.current_version }}

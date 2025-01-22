@@ -47,7 +47,7 @@ jobs:
         uses: ./.github/actions/install-npm-deps
         with:
           node_version: ${{ inputs.node_version }}
-          node_auth_token: ${{ secrets.NPM_AUTH_TOKEN }}
+          npm_auth_token: ${{ secrets.NPM_AUTH_TOKEN }}
 
       - name: Build agent-server-interface
         run: npm run build

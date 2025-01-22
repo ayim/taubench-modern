@@ -46,13 +46,14 @@ jobs:
       - name: Download Build Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: sema4ai_agent_server_artifacts_macos_arm64
-          path: ./build/
+          pattern: agent-server-build-macos*-arm64
+          path: build
+          merge-multiple: true # Should only be one, but we want to be sure the folder is flat
 
       - name: Sign and Notarize
         run: |
           chmod +x ./scripts/sign_and_notarize.sh
-          ./scripts/sign_and_notarize.sh ./build/agent-server_${{ steps.setup_versionbump.outputs.current_version }}_macos_arm64/agent-server ./dist/ ./entitlements.mac.plist
+          ./scripts/sign_and_notarize.sh ./build/agent-server ./dist/ ./entitlements.mac.plist
         env:
           APPLEID: ${{ secrets.MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI }}
           APPLEIDPASS: ${{ secrets.MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI }}
@@ -65,49 +66,52 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: agent-server-mac-arm64-signed
-          path: ./dist/build/agent-server_${{ steps.setup_versionbump.outputs.current_version }}_macos_arm64/agent-server
+          path: ./dist/build/agent-server
 
-  sign-windows-x64:
-    name: Sign for windows x64
-    timeout-minutes: 5
-    runs-on: windows-latest
-    steps:
-      - name: Checkout and Pull Latest
-        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v0.4.0
+  # TODO: Uncomment when we have a larger runner for the Windows build step
+  # sign-windows-x64:
+  #   name: Sign for Windows x64
+  #   timeout-minutes: 5
+  #   runs-on: windows-latest
+  #   steps:
+  #     - name: Checkout and Pull Latest
+  #       uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v0.4.0
 
-      - name: Setup Versionbump and Get Current Version
-        id: setup_versionbump
-        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/setup_versionbump@v0.4.0
+  #     - name: Setup Versionbump and Get Current Version
+  #       id: setup_versionbump
+  #       uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/setup_versionbump@v0.4.0
 
-      - name: Download Build Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: sema4ai_agent_server_artifacts_windows_x64
-          path: ./build/
+  #     - name: Download Build Artifacts
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         pattern: agent-server-build-windows*-x64
+  #         path: build
+  #         merge-multiple: true # Should only be one, but we want to be sure the folder is flat
 
-      - name: Build
-        run: |
-          dotnet tool install --global AzureSignTool --version 3.0.0
-          azuresigntool sign `
-            --description-url "https://sema4.ai" `
-            --file-digest sha256 `
-            --azure-key-vault-url $Env:VAULT_URL `
-            --azure-key-vault-client-id $Env:CLIENT_ID `
-            --azure-key-vault-tenant-id $Env:TENANT_ID `
-            --azure-key-vault-client-secret $Env:CLIENT_SECRET `
-            --azure-key-vault-certificate $Env:CERTIFICATE_NAME `
-            --timestamp-rfc3161 http://timestamp.digicert.com `
-            --timestamp-digest sha256 `
-            ./build/agent-server_${{ steps.setup_versionbump.outputs.current_version }}_ubuntu_x64/agent-server.exe
-        env:
-          VAULT_URL: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI }}
-          CLIENT_ID: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI }}
-          TENANT_ID: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI }}
-          CLIENT_SECRET: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI }}
-          CERTIFICATE_NAME: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI }}
+  #     - name: Sign
+  #       shell: pwsh
+  #       run: |
+  #         dotnet tool install --global AzureSignTool --version 3.0.0
+  #         azuresigntool sign `
+  #           --description-url "https://sema4.ai" `
+  #           --file-digest sha256 `
+  #           --azure-key-vault-url "$env:VAULT_URL" `
+  #           --azure-key-vault-client-id "$env:CLIENT_ID" `
+  #           --azure-key-vault-tenant-id "$env:TENANT_ID" `
+  #           --azure-key-vault-client-secret "$env:CLIENT_SECRET" `
+  #           --azure-key-vault-certificate "$env:CERTIFICATE_NAME" `
+  #           --timestamp-rfc3161 http://timestamp.digicert.com `
+  #           --timestamp-digest sha256 `
+  #           ./build/agent-server.exe
+  #       env:
+  #         VAULT_URL: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI }}
+  #         CLIENT_ID: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI }}
+  #         TENANT_ID: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI }}
+  #         CLIENT_SECRET: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI }}
+  #         CERTIFICATE_NAME: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI }}
 
-      - name: Upload Signed Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: agent-server-win-x64-signed
-          path: ./build/agent-server_${{ steps.setup_versionbump.outputs.current_version }}_ubuntu_x64/agent-server.exe
+  #     - name: Upload Signed Artifacts
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: agent-server-win-x64-signed
+  #         path: ./build/agent-server.exe

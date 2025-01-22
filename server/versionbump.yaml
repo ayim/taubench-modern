@@ -1,4 +1,4 @@
-version: "1.1.4-alpha.26"        # The current version of the project. This is the version source of truth.
+version: "1.1.4-alpha.40"        # The current version of the project. This is the version source of truth.
                          # Do not change this value manually. VersionBump will update it automatically.
 git-commit: true         # Whether to create a git commit for the version bump.
 git-tag: true            # Whether to create a git tag for the version bump.
@@ -15,6 +15,10 @@ files:                   # The files to update with the new version.
   - path: "agent-server-interface/package.json"
     replace:
       - "\"version\": \"{version}\""
+
+  - path: "agent-server-interface/src/spec.gen.ts"
+    replace:
+      - "version: \"{version}\""
 
   - path: "sema4ai_agent_server/server.py"
     replace:
