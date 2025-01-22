@@ -22,7 +22,7 @@ on:
 jobs:
   test-postgres:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     services:
       postgres:
         image: pgvector/pgvector:pg16
@@ -70,25 +70,32 @@ jobs:
           POSTGRES_PASSWORD: postgres
 
       - name: Run API interaction tests (PostgreSQL)
-        # TODO: Update to pytest when api interaction tests are fixed.
         run: |
-          poetry run python tests/integration_tests/test_api_interaction.py
+          poetry install --with dev,lint,test
+          poetry run python -m tests.integration_tests.test_api_interaction
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
-      - name: Upload log file
+      - name: Upload agent server log file
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: server-logs-postgres
           path: ./agent-server.log
 
+      - name: Upload tests log directory
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-logs-postgres-logsdir
+          path: ./tests/integration_tests/logs
+
   test-sqlite:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 5
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v4
@@ -100,30 +107,20 @@ jobs:
           git_token: ${{ secrets.GIT_TOKEN }}
           python_version: ${{ inputs.python_version }}
 
-      - name: Start application server (SQLite)
+      - name: Run API interaction tests (SQLite)
         shell: bash
         run: |
-          poetry run agent-server --host localhost --port 8000 &
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            sleep 25
-          else
-            sleep 10
-          fi  # Give the server some time to start
+          poetry install --with dev,lint,test
+          poetry run python -m tests.integration_tests.test_api_interaction
         env:
           S4_AGENT_SERVER_DB_TYPE: sqlite
           SCARF_NO_ANALYTICS: "true"
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          INTEGRATION_TEST_START_SERVER: "true"
 
-      - name: Run API interaction tests (SQLite)
-        shell: bash
-        run: |
-          poetry run python tests/integration_tests/test_api_interaction.py
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-
-      - name: Upload log file
+      - name: Upload tests log directory
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: server-logs-sqlite-${{ matrix.os }}
-          path: ./agent-server.log
+          path: ./tests/integration_tests/logs

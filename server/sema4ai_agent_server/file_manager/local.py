@@ -7,12 +7,7 @@ from urllib.parse import unquote, urlparse
 from uuid import uuid4
 
 import structlog
-from agent_server_types import (
-    Agent,
-    EmbeddingStatus,
-    Thread,
-    UploadedFile,
-)
+from agent_server_types import Agent, EmbeddingStatus, Thread, UploadedFile
 from fastapi import UploadFile
 
 from sema4ai_agent_server.file_manager.base import (
@@ -48,9 +43,10 @@ class LocalFileManager(BaseFileManager):
         logger.info(f"Storing {file_url}")
         fs_path = self._url_to_fs_path(file_url)
         os.makedirs(os.path.dirname(fs_path), exist_ok=True)
+        blob_as_bytes = blob.as_bytes()
         with open(fs_path, "wb") as f:
-            f.write(blob.data)
-        return get_hash(blob.data)
+            f.write(blob_as_bytes)
+        return get_hash(blob_as_bytes)
 
     async def _delete_stored_file(self, file_url: str) -> None:
         if not file_url:
@@ -100,7 +96,7 @@ class LocalFileManager(BaseFileManager):
             value = value.replace("/", "\\")
             value = normalize_drive(value)
 
-        return str(Path(value).resolve())
+        return value
 
     async def _revert_uploads(self, uploads: list[tuple[str, str]]) -> None:
         """uploads is a list of tuples of the form (file_id, file_path)"""
@@ -118,6 +114,7 @@ class LocalFileManager(BaseFileManager):
     ) -> UploadedFile:
         blob = convert_to_blob(file)
         file_hash = await self._store(blob, file_path)
+        assert file.filename, "Invalid (empty) file name (should've raised an error in self._validate_files_pre_upload already)."
         return await get_storage().put_file_owner(
             file_id,
             file_path,
@@ -138,6 +135,7 @@ class LocalFileManager(BaseFileManager):
         uploaded_files: list[UploadedFile] = []
         for f in files:
             file_id = str(uuid4())
+            assert f.file.filename, "Invalid (empty) file name (should've raised an error in self._validate_files_pre_upload already)."
             file_url = self._build_file_url(owner_id, file_id, f.file.filename)
             embedded = (
                 f.embedded if f.embedded is not None else self._is_embeddable(f.file)
@@ -160,6 +158,8 @@ class LocalFileManager(BaseFileManager):
 
     async def delete(self, file_id: str) -> None:
         file = await get_storage().get_file_by_id(file_id)
+        if file is None:
+            raise Exception(f"Unable to delete file {file_id} (it does not exist).")
         await self._delete_stored_file(file.file_path)
         await self._delete_embeddings(file_id)
         await get_storage().delete_file(file_id)

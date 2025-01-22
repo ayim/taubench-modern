@@ -112,32 +112,37 @@ async def get_thread_state(
         raise HTTPException(status_code=404, detail="Thread not found")
     if otel_is_enabled():
         agent = await get_storage().get_agent(user.user_id, thread.agent_id)
-        stats = get_context_stats(agent.model, state)
-        summary = get_context_summary(stats)
-        attributes = {
-            "agent_id": thread.agent_id,
-            "thread_id": thread.thread_id,
-            "llm.provider": agent.model.provider,
-            "llm.model": getattr(agent.model, "name", ""),
-            # NoneType fails to be encoded so we use "None" instead
-            "user_id": user.cr_user_id if user.cr_user_id else "None",
-            "system_id": user.cr_system_id if user.cr_system_id else "None",
-        }
-        message_counter.add(
-            len(stats.tokens_per_message),
-            attributes,
-        )
+        if agent is None:
+            logger.critical(
+                f"Unable to find agent for user: {user.user_id}, agent: {thread.agent_id}"
+            )
+        else:
+            stats = get_context_stats(agent.model, state)
+            summary = get_context_summary(stats)
+            attributes = {
+                "agent_id": thread.agent_id,
+                "thread_id": thread.thread_id,
+                "llm.provider": agent.model.provider,
+                "llm.model": getattr(agent.model, "name", ""),
+                # NoneType fails to be encoded so we use "None" instead
+                "user_id": user.cr_user_id if user.cr_user_id else "None",
+                "system_id": user.cr_system_id if user.cr_system_id else "None",
+            }
+            message_counter.add(
+                len(stats.tokens_per_message),
+                attributes,
+            )
 
-        token_attributes = {key: value for key, value in attributes.items()}
-        token_attributes["context_window_size"] = (
-            summary.context_window_size
-            if summary.context_window_size is not None
-            else "None"
-        )
-        token_counter.add(
-            summary.total_tokens,
-            token_attributes,
-        )
+            token_attributes = {key: value for key, value in attributes.items()}
+            token_attributes["context_window_size"] = (
+                summary.context_window_size
+                if summary.context_window_size is not None
+                else "None"
+            )
+            token_counter.add(
+                summary.total_tokens,
+                token_attributes,
+            )
 
     return state
 

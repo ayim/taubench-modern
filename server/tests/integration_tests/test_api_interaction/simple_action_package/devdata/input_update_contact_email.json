@@ -1,0 +1,23 @@
+{
+    "inputs": [
+        {
+            "inputName": "input-1",
+            "inputValue": {
+                "contact_id": "1",
+                "new_email": "test@test.com"
+            }
+        }
+    ],
+    "metadata": {
+        "actionName": "update_contact_email",
+        "actionRelativePath": "crm_actions.py",
+        "schemaDescription": [
+            "contact_id: string: The ID of the contact to update.",
+            "new_email: string: The new email address for the contact."
+        ],
+        "managedParamsSchemaDescription": {},
+        "inputFileVersion": "v3",
+        "kind": "action",
+        "actionSignature": "action/args: 'contact_id: str, new_email: str'"
+    }
+}

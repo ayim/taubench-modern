@@ -120,7 +120,7 @@ async def save_langsmith_thread_url(langsmith: Langsmith, thread: Thread) -> Non
 @contextmanager
 def trace(
     ls: Optional[Langsmith] = None, tags: Optional[list[str]] = None
-) -> Generator[LangChainTracer, None, None]:
+) -> Generator[LangChainTracer | None, None, None]:
     """
     Instruct LangChain to log all runs in context to LangSmith.
     If ls is None, runs won't be logged.

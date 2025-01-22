@@ -4,13 +4,7 @@ import re
 from typing import Union
 
 import structlog
-from agent_server_types import (
-    MODEL,
-    Agent,
-    EmbeddingStatus,
-    Thread,
-    UploadedFile,
-)
+from agent_server_types import MODEL, Agent, EmbeddingStatus, Thread, UploadedFile
 from fastapi import HTTPException, UploadFile
 from pydantic import BaseModel
 
@@ -158,7 +152,7 @@ class BaseFileManager:
             raise InvalidFileUploadError("File names must be unique")
 
         for f in files:
-            filename = f.file.filename
+            filename = f.file.filename or ""
             file_base, _ = os.path.splitext(filename)
             if (
                 filename == ""

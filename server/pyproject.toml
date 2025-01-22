@@ -4,7 +4,7 @@ version = "1.1.4-alpha.26"
 description = ""
 authors = ["Sema4.ai Engineering <engineering@sema4.ai>"]
 readme = "README.md"
-packages = [{ include = "sema4ai_agent_server" }]
+packages = [{ include = "sema4ai_agent_server", from="." }]
 include = ["pyproject.toml"]
 
 [tool.poetry.dependencies]
@@ -54,13 +54,27 @@ agent-architecture-default = { git = "https://github.com/Sema4AI/agent-architect
 agent-architecture-openai-plan-execute = { git = "https://github.com/Sema4AI/agent-architecture-openai-plan-execute.git", tag = "v1.0.3" }
 agent-architecture-claude-tools = { git = "https://github.com/Sema4AI/agent-architecture-claude-tools.git", tag = "v1.0.3" }
 
+[tool.mypy]
+mypy_path = "."
+
+[tool.black]
+skip-string-normalization = false
+skip-magic-trailing-comma = false
+
+[tool.isort]
+profile = "black"
+
 [tool.poetry.group.dev.dependencies]
 uvicorn = "^0.34.0"
 pygithub = "^2.4.0"
+sema4ai-common = "0.0.1"
 
 [tool.poetry.group.lint.dependencies]
+mypy = "^1.1.1"
 ruff = "^0.6.5"
 codespell = "^2.3.0"
+isort = "^5.12.0"
+types-requests = "^2.32.0"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^8.3.3"
@@ -70,6 +84,7 @@ pytest-mock = "^3.14.0"
 pytest-socket = "^0.7.0"
 pytest-watch = "^4.2.0"
 pytest-timeout = "^2.3.1"
+pytest-regressions = "1.0.6"
 
 
 [tool.poetry.group.build.dependencies]
@@ -107,7 +122,7 @@ addopts = "--strict-markers --strict-config --durations=5 -vv"
 # Use global timeout of 30 seconds for now.
 # Most tests should be closer to ~100 ms, but some of the tests involve
 # parsing files. We can adjust on a per test basis later on.
-timeout = 30
+timeout = 1500  # Integration tests can be slow.
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 

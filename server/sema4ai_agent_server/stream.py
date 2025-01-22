@@ -1,12 +1,4 @@
-from typing import (
-    Any,
-    AsyncIterator,
-    Dict,
-    Optional,
-    Sequence,
-    TypeVar,
-    Union,
-)
+from typing import Any, AsyncIterator, Dict, Optional, Sequence, TypeVar, Union
 
 import structlog
 from langchain_core.messages import (
@@ -17,6 +9,7 @@ from langchain_core.messages import (
     message_chunk_to_message,
 )
 from langchain_core.runnables import Runnable
+from sse_starlette.sse import ServerSentEvent
 
 from sema4ai_agent_server.langsmith_client import Langsmith, trace
 from sema4ai_agent_server.message_types import ToolEventMessage
@@ -166,7 +159,7 @@ async def astream_state(
 
                 if message.id not in messages:
                     # Attach metadata to new messages
-                    # TODO: Original metedata isn't coming through because `message` is the new message
+                    # TODO: Original metadata isn't coming through because `message` is the new message
                     # created by the structured response streamer, not the original.
                     if "sema4ai_metadata" in message.response_metadata:
                         # This is the case when there is a pydantic model response
@@ -274,7 +267,7 @@ def _error_to_event(e: Exception) -> AgentStreamEvent:
     return StreamErrorEvent(data=StreamErrorData.from_error(e))
 
 
-async def to_sse(messages_stream: MessagesStream) -> AsyncIterator[dict]:
+async def to_sse(messages_stream: MessagesStream) -> AsyncIterator[ServerSentEvent]:
     """Consume the stream into an EventSourceResponse"""
     try:
         async for chunk in messages_stream:

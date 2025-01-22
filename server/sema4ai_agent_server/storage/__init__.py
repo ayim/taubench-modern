@@ -44,6 +44,7 @@ class BaseStorage(ABC):
     async def _run_migrations(self):
         pass
 
+    @abstractmethod
     async def list_agents(self, user_id: str) -> List[Agent]:
         """List all agents for the current user."""
         pass
@@ -73,6 +74,7 @@ class BaseStorage(ABC):
         advanced_config: AgentAdvancedConfig,
         action_packages: list[ActionPackage],
         metadata: AgentMetadata,
+        created_at: datetime,
     ) -> Agent:
         """Modify an agent."""
         pass
@@ -126,6 +128,7 @@ class BaseStorage(ABC):
         agent_id: str,
         name: str,
         metadata: Optional[dict],
+        created_at: datetime,
     ) -> Thread:
         """Modify a thread."""
         pass

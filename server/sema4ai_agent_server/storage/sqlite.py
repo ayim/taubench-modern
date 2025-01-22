@@ -607,7 +607,7 @@ class SqliteStorage(BaseStorage):
             )
             conn.commit()
 
-    async def get_async_run_status(self, run_id: str) -> str:
+    async def get_async_run_status(self, run_id: str) -> Optional[str]:
         """Get run status"""
         with self._connect() as conn:
             cursor = conn.cursor()

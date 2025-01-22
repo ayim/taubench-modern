@@ -1,5 +1,4 @@
 import os
-import tempfile
 from datetime import datetime, timedelta, timezone
 from typing import Union
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
@@ -19,19 +18,11 @@ from agent_server_types import (
 )
 from fastapi import UploadFile
 
-from sema4ai_agent_server.file_manager.base import (
-    BaseFileManager,
-)
+from sema4ai_agent_server.file_manager.base import BaseFileManager
 from sema4ai_agent_server.file_manager.cloud import CloudFileManager
 from sema4ai_agent_server.file_manager.local import LocalFileManager
 from sema4ai_agent_server.schema import UploadFileRequest
 from sema4ai_agent_server.storage.option import get_storage
-
-
-@pytest.fixture
-def temp_dir():
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        yield tmpdirname
 
 
 class MockStorage:
@@ -55,10 +46,11 @@ def mock_requests():
 
 
 @pytest.fixture(params=[LocalFileManager, CloudFileManager])
-def file_manager(request, temp_dir, mock_requests):
+def file_manager(request, tmpdir, mock_requests):
     if request.param == LocalFileManager:
         manager = LocalFileManager()
-        manager.UPLOAD_DIR = temp_dir
+        # TODO: This is wrong, there is no UPLOAD_DIR defined in LocalFileManager (it's set in the module level)
+        manager.UPLOAD_DIR = str(tmpdir)
     else:
         manager = CloudFileManager()
         manager.FILE_MANAGEMENT_API_URL = "https://example.com/api"
@@ -85,12 +77,14 @@ def file_manager(request, temp_dir, mock_requests):
 
 
 @pytest.fixture
-def sample_file(temp_dir):
+def sample_file(tmpdir):
+    from pathlib import Path
+
     file_content = b"test content"
-    file_path = os.path.join(temp_dir, "test.txt")
-    with open(file_path, "wb") as f:
-        f.write(file_content)
-    return UploadFile(filename="test.txt", file=open(file_path, "rb"))
+    file_path = Path(tmpdir) / "test.txt"
+    file_path.write_bytes(file_content)
+    with file_path.open("rb") as file_stream:
+        yield UploadFile(filename="test.txt", file=file_stream)
 
 
 @pytest.fixture
@@ -116,10 +110,10 @@ def sample_owner():
 
 
 @pytest.fixture
-def sample_uploaded_file(temp_dir):
+def sample_uploaded_file(tmpdir):
     return UploadedFile(
         file_id=str(uuid4()),
-        file_path=os.path.join(temp_dir, "test.txt"),
+        file_path=os.path.join(str(tmpdir), "test.txt"),
         file_ref="test.txt",
         file_hash="hash",
         embedded=True,

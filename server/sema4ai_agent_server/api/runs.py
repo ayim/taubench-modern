@@ -115,7 +115,7 @@ async def create_run(
 @router.get("/{rid}/status")
 async def get_run_status(rid: str):
     status = await get_storage().get_async_run_status(rid)
-    if not status:
+    if status is None:
         raise HTTPException(status_code=404, detail="Run not found")
     return {"run_id": rid, "status": status}
 

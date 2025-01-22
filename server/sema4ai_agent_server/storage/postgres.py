@@ -1,7 +1,7 @@
 import os
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Sequence, Union
+from typing import Any, Dict, List, Optional, Sequence, Union
 
 import structlog
 from agent_architecture import FINISH_NODE_KEY
@@ -564,12 +564,12 @@ class PostgresStorage(BaseStorage, PostgresConnectionManager):
                 "UPDATE async_runs SET status = %s  WHERE id = %s", (status, run_id)
             )
 
-    async def get_async_run_status(self, run_id: str) -> str:
+    async def get_async_run_status(self, run_id: str) -> Optional[str]:
         """Get run status"""
         async with self.async_cursor() as cur:
             await cur.execute("SELECT status FROM async_runs WHERE id = %s", (run_id,))
             result = await cur.fetchone()
-            return result[0]
+            return result[0] if result else None
 
     async def list_agent_threads(self, agent_id: str) -> List[Thread]:
         """List all threads for the current agent."""

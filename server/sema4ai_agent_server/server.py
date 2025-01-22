@@ -1,10 +1,10 @@
 import argparse
 import os
 from pathlib import Path
+from typing import Any
 
 import structlog
 from fastapi import FastAPI
-from fastapi.openapi.utils import get_openapi
 from fastapi.responses import ORJSONResponse
 
 from sema4ai_agent_server.agent_architecture_manager import architecture_names
@@ -18,50 +18,72 @@ from sema4ai_agent_server.storage.option import get_storage
 # Do not change the version here. It is managed by versionbump (see versionbump.yaml)
 VERSION = "1.1.4-alpha.26"
 
+# TODO: Setting up global things (such as logging and OTEL here) globally in the module import
+# is bad practice (because just importing it from some other place will mess up any logging
+# already set -- for instance, if we want one logging in prod and another in tests).
+# This should ideally be done in the main() function, but it seems that in some places
+# instead of using the main() function, the agent server is started using a command line
+# such as: "uvicorn sema4ai_agent_server.server:app --host 127.0.0.1 --port 8000"
+# and then moving the code to the main() function doesn't work reliably (and if we move
+# it to the _on_startup function, it's already too late for the logging), so, postponing
+# this for now (need to check how ACE and Studio are starting it).
 setup_logging()
 setup_otel()
+
 logger = structlog.get_logger(__name__)
 
-# Ensure UPLOAD_DIR exists
-os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # Determine the database type
-DB_TYPE = os.environ.get("S4_AGENT_SERVER_DB_TYPE", "sqlite").lower()
+DB_TYPE = os.environ.get("S4_AGENT_SERVER_DB_TYPE", "sqlite")
+
+if DB_TYPE not in ("sqlite", "postgres"):
+    raise ValueError(f"Unable to start agent server: Invalid database type: {DB_TYPE}")
+
+
 # Get root of app, used to point to directory containing static files
 ROOT = Path(__file__).parent.parent
-app = FastAPI(
-    title="Sema4.ai Agent Server API",
-    lifespan=lifespan,
-    version=VERSION,
-    default_response_class=ORJSONResponse,  # Use more efficient JSON serialization
-    separate_input_output_schemas=False,  # TODO: Remove when FrontEnd is ready to handle it
-)
+
+
+class _CustomFastAPI(FastAPI):
+    def __init__(self) -> None:
+        self.__custom_openapi_schema: dict | None = None
+        super().__init__(
+            title="Sema4.ai Agent Server API",
+            lifespan=lifespan,
+            version=VERSION,
+            default_response_class=ORJSONResponse,  # Use more efficient JSON serialization
+            separate_input_output_schemas=False,  # TODO: Remove when FrontEnd is ready to handle it
+        )
+
+    def openapi(self) -> dict[str, Any]:
+        if self.__custom_openapi_schema:
+            return self.__custom_openapi_schema
+        openapi_schema = FastAPI.openapi(self)
+        # Get the list of architecture names
+        components: dict = openapi_schema.get("components", {})
+        schemas: dict = components.get("schemas", {})
+        agent_advanced_config_schema: dict = schemas.get("AgentAdvancedConfig", {})
+        properties: dict = agent_advanced_config_schema.get("properties", {})
+        architecture_field = properties.get("architecture", {})
+        # Set the enum property for the architecture field,
+        # sorting to ensure consistent order across environments
+        architecture_field["enum"] = sorted(
+            architecture_names + ["agent", "plan_execute"]
+        )
+        self.__custom_openapi_schema = openapi_schema
+        return self.__custom_openapi_schema
+
+
+app = _CustomFastAPI()
 app.include_router(api_router)
 
 
-def custom_openapi():
-    if app.openapi_schema:
-        return app.openapi_schema
-    openapi_schema = get_openapi(
-        title="Sema4.ai Agent Server API",
-        version=VERSION,
-        routes=app.routes,
-        separate_input_output_schemas=False,  # TODO: Remove when FrontEnd is ready to handle it
-    )
-    # Get the list of architecture names
-    components: dict = openapi_schema.get("components", {})
-    schemas: dict = components.get("schemas", {})
-    agent_advanced_config_schema: dict = schemas.get("AgentAdvancedConfig", {})
-    properties: dict = agent_advanced_config_schema.get("properties", {})
-    architecture_field = properties.get("architecture", {})
-    # Set the enum property for the architecture field,
-    # sorting to ensure consistent order across environments
-    architecture_field["enum"] = sorted(architecture_names + ["agent", "plan_execute"])
-    app.openapi_schema = openapi_schema
-    return app.openapi_schema
+def _on_startup():
+    # Ensure UPLOAD_DIR exists
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
-app.openapi = custom_openapi
+app.add_event_handler("startup", _on_startup)
 
 
 @app.get("/api/v1/health")

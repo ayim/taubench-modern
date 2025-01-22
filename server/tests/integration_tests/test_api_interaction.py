@@ -1,4 +1,3 @@
-import argparse
 import json
 import os
 import random
@@ -6,7 +5,9 @@ import string
 import sys
 import tempfile
 import time
+from dataclasses import dataclass
 from datetime import datetime
+from typing import Sequence, TypedDict
 
 import requests
 from agent_server_types import (
@@ -26,9 +27,10 @@ from dotenv import load_dotenv
 from tqdm import tqdm
 
 load_dotenv()
-init(autoreset=True)  # Initialize colorama
-
-test_results = []
+init(
+    # Note: auto-reset is disabled as it doesn't mesh with pytest very well.
+    autoreset=False
+)
 
 
 def timestamp():
@@ -45,29 +47,34 @@ def print_header(message):
     global HEADER_INDEX
     HEADER_INDEX += 1
     header = f"[{timestamp()}] {HEADER_INDEX}. {message}"
-    print(f"\n{Fore.CYAN}{Style.BRIGHT}{header}")
-    print(Fore.CYAN + ("-" * len(header)))
+    print(f"\n{Fore.CYAN}{Style.BRIGHT}{header}{Fore.RESET}")
+    print(Fore.CYAN + ("-" * len(header)) + Fore.RESET)
 
 
 def print_success(message):
-    print(f"{Fore.GREEN}{message}")
+    print(f"{Fore.GREEN}{message}{Fore.RESET}")
 
 
 def print_error(message):
-    print(f"{Fore.RED}{message}")
+    print(f"{Fore.RED}{message}{Fore.RESET}")
 
 
 def print_warning(message):
-    print(f"{Fore.YELLOW}{message}")
+    print(f"{Fore.YELLOW}{message}{Fore.RESET}")
 
 
-def assert_test(condition, message):
-    global test_results
-    if not condition:
-        print_error(f"ASSERTION FAILED: {message}")
-        test_results.append((False, message))
-    else:
-        test_results.append((True, message))
+@dataclass
+class ActionPackageDataClass:
+    """
+    Action Package Definition.
+    """
+
+    name: str  # The name of the action package.
+    organization: str  # The organization of the action package.
+    version: str  # The version of the action package.
+    url: str  # URL of the action server that hosts the action package.
+    api_key: str  # API Key of the action server that hosts the action package.
+    whitelist: str = ""  # Whitelist of actions (comma separated) that are accepted in the action package.
 
 
 def create_agent(
@@ -75,8 +82,11 @@ def create_agent(
     openai_api_key,
     name: str = ran_agent_name,
     architecture=DEFAULT_ARCHITECTURE,
+    action_packages: Sequence[ActionPackageDataClass] = (),
 ):
     """Creates a new agent."""
+    from dataclasses import asdict
+
     model = OpenAIGPT(
         provider=LLMProvider.OPENAI,
         name="gpt-3.5-turbo",
@@ -93,6 +103,8 @@ def create_agent(
     }
     if name is None:
         name = f"Test Agent {timestamp()}"
+
+    action_packages_raw: list[dict] = [asdict(ap) for ap in action_packages]
     data = {
         "public": True,
         "name": name,
@@ -101,7 +113,7 @@ def create_agent(
         "version": "0.0.1",
         "model": model.model_dump(mode="json", context=RAW_CONTEXT),
         "advanced_config": advanced_config.model_dump(mode="json", context=RAW_CONTEXT),
-        "action_packages": [],
+        "action_packages": action_packages_raw,
         "metadata": metadata.model_dump(mode="json", context=RAW_CONTEXT),
     }
 
@@ -128,7 +140,7 @@ def delete_agent(base_url, agent_id):
         print_warning(f"Error occurred while deleting agent {agent_id}: {str(e)}")
 
 
-def create_thread(base_url, agent_id):
+def create_thread(base_url: str, agent_id: str) -> str:
     """Creates a new thread for the given agent."""
     url = f"{base_url}/threads"
     headers = {
@@ -144,12 +156,11 @@ def create_thread(base_url, agent_id):
     response = requests.post(url, headers=headers, json=data)
     if response.status_code == 200:
         return response.json()["thread_id"]
-    else:
-        print(f"Error creating thread: {response.status_code} {response.text}")
-        return None
+
+    raise Exception(f"Error creating thread: {response.status_code} {response.text}")
 
 
-def send_message(base_url, thread_id, message):
+def send_message(base_url, thread_id, message) -> str:
     """Sends a message to the specified thread and streams the response."""
     url = f"{base_url}/runs/stream"
     headers = {
@@ -168,9 +179,9 @@ def send_message(base_url, thread_id, message):
     }
 
     response = requests.post(url, headers=headers, json=data, stream=True)
-    if response.status_code != 200:
-        print_error(f"Error sending message: {response.status_code} {response.text}")
-        return None
+    assert (
+        response.status_code == 200
+    ), f"Error sending message: {response.status_code} {response.text}"
 
     current_message = ""
     for line in response.iter_lines():
@@ -227,7 +238,7 @@ def send_message(base_url, thread_id, message):
     return current_message
 
 
-def create_async_run(base_url, thread_id, message):
+def create_async_run(base_url: str, thread_id: str, message: str) -> dict:
     """Creates an asynchronous run for the specified thread."""
     url = f"{base_url}/runs/async_invoke"
     headers = {
@@ -240,11 +251,13 @@ def create_async_run(base_url, thread_id, message):
     }
 
     response = requests.post(url, headers=headers, json=data)
-    if response.status_code == 200:
-        return response.json()
-    else:
-        print(f"Error creating async run: {response.status_code} {response.text}")
-        return None
+    if response.status_code != 200:
+        raise Exception(
+            f"Error creating async run: {response.status_code} {response.text}"
+        )
+    result = response.json()
+    assert result, f"Async run creation failed. Response: {result!r}"
+    return result
 
 
 def get_run_status(base_url, run_id):
@@ -264,7 +277,12 @@ def get_run_status(base_url, run_id):
         return None
 
 
-def get_thread_state(base_url, thread_id):
+class ThreadStateTypedDict(TypedDict):
+    full_state: dict
+    last_ai_message: dict | None
+
+
+def get_thread_state(base_url: str, thread_id: str) -> ThreadStateTypedDict:
     """Retrieves the state of the specified thread and extracts the last AI message."""
     url = f"{base_url}/threads/{thread_id}/state"
     headers = {
@@ -272,15 +290,16 @@ def get_thread_state(base_url, thread_id):
     }
 
     response = requests.get(url, headers=headers)
-    if response.status_code == 200:
-        state = response.json()
-        messages = state["values"]["messages"]
-        ai_messages = [msg for msg in messages if msg["type"] == "ai"]
-        last_ai_message = ai_messages[-1] if ai_messages else None
-        return {"full_state": state, "last_ai_message": last_ai_message}
-    else:
-        print(f"Error retrieving thread state: {response.status_code} {response.text}")
-        return None
+    if response.status_code != 200:
+        raise Exception(
+            f"Error retrieving thread state: {response.status_code} {response.text}"
+        )
+
+    state = response.json()
+    messages = state["values"]["messages"]
+    ai_messages = [msg for msg in messages if msg["type"] == "ai"]
+    last_ai_message = ai_messages[-1] if ai_messages else None
+    return {"full_state": state, "last_ai_message": last_ai_message}
 
 
 def create_sample_file(content=None):
@@ -346,89 +365,94 @@ def upload_multiple_files(base_url, endpoint, id, file_paths):
     return response
 
 
-def test_agent_creation(base_url, openai_api_key):
+def create_agent_and_return_agent_id(
+    base_url: str,
+    openai_api_key: str,
+    action_packages: Sequence[ActionPackageDataClass] = (),
+) -> str:
     print_header("CREATING AGENT")
-    agent_id = create_agent(base_url, openai_api_key)
-    assert_test(agent_id is not None, "Agent creation")
-    if agent_id:
-        print_success(f"Created agent with ID: {agent_id}")
+    agent_id = create_agent(base_url, openai_api_key, action_packages=action_packages)
+    assert agent_id is not None, "Agent id is None right after creation"
+    print_success(f"Created agent with ID: {agent_id}")
     return agent_id
 
 
-def test_thread_creation(base_url, agent_id):
+def create_thread_and_return_thread_id(base_url: str, agent_id: str) -> str:
     print_header("CREATING THREAD")
     thread_id = create_thread(base_url, agent_id)
-    assert_test(thread_id is not None, "Thread creation")
-    if thread_id:
-        print_success(f"Created thread with ID: {thread_id}")
+    assert thread_id is not None, "Thread id is None right after creation"
+    print_success(f"Created thread with ID: {thread_id}")
     return thread_id
 
 
-def test_message_sending(base_url, thread_id):
+def send_message_to_agent_thread(
+    base_url: str, thread_id: str, message: str = "question"
+) -> str:
     print_header("SENDING MESSAGE AND STREAMING RESPONSE")
-    message = "question"
     print(f"Sending message: {message}")
     response = send_message(base_url, thread_id, message)
-    assert_test(response is not None and response != "", "Message sending and response")
-    if response:
-        print_success("Received response from the agent")
+    assert response, f"Received empty response from agent: {response!r}"
+    print_success("Received response from the agent")
+    return response
 
 
-def test_async_run(base_url, thread_id):
+def make_async_run(base_url: str, thread_id: str) -> None:
     print_header("TESTING ASYNCHRONOUS RUN")
     async_message = "What's the weather like today?"
     print(f"Creating async run with message: {async_message}")
     async_run_response = create_async_run(base_url, thread_id, async_message)
-    assert_test(async_run_response is not None, "Async run creation")
-    assert_test("run_id" in async_run_response, "Async run ID received")
+    assert (
+        "run_id" in async_run_response
+    ), f"Async run ID not received in response: {async_run_response!r}"
 
-    if async_run_response and "run_id" in async_run_response:
-        run_id = async_run_response["run_id"]
-        print_success(f"Async run created with ID: {run_id}")
+    run_id = async_run_response["run_id"]
+    print_success(f"Async run created with ID: {run_id}")
 
-        print("Polling for run completion")
-        with tqdm(total=100, desc="Run Progress", ncols=70) as pbar:
-            while True:
-                status_response = get_run_status(base_url, run_id)
-                if status_response and status_response["status"] == "complete":
-                    pbar.update(100 - pbar.n)
-                    # fail if pbar is full
-                    if pbar.n > 100:
-                        assert_test(False, "async poll failure, pbar overflow")
-                    break
-                if status_response is None:
-                    assert_test(status_response, "async poll failure")
-                    return
-                pbar.update(2)
-                time.sleep(0.5)
+    print("Polling for run completion")
+    with tqdm(total=100, desc="Run Progress", ncols=70) as pbar:
+        while True:
+            status_response = get_run_status(base_url, run_id)
+            if status_response and status_response["status"] == "complete":
+                pbar.update(100 - pbar.n)
+                # fail if pbar is full
+                if pbar.n > 100:
+                    raise Exception("async poll failure, pbar overflow")
+                break
+            if status_response is None:
+                raise Exception("async poll failure (status response is None)")
+            pbar.update(2)
+            time.sleep(0.5)
 
-        print_success("Run completed successfully")
+    print_success("Run completed successfully")
 
-        thread_state = get_thread_state(base_url, thread_id)
-        assert_test(thread_state is not None, "Thread state retrieval after async run")
-        assert_test(
-            "last_ai_message" in thread_state,
-            "AI message in thread state after async run",
+    thread_state = get_thread_state(base_url, thread_id)
+
+    if not thread_state["last_ai_message"]:
+        raise AssertionError(
+            "No AI message found in the thread state after async run. Received thread state: "
+            f"{thread_state!r}"
         )
-
-        if thread_state and thread_state["last_ai_message"]:
-            print_success("Received AI message after async run")
-        else:
-            print_warning("No AI message found in the thread state after async run")
+    print_success("Received AI message after async run")
 
 
-def test_file_uploads(base_url, thread_id, agent_id):
+def make_file_uploads(
+    base_url: str, thread_id: str, agent_id: str
+) -> tuple[list[str], list[str], list[tuple[str, str]]]:
     print_header("TESTING FILE UPLOADS")
 
     # Thread file upload
     thread_file, thread_key, thread_value = create_sample_file()
     thread_response = upload_file_to_thread(base_url, thread_id, thread_file)
-    assert_test(thread_response.status_code == 200, "File upload to thread")
+    assert (
+        thread_response.status_code == 200
+    ), f"File upload to thread: bad response: {thread_response.status_code} {thread_response.text}"
 
     # Agent file upload
     agent_file, agent_key, agent_value = create_sample_file()
     agent_response = upload_file_to_agent(base_url, agent_id, agent_file)
-    assert_test(agent_response.status_code == 200, "File upload to agent")
+    assert (
+        agent_response.status_code == 200
+    ), f"File upload to agent: bad response: {agent_response.status_code} {agent_response.text}"
 
     # Multiple file uploads
     multi_files = [create_sample_file()[0] for _ in range(4)]
@@ -436,16 +460,17 @@ def test_file_uploads(base_url, thread_id, agent_id):
     thread_multi_response = upload_multiple_files(
         base_url, "threads", thread_id, agent_files
     )
+    assert (
+        thread_multi_response.status_code == 200
+    ), f"Multiple file upload to thread: bad response: {thread_multi_response.status_code} {thread_multi_response.text}"
+
     agent_multi_response = upload_multiple_files(
         base_url, "agents", agent_id, thread_files
     )
 
-    assert_test(
-        thread_multi_response.status_code == 200, "Multiple file upload to thread"
-    )
-    assert_test(
-        agent_multi_response.status_code == 200, "Multiple file upload to agent"
-    )
+    assert (
+        agent_multi_response.status_code == 200
+    ), f"Multiple file upload to agent: bad response: {agent_multi_response.status_code} {agent_multi_response.text}"
 
     total_files = 1 + 1 + 2 + 2  # 1 thread, 1 agent, 2 multi-thread, 2 multi-agent
     print_success(f"Successfully uploaded {total_files} files")
@@ -460,44 +485,40 @@ def test_file_uploads(base_url, thread_id, agent_id):
     )
 
 
-def test_get_file(base_url, thread_id, uploaded_thread_files):
+def check_get_file(base_url, thread_id, uploaded_thread_files):
     print_header("TESTING FILE RETRIEVAL")
-    if uploaded_thread_files:
-        file_ref = os.path.basename(uploaded_thread_files[0])
-        file_info = get_file_by_ref(base_url, thread_id, file_ref)
-        assert_test(file_info is not None, "File information retrieval")
-        assert_test(
-            file_ref in file_info["file_url"],
-            "Retrieved file_ref matches the requested one",
-        )
-        if file_info:
-            print_success(f"Successfully retrieved file information for {file_ref}")
-    else:
-        print_warning("No files available to test file retrieval")
+    if not uploaded_thread_files:
+        raise Exception("No files available to test file retrieval")
+
+    file_ref = os.path.basename(uploaded_thread_files[0])
+    file_info = get_file_by_ref(base_url, thread_id, file_ref)
+    assert file_info is not None, "File information retrieval"
+    assert (
+        file_ref in file_info["file_url"]
+    ), "Retrieved file_ref matches the requested one"
+    print_success(f"Successfully retrieved file information for {file_ref}")
 
 
-def test_retrieval(base_url, thread_id, key_value_pairs):
+def check_retrieval(
+    base_url: str, thread_id: str, key_value_pairs: list[tuple[str, str]]
+):
     print_header("TESTING INFORMATION RETRIEVAL")
-    if key_value_pairs:
-        random_key, expected_value = random.choice(key_value_pairs)
-        question = f"What is the value associated with the key '{random_key}'?"
-        print(f"Asking question: {question}")
-        response = send_message(base_url, thread_id, question)
-        assert_test(response is not None, "Retrieval response received")
-        assert_test(
-            expected_value in response,
-            f"Expected value '{expected_value}' found in the response",
-        )
-        if expected_value in response:
-            print_success(f"Successfully retrieved value for key '{random_key}'")
-    else:
-        print_warning("No key-value pairs available for testing retrieval")
+    if not key_value_pairs:
+        raise AssertionError("No key-value pairs available for testing retrieval")
+
+    random_key, expected_value = random.choice(key_value_pairs)
+    question = f"What is the value associated with the key '{random_key}'?"
+    print(f"Asking question: {question}")
+    response = send_message(base_url, thread_id, question)
+    assert (
+        expected_value in response
+    ), f"Expected value '{expected_value}' found in the response"
+    print_success(f"Successfully retrieved value for key '{random_key}'")
 
 
-def wait_for_agent_readiness(base_url, agent_id):
+def wait_for_agent_readiness(base_url, agent_id, timeout=20):
     print_header("WAITING FOR AGENT READINESS")
     start_time = time.time()
-    timeout = 20  # 20 seconds timeout
 
     while True:
         status = get_agent_status(base_url, agent_id)
@@ -506,81 +527,126 @@ def wait_for_agent_readiness(base_url, agent_id):
             return
 
         if time.time() - start_time > timeout:
+            issues = status.issues
             raise TimeoutError(
-                f"Agent {agent_id} did not become ready within {timeout} seconds"
+                f"Agent {agent_id} did not become ready within {timeout} seconds. {issues}"
             )
 
         time.sleep(0.5)
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Interact with the API")
-    parser.add_argument(
-        "--host", default="localhost", help="API host (default: localhost)"
-    )
-    parser.add_argument(
-        "--port", type=int, default=8000, help="API port (default: 8000)"
-    )
-    parser.add_argument(
-        "--openai_api_key", type=str, default=None, help="OpenAI API key."
-    )
-    args = parser.parse_args()
+def get_openapi_schema(base_url: str) -> dict:
+    url = f"{base_url}/openapi.json"
+    print(f"Fetching OpenAPI schema from {url}")
+    response = requests.get(url)
+    return response.json()
 
-    base_url = f"http://{args.host}:{args.port}/api/v1"
 
-    print(f"{Fore.CYAN}{Style.BRIGHT}{'=' * 50}")
-    print(f"{Fore.CYAN}{Style.BRIGHT}STARTING API INTERACTION TEST")
-    print(f"{Fore.CYAN}{Style.BRIGHT}{'=' * 50}")
-
+def test_api_interaction_with_action_server(
+    base_url_agent_server,
+    openai_api_key,
+    tmpdir,
+    datadir,
+    action_server_process,
+    logs_dir,
+):
     start_time = time.time()
-
-    openai_api_key = args.openai_api_key or os.getenv("OPENAI_API_KEY")
-    if not openai_api_key:
-        print("Error: OPENAI_API_KEY not found in environment variables")
-        sys.exit(1)
-
-    agent_id = test_agent_creation(base_url, openai_api_key)
-    wait_for_agent_readiness(base_url, agent_id)
-    thread_id = test_thread_creation(base_url, agent_id)
-    test_message_sending(base_url, thread_id)
-    test_async_run(base_url, thread_id)
-    uploaded_agent_files, uploaded_thread_files, key_value_pairs = test_file_uploads(
-        base_url, thread_id, agent_id
+    cwd = datadir / "simple_action_package"
+    api_key = "test"
+    action_server_process.start(
+        cwd=cwd,
+        actions_sync=True,
+        min_processes=1,
+        max_processes=1,
+        reuse_processes=True,
+        lint=True,
+        timeout=500,  # Can be slow (time to bootstrap env)
+        additional_args=["--api-key", api_key],
+        logs_dir=logs_dir,
     )
-    test_get_file(base_url, thread_id, uploaded_thread_files)
-    test_retrieval(base_url, thread_id, key_value_pairs)
+    url = f"http://{action_server_process.host}:{action_server_process.port}"
+    base_url_api = f"{base_url_agent_server}/api/v1"
 
-    print_header("TEARDOWN")
+    agent_id = create_agent_and_return_agent_id(
+        base_url_api,
+        openai_api_key,
+        action_packages=[
+            ActionPackageDataClass(
+                name="ActionPackage",
+                organization="Organization",
+                version="0.0.1",
+                url=url,
+                api_key=api_key,
+                whitelist="",
+            )
+        ],
+    )
+    wait_for_agent_readiness(base_url_api, agent_id, timeout=60)
 
-    delete_agent(base_url, agent_id)
+    try:
+        thread_id = create_thread_and_return_thread_id(base_url_api, agent_id)
+        result = send_message_to_agent_thread(
+            base_url_api, thread_id, "Which actions are available to you?"
+        ).lower()
+        if "list contact" not in result and "listing all contacts" not in result:
+            raise AssertionError(
+                "Agent did not provide that it has the list contact action. Found result: "
+                f"{result!r}"
+            )
+        result = send_message_to_agent_thread(
+            base_url_api, thread_id, "Please list all contacts"
+        ).lower()
+        if "john doe" not in result and "jane doe" not in result:
+            raise AssertionError(
+                "Agent did not find contacts: 'john doe' or 'jane doe'. Found result: "
+                f"{result!r}"
+            )
 
-    # Clean up files
-    for file_path in uploaded_agent_files + uploaded_thread_files:
-        os.unlink(file_path)
-
-    # Summarize test results
-    total_tests = len(test_results)
-    passed_tests = sum(result[0] for result in test_results)
-
-    print(f"\n{Fore.CYAN}{Style.BRIGHT}{'=' * 50}")
-    print(f"{Fore.CYAN}{Style.BRIGHT}TEST SUMMARY")
-    print(f"{Fore.CYAN}{Style.BRIGHT}{'=' * 50}")
-    print(f"{Fore.GREEN}Passed: {passed_tests}/{total_tests}")
-
-    if passed_tests < total_tests:
-        print(f"\n{Fore.RED}Failed Tests:")
-        for passed, message in test_results:
-            if not passed:
-                print(f"{Fore.RED}- {message}")
+    finally:
+        delete_agent(base_url_api, agent_id)
 
     end_time = time.time()
     duration = end_time - start_time
-    print(f"\n{Fore.YELLOW}Total test duration: {duration:.2f} seconds")
+    print(f"\nTotal test duration: {duration:.2f} seconds")
 
-    # Exit with non-zero status if any test failed
-    if passed_tests < total_tests:
-        sys.exit(1)
+
+def test_api_interaction(base_url_agent_server, openai_api_key):
+    start_time = time.time()
+
+    base_url_api = f"{base_url_agent_server}/api/v1"
+
+    agent_id = create_agent_and_return_agent_id(base_url_api, openai_api_key)
+    wait_for_agent_readiness(base_url_api, agent_id)
+    uploaded_agent_files = []
+    uploaded_thread_files = []
+
+    try:
+        thread_id = create_thread_and_return_thread_id(base_url_api, agent_id)
+        send_message_to_agent_thread(base_url_api, thread_id)
+        make_async_run(base_url_api, thread_id)
+        uploaded_agent_files, uploaded_thread_files, key_value_pairs = (
+            make_file_uploads(base_url_api, thread_id, agent_id)
+        )
+        check_get_file(base_url_api, thread_id, uploaded_thread_files)
+        check_retrieval(base_url_api, thread_id, key_value_pairs)
+
+        print_header("TEARDOWN")
+    finally:
+        delete_agent(base_url_api, agent_id)
+
+        # Clean up files
+        for file_path in uploaded_agent_files + uploaded_thread_files:
+            os.unlink(file_path)
+
+    end_time = time.time()
+    duration = end_time - start_time
+    print(f"\nTotal test duration: {duration:.2f} seconds")
 
 
 if __name__ == "__main__":
-    main()
+    import pytest
+
+    # Can be set to start the agent server in the test
+    os.environ["INTEGRATION_TEST_START_SERVER"] = "true"
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    sys.exit(pytest.main([]))
