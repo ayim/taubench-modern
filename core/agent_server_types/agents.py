@@ -292,7 +292,7 @@ class AgentPayload(BaseModel):
             if isinstance(self.model, (AnthropicClaude, AmazonBedrock)):
                 self.advanced_config.architecture = "agent_architecture_claude_tools"
             else:
-                self.advanced_config.architecture = "agent_architecture_openai_tools"
+                self.advanced_config.architecture = "agent_architecture_default"
         elif self.advanced_config.architecture == "plan_execute":
             self.advanced_config.architecture = "agent_architecture_plan_execute"
         return self
