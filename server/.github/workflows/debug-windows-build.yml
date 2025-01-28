@@ -1,0 +1,54 @@
+name: Debug Windows Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      debug_mode:
+        description: "Enable debug mode"
+        required: true
+        type: boolean
+        default: false
+      python_version:
+        description: "Python version to use"
+        required: false
+        type: string
+        default: "3.11"
+      windows_runner:
+        description: "Windows runner to use (e.g. windows-large-runner, windows-latest)"
+        required: true
+        type: string
+        default: "windows-large-runner"
+
+jobs:
+  debug-build:
+    runs-on: ${{ inputs.windows_runner }}
+    defaults:
+      run:
+        shell: cmd
+
+    steps:
+      - name: Checkout and Pull Latest
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v0.7.0
+
+      - name: Install Dependencies
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/install_deps@v0.7.0
+        with:
+          git_username: ${{ secrets.GIT_USERNAME }}
+          git_token: ${{ secrets.GIT_TOKEN }}
+          python_version: ${{ inputs.python_version }}
+          pre_poetry_requirements_file_path: "invoke_requirements.txt"
+          additional_poetry_groups: "build"
+
+      - name: Build executable
+        run: |
+          IF ${{ inputs.debug_mode }} == true (
+            poetry run invoke build --onefile --ci --no-wheels --debug --name=agent-server
+          ) ELSE (
+            poetry run invoke build --onefile --ci --no-wheels --name=agent-server
+          )
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-server-build-windows-debug
+          path: dist
