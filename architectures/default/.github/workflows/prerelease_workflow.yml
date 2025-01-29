@@ -19,7 +19,7 @@ on:
 
 jobs:
   prerelease:
-    uses: Sema4AI/agent-server-team-gh-workflows/.github/workflows/prerelease.yml@v0.1.0
+    uses: Sema4AI/agent-server-team-gh-workflows/.github/workflows/prerelease.yml@v0.9.0
     with:
       bump_type: ${{ github.event.inputs.bump_type }}
       python_version: "3.11"
