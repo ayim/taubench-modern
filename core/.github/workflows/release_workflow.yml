@@ -4,7 +4,7 @@ on: workflow_dispatch
 
 jobs:
   release:
-    uses: Sema4AI/agent-server-team-gh-workflows/.github/workflows/release.yml@v0.6.0
+    uses: Sema4AI/agent-server-team-gh-workflows/.github/workflows/release.yml@v0.9.0
     with:
       python_version: "3.11"
       go_version: "1.22.2"
