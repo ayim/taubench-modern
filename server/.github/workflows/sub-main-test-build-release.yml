@@ -17,6 +17,15 @@ on:
         required: false
         type: string
         default: "18"
+      release_channel:
+        description: "The release channel to publish to (e.g. beta, stable)"
+        required: true
+        type: string
+      windows_runner:
+        description: "Windows runner to use"
+        required: false
+        type: string
+        default: "windows-large-runner"
     secrets:
       GIT_USERNAME:
         description: "Username for Git operations"
@@ -101,6 +110,7 @@ jobs:
       - integration-tests
     with:
       python_version: ${{ inputs.python_version }}
+      windows_runner: ${{ inputs.windows_runner }}
     secrets:
       GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
       GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
@@ -132,9 +142,22 @@ jobs:
       GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
       NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
 
+  package-agent-server:
+    uses: ./.github/workflows/sub-publish-package-agent-server.yml
+    needs: [sign-binaries]
+
   release-agent-server-gh:
     uses: ./.github/workflows/sub-publish-agent-server-gh.yml
-    needs: [build-agent-server, sign-binaries]
+    needs: [package-agent-server]
+    with:
+      agent_server_version: ${{ needs.package-agent-server.outputs.agent_server_version }}
+
+  release-agent-server-s3:
+    uses: ./.github/workflows/sub-publish-agent-server-s3.yml
+    needs: [package-agent-server]
+    with:
+      agent_server_version: ${{ needs.package-agent-server.outputs.agent_server_version }}
+      release_channel: ${{ inputs.release_channel }}
 
   publish-asi-npm-package:
     uses: ./.github/workflows/sub-publish-asi-npm.yml

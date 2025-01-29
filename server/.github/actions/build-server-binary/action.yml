@@ -10,13 +10,22 @@ description: |
 runs:
   using: "composite"
   steps:
-    - name: Build executable
+    - name: Build executable (Unix)
+      if: runner.os != 'Windows'
       shell: bash
       run: >
         invoke build --onefile --ci --no-wheels
         --name=agent-server
 
+    - name: Build executable (Windows)
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: >
+        invoke build --onefile --ci --no-wheels --debug
+        --name=agent-server
+
     - name: Set Executable bit for Linux and MacOS
+      if: runner.os != 'Windows'
       shell: bash
       run: |
         if [[ "$(uname -s)" == "Linux" || "$(uname -s)" == "Darwin" ]]; then

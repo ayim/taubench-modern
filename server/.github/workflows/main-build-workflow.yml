@@ -29,6 +29,8 @@ jobs:
     with:
       python_version: "3.11"
       node_version: 18
+      release_channel: stable
+      windows_runner: "windows-latest"
     secrets:
       GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
       GIT_TOKEN: ${{ secrets.GIT_TOKEN }}

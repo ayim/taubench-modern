@@ -1,15 +1,23 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 import argparse
+import pprint
 import sys
 
+import pkg_resources
+
+# Prevent PyInstaller from using the NLTK runtime hook
+import PyInstaller.config
 from PyInstaller.building.api import COLLECT, EXE, PYZ
 from PyInstaller.building.build_main import Analysis
+from PyInstaller.log import logger
 from PyInstaller.utils.hooks import (
     collect_all,
     collect_submodules,
     copy_metadata,
 )
+
+PyInstaller.config.CONF["excludes"] = ["_pyi_rth_nltk"]
 
 sys.setrecursionlimit(sys.getrecursionlimit() * 5)
 
@@ -20,45 +28,88 @@ parser.add_argument("--onefile", action="store_true")
 parser.add_argument("--name", type=str, default="agent-server")
 options = parser.parse_args()
 
+# Log arguments using PyInstaller's logging system
+logger.info("=== Build Arguments ===")
+logger.info(f"Debug mode: {options.debug}")
+logger.info(f"Onefile mode: {options.onefile}")
+logger.info(f"Output name: {options.name}")
+logger.info("=====================")
+
+# Dynamically discover agent architecture packages
+agent_arch_packages = [
+    dist.key
+    for dist in pkg_resources.working_set
+    if dist.key.startswith("agent-architecture")
+]
+logger.info("=== Found Agent Architecture Packages ===")
+logger.info(",".join(agent_arch_packages))
+logger.info("========================================")
+
+# Build metadata and hidden imports for agent architectures
+agent_arch_metadata = []
+agent_arch_imports = []
+for package in agent_arch_packages:
+    agent_arch_metadata.extend(copy_metadata(package))
+    agent_arch_imports.append(package.replace("-", "_"))
+
+logger.info("=== Analyzing Imports ===")
+logger.info("Starting Analysis phase...")
+
+# Log each major collection step
+logger.info("Collecting chromadb dependencies...")
 chromadb_datas, chromadb_binaries, chromadb_hiddenimports = collect_all("chromadb")
+logger.info("Collecting tiktoken dependencies...")
 tiktoken_datas, tiktoken_binaries, tiktoken_hiddenimports = collect_all("tiktoken")
 
+# Collect submodules with logging
+logger.info("Collecting chromadb submodules...")
+chromadb_submodules = collect_submodules(
+    "chromadb", filter=lambda name: not name.startswith("chromadb.test")
+)
+logger.info("Collecting chromadb.db submodules...")
+chromadb_db_submodules = collect_submodules(
+    "chromadb.db", filter=lambda name: not name.startswith("chromadb.db.test")
+)
+logger.info("Collecting chromadb.migrations submodules...")
+chromadb_migrations_submodules = collect_submodules("chromadb.migrations")
+logger.info("Collecting tiktoken_ext submodules...")
+tiktoken_ext_submodules = collect_submodules("tiktoken_ext")
 
+logger.info("Starting main Analysis...")
 a = Analysis(
     ["sema4ai_agent_server/server.py"],
     pathex=[],
     binaries=[*chromadb_binaries, *tiktoken_binaries],
     datas=[
         ("sema4ai_agent_server/migrations", "sema4ai_agent_server/migrations"),
-        *copy_metadata("agent-architecture"),
-        *copy_metadata("agent-architecture-openai-plan-execute"),
-        *copy_metadata("agent-architecture-claude-tools"),
+        *agent_arch_metadata,
         *chromadb_datas,
         *tiktoken_datas,
+        ("LICENSE", "."),
     ],
     hiddenimports=[
         "pydantic.deprecated.decorator",
         "chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2",
         "onnxruntime",
-        "agent_architecture_default",
-        "agent_architecture_openai_plan_execute",
-        "agent_architecture_claude_tools",
-        *collect_submodules("chromadb"),
-        *collect_submodules("chromadb.db"),
-        *collect_submodules("chromadb.migrations"),
+        *agent_arch_imports,
+        *chromadb_submodules,
+        *chromadb_db_submodules,
+        *chromadb_migrations_submodules,
         "chromadb.migrations.embeddings_queue",
         *chromadb_hiddenimports,
         *tiktoken_hiddenimports,
         "tiktoken_ext",
-        *collect_submodules("tiktoken_ext"),
+        *tiktoken_ext_submodules,
     ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=["nltk"],
     noarchive=False,
     optimize=0,
 )
+
+logger.info("=== Packaging Components ===")
 pyz = PYZ(a.pure)
 
 # Executable args
@@ -80,8 +131,8 @@ exe_kwargs = {
     "console": True,
     "disable_windowed_traceback": False,
     "argv_emulation": False,
-    "target_arch": None,  # TODO: Handle MacOSx somehow
-    "codesign_identity": None,  # TODO: Add signing for CI
+    "target_arch": None,
+    "codesign_identity": None,
     "entitlements_file": None,
 }
 if options.debug:
@@ -93,6 +144,13 @@ if options.onefile:
     exe_kwargs["runtime_tmpdir"] = None
 else:
     exe_kwargs["exclude_binaries"] = True
+
+logger.info("=== Building Executable ===")
+pp = pprint.PrettyPrinter(indent=2)
+logger.debug(f"Building executable with the following args:\n{pp.pformat(exe_args)}")
+logger.debug(
+    f"Building executable with the following kwargs:\n{pp.pformat(exe_kwargs)}"
+)
 
 exe = EXE(
     *exe_args,

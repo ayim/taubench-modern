@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -16,7 +17,7 @@ from sema4ai_agent_server.otel import setup_otel
 from sema4ai_agent_server.storage.option import get_storage
 
 # Do not change the version here. It is managed by versionbump (see versionbump.yaml)
-VERSION = "1.1.4-alpha.41"
+VERSION = "1.1.4-alpha.61"
 
 # TODO: Setting up global things (such as logging and OTEL here) globally in the module import
 # is bad practice (because just importing it from some other place will mess up any logging
@@ -42,6 +43,9 @@ if DB_TYPE not in ("sqlite", "postgres"):
 
 # Get root of app, used to point to directory containing static files
 ROOT = Path(__file__).parent.parent
+
+# Determine if we are running in a frozen environment
+IS_FROZEN = getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS")
 
 
 class _CustomFastAPI(FastAPI):
@@ -120,8 +124,37 @@ def main():
         action="store_true",
         help="Enable auto-reload of the server on code changes.",
     )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"Sema4.ai Agent Server v{VERSION}",
+        help="Show program's version number and exit.",
+    )
+    parser.add_argument(
+        "--license",
+        action="store_true",
+        help="Show program's license and exit.",
+    )
 
     args = parser.parse_args()
+
+    if args.license:
+        if IS_FROZEN:
+            # Paths in the __main__ module work differently in frozen environments
+            # but outside of it they will all work as expected.
+            license_path = Path(__file__).absolute().parent / "LICENSE"
+        else:
+            license_path = ROOT / "LICENSE"
+        try:
+            with open(license_path, "r") as f:
+                print(f.read())
+            sys.exit(0)
+        except FileNotFoundError:
+            print(
+                "License file not found. Please visit https://sema4.ai for license information."
+            )
+            sys.exit(1)
+
     uvicorn.run(app, host=args.host, port=args.port, reload=args.reload)
 
 

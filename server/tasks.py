@@ -100,12 +100,14 @@ def _build_executable(
 ) -> None:
     """Builds the executable via PyInstaller."""
     _set_lib_path(ctx)
+    # ctx.run("pyinstaller agent-server-other.spec")
+    # return
     args = ["pyinstaller"]
     spec_args = []
     if debug:
         ci = False
         spec_args.append("--debug")
-        args.append("--log-level=TRACE")
+        args.append("--log-level=DEBUG")
     if ci:
         args.append("-y")
     if onefile:
@@ -121,11 +123,11 @@ def _build_executable(
     build_log_path.parent.mkdir(parents=True, exist_ok=True)
     with open(build_log_path, "w") as f:
         filtered_f = AnsiStripStream(f)
-        splitted_f = MultiStream([filtered_f, sys.stdout])
+        split_f = MultiStream([filtered_f, sys.stdout])
         ctx.run(
             " ".join(args),
-            out_stream=splitted_f,
-            err_stream=splitted_f,
+            out_stream=split_f,
+            err_stream=split_f,
             # pty=not is_windows,
             echo=True,
         )
@@ -159,16 +161,20 @@ def build(
         --ci: Build in CI mode, disabling interactive prompts.
         --onefile: Build the executable as a single file.
         --name: Name of the executable. Defaults to 'agent-server'.
+        --dist-path: Path to the dist directory. Defaults to 'dist'.
     """
     if wheels:
         _build_python_dist(ctx, ci)
     if executable:
-        _build_executable(ctx, debug, ci, onefile, name, dist_path)
+        _build_executable(
+            ctx, debug=debug, ci=ci, onefile=onefile, name=name, dist_path=dist_path
+        )
 
 
 @task(name="server")
 def run_server(
     ctx: Context,
+    onefile: bool = False,
     exe_path: str = "./dist/agent-server/agent-server",
     env_path: str = "./.env",
     output_path: str = "run.log",
@@ -178,16 +184,23 @@ def run_server(
     Run the bundled executable with environment variables from a .env file.
 
     Args:
+        --onefile: Whether the executable was built as a single file, exclusive
+          with --exe-path. This sets the executable path to the dist/agent-server
+          directory (the default for build --onefile).
+        --exe-path: Path to the executable. Cannot be used with --onefile. Defaults
+          to the dist/agent-server/agent-server path (the default for build).
         --env-path: Path to the .env file.
         --output-path: Path to the output log file.
         --hide-output: Whether to hide output from the terminal.
     """
     load_dotenv(dotenv_path=env_path)
+    if onefile:
+        exe_path = Path("./dist/agent-server")
     try:
         with open(output_path, "w", encoding="utf-8") as f:
             filtered_f = AnsiStripStream(f)
             ctx.run(
-                exe_path,
+                str(exe_path),
                 err_stream=filtered_f,
                 out_stream=filtered_f,
                 hide=hide_output,

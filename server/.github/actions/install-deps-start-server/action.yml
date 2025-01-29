@@ -19,7 +19,7 @@ runs:
   using: 'composite'
   steps:
     - name: Install dependencies
-      uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/install_deps@v0.4.0
+      uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/install_deps@v0.9.0
       with:
         git_username: ${{ inputs.git_username }}
         git_token: ${{ inputs.git_token }}
