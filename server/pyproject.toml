@@ -53,6 +53,7 @@ agent-architecture = { git = "https://github.com/Sema4AI/agent-architecture.git"
 agent-architecture-default = { git = "https://github.com/Sema4AI/agent-architecture-default.git", tag = "v1.0.5" }
 agent-architecture-openai-plan-execute = { git = "https://github.com/Sema4AI/agent-architecture-openai-plan-execute.git", tag = "v1.0.3" }
 agent-architecture-claude-tools = { git = "https://github.com/Sema4AI/agent-architecture-claude-tools.git", tag = "v1.0.3" }
+greenlet = "^3.1.1"
 
 [tool.mypy]
 mypy_path = "."

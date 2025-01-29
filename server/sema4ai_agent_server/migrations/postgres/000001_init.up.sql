@@ -7,6 +7,9 @@ DROP TABLE IF EXISTS "user";
 DROP TABLE IF EXISTS schema_migrations;
 -- End of legacy
 
+CREATE EXTENSION IF NOT EXISTS vector;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
 CREATE TABLE "user" (
     user_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     sub VARCHAR(255) UNIQUE NOT NULL,
