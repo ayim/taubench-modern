@@ -81,6 +81,18 @@ jobs:
             show_directory_contents
           fi
 
+          # macOS x64
+          if [ -f "s3-drop/agent-server-${{ inputs.agent_server_version }}-macos-x64.tar.gz" ]; then
+            echo "Processing macOS x64 build..."
+            tar -xzf "s3-drop/agent-server-${{ inputs.agent_server_version }}-macos-x64.tar.gz" -C temp_extract/
+            aws s3 cp temp_extract/agent-server "$S3_BASE_URL/macos_x64/agent-server" --cache-control max-age=120 --content-type "application/octet-stream"
+            echo "macOS x64 binary available at $CDN_BASE_URL/macos_x64/agent-server"
+            rm temp_extract/agent-server
+          else
+            echo "WARNING: macOS x64 build file not found: s3-drop/agent-server-${{ inputs.agent_server_version }}-macos-x64.tar.gz"
+            show_directory_contents
+          fi
+
           # Linux x64
           if [ -f "s3-drop/agent-server-${{ inputs.agent_server_version }}-ubuntu-x64.tar.gz" ]; then
             echo "Processing Linux x64 build..."

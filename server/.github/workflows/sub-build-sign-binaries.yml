@@ -76,6 +76,51 @@ jobs:
           name: agent-server-mac-arm64-signed
           path: ./dist/build/agent-server
 
+  sign-mac-x64:
+    name: Sign Mac x64 Binary
+    timeout-minutes: 5
+    runs-on: macos-latest
+    steps:
+      - name: Checkout and Pull Latest
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v0.9.0
+
+      - name: Setup Versionbump and Get Current Version
+        id: setup_versionbump
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/setup_versionbump@v0.9.0
+
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: agent-server-build-macos-13-x64
+          path: build
+          merge-multiple: true
+
+      - name: Sign and Notarize
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 3
+          max_attempts: 3
+          retry_wait_seconds: 10
+          command: |
+            # Clean up any existing keychain before each attempt
+            security delete-keychain signing_temp.keychain || true
+            rm -f signing_temp.keychain || true
+            chmod +x ./scripts/sign_and_notarize.sh
+            ./scripts/sign_and_notarize.sh ./build/agent-server ./dist/ ./entitlements.mac.plist
+        env:
+          APPLEID: ${{ secrets.MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI }}
+          APPLEIDPASS: ${{ secrets.MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI }}
+          APPLETEAMID: ${{ secrets.MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI }}
+          MACOS_SIGNING_CERT: ${{ secrets.MACOS_SIGNING_CERT_SEMA4AI }}
+          MACOS_SIGNING_CERT_PASSWORD: ${{ secrets.MACOS_SIGNING_CERT_PASSWORD_SEMA4AI }}
+          MACOS_SIGNING_CERT_NAME: ${{ secrets.MACOS_SIGNING_CERT_NAME_SEMA4AI }}
+
+      - name: Upload Signed Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-server-mac-x64-signed
+          path: ./dist/build/agent-server
+
   sign-windows-x64:
     name: Sign for Windows x64
     timeout-minutes: 5

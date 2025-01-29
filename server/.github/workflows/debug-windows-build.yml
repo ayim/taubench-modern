@@ -1,4 +1,4 @@
-name: Debug Windows Build
+name: Debug Build
 
 on:
   workflow_dispatch:
@@ -13,18 +13,15 @@ on:
         required: false
         type: string
         default: "3.11"
-      windows_runner:
-        description: "Windows runner to use (e.g. windows-large-runner, windows-latest)"
+      runner_name:
+        description: "Runner to use (e.g. windows-large-runner, windows-latest)"
         required: true
         type: string
         default: "windows-large-runner"
 
 jobs:
   debug-build:
-    runs-on: ${{ inputs.windows_runner }}
-    defaults:
-      run:
-        shell: cmd
+    runs-on: ${{ inputs.runner_name }}
 
     steps:
       - name: Checkout and Pull Latest
@@ -39,7 +36,9 @@ jobs:
           pre_poetry_requirements_file_path: "invoke_requirements.txt"
           additional_poetry_groups: "build"
 
-      - name: Build executable
+      - name: Build executable (Windows)
+        if: runner.os == 'Windows'
+        shell: cmd
         timeout-minutes: 60
         run: |
           IF ${{ inputs.debug_mode }} == true (
@@ -47,6 +46,17 @@ jobs:
           ) ELSE (
             poetry run invoke build --onefile --ci --no-wheels --name=agent-server
           )
+
+      - name: Build executable (Non-Windows)
+        if: runner.os != 'Windows'
+        shell: bash
+        timeout-minutes: 60
+        run: |
+          if [[ "${{ inputs.debug_mode }}" == "true" ]]; then
+            poetry run invoke build --onefile --ci --no-wheels --debug --name=agent-server
+          else
+            poetry run invoke build --onefile --ci --no-wheels --name=agent-server
+          fi
 
       - name: Upload Build Log if Failed
         if: failure()

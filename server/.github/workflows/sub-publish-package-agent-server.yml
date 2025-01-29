@@ -105,7 +105,7 @@ jobs:
 
           # Find macos arm64 signed folder
           macos_folder=$(find download -type d -name "agent-server-mac*-arm64-signed")
-          echo "Found macos folder: $macos_folder"
+          echo "Found macos arm64 folder: $macos_folder"
           if [ -n "$macos_folder" ] && [ -d "$macos_folder" ]; then
             cd "$macos_folder"
             tar -czf agent-server-$CURRENT_VERSION-macos-arm64.tar.gz agent-server
@@ -114,7 +114,21 @@ jobs:
             echo "Successfully moved tar of agent server to dist: $(ls ../../dist/agent-server-$CURRENT_VERSION-macos-arm64.tar.gz)"
             cd ../../
           else
-            echo "Warning: macOS binary folder not found or invalid"
+            echo "Warning: macOS ARM64 binary folder not found or invalid"
+          fi
+
+          # Find macos x64 signed folder
+          macos_x64_folder=$(find download -type d -name "agent-server-mac*-x64-signed")
+          echo "Found macos x64 folder: $macos_x64_folder"
+          if [ -n "$macos_x64_folder" ] && [ -d "$macos_x64_folder" ]; then
+            cd "$macos_x64_folder"
+            tar -czf agent-server-$CURRENT_VERSION-macos-x64.tar.gz agent-server
+            echo "Successfully created tar of agent server: $(ls agent-server-$CURRENT_VERSION-macos-x64.tar.gz)"
+            mv agent-server-$CURRENT_VERSION-macos-x64.tar.gz ../../dist/
+            echo "Successfully moved tar of agent server to dist: $(ls ../../dist/agent-server-$CURRENT_VERSION-macos-x64.tar.gz)"
+            cd ../../
+          else
+            echo "Warning: macOS x64 binary folder not found or invalid"
           fi
 
           # Find ubuntu x64 build folder
