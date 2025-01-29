@@ -29,7 +29,7 @@ jobs:
       - name: Checkout and Pull latest
         uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v0.9.0
         with:
-          git_token: ${{ secrets.GITHUB_TOKEN }}
+          git_token: ${{ secrets.GIT_TOKEN }}
 
       - name: Set up versionbump
         uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/setup_versionbump@v0.9.0
