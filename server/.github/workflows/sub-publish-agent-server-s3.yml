@@ -26,7 +26,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout and Pull Latest
-        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v0.9.0
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v1
 
       - name: Download artifacts
         uses: actions/download-artifact@v4
@@ -43,7 +43,7 @@ jobs:
       - name: AWS S3 copies
         run: |
           S3_BASE_URL="s3://downloads.robocorp.com/agent-server/${{ inputs.release_channel }}/v${{ inputs.agent_server_version }}"
-          CDN_BASE_URL="http://cdn.sema4.ai/agent-server/${{ inputs.release_channel }}/v${{ inputs.agent_server_version }}"
+          CDN_BASE_URL="https://cdn.sema4.ai/agent-server/${{ inputs.release_channel }}/v${{ inputs.agent_server_version }}"
 
           # Upload version.txt from the artifact
           aws s3 cp s3-drop/version.txt "$S3_BASE_URL/version.txt" --cache-control max-age=120 --content-type "text/plain"

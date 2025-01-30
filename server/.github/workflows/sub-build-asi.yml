@@ -35,7 +35,7 @@ jobs:
 
     steps:
       - name: Checkout and Pull Latest
-        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v0.9.0
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v1
 
       - name: Install deps and start server
         uses: ./.github/actions/install-deps-start-server

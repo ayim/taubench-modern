@@ -1,5 +1,6 @@
 """Local invoke tasks for the Agent Server project."""
 
+import base64
 import os
 import platform
 import re
@@ -11,6 +12,12 @@ from dotenv import load_dotenv
 from invoke import Context, Failure, task
 
 is_windows = platform.system() == "Windows"
+
+
+class KeychainSetupError(Exception):
+    """Raised when there is an error setting up the keychain for code signing."""
+
+    pass
 
 
 class AnsiStripStream:
@@ -137,6 +144,72 @@ def _build_executable(
 def clean(ctx):
     shutil.rmtree("dist", ignore_errors=True)
     shutil.rmtree("build", ignore_errors=True)
+
+
+@task
+def setup_keychain(
+    ctx: Context,
+    cert: str | None = None,
+    password: str | None = None,
+    keychain_name: str = "build.keychain",
+) -> None:
+    """
+    Sets up the keychain for macOS code signing. This should be run before
+    building if code signing is needed.
+
+    The signing certificate and password can be provided in several ways (in order of precedence):
+    1. Command line arguments (--cert, --password)
+    2. Invoke context (ctx.macos_signing.cert, ctx.macos_signing.password)
+    3. Environment variables (MACOS_SIGNING_CERT, MACOS_SIGNING_CERT_PASSWORD)
+
+    Args:
+        cert: Base64 encoded signing certificate
+        password: Password for the signing certificate
+        keychain_name: Name of the keychain to create/use. Defaults to 'build.keychain'
+    """
+    if platform.system() != "Darwin":
+        return
+
+    # Get certificate and password from available sources
+    signing_cert = (
+        cert
+        or getattr(ctx, "macos_signing", {}).get("cert")
+        or os.environ.get("MACOS_SIGNING_CERT")
+    )
+    signing_password = (
+        password
+        or getattr(ctx, "macos_signing", {}).get("password")
+        or os.environ.get("MACOS_SIGNING_CERT_PASSWORD")
+    )
+
+    if not signing_cert or not signing_password:
+        print("Skipping keychain setup: signing certificate or password not provided")
+        return
+
+    try:
+        # Create and configure keychain
+        ctx.run(f"security create-keychain -p {signing_password} {keychain_name}")
+        ctx.run(f"security default-keychain -s {keychain_name}")
+        ctx.run(f"security unlock-keychain -p {signing_password} {keychain_name}")
+
+        # Import the certificate
+        cert_path = Path("cert.p12")
+        cert_path.write_bytes(base64.b64decode(signing_cert))
+        try:
+            ctx.run(f"security import {cert_path} -A -P {signing_password}")
+            ctx.run(
+                f"security set-key-partition-list -S apple-tool:,apple: -s -k {signing_password} {keychain_name}"
+            )
+        finally:
+            cert_path.unlink(missing_ok=True)
+    except Exception as e:
+        print(f"Error setting up keychain: {e}")
+        # Clean up keychain if it exists
+        try:
+            ctx.run(f"security delete-keychain {keychain_name}", hide=True, warn=True)
+        except Exception as cleanup_error:
+            print(f"Warning: Failed to clean up keychain: {cleanup_error}")
+        raise KeychainSetupError("Failed to set up keychain for code signing") from e
 
 
 @task

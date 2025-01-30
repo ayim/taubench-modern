@@ -9,10 +9,6 @@ on:
         required: true
       MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI:
         required: true
-      MACOS_SIGNING_CERT_SEMA4AI:
-        required: true
-      MACOS_SIGNING_CERT_PASSWORD_SEMA4AI:
-        required: true
       MACOS_SIGNING_CERT_NAME_SEMA4AI:
         required: true
       WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI:
@@ -37,11 +33,11 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout and Pull Latest
-        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v0.9.0
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v1
 
       - name: Setup Versionbump and Get Current Version
         id: setup_versionbump
-        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/setup_versionbump@v0.9.0
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/setup_versionbump@v1
 
       - name: Download Build Artifacts
         uses: actions/download-artifact@v4
@@ -50,24 +46,17 @@ jobs:
           path: build
           merge-multiple: true # Should only be one, but we want to be sure the folder is flat
 
-      - name: Sign and Notarize
+      - name: Notarize
         uses: nick-fields/retry@v3
         with:
-          timeout_minutes: 3
-          max_attempts: 3
-          retry_wait_seconds: 10
+          timeout_minutes: 5
           command: |
-            # Clean up any existing keychain before each attempt
-            security delete-keychain signing_temp.keychain || true
-            rm -f signing_temp.keychain || true
-            chmod +x ./scripts/sign_and_notarize.sh
-            ./scripts/sign_and_notarize.sh ./build/agent-server ./dist/ ./entitlements.mac.plist
+            chmod +x ./scripts/notarize.sh
+            ./scripts/notarize.sh ./build/agent-server ./dist
         env:
           APPLEID: ${{ secrets.MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI }}
-          APPLEIDPASS: ${{ secrets.MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI }}
           APPLETEAMID: ${{ secrets.MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI }}
-          MACOS_SIGNING_CERT: ${{ secrets.MACOS_SIGNING_CERT_SEMA4AI }}
-          MACOS_SIGNING_CERT_PASSWORD: ${{ secrets.MACOS_SIGNING_CERT_PASSWORD_SEMA4AI }}
+          APPLEIDPASS: ${{ secrets.MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI }}
           MACOS_SIGNING_CERT_NAME: ${{ secrets.MACOS_SIGNING_CERT_NAME_SEMA4AI }}
 
       - name: Upload Signed Artifacts
@@ -82,11 +71,11 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout and Pull Latest
-        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v0.9.0
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v1
 
       - name: Setup Versionbump and Get Current Version
         id: setup_versionbump
-        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/setup_versionbump@v0.9.0
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/setup_versionbump@v1
 
       - name: Download Build Artifacts
         uses: actions/download-artifact@v4
@@ -95,24 +84,17 @@ jobs:
           path: build
           merge-multiple: true
 
-      - name: Sign and Notarize
+      - name: Notarize
         uses: nick-fields/retry@v3
         with:
-          timeout_minutes: 3
-          max_attempts: 3
-          retry_wait_seconds: 10
+          timeout_minutes: 5
           command: |
-            # Clean up any existing keychain before each attempt
-            security delete-keychain signing_temp.keychain || true
-            rm -f signing_temp.keychain || true
-            chmod +x ./scripts/sign_and_notarize.sh
-            ./scripts/sign_and_notarize.sh ./build/agent-server ./dist/ ./entitlements.mac.plist
+            chmod +x ./scripts/notarize.sh
+            ./scripts/notarize.sh ./build/agent-server ./dist
         env:
           APPLEID: ${{ secrets.MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI }}
-          APPLEIDPASS: ${{ secrets.MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI }}
           APPLETEAMID: ${{ secrets.MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI }}
-          MACOS_SIGNING_CERT: ${{ secrets.MACOS_SIGNING_CERT_SEMA4AI }}
-          MACOS_SIGNING_CERT_PASSWORD: ${{ secrets.MACOS_SIGNING_CERT_PASSWORD_SEMA4AI }}
+          APPLEIDPASS: ${{ secrets.MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI }}
           MACOS_SIGNING_CERT_NAME: ${{ secrets.MACOS_SIGNING_CERT_NAME_SEMA4AI }}
 
       - name: Upload Signed Artifacts
@@ -127,11 +109,11 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout and Pull Latest
-        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v0.9.0
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v1
 
       - name: Setup Versionbump and Get Current Version
         id: setup_versionbump
-        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/setup_versionbump@v0.9.0
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/setup_versionbump@v1
 
       - name: Download Build Artifacts
         uses: actions/download-artifact@v4

@@ -1,6 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 import argparse
+import os
 import pprint
 import sys
 
@@ -132,8 +133,10 @@ exe_kwargs = {
     "disable_windowed_traceback": False,
     "argv_emulation": False,
     "target_arch": None,
-    "codesign_identity": None,
-    "entitlements_file": None,
+    "codesign_identity": os.environ.get("MACOS_SIGNING_CERT_NAME", "--"),
+    "entitlements_file": "./entitlements.mac.plist"
+    if os.path.exists("./entitlements.mac.plist")
+    else None,
 }
 if options.debug:
     exe_kwargs["debug"] = True

@@ -27,12 +27,12 @@ jobs:
         run: echo "This workflow was triggered by $GITHUB_ACTOR"
 
       - name: Checkout and Pull latest
-        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v0.9.0
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v1
         with:
           git_token: ${{ secrets.GIT_TOKEN }}
 
       - name: Set up versionbump
-        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/setup_versionbump@v0.9.0
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/setup_versionbump@v1
         with:
           go_version: "1.22.2"
           versionbump_version: "v0.7.0"

@@ -38,10 +38,10 @@ jobs:
 
     steps:
       - name: Checkout and Pull Latest
-        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v0.9.0
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v1
 
       - name: Install deps
-        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/install_deps@v0.9.0
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/install_deps@v1
         with:
           git_username: ${{ secrets.GIT_USERNAME }}
           git_token: ${{ secrets.GIT_TOKEN }}
@@ -99,10 +99,10 @@ jobs:
 
     steps:
       - name: Checkout and Pull Latest
-        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v0.9.0
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v1
 
       - name: Install deps
-        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/install_deps@v0.9.0
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/install_deps@v1
         with:
           git_username: ${{ secrets.GIT_USERNAME }}
           git_token: ${{ secrets.GIT_TOKEN }}

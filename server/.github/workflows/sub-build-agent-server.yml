@@ -20,10 +20,15 @@ on:
       GIT_TOKEN:
         description: "Token for Git operations"
         required: true
-
-defaults:
-  run:
-    shell: bash
+      MACOS_SIGNING_CERT_SEMA4AI:
+        description: "Signing certificate for macOS"
+        required: true
+      MACOS_SIGNING_CERT_PASSWORD_SEMA4AI:
+        description: "Signing certificate password for macOS"
+        required: true
+      MACOS_SIGNING_CERT_NAME_SEMA4AI:
+        description: "Signing certificate name for macOS"
+        required: true
 
 jobs:
   build-agent-server:
@@ -43,10 +48,10 @@ jobs:
 
     steps:
       - name: Checkout and Pull Latest
-        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v0.9.0
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v1
 
       - name: Install Dependencies
-        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/install_deps@v0.9.0
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/install_deps@v1
         with:
           git_username: ${{ secrets.GIT_USERNAME }}
           git_token: ${{ secrets.GIT_TOKEN }}
@@ -56,15 +61,27 @@ jobs:
 
       - name: Set up versionbump
         id: setup_versionbump
-        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/setup_versionbump@v0.9.0
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/setup_versionbump@v1
 
-      - name: Build wheels and source distribution
-        # We only need wheels and source distribution from Ubuntu
+      - name: Build executable (Ubuntu)
         if: ${{ startsWith(matrix.os, 'ubuntu-') }}
-        run: poetry build
+        run: |
+          invoke build --onefile --ci --name=agent-server --dist-path=dist
 
-      - name: Build Agent Server Binary
-        uses: ./.github/actions/build-server-binary
+      - name: Build executable (MacOS)
+        if: ${{ startsWith(matrix.os, 'macos-') }}
+        run: |
+          invoke setup-keychain build --onefile --ci --no-wheels --name=agent-server --dist-path=dist
+        env:
+          MACOS_SIGNING_CERT: ${{ secrets.MACOS_SIGNING_CERT_SEMA4AI }}
+          MACOS_SIGNING_CERT_PASSWORD: ${{ secrets.MACOS_SIGNING_CERT_PASSWORD_SEMA4AI }}
+          MACOS_SIGNING_CERT_NAME: ${{ secrets.MACOS_SIGNING_CERT_NAME_SEMA4AI }}
+
+      - name: Build executable (Windows)
+        if: ${{ startsWith(matrix.os, 'windows-') }}
+        shell: powershell
+        run: |
+          invoke build --onefile --ci --no-wheels --name=agent-server --dist-path=dist
 
       - name: Upload Agent Server Build Artifacts
         uses: actions/upload-artifact@v4
