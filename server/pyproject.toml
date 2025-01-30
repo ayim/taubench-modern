@@ -4,7 +4,7 @@ version = "1.1.4-alpha.70"
 description = ""
 authors = ["Sema4.ai Engineering <engineering@sema4.ai>"]
 readme = "README.md"
-packages = [{ include = "sema4ai_agent_server", from="." }]
+packages = [{ include = "sema4ai_agent_server", from = "." }]
 include = ["pyproject.toml"]
 
 [tool.poetry.dependencies]
@@ -95,20 +95,6 @@ invoke = "^2.2.0"
 [tool.poetry.scripts]
 agent-server = "sema4ai_agent_server.server:main"
 
-[[tool.poetry.source]]
-name = "pypi-public"
-url = "https://pypi.org/simple/"
-priority = "primary"
-
-[[tool.poetry.source]]
-name = "codeartifact"
-url = "https://sema4ai-710450854638.d.codeartifact.eu-west-1.amazonaws.com/pypi/agent-server/"
-priority = "supplemental"
-
-[[tool.poetry.source]]
-name = "PyPI"
-priority = "primary"
-
 [tool.coverage.run]
 omit = ["tests/*"]
 
@@ -123,7 +109,7 @@ addopts = "--strict-markers --strict-config --durations=5 -vv"
 # Use global timeout of 30 seconds for now.
 # Most tests should be closer to ~100 ms, but some of the tests involve
 # parsing files. We can adjust on a per test basis later on.
-timeout = 1500  # Integration tests can be slow.
+timeout = 1500                                  # Integration tests can be slow.
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 
