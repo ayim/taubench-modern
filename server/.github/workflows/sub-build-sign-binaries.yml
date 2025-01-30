@@ -53,6 +53,7 @@ jobs:
           command: |
             chmod +x ./scripts/notarize.sh
             ./scripts/notarize.sh ./build/agent-server ./dist
+            chmod +x ./dist/build/agent-server
         env:
           APPLEID: ${{ secrets.MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI }}
           APPLETEAMID: ${{ secrets.MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI }}
@@ -91,6 +92,7 @@ jobs:
           command: |
             chmod +x ./scripts/notarize.sh
             ./scripts/notarize.sh ./build/agent-server ./dist
+            chmod +x ./dist/build/agent-server
         env:
           APPLEID: ${{ secrets.MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI }}
           APPLETEAMID: ${{ secrets.MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI }}
