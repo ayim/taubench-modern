@@ -8,6 +8,6 @@ files:                   # The files to update with the new version.
     replace:
       - "version = \"{version}\"" # The search string to replace in the file.
 
-  - path: "agent_architecture_claude_tools/__init__.py"
+  - path: "agent_architecture_default_v2/__init__.py"
     replace:
       - "__version__ = \"{version}\""
