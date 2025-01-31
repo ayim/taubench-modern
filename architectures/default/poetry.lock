@@ -2,8 +2,8 @@
 
 [[package]]
 name = "agent-architecture"
-version = "1.0.2"
-description = "Core framework and default cognitive architecture for agents."
+version = "1.1.1-alpha.1"
+description = "Core cognitive framework architecture for agents."
 optional = false
 python-versions = "^3.11.0,<3.12"
 groups = ["main"]
@@ -11,7 +11,7 @@ files = []
 develop = false
 
 [package.dependencies]
-agent-server-types = {git = "https://github.com/Sema4AI/agent-server-types.git", tag = "v1.0.0"}
+agent-server-types = {git = "https://github.com/Sema4AI/agent-server-types.git", tag = "v1.1.2-alpha"}
 langchain-core = "^0.3.15"
 langgraph = "^0.2.45"
 opentelemetry-api = "^1.27.0"
@@ -20,12 +20,12 @@ structlog = "^24.4.0"
 [package.source]
 type = "git"
 url = "https://github.com/Sema4AI/agent-architecture.git"
-reference = "v1.0.2"
-resolved_reference = "4bb22fa08bdcceabf3a288af68ae8caec01bb4f2"
+reference = "v1.1.1-alpha.1"
+resolved_reference = "fca9240d9b192cd34ceda3f299d6be08bf60f2b4"
 
 [[package]]
 name = "agent-server-types"
-version = "1.0.0"
+version = "1.1.2-alpha"
 description = "Shared types for the agent server and agent architecture plugins."
 optional = false
 python-versions = "^3.11.0,<3.12"
@@ -40,8 +40,8 @@ pydantic = ">=2,<3"
 [package.source]
 type = "git"
 url = "https://github.com/Sema4AI/agent-server-types.git"
-reference = "v1.0.0"
-resolved_reference = "7091b9d447a351c1f467780e286d13477677ee0f"
+reference = "v1.1.2-alpha"
+resolved_reference = "a30c6e58e5a9c0c6c68d6fd4f74fa696149d312e"
 
 [[package]]
 name = "annotated-types"
@@ -1022,4 +1022,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11.0,<3.12"
-content-hash = "07c7ea9893486f0ef8430f932568fd67e488179fe5132617fd6e9070ce433125"
+content-hash = "0d827556cbda63cd47f14b18c5b72260f27516434c52302cfea52b22a91b80b2"
