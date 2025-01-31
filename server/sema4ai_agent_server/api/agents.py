@@ -42,9 +42,7 @@ from sema4ai_agent_server.agent_spec import (
     validate_spec,
 )
 from sema4ai_agent_server.auth.handlers import AuthedUser
-from sema4ai_agent_server.file_manager.base import (
-    BaseFileManager,
-)
+from sema4ai_agent_server.file_manager.base import BaseFileManager
 from sema4ai_agent_server.file_manager.option import get_file_manager
 from sema4ai_agent_server.responses import PydanticResponse, TypeAdapterResponse
 from sema4ai_agent_server.schema import (

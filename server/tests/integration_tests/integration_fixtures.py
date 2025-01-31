@@ -15,8 +15,35 @@ def logs_dir(request) -> Path:
     return directory
 
 
+@pytest.fixture(autouse=True)
+def copy_tmpdir_on_failure(request, tmpdir, logs_dir):
+    """
+    Copy the tmpdir contents to the logs_dir on failure so that
+    we can inspect the contents of the tmpdir on a failure in the ci.
+    """
+    failed = request.session.testsfailed
+    yield
+
+    if failed != request.session.testsfailed:
+        import shutil
+
+        # Copy tmpdir contents to logs directory with test name
+        dest = logs_dir / "tmpdir_contents"
+        shutil.copytree(tmpdir, dest, dirs_exist_ok=True)
+
+
 @pytest.fixture
-def base_url_agent_server(tmpdir, logs_dir):
+def files_location(tmpdir) -> Path:
+    return Path(tmpdir) / "files"
+
+
+@pytest.fixture
+def resources_dir() -> Path:
+    return Path(os.path.normpath(os.path.abspath(__file__))).parent / "resources"
+
+
+@pytest.fixture
+def base_url_agent_server(tmpdir, logs_dir, files_location):
     from tests.integration_tests.bootstrap_agent_server import AgentServerProcess
 
     start_server = os.getenv("INTEGRATION_TEST_START_SERVER", "false")
@@ -24,7 +51,9 @@ def base_url_agent_server(tmpdir, logs_dir):
         agent_server_data_dir = Path(tmpdir) / "agent_server_data"
         agent_server_data_dir.mkdir(parents=True, exist_ok=True)
         agent_server_process = AgentServerProcess(datadir=agent_server_data_dir)
-        agent_server_process.start(logs_dir=logs_dir)
+        agent_server_process.start(
+            logs_dir=logs_dir,
+        )
         yield f"http://{agent_server_process.host}:{agent_server_process.port}"
         agent_server_process.stop()
     else:

@@ -10,7 +10,7 @@ from fastapi.responses import ORJSONResponse
 
 from sema4ai_agent_server.agent_architecture_manager import architecture_names
 from sema4ai_agent_server.api import router as api_router
-from sema4ai_agent_server.constants import UPLOAD_DIR
+from sema4ai_agent_server.constants import Constants
 from sema4ai_agent_server.lifespan import lifespan
 from sema4ai_agent_server.log_config import setup_logging
 from sema4ai_agent_server.otel import setup_otel
@@ -82,9 +82,9 @@ app = _CustomFastAPI()
 app.include_router(api_router)
 
 
-def _on_startup():
+def _on_startup() -> None:
     # Ensure UPLOAD_DIR exists
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    os.makedirs(Constants.UPLOAD_DIR, exist_ok=True)
 
 
 app.add_event_handler("startup", _on_startup)

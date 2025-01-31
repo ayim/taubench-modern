@@ -45,12 +45,20 @@ def mock_requests():
     return mock
 
 
+@pytest.fixture
+def mock_constants(tmpdir):
+    from sema4ai_agent_server.constants import Constants
+
+    original_upload_dir = Constants.UPLOAD_DIR
+    Constants.UPLOAD_DIR = str(tmpdir / "uploads")
+    yield
+    Constants.UPLOAD_DIR = original_upload_dir
+
+
 @pytest.fixture(params=[LocalFileManager, CloudFileManager])
-def file_manager(request, tmpdir, mock_requests):
+def file_manager(request, tmpdir, mock_requests, mock_constants):
     if request.param == LocalFileManager:
         manager = LocalFileManager()
-        # TODO: This is wrong, there is no UPLOAD_DIR defined in LocalFileManager (it's set in the module level)
-        manager.UPLOAD_DIR = str(tmpdir)
     else:
         manager = CloudFileManager()
         manager.FILE_MANAGEMENT_API_URL = "https://example.com/api"
@@ -85,6 +93,17 @@ def sample_file(tmpdir):
     file_path.write_bytes(file_content)
     with file_path.open("rb") as file_stream:
         yield UploadFile(filename="test.txt", file=file_stream)
+
+
+@pytest.fixture
+def sample_file2(tmpdir):
+    from pathlib import Path
+
+    file_content = b"updated content"
+    file_path = Path(tmpdir) / "test2.txt"
+    file_path.write_bytes(file_content)
+    with file_path.open("rb") as file_stream:
+        yield UploadFile(filename="test2.txt", file=file_stream)
 
 
 @pytest.fixture
@@ -144,11 +163,19 @@ class TestFileManager:
         sample_owner: Union[Agent, Thread],
         mock_embed_runnable: Mock,
         sample_uploaded_file: UploadedFile,
+        sample_file2: UploadFile,
     ):
         mock_embed_runnable.invoke.return_value = {"embeddings": [0.1, 0.2, 0.3]}
 
         results = await file_manager.upload(
             [UploadFileRequest(file=sample_file)], sample_owner
+        )
+        assert results[0].file_ref == sample_uploaded_file.file_ref
+
+        # re-upload another file
+        sample_file2.filename = "test.txt"
+        results = await file_manager.upload(
+            [UploadFileRequest(file=sample_file2)], sample_owner
         )
         assert results[0].file_ref == sample_uploaded_file.file_ref
 

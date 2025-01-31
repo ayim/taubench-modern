@@ -26,7 +26,10 @@ class UniqueAgentNameError(HTTPException):
 
 class UniqueFileRefError(HTTPException):
     def __init__(self, file_ref: str, *args: object, **kwargs: object) -> None:
-        super().__init__(status_code=409, detail=f"File '{file_ref}' already exists")
+        super().__init__(
+            status_code=409,
+            detail=f"File '{file_ref}' already exists and is embedded into the context",
+        )
 
 
 class BaseStorage(ABC):

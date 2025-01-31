@@ -204,7 +204,9 @@ class ActionServerProcess:
                             raise ActionServerExitedError(
                                 f"The process already exited with returncode: "
                                 f"{process.returncode}\n"
-                                f"Args: {new_args}"
+                                f"Args: {new_args}.\n"
+                                f"Stdout: {self.get_stdout()}\n"
+                                f"Stderr: {self.get_stderr()}\n"
                             )
             else:
                 host, port = future.result(timeout)

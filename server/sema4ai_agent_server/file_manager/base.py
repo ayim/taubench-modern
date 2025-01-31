@@ -1,6 +1,5 @@
 import hashlib
 import os
-import re
 from typing import Union
 
 import structlog
@@ -169,33 +168,29 @@ class BaseFileManager:
     async def generate_unique_file_ref(
         self, owner: Union[Agent, Thread], file_name: str
     ) -> str:
-        # TODO 2 concurrent requests to generate the unique file ref for the same
-        # owner could end up generating the same id for both.
-        files = []
-        if isinstance(owner, Agent):
-            files = await get_storage().get_agent_files(owner.id)
-        elif isinstance(owner, Thread):
-            files = await get_storage().get_thread_files(owner.thread_id)
+        from sema4ai_agent_server.storage import UniqueFileRefError
 
-        existing_refs = {file.file_ref for file in files}
-        if file_name not in existing_refs:
-            return file_name
+        uploaded_file = await get_storage().get_file(owner, file_name)
+        if uploaded_file:
+            # This file already exists, so, double check if it's already embedded.
+            # If it is, we can't override it!
+            if uploaded_file.embedded:
+                raise UniqueFileRefError(file_name)
 
-        file_base, file_ext = os.path.splitext(file_name)
-        # Example file_ref: "data (1).csv", "data (2).csv", ...
-        pattern = re.compile(
-            rf"^{re.escape(file_base)} \((\d+)\){re.escape(file_ext)}$"
-        )
+        # Just return the file name as it is (which may override an existing file)
 
-        max_index = 0
-        for file_ref in existing_refs:
-            match = pattern.match(file_ref)
-            if match:
-                index = int(match.group(1))
-                max_index = max(max_index, index)
+        # Note: there is code in the repository to generate a unique file ref
+        # with a rule such as `data (1).csv`, `data (2).csv`, etc.
 
-        new_file_ref = f"{file_base} ({max_index + 1}){file_ext}"
-        return new_file_ref
+        # This was changed because the usage of always creating a new file ref instead
+        # of overriding files with the same name made it more difficult to manage
+        # in actions (as actions are stateless, referencing a file by the same name is
+        # easy, but keeping a track of which is the new name to reference if a file
+        # is updated is not that straightforward).
+        # In the future maybe we could have some other versioning scheme to access old
+        # files, but for now, just overriding is simpler and easier to manage.
+
+        return file_name
 
     async def request_remote_file_upload(
         self, thread: Thread, file_name: str

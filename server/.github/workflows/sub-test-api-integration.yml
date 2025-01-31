@@ -57,7 +57,7 @@ jobs:
 
       - name: Start application server (PostgreSQL)
         run: |
-          poetry run agent-server --host localhost --port 8000 &
+          poetry run agent-server --host localhost --port 8000 > agent-server-output.log 2>&1 &
           sleep 20  # Give the server some time to start
         env:
           S4_AGENT_SERVER_DB_TYPE: postgres
@@ -81,7 +81,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: server-logs-postgres
-          path: ./agent-server.log
+          path: ./*.log
 
       - name: Upload tests log directory
         if: failure()

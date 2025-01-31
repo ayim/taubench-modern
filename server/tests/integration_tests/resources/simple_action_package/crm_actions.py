@@ -1,6 +1,7 @@
 import uuid
-from sema4ai.actions import action, Response
 from typing import TypedDict
+
+from sema4ai.actions import Response, action
 
 
 class CustomerData(TypedDict):
@@ -66,7 +67,7 @@ def list_contacts() -> dict:
 
 
 @action
-def delete_contact(contact_id: int) -> bool:
+def delete_contact(contact_id: str) -> bool:
     """
     Deletes a contact from the CRM.
 

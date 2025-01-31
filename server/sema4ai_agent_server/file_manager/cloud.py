@@ -6,12 +6,7 @@ from uuid import uuid4
 
 import requests
 import structlog
-from agent_server_types import (
-    Agent,
-    EmbeddingStatus,
-    Thread,
-    UploadedFile,
-)
+from agent_server_types import Agent, EmbeddingStatus, Thread, UploadedFile
 from fastapi import UploadFile
 
 from sema4ai_agent_server.file_manager.base import (
@@ -167,9 +162,17 @@ class CloudFileManager(BaseFileManager):
             raise Exception(f"File not found: {file_id}")
 
         file_path = file.file_path
+        if not file_path:
+            raise Exception(f"File path for file {file_id} not available")
+
         if self._file_path_is_expired(file):
             updated_files = await self.refresh_file_paths([file])
             file_path = updated_files[0].file_path
+            if not file_path:
+                raise Exception(
+                    f"File path for file {file_id} not available after refreshing file paths"
+                )
+
         try:
             response = requests.get(file_path)
             response.raise_for_status()
