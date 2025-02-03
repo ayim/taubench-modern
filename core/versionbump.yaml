@@ -3,6 +3,9 @@ version: "1.1.2-alpha"        # The current version of the project. This is the 
 git-commit: true         # Whether to create a git commit for the version bump.
 git-tag: true            # Whether to create a git tag for the version bump.
 
+prerelease-labels:
+  - "kernelalpha"
+
 files:                   # The files to update with the new version.
   - path: "pyproject.toml"
     replace:
