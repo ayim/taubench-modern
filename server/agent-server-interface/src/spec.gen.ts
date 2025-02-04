@@ -1221,7 +1221,8 @@ export const spec = {
       post: {
         tags: ["threads"],
         summary: "Upload Thread Files",
-        description: "Upload files to the given agent.",
+        description:
+          "Upload files to the given agent.\n\nArgs:\n    files: The files to upload.\n    user: The user uploading the files.\n    tid: The thread ID to upload the files to.\n    background_tasks: The background tasks to run.\n    embedded: Whether to embed the files. If not given, it will be inferred from the file type.",
         operationId: "upload_thread_files_api_v1_threads__tid__files_post",
         parameters: [
           {
@@ -1231,6 +1232,22 @@ export const spec = {
             schema: {
               type: "string",
               title: "Tid",
+            },
+          },
+          {
+            name: "embedded",
+            in: "query",
+            required: false,
+            schema: {
+              anyOf: [
+                {
+                  type: "boolean",
+                },
+                {
+                  type: "null",
+                },
+              ],
+              title: "Embedded",
             },
           },
         ],

@@ -62,6 +62,15 @@ def base_url_agent_server(tmpdir, logs_dir, files_location):
         yield f"http://{host}:{port}"
 
 
+def assert_status(
+    response, message: str = "", valid_statuses: tuple[int, ...] = (200,)
+):
+    if response.status not in valid_statuses:
+        raise AssertionError(
+            f"{message}\nExpected status: {valid_statuses}\nActual status: {response.status}\nBody: {response.data!r}"
+        )
+
+
 @lru_cache
 def get_default_sema4ai_home_dir() -> Path:
     import sys
@@ -82,10 +91,8 @@ def get_default_sema4ai_home_dir() -> Path:
 
 
 @pytest.fixture
-def action_server_process(tmpdir):
+def action_server_executable_path() -> Path:
     import sys
-
-    from tests.integration_tests.bootstrap_action_server import ActionServerProcess
 
     # We need to download the action server to the default sema4ai home dir
     # because the action server will use it to store the actions.
@@ -101,14 +108,20 @@ def action_server_process(tmpdir):
 
     target_location = action_server_download_dir / f"action-server-{version}{suffix}"
     action_server_tool = tools.ActionServerTool(
-        target_location=target_location,
+        target_location=str(target_location),
         tool_version=version,
     )
     action_server_tool.download()
+    return target_location
+
+
+@pytest.fixture
+def action_server_process(tmpdir, action_server_executable_path: Path):
+    from tests.integration_tests.bootstrap_action_server import ActionServerProcess
 
     action_server_process = ActionServerProcess(
         datadir=Path(tmpdir) / "action_server_data",
-        executable_path=target_location,
+        executable_path=action_server_executable_path,
     )
     yield action_server_process
     action_server_process.stop()

@@ -463,6 +463,13 @@ export interface paths {
     /**
      * Upload Thread Files
      * @description Upload files to the given agent.
+     *
+     *     Args:
+     *         files: The files to upload.
+     *         user: The user uploading the files.
+     *         tid: The thread ID to upload the files to.
+     *         background_tasks: The background tasks to run.
+     *         embedded: Whether to embed the files. If not given, it will be inferred from the file type.
      */
     post: operations["upload_thread_files_api_v1_threads__tid__files_post"];
     delete?: never;
@@ -3204,7 +3211,9 @@ export interface operations {
   };
   upload_thread_files_api_v1_threads__tid__files_post: {
     parameters: {
-      query?: never;
+      query?: {
+        embedded?: boolean | null;
+      };
       header?: never;
       path: {
         tid: string;
