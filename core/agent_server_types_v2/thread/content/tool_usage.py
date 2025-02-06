@@ -1,0 +1,123 @@
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Any, Literal
+
+from agent_server_types_v2.thread.content.base import ThreadMessageContent
+from agent_server_types_v2.utils import assert_literal_value_valid
+
+
+@dataclass
+class ThreadToolUsageContent(ThreadMessageContent):
+    """Represents a tool usage in the thread.
+
+    This class handles tool usage: both the call, status, results, and possibly
+    error associated with the tool call.
+    """
+
+    name: str = field(metadata={"description": "The name of the tool to call"})
+    """The name of the tool to call"""
+
+    tool_call_id: str = field(metadata={"description": "The ID of the tool call"})
+    """The ID of the tool call"""
+
+    arguments_raw: str = field(metadata={"description": "The raw arguments (JSON string) passed to the tool"})
+    """The raw arguments (JSON string) passed to the tool"""
+
+    sub_type: Literal["kernel-internal", "ca-internal", "action-external", "unknown"] = field(
+        default="unknown",
+        metadata={"description": "The sub-type of the tool call, if it has one"},
+    )
+    """The sub-type of the tool call, if it has one"""
+
+    status: Literal["running", "finished", "failed"] = field(
+        default="running",
+        metadata={"description": "The status of the tool call, either 'running', 'finished', or 'failed'"},
+    )
+    """The status of the tool call, either 'running', 'finished', or 'failed'"""
+
+    result: str | None = field(
+        default=None,
+        metadata={"description": "The result of the tool call, if it has finished"},
+    )
+    """The result of the tool call, if it has finished"""
+
+    error: str | None = field(
+        default=None,
+        metadata={"description": "The error message of the tool call, if it has failed"},
+    )
+    """The error message of the tool call, if it has failed"""
+
+    started_at: datetime | None = field(
+        default=None,
+        metadata={"description": "The timestamp when the tool call started"},
+    )
+    """The timestamp when the tool call started"""
+
+    ended_at: datetime | None = field(
+        default=None,
+        metadata={"description": "The timestamp when the tool call ended"},
+    )
+    """The timestamp when the tool call ended"""
+
+    metadata: dict[str, Any] | None = field(
+        default=None,
+        metadata={"description": "The metadata of the tool call"},
+    )
+    """The metadata of the tool call"""
+
+    kind: Literal["tool_call"] = field(
+        default="tool_call",
+        metadata={"description": "Content kind: always 'tool_call'"},
+        init=False,
+    )
+    """Content kind: always 'tool_call'"""
+
+    def __post_init__(self) -> None:
+        """Validates the content type and text content after initialization.
+
+        Raises:
+            AssertionError: If the type field doesn't match the literal "text".
+            ValueError: If the tool_name field is empty.
+        """
+        assert_literal_value_valid(self, "kind")
+
+        if not self.name:
+            raise ValueError("Tool name cannot be empty")
+
+    def as_text_content(self) -> str:
+        """Converts the text content to a text content component."""
+        as_markdown = f"Tool call: {self.name} ({self.tool_call_id})"
+        if self.status == "finished":
+            as_markdown += f"\nResult: {self.result}"
+        elif self.status == "failed":
+            as_markdown += f"\nError: {self.error}"
+        return as_markdown
+
+    def to_json_dict(self) -> dict:
+        """Serializes the tool usage content to a dictionary. Useful for JSON serialization."""
+        return {
+            **super().to_json_dict(),
+            "name": self.name,
+            "tool_call_id": self.tool_call_id,
+            "arguments_raw": self.arguments_raw,
+            "sub_type": self.sub_type,
+            "status": self.status,
+            "result": self.result,
+            "error": self.error,
+            "started_at": self.started_at,
+            "ended_at": self.ended_at,
+            "metadata": self.metadata,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "ThreadToolUsageContent":
+        """Create a thread tool usage content from a dictionary."""
+        data = data.copy()
+        if "started_at" in data and isinstance(data["started_at"], str):
+            data["started_at"] = datetime.fromisoformat(data["started_at"])
+        if "ended_at" in data and isinstance(data["ended_at"], str):
+            data["ended_at"] = datetime.fromisoformat(data["ended_at"])
+        return cls(**data)
+
+
+ThreadMessageContent.register_content_kind("tool_call", ThreadToolUsageContent)

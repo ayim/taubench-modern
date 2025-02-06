@@ -4,11 +4,47 @@ version = "1.1.2-alpha"
 description = "Shared types for the agent server and agent architecture plugins."
 authors = ["Sema4.ai Engineering <engineering@sema4.ai>"]
 readme = "README.md"
+packages = [
+    { include = "agent_server_types" },
+    { include = "agent_server_types_v2" }
+]
+
 
 [tool.poetry.dependencies]
 python = "^3.11.0,<3.12"
-pydantic = ">=2,<3"
-langchain-core = "^0.3.15"
+# optional=true here, as depending on the extras selected
+# we may not need all of these dependencies.
+pydantic = { version = ">=2,<3", optional = true }
+langchain-core = { version = ">=0.3.15", optional = true }
+google-generativeai = { version = ">=0.8.3", optional = true }
+openai = { version = ">=1.59.8", optional = true }
+anthropic = { version = ">=0.41.3", optional = true }
+# Wont add an extra for these two, as they are not required
+# even for specific providers (just convenience for image
+# content support)
+pillow = { version = ">=11.1.0", optional = true }
+IPython = { version = ">=8.31.0", optional = true }
+
+
+[tool.poetry.extras]
+# Legacy dependencies (langchain/pydantic can
+# eventually be dropped, hopefully)
+legacy = ["pydantic", "langchain-core"]
+# We can have provider-specific "extras" so
+# that installs can include only the provider
+# dependencies that are needed. We will need
+# to write the code carefully to support this
+# approach (e.g., using TYPE_CHECKING to
+# conditionally import provider-specific
+# types; importing provider-specific code inside
+# a provider-specific function, etc.).
+providers-google = ["google-generativeai"]
+providers-openai = ["openai"]
+providers-anthropic = ["anthropic"]
+# Convenience extras for installing all providers
+# at once.
+providers-all = ["google-generativeai", "openai", "anthropic"]
+
 
 [tool.poetry.group.lint.dependencies]
 ruff = "^0.7.2"
@@ -16,11 +52,69 @@ ruff = "^0.7.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.3"
+pytest-asyncio = "^0.25.2"
+# Will add these as dev deps though, for testing
+# purposes and example notebooks
+pillow = "^11.1.0"
+IPython = "^8.31.0"
+
 
 [tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+
+[tool.ruff]
+# Moving common settings that aren't deprecated
+line-length = 120
+target-version = "py311"
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
+
+# Moving deprecated settings under [tool.ruff.lint]
+[tool.ruff.lint]
+select = ["E", "F", "I", "PL", "N", "UP", "B", "A", "COM", "PT", "RUF"]
+ignore = []
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.lint.per-file-ignores]
+"examples/*.ipynb" = ["PLE1142"]
+"tests/v2/*.py" = ["PLR2004"]
+
+# Moving these under lint as well
+[tool.ruff.lint.isort]
+known-first-party = ["agent_server_types_v2"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
