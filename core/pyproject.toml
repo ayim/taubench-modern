@@ -6,7 +6,7 @@ authors = ["Sema4.ai Engineering <engineering@sema4.ai>"]
 readme = "README.md"
 packages = [
     { include = "agent_server_types" },
-    { include = "agent_server_types_v2" }
+    { include = "agent_server_types_v2" },
 ]
 
 
@@ -74,9 +74,10 @@ build-backend = "poetry.core.masonry.api"
 
 
 [tool.ruff]
-# Moving common settings that aren't deprecated
-line-length = 120
+line-length = 88
 target-version = "py311"
+show-fixes = true
+respect-gitignore = true
 exclude = [
     ".bzr",
     ".direnv",
@@ -101,20 +102,38 @@ exclude = [
     "venv",
 ]
 
-# Moving deprecated settings under [tool.ruff.lint]
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
 [tool.ruff.lint]
-select = ["E", "F", "I", "PL", "N", "UP", "B", "A", "COM", "PT", "RUF"]
-ignore = []
+# Combine your existing rules with some additional ones
+select = [
+    "E",
+    "F",
+    "I",
+    "PL",
+    "N",
+    "UP",
+    "B",
+    "A",
+    "COM",
+    "PT",
+    "RUF",
+    "W",
+    "C90",
+]
 fixable = ["ALL"]
 unfixable = []
 
+# Keep your existing per-file-ignores
 [tool.ruff.lint.per-file-ignores]
 "examples/*.ipynb" = ["PLE1142"]
-"tests/v2/*.py" = ["PLR2004"]
+"tests-v2/*.py" = ["PLR2004"]
 
-# Moving these under lint as well
 [tool.ruff.lint.isort]
-known-first-party = ["agent_server_types_v2"]
+known-first-party = ["agent_server_types_v2", "sema4ai_agent_server"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
