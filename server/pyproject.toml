@@ -55,19 +55,12 @@ bs4 = "^0.0.2"
 agent-server-types = { git = "https://github.com/Sema4AI/agent-server-types.git", rev = "development-kernel" }
 agent-architecture = { git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.1.1-alpha.1" }
 agent-architecture-default = { git = "https://github.com/Sema4AI/agent-architecture-default.git", tag = "v1.0.6-alpha.2" }
-agent-architecture-default-v2 = { git = "https://github.com/Sema4AI/agent-architecture-default-v2.git", rev="henkel/gpt-649-agent-server-kernel"  }
+agent-architecture-default-v2 = { git = "https://github.com/Sema4AI/agent-architecture-default-v2.git", rev = "henkel/gpt-649-agent-server-kernel" }
 agent-architecture-openai-plan-execute = { git = "https://github.com/Sema4AI/agent-architecture-openai-plan-execute.git", tag = "v1.0.4-alpha.2" }
 agent-architecture-claude-tools = { git = "https://github.com/Sema4AI/agent-architecture-claude-tools.git", tag = "v1.0.4-alpha.2" }
 
 [tool.mypy]
 mypy_path = "."
-
-[tool.black]
-skip-string-normalization = false
-skip-magic-trailing-comma = false
-
-[tool.isort]
-profile = "black"
 
 [tool.poetry.group.dev.dependencies]
 uvicorn = "^0.34.0"
@@ -113,7 +106,7 @@ addopts = "--strict-markers --strict-config --durations=5 -vv -p no:capture"
 # Use global timeout of 30 seconds for now.
 # Most tests should be closer to ~100 ms, but some of the tests involve
 # parsing files. We can adjust on a per test basis later on.
-timeout = 1500                                  # Integration tests can be slow.
+timeout = 1500                                 # Integration tests can be slow.
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
 
@@ -122,9 +115,10 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.ruff]
-# Moving common settings that aren't deprecated
-line-length = 120
+line-length = 88
 target-version = "py311"
+show-fixes = true
+respect-gitignore = true
 exclude = [
     ".bzr",
     ".direnv",
@@ -149,18 +143,36 @@ exclude = [
     "venv",
 ]
 
-# Moving deprecated settings under [tool.ruff.lint]
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
 [tool.ruff.lint]
-select = ["E", "F", "I", "PL", "N", "UP", "B", "A", "COM", "PT", "RUF"]
-ignore = []
+# Combine your existing rules with some additional ones
+select = [
+    "E",
+    "F",
+    "I",
+    "PL",
+    "N",
+    "UP",
+    "B",
+    "A",
+    "COM",
+    "PT",
+    "RUF",
+    "W",
+    "C90",
+]
 fixable = ["ALL"]
 unfixable = []
 
+# Keep your existing per-file-ignores
 [tool.ruff.lint.per-file-ignores]
 "examples/*.ipynb" = ["PLE1142"]
 "tests-v2/*.py" = ["PLR2004"]
 
-# Moving these under lint as well
 [tool.ruff.lint.isort]
 known-first-party = ["agent_server_types_v2", "sema4ai_agent_server"]
 
