@@ -10,6 +10,7 @@ from fastapi.responses import ORJSONResponse
 
 from sema4ai_agent_server.agent_architecture_manager import architecture_names
 from sema4ai_agent_server.api import router as api_router
+from sema4ai_agent_server.api.v2 import router as api_v2_router
 from sema4ai_agent_server.constants import Constants
 from sema4ai_agent_server.lifespan import lifespan
 from sema4ai_agent_server.log_config import setup_logging
@@ -80,6 +81,8 @@ class _CustomFastAPI(FastAPI):
 
 app = _CustomFastAPI()
 app.include_router(api_router)
+# Exclude the v2 API from the main schema (for now)
+app.include_router(api_v2_router, include_in_schema=False)
 
 
 def _on_startup() -> None:

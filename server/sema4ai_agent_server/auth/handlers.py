@@ -4,7 +4,7 @@ from typing import Annotated
 
 import jwt
 import requests
-from fastapi import Depends, HTTPException, Request
+from fastapi import Depends, HTTPException, Request, WebSocket, WebSocketException, status
 from fastapi.security.http import HTTPBearer
 
 from sema4ai_agent_server.auth.settings import AuthType, settings

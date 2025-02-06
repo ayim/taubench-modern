@@ -319,8 +319,18 @@ async def upload_thread_files(
     user: AuthedUser,
     tid: ThreadID,
     background_tasks: BackgroundTasks,
+    embedded: bool | None = None,
 ):
-    """Upload files to the given agent."""
+    """
+    Upload files to the given agent.
+
+    Args:
+        files: The files to upload.
+        user: The user uploading the files.
+        tid: The thread ID to upload the files to.
+        background_tasks: The background tasks to run.
+        embedded: Whether to embed the files. If not given, it will be inferred from the file type.
+    """
 
     thread = await get_storage().get_thread(user.user_id, tid)
     if thread is None:
@@ -332,14 +342,15 @@ async def upload_thread_files(
 
     file_manager = get_file_manager()
     stored_files = await file_manager.upload(
-        [UploadFileRequest(file=f) for f in files], thread
+        [UploadFileRequest(file=f, embedded=embedded) for f in files], thread
     )
 
     await _add_uploaded_messages(stored_files, tid, user)
 
-    background_tasks.add_task(
-        file_manager.create_missing_embeddings, agent.model, thread
-    )
+    if any(file.embedded for file in stored_files):
+        background_tasks.add_task(
+            file_manager.create_missing_embeddings, agent.model, thread
+        )
     return TypeAdapterResponse(stored_files, adapter=UPLOADED_FILE_LIST_ADAPTER)
 
 

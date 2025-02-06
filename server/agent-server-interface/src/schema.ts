@@ -463,6 +463,13 @@ export interface paths {
     /**
      * Upload Thread Files
      * @description Upload files to the given agent.
+     *
+     *     Args:
+     *         files: The files to upload.
+     *         user: The user uploading the files.
+     *         tid: The thread ID to upload the files to.
+     *         background_tasks: The background tasks to run.
+     *         embedded: Whether to embed the files. If not given, it will be inferred from the file type.
      */
     post: operations["upload_thread_files_api_v1_threads__tid__files_post"];
     delete?: never;
@@ -705,7 +712,9 @@ export interface components {
         | "agent"
         | "agent_architecture_claude_tools"
         | "agent_architecture_default"
+        | "agent_architecture_default_v2"
         | "agent_architecture_openai_plan_execute"
+        | "agent_architecture_vitality"
         | "plan_execute";
       /** @description The reasoning setting of the agent. */
       reasoning: components["schemas"]["AgentReasoning"];
@@ -3204,7 +3213,9 @@ export interface operations {
   };
   upload_thread_files_api_v1_threads__tid__files_post: {
     parameters: {
-      query?: never;
+      query?: {
+        embedded?: boolean | null;
+      };
       header?: never;
       path: {
         tid: string;

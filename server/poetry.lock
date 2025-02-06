@@ -64,6 +64,25 @@ reference = "v1.0.6-alpha.2"
 resolved_reference = "0d00b3217d954d862c95260654ce04669a3fe17c"
 
 [[package]]
+name = "agent-architecture-default-v2"
+version = "1.0.2"
+description = "Generic default cognitive architecture for Sema4.ai agents (v2)."
+optional = false
+python-versions = "^3.11.0,<3.12"
+groups = ["main"]
+files = []
+develop = false
+
+[package.dependencies]
+agent-server-types = {git = "https://github.com/Sema4AI/agent-server-types.git", tag = "v1.1.0"}
+
+[package.source]
+type = "git"
+url = "https://github.com/Sema4AI/agent-architecture-default-v2.git"
+reference = "henkel/gpt-649-agent-server-kernel"
+resolved_reference = "7dc1b74b1cc6d11efff63d1d63a408e3357f0ee7"
+
+[[package]]
 name = "agent-architecture-openai-plan-execute"
 version = "1.0.4-alpha.2"
 description = "Plan execute cognitive architecture for agents with support for OpenAI LLMs."
@@ -241,6 +260,25 @@ files = [
 frozenlist = ">=1.1.0"
 
 [[package]]
+name = "aiosqlite"
+version = "0.20.0"
+description = "asyncio bridge to the standard sqlite3 module"
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "aiosqlite-0.20.0-py3-none-any.whl", hash = "sha256:36a1deaca0cac40ebe32aac9977a6e2bbc7f5189f23f4a54d5908986729e5bd6"},
+    {file = "aiosqlite-0.20.0.tar.gz", hash = "sha256:6d35c8c256637f4672f843c31021464090805bf925385ac39473fb16eaaca3d7"},
+]
+
+[package.dependencies]
+typing_extensions = ">=4.0"
+
+[package.extras]
+dev = ["attribution (==1.7.0)", "black (==24.2.0)", "coverage[toml] (==7.4.1)", "flake8 (==7.0.0)", "flake8-bugbear (==24.2.6)", "flit (==3.9.0)", "mypy (==1.8.0)", "ufmt (==2.3.0)", "usort (==1.0.8.post1)"]
+docs = ["sphinx (==7.2.6)", "sphinx-mdinclude (==0.5.3)"]
+
+[[package]]
 name = "altgraph"
 version = "0.17.4"
 description = "Python graph (network) package"
@@ -325,6 +363,18 @@ files = [
 
 [package.extras]
 tests = ["mypy (>=0.800)", "pytest", "pytest-asyncio"]
+
+[[package]]
+name = "asn1crypto"
+version = "1.5.1"
+description = "Fast ASN.1 parser and serializer with definitions for private keys, public keys, certificates, CRL, OCSP, CMS, PKCS#3, PKCS#7, PKCS#8, PKCS#12, PKCS#5, X.509 and TSP"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "asn1crypto-1.5.1-py2.py3-none-any.whl", hash = "sha256:db4e40728b728508912cbb3d44f19ce188f218e9eba635821bb4b68564f8fd67"},
+    {file = "asn1crypto-1.5.1.tar.gz", hash = "sha256:13ae38502be632115abf8a24cbe5f4da52e3b5231990aff31123c805306ccb9c"},
+]
 
 [[package]]
 name = "attrs"
@@ -458,6 +508,21 @@ urllib3 = {version = ">=1.25.4,<2.2.0 || >2.2.0,<3", markers = "python_version >
 
 [package.extras]
 crt = ["awscrt (==0.23.4)"]
+
+[[package]]
+name = "bs4"
+version = "0.0.2"
+description = "Dummy package for Beautiful Soup (beautifulsoup4)"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "bs4-0.0.2-py2.py3-none-any.whl", hash = "sha256:abf8742c0805ef7f662dce4b51cca104cffe52b835238afc169142ab9b3fbccc"},
+    {file = "bs4-0.0.2.tar.gz", hash = "sha256:a48685c58f50fe127722417bae83fe6badf500d54b55f7e39ffe43b798653925"},
+]
+
+[package.dependencies]
+beautifulsoup4 = "*"
 
 [[package]]
 name = "build"
@@ -4022,6 +4087,22 @@ files = [
 ]
 
 [[package]]
+name = "pg8000"
+version = "1.31.2"
+description = "PostgreSQL interface library"
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "pg8000-1.31.2-py3-none-any.whl", hash = "sha256:436c771ede71af4d4c22ba867a30add0bc5c942d7ab27fadbb6934a487ecc8f6"},
+    {file = "pg8000-1.31.2.tar.gz", hash = "sha256:1ea46cf09d8eca07fe7eaadefd7951e37bee7fabe675df164f1a572ffb300876"},
+]
+
+[package.dependencies]
+python-dateutil = ">=2.8.2"
+scramp = ">=1.4.5"
+
+[[package]]
 name = "pgvector"
 version = "0.2.5"
 description = "pgvector support for Python"
@@ -5416,6 +5497,21 @@ botocore = ">=1.36.0,<2.0a.0"
 crt = ["botocore[crt] (>=1.36.0,<2.0a.0)"]
 
 [[package]]
+name = "scramp"
+version = "1.4.5"
+description = "An implementation of the SCRAM protocol."
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "scramp-1.4.5-py3-none-any.whl", hash = "sha256:50e37c464fc67f37994e35bee4151e3d8f9320e9c204fca83a5d313c121bbbe7"},
+    {file = "scramp-1.4.5.tar.gz", hash = "sha256:be3fbe774ca577a7a658117dca014e5d254d158cecae3dd60332dfe33ce6d78e"},
+]
+
+[package.dependencies]
+asn1crypto = ">=1.5.1"
+
+[[package]]
 name = "sema4ai-common"
 version = "0.0.1"
 description = "Sema4AI Common"
@@ -5701,6 +5797,40 @@ files = [
 [package.extras]
 doc = ["reno", "sphinx"]
 test = ["pytest", "tornado (>=4.5)", "typeguard"]
+
+[[package]]
+name = "testing-common-database"
+version = "2.0.3"
+description = "utilities for testing.* packages"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "testing.common.database-2.0.3-py2.py3-none-any.whl", hash = "sha256:e3ed492bf480a87f271f74c53b262caf5d85c8bc09989a8f534fa2283ec52492"},
+    {file = "testing.common.database-2.0.3.tar.gz", hash = "sha256:965d80b2985315325dc358c3061b174a712f4d4d5bf6a80b58b11f9a1dd86d73"},
+]
+
+[package.extras]
+testing = ["nose"]
+
+[[package]]
+name = "testing-postgresql"
+version = "1.3.0"
+description = "automatically setups a postgresql instance in a temporary directory, and destroys it after testing"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "testing.postgresql-1.3.0-py2.py3-none-any.whl", hash = "sha256:1b41daeb98dfc8cd4a584bb91e8f5f4ab182993870f95257afe5f1ba6151a598"},
+    {file = "testing.postgresql-1.3.0.tar.gz", hash = "sha256:8e1a69760369a7a8ffe63a66b6d95a5cd82db2fb976e4a8f85ffd24fbfc447d8"},
+]
+
+[package.dependencies]
+pg8000 = ">=1.10"
+"testing.common.database" = "*"
+
+[package.extras]
+testing = ["SQLAlchemy", "nose", "psycopg2"]
 
 [[package]]
 name = "tiktoken"

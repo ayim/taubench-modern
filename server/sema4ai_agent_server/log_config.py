@@ -1,6 +1,7 @@
 import logging
 import sys
 from logging.handlers import RotatingFileHandler
+from pathlib import Path
 
 import structlog
 import uvicorn
@@ -23,6 +24,13 @@ def setup_logging():
     json_formatter = jsonlogger.JsonFormatter(
         "%(asctime)s - %(name)s - %(levelname)s %(message)s"
     )
+
+    # If LOG_FILE_PATH does not exist, create it (recursively)
+    try:
+        path = Path(LOG_FILE_PATH)
+        path.parent.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        pass
 
     default_handler = logging.StreamHandler(sys.stderr)
     default_handler.setFormatter(default_formatter)
@@ -55,6 +63,13 @@ def setup_logging():
     uvicorn_access_logger.addHandler(access_handler)
     uvicorn_access_logger.addHandler(file_handler)
     uvicorn_access_logger.propagate = False
+
+    aiosqlite_logger = logging.getLogger("aiosqlite")
+    aiosqlite_logger.setLevel(logging.WARNING)
+    aiosqlite_logger.handlers.clear()
+    aiosqlite_logger.addHandler(default_handler)
+    aiosqlite_logger.addHandler(file_handler)
+    aiosqlite_logger.propagate = False
 
     # Prevents getting spammed with watchfiles logs when --reload is used in development
     watchfiles_logger = logging.getLogger("watchfiles.main")

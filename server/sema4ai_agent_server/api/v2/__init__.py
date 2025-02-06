@@ -1,0 +1,29 @@
+from fastapi import APIRouter
+
+from sema4ai_agent_server.api.v2.agents import router as agents_router
+from sema4ai_agent_server.api.v2.runs import router as runs_router
+from sema4ai_agent_server.api.v2.threads import router as threads_router
+
+router = APIRouter(prefix="/api/v2")
+
+
+@router.get("/ok")
+def ok():
+    return {"ok": True}
+
+
+router.include_router(
+    agents_router,
+    prefix="/agents",
+    tags=["agents"],
+)
+router.include_router(
+    runs_router,
+    prefix="/runs",
+    tags=["runs"],
+)
+router.include_router(
+    threads_router,
+    prefix="/threads",
+    tags=["threads"],
+)

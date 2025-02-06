@@ -5,6 +5,8 @@ redis-volume/
 chroma_db/
 uploads/
 
+**/repomix-output.txt
+
 # Operating System generated files
 .DS_Store
 Thumbs.db

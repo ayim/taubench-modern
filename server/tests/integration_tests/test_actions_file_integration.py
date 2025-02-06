@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-def _raise_for_status(message: str, response, valid_statuses: tuple[int, ...]):
+def _raise_for_status(message: str, response, valid_statuses: tuple[int, ...] = (200,)):
     if response.status not in valid_statuses:
         raise ValueError(
             f"{message}\nStatus: {response.status}\nBody: {response.data!r}"
@@ -28,10 +28,10 @@ def test_api_interaction_expected_from_actions(
     This test checks that the API in the agent server matches what the
     actions call directly.
     """
-    from tests.integration_tests.agent_client import AgentClient
+    from tests.integration_tests.agent_client import AgentServerClient
 
     base_url_api = f"{base_url_agent_server}/api/v1"
-    with AgentClient(base_url_agent_server) as agent_client:
+    with AgentServerClient(base_url_agent_server) as agent_client:
         agent_id = agent_client.create_agent_and_return_agent_id(
             openai_api_key,
         )
@@ -137,7 +137,7 @@ def test_api_interaction_with_chat_files(
     This test is a full integration test that checks that actions can
     upload and retrieve files from the agent server thread.
     """
-    from tests.integration_tests.agent_client import AgentClient
+    from tests.integration_tests.agent_client import AgentServerClient
 
     base_url_api = f"{base_url_agent_server}/api/v1"
     env = {"SEMA4AI_FILE_MANAGEMENT_URL": base_url_api}
@@ -164,7 +164,7 @@ You are an agent just to call other tools actions as requested.
 """
     description = "Agent caller"
 
-    with AgentClient(base_url_agent_server) as agent_client:
+    with AgentServerClient(base_url_agent_server) as agent_client:
         agent_id = agent_client.create_agent_and_return_agent_id(
             openai_api_key,
             runbook=runbook,

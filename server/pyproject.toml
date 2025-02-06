@@ -48,12 +48,16 @@ pydantic-settings = "^2.5.2"
 langchain-postgres = "^0.0.12"
 traceloop-sdk = "^0.33.5"
 langchain-aws = "^0.2.1"
-agent-server-types = { git = "https://github.com/Sema4AI/agent-server-types.git", tag = "v1.1.2-alpha" }
+aiosqlite = "^0.20.0"
+testing-postgresql = "^1.3.0"
+greenlet = "^3.1.1"
+bs4 = "^0.0.2"
+agent-server-types = { git = "https://github.com/Sema4AI/agent-server-types.git", rev = "development-kernel" }
 agent-architecture = { git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.1.1-alpha.1" }
 agent-architecture-default = { git = "https://github.com/Sema4AI/agent-architecture-default.git", tag = "v1.0.6-alpha.2" }
+agent-architecture-default-v2 = { git = "https://github.com/Sema4AI/agent-architecture-default-v2.git", rev="henkel/gpt-649-agent-server-kernel"  }
 agent-architecture-openai-plan-execute = { git = "https://github.com/Sema4AI/agent-architecture-openai-plan-execute.git", tag = "v1.0.4-alpha.2" }
 agent-architecture-claude-tools = { git = "https://github.com/Sema4AI/agent-architecture-claude-tools.git", tag = "v1.0.4-alpha.2" }
-greenlet = "^3.1.1"
 
 [tool.mypy]
 mypy_path = "."
@@ -111,8 +115,54 @@ addopts = "--strict-markers --strict-config --durations=5 -vv -p no:capture"
 # parsing files. We can adjust on a per test basis later on.
 timeout = 1500                                  # Integration tests can be slow.
 asyncio_mode = "auto"
-asyncio_default_fixture_loop_scope = "function"
+asyncio_default_fixture_loop_scope = "session"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+# Moving common settings that aren't deprecated
+line-length = 120
+target-version = "py311"
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
+
+# Moving deprecated settings under [tool.ruff.lint]
+[tool.ruff.lint]
+select = ["E", "F", "I", "PL", "N", "UP", "B", "A", "COM", "PT", "RUF"]
+ignore = []
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.lint.per-file-ignores]
+"examples/*.ipynb" = ["PLE1142"]
+"tests-v2/*.py" = ["PLR2004"]
+
+# Moving these under lint as well
+[tool.ruff.lint.isort]
+known-first-party = ["agent_server_types_v2", "sema4ai_agent_server"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
