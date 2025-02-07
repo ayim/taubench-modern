@@ -52,6 +52,8 @@ from .models import (
     OllamaConfig,
     OpenAIGPT,
     OpenAIGPTConfig,
+    SnowflakeCortex,
+    SnowflakeCortexConfig,
     dummy_model,
 )
 from .protocols import AgentServerKernalBase, VectorStoreBase
@@ -105,11 +107,13 @@ __all__ = [
     "AnthropicClaudeConfig",
     "AmazonBedrockConfig",
     "OllamaConfig",
+    "SnowflakeCortexConfig",
     "OpenAIGPT",
     "AzureGPT",
     "AnthropicClaude",
     "AmazonBedrock",
     "Ollama",
+    "SnowflakeCortex",
     "dummy_model",
     "MODEL",
     "MODEL_ADAPTER",

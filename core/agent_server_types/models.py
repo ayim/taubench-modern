@@ -27,6 +27,7 @@ class LLMProvider(StrEnum):
     ANTHROPIC = "Anthropic"
     AMAZON = "Amazon"
     OLLAMA = "Ollama"
+    SNOWFLAKE_CORTEX = "Snowflake Cortex AI"
 
 
 class ModelConfig(BaseModel, ConfigurationMixin): ...
@@ -131,6 +132,22 @@ class OllamaConfig(ModelConfig):
     )
 
 
+class SnowflakeCortexConfig(ModelConfig):
+    temperature: float = Field(description="The temperature.", default=0.0)
+    # NOTE: pretty much all these fields may be left NOT_CONFIGURED when 
+    # using token auth.
+    snowflake_account: str|None = Field(description="The Snowflake account.", default=NOT_CONFIGURED)
+    snowflake_host: str|None = Field(description="The Snowflake host.", default=NOT_CONFIGURED)
+    snowflake_database: str|None = Field(description="The Snowflake database.", default=NOT_CONFIGURED)
+    snowflake_schema: str|None = Field(description="The Snowflake schema.", default=NOT_CONFIGURED)
+    snowflake_warehouse: str|None = Field(description="The Snowflake warehouse.", default=NOT_CONFIGURED)
+    snowflake_role: str|None = Field(description="The Snowflake role.", default=NOT_CONFIGURED)
+    snowflake_username: str|None = Field(description="The Snowflake username.", default=NOT_CONFIGURED)
+    snowflake_password: SerializableSecretStr|None = Field(
+        description="The Snowflake password.", default=SecretStr(NOT_CONFIGURED)
+    )
+
+
 class OpenAIGPT(BaseModel):
     provider: Literal[LLMProvider.OPENAI]
     name: str = Field(description="The name of the model.", default="gpt-3.5-turbo")
@@ -165,6 +182,12 @@ class Ollama(BaseModel):
     config: OllamaConfig = Field(description="Ollama config.")
 
 
+class SnowflakeCortex(BaseModel):
+    provider: Literal[LLMProvider.SNOWFLAKE_CORTEX]
+    name: str = Field(description="The name of the model.")
+    config: SnowflakeCortexConfig = Field(description="Snowflake Cortex config.")
+
+
 # Need this due to how LangChain works. Some objects are initialized during runtime
 # and look for LLM's api key in environment variables. That breaks the app.
 # Instead we'll use a dummy model for such scenarios. During the request-response cycle
@@ -175,7 +198,7 @@ dummy_model = OpenAIGPT(
 
 # TODO: If we unify models to the same base class, do we need this?
 MODEL = Annotated[
-    OpenAIGPT | AzureGPT | AnthropicClaude | AmazonBedrock | Ollama,
+    OpenAIGPT | AzureGPT | AnthropicClaude | AmazonBedrock | Ollama | SnowflakeCortex,
     Field(discriminator="provider"),
 ]
 MODEL_ADAPTER = TypeAdapter(MODEL)
