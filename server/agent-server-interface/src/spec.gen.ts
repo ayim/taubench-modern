@@ -1590,6 +1590,9 @@ export const spec = {
               {
                 $ref: "#/components/schemas/Ollama",
               },
+              {
+                $ref: "#/components/schemas/SnowflakeCortex",
+              },
             ],
             title: "Model",
             description: "LLM model configuration for the agent.",
@@ -1601,6 +1604,7 @@ export const spec = {
                 Azure: "#/components/schemas/AzureGPT",
                 Ollama: "#/components/schemas/Ollama",
                 OpenAI: "#/components/schemas/OpenAIGPT",
+                "Snowflake Cortex AI": "#/components/schemas/SnowflakeCortex",
               },
             },
           },
@@ -1827,6 +1831,9 @@ export const spec = {
               {
                 $ref: "#/components/schemas/Ollama",
               },
+              {
+                $ref: "#/components/schemas/SnowflakeCortex",
+              },
             ],
             title: "Model",
             description: "LLM model configuration for the agent.",
@@ -1838,6 +1845,7 @@ export const spec = {
                 Azure: "#/components/schemas/AzureGPT",
                 Ollama: "#/components/schemas/Ollama",
                 OpenAI: "#/components/schemas/OpenAIGPT",
+                "Snowflake Cortex AI": "#/components/schemas/SnowflakeCortex",
               },
             },
           },
@@ -1926,6 +1934,9 @@ export const spec = {
               {
                 $ref: "#/components/schemas/Ollama",
               },
+              {
+                $ref: "#/components/schemas/SnowflakeCortex",
+              },
             ],
             title: "Model",
             description: "LLM configuration for the agent.",
@@ -1937,6 +1948,7 @@ export const spec = {
                 Azure: "#/components/schemas/AzureGPT",
                 Ollama: "#/components/schemas/Ollama",
                 OpenAI: "#/components/schemas/OpenAIGPT",
+                "Snowflake Cortex AI": "#/components/schemas/SnowflakeCortex",
               },
             },
           },
@@ -2596,6 +2608,145 @@ export const spec = {
         type: "object",
         required: ["file_name"],
         title: "RequestRemoteFileUploadPayload",
+      },
+      SnowflakeCortex: {
+        properties: {
+          provider: {
+            type: "string",
+            const: "Snowflake Cortex AI",
+            title: "Provider",
+          },
+          name: {
+            type: "string",
+            title: "Name",
+            description: "The name of the model.",
+          },
+          config: {
+            $ref: "#/components/schemas/SnowflakeCortexConfig",
+            description: "Snowflake Cortex config.",
+          },
+        },
+        type: "object",
+        required: ["provider", "name", "config"],
+        title: "SnowflakeCortex",
+      },
+      SnowflakeCortexConfig: {
+        properties: {
+          temperature: {
+            type: "number",
+            title: "Temperature",
+            description: "The temperature.",
+            default: 0,
+          },
+          snowflake_account: {
+            anyOf: [
+              {
+                type: "string",
+              },
+              {
+                type: "null",
+              },
+            ],
+            title: "Snowflake Account",
+            description: "The Snowflake account.",
+            default: "SEMA4AI_FIELD_NOT_CONFIGURED",
+          },
+          snowflake_host: {
+            anyOf: [
+              {
+                type: "string",
+              },
+              {
+                type: "null",
+              },
+            ],
+            title: "Snowflake Host",
+            description: "The Snowflake host.",
+            default: "SEMA4AI_FIELD_NOT_CONFIGURED",
+          },
+          snowflake_database: {
+            anyOf: [
+              {
+                type: "string",
+              },
+              {
+                type: "null",
+              },
+            ],
+            title: "Snowflake Database",
+            description: "The Snowflake database.",
+            default: "SEMA4AI_FIELD_NOT_CONFIGURED",
+          },
+          snowflake_schema: {
+            anyOf: [
+              {
+                type: "string",
+              },
+              {
+                type: "null",
+              },
+            ],
+            title: "Snowflake Schema",
+            description: "The Snowflake schema.",
+            default: "SEMA4AI_FIELD_NOT_CONFIGURED",
+          },
+          snowflake_warehouse: {
+            anyOf: [
+              {
+                type: "string",
+              },
+              {
+                type: "null",
+              },
+            ],
+            title: "Snowflake Warehouse",
+            description: "The Snowflake warehouse.",
+            default: "SEMA4AI_FIELD_NOT_CONFIGURED",
+          },
+          snowflake_role: {
+            anyOf: [
+              {
+                type: "string",
+              },
+              {
+                type: "null",
+              },
+            ],
+            title: "Snowflake Role",
+            description: "The Snowflake role.",
+            default: "SEMA4AI_FIELD_NOT_CONFIGURED",
+          },
+          snowflake_username: {
+            anyOf: [
+              {
+                type: "string",
+              },
+              {
+                type: "null",
+              },
+            ],
+            title: "Snowflake Username",
+            description: "The Snowflake username.",
+            default: "SEMA4AI_FIELD_NOT_CONFIGURED",
+          },
+          snowflake_password: {
+            anyOf: [
+              {
+                type: "string",
+                format: "password",
+                writeOnly: true,
+              },
+              {
+                type: "null",
+              },
+            ],
+            title: "Snowflake Password",
+            description: "The Snowflake password.",
+            default: "**********",
+          },
+        },
+        type: "object",
+        title: "SnowflakeCortexConfig",
       },
       StreamDataEvent: {
         properties: {

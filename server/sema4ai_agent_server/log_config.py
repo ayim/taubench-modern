@@ -49,6 +49,13 @@ def setup_logging():
     uvicorn_logger.addHandler(file_handler)
     uvicorn_logger.propagate = False
 
+    sseclient_logger = logging.getLogger("sseclient")
+    sseclient_logger.setLevel(level)
+    sseclient_logger.handlers.clear()
+    sseclient_logger.addHandler(default_handler)
+    sseclient_logger.addHandler(file_handler)
+    sseclient_logger.propagate = False
+
     uvicorn_access_logger = logging.getLogger("uvicorn.access")
     uvicorn_access_logger.setLevel(level)
     uvicorn_access_logger.handlers.clear()

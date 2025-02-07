@@ -2,7 +2,7 @@
 
 [[package]]
 name = "agent-architecture"
-version = "1.1.1-alpha.1"
+version = "1.2.1-alpha"
 description = "Core cognitive framework architecture for agents."
 optional = false
 python-versions = "^3.11.0,<3.12"
@@ -11,21 +11,23 @@ files = []
 develop = false
 
 [package.dependencies]
-agent-server-types = {git = "https://github.com/Sema4AI/agent-server-types.git", tag = "v1.1.2-alpha"}
+agent-server-types = {git = "https://github.com/Sema4AI/agent-server-types.git", tag = "v1.2.0-alpha"}
 langchain-core = "^0.3.15"
 langgraph = "^0.2.45"
 opentelemetry-api = "^1.27.0"
+snowflake-snowpark-python = "^1.27.0"
+sseclient-py = "^1.8.0"
 structlog = "^24.4.0"
 
 [package.source]
 type = "git"
 url = "https://github.com/Sema4AI/agent-architecture.git"
-reference = "v1.1.1-alpha.1"
-resolved_reference = "fca9240d9b192cd34ceda3f299d6be08bf60f2b4"
+reference = "v1.2.1-alpha"
+resolved_reference = "7aeaffd1aaa19bb1f6c411433d84737b7eb661d5"
 
 [[package]]
 name = "agent-architecture-claude-tools"
-version = "1.0.4-alpha.2"
+version = "1.1.0-alpha"
 description = "Tool using cognitive architecture for agents supporting Anthropic Claude LLMs."
 optional = false
 python-versions = "^3.11.0,<3.12"
@@ -34,18 +36,18 @@ files = []
 develop = false
 
 [package.dependencies]
-agent-architecture = {git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.1.1-alpha.1"}
-agent-server-types = {git = "https://github.com/Sema4AI/agent-server-types.git", tag = "v1.1.2-alpha"}
+agent-architecture = {git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.2.1-alpha"}
+agent-server-types = {git = "https://github.com/Sema4AI/agent-server-types.git", tag = "v1.2.0-alpha"}
 
 [package.source]
 type = "git"
 url = "https://github.com/Sema4AI/agent-architecture-claude-tools.git"
-reference = "v1.0.4-alpha.2"
-resolved_reference = "115a061b8257c1e657ca2cd91fba1adf09f4b042"
+reference = "v1.1.0-alpha"
+resolved_reference = "dd7c60567c3dfe1662436eeebee04dbc2349c13b"
 
 [[package]]
 name = "agent-architecture-default"
-version = "1.0.6-alpha.2"
+version = "1.1.0-alpha"
 description = "Tool using cognitive architecture for agents supporting OpenAI LLMs."
 optional = false
 python-versions = "^3.11.0,<3.12"
@@ -54,18 +56,18 @@ files = []
 develop = false
 
 [package.dependencies]
-agent-architecture = {git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.1.1-alpha.1"}
-agent-server-types = {git = "https://github.com/Sema4AI/agent-server-types.git", tag = "v1.1.2-alpha"}
+agent-architecture = {git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.2.1-alpha"}
+agent-server-types = {git = "https://github.com/Sema4AI/agent-server-types.git", tag = "v1.2.0-alpha"}
 
 [package.source]
 type = "git"
 url = "https://github.com/Sema4AI/agent-architecture-default.git"
-reference = "v1.0.6-alpha.2"
-resolved_reference = "0d00b3217d954d862c95260654ce04669a3fe17c"
+reference = "v1.1.0-alpha"
+resolved_reference = "41f167dbb036579bcae4d4d9efec7f4e4a73f7ff"
 
 [[package]]
 name = "agent-architecture-openai-plan-execute"
-version = "1.0.4-alpha.2"
+version = "1.1.0-alpha"
 description = "Plan execute cognitive architecture for agents with support for OpenAI LLMs."
 optional = false
 python-versions = "^3.11.0,<3.12"
@@ -74,18 +76,18 @@ files = []
 develop = false
 
 [package.dependencies]
-agent-architecture = {git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.1.1-alpha.1"}
-agent-server-types = {git = "https://github.com/Sema4AI/agent-server-types.git", tag = "v1.1.2-alpha"}
+agent-architecture = {git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.2.1-alpha"}
+agent-server-types = {git = "https://github.com/Sema4AI/agent-server-types.git", tag = "v1.2.0-alpha"}
 
 [package.source]
 type = "git"
 url = "https://github.com/Sema4AI/agent-architecture-openai-plan-execute.git"
-reference = "v1.0.4-alpha.2"
-resolved_reference = "3cec8ac84eeab4b5e069f73bd18a7142b6a5c250"
+reference = "v1.1.0-alpha"
+resolved_reference = "380f3af8693ec3eae037a65973ed9bd6498e9ea3"
 
 [[package]]
 name = "agent-server-types"
-version = "1.1.2-alpha"
+version = "1.2.0-alpha"
 description = "Shared types for the agent server and agent architecture plugins."
 optional = false
 python-versions = "^3.11.0,<3.12"
@@ -100,8 +102,8 @@ pydantic = ">=2,<3"
 [package.source]
 type = "git"
 url = "https://github.com/Sema4AI/agent-server-types.git"
-reference = "v1.1.2-alpha"
-resolved_reference = "a30c6e58e5a9c0c6c68d6fd4f74fa696149d312e"
+reference = "v1.2.0-alpha"
+resolved_reference = "5bc91c2f7a0221e4181b2e038632fee049339e8a"
 
 [[package]]
 name = "aiofiles"
@@ -325,6 +327,18 @@ files = [
 
 [package.extras]
 tests = ["mypy (>=0.800)", "pytest", "pytest-asyncio"]
+
+[[package]]
+name = "asn1crypto"
+version = "1.5.1"
+description = "Fast ASN.1 parser and serializer with definitions for private keys, public keys, certificates, CRL, OCSP, CMS, PKCS#3, PKCS#7, PKCS#8, PKCS#12, PKCS#5, X.509 and TSP"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "asn1crypto-1.5.1-py2.py3-none-any.whl", hash = "sha256:db4e40728b728508912cbb3d44f19ce188f218e9eba635821bb4b68564f8fd67"},
+    {file = "asn1crypto-1.5.1.tar.gz", hash = "sha256:13ae38502be632115abf8a24cbe5f4da52e3b5231990aff31123c805306ccb9c"},
+]
 
 [[package]]
 name = "attrs"
@@ -799,6 +813,18 @@ files = [
 
 [package.dependencies]
 colorama = {version = "*", markers = "platform_system == \"Windows\""}
+
+[[package]]
+name = "cloudpickle"
+version = "2.2.1"
+description = "Extended pickling support for Python objects"
+optional = false
+python-versions = ">=3.6"
+groups = ["main"]
+files = [
+    {file = "cloudpickle-2.2.1-py3-none-any.whl", hash = "sha256:61f594d1f4c295fa5cd9014ceb3a1fc4a70b0de1164b94fbc2d854ccba056f9f"},
+    {file = "cloudpickle-2.2.1.tar.gz", hash = "sha256:d89684b8de9e34a2a43b3460fbca07d09d6e25ce858df4d5a44240403b6178f5"},
+]
 
 [[package]]
 name = "codespell"
@@ -4036,6 +4062,23 @@ files = [
 numpy = "*"
 
 [[package]]
+name = "platformdirs"
+version = "4.3.6"
+description = "A small Python package for determining appropriate platform-specific dirs, e.g. a `user data dir`."
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "platformdirs-4.3.6-py3-none-any.whl", hash = "sha256:73e575e1408ab8103900836b97580d5307456908a03e92031bab39e4554cc3fb"},
+    {file = "platformdirs-4.3.6.tar.gz", hash = "sha256:357fb2acbc885b0419afd3ce3ed34564c13c9b95c89360cd9563f73aa5e2b907"},
+]
+
+[package.extras]
+docs = ["furo (>=2024.8.6)", "proselint (>=0.14)", "sphinx (>=8.0.2)", "sphinx-autodoc-typehints (>=2.4)"]
+test = ["appdirs (==1.4.4)", "covdefaults (>=2.3)", "pytest (>=8.3.2)", "pytest-cov (>=5)", "pytest-mock (>=3.14)"]
+type = ["mypy (>=1.11.2)"]
+
+[[package]]
 name = "pluggy"
 version = "1.5.0"
 description = "plugin and hook calling mechanisms for python"
@@ -4666,6 +4709,25 @@ docs = ["sphinx (>=1.6.5)", "sphinx-rtd-theme"]
 tests = ["hypothesis (>=3.27.0)", "pytest (>=3.2.1,!=3.3.0)"]
 
 [[package]]
+name = "pyopenssl"
+version = "24.3.0"
+description = "Python wrapper module around the OpenSSL library"
+optional = false
+python-versions = ">=3.7"
+groups = ["main"]
+files = [
+    {file = "pyOpenSSL-24.3.0-py3-none-any.whl", hash = "sha256:e474f5a473cd7f92221cc04976e48f4d11502804657a08a989fb3be5514c904a"},
+    {file = "pyopenssl-24.3.0.tar.gz", hash = "sha256:49f7a019577d834746bc55c5fce6ecbcec0f2b4ec5ce1cf43a9a173b8138bb36"},
+]
+
+[package.dependencies]
+cryptography = ">=41.0.5,<45"
+
+[package.extras]
+docs = ["sphinx (!=5.2.0,!=5.2.0.post0,!=7.2.5)", "sphinx_rtd_theme"]
+test = ["pretend", "pytest (>=3.0.1)", "pytest-rerunfailures"]
+
+[[package]]
 name = "pypdf"
 version = "5.2.0"
 description = "A pure-python PDF library capable of splitting, merging, cropping, and transforming PDF files"
@@ -4997,6 +5059,18 @@ files = [
 click = "*"
 olefile = "*"
 typing-extensions = ">=4.9.0"
+
+[[package]]
+name = "pytz"
+version = "2025.1"
+description = "World timezone definitions, modern and historical"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "pytz-2025.1-py2.py3-none-any.whl", hash = "sha256:89dd22dca55b46eac6eda23b2d72721bf1bdfef212645d81513ef5d03038de57"},
+    {file = "pytz-2025.1.tar.gz", hash = "sha256:c2db42be2a2518b28e65f9207c4d05e6ff547d1efa4086469ef855e4ab70178e"},
+]
 
 [[package]]
 name = "pywin32-ctypes"
@@ -5505,6 +5579,109 @@ files = [
 ]
 
 [[package]]
+name = "snowflake-connector-python"
+version = "3.13.2"
+description = "Snowflake Connector for Python"
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "snowflake_connector_python-3.13.2-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:c180dec770076409d422cfc25e4077561026316c4f0e17a001bc0a15ffbe9184"},
+    {file = "snowflake_connector_python-3.13.2-cp310-cp310-macosx_11_0_x86_64.whl", hash = "sha256:f4503e841c9bb22fe7af168a6a4e3a76394d8e0d8731a29ad797273d5e9a62b3"},
+    {file = "snowflake_connector_python-3.13.2-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:04ce1bba327868712a15f5b6d12f0ac5559d0bbf8c7c18f9847cf825e34f36f7"},
+    {file = "snowflake_connector_python-3.13.2-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:c27d59696b41cab854379d81577a0802db3b64dbe0fd18d5a562e3739ee12b7f"},
+    {file = "snowflake_connector_python-3.13.2-cp310-cp310-win_amd64.whl", hash = "sha256:61634af1dd78203b41bdf89cea0d930b3e8cec19b50a038db3cea1a531a7d36c"},
+    {file = "snowflake_connector_python-3.13.2-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:fd693b1db31c70a9669b5818980f718149d6f7b4624628bed087801dcd617051"},
+    {file = "snowflake_connector_python-3.13.2-cp311-cp311-macosx_11_0_x86_64.whl", hash = "sha256:67fcde6666075cc8e6e2fd4ba9dbf1291af780567ffe55a5adbb808de715b39f"},
+    {file = "snowflake_connector_python-3.13.2-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:8092ec250b1dcc7c38d8a101a29e9118be56079d8e4f410a50159421c22b3b8e"},
+    {file = "snowflake_connector_python-3.13.2-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8912334af6851d325a5f2bc72416e6a46be889d045e0e09412084b99602c3122"},
+    {file = "snowflake_connector_python-3.13.2-cp311-cp311-win_amd64.whl", hash = "sha256:c11599b5d19b4aaab880b5e7b57525645dc1ee9768acc7dad11abf6998c75b22"},
+    {file = "snowflake_connector_python-3.13.2-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:1cf34116687653b7467d519da1dfdbff4f58d0032932d31d61f9d27717e7d61f"},
+    {file = "snowflake_connector_python-3.13.2-cp312-cp312-macosx_11_0_x86_64.whl", hash = "sha256:38426293ecf6c1fc3dd87d506e55d8b82dcf763fab1c827b0d09bc74f9852c50"},
+    {file = "snowflake_connector_python-3.13.2-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:fd95811b8378d8a268038b59ea8dba8d30dd0b96a1c323191805ae152224ff70"},
+    {file = "snowflake_connector_python-3.13.2-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:1fe0cd6fab07fccdea020394a6175baa1ddf57b3d1f4dc288bd7eebcf29c6a0b"},
+    {file = "snowflake_connector_python-3.13.2-cp312-cp312-win_amd64.whl", hash = "sha256:82028c55d949889f759b78dd86b6249e9e4934cd6fcbe026cf7f41aefc9eb999"},
+    {file = "snowflake_connector_python-3.13.2-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:f29ce0451482348993eed830c81f41a53efd8908691781dc6872d505b1aca12d"},
+    {file = "snowflake_connector_python-3.13.2-cp38-cp38-macosx_11_0_x86_64.whl", hash = "sha256:8ffc295307f380dba2f054bf4c9df847dce5168d4e023bdf04ee08abf732672a"},
+    {file = "snowflake_connector_python-3.13.2-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:ea90169e12e1b60883a4de35129d9761920a92990f963108dc18072a0ee79fae"},
+    {file = "snowflake_connector_python-3.13.2-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e7da0d18a4de0c0bd4b2d57093b60103ed0d89fd9e8b813ceb266fb8490ad615"},
+    {file = "snowflake_connector_python-3.13.2-cp38-cp38-win_amd64.whl", hash = "sha256:d966edfe7a8fd61ed73dd56ee0de3ed0c79bd405fc4243391420f2db2e6b4d77"},
+    {file = "snowflake_connector_python-3.13.2-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:2b8c807e4cc52cb343546624d90f0540c396bb924cce1c64b029d7ab94e9d571"},
+    {file = "snowflake_connector_python-3.13.2-cp39-cp39-macosx_11_0_x86_64.whl", hash = "sha256:e7dd2acc26db04c718bb31f30a2bfdd7cc76eaf429dbfa1c31b29da70127125d"},
+    {file = "snowflake_connector_python-3.13.2-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:92f50eb2a6f9ef94de875bfcbca27a8aa9a08eeec3099ca5fbfc53530a082c4c"},
+    {file = "snowflake_connector_python-3.13.2-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:cfd5f30c6e8011f5f11fdd7c762a189d94a8a3f9259c4f13cbc6cd5d1ca31f85"},
+    {file = "snowflake_connector_python-3.13.2-cp39-cp39-win_amd64.whl", hash = "sha256:db600d32b4854716ef5327cdebeb8ba087256819829f1a0c45697caabe898716"},
+    {file = "snowflake_connector_python-3.13.2.tar.gz", hash = "sha256:c9954a5e237566420e087a4fcef227775e0c62fbfc821e0ef6f81325fd44c904"},
+]
+
+[package.dependencies]
+asn1crypto = ">0.24.0,<2.0.0"
+certifi = ">=2017.4.17"
+cffi = ">=1.9,<2.0.0"
+charset_normalizer = ">=2,<4"
+cryptography = ">=3.1.0"
+filelock = ">=3.5,<4"
+idna = ">=2.5,<4"
+packaging = "*"
+platformdirs = ">=2.6.0,<5.0.0"
+pyjwt = "<3.0.0"
+pyOpenSSL = ">=22.0.0,<25.0.0"
+pytz = "*"
+requests = "<3.0.0"
+sortedcontainers = ">=2.4.0"
+tomlkit = "*"
+typing_extensions = ">=4.3,<5"
+
+[package.extras]
+development = ["Cython", "coverage", "more-itertools", "numpy (<1.27.0)", "pendulum (!=2.1.1)", "pexpect", "pytest (<7.5.0)", "pytest-cov", "pytest-rerunfailures", "pytest-timeout", "pytest-xdist", "pytzdata"]
+pandas = ["pandas (>=1.0.0,<3.0.0)", "pyarrow"]
+secure-local-storage = ["keyring (>=23.1.0,<26.0.0)"]
+
+[[package]]
+name = "snowflake-snowpark-python"
+version = "1.27.0"
+description = "Snowflake Snowpark for Python"
+optional = false
+python-versions = "<3.13,>=3.8"
+groups = ["main"]
+files = [
+    {file = "snowflake_snowpark_python-1.27.0-py3-none-any.whl", hash = "sha256:5f59fc21ee0d1ca5af3d21d770bfb924352d0d03eb848cd174421851c2588624"},
+    {file = "snowflake_snowpark_python-1.27.0.tar.gz", hash = "sha256:897036020d1cd7f15e041cd6989b48ff3db67ecadba8465ffdfa120e6e1e0d46"},
+]
+
+[package.dependencies]
+cloudpickle = ">=1.6.0,<2.1.0 || >2.1.0,<2.2.0 || >2.2.0,<=2.2.1"
+protobuf = ">=3.20,<6"
+python-dateutil = "*"
+pyyaml = "*"
+setuptools = ">=40.6.0"
+snowflake-connector-python = ">=3.12.0,<4.0.0"
+typing-extensions = ">=4.1.0,<5.0.0"
+tzlocal = "*"
+wheel = "*"
+
+[package.extras]
+development = ["cachetools", "coverage", "decorator", "graphviz", "lxml", "matplotlib", "openpyxl", "pre-commit", "pytest (<8.0.0)", "pytest-assume", "pytest-cov", "pytest-timeout", "pytest-xdist", "snowflake.core (>=1.0.0,<2)", "sphinx (==5.0.2)", "tox", "wrapt"]
+localtest = ["pandas", "requests"]
+modin = ["modin (==0.30.1)", "snowflake-connector-python[pandas] (>=3.12.0,<4.0.0)"]
+modin-development = ["cachetools", "coverage", "decorator", "graphviz", "lxml", "matplotlib", "modin (==0.30.1)", "openpyxl", "plotly (<6.0.0)", "pre-commit", "pytest (<8.0.0)", "pytest-assume", "pytest-cov", "pytest-timeout", "pytest-xdist", "scikit-learn", "scipy", "snowflake-connector-python[pandas] (>=3.12.0,<4.0.0)", "snowflake.core (>=1.0.0,<2)", "sphinx (==5.0.2)", "statsmodels", "tox", "wrapt"]
+opentelemetry = ["opentelemetry-api (>=1.0.0,<2.0.0)", "opentelemetry-sdk (>=1.0.0,<2.0.0)"]
+pandas = ["snowflake-connector-python[pandas] (>=3.12.0,<4.0.0)"]
+secure-local-storage = ["snowflake-connector-python[secure-local-storage] (>=3.12.0,<4.0.0)"]
+
+[[package]]
+name = "sortedcontainers"
+version = "2.4.0"
+description = "Sorted Containers -- Sorted List, Sorted Dict, Sorted Set"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "sortedcontainers-2.4.0-py2.py3-none-any.whl", hash = "sha256:a163dcaede0f1c021485e957a39245190e74249897e2ae4b2aa38595db237ee0"},
+    {file = "sortedcontainers-2.4.0.tar.gz", hash = "sha256:25caa5a06cc30b6b83d11423433f65d1f9d76c4c6a0c90e3379eaa43b9bfdb88"},
+]
+
+[[package]]
 name = "soupsieve"
 version = "2.6"
 description = "A modern CSS selector implementation for Beautiful Soup."
@@ -5631,6 +5808,18 @@ starlette = ">=0.41.3"
 [package.extras]
 examples = ["fastapi"]
 uvicorn = ["uvicorn (>=0.34.0)"]
+
+[[package]]
+name = "sseclient-py"
+version = "1.8.0"
+description = "SSE client for Python"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "sseclient-py-1.8.0.tar.gz", hash = "sha256:c547c5c1a7633230a38dc599a21a2dc638f9b5c297286b48b46b935c71fac3e8"},
+    {file = "sseclient_py-1.8.0-py2.py3-none-any.whl", hash = "sha256:4ecca6dc0b9f963f8384e9d7fd529bf93dd7d708144c4fb5da0e0a1a926fee83"},
+]
 
 [[package]]
 name = "starlette"
@@ -5898,6 +6087,18 @@ files = [
 ]
 
 [[package]]
+name = "tomlkit"
+version = "0.13.2"
+description = "Style preserving TOML library"
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "tomlkit-0.13.2-py3-none-any.whl", hash = "sha256:7a974427f6e119197f670fbbbeae7bef749a6c14e793db934baefc1b5f03efde"},
+    {file = "tomlkit-0.13.2.tar.gz", hash = "sha256:fff5fe59a87295b278abd31bec92c15d9bc4a06885ab12bcea52c71119392e79"},
+]
+
+[[package]]
 name = "tqdm"
 version = "4.67.1"
 description = "Fast, Extensible Progress Meter"
@@ -6055,11 +6256,29 @@ description = "Provider of IANA time zone data"
 optional = false
 python-versions = ">=2"
 groups = ["main"]
-markers = "sys_platform == \"win32\""
+markers = "sys_platform == \"win32\" or platform_system == \"Windows\""
 files = [
     {file = "tzdata-2025.1-py2.py3-none-any.whl", hash = "sha256:7e127113816800496f027041c570f50bcd464a020098a3b6b199517772303639"},
     {file = "tzdata-2025.1.tar.gz", hash = "sha256:24894909e88cdb28bd1636c6887801df64cb485bd593f2fd83ef29075a81d694"},
 ]
+
+[[package]]
+name = "tzlocal"
+version = "5.2"
+description = "tzinfo object for the local timezone"
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "tzlocal-5.2-py3-none-any.whl", hash = "sha256:49816ef2fe65ea8ac19d19aa7a1ae0551c834303d5014c6d5a62e4cbda8047b8"},
+    {file = "tzlocal-5.2.tar.gz", hash = "sha256:8d399205578f1a9342816409cc1e46a93ebd5755e39ea2d85334bea911bf0e6e"},
+]
+
+[package.dependencies]
+tzdata = {version = "*", markers = "platform_system == \"Windows\""}
+
+[package.extras]
+devenv = ["check-manifest", "pytest (>=4.3)", "pytest-cov", "pytest-mock (>=3.3)", "zest.releaser"]
 
 [[package]]
 name = "unstructured"
@@ -6476,6 +6695,21 @@ files = [
 ]
 
 [[package]]
+name = "wheel"
+version = "0.45.1"
+description = "A built-package format for Python"
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "wheel-0.45.1-py3-none-any.whl", hash = "sha256:708e7481cc80179af0e556bbf0cc00b8444c7321e2700b8d8580231d13017248"},
+    {file = "wheel-0.45.1.tar.gz", hash = "sha256:661e1abd9198507b1409a20c02106d9670b2576e916d58f520316666abca6729"},
+]
+
+[package.extras]
+test = ["pytest (>=6.0.0)", "setuptools (>=65)"]
+
+[[package]]
 name = "wrapt"
 version = "1.17.2"
 description = "Module for decorators, wrappers and monkey patching."
@@ -6797,4 +7031,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11.0,<3.12"
-content-hash = "15f123fcd6d8ad7df2b9f1bf380b9170e349a9b166640cbe7f7bb5c0bc544db9"
+content-hash = "09c7580b7cced5e8babb7489de7a2f077451bc61f13b7552694518a19217bf05"

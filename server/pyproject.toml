@@ -48,11 +48,11 @@ pydantic-settings = "^2.5.2"
 langchain-postgres = "^0.0.12"
 traceloop-sdk = "^0.33.5"
 langchain-aws = "^0.2.1"
-agent-server-types = { git = "https://github.com/Sema4AI/agent-server-types.git", tag = "v1.1.2-alpha" }
-agent-architecture = { git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.1.1-alpha.1" }
-agent-architecture-default = { git = "https://github.com/Sema4AI/agent-architecture-default.git", tag = "v1.0.6-alpha.2" }
-agent-architecture-openai-plan-execute = { git = "https://github.com/Sema4AI/agent-architecture-openai-plan-execute.git", tag = "v1.0.4-alpha.2" }
-agent-architecture-claude-tools = { git = "https://github.com/Sema4AI/agent-architecture-claude-tools.git", tag = "v1.0.4-alpha.2" }
+agent-server-types = { git = "https://github.com/Sema4AI/agent-server-types.git", tag = "v1.2.0-alpha" }
+agent-architecture = { git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.2.1-alpha" }
+agent-architecture-default = { git = "https://github.com/Sema4AI/agent-architecture-default.git", tag = "v1.1.0-alpha" }
+agent-architecture-openai-plan-execute = { git = "https://github.com/Sema4AI/agent-architecture-openai-plan-execute.git", tag = "v1.1.0-alpha" }
+agent-architecture-claude-tools = { git = "https://github.com/Sema4AI/agent-architecture-claude-tools.git", tag = "v1.1.0-alpha" }
 greenlet = "^3.1.1"
 
 [tool.mypy]

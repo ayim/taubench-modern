@@ -666,7 +666,8 @@ export interface components {
         | components["schemas"]["AzureGPT"]
         | components["schemas"]["AnthropicClaude"]
         | components["schemas"]["AmazonBedrock"]
-        | components["schemas"]["Ollama"];
+        | components["schemas"]["Ollama"]
+        | components["schemas"]["SnowflakeCortex"];
       advanced_config: components["schemas"]["AgentAdvancedConfig"];
       /**
        * Action Packages
@@ -809,7 +810,8 @@ export interface components {
         | components["schemas"]["AzureGPT"]
         | components["schemas"]["AnthropicClaude"]
         | components["schemas"]["AmazonBedrock"]
-        | components["schemas"]["Ollama"];
+        | components["schemas"]["Ollama"]
+        | components["schemas"]["SnowflakeCortex"];
       /** @description Advanced configuration options for the agent. */
       advanced_config: components["schemas"]["AgentAdvancedConfig"];
       /**
@@ -855,7 +857,8 @@ export interface components {
         | components["schemas"]["AzureGPT"]
         | components["schemas"]["AnthropicClaude"]
         | components["schemas"]["AmazonBedrock"]
-        | components["schemas"]["Ollama"];
+        | components["schemas"]["Ollama"]
+        | components["schemas"]["SnowflakeCortex"];
       /**
        * Action Servers
        * @description Action Server configurations.
@@ -1297,6 +1300,78 @@ export interface components {
     RequestRemoteFileUploadPayload: {
       /** File Name */
       file_name: string;
+    };
+    /** SnowflakeCortex */
+    SnowflakeCortex: {
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      provider: "Snowflake Cortex AI";
+      /**
+       * Name
+       * @description The name of the model.
+       */
+      name: string;
+      /** @description Snowflake Cortex config. */
+      config: components["schemas"]["SnowflakeCortexConfig"];
+    };
+    /** SnowflakeCortexConfig */
+    SnowflakeCortexConfig: {
+      /**
+       * Temperature
+       * @description The temperature.
+       * @default 0
+       */
+      temperature: number;
+      /**
+       * Snowflake Account
+       * @description The Snowflake account.
+       * @default SEMA4AI_FIELD_NOT_CONFIGURED
+       */
+      snowflake_account: string | null;
+      /**
+       * Snowflake Host
+       * @description The Snowflake host.
+       * @default SEMA4AI_FIELD_NOT_CONFIGURED
+       */
+      snowflake_host: string | null;
+      /**
+       * Snowflake Database
+       * @description The Snowflake database.
+       * @default SEMA4AI_FIELD_NOT_CONFIGURED
+       */
+      snowflake_database: string | null;
+      /**
+       * Snowflake Schema
+       * @description The Snowflake schema.
+       * @default SEMA4AI_FIELD_NOT_CONFIGURED
+       */
+      snowflake_schema: string | null;
+      /**
+       * Snowflake Warehouse
+       * @description The Snowflake warehouse.
+       * @default SEMA4AI_FIELD_NOT_CONFIGURED
+       */
+      snowflake_warehouse: string | null;
+      /**
+       * Snowflake Role
+       * @description The Snowflake role.
+       * @default SEMA4AI_FIELD_NOT_CONFIGURED
+       */
+      snowflake_role: string | null;
+      /**
+       * Snowflake Username
+       * @description The Snowflake username.
+       * @default SEMA4AI_FIELD_NOT_CONFIGURED
+       */
+      snowflake_username: string | null;
+      /**
+       * Snowflake Password
+       * @description The Snowflake password.
+       * @default **********
+       */
+      snowflake_password: string | null;
     };
     /** StreamDataEvent */
     StreamDataEvent: {
