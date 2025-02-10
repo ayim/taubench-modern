@@ -67,7 +67,7 @@ from .threads import (
     dummy_thread,
 )
 
-__version__ = "1.2.0-alpha"
+__version__ = "1.2.0-alpha.1"
 
 __all__ = [
     "ACTION_PKG_LIST_ADAPTER",
