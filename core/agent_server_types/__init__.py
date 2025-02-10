@@ -14,12 +14,13 @@ from .agents import (
     AgentPayload,
     AgentReasoning,
     AgentStatus,
-    Memory,
     EmbeddingFileFailed,
     EmbeddingFileInProgress,
     EmbeddingFilePending,
     LangsmithCredentials,
+    Memory,
     ModelNotConfigured,
+    User,
     dummy_agent,
 )
 from .annotated import (
@@ -125,4 +126,5 @@ __all__ = [
     "dummy_thread",
     "AgentServerKernalBase",
     "VectorStoreBase",
+    "User",
 ]
