@@ -3,6 +3,7 @@ from typing import Any, Mapping, Sequence
 from agent_server_types import (
     Agent,
     Thread,
+    User,
     dummy_agent,
 )
 from langchain_core.messages import AnyMessage
@@ -36,6 +37,7 @@ class ConfigurableAgent(RunnableBinding):
     thread: Thread | None = Field(
         None, description="The thread the agent will be called on."
     )
+    user: User | None = Field(None, description="The user the agent will be called on.")
     use_retrieval: bool = Field(
         False,
         description="A boolean flag indicating whether retrieval is enabled for the agent.",
@@ -59,6 +61,7 @@ class ConfigurableAgent(RunnableBinding):
         *,
         agent: Agent | None = None,
         thread: Thread | None = None,
+        user: User | None = None,
         use_retrieval: bool = False,
         interrupt_before_action: bool = False,
         knowledge_files: list[str] | None = None,
@@ -74,6 +77,7 @@ class ConfigurableAgent(RunnableBinding):
         agent_factory = agent_factory_class(
             agent=agent,
             thread=thread,
+            user=user,
             use_retrieval=use_retrieval,
             interrupt_before_action=interrupt_before_action,
             checkpointer=checkpointer or CHECKPOINTER,
@@ -84,6 +88,7 @@ class ConfigurableAgent(RunnableBinding):
         super().__init__(
             agent=agent,
             thread=thread,
+            user=user,
             use_retrieval=use_retrieval,
             interrupt_before_action=interrupt_before_action,
             knowledge_files=knowledge_files,
@@ -97,6 +102,7 @@ runnable_agent: Pregel = (
     ConfigurableAgent(
         agent=dummy_agent,
         thread=None,
+        user=None,
         use_retrieval=False,
         interrupt_before_action=False,
         knowledge_files=None,
@@ -104,6 +110,7 @@ runnable_agent: Pregel = (
     .configurable_fields(
         agent=ConfigurableField(id="agent", name="Agent", is_shared=True),
         thread=ConfigurableField(id="thread", name="Thread", is_shared=True),
+        user=ConfigurableField(id="user", name="User", is_shared=True),
         use_retrieval=ConfigurableField(id="use_retrieval", name="Use Retrieval"),
         interrupt_before_action=ConfigurableField(
             id="interrupt_before_action",
