@@ -4,7 +4,10 @@ git-commit: true         # Whether to create a git commit for the version bump.
 git-tag: true            # Whether to create a git tag for the version bump.
 
 prerelease-labels:
-  - "kernelalpha"
+  - "alpha"
+
+# The build label. This is the label that will be used for build versions.
+build-label: "kernel"
 
 files:                   # The files to update with the new version.
   - path: "pyproject.toml"
