@@ -1,35 +1,7 @@
 import os
-from functools import lru_cache
 from pathlib import Path
 
 import pytest
-
-
-@pytest.fixture
-def logs_dir(request) -> Path:
-    directory = (
-        Path(os.path.normpath(os.path.abspath(os.path.dirname(__file__))))
-        / f"logs/{request.node.name}-{os.getpid()}"
-    )
-    directory.mkdir(parents=True, exist_ok=True)
-    return directory
-
-
-@pytest.fixture(autouse=True)
-def copy_tmpdir_on_failure(request, tmpdir, logs_dir):
-    """
-    Copy the tmpdir contents to the logs_dir on failure so that
-    we can inspect the contents of the tmpdir on a failure in the ci.
-    """
-    failed = request.session.testsfailed
-    yield
-
-    if failed != request.session.testsfailed:
-        import shutil
-
-        # Copy tmpdir contents to logs directory with test name
-        dest = logs_dir / "tmpdir_contents"
-        shutil.copytree(tmpdir, dest, dirs_exist_ok=True)
 
 
 @pytest.fixture
@@ -44,7 +16,7 @@ def resources_dir() -> Path:
 
 @pytest.fixture
 def base_url_agent_server(tmpdir, logs_dir, files_location):
-    from tests.integration_tests.bootstrap_agent_server import AgentServerProcess
+    from agent_server_orchestrator.bootstrap_agent_server import AgentServerProcess
 
     start_server = os.getenv("INTEGRATION_TEST_START_SERVER", "false")
     if start_server == "true":
@@ -60,76 +32,3 @@ def base_url_agent_server(tmpdir, logs_dir, files_location):
         host = os.getenv("API_HOST", "localhost")
         port = os.getenv("API_PORT", 8000)
         yield f"http://{host}:{port}"
-
-
-def assert_status(
-    response, message: str = "", valid_statuses: tuple[int, ...] = (200,)
-):
-    if response.status not in valid_statuses:
-        raise AssertionError(
-            f"{message}\nExpected status: {valid_statuses}\nActual status: {response.status}\nBody: {response.data!r}"
-        )
-
-
-@lru_cache
-def get_default_sema4ai_home_dir() -> Path:
-    import sys
-
-    home_env_var = os.environ.get("SEMA4AI_HOME")
-    if home_env_var:
-        home = Path(home_env_var)
-    else:
-        if sys.platform == "win32":
-            localappdata = os.environ.get("LOCALAPPDATA")
-            if not localappdata:
-                raise RuntimeError("Error. LOCALAPPDATA not defined in environment!")
-            home = Path(localappdata) / "sema4ai"
-        else:
-            # Linux/Mac
-            home = Path("~/.sema4ai").expanduser()
-    return home
-
-
-@pytest.fixture
-def action_server_executable_path() -> Path:
-    import sys
-
-    # We need to download the action server to the default sema4ai home dir
-    # because the action server will use it to store the actions.
-    action_server_download_dir = get_default_sema4ai_home_dir() / "action-server-bin"
-    action_server_download_dir.mkdir(parents=True, exist_ok=True)
-
-    version = "2.5.1"
-    from sema4ai.common import tools
-
-    suffix = ""
-    if sys.platform == "win32":
-        suffix = ".exe"
-
-    target_location = action_server_download_dir / f"action-server-{version}{suffix}"
-    action_server_tool = tools.ActionServerTool(
-        target_location=str(target_location),
-        tool_version=version,
-    )
-    action_server_tool.download()
-    return target_location
-
-
-@pytest.fixture
-def action_server_process(tmpdir, action_server_executable_path: Path):
-    from tests.integration_tests.bootstrap_action_server import ActionServerProcess
-
-    action_server_process = ActionServerProcess(
-        datadir=Path(tmpdir) / "action_server_data",
-        executable_path=action_server_executable_path,
-    )
-    yield action_server_process
-    action_server_process.stop()
-
-
-@pytest.fixture(scope="session")
-def openai_api_key():
-    key = os.getenv("OPENAI_API_KEY")
-    if not key:
-        raise ValueError("OPENAI_API_KEY not found in environment variables")
-    return key

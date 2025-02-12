@@ -3,10 +3,8 @@ import urllib
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from tests.integration_tests.agent_client import ActionPackageDataClass
-
 if TYPE_CHECKING:
-    from tests.integration_tests.bootstrap_action_server import ActionServerProcess
+    from agent_server_orchestrator.bootstrap_action_server import ActionServerProcess
 
 from dotenv import load_dotenv
 
@@ -28,7 +26,7 @@ def test_api_interaction_expected_from_actions(
     This test checks that the API in the agent server matches what the
     actions call directly.
     """
-    from tests.integration_tests.agent_client import AgentServerClient
+    from agent_server_orchestrator.agent_server_client import AgentServerClient
 
     base_url_api = f"{base_url_agent_server}/api/v1"
     with AgentServerClient(base_url_agent_server) as agent_client:
@@ -99,8 +97,7 @@ def test_api_interaction_expected_from_actions(
         file_url = response_data.get("file_url")
         if not file_url:
             raise ValueError(
-                f"Failed to get file {filename} from {url}. "
-                f"Response: {response_data}"
+                f"Failed to get file {filename} from {url}. Response: {response_data}"
             )
 
         parsed_url = urllib.parse.urlparse(file_url)
@@ -137,7 +134,10 @@ def test_api_interaction_with_chat_files(
     This test is a full integration test that checks that actions can
     upload and retrieve files from the agent server thread.
     """
-    from tests.integration_tests.agent_client import AgentServerClient
+    from agent_server_orchestrator.agent_server_client import (
+        ActionPackageDataClass,
+        AgentServerClient,
+    )
 
     base_url_api = f"{base_url_agent_server}/api/v1"
     env = {"SEMA4AI_FILE_MANAGEMENT_URL": base_url_api}
@@ -190,9 +190,9 @@ You are an agent just to call other tools actions as requested.
         result.print_info()
 
         file_refs = agent_client.list_files(thread_id)
-        assert (
-            "full-action-contents.json" in file_refs
-        ), f"Did not find the file full-action-contents.json in the thread files list: {file_refs}"
+        assert "full-action-contents.json" in file_refs, (
+            f"Did not find the file full-action-contents.json in the thread files list: {file_refs}"
+        )
 
         result_json_txt = agent_client.get_file_by_ref(
             thread_id, "full-action-contents.json"
@@ -202,9 +202,9 @@ You are an agent just to call other tools actions as requested.
         except Exception:
             raise RuntimeError(f"Failed to parse result_json: {result_json_txt}")
 
-        assert result_json_dict.get(
-            "runbook"
-        ), f"Found result_json_dict: {json.dumps(result_json_dict, indent=2)}"
+        assert result_json_dict.get("runbook"), (
+            f"Found result_json_dict: {json.dumps(result_json_dict, indent=2)}"
+        )
 
         # Change it and make sure we can get the new version
         result = agent_client.send_message_to_agent_thread_collect_all(
@@ -216,6 +216,6 @@ You are an agent just to call other tools actions as requested.
         result_json_txt = agent_client.get_file_by_ref(
             thread_id, "full-action-contents.json"
         )
-        assert (
-            "updated version" in result_json_txt
-        ), f"Did not find the updated version in the file: {result_json_txt}"
+        assert "updated version" in result_json_txt, (
+            f"Did not find the updated version in the file: {result_json_txt}"
+        )

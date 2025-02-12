@@ -18,11 +18,6 @@ from agent_server_types import (
 )
 from dotenv import load_dotenv
 
-from tests.integration_tests.agent_client import (
-    ActionPackageDataClass,
-    AgentServerClient,
-)
-
 load_dotenv()
 
 
@@ -33,6 +28,11 @@ def test_api_interaction_with_action_server(
     logs_dir,
     resources_dir,
 ):
+    from agent_server_orchestrator.agent_server_client import (
+        ActionPackageDataClass,
+        AgentServerClient,
+    )
+
     cwd = resources_dir / "simple_action_package"
     api_key = "test"
     action_server_process.start(
@@ -110,7 +110,8 @@ def test_api_interaction(
 ):
     import random
 
-    from tests.integration_tests.agent_client import (
+    from agent_server_orchestrator.agent_server_client import (
+        AgentServerClient,
         print_header,
         print_info,
         print_success,
@@ -131,16 +132,16 @@ def test_api_interaction(
                 thread_response = agent_client.upload_file_to_thread(
                     thread_id, thread_file, embedded=True
                 )
-                assert (
-                    thread_response.status_code == 200
-                ), f"File upload to thread: bad response: {thread_response.status_code} {thread_response.text}"
+                assert thread_response.status_code == 200, (
+                    f"File upload to thread: bad response: {thread_response.status_code} {thread_response.text}"
+                )
 
                 # Agent file upload
                 agent_file, agent_key, agent_value = create_sample_file()
                 agent_response = agent_client.upload_file_to_agent(agent_id, agent_file)
-                assert (
-                    agent_response.status_code == 200
-                ), f"File upload to agent: bad response: {agent_response.status_code} {agent_response.text}"
+                assert agent_response.status_code == 200, (
+                    f"File upload to agent: bad response: {agent_response.status_code} {agent_response.text}"
+                )
 
                 # Multiple file uploads
                 multi_files = [create_sample_file()[0] for _ in range(4)]
@@ -148,17 +149,17 @@ def test_api_interaction(
                 thread_multi_response = agent_client.upload_files_to_thread(
                     thread_id, thread_files
                 )
-                assert (
-                    thread_multi_response.status_code == 200
-                ), f"Multiple file upload to thread: bad response: {thread_multi_response.status_code} {thread_multi_response.text}"
+                assert thread_multi_response.status_code == 200, (
+                    f"Multiple file upload to thread: bad response: {thread_multi_response.status_code} {thread_multi_response.text}"
+                )
 
                 agent_multi_response = agent_client.upload_files_to_agent(
                     agent_id, agent_files
                 )
 
-                assert (
-                    agent_multi_response.status_code == 200
-                ), f"Multiple file upload to agent: bad response: {agent_multi_response.status_code} {agent_multi_response.text}"
+                assert agent_multi_response.status_code == 200, (
+                    f"Multiple file upload to agent: bad response: {agent_multi_response.status_code} {agent_multi_response.text}"
+                )
 
                 total_files = (
                     1 + 1 + 2 + 2
@@ -183,9 +184,9 @@ def test_api_interaction(
                 async_run_response = agent_client.create_async_run(
                     thread_id, async_message
                 )
-                assert (
-                    "run_id" in async_run_response
-                ), f"Async run ID not received in response: {async_run_response!r}"
+                assert "run_id" in async_run_response, (
+                    f"Async run ID not received in response: {async_run_response!r}"
+                )
 
                 run_id = async_run_response["run_id"]
                 print_success(f"Async run created with ID: {run_id}")
@@ -234,9 +235,9 @@ def test_api_interaction(
             file_ref = os.path.basename(uploaded_thread_files[0])
             file_info = agent_client.get_file_info_by_ref(thread_id, file_ref)
             assert file_info is not None, "File information retrieval"
-            assert (
-                file_ref in file_info["file_url"]
-            ), "Retrieved file_ref matches the requested one"
+            assert file_ref in file_info["file_url"], (
+                "Retrieved file_ref matches the requested one"
+            )
             print_success(f"Successfully retrieved file information for {file_ref}")
 
             # ---------------------- check information retrieval ----------------------
@@ -250,9 +251,9 @@ def test_api_interaction(
             question = f"What is the value associated with the key '{random_key}'?"
             print_info(f"Asking question: {question}")
             response = agent_client.send_message_to_agent_thread(thread_id, question)
-            assert (
-                expected_value in response
-            ), f"Expected value '{expected_value}' found in the response: {response}"
+            assert expected_value in response, (
+                f"Expected value '{expected_value}' found in the response: {response}"
+            )
             print_success(f"Successfully retrieved value for key '{random_key}'")
     finally:
         # Clean up files

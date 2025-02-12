@@ -68,7 +68,8 @@ profile = "black"
 [tool.poetry.group.dev.dependencies]
 uvicorn = "^0.34.0"
 pygithub = "^2.4.0"
-sema4ai-common = "0.0.1"
+sema4ai-common = "0.0.3"
+sema4ai-agent-server-orchestrator = { git = "https://github.com/Sema4AI/agent-server-orchestrator.git", tag = "v0.0.1-alpha4" }
 
 [tool.poetry.group.lint.dependencies]
 mypy = "^1.1.1"

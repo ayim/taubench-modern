@@ -3,10 +3,8 @@ from typing import TYPE_CHECKING, Iterator
 
 import pytest
 
-from tests.integration_tests.agent_client import ActionPackageDataClass
-
 if TYPE_CHECKING:
-    from tests.integration_tests.agent_client import AgentServerClient
+    from agent_server_orchestrator.agent_server_client import AgentServerClient
 
 
 @pytest.fixture
@@ -31,8 +29,12 @@ def bootstrap_agents(
     logs_dir: Path,
     openai_api_key: str,
 ) -> Iterator[BootstrapAgentsResult]:
-    from tests.integration_tests.agent_client import AgentServerClient, print_info
-    from tests.integration_tests.bootstrap_action_server import ActionServerProcess
+    from agent_server_orchestrator.agent_server_client import (
+        ActionPackageDataClass,
+        AgentServerClient,
+        print_info,
+    )
+    from agent_server_orchestrator.bootstrap_action_server import ActionServerProcess
 
     dir_name_to_agent_id: dict[str, str] = {}
     with AgentServerClient(base_url_agent_server) as agent_client:
@@ -105,7 +107,7 @@ def test_full_agent_creation_flow(bootstrap_agents: BootstrapAgentsResult, tmpdi
     import typing
     import zipfile
 
-    from tests.integration_tests.agent_client import print_info
+    from agent_server_orchestrator.agent_server_client import print_info
 
     # Could be used to put output locally.
     # output_dir = Path(__file__).parent / "__output__"
