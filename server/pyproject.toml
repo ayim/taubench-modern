@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sema4ai-agent-server"
-version = "1.1.4-alpha.75"
+version = "1.1.4-alpha.1+devgpt709.1"
 description = ""
 authors = ["Sema4.ai Engineering <engineering@sema4.ai>"]
 readme = "README.md"
@@ -52,7 +52,7 @@ agent-server-types = { git = "https://github.com/Sema4AI/agent-server-types.git"
 agent-architecture = { git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.2.1-alpha.1" }
 agent-architecture-default = { git = "https://github.com/Sema4AI/agent-architecture-default.git", tag = "v1.1.0-alpha.1" }
 agent-architecture-openai-plan-execute = { git = "https://github.com/Sema4AI/agent-architecture-openai-plan-execute.git", tag = "v1.1.0-alpha.1" }
-agent-architecture-claude-tools = { git = "https://github.com/Sema4AI/agent-architecture-claude-tools.git", tag = "v1.1.0-alpha.1" }
+agent-architecture-claude-tools = { git = "https://github.com/Sema4AI/agent-architecture-claude-tools.git", tag = "v1.1.0-alpha.2" }
 greenlet = "^3.1.1"
 
 [tool.mypy]

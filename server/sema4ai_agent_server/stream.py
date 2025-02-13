@@ -203,12 +203,26 @@ async def astream_state(
                 if not tool_calls:
                     messages[-1]
 
-                for tool_call in tool_calls:
-                    if tool_call["name"] == event["name"] and all(
-                        tool_call["args"].get(k) == v
-                        for k, v in event["data"]["input"].items()
-                    ):
-                        tool_call_id = tool_call["id"]
+                tool_call_id = None
+                if len(tool_calls) == 1:
+                    tool_call_id = tool_calls[0]["id"]
+                else:
+                    for tool_call in tool_calls:
+                        if tool_call["name"] == event["name"] and all(
+                            tool_call["args"].get(k) == v
+                            for k, v in event["data"]["input"].items()
+                        ):
+                            tool_call_id = tool_call["id"]
+                            break
+                if not tool_call_id:
+                    # Try to get from metadata
+                    tool_call_id = metadata.get("tool_call_id", None)
+                if not tool_call_id:
+                    logger.warn(
+                        "No tool call ID found for tool start event",
+                        event=event,
+                    )
+
                 input_message = ToolEventMessage(
                     content="",
                     id=event["run_id"],

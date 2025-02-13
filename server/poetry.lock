@@ -27,7 +27,7 @@ resolved_reference = "2352340314968df80207e2d41becf52d16faf52c"
 
 [[package]]
 name = "agent-architecture-claude-tools"
-version = "1.1.0-alpha.1"
+version = "1.1.0-alpha.2"
 description = "Tool using cognitive architecture for agents supporting Anthropic Claude LLMs."
 optional = false
 python-versions = "^3.11.0,<3.12"
@@ -42,8 +42,8 @@ agent-server-types = {git = "https://github.com/Sema4AI/agent-server-types.git",
 [package.source]
 type = "git"
 url = "https://github.com/Sema4AI/agent-architecture-claude-tools.git"
-reference = "v1.1.0-alpha.1"
-resolved_reference = "343906bcc1b3741ce595ff0622908a8f54a74e54"
+reference = "v1.1.0-alpha.2"
+resolved_reference = "35e424780fe3b8892a9302fcfc3ce8affb6a0757"
 
 [[package]]
 name = "agent-architecture-default"
@@ -441,18 +441,18 @@ lxml = ["lxml"]
 
 [[package]]
 name = "boto3"
-version = "1.36.17"
+version = "1.36.19"
 description = "The AWS SDK for Python"
 optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 files = [
-    {file = "boto3-1.36.17-py3-none-any.whl", hash = "sha256:59bcf0c4b04d9cc36f8b418ad17ab3c4a99a21a175d2fad7096aa21cbe84630b"},
-    {file = "boto3-1.36.17.tar.gz", hash = "sha256:5ecae20e780a3ce9afb3add532b61c466a8cb8960618e4fa565b3883064c1346"},
+    {file = "boto3-1.36.19-py3-none-any.whl", hash = "sha256:7784590369a9d545bb07b2de56b6ce4d5a5e232883a957f704c3f842caeba155"},
+    {file = "boto3-1.36.19.tar.gz", hash = "sha256:8c2c2a4ccdfe35dd2611ee1b7473dd2383948415c777e42dc4e7f1ebe371fe8c"},
 ]
 
 [package.dependencies]
-botocore = ">=1.36.17,<1.37.0"
+botocore = ">=1.36.19,<1.37.0"
 jmespath = ">=0.7.1,<2.0.0"
 s3transfer = ">=0.11.0,<0.12.0"
 
@@ -461,14 +461,14 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "botocore"
-version = "1.36.17"
+version = "1.36.19"
 description = "Low-level, data-driven core of boto 3."
 optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 files = [
-    {file = "botocore-1.36.17-py3-none-any.whl", hash = "sha256:069858b2fd693548035d7fd53a774e37e4260fea64e0ac9b8a3aee904f9321df"},
-    {file = "botocore-1.36.17.tar.gz", hash = "sha256:cec13e0a7ce78e71aad0b397581b4e81824c7981ef4c261d2e296d200c399b09"},
+    {file = "botocore-1.36.19-py3-none-any.whl", hash = "sha256:98882c106fec4c08678ea028199f7f5119550fab95d682b30846f7aae04b7bec"},
+    {file = "botocore-1.36.19.tar.gz", hash = "sha256:cdf6729f601f82b1acdb9004b1f88b57cfb470f576394cdb3bbf5150f7fafb5b"},
 ]
 
 [package.dependencies]
@@ -1353,14 +1353,14 @@ requests = ["requests (>=2.20.0,<3.0.0.dev0)"]
 
 [[package]]
 name = "googleapis-common-protos"
-version = "1.66.0"
+version = "1.67.0"
 description = "Common protobufs used in Google APIs"
 optional = false
 python-versions = ">=3.7"
 groups = ["main"]
 files = [
-    {file = "googleapis_common_protos-1.66.0-py2.py3-none-any.whl", hash = "sha256:d7abcd75fabb2e0ec9f74466401f6c119a0b498e27370e9be4c94cb7e382b8ed"},
-    {file = "googleapis_common_protos-1.66.0.tar.gz", hash = "sha256:c3e7b33d15fdca5374cc0a7346dd92ffa847425cc4ea941d970f13680052ec8c"},
+    {file = "googleapis_common_protos-1.67.0-py2.py3-none-any.whl", hash = "sha256:579de760800d13616f51cf8be00c876f00a9f146d3e6510e19d1f4111758b741"},
+    {file = "googleapis_common_protos-1.67.0.tar.gz", hash = "sha256:21398025365f138be356d5923e9168737d94d46a72aefee4a6110a1f23463c86"},
 ]
 
 [package.dependencies]
@@ -1978,18 +1978,6 @@ files = [
 jsonpointer = ">=1.9"
 
 [[package]]
-name = "jsonpath-python"
-version = "1.0.6"
-description = "A more powerful JSONPath implementation in modern python"
-optional = false
-python-versions = ">=3.6"
-groups = ["main"]
-files = [
-    {file = "jsonpath-python-1.0.6.tar.gz", hash = "sha256:dd5be4a72d8a2995c3f583cf82bf3cd1a9544cfdabf2d22595b67aff07349666"},
-    {file = "jsonpath_python-1.0.6-py3-none-any.whl", hash = "sha256:1e3b78df579f5efc23565293612decee04214609208a2335884b3ee3f786b575"},
-]
-
-[[package]]
 name = "jsonpointer"
 version = "3.0.0"
 description = "Identify specific nodes in a JSON document (RFC 6901)"
@@ -2151,14 +2139,14 @@ tenacity = ">=8.1.0,<8.4.0 || >8.4.0,<10"
 
 [[package]]
 name = "langchain-core"
-version = "0.3.34"
+version = "0.3.35"
 description = "Building applications with LLMs through composability"
 optional = false
 python-versions = "<4.0,>=3.9"
 groups = ["main", "dev"]
 files = [
-    {file = "langchain_core-0.3.34-py3-none-any.whl", hash = "sha256:a057ebeddd2158d3be14bde341b25640ddf958b6989bd6e47160396f5a8202ae"},
-    {file = "langchain_core-0.3.34.tar.gz", hash = "sha256:26504cf1e8e6c310adad907b890d4e3c147581cfa7434114f6dc1134fe4bc6d3"},
+    {file = "langchain_core-0.3.35-py3-none-any.whl", hash = "sha256:81a4097226e180fa6c64e2d2ab38dcacbbc23b64fc109fb15622910fe8951670"},
+    {file = "langchain_core-0.3.35.tar.gz", hash = "sha256:328688228ece259da734417d477994a69cf8202dea9ed4271f2d792e3575c6fc"},
 ]
 
 [package.dependencies]
@@ -2239,14 +2227,14 @@ six = "*"
 
 [[package]]
 name = "langgraph"
-version = "0.2.70"
+version = "0.2.72"
 description = "Building stateful, multi-actor applications with LLMs"
 optional = false
 python-versions = "<4.0,>=3.9.0"
 groups = ["main"]
 files = [
-    {file = "langgraph-0.2.70-py3-none-any.whl", hash = "sha256:fe5029830b2332049b8270d8dda446eeb4995dccd5c8c997cc3e538bc9ec81a5"},
-    {file = "langgraph-0.2.70.tar.gz", hash = "sha256:fc929ce3c96c49cdf62b48d3c8accd71f6a30f2d06bcf4f5946b2b91d1b9ff8e"},
+    {file = "langgraph-0.2.72-py3-none-any.whl", hash = "sha256:5b725c02a6eb55257479a0ea0db40926f766c8ff12c2730690f62c614d7e6ee5"},
+    {file = "langgraph-0.2.72.tar.gz", hash = "sha256:879cfda4d0a9e9795066f6e448282792d6290f6584f527a7588a64e972e73bad"},
 ]
 
 [package.dependencies]
@@ -2256,14 +2244,14 @@ langgraph-sdk = ">=0.1.42,<0.2.0"
 
 [[package]]
 name = "langgraph-checkpoint"
-version = "2.0.12"
+version = "2.0.13"
 description = "Library with base interfaces for LangGraph checkpoint savers."
 optional = false
 python-versions = "<4.0.0,>=3.9.0"
 groups = ["main"]
 files = [
-    {file = "langgraph_checkpoint-2.0.12-py3-none-any.whl", hash = "sha256:37e45a9b06ee37b9fe705c1f96f72a4ca1730195ca9553f1c1f49a152dbf21ff"},
-    {file = "langgraph_checkpoint-2.0.12.tar.gz", hash = "sha256:1b7e4967b784e2b66dc38ff6840e929c658c47ee00c28cf0e354b95062060e89"},
+    {file = "langgraph_checkpoint-2.0.13-py3-none-any.whl", hash = "sha256:ae022c9f04401d7583442cbf4d649cd48b9767fe6397c8036e4f2a6256309f5c"},
+    {file = "langgraph_checkpoint-2.0.13.tar.gz", hash = "sha256:5e62d9290b1a74edd19f90624e4a2cfda848be015b484818b650bc7cb307040c"},
 ]
 
 [package.dependencies]
@@ -3136,14 +3124,14 @@ sympy = "*"
 
 [[package]]
 name = "openai"
-version = "1.61.1"
+version = "1.63.0"
 description = "The official Python library for the openai API"
 optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 files = [
-    {file = "openai-1.61.1-py3-none-any.whl", hash = "sha256:72b0826240ce26026ac2cd17951691f046e5be82ad122d20a8e1b30ca18bd11e"},
-    {file = "openai-1.61.1.tar.gz", hash = "sha256:ce1851507218209961f89f3520e06726c0aa7d0512386f0f977e3ac3e4f2472e"},
+    {file = "openai-1.63.0-py3-none-any.whl", hash = "sha256:a664dfc78f0a05ca46c3e21f344f840cf6bf7174f13cfa9de214ed28bfca1dda"},
+    {file = "openai-1.63.0.tar.gz", hash = "sha256:597d7a1b35b113e5a09fcb953bdb1eef44f404a39985f3d7573b3ab09221fd66"},
 ]
 
 [package.dependencies]
@@ -4117,14 +4105,14 @@ testing = ["pytest", "pytest-benchmark"]
 
 [[package]]
 name = "posthog"
-version = "3.12.1"
+version = "3.13.0"
 description = "Integrate PostHog into any python application."
 optional = false
 python-versions = "*"
 groups = ["main"]
 files = [
-    {file = "posthog-3.12.1-py2.py3-none-any.whl", hash = "sha256:f749bb4aa4610678c3ea71e0f491cfb2dce570196b9753a04260ff08e52dfb6d"},
-    {file = "posthog-3.12.1.tar.gz", hash = "sha256:319036f83436981b3bdc750b0ed067b5439c510ed601933f8fc043d0989c73c6"},
+    {file = "posthog-3.13.0-py2.py3-none-any.whl", hash = "sha256:0afd0132055a3da9c6b0ecf763e7f2ce2b66659ef16169883394d0835c30d501"},
+    {file = "posthog-3.13.0.tar.gz", hash = "sha256:54e9de232459846b1686a0cfb58acb02b7ccda379d837e1eb1c3af62c3775915"},
 ]
 
 [package.dependencies]
@@ -4135,10 +4123,10 @@ requests = ">=2.7,<3.0"
 six = ">=1.5"
 
 [package.extras]
-dev = ["black", "flake8", "flake8-print", "isort", "pre-commit"]
+dev = ["black", "django-stubs", "flake8", "flake8-print", "isort", "lxml", "mypy", "mypy-baseline", "pre-commit", "pydantic", "types-mock", "types-python-dateutil", "types-requests", "types-setuptools", "types-six"]
 langchain = ["langchain (>=0.2.0)"]
 sentry = ["django", "sentry-sdk"]
-test = ["anthropic", "coverage", "django", "flake8", "freezegun (==0.3.15)", "langchain-anthropic (>=0.2.0)", "langchain-community (>=0.2.0)", "langchain-openai (>=0.2.0)", "langgraph", "mock (>=2.0.0)", "openai", "pydantic", "pylint", "pytest", "pytest-asyncio", "pytest-timeout"]
+test = ["anthropic", "coverage", "django", "flake8", "freezegun (==1.5.1)", "langchain-anthropic (>=0.2.0)", "langchain-community (>=0.2.0)", "langchain-openai (>=0.2.0)", "langgraph", "mock (>=2.0.0)", "openai", "pydantic", "pylint", "pytest", "pytest-asyncio", "pytest-timeout"]
 
 [[package]]
 name = "propcache"
@@ -6310,14 +6298,14 @@ files = [
 
 [[package]]
 name = "tzlocal"
-version = "5.2"
+version = "5.3"
 description = "tzinfo object for the local timezone"
 optional = false
-python-versions = ">=3.8"
+python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "tzlocal-5.2-py3-none-any.whl", hash = "sha256:49816ef2fe65ea8ac19d19aa7a1ae0551c834303d5014c6d5a62e4cbda8047b8"},
-    {file = "tzlocal-5.2.tar.gz", hash = "sha256:8d399205578f1a9342816409cc1e46a93ebd5755e39ea2d85334bea911bf0e6e"},
+    {file = "tzlocal-5.3-py3-none-any.whl", hash = "sha256:3814135a1bb29763c6e4f08fd6e41dbb435c7a60bfbb03270211bcc537187d8c"},
+    {file = "tzlocal-5.3.tar.gz", hash = "sha256:2fafbfc07e9d8b49ade18f898d6bcd37ae88ce3ad6486842a2e4f03af68323d2"},
 ]
 
 [package.dependencies]
@@ -6385,28 +6373,27 @@ xlsx = ["networkx", "openpyxl", "pandas", "xlrd"]
 
 [[package]]
 name = "unstructured-client"
-version = "0.29.0"
+version = "0.30.0"
 description = "Python Client SDK for Unstructured API"
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "unstructured_client-0.29.0-py3-none-any.whl", hash = "sha256:a4a1c9a55835030e38c37d941a5dd8684233779f477aeb52619ac47c2d488d85"},
-    {file = "unstructured_client-0.29.0.tar.gz", hash = "sha256:a0bd625f067a1e015d80800f1795cfb4e2e2ee980f0c25d2eabe506e66c38018"},
+    {file = "unstructured_client-0.30.0-py3-none-any.whl", hash = "sha256:919c17a2bede159b71fcfe036097d9c283c8488529a11cd3a0170a6ea7520c7e"},
+    {file = "unstructured_client-0.30.0.tar.gz", hash = "sha256:24ea3574f449b2394d14b68f4a054b0850a84b30d7cdf82093cfb4779788b807"},
 ]
 
 [package.dependencies]
 aiofiles = ">=24.1.0"
 cryptography = ">=3.1"
-eval-type-backport = ">=0.2.0,<0.3.0"
+eval-type-backport = ">=0.2.0"
 httpx = ">=0.27.0"
-jsonpath-python = ">=1.0.6,<2.0.0"
 nest-asyncio = ">=1.6.0"
-pydantic = ">=2.10.3,<2.11.0"
+pydantic = ">=2.10.3"
 pypdf = ">=4.0"
-python-dateutil = ">=2.8.2,<3.0.0"
+python-dateutil = ">=2.8.2"
 requests-toolbelt = ">=1.0.0"
-typing-inspect = ">=0.9.0,<0.10.0"
+typing-inspect = ">=0.9.0"
 
 [[package]]
 name = "urllib3"
@@ -7077,4 +7064,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11.0,<3.12"
-content-hash = "0f5542b44a7630945487180d4667dddac9af5b7476e1c127227ded2e0131ca3f"
+content-hash = "6d88f5d89cc73eac14b5002024d125826cf01aae30b40992cc618744300dc734"
