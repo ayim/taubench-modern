@@ -22,6 +22,7 @@ from .agents import (
     ModelNotConfigured,
     User,
     dummy_agent,
+    dummy_user,
 )
 from .annotated import (
     SerializableSecretStr,
@@ -127,4 +128,5 @@ __all__ = [
     "AgentServerKernalBase",
     "VectorStoreBase",
     "User",
+    "dummy_user",
 ]

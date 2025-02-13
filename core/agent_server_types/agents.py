@@ -424,3 +424,10 @@ class User(BaseModel):
     def cr_system_id(self) -> str | None:
         """Control Room System ID"""
         return self._parsed_sub["system"]
+
+
+dummy_user = User(
+    user_id="dummy",
+    sub="tenant:dummy:user:dummy",
+    created_at=datetime.now(),
+)
