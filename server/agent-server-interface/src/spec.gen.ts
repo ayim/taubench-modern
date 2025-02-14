@@ -190,11 +190,7 @@ export const spec = {
             content: {
               "application/json": {
                 schema: {
-                  type: "object",
-                  additionalProperties: {
-                    $ref: "#/components/schemas/Agent",
-                  },
-                  title: "Response Delete Agent Api V1 Agents  Aid  Delete",
+                  $ref: "#/components/schemas/DeletedAgentResponse",
                 },
               },
             },
@@ -1671,13 +1667,7 @@ export const spec = {
             type: "string",
             title: "Architecture",
             description: "The agent's architecture.",
-            enum: [
-              "agent",
-              "agent_architecture_claude_tools",
-              "agent_architecture_default",
-              "agent_architecture_openai_plan_execute",
-              "plan_execute",
-            ],
+            enum: ["agent", "plan_execute"],
           },
           reasoning: {
             $ref: "#/components/schemas/AgentReasoning",
@@ -2275,6 +2265,17 @@ export const spec = {
         type: "object",
         required: ["context_window_size", "tokens_per_message"],
         title: "ContextStats",
+      },
+      DeletedAgentResponse: {
+        properties: {
+          deleted: {
+            $ref: "#/components/schemas/Agent",
+          },
+        },
+        type: "object",
+        required: ["deleted"],
+        title: "DeletedAgentResponse",
+        description: "Response model for delete_agent endpoint.",
       },
       EmbeddingFileFailed: {
         properties: {

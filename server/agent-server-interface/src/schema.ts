@@ -709,12 +709,7 @@ export interface components {
        * @description The agent's architecture.
        * @enum {string}
        */
-      architecture:
-        | "agent"
-        | "agent_architecture_claude_tools"
-        | "agent_architecture_default"
-        | "agent_architecture_openai_plan_execute"
-        | "plan_execute";
+      architecture: "agent" | "plan_execute";
       /** @description The reasoning setting of the agent. */
       reasoning: components["schemas"]["AgentReasoning"];
       /**
@@ -1065,6 +1060,13 @@ export interface components {
       tokens_per_message: {
         [key: string]: number;
       };
+    };
+    /**
+     * DeletedAgentResponse
+     * @description Response model for delete_agent endpoint.
+     */
+    DeletedAgentResponse: {
+      deleted: components["schemas"]["Agent"];
     };
     /** EmbeddingFileFailed */
     EmbeddingFileFailed: {
@@ -2521,9 +2523,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": {
-            [key: string]: components["schemas"]["Agent"];
-          };
+          "application/json": components["schemas"]["DeletedAgentResponse"];
         };
       };
       /** @description Validation Error */
