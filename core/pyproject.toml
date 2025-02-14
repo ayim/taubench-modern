@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "agent-server-types"
-version = "1.2.0-alpha.2"
+version = "1.2.0-alpha.3"
 description = "Shared types for the agent server and agent architecture plugins."
 authors = ["Sema4.ai Engineering <engineering@sema4.ai>"]
 readme = "README.md"
