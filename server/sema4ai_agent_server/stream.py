@@ -200,9 +200,6 @@ async def astream_state(
                 # Explicitly send tool start events to the front end
                 logger.debug(f"astream_state:on_tool_start:event: {event}")
 
-                if not tool_calls:
-                    messages[-1]
-
                 tool_call_id = None
                 if len(tool_calls) == 1:
                     tool_call_id = tool_calls[0]["id"]
