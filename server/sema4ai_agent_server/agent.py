@@ -1,11 +1,6 @@
 from typing import Any, Mapping, Sequence
 
-from agent_server_types import (
-    Agent,
-    Thread,
-    User,
-    dummy_agent,
-)
+from agent_server_types import Agent, Thread, User, dummy_agent, dummy_user
 from langchain_core.messages import AnyMessage
 from langchain_core.runnables import (
     ConfigurableField,
@@ -102,7 +97,7 @@ runnable_agent: Pregel = (
     ConfigurableAgent(
         agent=dummy_agent,
         thread=None,
-        user=None,
+        user=dummy_user,
         use_retrieval=False,
         interrupt_before_action=False,
         knowledge_files=None,
