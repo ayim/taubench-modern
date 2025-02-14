@@ -9,7 +9,9 @@ from pydantic import (
     BaseModel,
     Field,
     SecretStr,
+    SerializationInfo,
     TypeAdapter,
+    field_serializer,
     field_validator,
     model_validator,
 )
@@ -201,6 +203,27 @@ class AgentAdvancedConfig(BaseModel):
 
         return self
 
+    @field_serializer("architecture")
+    def serialize_architecture(self, value: str, info: SerializationInfo) -> str:
+        """Serialize the architecture field to legacy architecture names.
+
+        Current architecture names are not user-facing, so this translates
+        them to the legacy names. Only applies when serialize_legacy_names=True
+        in the model_dump context.
+        """
+        if not info.context.get("serialize_legacy_names", False):
+            return value
+
+        if value in [
+            "agent_architecture_default",
+            "agent_architecture_claude_tools",
+        ]:
+            return "agent"
+        elif value == "agent_architecture_plan_execute":
+            return "plan_execute"
+        else:
+            return value
+
 
 class AgentMetadata(BaseModel):
     """
@@ -287,7 +310,8 @@ class AgentPayload(BaseModel):
     @model_validator(mode="after")
     def translate_old_architecture(self) -> Self:
         """Translate old architecture names to new architecture names."""
-        # TODO: TECH DEBT - Remove this function after all agents are updated to use the new architecture names.
+        # This function is needed until kernel v2 because our current architecture
+        # names are not user-facing.
         if self.advanced_config.architecture == "agent":
             if isinstance(self.model, (AnthropicClaude, AmazonBedrock)):
                 self.advanced_config.architecture = "agent_architecture_claude_tools"

@@ -31,6 +31,7 @@ from .annotated import (
 from .constants import (
     AZURE_URL_PATTERN,
     DEFAULT_ARCHITECTURE,
+    LEGACY_ARCH_CONTEXT,
     NOT_CONFIGURED,
     RAW_CONTEXT,
 )
@@ -129,4 +130,5 @@ __all__ = [
     "VectorStoreBase",
     "User",
     "dummy_user",
+    "LEGACY_ARCH_CONTEXT",
 ]
