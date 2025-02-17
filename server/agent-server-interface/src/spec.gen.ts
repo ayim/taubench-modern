@@ -1169,6 +1169,54 @@ export const spec = {
         },
       },
     },
+    "/api/v1/threads/{tid}/files/download/": {
+      get: {
+        tags: ["threads"],
+        summary: "Download File By Ref",
+        operationId:
+          "download_file_by_ref_api_v1_threads__tid__files_download__get",
+        parameters: [
+          {
+            name: "tid",
+            in: "path",
+            required: true,
+            schema: {
+              type: "string",
+              title: "Tid",
+            },
+          },
+          {
+            name: "file_ref",
+            in: "query",
+            required: true,
+            schema: {
+              type: "string",
+              title: "File Ref",
+            },
+          },
+        ],
+        responses: {
+          "200": {
+            description: "Successful Response",
+            content: {
+              "application/json": {
+                schema: {},
+              },
+            },
+          },
+          "422": {
+            description: "Validation Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/HTTPValidationError",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     "/api/v1/threads/{tid}/files": {
       get: {
         tags: ["threads"],

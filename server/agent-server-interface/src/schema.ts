@@ -447,6 +447,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/threads/{tid}/files/download/": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Download File By Ref */
+    get: operations["download_file_by_ref_api_v1_threads__tid__files_download__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/threads/{tid}/files": {
     parameters: {
       query?: never;
@@ -3240,6 +3257,39 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["FileByRefResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  download_file_by_ref_api_v1_threads__tid__files_download__get: {
+    parameters: {
+      query: {
+        file_ref: string;
+      };
+      header?: never;
+      path: {
+        tid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
         };
       };
       /** @description Validation Error */
