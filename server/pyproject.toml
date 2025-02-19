@@ -52,7 +52,7 @@ agent-server-types = { git = "https://github.com/Sema4AI/agent-server-types.git"
 agent-architecture = { git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.2.1-alpha.3" }
 agent-architecture-default = { git = "https://github.com/Sema4AI/agent-architecture-default.git", tag = "v1.1.0-alpha.2" }
 agent-architecture-openai-plan-execute = { git = "https://github.com/Sema4AI/agent-architecture-openai-plan-execute.git", tag = "v1.1.0-alpha.2" }
-agent-architecture-claude-tools = { git = "https://github.com/Sema4AI/agent-architecture-claude-tools.git", tag = "v1.1.0-alpha.3" }
+agent-architecture-claude-tools = { git = "https://github.com/Sema4AI/agent-architecture-claude-tools.git", tag = "v1.1.0-alpha.4" }
 greenlet = "^3.1.1"
 
 [tool.mypy]
