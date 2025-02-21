@@ -1,12 +1,14 @@
 from datetime import datetime
 
+from agent_server_types_v2.delta import compute_generic_delta
 from agent_server_types_v2.streaming.delta import StreamingDeltaMessageContent
-from agent_server_types_v2.streaming.generic import compute_generic_delta
 from agent_server_types_v2.thread.base import ThreadMessage
 
 
 def compute_message_delta(
-    old: ThreadMessage | None, new: ThreadMessage, sequence_number: int,
+    old: ThreadMessage | None,
+    new: ThreadMessage,
+    sequence_number: int,
 ) -> list[StreamingDeltaMessageContent]:
     """Compute the delta between two messages.
 

@@ -15,7 +15,9 @@ class ThreadVegaChartContent(ThreadMessageContent):
     """
 
     chart_spec_raw: str = field(
-        metadata={"description": "The Vega or Vega-Lite chart spec JSON (as a string) to display"},
+        metadata={
+            "description": "The Vega or Vega-Lite chart spec JSON (as a string) to display",
+        },
     )
     """The Vega or Vega-Lite chart spec JSON (as a string) to display"""
 
@@ -44,7 +46,7 @@ class ThreadVegaChartContent(ThreadMessageContent):
     def chart_spec(self) -> dict:
         """The Vega or Vega-Lite chart spec JSON (parsed as a dictionary) to display"""
         return self._chart_spec
-    
+
     def __post_init__(self) -> None:
         """Validates the content type and chart content after initialization.
 
@@ -54,7 +56,7 @@ class ThreadVegaChartContent(ThreadMessageContent):
         """
         if not isinstance(self.chart_spec_raw, str):
             raise ValueError("Chart spec value must be a string")
-        
+
         assert_literal_value_valid(self, "kind")
         assert_literal_value_valid(self, "sub_type")
 
@@ -70,8 +72,10 @@ class ThreadVegaChartContent(ThreadMessageContent):
         # Validate schema (if it's missing, we can add it based on sub_type)
         if "$schema" not in parsed_spec:
             # https://vega.github.io/schema/vega(-lite)/v5.json
-            parsed_spec["$schema"] = f"https://vega.github.io/schema/{self.sub_type}/v5.json"
-        
+            parsed_spec["$schema"] = (
+                f"https://vega.github.io/schema/{self.sub_type}/v5.json"
+            )
+
         schema = parsed_spec["$schema"]
         if not isinstance(schema, str):
             raise ValueError("Chart spec $schema field must be a string")
@@ -79,7 +83,7 @@ class ThreadVegaChartContent(ThreadMessageContent):
         # Make sure the schema is a valid URL
         if not schema.startswith("http"):
             raise ValueError("Chart spec $schema field must be a valid URL")
-        
+
         # Make sure schema ends in .json (it's a json schema file)
         if not schema.endswith(".json"):
             raise ValueError("Chart spec $schema field must end in .json")
@@ -89,7 +93,7 @@ class ThreadVegaChartContent(ThreadMessageContent):
             raise ValueError("Schema indicates Vega-Lite but sub_type is set to 'vega'")
         elif self.sub_type == "vega-lite" and "schema/vega/" in schema.lower():
             raise ValueError("Schema indicates Vega but sub_type is set to 'vega-lite'")
-        
+
         # Use object.__setattr__ to bypass the frozen restriction
         object.__setattr__(self, "_chart_spec", parsed_spec)
 
@@ -98,16 +102,16 @@ class ThreadVegaChartContent(ThreadMessageContent):
         chart_spec_clean = json.dumps(self.chart_spec, indent=2)
         return f"```{self.sub_type}\n{chart_spec_clean}\n```"
 
-    def to_json_dict(self) -> dict:
+    def model_dump_json(self) -> dict:
         """Serializes the vega chart content to a dictionary. Useful for JSON serialization."""
         return {
-            **super().to_json_dict(),
+            **super().model_dump_json(),
             "chart_spec_raw": self.chart_spec_raw,
             "sub_type": self.sub_type,
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "ThreadVegaChartContent":
+    def model_validate(cls, data: dict) -> "ThreadVegaChartContent":
         """Create a thread vega chart content from a dictionary."""
         return cls(**data)
 

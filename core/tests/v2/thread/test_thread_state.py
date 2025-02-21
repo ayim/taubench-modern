@@ -18,14 +18,25 @@ class ThreadStateTestImpl(ThreadStateInterface):
     async def _commit_message_to_storage(self, message: ThreadMessage) -> None:
         pass
 
+
 @pytest.mark.asyncio
 class TestThreadState:
     async def test_stream_message_delta_for_new_message(self):
         ts = ThreadStateTestImpl()
         msg = ThreadAgentMessage(content=[ThreadTextContent(text="hello")])
-        with patch.object(ts, '_send_delta_event', new_callable=AsyncMock) as mock_send:
+        with patch.object(ts, "_send_delta_event", new_callable=AsyncMock) as mock_send:
             await ts.stream_message_delta(msg)
-            assert mock_send.await_count == 1  # one delta event for brand new message
+            # A new message will have 6 keys:
+            #    {
+            #        'agent_metadata',
+            #        'message_id',
+            #        'content',
+            #        'created_at',
+            #        'role',
+            #        'server_metadata'
+            #    }
+            # Each of these will have a delta event.
+            assert mock_send.await_count == 6  # one delta event for each key
 
     async def test_stream_message_delta_for_updated_message(self):
         ts = ThreadStateTestImpl()
@@ -33,20 +44,22 @@ class TestThreadState:
         await ts.stream_message_delta(msg)
         # Now update the content
         msg.content[0] = ThreadTextContent(text="hello updated")
-        with patch.object(ts, '_send_delta_event', new_callable=AsyncMock) as mock_send:
+        with patch.object(ts, "_send_delta_event", new_callable=AsyncMock) as mock_send:
             await ts.stream_message_delta(msg)
-            assert mock_send.await_count >= 1  # at least one delta event for updated message
+            assert (
+                mock_send.await_count >= 1
+            )  # at least one delta event for updated message
 
     async def test_stream_message_delta_raises_streamingerror_on_exception(self):
         ts = ThreadStateTestImpl()
         msg = ThreadAgentMessage(content=[ThreadTextContent(text="fail me")])
-        with patch.object(ts, '_send_delta_event', new_callable=AsyncMock) as mock_send:
+        with patch.object(ts, "_send_delta_event", new_callable=AsyncMock) as mock_send:
             mock_send.side_effect = Exception("Network issue")
             with pytest.raises(StreamingError, match="Failed to send delta"):
                 await ts.stream_message_delta(msg)
 
     async def test_commit_message_abstract(self):
-        """Tests the commit_message is an abstract method; 
+        """Tests the commit_message is an abstract method;
         we verify if our subclass must implement it."""
         ts = ThreadStateTestImpl()
         msg = ThreadAgentMessage(content=[])

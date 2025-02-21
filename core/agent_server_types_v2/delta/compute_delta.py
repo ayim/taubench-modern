@@ -1,12 +1,24 @@
+"""This module contains the logic for computing delta objects for
+generic objects (they must be JSON serializable).
+"""
+
 from typing import Any
 
-from agent_server_types_v2.streaming.generic.delta import GenericDelta
+from jsonpatch import JsonPatch
+
+from agent_server_types_v2.delta.base import NO_VALUE, GenericDelta
 
 
-def compute_generic_delta(old_val: Any, new_val: Any, path: str = "") -> list[GenericDelta]:
+def compute_generic_delta(
+    old_val: Any,
+    new_val: Any,
+    path: str = "",
+) -> list[GenericDelta]:
     """Compute the delta between two generic values.
 
-    Dispatches to type-specific delta computations.
+    Uses specialized delta computations for our custom operations where possible
+    (string concatenation, increments) and falls back to standard
+    JSON Patch operations for everything else.
 
     Arguments:
         old_val: The old metadata value.
@@ -16,22 +28,37 @@ def compute_generic_delta(old_val: Any, new_val: Any, path: str = "") -> list[Ge
     Returns:
         The list of delta operations to apply.
     """
-    # If types differ, we can't do a specialized operation => replace
-    if type(old_val) is not type(new_val):
-        return [GenericDelta(op="replace", path=path, value=new_val)]
+    # No change => no delta
+    if old_val == new_val:
+        return []
 
-    # Type-based dispatch
-    if isinstance(old_val, str):
-        return _compute_delta_str(path, old_val, new_val)
-    elif isinstance(old_val, int):
-        return _compute_delta_int(path, old_val, new_val)
-    elif isinstance(old_val, list):
-        return _compute_delta_list(path, old_val, new_val)
-    elif isinstance(old_val, dict):
-        return _compute_delta_dict(path, old_val, new_val)
-    else:
-        # If it's something else (float, bool, None, etc.) => just replace if changed
-        return [GenericDelta(op="replace", path=path, value=new_val)]
+    # Try specialized operations first if types match
+    if type(old_val) is type(new_val):
+        if isinstance(old_val, str):
+            return _compute_delta_str(path, old_val, new_val)
+        elif isinstance(old_val, int):
+            return _compute_delta_int(path, old_val, new_val)
+        elif isinstance(old_val, list):
+            return _compute_delta_list(path, old_val, new_val)
+        elif isinstance(old_val, dict):
+            return _compute_delta_dict(path, old_val, new_val)
+
+    # For everything else, use standard JSON Patch diff
+    patch = JsonPatch.from_diff(
+        old_val if old_val is not None else {},
+        new_val if new_val is not None else {},
+    )
+
+    # Convert JSON Patch operations to our GenericDelta format
+    return [
+        GenericDelta(
+            op=op["op"],
+            path=path + op["path"] if path else op["path"],
+            value=op.get("value"),
+            from_=op.get("from"),
+        )
+        for op in patch
+    ]
 
 
 def _sub_path(base: str, key: str | int) -> str:
@@ -90,9 +117,8 @@ def _compute_delta_list(path: str, old: list, new: list) -> list[GenericDelta]:
     """Computes deltas for list-like values.
 
     Strategies:
-    - If new == old + appended items, produce `append_array`.
-    - If we have the same or more items in the new list, produce a delta for each item.
-    - Fallback to `replace` if we can't do anything else.
+    - For changed values, recurse into sub-values
+    - For new items, use standard JSON Patch add ops
 
     Arguments:
         path: The path to the list.
@@ -105,37 +131,35 @@ def _compute_delta_list(path: str, old: list, new: list) -> list[GenericDelta]:
     if old == new:
         return []
 
-    len_old = len(old)
-    len_new = len(new)
+    ops = []
 
-    # 1) Check if we appended new items at the end
-    if len_new > len_old and old == new[:len_old]:
-        appended = new[len_old:]
-        return [GenericDelta(op="append_array", path=path, value=appended)]
-
-    # 2) Check if we have the same or more items in the new list
-    if len_new >= len_old:
-        # Let's try and create a compare for each item (assuming they align)
-        ops = []
-        for i in range(len_old):
+    # 1) Check common indices for changes
+    for i in range(min(len(old), len(new))):
+        if old[i] != new[i]:
+            # Recursively compute delta for this index
             sub_ops = compute_generic_delta(old[i], new[i], _sub_path(path, i))
             ops.extend(sub_ops)
-        # And for any new items, we'll just replace them
-        for i in range(len_old, len_new):
-            ops.append(GenericDelta(op="replace", path=_sub_path(path, i), value=new[i]))
-        return ops
 
-    # fallback
-    return [GenericDelta(op="replace", path=path, value=new)]
+    # 2) Add new items
+    for i in range(len(old), len(new)):
+        ops.append(
+            GenericDelta(
+                op="add",
+                path=_sub_path(path, i),
+                value=new[i],
+            ),
+        )
+
+    return ops
 
 
 def _compute_delta_dict(path: str, old: dict, new: dict) -> list[GenericDelta]:
     """Computes deltas for dict-like values.
 
     Strategies:
-    - If a key is removed, produce a `remove` op.
-    - If a key is added, produce a `merge` op.
-    - If a key is changed, recurse into the sub-dict.
+    - If keys are removed, use standard JSON Patch remove ops
+    - For changed values, recurse into sub-values
+    - For new keys, use standard JSON Patch add ops
 
     Arguments:
         path: The path to the dict.
@@ -145,12 +169,15 @@ def _compute_delta_dict(path: str, old: dict, new: dict) -> list[GenericDelta]:
     Returns:
         The list of delta operations to apply.
     """
+    if old == new:
+        return []
+
     ops = []
 
-    # 1) Keys removed
+    # 1) Keys removed => use standard remove ops
     removed_keys = set(old.keys()) - set(new.keys())
     for k in removed_keys:
-        ops.append(GenericDelta(op="remove", path=_sub_path(path, k), value=None))
+        ops.append(GenericDelta(op="remove", path=_sub_path(path, k), value=NO_VALUE))
 
     # 2) Keys in both => compute sub-delta
     common_keys = set(old.keys()) & set(new.keys())
@@ -158,10 +185,15 @@ def _compute_delta_dict(path: str, old: dict, new: dict) -> list[GenericDelta]:
         sub_ops = compute_generic_delta(old[k], new[k], _sub_path(path, k))
         ops.extend(sub_ops)
 
-    # 3) Brand-new keys => combine into a single "merge" op
+    # 3) Brand-new keys => use standard add ops
     added_keys = set(new.keys()) - set(old.keys())
-    if added_keys:
-        added_dict = {k: new[k] for k in added_keys}
-        ops.append(GenericDelta(op="merge", path=path, value=added_dict))
+    for k in added_keys:
+        ops.append(
+            GenericDelta(
+                op="add",
+                path=_sub_path(path, k),
+                value=new[k],
+            ),
+        )
 
     return ops

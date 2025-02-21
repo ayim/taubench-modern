@@ -20,10 +20,17 @@ class ThreadToolUsageContent(ThreadMessageContent):
     tool_call_id: str = field(metadata={"description": "The ID of the tool call"})
     """The ID of the tool call"""
 
-    arguments_raw: str = field(metadata={"description": "The raw arguments (JSON string) passed to the tool"})
+    arguments_raw: str = field(
+        metadata={"description": "The raw arguments (JSON string) passed to the tool"},
+    )
     """The raw arguments (JSON string) passed to the tool"""
 
-    sub_type: Literal["kernel-internal", "ca-internal", "action-external", "unknown"] = field(
+    sub_type: Literal[
+        "kernel-internal",
+        "ca-internal",
+        "action-external",
+        "unknown",
+    ] = field(
         default="unknown",
         metadata={"description": "The sub-type of the tool call, if it has one"},
     )
@@ -31,7 +38,9 @@ class ThreadToolUsageContent(ThreadMessageContent):
 
     status: Literal["running", "finished", "failed"] = field(
         default="running",
-        metadata={"description": "The status of the tool call, either 'running', 'finished', or 'failed'"},
+        metadata={
+            "description": "The status of the tool call, either 'running', 'finished', or 'failed'",
+        },
     )
     """The status of the tool call, either 'running', 'finished', or 'failed'"""
 
@@ -43,7 +52,9 @@ class ThreadToolUsageContent(ThreadMessageContent):
 
     error: str | None = field(
         default=None,
-        metadata={"description": "The error message of the tool call, if it has failed"},
+        metadata={
+            "description": "The error message of the tool call, if it has failed",
+        },
     )
     """The error message of the tool call, if it has failed"""
 
@@ -93,10 +104,10 @@ class ThreadToolUsageContent(ThreadMessageContent):
             as_markdown += f"\nError: {self.error}"
         return as_markdown
 
-    def to_json_dict(self) -> dict:
+    def model_dump_json(self) -> dict:
         """Serializes the tool usage content to a dictionary. Useful for JSON serialization."""
         return {
-            **super().to_json_dict(),
+            **super().model_dump_json(),
             "name": self.name,
             "tool_call_id": self.tool_call_id,
             "arguments_raw": self.arguments_raw,
@@ -110,7 +121,7 @@ class ThreadToolUsageContent(ThreadMessageContent):
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "ThreadToolUsageContent":
+    def model_validate(cls, data: dict) -> "ThreadToolUsageContent":
         """Create a thread tool usage content from a dictionary."""
         data = data.copy()
         if "started_at" in data and isinstance(data["started_at"], str):

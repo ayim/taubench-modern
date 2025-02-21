@@ -12,6 +12,9 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.11.0,<3.12"
+jsonpatch = "^1.33"
+
+
 # optional=true here, as depending on the extras selected
 # we may not need all of these dependencies.
 pydantic = { version = ">=2,<3", optional = true }
@@ -57,10 +60,11 @@ pytest-asyncio = "^0.25.2"
 # purposes and example notebooks
 pillow = "^11.1.0"
 IPython = "^8.31.0"
+requests = "^2.31.0" # For fetching JSON Patch test data
 
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests/v2"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]

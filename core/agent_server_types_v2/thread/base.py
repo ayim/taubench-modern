@@ -27,7 +27,9 @@ AnyThreadMessageContent = (
 class ThreadMessage:
     """Base class for all messages in a thread."""
 
-    content: list[AnyThreadMessageContent] = field(metadata={"description": "The contents of the thread message"})
+    content: list[AnyThreadMessageContent] = field(
+        metadata={"description": "The contents of the thread message"},
+    )
     """The contents of the thread message"""
 
     role: Literal["user", "agent"]
@@ -35,7 +37,9 @@ class ThreadMessage:
 
     commited: bool = field(
         default=False,
-        metadata={"description": "Whether the message has been committed to the thread (saved to backing storage)"},
+        metadata={
+            "description": "Whether the message has been committed to the thread (saved to backing storage)",
+        },
     )
     """Whether the message has been committed to the thread (saved to backing storage)"""
 
@@ -53,13 +57,17 @@ class ThreadMessage:
 
     agent_metadata: dict[str, Any] = field(
         default_factory=dict,
-        metadata={"description": "The metadata associated with the message (for agent architecture use only)"},
+        metadata={
+            "description": "The metadata associated with the message (for agent architecture use only)",
+        },
     )
     """The metadata associated with the message (for agent architecture use only)"""
 
     server_metadata: dict[str, Any] = field(
         default_factory=dict,
-        metadata={"description": "The metadata associated with the message (for agent-server use only)"},
+        metadata={
+            "description": "The metadata associated with the message (for agent-server use only)",
+        },
     )
     """The metadata associated with the message (for agent-server use only)"""
 
@@ -95,7 +103,7 @@ class ThreadMessage:
             role=self.role,
             updated_at=self.updated_at,
             created_at=self.created_at,
-            content=[c.copy() for c in self.content],
+            content=[c.model_copy() for c in self.content],
             agent_metadata=deepcopy(self.agent_metadata),
             server_metadata=deepcopy(self.server_metadata),
         )
@@ -107,7 +115,7 @@ class ThreadMessage:
         return {
             "message_id": self.message_id,
             "role": self.role,
-            "content": [content.to_json_dict() for content in self.content],
+            "content": [content.model_dump() for content in self.content],
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
             "agent_metadata": self.agent_metadata,
@@ -126,5 +134,8 @@ class ThreadMessage:
         if "updated_at" in data and isinstance(data["updated_at"], str):
             data["updated_at"] = datetime.fromisoformat(data["updated_at"])
         if "content" in data:
-            data["content"] = [ThreadMessageContent.from_dict(content) for content in data["content"]]
+            data["content"] = [
+                ThreadMessageContent.model_validate(content)
+                for content in data["content"]
+            ]
         return cls(**data)

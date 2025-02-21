@@ -13,7 +13,9 @@ class ThreadThoughtContent(ThreadMessageContent):
     and properly typed.
     """
 
-    thought: str = field(metadata={"description": "The actual text content of the thought"})
+    thought: str = field(
+        metadata={"description": "The actual text content of the thought"},
+    )
     """The actual text content of the thought"""
 
     kind: Literal["thought"] = field(
@@ -39,15 +41,15 @@ class ThreadThoughtContent(ThreadMessageContent):
         """Converts the text content to a text content component."""
         return self.thought
 
-    def to_json_dict(self) -> dict:
+    def model_dump_json(self) -> dict:
         """Serializes the text content to a dictionary. Useful for JSON serialization."""
         return {
-            **super().to_json_dict(),
+            **super().model_dump_json(),
             "thought": self.thought,
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "ThreadThoughtContent":
+    def model_validate(cls, data: dict) -> "ThreadThoughtContent":
         """Create a thread thought content from a dictionary."""
         return cls(**data)
 

@@ -27,13 +27,17 @@ class ThreadAttachmentContent(ThreadMessageContent):
 
     uri: str | None = field(
         default=None,
-        metadata={"description": "The URI of the attachment, if the attachment is a handle"},
+        metadata={
+            "description": "The URI of the attachment, if the attachment is a handle",
+        },
     )
     """The URI of the attachment, if the attachment is a handle"""
 
     base64_data: str | None = field(
         default=None,
-        metadata={"description": "The base64 encoded data of the attachment, if the attachment is a file"},
+        metadata={
+            "description": "The base64 encoded data of the attachment, if the attachment is a file",
+        },
     )
     """The base64 encoded data of the attachment, if the attachment is a file"""
 
@@ -66,12 +70,16 @@ class ThreadAttachmentContent(ThreadMessageContent):
 
         if self.is_handle:
             if not self.uri:
-                raise ValueError("Attachment URI cannot be empty if the attachment is a handle")
+                raise ValueError(
+                    "Attachment URI cannot be empty if the attachment is a handle",
+                )
         else:
             from base64 import b64decode
 
             if not self.base64_data:
-                raise ValueError("Base64 data cannot be empty if the attachment is NOT a handle")
+                raise ValueError(
+                    "Base64 data cannot be empty if the attachment is NOT a handle",
+                )
             try:
                 b64decode(self.base64_data)
             except Exception as e:
@@ -80,7 +88,9 @@ class ThreadAttachmentContent(ThreadMessageContent):
     def as_text_content(self) -> str:
         """Converts the attachment content to a text content component."""
 
-        description_attr = f'description="{self.description}"' if self.description else ""
+        description_attr = (
+            f'description="{self.description}"' if self.description else ""
+        )
         uri_attr = f'uri="{self.uri}"' if self.uri else ""
 
         return (
@@ -90,10 +100,10 @@ class ThreadAttachmentContent(ThreadMessageContent):
             f"/>"
         )
 
-    def to_json_dict(self) -> dict:
+    def model_dump_json(self) -> dict:
         """Serializes the text content to a dictionary. Useful for JSON serialization."""
         return {
-            **super().to_json_dict(),
+            **super().model_dump_json(),
             "name": self.name,
             "mime_type": self.mime_type,
             "description": self.description,
@@ -102,7 +112,7 @@ class ThreadAttachmentContent(ThreadMessageContent):
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "ThreadAttachmentContent":
+    def model_validate(cls, data: dict) -> "ThreadAttachmentContent":
         """Create a thread attachment content from a dictionary."""
         return cls(**data)
 

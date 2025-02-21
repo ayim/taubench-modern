@@ -4,6 +4,9 @@ from datetime import datetime
 
 import pytest
 
+# Import the classes/functions to be tested
+# Assuming you have a structure like: agent_server_types_v2/streaming/...
+from agent_server_types_v2.delta import GenericDelta
 from agent_server_types_v2.streaming.compute_delta import compute_message_delta
 from agent_server_types_v2.streaming.delta import (
     StreamingDelta,
@@ -13,24 +16,21 @@ from agent_server_types_v2.streaming.delta import (
 )
 from agent_server_types_v2.streaming.error import StreamingError
 
-# Import the classes/functions to be tested
-# Assuming you have a structure like: agent_server_types_v2/streaming/...
-from agent_server_types_v2.streaming.generic.compute_delta import compute_generic_delta
-from agent_server_types_v2.streaming.generic.delta import GenericDelta
-
 ########################################
 # Mock classes and helpers
 ########################################
+
 
 class MockThreadMessage:
     """
     A mock stand-in for ThreadMessage with the minimum attributes needed
     to test compute_message_delta. It provides a .to_json_dict() and a .uid.
     """
+
     def __init__(self, message_id, **kwargs):
         self.message_id = message_id
         self.data = kwargs
-    
+
     def to_json_dict(self):
         return {
             "message_id": self.message_id,
@@ -39,158 +39,49 @@ class MockThreadMessage:
 
 
 ########################################
-# Tests for GenericDelta
-########################################
-
-def test_generic_delta_init_and_dict():
-    """
-    Basic test to ensure GenericDelta can be constructed and
-    converted to a JSON-compatible dictionary.
-    """
-    delta = GenericDelta(op="replace", path="/foo/bar", value="new_value")
-    assert delta.op == "replace"
-    assert delta.path == "/foo/bar"
-    assert delta.value == "new_value"
-
-    as_dict = delta.to_json_dict()
-    assert as_dict == {
-        "op": "replace",
-        "path": "/foo/bar",
-        "value": "new_value",
-    }
-
-
-########################################
-# Tests for compute_generic_delta
-########################################
-
-@pytest.mark.parametrize(
-    ("old_val", "new_val", "expected_ops"),
-    [
-        # 1) Same string => no delta
-        ("hello", "hello", []),
-        # 2) String replaced entirely
-        ("hello", "world", [GenericDelta(op="replace", path="", value="world")]),
-        # 3) String extended
-        ("hello", "hello world", [GenericDelta(op="concat_string", path="", value=" world")]),
-        # 4) Same int => no delta
-        (42, 42, []),
-        # 5) int new > old => inc
-        (10, 15, [GenericDelta(op="inc", path="", value=5)]),
-        # 6) int new < old => replace
-        (15, 10, [GenericDelta(op="replace", path="", value=10)]),
-        # 7) Different types => replace
-        ("123", 123, [GenericDelta(op="replace", path="", value=123)]),
-        # 8) None to something => replace
-        (None, True, [GenericDelta(op="replace", path="", value=True)]),
-        # 9) Lists are same
-        ([1, 2, 3], [1, 2, 3], []),
-        # 10) List appended
-        ([1, 2, 3], [1, 2, 3, 4, 5], [GenericDelta(op="append_array", path="", value=[4, 5])]),
-        # 11) List last item is a string extended
-        (["hello"], ["hello world"], [GenericDelta(op="concat_string", path="/0", value=" world")]),
-        # 12) Dict: same
-        ({"a": 1}, {"a": 1}, []),
-        # 13) Dict: remove key
-        ({"a": 1, "b": 2}, {"a": 1}, [GenericDelta(op="remove", path="/b", value=None)]),
-        # 14) Dict: add key
-        ({"a": 1}, {"a": 1, "b": 2}, [GenericDelta(op="merge", path="", value={"b": 2})]),
-        # 15) Dict: changed key
-        (
-            {"a": 1},
-            {"a": 2},
-            [GenericDelta(op="inc", path="/a", value=1)],  # since int changed from 1 -> 2
-        ),
-    ],
-)
-def test_compute_generic_delta(old_val, new_val, expected_ops):
-    ops = compute_generic_delta(old_val, new_val, path="")
-    # Compare lists of GenericDelta objects
-    # Because we can't directly compare dataclasses with lists unless you 
-    # explicitly handle them, do a length and then field-by-field check:
-    assert len(ops) == len(expected_ops), f"Expected {expected_ops} got {ops}"
-    for o, e in zip(ops, expected_ops, strict=False):
-        assert o.op == e.op
-        assert o.path == e.path
-        assert o.value == e.value
-
-
-def test_compute_generic_delta_nested_lists_and_dicts():
-    """
-    Tests a more complex structure with nested lists and dicts.
-    """
-    old = {
-        "name": "Alice",
-        "scores": [10, 20],
-        "details": {
-            "hobbies": ["reading"],
-        },
-    }
-    new = {
-        "name": "Alice B",           # string extended
-        "scores": [10, 20, 30],      # appended
-        "details": {
-            "hobbies": ["reading", "chess"],  # appended
-            "age": 30,                         # new key
-        },
-    }
-
-    ops = compute_generic_delta(old, new)
-    # We expect:
-    # 1) "name" => "concat_string" with " B"
-    # 2) "scores" => append_array with [30]
-    # 3) "details/hobbies" => append_array with ["chess"]
-    # 4) "details" => merge with {"age": 30}
-    
-    # Let's break down the expected ops:
-    expected = [
-        GenericDelta(op="concat_string", path="/name", value=" B"),
-        GenericDelta(op="append_array", path="/scores", value=[30]),
-        GenericDelta(op="append_array", path="/details/hobbies", value=["chess"]),
-        GenericDelta(op="merge", path="/details", value={"age": 30}),
-    ]
-
-    # Sort them on ops and path, before zip
-    expected = sorted(expected, key=lambda x: (x.op, x.path))
-    ops = sorted(ops, key=lambda x: (x.op, x.path))
-
-    assert len(ops) == len(expected), f"Got ops: {ops}"
-    for actual, exp in zip(ops, expected, strict=False):
-        assert actual.op == exp.op
-        assert actual.path == exp.path
-        assert actual.value == exp.value
-
-
-########################################
 # Tests for compute_message_delta
 ########################################
 
+
 def test_compute_message_delta_no_old():
     """
-    If no old message, we expect a full replace of all fields in new message (or multiple field-level ops).
+    If no old message, we expect individual add operations for each field
+    in the new message.
     """
     new_msg = MockThreadMessage("msg-1", text="Hello", count=1)
     deltas = compute_message_delta(None, new_msg, sequence_number=0)  # old is None
 
     # Because old was None => old dict is {}
-    # The new is {"uid": "msg-1", "text": "Hello", "count": 1}
-    # We expect a merge with entire new dict or multiple ops. 
-    # For the code in compute_generic_delta, 
-    #   - old_as_dict = {} 
-    #   - new_as_dict = { "uid": "msg-1", "text": "Hello", "count": 1 }
-    # We'll get a "merge" of the new fields, ignoring "uid" as it's part of the new structure.
-    # Actually the path is "", so we get: [
-    #   GenericDelta(op="merge", path="", value={"uid": "msg-1", "text": "Hello", "count": 1})
-    # ]
-    
-    assert len(deltas) == 1
-    delta_content = deltas[0]
-    assert isinstance(delta_content, StreamingDeltaMessageContent)
-    assert delta_content.message_id == "msg-1"
-    # The delta operation should be "merge"
-    assert delta_content.delta.op == "merge"
-    assert delta_content.delta.value["text"] == "Hello"
-    assert delta_content.delta.value["count"] == 1
+    # The new is {"message_id": "msg-1", "text": "Hello", "count": 1}
+    # We expect individual add operations for each field
+
+    assert len(deltas) == 3
+    # Sort deltas by path to make testing deterministic
+    sorted_deltas = sorted(deltas, key=lambda d: d.delta.path)
+
+    # Check first delta (count)
+    assert isinstance(sorted_deltas[0], StreamingDeltaMessageContent)
+    assert sorted_deltas[0].message_id == "msg-1"
+    assert sorted_deltas[0].delta.op == "add"
+    assert sorted_deltas[0].delta.path == "/count"
+    assert sorted_deltas[0].delta.value == 1
+
+    # Check second delta (message_id)
+    assert isinstance(sorted_deltas[1], StreamingDeltaMessageContent)
+    assert sorted_deltas[1].message_id == "msg-1"
+    assert sorted_deltas[1].delta.op == "add"
+    assert sorted_deltas[1].delta.path == "/message_id"
+    assert sorted_deltas[1].delta.value == "msg-1"
+
+    # Check third delta (text)
+    assert isinstance(sorted_deltas[2], StreamingDeltaMessageContent)
+    assert sorted_deltas[2].message_id == "msg-1"
+    assert sorted_deltas[2].delta.op == "add"
+    assert sorted_deltas[2].delta.path == "/text"
+    assert sorted_deltas[2].delta.value == "Hello"
+
+    # The sequence numbers should be 0, 1, and 2
+    assert set(d.sequence_number for d in sorted_deltas) == {0, 1, 2}
 
 
 def test_compute_message_delta_with_old():
@@ -209,7 +100,6 @@ def test_compute_message_delta_with_old():
     # Sort them to check easily
     sorted_ops = sorted(deltas, key=lambda d: d.delta.op)
 
-
     assert sorted_ops[0].delta.op == "concat_string"
     assert sorted_ops[0].delta.path == "/text"
     assert sorted_ops[0].delta.value == " World"
@@ -224,6 +114,7 @@ def test_compute_message_delta_with_old():
 ########################################
 # Tests for StreamingDelta classes
 ########################################
+
 
 def test_streaming_delta_base():
     delta = StreamingDelta(
@@ -274,7 +165,7 @@ def test_streaming_delta_message_begin():
     assert d["timestamp"] == "2025-01-24T14:00:00"
     assert d["event_type"] == "message_begin"
     assert d["data"] == {"initial": "data"}
-    # channel is forced to "events", but not in the dictionary unless you add it. 
+    # channel is forced to "events", but not in the dictionary unless you add it.
     # If you want it, you can test it:
     assert begin_event.channel == "events"
 
@@ -303,10 +194,11 @@ def test_streaming_delta_message_end():
 # Tests for StreamingError
 ########################################
 
+
 def test_streaming_error_no_delta():
     with pytest.raises(StreamingError) as exc_info:
         raise StreamingError("Something went wrong!")
-    
+
     assert str(exc_info.value) == "Something went wrong!"
     assert exc_info.value.delta_object is None
 
@@ -318,9 +210,9 @@ def test_streaming_error_with_delta():
         timestamp=datetime.now(),
         event_type="message_end",
     )
-    
+
     with pytest.raises(StreamingError) as exc_info:
         raise StreamingError("Failure with delta", delta_object=some_delta)
-    
+
     assert str(exc_info.value) == "Failure with delta"
     assert exc_info.value.delta_object is some_delta

@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Literal
 
-from agent_server_types_v2.thread.content.base import ThreadMessageContent
+from agent_server_types_v2.thread.content.base import ContentDelta, ThreadMessageContent
 from agent_server_types_v2.utils import assert_literal_value_valid
 
 
@@ -9,22 +9,34 @@ from agent_server_types_v2.utils import assert_literal_value_valid
 class Citation:
     """Represents a citation in the text content."""
 
-    document_uri: str = field(metadata={"description": "The URI of the document that the citation is from"})
+    document_uri: str = field(
+        metadata={"description": "The URI of the document that the citation is from"},
+    )
     """The URI of the document that the citation is from"""
 
-    start_char_index: int = field(metadata={"description": "The start character index of the citation in the document"})
+    start_char_index: int = field(
+        metadata={
+            "description": "The start character index of the citation in the document",
+        },
+    )
     """The start character index of the citation in the document"""
 
-    end_char_index: int = field(metadata={"description": "The end character index of the citation in the document"})
+    end_char_index: int = field(
+        metadata={
+            "description": "The end character index of the citation in the document",
+        },
+    )
     """The end character index of the citation in the document"""
 
     cited_text: str | None = field(
         default=None,
-        metadata={"description": "The text that is being cited (if provided, may be None)"},
+        metadata={
+            "description": "The text that is being cited (if provided, may be None)",
+        },
     )
     """The text that is being cited (if provided, may be None)"""
 
-    def to_json_dict(self) -> dict:
+    def model_dump(self) -> dict:
         """Serializes the citation to a dictionary. Useful for JSON serialization."""
         return {
             "document_uri": self.document_uri,
@@ -34,9 +46,12 @@ class Citation:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "Citation":
+    def model_validate(cls, data: dict) -> "Citation":
         """Create a citation from a dictionary."""
         return cls(**data)
+
+
+# TODO: Create a CitationDelta once needed (no current example of one from the models)
 
 
 @dataclass
@@ -47,11 +62,14 @@ class ThreadTextContent(ThreadMessageContent):
     and properly typed.
     """
 
-    text: str = field(metadata={"description": "The actual text content of the message"})
+    text: str = field(
+        metadata={"description": "The actual text content of the message"},
+    )
     """The actual text content of the message"""
 
     citations: list[Citation] = field(
-        default_factory=list, metadata={"description": "The citations in the text content"},
+        default_factory=list,
+        metadata={"description": "The citations in the text content"},
     )
     """The citations in the text content"""
 
@@ -78,20 +96,38 @@ class ThreadTextContent(ThreadMessageContent):
         """Converts the text content to a text content component."""
         return self.text
 
-    def to_json_dict(self) -> dict:
+    def model_dump(self) -> dict:
         """Serializes the text content to a dictionary. Useful for JSON serialization."""
         return {
-            **super().to_json_dict(),
+            **super().model_dump(),
             "text": self.text,
-            "citations": [citation.to_json_dict() for citation in self.citations],
+            "citations": [citation.model_dump() for citation in self.citations],
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "ThreadTextContent":
+    def model_validate(cls, data: dict) -> "ThreadTextContent":
         """Create a thread text content from a dictionary."""
         data = data.copy()
-        citations = [Citation.from_dict(citation) for citation in data.pop("citations")]
+        citations = [
+            Citation.model_validate(citation) for citation in data.pop("citations")
+        ]
         return cls(**data, citations=citations)
+
+
+@dataclass
+class TextDelta(ContentDelta):
+    """A delta for a thread text content."""
+
+    kind: Literal["text"] = field(
+        default="text",
+        metadata={"description": "Content kind: always 'text'"},
+        init=False,
+    )
+    """Content kind: always 'text'"""
+
+    def as_thread_message_content(self) -> "ThreadTextContent":
+        """Convert the text delta to a thread text content."""
+        return ThreadTextContent(text=self.delta.text)
 
 
 ThreadMessageContent.register_content_kind("text", ThreadTextContent)

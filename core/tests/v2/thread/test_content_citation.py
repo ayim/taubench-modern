@@ -27,7 +27,7 @@ class TestCitation:
             end_char_index=4,
             cited_text="abc",
         )
-        jd = c.to_json_dict()
+        jd = c.model_dump()
         assert jd["document_uri"] == "doc://xyz"
         assert jd["start_char_index"] == 2
         assert jd["end_char_index"] == 4

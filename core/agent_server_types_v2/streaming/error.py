@@ -3,7 +3,7 @@ from agent_server_types_v2.streaming.delta import StreamingDelta
 
 class StreamingError(Exception):
     """Raised when there is an error streaming message deltas to downstream consumers.
-    
+
     Arguments:
         message: A string describing the error that occurred
         delta_object: Optional StreamingDelta object that caused the error
