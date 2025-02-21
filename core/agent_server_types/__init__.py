@@ -14,13 +14,15 @@ from .agents import (
     AgentPayload,
     AgentReasoning,
     AgentStatus,
-    Memory,
     EmbeddingFileFailed,
     EmbeddingFileInProgress,
     EmbeddingFilePending,
     LangsmithCredentials,
+    Memory,
     ModelNotConfigured,
+    User,
     dummy_agent,
+    dummy_user,
 )
 from .annotated import (
     SerializableSecretStr,
@@ -29,6 +31,7 @@ from .annotated import (
 from .constants import (
     AZURE_URL_PATTERN,
     DEFAULT_ARCHITECTURE,
+    LEGACY_ARCH_CONTEXT,
     NOT_CONFIGURED,
     RAW_CONTEXT,
 )
@@ -52,6 +55,8 @@ from .models import (
     OllamaConfig,
     OpenAIGPT,
     OpenAIGPTConfig,
+    SnowflakeCortex,
+    SnowflakeCortexConfig,
     dummy_model,
 )
 from .protocols import AgentServerKernalBase, VectorStoreBase
@@ -64,7 +69,7 @@ from .threads import (
     dummy_thread,
 )
 
-__version__ = "1.1.2-alpha"
+__version__ = "1.2.0-alpha.3"
 
 __all__ = [
     "ACTION_PKG_LIST_ADAPTER",
@@ -105,11 +110,13 @@ __all__ = [
     "AnthropicClaudeConfig",
     "AmazonBedrockConfig",
     "OllamaConfig",
+    "SnowflakeCortexConfig",
     "OpenAIGPT",
     "AzureGPT",
     "AnthropicClaude",
     "AmazonBedrock",
     "Ollama",
+    "SnowflakeCortex",
     "dummy_model",
     "MODEL",
     "MODEL_ADAPTER",
@@ -121,4 +128,7 @@ __all__ = [
     "dummy_thread",
     "AgentServerKernalBase",
     "VectorStoreBase",
+    "User",
+    "dummy_user",
+    "LEGACY_ARCH_CONTEXT",
 ]

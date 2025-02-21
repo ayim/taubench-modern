@@ -11,3 +11,8 @@ that the value should be serialized in its raw form.
 
 DEFAULT_ARCHITECTURE = "agent_architecture_default"
 """Base agent architecture name."""
+
+LEGACY_ARCH_CONTEXT = {"serialize_legacy_names": True}
+"""Serialization context to be used with the `serialize_legacy_names` key set to True to indicate
+that the value should be serialized in its legacy form.
+"""

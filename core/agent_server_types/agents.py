@@ -1,13 +1,17 @@
 import json
+import re
 from datetime import datetime
 from enum import StrEnum
+from functools import cached_property
 from typing import Annotated, Any, List, Literal, Self, Union
 
 from pydantic import (
     BaseModel,
     Field,
     SecretStr,
+    SerializationInfo,
     TypeAdapter,
+    field_serializer,
     field_validator,
     model_validator,
 )
@@ -23,8 +27,6 @@ from agent_server_types.models import (
     MODEL_ADAPTER,
     AmazonBedrock,
     AnthropicClaude,
-    AzureGPT,
-    OpenAIGPT,
     dummy_model,
 )
 
@@ -201,6 +203,27 @@ class AgentAdvancedConfig(BaseModel):
 
         return self
 
+    @field_serializer("architecture")
+    def serialize_architecture(self, value: str, info: SerializationInfo) -> str:
+        """Serialize the architecture field to legacy architecture names.
+
+        Current architecture names are not user-facing, so this translates
+        them to the legacy names. Only applies when serialize_legacy_names=True
+        in the model_dump context.
+        """
+        if not info.context.get("serialize_legacy_names", False):
+            return value
+
+        if value in [
+            "agent_architecture_default",
+            "agent_architecture_claude_tools",
+        ]:
+            return "agent"
+        elif value == "agent_architecture_plan_execute":
+            return "plan_execute"
+        else:
+            return value
+
 
 class AgentMetadata(BaseModel):
     """
@@ -287,7 +310,8 @@ class AgentPayload(BaseModel):
     @model_validator(mode="after")
     def translate_old_architecture(self) -> Self:
         """Translate old architecture names to new architecture names."""
-        # TODO: TECH DEBT - Remove this function after all agents are updated to use the new architecture names.
+        # This function is needed until kernel v2 because our current architecture
+        # names are not user-facing.
         if self.advanced_config.architecture == "agent":
             if isinstance(self.model, (AnthropicClaude, AmazonBedrock)):
                 self.advanced_config.architecture = "agent_architecture_claude_tools"
@@ -382,3 +406,52 @@ class Memory(BaseModel):
         if isinstance(v, (str, bytes, bytearray)):
             return json.loads(v)
         return v
+
+
+class User(BaseModel):
+    user_id: StrWithUuidInput = Field(description="The ID of the user.")
+    sub: str = Field(description="The sub of the user (from a JWT token).")
+    created_at: datetime = Field(description="The time the user was created.")
+
+    @cached_property
+    def _parsed_sub(self) -> dict[str, str] | None:
+        """
+        Control Room sub formats:
+
+        tenant:<ID>:user:<ID>
+        tenant:<ID>:system:<ID>
+        tenant:<ID>
+        """
+        pattern = r"^tenant:([^:]+)(?::(?P<type>user|system):(?P<id>[^:]+))?$"
+        match = re.match(pattern, self.sub)
+
+        if not match:
+            return {"tenant": None, "user": None, "system": None}
+
+        result = {"tenant": match.group(1), "user": None, "system": None}
+        if match.group("type"):
+            result[match.group("type")] = match.group("id")
+
+        return result
+
+    @property
+    def cr_tenant_id(self) -> str | None:
+        """Control Room Tenant ID"""
+        return self._parsed_sub["tenant"]
+
+    @property
+    def cr_user_id(self) -> str | None:
+        """Control Room User ID"""
+        return self._parsed_sub["user"]
+
+    @property
+    def cr_system_id(self) -> str | None:
+        """Control Room System ID"""
+        return self._parsed_sub["system"]
+
+
+dummy_user = User(
+    user_id="dummy",
+    sub="tenant:dummy:user:dummy",
+    created_at=datetime.now(),
+)
