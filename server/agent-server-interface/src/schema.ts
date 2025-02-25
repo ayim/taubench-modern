@@ -447,6 +447,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/threads/{tid}/files/download/": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Download File By Ref */
+    get: operations["download_file_by_ref_api_v1_threads__tid__files_download__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/threads/{tid}/files": {
     parameters: {
       query?: never;
@@ -666,7 +683,8 @@ export interface components {
         | components["schemas"]["AzureGPT"]
         | components["schemas"]["AnthropicClaude"]
         | components["schemas"]["AmazonBedrock"]
-        | components["schemas"]["Ollama"];
+        | components["schemas"]["Ollama"]
+        | components["schemas"]["SnowflakeCortex"];
       advanced_config: components["schemas"]["AgentAdvancedConfig"];
       /**
        * Action Packages
@@ -708,14 +726,7 @@ export interface components {
        * @description The agent's architecture.
        * @enum {string}
        */
-      architecture:
-        | "agent"
-        | "agent_architecture_claude_tools"
-        | "agent_architecture_default"
-        | "agent_architecture_default_v2"
-        | "agent_architecture_openai_plan_execute"
-        | "agent_architecture_vitality"
-        | "plan_execute";
+      architecture: "agent" | "plan_execute";
       /** @description The reasoning setting of the agent. */
       reasoning: components["schemas"]["AgentReasoning"];
       /**
@@ -811,7 +822,8 @@ export interface components {
         | components["schemas"]["AzureGPT"]
         | components["schemas"]["AnthropicClaude"]
         | components["schemas"]["AmazonBedrock"]
-        | components["schemas"]["Ollama"];
+        | components["schemas"]["Ollama"]
+        | components["schemas"]["SnowflakeCortex"];
       /** @description Advanced configuration options for the agent. */
       advanced_config: components["schemas"]["AgentAdvancedConfig"];
       /**
@@ -857,7 +869,8 @@ export interface components {
         | components["schemas"]["AzureGPT"]
         | components["schemas"]["AnthropicClaude"]
         | components["schemas"]["AmazonBedrock"]
-        | components["schemas"]["Ollama"];
+        | components["schemas"]["Ollama"]
+        | components["schemas"]["SnowflakeCortex"];
       /**
        * Action Servers
        * @description Action Server configurations.
@@ -1064,6 +1077,13 @@ export interface components {
       tokens_per_message: {
         [key: string]: number;
       };
+    };
+    /**
+     * DeletedAgentResponse
+     * @description Response model for delete_agent endpoint.
+     */
+    DeletedAgentResponse: {
+      deleted: components["schemas"]["Agent"];
     };
     /** EmbeddingFileFailed */
     EmbeddingFileFailed: {
@@ -1299,6 +1319,78 @@ export interface components {
     RequestRemoteFileUploadPayload: {
       /** File Name */
       file_name: string;
+    };
+    /** SnowflakeCortex */
+    SnowflakeCortex: {
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      provider: "Snowflake Cortex AI";
+      /**
+       * Name
+       * @description The name of the model.
+       */
+      name: string;
+      /** @description Snowflake Cortex config. */
+      config: components["schemas"]["SnowflakeCortexConfig"];
+    };
+    /** SnowflakeCortexConfig */
+    SnowflakeCortexConfig: {
+      /**
+       * Temperature
+       * @description The temperature.
+       * @default 0
+       */
+      temperature: number;
+      /**
+       * Snowflake Account
+       * @description The Snowflake account.
+       * @default SEMA4AI_FIELD_NOT_CONFIGURED
+       */
+      snowflake_account: string | null;
+      /**
+       * Snowflake Host
+       * @description The Snowflake host.
+       * @default SEMA4AI_FIELD_NOT_CONFIGURED
+       */
+      snowflake_host: string | null;
+      /**
+       * Snowflake Database
+       * @description The Snowflake database.
+       * @default SEMA4AI_FIELD_NOT_CONFIGURED
+       */
+      snowflake_database: string | null;
+      /**
+       * Snowflake Schema
+       * @description The Snowflake schema.
+       * @default SEMA4AI_FIELD_NOT_CONFIGURED
+       */
+      snowflake_schema: string | null;
+      /**
+       * Snowflake Warehouse
+       * @description The Snowflake warehouse.
+       * @default SEMA4AI_FIELD_NOT_CONFIGURED
+       */
+      snowflake_warehouse: string | null;
+      /**
+       * Snowflake Role
+       * @description The Snowflake role.
+       * @default SEMA4AI_FIELD_NOT_CONFIGURED
+       */
+      snowflake_role: string | null;
+      /**
+       * Snowflake Username
+       * @description The Snowflake username.
+       * @default SEMA4AI_FIELD_NOT_CONFIGURED
+       */
+      snowflake_username: string | null;
+      /**
+       * Snowflake Password
+       * @description The Snowflake password.
+       * @default **********
+       */
+      snowflake_password: string | null;
     };
     /** StreamDataEvent */
     StreamDataEvent: {
@@ -2448,9 +2540,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": {
-            [key: string]: components["schemas"]["Agent"];
-          };
+          "application/json": components["schemas"]["DeletedAgentResponse"];
         };
       };
       /** @description Validation Error */
@@ -3167,6 +3257,39 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["FileByRefResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  download_file_by_ref_api_v1_threads__tid__files_download__get: {
+    parameters: {
+      query: {
+        file_ref: string;
+      };
+      header?: never;
+      path: {
+        tid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
         };
       };
       /** @description Validation Error */

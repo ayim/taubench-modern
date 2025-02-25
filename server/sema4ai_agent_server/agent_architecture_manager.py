@@ -19,7 +19,9 @@ def load_agent_architectures() -> dict[str, Type[AgentArchitectureBase]]:
             architecture_class = entry_point.load()
             architectures[entry_point.name] = architecture_class
         except Exception as e:
-            logger.error(f"Error loading agent architecture {entry_point.name}: {e}")
+            logger.exception(
+                f"Error loading agent architecture {entry_point.name}: {e}"
+            )
     return architectures
 
 

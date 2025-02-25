@@ -21,12 +21,12 @@ from agent_server_types import (
     EmbeddingStatus,
     Thread,
     UploadedFile,
+    User,
 )
 from langchain_core.messages import AnyMessage
 
 from sema4ai_agent_server.agent import runnable_agent
 from sema4ai_agent_server.constants import DOMAIN_DATABASE_PATH
-from sema4ai_agent_server.schema import User
 from sema4ai_agent_server.storage import (
     BaseStorage,
     UniqueAgentNameError,

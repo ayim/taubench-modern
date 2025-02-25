@@ -8,7 +8,6 @@ import structlog
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 
-from sema4ai_agent_server.agent_architecture_manager import architecture_names
 from sema4ai_agent_server.api import router as api_router
 from sema4ai_agent_server.api.v2 import router as api_v2_router
 from sema4ai_agent_server.constants import Constants
@@ -18,7 +17,7 @@ from sema4ai_agent_server.otel import setup_otel
 from sema4ai_agent_server.storage.option import get_storage
 
 # Do not change the version here. It is managed by versionbump (see versionbump.yaml)
-VERSION = "1.1.4-alpha.71"
+VERSION = "1.1.4-alpha.79"
 
 # TODO: Setting up global things (such as logging and OTEL here) globally in the module import
 # is bad practice (because just importing it from some other place will mess up any logging
@@ -57,10 +56,13 @@ class _CustomFastAPI(FastAPI):
             lifespan=lifespan,
             version=VERSION,
             default_response_class=ORJSONResponse,  # Use more efficient JSON serialization
-            separate_input_output_schemas=False,  # TODO: Remove when FrontEnd is ready to handle it
+            separate_input_output_schemas=False,
         )
 
     def openapi(self) -> dict[str, Any]:
+        """Customize the enum related to the architecture field. This now
+        only returns the legacy architecture names.
+        """
         if self.__custom_openapi_schema:
             return self.__custom_openapi_schema
         openapi_schema = FastAPI.openapi(self)
@@ -70,11 +72,7 @@ class _CustomFastAPI(FastAPI):
         agent_advanced_config_schema: dict = schemas.get("AgentAdvancedConfig", {})
         properties: dict = agent_advanced_config_schema.get("properties", {})
         architecture_field = properties.get("architecture", {})
-        # Set the enum property for the architecture field,
-        # sorting to ensure consistent order across environments
-        architecture_field["enum"] = sorted(
-            architecture_names + ["agent", "plan_execute"]
-        )
+        architecture_field["enum"] = sorted(["agent", "plan_execute"])
         self.__custom_openapi_schema = openapi_schema
         return self.__custom_openapi_schema
 

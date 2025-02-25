@@ -6,7 +6,7 @@ export const spec = {
   openapi: "3.1.0",
   info: {
     title: "Sema4.ai Agent Server API",
-    version: "1.1.4-alpha.71",
+    version: "1.1.4-alpha.79",
   },
   paths: {
     "/api/v1/ok": {
@@ -190,11 +190,7 @@ export const spec = {
             content: {
               "application/json": {
                 schema: {
-                  type: "object",
-                  additionalProperties: {
-                    $ref: "#/components/schemas/Agent",
-                  },
-                  title: "Response Delete Agent Api V1 Agents  Aid  Delete",
+                  $ref: "#/components/schemas/DeletedAgentResponse",
                 },
               },
             },
@@ -1173,6 +1169,54 @@ export const spec = {
         },
       },
     },
+    "/api/v1/threads/{tid}/files/download/": {
+      get: {
+        tags: ["threads"],
+        summary: "Download File By Ref",
+        operationId:
+          "download_file_by_ref_api_v1_threads__tid__files_download__get",
+        parameters: [
+          {
+            name: "tid",
+            in: "path",
+            required: true,
+            schema: {
+              type: "string",
+              title: "Tid",
+            },
+          },
+          {
+            name: "file_ref",
+            in: "query",
+            required: true,
+            schema: {
+              type: "string",
+              title: "File Ref",
+            },
+          },
+        ],
+        responses: {
+          "200": {
+            description: "Successful Response",
+            content: {
+              "application/json": {
+                schema: {},
+              },
+            },
+          },
+          "422": {
+            description: "Validation Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/HTTPValidationError",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     "/api/v1/threads/{tid}/files": {
       get: {
         tags: ["threads"],
@@ -1590,6 +1634,9 @@ export const spec = {
               {
                 $ref: "#/components/schemas/Ollama",
               },
+              {
+                $ref: "#/components/schemas/SnowflakeCortex",
+              },
             ],
             title: "Model",
             description: "LLM model configuration for the agent.",
@@ -1601,6 +1648,7 @@ export const spec = {
                 Azure: "#/components/schemas/AzureGPT",
                 Ollama: "#/components/schemas/Ollama",
                 OpenAI: "#/components/schemas/OpenAIGPT",
+                "Snowflake Cortex AI": "#/components/schemas/SnowflakeCortex",
               },
             },
           },
@@ -1667,15 +1715,7 @@ export const spec = {
             type: "string",
             title: "Architecture",
             description: "The agent's architecture.",
-            enum: [
-              "agent",
-              "agent_architecture_claude_tools",
-              "agent_architecture_default",
-              "agent_architecture_default_v2",
-              "agent_architecture_openai_plan_execute",
-              "agent_architecture_vitality",
-              "plan_execute",
-            ],
+            enum: ["agent", "plan_execute"],
           },
           reasoning: {
             $ref: "#/components/schemas/AgentReasoning",
@@ -1829,6 +1869,9 @@ export const spec = {
               {
                 $ref: "#/components/schemas/Ollama",
               },
+              {
+                $ref: "#/components/schemas/SnowflakeCortex",
+              },
             ],
             title: "Model",
             description: "LLM model configuration for the agent.",
@@ -1840,6 +1883,7 @@ export const spec = {
                 Azure: "#/components/schemas/AzureGPT",
                 Ollama: "#/components/schemas/Ollama",
                 OpenAI: "#/components/schemas/OpenAIGPT",
+                "Snowflake Cortex AI": "#/components/schemas/SnowflakeCortex",
               },
             },
           },
@@ -1928,6 +1972,9 @@ export const spec = {
               {
                 $ref: "#/components/schemas/Ollama",
               },
+              {
+                $ref: "#/components/schemas/SnowflakeCortex",
+              },
             ],
             title: "Model",
             description: "LLM configuration for the agent.",
@@ -1939,6 +1986,7 @@ export const spec = {
                 Azure: "#/components/schemas/AzureGPT",
                 Ollama: "#/components/schemas/Ollama",
                 OpenAI: "#/components/schemas/OpenAIGPT",
+                "Snowflake Cortex AI": "#/components/schemas/SnowflakeCortex",
               },
             },
           },
@@ -2265,6 +2313,17 @@ export const spec = {
         type: "object",
         required: ["context_window_size", "tokens_per_message"],
         title: "ContextStats",
+      },
+      DeletedAgentResponse: {
+        properties: {
+          deleted: {
+            $ref: "#/components/schemas/Agent",
+          },
+        },
+        type: "object",
+        required: ["deleted"],
+        title: "DeletedAgentResponse",
+        description: "Response model for delete_agent endpoint.",
       },
       EmbeddingFileFailed: {
         properties: {
@@ -2598,6 +2657,145 @@ export const spec = {
         type: "object",
         required: ["file_name"],
         title: "RequestRemoteFileUploadPayload",
+      },
+      SnowflakeCortex: {
+        properties: {
+          provider: {
+            type: "string",
+            const: "Snowflake Cortex AI",
+            title: "Provider",
+          },
+          name: {
+            type: "string",
+            title: "Name",
+            description: "The name of the model.",
+          },
+          config: {
+            $ref: "#/components/schemas/SnowflakeCortexConfig",
+            description: "Snowflake Cortex config.",
+          },
+        },
+        type: "object",
+        required: ["provider", "name", "config"],
+        title: "SnowflakeCortex",
+      },
+      SnowflakeCortexConfig: {
+        properties: {
+          temperature: {
+            type: "number",
+            title: "Temperature",
+            description: "The temperature.",
+            default: 0,
+          },
+          snowflake_account: {
+            anyOf: [
+              {
+                type: "string",
+              },
+              {
+                type: "null",
+              },
+            ],
+            title: "Snowflake Account",
+            description: "The Snowflake account.",
+            default: "SEMA4AI_FIELD_NOT_CONFIGURED",
+          },
+          snowflake_host: {
+            anyOf: [
+              {
+                type: "string",
+              },
+              {
+                type: "null",
+              },
+            ],
+            title: "Snowflake Host",
+            description: "The Snowflake host.",
+            default: "SEMA4AI_FIELD_NOT_CONFIGURED",
+          },
+          snowflake_database: {
+            anyOf: [
+              {
+                type: "string",
+              },
+              {
+                type: "null",
+              },
+            ],
+            title: "Snowflake Database",
+            description: "The Snowflake database.",
+            default: "SEMA4AI_FIELD_NOT_CONFIGURED",
+          },
+          snowflake_schema: {
+            anyOf: [
+              {
+                type: "string",
+              },
+              {
+                type: "null",
+              },
+            ],
+            title: "Snowflake Schema",
+            description: "The Snowflake schema.",
+            default: "SEMA4AI_FIELD_NOT_CONFIGURED",
+          },
+          snowflake_warehouse: {
+            anyOf: [
+              {
+                type: "string",
+              },
+              {
+                type: "null",
+              },
+            ],
+            title: "Snowflake Warehouse",
+            description: "The Snowflake warehouse.",
+            default: "SEMA4AI_FIELD_NOT_CONFIGURED",
+          },
+          snowflake_role: {
+            anyOf: [
+              {
+                type: "string",
+              },
+              {
+                type: "null",
+              },
+            ],
+            title: "Snowflake Role",
+            description: "The Snowflake role.",
+            default: "SEMA4AI_FIELD_NOT_CONFIGURED",
+          },
+          snowflake_username: {
+            anyOf: [
+              {
+                type: "string",
+              },
+              {
+                type: "null",
+              },
+            ],
+            title: "Snowflake Username",
+            description: "The Snowflake username.",
+            default: "SEMA4AI_FIELD_NOT_CONFIGURED",
+          },
+          snowflake_password: {
+            anyOf: [
+              {
+                type: "string",
+                format: "password",
+                writeOnly: true,
+              },
+              {
+                type: "null",
+              },
+            ],
+            title: "Snowflake Password",
+            description: "The Snowflake password.",
+            default: "**********",
+          },
+        },
+        type: "object",
+        title: "SnowflakeCortexConfig",
       },
       StreamDataEvent: {
         properties: {

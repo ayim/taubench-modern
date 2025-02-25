@@ -1,7 +1,7 @@
 import uuid
 from typing import Optional
 
-from agent_server_types import Agent, ChatRequest, Thread
+from agent_server_types import Agent, ChatRequest, Thread, User
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from opentelemetry import metrics
 from sse_starlette import EventSourceResponse
@@ -19,7 +19,6 @@ from sema4ai_agent_server.schema import (
     AgentServerRunnableConfig,
     AgentServerRunnableConfigurable,
     AgentStreamEvent,
-    User,
 )
 from sema4ai_agent_server.storage.option import get_storage
 from sema4ai_agent_server.stream import astream_state, invoke_state, to_sse
@@ -73,6 +72,7 @@ async def _run_input_and_config(payload: ChatRequest, user: User):
         configurable=AgentServerRunnableConfigurable(
             agent=agent,  # TODO: Need to handle secret strings deeper in the stack from here
             thread=thread,
+            user=user,
             use_retrieval=use_retrieval,
             interrupt_before_action=False,  # TODO: Where does this come from?
             knowledge_files=knowledge_files,

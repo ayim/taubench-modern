@@ -4,11 +4,11 @@ from typing import Annotated
 
 import jwt
 import requests
-from fastapi import Depends, HTTPException, Request, WebSocket, WebSocketException, status
+from agent_server_types import User
+from fastapi import Depends, HTTPException, Request
 from fastapi.security.http import HTTPBearer
 
 from sema4ai_agent_server.auth.settings import AuthType, settings
-from sema4ai_agent_server.schema import User
 from sema4ai_agent_server.storage.option import get_storage
 
 
@@ -110,7 +110,8 @@ def get_auth_handler() -> AuthHandler:
 
 
 async def auth_user(
-    request: Request, auth_handler: AuthHandler = Depends(get_auth_handler)
+    request: Request,
+    auth_handler: AuthHandler = Depends(get_auth_handler),
 ):
     return await auth_handler(request)
 
