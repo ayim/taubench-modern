@@ -18,13 +18,13 @@ from agent_server_types import (
     EmbeddingStatus,
     Thread,
     UploadedFile,
+    User,
 )
 from langchain_core.messages import AnyMessage
 from psycopg.errors import UniqueViolation
 from psycopg.rows import dict_row
 
 from sema4ai_agent_server.agent import runnable_agent
-from sema4ai_agent_server.schema import User
 from sema4ai_agent_server.storage import (
     BaseStorage,
     UniqueAgentNameError,
@@ -170,7 +170,7 @@ class PostgresStorage(BaseStorage, PostgresConnectionManager):
         async with self.async_cursor() as cur:
             try:
                 logger.info(
-                    f"Inserting file %s into file_owners - embedded: %s",
+                    "Inserting file %s into file_owners - embedded: %s",
                     new_file.file_ref,
                     new_file.embedded,
                 )

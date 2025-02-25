@@ -16,7 +16,7 @@ load_dotenv()
 def _raise_for_status(message: str, response, valid_statuses: tuple[int, ...] = (200,)):
     if response.status not in valid_statuses:
         raise ValueError(
-            f"{message}\nStatus: {response.status}\nBody: {response.data!r}"
+            f"{message}\nStatus: {response.status}\nBody: {response.data!r}",
         )
 
 
@@ -46,7 +46,7 @@ def test_api_interaction_expected_from_actions(
             "Content-Type": "application/json",
         }
         data = json.dumps({"file_name": filename, "file_size": len(content)}).encode(
-            "utf-8"
+            "utf-8",
         )
 
         # Send the initial request
@@ -92,15 +92,16 @@ def test_api_interaction_expected_from_actions(
         # Send the initial request
         response = sema4ai_http.get(url, fields={"file_ref": filename}, headers=headers)
         _raise_for_status(
-            f"Failed to get file {filename} from {url}.", response, (200,)
+            f"Failed to get file {filename} from {url}.",
+            response,
+            (200,),
         )
 
         response_data = response.json()
         file_url = response_data.get("file_url")
         if not file_url:
             raise ValueError(
-                f"Failed to get file {filename} from {url}. "
-                f"Response: {response_data}"
+                f"Failed to get file {filename} from {url}. Response: {response_data}",
             )
 
         parsed_url = urllib.parse.urlparse(file_url)
@@ -122,7 +123,7 @@ def test_api_interaction_expected_from_actions(
                 break
         else:
             raise ValueError(
-                f"Did not find the file {filename} in the thread files list: {response_data}"
+                f"Did not find the file {filename} in the thread files list: {response_data}",
             )
 
 
@@ -177,7 +178,7 @@ You are an agent just to call other tools actions as requested.
                     url=action_server_url,
                     api_key=api_key,
                     whitelist="",
-                )
+                ),
             ],
         )
 
@@ -190,21 +191,22 @@ You are an agent just to call other tools actions as requested.
         result.print_info()
 
         file_refs = agent_client.list_files(thread_id)
-        assert (
-            "full-action-contents.json" in file_refs
-        ), f"Did not find the file full-action-contents.json in the thread files list: {file_refs}"
+        assert "full-action-contents.json" in file_refs, (
+            f"Did not find the file full-action-contents.json in the thread files list: {file_refs}"
+        )
 
         result_json_txt = agent_client.get_file_by_ref(
-            thread_id, "full-action-contents.json"
+            thread_id,
+            "full-action-contents.json",
         )
         try:
             result_json_dict = json.loads(result_json_txt)
         except Exception:
             raise RuntimeError(f"Failed to parse result_json: {result_json_txt}")
 
-        assert result_json_dict.get(
-            "runbook"
-        ), f"Found result_json_dict: {json.dumps(result_json_dict, indent=2)}"
+        assert result_json_dict.get("runbook"), (
+            f"Found result_json_dict: {json.dumps(result_json_dict, indent=2)}"
+        )
 
         # Change it and make sure we can get the new version
         result = agent_client.send_message_to_agent_thread_collect_all(
@@ -214,8 +216,9 @@ You are an agent just to call other tools actions as requested.
         result.print_info()
 
         result_json_txt = agent_client.get_file_by_ref(
-            thread_id, "full-action-contents.json"
+            thread_id,
+            "full-action-contents.json",
         )
-        assert (
-            "updated version" in result_json_txt
-        ), f"Did not find the updated version in the file: {result_json_txt}"
+        assert "updated version" in result_json_txt, (
+            f"Did not find the updated version in the file: {result_json_txt}"
+        )

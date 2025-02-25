@@ -189,6 +189,8 @@ def get_pg_vector(model: Optional[MODEL]) -> PostgresVector:
 
 
 def get_chroma_vector(model: Optional[MODEL]) -> ChromaVector:
+    from chromadb.config import Settings
+
     return ChromaVector(
         # OpenAI's vector size is 1536, while AWS's titan model generates vectors with size 1024.
         # Chroma can't use the same collection for both, because it will throw an error when
@@ -197,6 +199,9 @@ def get_chroma_vector(model: Optional[MODEL]) -> ChromaVector:
         collection_name=model.provider.value if model is not None else "default",
         persist_directory=VECTOR_DATABASE_PATH,
         embedding_function=get_embedding_function(model) if model else None,
+        client_settings=Settings(
+            anonymized_telemetry=False,
+        ),
     )
 
 

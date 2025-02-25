@@ -1,5 +1,6 @@
+from collections.abc import Iterator
 from pathlib import Path
-from typing import TYPE_CHECKING, Iterator
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -16,7 +17,9 @@ def agents_dir() -> Path:
 
 class BootstrapAgentsResult:
     def __init__(
-        self, dir_name_to_agent_id: dict[str, str], agent_client: "AgentServerClient"
+        self,
+        dir_name_to_agent_id: dict[str, str],
+        agent_client: "AgentServerClient",
     ):
         self.dir_name_to_agent_id = dir_name_to_agent_id
         self.agent_client = agent_client
@@ -39,7 +42,8 @@ def bootstrap_agents(
         action_servers: list[ActionServerProcess] = []
         for agent_directory in ("runbook_and_actions_creator", "package_builder"):
             action_server_process = ActionServerProcess(
-                Path(tmpdir) / agent_directory, action_server_executable_path
+                Path(tmpdir) / agent_directory,
+                action_server_executable_path,
             )
             action_servers.append(action_server_process)
             base_url_api = f"{base_url_agent_server}/api/v1"
@@ -63,7 +67,7 @@ def bootstrap_agents(
                 f"http://{action_server_process.host}:{action_server_process.port}"
             )
             print_info(
-                f"Action server URL: {action_server_url} for agent {agent_directory}"
+                f"Action server URL: {action_server_url} for agent {agent_directory}",
             )
 
             description = "Agent caller"
@@ -82,14 +86,15 @@ def bootstrap_agents(
                         url=action_server_url,
                         api_key=api_key,
                         whitelist="",
-                    )
+                    ),
                 ],
             )
 
             dir_name_to_agent_id[agent_directory] = agent_id
 
         yield BootstrapAgentsResult(
-            dir_name_to_agent_id=dir_name_to_agent_id, agent_client=agent_client
+            dir_name_to_agent_id=dir_name_to_agent_id,
+            agent_client=agent_client,
         )
 
         for action_server in action_servers:
@@ -135,7 +140,9 @@ and I need to reconcile them with the invoices in my accounting software.
         contents: bytes = typing.cast(
             bytes,
             agent_client.get_file_by_ref(
-                thread_id_runbook_and_actions_creator, file_ref, output_type="bytes"
+                thread_id_runbook_and_actions_creator,
+                file_ref,
+                output_type="bytes",
             ),
         )
 
@@ -148,20 +155,27 @@ and I need to reconcile them with the invoices in my accounting software.
 
     # Ok, we have the runbook and the actions, now we need to build the agent
     thread_id_package_builder = agent_client.create_thread_and_return_thread_id(
-        package_builder_agent_id
+        package_builder_agent_id,
     )
 
     # As we're in a new thread, the files are empty and we need to upload the runbook and the actions
     agent_client.upload_file_to_thread(
-        thread_id_package_builder, "runbook.md", content=contents, embedded=False
+        thread_id_package_builder,
+        "runbook.md",
+        content=contents,
+        embedded=False,
     )
     file_contents = agent_client.get_file_by_ref(
-        thread_id_package_builder, "runbook.md"
+        thread_id_package_builder,
+        "runbook.md",
     )
     assert file_contents == contents.decode("utf-8")
 
     agent_client.upload_file_to_thread(
-        thread_id_package_builder, "actions.py", content=contents, embedded=False
+        thread_id_package_builder,
+        "actions.py",
+        content=contents,
+        embedded=False,
     )
 
     agent_client.send_message_to_agent_thread_collect_all(
@@ -179,7 +193,9 @@ and I need to reconcile them with the invoices in my accounting software.
     contents = typing.cast(
         bytes,
         agent_client.get_file_by_ref(
-            thread_id_package_builder, "full-agent.zip", output_type="bytes"
+            thread_id_package_builder,
+            "full-agent.zip",
+            output_type="bytes",
         ),
     )
 

@@ -12,11 +12,10 @@ from agent_server_types import (
     EmbeddingStatus,
     Thread,
     UploadedFile,
+    User,
 )
 from fastapi import HTTPException
 from langchain_core.messages import AnyMessage
-
-from sema4ai_agent_server.schema import User
 
 
 class UniqueAgentNameError(HTTPException):
