@@ -7,6 +7,7 @@ from structlog import get_logger
 
 from sema4ai_agent_server.storage.v2.sqlite_v2.migrations import SQLiteMigrationsV2
 from sema4ai_agent_server.storage.v2.sqlite_v2.storage_agents import SQLiteStorageAgentsMixin
+from sema4ai_agent_server.storage.v2.sqlite_v2.storage_files import SQLiteStorageFilesMixin
 from sema4ai_agent_server.storage.v2.sqlite_v2.storage_memory import SQLiteStorageMemoriesMixin
 from sema4ai_agent_server.storage.v2.sqlite_v2.storage_messages import SQLiteStorageMessagesMixin
 from sema4ai_agent_server.storage.v2.sqlite_v2.storage_runs import SQLiteStorageRunsMixin
@@ -24,6 +25,7 @@ class SQLiteStorageV2(
     SQLiteStorageMemoriesMixin,
     SQLiteStorageRunsMixin,
     SQLiteStorageScopedStorageMixin,
+    SQLiteStorageFilesMixin,
 ):
     """
     SQLite-based storage that mirrors the Postgres-based semantics, including 

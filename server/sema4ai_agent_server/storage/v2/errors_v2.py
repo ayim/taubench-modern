@@ -53,7 +53,10 @@ class MemoryNotFoundError(HTTPException):
 class ScopedStorageNotFoundError(HTTPException):
     """A scoped storage with the given ID was not found."""
 
-    def __init__(self, detail: str = "A scoped storage with the given ID was not found"):
+    def __init__(
+        self,
+        detail: str = "A scoped storage with the given ID was not found",
+    ):
         super().__init__(status_code=404, detail=detail)
 
 
@@ -83,3 +86,31 @@ class RecordAlreadyExistsError(HTTPException):
 
     def __init__(self, detail: str = "A record with the given ID already exists"):
         super().__init__(status_code=409, detail=detail)
+
+
+class UniqueFileRefError(HTTPException):
+    """A file with the given file_ref already exists."""
+
+    def __init__(
+        self,
+        file_ref: str,
+        detail: str = "A file with the given file_ref already exists",
+    ):
+        super().__init__(status_code=409, detail=detail)
+
+
+class ThreadFileNotFoundError(HTTPException):
+    """A file with the given ID was not found."""
+
+    def __init__(self, detail: str = "A file with the given ID was not found"):
+        super().__init__(status_code=404, detail=detail)
+
+
+class UserPermissionError(HTTPException):
+    """The user does not have permission to access the given resource."""
+
+    def __init__(
+        self,
+        detail: str = "The user does not have permission to access the given resource",
+    ):
+        super().__init__(status_code=403, detail=detail)

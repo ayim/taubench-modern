@@ -32,7 +32,7 @@ class AgentServerProcess:
     Class to start and stop the agent server.
     """
 
-    SHOW_OUTPUT = True
+    SHOW_OUTPUT = False
 
     def __init__(self, datadir: Path) -> None:
         from io import StringIO
@@ -159,7 +159,8 @@ class AgentServerProcess:
 
             self._stderr.write(line)
             # Note: this is called in a thread.
-            sys.stderr.write(f"stderr: {line.rstrip()}\n")
+            if self.SHOW_OUTPUT:
+                sys.stderr.write(f"stderr: {line.rstrip()}\n")
 
         process.on_stderr.register(on_stderr)
         process.on_stdout.register(on_stdout)

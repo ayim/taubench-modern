@@ -250,10 +250,14 @@ CREATE TABLE v2."file_owner" (
     file_ref            TEXT,
     file_path           TEXT NOT NULL,
     file_hash           TEXT,
-    embedded            BOOLEAN,
+    file_size_raw       BIGINT NOT NULL,
+    mime_type           TEXT NOT NULL,
+    user_id             UUID NOT NULL,
+    embedded            BOOLEAN NOT NULL DEFAULT FALSE,
     agent_id            UUID,
     thread_id           UUID,
     file_path_expiration TIMESTAMP WITH TIME ZONE,
+    created_at          TIMESTAMP WITH TIME ZONE DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
     PRIMARY KEY (file_id),
     CONSTRAINT fk_file_owner_agent_id_v2
         FOREIGN KEY (agent_id)
@@ -262,6 +266,10 @@ CREATE TABLE v2."file_owner" (
     CONSTRAINT fk_file_owner_thread_id_v2
         FOREIGN KEY (thread_id)
         REFERENCES v2."thread"(thread_id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_file_owner_user_id_v2
+        FOREIGN KEY (user_id)
+        REFERENCES v2."user"(user_id)
         ON DELETE CASCADE,
     CONSTRAINT unique_file_ref_agent_v2
         UNIQUE (file_ref, agent_id),

@@ -230,15 +230,23 @@ CREATE INDEX idx_scoped_storage_scope_type
 -- file_id is a text-based primary key. We also store optional references, 
 -- file paths, etc.
 ------------------------------------------------------------------------------
-CREATE TABLE v2_file_owner (
-    file_id             TEXT PRIMARY KEY,
-    file_ref            TEXT,
-    file_path           TEXT NOT NULL,
-    file_hash           TEXT,
-    embedded            BOOLEAN,
-    agent_id            TEXT,
-    thread_id           TEXT,
+CREATE TABLE v2_file_owner
+(
+    file_id TEXT PRIMARY KEY,
+    file_ref TEXT,
+    file_path TEXT NOT NULL,
+    file_hash TEXT,
+    file_size_raw INTEGER,
+    -- Added: Raw file size in bytes
+    mime_type TEXT,
+    -- Added: MIME type of the file
+    user_id TEXT,
+    -- Added: Reference to v2_user
+    embedded BOOLEAN,
+    agent_id TEXT,
+    thread_id TEXT,
     file_path_expiration TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
 
     CONSTRAINT fk_file_owner_agent_id
       FOREIGN KEY (agent_id)
@@ -247,6 +255,10 @@ CREATE TABLE v2_file_owner (
     CONSTRAINT fk_file_owner_thread_id
       FOREIGN KEY (thread_id)
       REFERENCES v2_thread(thread_id)
+      ON DELETE CASCADE,
+    CONSTRAINT fk_file_owner_user_id    -- Added: Foreign key constraint for user_id
+      FOREIGN KEY (user_id)
+      REFERENCES v2_user(user_id)
       ON DELETE CASCADE,
     CONSTRAINT unique_file_ref_agent
       UNIQUE (file_ref, agent_id),
@@ -260,6 +272,10 @@ CREATE INDEX idx_file_owner_agent_id
 
 CREATE INDEX idx_file_owner_thread_id 
     ON v2_file_owner(thread_id);
+
+-- Add index for user_id lookups
+CREATE INDEX idx_file_owner_user_id 
+    ON v2_file_owner(user_id);
 
 ------------------------------------------------------------------------------
 -- MEMORY
@@ -292,4 +308,3 @@ CREATE INDEX idx_memory_scope
 ------------------------------------------------------------------------------
 -- Can't implement this in SQL in SQLite, so we'll do it on the Python side.
 ------------------------------------------------------------------------------
-

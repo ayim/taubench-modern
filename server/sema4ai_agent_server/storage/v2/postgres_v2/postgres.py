@@ -8,6 +8,7 @@ from structlog import get_logger
 
 from sema4ai_agent_server.storage.v2.postgres_v2.migrations import PostgresMigrationsV2
 from sema4ai_agent_server.storage.v2.postgres_v2.storage_agents import PostgresStorageAgentsMixin
+from sema4ai_agent_server.storage.v2.postgres_v2.storage_files import PostgresStorageFilesMixin
 from sema4ai_agent_server.storage.v2.postgres_v2.storage_memory import PostgresStorageMemoriesMixin
 from sema4ai_agent_server.storage.v2.postgres_v2.storage_messages import PostgresStorageMessagesMixin
 from sema4ai_agent_server.storage.v2.postgres_v2.storage_runs import PostgresStorageRunsMixin
@@ -25,6 +26,7 @@ class PostgresStorageV2(
     PostgresStorageMemoriesMixin,
     PostgresStorageRunsMixin,
     PostgresStorageScopedStorageMixin,
+    PostgresStorageFilesMixin,
 ):
     def __init__(self, pool: AsyncConnectionPool | None = None):
         self._pool = pool

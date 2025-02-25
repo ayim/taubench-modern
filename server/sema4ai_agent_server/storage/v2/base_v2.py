@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
+from datetime import datetime
 
 from agent_server_types_v2.agent import Agent
+from agent_server_types_v2.files import UploadedFile
 from agent_server_types_v2.memory import Memory
 from agent_server_types_v2.runs import Run, RunStep
 from agent_server_types_v2.storage import ScopedStorage
@@ -73,12 +75,21 @@ class BaseStorageV2(ABC):
         pass
 
     @abstractmethod
-    async def list_threads_for_agent_v2(self, user_id: str, agent_id: str) -> list[Thread]:
+    async def list_threads_for_agent_v2(
+        self,
+        user_id: str,
+        agent_id: str,
+    ) -> list[Thread]:
         """List all threads for the given agent."""
         pass
 
     @abstractmethod
-    async def add_message_to_thread_v2(self, user_id: str, thread_id: str, message: ThreadMessage) -> None:
+    async def add_message_to_thread_v2(
+        self,
+        user_id: str,
+        thread_id: str,
+        message: ThreadMessage,
+    ) -> None:
         """Add a message to a thread."""
         pass
 
@@ -115,11 +126,6 @@ class BaseStorageV2(ABC):
         """
         Returns a tuple of the user and a boolean indicating whether the user was created.
         """
-        pass
-
-    @abstractmethod
-    async def delete_user_v2(self, user_id: str) -> None:
-        """Delete a user by ID."""
         pass
 
     # -------------------------
@@ -211,7 +217,11 @@ class BaseStorageV2(ABC):
         pass
 
     @abstractmethod
-    async def list_scoped_storage_v2(self, scope_type: str, scope_id: str) -> list[ScopedStorage]:
+    async def list_scoped_storage_v2(
+        self,
+        scope_type: str,
+        scope_id: str,
+    ) -> list[ScopedStorage]:
         """
         List all scoped storage records for a given scope type and scope identifier.
         For example, you might list all records for a given 'user', 'agent', or 'thread'.
@@ -226,4 +236,83 @@ class BaseStorageV2(ABC):
     @abstractmethod
     async def delete_scoped_storage_v2(self, storage_id: str) -> None:
         """Delete a scoped storage record."""
+        pass
+
+    # -------------------------
+    # Methods for files
+    # -------------------------
+    @abstractmethod
+    async def get_thread_files_v2(
+        self,
+        thread_id: str,
+        user_id: str,
+    ) -> list[UploadedFile]:
+        """Get a list of files associated with a thread."""
+        pass
+
+    @abstractmethod
+    async def get_file_by_ref_v2(
+        self,
+        owner: Agent | Thread,
+        file_ref: str,
+        user_id: str,
+    ) -> UploadedFile | None:
+        """Get a file by ref."""
+        pass
+
+    @abstractmethod
+    async def delete_file_v2(
+        self,
+        owner: Agent | Thread,
+        file_id: str,
+        user_id: str,
+    ) -> None:
+        """Delete a file by ref."""
+        pass
+
+    @abstractmethod
+    async def delete_thread_files_v2(
+        self,
+        thread_id: str,
+        user_id: str,
+    ) -> None:
+        """Delete all files associated with a thread."""
+        pass
+
+    @abstractmethod
+    async def get_file_by_id_v2(
+        self,
+        file_id: str,
+        user_id: str,
+    ) -> UploadedFile:
+        """Get a file by ID."""
+        pass
+
+    @abstractmethod
+    async def put_file_owner_v2(  # noqa: PLR0913
+        self,
+        file_id: str,
+        file_path: str | None,
+        file_ref: str,
+        file_hash: str,
+        file_size_raw: int,
+        mime_type: str,
+        user_id: str,
+        embedded: bool,
+        embedding_status: None,  # TODO: add a new type for EmbeddingStatus
+        owner: Agent | Thread,
+        file_path_expiration: datetime | None,
+    ) -> UploadedFile:
+        """Add or update a file owner."""
+        pass
+
+    @abstractmethod
+    async def update_file_retrieve_information_v2(
+        self,
+        file_id: str,
+        file_path: str,
+        file_path_expiration: datetime,
+        user_id: str,
+    ) -> UploadedFile:
+        """Update the file retrieve information."""
         pass
