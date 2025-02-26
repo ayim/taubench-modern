@@ -5,14 +5,19 @@
 export const spec = {
   openapi: "3.1.0",
   info: {
-    title: "Sema4.ai Agent Server API",
+    title: "Sema4.ai Agent Server Private API Version 1",
     version: "1.1.4-alpha.79",
   },
+  servers: [
+    {
+      url: "/api/v1",
+    },
+  ],
   paths: {
-    "/api/v1/ok": {
+    "/ok": {
       get: {
         summary: "Ok",
-        operationId: "ok_api_v1_ok_get",
+        operationId: "ok_ok_get",
         responses: {
           "200": {
             description: "Successful Response",
@@ -25,12 +30,50 @@ export const spec = {
         },
       },
     },
-    "/api/v1/agents/": {
+    "/health": {
+      get: {
+        summary: "Health",
+        operationId: "health_health_get",
+        responses: {
+          "200": {
+            description: "Successful Response",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  title: "Response Health Health Get",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/metrics": {
+      get: {
+        summary: "Metrics",
+        operationId: "metrics_metrics_get",
+        responses: {
+          "200": {
+            description: "Successful Response",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  title: "Response Metrics Metrics Get",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/agents/": {
       get: {
         tags: ["agents"],
         summary: "List Agents",
         description: "List all agents for the current user.",
-        operationId: "list_agents_api_v1_agents__get",
+        operationId: "list_agents_agents__get",
         responses: {
           "200": {
             description: "Successful Response",
@@ -41,7 +84,7 @@ export const spec = {
                     $ref: "#/components/schemas/Agent",
                   },
                   type: "array",
-                  title: "Response List Agents Api V1 Agents  Get",
+                  title: "Response List Agents Agents  Get",
                 },
               },
             },
@@ -49,12 +92,12 @@ export const spec = {
         },
       },
     },
-    "/api/v1/agents/raw": {
+    "/agents/raw": {
       get: {
         tags: ["agents"],
         summary: "List Raw Agents",
         description: "List all agents for the current user.",
-        operationId: "list_raw_agents_api_v1_agents_raw_get",
+        operationId: "list_raw_agents_agents_raw_get",
         responses: {
           "200": {
             description: "Successful Response",
@@ -65,7 +108,7 @@ export const spec = {
                     $ref: "#/components/schemas/Agent",
                   },
                   type: "array",
-                  title: "Response List Raw Agents Api V1 Agents Raw Get",
+                  title: "Response List Raw Agents Agents Raw Get",
                 },
               },
             },
@@ -73,12 +116,12 @@ export const spec = {
         },
       },
     },
-    "/api/v1/agents/{aid}": {
+    "/agents/{aid}": {
       get: {
         tags: ["agents"],
         summary: "Get Agent",
         description: "Get an agent by ID.",
-        operationId: "get_agent_api_v1_agents__aid__get",
+        operationId: "get_agent_agents__aid__get",
         parameters: [
           {
             name: "aid",
@@ -119,7 +162,7 @@ export const spec = {
         tags: ["agents"],
         summary: "Upsert Agent",
         description: "Create or update an agent.",
-        operationId: "upsert_agent_api_v1_agents__aid__put",
+        operationId: "upsert_agent_agents__aid__put",
         parameters: [
           {
             name: "aid",
@@ -170,7 +213,7 @@ export const spec = {
         tags: ["agents"],
         summary: "Delete Agent",
         description: "Delete an agent by ID.",
-        operationId: "delete_agent_api_v1_agents__aid__delete",
+        operationId: "delete_agent_agents__aid__delete",
         parameters: [
           {
             name: "aid",
@@ -208,12 +251,12 @@ export const spec = {
         },
       },
     },
-    "/api/v1/agents/{aid}/raw": {
+    "/agents/{aid}/raw": {
       get: {
         tags: ["agents"],
         summary: "Get Raw Agent",
         description: "Get an agent by ID (sensitive data is masked).",
-        operationId: "get_raw_agent_api_v1_agents__aid__raw_get",
+        operationId: "get_raw_agent_agents__aid__raw_get",
         parameters: [
           {
             name: "aid",
@@ -251,11 +294,11 @@ export const spec = {
         },
       },
     },
-    "/api/v1/agents/{aid}/status": {
+    "/agents/{aid}/status": {
       get: {
         tags: ["agents"],
         summary: "Get Agent Status",
-        operationId: "get_agent_status_api_v1_agents__aid__status_get",
+        operationId: "get_agent_status_agents__aid__status_get",
         parameters: [
           {
             name: "aid",
@@ -293,11 +336,11 @@ export const spec = {
         },
       },
     },
-    "/api/v1/agents/package/{aid}": {
+    "/agents/package/{aid}": {
       put: {
         tags: ["agents"],
         summary: "Upsert Agent Via Package",
-        operationId: "upsert_agent_via_package_api_v1_agents_package__aid__put",
+        operationId: "upsert_agent_via_package_agents_package__aid__put",
         parameters: [
           {
             name: "aid",
@@ -345,11 +388,11 @@ export const spec = {
         },
       },
     },
-    "/api/v1/agents/package": {
+    "/agents/package": {
       post: {
         tags: ["agents"],
         summary: "Create Agent Via Package",
-        operationId: "create_agent_via_package_api_v1_agents_package_post",
+        operationId: "create_agent_via_package_agents_package_post",
         requestBody: {
           content: {
             "application/json": {
@@ -384,12 +427,12 @@ export const spec = {
         },
       },
     },
-    "/api/v1/agents": {
+    "/agents": {
       post: {
         tags: ["agents"],
         summary: "Create Agent",
         description: "Create an agent.",
-        operationId: "create_agent_api_v1_agents_post",
+        operationId: "create_agent_agents_post",
         requestBody: {
           content: {
             "application/json": {
@@ -424,12 +467,12 @@ export const spec = {
         },
       },
     },
-    "/api/v1/agents/{aid}/files": {
+    "/agents/{aid}/files": {
       get: {
         tags: ["agents"],
         summary: "Get Agent Files",
         description: "Get an list of files associated with an agent.",
-        operationId: "get_agent_files_api_v1_agents__aid__files_get",
+        operationId: "get_agent_files_agents__aid__files_get",
         parameters: [
           {
             name: "aid",
@@ -453,8 +496,7 @@ export const spec = {
                   items: {
                     $ref: "#/components/schemas/UploadedFile",
                   },
-                  title:
-                    "Response Get Agent Files Api V1 Agents  Aid  Files Get",
+                  title: "Response Get Agent Files Agents  Aid  Files Get",
                 },
               },
             },
@@ -475,7 +517,7 @@ export const spec = {
         tags: ["agents"],
         summary: "Upload Agent Files",
         description: "Upload files to the given agent.",
-        operationId: "upload_agent_files_api_v1_agents__aid__files_post",
+        operationId: "upload_agent_files_agents__aid__files_post",
         parameters: [
           {
             name: "aid",
@@ -494,7 +536,7 @@ export const spec = {
           content: {
             "multipart/form-data": {
               schema: {
-                $ref: "#/components/schemas/Body_upload_agent_files_api_v1_agents__aid__files_post",
+                $ref: "#/components/schemas/Body_upload_agent_files_agents__aid__files_post",
               },
             },
           },
@@ -509,8 +551,7 @@ export const spec = {
                   items: {
                     $ref: "#/components/schemas/UploadedFile",
                   },
-                  title:
-                    "Response Upload Agent Files Api V1 Agents  Aid  Files Post",
+                  title: "Response Upload Agent Files Agents  Aid  Files Post",
                 },
               },
             },
@@ -528,12 +569,12 @@ export const spec = {
         },
       },
     },
-    "/api/v1/agents/{aid}/action-server-config": {
+    "/agents/{aid}/action-server-config": {
       put: {
         tags: ["agents"],
         summary: "Update Action Server Config",
         operationId:
-          "update_action_server_config_api_v1_agents__aid__action_server_config_put",
+          "update_action_server_config_agents__aid__action_server_config_put",
         parameters: [
           {
             name: "aid",
@@ -565,7 +606,7 @@ export const spec = {
                 schema: {
                   type: "object",
                   title:
-                    "Response Update Action Server Config Api V1 Agents  Aid  Action Server Config Put",
+                    "Response Update Action Server Config Agents  Aid  Action Server Config Put",
                 },
               },
             },
@@ -583,13 +624,13 @@ export const spec = {
         },
       },
     },
-    "/api/v1/agents/{aid}/metrics": {
+    "/agents/{aid}/metrics": {
       get: {
         tags: ["agents"],
         summary: "Get Agent Stats",
         description:
           "return no of threads, messages and files count for the agent",
-        operationId: "get_agent_stats_api_v1_agents__aid__metrics_get",
+        operationId: "get_agent_stats_agents__aid__metrics_get",
         parameters: [
           {
             name: "aid",
@@ -627,12 +668,12 @@ export const spec = {
         },
       },
     },
-    "/api/v1/runs/async_invoke": {
+    "/runs/async_invoke": {
       post: {
         tags: ["runs"],
         summary: "Create Run",
         description: "Create a run.",
-        operationId: "create_run_api_v1_runs_async_invoke_post",
+        operationId: "create_run_runs_async_invoke_post",
         requestBody: {
           content: {
             "application/json": {
@@ -665,11 +706,11 @@ export const spec = {
         },
       },
     },
-    "/api/v1/runs/{rid}/status": {
+    "/runs/{rid}/status": {
       get: {
         tags: ["runs"],
         summary: "Get Run Status",
-        operationId: "get_run_status_api_v1_runs__rid__status_get",
+        operationId: "get_run_status_runs__rid__status_get",
         parameters: [
           {
             name: "rid",
@@ -703,12 +744,12 @@ export const spec = {
         },
       },
     },
-    "/api/v1/runs/stream": {
+    "/runs/stream": {
       post: {
         tags: ["runs"],
         summary: "Stream Run",
         description: "Create a run.",
-        operationId: "stream_run_api_v1_runs_stream_post",
+        operationId: "stream_run_runs_stream_post",
         requestBody: {
           content: {
             "application/json": {
@@ -766,12 +807,12 @@ export const spec = {
         },
       },
     },
-    "/api/v1/runs/invoke": {
+    "/runs/invoke": {
       post: {
         tags: ["runs"],
         summary: "Invoke Run",
         description: "Create a run.",
-        operationId: "invoke_run_api_v1_runs_invoke_post",
+        operationId: "invoke_run_runs_invoke_post",
         requestBody: {
           content: {
             "application/json": {
@@ -804,12 +845,12 @@ export const spec = {
         },
       },
     },
-    "/api/v1/threads/": {
+    "/threads/": {
       get: {
         tags: ["threads"],
         summary: "List Threads",
         description: "List all threads for the current user.",
-        operationId: "list_threads_api_v1_threads__get",
+        operationId: "list_threads_threads__get",
         responses: {
           "200": {
             description: "Successful Response",
@@ -820,7 +861,7 @@ export const spec = {
                     $ref: "#/components/schemas/Thread",
                   },
                   type: "array",
-                  title: "Response List Threads Api V1 Threads  Get",
+                  title: "Response List Threads Threads  Get",
                 },
               },
             },
@@ -828,12 +869,12 @@ export const spec = {
         },
       },
     },
-    "/api/v1/threads/{tid}/state": {
+    "/threads/{tid}/state": {
       get: {
         tags: ["threads"],
         summary: "Get Thread State",
         description: "Get state for a thread.",
-        operationId: "get_thread_state_api_v1_threads__tid__state_get",
+        operationId: "get_thread_state_threads__tid__state_get",
         parameters: [
           {
             name: "tid",
@@ -870,7 +911,7 @@ export const spec = {
         tags: ["threads"],
         summary: "Add Thread State",
         description: "Add state to a thread.",
-        operationId: "add_thread_state_api_v1_threads__tid__state_post",
+        operationId: "add_thread_state_threads__tid__state_post",
         parameters: [
           {
             name: "tid",
@@ -914,12 +955,12 @@ export const spec = {
         },
       },
     },
-    "/api/v1/threads/{tid}/history": {
+    "/threads/{tid}/history": {
       get: {
         tags: ["threads"],
         summary: "Get Thread History",
         description: "Get all past states for a thread.",
-        operationId: "get_thread_history_api_v1_threads__tid__history_get",
+        operationId: "get_thread_history_threads__tid__history_get",
         parameters: [
           {
             name: "tid",
@@ -953,12 +994,12 @@ export const spec = {
         },
       },
     },
-    "/api/v1/threads/{tid}": {
+    "/threads/{tid}": {
       get: {
         tags: ["threads"],
         summary: "Get Thread",
         description: "Get a thread by ID.",
-        operationId: "get_thread_api_v1_threads__tid__get",
+        operationId: "get_thread_threads__tid__get",
         parameters: [
           {
             name: "tid",
@@ -997,7 +1038,7 @@ export const spec = {
         tags: ["threads"],
         summary: "Upsert Thread",
         description: "Update a thread.",
-        operationId: "upsert_thread_api_v1_threads__tid__put",
+        operationId: "upsert_thread_threads__tid__put",
         parameters: [
           {
             name: "tid",
@@ -1046,7 +1087,7 @@ export const spec = {
         tags: ["threads"],
         summary: "Delete Thread",
         description: "Delete a thread by ID.",
-        operationId: "delete_thread_api_v1_threads__tid__delete",
+        operationId: "delete_thread_threads__tid__delete",
         parameters: [
           {
             name: "tid",
@@ -1080,12 +1121,12 @@ export const spec = {
         },
       },
     },
-    "/api/v1/threads": {
+    "/threads": {
       post: {
         tags: ["threads"],
         summary: "Create Thread",
         description: "Create a thread.",
-        operationId: "create_thread_api_v1_threads_post",
+        operationId: "create_thread_threads_post",
         requestBody: {
           content: {
             "application/json": {
@@ -1120,11 +1161,11 @@ export const spec = {
         },
       },
     },
-    "/api/v1/threads/{tid}/file-by-ref": {
+    "/threads/{tid}/file-by-ref": {
       get: {
         tags: ["threads"],
         summary: "Get File By Ref",
-        operationId: "get_file_by_ref_api_v1_threads__tid__file_by_ref_get",
+        operationId: "get_file_by_ref_threads__tid__file_by_ref_get",
         parameters: [
           {
             name: "tid",
@@ -1169,12 +1210,11 @@ export const spec = {
         },
       },
     },
-    "/api/v1/threads/{tid}/files/download/": {
+    "/threads/{tid}/files/download/": {
       get: {
         tags: ["threads"],
         summary: "Download File By Ref",
-        operationId:
-          "download_file_by_ref_api_v1_threads__tid__files_download__get",
+        operationId: "download_file_by_ref_threads__tid__files_download__get",
         parameters: [
           {
             name: "tid",
@@ -1217,12 +1257,12 @@ export const spec = {
         },
       },
     },
-    "/api/v1/threads/{tid}/files": {
+    "/threads/{tid}/files": {
       get: {
         tags: ["threads"],
         summary: "Get Thread Files",
         description: "Get a list of files associated with a thread.",
-        operationId: "get_thread_files_api_v1_threads__tid__files_get",
+        operationId: "get_thread_files_threads__tid__files_get",
         parameters: [
           {
             name: "tid",
@@ -1244,8 +1284,7 @@ export const spec = {
                   items: {
                     $ref: "#/components/schemas/UploadedFile",
                   },
-                  title:
-                    "Response Get Thread Files Api V1 Threads  Tid  Files Get",
+                  title: "Response Get Thread Files Threads  Tid  Files Get",
                 },
               },
             },
@@ -1267,7 +1306,7 @@ export const spec = {
         summary: "Upload Thread Files",
         description:
           "Upload files to the given agent.\n\nArgs:\n    files: The files to upload.\n    user: The user uploading the files.\n    tid: The thread ID to upload the files to.\n    background_tasks: The background tasks to run.\n    embedded: Whether to embed the files. If not given, it will be inferred from the file type.",
-        operationId: "upload_thread_files_api_v1_threads__tid__files_post",
+        operationId: "upload_thread_files_threads__tid__files_post",
         parameters: [
           {
             name: "tid",
@@ -1300,7 +1339,7 @@ export const spec = {
           content: {
             "multipart/form-data": {
               schema: {
-                $ref: "#/components/schemas/Body_upload_thread_files_api_v1_threads__tid__files_post",
+                $ref: "#/components/schemas/Body_upload_thread_files_threads__tid__files_post",
               },
             },
           },
@@ -1316,7 +1355,7 @@ export const spec = {
                     $ref: "#/components/schemas/UploadedFile",
                   },
                   title:
-                    "Response Upload Thread Files Api V1 Threads  Tid  Files Post",
+                    "Response Upload Thread Files Threads  Tid  Files Post",
                 },
               },
             },
@@ -1334,12 +1373,12 @@ export const spec = {
         },
       },
     },
-    "/api/v1/threads/{tid}/files/request-upload": {
+    "/threads/{tid}/files/request-upload": {
       post: {
         tags: ["threads"],
         summary: "Request Remote File Upload",
         operationId:
-          "request_remote_file_upload_api_v1_threads__tid__files_request_upload_post",
+          "request_remote_file_upload_threads__tid__files_request_upload_post",
         parameters: [
           {
             name: "tid",
@@ -1385,12 +1424,12 @@ export const spec = {
         },
       },
     },
-    "/api/v1/threads/{tid}/files/confirm-upload": {
+    "/threads/{tid}/files/confirm-upload": {
       post: {
         tags: ["threads"],
         summary: "Confirm Remote File Upload",
         operationId:
-          "confirm_remote_file_upload_api_v1_threads__tid__files_confirm_upload_post",
+          "confirm_remote_file_upload_threads__tid__files_confirm_upload_post",
         parameters: [
           {
             name: "tid",
@@ -1436,11 +1475,11 @@ export const spec = {
         },
       },
     },
-    "/api/v1/threads/{tid}/context-stats": {
+    "/threads/{tid}/context-stats": {
       get: {
         tags: ["threads"],
         summary: "Context Stats",
-        operationId: "context_stats_api_v1_threads__tid__context_stats_get",
+        operationId: "context_stats_threads__tid__context_stats_get",
         parameters: [
           {
             name: "tid",
@@ -1469,44 +1508,6 @@ export const spec = {
               "application/json": {
                 schema: {
                   $ref: "#/components/schemas/HTTPValidationError",
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-    "/api/v1/health": {
-      get: {
-        summary: "Health",
-        operationId: "health_api_v1_health_get",
-        responses: {
-          "200": {
-            description: "Successful Response",
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  title: "Response Health Api V1 Health Get",
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-    "/api/v1/metrics": {
-      get: {
-        summary: "Metrics",
-        operationId: "metrics_api_v1_metrics_get",
-        responses: {
-          "200": {
-            description: "Successful Response",
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  title: "Response Metrics Api V1 Metrics Get",
                 },
               },
             },
@@ -2224,7 +2225,7 @@ export const spec = {
         type: "object",
         title: "AzureGPTConfig",
       },
-      Body_upload_agent_files_api_v1_agents__aid__files_post: {
+      Body_upload_agent_files_agents__aid__files_post: {
         properties: {
           files: {
             items: {
@@ -2237,9 +2238,9 @@ export const spec = {
         },
         type: "object",
         required: ["files"],
-        title: "Body_upload_agent_files_api_v1_agents__aid__files_post",
+        title: "Body_upload_agent_files_agents__aid__files_post",
       },
-      Body_upload_thread_files_api_v1_threads__tid__files_post: {
+      Body_upload_thread_files_threads__tid__files_post: {
         properties: {
           files: {
             items: {
@@ -2252,7 +2253,7 @@ export const spec = {
         },
         type: "object",
         required: ["files"],
-        title: "Body_upload_thread_files_api_v1_threads__tid__files_post",
+        title: "Body_upload_thread_files_threads__tid__files_post",
       },
       ChatRequest: {
         properties: {

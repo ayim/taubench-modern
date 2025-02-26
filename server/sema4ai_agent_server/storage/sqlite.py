@@ -232,6 +232,7 @@ class SqliteStorage(BaseStorage):
             count = cursor.fetchone()[0]
             return count
 
+
     async def list_threads(self, user_id: str) -> List[Thread]:
         """List all threads for the current user and system threads."""
         with self._connect() as conn:

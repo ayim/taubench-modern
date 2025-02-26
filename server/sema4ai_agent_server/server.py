@@ -8,7 +8,8 @@ import structlog
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 
-from sema4ai_agent_server.api import router as api_router
+from sema4ai_agent_server.api.private_v1 import router as v1_router
+from sema4ai_agent_server.api.public_v1 import router as v2_router
 from sema4ai_agent_server.constants import Constants
 from sema4ai_agent_server.lifespan import lifespan
 from sema4ai_agent_server.log_config import setup_logging
@@ -48,10 +49,10 @@ IS_FROZEN = getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS")
 
 
 class _CustomFastAPI(FastAPI):
-    def __init__(self) -> None:
+    def __init__(self, title="Sema4.ai Agent Server API") -> None:
         self.__custom_openapi_schema: dict | None = None
         super().__init__(
-            title="Sema4.ai Agent Server API",
+            title=title,
             lifespan=lifespan,
             version=VERSION,
             default_response_class=ORJSONResponse,  # Use more efficient JSON serialization
@@ -76,8 +77,27 @@ class _CustomFastAPI(FastAPI):
         return self.__custom_openapi_schema
 
 
-app = _CustomFastAPI()
-app.include_router(api_router)
+# Version 1 API
+app_v1 = _CustomFastAPI(
+    title="Sema4.ai Agent Server Private API Version 1",
+)
+app_v1.include_router(v1_router)
+
+# Version 2 API
+app_v2 = _CustomFastAPI(
+    title="Sema4.ai Agent Server Public API Version 1",
+)
+app_v2.include_router(v2_router)
+
+# Main FastAPI app to include both versions
+app = FastAPI()
+app.include_router(v1_router)
+app.include_router(v2_router)
+
+
+# Mount the API versions under their respective prefixes
+app.mount("/api/v1", app_v1)
+app.mount("/api/public/v1", app_v2)
 
 
 def _on_startup() -> None:

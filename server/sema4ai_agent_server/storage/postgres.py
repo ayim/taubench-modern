@@ -51,6 +51,7 @@ class PostgresStorage(BaseStorage, PostgresConnectionManager):
     async def setup(self) -> None:
         if self._is_setup:
             return
+        print("Setting up PostgresStorage")
         await self._run_migrations()
         pgvector: PostgresVector = get_vector_store()
         await pgvector.acreate_collection()
@@ -363,6 +364,7 @@ class PostgresStorage(BaseStorage, PostgresConnectionManager):
             )
             row = await cur.fetchone()
             return Agent.model_validate(row) if row else None
+
 
     async def put_agent(
         self,

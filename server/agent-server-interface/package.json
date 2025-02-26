@@ -13,8 +13,8 @@
     "url": "git://git@github.com/Sema4AI/agent-server.git"
   },
   "scripts": {
-    "generate:schema": "npx openapi-typescript http://localhost:8000/openapi.json -o ./src/schema.ts",
-    "generate:spec": "tsx ./scripts/spec.ts http://localhost:8000/openapi.json",
+    "generate:schema": "tsx ./scripts/preprocess-and-generate.ts http://localhost:8000/api/v1/openapi.json ./src/schema.ts",
+    "generate:spec": "tsx ./scripts/spec.ts http://localhost:8000/api/v1/openapi.json",
     "build:package": "tsup",
     "format": "prettier --write \"**/*.{ts,json}\"",
     "build": "npm run generate:schema && npm run generate:spec && tsup && npm run format"
@@ -38,6 +38,8 @@
   },
   "devDependencies": {
     "@types/node": "^22.5.0",
+    "@types/node-fetch": "^2.6.12",
+    "node-fetch": "^3.3.2",
     "openapi-typescript": "^7.3.0",
     "prettier": "^3.2.5",
     "tsup": "^8.2.4",

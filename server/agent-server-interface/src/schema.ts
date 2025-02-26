@@ -12,7 +12,41 @@ export interface paths {
       cookie?: never;
     };
     /** Ok */
-    get: operations["ok_api_v1_ok_get"];
+    get: operations["ok_ok_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/health": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Health */
+    get: operations["health_health_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/metrics": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Metrics */
+    get: operations["metrics_metrics_get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -32,7 +66,7 @@ export interface paths {
      * List Agents
      * @description List all agents for the current user.
      */
-    get: operations["list_agents_api_v1_agents__get"];
+    get: operations["list_agents_agents__get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -52,7 +86,7 @@ export interface paths {
      * List Raw Agents
      * @description List all agents for the current user.
      */
-    get: operations["list_raw_agents_api_v1_agents_raw_get"];
+    get: operations["list_raw_agents_agents_raw_get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -72,18 +106,18 @@ export interface paths {
      * Get Agent
      * @description Get an agent by ID.
      */
-    get: operations["get_agent_api_v1_agents__aid__get"];
+    get: operations["get_agent_agents__aid__get"];
     /**
      * Upsert Agent
      * @description Create or update an agent.
      */
-    put: operations["upsert_agent_api_v1_agents__aid__put"];
+    put: operations["upsert_agent_agents__aid__put"];
     post?: never;
     /**
      * Delete Agent
      * @description Delete an agent by ID.
      */
-    delete: operations["delete_agent_api_v1_agents__aid__delete"];
+    delete: operations["delete_agent_agents__aid__delete"];
     options?: never;
     head?: never;
     patch?: never;
@@ -100,7 +134,7 @@ export interface paths {
      * Get Raw Agent
      * @description Get an agent by ID (sensitive data is masked).
      */
-    get: operations["get_raw_agent_api_v1_agents__aid__raw_get"];
+    get: operations["get_raw_agent_agents__aid__raw_get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -117,7 +151,7 @@ export interface paths {
       cookie?: never;
     };
     /** Get Agent Status */
-    get: operations["get_agent_status_api_v1_agents__aid__status_get"];
+    get: operations["get_agent_status_agents__aid__status_get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -135,7 +169,7 @@ export interface paths {
     };
     get?: never;
     /** Upsert Agent Via Package */
-    put: operations["upsert_agent_via_package_api_v1_agents_package__aid__put"];
+    put: operations["upsert_agent_via_package_agents_package__aid__put"];
     post?: never;
     delete?: never;
     options?: never;
@@ -153,7 +187,7 @@ export interface paths {
     get?: never;
     put?: never;
     /** Create Agent Via Package */
-    post: operations["create_agent_via_package_api_v1_agents_package_post"];
+    post: operations["create_agent_via_package_agents_package_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -173,7 +207,7 @@ export interface paths {
      * Create Agent
      * @description Create an agent.
      */
-    post: operations["create_agent_api_v1_agents_post"];
+    post: operations["create_agent_agents_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -191,13 +225,13 @@ export interface paths {
      * Get Agent Files
      * @description Get an list of files associated with an agent.
      */
-    get: operations["get_agent_files_api_v1_agents__aid__files_get"];
+    get: operations["get_agent_files_agents__aid__files_get"];
     put?: never;
     /**
      * Upload Agent Files
      * @description Upload files to the given agent.
      */
-    post: operations["upload_agent_files_api_v1_agents__aid__files_post"];
+    post: operations["upload_agent_files_agents__aid__files_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -213,7 +247,7 @@ export interface paths {
     };
     get?: never;
     /** Update Action Server Config */
-    put: operations["update_action_server_config_api_v1_agents__aid__action_server_config_put"];
+    put: operations["update_action_server_config_agents__aid__action_server_config_put"];
     post?: never;
     delete?: never;
     options?: never;
@@ -232,7 +266,7 @@ export interface paths {
      * Get Agent Stats
      * @description return no of threads, messages and files count for the agent
      */
-    get: operations["get_agent_stats_api_v1_agents__aid__metrics_get"];
+    get: operations["get_agent_stats_agents__aid__metrics_get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -254,7 +288,7 @@ export interface paths {
      * Create Run
      * @description Create a run.
      */
-    post: operations["create_run_api_v1_runs_async_invoke_post"];
+    post: operations["create_run_runs_async_invoke_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -269,7 +303,7 @@ export interface paths {
       cookie?: never;
     };
     /** Get Run Status */
-    get: operations["get_run_status_api_v1_runs__rid__status_get"];
+    get: operations["get_run_status_runs__rid__status_get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -291,7 +325,7 @@ export interface paths {
      * Stream Run
      * @description Create a run.
      */
-    post: operations["stream_run_api_v1_runs_stream_post"];
+    post: operations["stream_run_runs_stream_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -311,7 +345,7 @@ export interface paths {
      * Invoke Run
      * @description Create a run.
      */
-    post: operations["invoke_run_api_v1_runs_invoke_post"];
+    post: operations["invoke_run_runs_invoke_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -329,7 +363,7 @@ export interface paths {
      * List Threads
      * @description List all threads for the current user.
      */
-    get: operations["list_threads_api_v1_threads__get"];
+    get: operations["list_threads_threads__get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -349,13 +383,13 @@ export interface paths {
      * Get Thread State
      * @description Get state for a thread.
      */
-    get: operations["get_thread_state_api_v1_threads__tid__state_get"];
+    get: operations["get_thread_state_threads__tid__state_get"];
     put?: never;
     /**
      * Add Thread State
      * @description Add state to a thread.
      */
-    post: operations["add_thread_state_api_v1_threads__tid__state_post"];
+    post: operations["add_thread_state_threads__tid__state_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -373,7 +407,7 @@ export interface paths {
      * Get Thread History
      * @description Get all past states for a thread.
      */
-    get: operations["get_thread_history_api_v1_threads__tid__history_get"];
+    get: operations["get_thread_history_threads__tid__history_get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -393,18 +427,18 @@ export interface paths {
      * Get Thread
      * @description Get a thread by ID.
      */
-    get: operations["get_thread_api_v1_threads__tid__get"];
+    get: operations["get_thread_threads__tid__get"];
     /**
      * Upsert Thread
      * @description Update a thread.
      */
-    put: operations["upsert_thread_api_v1_threads__tid__put"];
+    put: operations["upsert_thread_threads__tid__put"];
     post?: never;
     /**
      * Delete Thread
      * @description Delete a thread by ID.
      */
-    delete: operations["delete_thread_api_v1_threads__tid__delete"];
+    delete: operations["delete_thread_threads__tid__delete"];
     options?: never;
     head?: never;
     patch?: never;
@@ -423,7 +457,7 @@ export interface paths {
      * Create Thread
      * @description Create a thread.
      */
-    post: operations["create_thread_api_v1_threads_post"];
+    post: operations["create_thread_threads_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -438,7 +472,7 @@ export interface paths {
       cookie?: never;
     };
     /** Get File By Ref */
-    get: operations["get_file_by_ref_api_v1_threads__tid__file_by_ref_get"];
+    get: operations["get_file_by_ref_threads__tid__file_by_ref_get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -455,7 +489,7 @@ export interface paths {
       cookie?: never;
     };
     /** Download File By Ref */
-    get: operations["download_file_by_ref_api_v1_threads__tid__files_download__get"];
+    get: operations["download_file_by_ref_threads__tid__files_download__get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -475,7 +509,7 @@ export interface paths {
      * Get Thread Files
      * @description Get a list of files associated with a thread.
      */
-    get: operations["get_thread_files_api_v1_threads__tid__files_get"];
+    get: operations["get_thread_files_threads__tid__files_get"];
     put?: never;
     /**
      * Upload Thread Files
@@ -488,7 +522,7 @@ export interface paths {
      *         background_tasks: The background tasks to run.
      *         embedded: Whether to embed the files. If not given, it will be inferred from the file type.
      */
-    post: operations["upload_thread_files_api_v1_threads__tid__files_post"];
+    post: operations["upload_thread_files_threads__tid__files_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -505,7 +539,7 @@ export interface paths {
     get?: never;
     put?: never;
     /** Request Remote File Upload */
-    post: operations["request_remote_file_upload_api_v1_threads__tid__files_request_upload_post"];
+    post: operations["request_remote_file_upload_threads__tid__files_request_upload_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -522,7 +556,7 @@ export interface paths {
     get?: never;
     put?: never;
     /** Confirm Remote File Upload */
-    post: operations["confirm_remote_file_upload_api_v1_threads__tid__files_confirm_upload_post"];
+    post: operations["confirm_remote_file_upload_threads__tid__files_confirm_upload_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -537,41 +571,7 @@ export interface paths {
       cookie?: never;
     };
     /** Context Stats */
-    get: operations["context_stats_api_v1_threads__tid__context_stats_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/health": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Health */
-    get: operations["health_api_v1_health_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/metrics": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Metrics */
-    get: operations["metrics_api_v1_metrics_get"];
+    get: operations["context_stats_threads__tid__context_stats_get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -1030,13 +1030,13 @@ export interface components {
        */
       embeddings_openai_api_key: string;
     };
-    /** Body_upload_agent_files_api_v1_agents__aid__files_post */
-    Body_upload_agent_files_api_v1_agents__aid__files_post: {
+    /** Body_upload_agent_files_agents__aid__files_post */
+    Body_upload_agent_files_agents__aid__files_post: {
       /** Files */
       files: string[];
     };
-    /** Body_upload_thread_files_api_v1_threads__tid__files_post */
-    Body_upload_thread_files_api_v1_threads__tid__files_post: {
+    /** Body_upload_thread_files_threads__tid__files_post */
+    Body_upload_thread_files_threads__tid__files_post: {
       /** Files */
       files: string[];
     };
@@ -2394,7 +2394,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-  ok_api_v1_ok_get: {
+  ok_ok_get: {
     parameters: {
       query?: never;
       header?: never;
@@ -2414,7 +2414,47 @@ export interface operations {
       };
     };
   };
-  list_agents_api_v1_agents__get: {
+  health_health_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": Record<string, never>;
+        };
+      };
+    };
+  };
+  metrics_metrics_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": Record<string, never>;
+        };
+      };
+    };
+  };
+  list_agents_agents__get: {
     parameters: {
       query?: never;
       header?: never;
@@ -2434,7 +2474,7 @@ export interface operations {
       };
     };
   };
-  list_raw_agents_api_v1_agents_raw_get: {
+  list_raw_agents_agents_raw_get: {
     parameters: {
       query?: never;
       header?: never;
@@ -2454,7 +2494,7 @@ export interface operations {
       };
     };
   };
-  get_agent_api_v1_agents__aid__get: {
+  get_agent_agents__aid__get: {
     parameters: {
       query?: never;
       header?: never;
@@ -2486,7 +2526,7 @@ export interface operations {
       };
     };
   };
-  upsert_agent_api_v1_agents__aid__put: {
+  upsert_agent_agents__aid__put: {
     parameters: {
       query?: never;
       header?: never;
@@ -2522,7 +2562,7 @@ export interface operations {
       };
     };
   };
-  delete_agent_api_v1_agents__aid__delete: {
+  delete_agent_agents__aid__delete: {
     parameters: {
       query?: never;
       header?: never;
@@ -2554,7 +2594,7 @@ export interface operations {
       };
     };
   };
-  get_raw_agent_api_v1_agents__aid__raw_get: {
+  get_raw_agent_agents__aid__raw_get: {
     parameters: {
       query?: never;
       header?: never;
@@ -2586,7 +2626,7 @@ export interface operations {
       };
     };
   };
-  get_agent_status_api_v1_agents__aid__status_get: {
+  get_agent_status_agents__aid__status_get: {
     parameters: {
       query?: never;
       header?: never;
@@ -2618,7 +2658,7 @@ export interface operations {
       };
     };
   };
-  upsert_agent_via_package_api_v1_agents_package__aid__put: {
+  upsert_agent_via_package_agents_package__aid__put: {
     parameters: {
       query?: never;
       header?: never;
@@ -2654,7 +2694,7 @@ export interface operations {
       };
     };
   };
-  create_agent_via_package_api_v1_agents_package_post: {
+  create_agent_via_package_agents_package_post: {
     parameters: {
       query?: never;
       header?: never;
@@ -2687,7 +2727,7 @@ export interface operations {
       };
     };
   };
-  create_agent_api_v1_agents_post: {
+  create_agent_agents_post: {
     parameters: {
       query?: never;
       header?: never;
@@ -2720,7 +2760,7 @@ export interface operations {
       };
     };
   };
-  get_agent_files_api_v1_agents__aid__files_get: {
+  get_agent_files_agents__aid__files_get: {
     parameters: {
       query?: never;
       header?: never;
@@ -2752,7 +2792,7 @@ export interface operations {
       };
     };
   };
-  upload_agent_files_api_v1_agents__aid__files_post: {
+  upload_agent_files_agents__aid__files_post: {
     parameters: {
       query?: never;
       header?: never;
@@ -2764,7 +2804,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "multipart/form-data": components["schemas"]["Body_upload_agent_files_api_v1_agents__aid__files_post"];
+        "multipart/form-data": components["schemas"]["Body_upload_agent_files_agents__aid__files_post"];
       };
     };
     responses: {
@@ -2788,7 +2828,7 @@ export interface operations {
       };
     };
   };
-  update_action_server_config_api_v1_agents__aid__action_server_config_put: {
+  update_action_server_config_agents__aid__action_server_config_put: {
     parameters: {
       query?: never;
       header?: never;
@@ -2824,7 +2864,7 @@ export interface operations {
       };
     };
   };
-  get_agent_stats_api_v1_agents__aid__metrics_get: {
+  get_agent_stats_agents__aid__metrics_get: {
     parameters: {
       query?: never;
       header?: never;
@@ -2856,7 +2896,7 @@ export interface operations {
       };
     };
   };
-  create_run_api_v1_runs_async_invoke_post: {
+  create_run_runs_async_invoke_post: {
     parameters: {
       query?: never;
       header?: never;
@@ -2889,7 +2929,7 @@ export interface operations {
       };
     };
   };
-  get_run_status_api_v1_runs__rid__status_get: {
+  get_run_status_runs__rid__status_get: {
     parameters: {
       query?: never;
       header?: never;
@@ -2920,7 +2960,7 @@ export interface operations {
       };
     };
   };
-  stream_run_api_v1_runs_stream_post: {
+  stream_run_runs_stream_post: {
     parameters: {
       query?: never;
       header?: never;
@@ -2957,7 +2997,7 @@ export interface operations {
       };
     };
   };
-  invoke_run_api_v1_runs_invoke_post: {
+  invoke_run_runs_invoke_post: {
     parameters: {
       query?: never;
       header?: never;
@@ -2990,7 +3030,7 @@ export interface operations {
       };
     };
   };
-  list_threads_api_v1_threads__get: {
+  list_threads_threads__get: {
     parameters: {
       query?: never;
       header?: never;
@@ -3010,7 +3050,7 @@ export interface operations {
       };
     };
   };
-  get_thread_state_api_v1_threads__tid__state_get: {
+  get_thread_state_threads__tid__state_get: {
     parameters: {
       query?: never;
       header?: never;
@@ -3041,7 +3081,7 @@ export interface operations {
       };
     };
   };
-  add_thread_state_api_v1_threads__tid__state_post: {
+  add_thread_state_threads__tid__state_post: {
     parameters: {
       query?: never;
       header?: never;
@@ -3076,7 +3116,7 @@ export interface operations {
       };
     };
   };
-  get_thread_history_api_v1_threads__tid__history_get: {
+  get_thread_history_threads__tid__history_get: {
     parameters: {
       query?: never;
       header?: never;
@@ -3107,7 +3147,7 @@ export interface operations {
       };
     };
   };
-  get_thread_api_v1_threads__tid__get: {
+  get_thread_threads__tid__get: {
     parameters: {
       query?: never;
       header?: never;
@@ -3138,7 +3178,7 @@ export interface operations {
       };
     };
   };
-  upsert_thread_api_v1_threads__tid__put: {
+  upsert_thread_threads__tid__put: {
     parameters: {
       query?: never;
       header?: never;
@@ -3173,7 +3213,7 @@ export interface operations {
       };
     };
   };
-  delete_thread_api_v1_threads__tid__delete: {
+  delete_thread_threads__tid__delete: {
     parameters: {
       query?: never;
       header?: never;
@@ -3204,7 +3244,7 @@ export interface operations {
       };
     };
   };
-  create_thread_api_v1_threads_post: {
+  create_thread_threads_post: {
     parameters: {
       query?: never;
       header?: never;
@@ -3237,7 +3277,7 @@ export interface operations {
       };
     };
   };
-  get_file_by_ref_api_v1_threads__tid__file_by_ref_get: {
+  get_file_by_ref_threads__tid__file_by_ref_get: {
     parameters: {
       query: {
         file_ref: string;
@@ -3270,7 +3310,7 @@ export interface operations {
       };
     };
   };
-  download_file_by_ref_api_v1_threads__tid__files_download__get: {
+  download_file_by_ref_threads__tid__files_download__get: {
     parameters: {
       query: {
         file_ref: string;
@@ -3303,7 +3343,7 @@ export interface operations {
       };
     };
   };
-  get_thread_files_api_v1_threads__tid__files_get: {
+  get_thread_files_threads__tid__files_get: {
     parameters: {
       query?: never;
       header?: never;
@@ -3334,7 +3374,7 @@ export interface operations {
       };
     };
   };
-  upload_thread_files_api_v1_threads__tid__files_post: {
+  upload_thread_files_threads__tid__files_post: {
     parameters: {
       query?: {
         embedded?: boolean | null;
@@ -3347,7 +3387,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "multipart/form-data": components["schemas"]["Body_upload_thread_files_api_v1_threads__tid__files_post"];
+        "multipart/form-data": components["schemas"]["Body_upload_thread_files_threads__tid__files_post"];
       };
     };
     responses: {
@@ -3371,7 +3411,7 @@ export interface operations {
       };
     };
   };
-  request_remote_file_upload_api_v1_threads__tid__files_request_upload_post: {
+  request_remote_file_upload_threads__tid__files_request_upload_post: {
     parameters: {
       query?: never;
       header?: never;
@@ -3406,7 +3446,7 @@ export interface operations {
       };
     };
   };
-  confirm_remote_file_upload_api_v1_threads__tid__files_confirm_upload_post: {
+  confirm_remote_file_upload_threads__tid__files_confirm_upload_post: {
     parameters: {
       query?: never;
       header?: never;
@@ -3441,7 +3481,7 @@ export interface operations {
       };
     };
   };
-  context_stats_api_v1_threads__tid__context_stats_get: {
+  context_stats_threads__tid__context_stats_get: {
     parameters: {
       query?: never;
       header?: never;
@@ -3468,46 +3508,6 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  health_api_v1_health_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": Record<string, never>;
-        };
-      };
-    };
-  };
-  metrics_api_v1_metrics_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": Record<string, never>;
         };
       };
     };
