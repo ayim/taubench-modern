@@ -53,7 +53,6 @@ class _CustomFastAPI(FastAPI):
         self.__custom_openapi_schema: dict | None = None
         super().__init__(
             title=title,
-            lifespan=lifespan,
             version=VERSION,
             default_response_class=ORJSONResponse,  # Use more efficient JSON serialization
             separate_input_output_schemas=False,
@@ -90,7 +89,9 @@ app_v2 = _CustomFastAPI(
 app_v2.include_router(v2_router)
 
 # Main FastAPI app to include both versions
-app = FastAPI()
+app = FastAPI(
+    lifespan=lifespan,
+)
 app.include_router(v1_router)
 app.include_router(v2_router)
 
