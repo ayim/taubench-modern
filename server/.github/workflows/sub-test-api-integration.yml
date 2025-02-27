@@ -46,6 +46,7 @@ jobs:
           git_username: ${{ secrets.GIT_USERNAME }}
           git_token: ${{ secrets.GIT_TOKEN }}
           python_version: ${{ inputs.python_version }}
+          additional_poetry_groups: dev,lint,test
 
       - name: Enable uuid-ossp extension
         run: |
@@ -55,10 +56,9 @@ jobs:
         run: |
           PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -c 'DROP TABLE IF EXISTS langchain_pg_collection CASCADE;'
 
-      - name: Start application server (PostgreSQL)
+      - name: Run API interaction tests (PostgreSQL)
         run: |
-          poetry run agent-server --host localhost --port 8000 > agent-server-output.log 2>&1 &
-          sleep 20  # Give the server some time to start
+          poetry run python -m pytest tests/integration_tests
         env:
           S4_AGENT_SERVER_DB_TYPE: postgres
           SCARF_NO_ANALYTICS: "true"
@@ -69,26 +69,12 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
 
-      - name: Run API interaction tests (PostgreSQL)
-        run: |
-          poetry install --with dev,lint,test
-          poetry run python -m tests.integration_tests.test_api_interaction
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-
-      - name: Upload agent server log file
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: server-logs-postgres
-          path: ./*.log
-
       - name: Upload tests log directory
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: server-logs-postgres-logsdir
-          path: ./tests/integration_tests/logs
+          path: ./logs
 
   test-sqlite:
     strategy:
@@ -107,21 +93,20 @@ jobs:
           git_username: ${{ secrets.GIT_USERNAME }}
           git_token: ${{ secrets.GIT_TOKEN }}
           python_version: ${{ inputs.python_version }}
+          additional_poetry_groups: dev,lint,test
 
       - name: Run API interaction tests (SQLite)
         shell: bash
         run: |
-          poetry install --with dev,lint,test
-          poetry run python -m tests.integration_tests.test_api_interaction
+          poetry run python -m pytest tests/integration_tests
         env:
           S4_AGENT_SERVER_DB_TYPE: sqlite
           SCARF_NO_ANALYTICS: "true"
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          INTEGRATION_TEST_START_SERVER: "true"
 
       - name: Upload tests log directory
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: server-logs-sqlite-${{ matrix.os }}
-          path: ./tests/integration_tests/logs
+          path: ./logs

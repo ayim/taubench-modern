@@ -5907,7 +5907,7 @@ jeepney = ">=0.6"
 
 [[package]]
 name = "sema4ai-agent-server-orchestrator"
-version = "0.0.1-alpha4"
+version = "0.0.1-alpha5"
 description = ""
 optional = false
 python-versions = "^3.11.0,<3.12"
@@ -5923,8 +5923,8 @@ sema4ai-common = "0.0.3"
 [package.source]
 type = "git"
 url = "https://github.com/Sema4AI/agent-server-orchestrator.git"
-reference = "v0.0.1-alpha4"
-resolved_reference = "2a0de755dba6ebd3dea1c1c4d98006354b2bee2a"
+reference = "v0.0.1-alpha5"
+resolved_reference = "12b99586dafc2b41e36cd2297c32603e24943ec2"
 
 [[package]]
 name = "sema4ai-common"
@@ -7587,4 +7587,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11.0,<3.12"
-content-hash = "e871efe01c05a13daff5ff2dc7ba4d98caedc469ab7b498c00b63594610daf86"
+content-hash = "ff1a996ee46b99353873100092d3adf243efbd04d2328e000c46ca8852d3b0b3"

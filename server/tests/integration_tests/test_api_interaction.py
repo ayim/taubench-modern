@@ -267,7 +267,5 @@ def test_api_interaction(
 if __name__ == "__main__":
     import pytest
 
-    # Can be set to start the agent server in the test
-    # os.environ["INTEGRATION_TEST_START_SERVER"] = "true"
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     sys.exit(pytest.main([]))
