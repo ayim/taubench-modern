@@ -34,7 +34,7 @@ def start_agent_server(
 
 @pytest.fixture
 def base_url_agent_server(tmpdir, logs_dir, files_location):
-    start_server = os.getenv("INTEGRATION_TEST_START_SERVER", "true")
+    start_server = os.getenv("INTEGRATION_TEST_START_SERVER", "false")
     if start_server == "true":
         with start_agent_server(tmpdir, logs_dir) as url:
             yield url

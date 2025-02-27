@@ -68,6 +68,7 @@ jobs:
           POSTGRES_DB: postgres
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
+          INTEGRATION_TEST_START_SERVER: "true"
 
       - name: Upload tests log directory
         if: failure()
@@ -103,6 +104,7 @@ jobs:
           S4_AGENT_SERVER_DB_TYPE: sqlite
           SCARF_NO_ANALYTICS: "true"
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          INTEGRATION_TEST_START_SERVER: "true"
 
       - name: Upload tests log directory
         if: failure()
