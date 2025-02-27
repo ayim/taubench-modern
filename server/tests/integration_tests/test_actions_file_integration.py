@@ -1,7 +1,9 @@
 import json
 import urllib
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
+
+import pytest
 
 if TYPE_CHECKING:
     from agent_server_orchestrator.bootstrap_action_server import ActionServerProcess
@@ -18,20 +20,58 @@ def _raise_for_status(message: str, response, valid_statuses: tuple[int, ...] = 
         )
 
 
+@pytest.fixture
+def files_dummy_server(tmpdir):
+    from tests.integration_tests.files_dummy_server import FilesDummyServer
+
+    ret = FilesDummyServer(Path(tmpdir) / "files")
+    ret.start()
+    yield ret
+    ret.stop()
+
+
+@pytest.mark.parametrize(
+    "file_manager_type",
+    (
+        "cloud",
+        "local",
+    ),
+)
 def test_api_interaction_expected_from_actions(
-    openai_api_key: str,
-    base_url_agent_server: str,
+    tmpdir, logs_dir, file_manager_type: Literal["cloud", "local"], files_dummy_server
 ):
     """
     This test checks that the API in the agent server matches what the
     actions call directly.
     """
+    from tests.integration_tests.integration_fixtures import start_agent_server
+
+    env = {"S4_AGENT_SERVER_FILE_MANAGER_TYPE": file_manager_type}
+
+    # Note that in the local use-case it uses datadir/uploads.
+    if file_manager_type == "cloud":
+        env["FILE_MANAGEMENT_API_URL"] = (
+            f"http://localhost:{files_dummy_server.get_port()}"
+        )
+
+    with start_agent_server(tmpdir, logs_dir, env) as url:
+        check_files_integration(url, file_manager_type)
+
+
+def check_files_integration(
+    base_url_agent_server: str, file_manager_type: Literal["cloud", "local"]
+):
     from agent_server_orchestrator.agent_server_client import AgentServerClient
+    from agent_server_types.constants import NOT_CONFIGURED
 
     base_url_api = f"{base_url_agent_server}/api/v1"
+
+    # As we're not talking to the agent, set it as not configured and don't
+    # wait for it to be ready.
     with AgentServerClient(base_url_agent_server) as agent_client:
         agent_id = agent_client.create_agent_and_return_agent_id(
-            openai_api_key,
+            NOT_CONFIGURED,
+            wait_for_ready=False,
         )
         thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
         import sema4ai_http
@@ -61,13 +101,16 @@ def test_api_interaction_expected_from_actions(
         file_ref = response_data["file_ref"]
 
         parsed_url = urllib.parse.urlparse(file_url)
-        assert parsed_url.scheme == "file"
+        if file_manager_type == "local":
+            assert parsed_url.scheme == "file"
+            from sema4ai_agent_server.file_manager.local import url_to_fs_path
 
-        from sema4ai_agent_server.file_manager.local import url_to_fs_path
-
-        p = Path(url_to_fs_path(file_url))
-        p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(content)
+            p = Path(url_to_fs_path(file_url))
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(content)
+        else:
+            assert parsed_url.scheme == "http"
+            # Don't really upload in this case (the server isn't answering)
 
         # Send the upload complete notification
         url = f"{base_url_api}/threads/{thread_id}/files/confirm-upload"
@@ -101,9 +144,12 @@ def test_api_interaction_expected_from_actions(
             )
 
         parsed_url = urllib.parse.urlparse(file_url)
-        assert parsed_url.scheme == "file"
-        p = Path(url_to_fs_path(file_url))
-        assert p.read_text() == content
+        if file_manager_type == "local":
+            assert parsed_url.scheme == "file"
+            p = Path(url_to_fs_path(file_url))
+            assert p.read_text() == content
+        else:
+            assert parsed_url.scheme == "http"
 
         # Ok, we're able to upload and retrieve a file.
         # Let's list the files in the thread and see if it's there.
@@ -190,9 +236,9 @@ You are an agent just to call other tools actions as requested.
         result.print_info()
 
         file_refs = agent_client.list_files(thread_id)
-        assert "full-action-contents.json" in file_refs, (
-            f"Did not find the file full-action-contents.json in the thread files list: {file_refs}"
-        )
+        assert (
+            "full-action-contents.json" in file_refs
+        ), f"Did not find the file full-action-contents.json in the thread files list: {file_refs}"
 
         result_json_txt = agent_client.get_file_by_ref(
             thread_id, "full-action-contents.json"
@@ -202,9 +248,9 @@ You are an agent just to call other tools actions as requested.
         except Exception:
             raise RuntimeError(f"Failed to parse result_json: {result_json_txt}")
 
-        assert result_json_dict.get("runbook"), (
-            f"Found result_json_dict: {json.dumps(result_json_dict, indent=2)}"
-        )
+        assert result_json_dict.get(
+            "runbook"
+        ), f"Found result_json_dict: {json.dumps(result_json_dict, indent=2)}"
 
         # Change it and make sure we can get the new version
         result = agent_client.send_message_to_agent_thread_collect_all(
@@ -216,6 +262,6 @@ You are an agent just to call other tools actions as requested.
         result_json_txt = agent_client.get_file_by_ref(
             thread_id, "full-action-contents.json"
         )
-        assert "updated version" in result_json_txt, (
-            f"Did not find the updated version in the file: {result_json_txt}"
-        )
+        assert (
+            "updated version" in result_json_txt
+        ), f"Did not find the updated version in the file: {result_json_txt}"
