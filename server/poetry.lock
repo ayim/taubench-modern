@@ -2,7 +2,7 @@
 
 [[package]]
 name = "agent-architecture"
-version = "1.2.1-alpha.3"
+version = "1.2.1-alpha.4"
 description = "Core cognitive framework architecture for agents."
 optional = false
 python-versions = "^3.11.0,<3.12"
@@ -22,12 +22,12 @@ structlog = "^24.4.0"
 [package.source]
 type = "git"
 url = "https://github.com/Sema4AI/agent-architecture.git"
-reference = "v1.2.1-alpha.3"
-resolved_reference = "4b1f9da05a01bb3a2bb9b11c798882393cefdf73"
+reference = "v1.2.1-alpha.4"
+resolved_reference = "de4417d2d606029a67f506bbe4086b4da1a40031"
 
 [[package]]
 name = "agent-architecture-claude-tools"
-version = "1.1.0-alpha.4"
+version = "1.1.0-alpha.6"
 description = "Tool using cognitive architecture for agents supporting Anthropic Claude LLMs."
 optional = false
 python-versions = "^3.11.0,<3.12"
@@ -36,18 +36,18 @@ files = []
 develop = false
 
 [package.dependencies]
-agent-architecture = {git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.2.1-alpha.3"}
+agent-architecture = {git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.2.1-alpha.4"}
 agent-server-types = {git = "https://github.com/Sema4AI/agent-server-types.git", tag = "v1.2.0-alpha.3"}
 
 [package.source]
 type = "git"
 url = "https://github.com/Sema4AI/agent-architecture-claude-tools.git"
-reference = "v1.1.0-alpha.4"
-resolved_reference = "9973ccd21d983e391ccc08ec2de9addc6fbb0a8e"
+reference = "v1.1.0-alpha.6"
+resolved_reference = "c75b0e1cf1f999cf99514e343f6a957f8c326a79"
 
 [[package]]
 name = "agent-architecture-default"
-version = "1.1.0-alpha.2"
+version = "1.1.0-alpha.3"
 description = "Tool using cognitive architecture for agents supporting OpenAI LLMs."
 optional = false
 python-versions = "^3.11.0,<3.12"
@@ -56,18 +56,18 @@ files = []
 develop = false
 
 [package.dependencies]
-agent-architecture = {git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.2.1-alpha.3"}
+agent-architecture = {git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.2.1-alpha.4"}
 agent-server-types = {git = "https://github.com/Sema4AI/agent-server-types.git", tag = "v1.2.0-alpha.3"}
 
 [package.source]
 type = "git"
 url = "https://github.com/Sema4AI/agent-architecture-default.git"
-reference = "v1.1.0-alpha.2"
-resolved_reference = "b667e9efbf365cf146f4d5168d51208d96eb8e4a"
+reference = "v1.1.0-alpha.3"
+resolved_reference = "2cb81d3cda72255cf788616c997a45445c7e72a6"
 
 [[package]]
 name = "agent-architecture-openai-plan-execute"
-version = "1.1.0-alpha.2"
+version = "1.1.0-alpha.3"
 description = "Plan execute cognitive architecture for agents with support for OpenAI LLMs."
 optional = false
 python-versions = "^3.11.0,<3.12"
@@ -76,14 +76,14 @@ files = []
 develop = false
 
 [package.dependencies]
-agent-architecture = {git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.2.1-alpha.3"}
+agent-architecture = {git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.2.1-alpha.4"}
 agent-server-types = {git = "https://github.com/Sema4AI/agent-server-types.git", tag = "v1.2.0-alpha.3"}
 
 [package.source]
 type = "git"
 url = "https://github.com/Sema4AI/agent-architecture-openai-plan-execute.git"
-reference = "v1.1.0-alpha.2"
-resolved_reference = "583c39508ad259c95802ff1c56ccbf51501d353f"
+reference = "v1.1.0-alpha.3"
+resolved_reference = "23cc464a19cf3e2fe760a37acdba2ab8689cfdab"
 
 [[package]]
 name = "agent-server-types"
@@ -7587,4 +7587,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11.0,<3.12"
-content-hash = "ff1a996ee46b99353873100092d3adf243efbd04d2328e000c46ca8852d3b0b3"
+content-hash = "cf204c0de9faeafecdd3f2bea414937475b0329468ece3dc068ce4c0163fa75d"
