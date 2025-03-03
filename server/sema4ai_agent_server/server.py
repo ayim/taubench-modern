@@ -17,7 +17,7 @@ from sema4ai_agent_server.otel import setup_otel
 from sema4ai_agent_server.storage.option import get_storage
 
 # Do not change the version here. It is managed by versionbump (see versionbump.yaml)
-VERSION = "1.1.4-alpha.81"
+VERSION = "1.1.4-alpha.82"
 
 # TODO: Setting up global things (such as logging and OTEL here) globally in the module import
 # is bad practice (because just importing it from some other place will mess up any logging
