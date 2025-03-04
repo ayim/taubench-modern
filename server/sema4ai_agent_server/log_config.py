@@ -6,7 +6,12 @@ import structlog
 import uvicorn
 from pythonjsonlogger import jsonlogger
 
-from sema4ai_agent_server.constants import LOG_FILE_PATH, LOG_LEVEL
+from sema4ai_agent_server.constants import (
+    LOG_FILE_PATH,
+    LOG_LEVEL,
+    S4_AGENT_SERVER_LOG_FILE_SIZE,
+    S4_AGENT_SERVER_LOG_MAX_BACKUP_FILES,
+)
 
 
 def setup_logging():
@@ -28,7 +33,11 @@ def setup_logging():
     default_handler.setFormatter(default_formatter)
     access_handler = logging.StreamHandler(sys.stdout)
     access_handler.setFormatter(access_formatter)
-    file_handler = RotatingFileHandler(LOG_FILE_PATH, maxBytes=1048576, backupCount=3)
+    file_handler = RotatingFileHandler(
+        LOG_FILE_PATH,
+        maxBytes=S4_AGENT_SERVER_LOG_FILE_SIZE,
+        backupCount=S4_AGENT_SERVER_LOG_MAX_BACKUP_FILES,
+    )
     file_handler.setFormatter(json_formatter)
 
     root_logger = logging.getLogger()
