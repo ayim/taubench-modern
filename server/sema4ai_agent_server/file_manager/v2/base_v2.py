@@ -9,7 +9,6 @@ from agent_server_types_v2.agent import Agent
 from agent_server_types_v2.files import RemoteFileUploadData, UploadedFile
 from agent_server_types_v2.thread import Thread
 from sema4ai_agent_server.schema import UploadFileRequest
-from sema4ai_agent_server.storage.option import get_storage
 
 logger = structlog.get_logger(__name__)
 
@@ -34,7 +33,7 @@ class BaseFileManagerV2(ABC):
             raise InvalidFileUploadError("Files list cannot be empty")
 
         # Use existing validation method
-        self._validate_files_pre_upload(files)
+        self._validate_files_pre_upload([f.file.filename for f in files])
 
         return await self._upload_files(files, owner, user_id)
 
@@ -97,7 +96,7 @@ class BaseFileManagerV2(ABC):
     ) -> UploadedFile:
         pass
 
-    def _validate_files_pre_upload(self, files: list[UploadFileRequest]) -> None:
+    def _validate_files_pre_upload(self, file_names: list[str]) -> None:
         # https://stackoverflow.com/questions/1976007/what-characters-are-forbidden-in-windows-and-linux-directory-names/31976060#31976060
         forbidden_unix_characters = {"/"}
         forbidden_windows_characters = {"<", ">", ":", '"', "/", "\\", "|", "?", "*"}
@@ -127,53 +126,31 @@ class BaseFileManagerV2(ABC):
             "LPT9",
         }
 
-        file_names = [f.file.filename for f in files]
         if len(file_names) != len(set(file_names)):
             raise InvalidFileUploadError("File names must be unique")
 
-        for f in files:
-            filename = f.file.filename or ""
+        for filename in file_names:
             file_base, _ = os.path.splitext(filename)
             if (
                 filename == ""
-                or filename in reserved_windows_file_names
-                or file_base in reserved_windows_file_names
+                or filename.upper() in reserved_windows_file_names
+                or file_base.upper() in reserved_windows_file_names
                 or filename in reserved_unix_file_names
             ):
                 raise InvalidFileUploadError(f"Invalid file name: {filename}")
 
-            forbidden_chars = forbidden_unix_characters | forbidden_windows_characters
-            if any(char in filename for char in forbidden_chars):
-                raise InvalidFileUploadError(f"Invalid file name: {filename}")
+            # Check for invalid characters
+            invalid_chars = '<>:"/\\|?*'
+            if any(char in filename for char in invalid_chars):
+                raise InvalidFileUploadError("Invalid file name")
 
+    @abstractmethod
     async def generate_unique_file_ref(
         self,
         owner: Agent | Thread,
         file_name: str,
     ) -> str:
-        from sema4ai_agent_server.storage.v2.errors_v2 import UniqueFileRefError
-
-        uploaded_file = await get_storage().get_file(owner, file_name)
-        if uploaded_file:
-            # This file already exists, so, double check if it's already embedded.
-            # If it is, we can't override it!
-            if uploaded_file.embedded:
-                raise UniqueFileRefError(file_name)
-
-        # Just return the file name as it is (which may override an existing file)
-
-        # Note: there is code in the repository to generate a unique file ref
-        # with a rule such as `data (1).csv`, `data (2).csv`, etc.
-
-        # This was changed because the usage of always creating a new file ref instead
-        # of overriding files with the same name made it more difficult to manage
-        # in actions (as actions are stateless, referencing a file by the same name is
-        # easy, but keeping a track of which is the new name to reference if a file
-        # is updated is not that straightforward).
-        # In the future maybe we could have some other versioning scheme to access old
-        # files, but for now, just overriding is simpler and easier to manage.
-
-        return file_name
+        pass
 
     # TODO: introduce this code once embedding support is added.
     # This code will be used / refactored once embedding support is added.

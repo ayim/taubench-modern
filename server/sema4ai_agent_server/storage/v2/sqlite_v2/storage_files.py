@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from sqlite3 import IntegrityError
+from sqlite3 import SQLITE_CONSTRAINT_UNIQUE, IntegrityError
 
 from structlog import get_logger
 
@@ -118,7 +118,7 @@ class SQLiteStorageFilesMixin(CommonMixin):
             self._logger.debug(f"Found {len(rows)} files for thread {thread_id}")
             if not all(row["has_access"] for row in rows):
                 raise UserPermissionError(
-                    "User does not have access to one or more files"
+                    "User does not have access to one or more files",
                 )
             # remove has_access from the rows
             rows = [
@@ -320,11 +320,18 @@ class SQLiteStorageFilesMixin(CommonMixin):
                 )
 
             except IntegrityError as e:
-                self._logger.exception("File already exists", file_ref=file_ref)
-                raise UniqueFileRefError(
-                    file_ref,
-                    detail=f"A file with the given file_ref {file_ref} already exists",
-                ) from e
+                if e.sqlite_errorcode == SQLITE_CONSTRAINT_UNIQUE:
+                    self._logger.exception("File already exists", file_ref=file_ref)
+                    raise UniqueFileRefError(
+                        file_ref,
+                        detail=f"A file with the given file_ref {file_ref} already exists",
+                    ) from e
+                else:
+                    self._logger.exception(
+                        "Database integrity error",
+                        error=str(e),
+                    )
+                    raise
         self._logger.debug("File owner table modified", file_id=file_id)
         return UploadedFile.model_validate(file_dict)
 

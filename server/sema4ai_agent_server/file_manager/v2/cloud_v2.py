@@ -72,7 +72,6 @@ class CloudFileManagerV2(BaseFileManagerV2):
         user_id: str,
     ) -> list[UploadedFile]:
         """Uploads all files or none to ensure consistency."""
-        self._validate_files_pre_upload(files)
         uploaded_files: list[UploadedFile] = []
         for f in files:
             file_id = str(uuid4())
@@ -97,7 +96,7 @@ class CloudFileManagerV2(BaseFileManagerV2):
             except Exception as e:
                 logger.exception(f"Failed to upload file {f.file.filename}")
                 await self._revert_uploads(
-                    [file_id] + [file.file_id for file in uploaded_files],
+                    [file.file_id for file in uploaded_files],
                     owner,
                 )
                 raise e
@@ -118,10 +117,26 @@ class CloudFileManagerV2(BaseFileManagerV2):
                 response=response.text,
             )
 
-    async def _revert_uploads(self, file_ids: list[str], owner: Agent | Thread) -> None:
+    async def _revert_uploads(
+        self,
+        file_ids: list[str],
+        owner: Agent | Thread,
+    ) -> None:
+        """Revert uploads by deleting files from both storage and cloud.
+
+        Args:
+            file_ids: List of file IDs to delete
+            owner: The owner (Agent or Thread) of the files
+        """
         for file_id in file_ids:
-            await self._delete_stored_file(file_id)
-            await get_storage_v2().delete_file_v2(owner, file_id, owner.user_id)
+            try:
+                # First try to delete from storage to validate existence
+                await get_storage_v2().delete_file_v2(owner, file_id, owner.user_id)
+                # Only delete from cloud if it exists in storage
+                await self._delete_stored_file(file_id)
+            except Exception as e:
+                # Log but continue with other files
+                logger.warning(f"Failed to revert upload for file {file_id}: {e}")
 
     def _get_file_path_expiration(self) -> datetime:
         return datetime.now(UTC) + timedelta(seconds=self.FILE_PATH_EXPIRES_IN)
@@ -194,6 +209,7 @@ class CloudFileManagerV2(BaseFileManagerV2):
         file_name: str,
     ) -> RemoteFileUploadData:
         file_id = str(uuid4())
+        self._validate_files_pre_upload([file_name])
         file_ref = await self.generate_unique_file_ref(thread, file_name)
         presigned_post = self._get_presigned_post(file_id)
         return RemoteFileUploadData(
@@ -214,8 +230,8 @@ class CloudFileManagerV2(BaseFileManagerV2):
             file_path=None,
             file_ref=file_ref,
             file_hash=MISSING_FILE_HASH,
-            file_size=0,
-            content_type=None,
+            file_size_raw=0,
+            mime_type=None,
             user_id=thread.user_id,
             embedded=False,
             embedding_status=None,
@@ -223,3 +239,36 @@ class CloudFileManagerV2(BaseFileManagerV2):
             file_path_expiration=datetime.now(UTC),
         )
         return file
+
+    async def generate_unique_file_ref(
+        self,
+        owner: Agent | Thread,
+        file_name: str,
+    ) -> str:
+        from sema4ai_agent_server.storage.v2.errors_v2 import UniqueFileRefError
+
+        uploaded_file = await get_storage_v2().get_file_by_ref_v2(
+            owner,
+            file_name,
+            owner.user_id,
+        )
+        if uploaded_file:
+            # This file already exists, so, double check if it's already embedded.
+            # If it is, we can't override it!
+            if uploaded_file.embedded:
+                raise UniqueFileRefError(file_name)
+
+        # Just return the file name as it is (which may override an existing file)
+
+        # Note: there is code in the repository to generate a unique file ref
+        # with a rule such as `data (1).csv`, `data (2).csv`, etc.
+
+        # This was changed because the usage of always creating a new file ref instead
+        # of overriding files with the same name made it more difficult to manage
+        # in actions (as actions are stateless, referencing a file by the same name is
+        # easy, but keeping a track of which is the new name to reference if a file
+        # is updated is not that straightforward).
+        # In the future maybe we could have some other versioning scheme to access old
+        # files, but for now, just overriding is simpler and easier to manage.
+
+        return file_name

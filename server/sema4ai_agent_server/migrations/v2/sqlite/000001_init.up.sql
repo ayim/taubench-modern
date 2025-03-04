@@ -234,7 +234,7 @@ CREATE TABLE v2_file_owner
 (
     file_id TEXT PRIMARY KEY,
     file_ref TEXT,
-    file_path TEXT NOT NULL,
+    file_path TEXT,
     file_hash TEXT,
     file_size_raw INTEGER,
     -- Added: Raw file size in bytes

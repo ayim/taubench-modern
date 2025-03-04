@@ -4,7 +4,6 @@ from agent_server_types_v2.kernel_interfaces import (
     EventsInterface,
     FilesInterface,
     MemoryInterface,
-    ModelsInterface,
     PromptsInterface,
     RunbookInterface,
     StorageInterface,
@@ -17,7 +16,6 @@ from agent_server_types_v2.user import User
 from sema4ai_agent_server.kernel.events import AgentServerEventsInterface
 from sema4ai_agent_server.kernel.files import AgentServerFilesInterface
 from sema4ai_agent_server.kernel.memory import AgentServerMemoryInterface
-from sema4ai_agent_server.kernel.models import AgentServerModelsInterface
 from sema4ai_agent_server.kernel.prompts import AgentServerPromptsInterface
 from sema4ai_agent_server.kernel.runbook import AgentServerRunbookInterface
 from sema4ai_agent_server.kernel.storage import AgentServerStorageInterface
@@ -36,7 +34,6 @@ class AgentServerKernel(Kernel):
         self._incoming_events = AgentServerEventsInterface()
         self._files = AgentServerFilesInterface()
         self._memory = AgentServerMemoryInterface()
-        self._models = AgentServerModelsInterface()
         self._prompts = AgentServerPromptsInterface()
         self._runbook = AgentServerRunbookInterface()
         self._storage = AgentServerStorageInterface()
@@ -85,10 +82,6 @@ class AgentServerKernel(Kernel):
     @property
     def memory(self) -> MemoryInterface:
         return self._memory
-    
-    @property
-    def models(self) -> ModelsInterface:
-        return self._models
     
     @property
     def prompts(self) -> PromptsInterface:

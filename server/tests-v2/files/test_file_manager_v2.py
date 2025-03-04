@@ -596,6 +596,139 @@ class TestFileManager:
             )
             assert results[0].mime_type == expected_mime
 
+    async def test_request_remote_file_upload(
+        self,
+        mock_get_storage_cloud,
+        mock_get_storage_local,
+        file_manager: BaseFileManagerV2,
+        sample_thread: Thread,
+        sample_agent: Agent,
+        setup_storage: SQLiteStorageV2 | PostgresStorageV2,
+    ):
+        """Test requesting remote file upload credentials."""
+        mock_get_storage_cloud.return_value = setup_storage
+        mock_get_storage_local.return_value = setup_storage
+
+        # Mock _build_file_url for LocalFileManagerV2
+        if isinstance(file_manager, LocalFileManagerV2):
+            file_manager._build_file_url = MagicMock(return_value="file:///test/path")
+
+        result = await file_manager.request_remote_file_upload(
+            thread=sample_thread,
+            file_name="test.txt",
+        )
+
+        if isinstance(file_manager, CloudFileManagerV2):
+            assert result.url == "https://example.com/upload"
+            assert result.form_data == {"key": "value"}
+        else:  # LocalFileManagerV2
+            assert result.url == "file:///test/path"
+            assert result.form_data == {}
+
+        assert result.file_ref == "test.txt"
+        assert result.file_id  # Should be a UUID
+
+    async def test_confirm_remote_file_upload(
+        self,
+        mock_get_storage_cloud,
+        mock_get_storage_local,
+        file_manager: BaseFileManagerV2,
+        sample_thread: Thread,
+        setup_storage: SQLiteStorageV2 | PostgresStorageV2,
+    ):
+        """Test confirming a remote file upload."""
+        mock_get_storage_cloud.return_value = setup_storage
+        mock_get_storage_local.return_value = setup_storage
+
+        # Clean up any existing files for this thread first
+        try:
+            await file_manager.delete_thread_files(
+                thread_id=sample_thread.thread_id,
+                user_id=sample_thread.user_id,
+            )
+        except Exception:
+            pass  # Ignore errors if no files exist
+
+        # Create a unique filename based on the storage and file manager type
+        storage_type = (
+            "postgres" if isinstance(setup_storage, PostgresStorageV2) else "sqlite"
+        )
+        manager_type = (
+            "cloud" if isinstance(file_manager, CloudFileManagerV2) else "local"
+        )
+        unique_filename = (
+            f"test_remote_file_{storage_type}_{manager_type}_{uuid4()}.txt"
+        )
+
+        # First request the upload
+        request_result = await file_manager.request_remote_file_upload(
+            thread=sample_thread,
+            file_name=unique_filename,
+        )
+
+        # Mock _build_file_url for LocalFileManagerV2
+        if isinstance(file_manager, LocalFileManagerV2):
+            file_manager._build_file_url = MagicMock(return_value="file:///test/path")
+
+        # Then confirm it
+        file = await file_manager.confirm_remote_file_upload(
+            thread=sample_thread,
+            file_ref=request_result.file_ref,
+            file_id=request_result.file_id,
+        )
+
+        # Verify the file record was created
+        assert file.file_id == request_result.file_id
+        assert file.file_ref == request_result.file_ref
+        assert file.thread_id == sample_thread.thread_id
+        assert file.user_id == sample_thread.user_id
+
+        # For cloud implementation, file_path should be None
+        if isinstance(file_manager, CloudFileManagerV2):
+            assert file.file_path is None
+
+        # Verify it's in storage
+        stored_file = await setup_storage.get_file_by_id_v2(
+            file_id=request_result.file_id,
+            user_id=sample_thread.user_id,
+        )
+        assert stored_file is not None
+        assert stored_file.file_id == request_result.file_id
+
+    async def test_request_remote_file_upload_invalid_filename(
+        self,
+        mock_get_storage_cloud,
+        mock_get_storage_local,
+        file_manager: BaseFileManagerV2,
+        sample_thread: Thread,
+        setup_storage: SQLiteStorageV2,
+    ):
+        """Test requesting remote file upload with invalid filename."""
+        mock_get_storage_cloud.return_value = setup_storage
+        mock_get_storage_local.return_value = setup_storage
+
+        # Reserved Windows names
+        reserved_names = ["CON", "PRN", "AUX", "NUL", "COM1", "LPT1", ".", "..", ""]
+        # Invalid characters
+        invalid_chars = ["<", ">", ":", '"', "/", "\\", "|", "?", "*"]
+
+        invalid_filenames = [
+            *reserved_names,  # Add all reserved Windows names
+            *[
+                f"test{char}file.txt" for char in invalid_chars
+            ],  # Add all invalid character combinations
+            "../file.txt",  # Path traversal attempt
+            "folder/../file.txt",  # Another path traversal attempt
+            "",  # Empty filename
+        ]
+
+        for invalid_filename in invalid_filenames:
+            with pytest.raises(InvalidFileUploadError, match="Invalid file name"):
+                await file_manager.request_remote_file_upload(
+                    thread=sample_thread,
+                    file_name=invalid_filename,
+                )
+
 
 if __name__ == "__main__":
     pytest.main()

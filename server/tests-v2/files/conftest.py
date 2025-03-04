@@ -6,6 +6,16 @@ import pytest
 from tests.integration_tests.bootstrap_agent_server import AgentServerProcess
 
 
+@pytest.fixture(scope="session", autouse=True)
+def load_env():
+    """Ensure environment variables are loaded."""
+    try:
+        from dotenv import load_dotenv
+        load_dotenv()
+    except ImportError:
+        pass
+
+
 @pytest.fixture
 def create_sample_file(tmpdir):
     def _do_create():

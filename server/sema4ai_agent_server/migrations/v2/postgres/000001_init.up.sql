@@ -248,10 +248,10 @@ CREATE INDEX idx_scoped_storage_scope_type_v2
 CREATE TABLE v2."file_owner" (
     file_id             TEXT NOT NULL,
     file_ref            TEXT,
-    file_path           TEXT NOT NULL,
+    file_path           TEXT,
     file_hash           TEXT,
     file_size_raw       BIGINT NOT NULL,
-    mime_type           TEXT NOT NULL,
+    mime_type           TEXT,
     user_id             UUID NOT NULL,
     embedded            BOOLEAN NOT NULL DEFAULT FALSE,
     agent_id            UUID,
