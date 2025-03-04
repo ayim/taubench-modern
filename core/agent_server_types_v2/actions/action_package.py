@@ -8,35 +8,53 @@ from agent_server_types_v2.utils import SecretString
 class ActionPackage:
     """Action package definition."""
 
-    name: str = field(metadata={"description": "The name of the action package."})
+    name: str = field(
+        metadata={
+            "description": "The name of the action package.",
+        },
+    )
     """The name of the action package."""
 
-    organization: str = field(metadata={"description": "The organization of the action package."})
+    organization: str = field(
+        metadata={
+            "description": "The organization of the action package.",
+        },
+    )
     """The organization of the action package."""
 
-    version: str = field(metadata={"description": "The version of the action package."})
+    version: str = field(
+        metadata={
+            "description": "The version of the action package.",
+        },
+    )
     """The version of the action package."""
 
     url: str | None = field(
-        metadata={"description": "URL of the action server that hosts the action package."},
+        metadata={
+            "description": "URL of the action server that hosts the action package.",
+        },
         default=None,
     )
     """URL of the action server that hosts the action package."""
 
     api_key: SecretString | None = field(
-        metadata={"description": "API Key of the action server that hosts the action package."},
+        metadata={
+            "description": "API Key of the action server that"
+                " hosts the action package.",
+        },
         default=None,
     )
     """API Key of the action server that hosts the action package."""
 
     allowed_actions: list[str] = field(
         metadata={
-            "description": "Actions to enable in the action server that hosts the action package."
-            "An empty list implies all actions are enabled.",
+            "description": "Actions to enable in the action server that"
+                " hosts the action package. An empty list"
+                " implies all actions are enabled.",
         },
         default_factory=list,
     )
-    """Actions to enable in the action server that hosts the action package. 
+    """Actions to enable in the action server that hosts the action package.
     An empty list implies all actions are enabled."""
 
     def __post_init__(self):
@@ -52,22 +70,30 @@ class ActionPackage:
             organization=self.organization,
             version=self.version,
             url=self.url,
-            api_key=SecretString(self.api_key.get_secret_value()) if self.api_key is not None else None,
+            api_key=(
+                SecretString(self.api_key.get_secret_value())
+                if self.api_key is not None
+                else None
+            ),
             allowed_actions=self.allowed_actions,
         )
 
     def to_json_dict(self) -> dict:
-        """Serializes the action package to a dictionary. Useful for JSON serialization."""
+        """Serializes the action package to a dictionary.
+        Useful for JSON serialization."""
         return {
             "name": self.name,
             "organization": self.organization,
             "version": self.version,
             "url": self.url,
-            "api_key": self.api_key.get_secret_value() if self.api_key is not None else None,
+            "api_key": (
+                self.api_key.get_secret_value() if self.api_key is not None else None
+            ),
             "allowed_actions": self.allowed_actions,
         }
 
     @classmethod
     def from_dict(cls, data: dict) -> "ActionPackage":
-        """Deserializes the action package from a dictionary. Useful for JSON deserialization."""
+        """Deserializes the action package from a dictionary.
+        Useful for JSON deserialization."""
         return cls(**data)

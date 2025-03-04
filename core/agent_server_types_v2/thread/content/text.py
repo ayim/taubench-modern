@@ -102,7 +102,8 @@ class ThreadTextContent(ThreadMessageContent):
         return self.text
 
     def model_dump(self) -> dict:
-        """Serializes the text content to a dictionary. Useful for JSON serialization."""
+        """Serializes the text content to a dictionary.
+        Useful for JSON serialization."""
         return {
             **super().model_dump(),
             "text": self.text,

@@ -149,8 +149,8 @@ class MockPlatformParsers(PlatformParsers):
 class MockPlatformConfigs(PlatformConfigs):
     """Mock platform configs for testing."""
 
-    supported_providers: list[ModelProvider] = []
-    supported_models: list[Model] = []
+    supported_providers: ClassVar[list[ModelProvider]] = []
+    supported_models: ClassVar[list[Model]] = []
 
 
 class MockPlatformClient(PlatformClient):
@@ -333,5 +333,8 @@ class TestPlatformBaseComponents:
         # Test unsupported content type
         invalid_content = MagicMock(spec=PromptMessageContent)
         invalid_content.kind = "unsupported"
-        with pytest.raises(ValueError):
+        with pytest.raises(
+            ValueError,
+            match="Unsupported PromptMessageContent type: unsupported",
+        ):
             converters.convert_content_item_to_platform_part(invalid_content)

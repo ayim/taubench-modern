@@ -5,4 +5,9 @@ from agent_server_types_v2.payloads.initiate_stream import InitiateStreamPayload
 from agent_server_types_v2.payloads.upsert_agent import UpsertAgentPayload
 from agent_server_types_v2.payloads.upsert_thread import UpsertThreadPayload
 
-__all__ = ["AddThreadMessagePayload", "InitiateStreamPayload", "UpsertAgentPayload", "UpsertThreadPayload"]
+__all__ = [
+    "AddThreadMessagePayload",
+    "InitiateStreamPayload",
+    "UpsertAgentPayload",
+    "UpsertThreadPayload",
+]

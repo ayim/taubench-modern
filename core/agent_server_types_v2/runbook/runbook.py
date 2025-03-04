@@ -9,7 +9,8 @@ from agent_server_types_v2.runbook.content import (
 
 @dataclass
 class Runbook:
-    """This class represents a runbook, which is textual specification of how an agent should operate."""
+    """This class represents a runbook, which is textual
+    specification of how an agent should operate."""
 
     raw_text: str = field(
         metadata={

@@ -41,7 +41,8 @@ class Model:
 
     currently_points_to: str | None = field(
         metadata={
-            "description": "For model aliases that change, the model the alias currently points to.",
+            "description": "For model aliases that change, the model the alias "
+            "currently points to.",
         },
         default=None,
     )

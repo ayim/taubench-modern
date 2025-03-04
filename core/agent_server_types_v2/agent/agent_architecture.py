@@ -6,10 +6,16 @@ from typing import Self
 class AgentArchitecture:
     """Agent architecture definition."""
 
-    name: str = field(metadata={"description": "The name of the agent architecture."})
+    name: str = field(
+        metadata={"description": "The name of the agent architecture."},
+    )
     """The name of the agent architecture."""
 
-    version: str = field(metadata={"description": "The version of the agent architecture."})
+    version: str = field(
+        metadata={
+            "description": "The version of the agent architecture.",
+        },
+    )
     """The version of the agent architecture."""
 
     def copy(self) -> Self:
@@ -20,7 +26,8 @@ class AgentArchitecture:
         )
 
     def to_json_dict(self) -> dict:
-        """Serializes the cognitive architecture to a dictionary. Useful for JSON serialization."""
+        """Serializes the cognitive architecture to a dictionary.
+        Useful for JSON serialization."""
         return {
             "name": self.name,
             "version": self.version,

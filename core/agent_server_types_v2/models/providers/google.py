@@ -42,9 +42,11 @@ def _maybe_upload_if_large(
     raw_data: bytes,
     mime_type: str,
 ) -> Union["File", "BlobDict"]:
-    """If `raw_data` exceeds MAX_INLINE_BYTES, upload to Gemini; otherwise return inline dict.
+    """If `raw_data` exceeds MAX_INLINE_BYTES, upload to Gemini; otherwise
+    return inline dict.
 
-    Returns either a Gemini File object or inline dict: {"mime_type":..., "data":...} (BlobDict).
+    Returns either a Gemini File object or inline dict: {"mime_type":..., "data":...}
+    (BlobDict).
     """
     from google.generativeai.types import BlobDict
 

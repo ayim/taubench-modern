@@ -8,7 +8,8 @@ from agent_server_types_v2.utils import assert_literal_value_valid
 
 @dataclass(frozen=True)
 class Run:
-    """Represents a single invocation of an agent (a run) with its status and metadata."""
+    """Represents a single invocation of an agent (a run)
+    with its status and metadata."""
 
     run_id: str = field(metadata={"description": "The ID of the run"})
     """The ID of the run"""
@@ -33,9 +34,13 @@ class Run:
 
     status: Literal["created", "running", "completed", "failed", "cancelled"] = field(
         default="created",
-        metadata={"description": "The run's status (e.g., 'created', 'running', 'completed', 'failed', 'cancelled')"},
+        metadata={
+            "description": "The run's status (e.g., 'created', 'running',"
+                "'completed', 'failed', 'cancelled')",
+        },
     )
-    """The run's status (e.g., 'created', 'running', 'completed', 'failed', 'cancelled')"""
+    """The run's status (e.g., 'created', 'running',
+    'completed', 'failed', 'cancelled')"""
 
     metadata: dict[str, Any] = field(
         default_factory=dict,

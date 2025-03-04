@@ -1,7 +1,9 @@
-"""This module defines the interfaces that the kernel exposes to Cognitive Architectures (CAs).
+"""This module defines the interfaces that the kernel exposes
+to Cognitive Architectures (CAs).
 
-These interfaces provide a way for CAs to interact with the agent-server, accessing
-functionality such as memory management, tool execution, and user interaction.
+These interfaces provide a way for CAs to interact with the
+agent-server, accessing functionality such as memory management,
+tool execution, and user interaction.
 """
 
 from agent_server_types_v2.kernel_interfaces.events import EventsInterface

@@ -28,7 +28,8 @@ from agent_server_types_v2.user import User
 
 
 class Kernel(ABC):
-    """The Kernel is the core interface for Cognitive Architectures (CAs) to interact with the agent-server.
+    """The Kernel is the core interface for Cognitive Architectures
+    (CAs) to interact with the agent-server.
 
     It provides a comprehensive set of APIs for agent operations, memory management,
     tool execution, and UI interactions.
@@ -69,11 +70,11 @@ class Kernel(ABC):
     def outgoing_events(self) -> EventsInterface:
         """Generic event bus for CA to emit events to the agent-server.
 
-        When invoking a Cognitive Architecture (CA) asynchronously, the CA will emit events
-        to this (outgoing) bus. The agent-server will listen to these events and pass along
-        appropriate updates to downstream listeners. For the most part, other APIs within
-        the Kernel will send appropriate events to this bus. But, if you need to manually
-        emit an event, you can do so here.
+        When invoking a Cognitive Architecture (CA) asynchronously, the CA will
+        emit events to this (outgoing) bus. The agent-server will listen to these
+        events and pass along appropriate updates to downstream listeners. For the
+        most part, other APIs within the Kernel will send appropriate events to
+        this bus. But, if you need to manually emit an event, you can do so here.
 
         Returns:
             EventsInterface: Interface for emitting events to the agent-server.
@@ -145,8 +146,10 @@ class Kernel(ABC):
     def prompts(self) -> PromptsInterface:
         """Interface for building and managing prompts within a CA.
 
-        The prompts API is used to build and manage prompts within a Cognitive Architecture (CA).
-        The key features of this API are to support easy and opinionated prompt formatting.
+        The prompts API is used to build and manage prompts
+        within a Cognitive Architecture (CA). The key features
+        of this API are to support easy and opinionated prompt
+        formatting.
 
         Returns:
             PromptsInterface: Interface for prompt management.
@@ -158,10 +161,11 @@ class Kernel(ABC):
     def runbook(self) -> RunbookInterface:
         """Interface for interacting with the agent's natural language runbook.
 
-        Every agent has a natural language runbook. The runbook is the key source of truth
-        for the agents behavior. It is up to a Cognitive Architecture (CA) to interpret the
-        runbook and use it to do useful work. This API provides a way for CAs to interact
-        with the runbook (both as prose and as structured data, if runbook annotations are
+        Every agent has a natural language runbook. The runbook is the key
+        source of truth for the agents behavior. It is up to a Cognitive
+        Architecture (CA) to interpret the runbook and use it to do useful
+        work. This API provides a way for CAs to interact with the runbook
+        (both as prose and as structured data, if runbook annotations are
         present).
 
         Returns:

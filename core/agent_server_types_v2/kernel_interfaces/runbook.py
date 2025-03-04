@@ -5,7 +5,8 @@ from agent_server_types_v2.runbook.content import RunbookStepsContent
 
 
 class RunbookInterface(ABC):
-    """Manages interaction with the agent's natural language runbook and its structured data."""
+    """Manages interaction with the agent's natural language runbook
+    and its structured data."""
 
     @abstractmethod
     async def get_runbook(self) -> Runbook:
@@ -18,7 +19,8 @@ class RunbookInterface(ABC):
 
     @abstractmethod
     async def runbook_has_steps(self) -> bool:
-        """Returns True if the runbook has steps with appropriate structured metadata and False otherwise.
+        """Returns True if the runbook has steps with appropriate
+        structured metadata and False otherwise.
 
         Returns:
             True if the runbook has steps, False otherwise.

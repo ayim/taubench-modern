@@ -65,7 +65,9 @@ class ThreadAgentMessage(ThreadMessage):
 
         for i, content in reversed(list(enumerate(self.content))):
             if isinstance(content, ThreadThoughtContent):
-                self.content[i] = ThreadThoughtContent(thought=content.thought + text_piece)
+                self.content[i] = ThreadThoughtContent(
+                    thought=content.thought + text_piece,
+                )
                 return
 
         self.content.append(ThreadThoughtContent(thought=text_piece))

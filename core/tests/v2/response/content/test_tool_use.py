@@ -1,4 +1,5 @@
 import json
+from dataclasses import FrozenInstanceError
 
 import pytest
 
@@ -27,7 +28,8 @@ class TestResponseToolUseContent:
             ResponseToolUseContent(
                 tool_call_id="123",
                 tool_name="test_tool",
-                tool_input_raw='{"param1": "value1", "param2": 42',  # Missing closing brace
+                tool_input_raw='{"param1": "value1", "param2": 42',
+                # ^ Missing closing brace
             )
 
     def test_tool_input_property(self) -> None:
@@ -68,7 +70,8 @@ class TestResponseToolUseContent:
         assert data["tool_input_raw"] == '{"param1": "value1", "param2": 42}'
 
     def test_model_validate(self) -> None:
-        """Test that model_validate creates a ResponseToolUseContent from a dictionary."""
+        """Test that model_validate creates a ResponseToolUseContent
+        from a dictionary."""
         data = {
             "kind": "tool_use",  # This should be removed by model_validate
             "tool_call_id": "123",
@@ -90,6 +93,6 @@ class TestResponseToolUseContent:
             tool_name="test_tool",
             tool_input_raw='{"param1": "value1", "param2": 42}',
         )
-        with pytest.raises(Exception):
+        with pytest.raises(FrozenInstanceError):
             # This should raise an exception because ResponseToolUseContent is frozen
             content.tool_name = "new_tool"  # type: ignore

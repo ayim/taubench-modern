@@ -10,9 +10,9 @@ class PromptsInterface(ABC):
     async def format_prompt_string(self, prompt: str, **kwargs: object) -> str:
         """Formats a prompt string with the given arguments.
 
-        Kernel-related prompt placeholders will be auto-replaced with the appropriate values.
-        For any other placeholders, the caller is responsible for providing the
-        appropriate values via kwargs.
+        Kernel-related prompt placeholders will be auto-replaced with
+        the appropriate values. For any other placeholders, the caller
+        is responsible for providing the appropriate values via kwargs.
 
         Arguments:
             prompt: The prompt string to format.
@@ -24,7 +24,11 @@ class PromptsInterface(ABC):
         pass
 
     @abstractmethod
-    async def format_as_user_message(self, prompt: str, **kwargs: object) -> PromptUserMessage:
+    async def format_as_user_message(
+        self,
+        prompt: str,
+        **kwargs: object,
+    ) -> PromptUserMessage:
         """Formats a string and produces a PromptMessageUser object.
 
         The resulting PromptMessageUser object can be used directly when

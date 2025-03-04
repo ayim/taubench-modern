@@ -14,11 +14,15 @@ class PromptUserMessage(PromptMessage):
     """Represents a user message in the prompt."""
 
     content: list[
-        PromptTextContent | PromptImageContent | PromptAudioContent | PromptToolResultContent
+        PromptTextContent | PromptImageContent | PromptAudioContent
+        | PromptToolResultContent
     ] = field(metadata={"description": "The contents of the prompt message"})
     """The contents of the prompt message"""
 
-    role: Literal["user"] = field(default="user", metadata={"description": "The role of the message sender"})
+    role: Literal["user"] = field(
+        default="user",
+        metadata={"description": "The role of the message sender"},
+    )
     """The role of the message sender"""
 
 
@@ -31,5 +35,8 @@ class PromptAgentMessage(PromptMessage):
     )
     """The contents of the prompt message"""
 
-    role: Literal["agent"] = field(default="agent", metadata={"description": "The role of the message sender"})
+    role: Literal["agent"] = field(
+        default="agent",
+        metadata={"description": "The role of the message sender"},
+    )
     """The role of the message sender"""

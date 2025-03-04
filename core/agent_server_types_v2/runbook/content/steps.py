@@ -7,7 +7,8 @@ from agent_server_types_v2.runbook.content.step import RunbookStepContent
 
 @dataclass
 class RunbookStepsContent(RunbookContent):
-    """This class represents a structured sequence of steps to be executed, as defined in a runbook."""
+    """This class represents a structured sequence of
+    steps to be executed, as defined in a runbook."""
 
     steps: list[RunbookStepContent] = field(
         metadata={
@@ -40,7 +41,8 @@ class RunbookStepsContent(RunbookContent):
         )
 
     def to_json_dict(self) -> dict:
-        """Serializes the runbook steps content to a dictionary. Useful for JSON serialization."""
+        """Serializes the runbook steps content to a dictionary.
+        Useful for JSON serialization."""
         return {
             "steps": [step.to_json_dict() for step in self.steps],
             "metadata": self.metadata,

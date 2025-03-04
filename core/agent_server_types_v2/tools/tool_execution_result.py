@@ -12,13 +12,19 @@ from agent_server_types_v2.tools.tool_definition import ToolDefinition
 class ToolExecutionResult:
     """Represents the result of a tool execution."""
 
-    definition: ToolDefinition = field(metadata={"description": "The definition of the tool that was executed"})
+    definition: ToolDefinition = field(
+        metadata={"description": "The definition of the tool that was executed"},
+    )
     """The definition of the tool that was executed"""
 
-    execution_id: str = field(metadata={"description": "The unique identifier of the tool execution"})
+    execution_id: str = field(
+        metadata={"description": "The unique identifier of the tool execution"},
+    )
     """The unique identifier of the tool execution"""
 
-    input_raw: str = field(metadata={"description": "The raw input of the tool that was executed"})
+    input_raw: str = field(
+        metadata={"description": "The raw input of the tool that was executed"},
+    )
     """The raw input of the tool that was executed"""
 
     _input_parsed: dict[str, Any] = field(
@@ -27,13 +33,19 @@ class ToolExecutionResult:
     )
     """The parsed input of the tool that was executed"""
 
-    output_raw: str = field(metadata={"description": "The raw output of the tool that was executed"})
+    output_raw: str = field(
+        metadata={"description": "The raw output of the tool that was executed"},
+    )
     """The raw output of the tool that was executed"""
 
-    execution_started_at: datetime = field(metadata={"description": "The timestamp when the tool execution started"})
+    execution_started_at: datetime = field(
+        metadata={"description": "The timestamp when the tool execution started"},
+    )
     """The timestamp when the tool execution started"""
 
-    execution_ended_at: datetime = field(metadata={"description": "The timestamp when the tool execution ended"})
+    execution_ended_at: datetime = field(
+        metadata={"description": "The timestamp when the tool execution ended"},
+    )
     """The timestamp when the tool execution ended"""
 
     execution_metadata: dict[str, Any] = field(

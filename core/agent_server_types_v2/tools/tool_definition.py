@@ -15,10 +15,14 @@ class ToolDefinition:
     description: str = field(metadata={"description": "The description of the tool"})
     """The description of the tool"""
 
-    input_schema: dict[str, Any] = field(metadata={"description": "The schema of the tool input"})
+    input_schema: dict[str, Any] = field(
+        metadata={"description": "The schema of the tool input"},
+    )
     """The schema of the tool input"""
 
-    function: Callable[..., Any] = field(metadata={"description": "The function that implements the tool"})
+    function: Callable[..., Any] = field(
+        metadata={"description": "The function that implements the tool"},
+    )
     """The function that implements the tool"""
 
     @classmethod
@@ -32,22 +36,22 @@ class ToolDefinition:
     ) -> "ToolDefinition":
         """Creates a ToolDefinition from an async Python function.
 
-        This method inspects the provided async function and generates a ToolDefinition
-        with appropriate name, description, and input schema based on the function's
-        signature and metadata.
+        This method inspects the provided async function and generates a
+        ToolDefinition with appropriate name, description, and input schema
+        based on the function's signature and metadata.
 
         Arguments:
             func: An async callable that implements the tool functionality.
-            name: Optional name override for the tool. If None, uses function's __name__.
-            description: Optional description override. If None, uses function's docstring.
-            strict: Whether to set 'strict' in the final schema for OpenAI function calling.
+            name: Optional name override. If None, uses function's __name__.
+            description: Optional description override. If None, uses func's docstring.
+            strict: Whether to set 'strict' in the schema for OpenAI function calling.
 
         Returns:
             ToolDefinition: A fully populated ToolDefinition instance.
 
         Raises:
-            ValueError: If the function is not async, uses *args/**kwargs, or has missing
-                required metadata.
+            ValueError: If the function is not async, uses *args/**kwargs, or
+                has missing required metadata.
         """
         from inspect import iscoroutinefunction, signature
 

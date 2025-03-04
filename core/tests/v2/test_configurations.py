@@ -218,7 +218,9 @@ class TestConfiguration:
 
         config = SampleConfig()
 
-        with pytest.raises(ValueError):
+        with pytest.raises(
+            ValueError, match="No json_path provided and no config_path set",
+        ):
             config.to_json()
 
     def test_to_dict(self) -> None:
@@ -239,7 +241,8 @@ class TestMapConfiguration:
     """Test suite for the MapConfiguration class."""
 
     def test_map_functionality(self) -> None:
-        """Test all MapConfiguration functionality in one test to avoid issues with class singletons."""
+        """Test all MapConfiguration functionality in one test to
+        avoid issues with class singletons."""
 
         # Create a concrete MapConfiguration subclass
         @dataclass(frozen=True)

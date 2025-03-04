@@ -8,7 +8,8 @@ from agent_server_types_v2.utils import assert_literal_value_valid
 
 @dataclass
 class ScopedStorage:
-    """Represents a scoped storage record for storing JSON data tied to a particular scope."""
+    """Represents a scoped storage record for storing JSON data
+    tied to a particular scope."""
 
     STORAGE_ID_NAMESPACE: ClassVar[UUID] = UUID("13d3f0af-f771-4fb5-800a-5a7806d52a80")
     """The namespace for the storage ID generator"""
@@ -16,17 +17,25 @@ class ScopedStorage:
     storage_id: str = field(metadata={"description": "The ID of the storage record"})
     """The ID of the storage record"""
 
-    created_by_user_id: str = field(metadata={"description": "The ID of the user who created this record"})
+    created_by_user_id: str = field(
+        metadata={"description": "The ID of the user who created this record"},
+    )
     """The ID of the user who created this record"""
 
-    created_by_agent_id: str = field(metadata={"description": "The ID of the agent who created this record"})
+    created_by_agent_id: str = field(
+        metadata={"description": "The ID of the agent who created this record"},
+    )
     """The ID of the agent who created this record"""
 
-    created_by_thread_id: str = field(metadata={"description": "The ID of the thread that created this record"})
+    created_by_thread_id: str = field(
+        metadata={"description": "The ID of the thread that created this record"},
+    )
     """The ID of the thread that created this record"""
 
     scope_type: Literal["user", "agent", "thread", "global"] = field(
-        metadata={"description": "The scope type (e.g., 'user', 'agent', 'thread', 'global')"},
+        metadata={
+            "description": "The scope type (e.g., 'user', 'agent', 'thread', 'global')",
+        },
     )
     """The scope type (e.g., 'user', 'agent', 'thread', 'global')"""
 
@@ -38,7 +47,9 @@ class ScopedStorage:
 
     updated_at: datetime = field(
         default_factory=datetime.now,
-        metadata={"description": "The timestamp when the storage record was last updated"},
+        metadata={
+            "description": "The timestamp when the storage record was last updated",
+        },
     )
     """The timestamp when the storage record was last updated"""
 
@@ -71,11 +82,20 @@ class ScopedStorage:
                 data[field_name] = datetime.fromisoformat(data[field_name])
         if "storage_id" in data and isinstance(data["storage_id"], UUID):
             data["storage_id"] = str(data["storage_id"])
-        if "created_by_user_id" in data and isinstance(data["created_by_user_id"], UUID):
+        if (
+            "created_by_user_id" in data
+            and isinstance(data["created_by_user_id"], UUID)
+        ):
             data["created_by_user_id"] = str(data["created_by_user_id"])
-        if "created_by_agent_id" in data and isinstance(data["created_by_agent_id"], UUID):
+        if (
+            "created_by_agent_id" in data
+            and isinstance(data["created_by_agent_id"], UUID)
+        ):
             data["created_by_agent_id"] = str(data["created_by_agent_id"])
-        if "created_by_thread_id" in data and isinstance(data["created_by_thread_id"], UUID):
+        if (
+            "created_by_thread_id" in data
+            and isinstance(data["created_by_thread_id"], UUID)
+        ):
             data["created_by_thread_id"] = str(data["created_by_thread_id"])
         return cls(**data)
 
@@ -95,7 +115,7 @@ class ScopedStorage:
             created_by_agent_id,
             created_by_thread_id,
         ])))
-        
+
         return cls(
             storage_id=storage_id,
             scope_type=scope,

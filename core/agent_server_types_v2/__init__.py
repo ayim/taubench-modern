@@ -1,7 +1,8 @@
 """This package defines the core data types and interfaces for the agent-server.
 
-It includes modules for prompts, threads, kernel interfaces, kernel, memory, and tools,
-providing a structured way to represent and interact with different aspects of the agent system.
+It includes modules for prompts, threads, kernel interfaces, kernel, memory,
+and tools, providing a structured way to represent and interact with different
+aspects of the agent system.
 """
 
 from agent_server_types_v2 import (

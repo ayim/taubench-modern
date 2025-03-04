@@ -5,7 +5,8 @@ from agent_server_types_v2.tools import ToolDefinition, ToolExecutionResult
 
 
 class ToolsInterface(ABC):
-    """Manages building and execution of agent actions, internal tools, and CA-defined tools."""
+    """Manages building and execution of agent actions, internal tools,
+    and CA-defined tools."""
 
     @abstractmethod
     async def execute_tools_from_model_response(

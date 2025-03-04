@@ -38,10 +38,12 @@ class ThreadMessage:
     commited: bool = field(
         default=False,
         metadata={
-            "description": "Whether the message has been committed to the thread (saved to backing storage)",
+            "description": "Whether the message has been committed to the thread "
+                "(saved to backing storage)",
         },
     )
-    """Whether the message has been committed to the thread (saved to backing storage)"""
+    """Whether the message has been committed to the thread
+    (saved to backing storage)"""
 
     created_at: datetime = field(
         default_factory=datetime.now,
@@ -58,7 +60,8 @@ class ThreadMessage:
     agent_metadata: dict[str, Any] = field(
         default_factory=dict,
         metadata={
-            "description": "The metadata associated with the message (for agent architecture use only)",
+            "description": "The metadata associated with the message "
+                "(for agent architecture use only)",
         },
     )
     """The metadata associated with the message (for agent architecture use only)"""
@@ -66,7 +69,8 @@ class ThreadMessage:
     server_metadata: dict[str, Any] = field(
         default_factory=dict,
         metadata={
-            "description": "The metadata associated with the message (for agent-server use only)",
+            "description": "The metadata associated with the message "
+                "(for agent-server use only)",
         },
     )
     """The metadata associated with the message (for agent-server use only)"""
@@ -79,8 +83,9 @@ class ThreadMessage:
 
     @property
     def metadata(self) -> dict[str, Any]:
-        """The metadata associated with the message. This is a read-only property that combines
-        agent_metadata and server_metadata. Any attempts to modify the returned dictionary or its nested
+        """The metadata associated with the message. This is a read-only
+        property that combines agent_metadata and server_metadata. Any
+        attempts to modify the returned dictionary or its nested
         dictionaries will raise TypeError."""
         return MappingProxyType(
             {
@@ -124,7 +129,8 @@ class ThreadMessage:
 
     @classmethod
     def from_dict(cls, data: dict) -> Self:
-        """Deserializes the message from a dictionary. Useful for JSON deserialization."""
+        """Deserializes the message from a dictionary.
+        Useful for JSON deserialization."""
         from agent_server_types_v2.thread.content import ThreadMessageContent
 
         if "message_id" in data and isinstance(data["message_id"], UUID):

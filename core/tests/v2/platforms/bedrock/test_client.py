@@ -81,8 +81,7 @@ class MockBedrockRuntimeClient:
                         },
                     },
                 ]
-                for event in events:
-                    yield event
+                yield from events
 
         return {
             "stream": MockStream(),
@@ -138,22 +137,26 @@ class TestBedrockClient:
                 events = [
                     {
                         "chunk": {
-                            "bytes": b'{"type":"message_start","message":{"role":"assistant"}}',
+                            "bytes": b'{"type":"message_start",'
+                                b'"message":{"role":"assistant"}}',
                         },
                     },
                     {
                         "chunk": {
-                            "bytes": b'{"type":"content_block_start","index":0,"content_block":{"type":"text"}}',
+                            "bytes": b'{"type":"content_block_start","index":0,'
+                                b'"content_block":{"type":"text"}}',
                         },
                     },
                     {
                         "chunk": {
-                            "bytes": b'{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"test "}}',
+                            "bytes": b'{"type":"content_block_delta","index":0,'
+                                b'"delta":{"type":"text_delta","text":"test "}}',
                         },
                     },
                     {
                         "chunk": {
-                            "bytes": b'{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"response"}}',
+                            "bytes": b'{"type":"content_block_delta","index":0,'
+                                b'"delta":{"type":"text_delta","text":"response"}}',
                         },
                     },
                     {
@@ -165,13 +168,13 @@ class TestBedrockClient:
                         "chunk": {
                             "bytes": (
                                 b'{"type":"metadata","usage":{"input_tokens":10,'
-                                b'"output_tokens":20,"total_tokens":30},"metrics":{"latency_ms":500}}'
+                                b'"output_tokens":20,"total_tokens":30},'
+                                b'"metrics":{"latency_ms":500}}'
                             ),
                         },
                     },
                 ]
-                for event in events:
-                    yield event
+                yield from events
 
         mock_client.converse_stream.return_value = {
             "stream": MockStream(),
@@ -302,7 +305,7 @@ class TestBedrockClient:
     def test_init_clients(self, parameters: BedrockPlatformParameters) -> None:
         """Test that the Bedrock client initializes the boto3 client correctly."""
         with patch("boto3.client") as mock_boto3_client:
-            client = BedrockClient(parameters=parameters)
+            BedrockClient(parameters=parameters)
 
             mock_boto3_client.assert_called_once_with(
                 "bedrock-runtime",
@@ -350,7 +353,9 @@ class TestBedrockClient:
         """Test that the Bedrock client generates a response correctly."""
         # Create a test model map and use it directly
         test_model_map = {
-            Models.ANTHROPIC_CLAUDE_3_5_SONNET.name: "anthropic.claude-3-5-sonnet-20240620-v1:0",
+            Models.ANTHROPIC_CLAUDE_3_5_SONNET.name: (
+                "anthropic.claude-3-5-sonnet-20240620-v1:0"
+            ),
         }
 
         # Mock BedrockModelMap.__class_getitem__ to return our test map
@@ -382,7 +387,9 @@ class TestBedrockClient:
         """Test that the Bedrock client generates a response with a model selector."""
         # Create a test model map and use it directly
         test_model_map = {
-            Models.ANTHROPIC_CLAUDE_3_5_SONNET.name: "anthropic.claude-3-5-sonnet-20240620-v1:0",
+            Models.ANTHROPIC_CLAUDE_3_5_SONNET.name: (
+                "anthropic.claude-3-5-sonnet-20240620-v1:0"
+            ),
         }
 
         # Mock BedrockModelMap.__class_getitem__ to return our test map
@@ -420,7 +427,9 @@ class TestBedrockClient:
         """Test that the Bedrock client generates a stream response correctly."""
         # Create a test model map and use it directly
         test_model_map = {
-            Models.ANTHROPIC_CLAUDE_3_5_SONNET.name: "anthropic.claude-3-5-sonnet-20240620-v1:0",
+            Models.ANTHROPIC_CLAUDE_3_5_SONNET.name: (
+                "anthropic.claude-3-5-sonnet-20240620-v1:0"
+            ),
         }
 
         # Create a proper async generator for the mock
@@ -466,10 +475,13 @@ class TestBedrockClient:
         model_selector: ModelSelector,
         mock_boto3_client: MagicMock,
     ) -> None:
-        """Test that the Bedrock client generates a stream response with a model selector."""
+        """Test that the Bedrock client generates a stream response
+        with a model selector."""
         # Create a test model map and use it directly
         test_model_map = {
-            Models.ANTHROPIC_CLAUDE_3_5_SONNET.name: "anthropic.claude-3-5-sonnet-20240620-v1:0",
+            Models.ANTHROPIC_CLAUDE_3_5_SONNET.name: (
+                "anthropic.claude-3-5-sonnet-20240620-v1:0"
+            ),
         }
 
         # Create a proper async generator for the mock

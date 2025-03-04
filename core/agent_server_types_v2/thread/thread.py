@@ -15,14 +15,19 @@ class Thread:
     Thread is a key concept and DISTINCT from PromptMessage (even if there is a
     structural similarity). The result of an LLM call may end up as (part) of a message
     in a thread; and, similarly, content in a ThreadMessage (or many messages) may be
-    converted and used in PromptMessages to pass to an LLM. But, for the sake of clarity,
-    we have kept seperate distinct types for ThreadMessages and PromptMessages.
+    converted and used in PromptMessages to pass to an LLM. But, for the sake of
+    clarity, we have kept seperate distinct types for ThreadMessages and
+    PromptMessages.
     """
 
-    user_id: str = field(metadata={"description": "The user ID of the user who created this thread."})
+    user_id: str = field(
+        metadata={"description": "The user ID of the user who created this thread."},
+    )
     """The user ID of the user who created this thread."""
 
-    agent_id: str = field(metadata={"description": "The agent ID of the agent that created this thread."})
+    agent_id: str = field(
+        metadata={"description": "The agent ID of the agent that created this thread."},
+    )
     """The agent ID of the agent that created this thread."""
 
     name: str = field(metadata={"description": "The name of this thread."})
@@ -40,16 +45,21 @@ class Thread:
     """All messages in this thread."""
 
     created_at: datetime = field(
-        default_factory=datetime.now, metadata={"description": "When this thread was created."},
+        default_factory=datetime.now,
+        metadata={"description": "When this thread was created."},
     )
     """When this thread was created."""
 
     updated_at: datetime = field(
-        default_factory=datetime.now, metadata={"description": "When this thread was last updated."},
+        default_factory=datetime.now,
+        metadata={"description": "When this thread was last updated."},
     )
     """When this thread was last updated."""
 
-    metadata: dict = field(default_factory=dict, metadata={"description": "Arbitrary thread-level metadata."})
+    metadata: dict = field(
+        default_factory=dict,
+        metadata={"description": "Arbitrary thread-level metadata."},
+    )
     """Arbitrary thread-level metadata."""
 
     def add_message(self, message: ThreadMessage) -> None:

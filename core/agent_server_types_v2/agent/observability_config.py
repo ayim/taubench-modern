@@ -57,7 +57,8 @@ class ObservabilityConfig:
         )
 
     def to_json_dict(self) -> dict:
-        """Serializes the observability config to a dictionary. Useful for JSON serialization."""
+        """Serializes the observability config to a dictionary.
+        Useful for JSON serialization."""
         return {
             "type": self.type,
             "api_key": self.api_key,

@@ -1,4 +1,5 @@
 import json
+from dataclasses import FrozenInstanceError
 
 import pytest
 
@@ -54,6 +55,6 @@ class TestResponseTextContent:
     def test_immutability(self) -> None:
         """Test that ResponseTextContent is immutable."""
         content = ResponseTextContent(text="Hello, world!")
-        with pytest.raises(Exception):
+        with pytest.raises(FrozenInstanceError):
             # This should raise an exception because ResponseTextContent is frozen
             content.text = "New text"  # type: ignore

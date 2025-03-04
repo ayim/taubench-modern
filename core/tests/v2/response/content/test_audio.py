@@ -1,5 +1,6 @@
 import base64
 import json
+from dataclasses import FrozenInstanceError
 
 import pytest
 
@@ -120,6 +121,6 @@ class TestResponseAudioContent:
             mime_type="audio/wav",
             value=valid_base64_audio,
         )
-        with pytest.raises(Exception):
+        with pytest.raises(FrozenInstanceError):
             # This should raise an exception because ResponseAudioContent is frozen
             content.mime_type = "audio/mp3"  # type: ignore

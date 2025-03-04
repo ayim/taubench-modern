@@ -1,5 +1,6 @@
 import base64
 import json
+from dataclasses import FrozenInstanceError
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -99,13 +100,14 @@ class TestResponseImageContent:
                 sub_type="raw_bytes",
             )
 
-    @patch("PIL.Image.Image", autospec=True)
-    def test_from_pil_image_with_filename(self, mock_pil_image: MagicMock) -> None:
+    def test_from_pil_image_with_filename(self) -> None:
         """Test from_pil_image with a valid filename."""
+        from PIL.Image import Image as PILImage
+
         # Setup mock PIL Image
-        mock_image = MagicMock()
+        mock_image = MagicMock(PILImage)
         mock_image.filename = "/path/to/image.jpg"
-        mock_image.get_format_mimetype.return_value = "image/jpeg"
+        mock_image.get_format_mimetype = MagicMock(return_value="image/jpeg")
 
         # Mock Path.is_file to return True
         with patch("pathlib.Path.is_file", return_value=True):
@@ -117,11 +119,12 @@ class TestResponseImageContent:
                 assert content.value == b"test image data"
                 assert content.sub_type == "raw_bytes"
 
-    @patch("PIL.Image.Image", autospec=True)
-    def test_from_pil_image_without_filename(self, mock_pil_image: MagicMock) -> None:
+    def test_from_pil_image_without_filename(self) -> None:
         """Test from_pil_image without a valid filename."""
+        from PIL.Image import Image as PILImage
+
         # Setup mock PIL Image
-        mock_image = MagicMock()
+        mock_image = MagicMock(spec=PILImage)
         mock_image.filename = None
 
         # Mock BytesIO
@@ -136,14 +139,14 @@ class TestResponseImageContent:
             assert content.value == b"test webp data"
             assert content.sub_type == "raw_bytes"
 
-    @patch("IPython.display.Image", autospec=True)
     def test_from_ipython_image_with_filename(
         self,
-        mock_ipython_image: MagicMock,
     ) -> None:
         """Test from_ipython_image with a valid filename."""
+        from IPython.display import Image as IPythonImage
+
         # Setup mock IPython Image
-        mock_image = MagicMock()
+        mock_image = MagicMock(spec=IPythonImage)
         mock_image.filename = "/path/to/image.jpg"
 
         # Mock Path.is_file to return True
@@ -158,11 +161,12 @@ class TestResponseImageContent:
                     assert content.value == b"test image data"
                     assert content.sub_type == "raw_bytes"
 
-    @patch("IPython.display.Image", autospec=True)
-    def test_from_ipython_image_with_url(self, mock_ipython_image: MagicMock) -> None:
+    def test_from_ipython_image_with_url(self) -> None:
         """Test from_ipython_image with a URL."""
+        from IPython.display import Image as IPythonImage
+
         # Setup mock IPython Image
-        mock_image = MagicMock()
+        mock_image = MagicMock(spec=IPythonImage)
         mock_image.filename = None
         mock_image.url = "https://example.com/image.jpg"
         mock_image.format = "jpeg"
@@ -173,11 +177,12 @@ class TestResponseImageContent:
         assert content.value == "https://example.com/image.jpg"
         assert content.sub_type == "url"
 
-    @patch("IPython.display.Image", autospec=True)
-    def test_from_ipython_image_with_data(self, mock_ipython_image: MagicMock) -> None:
+    def test_from_ipython_image_with_data(self) -> None:
         """Test from_ipython_image with data."""
+        from IPython.display import Image as IPythonImage
+
         # Setup mock IPython Image
-        mock_image = MagicMock()
+        mock_image = MagicMock(spec=IPythonImage)
         mock_image.filename = None
         mock_image.url = None
         mock_image.data = b"test image data"
@@ -189,11 +194,12 @@ class TestResponseImageContent:
         assert content.value == b"test image data"
         assert content.sub_type == "raw_bytes"
 
-    @patch("IPython.display.Image", autospec=True)
-    def test_from_ipython_image_invalid(self, mock_ipython_image: MagicMock) -> None:
+    def test_from_ipython_image_invalid(self) -> None:
         """Test from_ipython_image with invalid data."""
+        from IPython.display import Image as IPythonImage
+
         # Setup mock IPython Image
-        mock_image = MagicMock()
+        mock_image = MagicMock(spec=IPythonImage)
         mock_image.filename = None
         mock_image.url = None
         mock_image.data = None
@@ -258,6 +264,6 @@ class TestResponseImageContent:
             value="https://example.com/image.jpg",
             sub_type="url",
         )
-        with pytest.raises(Exception):
+        with pytest.raises(FrozenInstanceError):
             # This should raise an exception because ResponseImageContent is frozen
             content.mime_type = "image/png"  # type: ignore

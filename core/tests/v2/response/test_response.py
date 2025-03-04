@@ -1,4 +1,5 @@
 import json
+from dataclasses import FrozenInstanceError
 from typing import Any
 
 import pytest
@@ -30,7 +31,7 @@ class TestTokenUsage:
     def test_immutability(self) -> None:
         """Test that TokenUsage is immutable."""
         usage = TokenUsage(input_tokens=10, output_tokens=20, total_tokens=30)
-        with pytest.raises(Exception):
+        with pytest.raises(FrozenInstanceError):
             # This should raise an exception because TokenUsage is frozen
             usage.input_tokens = 100  # type: ignore
 
@@ -117,7 +118,8 @@ class TestResponseMessage:
         assert response.additional_response_fields == {"custom_field": "value"}
 
     def test_model_validate_json(self, sample_response_dict: dict[str, Any]) -> None:
-        """Test that model_validate_json creates a ResponseMessage from a JSON string."""
+        """Test that model_validate_json creates a ResponseMessage
+        from a JSON string."""
         json_str = json.dumps(sample_response_dict)
         response = ResponseMessage.model_validate_json(json_str)
         assert isinstance(response, ResponseMessage)
@@ -170,6 +172,6 @@ class TestResponseMessage:
             content=[sample_text_content],
             role="agent",
         )
-        with pytest.raises(Exception):
+        with pytest.raises(FrozenInstanceError):
             # This should raise an exception because ResponseMessage is frozen
             response.role = "user"  # type: ignore

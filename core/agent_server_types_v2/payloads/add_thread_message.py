@@ -41,7 +41,12 @@ class AddThreadMessagePayload(ThreadMessage):
     """The time the message was last updated."""
 
     @classmethod
-    def to_thread_message(cls, payload: Self, user_id: str, thread_id: str) -> ThreadMessage:
+    def to_thread_message(
+        cls,
+        payload: Self,
+        user_id: str,
+        thread_id: str,
+    ) -> ThreadMessage:
         return ThreadMessage(
             user_id=user_id,
             thread_id=thread_id,

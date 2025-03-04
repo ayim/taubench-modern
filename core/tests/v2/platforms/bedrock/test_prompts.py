@@ -128,7 +128,8 @@ class TestBedrockPrompt:
         }
 
     def test_as_platform_request_with_additional_fields(self) -> None:
-        """Test that as_platform_request works correctly with additional request fields."""
+        """Test that as_platform_request works correctly with additional
+        request fields."""
         prompt = BedrockPrompt(
             messages=[
                 {

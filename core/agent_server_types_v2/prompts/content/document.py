@@ -67,7 +67,7 @@ class PromptDocumentContent(PromptMessageContent):
     """Format of the document data - either an agent-server UploadedFile, base64
     encoded string, raw bytes, or URL"""
 
-    def __post_init__(self) -> None:
+    def __post_init__(self) -> None:  # noqa: C901
         """Validates the document content after initialization.
 
         Performs validation of literal values and ensures the document value is valid.

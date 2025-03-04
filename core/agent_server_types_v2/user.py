@@ -20,7 +20,8 @@ class User:
 
     def __post_init__(self):
         """Parse the sub of the user."""
-        # Dataclass is frozen, so we need to use special syntax to set the _parsed_sub field
+        # Dataclass is frozen, so we need to use
+        # special syntax to set the _parsed_sub field
         object.__setattr__(self, "_parsed_sub", self._parse_sub(self.sub))
 
     def _parse_sub(self, sub: str) -> dict[str, str] | None:

@@ -14,8 +14,9 @@ class Prompt:
 
     This class encapsulates all components needed for an AI interaction, including
     the system instruction, temperature setting, and the conversation history.
-    The conversation history must follow a strict user-assistant interleaving pattern
-    (starting with a user message, then alternating between groups of user and assistant messages).
+    The conversation history must follow a strict user-agent interleaving pattern
+    (starting with a user message, then alternating between groups of
+    user and agent messages).
     """
 
     system_instruction: str = field(
@@ -36,8 +37,9 @@ class Prompt:
             ),
         },
     )
-    """Conversation history with strict user-agent interleaving (messages must alternate
-    between groups of user and agent messages, starting with a user message)"""
+    """Conversation history with strict user-agent interleaving
+    (messages must alternate between groups of user and agent messages,
+    starting with a user message)"""
 
     tools: list[ToolDefinition] = field(
         default_factory=list,
@@ -48,7 +50,8 @@ class Prompt:
             ),
         },
     )
-    """Definitions of the tools provided to the model for use when generating responses"""
+    """Definitions of the tools provided to the model for use
+    when generating responses"""
 
     tool_choice: Literal["auto", "any"] | str = field(
         default="auto",
@@ -60,10 +63,12 @@ class Prompt:
             ),
         },
     )
-    """The tool to use for the prompt; if not provided, the model will decide which tool to use.
-    You may specificy 'auto', 'any', or the name of a specific tool."""
+    """The tool to use for the prompt; if not provided, the model will
+    decide which tool to use. You may specificy 'auto', 'any', or the name
+    of a specific tool."""
 
-    # TODO: We need to add more useful documentation related to temperature, top_p, etc.
+    # TODO: add more useful documentation related to temperature, top_p, etc.
+    # Maybe even a short doc somehwere on these concepts...
 
     temperature: float | None = field(
         default=None,
@@ -76,15 +81,16 @@ class Prompt:
             ),
         },
     )
-    """Sampling temperature for the model's responses (0.0 = deterministic, 1.0 = creative);
-    if not provided, we'll default to 0.0 (unless sampling temperature is unsupported by
-    the provider)"""
+    """Sampling temperature for the model's responses (0.0 = more deterministic,
+    1.0 = more creative); if not provided, we'll default to 0.0 (unless sampling
+    temperature is unsupported by the provider)"""
 
     seed: int | None = field(
         default=None,
         metadata={
             "description": (
-                "Seed used in decoding. If not set, the request uses a randomly generated seed."
+                "Seed used in decoding. If not set, the request uses a randomly "
+                "generated seed."
             ),
         },
     )
@@ -110,16 +116,17 @@ class Prompt:
         default=None,
         metadata={
             "description": (
-                "The maximum cumulative probability of tokens to consider when sampling. "
-                "Optional."
+                "The maximum cumulative probability of tokens to consider "
+                "when sampling. Optional."
             ),
         },
     )
-    """The maximum cumulative probability of tokens to consider when sampling. Optional."""
+    """The maximum cumulative probability of tokens to consider
+    when sampling. Optional."""
 
-    # There are othercommon params like frequency_penalty, presence_penalty, top_k or best_of,
-    # some APIs support a `candidate_count` or `n` param (to sample multiple responses), etc.
-    # We can add them if/when needed.
+    # There are other common params like frequency_penalty, presence_penalty,
+    # top_k or best_of, some APIs support a `candidate_count` or `n` param
+    # (to sample multiple responses), etc. We can add them if/when needed.
 
     def __post_init__(self) -> None:
         """Validates the prompt structure after initialization.
@@ -129,7 +136,8 @@ class Prompt:
         2. Messages sequence starts with a user message.
 
         Raises:
-            ValueError: If temperature is out of range or first message is not from user.
+            ValueError: If temperature is out of range or first
+                message is not from user.
         """
         # Validate temperature
         if self.temperature is not None:

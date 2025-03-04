@@ -1,4 +1,3 @@
-from abc import ABC
 from dataclasses import dataclass, field
 from json import dumps
 from typing import ClassVar, Self
@@ -7,7 +6,7 @@ from agent_server_types_v2.delta import GenericDelta
 
 
 @dataclass(frozen=True)
-class ResponseMessageContent(ABC):
+class ResponseMessageContent:
     """Base class for all model response content types.
 
     This class serves as the base for all content types that can be included

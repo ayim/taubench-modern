@@ -86,7 +86,10 @@ class TestBedrockParsers:
         assert content_item.tool_name == "get_weather"
 
         # Test with unsupported content type
-        with pytest.raises(ValueError):
+        with pytest.raises(
+            ValueError,
+            match="Unsupported content type in item:",
+        ):
             parsers.parse_content_item({"type": "unsupported"})
 
     def test_parse_response(self, parsers: BedrockParsers) -> None:

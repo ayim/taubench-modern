@@ -23,7 +23,8 @@ class QuestionGroup:
         )
 
     def to_json_dict(self) -> dict:
-        """Serializes the question group to a dictionary. Useful for JSON serialization."""
+        """Serializes the question group to a dictionary.
+        Useful for JSON serialization."""
         return {
             "title": self.title,
             "questions": self.questions,

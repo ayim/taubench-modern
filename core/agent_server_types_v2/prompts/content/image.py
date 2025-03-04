@@ -25,7 +25,8 @@ class PromptImageContent(PromptMessageContent):
 
     value: str | bytes = field(
         metadata={
-            "description": "The image data - either a URL or base64 encoded string, or raw bytes",
+            "description": "The image data - either a URL or base64 encoded string, "
+                "or raw bytes",
         },
     )
     """The image data - either a URL or base64 encoded string, or raw bytes"""
@@ -40,10 +41,12 @@ class PromptImageContent(PromptMessageContent):
     sub_type: Literal["url", "base64", "raw_bytes"] = field(
         default="url",
         metadata={
-            "description": "Format of the image data - either a URL or base64 encoded string, or raw bytes",
+            "description": "Format of the image data - either a URL or base64"
+                "encoded string, or raw bytes",
         },
     )
-    """Format of the image data - either a URL or base64 encoded string, or raw bytes"""
+    """Format of the image data - either a URL or base64
+    encoded string, or raw bytes"""
 
     detail: Literal["low_res", "high_res"] = field(
         default="high_res",
@@ -141,7 +144,8 @@ class PromptImageContent(PromptMessageContent):
             PromptImageContent: The converted PromptImageContent.
 
         Raises:
-            ValueError: If the IPython Image is not valid (i.e., it has no filename or data).
+            ValueError: If the IPython Image is not valid
+                (i.e., it has no filename or data).
         """
         from mimetypes import guess_type
         from pathlib import Path

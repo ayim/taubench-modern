@@ -14,16 +14,22 @@ class ThreadQuickActionContent:
 
     value: str = field(
         metadata={
-            "description": "The value of the quick action (the text that will be submitted when the action is clicked)",
+            "description": "The value of the quick action (the text that will be "
+                "submitted when the action is clicked)",
         },
     )
-    """The value of the quick action (the text that will be submitted when the action is clicked)"""
+    """The value of the quick action (the text that will be submitted when
+    the action is clicked)"""
 
-    icon: str | None = field(default=None, metadata={"description": "The icon of the quick action (if any)"})
+    icon: str | None = field(
+        default=None,
+        metadata={"description": "The icon of the quick action (if any)"},
+    )
     """The icon of the quick action (if any)"""
 
     def to_json_dict(self) -> dict:
-        """Serializes the quick action content to a dictionary.  Useful for JSON serialization."""
+        """Serializes the quick action content to a dictionary.
+        Useful for JSON serialization."""
         return {
             "label": self.label,
             "value": self.value,
@@ -44,7 +50,9 @@ class ThreadQuickActionsContent(ThreadMessageContent):
     you to easily submit a message without having to type it out).
     """
 
-    actions: list[ThreadQuickActionContent] = field(metadata={"description": "The list of quick actions to display"})
+    actions: list[ThreadQuickActionContent] = field(
+        metadata={"description": "The list of quick actions to display"},
+    )
     """The list of quick actions to display"""
 
     kind: Literal["quick_actions"] = field(
@@ -64,7 +72,7 @@ class ThreadQuickActionsContent(ThreadMessageContent):
         """Validates the message content type and quick actions after initialization.
 
         Raises:
-            AssertionError: If the content_type field doesn't match the literal "quick_actions".
+            AssertionError: If the kind field doesn't match the literal "quick_actions".
             ValueError: If the actions field is empty.
         """
         assert_literal_value_valid(self, "kind")
@@ -86,15 +94,20 @@ class ThreadQuickActionsContent(ThreadMessageContent):
         for action in self.actions:
             # <choice data-message="Valid message" data-icon="IconInfo">Label</choice>
             # ^ Example of how the UX is expecting the inlined HTML to look
-            icon_attr = f"data-icon=\"{escape(action.icon)}\"" if action.icon else ""
-            data_attr = f"data-message=\"{escape(action.value, quote=True)}\""
-            actions_as_strs.append(f"<choice {data_attr} {icon_attr}>{action.label}</choice>")
+            icon_attr = (
+                f'data-icon="{escape(action.icon)}"' if action.icon else ""
+            )
+            data_attr = f'data-message="{escape(action.value, quote=True)}"'
+            actions_as_strs.append(
+                f"<choice {data_attr} {icon_attr}>{action.label}</choice>",
+            )
 
         actions_str = "\n".join(actions_as_strs)
         return f"<quick_actions>\n{actions_str}\n</quick_actions>"
 
     def to_json_dict(self) -> dict:
-        """Serializes the quick actions content to a dictionary. Useful for JSON serialization."""
+        """Serializes the quick actions content to a dictionary.
+        Useful for JSON serialization."""
         return {
             **super().to_json_dict(),
             "actions": [action.to_json_dict() for action in self.actions],
@@ -104,7 +117,10 @@ class ThreadQuickActionsContent(ThreadMessageContent):
     def from_dict(cls, data: dict) -> "ThreadQuickActionsContent":
         """Create a thread quick actions content from a dictionary."""
         data = data.copy()
-        actions = [ThreadQuickActionContent.from_dict(action) for action in data.pop("actions")]
+        actions = [
+            ThreadQuickActionContent.from_dict(action)
+            for action in data.pop("actions")
+        ]
         return cls(**data, actions=actions)
 
 

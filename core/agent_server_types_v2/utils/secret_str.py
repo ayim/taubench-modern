@@ -19,7 +19,9 @@ class SecretString:
         if self.value is None:
             raise ValueError("SecretString value cannot be None")
         if not isinstance(self.value, str):
-            raise TypeError(f"SecretString value must be str, not {type(self.value).__name__}")
+            raise TypeError(
+                f"SecretString value must be str, not {type(self.value).__name__}",
+            )
 
     def get_secret_value(self) -> str:
         """Gets the secret value from the SecretString."""

@@ -48,7 +48,8 @@ class StreamingDeltaMessageContent(StreamingDelta):
     """The delta to apply to the message content."""
     event_type: Literal["message_content"] = field(
         metadata={
-            "description": "The type of streaming event. (Always 'message_content' for this type.)",
+            "description": "The type of streaming event."
+                "(Always 'message_content' for this type.)",
         },
         default="message_content",
         init=False,
@@ -79,7 +80,8 @@ class StreamingDeltaMessageBegin(StreamingDelta):
     """Any extra metadata to begin the stream with."""
     channel: Literal["events"] = field(
         metadata={
-            "description": "The channel for this delta. (Always 'events' for this type.)",
+            "description": "The channel for this delta."
+                "(Always 'events' for this type.)",
         },
         default="events",
         init=False,
@@ -87,7 +89,8 @@ class StreamingDeltaMessageBegin(StreamingDelta):
     """The channel for this delta. (Always 'events' for this type.)"""
     event_type: Literal["message_begin"] = field(
         metadata={
-            "description": "The type of streaming event. (Always 'message_begin' for this type.)",
+            "description": "The type of streaming event."
+                "(Always 'message_begin' for this type.)",
         },
         default="message_begin",
         init=False,
@@ -120,14 +123,16 @@ class StreamingDeltaMessageEnd(StreamingDelta):
     """Any extra metadata to end the stream with."""
     channel: Literal["events"] = field(
         metadata={
-            "description": "The channel for this delta. (Always 'events' for this type.)",
+            "description": "The channel for this delta."
+                "(Always 'events' for this type.)",
         },
         default="events",
     )
     """The channel for this delta. (Always 'events' for this type.)"""
     event_type: Literal["message_end"] = field(
         metadata={
-            "description": "The type of streaming event. (Always 'message_end' for this type.)",
+            "description": "The type of streaming event."
+                "(Always 'message_end' for this type.)",
         },
         default="message_end",
         init=False,

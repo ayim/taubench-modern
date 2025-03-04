@@ -44,13 +44,13 @@ class InitiateStreamPayload(Thread):
         # Either the thread_id or the name must be provided
         if self.thread_id is None and self.name is None:
             raise ValueError("Either the thread_id or the name must be provided.")
-            
+
         # Make sure the agent_id is a valid UUID
         try:
             UUID(self.agent_id)
         except ValueError as e:
             raise ValueError("The agent_id must be a valid UUID.") from e
-        
+
         # Make sure the thread_id is a valid UUID (if provided)
         if self.thread_id is not None:
             try:
@@ -65,7 +65,7 @@ class InitiateStreamPayload(Thread):
             UUID(user_id)
         except ValueError as e:
             raise ValueError("The user_id must be a valid UUID.") from e
-        
+
         return Thread(
             user_id=user_id,
             agent_id=payload.agent_id,

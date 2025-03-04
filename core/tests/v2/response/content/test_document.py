@@ -1,5 +1,6 @@
 import base64
 import json
+from dataclasses import FrozenInstanceError
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -127,7 +128,8 @@ class TestResponseDocumentContent:
             )
 
     def test_init_invalid_uploaded_file(self) -> None:
-        """Test that ResponseDocumentContent raises an error for invalid UploadedFile."""
+        """Test that ResponseDocumentContent raises an error for
+        invalid UploadedFile."""
         with patch(
             "agent_server_types_v2.responses.content.document.UploadedFile",
             MagicMock,
@@ -176,7 +178,8 @@ class TestResponseDocumentContent:
         assert data["sub_type"] == "base64"
 
     def test_model_validate(self, valid_base64_document: str) -> None:
-        """Test that model_validate creates a ResponseDocumentContent from a dictionary."""
+        """Test that model_validate creates a ResponseDocumentContent
+        from a dictionary."""
         data = {
             "kind": "document",  # This should be removed by model_validate
             "mime_type": "application/pdf",
@@ -200,6 +203,6 @@ class TestResponseDocumentContent:
             name="test.pdf",
             sub_type="base64",
         )
-        with pytest.raises(Exception):
+        with pytest.raises(FrozenInstanceError):
             # This should raise an exception because ResponseDocumentContent is frozen
             content.mime_type = "text/plain"  # type: ignore

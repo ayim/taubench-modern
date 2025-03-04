@@ -12,25 +12,25 @@ from agent_server_types_v2.agent_architectures.utils import (
 def entrypoint(func):
     """
     Decorator for an entrypoint function.
-    
+
     Ensures that the function:
       - takes a Kernel instance as its first argument,
       - takes a dataclass state as its second argument.
-    
+
     It automatically restores state (before executing the function)
     and updates/saves state (after executing the function).
     """
     # Validate the function signature and async nature.
     sig = validate_2param_async(func)
-    
+
     @wraps(func) # TODO: type the wrapper how we want (kernel, state...)
     async def wrapper(*args, **kwargs):
         # Extract and validate kernel and state.
         kernel, state = extract_kernel_and_create_or_get_state(sig, *args, **kwargs)
-        
+
         # Grab the scoped storages for the state fields.
         new_scoped_storage_ids = await restore_state_fields(kernel, state)
-        
+
         # Execute the decorated async function.
         try:
             # Run our Agent Architecture.

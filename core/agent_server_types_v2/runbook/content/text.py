@@ -30,7 +30,8 @@ class RunbookTextContent(RunbookContent):
         )
 
     def to_json_dict(self) -> dict:
-        """Serializes the runbook text content to a dictionary. Useful for JSON serialization."""
+        """Serializes the runbook text content to a dictionary.
+        Useful for JSON serialization."""
         return {
             "content": self.content,
             "type": self.type,

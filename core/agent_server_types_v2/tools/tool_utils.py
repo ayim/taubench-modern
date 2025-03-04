@@ -24,7 +24,10 @@ def _is_enum_type(t: Any) -> bool:
 ################################################
 
 
-def _find_annotated_description(metadata: tuple[Any, ...], param_name: str) -> str | None:
+def _find_annotated_description(
+    metadata: tuple[Any, ...],
+    param_name: str,
+) -> str | None:
     """
     Searches the Annotated metadata tuple for a string (or a sentinel)
     that you use to store a description. Adjust logic to suit your usage.
@@ -43,7 +46,9 @@ def _find_annotated_description(metadata: tuple[Any, ...], param_name: str) -> s
 
 def _require_description(param_name: str, hint: Any) -> str:
     """Raise ValueError if no explicit description is present."""
-    raise ValueError(f"Parameter '{param_name}' (type {hint}) is missing a description.")
+    raise ValueError(
+        f"Parameter '{param_name}' (type {hint}) is missing a description.",
+    )
 
 
 ################################################
@@ -73,7 +78,10 @@ def _apply_description(
 ################################################
 
 
-def unwrap_annotated_and_optional(hint: Any, param_name: str) -> tuple[Any, bool, str | None]:
+def unwrap_annotated_and_optional(
+    hint: Any,
+    param_name: str,
+) -> tuple[Any, bool, str | None]:
     """
     Repeatedly unwrap:
       - Annotated[...] (collecting description from metadata)
@@ -105,8 +113,8 @@ def unwrap_annotated_and_optional(hint: Any, param_name: str) -> tuple[Any, bool
         if len(non_none_types) > 1:
             # we reject multi-non-None unions
             raise ValueError(
-                f"Parameter '{param_name}' has a Union with multiple non-None types {non_none_types}; "
-                "this is not supported.",
+                f"Parameter '{param_name}' has a Union with multiple non-None types "
+                f"{non_none_types}; this is not supported.",
             )
         elif len(non_none_types) == 1:
             # exactly one real type + None
@@ -168,7 +176,8 @@ def build_dataclass_schema(
         sub_schema = build_param_schema(
             field_name,
             field_type,
-            allow_omitted_description=True,  # typically dataclass fields can skip an explicit description
+            # typically dataclass fields can skip an explicit description
+            allow_omitted_description=True,
         )
         properties[field_name] = sub_schema
 
@@ -201,7 +210,9 @@ def build_param_schema(
     """
 
     # 1) Unwrap Annotated & Optional
-    unwrapped_type, is_nullable, annotated_description = unwrap_annotated_and_optional(hint, param_name)
+    unwrapped_type, is_nullable, annotated_description = (
+        unwrap_annotated_and_optional(hint, param_name)
+    )
 
     # 2) If it's a dataclass
     if is_dataclass(unwrapped_type):
@@ -216,15 +227,25 @@ def build_param_schema(
         # Build an enum schema
         possible_values = [m.value for m in unwrapped_type]
         # Decide string or integer type if all values are ints or all are strings
-        # For a typical enum, they're often strings, but could be int if it's an IntEnum
-        schema_type = "integer" if all(isinstance(v, int) for v in possible_values) else "string"
+        # For a typical enum, they're often strings, but could be int
+        # if it's an IntEnum
+        schema_type = (
+            "integer"
+            if all(isinstance(v, int) for v in possible_values)
+            else "string"
+        )
         schema_type = [schema_type, "null"] if is_nullable else schema_type
 
         schema = {
             "type": schema_type,
             "enum": possible_values,
         }
-        _apply_description(schema, annotated_description, param_name, allow_omitted_description)
+        _apply_description(
+            schema,
+            annotated_description,
+            param_name,
+            allow_omitted_description,
+        )
         return schema
 
     # 4) Check if it's list[...] or tuple[...]
@@ -232,7 +253,8 @@ def build_param_schema(
     args = get_args(unwrapped_type)
     if origin in (list, tuple):
         max_tuple_args = 2
-        # We reject multi-type tuples, so we check if it has exactly 2 and the second is Ellipsis
+        # We reject multi-type tuples, so we check if it has exactly 2
+        # and the second is Ellipsis
         if origin is tuple and len(args) == max_tuple_args and args[1] is Ellipsis:
             # e.g. Tuple[str, ...]
             item_type = args[0]
@@ -240,11 +262,13 @@ def build_param_schema(
             # e.g. list[str]
             item_type = args[0]
         else:
-            # If it doesn't match the above patterns, we either have no args or multi-typed.
-            # We explicitly reject multi-typed tuples like tuple[X, Y]
+            # If it doesn't match the above patterns, we either have no args
+            # or multi-typed. We explicitly reject multi-typed tuples like
+            # tuple[X, Y]
             raise ValueError(
-                f"Parameter '{param_name}' uses a multi-type or zero-type tuple/list '{unwrapped_type}'. "
-                "Only list[X], tuple[X, ...], or no-arg list/tuple are supported.",
+                f"Parameter '{param_name}' uses a multi-type or zero-type "
+                f"tuple/list '{unwrapped_type}'. Only list[X], tuple[X, ...], "
+                "or no-arg list/tuple are supported.",
             )
         # Build the items schema recursively
         items_schema = build_param_schema(f"{param_name}_item", item_type, True)
@@ -252,7 +276,12 @@ def build_param_schema(
             "type": ["array", "null"] if is_nullable else "array",
             "items": items_schema,
         }
-        _apply_description(schema, annotated_description, param_name, allow_omitted_description)
+        _apply_description(
+            schema,
+            annotated_description,
+            param_name,
+            allow_omitted_description,
+        )
         return schema
 
     # 5) If it's a primitive builtin: str, int, float, bool, or None
@@ -266,13 +295,23 @@ def build_param_schema(
         }
         base_type = types_to_schema_type[unwrapped_type]
         schema = {"type": [base_type, "null"] if is_nullable else base_type}
-        _apply_description(schema, annotated_description, param_name, allow_omitted_description)
+        _apply_description(
+            schema,
+            annotated_description,
+            param_name,
+            allow_omitted_description,
+        )
         return schema
 
     if unwrapped_type is type(None):
         # pure None type
         schema = {"type": "null"}
-        _apply_description(schema, annotated_description, param_name, allow_omitted_description)
+        _apply_description(
+            schema,
+            annotated_description,
+            param_name,
+            allow_omitted_description,
+        )
         return schema
 
     # 6) Otherwise, reject

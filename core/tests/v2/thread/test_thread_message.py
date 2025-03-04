@@ -4,7 +4,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from agent_server_types_v2.kernel_interfaces.thread_state import ThreadMessageWithThreadState
+from agent_server_types_v2.kernel_interfaces.thread_state import (
+    ThreadMessageWithThreadState,
+)
 from agent_server_types_v2.thread.base import ThreadMessage
 from agent_server_types_v2.thread.content import (
     ThreadQuickActionContent,
@@ -86,7 +88,10 @@ class TestThreadVegaChartContent:
             "height": 200,
             "data": [{"name": "table", "values": [1, 2, 3]}],
         }
-        content = ThreadVegaChartContent(chart_spec_raw=json.dumps(spec), sub_type="vega-lite")
+        content = ThreadVegaChartContent(
+            chart_spec_raw=json.dumps(spec),
+            sub_type="vega-lite",
+        )
         # The class auto-inserts a $schema key for us
         assert content.chart_spec["$schema"].endswith("vega-lite/v5.json")
 
@@ -113,7 +118,10 @@ class TestThreadVegaChartContent:
             "width": 400,
             "height": 300,
         }
-        content = ThreadVegaChartContent(chart_spec_raw=json.dumps(spec), sub_type="vega-lite")
+        content = ThreadVegaChartContent(
+            chart_spec_raw=json.dumps(spec),
+            sub_type="vega-lite",
+        )
         txt = content.as_text_content()
         assert isinstance(txt, str)
         assert "vega-lite" in txt
@@ -171,10 +179,16 @@ class TestThreadMessageBase:
 
     async def test_append_content_raises_if_committed(self):
         msg = ThreadMessageWithThreadState(
-            ThreadMessage(role="user", content=[ThreadTextContent(text="Can't edit me")], commited=True),
+            ThreadMessage(
+                role="user",
+                content=[ThreadTextContent(text="Can't edit me")],
+                commited=True,
+            ),
             AsyncMock(),
         )
-        with pytest.raises(ValueError, match="Cannot add content to a committed message"):
+        with pytest.raises(
+            ValueError, match="Cannot add content to a committed message",
+        ):
             msg.append_content(" some more text")
 
     async def test_commit_calls_thread_state_commit_message(self):
@@ -215,7 +229,10 @@ class TestThreadAgentMessage:
         agent_msg.append_thought(" Appended more stuff")
         await agent_msg.stream_delta()
         assert len(agent_msg.message.content) == 2
-        assert agent_msg.message.content[-1].thought == "Initial thought. Appended more stuff"
+        assert (
+            agent_msg.message.content[-1].thought
+            == "Initial thought. Appended more stuff"
+        )
         mock_thread_state.stream_message_delta.assert_awaited_once_with(agent_msg.message)
 
     async def test_new_thought_creates_new_thought(self):
@@ -237,5 +254,8 @@ class TestThreadAgentMessage:
             ThreadAgentMessage(content=[ThreadTextContent(text="xyz")], commited=True),
             AsyncMock(),
         )
-        with pytest.raises(ValueError, match="Cannot add content to a committed message"):
+        with pytest.raises(
+            ValueError,
+            match="Cannot add content to a committed message",
+        ):
             agent_msg.append_thought("some new thought")

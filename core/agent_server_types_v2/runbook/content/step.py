@@ -47,7 +47,8 @@ class RunbookStepContent(RunbookContent):
         )
 
     def to_json_dict(self) -> dict:
-        """Serializes the runbook step content to a dictionary. Useful for JSON serialization."""
+        """Serializes the runbook step content to a dictionary.
+        Useful for JSON serialization."""
         return {
             "name": self.name,
             "content": self.content,

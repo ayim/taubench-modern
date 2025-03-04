@@ -18,10 +18,14 @@ class Agent:
     name: str = field(metadata={"description": "The name of the agent."})
     """The name of the agent."""
 
-    description: str = field(metadata={"description": "The description of the agent."})
+    description: str = field(
+        metadata={"description": "The description of the agent."},
+    )
     """The description of the agent."""
 
-    user_id: str = field(metadata={"description": "The id of the user that created the agent."})
+    user_id: str = field(
+        metadata={"description": "The id of the user that created the agent."},
+    )
     """The id of the user that created the agent."""
 
     runbook: Runbook = field(metadata={"description": "The runbook of the agent."})
@@ -107,7 +111,9 @@ class Agent:
             action_packages=[pkg.copy() for pkg in self.action_packages],
             agent_architecture=self.agent_architecture.copy(),
             question_groups=[group.copy() for group in self.question_groups],
-            observability_configs=[config.copy() for config in self.observability_configs],
+            observability_configs=[
+                config.copy() for config in self.observability_configs
+            ],
             created_at=self.created_at,
             updated_at=self.updated_at,
             mode=self.mode,
@@ -118,7 +124,10 @@ class Agent:
     def to_json_dict(self) -> dict:
         """Serializes the agent to a dictionary. Useful for JSON serialization."""
         return {
-            "action_packages": [action_package.to_json_dict() for action_package in self.action_packages],
+            "action_packages": [
+                action_package.to_json_dict()
+                for action_package in self.action_packages
+            ],
             "agent_architecture": self.agent_architecture.to_json_dict(),
             "created_at": self.created_at.isoformat(),
             "description": self.description,
@@ -127,9 +136,13 @@ class Agent:
             "provider_configs": self.provider_configs,
             "name": self.name,
             "observability_configs": [
-                observability_config.to_json_dict() for observability_config in self.observability_configs
+                observability_config.to_json_dict()
+                for observability_config in self.observability_configs
             ],
-            "question_groups": [question_group.to_json_dict() for question_group in self.question_groups],
+            "question_groups": [
+                question_group.to_json_dict()
+                for question_group in self.question_groups
+            ],
             "runbook": self.runbook.to_json_dict(),
             "agent_id": self.agent_id,
             "updated_at": self.updated_at.isoformat(),
@@ -151,16 +164,18 @@ class Agent:
 
         # Parse nested objects
         actions_packages = [
-            ActionPackage.from_dict(action_package) 
+            ActionPackage.from_dict(action_package)
             for action_package in data.pop("action_packages", [])
         ]
-        agent_architecture = AgentArchitecture.from_dict(data.pop("agent_architecture", {}))
+        agent_architecture = AgentArchitecture.from_dict(
+            data.pop("agent_architecture", {}),
+        )
         observability_configs = [
-            ObservabilityConfig.from_dict(observability_config) 
+            ObservabilityConfig.from_dict(observability_config)
             for observability_config in data.pop("observability_configs", [])
         ]
         question_groups = [
-            QuestionGroup.from_dict(question_group) 
+            QuestionGroup.from_dict(question_group)
             for question_group in data.pop("question_groups", [])
         ]
         runbook = Runbook.from_dict(data.pop("runbook", {}))

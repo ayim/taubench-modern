@@ -36,7 +36,8 @@ class ThreadAttachmentContent(ThreadMessageContent):
     base64_data: str | None = field(
         default=None,
         metadata={
-            "description": "The base64 encoded data of the attachment, if the attachment is a file",
+            "description": "The base64 encoded data of the attachment, if the "
+                "attachment is a file",
         },
     )
     """The base64 encoded data of the attachment, if the attachment is a file"""
@@ -57,9 +58,9 @@ class ThreadAttachmentContent(ThreadMessageContent):
         """Validates the content type and attachment content after initialization.
 
         Raises:
-            AssertionError: If the type field doesn't match the literal "attachment".
-            ValueError: If the attachment_uri field is empty (if the attachment is a handle),
-                or if the base64_data field is empty (if the attachment is NOT a handle),
+            AssertionError: If the kind field doesn't match the literal "attachment".
+            ValueError: If the attachment_uri field is empty (attachment is a handle),
+                or if the base64_data field is empty (attachment is NOT a handle),
                 or if the base64_data field holds invalid base64 data.
         """
         assert_literal_value_valid(self, "kind")
@@ -101,7 +102,8 @@ class ThreadAttachmentContent(ThreadMessageContent):
         )
 
     def model_dump_json(self) -> dict:
-        """Serializes the text content to a dictionary. Useful for JSON serialization."""
+        """Serializes the attachment content to a dictionary.
+        Useful for JSON serialization."""
         return {
             **super().model_dump_json(),
             "name": self.name,

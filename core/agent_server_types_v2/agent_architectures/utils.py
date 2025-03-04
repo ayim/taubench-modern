@@ -12,14 +12,15 @@ def validate_2param_async(func, param_names=("kernel", "state")):
     Validates that the function:
       - has exactly as many parameters as provided in param_names,
       - is an async function.
-      
+
     Returns the function signature.
     """
     sig = signature(func)
     parameters = list(sig.parameters.values())
     if len(parameters) != len(param_names):
         raise ValueError(
-            f"Function must have exactly {len(param_names)} parameters: {', '.join(param_names)}",
+            f"Function must have exactly {len(param_names)} parameters: "
+            f"{', '.join(param_names)}",
         )
     if not iscoroutinefunction(func):
         raise ValueError("Function must be an async function.")
@@ -30,15 +31,16 @@ def extract_kernel_and_create_or_get_state(sig, *args, **kwargs):
     """
     Binds arguments according to the signature, applies defaults,
     extracts kernel from the provided arguments, and then either uses the provided
-    state object (if present in bound arguments) or creates a fresh state object 
+    state object (if present in bound arguments) or creates a fresh state object
     based on the type annotation.
 
     This function expects both 'kernel' and 'state' to be present in the signature.
-    If state is in the bound arguments, it is used; otherwise, a new instance is created.
+    If state is in the bound arguments, it is used; otherwise,
+    a new instance is created.
 
     Validates that:
       - `kernel` is an instance of Kernel,
-      - The state parameter has a proper type annotation and that it is a dataclass type.
+      - The state parameter has a proper type annotation and it's a dataclass type.
       - If state is provided in arguments, it matches the expected type annotation.
 
     Returns:
@@ -46,7 +48,7 @@ def extract_kernel_and_create_or_get_state(sig, *args, **kwargs):
     """
     # Get parameter names (assuming first two are kernel and state)
     kernel_param, state_param = list(sig.parameters)[:2]
-    
+
     # Handle case where only kernel is provided
     if len(args) == 1 and not kwargs:
         kernel = args[0]
@@ -61,7 +63,9 @@ def extract_kernel_and_create_or_get_state(sig, *args, **kwargs):
 
     state_annotation = sig.parameters[state_param].annotation
     if state_annotation is sig.empty:
-        raise TypeError("The state parameter must have a type annotation for its dataclass type.")
+        raise TypeError(
+            "The state parameter must have a type annotation for its dataclass type.",
+        )
     if not isinstance(state_annotation, type) or not is_dataclass(state_annotation):
         raise TypeError("State parameter annotation must be a dataclass type.")
 
@@ -72,9 +76,12 @@ def extract_kernel_and_create_or_get_state(sig, *args, **kwargs):
         if state_param in bound.arguments:
             state = bound.arguments[state_param]
             if not isinstance(state, state_annotation):
-                raise TypeError(f"Provided state must be an instance of {state_annotation.__name__}")
+                raise TypeError(
+                    "Provided state must be an "
+                    f"instance of {state_annotation.__name__}",
+                )
             return kernel, state
-    
+
     # Create a fresh state object if none was provided in arguments
     new_state = state_annotation()
     return kernel, new_state
@@ -102,7 +109,9 @@ async def restore_state_fields(
                 created_by_thread_id=kernel.thread.thread_id,
             )
             try:
-                rehydrated = await kernel.storage.get_scoped_storage(scoped_storage.storage_id)
+                rehydrated = await kernel.storage.get_scoped_storage(
+                    scoped_storage.storage_id,
+                )
                 setattr(state, field, rehydrated.storage)
             except Exception:
                 scoped_storage.storage = getattr(state, field)

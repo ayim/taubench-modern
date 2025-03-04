@@ -262,7 +262,8 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
         Raises:
             ValueError: If the document exceeds Bedrock's size limits or has invalid
                 name format.
-            NotImplementedError: If the content type is not supported (e.g. UploadedFile).
+            NotImplementedError: If the content type is not supported
+                (e.g. UploadedFile).
         """
         from types_boto3_bedrock_runtime.type_defs import DocumentBlockTypeDef
 

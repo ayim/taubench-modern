@@ -5,7 +5,8 @@ from agent_server_types_v2.thread.content.attachment import ThreadAttachmentCont
 
 class TestThreadAttachmentContent:
     def test_create_attachment_with_uri_only(self):
-        """Ensures that providing only a URI and no base64_data treats the attachment as a handle."""
+        """Ensures that providing only a URI and no base64_data
+        treats the attachment as a handle."""
         content = ThreadAttachmentContent(
             name="my-image",
             mime_type="image/png",
@@ -17,7 +18,8 @@ class TestThreadAttachmentContent:
         assert content.base64_data is None
 
     def test_create_attachment_with_base64_data_only(self):
-        """Ensures that providing base64_data (and no URI) treats the attachment as an embedded file."""
+        """Ensures that providing base64_data (and no URI) treats
+        the attachment as an embedded file."""
         base64_str = "iVBORw0KGgoAAAANSUhEUgAAAAUA"  # truncated
         content = ThreadAttachmentContent(
             name="embedded-file",
@@ -48,9 +50,11 @@ class TestThreadAttachmentContent:
     def test_both_uri_and_base64_data_provided(self):
         """
         Technically not disallowed by your class design, but this test ensures
-        we handle the scenario as a handle with base64_data also present (which might be an edge case).
+        we handle the scenario as a handle with base64_data also present
+        (which might be an edge case).
         """
-        # The code won't explicitly raise in this scenario, but let's confirm it interprets as a handle.
+        # The code won't explicitly raise in this scenario,
+        # but let's confirm it interprets as a handle.
         content = ThreadAttachmentContent(
             name="mixed",
             mime_type="image/jpeg",

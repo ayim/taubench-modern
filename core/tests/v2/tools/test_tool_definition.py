@@ -38,7 +38,10 @@ class ComplexDataWithListAndNestedPerson:
 
     person: PersonData = field(metadata={"description": "A nested person object"})
     enum_value: Annotated[ExampleEnum, "An enum value"]
-    values: list[str] = field(default_factory=list, metadata={"description": "A list of strings"})
+    values: list[str] = field(
+        default_factory=list,
+        metadata={"description": "A list of strings"},
+    )
 
 
 ##################################################
@@ -132,7 +135,8 @@ def test_required_vs_optional_no_strict():
 
 
 def test_required_vs_optional_strict():
-    """Parameters with no default are required; with default are STILL required in strict mode."""
+    """Parameters with no default are required; with default are
+    STILL required in strict mode."""
 
     async def my_tool(a: Annotated[str, "testing"], b: Annotated[int, "testing"] = 999):
         return a, b
@@ -156,7 +160,9 @@ def test_optional_nullable():
     # The param is not in "required" because it has no default? Actually
     # Note that "Optional" alone doesn't mean it has a default.
     # It's "required" if there's no default. It's also "nullable" in the type.
-    assert "x" in schema["required"], "Optional without a default is still required, but can be null."
+    assert "x" in schema["required"], (
+        "Optional without a default is still required, but can be null."
+    )
     assert x_schema["type"] == ["string", "null"]
 
 
@@ -266,7 +272,10 @@ def test_dataclass_complex_with_list_and_nested_person():
 
     async def create_complex_data(data: ComplexDataWithListAndNestedPerson):
         """Testing"""
-        return f"Created {data.person.name} age={data.person.age} with values={data.values}"
+        return (
+            f"Created {data.person.name} age={data.person.age}"
+            f" with values={data.values}"
+        )
 
     tool = ToolDefinition.from_callable(create_complex_data, strict=False)
     schema = tool.input_schema
@@ -332,7 +341,10 @@ def test_reject_multi_type_tuple():
         """Testing"""
         return t
 
-    with pytest.raises(ValueError, match="Parameter 't' uses a multi-type or zero-type tuple/list.*"):
+    with pytest.raises(
+        ValueError,
+        match="Parameter 't' uses a multi-type or zero-type tuple/list.*",
+    ):
         ToolDefinition.from_callable(my_tool)
 
 

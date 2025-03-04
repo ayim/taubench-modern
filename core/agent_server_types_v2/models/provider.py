@@ -18,19 +18,22 @@ class ModelProvider:
     """The models we support from the provider."""
 
     def to_json_dict(self) -> dict:
-        """Serializes the model provider to a dictionary. Useful for JSON serialization."""
+        """Serializes the model provider to a dictionary.
+        Useful for JSON serialization."""
         return {
             "name": self.name,
-            "supported_models": [model.to_json_dict() for model in self.supported_models],
+            "supported_models": [
+                model.to_json_dict() for model in self.supported_models
+            ],
         }
-    
+
     def copy(self) -> Self:
         """Returns a deep copy of the model provider."""
         return ModelProvider(
             name=self.name,
             supported_models=[model.copy() for model in self.supported_models],
         )
-    
+
     @classmethod
     def from_dict(cls, data: dict) -> "ModelProvider":
         """Create a model provider from a dictionary."""

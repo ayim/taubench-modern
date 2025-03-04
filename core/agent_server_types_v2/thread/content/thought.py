@@ -43,7 +43,8 @@ class ThreadThoughtContent(ThreadMessageContent):
         return self.thought
 
     def model_dump(self) -> dict:
-        """Serializes the thought content to a dictionary. Useful for JSON serialization."""
+        """Serializes the thought content to a dictionary.
+        Useful for JSON serialization."""
         return {
             **super().model_dump(),
             "thought": self.thought,

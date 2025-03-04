@@ -8,8 +8,8 @@ from agent_server_types_v2.files.files import (
 )
 
 __all__ = [
-    "UploadedFile",
-    "UploadFileRequest",
     "FileData",
     "RemoteFileUploadData",
+    "UploadFileRequest",
+    "UploadedFile",
 ]

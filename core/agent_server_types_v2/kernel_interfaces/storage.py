@@ -16,7 +16,7 @@ class StorageInterface(ABC):
     async def create_scoped_storage(self, scoped_storage: ScopedStorage) -> None:
         """Creates a new scoped storage record."""
         pass
-    
+
     @abstractmethod
     async def get_scoped_storage(self, storage_id: str) -> ScopedStorage:
         """Gets a scoped storage record by its ID."""

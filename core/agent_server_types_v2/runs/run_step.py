@@ -8,22 +8,35 @@ from agent_server_types_v2.utils import assert_literal_value_valid
 
 @dataclass(frozen=True)
 class RunStep:
-    """Represents an individual step in a run, including state changes and associated metadata."""
+    """Represents an individual step in a run, including state
+    changes and associated metadata."""
 
-    run_id: str = field(metadata={"description": "The ID of the run this step belongs to"})
+    run_id: str = field(
+        metadata={"description": "The ID of the run this step belongs to"},
+    )
     """The ID of the run this step belongs to"""
 
     step_id: str = field(metadata={"description": "The unique ID of the run step"})
     """The unique ID of the run step"""
 
-    sequence_number: int = field(metadata={"description": "The sequence number of the step within the run"})
+    sequence_number: int = field(
+        metadata={
+            "description": "The sequence number of the step within the run",
+        },
+    )
     """The sequence number of the step within the run"""
 
-    step_status: Literal["created", "running", "completed", "failed", "cancelled"] = field(
+    step_status: Literal[
+        "created", "running", "completed", "failed", "cancelled",
+    ] = field(
         default="created",
-        metadata={"description": "The step's status (e.g., 'created', 'running', 'completed', 'failed', 'cancelled')"},
+        metadata={
+            "description": "The step's status (e.g., 'created', 'running', "
+                "'completed', 'failed', 'cancelled')",
+        },
     )
-    """The step's status (e.g., 'created', 'running', 'completed', 'failed', 'cancelled')"""
+    """The step's status (e.g., 'created', 'running',
+    'completed', 'failed', 'cancelled')"""
 
     input_state: dict[str, Any] = field(
         default_factory=dict,

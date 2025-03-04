@@ -16,7 +16,8 @@ class ThreadVegaChartContent(ThreadMessageContent):
 
     chart_spec_raw: str = field(
         metadata={
-            "description": "The Vega or Vega-Lite chart spec JSON (as a string) to display",
+            "description": "The Vega or Vega-Lite chart spec JSON "
+                "(as a string) to display",
         },
     )
     """The Vega or Vega-Lite chart spec JSON (as a string) to display"""
@@ -103,7 +104,8 @@ class ThreadVegaChartContent(ThreadMessageContent):
         return f"```{self.sub_type}\n{chart_spec_clean}\n```"
 
     def model_dump(self) -> dict:
-        """Serializes the vega chart content to a dictionary. Useful for JSON serialization."""
+        """Serializes the vega chart content to a dictionary.
+        Useful for JSON serialization."""
         return {
             **super().model_dump(),
             "chart_spec_raw": self.chart_spec_raw,

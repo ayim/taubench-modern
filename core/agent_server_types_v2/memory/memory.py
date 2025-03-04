@@ -11,7 +11,9 @@ class Memory:
     memory_id: str = field(metadata={"description": "The ID of the memory"})
     """The ID of the memory"""
 
-    original_text: str = field(metadata={"description": "The original text content of the memory"})
+    original_text: str = field(
+        metadata={"description": "The original text content of the memory"},
+    )
     """The original text content of the memory"""
 
     contextualized_text: str | None = field(
@@ -34,17 +36,29 @@ class Memory:
 
     relevant_until_timestamp: datetime | None = field(
         default=None,
-        metadata={"description": "The timestamp of when the memory is no longer relevant"},
+        metadata={
+            "description": "The timestamp of when the memory is no longer relevant",
+        },
     )
     """The timestamp of when the memory is no longer relevant"""
 
     relevant_after_timestamp: datetime | None = field(
         default=None,
-        metadata={"description": "The timestamp of when the memory becomes relevant"},
+        metadata={
+            "description": "The timestamp of when the memory becomes relevant",
+        },
     )
     """The timestamp of when the memory becomes relevant"""
 
-    scope: Literal["user", "thread", "tool", "agent", "architecture", "organization", "global"] = field(
+    scope: Literal[
+        "user",
+        "thread",
+        "tool",
+        "agent",
+        "architecture",
+        "organization",
+        "global",
+    ] = field(
         default="global",
         metadata={"description": "The scope of the memory"},
     )
@@ -68,23 +82,36 @@ class Memory:
     )
     """The references associated with this memory"""
 
-    weight: float = field(default=1.0, metadata={"description": "The weight of the memory"})
+    weight: float = field(
+        default=1.0,
+        metadata={"description": "The weight of the memory"},
+    )
     """The weight of the memory"""
 
-    embedded: bool = field(default=False, metadata={"description": "Whether the memory is embedded"})
+    embedded: bool = field(
+        default=False,
+        metadata={"description": "Whether the memory is embedded"},
+    )
     """Whether the memory is embedded"""
 
-    embedding: list[float] | None = field(default=None, metadata={"description": "The embedding of the memory"})
+    embedding: list[float] | None = field(
+        default=None,
+        metadata={"description": "The embedding of the memory"},
+    )
     """The embedding of the memory"""
 
     embedding_id: str | None = field(
         default=None,
-        metadata={"description": "The ID of the linked embedding (possibly stored externally)"},
+        metadata={
+            "description": "The ID of the linked embedding"
+                "(possibly stored externally)",
+        },
     )
     """The ID of the linked embedding (possibly stored externally)"""
 
     def to_json_dict(self) -> dict:
-        """Serializes the memory entry to a dictionary. Useful for JSON serialization."""
+        """Serializes the memory entry to a dictionary.
+        Useful for JSON serialization."""
         return {
             "memory_id": self.memory_id,
             "original_text": self.original_text,
@@ -92,10 +119,12 @@ class Memory:
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
             "relevant_until_timestamp": (
-                self.relevant_until_timestamp.isoformat() if self.relevant_until_timestamp else None
+                self.relevant_until_timestamp.isoformat()
+                if self.relevant_until_timestamp else None
             ),
             "relevant_after_timestamp": (
-                self.relevant_after_timestamp.isoformat() if self.relevant_after_timestamp else None
+                self.relevant_after_timestamp.isoformat()
+                if self.relevant_after_timestamp else None
             ),
             "scope": self.scope,
             "metadata": self.metadata,
@@ -110,11 +139,17 @@ class Memory:
     def from_dict(cls, data: dict) -> "Memory":
         """Create a memory from a dictionary."""
         data = data.copy()
-        
-        datetime_fields = ["created_at", "updated_at", "relevant_until_timestamp", "relevant_after_timestamp"]
+
+        datetime_fields = [
+            "created_at",
+            "updated_at",
+            "relevant_until_timestamp",
+            "relevant_after_timestamp",
+        ]
         for df_field in datetime_fields:
-            if df_field in data and data[df_field] is not None and isinstance(data[df_field], str):
-                data[df_field] = datetime.fromisoformat(data[df_field])
+            if df_field in data and data[df_field] is not None:
+                if isinstance(data[df_field], str):
+                    data[df_field] = datetime.fromisoformat(data[df_field])
         if "memory_id" in data and isinstance(data["memory_id"], UUID):
             data["memory_id"] = str(data["memory_id"])
 

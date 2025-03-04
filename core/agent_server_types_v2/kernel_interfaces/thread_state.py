@@ -22,7 +22,8 @@ from agent_server_types_v2.thread.content import (
 
 
 class ThreadMessageWithThreadState:
-    """A ThreadMessage that includes thread state functionality for streaming and committing."""
+    """A ThreadMessage that includes thread state functionality for
+    streaming and committing."""
 
     def __init__(
         self,
@@ -61,7 +62,8 @@ class ThreadMessageWithThreadState:
         """Appends content to this message.
 
         Args:
-            content: Either a content object or a string. If a string, it will be treated as text content.
+            content: Either a content object or a string. If a string,
+                it will be treated as text content.
         """
         if self._message.commited:
             raise ValueError("Cannot add content to a committed message")
@@ -127,7 +129,8 @@ class ThreadStateInterface(ABC):
         self._previous_message_states: dict[str, ThreadMessage | None] = {}
         """A map of message UIDs to the message state, to aid in computing deltas."""
         self._previous_message_sequence_numbers: dict[str, int] = {}
-        """A map of message UIDs to the sequence number of the message, to aid in computing deltas."""
+        """A map of message UIDs to the sequence number of the message,
+        to aid in computing deltas."""
 
     @property
     def thread_id(self) -> str:
@@ -283,8 +286,8 @@ class ThreadStateInterface(ABC):
         """Sends a delta event to the UI.
 
         Arguments:
-            delta_object: The computed delta between the previous and current message state.
-                        Contains the changes that need to be sent to the UI.
+            delta_object: The computed delta between the previous and current
+                message state. Contains the changes that need to be sent to the UI.
 
         Raises:
             StreamingError: If the delta cannot be sent to the UI.

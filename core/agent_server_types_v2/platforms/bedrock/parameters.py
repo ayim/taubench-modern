@@ -86,8 +86,8 @@ class BedrockPlatformParameters(PlatformParameters):
         default=None,
         metadata={
             "description": "API version to use for the AWS service. Generally should "
-            "be left as None to use the latest available version. Only set this if you need "
-            "to use a specific API version for compatibility.",
+            "be left as None to use the latest available version. Only set this if "
+            "you need a specific API version for compatibility.",
             "example": "2023-04-20",
         },
     )
