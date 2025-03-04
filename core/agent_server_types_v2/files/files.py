@@ -1,6 +1,10 @@
 from dataclasses import dataclass
 from datetime import datetime
+from typing import TYPE_CHECKING
 from uuid import UUID
+
+if TYPE_CHECKING:
+    from fastapi import UploadFile
 
 
 @dataclass(frozen=True)
@@ -54,10 +58,11 @@ class UploadedFile:
         if "thread_id" in data and isinstance(data["thread_id"], UUID):
             data["thread_id"] = str(data["thread_id"])
         if "file_path_expiration" in data and isinstance(
-            data["file_path_expiration"], str
+            data["file_path_expiration"],
+            str,
         ):
             data["file_path_expiration"] = datetime.fromisoformat(
-                data["file_path_expiration"]
+                data["file_path_expiration"],
             )
         if "created_at" in data and isinstance(data["created_at"], str):
             data["created_at"] = datetime.fromisoformat(data["created_at"])
@@ -69,7 +74,7 @@ class UploadedFile:
 class UploadFileRequest:
     """Represents a request to upload a file."""
 
-    file: UploadedFile
+    file: "UploadFile"
     """The file to upload."""
 
     embedded: bool = False
