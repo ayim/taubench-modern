@@ -27,26 +27,39 @@ anthropic = { version = ">=0.41.3", optional = true }
 # content support)
 pillow = { version = ">=11.1.0", optional = true }
 IPython = { version = ">=8.31.0", optional = true }
+boto3 = { version = ">=1.36.9", optional = true }
+types-boto3 = { version = ">=1.36.9", extras = [
+    "bedrock",
+    "bedrock-runtime",
+], optional = true }
 
 
 [tool.poetry.extras]
 # Legacy dependencies (langchain/pydantic can
 # eventually be dropped, hopefully)
 legacy = ["pydantic", "langchain-core"]
-# We can have provider-specific "extras" so
-# that installs can include only the provider
+# We can have platform-specific "extras" so
+# that installs can include only the platform
 # dependencies that are needed. We will need
 # to write the code carefully to support this
 # approach (e.g., using TYPE_CHECKING to
-# conditionally import provider-specific
-# types; importing provider-specific code inside
-# a provider-specific function, etc.).
-providers-google = ["google-generativeai"]
-providers-openai = ["openai"]
-providers-anthropic = ["anthropic"]
-# Convenience extras for installing all providers
+# conditionally import platform-specific
+# types; importing platform-specific code inside
+# a platform-specific function, etc.).
+platforms-snowflake = ["snowflake-connector-python"]
+platforms-openai = ["openai"]
+platforms-anthropic = ["anthropic"]
+platforms-aws = ["boto3", "types-boto3"]
+# Convenience extras for installing all platforms
 # at once.
-providers-all = ["google-generativeai", "openai", "anthropic"]
+platforms-all = [
+    "google-generativeai",
+    "openai",
+    "anthropic",
+    "snowflake-connector-python",
+    "boto3",
+    "types-boto3",
+]
 
 
 [tool.poetry.group.lint.dependencies]
@@ -128,6 +141,7 @@ select = [
     "W",
     "C90",
 ]
+ignore = ["PLR0913"]
 fixable = ["ALL"]
 unfixable = []
 

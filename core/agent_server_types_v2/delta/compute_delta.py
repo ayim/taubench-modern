@@ -2,6 +2,7 @@
 generic objects (they must be JSON serializable).
 """
 
+from copy import deepcopy
 from typing import Any
 
 from jsonpatch import JsonPatch
@@ -9,21 +10,21 @@ from jsonpatch import JsonPatch
 from agent_server_types_v2.delta.base import NO_VALUE, GenericDelta
 
 
-def compute_generic_delta(
+def compute_generic_deltas(
     old_val: Any,
     new_val: Any,
     path: str = "",
 ) -> list[GenericDelta]:
-    """Compute the delta between two generic values.
+    """Compute the deltas between two generic values.
 
     Uses specialized delta computations for our custom operations where possible
     (string concatenation, increments) and falls back to standard
     JSON Patch operations for everything else.
 
     Arguments:
-        old_val: The old metadata value.
-        new_val: The new metadata value.
-        path: The path to the metadata value.
+        old_val: The old value.
+        new_val: The new value.
+        path: The path to the value.
 
     Returns:
         The list of delta operations to apply.
@@ -137,7 +138,7 @@ def _compute_delta_list(path: str, old: list, new: list) -> list[GenericDelta]:
     for i in range(min(len(old), len(new))):
         if old[i] != new[i]:
             # Recursively compute delta for this index
-            sub_ops = compute_generic_delta(old[i], new[i], _sub_path(path, i))
+            sub_ops = compute_generic_deltas(old[i], new[i], _sub_path(path, i))
             ops.extend(sub_ops)
 
     # 2) Add new items
@@ -146,7 +147,7 @@ def _compute_delta_list(path: str, old: list, new: list) -> list[GenericDelta]:
             GenericDelta(
                 op="add",
                 path=_sub_path(path, i),
-                value=new[i],
+                value=deepcopy(new[i]),
             ),
         )
 
@@ -175,24 +176,24 @@ def _compute_delta_dict(path: str, old: dict, new: dict) -> list[GenericDelta]:
     ops = []
 
     # 1) Keys removed => use standard remove ops
-    removed_keys = set(old.keys()) - set(new.keys())
+    removed_keys = [k for k in old if k not in new]
     for k in removed_keys:
         ops.append(GenericDelta(op="remove", path=_sub_path(path, k), value=NO_VALUE))
 
     # 2) Keys in both => compute sub-delta
-    common_keys = set(old.keys()) & set(new.keys())
+    common_keys = [k for k in old if k in new]
     for k in common_keys:
-        sub_ops = compute_generic_delta(old[k], new[k], _sub_path(path, k))
+        sub_ops = compute_generic_deltas(old[k], new[k], _sub_path(path, k))
         ops.extend(sub_ops)
 
-    # 3) Brand-new keys => use standard add ops
-    added_keys = set(new.keys()) - set(old.keys())
+    # 3) Brand-new keys => use standard add ops in the order they appear in new dict
+    added_keys = [k for k in new if k not in old]
     for k in added_keys:
         ops.append(
             GenericDelta(
                 op="add",
                 path=_sub_path(path, k),
-                value=new[k],
+                value=deepcopy(new[k]),
             ),
         )
 

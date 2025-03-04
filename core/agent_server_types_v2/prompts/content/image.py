@@ -30,8 +30,12 @@ class PromptImageContent(PromptMessageContent):
     )
     """The image data - either a URL or base64 encoded string, or raw bytes"""
 
-    type: Literal["image"] = field(default="image")
-    """Message type identifier, always 'image'"""
+    kind: Literal["image"] = field(
+        default="image",
+        init=False,
+        metadata={"description": "Message kind identifier, always 'image'"},
+    )
+    """Message kind identifier, always 'image'"""
 
     sub_type: Literal["url", "base64", "raw_bytes"] = field(
         default="url",
@@ -42,7 +46,8 @@ class PromptImageContent(PromptMessageContent):
     """Format of the image data - either a URL or base64 encoded string, or raw bytes"""
 
     detail: Literal["low_res", "high_res"] = field(
-        default="high_res", metadata={"description": "Resolution quality of the image"},
+        default="high_res",
+        metadata={"description": "Resolution quality of the image"},
     )
     """Resolution quality of the image"""
 
@@ -57,7 +62,7 @@ class PromptImageContent(PromptMessageContent):
             ValueError: If the image value is empty or if base64 data is invalid.
         """
         # Validate literal values
-        assert_literal_value_valid(self, "type")
+        assert_literal_value_valid(self, "kind")
         assert_literal_value_valid(self, "sub_type")
         assert_literal_value_valid(self, "detail")
         assert_literal_value_valid(self, "mime_type")
@@ -191,3 +196,23 @@ class PromptImageContent(PromptMessageContent):
         raise ValueError(
             "IPython Image must either have a valid filename or data content",
         )
+
+    def model_dump(self) -> dict:
+        """Returns a dictionary representation suitable for serialization."""
+        return {
+            **super().model_dump(),
+            "mime_type": self.mime_type,
+            "value": self.value,
+            "sub_type": self.sub_type,
+            "detail": self.detail,
+        }
+
+    @classmethod
+    def model_validate(cls, data: dict) -> "PromptImageContent":
+        """Create an image content from a dictionary."""
+        data = data.copy()
+        return cls(**data)
+
+
+# Register this content type with the base class
+PromptMessageContent.register_content_kind("image", PromptImageContent)

@@ -22,11 +22,12 @@ class PromptAudioContent(PromptMessageContent):
     value: str = field(metadata={"description": "The base64 encoded audio data"})
     """The base64 encoded audio data"""
 
-    type: Literal["audio"] = field(
+    kind: Literal["audio"] = field(
         default="audio",
-        metadata={"description": "Message type identifier, always 'audio'"},
+        init=False,
+        metadata={"description": "Message kind identifier, always 'audio'"},
     )
-    """Message type identifier, always 'audio'"""
+    """Message kind identifier, always 'audio'"""
 
     sub_type: Literal["base64", "url"] = field(
         default="base64",
@@ -47,7 +48,7 @@ class PromptAudioContent(PromptMessageContent):
             ValueError: If the audio value is empty or if base64 data is invalid.
         """
         # Validate literal values
-        assert_literal_value_valid(self, "type")
+        assert_literal_value_valid(self, "kind")
         assert_literal_value_valid(self, "sub_type")
         assert_literal_value_valid(self, "mime_type")
 
@@ -61,3 +62,22 @@ class PromptAudioContent(PromptMessageContent):
                 b64decode(self.value, validate=True)
             except Exception as e:
                 raise ValueError("Audio value is not a valid base64 string") from e
+
+    def model_dump(self) -> dict:
+        """Returns a dictionary representation suitable for serialization."""
+        return {
+            **super().model_dump(),
+            "mime_type": self.mime_type,
+            "value": self.value,
+            "sub_type": self.sub_type,
+        }
+
+    @classmethod
+    def model_validate(cls, data: dict) -> "PromptAudioContent":
+        """Create an audio content from a dictionary."""
+        data = data.copy()
+        return cls(**data)
+
+
+# Register this content type with the base class
+PromptMessageContent.register_content_kind("audio", PromptAudioContent)

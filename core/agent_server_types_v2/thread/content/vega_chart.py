@@ -102,13 +102,18 @@ class ThreadVegaChartContent(ThreadMessageContent):
         chart_spec_clean = json.dumps(self.chart_spec, indent=2)
         return f"```{self.sub_type}\n{chart_spec_clean}\n```"
 
-    def model_dump_json(self) -> dict:
+    def model_dump(self) -> dict:
         """Serializes the vega chart content to a dictionary. Useful for JSON serialization."""
         return {
-            **super().model_dump_json(),
+            **super().model_dump(),
             "chart_spec_raw": self.chart_spec_raw,
             "sub_type": self.sub_type,
+            "completed": self.completed,
         }
+
+    def model_dump_json(self) -> str:
+        """Serializes the vega chart content to a JSON string."""
+        return json.dumps(self.model_dump())
 
     @classmethod
     def model_validate(cls, data: dict) -> "ThreadVegaChartContent":

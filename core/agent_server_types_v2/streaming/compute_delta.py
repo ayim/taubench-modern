@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from agent_server_types_v2.delta import compute_generic_delta
+from agent_server_types_v2.delta import compute_generic_deltas
 from agent_server_types_v2.streaming.delta import StreamingDeltaMessageContent
 from agent_server_types_v2.thread.base import ThreadMessage
 
@@ -34,7 +34,7 @@ def compute_message_delta(
         new_as_dict.pop("updated_at")
 
     deltas: list[StreamingDeltaMessageContent] = []
-    for i, delta in enumerate(compute_generic_delta(old_as_dict, new_as_dict)):
+    for i, delta in enumerate(compute_generic_deltas(old_as_dict, new_as_dict)):
         deltas.append(
             StreamingDeltaMessageContent(
                 sequence_number=sequence_number + i,

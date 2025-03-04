@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from agent_server_types_v2.models import ModelResponse
+from agent_server_types_v2.responses import ResponseMessage
 from agent_server_types_v2.tools import ToolDefinition, ToolExecutionResult
 
 
@@ -9,7 +9,9 @@ class ToolsInterface(ABC):
 
     @abstractmethod
     async def execute_tools_from_model_response(
-        self, tools: list[ToolDefinition], response: ModelResponse,
+        self,
+        tools: list[ToolDefinition],
+        response: ResponseMessage,
     ) -> list[ToolExecutionResult]:
         """Executes tools from a model response.
 

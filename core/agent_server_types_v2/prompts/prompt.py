@@ -1,9 +1,11 @@
 from dataclasses import dataclass, field
+from typing import Literal
 
 from agent_server_types_v2.prompts.messages import (
     PromptAgentMessage,
     PromptUserMessage,
 )
+from agent_server_types_v2.tools.tool_definition import ToolDefinition
 
 
 @dataclass(frozen=True)
@@ -36,6 +38,32 @@ class Prompt:
     )
     """Conversation history with strict user-agent interleaving (messages must alternate
     between groups of user and agent messages, starting with a user message)"""
+
+    tools: list[ToolDefinition] = field(
+        default_factory=list,
+        metadata={
+            "description": (
+                "Definitions of the tools provided to the model "
+                "for use when generating responses"
+            ),
+        },
+    )
+    """Definitions of the tools provided to the model for use when generating responses"""
+
+    tool_choice: Literal["auto", "any"] | str = field(
+        default="auto",
+        metadata={
+            "description": (
+                "The tool to use for the prompt; if not provided, "
+                "the model will decide which tool to use. You may specificy 'auto', "
+                "'any', or the name of a specific tool."
+            ),
+        },
+    )
+    """The tool to use for the prompt; if not provided, the model will decide which tool to use.
+    You may specificy 'auto', 'any', or the name of a specific tool."""
+
+    # TODO: We need to add more useful documentation related to temperature, top_p, etc.
 
     temperature: float | None = field(
         default=None,
@@ -113,3 +141,11 @@ class Prompt:
         # Validate message sequence starts with user
         if self.messages and not isinstance(self.messages[0], PromptUserMessage):
             raise ValueError("Message sequence must start with a user message")
+
+        # Validate tool choice is valid
+        if self.tool_choice not in ["auto", "any", *[tool.name for tool in self.tools]]:
+            raise ValueError(
+                f"Invalid tool choice: {self.tool_choice}. "
+                f"Must be 'auto', 'any', or the name of a provided "
+                f"tool.{' Available tools: ' + ', '.join(self.tools)}",
+            )

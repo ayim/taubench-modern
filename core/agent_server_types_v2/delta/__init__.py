@@ -36,12 +36,12 @@ from agent_server_types_v2.delta.base import (
     GenericDelta,
 )
 from agent_server_types_v2.delta.combine_delta import combine_generic_deltas
-from agent_server_types_v2.delta.compute_delta import compute_generic_delta
+from agent_server_types_v2.delta.compute_delta import compute_generic_deltas
 
 __all__ = [
     "NO_VALUE",
     "DeltaOpType",
     "GenericDelta",
     "combine_generic_deltas",
-    "compute_generic_delta",
+    "compute_generic_deltas",
 ]

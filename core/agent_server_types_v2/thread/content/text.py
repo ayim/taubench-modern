@@ -1,3 +1,4 @@
+import json
 from dataclasses import dataclass, field
 from typing import Literal
 
@@ -44,6 +45,10 @@ class Citation:
             "end_char_index": self.end_char_index,
             "cited_text": self.cited_text,
         }
+
+    def model_dump_json(self) -> str:
+        """Serializes the citation to a JSON string."""
+        return json.dumps(self.model_dump())
 
     @classmethod
     def model_validate(cls, data: dict) -> "Citation":
@@ -104,6 +109,10 @@ class ThreadTextContent(ThreadMessageContent):
             "citations": [citation.model_dump() for citation in self.citations],
         }
 
+    def model_dump_json(self) -> str:
+        """Serializes the text content to a JSON string."""
+        return json.dumps(self.model_dump())
+
     @classmethod
     def model_validate(cls, data: dict) -> "ThreadTextContent":
         """Create a thread text content from a dictionary."""
@@ -127,7 +136,7 @@ class TextDelta(ContentDelta):
 
     def as_thread_message_content(self) -> "ThreadTextContent":
         """Convert the text delta to a thread text content."""
-        return ThreadTextContent(text=self.delta.text)
 
 
 ThreadMessageContent.register_content_kind("text", ThreadTextContent)
+ContentDelta.register_content_kind("text", TextDelta)

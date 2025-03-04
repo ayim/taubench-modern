@@ -171,7 +171,8 @@ def _convert_tool_result_content(
         else:
             # TODO: image outputs? (Doesn't have the special handling like Anthropic)
             raise ValueError(
-                f"Unsupported sub-content in tool_result: {sub.type}. " "Extend logic if you want more detail.",
+                f"Unsupported sub-content in tool_result: {sub.type}. "
+                "Extend logic if you want more detail.",
             )
 
     return FunctionResponse(
@@ -192,7 +193,7 @@ def convert_content_item_to_gemini_part(
 
     Raises ValueError if unrecognized content_item.type.
     """
-    ctype = content_item.type
+    ctype = content_item.kind
     if ctype == "text":
         return _convert_text_content(content_item)
     elif ctype == "image":

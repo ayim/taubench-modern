@@ -15,7 +15,7 @@ from agent_server_types_v2.kernel_interfaces import (
     EventsInterface,
     FilesInterface,
     MemoryInterface,
-    ModelsInterface,
+    PlatformInterface,
     PromptsInterface,
     RunbookInterface,
     StorageInterface,
@@ -43,7 +43,7 @@ class Kernel(ABC):
             Agent: The agent bound to this kernel instance.
         """
         pass
-            
+
     @property
     @abstractmethod
     def user(self) -> User:
@@ -53,7 +53,7 @@ class Kernel(ABC):
             User: The user bound to this kernel instance.
         """
         pass
-    
+
     @property
     @abstractmethod
     def thread(self) -> Thread:
@@ -124,15 +124,20 @@ class Kernel(ABC):
 
     @property
     @abstractmethod
-    def models(self) -> ModelsInterface:
-        """Interface for interacting with the agent's configured model (LLM).
+    def platform(self) -> PlatformInterface:
+        """Interface for interacting with the agent's model (LLM) platform.
 
-        Every agent has a model (LLM) configured so it can act intelligently. This
-        API provides a way to interact with the model defined for the agent.
+        Every agent (and the kernel in general) has a model (LLM) platform
+        configured so it can act intelligently. This API provides a way to
+        interact with the model defined for the agent.
 
         Returns:
-            ModelsInterface: Interface for model interactions.
+            PlatformInterface: Interface for model interactions.
         """
+        # TODO: This implementation follows the idea that a user does not configure
+        # the model in the agent but instead configures a default platform for the
+        # kernel and then the agent architecture or the default model selector will
+        # select the model from the platform.
         pass
 
     @property

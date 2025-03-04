@@ -7,7 +7,7 @@ import pytest
 from agent_server_types_v2.delta import GenericDelta
 from agent_server_types_v2.delta.base import NO_VALUE
 from agent_server_types_v2.delta.combine_delta import combine_generic_deltas
-from agent_server_types_v2.delta.compute_delta import compute_generic_delta
+from agent_server_types_v2.delta.compute_delta import compute_generic_deltas
 from agent_server_types_v2.delta.errors import InvalidPathError
 from agent_server_types_v2.delta.utils import validate_delta_path
 
@@ -112,7 +112,7 @@ class TestGenericDelta:
             "06_move_invalid_source",
         ],
     )
-    def test_generic_delta_path_validation(  # noqa: PLR0913
+    def test_generic_delta_path_validation(
         self,
         op: str,
         path: str,
@@ -356,7 +356,7 @@ class TestGenericDelta:
             "30_invalid_object_path_on_nested_array",
         ],
     )
-    def test_generic_delta_path_validation_with_initial_value(  # noqa: PLR0913
+    def test_generic_delta_path_validation_with_initial_value(
         self,
         op: str,
         path: str,
@@ -496,7 +496,7 @@ class TestComputeGenericDeltas:
         ],
     )
     def test_compute_generic_delta(self, old_val, new_val, expected_ops):
-        ops = compute_generic_delta(old_val, new_val, path="")
+        ops = compute_generic_deltas(old_val, new_val, path="")
         # Compare lists of GenericDelta objects
         # Because we can't directly compare dataclasses with lists unless you
         # explicitly handle them, do a length and then field-by-field check:
@@ -526,7 +526,7 @@ class TestComputeGenericDeltas:
             },
         }
 
-        ops = compute_generic_delta(old, new)
+        ops = compute_generic_deltas(old, new)
         # We expect:
         # 1) "name" => "concat_string" with " B"
         # 2) "scores" => add with value 30 at index 2

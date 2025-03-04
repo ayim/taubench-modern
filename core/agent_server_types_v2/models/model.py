@@ -72,7 +72,7 @@ class Model:
             "type": self.type,
             "deprecated": self.deprecated,
         }
-    
+
     @classmethod
     def from_dict(cls, data: dict) -> "Model":
         """Create a model from a dictionary."""
@@ -167,6 +167,8 @@ class Models:
         type="llm",
     )
 
+    # TODO: We need to reconsider how the model types work considering how the platforms
+    # are implemented with things like the ModelMap.
     ANTHROPIC_CLAUDE_3_5_SONNET: ClassVar[Model] = Model(
         name="claude-3-5-sonnet",
         scoped_name="anthropic/claude-3-5-sonnet",

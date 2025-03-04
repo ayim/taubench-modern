@@ -1,3 +1,4 @@
+import json
 from dataclasses import dataclass, field
 from typing import Literal
 
@@ -41,12 +42,16 @@ class ThreadThoughtContent(ThreadMessageContent):
         """Converts the text content to a text content component."""
         return self.thought
 
-    def model_dump_json(self) -> dict:
-        """Serializes the text content to a dictionary. Useful for JSON serialization."""
+    def model_dump(self) -> dict:
+        """Serializes the thought content to a dictionary. Useful for JSON serialization."""
         return {
-            **super().model_dump_json(),
+            **super().model_dump(),
             "thought": self.thought,
         }
+
+    def model_dump_json(self) -> str:
+        """Serializes the thought content to a JSON string."""
+        return json.dumps(self.model_dump())
 
     @classmethod
     def model_validate(cls, data: dict) -> "ThreadThoughtContent":

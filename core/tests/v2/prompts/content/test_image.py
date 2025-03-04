@@ -44,7 +44,7 @@ class TestPromptImageContent:
         assert content.mime_type == "image/jpeg"
         assert content.value == "https://picsum.photos/200/300"
         assert content.sub_type == "url"
-        assert content.type == "image"  # default is always 'image'
+        assert content.kind == "image"  # default is always 'image'
         assert content.detail == "high_res"  # default
 
     def test_init_with_empty_value(self):
@@ -59,37 +59,46 @@ class TestPromptImageContent:
             "QVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
         )
         content = PromptImageContent(
-            mime_type="image/png", value=base64_value, sub_type="base64",
+            mime_type="image/png",
+            value=base64_value,
+            sub_type="base64",
         )
         assert content.mime_type == "image/png"
         assert content.value == base64_value
         assert content.sub_type == "base64"
-        assert content.type == "image"
+        assert content.kind == "image"
 
     def test_init_with_invalid_base64(self):
         """Test initialization with invalid base64 data."""
         with pytest.raises(
-            ValueError, match="Image value is not a valid base64 string",
+            ValueError,
+            match="Image value is not a valid base64 string",
         ):
             PromptImageContent(
-                mime_type="image/png", value="not_valid_base64", sub_type="base64",
+                mime_type="image/png",
+                value="not_valid_base64",
+                sub_type="base64",
             )
 
     def test_init_with_raw_bytes_success(self):
         """Test initialization with valid raw bytes."""
         dummy_bytes = b"\x89PNG\r\n\x1a\n"  # Some plausible PNG header
         content = PromptImageContent(
-            mime_type="image/png", value=dummy_bytes, sub_type="raw_bytes",
+            mime_type="image/png",
+            value=dummy_bytes,
+            sub_type="raw_bytes",
         )
         assert content.value == dummy_bytes
         assert content.sub_type == "raw_bytes"
-        assert content.type == "image"
+        assert content.kind == "image"
 
     def test_init_with_raw_bytes_invalid_type(self):
         """Test initialization with 'raw_bytes' sub_type but non-bytes value."""
         with pytest.raises(ValueError, match="Image value must be bytes"):
             PromptImageContent(
-                mime_type="image/png", value="not_bytes", sub_type="raw_bytes",
+                mime_type="image/png",
+                value="not_bytes",
+                sub_type="raw_bytes",
             )
 
     #
@@ -109,7 +118,9 @@ class TestPromptImageContent:
         """Test initialization with invalid 'sub_type' literal."""
         with pytest.raises(ValueError, match="Invalid value for 'sub_type'"):
             PromptImageContent(
-                mime_type="image/jpeg", value="some_url", sub_type="invalid_subtype",
+                mime_type="image/jpeg",
+                value="some_url",
+                sub_type="invalid_subtype",
             )
 
     def test_init_with_invalid_detail_literal(self):
@@ -125,7 +136,10 @@ class TestPromptImageContent:
     def test_init_with_low_res_detail(self):
         """Test initialization with a valid 'low_res' detail."""
         content = PromptImageContent(
-            mime_type="image/jpeg", value="some_url", sub_type="url", detail="low_res",
+            mime_type="image/jpeg",
+            value="some_url",
+            sub_type="url",
+            detail="low_res",
         )
         assert content.detail == "low_res"
 
