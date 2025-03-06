@@ -13,8 +13,8 @@
     "url": "git://git@github.com/Sema4AI/agent-server.git"
   },
   "scripts": {
-    "generate:schema": "tsx ./scripts/preprocess-and-generate.ts http://localhost:8000/api/v1/openapi.json ./src/schema.ts",
-    "generate:spec": "tsx ./scripts/spec.ts http://localhost:8000/api/v1/openapi.json",
+    "generate:schema": "tsx ./scripts/preprocess-and-generate.ts http://localhost:8000/api/v1/openapi.json ./src/schema.ts && npm run format",
+    "generate:spec": "tsx ./scripts/spec.ts http://localhost:8000/api/v1/openapi.json && npm run format",
     "build:package": "tsup",
     "format": "prettier --write \"**/*.{ts,json}\"",
     "build": "npm run generate:schema && npm run generate:spec && tsup && npm run format"

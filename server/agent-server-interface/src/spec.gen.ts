@@ -8,13 +8,8 @@ export const spec = {
     title: "Sema4.ai Agent Server Private API Version 1",
     version: "1.1.4-alpha.87",
   },
-  servers: [
-    {
-      url: "/api/v1",
-    },
-  ],
   paths: {
-    "/ok": {
+    "/api/v1/ok": {
       get: {
         summary: "Ok",
         operationId: "ok_ok_get",
@@ -30,7 +25,7 @@ export const spec = {
         },
       },
     },
-    "/health": {
+    "/api/v1/health": {
       get: {
         summary: "Health",
         operationId: "health_health_get",
@@ -49,7 +44,7 @@ export const spec = {
         },
       },
     },
-    "/metrics": {
+    "/api/v1/metrics": {
       get: {
         summary: "Metrics",
         operationId: "metrics_metrics_get",
@@ -68,7 +63,7 @@ export const spec = {
         },
       },
     },
-    "/agents/": {
+    "/api/v1/agents/": {
       get: {
         tags: ["agents"],
         summary: "List Agents",
@@ -92,7 +87,7 @@ export const spec = {
         },
       },
     },
-    "/agents/raw": {
+    "/api/v1/agents/raw": {
       get: {
         tags: ["agents"],
         summary: "List Raw Agents",
@@ -116,7 +111,7 @@ export const spec = {
         },
       },
     },
-    "/agents/{aid}": {
+    "/api/v1/agents/{aid}": {
       get: {
         tags: ["agents"],
         summary: "Get Agent",
@@ -251,7 +246,7 @@ export const spec = {
         },
       },
     },
-    "/agents/{aid}/raw": {
+    "/api/v1/agents/{aid}/raw": {
       get: {
         tags: ["agents"],
         summary: "Get Raw Agent",
@@ -294,7 +289,7 @@ export const spec = {
         },
       },
     },
-    "/agents/{aid}/status": {
+    "/api/v1/agents/{aid}/status": {
       get: {
         tags: ["agents"],
         summary: "Get Agent Status",
@@ -336,7 +331,7 @@ export const spec = {
         },
       },
     },
-    "/agents/package/{aid}": {
+    "/api/v1/agents/package/{aid}": {
       put: {
         tags: ["agents"],
         summary: "Upsert Agent Via Package",
@@ -388,7 +383,7 @@ export const spec = {
         },
       },
     },
-    "/agents/package": {
+    "/api/v1/agents/package": {
       post: {
         tags: ["agents"],
         summary: "Create Agent Via Package",
@@ -427,7 +422,7 @@ export const spec = {
         },
       },
     },
-    "/agents": {
+    "/api/v1/agents": {
       post: {
         tags: ["agents"],
         summary: "Create Agent",
@@ -467,7 +462,7 @@ export const spec = {
         },
       },
     },
-    "/agents/{aid}/files": {
+    "/api/v1/agents/{aid}/files": {
       get: {
         tags: ["agents"],
         summary: "Get Agent Files",
@@ -569,7 +564,7 @@ export const spec = {
         },
       },
     },
-    "/agents/{aid}/action-server-config": {
+    "/api/v1/agents/{aid}/action-server-config": {
       put: {
         tags: ["agents"],
         summary: "Update Action Server Config",
@@ -624,7 +619,7 @@ export const spec = {
         },
       },
     },
-    "/agents/{aid}/metrics": {
+    "/api/v1/agents/{aid}/metrics": {
       get: {
         tags: ["agents"],
         summary: "Get Agent Stats",
@@ -668,7 +663,7 @@ export const spec = {
         },
       },
     },
-    "/runs/async_invoke": {
+    "/api/v1/runs/async_invoke": {
       post: {
         tags: ["runs"],
         summary: "Create Run",
@@ -706,7 +701,7 @@ export const spec = {
         },
       },
     },
-    "/runs/{rid}/status": {
+    "/api/v1/runs/{rid}/status": {
       get: {
         tags: ["runs"],
         summary: "Get Run Status",
@@ -744,7 +739,7 @@ export const spec = {
         },
       },
     },
-    "/runs/stream": {
+    "/api/v1/runs/stream": {
       post: {
         tags: ["runs"],
         summary: "Stream Run",
@@ -807,7 +802,7 @@ export const spec = {
         },
       },
     },
-    "/runs/invoke": {
+    "/api/v1/runs/invoke": {
       post: {
         tags: ["runs"],
         summary: "Invoke Run",
@@ -845,7 +840,7 @@ export const spec = {
         },
       },
     },
-    "/threads/": {
+    "/api/v1/threads/": {
       get: {
         tags: ["threads"],
         summary: "List Threads",
@@ -869,7 +864,7 @@ export const spec = {
         },
       },
     },
-    "/threads/{tid}/state": {
+    "/api/v1/threads/{tid}/state": {
       get: {
         tags: ["threads"],
         summary: "Get Thread State",
@@ -955,7 +950,7 @@ export const spec = {
         },
       },
     },
-    "/threads/{tid}/history": {
+    "/api/v1/threads/{tid}/history": {
       get: {
         tags: ["threads"],
         summary: "Get Thread History",
@@ -994,7 +989,7 @@ export const spec = {
         },
       },
     },
-    "/threads/{tid}": {
+    "/api/v1/threads/{tid}": {
       get: {
         tags: ["threads"],
         summary: "Get Thread",
@@ -1121,7 +1116,7 @@ export const spec = {
         },
       },
     },
-    "/threads": {
+    "/api/v1/threads": {
       post: {
         tags: ["threads"],
         summary: "Create Thread",
@@ -1161,7 +1156,7 @@ export const spec = {
         },
       },
     },
-    "/threads/{tid}/file-by-ref": {
+    "/api/v1/threads/{tid}/file-by-ref": {
       get: {
         tags: ["threads"],
         summary: "Get File By Ref",
@@ -1210,7 +1205,7 @@ export const spec = {
         },
       },
     },
-    "/threads/{tid}/files/download/": {
+    "/api/v1/threads/{tid}/files/download/": {
       get: {
         tags: ["threads"],
         summary: "Download File By Ref",
@@ -1257,7 +1252,7 @@ export const spec = {
         },
       },
     },
-    "/threads/{tid}/files": {
+    "/api/v1/threads/{tid}/files": {
       get: {
         tags: ["threads"],
         summary: "Get Thread Files",
@@ -1373,7 +1368,7 @@ export const spec = {
         },
       },
     },
-    "/threads/{tid}/files/request-upload": {
+    "/api/v1/threads/{tid}/files/request-upload": {
       post: {
         tags: ["threads"],
         summary: "Request Remote File Upload",
@@ -1424,7 +1419,7 @@ export const spec = {
         },
       },
     },
-    "/threads/{tid}/files/confirm-upload": {
+    "/api/v1/threads/{tid}/files/confirm-upload": {
       post: {
         tags: ["threads"],
         summary: "Confirm Remote File Upload",
@@ -1475,7 +1470,7 @@ export const spec = {
         },
       },
     },
-    "/threads/{tid}/context-stats": {
+    "/api/v1/threads/{tid}/context-stats": {
       get: {
         tags: ["threads"],
         summary: "Context Stats",
