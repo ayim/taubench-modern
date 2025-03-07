@@ -35,7 +35,7 @@ CREATE TABLE v2_agent (
     agent_architecture    TEXT NOT NULL CHECK (json_valid(agent_architecture)),
     question_groups       TEXT NOT NULL CHECK (json_valid(question_groups)),
     observability_configs TEXT NOT NULL CHECK (json_valid(observability_configs)),
-    provider_configs      TEXT NOT NULL CHECK (json_valid(provider_configs)),
+    platform_configs      TEXT NOT NULL CHECK (json_valid(platform_configs)),
     extra                 TEXT NOT NULL CHECK (json_valid(extra)),
 
     CONSTRAINT fk_agent_user_id

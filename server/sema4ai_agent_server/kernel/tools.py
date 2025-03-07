@@ -5,7 +5,8 @@ from sema4ai_agent_server.kernel.kernel_mixin import UsesKernelMixin
 
 
 class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
-    """Manages building and execution of agent actions, internal tools, and CA-defined tools."""
+    """Manages building and execution of agent actions,
+    internal tools, and CA-defined tools."""
 
     async def execute_tools_from_model_response(
         self, tools: list[ToolDefinition], response: ResponseMessage,

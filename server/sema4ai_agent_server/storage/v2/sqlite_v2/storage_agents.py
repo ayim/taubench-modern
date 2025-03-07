@@ -31,7 +31,7 @@ class SQLiteStorageAgentsMixin(CommonMixin):
             rows = await cur.fetchall()
         if not rows:
             return []
-        return [Agent.from_dict(self._convert_agent_json_fields(dict(row))) for row in rows]
+        return [Agent.model_validate(self._convert_agent_json_fields(dict(row))) for row in rows]
 
     async def list_agents_v2(self, user_id: str) -> list[Agent]:
         """List all agents for the given user."""
@@ -49,7 +49,7 @@ class SQLiteStorageAgentsMixin(CommonMixin):
             rows = await cur.fetchall()
         if not rows:
             return []
-        return [Agent.from_dict(self._convert_agent_json_fields(dict(row))) for row in rows]
+        return [Agent.model_validate(self._convert_agent_json_fields(dict(row))) for row in rows]
 
     async def get_agent_v2(self, user_id: str, agent_id: str) -> Agent:
         """Get an agent by ID, raising errors if not found or no access."""
@@ -80,7 +80,7 @@ class SQLiteStorageAgentsMixin(CommonMixin):
         # Convert JSON columns and return
         row_dict = dict(row)
         row_dict.pop("has_access", None)
-        return Agent.from_dict(self._convert_agent_json_fields(row_dict))
+        return Agent.model_validate(self._convert_agent_json_fields(row_dict))
 
     async def get_agent_by_name_v2(self, user_id: str, name: str) -> Agent:
         """Get an agent by name."""
@@ -106,7 +106,7 @@ class SQLiteStorageAgentsMixin(CommonMixin):
 
         row_dict = dict(row)
         row_dict.pop("has_access", None)
-        return Agent.from_dict(self._convert_agent_json_fields(row_dict))
+        return Agent.model_validate(self._convert_agent_json_fields(row_dict))
 
     async def upsert_agent_v2(self, user_id: str, agent: Agent) -> None:
         """Create or update an agent, enforcing user access similar to Postgres."""
@@ -114,14 +114,14 @@ class SQLiteStorageAgentsMixin(CommonMixin):
         self._validate_uuid(agent.agent_id)
 
         # Convert the agent to a dict; JSON-ify the complex fields
-        agent_dict = agent.to_json_dict() | {"user_id": user_id}
+        agent_dict = agent.model_dump() | {"user_id": user_id}
         for field in [
             "runbook",
             "action_packages",
             "agent_architecture",
             "question_groups",
             "observability_configs",
-            "provider_configs",
+            "platform_configs",
             "extra",
         ]:
             agent_dict[field] = json.dumps(agent_dict[field])
@@ -133,12 +133,12 @@ class SQLiteStorageAgentsMixin(CommonMixin):
                     INSERT INTO v2_agent (
                         agent_id, name, description, user_id, runbook, version,
                         created_at, updated_at, action_packages, agent_architecture,
-                        question_groups, observability_configs, provider_configs, extra, mode
+                        question_groups, observability_configs, platform_configs, extra, mode
                     )
                     VALUES (
                         :agent_id, :name, :description, :user_id, :runbook, :version,
                         :created_at, :updated_at, :action_packages, :agent_architecture,
-                        :question_groups, :observability_configs, :provider_configs,
+                        :question_groups, :observability_configs, :platform_configs,
                         :extra, :mode
                     )
                     ON CONFLICT(agent_id) DO UPDATE SET
@@ -152,7 +152,7 @@ class SQLiteStorageAgentsMixin(CommonMixin):
                         agent_architecture = excluded.agent_architecture,
                         question_groups = excluded.question_groups,
                         observability_configs = excluded.observability_configs,
-                        provider_configs = excluded.provider_configs,
+                        platform_configs = excluded.platform_configs,
                         extra = excluded.extra,
                         mode = excluded.mode
                     WHERE v2_check_user_access(v2_agent.user_id, :user_id) = 1
@@ -244,7 +244,7 @@ class SQLiteStorageAgentsMixin(CommonMixin):
             "agent_architecture",
             "question_groups",
             "observability_configs",
-            "provider_configs",
+            "platform_configs",
             "extra",
         ]:
             if agent_dict.get(field) is not None:

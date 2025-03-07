@@ -25,7 +25,7 @@ class PostgresStorageAgentsMixin(CommonMixin):
                 return []
             
             # 3. Return all agents
-            return [Agent.from_dict(row) for row in rows]
+            return [Agent.model_validate(row) for row in rows]
 
     async def list_agents_v2(self, user_id: str) -> list[Agent]:
         """List all agents for the given user."""
@@ -46,7 +46,7 @@ class PostgresStorageAgentsMixin(CommonMixin):
                 return []
             
             # 4. Return the agents
-            return [Agent.from_dict(row) for row in rows]
+            return [Agent.model_validate(row) for row in rows]
 
     async def get_agent_v2(self, user_id: str, agent_id: str) -> Agent:
         """Get an agent by ID."""
@@ -73,7 +73,7 @@ class PostgresStorageAgentsMixin(CommonMixin):
                 raise UserAccessDeniedError(f"User {user_id} does not have access to agent {agent_id}")
 
             # 5. Return the agent
-            return Agent.from_dict(row)
+            return Agent.model_validate(row)
         
     async def get_agent_by_name_v2(self, user_id: str, name: str) -> Agent:
         """Get an agent by name."""
@@ -100,7 +100,7 @@ class PostgresStorageAgentsMixin(CommonMixin):
                 raise UserAccessDeniedError(f"User {user_id} does not have access to agent {name}")
             
             # Return the agent
-            return Agent.from_dict(row)
+            return Agent.model_validate(row)
 
     async def upsert_agent_v2(self, user_id: str, agent: Agent) -> None:
         """Create or update an agent."""
@@ -108,11 +108,11 @@ class PostgresStorageAgentsMixin(CommonMixin):
         self._validate_uuid(user_id)
 
         # 2. Convert the agent to a dictionary
-        agent_dict = agent.to_json_dict() | {"user_id": user_id}
+        agent_dict = agent.model_dump() | {"user_id": user_id}
 
         # 3. Convert dict fields to Jsonb objects for proper PostgreSQL handling
         for field in ['runbook', 'action_packages', 'agent_architecture', 
-                    'question_groups', 'observability_configs', 'provider_configs', 'extra']:
+                    'question_groups', 'observability_configs', 'platform_configs', 'extra']:
             agent_dict[field] = Jsonb(agent_dict[field])
 
         # 4. Insert the agent
@@ -122,12 +122,12 @@ class PostgresStorageAgentsMixin(CommonMixin):
                     """INSERT INTO v2.agent
                     (agent_id, name, description, user_id, runbook, version, 
                         created_at, updated_at, action_packages, agent_architecture,
-                        question_groups, observability_configs, provider_configs, extra, mode)
+                        question_groups, observability_configs, platform_configs, extra, mode)
                     VALUES (
                         %(agent_id)s::uuid, %(name)s, %(description)s, %(user_id)s::uuid,
                         %(runbook)s, %(version)s, %(created_at)s, %(updated_at)s,
                         %(action_packages)s, %(agent_architecture)s, %(question_groups)s,
-                        %(observability_configs)s, %(provider_configs)s, %(extra)s, %(mode)s
+                        %(observability_configs)s, %(platform_configs)s, %(extra)s, %(mode)s
                     )
                     ON CONFLICT (agent_id) DO UPDATE SET
                         name = EXCLUDED.name,
@@ -140,7 +140,7 @@ class PostgresStorageAgentsMixin(CommonMixin):
                         agent_architecture = EXCLUDED.agent_architecture,
                         question_groups = EXCLUDED.question_groups,
                         observability_configs = EXCLUDED.observability_configs,
-                        provider_configs = EXCLUDED.provider_configs,
+                        platform_configs = EXCLUDED.platform_configs,
                         extra = EXCLUDED.extra,
                         mode = EXCLUDED.mode
                     WHERE v2.check_user_access(v2.agent.user_id, %(user_id)s::uuid)""",

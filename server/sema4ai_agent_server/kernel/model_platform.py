@@ -1,0 +1,111 @@
+from collections.abc import AsyncGenerator
+
+from agent_server_types_v2.kernel import Kernel
+from agent_server_types_v2.kernel_interfaces.model_platform import PlatformInterface
+from agent_server_types_v2.models.model import Model
+from agent_server_types_v2.platforms.base import PlatformClient
+from agent_server_types_v2.prompts import Prompt
+from agent_server_types_v2.responses import ResponseMessage
+from agent_server_types_v2.thread import Thread
+from agent_server_types_v2.thread.content.base import ContentDelta
+from sema4ai_agent_server.kernel.kernel_mixin import UsesKernelMixin
+
+
+class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
+    """Provides interface for interacting with the agent's configured LLM."""
+
+    def __init__(self, internal_client: PlatformClient):
+        self._internal_client = internal_client
+
+    def attach_kernel(self, kernel: Kernel) -> None:
+        """Attach the kernel to the platform interface."""
+        super().attach_kernel(kernel)
+        self._internal_client.attach_kernel(kernel)
+
+    @property
+    def name(self) -> str:
+        """The name of the platform."""
+        return self._internal_client.name
+
+    @property
+    def client(self) -> PlatformClient:
+        """The client for the platform."""
+        return self._internal_client
+
+    async def generate_response(
+        self,
+        prompt: Prompt,
+        model: str,
+    ) -> ResponseMessage:
+        """Generates a response to a prompt.
+
+        Arguments:
+            prompt: The prompt to generate a response for.
+            model: The model to use to generate the response.
+
+        Returns:
+            The generated model response.
+        """
+        converted_prompt = await self._internal_client.converters.convert_prompt(prompt)
+        return await self._internal_client.generate_response(
+            converted_prompt,
+            model,
+        )
+
+    async def stream_response(
+        self,
+        prompt: Prompt,
+        model: str,
+    ) -> AsyncGenerator[ContentDelta, None]:
+        """Streams a response to a prompt.
+
+        Arguments:
+            prompt: The prompt to generate a response for.
+            model: The model to use to generate the response.
+        Returns:
+            An async generator of ThreadMessageChunk objects.
+        """
+        converted_prompt = await self._internal_client.converters.convert_prompt(prompt)
+        return await self._internal_client.generate_stream_response(
+            converted_prompt,
+            model,
+        )
+
+    async def stream_response_to_thread(
+        self,
+        prompt: Prompt,
+        model: str,
+        thread: Thread,
+    ) -> None:
+        """Streams a response to the provided thread.
+
+        Arguments:
+            prompt: The prompt to generate a response for.
+            model: The model to use to generate the response.
+            thread: The thread to stream the response to.
+        """
+        converted_prompt = await self._internal_client.converters.convert_prompt(prompt)
+        generator = await self._internal_client.generate_stream_response(
+            converted_prompt,
+            model,
+        )
+        async for chunk in generator:
+            thread.add_message(chunk)
+
+    def get_model(self, selection: str | None = None) -> Model:
+        """Uses the default model selector for the current platform to
+        return a model based on the provided selection criteria.
+
+        Args:
+            selection: Optional selection criteria, which could be a model name,
+                       quality tier, or other selector-specific identifier. If
+                       no selection is provided, the default model for the
+                       platform will be selected.
+
+        Returns:
+            The selected Model instance.
+
+        Raises:
+            ValueError: If no suitable model can be selected.
+        """
+        return "idk"

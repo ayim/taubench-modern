@@ -42,7 +42,7 @@ CREATE TABLE v2."agent" (
     agent_architecture     JSONB NOT NULL,
     question_groups        JSONB NOT NULL,
     observability_configs  JSONB NOT NULL,
-    provider_configs       JSONB NOT NULL,
+    platform_configs       JSONB NOT NULL,
     extra                  JSONB NOT NULL,
 
     CONSTRAINT fk_agent_user_id_v2

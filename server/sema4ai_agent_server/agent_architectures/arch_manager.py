@@ -3,8 +3,12 @@ import time
 from pathlib import Path
 
 from sema4ai_agent_server.agent_architectures.base_runner import BaseAgentRunner
-from sema4ai_agent_server.agent_architectures.in_process_runner import InProcessAgentRunner
-from sema4ai_agent_server.agent_architectures.out_of_process_runner import OutOfProcessAgentRunner
+from sema4ai_agent_server.agent_architectures.in_process_runner import (
+    InProcessAgentRunner,
+)
+from sema4ai_agent_server.agent_architectures.out_of_process_runner import (
+    OutOfProcessAgentRunner,
+)
 
 
 class AgentArchManager:
@@ -18,13 +22,14 @@ class AgentArchManager:
         self.in_process_allowlist = {
             ("agent_architecture_default_v2", "1.0.0"),
         }
-    
+
     async def get_runner(
         self, package_name: str, version: str, thread_id: str,
     ) -> BaseAgentRunner:
         """
-        Return a runner object for the given CA + thread. If no runner exists, create it.
-        Decide if it's in-process or out-of-process based on some logic.
+        Return a runner object for the given CA + thread. If no runner exists,
+        create it. Decide if it's in-process or out-of-process based on
+        some logic.
         """
         key = (package_name, version, thread_id)
         if key in self.active_runners:
@@ -63,7 +68,10 @@ class AgentArchManager:
             virtualenv.cli_run([str(venv_path)], program_name="virtualenv")
             # install the wheel
             wheel_path = self._find_wheel(package_name, version)
-            pip_bin = venv_path / ("Scripts" if sys.platform.startswith("win") else "bin") / "pip"
+            pip_bin = (
+                venv_path / ("Scripts" if sys.platform.startswith("win") else "bin")
+                / "pip"
+            )
             run([str(pip_bin), "install", str(wheel_path)], check=True)
 
         return venv_path
@@ -77,7 +85,8 @@ class AgentArchManager:
 
     async def cleanup_old_runners(self, max_age_seconds: int = 300):
         """
-        If you need inactivity-based cleanup, you'd track last-used times in each runner or store them in a dict.
-        Then kill them if they've been inactive too long.
+        If you need inactivity-based cleanup, you'd track last-used times in
+        each runner or store them in a dict. Then kill them if
+        they've been inactive too long.
         """
         pass

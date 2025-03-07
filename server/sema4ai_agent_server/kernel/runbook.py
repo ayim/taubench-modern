@@ -5,7 +5,8 @@ from sema4ai_agent_server.kernel.kernel_mixin import UsesKernelMixin
 
 
 class AgentServerRunbookInterface(RunbookInterface, UsesKernelMixin):
-    """Manages interaction with the agent's natural language runbook and its structured data."""
+    """Manages interaction with the agent's natural language runbook
+    and its structured data."""
 
     async def get_runbook(self) -> Runbook:
         """Returns the full runbook.
@@ -16,7 +17,8 @@ class AgentServerRunbookInterface(RunbookInterface, UsesKernelMixin):
         raise NotImplementedError("Not implemented")
 
     async def runbook_has_steps(self) -> bool:
-        """Returns True if the runbook has steps with appropriate structured metadata and False otherwise.
+        """Returns True if the runbook has steps with appropriate
+        structured metadata and False otherwise.
 
         Returns:
             True if the runbook has steps, False otherwise.

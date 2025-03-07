@@ -19,8 +19,8 @@ class AgentServerThreadStateInterface(ThreadStateInterface, UsesKernelMixin):
         """Sends a delta event to the UI.
 
         Arguments:
-            delta_object: The computed delta between the previous and current message state.
-                        Contains the changes that need to be sent to the UI.
+            delta_object: The computed delta between the previous and current
+                message state. Contains the changes that need to be sent to the UI.
 
         Raises:
             StreamingError: If the delta cannot be sent to the UI.

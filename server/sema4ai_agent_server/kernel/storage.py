@@ -10,7 +10,7 @@ class AgentServerStorageInterface(StorageInterface, UsesKernelMixin):
 
     def __init__(self):
         self._internal_storage = get_storage_v2()
-    
+
     async def put_message(self, message: ThreadMessage) -> None:
         """Puts a message into the storage."""
         await self._internal_storage.add_message_to_thread_v2(
@@ -18,19 +18,19 @@ class AgentServerStorageInterface(StorageInterface, UsesKernelMixin):
             thread_id=self.kernel.thread_state.thread_id,
             message=message,
         )
-    
+
     async def create_scoped_storage(self, scoped_storage: ScopedStorage) -> None:
         """Creates a new scoped storage record."""
         await self._internal_storage.create_scoped_storage_v2(scoped_storage)
-    
+
     async def get_scoped_storage(self, storage_id: str) -> ScopedStorage:
         """Gets a scoped storage record by its ID."""
         return await self._internal_storage.get_scoped_storage_v2(storage_id)
-    
+
     async def update_scoped_storage(self, scoped_storage: ScopedStorage) -> None:
         """Updates a scoped storage record."""
         await self._internal_storage.upsert_scoped_storage_v2(scoped_storage)
-    
+
     async def delete_scoped_storage(self, storage_id: str) -> None:
         """Deletes a scoped storage record by its ID."""
         await self._internal_storage.delete_scoped_storage_v2(storage_id)

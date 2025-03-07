@@ -45,7 +45,15 @@ class InProcessAgentRunner(BaseAgentRunner):
             self._kernel = kernel
             await self.entry_func(kernel)
         except Exception as e:
-            await self._kernel.outgoing_events.dispatch(f"Error in CA: {e}")
+            import traceback
+
+            await self._kernel.outgoing_events.dispatch(
+                {
+                    "type": "error",
+                    "message": f"Error in agent architecture: {e}",
+                    "stack_trace": traceback.format_exc(),
+                },
+            )
 
     def get_event_stream(self) -> AsyncIterator[Any]:
         return self._kernel.outgoing_events.stream()
