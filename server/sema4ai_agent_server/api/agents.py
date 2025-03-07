@@ -94,6 +94,14 @@ class AgentPayloadPackage(BaseModel):
             )
         return self
 
+class UpdateAgentPayload(BaseModel):
+    """Payload for updating an agent."""
+    name: str = Field(..., description="The name of the agent.")
+    description: str = Field(..., description="The description of the agent.")
+
+class UpdateAgentResponse(BaseModel):
+    """Response model for update_agent endpoint."""
+    updated: Agent
 
 class DeletedAgentResponse(BaseModel):
     """Response model for delete_agent endpoint."""
@@ -218,6 +226,38 @@ async def get_agent_status(user: AuthedUser, aid: AgentID):
 
     return PydanticResponse(AgentStatus(ready=len(issues) == 0, issues=issues))
 
+
+@router.put("/agent/{aid}", response_model=Agent, response_class=PydanticResponse)
+async def update_agent(
+    user: AuthedUser,
+    aid: AgentID,
+    payload: UpdateAgentPayload,
+):
+    agent = await get_storage().get_agent(user.user_id, aid)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    
+    try:
+        agent = await get_storage().put_agent(
+            aid,
+            name=payload.name,
+            description=payload.description,
+            public=agent.public,
+            runbook=agent.runbook.get_secret_value(),
+            version=agent.version,
+            model=agent.model,
+            advanced_config=agent.advanced_config,
+            action_packages=agent.action_packages,
+            metadata=agent.metadata,
+            created_at=agent.created_at,
+        )
+        
+        return PydanticResponse(agent, ser_context=LEGACY_ARCH_CONTEXT)
+    except Exception as e:
+        logger.exception("Failed to update agent", exception=e)
+        raise HTTPException(
+            status_code=400, detail=e.detail if isinstance(e, HTTPException) else str(e)
+        )
 
 @router.put("/package/{aid}", response_model=Agent, response_class=PydanticResponse)
 async def upsert_agent_via_package(
