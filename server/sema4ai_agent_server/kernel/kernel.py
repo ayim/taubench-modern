@@ -5,6 +5,7 @@ from agent_server_types_v2.kernel_interfaces import (
     EventsInterface,
     FilesInterface,
     MemoryInterface,
+    PlatformInterface,
     PromptsInterface,
     RunbookInterface,
     StorageInterface,
@@ -132,5 +133,5 @@ class AgentServerKernel(Kernel):
         return self._user_interactions
 
     @property
-    def platforms(self) -> list[AgentServerPlatformInterface]:
+    def platforms(self) -> list[PlatformInterface]:
         return self._model_platforms

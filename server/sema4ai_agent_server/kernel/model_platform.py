@@ -2,7 +2,6 @@ from collections.abc import AsyncGenerator
 
 from agent_server_types_v2.kernel import Kernel
 from agent_server_types_v2.kernel_interfaces.model_platform import PlatformInterface
-from agent_server_types_v2.models.model import Model
 from agent_server_types_v2.platforms.base import PlatformClient
 from agent_server_types_v2.prompts import Prompt
 from agent_server_types_v2.responses import ResponseMessage
@@ -46,7 +45,10 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
         Returns:
             The generated model response.
         """
-        converted_prompt = await self._internal_client.converters.convert_prompt(prompt)
+        finalized_prompt = await prompt.finalize_messages(self.kernel)
+        converted_prompt = await self._internal_client.converters.convert_prompt(
+            finalized_prompt,
+        )
         return await self._internal_client.generate_response(
             converted_prompt,
             model,
@@ -65,7 +67,10 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
         Returns:
             An async generator of ThreadMessageChunk objects.
         """
-        converted_prompt = await self._internal_client.converters.convert_prompt(prompt)
+        finalized_prompt = await prompt.finalize_messages(self.kernel)
+        converted_prompt = await self._internal_client.converters.convert_prompt(
+            finalized_prompt,
+        )
         return await self._internal_client.generate_stream_response(
             converted_prompt,
             model,
@@ -84,28 +89,13 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
             model: The model to use to generate the response.
             thread: The thread to stream the response to.
         """
-        converted_prompt = await self._internal_client.converters.convert_prompt(prompt)
+        finalized_prompt = await prompt.finalize_messages(self.kernel)
+        converted_prompt = await self._internal_client.converters.convert_prompt(
+            finalized_prompt,
+        )
         generator = await self._internal_client.generate_stream_response(
             converted_prompt,
             model,
         )
         async for chunk in generator:
             thread.add_message(chunk)
-
-    def get_model(self, selection: str | None = None) -> Model:
-        """Uses the default model selector for the current platform to
-        return a model based on the provided selection criteria.
-
-        Args:
-            selection: Optional selection criteria, which could be a model name,
-                       quality tier, or other selector-specific identifier. If
-                       no selection is provided, the default model for the
-                       platform will be selected.
-
-        Returns:
-            The selected Model instance.
-
-        Raises:
-            ValueError: If no suitable model can be selected.
-        """
-        return "idk"
