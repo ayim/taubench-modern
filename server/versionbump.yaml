@@ -1,4 +1,4 @@
-version: "1.1.4-alpha.87"        # The current version of the project. This is the version source of truth.
+version: "1.1.4-alpha.88"        # The current version of the project. This is the version source of truth.
                          # Do not change this value manually. VersionBump will update it automatically.
 git-commit: true         # Whether to create a git commit for the version bump.
 git-tag: true            # Whether to create a git tag for the version bump.
