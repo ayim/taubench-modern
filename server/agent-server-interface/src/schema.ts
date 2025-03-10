@@ -120,7 +120,8 @@ export interface paths {
     delete: operations["delete_agent_agents__aid__delete"];
     options?: never;
     head?: never;
-    patch?: never;
+    /** Update Agent */
+    patch: operations["update_agent_agents__aid__patch"];
     trace?: never;
   };
   "/api/v1/agents/{aid}/raw": {
@@ -1592,6 +1593,27 @@ export interface components {
     } & {
       [key: string]: unknown;
     };
+    /**
+     * UpdateAgentPayload
+     * @description Payload for updating an agent.
+     */
+    UpdateAgentPayload: {
+      /**
+       * Name
+       * @description The name of the agent.
+       */
+      name?: string | null;
+      /**
+       * Description
+       * @description The description of the agent.
+       */
+      description?: string | null;
+      /**
+       * Version
+       * @description The version of the agent.
+       */
+      version?: string | null;
+    };
     /** UploadedFile */
     UploadedFile: {
       /**
@@ -2581,6 +2603,42 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["DeletedAgentResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  update_agent_agents__aid__patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description The ID of the agent. */
+        aid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UpdateAgentPayload"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Agent"];
         };
       };
       /** @description Validation Error */
