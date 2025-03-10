@@ -153,6 +153,56 @@ export const spec = {
           },
         },
       },
+      patch: {
+        tags: ["agents"],
+        summary: "Update Agent",
+        operationId: "update_agent_agents__aid__patch",
+        parameters: [
+          {
+            name: "aid",
+            in: "path",
+            required: true,
+            schema: {
+              type: "string",
+              description: "The ID of the agent.",
+              title: "Aid",
+            },
+            description: "The ID of the agent.",
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                $ref: "#/components/schemas/UpdateAgentPayload",
+              },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Successful Response",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/Agent",
+                },
+              },
+            },
+          },
+          "422": {
+            description: "Validation Error",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/HTTPValidationError",
+                },
+              },
+            },
+          },
+        },
+      },
       put: {
         tags: ["agents"],
         summary: "Upsert Agent",
@@ -3157,6 +3207,49 @@ export const spec = {
         title: "ToolEventMessage",
         description:
           "Messages between the system/caller and a tool. This message may represent either\na call to a tool or the response, or both. The `run_id` field is used to track\nthe tool call and response. The `input` field is used to pass arguments to\nthe tool and the output is the response.",
+      },
+      UpdateAgentPayload: {
+        properties: {
+          name: {
+            anyOf: [
+              {
+                type: "string",
+              },
+              {
+                type: "null",
+              },
+            ],
+            title: "Name",
+            description: "The name of the agent.",
+          },
+          description: {
+            anyOf: [
+              {
+                type: "string",
+              },
+              {
+                type: "null",
+              },
+            ],
+            title: "Description",
+            description: "The description of the agent.",
+          },
+          version: {
+            anyOf: [
+              {
+                type: "string",
+              },
+              {
+                type: "null",
+              },
+            ],
+            title: "Version",
+            description: "The version of the agent.",
+          },
+        },
+        type: "object",
+        title: "UpdateAgentPayload",
+        description: "Payload for updating an agent.",
       },
       UploadedFile: {
         properties: {
