@@ -2,7 +2,7 @@
 
 [[package]]
 name = "agent-architecture"
-version = "1.2.1-alpha.7"
+version = "1.2.1-alpha.8"
 description = "Core cognitive framework architecture for agents."
 optional = false
 python-versions = "^3.11.0,<3.12"
@@ -22,12 +22,12 @@ structlog = "^24.4.0"
 [package.source]
 type = "git"
 url = "https://github.com/Sema4AI/agent-architecture.git"
-reference = "v1.2.1-alpha.7"
-resolved_reference = "daa644b2342208bfd74844fb1c71eea1b5b21b7f"
+reference = "v1.2.1-alpha.8"
+resolved_reference = "4d3e530e561ab1bc3e9de326aaabdb25a5107989"
 
 [[package]]
 name = "agent-architecture-claude-tools"
-version = "1.1.0-alpha.10"
+version = "1.1.0-alpha.11"
 description = "Tool using cognitive architecture for agents supporting Anthropic Claude LLMs."
 optional = false
 python-versions = "^3.11.0,<3.12"
@@ -36,18 +36,18 @@ files = []
 develop = false
 
 [package.dependencies]
-agent-architecture = {git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.2.1-alpha.7"}
+agent-architecture = {git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.2.1-alpha.8"}
 agent-server-types = {git = "https://github.com/Sema4AI/agent-server-types.git", tag = "v1.2.0-alpha.4"}
 
 [package.source]
 type = "git"
 url = "https://github.com/Sema4AI/agent-architecture-claude-tools.git"
-reference = "v1.1.0-alpha.10"
-resolved_reference = "d4d50ecccffdffcdf9c1972574ac66cffe785e1c"
+reference = "v1.1.0-alpha.11"
+resolved_reference = "11b6083dfa3b17ada1f79bbfd1ee7446fa3f898c"
 
 [[package]]
 name = "agent-architecture-default"
-version = "1.1.0-alpha.7"
+version = "1.1.0-alpha.8"
 description = "Tool using cognitive architecture for agents supporting OpenAI LLMs."
 optional = false
 python-versions = "^3.11.0,<3.12"
@@ -56,18 +56,18 @@ files = []
 develop = false
 
 [package.dependencies]
-agent-architecture = {git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.2.1-alpha.7"}
+agent-architecture = {git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.2.1-alpha.8"}
 agent-server-types = {git = "https://github.com/Sema4AI/agent-server-types.git", tag = "v1.2.0-alpha.4"}
 
 [package.source]
 type = "git"
 url = "https://github.com/Sema4AI/agent-architecture-default.git"
-reference = "v1.1.0-alpha.7"
-resolved_reference = "ac091d2181086f79c2b2722e3108e9a273f34f27"
+reference = "v1.1.0-alpha.8"
+resolved_reference = "2d0d72d7fdfd9cea833a85bca0839cecd82b3f32"
 
 [[package]]
 name = "agent-architecture-openai-plan-execute"
-version = "1.1.0-alpha.7"
+version = "1.1.0-alpha.8"
 description = "Plan execute cognitive architecture for agents with support for OpenAI LLMs."
 optional = false
 python-versions = "^3.11.0,<3.12"
@@ -76,14 +76,14 @@ files = []
 develop = false
 
 [package.dependencies]
-agent-architecture = {git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.2.1-alpha.7"}
+agent-architecture = {git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.2.1-alpha.8"}
 agent-server-types = {git = "https://github.com/Sema4AI/agent-server-types.git", tag = "v1.2.0-alpha.4"}
 
 [package.source]
 type = "git"
 url = "https://github.com/Sema4AI/agent-architecture-openai-plan-execute.git"
-reference = "v1.1.0-alpha.7"
-resolved_reference = "192674c2a416d7d01232246e6a9869037c3a2659"
+reference = "v1.1.0-alpha.8"
+resolved_reference = "0b422fcdd95e04e00075c7dcca5237a06cd7a3db"
 
 [[package]]
 name = "agent-server-types"
@@ -7707,4 +7707,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11.0,<3.12"
-content-hash = "cb6e566e3992154c1432abee7ea198128681f03ac03c7f9dfbac685b85417d1a"
+content-hash = "cf9475ebbe429adc5ef9030d11f26c0b2ab7e3b54702c4a5f94f69900b2487dd"
