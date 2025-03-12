@@ -21,6 +21,81 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+def test_start_agent_server_with_lock_file(tmpdir, logs_dir):
+    import json
+    from contextlib import contextmanager
+    from pathlib import Path
+
+    from agent_server_orchestrator.bootstrap_agent_server import AgentServerProcess
+    from sema4ai.common.process import Process
+    from sema4ai.common.wait_for import wait_for_condition
+
+    agent_server_data_dir = Path(tmpdir) / "agent_server_data"
+
+    @contextmanager
+    def start(parent_pid: int = 0):
+        class CustomAgentServerProcess(AgentServerProcess):
+            def get_base_args(self) -> list[str]:
+                return super().get_base_args() + [
+                    "--use-data-dir-lock",
+                    "--kill-lock-holder",
+                    "--parent-pid",
+                    str(parent_pid),
+                ]
+
+        agent_server_data_dir.mkdir(parents=True, exist_ok=True)
+        agent_server_process = CustomAgentServerProcess(datadir=agent_server_data_dir)
+        agent_server_process.start(logs_dir=logs_dir)
+        try:
+            yield agent_server_process
+        finally:
+            agent_server_process.stop()
+
+    from sema4ai.common.process import is_process_alive
+
+    with start() as agent_server_process:
+        assert agent_server_process.process.is_alive()
+
+        def pid_file_exists():
+            pid_file = agent_server_data_dir / "agent-server.pid"
+            return pid_file.exists()
+
+        wait_for_condition(pid_file_exists)
+        with start() as agent_server_process2:
+            # Previous one must exit before the new one can start
+            wait_for_condition(lambda: not agent_server_process.process.is_alive())
+            pid_file = agent_server_data_dir / "agent-server.pid"
+            data = json.loads(pid_file.read_text())
+            assert data["pid"] == agent_server_process2.process.pid
+            assert data["lock_file"]
+            assert data["port"] == agent_server_process2.port
+            assert data["base_url"]
+            assert agent_server_process2.process.is_alive()
+
+    # Ok, now, test --parent-pid
+
+    # Simulate the parent process id.
+    process = Process(["python", "-c", "import time; time.sleep(10000)"])
+    process.start()
+
+    try:
+        with start(parent_pid=process.pid) as agent_server_process:
+            assert agent_server_process.process.is_alive()
+            process.stop()
+            wait_for_condition(lambda: not is_process_alive(process.pid))
+
+            try:
+                wait_for_condition(
+                    lambda: not agent_server_process.process.is_alive(), timeout=20
+                )
+            except Exception:
+                raise AssertionError(
+                    f"Agent server process {agent_server_process.process.pid} did not exit after parent process {process.pid} exited."
+                )
+    finally:
+        process.stop()
+
+
 def test_api_interaction_with_action_server(
     base_url_agent_server,
     openai_api_key,
@@ -132,16 +207,16 @@ def test_api_interaction(
                 thread_response = agent_client.upload_file_to_thread(
                     thread_id, thread_file, embedded=True
                 )
-                assert thread_response.status_code == 200, (
-                    f"File upload to thread: bad response: {thread_response.status_code} {thread_response.text}"
-                )
+                assert (
+                    thread_response.status_code == 200
+                ), f"File upload to thread: bad response: {thread_response.status_code} {thread_response.text}"
 
                 # Agent file upload
                 agent_file, agent_key, agent_value = create_sample_file()
                 agent_response = agent_client.upload_file_to_agent(agent_id, agent_file)
-                assert agent_response.status_code == 200, (
-                    f"File upload to agent: bad response: {agent_response.status_code} {agent_response.text}"
-                )
+                assert (
+                    agent_response.status_code == 200
+                ), f"File upload to agent: bad response: {agent_response.status_code} {agent_response.text}"
 
                 # Multiple file uploads
                 multi_files = [create_sample_file()[0] for _ in range(4)]
@@ -149,17 +224,17 @@ def test_api_interaction(
                 thread_multi_response = agent_client.upload_files_to_thread(
                     thread_id, thread_files
                 )
-                assert thread_multi_response.status_code == 200, (
-                    f"Multiple file upload to thread: bad response: {thread_multi_response.status_code} {thread_multi_response.text}"
-                )
+                assert (
+                    thread_multi_response.status_code == 200
+                ), f"Multiple file upload to thread: bad response: {thread_multi_response.status_code} {thread_multi_response.text}"
 
                 agent_multi_response = agent_client.upload_files_to_agent(
                     agent_id, agent_files
                 )
 
-                assert agent_multi_response.status_code == 200, (
-                    f"Multiple file upload to agent: bad response: {agent_multi_response.status_code} {agent_multi_response.text}"
-                )
+                assert (
+                    agent_multi_response.status_code == 200
+                ), f"Multiple file upload to agent: bad response: {agent_multi_response.status_code} {agent_multi_response.text}"
 
                 total_files = (
                     1 + 1 + 2 + 2
@@ -184,9 +259,9 @@ def test_api_interaction(
                 async_run_response = agent_client.create_async_run(
                     thread_id, async_message
                 )
-                assert "run_id" in async_run_response, (
-                    f"Async run ID not received in response: {async_run_response!r}"
-                )
+                assert (
+                    "run_id" in async_run_response
+                ), f"Async run ID not received in response: {async_run_response!r}"
 
                 run_id = async_run_response["run_id"]
                 print_success(f"Async run created with ID: {run_id}")
@@ -235,9 +310,9 @@ def test_api_interaction(
             file_ref = os.path.basename(uploaded_thread_files[0])
             file_info = agent_client.get_file_info_by_ref(thread_id, file_ref)
             assert file_info is not None, "File information retrieval"
-            assert file_ref in file_info["file_url"], (
-                "Retrieved file_ref matches the requested one"
-            )
+            assert (
+                file_ref in file_info["file_url"]
+            ), "Retrieved file_ref matches the requested one"
             print_success(f"Successfully retrieved file information for {file_ref}")
 
             # ---------------------- check information retrieval ----------------------
@@ -251,9 +326,9 @@ def test_api_interaction(
             question = f"What is the value associated with the key '{random_key}'?"
             print_info(f"Asking question: {question}")
             response = agent_client.send_message_to_agent_thread(thread_id, question)
-            assert expected_value in response, (
-                f"Expected value '{expected_value}' found in the response: {response}"
-            )
+            assert (
+                expected_value in response
+            ), f"Expected value '{expected_value}' found in the response: {response}"
             print_success(f"Successfully retrieved value for key '{random_key}'")
     finally:
         # Clean up files

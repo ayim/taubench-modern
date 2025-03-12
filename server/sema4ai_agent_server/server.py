@@ -123,6 +123,8 @@ async def metrics() -> dict:
 
 
 def main():
+    import socket
+
     import uvicorn
 
     parser = argparse.ArgumentParser(description="Run the Sema4.ai Agent Server.")
@@ -154,8 +156,26 @@ def main():
         action="store_true",
         help="Show program's license and exit.",
     )
+    parser.add_argument(
+        "--parent-pid",
+        type=int,
+        default=0,
+        help="Parent PID of the agent server (when the given pid exits, the agent server will also exit).",
+    )
+    parser.add_argument(
+        "--use-data-dir-lock",
+        action="store_true",
+        help="Use a lock file to prevent multiple instances of the agent server from running in the same data directory (defined by the S4_AGENT_SERVER_HOME or SEMA4AI_STUDIO_HOME environment variable).",
+    )
+    parser.add_argument(
+        "--kill-lock-holder",
+        action="store_true",
+        help="Kill the process holding the lock file (only used if --use-data-dir-lock is also used).",
+    )
 
     args = parser.parse_args()
+
+    from sema4ai_agent_server.constants import DATA_DIR
 
     if args.license:
         if IS_FROZEN:
@@ -173,6 +193,89 @@ def main():
                 "License file not found. Please visit https://sema4.ai for license information."
             )
             sys.exit(1)
+
+    if args.parent_pid:
+        from sema4ai.common.autoexit import exit_when_pid_exits
+
+        logger.info(f"Marking to exit when parent PID {args.parent_pid} exits.")
+        exit_when_pid_exits(args.parent_pid, soft_kill_timeout=5)
+
+    # We need to ensure the data directory exists.
+    try:
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        raise RuntimeError(f"Failed to create data directory: {DATA_DIR}")
+
+    # Log the data directory permissions as a hex number.
+    pretty_permissions = oct(DATA_DIR.stat().st_mode)
+    logger.info(f"Data directory: {DATA_DIR} (permissions: {pretty_permissions})")
+
+    if args.use_data_dir_lock:
+        from sema4ai.common.app_mutex import obtain_app_mutex
+
+        # The obtain_app_mutex function is used to obtain a mutex for the agent server.
+        # The mutex obtained should be kept locked until the `mutex` variable is destroyed.
+        mutex = obtain_app_mutex(
+            kill_lock_holder=args.kill_lock_holder,
+            data_dir=Path(DATA_DIR),
+            lock_basename="agent-server.lock",
+            app_name="Agent Server",
+            timeout=5,
+        )
+        if mutex is None:
+            sys.exit(1)
+        # Otherwise, keep the mutex alive until the process exits (in a local variable).
+
+    # HACK: uvicorn does not provide any hook where we could get the socket that was bound,
+    # so, we monkey-patch the startup to do what we need.
+    original_startup = uvicorn.Server.startup
+
+    async def startup(self, sockets: list[socket.socket] | None = None) -> None:
+        import json
+
+        try:
+            await original_startup(self, sockets)
+
+            sockets = self.servers[0].sockets
+            config = self.config
+
+            assert sockets, "Expected sockets to be already setup at this point."
+
+            addr_format = "%s://%s:%d"
+            host = "0.0.0.0" if config.host is None else config.host
+            if ":" in host:
+                # It's an IPv6 address.
+                addr_format = "%s://[%s]:%d"
+
+            port = config.port
+            if port == 0:
+                port = sockets[0].getsockname()[1]
+
+            protocol_name = "https" if config.ssl else "http"
+            base_url = addr_format % (protocol_name, host, port)
+
+            # Write pid file with port, pid and base_url as json
+            pid_file = Path(DATA_DIR) / "agent-server.pid"
+            data = {
+                "port": port,
+                "pid": os.getpid(),
+                "base_url": base_url,
+            }
+            if args.use_data_dir_lock:
+                data["lock_file"] = (DATA_DIR / "agent-server.lock").as_posix()
+            else:
+                data["lock_file"] = "<not used>"
+
+            pid_file.write_text(json.dumps(data))
+            # Ok, we're ready now.
+            message = f"Agent Server running on: {base_url} (Press CTRL+C to quit)"
+            logger.info(message)
+            logger.info(f"pid file: {pid_file}")
+        except Exception:
+            logger.exception("Error during startup")
+            self.should_exit = True
+
+    uvicorn.Server.startup = startup  # type: ignore
 
     uvicorn.run(app, host=args.host, port=args.port, reload=args.reload)
 
