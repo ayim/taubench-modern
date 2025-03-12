@@ -15,19 +15,20 @@ CONTEXT_WINDOW_SIZES = {
         "gpt-4-turbo": 128000,
         "gpt-4o": 128000,
         "gpt-4o-mini": 128000,
+        "o3-mini": 128000,
     },
     LLMProvider.AMAZON: {
         "anthropic.claude-3-haiku-20240307-v1:0": 200000,
         "anthropic.claude-3-sonnet-20240229-v1:0": 200000,
         "anthropic.claude-3-opus-20240229-v1:0": 200000,
         "anthropic.claude-3-5-sonnet-20240620-v1:0": 200000,
+        "anthropic.claude-3-7-sonnet-20250219-v1:0": 200000,
     },
     # Taken from: https://docs.snowflake.com/en/user-guide/snowflake-cortex/llm-functions#model-restrictions
     LLMProvider.SNOWFLAKE_CORTEX: {
         # We prefer these two
         "claude-3-5-sonnet": 18000,
         "deepseek-r1": 128000,
-
         # But we'll throw these in just in case
         # we need them
         "gemma-7b": 8000,
