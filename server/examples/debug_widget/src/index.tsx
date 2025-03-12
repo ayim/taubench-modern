@@ -4,5 +4,7 @@ import { App } from "./App";
 import "./index.css";
 
 export const render = createRender(() => {
-  return <App />;
+  return (
+    <App />
+  );
 });
