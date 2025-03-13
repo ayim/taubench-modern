@@ -6010,7 +6010,7 @@ jeepney = ">=0.6"
 
 [[package]]
 name = "sema4ai-agent-server-orchestrator"
-version = "0.0.1-alpha7"
+version = "0.0.1-alpha8"
 description = ""
 optional = false
 python-versions = "^3.11.0,<3.12"
@@ -6021,24 +6021,24 @@ develop = false
 [package.dependencies]
 agent-server-types = {git = "https://github.com/Sema4AI/agent-server-types.git", tag = "v1.2.0-alpha"}
 requests = "^2.32.0"
-sema4ai-common = "0.0.8"
+sema4ai-common = "0.0.9"
 
 [package.source]
 type = "git"
 url = "https://github.com/Sema4AI/agent-server-orchestrator.git"
-reference = "v0.0.1-alpha7"
-resolved_reference = "a46fc0dab3059a705fbf0695dba276e8b960086f"
+reference = "v0.0.1-alpha8"
+resolved_reference = "2bc9e98717e48f6d4719a17cd22799f60250db9f"
 
 [[package]]
 name = "sema4ai-common"
-version = "0.0.8"
+version = "0.0.9"
 description = "Sema4AI Common"
 optional = false
 python-versions = "<4.0,>=3.11"
 groups = ["main", "dev"]
 files = [
-    {file = "sema4ai_common-0.0.8-py3-none-any.whl", hash = "sha256:3d4d2319f457666fec42e6aef3d129a267240ea5de883f96e6f0b6eb6163e2e4"},
-    {file = "sema4ai_common-0.0.8.tar.gz", hash = "sha256:153cd905ef9f3eafb23dc530e2b2d79e126fe86c6b720845990adaccd305d944"},
+    {file = "sema4ai_common-0.0.9-py3-none-any.whl", hash = "sha256:f4c244cf34acbb434efb6ac2b87e589ac0f2980617351bdadf21d23f4d657bbd"},
+    {file = "sema4ai_common-0.0.9.tar.gz", hash = "sha256:820d0b3fb0a6a811f9a5651525f1e0020a43d30b64216cd618d6f7c9acd99155"},
 ]
 
 [package.dependencies]
@@ -7707,4 +7707,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11.0,<3.12"
-content-hash = "cf9475ebbe429adc5ef9030d11f26c0b2ab7e3b54702c4a5f94f69900b2487dd"
+content-hash = "ef24c33897603dc2af4cdf631cd746575bc38f02808b68307db5d93c6add6444"
