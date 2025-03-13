@@ -10,6 +10,9 @@ import websockets
 from websockets.exceptions import ConnectionClosed
 
 
+from agent_server_types_v2.delta import combine_generic_deltas, GenericDelta
+
+
 # In dev, point to your local dev server
 ESM = "http://localhost:5173/src/index.tsx?anywidget"
 CSS = ""
@@ -106,17 +109,7 @@ class DebugChatWidget(anywidget.AnyWidget):
         try:
             thread_data = self.api.get_thread(self.selected_thread_id)
             self.selected_thread_name = thread_data.get("name", "")
-            # Flatten messages
-            new_msgs = []
-            for m in thread_data.get("messages", []):
-                role = m.get("role", "agent")
-                text_chunks = []
-                for c in m.get("content", []):
-                    if c.get("kind") == "text":
-                        text_chunks.append(c["text"])
-                text_joined = "\n".join(text_chunks)
-                new_msgs.append({"role": role, "text": text_joined})
-            self.messages = new_msgs
+            self.messages = thread_data.get("messages", [])
         except Exception as e:
             print(f"Error fetching thread={self.selected_thread_id}: {e}")
 
@@ -180,13 +173,20 @@ class DebugChatWidget(anywidget.AnyWidget):
                     self.is_loading = False
                 elif msg_type == "delta" and "delta" in message_dict:
                     event_type = message_dict["delta"].get("event_type")
-                    if event_type == "message_end":
-                        data = message_dict["delta"].get("data", {})
-                        content_items = data.get("content", [])
-                        text = "\n".join(
-                            c["text"] for c in content_items if c["kind"] == "text"
-                        )
-                        self._append_message(role="agent", text=text)
+                    if event_type == "message_begin":
+                        self.is_loading = True
+                        self.status_message = "Message streaming..."
+                        self.messages = [*self.messages.copy(), {
+                            "role": "agent",
+                            "content": [],
+                        }]
+                    elif event_type == "message_content":
+                        delta = GenericDelta.model_validate(message_dict["delta"].get("delta", {}))
+                        # Need to _assign_ to update in traitlets
+                        self.messages = [*self.messages[:-1].copy(), combine_generic_deltas(
+                            [delta], self.messages[-1],
+                        )]
+                    elif event_type == "message_end":
                         self.is_loading = False
                         self.status_message = "Ready"
 
@@ -215,7 +215,7 @@ class DebugChatWidget(anywidget.AnyWidget):
 
     def _append_message(self, role: str, text: str):
         current = list(self.messages)
-        current.append({"role": role, "text": text})
+        current.append({"role": role, "content": [{"kind": "text", "text": text}]})
         self.messages = current
 
     def handle_custom_message(self):

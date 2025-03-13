@@ -2,8 +2,49 @@ import React, { useState, useRef, useEffect } from "react";
 
 interface Message {
   role: "user" | "agent";
-  text: string;
+  content: any[]; // For agent messages with structured content
 }
+
+// User message component
+const UserMessage: React.FC<{ content?: any[] }> = ({ content }) => (
+  <div className="flex justify-end">
+    <div 
+      className="px-4 py-2 rounded-lg max-w-[70%] bg-blue-600 text-white"
+      style={{ whiteSpace: "pre-wrap" }}
+    >
+      {content?.[0]?.text}
+    </div>
+  </div>
+);
+
+// Agent message component
+const AgentMessage: React.FC<{ content?: any[] }> = ({ content }) => (
+  <div className="flex justify-start">
+    <div 
+      className="px-4 py-2 rounded-lg max-w-[70%] bg-gray-100 text-gray-800 border border-gray-200"
+      style={{ whiteSpace: "pre-wrap" }}
+    >
+      <div className="agent-structured-content flex flex-col gap-2">
+        {content?.map((item, index) => {
+          if (item.kind === "thought") {
+            return (
+              <div key={index} className="thought-content italic text-gray-600 border-l-2 border-gray-400 pl-2">
+                {item.thought}
+              </div>
+            );
+          } else if (item.kind === "text") {
+            return (
+              <div key={index} className="text-content">
+                {item.text}
+              </div>
+            );
+          }
+          return null;
+        })}
+      </div>
+    </div>
+  </div>
+);
 
 interface ChatPanelProps {
   threadName: string;
@@ -33,6 +74,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  console.log(messages);
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Header */}
@@ -46,20 +89,12 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       <div className="flex-1 overflow-y-auto bg-gray-50 p-4">
         <div className="flex flex-col space-y-3">
           {messages.map((msg, idx) => (
-            <div
-              key={idx}
-              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-            >
-              <div
-                className={`px-4 py-2 rounded-lg max-w-[70%] ${
-                  msg.role === "user"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-800 border border-gray-200"
-                }`}
-                style={{ whiteSpace: "pre-wrap" }}
-              >
-                {msg.text}
-              </div>
+            <div key={idx}>
+              {msg.role === "user" ? (
+                <UserMessage content={msg.content} />
+              ) : (
+                <AgentMessage content={msg.content} />
+              )}
             </div>
           ))}
           <div ref={messagesEndRef} />

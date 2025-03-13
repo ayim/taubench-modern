@@ -1,12 +1,12 @@
-from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator
 
 from agent_server_types_v2.kernel import Kernel
 from agent_server_types_v2.kernel_interfaces.model_platform import PlatformInterface
 from agent_server_types_v2.platforms.base import PlatformClient
 from agent_server_types_v2.prompts import Prompt
 from agent_server_types_v2.responses import ResponseMessage
-from agent_server_types_v2.thread import Thread
-from agent_server_types_v2.thread.content.base import ContentDelta
+from agent_server_types_v2.responses.streaming import ResponseStreamPipe
 from sema4ai_agent_server.kernel.kernel_mixin import UsesKernelMixin
 
 
@@ -54,48 +54,30 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
             model,
         )
 
+    @asynccontextmanager
     async def stream_response(
         self,
         prompt: Prompt,
         model: str,
-    ) -> AsyncGenerator[ContentDelta, None]:
-        """Streams a response to a prompt.
+    ) -> AsyncGenerator[ResponseStreamPipe, None]:
+        """Streams a response to a prompt as a context manager.
 
         Arguments:
             prompt: The prompt to generate a response for.
             model: The model to use to generate the response.
+
         Returns:
-            An async generator of ThreadMessageChunk objects.
+            An async context manager that yields a ResponseStreamPipe
+            object managing the response stream.
         """
         finalized_prompt = await prompt.finalize_messages(self.kernel)
-        converted_prompt = await self._internal_client.converters.convert_prompt(
-            finalized_prompt,
-        )
-        return await self._internal_client.generate_stream_response(
-            converted_prompt,
-            model,
-        )
+        converted_prompt = await self._internal_client.converters.convert_prompt(finalized_prompt)
 
-    async def stream_response_to_thread(
-        self,
-        prompt: Prompt,
-        model: str,
-        thread: Thread,
-    ) -> None:
-        """Streams a response to the provided thread.
+        response_stream = self._internal_client.generate_stream_response(converted_prompt, model)
+        stream_pipe = ResponseStreamPipe(response_stream)
 
-        Arguments:
-            prompt: The prompt to generate a response for.
-            model: The model to use to generate the response.
-            thread: The thread to stream the response to.
-        """
-        finalized_prompt = await prompt.finalize_messages(self.kernel)
-        converted_prompt = await self._internal_client.converters.convert_prompt(
-            finalized_prompt,
-        )
-        generator = await self._internal_client.generate_stream_response(
-            converted_prompt,
-            model,
-        )
-        async for chunk in generator:
-            thread.add_message(chunk)
+        try:
+            yield stream_pipe
+        finally:
+            await stream_pipe.aclose()
+
