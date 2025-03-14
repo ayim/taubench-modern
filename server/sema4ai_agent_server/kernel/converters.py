@@ -6,7 +6,12 @@ from agent_server_types_v2.prompts import (
     PromptTextContent,
     PromptUserMessage,
 )
-from agent_server_types_v2.thread import ThreadMessage, ThreadMessageContent
+from agent_server_types_v2.thread import (
+    ThreadMessage,
+    ThreadMessageContent,
+    ThreadTextContent,
+    ThreadThoughtContent,
+)
 from sema4ai_agent_server.kernel.kernel_mixin import UsesKernelMixin
 
 
@@ -22,13 +27,29 @@ class AgentServerConvertersInterface(ConvertersInterface, UsesKernelMixin):
     ) -> list[PromptMessageContent]:
         """Converts a thread content to a prompt content."""
         prompt_contents: list[PromptMessageContent] = []
+
+        collapsed_thoughts = ""
+        collapsed_text = ""
         for content in contents:
-            match content.kind:
-                case "text":
-                    prompt_contents.append(PromptTextContent(text=content.text))
+            match content:
+                case ThreadThoughtContent() as thought_content:
+                    collapsed_thoughts += thought_content.thought
+                case ThreadTextContent() as text_content:
+                    collapsed_text += text_content.text
                 # TODO: tools and such
                 case _:
                     raise ValueError(f"Unsupported thread content kind: {content.kind}")
+
+        collapsed_thoughts = collapsed_thoughts.strip()
+        collapsed_text = collapsed_text.strip()
+
+        overall_text = ""
+        if collapsed_thoughts:
+            overall_text += f"<thinking>\n{collapsed_thoughts}\n</thinking>\n\n"
+        if collapsed_text:
+            overall_text += f"<response>\n{collapsed_text}\n</response>\n\n"
+
+        prompt_contents.append(PromptTextContent(text=overall_text))
 
         return prompt_contents
 
