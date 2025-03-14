@@ -7,6 +7,9 @@ from typing import Any
 import structlog
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
+from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
 
 from sema4ai_agent_server.api.private_v1 import router as v1_router
 from sema4ai_agent_server.api.public_v1 import router as v2_router
@@ -18,6 +21,16 @@ from sema4ai_agent_server.storage.option import get_storage
 
 # Do not change the version here. It is managed by versionbump (see versionbump.yaml)
 VERSION = "1.1.4-alpha.91"
+
+
+PUBLIC_V1_PREFIX = "/api/public/v1"
+PRIVATE_V1_PREFIX = "/api/v1"
+# HTTPMiddleware to ensure that all requests are prefixed with /api/v1 or /api/public/v1
+class EnsureAPIPrefixMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        if not request.url.path.startswith((PUBLIC_V1_PREFIX, PRIVATE_V1_PREFIX)):
+            return ORJSONResponse(status_code=404, content={"detail": "Not Found"})
+        return await call_next(request)
 
 # TODO: Setting up global things (such as logging and OTEL here) globally in the module import
 # is bad practice (because just importing it from some other place will mess up any logging
@@ -91,14 +104,17 @@ app_v2.include_router(v2_router)
 # Main FastAPI app to include both versions
 app = FastAPI(
     lifespan=lifespan,
+    openapi_url=None,  # Disable the default /openapi.json path
 )
+
+app.add_middleware(EnsureAPIPrefixMiddleware)
 app.include_router(v1_router)
 app.include_router(v2_router)
 
 
 # Mount the API versions under their respective prefixes
-app.mount("/api/v1", app_v1)
-app.mount("/api/public/v1", app_v2)
+app.mount(PRIVATE_V1_PREFIX, app_v1)
+app.mount(PUBLIC_V1_PREFIX, app_v2)
 
 
 def _on_startup() -> None:
