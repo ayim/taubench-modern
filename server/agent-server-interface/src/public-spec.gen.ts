@@ -6,7 +6,7 @@ export const spec = {
   openapi: "3.1.0",
   info: {
     title: "Sema4.ai Agent Server Public API Version 1",
-    version: "1.1.4-alpha.90",
+    version: "1.1.4-alpha.91",
   },
   paths: {
     "/api/public/v1/agents": {
@@ -182,16 +182,17 @@ export const spec = {
               title: "Aid",
             },
           },
-          {
-            name: "name",
-            in: "query",
-            required: true,
-            schema: {
-              type: "string",
-              title: "Name",
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                $ref: "#/components/schemas/CreateChatRequest",
+              },
             },
           },
-        ],
+        },
         responses: {
           "200": {
             description: "Success",
@@ -604,6 +605,17 @@ export const spec = {
         type: "object",
         required: ["id", "name", "agent_id", "messages"],
         title: "ConversationState",
+      },
+      CreateChatRequest: {
+        properties: {
+          name: {
+            type: "string",
+            title: "Name",
+          },
+        },
+        type: "object",
+        required: ["name"],
+        title: "CreateChatRequest",
       },
       HTTPValidationError: {
         properties: {

@@ -6,6 +6,7 @@ from typing import Optional, List, AsyncIterator, Annotated
 
 import structlog
 from fastapi import APIRouter, HTTPException, Query
+from fastapi.params import Body
 from pydantic import BaseModel, TypeAdapter, Field
 
 from agent_server_types.agents import (
@@ -130,6 +131,9 @@ class ToolResponse(Message):
     tool_call_id: str
     status: str
     result: dict # parsed JSON from `content`
+
+class CreateChatRequest(BaseModel):
+    name: str
 
 def translate_message(message: dict) -> Message | ToolRequest | ToolResponse:
     # tool request
@@ -308,7 +312,7 @@ async def get_chat_messages(user: AuthedUser, aid: str, cid: str) -> Conversatio
             500: {"description": "Internal Server Error"},
         },
 )
-async def create_chat(user: AuthedUser, aid: str, name: str) -> Conversation:
+async def create_chat(user: AuthedUser, aid: str, body: CreateChatRequest = Body(...)) -> Conversation:
     agent = await get_storage().get_agent(user.user_id, aid)
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
@@ -316,7 +320,7 @@ async def create_chat(user: AuthedUser, aid: str, name: str) -> Conversation:
         user.user_id,
         str(uuid.uuid4()),
         agent_id=aid,
-        name=name,
+        name=body.name,
         metadata=None,
         created_at=datetime.datetime.now(datetime.timezone.utc),
     )

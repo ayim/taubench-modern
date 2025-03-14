@@ -192,6 +192,11 @@ export interface components {
           )[]
         | null;
     };
+    /** CreateChatRequest */
+    CreateChatRequest: {
+      /** Name */
+      name: string;
+    };
     /** HTTPValidationError */
     HTTPValidationError: {
       /** Detail */
@@ -429,16 +434,18 @@ export interface operations {
   };
   create_chat_agents__aid__conversations_post: {
     parameters: {
-      query: {
-        name: string;
-      };
+      query?: never;
       header?: never;
       path: {
         aid: string;
       };
       cookie?: never;
     };
-    requestBody?: never;
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CreateChatRequest"];
+      };
+    };
     responses: {
       /** @description Success */
       200: {
