@@ -1,4 +1,4 @@
-from asyncio import wait_for
+from asyncio import wait_for, sleep
 
 from agent_server_types_v2.kernel_interfaces import UserInteractionsInterface
 from agent_server_types_v2.thread import ThreadTextContent, ThreadUserMessage
@@ -35,6 +35,8 @@ class AgentServerUserInteractionsInterface(UserInteractionsInterface, UsesKernel
                     return ThreadUserMessage(
                         content=[ThreadTextContent(text=event["input"])],
                     )
+                # Make sure we yield to the event loop
+                await sleep(0)
 
         try:
             # Wrap the waiting coroutine with a timeout.

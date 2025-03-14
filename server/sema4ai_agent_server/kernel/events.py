@@ -27,11 +27,9 @@ class AgentServerEventsInterface(EventsInterface, UsesKernelMixin):
         Raises:
             RuntimeError: If the event bus has been stopped.
         """
-        from asyncio import sleep
         if self._stop_event.is_set():
             raise RuntimeError("Event bus has been stopped")
         await self._queue.put(event)
-        await sleep(0.1)  # HACK: need to figure out where we're not yielding to the event loop
 
     async def stream(self) -> AsyncIterator[Any]:
         """Stream events from the event bus until a stop is signaled.
