@@ -1,4 +1,4 @@
-from asyncio import wait_for, sleep
+from asyncio import sleep, wait_for
 
 from agent_server_types_v2.kernel_interfaces import UserInteractionsInterface
 from agent_server_types_v2.thread import ThreadTextContent, ThreadUserMessage

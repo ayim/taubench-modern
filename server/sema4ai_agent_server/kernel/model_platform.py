@@ -1,5 +1,5 @@
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 from agent_server_types_v2.kernel import Kernel
 from agent_server_types_v2.kernel_interfaces.model_platform import PlatformInterface
@@ -71,9 +71,14 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
             object managing the response stream.
         """
         finalized_prompt = await prompt.finalize_messages(self.kernel)
-        converted_prompt = await self._internal_client.converters.convert_prompt(finalized_prompt)
+        converted_prompt = await self._internal_client.converters.convert_prompt(
+            finalized_prompt,
+        )
 
-        response_stream = self._internal_client.generate_stream_response(converted_prompt, model)
+        response_stream = self._internal_client.generate_stream_response(
+            converted_prompt,
+            model,
+        )
         stream_pipe = ResponseStreamPipe(response_stream)
 
         try:
