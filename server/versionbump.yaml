@@ -5,6 +5,8 @@ git-tag: true            # Whether to create a git tag for the version bump.
 
 prerelease-labels:
   - "alpha"
+  - "beta"
+  - "rc"
 
 # The build label. This is the label that will be used for build versions.
 build-label: "devgpt709"
