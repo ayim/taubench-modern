@@ -55,6 +55,7 @@ agent-architecture-openai-plan-execute = { git = "https://github.com/Sema4AI/age
 agent-architecture-claude-tools = { git = "https://github.com/Sema4AI/agent-architecture-claude-tools.git", tag = "v1.1.0-alpha.12" }
 greenlet = "^3.1.1"
 sema4ai-common = "0.0.9"
+psutil = ">=5.0.0,<7.0.0"
 
 [tool.mypy]
 mypy_path = "."
@@ -69,7 +70,7 @@ profile = "black"
 [tool.poetry.group.dev.dependencies]
 uvicorn = "^0.34.0"
 pygithub = "^2.4.0"
-sema4ai-agent-server-orchestrator = { git = "https://github.com/Sema4AI/agent-server-orchestrator.git", tag = "v0.0.1-alpha8" }
+sema4ai-agent-server-orchestrator = { git = "https://github.com/Sema4AI/agent-server-orchestrator.git", tag = "v0.0.1-alpha9" }
 invoke = ">=2.2.0"
 pydantic = ">=2.9.2"
 poetry = ">=2.0.0,<3.0.0"

@@ -15,10 +15,10 @@
   "scripts": {
     "generate:schema": "npm run generate:private:schema && npm run generate:public:schema",
     "generate:spec": "npm run generate:private:spec && npm run generate:public:spec",
-    "generate:private:schema": "tsx ./scripts/preprocess-and-generate.ts http://localhost:8000/api/v1/openapi.json ./src/schema.ts && npm run format",
-    "generate:private:spec": "tsx ./scripts/spec.ts http://localhost:8000/api/v1/openapi.json ./src/spec.gen.ts && npm run format",
-    "generate:public:schema": "tsx ./scripts/preprocess-and-generate.ts http://localhost:8000/api/public/v1/openapi.json ./src/public-schema.ts && npm run format",
-    "generate:public:spec": "tsx ./scripts/spec.ts http://localhost:8000/api/public/v1/openapi.json ./src/public-spec.gen.ts && npm run format",
+    "generate:private:schema": "tsx ./scripts/preprocess-and-generate.ts ${SERVER_URL:-http://localhost:8000}/api/v1/openapi.json ./src/schema.ts && npm run format",
+    "generate:private:spec": "tsx ./scripts/spec.ts ${SERVER_URL:-http://localhost:8000}/api/v1/openapi.json ./src/spec.gen.ts && npm run format",
+    "generate:public:schema": "tsx ./scripts/preprocess-and-generate.ts ${SERVER_URL:-http://localhost:8000}/api/public/v1/openapi.json ./src/public-schema.ts && npm run format",
+    "generate:public:spec": "tsx ./scripts/spec.ts ${SERVER_URL:-http://localhost:8000}/api/public/v1/openapi.json ./src/public-spec.gen.ts && npm run format",
     "build:package": "tsup",
     "format": "prettier --write \"**/*.{ts,json}\"",
     "build": "npm run generate:schema && npm run generate:spec && tsup && npm run format"

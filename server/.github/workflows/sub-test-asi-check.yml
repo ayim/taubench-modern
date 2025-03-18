@@ -37,6 +37,7 @@ jobs:
         uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v1
 
       - name: Install deps and start server
+        id: server-setup
         uses: ./.github/actions/install-deps-start-server
         with:
           git_username: ${{ secrets.GIT_USERNAME }}
@@ -51,8 +52,12 @@ jobs:
           npm_auth_token: ${{ secrets.NPM_AUTH_TOKEN }}
 
       - name: Build agent-server-interface
-        run: npm run build
+        run: |
+          echo "Using server at ${{ steps.server-setup.outputs.base_url }}"
+          npm run build
         working-directory: ./agent-server-interface
+        env:
+          SERVER_URL: ${{ steps.server-setup.outputs.base_url }}
 
       - name: Check for uncommitted changes
         run: |

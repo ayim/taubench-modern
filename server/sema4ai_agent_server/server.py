@@ -1,5 +1,6 @@
 import argparse
 import os
+import platform
 import sys
 from pathlib import Path
 from typing import Any
@@ -138,9 +139,43 @@ async def metrics() -> dict:
     }
 
 
-def main():
-    import socket
+def is_port_in_use(port: int) -> bool:
+    """Check if a port is already in use without binding to it.
 
+    Uses psutil to check active connections, which is more reliable on Windows
+    and avoids the race condition of binding/releasing.
+
+    Args:
+        port: The port number to check
+
+    Returns:
+        bool: True if the port is in use, False otherwise
+    """
+    try:
+        import psutil
+
+        # Check all network connections for this port
+        for conn in psutil.net_connections():
+            try:
+                if conn.laddr.port == port:
+                    # Port is definitely in use
+                    return True
+            except (PermissionError, OSError) as e:
+                logger.warning(f"Could not use psutil to check port {port}: {e}")
+                logger.warning("Port availability checks may be less reliable")
+                continue
+    except Exception as e:
+        logger.warning(
+            f"Could not use psutil to check ports, port checks may be unreliable: {e}"
+        )
+        return False
+
+    # If we got here and found no active connections using this port,
+    # it's likely available
+    return False
+
+
+def main():
     import uvicorn
 
     parser = argparse.ArgumentParser(description="Run the Sema4.ai Agent Server.")
@@ -214,6 +249,7 @@ def main():
         from sema4ai.common.autoexit import exit_when_pid_exits
 
         logger.info(f"Marking to exit when parent PID {args.parent_pid} exits.")
+        # Will handle the case where the parent PID does not exist.
         exit_when_pid_exits(args.parent_pid, soft_kill_timeout=5)
 
     # We need to ensure the data directory exists.
@@ -242,58 +278,134 @@ def main():
             sys.exit(1)
         # Otherwise, keep the mutex alive until the process exits (in a local variable).
 
-    # HACK: uvicorn does not provide any hook where we could get the socket that was bound,
-    # so, we monkey-patch the startup to do what we need.
-    original_startup = uvicorn.Server.startup
+    # On Windows, explicitly check if the port is in use first. This is needed because
+    # Uvicorn's bind_socket method uses the `SO_REUSEADDR` socket option, which on Windows
+    # will allow the socket to bind to a socket that is already in use by another process.
+    if args.port != 0 and platform.system() == "Windows":
+        logger.debug(f"Checking if port {args.port} is already in use")
+        if is_port_in_use(args.port):
+            error_msg = (
+                f"Port {args.port} is already in use. Please choose a different port."
+            )
+            logger.error(error_msg)
+            sys.exit(1)
 
-    async def startup(self, sockets: list[socket.socket] | None = None) -> None:
-        import json
+    # Create a Config instance to use Uvicorn's built-in bind_socket method
+    config = uvicorn.Config(
+        app=app,
+        host=args.host,
+        port=args.port,
+        reload=args.reload,
+    )
 
-        try:
-            await original_startup(self, sockets)
+    # Bind the socket using Uvicorn's method - this handles all the socket setup
+    # and returns a bound socket, eliminating any race condition
+    try:
+        logger.debug(f"Attempting to bind to {args.host}:{args.port}")
+        sock = config.bind_socket()
+        # Get the actual port from the socket
+        # For IPv4, getsockname() returns (host, port)
+        # For IPv6, getsockname() returns (host, port, flowinfo, scopeid)
+        # So we take the second element in both cases
+        actual_socket_info = sock.getsockname()
+        actual_host, port = actual_socket_info[:2]
+        logger.debug(f"Successfully bound socket to {actual_host}:{port}")
 
-            sockets = self.servers[0].sockets
-            config = self.config
-
-            assert sockets, "Expected sockets to be already setup at this point."
-
-            addr_format = "%s://%s:%d"
-            host = "0.0.0.0" if config.host is None else config.host
-            if ":" in host:
-                # It's an IPv6 address.
-                addr_format = "%s://[%s]:%d"
-
-            port = config.port
-            if port == 0:
-                port = sockets[0].getsockname()[1]
-
-            protocol_name = "https" if config.ssl else "http"
-            base_url = addr_format % (protocol_name, host, port)
-
-            # Write pid file with port, pid and base_url as json
-            pid_file = Path(DATA_DIR) / "agent-server.pid"
-            data = {
-                "port": port,
-                "pid": os.getpid(),
-                "base_url": base_url,
-            }
-            if args.use_data_dir_lock:
-                data["lock_file"] = (DATA_DIR / "agent-server.lock").as_posix()
+    except (OSError, SystemExit) as e:
+        e_msg = str(e) if isinstance(e, OSError) else f"Uvicorn exit code: {e}"
+        # Log specific error messages that tests will look for
+        if isinstance(e, OSError):
+            if "Address already in use" in str(e):
+                logger.error(
+                    f"Port {args.port} is already in use. Address already in use."
+                )
             else:
-                data["lock_file"] = "<not used>"
+                logger.error(f"Failed to bind socket: {e_msg}")
+        else:
+            logger.error(f"Failed to bind socket: {e_msg}")
 
-            pid_file.write_text(json.dumps(data))
-            # Ok, we're ready now.
-            message = f"Agent Server running on: {base_url} (Press CTRL+C to quit)"
-            logger.info(message)
-            logger.info(f"pid file: {pid_file}")
-        except Exception:
-            logger.exception("Error during startup")
-            self.should_exit = True
+        logger.error("Cannot continue without binding to a socket. Exiting.")
+        sys.exit(1)
 
-    uvicorn.Server.startup = startup  # type: ignore
+    # When binding to 0.0.0.0 (all interfaces), the socket may report a specific IP
+    # For proper network URL construction, we need to handle this carefully
+    if args.host == "0.0.0.0" and actual_host != args.host:
+        logger.info(
+            f"Socket bound to all interfaces (0.0.0.0) but actual socket reports: {actual_host}"
+        )
+        # We'll still use 0.0.0.0 or the provided host for the PID file for user-friendliness
+        bound_host = args.host
+    elif args.host == "::" and actual_host != args.host:
+        logger.info(
+            f"Socket bound to all IPv6 interfaces (::) but actual socket reports: {actual_host}"
+        )
+        bound_host = args.host
+    elif actual_host != args.host and args.host not in ["localhost", "127.0.0.1"]:
+        # If requested host doesn't match actual and isn't a special case, log a warning
+        logger.warning(
+            f"Requested host {args.host} differs from actual bound host {actual_host}"
+        )
+        # Decide whether to use the actual bound host or the requested host
+        bound_host = actual_host  # Use the actual bound host for accuracy
+    else:
+        # Host matches or is a special case, use the requested host
+        bound_host = args.host
 
-    uvicorn.run(app, host=args.host, port=args.port, reload=args.reload)
+    # Write pid file with port, pid and base_url info
+    import json
+
+    pid_file = Path(DATA_DIR) / "agent-server.pid"
+    host = bound_host
+    addr_format = "%s://%s:%d"
+    if ":" in host:
+        # It's an IPv6 address.
+        addr_format = "%s://[%s]:%d"
+
+    protocol_name = "http"  # TODO: Make this configurable
+    base_url = addr_format % (protocol_name, host, port)
+
+    data = {
+        "port": port,
+        "pid": os.getpid(),
+        "base_url": base_url,
+        "host": host,  # Add the actual host we're bound to
+    }
+    if args.use_data_dir_lock:
+        data["lock_file"] = (DATA_DIR / "agent-server.lock").as_posix()
+    else:
+        data["lock_file"] = "<not used>"
+
+    pid_file.write_text(json.dumps(data))
+    logger.info(f"Agent Server running on: {base_url} (Press CTRL+C to quit)")
+    logger.info(f"pid file: {pid_file}")
+
+    # Create server instance with our config
+    server = uvicorn.Server(config)
+
+    # Set up our own signal handlers to ensure graceful shutdown
+    import signal
+
+    def signal_handler(sig, frame):
+        logger.info(f"Received signal {sig}, shutting down...")
+        # Force exit the server
+        server.should_exit = True
+        # No need to call sys.exit() here, we'll let the server shutdown gracefully
+
+    # Register our signal handlers for common termination signals
+    for sig in [signal.SIGINT, signal.SIGTERM]:
+        signal.signal(sig, signal_handler)
+
+    # Run the server with our pre-bound socket
+    # Use server.run instead of asyncio.run(server.serve()) to properly handle signals
+    try:
+        server.run(sockets=[sock])
+    except KeyboardInterrupt:
+        logger.info("Keyboard interrupt received, shutting down...")
+        # This is a fallback in case our signal handler didn't catch it
+    except Exception as e:
+        logger.exception(f"Unexpected error running server: {e}")
+    finally:
+        logger.info("Server shutdown complete.")
 
 
 if __name__ == "__main__":
