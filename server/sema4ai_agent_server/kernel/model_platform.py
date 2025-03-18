@@ -1,4 +1,4 @@
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from agent_server_types_v2.kernel import Kernel
@@ -59,7 +59,7 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
         self,
         prompt: Prompt,
         model: str,
-    ) -> AsyncGenerator[ResponseStreamPipe, None]:
+    ) -> AsyncIterator[ResponseStreamPipe]:
         """Streams a response to a prompt as a context manager.
 
         Arguments:
@@ -79,7 +79,10 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
             converted_prompt,
             model,
         )
-        stream_pipe = ResponseStreamPipe(response_stream)
+        # Why include the prompt? Some information (like tool defs) is not
+        # included in the response stream, so we need to include the prompt
+        # to get at that information.
+        stream_pipe = ResponseStreamPipe(response_stream, finalized_prompt)
 
         try:
             yield stream_pipe

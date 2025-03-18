@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 
-interface Message {
+export interface Message {
   role: "user" | "agent";
   content: any[]; // For agent messages with structured content
 }
@@ -18,33 +18,142 @@ const UserMessage: React.FC<{ content?: any[] }> = ({ content }) => (
 );
 
 // Agent message component
-const AgentMessage: React.FC<{ content?: any[] }> = ({ content }) => (
-  <div className="flex justify-start">
-    <div 
-      className="px-4 py-2 rounded-lg max-w-[70%] bg-gray-100 text-gray-800 border border-gray-200"
-      style={{ whiteSpace: "pre-wrap" }}
-    >
-      <div className="agent-structured-content flex flex-col gap-2">
-        {content?.map((item, index) => {
-          if (item.kind === "thought") {
-            return (
-              <div key={index} className="thought-content italic text-gray-600 border-l-2 border-gray-400 pl-2">
-                {item.thought}
-              </div>
-            );
-          } else if (item.kind === "text") {
-            return (
-              <div key={index} className="text-content">
-                {item.text}
-              </div>
-            );
-          }
-          return null;
-        })}
+const AgentMessage: React.FC<{ content?: any[] }> = ({ content }) => {
+  // State to track which tool call sections are expanded
+  const [expandedSections, setExpandedSections] = useState<{[key: string]: boolean}>({});
+  
+  // Toggle section visibility
+  const toggleSection = (toolId: string, section: string) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [`${toolId}-${section}`]: !prev[`${toolId}-${section}`]
+    }));
+  };
+  
+  // Check if a section is expanded
+  const isSectionExpanded = (toolId: string, section: string) => {
+    return !!expandedSections[`${toolId}-${section}`];
+  };
+
+  return (
+    <div className="flex justify-start">
+      <div 
+        className="px-4 py-2 rounded-lg max-w-[70%] bg-gray-100 text-gray-800 border border-gray-200"
+        style={{ whiteSpace: "pre-wrap" }}
+      >
+        <div className="agent-structured-content flex flex-col gap-2">
+          {content?.map((item, index) => {
+            if (item.kind === "thought") {
+              return (
+                <div key={index} className="thought-content italic text-gray-600 border-l-2 border-gray-400 pl-2">
+                  {item.thought}
+                </div>
+              );
+            } else if (item.kind === "text") {
+              return (
+                <div key={index} className="text-content">
+                  {item.text}
+                </div>
+              );
+            } else if (item.kind === "tool_call") {
+              // Enhanced tool call rendering
+              const statusColors = {
+                pending: "bg-gray-100 text-gray-600",
+                running: "bg-blue-100 text-blue-700",
+                streaming: "bg-purple-100 text-purple-700",
+                finished: "bg-green-100 text-green-700",
+                failed: "bg-red-100 text-red-700"
+              };
+
+              const statusColor = statusColors[item.status as keyof typeof statusColors] || "bg-gray-100";
+
+              const isLoading = item.status === "running" || item.status === "streaming";
+              
+              // Try to parse and prettify the arguments
+              let prettyArgs = item.arguments_raw;
+              try {
+                const parsed = JSON.parse(item.arguments_raw);
+                prettyArgs = JSON.stringify(parsed, null, 2);
+              } catch (e) {
+                // Keep original if not valid JSON
+              }
+              
+              // Generate unique ID for this tool call
+              const toolId = `tool-${index}`;
+              
+              return (
+                <div key={index} className="tool-call-content border rounded-md overflow-hidden">
+                  <div className="tool-header bg-gray-200 px-3 py-1.5 font-medium flex justify-between items-center">
+                    <span>🔧 {item.name}</span>
+                    <div className="flex items-center">
+                      {isLoading && (
+                        <div className="animate-spin mr-2 h-4 w-4 text-blue-600">
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        </div>
+                      )}
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${statusColor}`}>
+                        {item.status}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="px-3 py-2">
+                    <div className="tool-args mb-2">
+                      <button 
+                        onClick={() => toggleSection(toolId, 'args')}
+                        className="text-xs text-gray-500 mb-1 flex items-center w-full justify-between hover:bg-gray-50 p-1 rounded"
+                      >
+                        <span>Arguments:</span>
+                        <span className="text-gray-400">{isSectionExpanded(toolId, 'args') ? '▼' : '►'}</span>
+                      </button>
+                      {isSectionExpanded(toolId, 'args') && (
+                        <pre className="text-xs bg-gray-50 p-2 rounded overflow-x-auto">{prettyArgs}</pre>
+                      )}
+                    </div>
+                    
+                    {item.result && (
+                      <div className="tool-result">
+                        <button 
+                          onClick={() => toggleSection(toolId, 'result')}
+                          className="text-xs text-gray-500 mb-1 flex items-center w-full justify-between hover:bg-gray-50 p-1 rounded"
+                        >
+                          <span>Result:</span>
+                          <span className="text-gray-400">{isSectionExpanded(toolId, 'result') ? '▼' : '►'}</span>
+                        </button>
+                        {isSectionExpanded(toolId, 'result') && (
+                          <pre className="text-xs bg-gray-50 p-2 rounded overflow-x-auto">{item.result}</pre>
+                        )}
+                      </div>
+                    )}
+                    
+                    {item.error && (
+                      <div className="tool-error">
+                        <button 
+                          onClick={() => toggleSection(toolId, 'error')}
+                          className="text-xs text-gray-500 mb-1 flex items-center w-full justify-between hover:bg-gray-50 p-1 rounded"
+                        >
+                          <span>Error:</span>
+                          <span className="text-gray-400">{isSectionExpanded(toolId, 'error') ? '▼' : '►'}</span>
+                        </button>
+                        {isSectionExpanded(toolId, 'error') && (
+                          <pre className="text-xs bg-red-50 text-red-700 p-2 rounded overflow-x-auto">{item.error}</pre>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 interface ChatPanelProps {
   threadName: string;

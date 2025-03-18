@@ -1,6 +1,7 @@
 import asyncio
 import json
 import random
+import traceback
 from pathlib import Path
 
 import anywidget
@@ -153,6 +154,8 @@ class DebugChatWidget(anywidget.AnyWidget):
                 msg = await self._ws.recv()
                 message_dict = json.loads(msg)
 
+                # print(f"Received message: {message_dict}")
+
                 # If it has 'event' key, unwrap it
                 if "event" in message_dict:
                     message_dict = message_dict["event"]
@@ -186,13 +189,6 @@ class DebugChatWidget(anywidget.AnyWidget):
                         self.messages = [*self.messages[:-1].copy(), combine_generic_deltas(
                             [delta], self.messages[-1],
                         )]
-                    elif event_type == "message_end":
-                        self.is_loading = False
-                        self.status_message = "Ready"
-
-                        print("[WS] Message complete, connection will be closed by server")
-                        self._ws = None
-                        return
                 elif msg_type == "error":
                     print("[WS Error]", message_dict.get("message"))
                     print(message_dict.get("stack_trace"))
@@ -205,11 +201,14 @@ class DebugChatWidget(anywidget.AnyWidget):
         except ConnectionClosed:
             print("[WS] Connection closed")
             self.is_loading = False
-            self.status_message = "Connection closed"
+            self.status_message = "Ready"
+            self._ws = None
         except asyncio.CancelledError:
             pass
         except Exception as e:
             print("[WS] Unexpected error:", e)
+            # traceback
+            traceback.print_exc()
             self.is_loading = False
             self.status_message = f"Error: {str(e)}"
 

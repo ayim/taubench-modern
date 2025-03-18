@@ -4,6 +4,8 @@ from agent_server_types_v2.prompts import (
     PromptMessage,
     PromptMessageContent,
     PromptTextContent,
+    PromptToolResultContent,
+    PromptToolUseContent,
     PromptUserMessage,
 )
 from agent_server_types_v2.thread import (
@@ -11,6 +13,7 @@ from agent_server_types_v2.thread import (
     ThreadMessageContent,
     ThreadTextContent,
     ThreadThoughtContent,
+    ThreadToolUsageContent,
 )
 from sema4ai_agent_server.kernel.kernel_mixin import UsesKernelMixin
 
@@ -21,37 +24,64 @@ class AgentServerConvertersInterface(ConvertersInterface, UsesKernelMixin):
     def __init__(self) -> None:
         self._kernel = None
 
-    async def thread_contents_to_prompt_contents(
+    async def user_thread_contents_to_prompt_contents(
         self,
         contents: list[ThreadMessageContent],
     ) -> list[PromptMessageContent]:
         """Converts a thread content to a prompt content."""
         prompt_contents: list[PromptMessageContent] = []
 
-        collapsed_thoughts = ""
-        collapsed_text = ""
         for content in contents:
             match content:
-                case ThreadThoughtContent() as thought_content:
-                    collapsed_thoughts += thought_content.thought
                 case ThreadTextContent() as text_content:
-                    collapsed_text += text_content.text
-                # TODO: tools and such
+                    prompt_contents.append(PromptTextContent(
+                        text=text_content.text.strip(),
+                    ))
+                # TODO: multi-modal content/docs
                 case _:
                     raise ValueError(f"Unsupported thread content kind: {content.kind}")
 
-        collapsed_thoughts = collapsed_thoughts.strip()
-        collapsed_text = collapsed_text.strip()
-
-        overall_text = ""
-        if collapsed_thoughts:
-            overall_text += f"<thinking>\n{collapsed_thoughts}\n</thinking>\n\n"
-        if collapsed_text:
-            overall_text += f"<response>\n{collapsed_text}\n</response>\n\n"
-
-        prompt_contents.append(PromptTextContent(text=overall_text))
-
         return prompt_contents
+
+    async def agent_thread_contents_to_prompt_contents(
+        self,
+        contents: list[ThreadMessageContent],
+    ) -> tuple[list[PromptMessageContent], list[PromptMessageContent]]:
+        """Converts a thread content to a prompt content."""
+        prompt_agent_contents: list[PromptMessageContent] = []
+        prompt_user_contents: list[PromptMessageContent] = []
+
+        for content in contents:
+            match content:
+                case ThreadThoughtContent() as thought_content:
+                    prompt_agent_contents.append(PromptTextContent(
+                        text=f"<thinking>\n{thought_content.thought.strip()}\n</thinking>\n",
+                    ))
+                case ThreadTextContent() as text_content:
+                    prompt_agent_contents.append(PromptTextContent(
+                        text=f"<response>\n{text_content.text.strip()}\n</response>\n",
+                    ))
+                case ThreadToolUsageContent() as tool_usage_content:
+                    prompt_agent_contents.append(PromptToolUseContent(
+                        tool_call_id=tool_usage_content.tool_call_id,
+                        tool_name=tool_usage_content.name,
+                        tool_input_raw=tool_usage_content.arguments_raw,
+                    ))
+                    prompt_user_contents.append(PromptToolResultContent(
+                        tool_call_id=tool_usage_content.tool_call_id,
+                        tool_name=tool_usage_content.name,
+                        content=[
+                            PromptTextContent(
+                                text=tool_usage_content.result,
+                            ),
+                        ],
+                        is_error=tool_usage_content.status == "failed",
+                    ))
+                # TODO: multi-modal content/docs
+                case _:
+                    raise ValueError(f"Unsupported thread content kind: {content.kind}")
+
+        return prompt_agent_contents, prompt_user_contents
 
     async def thread_messages_to_prompt_messages(
         self,
@@ -64,19 +94,25 @@ class AgentServerConvertersInterface(ConvertersInterface, UsesKernelMixin):
                 case "user":
                     prompt_messages.append(
                         PromptUserMessage(
-                            content=await self.thread_contents_to_prompt_contents(
+                            content=await self.user_thread_contents_to_prompt_contents(
                                 message.content,
                             ),
                         ),
                     )
                 case "agent":
-                    prompt_messages.append(
-                        PromptAgentMessage(
-                            content=await self.thread_contents_to_prompt_contents(
-                                message.content,
-                            ),
-                        ),
+                    # There's a split here for things like tool calling: agent decides
+                    # to call a tool, and then the user provides the result.
+                    agent_contents, user_contents = await self.agent_thread_contents_to_prompt_contents(
+                        message.content,
                     )
+
+                    prompt_messages.append(
+                        PromptAgentMessage(content=agent_contents),
+                    )
+                    if len(user_contents) > 0:
+                        prompt_messages.append(
+                            PromptUserMessage(content=user_contents),
+                        )
                 case _:
                     # Should never happen
                     raise ValueError(f"Unsupported thread message kind: {message.kind}")

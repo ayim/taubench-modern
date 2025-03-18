@@ -10,7 +10,7 @@ interface Thread {
 
 interface Message {
   role: "user" | "agent";
-  text: string;
+  content: any[];
 }
 
 interface DebugWidgetProps {
@@ -50,7 +50,7 @@ export const DebugWidget: React.FC<DebugWidgetProps> = ({
 
   return (
     <div 
-      className="w-[800px] h-[500px] border border-gray-300"
+      className="w-[800px] h-[800px] border border-gray-300"
       style={{ 
         display: 'grid',
         gridTemplateRows: 'minmax(0, 1fr) auto',
