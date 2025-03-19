@@ -92,17 +92,6 @@ jobs:
       GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
-  check-asi:
-    uses: ./.github/workflows/sub-test-asi-check.yml
-    with:
-      python_version: ${{ inputs.python_version }}
-      node_version: ${{ inputs.node_version }}
-    secrets:
-      GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
-      GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
-
   build-agent-server:
     uses: ./.github/workflows/sub-build-agent-server.yml
     needs:
@@ -134,7 +123,6 @@ jobs:
 
   build-asi:
     uses: ./.github/workflows/sub-build-asi.yml
-    needs: [check-asi]
     with:
       python_version: ${{ inputs.python_version }}
       node_version: ${{ inputs.node_version }}
