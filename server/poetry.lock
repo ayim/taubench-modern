@@ -2,7 +2,7 @@
 
 [[package]]
 name = "agent-architecture"
-version = "1.2.1-alpha.9"
+version = "1.2.1"
 description = "Core cognitive framework architecture for agents."
 optional = false
 python-versions = "^3.11.0,<3.12"
@@ -11,7 +11,7 @@ files = []
 develop = false
 
 [package.dependencies]
-agent-server-types = {git = "https://github.com/Sema4AI/agent-server-types.git", tag = "v1.2.0-alpha.4"}
+agent-server-types = {git = "https://github.com/Sema4AI/agent-server-types.git", tag = "v1.2.0"}
 langchain-core = "^0.3.15"
 langgraph = "^0.2.45"
 opentelemetry-api = "^1.27.0"
@@ -22,12 +22,12 @@ structlog = "^24.4.0"
 [package.source]
 type = "git"
 url = "https://github.com/Sema4AI/agent-architecture.git"
-reference = "v1.2.1-alpha.9"
-resolved_reference = "3c949395e1e703ed5d920d741934845c75add8b5"
+reference = "v1.2.1"
+resolved_reference = "02262c1cc455c1e36d810c95d4f2bf79a0d47816"
 
 [[package]]
 name = "agent-architecture-claude-tools"
-version = "1.1.0-alpha.12"
+version = "1.1.0"
 description = "Tool using cognitive architecture for agents supporting Anthropic Claude LLMs."
 optional = false
 python-versions = "^3.11.0,<3.12"
@@ -36,18 +36,18 @@ files = []
 develop = false
 
 [package.dependencies]
-agent-architecture = {git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.2.1-alpha.9"}
-agent-server-types = {git = "https://github.com/Sema4AI/agent-server-types.git", tag = "v1.2.0-alpha.4"}
+agent-architecture = {git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.2.1"}
+agent-server-types = {git = "https://github.com/Sema4AI/agent-server-types.git", tag = "v1.2.0"}
 
 [package.source]
 type = "git"
 url = "https://github.com/Sema4AI/agent-architecture-claude-tools.git"
-reference = "v1.1.0-alpha.12"
-resolved_reference = "ad5cb75d9847f9c52f199868deb8585318a0695e"
+reference = "v1.1.0"
+resolved_reference = "a54f34bed382bcce3c4bfe7301889f3105d19f02"
 
 [[package]]
 name = "agent-architecture-default"
-version = "1.1.0-alpha.9"
+version = "1.1.0"
 description = "Tool using cognitive architecture for agents supporting OpenAI LLMs."
 optional = false
 python-versions = "^3.11.0,<3.12"
@@ -56,18 +56,18 @@ files = []
 develop = false
 
 [package.dependencies]
-agent-architecture = {git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.2.1-alpha.9"}
-agent-server-types = {git = "https://github.com/Sema4AI/agent-server-types.git", tag = "v1.2.0-alpha.4"}
+agent-architecture = {git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.2.1"}
+agent-server-types = {git = "https://github.com/Sema4AI/agent-server-types.git", tag = "v1.2.0"}
 
 [package.source]
 type = "git"
 url = "https://github.com/Sema4AI/agent-architecture-default.git"
-reference = "v1.1.0-alpha.9"
-resolved_reference = "66b333d6fc0968c2747a774528fe035b852545b3"
+reference = "v1.1.0"
+resolved_reference = "5e9cd3f09ee2e945c43b9a35e15e2f1e5eaf50ce"
 
 [[package]]
 name = "agent-architecture-openai-plan-execute"
-version = "1.1.0-alpha.9"
+version = "1.1.0"
 description = "Plan execute cognitive architecture for agents with support for OpenAI LLMs."
 optional = false
 python-versions = "^3.11.0,<3.12"
@@ -76,18 +76,18 @@ files = []
 develop = false
 
 [package.dependencies]
-agent-architecture = {git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.2.1-alpha.9"}
-agent-server-types = {git = "https://github.com/Sema4AI/agent-server-types.git", tag = "v1.2.0-alpha.4"}
+agent-architecture = {git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.2.1"}
+agent-server-types = {git = "https://github.com/Sema4AI/agent-server-types.git", tag = "v1.2.0"}
 
 [package.source]
 type = "git"
 url = "https://github.com/Sema4AI/agent-architecture-openai-plan-execute.git"
-reference = "v1.1.0-alpha.9"
-resolved_reference = "e21a8b58b54e3b6a4ee2ad397f676ef1fd575ebe"
+reference = "v1.1.0"
+resolved_reference = "514a281143abdce2e50b24f8211a0ecb96dfb23f"
 
 [[package]]
 name = "agent-server-types"
-version = "1.2.0-alpha.4"
+version = "1.2.0"
 description = "Shared types for the agent server and agent architecture plugins."
 optional = false
 python-versions = "^3.11.0,<3.12"
@@ -102,8 +102,8 @@ pydantic = ">=2,<3"
 [package.source]
 type = "git"
 url = "https://github.com/Sema4AI/agent-server-types.git"
-reference = "v1.2.0-alpha.4"
-resolved_reference = "ffb1477fa790f41c2fb59c680f420a12b5388751"
+reference = "v1.2.0"
+resolved_reference = "6f84d9468d47e60dc3483cf4869f1dc87d74003e"
 
 [[package]]
 name = "aiofiles"
@@ -483,18 +483,18 @@ lxml = ["lxml"]
 
 [[package]]
 name = "boto3"
-version = "1.37.14"
+version = "1.37.15"
 description = "The AWS SDK for Python"
 optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 files = [
-    {file = "boto3-1.37.14-py3-none-any.whl", hash = "sha256:56b4d1e084dbca43d5fdd070f633a84de61a6ce592655b4d239d263d1a0097fc"},
-    {file = "boto3-1.37.14.tar.gz", hash = "sha256:cf2e5e6d56efd5850db8ce3d9094132e4759cf2d4b5fd8200d69456bf61a20f3"},
+    {file = "boto3-1.37.15-py3-none-any.whl", hash = "sha256:78cc1b483cc637e1df8e81498d66f89550d4ee92175ccab5be1a2226672fe6b9"},
+    {file = "boto3-1.37.15.tar.gz", hash = "sha256:586332456fff19328d57a88214a2ac2eda1bafab743556a836eda46a4ce613c6"},
 ]
 
 [package.dependencies]
-botocore = ">=1.37.14,<1.38.0"
+botocore = ">=1.37.15,<1.38.0"
 jmespath = ">=0.7.1,<2.0.0"
 s3transfer = ">=0.11.0,<0.12.0"
 
@@ -503,14 +503,14 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "botocore"
-version = "1.37.14"
+version = "1.37.15"
 description = "Low-level, data-driven core of boto 3."
 optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 files = [
-    {file = "botocore-1.37.14-py3-none-any.whl", hash = "sha256:709a1796f436f8e378e52170e58501c1f3b5f2d1308238cf1d6a3bdba2e32851"},
-    {file = "botocore-1.37.14.tar.gz", hash = "sha256:b0adce3f0fb42b914eb05079f50cf368cb9cf9745fdd206bd91fe6ac67b29aca"},
+    {file = "botocore-1.37.15-py3-none-any.whl", hash = "sha256:996b8d6a342ad7735eb07d8b4a81dad86e60ce0889ccb3edec0cd66eece85393"},
+    {file = "botocore-1.37.15.tar.gz", hash = "sha256:72e6f1db6ebc4112d6ba719c97ad71ac7cf4a2f3729ae74fa225641e3ddcba92"},
 ]
 
 [package.dependencies]
@@ -2340,19 +2340,19 @@ adal = ["adal (>=1.0.2)"]
 
 [[package]]
 name = "langchain"
-version = "0.3.20"
+version = "0.3.21"
 description = "Building applications with LLMs through composability"
 optional = false
 python-versions = "<4.0,>=3.9"
 groups = ["main"]
 files = [
-    {file = "langchain-0.3.20-py3-none-any.whl", hash = "sha256:273287f8e61ffdf7e811cf8799e6a71e9381325b8625fd6618900faba79cfdd0"},
-    {file = "langchain-0.3.20.tar.gz", hash = "sha256:edcc3241703e1f6557ef5a5c35cd56f9ccc25ff12e38b4829c66d94971737a93"},
+    {file = "langchain-0.3.21-py3-none-any.whl", hash = "sha256:c8bd2372440cc5d48cb50b2d532c2e24036124f1c467002ceb15bc7b86c92579"},
+    {file = "langchain-0.3.21.tar.gz", hash = "sha256:a10c81f8c450158af90bf37190298d996208cfd15dd3accc1c585f068473d619"},
 ]
 
 [package.dependencies]
-langchain-core = ">=0.3.41,<1.0.0"
-langchain-text-splitters = ">=0.3.6,<1.0.0"
+langchain-core = ">=0.3.45,<1.0.0"
+langchain-text-splitters = ">=0.3.7,<1.0.0"
 langsmith = ">=0.1.17,<0.4"
 pydantic = ">=2.7.4,<3.0.0"
 PyYAML = ">=5.3"
@@ -2362,6 +2362,7 @@ SQLAlchemy = ">=1.4,<3"
 [package.extras]
 anthropic = ["langchain-anthropic"]
 aws = ["langchain-aws"]
+azure-ai = ["langchain-azure-ai"]
 cohere = ["langchain-cohere"]
 community = ["langchain-community"]
 deepseek = ["langchain-deepseek"]
@@ -2396,21 +2397,21 @@ pydantic = ">=2.7.4,<3.0.0"
 
 [[package]]
 name = "langchain-aws"
-version = "0.2.15"
+version = "0.2.16"
 description = "An integration package connecting AWS and LangChain"
 optional = false
 python-versions = "<4.0,>=3.9"
 groups = ["main"]
 files = [
-    {file = "langchain_aws-0.2.15-py3-none-any.whl", hash = "sha256:9e581252ba2b218523f78729ea56f13ea23ed96b43dd5d3f197386ba02546cfd"},
-    {file = "langchain_aws-0.2.15.tar.gz", hash = "sha256:0b223c1e9cfabadf7d509497881fb1e67e2e419dcd7b14980c99be67be6cd298"},
+    {file = "langchain_aws-0.2.16-py3-none-any.whl", hash = "sha256:7db813eb88628a78a535194f61715c0bcc8722882793716e58beba4aa1cd8ebc"},
+    {file = "langchain_aws-0.2.16.tar.gz", hash = "sha256:2c2971b3a5ef49c0fe275740e4389ccf2665ee4d070cfbaee157b2b46895c6f5"},
 ]
 
 [package.dependencies]
 boto3 = ">=1.37.0"
-langchain-core = ">=0.3.27,<0.4.0"
+langchain-core = ">=0.3.43,<0.4.0"
 numpy = {version = ">=1,<2", markers = "python_version < \"3.12\""}
-pydantic = ">=2,<3"
+pydantic = ">=2.10.0,<3"
 
 [[package]]
 name = "langchain-chroma"
@@ -2432,22 +2433,22 @@ numpy = {version = ">=1,<2", markers = "python_version < \"3.12\""}
 
 [[package]]
 name = "langchain-community"
-version = "0.3.19"
+version = "0.3.20"
 description = "Community contributed LangChain integrations."
 optional = false
 python-versions = "<4.0,>=3.9"
 groups = ["main"]
 files = [
-    {file = "langchain_community-0.3.19-py3-none-any.whl", hash = "sha256:268ce7b322c0d1961d7bab1a9419d6ff30c99ad09487dca48d47389b69875b16"},
-    {file = "langchain_community-0.3.19.tar.gz", hash = "sha256:fc100b6d4d6523566a957cdc306b0500e4982d5b221b98f67432da18ba5b2bf5"},
+    {file = "langchain_community-0.3.20-py3-none-any.whl", hash = "sha256:ea3dbf37fbc21020eca8850627546f3c95a8770afc06c4142b40b9ba86b970f7"},
+    {file = "langchain_community-0.3.20.tar.gz", hash = "sha256:bd83b4f2f818338423439aff3b5be362e1d686342ffada0478cd34c6f5ef5969"},
 ]
 
 [package.dependencies]
 aiohttp = ">=3.8.3,<4.0.0"
 dataclasses-json = ">=0.5.7,<0.7"
 httpx-sse = ">=0.4.0,<1.0.0"
-langchain = ">=0.3.20,<1.0.0"
-langchain-core = ">=0.3.41,<1.0.0"
+langchain = ">=0.3.21,<1.0.0"
+langchain-core = ">=0.3.45,<1.0.0"
 langsmith = ">=0.1.125,<0.4"
 numpy = ">=1.26.2,<3"
 pydantic-settings = ">=2.4.0,<3.0.0"
@@ -2516,18 +2517,18 @@ sqlalchemy = ">=2,<3"
 
 [[package]]
 name = "langchain-text-splitters"
-version = "0.3.6"
+version = "0.3.7"
 description = "LangChain text splitting utilities"
 optional = false
 python-versions = "<4.0,>=3.9"
 groups = ["main"]
 files = [
-    {file = "langchain_text_splitters-0.3.6-py3-none-any.whl", hash = "sha256:e5d7b850f6c14259ea930be4a964a65fa95d9df7e1dbdd8bad8416db72292f4e"},
-    {file = "langchain_text_splitters-0.3.6.tar.gz", hash = "sha256:c537972f4b7c07451df431353a538019ad9dadff7a1073ea363946cea97e1bee"},
+    {file = "langchain_text_splitters-0.3.7-py3-none-any.whl", hash = "sha256:31ba826013e3f563359d7c7f1e99b1cdb94897f665675ee505718c116e7e20ad"},
+    {file = "langchain_text_splitters-0.3.7.tar.gz", hash = "sha256:7dbf0fb98e10bb91792a1d33f540e2287f9cc1dc30ade45b7aedd2d5cd3dc70b"},
 ]
 
 [package.dependencies]
-langchain-core = ">=0.3.34,<1.0.0"
+langchain-core = ">=0.3.45,<1.0.0"
 
 [[package]]
 name = "langdetect"
@@ -2595,14 +2596,14 @@ orjson = ">=3.10.1"
 
 [[package]]
 name = "langsmith"
-version = "0.3.15"
+version = "0.3.18"
 description = "Client library to connect to the LangSmith LLM Tracing and Evaluation Platform."
 optional = false
 python-versions = "<4.0,>=3.9"
 groups = ["main", "dev"]
 files = [
-    {file = "langsmith-0.3.15-py3-none-any.whl", hash = "sha256:eb0304b477189106f60758ddd3b55fb09a18be5cb2d586d76ffcaeb5170d2807"},
-    {file = "langsmith-0.3.15.tar.gz", hash = "sha256:b4fcd78926cdf310a882081ead95541fce911636fcffbb0d087fa1974994c4c7"},
+    {file = "langsmith-0.3.18-py3-none-any.whl", hash = "sha256:7ad65ec26084312a039885ef625ae72a69ad089818b64bacf7ce6daff672353a"},
+    {file = "langsmith-0.3.18.tar.gz", hash = "sha256:18ff2d8f2e77b375485e4fb3d0dbf7b30fabbd438c7347c3534470e9b7d187b8"},
 ]
 
 [package.dependencies]
@@ -2617,6 +2618,7 @@ zstandard = ">=0.23.0,<0.24.0"
 [package.extras]
 langsmith-pyo3 = ["langsmith-pyo3 (>=0.1.0rc2,<0.2.0)"]
 openai-agents = ["openai-agents (>=0.0.3,<0.0.4)"]
+otel = ["opentelemetry-api (>=1.30.0,<2.0.0)", "opentelemetry-exporter-otlp-proto-http (>=1.30.0,<2.0.0)", "opentelemetry-sdk (>=1.30.0,<2.0.0)"]
 pytest = ["pytest (>=7.0.0)", "rich (>=13.9.4,<14.0.0)"]
 
 [[package]]
@@ -3507,14 +3509,14 @@ sympy = "*"
 
 [[package]]
 name = "openai"
-version = "1.66.3"
+version = "1.66.5"
 description = "The official Python library for the openai API"
 optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 files = [
-    {file = "openai-1.66.3-py3-none-any.whl", hash = "sha256:a427c920f727711877ab17c11b95f1230b27767ba7a01e5b66102945141ceca9"},
-    {file = "openai-1.66.3.tar.gz", hash = "sha256:8dde3aebe2d081258d4159c4cb27bdc13b5bb3f7ea2201d9bd940b9a89faf0c9"},
+    {file = "openai-1.66.5-py3-none-any.whl", hash = "sha256:74be528175f8389f67675830c51a15bd51e874425c86d3de6153bf70ed6c2884"},
+    {file = "openai-1.66.5.tar.gz", hash = "sha256:f61b8fac29490ca8fdc6d996aa6926c18dbe5639536f8c40219c40db05511b11"},
 ]
 
 [package.dependencies]
@@ -4407,14 +4409,14 @@ files = [
 
 [[package]]
 name = "pbs-installer"
-version = "2025.3.11"
+version = "2025.3.17"
 description = "Installer for Python Build Standalone"
 optional = false
 python-versions = ">=3.8"
 groups = ["dev"]
 files = [
-    {file = "pbs_installer-2025.3.11-py3-none-any.whl", hash = "sha256:c5d17afdb41abbec2afda815d41a93276887f19e6bdc16e98b2dfed11d845968"},
-    {file = "pbs_installer-2025.3.11.tar.gz", hash = "sha256:150986b56648e2d04e99fafe24c165fa94cfa8385b93d6bf9b82925c3d57d064"},
+    {file = "pbs_installer-2025.3.17-py3-none-any.whl", hash = "sha256:d2b0563b1d5d814e479f3c43d7aee019250f68a0a113d754714fa9a721f83b47"},
+    {file = "pbs_installer-2025.3.17.tar.gz", hash = "sha256:dde058f925b989c1d3bd90739c16ffd0e68732f7716e4d1e01ca480d00a67560"},
 ]
 
 [package.dependencies]
@@ -7708,4 +7710,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11.0,<3.12"
-content-hash = "428f1bb460f4a9b16fd0a96dcdf0af43898f0f872a2488d52fab39a5a64e258a"
+content-hash = "bc662f92137d3c0737fc207658140487fd26cb708100cdc54d085a59e93b38c3"
