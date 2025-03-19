@@ -16,7 +16,10 @@ def test_start_agent_server_with_lock_file(tmpdir, logs_dir):
 
     from agent_server_orchestrator.bootstrap_agent_server import AgentServerProcess
     from sema4ai.common.process import Process
-    from sema4ai.common.wait_for import wait_for_condition
+    from sema4ai.common.wait_for import (
+        wait_for_condition,
+        wait_for_expected_func_return,
+    )
 
     agent_server_data_dir = Path(tmpdir) / "agent_server_data"
 
@@ -44,15 +47,55 @@ def test_start_agent_server_with_lock_file(tmpdir, logs_dir):
     with start() as agent_server_process:
         assert agent_server_process.process.is_alive()
 
-        def pid_file_exists():
-            pid_file = agent_server_data_dir / "agent-server.pid"
-            return pid_file.exists()
+        pid_file = agent_server_data_dir / "agent-server.pid"
 
-        wait_for_condition(pid_file_exists)
+        def pid_file_exists_and_is_json_valid():
+            if not pid_file.exists():
+                return "pid file does not exist"
+            try:
+                pid_file_content = pid_file.read_text()
+            except Exception:
+                return "pid file is not readable"
+
+            if not pid_file_content:
+                return "pid file is empty"
+            try:
+                json.loads(pid_file_content)
+            except Exception:
+                return f"pid file is not valid json. Content: {pid_file_content!r}"
+            return "ok"
+
+        wait_for_expected_func_return(pid_file_exists_and_is_json_valid, "ok")
+        initial_pid = json.loads(pid_file.read_text())["pid"]
+
         with start() as agent_server_process2:
             # Previous one must exit before the new one can start
             wait_for_condition(lambda: not agent_server_process.process.is_alive())
-            pid_file = agent_server_data_dir / "agent-server.pid"
+
+            def pid_file_contains_new_pid():
+                try:
+                    pid_file_content = pid_file.read_text()
+                except Exception:
+                    return "pid file is not readable"
+                if not pid_file_content:
+                    return "pid file is empty"
+                try:
+                    data = json.loads(pid_file_content)
+                except Exception:
+                    return f"pid file is not valid json. Content: {pid_file_content!r}"
+
+                if initial_pid != data["pid"]:
+                    return "ok"
+                return f"pid was kept the same ({initial_pid})"
+
+            # When using the python from uv, it does a double-launch
+            # i.e.: .venv\Scripts\python.exe ends up calling
+            # <user>\Roaming\uv\python\cpython-3.11.11-windows-x86_64-none\python.exe
+            # which is a different process than the one we want to test against
+            # (this means we can't use `pid` directly,
+            # so, we just check that the pid is different).
+            wait_for_expected_func_return(pid_file_contains_new_pid, "ok")
+
             data = json.loads(pid_file.read_text())
             assert data["pid"] == agent_server_process2.process.pid
             assert data["lock_file"]
@@ -63,7 +106,7 @@ def test_start_agent_server_with_lock_file(tmpdir, logs_dir):
     # Ok, now, test --parent-pid
 
     # Simulate the parent process id.
-    process = Process(["python", "-c", "import time; time.sleep(10000)"])
+    process = Process([sys.executable, "-c", "import time; time.sleep(10000)"])
     process.start()
 
     try:
