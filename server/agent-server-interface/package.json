@@ -1,6 +1,6 @@
 {
   "name": "@sema4ai/agent-server-interface",
-  "version": "1.2.0-beta+devgpt709.1",
+  "version": "1.2.0-alpha",
   "description": "Sema4.ai Agent Server API Typescript interface",
   "type": "module",
   "author": {
