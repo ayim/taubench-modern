@@ -17,6 +17,7 @@ from agent_server_types import (
     AmazonBedrock,
     AzureGPT,
     OpenAIGPT,
+    SnowflakeCortex,
     dummy_model,
 )
 from fastapi import UploadFile
@@ -36,6 +37,7 @@ from pydantic import ConfigDict, Field
 
 from sema4ai_agent_server.constants import VECTOR_DATABASE_PATH
 from sema4ai_agent_server.parsing import MIMETYPE_BASED_PARSER
+from sema4ai_agent_server.snowflake_cortex_embeddings import SnowflakeCortexEmbeddings
 from sema4ai_agent_server.storage.vectorstore import (
     ChromaVector,
     PostgresVector,
@@ -168,6 +170,28 @@ def get_embedding_function(
             aws_secret_access_key=model.config.aws_secret_access_key.get_secret_value(),
         )
         return BedrockEmbeddings(client=client, model_id="amazon.titan-embed-text-v2:0")
+    elif isinstance(model, SnowflakeCortex):
+        def _none_if_not_configured_or_empty(value: str | None) -> str | None:
+            if value is None or value.strip() == "":
+                return None
+            if value == NOT_CONFIGURED:
+                return None
+            return value
+
+        return SnowflakeCortexEmbeddings(
+            snowflake_username=_none_if_not_configured_or_empty(model.config.snowflake_username),
+            snowflake_password=_none_if_not_configured_or_empty(
+                model.config.snowflake_password.get_secret_value()
+                if model.config.snowflake_password
+                else None
+            ),
+            snowflake_account=_none_if_not_configured_or_empty(model.config.snowflake_account),
+            snowflake_host=_none_if_not_configured_or_empty(model.config.snowflake_host),
+            snowflake_database=_none_if_not_configured_or_empty(model.config.snowflake_database),
+            snowflake_schema=_none_if_not_configured_or_empty(model.config.snowflake_schema),
+            snowflake_role=_none_if_not_configured_or_empty(model.config.snowflake_role),
+            snowflake_warehouse=_none_if_not_configured_or_empty(model.config.snowflake_warehouse),
+        )
     raise ValueError(f"Unsupported model type {model} for embeddings.")
 
 
@@ -189,14 +213,22 @@ def get_pg_vector(model: Optional[MODEL]) -> PostgresVector:
 
 
 def get_chroma_vector(model: Optional[MODEL]) -> ChromaVector:
+    from chromadb.config import Settings
+
     return ChromaVector(
         # OpenAI's vector size is 1536, while AWS's titan model generates vectors with size 1024.
         # Chroma can't use the same collection for both, because it will throw an error when
         # adding documents with mismatched vector sizes. So, we use model provider as the
         # collection name to avoid this issue.
-        collection_name=model.provider.value if model is not None else "default",
+        collection_name=(
+            model.provider.value if model is not None else "default"
+        ).replace(" ", "-"),
         persist_directory=VECTOR_DATABASE_PATH,
         embedding_function=get_embedding_function(model) if model else None,
+        client_settings=Settings(
+            anonymized_telemetry=False,
+            is_persistent=True,
+        ),
     )
 
 

@@ -8,6 +8,7 @@ from uuid import uuid4
 import structlog
 from agent_server_types import (
     AGENT_LIST_ADAPTER,
+    LEGACY_ARCH_CONTEXT,
     MODEL,
     RAW_CONTEXT,
     UPLOADED_FILE_LIST_ADAPTER,
@@ -24,6 +25,7 @@ from agent_server_types import (
     LangsmithCredentials,
     ModelNotConfigured,
     SerializableSecretStr,
+    UpdateAgentPayload,
     UploadedFile,
 )
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Path, UploadFile
@@ -42,9 +44,7 @@ from sema4ai_agent_server.agent_spec import (
     validate_spec,
 )
 from sema4ai_agent_server.auth.handlers import AuthedUser
-from sema4ai_agent_server.file_manager.base import (
-    BaseFileManager,
-)
+from sema4ai_agent_server.file_manager.base import BaseFileManager
 from sema4ai_agent_server.file_manager.option import get_file_manager
 from sema4ai_agent_server.responses import PydanticResponse, TypeAdapterResponse
 from sema4ai_agent_server.schema import (
@@ -57,10 +57,6 @@ from sema4ai_agent_server.storage.option import get_storage
 logger = structlog.get_logger(__name__)
 
 router = APIRouter()
-
-
-# TODO: FastAPI schema will likely be wrong in relation to architecture because
-# it is not using the server implementation of AdvancedConfig.
 
 
 class AgentPayloadPackageActionServer(BaseModel):
@@ -98,6 +94,18 @@ class AgentPayloadPackage(BaseModel):
                 "Exactly one of agent_package_url or agent_package_base64 must be provided"
             )
         return self
+
+
+class UpdateAgentResponse(BaseModel):
+    """Response model for update_agent endpoint."""
+
+    updated: Agent
+
+
+class DeletedAgentResponse(BaseModel):
+    """Response model for delete_agent endpoint."""
+
+    deleted: Agent
 
 
 AgentID = Annotated[str, Path(description="The ID of the agent.")]
@@ -144,7 +152,9 @@ async def _generate_welcome_message(user_id: str, payload: AgentPayload) -> str 
 async def list_agents(user: AuthedUser):
     """List all agents for the current user."""
     agents = await get_storage().list_agents(user.user_id)
-    return TypeAdapterResponse(agents, adapter=AGENT_LIST_ADAPTER)
+    return TypeAdapterResponse(
+        agents, adapter=AGENT_LIST_ADAPTER, ser_context=LEGACY_ARCH_CONTEXT
+    )
 
 
 @router.get("/raw", response_model=List[Agent], response_class=TypeAdapterResponse)
@@ -152,7 +162,9 @@ async def list_raw_agents(user: AuthedUser):
     """List all agents for the current user."""
     agents = await get_storage().list_agents(user.user_id)
     return TypeAdapterResponse(
-        agents, adapter=AGENT_LIST_ADAPTER, ser_context=RAW_CONTEXT
+        agents,
+        adapter=AGENT_LIST_ADAPTER,
+        ser_context={**RAW_CONTEXT, **LEGACY_ARCH_CONTEXT},
     )
 
 
@@ -162,7 +174,7 @@ async def get_agent(user: AuthedUser, aid: AgentID):
     agent = await get_storage().get_agent(user.user_id, aid)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
-    return PydanticResponse(agent)
+    return PydanticResponse(agent, ser_context=LEGACY_ARCH_CONTEXT)
 
 
 @router.get("/{aid}/raw", response_model=Agent, response_class=PydanticResponse)
@@ -171,7 +183,7 @@ async def get_raw_agent(user: AuthedUser, aid: AgentID):
     agent = await get_storage().get_agent(user.user_id, aid)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
-    return PydanticResponse(agent, ser_context=RAW_CONTEXT)
+    return PydanticResponse(agent, ser_context={**RAW_CONTEXT, **LEGACY_ARCH_CONTEXT})
 
 
 @router.get(
@@ -212,6 +224,44 @@ async def get_agent_status(user: AuthedUser, aid: AgentID):
             issues.append(EmbeddingFileFailed(file_ref=file.file_ref))
 
     return PydanticResponse(AgentStatus(ready=len(issues) == 0, issues=issues))
+
+
+@router.patch("/{aid}", response_model=Agent, response_class=PydanticResponse)
+async def update_agent(
+    user: AuthedUser,
+    aid: AgentID,
+    payload: UpdateAgentPayload,
+):
+    agent = await get_storage().get_agent(user.user_id, aid)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    updated_agent = agent.patch_agent(payload)
+
+    try:
+        # TODO: The storage layer needs a patch endpoint as this currently writes
+        # all fields even if they are not provided.
+        agent = await get_storage().put_agent(
+            user.user_id,
+            aid,
+            public=updated_agent.public,
+            name=updated_agent.name,
+            description=updated_agent.description,
+            runbook=updated_agent.runbook.get_secret_value(),
+            version=updated_agent.version,
+            model=updated_agent.model,
+            advanced_config=updated_agent.advanced_config,
+            action_packages=updated_agent.action_packages,
+            metadata=updated_agent.metadata,
+            created_at=agent.created_at,
+        )
+
+        return PydanticResponse(agent, ser_context=LEGACY_ARCH_CONTEXT)
+    except Exception as e:
+        logger.exception("Failed to update agent", exception=e)
+        raise HTTPException(
+            status_code=400, detail=e.detail if isinstance(e, HTTPException) else str(e)
+        )
 
 
 @router.put("/package/{aid}", response_model=Agent, response_class=PydanticResponse)
@@ -276,7 +326,7 @@ async def upsert_agent_via_package(
         background_tasks.add_task(
             file_manager.create_missing_embeddings, agent.model, agent
         )
-        return PydanticResponse(agent)
+        return PydanticResponse(agent, ser_context=LEGACY_ARCH_CONTEXT)
 
     except Exception as e:
         logger.exception("Failed to update agent via package", exception=e)
@@ -343,7 +393,7 @@ async def create_agent_via_package(
         background_tasks.add_task(
             file_manager.create_missing_embeddings, agent.model, agent
         )
-        return PydanticResponse(agent)
+        return PydanticResponse(agent, ser_context=LEGACY_ARCH_CONTEXT)
 
     except Exception as e:
         logger.exception("Failed to create agent via package", exception=e)
@@ -458,7 +508,7 @@ async def create_agent(
         metadata=payload.metadata,
         created_at=datetime.datetime.now(datetime.timezone.utc),
     )
-    return PydanticResponse(agent, ser_context=RAW_CONTEXT)
+    return PydanticResponse(agent, ser_context={**RAW_CONTEXT, **LEGACY_ARCH_CONTEXT})
 
 
 @router.put("/{aid}", response_model=Agent, response_class=PydanticResponse)
@@ -492,14 +542,16 @@ async def upsert_agent(
         metadata=payload.metadata,
         created_at=agent.created_at,
     )
-    return PydanticResponse(agent, ser_context=RAW_CONTEXT)
+    return PydanticResponse(agent, ser_context={**RAW_CONTEXT, **LEGACY_ARCH_CONTEXT})
 
 
-@router.delete("/{aid}")
+@router.delete(
+    "/{aid}", response_model=DeletedAgentResponse, response_class=PydanticResponse
+)
 async def delete_agent(
     user: AuthedUser,
     aid: AgentID,
-) -> dict[str, Agent]:
+) -> DeletedAgentResponse:
     """Delete an agent by ID."""
     agent = await get_storage().get_agent(user.user_id, aid)
     if not agent:
@@ -511,7 +563,9 @@ async def delete_agent(
         await file_manager.delete(file.file_id)
 
     await get_storage().delete_agent(user.user_id, aid)
-    return {"deleted": agent}
+    return PydanticResponse(
+        DeletedAgentResponse(deleted=agent), ser_context=LEGACY_ARCH_CONTEXT
+    )
 
 
 @router.get(

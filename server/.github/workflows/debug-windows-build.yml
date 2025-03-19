@@ -1,0 +1,72 @@
+name: Debug Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      debug_mode:
+        description: "Enable debug mode"
+        required: true
+        type: boolean
+        default: false
+      python_version:
+        description: "Python version to use"
+        required: false
+        type: string
+        default: "3.11"
+      runner_name:
+        description: "Runner to use (e.g. windows-large-runner, windows-latest)"
+        required: true
+        type: string
+        default: "windows-large-runner"
+
+jobs:
+  debug-build:
+    runs-on: ${{ inputs.runner_name }}
+
+    steps:
+      - name: Checkout and Pull Latest
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v1
+
+      - name: Install Dependencies
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/install_deps@v1
+        with:
+          git_username: ${{ secrets.GIT_USERNAME }}
+          git_token: ${{ secrets.GIT_TOKEN }}
+          python_version: ${{ inputs.python_version }}
+          pre_poetry_requirements_file_path: "invoke_requirements.txt"
+          additional_poetry_groups: "build"
+
+      - name: Build executable (Windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        timeout-minutes: 60
+        run: |
+          IF ${{ inputs.debug_mode }} == true (
+            poetry run invoke build --onefile --ci --no-wheels --debug --name=agent-server
+          ) ELSE (
+            poetry run invoke build --onefile --ci --no-wheels --name=agent-server
+          )
+
+      - name: Build executable (Non-Windows)
+        if: runner.os != 'Windows'
+        shell: bash
+        timeout-minutes: 60
+        run: |
+          if [[ "${{ inputs.debug_mode }}" == "true" ]]; then
+            poetry run invoke build --onefile --ci --no-wheels --debug --name=agent-server
+          else
+            poetry run invoke build --onefile --ci --no-wheels --name=agent-server
+          fi
+
+      - name: Upload Build Log if Failed
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-server-build-log
+          path: build/build_output.log
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-server-build-windows-debug
+          path: dist

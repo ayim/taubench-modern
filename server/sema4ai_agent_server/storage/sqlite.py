@@ -21,12 +21,12 @@ from agent_server_types import (
     EmbeddingStatus,
     Thread,
     UploadedFile,
+    User,
 )
 from langchain_core.messages import AnyMessage
 
 from sema4ai_agent_server.agent import runnable_agent
 from sema4ai_agent_server.constants import DOMAIN_DATABASE_PATH
-from sema4ai_agent_server.schema import User
 from sema4ai_agent_server.storage import (
     BaseStorage,
     UniqueAgentNameError,
@@ -231,6 +231,7 @@ class SqliteStorage(BaseStorage):
             cursor.execute("SELECT COUNT(*) FROM agent")
             count = cursor.fetchone()[0]
             return count
+
 
     async def list_threads(self, user_id: str) -> List[Thread]:
         """List all threads for the current user and system threads."""
@@ -486,9 +487,11 @@ class SqliteStorage(BaseStorage):
         file_path_expiration: Optional[datetime],
     ) -> UploadedFile:
         if isinstance(owner, Agent):
+            is_agent_file = True
             agent_id = owner.id
             thread_id = None
         else:
+            is_agent_file = False
             agent_id = None
             thread_id = owner.thread_id
         new_uploaded_file = UploadedFile(
@@ -509,8 +512,8 @@ class SqliteStorage(BaseStorage):
                     """
                     INSERT INTO file_owners (file_id, file_path, file_ref, file_hash, embedded, embedding_status, agent_id, thread_id, file_path_expiration)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ON CONFLICT(file_id)
-                    DO UPDATE SET 
+                    -- If a file with this file_id already exists, update with the new values instead of raising an error (override)
+                    ON CONFLICT(file_id) DO UPDATE SET 
                         file_id = EXCLUDED.file_id,
                         file_path = EXCLUDED.file_path,
                         file_hash = EXCLUDED.file_hash,
@@ -534,13 +537,84 @@ class SqliteStorage(BaseStorage):
                 )
                 conn.commit()
             except sqlite3.IntegrityError as e:
-                conn.commit()
-                if (
+                is_constraint_unique_violation = (
                     e.sqlite_errorcode == sqlite3.SQLITE_CONSTRAINT_UNIQUE
                     and "file_owners.file_ref" in str(e)
-                ):
-                    raise UniqueFileRefError(file_ref)
-                raise e
+                )
+
+                if not is_constraint_unique_violation:
+                    raise e
+                else:
+                    if is_agent_file:
+                        # We need to check the current file: if it's already embedded, we can't override it!
+                        cursor.execute(
+                            "SELECT embedded FROM file_owners WHERE file_ref = ? AND agent_id = ?",
+                            (file_ref, agent_id),
+                        )
+                        row = cursor.fetchone()
+                        if row and row[0]:
+                            raise UniqueFileRefError(file_ref)
+
+                        cursor.execute(
+                            """
+                            UPDATE file_owners SET 
+                            file_id = ?,
+                            file_path = ?,
+                            file_hash = ?,
+                            embedded = ?,
+                            embedding_status = ?,
+                            thread_id = ?,
+                            file_path_expiration = ?
+                            WHERE file_ref = ? AND agent_id = ?
+                            """,
+                            (
+                                file_id,
+                                file_path,
+                                file_hash,
+                                embedded,
+                                embedding_status,
+                                thread_id,
+                                file_path_expiration,
+                                file_ref,
+                                agent_id,
+                            ),
+                        )
+                        conn.commit()
+                    else:  # not is_agent_file:
+                        # We need to check the current file: if it's already embedded, we can't override it!
+                        cursor.execute(
+                            "SELECT embedded FROM file_owners WHERE file_ref = ? AND thread_id = ?",
+                            (file_ref, thread_id),
+                        )
+                        row = cursor.fetchone()
+                        if row and row[0]:
+                            raise UniqueFileRefError(file_ref)
+
+                        cursor.execute(
+                            """
+                            UPDATE file_owners SET 
+                            file_id = ?,
+                            file_path = ?,
+                            file_hash = ?,
+                            embedded = ?,
+                            embedding_status = ?,
+                            agent_id = ?,
+                            file_path_expiration = ?
+                            WHERE file_ref = ? AND thread_id = ?
+                            """,
+                            (
+                                file_id,
+                                file_path,
+                                file_hash,
+                                embedded,
+                                embedding_status,
+                                agent_id,
+                                file_path_expiration,
+                                file_ref,
+                                thread_id,
+                            ),
+                        )
+                        conn.commit()
         return new_uploaded_file
 
     async def delete_file(self, file_id: str) -> None:
@@ -607,7 +681,7 @@ class SqliteStorage(BaseStorage):
             )
             conn.commit()
 
-    async def get_async_run_status(self, run_id: str) -> str:
+    async def get_async_run_status(self, run_id: str) -> Optional[str]:
         """Get run status"""
         with self._connect() as conn:
             cursor = conn.cursor()

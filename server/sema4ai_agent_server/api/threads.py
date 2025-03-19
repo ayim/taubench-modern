@@ -1,8 +1,11 @@
 import datetime
+from mimetypes import guess_type
 from pathlib import Path
 from typing import Annotated, Any, Dict, List, Sequence, Union
+from urllib.parse import urlparse
 from uuid import uuid4
 
+import httpx
 import structlog
 from agent_server_types import (
     THREAD_LIST_ADAPTER,
@@ -11,6 +14,8 @@ from agent_server_types import (
     UploadedFile,
 )
 from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile
+from fastapi.responses import StreamingResponse
+from httpx import Response
 from langchain_core.messages import AIMessage
 from opentelemetry import metrics
 from pydantic import BaseModel, Field
@@ -18,6 +23,7 @@ from pydantic import BaseModel, Field
 from sema4ai_agent_server.api.files import _add_uploaded_messages
 from sema4ai_agent_server.auth.handlers import AuthedUser
 from sema4ai_agent_server.file_manager.base import RemoteFileUploadData
+from sema4ai_agent_server.file_manager.local import url_to_fs_path
 from sema4ai_agent_server.file_manager.option import get_file_manager
 from sema4ai_agent_server.llms import (
     ContextStats,
@@ -28,6 +34,7 @@ from sema4ai_agent_server.message_types import AnyNonChunkMessage
 from sema4ai_agent_server.otel import otel_is_enabled
 from sema4ai_agent_server.responses import PydanticResponse, TypeAdapterResponse
 from sema4ai_agent_server.schema import UploadFileRequest
+from sema4ai_agent_server.storage.embed import guess_mimetype
 from sema4ai_agent_server.storage.option import get_storage
 
 logger = structlog.get_logger(__name__)
@@ -112,32 +119,37 @@ async def get_thread_state(
         raise HTTPException(status_code=404, detail="Thread not found")
     if otel_is_enabled():
         agent = await get_storage().get_agent(user.user_id, thread.agent_id)
-        stats = get_context_stats(agent.model, state)
-        summary = get_context_summary(stats)
-        attributes = {
-            "agent_id": thread.agent_id,
-            "thread_id": thread.thread_id,
-            "llm.provider": agent.model.provider,
-            "llm.model": getattr(agent.model, "name", ""),
-            # NoneType fails to be encoded so we use "None" instead
-            "user_id": user.cr_user_id if user.cr_user_id else "None",
-            "system_id": user.cr_system_id if user.cr_system_id else "None",
-        }
-        message_counter.add(
-            len(stats.tokens_per_message),
-            attributes,
-        )
+        if agent is None:
+            logger.critical(
+                f"Unable to find agent for user: {user.user_id}, agent: {thread.agent_id}"
+            )
+        else:
+            stats = get_context_stats(agent.model, state)
+            summary = get_context_summary(stats)
+            attributes = {
+                "agent_id": thread.agent_id,
+                "thread_id": thread.thread_id,
+                "llm.provider": agent.model.provider,
+                "llm.model": getattr(agent.model, "name", ""),
+                # NoneType fails to be encoded so we use "None" instead
+                "user_id": user.cr_user_id if user.cr_user_id else "None",
+                "system_id": user.cr_system_id if user.cr_system_id else "None",
+            }
+            message_counter.add(
+                len(stats.tokens_per_message),
+                attributes,
+            )
 
-        token_attributes = {key: value for key, value in attributes.items()}
-        token_attributes["context_window_size"] = (
-            summary.context_window_size
-            if summary.context_window_size is not None
-            else "None"
-        )
-        token_counter.add(
-            summary.total_tokens,
-            token_attributes,
-        )
+            token_attributes = {key: value for key, value in attributes.items()}
+            token_attributes["context_window_size"] = (
+                summary.context_window_size
+                if summary.context_window_size is not None
+                else "None"
+            )
+            token_counter.add(
+                summary.total_tokens,
+                token_attributes,
+            )
 
     return state
 
@@ -265,6 +277,22 @@ async def delete_thread(
     return {"status": "ok"}
 
 
+async def _get_file_by_ref(
+    user: AuthedUser, tid: ThreadID, file_ref: str
+) -> UploadedFile:
+    """Helper function to get the fileinfo by reference"""
+    if (thread := await get_storage().get_thread(user.user_id, tid)) is None:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    if (file := await get_storage().get_file(thread, file_ref)) is None:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    if uploaded_files := await get_file_manager().refresh_file_paths([file]):
+        return uploaded_files[0]
+
+    raise HTTPException(status_code=404, detail="File not found")
+
+
 @router.get(
     "/{tid}/file-by-ref",
     response_model=FileByRefResponse,
@@ -275,16 +303,45 @@ async def get_file_by_ref(
     tid: ThreadID,
     file_ref: str,
 ):
-    thread = await get_storage().get_thread(user.user_id, tid)
-    if thread is None:
-        raise HTTPException(status_code=404, detail="Thread not found")
+    file = await _get_file_by_ref(user, tid, file_ref)
+    return PydanticResponse(FileByRefResponse.from_file(file))
 
-    file = await get_storage().get_file(thread, file_ref)
-    if file is None:
-        raise HTTPException(status_code=404, detail="File not found")
 
-    files = await get_file_manager().refresh_file_paths([file])
-    return PydanticResponse(FileByRefResponse.from_file(files[0]))
+@router.get("/{tid}/files/download/")
+async def download_file_by_ref(
+    user: AuthedUser,
+    tid: ThreadID,
+    file_ref: str,
+):
+    chunk_size = 8 * 1024
+
+    file = await _get_file_by_ref(user, tid, file_ref)
+    parsed_url = urlparse(file.file_path)
+    media_type = guess_type(file.file_path)[0] or "application/octet-stream"
+
+    match parsed_url.scheme:
+        case "file":
+            path = url_to_fs_path(file.file_path)
+
+            def _handler():
+                nonlocal path, chunk_size
+                with Path(path).open(mode="rb") as f:
+                    while chunk := f.read(chunk_size):
+                        yield chunk
+
+        case "http" | "https":
+
+            async def _handler():
+                nonlocal chunk_size, file
+                async with httpx.stream("GET", file.file_path) as response:  # type: Response
+                    response.raise_for_status()
+                    async for chunk in response.aiter_bytes(chunk_size=chunk_size):
+                        yield chunk
+        case _:
+            logger.error(f"Unsupported file scheme: {parsed_url.scheme}")
+            raise HTTPException(status_code=500, detail="Invalid file")
+
+    return StreamingResponse(_handler(), media_type=media_type)
 
 
 @router.get(
@@ -314,8 +371,18 @@ async def upload_thread_files(
     user: AuthedUser,
     tid: ThreadID,
     background_tasks: BackgroundTasks,
+    embedded: bool | None = None,
 ):
-    """Upload files to the given agent."""
+    """
+    Upload files to the given agent.
+
+    Args:
+        files: The files to upload.
+        user: The user uploading the files.
+        tid: The thread ID to upload the files to.
+        background_tasks: The background tasks to run.
+        embedded: Whether to embed the files. If not given, it will be inferred from the file type.
+    """
 
     thread = await get_storage().get_thread(user.user_id, tid)
     if thread is None:
@@ -327,14 +394,15 @@ async def upload_thread_files(
 
     file_manager = get_file_manager()
     stored_files = await file_manager.upload(
-        [UploadFileRequest(file=f) for f in files], thread
+        [UploadFileRequest(file=f, embedded=embedded) for f in files], thread
     )
 
     await _add_uploaded_messages(stored_files, tid, user)
 
-    background_tasks.add_task(
-        file_manager.create_missing_embeddings, agent.model, thread
-    )
+    if any(file.embedded for file in stored_files):
+        background_tasks.add_task(
+            file_manager.create_missing_embeddings, agent.model, thread
+        )
     return TypeAdapterResponse(stored_files, adapter=UPLOADED_FILE_LIST_ADAPTER)
 
 

@@ -12,11 +12,10 @@ from agent_server_types import (
     EmbeddingStatus,
     Thread,
     UploadedFile,
+    User,
 )
 from fastapi import HTTPException
 from langchain_core.messages import AnyMessage
-
-from sema4ai_agent_server.schema import User
 
 
 class UniqueAgentNameError(HTTPException):
@@ -26,7 +25,10 @@ class UniqueAgentNameError(HTTPException):
 
 class UniqueFileRefError(HTTPException):
     def __init__(self, file_ref: str, *args: object, **kwargs: object) -> None:
-        super().__init__(status_code=409, detail=f"File '{file_ref}' already exists")
+        super().__init__(
+            status_code=409,
+            detail=f"File '{file_ref}' already exists and is embedded into the context",
+        )
 
 
 class BaseStorage(ABC):
@@ -44,6 +46,7 @@ class BaseStorage(ABC):
     async def _run_migrations(self):
         pass
 
+    @abstractmethod
     async def list_agents(self, user_id: str) -> List[Agent]:
         """List all agents for the current user."""
         pass
@@ -57,6 +60,7 @@ class BaseStorage(ABC):
     async def get_agent(self, user_id: str, agent_id: str) -> Optional[Agent]:
         """Get an agent by ID."""
         pass
+
 
     @abstractmethod
     async def put_agent(
@@ -73,6 +77,7 @@ class BaseStorage(ABC):
         advanced_config: AgentAdvancedConfig,
         action_packages: list[ActionPackage],
         metadata: AgentMetadata,
+        created_at: datetime,
     ) -> Agent:
         """Modify an agent."""
         pass
@@ -86,6 +91,7 @@ class BaseStorage(ABC):
     async def list_threads(self, user_id: str) -> List[Thread]:
         """List all threads for the current user."""
         pass
+
 
     @abstractmethod
     async def get_thread(self, user_id: str, thread_id: str) -> Optional[Thread]:
@@ -126,6 +132,7 @@ class BaseStorage(ABC):
         agent_id: str,
         name: str,
         metadata: Optional[dict],
+        created_at: datetime,
     ) -> Thread:
         """Modify a thread."""
         pass

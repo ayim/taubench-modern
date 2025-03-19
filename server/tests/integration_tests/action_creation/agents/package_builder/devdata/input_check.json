@@ -1,0 +1,17 @@
+{
+    "inputs": [
+        {
+            "inputName": "input-1",
+            "inputValue": {}
+        }
+    ],
+    "metadata": {
+        "actionName": "check",
+        "actionRelativePath": "package_actions_builder.py",
+        "schemaDescription": [],
+        "managedParamsSchemaDescription": {},
+        "inputFileVersion": "v3",
+        "kind": "action",
+        "actionSignature": "action/args: ''"
+    }
+}

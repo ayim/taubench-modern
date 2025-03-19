@@ -1,0 +1,62 @@
+name: Build Agent Server Interface NPM Package
+
+on:
+  workflow_call:
+    inputs:
+      node_version:
+        description: "Node version to use"
+        required: false
+        type: string
+        default: "18"
+      python_version:
+        description: "Python version to use"
+        required: false
+        type: string
+        default: "3.11"
+    secrets:
+      GIT_USERNAME:
+        description: "Username for Git operations"
+        required: true
+      GIT_TOKEN:
+        description: "Token for Git operations"
+        required: true
+      NPM_AUTH_TOKEN:
+        description: "Node authentication token"
+        required: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build-asi:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout and Pull Latest
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v1
+
+      - name: Install deps and start server
+        uses: ./.github/actions/install-deps-start-server
+        with:
+          git_username: ${{ secrets.GIT_USERNAME }}
+          git_token: ${{ secrets.GIT_TOKEN }}
+          python_version: ${{ inputs.python_version }}
+          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+
+      - name: Install NPM Dependencies
+        uses: ./.github/actions/install-npm-deps
+        with:
+          node_version: ${{ inputs.node_version }}
+          npm_auth_token: ${{ secrets.NPM_AUTH_TOKEN }}
+
+      - name: Build agent-server-interface
+        run: npm run build
+        working-directory: ./agent-server-interface
+
+      - name: Upload Agent Server Interface artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-server-interface-artifacts
+          path: ./agent-server-interface/dist/*

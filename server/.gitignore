@@ -4,6 +4,8 @@ postgres-volume/
 redis-volume/
 chroma_db/
 uploads/
+agent-server.pid
+agent-server.lock
 
 # Operating System generated files
 .DS_Store
@@ -62,3 +64,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+
+# build files
+build/

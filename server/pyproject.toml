@@ -1,10 +1,10 @@
 [tool.poetry]
 name = "sema4ai-agent-server"
-version = "1.1.3"
+version = "1.2.0-beta"
 description = ""
 authors = ["Sema4.ai Engineering <engineering@sema4.ai>"]
 readme = "README.md"
-packages = [{ include = "sema4ai_agent_server" }]
+packages = [{ include = "sema4ai_agent_server", from = "." }]
 include = ["pyproject.toml"]
 
 [tool.poetry.dependencies]
@@ -48,19 +48,41 @@ pydantic-settings = "^2.5.2"
 langchain-postgres = "^0.0.12"
 traceloop-sdk = "^0.33.5"
 langchain-aws = "^0.2.1"
-agent-server-types = { git = "https://github.com/Sema4AI/agent-server-types.git", tag = "v1.1.0" }
-agent-architecture = { git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.1.0" }
-agent-architecture-default = { git = "https://github.com/Sema4AI/agent-architecture-default.git", tag = "v1.0.5" }
-agent-architecture-openai-plan-execute = { git = "https://github.com/Sema4AI/agent-architecture-openai-plan-execute.git", tag = "v1.0.3" }
-agent-architecture-claude-tools = { git = "https://github.com/Sema4AI/agent-architecture-claude-tools.git", tag = "v1.0.3" }
+agent-server-types = { git = "https://github.com/Sema4AI/agent-server-types.git", tag = "v1.2.0" }
+agent-architecture = { git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.2.1" }
+agent-architecture-default = { git = "https://github.com/Sema4AI/agent-architecture-default.git", tag = "v1.1.0" }
+agent-architecture-openai-plan-execute = { git = "https://github.com/Sema4AI/agent-architecture-openai-plan-execute.git", tag = "v1.1.0" }
+agent-architecture-claude-tools = { git = "https://github.com/Sema4AI/agent-architecture-claude-tools.git", tag = "v1.1.0" }
+greenlet = "^3.1.1"
+sema4ai-common = "0.0.9"
+psutil = ">=5.0.0,<7.0.0"
+
+[tool.mypy]
+mypy_path = "."
+
+[tool.black]
+skip-string-normalization = false
+skip-magic-trailing-comma = false
+
+[tool.isort]
+profile = "black"
 
 [tool.poetry.group.dev.dependencies]
 uvicorn = "^0.34.0"
 pygithub = "^2.4.0"
+sema4ai-agent-server-orchestrator = { git = "https://github.com/Sema4AI/agent-server-orchestrator.git", tag = "v0.0.1-alpha9" }
+invoke = ">=2.2.0"
+pydantic = ">=2.9.2"
+poetry = ">=2.0.0,<3.0.0"
+packaging = ">=23.2"
+tomlkit = ">=0.12.4"
 
 [tool.poetry.group.lint.dependencies]
+mypy = "^1.1.1"
 ruff = "^0.6.5"
 codespell = "^2.3.0"
+isort = "^5.12.0"
+types-requests = "^2.32.0"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^8.3.3"
@@ -70,23 +92,15 @@ pytest-mock = "^3.14.0"
 pytest-socket = "^0.7.0"
 pytest-watch = "^4.2.0"
 pytest-timeout = "^2.3.1"
+pytest-regressions = "1.0.6"
+
+
+[tool.poetry.group.build.dependencies]
+pyinstaller = "^6.11.1"
+invoke = "^2.2.0"
 
 [tool.poetry.scripts]
 agent-server = "sema4ai_agent_server.server:main"
-
-[[tool.poetry.source]]
-name = "pypi-public"
-url = "https://pypi.org/simple/"
-priority = "primary"
-
-[[tool.poetry.source]]
-name = "codeartifact"
-url = "https://sema4ai-710450854638.d.codeartifact.eu-west-1.amazonaws.com/pypi/agent-server/"
-priority = "supplemental"
-
-[[tool.poetry.source]]
-name = "PyPI"
-priority = "primary"
 
 [tool.coverage.run]
 omit = ["tests/*"]
@@ -98,11 +112,11 @@ omit = ["tests/*"]
 # https://docs.pytest.org/en/7.1.x/reference/reference.html
 # --strict-config       any warnings encountered while parsing the `pytest`
 #                       section of the configuration file raise errors.
-addopts = "--strict-markers --strict-config --durations=5 -vv"
+addopts = "--strict-markers --strict-config --durations=5 -vv -p no:capture"
 # Use global timeout of 30 seconds for now.
 # Most tests should be closer to ~100 ms, but some of the tests involve
 # parsing files. We can adjust on a per test basis later on.
-timeout = 30
+timeout = 1500                                  # Integration tests can be slow.
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 

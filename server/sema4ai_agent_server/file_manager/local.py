@@ -7,14 +7,10 @@ from urllib.parse import unquote, urlparse
 from uuid import uuid4
 
 import structlog
-from agent_server_types import (
-    Agent,
-    EmbeddingStatus,
-    Thread,
-    UploadedFile,
-)
+from agent_server_types import Agent, EmbeddingStatus, Thread, UploadedFile
 from fastapi import UploadFile
 
+from sema4ai_agent_server.constants import Constants
 from sema4ai_agent_server.file_manager.base import (
     MISSING_FILE_HASH,
     BaseFileManager,
@@ -28,10 +24,6 @@ from sema4ai_agent_server.storage.option import get_storage
 logger = structlog.get_logger(__name__)
 
 
-SEMA4AIDESKTOP_HOME = os.getenv("S4_AGENT_SERVER_HOME", ".")
-UPLOAD_DIR = os.path.join(SEMA4AIDESKTOP_HOME, "uploads")
-
-
 IS_WIN = sys.platform == "win32"
 RE_DRIVE_LETTER_PATH = re.compile(r"^\/[a-zA-Z]:")
 
@@ -43,14 +35,54 @@ def normalize_drive(path: str) -> str:
     return path
 
 
+def url_to_fs_path(file_url: str) -> str:
+    """Returns the filesystem path of the given URI.
+    Will handle UNC paths and normalize windows drive letters to lower-case.
+    Also uses the platform specific path separator. Will *not* validate the
+    path for invalid characters and semantics.
+    Will validate the scheme of this URI.
+
+    Examples:
+        - UNC path: file://shares/c$/far/boo
+        - Windows drive letter: file:///C:/far/boo
+        - Regular path: file:///path/to/file
+    """
+    # scheme://netloc/path;parameters?query#fragment
+    scheme, netloc, path, _params, _query, _fragment = urlparse(file_url)
+
+    if scheme != "file":
+        raise ValueError(f"Invalid file URL scheme: {file_url}")
+
+    path = unquote(path)
+
+    if netloc and path:
+        # UNC path: file://shares/c$/far/boo
+        value = f"//{netloc}{path}"
+
+    elif RE_DRIVE_LETTER_PATH.match(path):
+        # windows drive letter: file:///C:/far/boo
+        value = path[1].lower() + path[2:]
+
+    else:
+        # Other path
+        value = path
+
+    if IS_WIN:
+        value = value.replace("/", "\\")
+        value = normalize_drive(value)
+
+    return value
+
+
 class LocalFileManager(BaseFileManager):
     async def _store(self, blob: Blob, file_url: str) -> str:
         logger.info(f"Storing {file_url}")
-        fs_path = self._url_to_fs_path(file_url)
+        fs_path = url_to_fs_path(file_url)
         os.makedirs(os.path.dirname(fs_path), exist_ok=True)
+        blob_as_bytes = blob.as_bytes()
         with open(fs_path, "wb") as f:
-            f.write(blob.data)
-        return get_hash(blob.data)
+            f.write(blob_as_bytes)
+        return get_hash(blob_as_bytes)
 
     async def _delete_stored_file(self, file_url: str) -> None:
         if not file_url:
@@ -58,49 +90,11 @@ class LocalFileManager(BaseFileManager):
         logger.info(f"Deleting {file_url}")
 
         try:
-            fs_path = self._url_to_fs_path(file_url)
+            fs_path = url_to_fs_path(file_url)
             if os.path.exists(fs_path):
                 os.remove(fs_path)
         except Exception as e:
             logger.exception(f"Error deleting file at {file_url}: {str(e)}")
-
-    def _url_to_fs_path(self, file_url: str) -> str:
-        """Returns the filesystem path of the given URI.
-        Will handle UNC paths and normalize windows drive letters to lower-case.
-        Also uses the platform specific path separator. Will *not* validate the
-        path for invalid characters and semantics.
-        Will validate the scheme of this URI.
-
-        Examples:
-            - UNC path: file://shares/c$/far/boo
-            - Windows drive letter: file:///C:/far/boo
-            - Regular path: file:///path/to/file
-        """
-        # scheme://netloc/path;parameters?query#fragment
-        scheme, netloc, path, _params, _query, _fragment = urlparse(file_url)
-
-        if scheme != "file":
-            raise ValueError(f"Invalid file URL scheme: {file_url}")
-
-        path = unquote(path)
-
-        if netloc and path:
-            # UNC path: file://shares/c$/far/boo
-            value = f"//{netloc}{path}"
-
-        elif RE_DRIVE_LETTER_PATH.match(path):
-            # windows drive letter: file:///C:/far/boo
-            value = path[1].lower() + path[2:]
-
-        else:
-            # Other path
-            value = path
-
-        if IS_WIN:
-            value = value.replace("/", "\\")
-            value = normalize_drive(value)
-
-        return str(Path(value).resolve())
 
     async def _revert_uploads(self, uploads: list[tuple[str, str]]) -> None:
         """uploads is a list of tuples of the form (file_id, file_path)"""
@@ -118,6 +112,7 @@ class LocalFileManager(BaseFileManager):
     ) -> UploadedFile:
         blob = convert_to_blob(file)
         file_hash = await self._store(blob, file_path)
+        assert file.filename, "Invalid (empty) file name (should've raised an error in self._validate_files_pre_upload already)."
         return await get_storage().put_file_owner(
             file_id,
             file_path,
@@ -138,6 +133,7 @@ class LocalFileManager(BaseFileManager):
         uploaded_files: list[UploadedFile] = []
         for f in files:
             file_id = str(uuid4())
+            assert f.file.filename, "Invalid (empty) file name (should've raised an error in self._validate_files_pre_upload already)."
             file_url = self._build_file_url(owner_id, file_id, f.file.filename)
             embedded = (
                 f.embedded if f.embedded is not None else self._is_embeddable(f.file)
@@ -160,6 +156,10 @@ class LocalFileManager(BaseFileManager):
 
     async def delete(self, file_id: str) -> None:
         file = await get_storage().get_file_by_id(file_id)
+        if file is None:
+            raise Exception(f"Unable to delete file {file_id} (it does not exist).")
+        if not file.file_path:
+            raise Exception(f"Unable to delete file {file_id} (no file path).")
         await self._delete_stored_file(file.file_path)
         await self._delete_embeddings(file_id)
         await get_storage().delete_file(file_id)
@@ -172,8 +172,10 @@ class LocalFileManager(BaseFileManager):
         file = await get_storage().get_file_by_id(file_id)
         if not file:
             raise Exception(f"File not found: {file_id}")
+        if not file.file_path:
+            raise Exception(f"Unable to read file {file_id} (no file path).")
         try:
-            fs_path = self._url_to_fs_path(file.file_path)
+            fs_path = url_to_fs_path(file.file_path)
             with open(fs_path, "rb") as f:
                 return f.read()
         except FileNotFoundError:
@@ -189,7 +191,7 @@ class LocalFileManager(BaseFileManager):
             - Windows drive letter: file:///c:/far/boo
             - Regular path: file:///path/to/file
         """
-        abs_path = Path(UPLOAD_DIR).joinpath(owner_id, file_id, file_ref).resolve()
+        abs_path = Path(Constants.UPLOAD_DIR).joinpath(owner_id, file_id, file_ref)
         if IS_WIN:
             abs_path = Path(normalize_drive(str(abs_path)))
         return abs_path.as_uri()

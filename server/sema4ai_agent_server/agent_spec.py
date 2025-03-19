@@ -101,7 +101,9 @@ def validate_spec(spec: dict, root_dir: str, model: MODEL) -> None:
         raise Exception(f"Expected model {expected_name}, got {model.name}")
 
     try:
-        with open(runbook_file_path(root_dir), "r") as f:
+        # Force utf-8 encoding. This is necessary because the runbook may contain non-ascii characters.
+        # Mac and linux use utf-8 by default, but windows does not.
+        with open(runbook_file_path(root_dir), "r", encoding="utf-8") as f:
             f.read()
     except FileNotFoundError:
         raise Exception("Runbook not found")

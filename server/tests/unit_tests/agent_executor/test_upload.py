@@ -45,6 +45,10 @@ def test_mimetype_guessing() -> None:
         data = file.read_bytes()
         name_to_mime[file.name] = guess_mimetype(file.name, data)
 
+    # mimetype may depend on the machine configuration
+    # (in mine -- fabioz -- it's "application/msword")
+    assert name_to_mime.pop("sample.rtf") in ("application/rtf", "application/msword")
+
     assert {
         "sample.docx": (
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -53,6 +57,5 @@ def test_mimetype_guessing() -> None:
         "sample.html": "text/html",
         "sample.odt": "application/vnd.oasis.opendocument.text",
         "sample.pdf": "application/pdf",
-        "sample.rtf": "application/rtf",
         "sample.txt": "text/plain",
     } == name_to_mime

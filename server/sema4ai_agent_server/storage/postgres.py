@@ -1,7 +1,7 @@
 import os
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Sequence, Union
+from typing import Any, Dict, List, Optional, Sequence, Union
 
 import structlog
 from agent_architecture import FINISH_NODE_KEY
@@ -18,13 +18,13 @@ from agent_server_types import (
     EmbeddingStatus,
     Thread,
     UploadedFile,
+    User,
 )
 from langchain_core.messages import AnyMessage
 from psycopg.errors import UniqueViolation
 from psycopg.rows import dict_row
 
 from sema4ai_agent_server.agent import runnable_agent
-from sema4ai_agent_server.schema import User
 from sema4ai_agent_server.storage import (
     BaseStorage,
     UniqueAgentNameError,
@@ -51,6 +51,7 @@ class PostgresStorage(BaseStorage, PostgresConnectionManager):
     async def setup(self) -> None:
         if self._is_setup:
             return
+        print("Setting up PostgresStorage")
         await self._run_migrations()
         pgvector: PostgresVector = get_vector_store()
         await pgvector.acreate_collection()
@@ -149,9 +150,11 @@ class PostgresStorage(BaseStorage, PostgresConnectionManager):
         file_path_expiration: datetime | None,
     ) -> UploadedFile:
         if isinstance(owner, Agent):
+            is_agent_file = True
             agent_id = owner.id
             thread_id = None
         else:
+            is_agent_file = False
             agent_id = None
             thread_id = owner.thread_id
         new_file = UploadedFile(
@@ -167,6 +170,12 @@ class PostgresStorage(BaseStorage, PostgresConnectionManager):
         )
         async with self.async_cursor() as cur:
             try:
+                logger.info(
+                    "Inserting file %s into file_owners - embedded: %s",
+                    new_file.file_ref,
+                    new_file.embedded,
+                )
+                await cur.execute("SAVEPOINT savepoint1")
                 await cur.execute(
                     """
                     INSERT INTO file_owners (
@@ -188,12 +197,80 @@ class PostgresStorage(BaseStorage, PostgresConnectionManager):
                     """,
                     model_dump_for_postgres(new_file, context=RAW_CONTEXT),
                 )
+
             except UniqueViolation as e:
-                if UNIQUE_FILE_REF_AGENT_CONSTRAINT_NAME in str(
-                    e
-                ) or UNIQUE_FILE_REF_THREAD_CONSTRAINT_NAME in str(e):
-                    raise UniqueFileRefError(file_ref)
-                raise e
+                await cur.execute("ROLLBACK TO SAVEPOINT savepoint1")
+                if is_agent_file and UNIQUE_FILE_REF_AGENT_CONSTRAINT_NAME in str(e):
+                    # We need to check the current file: if it's already embedded, we can't override it!
+                    await cur.execute(
+                        "SELECT embedded FROM file_owners WHERE file_ref = %(file_ref)s AND agent_id = %(agent_id)s",
+                        dict(file_ref=file_ref, agent_id=agent_id),
+                    )
+                    row = await cur.fetchone()
+                    if row and row[0]:
+                        logger.info(
+                            "File %s already embedded, can't override",
+                            new_file.file_ref,
+                        )
+                        raise UniqueFileRefError(file_ref)
+
+                    logger.info(
+                        "Updating file %s in file_owners - embedded: %s",
+                        new_file.file_ref,
+                        new_file.embedded,
+                    )
+                    await cur.execute(
+                        """
+                        UPDATE file_owners SET 
+                        file_id = %(file_id)s,
+                        file_path = %(file_path)s,
+                        file_hash = %(file_hash)s,
+                        embedded = %(embedded)s,
+                        embedding_status = %(embedding_status)s,
+                        thread_id = %(thread_id)s,
+                        file_path_expiration = %(file_path_expiration)s
+                        WHERE file_ref = %(file_ref)s AND agent_id = %(agent_id)s
+                        """,
+                        model_dump_for_postgres(new_file, context=RAW_CONTEXT),
+                    )
+                elif (
+                    not is_agent_file
+                    and UNIQUE_FILE_REF_THREAD_CONSTRAINT_NAME in str(e)
+                ):
+                    # We need to check the current file: if it's already embedded, we can't override it!
+                    await cur.execute(
+                        "SELECT embedded FROM file_owners WHERE file_ref = %(file_ref)s AND thread_id = %(thread_id)s",
+                        dict(file_ref=file_ref, thread_id=thread_id),
+                    )
+                    row = await cur.fetchone()
+                    if row and row[0]:
+                        logger.info(
+                            "File %s already embedded, can't override",
+                            new_file.file_ref,
+                        )
+                        raise UniqueFileRefError(file_ref)
+
+                    logger.info(
+                        "Updating file %s in file_owners - embedded: %s",
+                        new_file.file_ref,
+                        new_file.embedded,
+                    )
+                    await cur.execute(
+                        """
+                        UPDATE file_owners SET 
+                        file_id = %(file_id)s,
+                        file_path = %(file_path)s,
+                        file_hash = %(file_hash)s,
+                        embedded = %(embedded)s,
+                        embedding_status = %(embedding_status)s,
+                        agent_id = %(agent_id)s,
+                        file_path_expiration = %(file_path_expiration)s
+                        WHERE file_ref = %(file_ref)s AND thread_id = %(thread_id)s
+                        """,
+                        model_dump_for_postgres(new_file, context=RAW_CONTEXT),
+                    )
+                else:
+                    raise e
 
             return new_file
 
@@ -287,6 +364,7 @@ class PostgresStorage(BaseStorage, PostgresConnectionManager):
             )
             row = await cur.fetchone()
             return Agent.model_validate(row) if row else None
+
 
     async def put_agent(
         self,
@@ -564,12 +642,12 @@ class PostgresStorage(BaseStorage, PostgresConnectionManager):
                 "UPDATE async_runs SET status = %s  WHERE id = %s", (status, run_id)
             )
 
-    async def get_async_run_status(self, run_id: str) -> str:
+    async def get_async_run_status(self, run_id: str) -> Optional[str]:
         """Get run status"""
         async with self.async_cursor() as cur:
             await cur.execute("SELECT status FROM async_runs WHERE id = %s", (run_id,))
             result = await cur.fetchone()
-            return result[0]
+            return result[0] if result else None
 
     async def list_agent_threads(self, agent_id: str) -> List[Thread]:
         """List all threads for the current agent."""

@@ -40,4 +40,7 @@ def test_attempt_to_parse_each_fixture() -> None:
             raise AssertionError(f"Failed to parse {path}") from e
 
     known_missing = {"application/msword", "text/markdown"}
+    if "application/msword" in seen_mimetypes:
+        known_missing.remove("application/msword")
+
     assert set(SUPPORTED_MIMETYPES) - known_missing == seen_mimetypes

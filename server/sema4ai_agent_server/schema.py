@@ -1,14 +1,6 @@
-import re
-from datetime import datetime
-from functools import cached_property
 from typing import Annotated, List, Literal, Self, TypedDict
 
-from agent_server_types import (
-    Agent,
-    StrWithUuidInput,
-    Thread,
-    UploadedFile,
-)
+from agent_server_types import Agent, Thread, UploadedFile, User
 from anthropic import APIError as AnthropiAPIError
 from boto3.exceptions import Boto3Error
 from botocore.exceptions import BotoCoreError, ClientError
@@ -29,48 +21,6 @@ from pydantic_core import ErrorDetails
 from sse_starlette.sse import ServerSentEvent
 
 from sema4ai_agent_server.message_types import AnyNonChunkStreamedMessage
-
-
-class User(BaseModel):
-    user_id: StrWithUuidInput = Field(description="The ID of the user.")
-    sub: str = Field(description="The sub of the user (from a JWT token).")
-    created_at: datetime = Field(description="The time the user was created.")
-
-    @cached_property
-    def _parsed_sub(self) -> dict[str, str] | None:
-        """
-        Control Room sub formats:
-
-        tenant:<ID>:user:<ID>
-        tenant:<ID>:system:<ID>
-        tenant:<ID>
-        """
-        pattern = r"^tenant:([^:]+)(?::(?P<type>user|system):(?P<id>[^:]+))?$"
-        match = re.match(pattern, self.sub)
-
-        if not match:
-            return {"tenant": None, "user": None, "system": None}
-
-        result = {"tenant": match.group(1), "user": None, "system": None}
-        if match.group("type"):
-            result[match.group("type")] = match.group("id")
-
-        return result
-
-    @property
-    def cr_tenant_id(self) -> str | None:
-        """Control Room Tenant ID"""
-        return self._parsed_sub["tenant"]
-
-    @property
-    def cr_user_id(self) -> str | None:
-        """Control Room User ID"""
-        return self._parsed_sub["user"]
-
-    @property
-    def cr_system_id(self) -> str | None:
-        """Control Room System ID"""
-        return self._parsed_sub["system"]
 
 
 class UploadFileRequest(BaseModel):
@@ -251,6 +201,9 @@ class AgentServerRunnableConfigurable(TypedDict):
 
     thread: Thread
     """The thread the agent should be called on."""
+
+    user: User
+    """The user associated with the agent."""
 
     use_retrieval: bool
     """Whether to use retrieval tools."""

@@ -1,0 +1,109 @@
+name: Publish Agent Server to S3
+
+on:
+  workflow_call:
+    inputs:
+      agent_server_version:
+        description: The version of the agent server being released
+        type: string
+        required: true
+      release_channel:
+        description: The release channel to publish to (e.g. beta, stable)
+        type: string
+        required: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  publish-to-s3:
+    name: Deploy to S3
+    permissions:
+      id-token: write
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout and Pull Latest
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v1
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: agent-server-release-packages
+          path: s3-drop
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: eu-west-1
+          role-to-assume: arn:aws:iam::710450854638:role/github-action-agent-server
+
+      - name: AWS S3 copies
+        run: |
+          S3_BASE_URL="s3://downloads.robocorp.com/agent-server/${{ inputs.release_channel }}/v${{ inputs.agent_server_version }}"
+          CDN_BASE_URL="https://cdn.sema4.ai/agent-server/${{ inputs.release_channel }}/v${{ inputs.agent_server_version }}"
+
+          # Upload version.txt from the artifact
+          aws s3 cp s3-drop/version.txt "$S3_BASE_URL/version.txt" --cache-control max-age=120 --content-type "text/plain"
+
+          # Function to show directory contents on missing file
+          show_directory_contents() {
+            echo "Contents of s3-drop directory (due to missing file):"
+            ls -la s3-drop/
+          }
+
+          # Create temp directory for extractions
+          mkdir -p temp_extract
+
+          # Windows x64
+          if [ -f "s3-drop/agent-server-${{ inputs.agent_server_version }}-windows-x64.zip" ]; then
+            echo "Processing Windows x64 build..."
+            unzip -j "s3-drop/agent-server-${{ inputs.agent_server_version }}-windows-x64.zip" "agent-server.exe" -d temp_extract/
+            aws s3 cp temp_extract/agent-server.exe "$S3_BASE_URL/windows_x64/agent-server.exe" --cache-control max-age=120 --content-type "application/octet-stream"
+            echo "Windows binary available at $CDN_BASE_URL/windows_x64/agent-server.exe"
+            rm temp_extract/agent-server.exe
+          else
+            echo "WARNING: Windows x64 build file not found: s3-drop/agent-server-${{ inputs.agent_server_version }}-windows-x64.zip"
+            show_directory_contents
+          fi
+
+          # macOS ARM64
+          if [ -f "s3-drop/agent-server-${{ inputs.agent_server_version }}-macos-arm64.tar.gz" ]; then
+            echo "Processing macOS ARM64 build..."
+            tar -xzf "s3-drop/agent-server-${{ inputs.agent_server_version }}-macos-arm64.tar.gz" -C temp_extract/
+            aws s3 cp temp_extract/agent-server "$S3_BASE_URL/macos_arm64/agent-server" --cache-control max-age=120 --content-type "application/octet-stream"
+            echo "macOS ARM64 binary available at $CDN_BASE_URL/macos_arm64/agent-server"
+            rm temp_extract/agent-server
+          else
+            echo "WARNING: macOS ARM64 build file not found: s3-drop/agent-server-${{ inputs.agent_server_version }}-macos-arm64.tar.gz"
+            show_directory_contents
+          fi
+
+          # macOS x64
+          if [ -f "s3-drop/agent-server-${{ inputs.agent_server_version }}-macos-x64.tar.gz" ]; then
+            echo "Processing macOS x64 build..."
+            tar -xzf "s3-drop/agent-server-${{ inputs.agent_server_version }}-macos-x64.tar.gz" -C temp_extract/
+            aws s3 cp temp_extract/agent-server "$S3_BASE_URL/macos_x64/agent-server" --cache-control max-age=120 --content-type "application/octet-stream"
+            echo "macOS x64 binary available at $CDN_BASE_URL/macos_x64/agent-server"
+            rm temp_extract/agent-server
+          else
+            echo "WARNING: macOS x64 build file not found: s3-drop/agent-server-${{ inputs.agent_server_version }}-macos-x64.tar.gz"
+            show_directory_contents
+          fi
+
+          # Linux x64
+          if [ -f "s3-drop/agent-server-${{ inputs.agent_server_version }}-ubuntu-x64.tar.gz" ]; then
+            echo "Processing Linux x64 build..."
+            tar -xzf "s3-drop/agent-server-${{ inputs.agent_server_version }}-ubuntu-x64.tar.gz" -C temp_extract/
+            aws s3 cp temp_extract/agent-server "$S3_BASE_URL/linux_x64/agent-server" --cache-control max-age=120 --content-type "application/octet-stream"
+            echo "Linux x64 binary available at $CDN_BASE_URL/linux_x64/agent-server"
+            rm temp_extract/agent-server
+          else
+            echo "WARNING: Linux x64 build file not found: s3-drop/agent-server-${{ inputs.agent_server_version }}-ubuntu-x64.tar.gz"
+            show_directory_contents
+          fi
+
+          # Cleanup
+          rm -rf temp_extract

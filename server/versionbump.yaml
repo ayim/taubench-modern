@@ -1,7 +1,16 @@
-version: "1.1.3"        # The current version of the project. This is the version source of truth.
+version: "1.2.0-beta"        # The current version of the project. This is the version source of truth.
                          # Do not change this value manually. VersionBump will update it automatically.
 git-commit: true         # Whether to create a git commit for the version bump.
 git-tag: true            # Whether to create a git tag for the version bump.
+
+prerelease-labels:
+  - "alpha"
+  - "beta"
+  - "rc"
+
+# The build label. This is the label that will be used for build versions.
+build-label: "devgpt709"
+
 
 files:                   # The files to update with the new version.
   - path: "pyproject.toml"

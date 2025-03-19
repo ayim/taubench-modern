@@ -15,12 +15,44 @@ CONTEXT_WINDOW_SIZES = {
         "gpt-4-turbo": 128000,
         "gpt-4o": 128000,
         "gpt-4o-mini": 128000,
+        "o3-mini": 128000,
     },
     LLMProvider.AMAZON: {
         "anthropic.claude-3-haiku-20240307-v1:0": 200000,
         "anthropic.claude-3-sonnet-20240229-v1:0": 200000,
         "anthropic.claude-3-opus-20240229-v1:0": 200000,
         "anthropic.claude-3-5-sonnet-20240620-v1:0": 200000,
+        "anthropic.claude-3-7-sonnet-20250219-v1:0": 200000,
+    },
+    # Taken from: https://docs.snowflake.com/en/user-guide/snowflake-cortex/llm-functions#model-restrictions
+    LLMProvider.SNOWFLAKE_CORTEX: {
+        # We prefer these two
+        "claude-3-5-sonnet": 200000,
+        "deepseek-r1": 128000,
+        # But we'll throw these in just in case
+        # we need them
+        "gemma-7b": 8000,
+        "jamba-1.5-large": 256000,
+        "jamba-1.5-mini": 256000,
+        "jamba-instruct": 256000,
+        "llama2-70b-chat": 4096,
+        "llama3-70b": 8000,
+        "llama3-8b": 8000,
+        "llama3.1-405b": 128000,
+        "llama3.1-70b": 128000,
+        "llama3.1-8b": 128000,
+        "llama3.2-1b": 128000,
+        "llama3.2-3b": 128000,
+        "llama3.3-70b": 128000,
+        "mistral-7b": 32000,
+        "mistral-large": 32000,
+        "mistral-large2": 128000,
+        "mixtral-8x7b": 32000,
+        "reka-core": 32000,
+        "reka-flash": 100000,
+        "snowflake-arctic": 4096,
+        "snowflake-llama-3.1-405b": 8000,
+        "snowflake-llama-3.3-70b": 8000,
     },
 }
 
@@ -47,6 +79,7 @@ def get_context_stats(model: MODEL, thread_state: dict) -> ContextStats:
         LLMProvider.OPENAI,
         LLMProvider.AZURE,
         LLMProvider.AMAZON,
+        LLMProvider.SNOWFLAKE_CORTEX,
     ):
         raise ValueError(f"Unsupported model provider: {model.provider}")
     context_window_size = _get_context_window_size(model)
@@ -59,7 +92,7 @@ def get_context_stats(model: MODEL, thread_state: dict) -> ContextStats:
 
 def _get_context_window_size(model: MODEL) -> int:
     match model.provider:
-        case LLMProvider.OPENAI | LLMProvider.AMAZON:
+        case LLMProvider.OPENAI | LLMProvider.AMAZON | LLMProvider.SNOWFLAKE_CORTEX:
             try:
                 return CONTEXT_WINDOW_SIZES.get(model.provider, {}).get(model.name)
             except KeyError:
