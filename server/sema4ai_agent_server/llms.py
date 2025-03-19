@@ -27,7 +27,7 @@ CONTEXT_WINDOW_SIZES = {
     # Taken from: https://docs.snowflake.com/en/user-guide/snowflake-cortex/llm-functions#model-restrictions
     LLMProvider.SNOWFLAKE_CORTEX: {
         # We prefer these two
-        "claude-3-5-sonnet": 18000,
+        "claude-3-5-sonnet": 200000,
         "deepseek-r1": 128000,
         # But we'll throw these in just in case
         # we need them
