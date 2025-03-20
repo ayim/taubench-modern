@@ -27,7 +27,7 @@ RUN curl -L ${AGENT_CLI_URL} -o /usr/local/bin/agent-cli && \
 WORKDIR /app
 
 # Download the agent-server binary
-RUN curl -L "https://cdn.sema4.ai/agent-server/beta/${AGENT_SERVER_VERSION}/linux_x64/agent-server" \
+RUN curl -L "https://cdn.sema4.ai/agent-server/stable/${AGENT_SERVER_VERSION}/linux_x64/agent-server" \
     -o /usr/local/bin/agent-server && \
     chmod +x /usr/local/bin/agent-server
 
