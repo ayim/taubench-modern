@@ -103,17 +103,25 @@ class Role(str, Enum):
     AGENT = 'agent'
     HUMAN = 'human'
 
+class MessageType(str, Enum):
+    MESSAGE = "message"
+    TOKEN = "token"
+    TOOL_REQUEST = "tool_request"
+    TOOL_RESPONSE = "tool_response"
+    START_STREAM = "start_stream"
+    END_STREAM = "end_stream"
+
 
 class Message(BaseModel):
     id: Optional[str]
-    type: str
+    type: MessageType
     channel: Annotated[str, Field(default="chat")]
     role: Role
     content: str
 
 class TokenMessage(BaseModel):
     id: Optional[str]
-    type: str
+    type: MessageType
     channel: Annotated[str, Field(default="chat")]
     role: Role
     token: str
@@ -135,6 +143,9 @@ class ToolResponse(Message):
 class CreateChatRequest(BaseModel):
     name: str
 
+class ChatMessageRequest(BaseModel):
+    content: str
+
 def translate_message(message: dict) -> Message | ToolRequest | ToolResponse:
     # tool request
     empty_content = message.content == ""
@@ -146,7 +157,7 @@ def translate_message(message: dict) -> Message | ToolRequest | ToolResponse:
     if type == "ai" and empty_content and len(message.tool_calls) > 0: # tool request
         return ToolRequest(
             id=message.id,
-            type="tool_request",
+            type=MessageType.TOOL_REQUEST,
             role=role,
             content=message.content,
             tool_calls=[ToolCall(**tc) for tc in message.tool_calls],
@@ -161,7 +172,7 @@ def translate_message(message: dict) -> Message | ToolRequest | ToolResponse:
 
         return ToolResponse(
             id=message.id,
-            type="tool_response",
+            type=MessageType.TOOL_RESPONSE,
             role=role,
             tool_call_id=message.tool_call_id,
             status=message.status,
@@ -171,7 +182,7 @@ def translate_message(message: dict) -> Message | ToolRequest | ToolResponse:
     else:
         return Message(
             id=message.id,
-            type="message",
+            type=MessageType.MESSAGE,
             role=role,
             content=message.content,
         )
@@ -184,7 +195,6 @@ class Conversation(BaseModel):
 
     @classmethod
     def from_thread(cls, thread: ASThread) -> 'Conversation':
-        print(thread)
         return cls(
             id=thread.thread_id,
             name=thread.name,
@@ -327,36 +337,6 @@ async def create_chat(user: AuthedUser, aid: str, body: CreateChatRequest = Body
     return Conversation.from_thread(thread)
 
 
-@router.post(
-    "/agents/{aid}/conversations/{cid}/messages",
-    summary="Post messages (synchronous)",
-    description="Post messages to a conversation thread, and get the updated conversation state.",
-    response_description="Conversation with messages",
-    response_model=ConversationState,
-    tags=["conversations"],
-    responses={
-                200: {"description": "Success"},
-                400: {"description": "Bad Request"},
-                422: {"description": "Validation Error"},
-                500: {"description": "Internal Server Error"},
-            },
-)
-
-
-async def post_messages(user: AuthedUser, aid: str, cid: str, messages: List[Message]) -> ConversationState:
-    payload = ChatRequest(
-        thread_id=cid,
-        input=[ChatMessage(
-            id=message.id,
-            type=message.type,
-            content=message.content,
-        ) for message in messages],
-    )
-    input_, config, thread, agent = await _run_input_and_config(payload, user)
-    await invoke_state(runnable_agent, input_, config, None)
-    state = await get_storage().get_thread_state(payload.thread_id)
-    return ConversationState.from_thread_with_messages(thread, state) if thread else None
-
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
 
@@ -380,7 +360,6 @@ async def to_public_api_sse(messages_stream: MessagesStream) -> AsyncIterator[di
                         content=message.content,
                         tool_calls=[ToolCall(**tc) for tc in message.tool_calls],
                     )
-                    print(tr)
                     yield ServerSentEvent(data=json.dumps(tr.model_dump()), event="data")
                 # use the tool_event message to look for tool call responses
                 if message.type == "tool_event":
@@ -428,7 +407,7 @@ async def to_public_api_sse(messages_stream: MessagesStream) -> AsyncIterator[di
                         last_len = len(message.content)
                         msg = TokenMessage(
                             id=message.id,
-                            type="token",
+                            type=MessageType.TOKEN,
                             role=_translate_role(message.type),
                             token=msg_txt,
                             token_sequence=sequence,
@@ -443,9 +422,89 @@ async def to_public_api_sse(messages_stream: MessagesStream) -> AsyncIterator[di
     # Send an end event to signal the end of the stream
     yield StreamEndEvent().to_sse()
 
+@router.post(
+    "/agents/{aid}/conversations/{cid}/messages",
+    summary="Post avmessage (synchronous)",
+    description="Post a message to a conversation thread, and get the updated conversation state.",
+    response_description="Conversation with messages",
+    response_model=ConversationState,
+    tags=["conversations"],
+    responses={
+                200: {"description": "Success"},
+                400: {"description": "Bad Request"},
+                422: {"description": "Validation Error"},
+                500: {"description": "Internal Server Error"},
+            },
+)
+async def post_messages_simple(user: AuthedUser, aid: str, cid: str, body: ChatMessageRequest = Body(...)) -> ConversationState:
+    msg_id = str(uuid.uuid4())
+    payload = ChatRequest(
+        thread_id=cid,
+        input=[ChatMessage(
+            id=msg_id,
+            type=Role.HUMAN,
+            content=body.content,
+        )],
+    )
+    input_, config, thread, agent = await _run_input_and_config(payload, user)
+    await invoke_state(runnable_agent, input_, config, None)
+    state = await get_storage().get_thread_state(payload.thread_id)
+    return ConversationState.from_thread_with_messages(thread, state) if thread else None
+
 
 @router.post(
     "/agents/{aid}/conversations/{cid}/stream",
+    summary="Post a message to a conversation and stream the response",
+    description="Post a message to a conversation and stream the response",
+    response_description="SSE Stream of messages",
+    response_model=None,  # EventSourceResponse is not a Pydantic model
+    tags=["conversations"],
+responses={
+            200: {"description": "Success"},
+            400: {"description": "Bad Request"},
+            422: {"description": "Validation Error"},
+            500: {"description": "Internal Server Error"},
+        },
+)
+async def post_public_api_messages_simple(user: AuthedUser, aid: str, cid: str, body: ChatMessageRequest = Body(...)) -> EventSourceResponse:
+    chat_messages = [ChatMessage(type=Role.HUMAN, content=body.content)]
+    payload = ChatRequest(input=chat_messages, thread_id=cid)
+    input_, config, thread, agent = await _run_input_and_config(payload, user)
+    return EventSourceResponse(
+        to_public_api_sse(astream_state(runnable_agent, input_, config, None))
+    )
+
+
+@router.post(
+    "/agents/{aid}/conversations/{cid}/messages/detailed",
+    summary="Post messages (synchronous)",
+    description="Post messages to a conversation thread, and get the updated conversation state.",
+    response_description="Conversation with messages",
+    response_model=ConversationState,
+    tags=["conversations"],
+    responses={
+                200: {"description": "Success"},
+                400: {"description": "Bad Request"},
+                422: {"description": "Validation Error"},
+                500: {"description": "Internal Server Error"},
+            },
+)
+async def post_messages_detailed(user: AuthedUser, aid: str, cid: str, messages: List[Message]) -> ConversationState:
+    payload = ChatRequest(
+        thread_id=cid,
+        input=[ChatMessage(
+            id=message.id,
+            type=message.type,
+            content=message.content,
+        ) for message in messages],
+    )
+    input_, config, thread, agent = await _run_input_and_config(payload, user)
+    await invoke_state(runnable_agent, input_, config, None)
+    state = await get_storage().get_thread_state(payload.thread_id)
+    return ConversationState.from_thread_with_messages(thread, state) if thread else None
+
+@router.post(
+    "/agents/{aid}/conversations/{cid}/stream/detailed",
     summary="Post messages to a conversation and stream the response",
     description="Post messages to a conversation and stream the response",
     response_description="SSE Stream of messages",
@@ -458,7 +517,7 @@ responses={
             500: {"description": "Internal Server Error"},
         },
 )
-async def post_public_api_messages(user: AuthedUser, aid: str, cid: str, messages: list[Message]) -> EventSourceResponse:
+async def post_public_api_messages_detailed(user: AuthedUser, aid: str, cid: str, messages: list[Message]) -> EventSourceResponse:
     chat_messages = [ChatMessage(type=_translate_role(message.role), content=message.content) for message in messages]
     payload = ChatRequest(input=chat_messages, thread_id=cid)
     input_, config, thread, agent = await _run_input_and_config(payload, user)
