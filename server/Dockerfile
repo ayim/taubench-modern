@@ -2,6 +2,7 @@ FROM ubuntu:22.04
 
 # Arguments and Environment Variables
 ARG AGENT_SERVER_VERSION
+ARG AGENT_RELEASE_CHANNEL
 ARG AGENT_SERVER_PORT=8000
 # TODO need this for different OS. Hardcoded for now to unblock the platform team.
 ARG AGENT_CLI_URL=https://cdn.sema4.ai/agent-cli/releases/v0.0.17/linux64/agent-cli
