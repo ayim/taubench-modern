@@ -104,8 +104,8 @@ class Role(str, Enum):
 class MessageType(str, Enum):
     MESSAGE = "message"
     TOKEN = "token"
-    TOOL_REQUEST = "tool_request"
-    TOOL_RESPONSE = "tool_response"
+    TOOL_REQUEST = "action_request"
+    TOOL_RESPONSE = "action_response"
     START_STREAM = "start_stream"
     END_STREAM = "end_stream"
 
@@ -131,10 +131,10 @@ class ToolCall(BaseModel):
     args: dict
 
 class ToolRequest(Message):
-    tool_calls: list[ToolCall]
+    action_calls: list[ToolCall]
 
 class ToolResponse(Message):
-    tool_call_id: str
+    action_call_id: str
     status: str
     result: dict # parsed JSON from `content`
 
@@ -155,8 +155,6 @@ class PaginatedResponse(BaseModel):
 def translate_message(message: dict) -> Message | ToolRequest | ToolResponse:
     # tool request
     empty_content = message.content == ""
-    # additional_kwargs = message.additional_kwargs 
-    # tool_calls = message.
     type = message.type
     role = message.type if message.type == "human" else "agent"
 
@@ -396,10 +394,10 @@ async def to_public_api_sse(messages_stream: MessagesStream) -> AsyncIterator[di
                         and message.response_metadata["finish_reason"] == "tool_calls"):
                     tr = ToolRequest(
                         id=message.id,
-                        type="tool_request",
+                        type=MessageType.TOOL_REQUEST,
                         role="agent",
                         content=message.content,
-                        tool_calls=[ToolCall(**tc) for tc in message.tool_calls],
+                        action_calls=[ToolCall(**tc) for tc in message.tool_calls],
                     )
                     yield ServerSentEvent(data=json.dumps(tr.model_dump()), event="data")
                 # use the tool_event message to look for tool call responses
@@ -409,9 +407,9 @@ async def to_public_api_sse(messages_stream: MessagesStream) -> AsyncIterator[di
                     if message.output is not None:
                         tr =  ToolResponse(
                             id=message.id,
-                            type="tool_response",
+                            type=MessageType.TOOL_RESPONSE,
                             role="agent",
-                            tool_call_id=message.tool_call_id,
+                            action_call_id=message.tool_call_id,
                             status="success",
                             result=json.loads(message.output),
                             content="",
