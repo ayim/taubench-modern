@@ -2,12 +2,12 @@ import datetime
 import json
 import uuid
 from enum import Enum
-from typing import Optional, List, AsyncIterator, Annotated
+from typing import Optional, List, AsyncIterator, Annotated, Any
 
 import structlog
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.params import Body
-from pydantic import BaseModel, TypeAdapter, Field
+from pydantic import BaseModel, Field
 
 from agent_server_types.agents import (
     Agent as ASAgent,
@@ -21,10 +21,9 @@ from sse_starlette import EventSourceResponse
 from sse_starlette.event import ServerSentEvent
 
 from sema4ai_agent_server.auth.handlers import AuthedUser
-from sema4ai_agent_server.responses import TypeAdapterResponse
-from sema4ai_agent_server.schema import StreamEndEvent, StreamDataEvent
+from sema4ai_agent_server.schema import StreamEndEvent
 from sema4ai_agent_server.storage.option import get_storage
-from sema4ai_agent_server.api.runs import _run_input_and_config, invoke_state
+from sema4ai_agent_server.api.runs import _run_input_and_config
 from sema4ai_agent_server.agent import runnable_agent
 from sema4ai_agent_server.file_manager.option import get_file_manager
 
@@ -142,8 +141,16 @@ class ToolResponse(Message):
 class CreateChatRequest(BaseModel):
     name: str
 
+
 class ChatMessageRequest(BaseModel):
     content: str
+
+
+class PaginatedResponse(BaseModel):
+    next: None | str
+    has_more: bool
+    data: List[Any]
+
 
 def translate_message(message: dict) -> Message | ToolRequest | ToolResponse:
     # tool request
@@ -229,21 +236,23 @@ class WorkItem(BaseModel):
     summary="List agents",
     description="Returns a list of all agents for the authenticated user. You can filter by name using the 'name' query parameter.",
     response_description="List of agents",
-    response_model=list[Agent],
-    response_class=TypeAdapterResponse,
+    response_model=PaginatedResponse,
     tags=["agents"],
     responses={
         200: {"description": "Success"},
         500: {"description": "Internal Server Error"},
     },
 )
-async def get_agents(user: AuthedUser, name: str | None = Query(None, description="Filter agents by name (starts with, case insensitive).")):
+async def get_agents(user: AuthedUser, limit: Optional[int] = None, name: str | None = Query(None, description="Filter agents by name (starts with, case insensitive).")):
     as_agents = await get_storage().list_agents(user.user_id)
     if name:
         as_agents = [agent for agent in as_agents if agent.name.lower().startswith(name.lower())]
     agents = [Agent.from_agent(as_agent) for as_agent in as_agents]
-    return TypeAdapterResponse(agents, adapter=TypeAdapter(List[Agent]))
-    # return []
+    return PaginatedResponse(
+        next=None,
+        has_more=False,
+        data=agents
+    )
 
 @router.get(
     "/agents/{aid}",
@@ -270,7 +279,7 @@ async def get_agent_by_name(user: AuthedUser, aid: str) -> Agent:
     summary="List conversations",
     description="Returns a list of all conversations for the given agent.",
     response_description="List of conversations",
-    response_model=list[Conversation],
+    response_model=PaginatedResponse,
     tags=["conversations"],
     responses={
         200: {"description": "Success"},
@@ -278,9 +287,14 @@ async def get_agent_by_name(user: AuthedUser, aid: str) -> Agent:
         500: {"description": "Internal Server Error"},
     },
 )
-async def get_conversations(user: AuthedUser, aid: str) -> list[Conversation]:
+async def get_conversations(user: AuthedUser, aid: str, limit: Optional[int] = None) -> PaginatedResponse:
     threads = await get_storage().list_agent_threads(aid)
-    return [Conversation.from_thread(thread) for thread in threads]
+    data = [Conversation.from_thread(thread) for thread in threads]
+    return PaginatedResponse(
+        next=None,
+        has_more=False,
+        data=data
+    )
 
 
 @router.get(
@@ -335,6 +349,34 @@ async def create_chat(user: AuthedUser, aid: str, body: CreateChatRequest = Body
     )
     return Conversation.from_thread(thread)
 
+
+@router.post(
+    "/agents/{aid}/conversations/{cid}/messages",
+    summary="Post messages (synchronous)",
+    description="Post messages to a conversation thread, and get the updated conversation state.",
+    response_description="Conversation with messages",
+    response_model=ConversationState,
+    tags=["conversations"],
+    responses={
+                200: {"description": "Success"},
+                400: {"description": "Bad Request"},
+                422: {"description": "Validation Error"},
+                500: {"description": "Internal Server Error"},
+            },
+)
+async def create_chat(user: AuthedUser, aid: str, body: CreateChatRequest = Body(...)) -> Conversation:
+    agent = await get_storage().get_agent(user.user_id, aid)
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    thread = await get_storage().put_thread(
+        user.user_id,
+        str(uuid.uuid4()),
+        agent_id=aid,
+        name=body.name,
+        metadata=None,
+        created_at=datetime.datetime.now(datetime.timezone.utc),
+    )
+    return Conversation.from_thread(thread)
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
