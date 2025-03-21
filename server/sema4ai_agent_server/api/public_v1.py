@@ -79,7 +79,7 @@ class Agent(BaseModel):
     llm: LanguageModel
     architecture: Architecture
     mode: Mode
-    action_packages: list[ActionPackage]
+
 
     @classmethod
     def from_agent(cls, agent: ASAgent) -> 'Agent':
@@ -95,7 +95,6 @@ class Agent(BaseModel):
             llm=LanguageModel(provider=agent.model.provider, model=agent.model.name),
             architecture=architecture,
             mode=agent.metadata.mode,
-            action_packages=[ActionPackage.from_action_package(ap) for ap in agent.action_packages],
         )
 
 
