@@ -2,35 +2,44 @@ import datetime
 import json
 import uuid
 from enum import Enum
-from typing import Optional, List, AsyncIterator, Annotated
+from typing import Annotated, Any, AsyncIterator, List, Optional
 
 import structlog
-from fastapi import APIRouter, HTTPException, Query
-from fastapi.params import Body
-from pydantic import BaseModel, TypeAdapter, Field
-
+from agent_server_types import (
+    ChatMessage,
+    ChatRequest,
+    StrWithUuidInput,
+)
+from agent_server_types import (
+    Thread as ASThread,
+    LLMProvider as ASLLMProvider,
+)
 from agent_server_types.agents import (
-    Agent as ASAgent,
     ActionPackage as ASActionPackage,
 )
-
-from agent_server_types import (
-    Thread as ASThread, StrWithUuidInput, ChatRequest, ChatMessage,
+from agent_server_types.agents import (
+    Agent as ASAgent,
 )
+from fastapi import APIRouter, HTTPException, Query
+from fastapi.params import Body
+from pydantic import BaseModel, Field
 from sse_starlette import EventSourceResponse
 from sse_starlette.event import ServerSentEvent
 
-from sema4ai_agent_server.auth.handlers import AuthedUser
-from sema4ai_agent_server.responses import TypeAdapterResponse
-from sema4ai_agent_server.schema import StreamEndEvent, StreamDataEvent
-from sema4ai_agent_server.storage.option import get_storage
-from sema4ai_agent_server.api.runs import _run_input_and_config, invoke_state
 from sema4ai_agent_server.agent import runnable_agent
+from sema4ai_agent_server.api.runs import _run_input_and_config
+from sema4ai_agent_server.auth.handlers import AuthedUser
 from sema4ai_agent_server.file_manager.option import get_file_manager
-
-from sema4ai_agent_server.stream import MessagesStream, _chunk_to_event, _error_to_event, astream_state, invoke_state
-
-
+from sema4ai_agent_server.message_types import AnyNonChunkStreamedMessage
+from sema4ai_agent_server.schema import StreamEndEvent
+from sema4ai_agent_server.storage.option import get_storage
+from sema4ai_agent_server.stream import (
+    MessagesStream,
+    _chunk_to_event,
+    _error_to_event,
+    astream_state,
+    invoke_state,
+)
 
 router = APIRouter()
 
@@ -79,7 +88,7 @@ class Agent(BaseModel):
     llm: LanguageModel
     architecture: Architecture
     mode: Mode
-    action_packages: list[ActionPackage]
+
 
     @classmethod
     def from_agent(cls, agent: ASAgent) -> 'Agent':
@@ -95,7 +104,6 @@ class Agent(BaseModel):
             llm=LanguageModel(provider=agent.model.provider, model=agent.model.name),
             architecture=architecture,
             mode=agent.metadata.mode,
-            action_packages=[ActionPackage.from_action_package(ap) for ap in agent.action_packages],
         )
 
 
@@ -103,17 +111,25 @@ class Role(str, Enum):
     AGENT = 'agent'
     HUMAN = 'human'
 
+class MessageType(str, Enum):
+    MESSAGE = "message"
+    TOKEN = "token"
+    TOOL_REQUEST = "action_request"
+    TOOL_RESPONSE = "action_response"
+    START_STREAM = "start_stream"
+    END_STREAM = "end_stream"
+
 
 class Message(BaseModel):
     id: Optional[str]
-    type: str
+    type: MessageType
     channel: Annotated[str, Field(default="chat")]
     role: Role
     content: str
 
 class TokenMessage(BaseModel):
     id: Optional[str]
-    type: str
+    type: MessageType
     channel: Annotated[str, Field(default="chat")]
     role: Role
     token: str
@@ -125,31 +141,40 @@ class ToolCall(BaseModel):
     args: dict
 
 class ToolRequest(Message):
-    tool_calls: list[ToolCall]
+    action_calls: list[ToolCall]
 
 class ToolResponse(Message):
-    tool_call_id: str
+    action_call_id: str
     status: str
     result: dict # parsed JSON from `content`
 
 class CreateChatRequest(BaseModel):
     name: str
 
+
+class ChatMessageRequest(BaseModel):
+    content: str
+
+
+class PaginatedResponse(BaseModel):
+    next: None | str
+    has_more: bool
+    data: List[Any]
+
+
 def translate_message(message: dict) -> Message | ToolRequest | ToolResponse:
     # tool request
     empty_content = message.content == ""
-    # additional_kwargs = message.additional_kwargs 
-    # tool_calls = message.
     type = message.type
     role = message.type if message.type == "human" else "agent"
 
     if type == "ai" and empty_content and len(message.tool_calls) > 0: # tool request
         return ToolRequest(
             id=message.id,
-            type="tool_request",
+            type=MessageType.TOOL_REQUEST,
             role=role,
             content=message.content,
-            tool_calls=[ToolCall(**tc) for tc in message.tool_calls],
+            action_calls=[ToolCall(**tc) for tc in message.tool_calls],
         )
     elif type == "tool" and not empty_content: # tool response
         try:
@@ -161,9 +186,9 @@ def translate_message(message: dict) -> Message | ToolRequest | ToolResponse:
 
         return ToolResponse(
             id=message.id,
-            type="tool_response",
+            type=MessageType.TOOL_RESPONSE,
             role=role,
-            tool_call_id=message.tool_call_id,
+            action_call_id=message.tool_call_id,
             status=message.status,
             result=result_content,
             content="",
@@ -171,7 +196,7 @@ def translate_message(message: dict) -> Message | ToolRequest | ToolResponse:
     else:
         return Message(
             id=message.id,
-            type="message",
+            type=MessageType.MESSAGE,
             role=role,
             content=message.content,
         )
@@ -184,7 +209,6 @@ class Conversation(BaseModel):
 
     @classmethod
     def from_thread(cls, thread: ASThread) -> 'Conversation':
-        print(thread)
         return cls(
             id=thread.thread_id,
             name=thread.name,
@@ -220,21 +244,23 @@ class WorkItem(BaseModel):
     summary="List agents",
     description="Returns a list of all agents for the authenticated user. You can filter by name using the 'name' query parameter.",
     response_description="List of agents",
-    response_model=list[Agent],
-    response_class=TypeAdapterResponse,
+    response_model=PaginatedResponse,
     tags=["agents"],
     responses={
         200: {"description": "Success"},
         500: {"description": "Internal Server Error"},
     },
 )
-async def get_agents(user: AuthedUser, name: str | None = Query(None, description="Filter agents by name (starts with, case insensitive).")):
+async def get_agents(user: AuthedUser, limit: Optional[int] = None, name: str | None = Query(None, description="Filter agents by name (starts with, case insensitive).")):
     as_agents = await get_storage().list_agents(user.user_id)
     if name:
         as_agents = [agent for agent in as_agents if agent.name.lower().startswith(name.lower())]
     agents = [Agent.from_agent(as_agent) for as_agent in as_agents]
-    return TypeAdapterResponse(agents, adapter=TypeAdapter(List[Agent]))
-    # return []
+    return PaginatedResponse(
+        next=None,
+        has_more=False,
+        data=agents
+    )
 
 @router.get(
     "/agents/{aid}",
@@ -261,7 +287,7 @@ async def get_agent_by_name(user: AuthedUser, aid: str) -> Agent:
     summary="List conversations",
     description="Returns a list of all conversations for the given agent.",
     response_description="List of conversations",
-    response_model=list[Conversation],
+    response_model=PaginatedResponse,
     tags=["conversations"],
     responses={
         200: {"description": "Success"},
@@ -269,9 +295,14 @@ async def get_agent_by_name(user: AuthedUser, aid: str) -> Agent:
         500: {"description": "Internal Server Error"},
     },
 )
-async def get_conversations(user: AuthedUser, aid: str) -> list[Conversation]:
+async def get_conversations(user: AuthedUser, aid: str, limit: Optional[int] = None) -> PaginatedResponse:
     threads = await get_storage().list_agent_threads(aid)
-    return [Conversation.from_thread(thread) for thread in threads]
+    data = [Conversation.from_thread(thread) for thread in threads]
+    return PaginatedResponse(
+        next=None,
+        has_more=False,
+        data=data
+    )
 
 
 @router.get(
@@ -328,77 +359,116 @@ async def create_chat(user: AuthedUser, aid: str, body: CreateChatRequest = Body
 
 
 @router.post(
-    "/agents/{aid}/conversations/{cid}/messages",
-    summary="Post messages (synchronous)",
-    description="Post messages to a conversation thread, and get the updated conversation state.",
-    response_description="Conversation with messages",
-    response_model=ConversationState,
+    "/agents/{aid}/conversations",
+    summary="Create new conversation",
+    description="Creates a new conversation for the given agent.",
+    response_description="Conversation",
+    response_model=Conversation,
     tags=["conversations"],
     responses={
-                200: {"description": "Success"},
-                400: {"description": "Bad Request"},
-                422: {"description": "Validation Error"},
-                500: {"description": "Internal Server Error"},
-            },
+            200: {"description": "Success"},
+            400: {"description": "Bad Request"},
+            422: {"description": "Validation Error"},
+            500: {"description": "Internal Server Error"},
+        },
 )
-
-
-async def post_messages(user: AuthedUser, aid: str, cid: str, messages: List[Message]) -> ConversationState:
-    payload = ChatRequest(
-        thread_id=cid,
-        input=[ChatMessage(
-            id=message.id,
-            type=message.type,
-            content=message.content,
-        ) for message in messages],
+async def create_chat(user: AuthedUser, aid: str, body: CreateChatRequest = Body(...)) -> Conversation:
+    agent = await get_storage().get_agent(user.user_id, aid)
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    thread = await get_storage().put_thread(
+        user.user_id,
+        str(uuid.uuid4()),
+        agent_id=aid,
+        name=body.name,
+        metadata=None,
+        created_at=datetime.datetime.now(datetime.timezone.utc),
     )
-    input_, config, thread, agent = await _run_input_and_config(payload, user)
-    await invoke_state(runnable_agent, input_, config, None)
-    state = await get_storage().get_thread_state(payload.thread_id)
-    return ConversationState.from_thread_with_messages(thread, state) if thread else None
+    return Conversation.from_thread(thread)
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
 
-async def to_public_api_sse(messages_stream: MessagesStream) -> AsyncIterator[dict]:
+async def _yield_end_messages(message: AnyNonChunkStreamedMessage):
+    end_msg = Message(
+        id=message.id,
+        type="end_stream",
+        role=_translate_role(message.type),
+        content="",
+    )
+    msg = Message(
+        id=message.id,
+        type="message",
+        role=_translate_role(message.type),
+        content=message.content,
+    )
+    yield ServerSentEvent(data=json.dumps(end_msg.model_dump()), event="data")
+    yield ServerSentEvent(data=json.dumps(msg.model_dump()), event="data")
+
+async def _yield_tool_request(message: AnyNonChunkStreamedMessage):
+    tr = ToolRequest(
+        id=message.id,
+        type=MessageType.TOOL_REQUEST,
+        role="agent",
+        content=message.content,
+        action_calls=[ToolCall(**tc) for tc in message.tool_calls],
+    )
+    yield ServerSentEvent(data=json.dumps(tr.model_dump()), event="data")
+
+def _is_tool_stop_reason(message: AnyNonChunkStreamedMessage) -> bool:
+    if "finish_reason" in message.response_metadata:
+        return message.response_metadata["finish_reason"] == "tool_calls"
+    elif "stopReason" in message.response_metadata:
+        return message.response_metadata["stopReason"] == "tool_use"
+    return False
+
+
+async def to_public_api_sse(messages_stream: MessagesStream, agent: ASAgent) -> AsyncIterator[dict]:
     try:
         # token tracking
         last_len = 0 # last length of the message content
         sequence = 0 # token sequence number
+        claude_ended = False # tracker to drop any additional metadata end events
+        claude_ended_tool_call = False # tracker to drop any additional metadata end events
+        is_bedrock = agent.model.provider == ASLLMProvider.AMAZON
         async for chunk in messages_stream:
             out_event = _chunk_to_event(chunk)
             if isinstance(out_event.data, list) and len(out_event.data) == 1:
                 message = out_event.data[0]
 
                 # Tool Call Response
-                if ("finish_reason" in message.response_metadata
-                        and message.response_metadata["finish_reason"] == "tool_calls"):
-                    tr = ToolRequest(
-                        id=message.id,
-                        type="tool_request",
-                        role="agent",
-                        content=message.content,
-                        tool_calls=[ToolCall(**tc) for tc in message.tool_calls],
-                    )
-                    print(tr)
-                    yield ServerSentEvent(data=json.dumps(tr.model_dump()), event="data")
+                if not is_bedrock and _is_tool_stop_reason(message):
+                    async for event in _yield_tool_request(message):
+                        yield event
+                if is_bedrock and not claude_ended_tool_call and _is_tool_stop_reason(message):
+                    claude_ended_tool_call = True
+                    async for event in _yield_tool_request(message):
+                        yield event
                 # use the tool_event message to look for tool call responses
                 if message.type == "tool_event":
+                    # Reset claude ended flag once the response is received
+                    claude_ended_tool_call = False
                     last_len = 0
                     # Tool Call Response
-                    if message.output is not None:
+                    if message.output is not None and message.output != "":
+                        result = json.loads(message.output)
+                        try:
+                            # Results can sometimes be double encoded
+                            result = json.loads(result)
+                        except json.JSONDecodeError:
+                            result = {"result": result}
                         tr =  ToolResponse(
                             id=message.id,
-                            type="tool_response",
+                            type=MessageType.TOOL_RESPONSE,
                             role="agent",
-                            tool_call_id=message.tool_call_id,
+                            action_call_id=message.tool_call_id,
                             status="success",
-                            result=json.loads(message.output),
+                            result=result,
                             content="",
                         )
                         yield ServerSentEvent(data=json.dumps(tr.model_dump()), event="data")
                 ## Start of Stream
-                elif message.content == "" and not "tool_calls" in message.additional_kwargs: # empty content
+                elif message.content == "" and "tool_calls" not in message.additional_kwargs: # empty content
                     msg = Message(
                         id=message.id,
                         type="start_stream",
@@ -409,26 +479,20 @@ async def to_public_api_sse(messages_stream: MessagesStream) -> AsyncIterator[di
                 # Stream Message
                 elif message.content != "": # regular streaming message
                     msg_txt = message.content[last_len:]
-                    if last_len == len(message.content): # end of stream
-                        end_msg = Message(
-                            id=message.id,
-                            type="end_stream",
-                            role=_translate_role(message.type),
-                            content="",
-                        )
-                        msg = Message(
-                            id=message.id,
-                            type="message",
-                            role=_translate_role(message.type),
-                            content=message.content,
-                        )
-                        yield ServerSentEvent(data=json.dumps(end_msg.model_dump()), event="data")
-                        yield ServerSentEvent(data=json.dumps(msg.model_dump()), event="data")
+                    if not is_bedrock and last_len == len(message.content): # end of OpenAI stream
+                        async for event in _yield_end_messages(message):
+                            yield event
+                    if (is_bedrock and not claude_ended
+                        and ("stopReason" in message.response_metadata 
+                        and message.response_metadata["stopReason"] == "end_turn")): # end of Claude stream
+                        claude_ended = True
+                        async for event in _yield_end_messages(message):
+                            yield event
                     if msg_txt != "":
                         last_len = len(message.content)
                         msg = TokenMessage(
                             id=message.id,
-                            type="token",
+                            type=MessageType.TOKEN,
                             role=_translate_role(message.type),
                             token=msg_txt,
                             token_sequence=sequence,
@@ -443,9 +507,89 @@ async def to_public_api_sse(messages_stream: MessagesStream) -> AsyncIterator[di
     # Send an end event to signal the end of the stream
     yield StreamEndEvent().to_sse()
 
+@router.post(
+    "/agents/{aid}/conversations/{cid}/messages",
+    summary="Post a message (synchronous)",
+    description="Post a message to a conversation thread, and get the updated conversation state.",
+    response_description="Conversation with messages",
+    response_model=ConversationState,
+    tags=["conversations"],
+    responses={
+                200: {"description": "Success"},
+                400: {"description": "Bad Request"},
+                422: {"description": "Validation Error"},
+                500: {"description": "Internal Server Error"},
+            },
+)
+async def post_messages_simple(user: AuthedUser, aid: str, cid: str, body: ChatMessageRequest = Body(...)) -> ConversationState:
+    msg_id = str(uuid.uuid4())
+    payload = ChatRequest(
+        thread_id=cid,
+        input=[ChatMessage(
+            id=msg_id,
+            type=Role.HUMAN,
+            content=body.content,
+        )],
+    )
+    input_, config, thread, agent = await _run_input_and_config(payload, user)
+    await invoke_state(runnable_agent, input_, config, None)
+    state = await get_storage().get_thread_state(payload.thread_id)
+    return ConversationState.from_thread_with_messages(thread, state) if thread else None
+
 
 @router.post(
     "/agents/{aid}/conversations/{cid}/stream",
+    summary="Post a message to a conversation and stream the response",
+    description="Post a message to a conversation and stream the response",
+    response_description="SSE Stream of messages",
+    response_model=None,  # EventSourceResponse is not a Pydantic model
+    tags=["conversations"],
+responses={
+            200: {"description": "Success"},
+            400: {"description": "Bad Request"},
+            422: {"description": "Validation Error"},
+            500: {"description": "Internal Server Error"},
+        },
+)
+async def post_public_api_messages_simple(user: AuthedUser, aid: str, cid: str, body: ChatMessageRequest = Body(...)) -> EventSourceResponse:
+    chat_messages = [ChatMessage(type=Role.HUMAN, content=body.content)]
+    payload = ChatRequest(input=chat_messages, thread_id=cid)
+    input_, config, thread, agent = await _run_input_and_config(payload, user)
+    return EventSourceResponse(
+        to_public_api_sse(astream_state(runnable_agent, input_, config, None), agent)
+    )
+
+
+@router.post(
+    "/agents/{aid}/conversations/{cid}/messages/detailed",
+    summary="Post messages (synchronous)",
+    description="Post messages to a conversation thread, and get the updated conversation state.",
+    response_description="Conversation with messages",
+    response_model=ConversationState,
+    tags=["conversations"],
+    responses={
+                200: {"description": "Success"},
+                400: {"description": "Bad Request"},
+                422: {"description": "Validation Error"},
+                500: {"description": "Internal Server Error"},
+            },
+)
+async def post_messages_detailed(user: AuthedUser, aid: str, cid: str, messages: List[Message]) -> ConversationState:
+    payload = ChatRequest(
+        thread_id=cid,
+        input=[ChatMessage(
+            id=message.id,
+            type=message.type,
+            content=message.content,
+        ) for message in messages],
+    )
+    input_, config, thread, agent = await _run_input_and_config(payload, user)
+    await invoke_state(runnable_agent, input_, config, None)
+    state = await get_storage().get_thread_state(payload.thread_id)
+    return ConversationState.from_thread_with_messages(thread, state) if thread else None
+
+@router.post(
+    "/agents/{aid}/conversations/{cid}/stream/detailed",
     summary="Post messages to a conversation and stream the response",
     description="Post messages to a conversation and stream the response",
     response_description="SSE Stream of messages",
@@ -458,12 +602,12 @@ responses={
             500: {"description": "Internal Server Error"},
         },
 )
-async def post_public_api_messages(user: AuthedUser, aid: str, cid: str, messages: list[Message]) -> EventSourceResponse:
+async def post_public_api_messages_detailed(user: AuthedUser, aid: str, cid: str, messages: list[Message]) -> EventSourceResponse:
     chat_messages = [ChatMessage(type=_translate_role(message.role), content=message.content) for message in messages]
     payload = ChatRequest(input=chat_messages, thread_id=cid)
     input_, config, thread, agent = await _run_input_and_config(payload, user)
     return EventSourceResponse(
-        to_public_api_sse(astream_state(runnable_agent, input_, config, None))
+        to_public_api_sse(astream_state(runnable_agent, input_, config, None), agent)
     )
 
 
