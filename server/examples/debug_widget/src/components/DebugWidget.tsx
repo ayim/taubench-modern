@@ -11,6 +11,7 @@ interface Thread {
 interface Message {
   role: "user" | "agent";
   content: any[];
+  message_id?: string;
 }
 
 interface DebugWidgetProps {
@@ -21,6 +22,7 @@ interface DebugWidgetProps {
   is_loading: boolean;
   status_message: string;
   sendMsgToPython: (msg: any) => void; // a generic function that calls widget's send
+  active_thread_artifacts: any[];
 }
 
 export const DebugWidget: React.FC<DebugWidgetProps> = ({
@@ -30,6 +32,7 @@ export const DebugWidget: React.FC<DebugWidgetProps> = ({
   messages,
   is_loading,
   status_message,
+  active_thread_artifacts,
   sendMsgToPython,
 }) => {
   const handleSelectThread = (threadId: string) => {
@@ -71,6 +74,7 @@ export const DebugWidget: React.FC<DebugWidgetProps> = ({
           messages={messages}
           onSendMessage={handleSendMessage}
           isLoading={is_loading}
+          activeThreadArtifacts={active_thread_artifacts}
         />
       </div>
       

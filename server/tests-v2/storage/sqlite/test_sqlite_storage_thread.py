@@ -250,7 +250,7 @@ async def test_thread_listing_with_multiple_agents(
             agent_architecture=AgentArchitecture(name="test", version="1.0.0"),
             question_groups=[],
             observability_configs=[],
-            provider_configs=["test-provider-config"],
+            platform_configs=[],
             extra={},
         )
         for i in range(3)

@@ -31,7 +31,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                 definition=tool_def,
                 tool_call_id=tool_use.tool_call_id,
                 execution_id=execution_id,
-                input_raw=tool_use.tool_input_raw,
+                input_raw=tool_use.tool_input_raw or "{}",
                 output_raw=None,
                 error=str(e),
                 execution_started_at=started_at,
@@ -46,7 +46,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                 definition=tool_def,
                 tool_call_id=tool_use.tool_call_id,
                 execution_id=execution_id,
-                input_raw=tool_use.tool_input_raw,
+                input_raw=tool_use.tool_input_raw or "{}",
                 output_raw=result,
                 error=None,
                 execution_started_at=started_at,
@@ -58,7 +58,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                 definition=tool_def,
                 tool_call_id=tool_use.tool_call_id,
                 execution_id=execution_id,
-                input_raw=tool_use.tool_input_raw,
+                input_raw=tool_use.tool_input_raw or "{}",
                 output_raw=None,
                 error=str(e),
                 execution_started_at=started_at,
@@ -82,7 +82,10 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
 
         # Create tasks for each tool call
         execution_tasks = []
-        for tool_def, tool_use in pending_tool_calls:
+        while pending_tool_calls:
+            # Pop as the caller should expect the list to end
+            # up cleared after all tool calls have been executed
+            tool_def, tool_use = pending_tool_calls.pop()
             # Execute the tool in a separate task
             execution_tasks.append(
                 create_task(self._safe_execute_tool(tool_def, tool_use)),
@@ -96,37 +99,66 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
     async def from_action_packages(
         self,
         action_packages: list[ActionPackage],
-    ) -> list[ToolDefinition]:
+    ) -> tuple[list[ToolDefinition], list[str]]:
         from asyncio import create_task, gather
+
+        tools = []
+        issues = []
+
+        async def safe_get_tool_definitions(action_package):
+            try:
+                return await action_package.to_tool_definitions(), None
+            except Exception as e:
+                detailed_issue = "Error aquiring tool definitions from action package:"
+                detailed_issue += f"\nAction package: {action_package.name}"
+                detailed_issue += f"\nAction package version: {action_package.version}"
+                detailed_issue += f"\nAction package url: {action_package.url}"
+                detailed_issue += f"\nException: {e!s}"
+                return [], detailed_issue
 
         build_tasks = []
         for action_package in action_packages:
             build_tasks.append(
-                create_task(action_package.to_tool_definitions()),
+                create_task(safe_get_tool_definitions(action_package)),
             )
 
         results = await gather(*build_tasks)
-        return [
-            tool
-            for result in results
-            for tool in result
-        ]
+        for tools_list, issue in results:
+            if issue:
+                issues.append(issue)
+            tools.extend(tools_list)
+
+        return tools, issues
 
     async def from_mcp_servers(
         self,
         mcp_servers: list[MCPServer],
-    ) -> list[ToolDefinition]:
+    ) -> tuple[list[ToolDefinition], list[str]]:
         from asyncio import create_task, gather
+
+        tools = []
+        issues = []
+
+        async def safe_get_tool_definitions(mcp_server):
+            try:
+                return await mcp_server.to_tool_definitions(), None
+            except Exception as e:
+                detailed_issue = "Error aquiring tool definitions from MCP server:"
+                detailed_issue += f"\nMCP server: {mcp_server.name}"
+                detailed_issue += f"\nMCP server url: {mcp_server.url}"
+                detailed_issue += f"\nException: {e!s}"
+                return [], detailed_issue
 
         build_tasks = []
         for mcp_server in mcp_servers:
             build_tasks.append(
-                create_task(mcp_server.to_tool_definitions()),
+                create_task(safe_get_tool_definitions(mcp_server)),
             )
 
         results = await gather(*build_tasks)
-        return [
-            tool
-            for result in results
-            for tool in result
-        ]
+        for tools_list, issue in results:
+            if issue:
+                issues.append(issue)
+            tools.extend(tools_list)
+
+        return tools, issues

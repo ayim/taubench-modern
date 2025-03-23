@@ -77,7 +77,7 @@ class SQLiteStorageScopedStorageMixin(CommonMixin):
         List all scoped storage records for a given scope type and scope identifier.
         """
         self._validate_uuid(scope_id)
-        
+
         # Optionally validate the scope_type before running the query
         if scope_type not in ("user", "agent", "thread"):
             raise ValueError(f"Invalid scope_type: {scope_type}")

@@ -118,6 +118,7 @@ class SQLiteStorageAgentsMixin(CommonMixin):
         for field in [
             "runbook",
             "action_packages",
+            "mcp_servers",
             "agent_architecture",
             "question_groups",
             "observability_configs",
@@ -132,14 +133,15 @@ class SQLiteStorageAgentsMixin(CommonMixin):
                     """
                     INSERT INTO v2_agent (
                         agent_id, name, description, user_id, runbook, version,
-                        created_at, updated_at, action_packages, agent_architecture,
-                        question_groups, observability_configs, platform_configs, extra, mode
+                        created_at, updated_at, action_packages, mcp_servers,
+                        agent_architecture, question_groups, observability_configs,
+                        platform_configs, extra, mode
                     )
                     VALUES (
                         :agent_id, :name, :description, :user_id, :runbook, :version,
-                        :created_at, :updated_at, :action_packages, :agent_architecture,
-                        :question_groups, :observability_configs, :platform_configs,
-                        :extra, :mode
+                        :created_at, :updated_at, :action_packages, :mcp_servers,
+                        :agent_architecture, :question_groups, :observability_configs,
+                        :platform_configs, :extra, :mode
                     )
                     ON CONFLICT(agent_id) DO UPDATE SET
                         name = excluded.name,
@@ -149,6 +151,7 @@ class SQLiteStorageAgentsMixin(CommonMixin):
                         version = excluded.version,
                         updated_at = excluded.updated_at,
                         action_packages = excluded.action_packages,
+                        mcp_servers = excluded.mcp_servers,
                         agent_architecture = excluded.agent_architecture,
                         question_groups = excluded.question_groups,
                         observability_configs = excluded.observability_configs,
@@ -241,6 +244,7 @@ class SQLiteStorageAgentsMixin(CommonMixin):
         for field in [
             "runbook",
             "action_packages",
+            "mcp_servers",
             "agent_architecture",
             "question_groups",
             "observability_configs",

@@ -39,6 +39,7 @@ CREATE TABLE v2."agent" (
     created_at  TIMESTAMP WITH TIME ZONE 
                 DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
     action_packages        JSONB NOT NULL,
+    mcp_servers            JSONB NOT NULL,
     agent_architecture     JSONB NOT NULL,
     question_groups        JSONB NOT NULL,
     observability_configs  JSONB NOT NULL,
@@ -110,6 +111,7 @@ CREATE TABLE v2."thread_message" (
     content       JSONB NOT NULL,
     agent_metadata JSONB NOT NULL,
     server_metadata JSONB NOT NULL,
+    parent_run_id TEXT,
     CONSTRAINT fk_thread_messages_thread_id_v2
         FOREIGN KEY (thread_id)
         REFERENCES v2."thread"(thread_id)
@@ -119,6 +121,9 @@ CREATE TABLE v2."thread_message" (
 -- Index for quick retrieval of messages by thread
 CREATE INDEX idx_thread_message_thread_id_v2 
     ON v2."thread_message"(thread_id);
+
+CREATE INDEX idx_thread_message_parent_run_id_v2
+    ON v2."thread_message"(parent_run_id);
 
 ------------------------------------------------------------------------------
 -- RUNS
@@ -311,6 +316,57 @@ CREATE TABLE v2."memory" (
 
 CREATE INDEX idx_memory_scope_v2 
     ON v2."memory"(scope);
+
+------------------------------------------------------------------------------
+-- OTEL ARTIFACTS
+------------------------------------------------------------------------------
+-- A table to store OTel artifacts. Artifacts are created by the system,
+-- not necessarily by a specific user (although often they are).
+-- Artifacts are stored in the database for a limited time, after which they
+-- are deleted (exact retention policy TBD).
+------------------------------------------------------------------------------
+CREATE TABLE v2."otel_artifact" (
+    artifact_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL,
+    mime_type TEXT NOT NULL,
+    content BYTEA NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE 
+               DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
+    to_be_deleted_at TIMESTAMP WITH TIME ZONE,
+    -- The trace ID to tie this artifact back to the original trace
+    trace_id TEXT NOT NULL,
+    -- An otel artifact could be associated with a user, an agent,
+    -- a thread, a run, a message, etc. Here we have nullable IDs
+    -- to correlate artifacts to other structured entities in our system
+    correlated_user_id TEXT NULL,
+    correlated_agent_id TEXT NULL,
+    correlated_thread_id TEXT NULL,
+    correlated_run_id TEXT NULL,
+    correlated_message_id TEXT NULL,
+    CONSTRAINT check_to_be_deleted_at_v2
+        CHECK (to_be_deleted_at IS NULL OR to_be_deleted_at > CURRENT_TIMESTAMP)
+);
+
+CREATE INDEX idx_otel_artifact_to_be_deleted_at_v2
+    ON v2."otel_artifact"(to_be_deleted_at);
+
+CREATE INDEX idx_otel_artifact_trace_id_v2
+    ON v2."otel_artifact"(trace_id);
+
+CREATE INDEX idx_otel_artifact_correlated_user_id_v2
+    ON v2."otel_artifact"(correlated_user_id);
+
+CREATE INDEX idx_otel_artifact_correlated_agent_id_v2
+    ON v2."otel_artifact"(correlated_agent_id);
+
+CREATE INDEX idx_otel_artifact_correlated_thread_id_v2
+    ON v2."otel_artifact"(correlated_thread_id);
+
+CREATE INDEX idx_otel_artifact_correlated_run_id_v2
+    ON v2."otel_artifact"(correlated_run_id);
+
+CREATE INDEX idx_otel_artifact_correlated_message_id_v2
+    ON v2."otel_artifact"(correlated_message_id);
 
 ------------------------------------------------------------------------------
 -- CHECK USER ACCESS

@@ -112,7 +112,7 @@ async def test_count_after_deletion(
     # Create two agents.
     from agent_server_types_v2.agent import Agent
     agent1 = sample_agent
-    agent2 = Agent.from_dict(sample_agent.to_json_dict() | {"agent_id": str(uuid4()), "name": "Second Agent"})
+    agent2 = Agent.model_validate(sample_agent.model_dump() | {"agent_id": str(uuid4()), "name": "Second Agent"})
     await storage.upsert_agent_v2(sample_user_id, agent1)
     await storage.upsert_agent_v2(sample_user_id, agent2)
 

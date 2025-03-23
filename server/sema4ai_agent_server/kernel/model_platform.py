@@ -45,14 +45,21 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
         Returns:
             The generated model response.
         """
-        finalized_prompt = await prompt.finalize_messages(self.kernel)
-        converted_prompt = await self._internal_client.converters.convert_prompt(
-            finalized_prompt,
-        )
-        return await self._internal_client.generate_response(
-            converted_prompt,
-            model,
-        )
+        with self.kernel.otel.span("generate_response") as span:
+            span.add_event("finalizing prompt")
+            finalized_prompt = await prompt.finalize_messages(self.kernel)
+            span.add_event_with_artifacts(
+                "finalized prompt",
+                ("prompt-finalized.yaml", prompt.to_pretty_yaml()),
+            )
+            converted_prompt = await self._internal_client.converters.convert_prompt(
+                finalized_prompt,
+            )
+
+            return await self._internal_client.generate_response(
+                converted_prompt,
+                model,
+            )
 
     @asynccontextmanager
     async def stream_response(
@@ -70,22 +77,29 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
             An async context manager that yields a ResponseStreamPipe
             object managing the response stream.
         """
-        finalized_prompt = await prompt.finalize_messages(self.kernel)
-        converted_prompt = await self._internal_client.converters.convert_prompt(
-            finalized_prompt,
-        )
+        with self.kernel.otel.span("stream_response") as span:
+            span.add_event("finalizing prompt")
+            finalized_prompt = await prompt.finalize_messages(self.kernel)
+            span.add_event_with_artifacts(
+                "finalized prompt",
+                ("prompt-finalized.yaml", prompt.to_pretty_yaml()),
+            )
 
-        response_stream = self._internal_client.generate_stream_response(
-            converted_prompt,
-            model,
-        )
-        # Why include the prompt? Some information (like tool defs) is not
-        # included in the response stream, so we need to include the prompt
-        # to get at that information.
-        stream_pipe = ResponseStreamPipe(response_stream, finalized_prompt)
+            converted_prompt = await self._internal_client.converters.convert_prompt(
+                finalized_prompt,
+            )
 
-        try:
-            yield stream_pipe
-        finally:
-            await stream_pipe.aclose()
+            response_stream = self._internal_client.generate_stream_response(
+                converted_prompt,
+                model,
+            )
+            # Why include the prompt? Some information (like tool defs) is not
+            # included in the response stream, so we need to include the prompt
+            # to get at that information.
+            stream_pipe = ResponseStreamPipe(response_stream, finalized_prompt)
+
+            try:
+                yield stream_pipe
+            finally:
+                await stream_pipe.aclose()
 

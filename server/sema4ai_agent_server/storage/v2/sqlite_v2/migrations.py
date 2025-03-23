@@ -305,7 +305,7 @@ class SQLiteMigrationsV2(MigrationsProvider):
                 f"Invalid migration filename: {filename}. " f"Expected '<version>_<desc>.up.sql'",
             )
         return int(m.group(1)), m.group(2)
-    
+
     def _validate_migration_has_no_transaction_commands(self, migration_sql: str) -> None:
         """
         Ensures the migration SQL does not contain any transaction commands
@@ -319,7 +319,7 @@ class SQLiteMigrationsV2(MigrationsProvider):
             raise MigrationError("Migration file contains 'COMMIT;'")
         if search(r"^\s*ROLLBACK;\s*", migration_sql, MULTILINE):
             raise MigrationError("Migration file contains 'ROLLBACK;'")
-    
+
     async def _run_migration_with_timeout(self, conn: Connection, migration_sql: str) -> None:
         """
         Executes the SQL with an asyncio timeout. If it times out, tries to interrupt

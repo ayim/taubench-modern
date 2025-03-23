@@ -10,7 +10,9 @@ from sema4ai_agent_server.storage.v2.errors_v2 import (
     ThreadNotFoundError,
     UserAccessDeniedError,
 )
-from sema4ai_agent_server.storage.v2.sqlite_v2.storage_messages import SQLiteStorageMessagesMixin
+from sema4ai_agent_server.storage.v2.sqlite_v2.storage_messages import (
+    SQLiteStorageMessagesMixin,
+)
 
 
 class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):

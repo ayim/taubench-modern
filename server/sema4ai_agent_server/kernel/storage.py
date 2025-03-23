@@ -1,4 +1,5 @@
 from agent_server_types_v2.kernel import StorageInterface
+from agent_server_types_v2.kernel_interfaces.otel import OTelArtifact
 from agent_server_types_v2.storage import ScopedStorage
 from agent_server_types_v2.thread import ThreadMessage
 from sema4ai_agent_server.kernel.kernel_mixin import UsesKernelMixin
@@ -34,3 +35,11 @@ class AgentServerStorageInterface(StorageInterface, UsesKernelMixin):
     async def delete_scoped_storage(self, storage_id: str) -> None:
         """Deletes a scoped storage record by its ID."""
         await self._internal_storage.delete_scoped_storage_v2(storage_id)
+
+    async def get_otel_artifact(self, artifact_id: str) -> OTelArtifact:
+        """Gets an OTel artifact by its ID."""
+        return await self._internal_storage.get_otel_artifact_v2(artifact_id)
+
+    async def create_otel_artifact(self, artifact: OTelArtifact) -> None:
+        """Creates a new OTel artifact."""
+        await self._internal_storage.create_otel_artifact_v2(artifact)

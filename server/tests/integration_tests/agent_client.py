@@ -818,7 +818,6 @@ class AgentServerClientV2:
             "version": "1.0.0",
             "description": description,
             "runbook_raw_text": runbook,
-            "provider_configs": ["my-openai"],
             "action_packages": action_packages_raw,
             "agent_architecture": {
                 "name": "agent_architecture_default_v2",
@@ -826,6 +825,7 @@ class AgentServerClientV2:
             },
             "observability_configs": [],
             "question_groups": [],
+            "platform_configs": [],
             "extra": {
                 "test": "test",
             },

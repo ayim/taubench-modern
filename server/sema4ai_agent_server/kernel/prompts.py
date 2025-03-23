@@ -63,9 +63,20 @@ class AgentServerPromptsInterface(PromptsInterface, UsesKernelMixin):
 
         # Next, let's format the prompt with applicable values from the kernel
         # and the architecture state.
-        final_prompt = pre_format_prompt.format_with_values(
-            kernel=self.kernel,
-            state=state,
-        )
+        with self.kernel.otel.span("format_prompt") as span:
+            span.add_event_with_artifacts(
+                "formatting prompt",
+                ("prompt-pre-format.yaml", pre_format_prompt.to_pretty_yaml()),
+            )
+
+            final_prompt = pre_format_prompt.format_with_values(
+                kernel=self.kernel,
+                state=state,
+            )
+
+            span.add_event_with_artifacts(
+                "formatted prompt",
+                ("prompt-post-format.yaml", final_prompt.to_pretty_yaml()),
+            )
 
         return final_prompt

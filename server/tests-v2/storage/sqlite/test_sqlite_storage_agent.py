@@ -48,8 +48,8 @@ async def test_agent_crud_operations(
     assert retrieved_agent.name == sample_agent.name
 
     # Update
-    updated_agent = Agent.from_dict(
-        sample_agent.to_json_dict() | {"name": "Updated Agent Name"},
+    updated_agent = Agent.model_validate(
+        sample_agent.model_dump() | {"name": "Updated Agent Name"},
     )
     await storage.upsert_agent_v2(sample_user_id, updated_agent)
     retrieved_updated = await storage.get_agent_v2(sample_user_id, sample_agent.agent_id)
@@ -84,7 +84,7 @@ async def test_agent_list_all(storage: SQLiteStorageV2, sample_user_id: str, sam
         agent_architecture=sample_agent.agent_architecture,
         question_groups=sample_agent.question_groups,
         observability_configs=sample_agent.observability_configs,
-        provider_configs=sample_agent.provider_configs,
+        platform_configs=sample_agent.platform_configs,
         extra=sample_agent.extra,
     )
     await storage.upsert_agent_v2(other_user.user_id, other_agent)
@@ -175,8 +175,8 @@ async def test_agent_duplicate_name_constraint(
     # Create the first agent with name "Test Agent"
     await storage.upsert_agent_v2(sample_user_id, sample_agent)
     # Create a second agent with the same name (different case) and a new agent_id.
-    duplicate_agent = Agent.from_dict(
-        sample_agent.to_json_dict() | {"agent_id": str(uuid4()), "name": "test agent"},
+    duplicate_agent = Agent.model_validate(
+        sample_agent.model_dump() | {"agent_id": str(uuid4()), "name": "test agent"},
     )
     with pytest.raises(AgentWithNameAlreadyExistsError):
         await storage.upsert_agent_v2(sample_user_id, duplicate_agent)
@@ -210,8 +210,8 @@ async def test_agent_invalid_json_metadata(
     # In Python, trying to serialize an unserializable object (like a set)
     # should raise a TypeError before even reaching the database or,
     # if not caught, lead to a DB integrity error.
-    invalid_agent = Agent.from_dict(
-        sample_agent.to_json_dict() | {"extra": {"invalid": set([1, 2, 3])}},
+    invalid_agent = Agent.model_validate(
+        sample_agent.model_dump() | {"extra": {"invalid": set([1, 2, 3])}},
     )
     with pytest.raises((TypeError, ValueError)):
         await storage.upsert_agent_v2(sample_user_id, invalid_agent)
@@ -226,16 +226,16 @@ async def test_agent_filter_by_user(
     """
     # Create an agent for user A.
     user_a, _ = await storage.get_or_create_user_v2(sub="tenant:testing:user:user_a")
-    agent_a = Agent.from_dict(
-        sample_agent.to_json_dict()
+    agent_a = Agent.model_validate(
+        sample_agent.model_dump()
         | {"agent_id": str(uuid4()), "name": "User A Agent", "user_id": user_a.user_id},
     )
     await storage.upsert_agent_v2(user_a.user_id, agent_a)
 
     # Create an agent for user B.
     user_b, _ = await storage.get_or_create_user_v2(sub="tenant:testing:user:user_b")
-    agent_b = Agent.from_dict(
-        sample_agent.to_json_dict()
+    agent_b = Agent.model_validate(
+        sample_agent.model_dump()
         | {"agent_id": str(uuid4()), "name": "User B Agent", "user_id": user_b.user_id},
     )
     await storage.upsert_agent_v2(user_b.user_id, agent_b)

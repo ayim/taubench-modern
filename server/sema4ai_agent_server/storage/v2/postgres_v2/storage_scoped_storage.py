@@ -82,7 +82,7 @@ class PostgresStorageScopedStorageMixin(CommonMixin):
         List all scoped storage records for a given scope type and scope identifier.
         """
         self._validate_uuid(scope_id)
-        
+
         # Validate that scope_type is one of the expected values
         if scope_type not in ("user", "agent", "thread"):
             raise ValueError(f"Invalid scope_type: {scope_type}")
@@ -106,7 +106,7 @@ class PostgresStorageScopedStorageMixin(CommonMixin):
                 },
             )
             rows = await cur.fetchall()
-        
+
         if not rows:
             return []
         return [

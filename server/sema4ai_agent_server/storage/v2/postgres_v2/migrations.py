@@ -49,7 +49,7 @@ class PostgresMigrationsV2(MigrationsProvider):
     def _get_migrations_path(self) -> Path:
         current_dir = path.dirname(path.abspath(__file__))
         return Path(current_dir).parent.parent.parent / "migrations" / "v2" / "postgres"
-    
+
     async def run_migrations(self) -> None:
         """
         Main entrypoint for running migrations:
@@ -204,7 +204,7 @@ class PostgresMigrationsV2(MigrationsProvider):
             """,
         )
 
-    
+
     # -------------------------------------------------------------------------
     # Applying Migrations
     # -------------------------------------------------------------------------
@@ -291,7 +291,7 @@ class PostgresMigrationsV2(MigrationsProvider):
         version = int(match.group(1))
         description = match.group(2)
         return version, description
-    
+
     def _validate_migration_has_no_transaction_commands(self, migration_sql: str) -> None:
         """
         Ensures the migration SQL does not contain any transaction commands
@@ -305,7 +305,7 @@ class PostgresMigrationsV2(MigrationsProvider):
             raise MigrationError("Migration file contains 'COMMIT;'")
         if search(r"^\s*ROLLBACK;\s*", migration_sql, MULTILINE):
             raise MigrationError("Migration file contains 'ROLLBACK;'")
-    
+
     async def _run_migration_with_timeout(self, cur: AsyncCursor, migration_sql: str) -> None:
         """
         Runs migration_sql with a Postgres-side *local* statement_timeout

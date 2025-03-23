@@ -67,7 +67,7 @@ def sample_agent(sample_user_id: str) -> Agent:
                 settings={"some_extra_setting": "some_extra_value"},
             ),
         ],
-        provider_configs=["test-provider-config"],
+        platform_configs=[],
         extra={"agent_extra": "some_extra_value"},
     )
 

@@ -8,7 +8,9 @@ from sema4ai_agent_server.storage.v2.errors_v2 import (
     ThreadNotFoundError,
     UserAccessDeniedError,
 )
-from sema4ai_agent_server.storage.v2.postgres_v2.storage_messages import PostgresStorageMessagesMixin
+from sema4ai_agent_server.storage.v2.postgres_v2.storage_messages import (
+    PostgresStorageMessagesMixin,
+)
 
 
 class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
@@ -31,11 +33,11 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
             # 3. No threads found?
             if not (rows := await cur.fetchall()):
                 return []
-            
+
             # 4. Return the threads
             return [Thread.from_dict(row) for row in rows]
 
-        
+
     async def list_threads_for_agent_v2(self, user_id: str, agent_id: str) -> list[Thread]:
         """List all threads for the given agent."""
         # 1. Validate the uuids
@@ -55,7 +57,7 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
             # 3. No threads found?
             if not (rows := await cur.fetchall()):
                 return []
-            
+
             # 4. Return the threads
             return [Thread.from_dict(row) for row in rows]
 
@@ -79,18 +81,18 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
             # 3. No thread found?
             if not (thread_row := await cur.fetchone()):
                 raise ThreadNotFoundError(f"Thread {thread_id} not found")
-            
+
             # 4. Check if the user has access
             if not thread_row.pop("has_access"):
                 raise UserAccessDeniedError(f"Access denied to thread {thread_id}")
 
             # 5. Then get all messages for this thread
             messages = await self.get_thread_messages_v2(thread_id)
-            
+
             # 6. Create thread with messages
             thread_dict = thread_row | {"messages": messages or []}
             return Thread.from_dict(thread_dict)
-        
+
     async def upsert_thread_v2(self, user_id: str, thread: Thread) -> None:
         """Update a thread."""
         # 1. Validate the uuid
@@ -165,7 +167,7 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
             # 3. Check if thread exists
             if not (thread_row := await cur.fetchone()):
                 raise ThreadNotFoundError(f"Thread {thread_id} not found")
-            
+
             # 4. Check if user has access
             if not thread_row.pop("has_access"):
                 raise UserAccessDeniedError(f"Access denied to thread {thread_id}")

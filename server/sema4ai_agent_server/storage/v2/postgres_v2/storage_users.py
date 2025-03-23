@@ -25,7 +25,7 @@ class PostgresStorageUsersMixin(CommonMixin):
             await cur.execute("SELECT * FROM v2.user WHERE sub = %(sub)s", {"sub": sub})
             if row := await cur.fetchone():
                 return User.from_dict(row), False
-            
+
         # Not found: create
         user_id = str(uuid4())
         created_at = datetime.now()
@@ -46,8 +46,8 @@ class PostgresStorageUsersMixin(CommonMixin):
                     await cur.execute("SELECT * FROM v2.user WHERE sub = %(sub)s", {"sub": sub})
                     if row := await cur.fetchone():
                         return User.from_dict(row), False
-        
-    
+
+
     async def delete_user_v2(self, user_id: str) -> None:
         """
         Delete a user by ID.

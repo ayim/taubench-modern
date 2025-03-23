@@ -3,6 +3,7 @@ from datetime import datetime
 
 from agent_server_types_v2.agent import Agent
 from agent_server_types_v2.files import UploadedFile
+from agent_server_types_v2.kernel_interfaces.otel import OTelArtifact
 from agent_server_types_v2.memory import Memory
 from agent_server_types_v2.runs import Run, RunStep
 from agent_server_types_v2.storage import ScopedStorage
@@ -94,6 +95,30 @@ class BaseStorageV2(ABC):
         pass
 
     @abstractmethod
+    async def overwrite_thread_messages_v2(
+        self,
+        thread_id: str,
+        messages: list[ThreadMessage],
+    ) -> None:
+        """Overwrite the messages for the given thread."""
+        pass
+
+    @abstractmethod
+    async def get_thread_messages_v2(self, thread_id: str) -> list[ThreadMessage]:
+        """Get messages for the given thread, in ascending sequence/creation order."""
+        pass
+
+    @abstractmethod
+    async def get_messages_by_parent_run_id_v2(
+        self,
+        user_id: str,
+        parent_run_id: str,
+    ) -> list[ThreadMessage]:
+        """Get messages for the given parent run ID,
+        in ascending sequence/creation order."""
+        pass
+
+    @abstractmethod
     async def get_thread_v2(self, user_id: str, thread_id: str) -> Thread:
         """Get a thread by ID."""
         pass
@@ -124,7 +149,8 @@ class BaseStorageV2(ABC):
     @abstractmethod
     async def get_or_create_user_v2(self, sub: str) -> tuple[User, bool]:
         """
-        Returns a tuple of the user and a boolean indicating whether the user was created.
+        Returns a tuple of the user and a boolean indicating whether
+        the user was created.
         """
         pass
 
@@ -224,7 +250,8 @@ class BaseStorageV2(ABC):
     ) -> list[ScopedStorage]:
         """
         List all scoped storage records for a given scope type and scope identifier.
-        For example, you might list all records for a given 'user', 'agent', or 'thread'.
+        For example, you might list all records for a given 'user', 'agent', or
+        'thread'.
         """
         pass
 
@@ -315,4 +342,48 @@ class BaseStorageV2(ABC):
         user_id: str,
     ) -> UploadedFile:
         """Update the file retrieve information."""
+        pass
+
+    # -------------------------
+    # Methods for otel artifacts
+    # -------------------------
+    @abstractmethod
+    async def get_otel_artifact_v2(self, artifact_id: str) -> OTelArtifact:
+        """Get an otel artifact by ID."""
+        pass
+
+    @abstractmethod
+    async def get_otel_artifacts_v2(
+        self,
+        artifact_ids: list[str] | None = None,
+    ) -> list[OTelArtifact]:
+        """Get a list of otel artifacts by IDs or all if ids is None."""
+        pass
+
+    @abstractmethod
+    async def search_otel_artifacts_v2(  # noqa: PLR0913
+        self,
+        trace_id: str | None = None,
+        user_id: str | None = None,
+        agent_id: str | None = None,
+        thread_id: str | None = None,
+        run_id: str | None = None,
+        message_id: str | None = None,
+    ) -> list[OTelArtifact]:
+        """Search for otel artifacts by the given correlation IDs."""
+        pass
+
+    @abstractmethod
+    async def create_otel_artifact_v2(self, artifact: OTelArtifact) -> None:
+        """Create a new otel artifact."""
+        pass
+
+    @abstractmethod
+    async def cleanup_otel_artifacts_v2(self) -> int:
+        """Cleanup otel artifacts based on their expiration date."""
+        pass
+
+    @abstractmethod
+    async def delete_all_otel_artifacts_v2(self) -> int:
+        """Delete all otel artifacts."""
         pass

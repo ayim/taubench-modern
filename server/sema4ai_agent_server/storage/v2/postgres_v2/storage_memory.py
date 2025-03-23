@@ -2,7 +2,10 @@ from psycopg.errors import UniqueViolation
 from psycopg.types.json import Jsonb
 
 from agent_server_types_v2.memory import Memory
-from sema4ai_agent_server.storage.v2.errors_v2 import MemoryNotFoundError, RecordAlreadyExistsError
+from sema4ai_agent_server.storage.v2.errors_v2 import (
+    MemoryNotFoundError,
+    RecordAlreadyExistsError,
+)
 from sema4ai_agent_server.storage.v2.postgres_v2.common import CommonMixin
 
 

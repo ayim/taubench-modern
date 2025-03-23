@@ -5,6 +5,7 @@ from agent_server_types_v2.kernel_interfaces import (
     EventsInterface,
     FilesInterface,
     MemoryInterface,
+    OTelInterface,
     PlatformInterface,
     PromptsInterface,
     RunbookInterface,
@@ -14,6 +15,7 @@ from agent_server_types_v2.kernel_interfaces import (
     UserInteractionsInterface,
 )
 from agent_server_types_v2.platforms.base import PlatformClient
+from agent_server_types_v2.runs import Run
 from agent_server_types_v2.thread import Thread
 from agent_server_types_v2.user import User
 from sema4ai_agent_server.kernel.converters import AgentServerConvertersInterface
@@ -21,6 +23,7 @@ from sema4ai_agent_server.kernel.events import AgentServerEventsInterface
 from sema4ai_agent_server.kernel.files import AgentServerFilesInterface
 from sema4ai_agent_server.kernel.memory import AgentServerMemoryInterface
 from sema4ai_agent_server.kernel.model_platform import AgentServerPlatformInterface
+from sema4ai_agent_server.kernel.otel import AgentServerOTelInterface
 from sema4ai_agent_server.kernel.prompts import AgentServerPromptsInterface
 from sema4ai_agent_server.kernel.runbook import AgentServerRunbookInterface
 from sema4ai_agent_server.kernel.storage import AgentServerStorageInterface
@@ -32,49 +35,103 @@ from sema4ai_agent_server.kernel.user_interactions import (
 
 
 class AgentServerKernel(Kernel):
-    def __init__(self, user: User, thread: Thread, agent: Agent):
-        self._user = user
-        self._thread = thread
-        self._agent = agent
+    def __init__(  # noqa: PLR0915
+        self,
+        user: User,
+        thread: Thread,
+        agent: Agent,
+        run: Run,
+    ):
+        # Start by setting up OTel interface
+        try:
+            from opentelemetry import trace
 
-        self._outgoing_events = AgentServerEventsInterface()
-        self._incoming_events = AgentServerEventsInterface()
-        self._files = AgentServerFilesInterface()
-        self._memory = AgentServerMemoryInterface()
-        self._prompts = AgentServerPromptsInterface()
-        self._runbook = AgentServerRunbookInterface()
-        self._storage = AgentServerStorageInterface()
-        self._tools = AgentServerToolsInterface()
-        self._thread_state = AgentServerThreadStateInterface(thread, agent)
-        self._user_interactions = AgentServerUserInteractionsInterface()
-        self._converters = AgentServerConvertersInterface()
-        self._model_platforms = []
+            kernel_tracer = trace.get_tracer("agent-server.kernel")
+            self._otel = AgentServerOTelInterface(kernel_tracer)
+        except Exception:
+            # TODO: where should we log this?
+            self._otel = AgentServerOTelInterface()
+        finally:
+            self._otel.attach_kernel(self)
 
-        # TODO: if kernel is used in init for some interfaces,
-        # the order of initialization is important.
-        self._outgoing_events.attach_kernel(self)
-        self._incoming_events.attach_kernel(self)
-        self._converters.attach_kernel(self)
-        self._files.attach_kernel(self)
-        self._memory.attach_kernel(self)
-        self._prompts.attach_kernel(self)
-        self._runbook.attach_kernel(self)
-        self._storage.attach_kernel(self)
-        self._tools.attach_kernel(self)
-        self._thread_state.attach_kernel(self)
-        self._user_interactions.attach_kernel(self)
+        with self._otel.span("initialize_kernel") as span:
+            self._user = user
+            span.add_event("attached user to kernel", user.model_dump())
+            self._agent = agent
+            span.add_event("attached agent to kernel", agent.model_dump())
+            self._thread = thread
+            span.add_event("attached thread to kernel", thread.model_dump())
+            self._run = run
+            span.add_event("attached run to kernel", run.model_dump())
 
-        # Go through agent.platform_configs and create a platform interface for each
-        for platform_config in agent.platform_configs:
-            self._model_platforms.append(
-                AgentServerPlatformInterface(
-                    PlatformClient.from_platform_config(
-                        kernel=self,
-                        config=platform_config,
+        with self._otel.span("initialize_interfaces") as span:
+            self._outgoing_events = AgentServerEventsInterface()
+            span.add_event("initialized outgoing events")
+            self._incoming_events = AgentServerEventsInterface()
+            span.add_event("initialized incoming events")
+            self._files = AgentServerFilesInterface()
+            span.add_event("initialized files")
+            self._memory = AgentServerMemoryInterface()
+            span.add_event("initialized memory")
+            self._prompts = AgentServerPromptsInterface()
+            span.add_event("initialized prompts")
+            self._runbook = AgentServerRunbookInterface()
+            span.add_event("initialized runbook")
+            self._storage = AgentServerStorageInterface()
+            span.add_event("initialized storage")
+            self._tools = AgentServerToolsInterface()
+            span.add_event("initialized tools")
+            self._thread_state = AgentServerThreadStateInterface(thread, agent)
+            span.add_event("initialized thread state")
+            self._user_interactions = AgentServerUserInteractionsInterface()
+            span.add_event("initialized user interactions")
+            self._converters = AgentServerConvertersInterface()
+            span.add_event("initialized converters")
+            self._model_platforms = []
+
+            # TODO: if kernel is used in init for some interfaces,
+            # the order of initialization is important.
+            self._outgoing_events.attach_kernel(self)
+            span.add_event("attached outgoing events")
+            self._incoming_events.attach_kernel(self)
+            span.add_event("attached incoming events")
+            self._converters.attach_kernel(self)
+            span.add_event("attached converters")
+            self._files.attach_kernel(self)
+            span.add_event("attached files")
+            self._memory.attach_kernel(self)
+            span.add_event("attached memory")
+            self._prompts.attach_kernel(self)
+            span.add_event("attached prompts")
+            self._runbook.attach_kernel(self)
+            span.add_event("attached runbook")
+            self._storage.attach_kernel(self)
+            span.add_event("attached storage")
+            self._tools.attach_kernel(self)
+            span.add_event("attached tools")
+            self._thread_state.attach_kernel(self)
+            span.add_event("attached thread state")
+            self._user_interactions.attach_kernel(self)
+            span.add_event("attached user interactions")
+
+            # Go through agent.platform_configs and create a platform interface for each
+            span.add_event("initializing model platforms")
+            for i, platform_config in enumerate(agent.platform_configs):
+                span.add_event(
+                    f"initializing model platform #{i + 1}",
+                    platform_config.model_dump(),  # TODO: secrets?
+                )
+                self._model_platforms.append(
+                    AgentServerPlatformInterface(
+                        PlatformClient.from_platform_config(
+                            kernel=self,
+                            config=platform_config,
+                        ),
                     ),
-                ),
-            )
-            self._model_platforms[-1].attach_kernel(self)
+                )
+                span.add_event(f"initialized model platform #{i + 1}")
+                self._model_platforms[-1].attach_kernel(self)
+                span.add_event(f"attached model platform #{i + 1}")
 
     @property
     def agent(self) -> Agent:
@@ -87,6 +144,10 @@ class AgentServerKernel(Kernel):
     @property
     def thread(self) -> Thread:
         return self._thread
+
+    @property
+    def run(self) -> Run:
+        return self._run
 
     @property
     def converters(self) -> ConvertersInterface:
@@ -135,3 +196,7 @@ class AgentServerKernel(Kernel):
     @property
     def platforms(self) -> list[PlatformInterface]:
         return self._model_platforms
+
+    @property
+    def otel(self) -> OTelInterface:
+        return self._otel

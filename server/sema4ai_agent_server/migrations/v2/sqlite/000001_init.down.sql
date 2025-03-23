@@ -2,6 +2,7 @@ PRAGMA foreign_keys = OFF;
 
 DROP FUNCTION IF EXISTS v2_check_user_access;
 
+DROP TABLE IF EXISTS v2_otel_artifact;
 DROP TABLE IF EXISTS v2_memory;
 DROP TABLE IF EXISTS v2_file_owner;
 DROP TABLE IF EXISTS v2_scoped_storage;
