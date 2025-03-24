@@ -15,9 +15,9 @@ from sema4ai_agent_server.storage.v2.sqlite_v2 import SQLiteStorageV2
 
 @pytest.mark.asyncio
 async def test_count_operations(
-    storage: SQLiteStorageV2, 
-    sample_user_id: str, 
-    sample_agent: Agent, 
+    storage: SQLiteStorageV2,
+    sample_user_id: str,
+    sample_agent: Agent,
     sample_thread: Thread,
 ) -> None:
     """Test counting operations for agents and threads."""
@@ -37,7 +37,9 @@ async def test_user_access_function(
 ) -> None:
     """Test the check_user_access function in SQLite."""
     system_user_id: str = await storage.get_system_user_id_v2()
-    other_user, _ = await storage.get_or_create_user_v2(sub="tenant:testing:user:other_user")
+    other_user, _ = await storage.get_or_create_user_v2(
+        sub="tenant:testing:user:other_user",
+    )
     random_user_id: str = str(uuid4())
 
     async with storage._cursor() as cur:
@@ -76,8 +78,9 @@ async def test_user_access_function(
 @pytest.mark.asyncio
 async def test_get_or_create_user_idempotent(storage: SQLiteStorageV2) -> None:
     """
-    Test that calling get_or_create_user_v2 twice with the same subject returns the same user
-    and that the second call indicates the user was not created anew.
+    Test that calling get_or_create_user_v2 twice with the same subject
+    returns the same user and that the second call indicates the user
+    was not created anew.
     """
     sub = "tenant:testing:user:idempotent"
     user1, created1 = await storage.get_or_create_user_v2(sub=sub)
@@ -90,7 +93,12 @@ async def test_get_or_create_user_idempotent(storage: SQLiteStorageV2) -> None:
     assert created2 is False
 
 @pytest.mark.asyncio
-async def test_count_after_deletion(storage, sample_user_id, sample_agent, sample_thread):
+async def test_count_after_deletion(
+    storage: SQLiteStorageV2,
+    sample_user_id: str,
+    sample_agent: Agent,
+    sample_thread: Thread,
+) -> None:
     """
     Create multiple agents and threads, delete one of each,
     and verify that the count functions reflect the deletion.
@@ -102,7 +110,10 @@ async def test_count_after_deletion(storage, sample_user_id, sample_agent, sampl
     # Create two agents.
     from agent_server_types_v2.agent import Agent
     agent1 = sample_agent
-    agent2 = Agent.model_validate(sample_agent.model_dump() | {"agent_id": str(uuid4()), "name": "Second Agent"})
+    agent2 = Agent.model_validate(sample_agent.model_dump() | {
+        "agent_id": str(uuid4()),
+        "name": "Second Agent",
+    })
     await storage.upsert_agent_v2(sample_user_id, agent1)
     await storage.upsert_agent_v2(sample_user_id, agent2)
 
@@ -115,7 +126,9 @@ async def test_count_after_deletion(storage, sample_user_id, sample_agent, sampl
         agent_id=agent2.agent_id,
         name="Second Thread",
         messages=[
-            ThreadMessage.from_dict(message.to_json_dict() | {"message_id": str(uuid4())})
+            ThreadMessage.model_validate(
+                message.model_dump() | {"message_id": str(uuid4())},
+            )
             for message in sample_thread.messages
         ],
         created_at=sample_thread.created_at,
@@ -165,17 +178,21 @@ async def test_concurrent_get_or_create_user(storage):
 async def test_invalid_user_access_input(storage):
     """
     Call the SQL function v2_check_user_access with invalid inputs (empty strings)
-    and verify that it returns a default value (assumed 0) or handles the input gracefully.
+    and verify that it returns a default value (assumed 0) or handles
+    the input gracefully.
     """
     async with storage._cursor() as cur:
-        await cur.execute("SELECT v2_check_user_access(?, ?) AS check_user_access", ("", ""))
+        await cur.execute(
+            "SELECT v2_check_user_access(?, ?) AS check_user_access",
+            ("", ""),
+        )
         row = await cur.fetchone()
         # Assuming that for invalid input, the function returns 0.
         assert row["check_user_access"] == 0
 
 
 @pytest.mark.asyncio
-async def test_multiple_user_creation_consistency(storage):
+async def test_multiple_user_creation_consistency(storage: SQLiteStorageV2) -> None:
     """
     Create several users with distinct subjects and verify that they are all unique.
     """
@@ -189,7 +206,7 @@ async def test_multiple_user_creation_consistency(storage):
 
 
 @pytest.mark.asyncio
-async def test_edge_case_subjects(storage):
+async def test_edge_case_subjects(storage: SQLiteStorageV2) -> None:
     """
     Test get_or_create_user_v2 with edge-case subject strings including an empty string,
     a very long string, and strings with special characters.
@@ -214,7 +231,7 @@ async def test_edge_case_subjects(storage):
 
 
 @pytest.mark.asyncio
-async def test_user_data_integrity_after_tampering(storage):
+async def test_user_data_integrity_after_tampering(storage: SQLiteStorageV2) -> None:
     """
     Create a user, then manually modify its sub field in the database.
     A subsequent call to get_or_create_user_v2 with the original subject should
@@ -232,14 +249,15 @@ async def test_user_data_integrity_after_tampering(storage):
             ("tampered_value", original_user_id),
         )
 
-    # Now, calling get_or_create_user_v2 with the original subject should not find the tampered record.
+    # Now, calling get_or_create_user_v2 with the
+    # original subject should not find the tampered record.
     new_user, _ = await storage.get_or_create_user_v2(sub=original_subject)
     new_user_id = new_user.user_id
     assert new_user_id != original_user_id
 
 
 @pytest.mark.asyncio
-async def test_bulk_user_creation(storage):
+async def test_bulk_user_creation(storage: SQLiteStorageV2) -> None:
     """
     Create a bulk number of users concurrently and then verify via a raw SQL query
     that the number of created users in the v2_user table has increased as expected.

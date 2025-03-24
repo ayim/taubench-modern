@@ -48,7 +48,7 @@ class SQLiteStorageV2(
     SQLiteStorageFilesMixin,
 ):
     """
-    SQLite-based storage that mirrors the Postgres-based semantics, including 
+    SQLite-based storage that mirrors the Postgres-based semantics, including
     a 'v2_check_user_access' custom function used in the SQL statements.
     """
 
@@ -59,7 +59,8 @@ class SQLiteStorageV2(
         self._is_setup = False
 
     async def setup_v2(self) -> None:
-        """Create and open the SQLite database connection, enable foreign keys, set up function, run migrations."""
+        """Create and open the SQLite database connection, enable foreign keys,
+        set up function, run migrations."""
         if self._is_setup:
             return  # Already setup
 
@@ -91,9 +92,9 @@ class SQLiteStorageV2(
             # Use the underlying sync connection from aiosqlite
             cur = self._db._conn.execute(  # Access the synchronous sqlite3.Connection
                 """
-                SELECT 1 
-                FROM v2_user 
-                WHERE user_id = ? 
+                SELECT 1
+                FROM v2_user
+                WHERE user_id = ?
                   AND sub LIKE 'tenant:%:system:system_user'
                 """,
                 (requesting_user_id,),
@@ -117,7 +118,8 @@ class SQLiteStorageV2(
         self._is_setup = False
 
     def _get_db_path(self) -> str:
-        """Get the SQLite database path, defaulting to ./agentserver.db if env var not set."""
+        """Get the SQLite database path, defaulting to
+        ./agentserver.db if env var not set."""
         from os import getenv
         base_dir = getenv("SEMA4AI_STUDIO_HOME")
         if not base_dir:

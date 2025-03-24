@@ -110,7 +110,7 @@ class SQLiteStorageMessagesMixin(CommonMixin):
                 row = await cur.fetchone()
                 next_sequence = (row["max_seq"] + 1) if row else 0
 
-                message_dict = message.to_json_dict()
+                message_dict = message.model_dump()
 
                 # Insert the new message
                 await cur.execute(
@@ -185,7 +185,7 @@ class SQLiteStorageMessagesMixin(CommonMixin):
                 json.loads(row_dict["server_metadata"])
                 if row_dict["server_metadata"] else {}
             )
-            messages.append(ThreadMessage.from_dict(row_dict))
+            messages.append(ThreadMessage.model_validate(row_dict))
 
         return messages
 
@@ -236,7 +236,7 @@ class SQLiteStorageMessagesMixin(CommonMixin):
                 json.loads(row_dict["server_metadata"])
                 if row_dict["server_metadata"] else {}
             )
-            messages.append(ThreadMessage.from_dict(row_dict))
+            messages.append(ThreadMessage.model_validate(row_dict))
 
         return messages
 

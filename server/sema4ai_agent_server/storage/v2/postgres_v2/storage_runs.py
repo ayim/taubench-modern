@@ -17,13 +17,15 @@ class PostgresStorageRunsMixin(CommonMixin):
     """
     Mixin providing PostgreSQL-based run and run step operations.
 
-    This mixin implements methods to create, retrieve, list, upsert, and delete run records,
-    as well as to create, list, and retrieve run step records. It assumes that a working
-    `_cursor()` (which yields an async psycopg cursor) and `_validate_uuid()` method (for
-    validating UUID strings) are available from the inherited CommonMixin.
+    This mixin implements methods to create, retrieve, list, upsert, and delete
+    run records, as well as to create, list, and retrieve run step records.
+    It assumes that a working `_cursor()` (which yields an async psycopg cursor)
+    and `_validate_uuid()` method (for validating UUID strings) are available
+    from the inherited CommonMixin.
 
-    The PostgreSQL schema for runs is defined in the v2.agent_runs table, and for run steps
-    in the v2.agent_run_steps table. JSON data is stored using PostgreSQL's native JSONB type.
+    The PostgreSQL schema for runs is defined in the v2.agent_runs table,
+    and for run steps in the v2.agent_run_steps table. JSON data is stored using
+    PostgreSQL's native JSONB type.
     """
 
     # ---------------------------
@@ -32,8 +34,9 @@ class PostgresStorageRunsMixin(CommonMixin):
     async def create_run_v2(self, run: Run) -> None:
         """Insert a new run record into the database."""
         self._validate_uuid(run.run_id)
-        run_dict = run.to_json_dict()
-        # Wrap the metadata dictionary in a Jsonb object so that psycopg handles it properly.
+        run_dict = run.model_dump()
+        # Wrap the metadata dictionary in a Jsonb object so
+        # that psycopg handles it properly.
         run_dict["metadata"] = Jsonb(run_dict["metadata"])
         try:
             async with self._cursor() as cur:
@@ -54,10 +57,14 @@ class PostgresStorageRunsMixin(CommonMixin):
                 )
         except UniqueViolation as e:
             if "duplicate key value violates unique constraint" in str(e):
-                raise RecordAlreadyExistsError(f"Run {run.run_id} already exists") from e
+                raise RecordAlreadyExistsError(
+                    f"Run {run.run_id} already exists",
+                ) from e
             raise e
         except ForeignKeyViolation as e:
-            raise ReferenceIntegrityError("Invalid foreign key reference updating run") from e
+            raise ReferenceIntegrityError(
+                "Invalid foreign key reference updating run",
+            ) from e
         except Exception:
             raise
 
@@ -78,7 +85,7 @@ class PostgresStorageRunsMixin(CommonMixin):
             raise RunNotFoundError(f"Run {run_id} not found")
         run_dict = dict(row)
         run_dict = self._convert_run_json_fields(run_dict)
-        return Run.from_dict(run_dict)
+        return Run.model_validate(run_dict)
 
     async def list_runs_for_agent_v2(self, agent_id: str) -> list[Run]:
         """List all runs associated with a given agent."""
@@ -94,7 +101,10 @@ class PostgresStorageRunsMixin(CommonMixin):
                 {"agent_id": agent_id},
             )
             rows = await cur.fetchall()
-        return [Run.from_dict(self._convert_run_json_fields(dict(row))) for row in rows]
+        return [
+            Run.model_validate(self._convert_run_json_fields(dict(row)))
+            for row in rows
+        ]
 
     async def list_runs_for_thread_v2(self, thread_id: str) -> list[Run]:
         """List all runs associated with a given thread."""
@@ -110,12 +120,15 @@ class PostgresStorageRunsMixin(CommonMixin):
                 {"thread_id": thread_id},
             )
             rows = await cur.fetchall()
-        return [Run.from_dict(self._convert_run_json_fields(dict(row))) for row in rows]
+        return [
+            Run.model_validate(self._convert_run_json_fields(dict(row)))
+            for row in rows
+        ]
 
     async def upsert_run_v2(self, run: Run) -> None:
         """Insert or update a run record in the database."""
         self._validate_uuid(run.run_id)
-        run_dict = run.to_json_dict()
+        run_dict = run.model_dump()
         # Wrap the metadata field in Jsonb for Postgres handling.
         run_dict["metadata"] = Jsonb(run_dict["metadata"])
         try:
@@ -144,10 +157,14 @@ class PostgresStorageRunsMixin(CommonMixin):
                 )
         except UniqueViolation as e:
             if "duplicate key value violates unique constraint" in str(e):
-                raise RecordAlreadyExistsError(f"Run {run.run_id} already exists") from e
+                raise RecordAlreadyExistsError(
+                    f"Run {run.run_id} already exists",
+                ) from e
             raise e
         except ForeignKeyViolation as e:
-            raise ReferenceIntegrityError("Invalid foreign key reference updating run") from e
+            raise ReferenceIntegrityError(
+                "Invalid foreign key reference updating run",
+            ) from e
         except Exception:
             raise
 
@@ -187,7 +204,7 @@ class PostgresStorageRunsMixin(CommonMixin):
     async def create_run_step_v2(self, run_step: RunStep) -> None:
         """Insert a new run step record into the database."""
         self._validate_uuid(run_step.step_id)
-        run_step_dict = run_step.to_json_dict()
+        run_step_dict = run_step.model_dump()
         # Wrap JSON fields in Jsonb
         run_step_dict["input_state"] = Jsonb(run_step_dict["input_state"])
         run_step_dict["output_state"] = Jsonb(run_step_dict["output_state"])
@@ -213,10 +230,14 @@ class PostgresStorageRunsMixin(CommonMixin):
                 )
         except UniqueViolation as e:
             if "duplicate key value violates unique constraint" in str(e):
-                raise RecordAlreadyExistsError(f"Run step {run_step.step_id} already exists") from e
+                raise RecordAlreadyExistsError(
+                    f"Run step {run_step.step_id} already exists",
+                ) from e
             raise e
         except ForeignKeyViolation as e:
-            raise ReferenceIntegrityError("Invalid foreign key reference updating run step") from e
+            raise ReferenceIntegrityError(
+                "Invalid foreign key reference updating run step",
+            ) from e
         except Exception:
             raise
 
@@ -235,7 +256,7 @@ class PostgresStorageRunsMixin(CommonMixin):
             )
             rows = await cur.fetchall()
         return [
-            RunStep.from_dict(self._convert_run_step_json_fields(dict(row)))
+            RunStep.model_validate(self._convert_run_step_json_fields(dict(row)))
             for row in rows
         ]
 
@@ -256,14 +277,14 @@ class PostgresStorageRunsMixin(CommonMixin):
             raise RunStepNotFoundError(f"Run step {step_id} not found")
         run_step_dict = dict(row)
         run_step_dict = self._convert_run_step_json_fields(run_step_dict)
-        return RunStep.from_dict(run_step_dict)
+        return RunStep.model_validate(run_step_dict)
 
     def _convert_run_step_json_fields(self, run_step_dict: dict) -> dict:
         """
         Convert JSON fields in a run step record to Python objects if necessary.
 
-        Checks the 'input_state', 'output_state', and 'metadata' fields for string values,
-        converting them to dictionaries if needed.
+        Checks the 'input_state', 'output_state', and 'metadata' fields for
+        string values, converting them to dictionaries if needed.
         """
         for field in ["input_state", "output_state", "metadata"]:
             if field in run_step_dict and isinstance(run_step_dict[field], str):

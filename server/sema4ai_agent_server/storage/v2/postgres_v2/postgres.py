@@ -94,7 +94,9 @@ class PostgresStorageV2(
         await self._migrations.run_migrations()
 
     @asynccontextmanager
-    async def _cursor(self, cursor: AsyncCursor|None=None) -> AsyncGenerator[AsyncCursor, None]:
+    async def _cursor(
+        self, cursor: AsyncCursor | None = None,
+    ) -> AsyncGenerator[AsyncCursor, None]:
         """Yield an async psycopg cursor from the pool (or uses the provided cursor)."""
         if not self._pool:
             raise RuntimeError("Pool not initialized; call setup_v2() first.")

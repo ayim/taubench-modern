@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-
+import ToolboxIcon from "@mui/icons-material/Build";
 export interface Message {
   role: "user" | "agent";
   content: any[]; // For agent messages with structured content
@@ -115,7 +115,7 @@ const AgentMessage: React.FC<{ content?: any[], messageId?: string, artifacts: a
                 return (
                   <div key={index} className="tool-call-content border rounded-md overflow-hidden">
                     <div className="tool-header bg-gray-200 px-3 py-1.5 font-medium flex justify-between items-center">
-                      <span>�� {item.name}</span>
+                      <span><ToolboxIcon fontSize="inherit" className="mr-2" /> {item.name}</span>
                       <div className="flex items-center">
                         {isLoading && (
                           <div className="animate-spin mr-2 h-4 w-4 text-blue-600">

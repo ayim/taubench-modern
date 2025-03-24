@@ -34,7 +34,8 @@ class SQLiteStorageArtifactsMixin(CommonMixin):
                     VALUES (
                         :artifact_id, :name, :mime_type, :content, :to_be_deleted_at,
                         :trace_id, :correlated_user_id, :correlated_agent_id,
-                        :correlated_thread_id, :correlated_run_id, :correlated_message_id
+                        :correlated_thread_id, :correlated_run_id,
+                        :correlated_message_id
                     )
                     """,
                     {

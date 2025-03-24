@@ -16,7 +16,8 @@ from sema4ai_agent_server.storage.v2.sqlite_v2.common import CommonMixin
 class SQLiteStorageRunsMixin(CommonMixin):
     """
     Mixin providing SQLite-based run and run step operations.
-    Assumes that helper methods such as `_cursor()` and `_validate_uuid()` are available.
+    Assumes that helper methods such as `_cursor()` and
+    `_validate_uuid()` are available.
     """
     _logger = get_logger(__name__)
 
@@ -26,7 +27,7 @@ class SQLiteStorageRunsMixin(CommonMixin):
     async def create_run_v2(self, run: Run) -> None:
         """Insert a new run record."""
         self._validate_uuid(run.run_id)
-        run_dict = run.to_json_dict()
+        run_dict = run.model_dump()
         # Convert the metadata dict to a JSON string
         run_dict["metadata"] = json.dumps(run_dict["metadata"])
         try:
@@ -48,8 +49,12 @@ class SQLiteStorageRunsMixin(CommonMixin):
                 )
         except IntegrityError as e:
             if "UNIQUE constraint failed: v2_agent_runs.run_id" in str(e):
-                raise RecordAlreadyExistsError(f"Run {run.run_id} already exists") from e
-            raise ReferenceIntegrityError("Invalid foreign key reference updating run") from e
+                raise RecordAlreadyExistsError(
+                    f"Run {run.run_id} already exists",
+                ) from e
+            raise ReferenceIntegrityError(
+                "Invalid foreign key reference updating run",
+            ) from e
 
     async def get_run_v2(self, run_id: str) -> Run:
         """Retrieve a run record by its ID."""
@@ -68,7 +73,7 @@ class SQLiteStorageRunsMixin(CommonMixin):
             raise RunNotFoundError(f"Run {run_id} not found")
         run_dict = dict(row)
         run_dict = self._convert_run_json_fields(run_dict)
-        return Run.from_dict(run_dict)
+        return Run.model_validate(run_dict)
 
     async def list_runs_for_agent_v2(self, agent_id: str) -> list[Run]:
         """List all runs associated with a given agent."""
@@ -86,7 +91,10 @@ class SQLiteStorageRunsMixin(CommonMixin):
             rows = await cur.fetchall()
         if not rows:
             return []
-        return [Run.from_dict(self._convert_run_json_fields(dict(r))) for r in rows]
+        return [
+            Run.model_validate(self._convert_run_json_fields(dict(r)))
+            for r in rows
+        ]
 
     async def list_runs_for_thread_v2(self, thread_id: str) -> list[Run]:
         """List all runs associated with a given thread."""
@@ -104,12 +112,15 @@ class SQLiteStorageRunsMixin(CommonMixin):
             rows = await cur.fetchall()
         if not rows:
             return []
-        return [Run.from_dict(self._convert_run_json_fields(dict(r))) for r in rows]
+        return [
+            Run.model_validate(self._convert_run_json_fields(dict(r)))
+            for r in rows
+        ]
 
     async def upsert_run_v2(self, run: Run) -> None:
         """Insert or update a run record."""
         self._validate_uuid(run.run_id)
-        run_dict = run.to_json_dict()
+        run_dict = run.model_dump()
         run_dict["metadata"] = json.dumps(run_dict["metadata"])
         try:
             async with self._cursor() as cur:
@@ -139,8 +150,12 @@ class SQLiteStorageRunsMixin(CommonMixin):
                     self._logger.warning("Upsert run had no effect", run_id=run.run_id)
         except IntegrityError as e:
             if "UNIQUE constraint failed: v2_agent_runs.run_id" in str(e):
-                raise RecordAlreadyExistsError(f"Run {run.run_id} already exists") from e
-            raise ReferenceIntegrityError("Invalid foreign key reference updating run") from e
+                raise RecordAlreadyExistsError(
+                    f"Run {run.run_id} already exists",
+                ) from e
+            raise ReferenceIntegrityError(
+                "Invalid foreign key reference updating run",
+            ) from e
 
     async def delete_run_v2(self, run_id: str) -> None:
         """Delete a run record. Raises RunNotFoundError if the run does not exist."""
@@ -170,7 +185,7 @@ class SQLiteStorageRunsMixin(CommonMixin):
     async def create_run_step_v2(self, run_step: RunStep) -> None:
         """Insert a new run step record."""
         self._validate_uuid(run_step.step_id)
-        run_step_dict = run_step.to_json_dict()
+        run_step_dict = run_step.model_dump()
         run_step_dict["input_state"] = json.dumps(run_step_dict["input_state"])
         run_step_dict["output_state"] = json.dumps(run_step_dict["output_state"])
         run_step_dict["metadata"] = json.dumps(run_step_dict["metadata"])
@@ -195,8 +210,12 @@ class SQLiteStorageRunsMixin(CommonMixin):
                 )
         except IntegrityError as e:
             if "UNIQUE constraint failed: v2_agent_run_steps.step_id" in str(e):
-                raise RecordAlreadyExistsError(f"Run step {run_step.step_id} already exists") from e
-            raise ReferenceIntegrityError("Invalid foreign key reference updating run step") from e
+                raise RecordAlreadyExistsError(
+                    f"Run step {run_step.step_id} already exists",
+                ) from e
+            raise ReferenceIntegrityError(
+                "Invalid foreign key reference updating run step",
+            ) from e
 
     async def list_run_steps_v2(self, run_id: str) -> list[RunStep]:
         """List all run steps for a given run (ordered by sequence number)."""
@@ -215,7 +234,7 @@ class SQLiteStorageRunsMixin(CommonMixin):
         if not rows:
             return []
         return [
-            RunStep.from_dict(self._convert_run_step_json_fields(dict(r)))
+            RunStep.model_validate(self._convert_run_step_json_fields(dict(r)))
             for r in rows
         ]
 
@@ -236,7 +255,7 @@ class SQLiteStorageRunsMixin(CommonMixin):
             raise RunStepNotFoundError(f"Run step {step_id} not found")
         run_step_dict = dict(row)
         run_step_dict = self._convert_run_step_json_fields(run_step_dict)
-        return RunStep.from_dict(run_step_dict)
+        return RunStep.model_validate(run_step_dict)
 
     def _convert_run_step_json_fields(self, run_step_dict: dict) -> dict:
         """Convert JSON string fields in a run step record to Python objects."""

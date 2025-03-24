@@ -56,8 +56,8 @@ async def test_run_crud_operations(
     assert any(r.run_id == sample_run.run_id for r in runs_for_thread)
 
     # Update (upsert) the run.
-    updated_run = Run.from_dict(
-        sample_run.to_json_dict() | {"status": "cancelled"},
+    updated_run = Run.model_validate(
+        sample_run.model_dump() | {"status": "cancelled"},
     )
     await storage.upsert_run_v2(updated_run)
     updated_run = await storage.get_run_v2(sample_run.run_id)
@@ -227,8 +227,8 @@ async def test_run_update_invalid_foreign_keys(
     await storage.create_run_v2(valid_run)
 
     # Modify run with invalid foreign keys.
-    invalid_run = Run.from_dict(
-        valid_run.to_json_dict() | {"agent_id": str(uuid4()), "thread_id": str(uuid4())},
+    invalid_run = Run.model_validate(
+        valid_run.model_dump() | {"agent_id": str(uuid4()), "thread_id": str(uuid4())},
     )
     with pytest.raises(ReferenceIntegrityError):
         await storage.upsert_run_v2(invalid_run)
@@ -255,7 +255,8 @@ async def test_run_reupsert_idempotency(
 ) -> None:
     """
     Create a run and repeatedly update it using upsert.
-    Verify that no duplicate records are created and that the final state reflects the last update.
+    Verify that no duplicate records are created and that
+    the final state reflects the last update.
     """
     # Ensure the agent and thread exist.
     await storage.upsert_agent_v2(sample_user_id, sample_agent)
@@ -277,8 +278,11 @@ async def test_run_reupsert_idempotency(
     statuses = ["completed", "cancelled", "failed"]
     for status in statuses:
         current_run = await storage.get_run_v2(initial_run.run_id)
-        updated_run = Run.from_dict(
-            current_run.to_json_dict() | {"status": status, "finished_at": datetime.now(UTC)},
+        updated_run = Run.model_validate(
+            current_run.model_dump() | {
+                "status": status,
+                "finished_at": datetime.now(UTC),
+            },
         )
         await storage.upsert_run_v2(updated_run)
 
@@ -295,7 +299,8 @@ async def test_run_ordering(
 ) -> None:
     """
     Create several runs for the same agent with slight delays.
-    Then list runs for that agent and verify they are ordered by the created_at timestamp.
+    Then list runs for that agent and verify they are
+    ordered by the created_at timestamp.
     """
     # Ensure the agent and thread exist.
     await storage.upsert_agent_v2(sample_user_id, sample_agent)
@@ -373,4 +378,6 @@ async def test_concurrent_run_creation(
     runs = await storage.list_runs_for_agent_v2(sample_agent.agent_id)
     listed_run_ids = {r.run_id for r in runs}
     for run_id in run_ids:
-        assert run_id in listed_run_ids, f"Run with ID {run_id} is not listed in agent runs"
+        assert run_id in listed_run_ids, (
+            f"Run with ID {run_id} is not listed in agent runs"
+        )

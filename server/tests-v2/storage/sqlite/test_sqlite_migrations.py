@@ -4,7 +4,11 @@ from pathlib import Path
 import aiosqlite
 import pytest
 
-from sema4ai_agent_server.storage.v2.migrations_v2 import MigrationError, MigrationLockError, MigrationTimeoutError
+from sema4ai_agent_server.storage.v2.migrations_v2 import (
+    MigrationError,
+    MigrationLockError,
+    MigrationTimeoutError,
+)
 from sema4ai_agent_server.storage.v2.sqlite_v2.migrations import SQLiteMigrationsV2
 
 
@@ -19,7 +23,7 @@ async def sqlite_db_path(tmp_path_factory):
 async def test_sqlite_run_migrations_successfully(sqlite_db_path):
     """Test that migrations run successfully and create expected tables in SQLite."""
     path_to_migrations = (
-        Path(__file__).parent.parent.parent.parent / "sema4ai_agent_server" 
+        Path(__file__).parent.parent.parent.parent / "sema4ai_agent_server"
         / "migrations" / "v2" / "sqlite"
     )
     migrations = SQLiteMigrationsV2(sqlite_db_path, migrations_path=path_to_migrations)
@@ -38,16 +42,24 @@ async def test_sqlite_run_migrations_successfully(sqlite_db_path):
     # You might also check the migrations table to ensure the highest version is correct
     async with aiosqlite.connect(sqlite_db_path) as conn:
         async with conn.cursor() as cur:
-            await cur.execute("SELECT version FROM v2_migrations ORDER BY version DESC LIMIT 1;")
+            await cur.execute(
+                "SELECT version FROM v2_migrations ORDER BY version DESC LIMIT 1;",
+            )
             row = await cur.fetchone()
             latest_version = row[0] if row else None
 
             # Let's count the number of migrations we have in the migrations folder
-            migration_files = [f for f in path_to_migrations.iterdir() if f.is_file() and f.name.endswith(".up.sql")]
+            migration_files = [
+                f for f in path_to_migrations.iterdir()
+                if f.is_file() and f.name.endswith(".up.sql")
+            ]
             num_migrations = len(migration_files)
             assert (
                 latest_version == num_migrations
-            ), f"Expected the latest migration version to be {num_migrations}, got {latest_version}"
+            ), (
+                f"Expected the latest migration version to be {num_migrations}, "
+                f"got {latest_version}"
+            )
 
 
 @pytest.mark.asyncio
@@ -124,18 +136,23 @@ async def test_sqlite_invalid_migration_filename(sqlite_db_path, tmp_path):
             f.write("CREATE TABLE test (id INTEGER PRIMARY KEY);")
 
         # Initialize migrations instance pointing to the temporary directory
-        migrations = SQLiteMigrationsV2(sqlite_db_path, migrations_path=temp_migration_path.parent)
+        migrations = SQLiteMigrationsV2(
+            sqlite_db_path, migrations_path=temp_migration_path.parent,
+        )
 
         # Run migrations
         await migrations.run_migrations()
 
         # Check that the invalid file was ignored
         async with aiosqlite.connect(sqlite_db_path) as conn:
-            async with conn.execute("SELECT version FROM v2_migrations ORDER BY version DESC LIMIT 1;") as cur:
+            async with conn.execute(
+                "SELECT version FROM v2_migrations ORDER BY version DESC LIMIT 1;",
+            ) as cur:
                 row = await cur.fetchone()
                 latest_version = row[0] if row else 0
 
-                # Since the invalid file was ignored, no new migrations should have been applied
+                # Since the invalid file was ignored,
+                # no new migrations should have been applied
                 assert latest_version == 0
 
     finally:
@@ -188,7 +205,9 @@ async def test_sqlite_migration_checksum_drift(sqlite_db_path, tmp_path):
     await migrations.run_migrations()
 
     # 3) Modify the SAME file content (simulate drift)
-    migration_file.write_text("CREATE TABLE drift_test (id INTEGER PRIMARY KEY, name TEXT);")
+    migration_file.write_text(
+        "CREATE TABLE drift_test (id INTEGER PRIMARY KEY, name TEXT);",
+    )
 
     # 4) Run migrations again and expect a checksum drift error
     with pytest.raises(MigrationError) as exc_info:
@@ -205,7 +224,8 @@ async def test_sqlite_migration_sql_syntax_error(sqlite_db_path, tmp_path):
     """
     # Create a migration file with a syntax error
     bad_migration = tmp_path / "2_bad_syntax.up.sql"
-    bad_migration.write_text("CREAT TABLE bad_syntax (id INTEGER PRIMARY KEY);")  # 'CREAT' missing 'E'
+    # 'CREAT' missing 'E'
+    bad_migration.write_text("CREAT TABLE bad_syntax (id INTEGER PRIMARY KEY);")
 
     migrations = SQLiteMigrationsV2(sqlite_db_path, migrations_path=tmp_path)
 
@@ -217,7 +237,9 @@ async def test_sqlite_migration_sql_syntax_error(sqlite_db_path, tmp_path):
 
     # Verify that the migration is still marked 'dirty'
     async with aiosqlite.connect(sqlite_db_path) as conn:
-        async with conn.execute("SELECT dirty FROM v2_migrations WHERE version=2;") as cur:
+        async with conn.execute(
+            "SELECT dirty FROM v2_migrations WHERE version=2;",
+        ) as cur:
             row = await cur.fetchone()
             # The row should exist and be dirty (1)
             assert row is not None, "Expected a row for version=2 in v2_migrations"
@@ -244,7 +266,8 @@ async def test_sqlite_empty_migration_file(sqlite_db_path, tmp_path):
 @pytest.mark.asyncio
 async def test_sqlite_migrations_idempotency(sqlite_db_path, tmp_path):
     """
-    Run migrations twice and verify that the number of applied migrations remains the same.
+    Run migrations twice and verify that the number of
+    applied migrations remains the same.
     """
     # Use your normal migrations directory.
     migrations_path = (
@@ -252,19 +275,19 @@ async def test_sqlite_migrations_idempotency(sqlite_db_path, tmp_path):
         "sema4ai_agent_server" / "migrations" / "v2" / "sqlite"
     )
     migrations = SQLiteMigrationsV2(sqlite_db_path, migrations_path=migrations_path)
-    
+
     await migrations.run_migrations()
     async with aiosqlite.connect(sqlite_db_path) as conn:
         async with conn.execute("SELECT COUNT(*) FROM v2_migrations") as cur:
             row = await cur.fetchone()
             initial_count = row[0]
-    
+
     await migrations.run_migrations()
     async with aiosqlite.connect(sqlite_db_path) as conn:
         async with conn.execute("SELECT COUNT(*) FROM v2_migrations") as cur:
             row = await cur.fetchone()
             second_count = row[0]
-    
+
     assert initial_count == second_count, "SQLite migrations are not idempotent."
 
 
@@ -277,14 +300,14 @@ async def test_sqlite_empty_migrations_directory(sqlite_db_path, tmp_path):
     empty_dir = tmp_path / "empty_migrations"
     empty_dir.mkdir()
     migrations = SQLiteMigrationsV2(sqlite_db_path, migrations_path=empty_dir)
-    
+
     await migrations.run_migrations()
-    
+
     async with aiosqlite.connect(sqlite_db_path) as conn:
         async with conn.execute("SELECT COUNT(*) FROM v2_migrations") as cur:
             row = await cur.fetchone()
             count = row[0]
-    
+
     assert count == 0, "Expected no migrations when the migrations directory is empty."
 
 
@@ -302,31 +325,47 @@ async def test_sqlite_rollback_on_failure(sqlite_db_path, tmp_path):
         INVALID SQL STATEMENT;
     """)
     migrations = SQLiteMigrationsV2(sqlite_db_path, migrations_path=migration_dir)
-    
+
     with pytest.raises(MigrationError):
         await migrations.run_migrations()
-    
+
     async with aiosqlite.connect(sqlite_db_path) as conn:
         async with conn.execute("""
-            SELECT name FROM sqlite_master 
+            SELECT name FROM sqlite_master
             WHERE type='table' AND name='rollback_test';
         """) as cur:
             row = await cur.fetchone()
-    
-    assert row is None, "Table 'rollback_test' should not exist after a migration failure."
+
+    assert row is None, (
+        "Table 'rollback_test' should not exist after a migration failure."
+    )
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("bad_sql", "err_msg"),
     [
-        ("BEGIN;\nCREATE TABLE test (id INTEGER);", "Migration file contains 'BEGIN;'"),
-        ("   BEGIN;  \nCREATE TABLE test (id INTEGER);", "Migration file contains 'BEGIN;'"),
-        ("CREATE TABLE test (id INTEGER);\nCOMMIT;", "Migration file contains 'COMMIT;'"),
-        ("ROLLBACK;\nCREATE TABLE test (id INTEGER);", "Migration file contains 'ROLLBACK;'"),
+        (
+            "BEGIN;\nCREATE TABLE test (id INTEGER);",
+            "Migration file contains 'BEGIN;'",
+        ),
+        (
+            "   BEGIN;  \nCREATE TABLE test (id INTEGER);",
+            "Migration file contains 'BEGIN;'",
+        ),
+        (
+            "CREATE TABLE test (id INTEGER);\nCOMMIT;",
+            "Migration file contains 'COMMIT;'",
+        ),
+        (
+            "ROLLBACK;\nCREATE TABLE test (id INTEGER);",
+            "Migration file contains 'ROLLBACK;'",
+        ),
     ],
 )
-async def test_migration_script_with_transaction_commands(sqlite_db_path, tmp_path, bad_sql, err_msg):
+async def test_migration_script_with_transaction_commands(
+    sqlite_db_path, tmp_path, bad_sql, err_msg,
+):
     """
     Write a migration file that contains transaction commands and ensure
     that the migration run raises a MigrationError with an appropriate message.
@@ -334,16 +373,21 @@ async def test_migration_script_with_transaction_commands(sqlite_db_path, tmp_pa
     # Create a temporary migrations directory
     migration_dir = tmp_path / "bad_migrations"
     migration_dir.mkdir(exist_ok=True)
-    
-    # Write the bad migration file; the filename has the correct version/description pattern.
+
+    # Write the bad migration file; the filename has the
+    # correct version/description pattern.
     migration_file = migration_dir / "1_bad.up.sql"
     migration_file.write_text(bad_sql)
-    
-    # Initialize the migrations provider with the temporary migration directory.
-    # Note that sqlite_db_path is a fixture that should point to an empty SQLite DB file.
-    migrations = SQLiteMigrationsV2(str(sqlite_db_path), migrations_path=migration_dir)
 
-    # Running the migrations should trigger a MigrationError due to forbidden transaction commands.
+    # Initialize the migrations provider with the temporary migration directory.
+    # Note that sqlite_db_path is a fixture that should point to an
+    # empty SQLite DB file.
+    migrations = SQLiteMigrationsV2(
+        str(sqlite_db_path), migrations_path=migration_dir,
+    )
+
+    # Running the migrations should trigger a MigrationError due to
+    # forbidden transaction commands.
     with pytest.raises(MigrationError) as excinfo:
         await migrations.run_migrations()
 

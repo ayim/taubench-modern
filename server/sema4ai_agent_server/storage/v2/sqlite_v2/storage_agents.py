@@ -31,7 +31,10 @@ class SQLiteStorageAgentsMixin(CommonMixin):
             rows = await cur.fetchall()
         if not rows:
             return []
-        return [Agent.model_validate(self._convert_agent_json_fields(dict(row))) for row in rows]
+        return [
+            Agent.model_validate(self._convert_agent_json_fields(dict(row)))
+            for row in rows
+        ]
 
     async def list_agents_v2(self, user_id: str) -> list[Agent]:
         """List all agents for the given user."""
@@ -49,7 +52,10 @@ class SQLiteStorageAgentsMixin(CommonMixin):
             rows = await cur.fetchall()
         if not rows:
             return []
-        return [Agent.model_validate(self._convert_agent_json_fields(dict(row))) for row in rows]
+        return [
+            Agent.model_validate(self._convert_agent_json_fields(dict(row)))
+            for row in rows
+        ]
 
     async def get_agent_v2(self, user_id: str, agent_id: str) -> Agent:
         """Get an agent by ID, raising errors if not found or no access."""
@@ -75,7 +81,9 @@ class SQLiteStorageAgentsMixin(CommonMixin):
 
         if not row["has_access"]:
             # The agent exists but user does not have access
-            raise UserAccessDeniedError(f"User {user_id} does not have access to agent {agent_id}")
+            raise UserAccessDeniedError(
+                f"User {user_id} does not have access to agent {agent_id}",
+            )
 
         # Convert JSON columns and return
         row_dict = dict(row)
@@ -102,7 +110,9 @@ class SQLiteStorageAgentsMixin(CommonMixin):
             raise AgentNotFoundError(f"Agent {name} not found")
 
         if not row["has_access"]:
-            raise UserAccessDeniedError(f"User {user_id} does not have access to agent {name}")
+            raise UserAccessDeniedError(
+                f"User {user_id} does not have access to agent {name}",
+            )
 
         row_dict = dict(row)
         row_dict.pop("has_access", None)
@@ -171,18 +181,29 @@ class SQLiteStorageAgentsMixin(CommonMixin):
                     is False
                 ):
                     raise UserAccessDeniedError(
-                        f"User {user_id} does not have permission to update agent {agent.agent_id}",
+                        f"User {user_id} does not have permission "
+                        f"to update agent {agent.agent_id}",
                     )
 
         except aiosqlite.IntegrityError as e:
             if "foreign key constraint" in str(e).lower():
-                raise ReferenceIntegrityError("Invalid foreign key reference updating agent") from e
+                raise ReferenceIntegrityError(
+                    "Invalid foreign key reference updating agent",
+                ) from e
             if "UNIQUE constraint failed: v2_agent.agent_id" in str(e):
-                raise RecordAlreadyExistsError(f"Agent ID {agent.agent_id} is not unique") from e
+                raise RecordAlreadyExistsError(
+                    f"Agent ID {agent.agent_id} is not unique",
+                ) from e
             # Possibly triggered by a unique constraint on name, etc.
-            self._logger.error("Error upserting agent", error=str(e), agent_id=agent.agent_id, user_id=user_id)
-            raise AgentWithNameAlreadyExistsError(f"Agent name {agent.name} is not unique") from e
-
+            self._logger.error(
+                "Error upserting agent",
+                error=str(e),
+                agent_id=agent.agent_id,
+                user_id=user_id,
+            )
+            raise AgentWithNameAlreadyExistsError(
+                f"Agent name {agent.name} is not unique",
+            ) from e
     async def delete_agent_v2(self, user_id: str, agent_id: str) -> None:
         """Delete an agent, enforcing user access."""
         self._validate_uuid(user_id)
@@ -195,7 +216,9 @@ class SQLiteStorageAgentsMixin(CommonMixin):
 
         # Then check user access
         if not await self._user_can_access_agent(user_id, agent_id):
-            raise UserAccessDeniedError(f"User {user_id} does not have access to agent {agent_id}")
+            raise UserAccessDeniedError(
+                f"User {user_id} does not have access to agent {agent_id}",
+            )
 
         async with self._cursor() as cur:
             await cur.execute(
@@ -240,7 +263,8 @@ class SQLiteStorageAgentsMixin(CommonMixin):
         return bool(row and row["has_access"])
 
     def _convert_agent_json_fields(self, agent_dict: dict) -> dict:
-        """Convert JSON string fields in agent dict to Python objects (similar to Postgres mixin)."""
+        """Convert JSON string fields in agent dict to
+        Python objects (similar to Postgres mixin)."""
         for field in [
             "runbook",
             "action_packages",

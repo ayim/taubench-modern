@@ -10,7 +10,9 @@ from sema4ai_agent_server.storage.v2.errors_v2 import InvalidUUIDError
 
 class CommonMixin(BaseStorageV2):
     @abstractmethod
-    async def _cursor(self, cursor: AsyncCursor|None=None) -> AsyncGenerator[AsyncCursor, None]:
+    async def _cursor(
+        self, cursor: AsyncCursor | None = None,
+    ) -> AsyncGenerator[AsyncCursor, None]:
         """Get a cursor for the database (or uses the provided cursor)."""
         pass
 

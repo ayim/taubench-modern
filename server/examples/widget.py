@@ -162,9 +162,6 @@ class DebugChatWidget(anywidget.AnyWidget):
                     )
 
             self.active_thread_artifacts = new_thread_artifacts
-            # print(
-            #     f"Now have {len(self.active_thread_artifacts)} active thread artifacts",
-            # )
         except Exception as e:
             print(
                 "Error fetching thread artifacts "

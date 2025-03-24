@@ -19,9 +19,9 @@ from sema4ai_agent_server.storage.v2.sqlite_v2 import SQLiteStorageV2
 
 @pytest.mark.asyncio
 async def test_thread_crud_operations(
-    storage: SQLiteStorageV2, 
-    sample_user_id: str, 
-    sample_agent: Agent, 
+    storage: SQLiteStorageV2,
+    sample_user_id: str,
+    sample_agent: Agent,
     sample_thread: Thread,
 ) -> None:
     """Test Create, Read, Update, and Delete operations for threads."""
@@ -29,7 +29,9 @@ async def test_thread_crud_operations(
     await storage.upsert_agent_v2(sample_user_id, sample_agent)
     await storage.upsert_thread_v2(sample_user_id, sample_thread)
     # Read
-    retrieved_thread = await storage.get_thread_v2(sample_user_id, sample_thread.thread_id)
+    retrieved_thread = await storage.get_thread_v2(
+        sample_user_id, sample_thread.thread_id,
+    )
     assert retrieved_thread is not None
     assert retrieved_thread.thread_id == sample_thread.thread_id
     assert retrieved_thread.name == sample_thread.name
@@ -38,7 +40,10 @@ async def test_thread_crud_operations(
     updated_thread = sample_thread.copy()
     updated_thread.name = "Updated Thread Name"
     await storage.upsert_thread_v2(sample_user_id, updated_thread)
-    retrieved_updated = await storage.get_thread_v2(sample_user_id, sample_thread.thread_id)
+    retrieved_updated = await storage.get_thread_v2(
+        sample_user_id, sample_thread.thread_id,
+    )
+    assert retrieved_updated is not None
     assert retrieved_updated.name == "Updated Thread Name"
 
     # Delete
@@ -49,9 +54,9 @@ async def test_thread_crud_operations(
 
 @pytest.mark.asyncio
 async def test_thread_add_message(
-    storage: SQLiteStorageV2, 
-    sample_user_id: str, 
-    sample_agent: Agent, 
+    storage: SQLiteStorageV2,
+    sample_user_id: str,
+    sample_agent: Agent,
     sample_thread: Thread,
 ) -> None:
     """
@@ -67,10 +72,14 @@ async def test_thread_add_message(
         role="user",
         content=[ThreadTextContent(text="This is an additional message")],
     )
-    await storage.add_message_to_thread_v2(sample_user_id, sample_thread.thread_id, additional_message)
+    await storage.add_message_to_thread_v2(
+        sample_user_id, sample_thread.thread_id, additional_message,
+    )
 
     # Retrieve the thread and verify the message was appended.
-    updated_thread = await storage.get_thread_v2(sample_user_id, sample_thread.thread_id)
+    updated_thread = await storage.get_thread_v2(
+        sample_user_id, sample_thread.thread_id,
+    )
     assert updated_thread is not None
     # Expect one more message than originally seeded.
     assert len(updated_thread.messages) == len(sample_thread.messages) + 1
@@ -81,9 +90,9 @@ async def test_thread_add_message(
 
 @pytest.mark.asyncio
 async def test_list_threads_for_agent(
-    storage: SQLiteStorageV2, 
-    sample_user_id: str, 
-    sample_agent: Agent, 
+    storage: SQLiteStorageV2,
+    sample_user_id: str,
+    sample_agent: Agent,
     sample_thread: Thread,
 ) -> None:
     """Test listing threads for a specific agent."""
@@ -99,8 +108,8 @@ async def test_list_threads_for_agent(
 
 @pytest.mark.asyncio
 async def test_thread_message_ordering(
-    storage: SQLiteStorageV2, 
-    sample_user_id: str, 
+    storage: SQLiteStorageV2,
+    sample_user_id: str,
     sample_agent: Agent,
 ) -> None:
     """Test that thread messages maintain their order after storage and retrieval."""
@@ -131,8 +140,8 @@ async def test_thread_message_ordering(
 
 @pytest.mark.asyncio
 async def test_thread_complex_json_metadata(
-    storage: SQLiteStorageV2, 
-    sample_user_id: str, 
+    storage: SQLiteStorageV2,
+    sample_user_id: str,
     sample_agent: Agent,
 ) -> None:
     """Test storage and retrieval of complex JSON metadata structures."""
@@ -163,8 +172,8 @@ async def test_thread_complex_json_metadata(
 
 @pytest.mark.asyncio
 async def test_thread_concurrent_updates(
-    storage: SQLiteStorageV2, 
-    sample_user_id: str, 
+    storage: SQLiteStorageV2,
+    sample_user_id: str,
     sample_agent: Agent,
 ) -> None:
     """Test concurrent updates to the same thread."""
@@ -182,7 +191,7 @@ async def test_thread_concurrent_updates(
     await storage.upsert_thread_v2(sample_user_id, thread)
 
     async def update_thread(name: str) -> None:
-        thread_copy = Thread.from_dict(thread.to_json_dict())
+        thread_copy = Thread.model_validate(thread.model_dump())
         thread_copy.name = name
         await storage.upsert_thread_v2(sample_user_id, thread_copy)
 
@@ -198,8 +207,8 @@ async def test_thread_concurrent_updates(
 
 @pytest.mark.asyncio
 async def test_thread_error_cases(
-    storage: SQLiteStorageV2, 
-    sample_user_id: str, 
+    storage: SQLiteStorageV2,
+    sample_user_id: str,
     sample_agent: Agent,
 ) -> None:
     """Test various error cases and edge conditions."""
@@ -232,7 +241,7 @@ async def test_thread_error_cases(
 
 @pytest.mark.asyncio
 async def test_thread_listing_with_multiple_agents(
-    storage: SQLiteStorageV2, 
+    storage: SQLiteStorageV2,
     sample_user_id: str,
 ) -> None:
     """Test listing threads across multiple agents."""
@@ -275,7 +284,9 @@ async def test_thread_listing_with_multiple_agents(
     assert len(all_threads) == 6
 
     # Test listing threads for the first agent
-    agent_threads = await storage.list_threads_for_agent_v2(sample_user_id, agents[0].agent_id)
+    agent_threads = await storage.list_threads_for_agent_v2(
+        sample_user_id, agents[0].agent_id,
+    )
     assert len(agent_threads) == 2
     for t in agent_threads:
         assert t.agent_id == agents[0].agent_id

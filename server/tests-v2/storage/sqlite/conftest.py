@@ -32,7 +32,9 @@ async def storage(tmp_path: Path) -> AsyncGenerator[SQLiteStorageV2, None]:
     if test_file_path.exists():
         test_file_path.unlink()
     await storage_instance.setup_v2()
-    await storage_instance.get_or_create_user_v2(sub="tenant:testing:system:system_user")
+    await storage_instance.get_or_create_user_v2(
+        sub="tenant:testing:system:system_user",
+    )
     yield storage_instance
     await storage_instance.teardown_v2()
     test_file_path.unlink()

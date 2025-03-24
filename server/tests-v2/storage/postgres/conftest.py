@@ -27,7 +27,8 @@ async def postgres_test_db() -> AsyncGenerator[AsyncConnectionPool, None]:
         dsn = postgresql.url()
         pool = None
         try:
-            # Increase min_size to maintain connections and reduce max_size to prevent too many connections
+            # Increase min_size to maintain connections and reduce
+            # max_size to prevent too many connections
             pool = AsyncConnectionPool(
                 conninfo=dsn,
                 min_size=2,  # Keep minimum connections alive
@@ -52,9 +53,10 @@ async def postgres_test_db() -> AsyncGenerator[AsyncConnectionPool, None]:
 async def storage(postgres_test_db: AsyncConnectionPool):
     """
     Initialize storage with the shared test database.
-    
-    Before running migrations, we clean the slate by dropping the 'v2' schema (if it exists)
-    and recreating it. This pre-truncates any existing state from previous tests.
+
+    Before running migrations, we clean the slate by dropping
+    the 'v2' schema (if it exists) and recreating it. This
+    pre-truncates any existing state from previous tests.
     """
     try:
         # Pre-truncate: Drop the schema 'v2' if it exists, then recreate it.
@@ -66,7 +68,7 @@ async def storage(postgres_test_db: AsyncConnectionPool):
         # Now instantiate storage and run migrations.
         storage = PostgresStorageV2(pool=postgres_test_db)
         await storage.setup_v2()  # Runs migrations to re-create tables in 'v2'.
-        
+
         # Seed the system user.
         await storage.get_or_create_user_v2(sub="tenant:testing:system:system_user")
         yield storage

@@ -107,7 +107,7 @@ class PostgresStorageMessagesMixin(CommonMixin):
                 else:
                     sequence_number = last_message["sequence_number"] + 1
 
-                message_dict = message.to_json_dict()
+                message_dict = message.model_dump()
 
                 # 5. Insert the new message
                 await cur.execute(
@@ -170,7 +170,7 @@ class PostgresStorageMessagesMixin(CommonMixin):
                 return []
 
             # 4. Return the messages
-            return [ThreadMessage.from_dict(row) for row in messages]
+            return [ThreadMessage.model_validate(row) for row in messages]
 
     async def get_messages_by_parent_run_id_v2(
         self,
@@ -203,4 +203,4 @@ class PostgresStorageMessagesMixin(CommonMixin):
                 return []
 
             # 4. Return the messages
-            return [ThreadMessage.from_dict(row) for row in messages]
+            return [ThreadMessage.model_validate(row) for row in messages]

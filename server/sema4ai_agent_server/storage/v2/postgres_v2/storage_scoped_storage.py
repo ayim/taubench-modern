@@ -15,10 +15,11 @@ class PostgresStorageScopedStorageMixin(CommonMixin):
     """
     Mixin providing PostgreSQL-based scoped storage operations.
 
-    This mixin implements methods to create, retrieve, list, upsert, and delete scoped storage
-    records from the Postgres database. It assumes that a working `_cursor()` (which yields an
-    async psycopg cursor) and `_validate_uuid()` method (for validating UUID strings) are available
-    from the inherited CommonMixin.
+    This mixin implements methods to create, retrieve, list, upsert, and delete
+    scoped storage records from the Postgres database. It assumes that a working
+    `_cursor()` (which yields an async psycopg cursor) and `_validate_uuid()`
+    method (for validating UUID strings) are available from the inherited
+    CommonMixin.
     """
 
     _logger = get_logger(__name__)
@@ -29,8 +30,9 @@ class PostgresStorageScopedStorageMixin(CommonMixin):
         self._validate_uuid(storage.created_by_user_id)
         self._validate_uuid(storage.created_by_agent_id)
         self._validate_uuid(storage.created_by_thread_id)
-        storage_dict = storage.to_json_dict()
-        # Wrap the "storage" field in a Jsonb object so that psycopg handles it properly.
+        storage_dict = storage.model_dump()
+        # Wrap the "storage" field in a Jsonb object so that psycopg
+        # handles it properly.
         storage_dict["storage"] = Jsonb(storage_dict["storage"])
         try:
             async with self._cursor() as cur:
@@ -43,17 +45,21 @@ class PostgresStorageScopedStorageMixin(CommonMixin):
                     )
                     VALUES (
                         %(storage_id)s, %(created_at)s, %(updated_at)s,
-                        %(created_by_user_id)s, %(created_by_agent_id)s, %(created_by_thread_id)s,
-                        %(scope_type)s, %(storage)s
+                        %(created_by_user_id)s, %(created_by_agent_id)s,
+                        %(created_by_thread_id)s, %(scope_type)s, %(storage)s
                     )
                     """,
                     storage_dict,
                 )
         except ForeignKeyViolation as e:
-            raise ReferenceIntegrityError("Invalid foreign key reference updating scoped storage") from e
+            raise ReferenceIntegrityError(
+                "Invalid foreign key reference updating scoped storage",
+            ) from e
         except UniqueViolation as e:
             if "duplicate key value violates unique constraint" in str(e):
-                raise RecordAlreadyExistsError(f"Scoped storage {storage.storage_id} already exists") from e
+                raise RecordAlreadyExistsError(
+                    f"Scoped storage {storage.storage_id} already exists",
+                ) from e
             raise e
         except Exception:
             raise
@@ -75,9 +81,11 @@ class PostgresStorageScopedStorageMixin(CommonMixin):
             raise ScopedStorageNotFoundError(f"Scoped storage {storage_id} not found")
         storage_dict = dict(row)
         storage_dict = self._convert_scoped_storage_json_fields(storage_dict)
-        return ScopedStorage.from_dict(storage_dict)
+        return ScopedStorage.model_validate(storage_dict)
 
-    async def list_scoped_storage_v2(self, scope_type: str, scope_id: str) -> list[ScopedStorage]:
+    async def list_scoped_storage_v2(
+        self, scope_type: str, scope_id: str,
+    ) -> list[ScopedStorage]:
         """
         List all scoped storage records for a given scope type and scope identifier.
         """
@@ -92,11 +100,21 @@ class PostgresStorageScopedStorageMixin(CommonMixin):
                 """
                 SELECT *
                 FROM v2."scoped_storage"
-                WHERE %(scope_type_param)s = scope_type AND ( 
-                   -- Bit tricky, we write it this way to avoid building a dynamic SQL query.
-                   ( %(scope_type_param)s = 'user' AND created_by_user_id = %(scope_id)s )
-                   OR ( %(scope_type_param)s = 'agent' AND created_by_agent_id = %(scope_id)s )
-                   OR ( %(scope_type_param)s = 'thread' AND created_by_thread_id = %(scope_id)s )
+                WHERE %(scope_type_param)s = scope_type AND (
+                   -- Bit tricky, we write it this way to avoid
+                   -- building a dynamic SQL query.
+                   (
+                     %(scope_type_param)s = 'user'
+                     AND created_by_user_id = %(scope_id)s
+                   )
+                   OR (
+                     %(scope_type_param)s = 'agent'
+                     AND created_by_agent_id = %(scope_id)s
+                   )
+                   OR (
+                     %(scope_type_param)s = 'thread'
+                     AND created_by_thread_id = %(scope_id)s
+                   )
                 )
                 ORDER BY created_at
                 """,
@@ -110,7 +128,9 @@ class PostgresStorageScopedStorageMixin(CommonMixin):
         if not rows:
             return []
         return [
-            ScopedStorage.from_dict(self._convert_scoped_storage_json_fields(dict(r)))
+            ScopedStorage.model_validate(
+                self._convert_scoped_storage_json_fields(dict(r)),
+            )
             for r in rows
         ]
 
@@ -120,7 +140,7 @@ class PostgresStorageScopedStorageMixin(CommonMixin):
         self._validate_uuid(storage.created_by_user_id)
         self._validate_uuid(storage.created_by_agent_id)
         self._validate_uuid(storage.created_by_thread_id)
-        storage_dict = storage.to_json_dict()
+        storage_dict = storage.model_dump()
         # Wrap the storage field with Jsonb so that PostgreSQL stores it as JSONB.
         storage_dict["storage"] = Jsonb(storage_dict["storage"])
         try:
@@ -134,8 +154,8 @@ class PostgresStorageScopedStorageMixin(CommonMixin):
                     )
                     VALUES (
                         %(storage_id)s, %(created_at)s, %(updated_at)s,
-                        %(created_by_user_id)s, %(created_by_agent_id)s, %(created_by_thread_id)s,
-                        %(scope_type)s, %(storage)s
+                        %(created_by_user_id)s, %(created_by_agent_id)s,
+                        %(created_by_thread_id)s, %(scope_type)s, %(storage)s
                     )
                     ON CONFLICT (storage_id) DO UPDATE SET
                         created_at = EXCLUDED.created_at,
@@ -150,13 +170,18 @@ class PostgresStorageScopedStorageMixin(CommonMixin):
                 )
                 if cur.rowcount == 0:
                     self._logger.warning(
-                        "Upsert scoped storage had no effect", storage_id=storage_dict["storage_id"],
+                        "Upsert scoped storage had no effect",
+                        storage_id=storage_dict["storage_id"],
                     )
         except ForeignKeyViolation as e:
-            raise ReferenceIntegrityError("Invalid foreign key reference updating scoped storage") from e
+            raise ReferenceIntegrityError(
+                "Invalid foreign key reference updating scoped storage",
+            ) from e
         except UniqueViolation as e:
             if "duplicate key value violates unique constraint" in str(e):
-                raise RecordAlreadyExistsError(f"Scoped storage {storage.storage_id} already exists") from e
+                raise RecordAlreadyExistsError(
+                    f"Scoped storage {storage.storage_id} already exists",
+                ) from e
             raise e
         except Exception:
             raise
@@ -178,13 +203,16 @@ class PostgresStorageScopedStorageMixin(CommonMixin):
                 {"storage_id": storage_id},
             )
             if cur.rowcount == 0:
-                raise ScopedStorageNotFoundError(f"Scoped storage {storage_id} not found")
+                raise ScopedStorageNotFoundError(
+                    f"Scoped storage {storage_id} not found",
+                )
 
     def _convert_scoped_storage_json_fields(self, storage_dict: dict) -> dict:
         """
         Convert JSON fields in a scoped storage record to Python objects if necessary.
 
-        If the 'storage' field is still a string, this helper converts it to a Python object.
+        If the 'storage' field is still a string, this helper converts it
+        to a Python object.
         """
         if "storage" in storage_dict and isinstance(storage_dict["storage"], str):
             import json

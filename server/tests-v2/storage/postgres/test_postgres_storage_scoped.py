@@ -16,9 +16,9 @@ from sema4ai_agent_server.storage.v2.postgres_v2 import PostgresStorageV2
 
 @pytest.mark.asyncio
 async def test_scoped_storage_crud_operations(
-    storage: PostgresStorageV2, 
-    sample_user_id: str, 
-    sample_agent: Agent, 
+    storage: PostgresStorageV2,
+    sample_user_id: str,
+    sample_agent: Agent,
     sample_thread: Thread,
 ) -> None:
     """
@@ -49,8 +49,8 @@ async def test_scoped_storage_crud_operations(
     assert any(s.storage_id == sample_scoped_storage.storage_id for s in storages)
 
     # Upsert: modify the stored dict and update
-    updated_scoped_storage = ScopedStorage.from_dict(
-        sample_scoped_storage.to_json_dict() | {
+    updated_scoped_storage = ScopedStorage.model_validate(
+        sample_scoped_storage.model_dump() | {
             "storage": {"key": "new_value"},
             "updated_at": datetime.now(UTC),
         },
@@ -72,15 +72,18 @@ async def test_scoped_storage_list_empty(storage: PostgresStorageV2) -> None:
     """
     Verify that listing scoped storage for a nonexistent scope returns an empty list.
     """
-    storages = await storage.list_scoped_storage_v2("user", "00000000-0000-0000-0000-000000000000")
+    storages = await storage.list_scoped_storage_v2(
+        "user",
+        "00000000-0000-0000-0000-000000000000",
+    )
     assert storages == []
 
 
 @pytest.mark.asyncio
 async def test_scoped_storage_update_timestamp(
-    storage: PostgresStorageV2, 
-    sample_user_id: str, 
-    sample_agent: Agent, 
+    storage: PostgresStorageV2,
+    sample_user_id: str,
+    sample_agent: Agent,
     sample_thread: Thread,
 ) -> None:
     """
@@ -106,18 +109,24 @@ async def test_scoped_storage_update_timestamp(
 
     # Pause briefly to ensure a later timestamp.
     await asyncio.sleep(0.01)
-    updated_scoped_storage = ScopedStorage.from_dict(
-        fetched.to_json_dict() | {"storage": {"key": "updated"}, "updated_at": datetime.now(UTC)},
+    updated_scoped_storage = ScopedStorage.model_validate(
+        fetched.model_dump() | {
+            "storage": {"key": "updated"},
+            "updated_at": datetime.now(UTC),
+        },
     )
     await storage.upsert_scoped_storage_v2(updated_scoped_storage)
-    fetched_after = await storage.get_scoped_storage_v2(sample_scoped_storage.storage_id)
+    fetched_after = await storage.get_scoped_storage_v2(
+        sample_scoped_storage.storage_id,
+    )
     assert fetched_after.updated_at > original_updated
 
 
 @pytest.mark.asyncio
 async def test_scoped_storage_not_found_error(storage: PostgresStorageV2) -> None:
     """
-    Test that deleting a non-existent scoped storage record raises ScopedStorageNotFoundError.
+    Test that deleting a non-existent scoped storage
+    record raises ScopedStorageNotFoundError.
     """
     non_existent_storage_id = str(uuid4())
     with pytest.raises(ScopedStorageNotFoundError):
@@ -128,9 +137,9 @@ async def test_scoped_storage_not_found_error(storage: PostgresStorageV2) -> Non
 
 @pytest.mark.asyncio
 async def test_scoped_storage_multiple_records_listing(
-    storage: PostgresStorageV2, 
-    sample_user_id: str, 
-    sample_agent: Agent, 
+    storage: PostgresStorageV2,
+    sample_user_id: str,
+    sample_agent: Agent,
     sample_thread: Thread,
 ) -> None:
     """
@@ -165,13 +174,14 @@ async def test_scoped_storage_multiple_records_listing(
 
 @pytest.mark.asyncio
 async def test_scoped_storage_immutable_created_by_fields(
-    storage: PostgresStorageV2, 
-    sample_user_id: str, 
-    sample_agent: Agent, 
+    storage: PostgresStorageV2,
+    sample_user_id: str,
+    sample_agent: Agent,
     sample_thread: Thread,
 ) -> None:
     """
-    Verify that when updating a scoped storage record, the 'created_by' fields remain unchanged.
+    Verify that when updating a scoped storage record,
+    the 'created_by' fields remain unchanged.
     """
     await storage.upsert_agent_v2(sample_user_id, sample_agent)
     await storage.upsert_thread_v2(sample_user_id, sample_thread)
@@ -191,9 +201,12 @@ async def test_scoped_storage_immutable_created_by_fields(
     original_user_id = original.created_by_user_id
     original_agent_id = original.created_by_agent_id
     original_thread_id = original.created_by_thread_id
-    
-    updated = ScopedStorage.from_dict(
-        original.to_json_dict() | {"storage": {"key": "updated"}, "updated_at": datetime.now(UTC)},
+
+    updated = ScopedStorage.model_validate(
+        original.model_dump() | {
+            "storage": {"key": "updated"},
+            "updated_at": datetime.now(UTC),
+        },
     )
     await storage.upsert_scoped_storage_v2(updated)
     fetched = await storage.get_scoped_storage_v2(original.storage_id)
@@ -205,13 +218,14 @@ async def test_scoped_storage_immutable_created_by_fields(
 
 @pytest.mark.asyncio
 async def test_scoped_storage_concurrent_updates(
-    storage: PostgresStorageV2, 
-    sample_user_id: str, 
-    sample_agent: Agent, 
+    storage: PostgresStorageV2,
+    sample_user_id: str,
+    sample_agent: Agent,
     sample_thread: Thread,
 ) -> None:
     """
-    Simulate concurrent updates to the same scoped storage record and verify the final state is valid.
+    Simulate concurrent updates to the same scoped storage
+    record and verify the final state is valid.
     """
     await storage.upsert_agent_v2(sample_user_id, sample_agent)
     await storage.upsert_thread_v2(sample_user_id, sample_thread)
@@ -233,8 +247,11 @@ async def test_scoped_storage_concurrent_updates(
         for _ in range(5):
             rec = await storage.get_scoped_storage_v2(original.storage_id)
             new_value = rec.storage.get("counter", 0) + increment
-            updated = ScopedStorage.from_dict(
-                rec.to_json_dict() | {"storage": {"counter": new_value}, "updated_at": datetime.now(UTC)},
+            updated = ScopedStorage.model_validate(
+                rec.model_dump() | {
+                    "storage": {"counter": new_value},
+                    "updated_at": datetime.now(UTC),
+                },
             )
             await storage.upsert_scoped_storage_v2(updated)
 
@@ -245,16 +262,17 @@ async def test_scoped_storage_concurrent_updates(
         update_storage(3),
     )
     final_rec = await storage.get_scoped_storage_v2(original.storage_id)
-    # Because concurrent updates may interleave, we cannot predict the final value exactly.
-    # At minimum, we check that the final counter is an integer.
+    # Because concurrent updates may interleave, we cannot
+    # predict the final value exactly. At minimum, we check
+    # that the final counter is an integer.
     assert isinstance(final_rec.storage["counter"], int)
 
 
 @pytest.mark.asyncio
 async def test_scoped_storage_invalid_json_in_storage_field(
-    storage: PostgresStorageV2, 
-    sample_user_id: str, 
-    sample_agent: Agent, 
+    storage: PostgresStorageV2,
+    sample_user_id: str,
+    sample_agent: Agent,
     sample_thread: Thread,
 ) -> None:
     """
@@ -276,18 +294,18 @@ async def test_scoped_storage_invalid_json_in_storage_field(
     )
     await storage.create_scoped_storage_v2(original)
     # Create an update with an unserializable object (a set).
-    updated_data = original.to_json_dict()
+    updated_data = original.model_dump()
     updated_data["storage"] = {"key": {"unserializable": set([1, 2, 3])}}
-    updated = ScopedStorage.from_dict(updated_data)
+    updated = ScopedStorage.model_validate(updated_data)
     with pytest.raises(TypeError):
         await storage.upsert_scoped_storage_v2(updated)
 
 
 @pytest.mark.asyncio
 async def test_scoped_storage_cross_scope_isolation(
-    storage: PostgresStorageV2, 
-    sample_user_id: str, 
-    sample_agent: Agent, 
+    storage: PostgresStorageV2,
+    sample_user_id: str,
+    sample_agent: Agent,
     sample_thread: Thread,
 ) -> None:
     """
@@ -324,21 +342,25 @@ async def test_scoped_storage_cross_scope_isolation(
     assert any(rec.storage_id == record1.storage_id for rec in listed_type_user)
     assert all(rec.scope_type == "user" for rec in listed_type_user)
 
-    listed_type_agent = await storage.list_scoped_storage_v2("agent", sample_agent.agent_id)
+    listed_type_agent = await storage.list_scoped_storage_v2(
+        "agent",
+        sample_agent.agent_id,
+    )
     assert any(rec.storage_id == record2.storage_id for rec in listed_type_agent)
     assert all(rec.scope_type == "agent" for rec in listed_type_agent)
 
 
 @pytest.mark.asyncio
 async def test_scoped_storage_recreation_after_deletion(
-    storage: PostgresStorageV2, 
-    sample_user_id: str, 
-    sample_agent: Agent, 
+    storage: PostgresStorageV2,
+    sample_user_id: str,
+    sample_agent: Agent,
     sample_thread: Thread,
 ) -> None:
     """
     Delete a scoped storage record and then re-create a record with the same storage ID.
-    Verify that the new record is correctly inserted and its audit fields reflect the new creation.
+    Verify that the new record is correctly inserted and its audit
+    fields reflect the new creation.
     """
     await storage.upsert_agent_v2(sample_user_id, sample_agent)
     await storage.upsert_thread_v2(sample_user_id, sample_thread)
@@ -360,7 +382,9 @@ async def test_scoped_storage_recreation_after_deletion(
     with pytest.raises(ScopedStorageNotFoundError):
         await storage.get_scoped_storage_v2(storage_id)
     # Make a new user
-    other_user, _ = await storage.get_or_create_user_v2(sub="tenant:testing:user:other_user")
+    other_user, _ = await storage.get_or_create_user_v2(
+        sub="tenant:testing:user:other_user",
+    )
     # Re-create a record with the same storage_id.
     new_record = ScopedStorage(
         storage_id=storage_id,
@@ -384,14 +408,15 @@ async def test_scoped_storage_recreation_after_deletion(
 
 @pytest.mark.asyncio
 async def test_scoped_storage_foreign_key_errors(
-    storage: PostgresStorageV2, 
-    sample_user_id: str, 
-    sample_agent: Agent, 
+    storage: PostgresStorageV2,
+    sample_user_id: str,
+    sample_agent: Agent,
     sample_thread: Thread,
 ) -> None:
     """
-    Verifys that we get a ReferenceIntegrityError when the foreign key reference is invalid.
-    (For users first, then agents, then threads.)
+    Verifys that we get a ReferenceIntegrityError when the
+    foreign key reference is invalid. (For users first,
+    then agents, then threads.)
     """
     non_existant_user_id = '00000000-0000-0000-0000-000000000000'
     non_existant_agent_id = '00000000-0000-0000-0000-000000000000'
@@ -501,7 +526,7 @@ async def test_scoped_storage_cascading_deletes(
     fetched = await storage.get_scoped_storage_v2(scoped_storage.storage_id)
     assert fetched is not None
     assert fetched.storage["key"] == "value"
-    
+
     # Delete the thread.
     await storage.delete_thread_v2(new_user.user_id, sample_thread.thread_id)
     with pytest.raises(ScopedStorageNotFoundError):

@@ -21,7 +21,8 @@ from sema4ai_agent_server.storage.v2.postgres_v2.common import CommonMixin
 class PostgresStorageFilesMixin(CommonMixin):
     """
     Mixin providing PostgreSQL-based file operations.
-    Assumes that helper methods such as `_cursor()` and `_validate_uuid()` are available.
+    Assumes that helper methods such as `_cursor()`
+    and `_validate_uuid()` are available.
     """
 
     _logger = get_logger(__name__)
@@ -33,7 +34,8 @@ class PostgresStorageFilesMixin(CommonMixin):
             owner: Either an Agent or Thread instance
 
         Returns:
-            tuple[str, str | None]: (agent_id, thread_id) where thread_id is None for Agent owners
+            tuple[str, str | None]: (agent_id, thread_id) where
+                thread_id is None for Agent owners
 
         Raises:
             ValueError: If owner is neither Agent nor Thread
@@ -42,7 +44,7 @@ class PostgresStorageFilesMixin(CommonMixin):
         """
         self._logger.debug(f"Validating owner type {owner}")
 
-        if not isinstance(owner, (Agent, Thread)):
+        if not isinstance(owner, Agent | Thread):
             raise ValueError("Owner must be either Agent or Thread instance")
 
         # Common validation for both types
@@ -85,7 +87,8 @@ class PostgresStorageFilesMixin(CommonMixin):
             fs_path = url_to_fs_path(file_url)
             if os.path.exists(fs_path):
                 os.remove(fs_path)
-                # remove parent directory as that gets created by the file upload as well
+                # remove parent directory as that gets
+                # created by the file upload as well
                 os.rmdir(os.path.dirname(fs_path))
         except Exception as e:
             self._logger.exception(f"Error deleting file at {file_url}: {e!s}")
@@ -146,8 +149,11 @@ class PostgresStorageFilesMixin(CommonMixin):
                 """SELECT f.*,
                    v2.check_user_access(f.user_id, %(user_id)s::uuid) AS has_access
                    FROM v2.file_owner f
-                   WHERE file_ref = %(file_ref)s 
-                   AND (agent_id = %(agent_id)s::uuid OR thread_id = %(thread_id)s::uuid)
+                   WHERE file_ref = %(file_ref)s
+                   AND (
+                     agent_id = %(agent_id)s::uuid OR
+                     thread_id = %(thread_id)s::uuid
+                   )
                 """,
                 {
                     "file_ref": file_ref,
@@ -209,8 +215,11 @@ class PostgresStorageFilesMixin(CommonMixin):
                 """SELECT f.file_path,
                    v2.check_user_access(f.user_id, %(user_id)s::uuid) AS has_access
                    FROM v2.file_owner f
-                   WHERE file_id = %(file_id)s::text 
-                   AND (agent_id = %(agent_id)s::uuid OR thread_id = %(thread_id)s::uuid)
+                   WHERE file_id = %(file_id)s::text
+                   AND (
+                     agent_id = %(agent_id)s::uuid OR
+                     thread_id = %(thread_id)s::uuid
+                   )
                 """,
                 {
                     "file_id": file_id,
@@ -297,12 +306,15 @@ class PostgresStorageFilesMixin(CommonMixin):
                 await cur.execute(
                     """
                     INSERT INTO v2.file_owner (
-                        file_id, file_path, file_ref, file_hash, file_size_raw, mime_type,
-                        user_id, embedded, agent_id, thread_id, file_path_expiration, created_at
+                        file_id, file_path, file_ref, file_hash,
+                        file_size_raw, mime_type, user_id, embedded,
+                        agent_id, thread_id, file_path_expiration,
+                        created_at
                     )
                     VALUES (
-                        %(file_id)s::uuid, %(file_path)s, %(file_ref)s, %(file_hash)s, %(file_size_raw)s, %(mime_type)s,
-                        %(user_id)s::uuid, %(embedded)s, %(agent_id)s::uuid, %(thread_id)s::uuid, 
+                        %(file_id)s::uuid, %(file_path)s, %(file_ref)s, %(file_hash)s,
+                        %(file_size_raw)s, %(mime_type)s, %(user_id)s::uuid,
+                        %(embedded)s, %(agent_id)s::uuid, %(thread_id)s::uuid,
                         %(file_path_expiration)s, %(created_at)s
                     )
                     ON CONFLICT(file_id) DO UPDATE SET

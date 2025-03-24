@@ -27,7 +27,7 @@ class AgentServerThreadStateInterface(ThreadStateInterface, UsesKernelMixin):
         """
         await self.kernel.outgoing_events.dispatch({
             "type": "delta",
-            "delta": delta_object.to_json_dict(),
+            "delta": delta_object.model_dump(),
         })
 
     async def _commit_message_to_storage(self, message: ThreadMessage) -> None:

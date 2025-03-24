@@ -12,9 +12,9 @@ from sema4ai_agent_server.storage.v2.postgres_v2 import PostgresStorageV2
 
 @pytest.mark.asyncio
 async def test_count_operations(
-    storage: PostgresStorageV2, 
-    sample_user_id: str, 
-    sample_agent: Agent, 
+    storage: PostgresStorageV2,
+    sample_user_id: str,
+    sample_agent: Agent,
     sample_thread: Thread,
 ) -> None:
     """
@@ -32,14 +32,16 @@ async def test_count_operations(
 
 @pytest.mark.asyncio
 async def test_user_access_function(
-    postgres_test_db: AsyncConnectionPool, 
+    postgres_test_db: AsyncConnectionPool,
     storage: PostgresStorageV2,
 ) -> None:
     """
     Test the check_user_access function in Postgres.
     """
     system_user_id: str = await storage.get_system_user_id_v2()
-    other_user, _ = await storage.get_or_create_user_v2(sub="tenant:testing:user:other_user")
+    other_user, _ = await storage.get_or_create_user_v2(
+        sub="tenant:testing:user:other_user",
+    )
     random_user_id: str = str(uuid4())
 
     async with postgres_test_db.connection() as conn:
@@ -81,24 +83,26 @@ async def test_user_access_function(
 @pytest.mark.asyncio
 async def test_get_or_create_user_idempotent(storage: PostgresStorageV2) -> None:
     """
-    Test that calling get_or_create_user_v2 twice with the same subject returns the same user
-    and that the second call indicates the user was not created anew.
+    Test that calling get_or_create_user_v2 twice with the same subject
+    returns the same user and that the second call indicates the user
+    was not created anew.
     """
     sub = "tenant:testing:user:idempotent"
     user1, created1 = await storage.get_or_create_user_v2(sub=sub)
     user2, created2 = await storage.get_or_create_user_v2(sub=sub)
 
     assert user1.user_id == user2.user_id
-    # We expect the first call to create the user and the second call to recognize it already exists.
+    # We expect the first call to create the user and the
+    # second call to recognize it already exists.
     assert created1 is True
     assert created2 is False
 
 
 @pytest.mark.asyncio
 async def test_count_after_deletion(
-    storage: PostgresStorageV2, 
-    sample_user_id: str, 
-    sample_agent: Agent, 
+    storage: PostgresStorageV2,
+    sample_user_id: str,
+    sample_agent: Agent,
     sample_thread: Thread,
 ) -> None:
     """
@@ -112,7 +116,9 @@ async def test_count_after_deletion(
     # Create two agents.
     from agent_server_types_v2.agent import Agent
     agent1 = sample_agent
-    agent2 = Agent.model_validate(sample_agent.model_dump() | {"agent_id": str(uuid4()), "name": "Second Agent"})
+    agent2 = Agent.model_validate(
+        sample_agent.model_dump() | {"agent_id": str(uuid4()), "name": "Second Agent"},
+    )
     await storage.upsert_agent_v2(sample_user_id, agent1)
     await storage.upsert_agent_v2(sample_user_id, agent2)
 
@@ -125,7 +131,9 @@ async def test_count_after_deletion(
         agent_id=agent2.agent_id,
         name="Second Thread",
         messages=[
-            ThreadMessage.from_dict(message.to_json_dict() | {"message_id": str(uuid4())})
+            ThreadMessage.model_validate(
+                message.model_dump() | {"message_id": str(uuid4())},
+            )
             for message in sample_thread.messages
         ],
         created_at=sample_thread.created_at,
@@ -169,7 +177,7 @@ async def test_concurrent_get_or_create_user(storage: PostgresStorageV2):
 
     # Use a semaphore to limit concurrent connections
     sem = asyncio.Semaphore(5)  # Limit concurrent operations
-    
+
     async def bounded_create():
         async with sem:
             return await create_user()
@@ -181,7 +189,7 @@ async def test_concurrent_get_or_create_user(storage: PostgresStorageV2):
 
     # Filter out any exceptions and valid results
     valid_results = [r for r in results if not isinstance(r, Exception)]
-    
+
     if not valid_results:
         pytest.fail("All concurrent operations failed")
 
@@ -197,12 +205,16 @@ async def test_concurrent_get_or_create_user(storage: PostgresStorageV2):
 async def test_invalid_user_access_input(postgres_test_db: AsyncConnectionPool):
     """
     Call the SQL function v2.check_user_access with invalid inputs (empty strings)
-    and verify that it returns a default value (assumed 0) or handles the input gracefully.
+    and verify that it returns a default value (assumed 0) or
+    handles the input gracefully.
     """
     async with postgres_test_db.connection() as conn:
         async with conn.cursor() as cur:
             with pytest.raises(InvalidTextRepresentation):
-                await cur.execute("SELECT v2.check_user_access(%s, %s) AS check_user_access", ("", ""))
+                await cur.execute(
+                    "SELECT v2.check_user_access(%s, %s) AS check_user_access",
+                    ("", ""),
+                )
 
 
 @pytest.mark.asyncio

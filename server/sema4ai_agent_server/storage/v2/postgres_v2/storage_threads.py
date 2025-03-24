@@ -35,10 +35,12 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
                 return []
 
             # 4. Return the threads
-            return [Thread.from_dict(row) for row in rows]
+            return [Thread.model_validate(row) for row in rows]
 
 
-    async def list_threads_for_agent_v2(self, user_id: str, agent_id: str) -> list[Thread]:
+    async def list_threads_for_agent_v2(
+        self, user_id: str, agent_id: str,
+    ) -> list[Thread]:
         """List all threads for the given agent."""
         # 1. Validate the uuids
         self._validate_uuid(user_id)
@@ -47,9 +49,9 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
         async with self._cursor() as cur:
             # 2. Get the threads (and check if the user has access)
             await cur.execute(
-                """SELECT t.* 
+                """SELECT t.*
                    FROM v2.thread t
-                   WHERE t.agent_id = %(agent_id)s::uuid 
+                   WHERE t.agent_id = %(agent_id)s::uuid
                    AND v2.check_user_access(t.user_id, %(user_id)s::uuid)""",
                 {"agent_id": agent_id, "user_id": user_id},
             )
@@ -59,7 +61,7 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
                 return []
 
             # 4. Return the threads
-            return [Thread.from_dict(row) for row in rows]
+            return [Thread.model_validate(row) for row in rows]
 
     async def get_thread_v2(self, user_id: str, thread_id: str) -> Thread:
         """Get a thread by ID with its messages."""
@@ -91,7 +93,7 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
 
             # 6. Create thread with messages
             thread_dict = thread_row | {"messages": messages or []}
-            return Thread.from_dict(thread_dict)
+            return Thread.model_validate(thread_dict)
 
     async def upsert_thread_v2(self, user_id: str, thread: Thread) -> None:
         """Update a thread."""
@@ -101,7 +103,9 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
         async with self._cursor() as cur:
             # 2. Check if the user has access
             await cur.execute(
-                """SELECT v2.check_user_access(t.user_id, %(user_id)s::uuid) as has_access
+                """SELECT v2.check_user_access(
+                     t.user_id, %(user_id)s::uuid
+                   ) as has_access
                    FROM v2.thread t
                    WHERE t.thread_id = %(thread_id)s::uuid""",
                 {"thread_id": thread.thread_id, "user_id": user_id},
@@ -110,10 +114,12 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
             # 3. If the thread was found, we must have access
             if (access_row := await cur.fetchone()):
                 if not access_row.pop("has_access"):
-                    raise UserAccessDeniedError(f"Access denied to thread {thread.thread_id}")
+                    raise UserAccessDeniedError(
+                        f"Access denied to thread {thread.thread_id}",
+                    )
 
             # 4. Prepare the thread for upsert
-            thread_dict = thread.to_json_dict() | {"user_id": user_id}
+            thread_dict = thread.model_dump() | {"user_id": user_id}
             thread_dict["metadata"] = Jsonb(thread_dict["metadata"])
             messages = thread_dict.pop('messages', [])
 
@@ -121,10 +127,12 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
             try:
                 await cur.execute(
                     """INSERT INTO v2.thread
-                    (thread_id, name, user_id, agent_id, created_at, updated_at, metadata)
-                    VALUES (%(thread_id)s::uuid, %(name)s, %(user_id)s::uuid, 
-                            %(agent_id)s::uuid, %(created_at)s, %(updated_at)s, %(metadata)s)
-                    ON CONFLICT (thread_id) 
+                    (thread_id, name, user_id, agent_id,
+                    created_at, updated_at, metadata)
+                    VALUES (%(thread_id)s::uuid, %(name)s, %(user_id)s::uuid,
+                            %(agent_id)s::uuid, %(created_at)s, %(updated_at)s,
+                            %(metadata)s)
+                    ON CONFLICT (thread_id)
                     DO UPDATE SET
                         name = EXCLUDED.name,
                         user_id = EXCLUDED.user_id,
@@ -136,15 +144,21 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
                 )
             except UniqueViolation as e:
                 if "duplicate key value violates unique constraint" in str(e):
-                    raise RecordAlreadyExistsError(f"Thread {thread.thread_id} already exists") from e
+                    raise RecordAlreadyExistsError(
+                        f"Thread {thread.thread_id} already exists",
+                    ) from e
                 raise e
             except ForeignKeyViolation as e:
-                raise ReferenceIntegrityError("Invalid foreign key reference updating thread") from e
+                raise ReferenceIntegrityError(
+                    "Invalid foreign key reference updating thread",
+                ) from e
             except Exception:
                 raise
 
             # 6. Overwrite messages
-            await self.overwrite_thread_messages_v2(thread.thread_id, messages, cursor=cur)
+            await self.overwrite_thread_messages_v2(
+                thread.thread_id, messages, cursor=cur,
+            )
 
 
     async def delete_thread_v2(self, user_id: str, thread_id: str) -> None:

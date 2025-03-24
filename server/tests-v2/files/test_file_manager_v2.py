@@ -283,7 +283,7 @@ async def setup_storage(
 @patch("sema4ai_agent_server.file_manager.v2.local_v2.get_storage_v2")
 @patch("sema4ai_agent_server.file_manager.v2.cloud_v2.get_storage_v2")
 class TestFileManager:
-    async def test_upload_success(
+    async def test_upload_success(  # noqa: PLR0913
         self,
         mock_get_storage_cloud,
         mock_get_storage_local,
@@ -310,7 +310,7 @@ class TestFileManager:
         assert results[0].thread_id == sample_uploaded_file.thread_id
         assert results[0].agent_id == sample_uploaded_file.agent_id
 
-    async def test_upload_duplicate_file_names(
+    async def test_upload_duplicate_file_names(  # noqa: PLR0913
         self,
         mock_get_storage_cloud,
         mock_get_storage_local,
@@ -333,7 +333,7 @@ class TestFileManager:
                 user_id=sample_thread.user_id,
             )
 
-    async def test_upload_invalid_file_names(
+    async def test_upload_invalid_file_names(  # noqa: PLR0913
         self,
         mock_get_storage_cloud,
         mock_get_storage_local,
@@ -355,7 +355,7 @@ class TestFileManager:
                     user_id=sample_thread.user_id,
                 )
 
-    async def test_upload_invalid_characters(
+    async def test_upload_invalid_characters(  # noqa: PLR0913
         self,
         mock_get_storage_cloud,
         mock_get_storage_local,
@@ -377,7 +377,7 @@ class TestFileManager:
                     user_id=sample_thread.user_id,
                 )
 
-    async def test_delete_file(
+    async def test_delete_file(  # noqa: PLR0913
         self,
         mock_get_storage_cloud,
         mock_get_storage_local,
@@ -408,7 +408,7 @@ class TestFileManager:
         file = await setup_storage.get_file_by_id_v2(file_id, sample_thread.user_id)
         assert file is None
 
-    async def test_delete_thread_files(
+    async def test_delete_thread_files(  # noqa: PLR0913
         self,
         mock_get_storage_cloud,
         mock_get_storage_local,
@@ -446,7 +446,7 @@ class TestFileManager:
                 sample_thread.thread_id,
             )
 
-    async def test_read_file_contents(
+    async def test_read_file_contents(  # noqa: PLR0913
         self,
         mock_get_storage_cloud,
         mock_get_storage_local,
@@ -472,7 +472,7 @@ class TestFileManager:
         await sample_file.seek(0)
         assert contents == await sample_file.read()
 
-    async def test_access_file_wrong_user(
+    async def test_access_file_wrong_user(  # noqa: PLR0913
         self,
         mock_get_storage_cloud,
         mock_get_storage_local,
@@ -596,7 +596,7 @@ class TestFileManager:
             )
             assert results[0].mime_type == expected_mime
 
-    async def test_request_remote_file_upload(
+    async def test_request_remote_file_upload(  # noqa: PLR0913
         self,
         mock_get_storage_cloud,
         mock_get_storage_local,

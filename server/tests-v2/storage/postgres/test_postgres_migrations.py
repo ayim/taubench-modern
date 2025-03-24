@@ -7,7 +7,11 @@ from psycopg import AsyncCursor
 from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
 
-from sema4ai_agent_server.storage.v2.migrations_v2 import MigrationError, MigrationLockError, MigrationTimeoutError
+from sema4ai_agent_server.storage.v2.migrations_v2 import (
+    MigrationError,
+    MigrationLockError,
+    MigrationTimeoutError,
+)
 from sema4ai_agent_server.storage.v2.postgres_v2.migrations import PostgresMigrationsV2
 
 
@@ -15,7 +19,8 @@ from sema4ai_agent_server.storage.v2.postgres_v2.migrations import PostgresMigra
 async def _reset_v2_schema(postgres_test_db: AsyncConnectionPool):
     """
     Resets the v2 schema before each test:
-    - Drops the schema if it exists (removing all tables, including migration locks/cache)
+    - Drops the schema if it exists (removing all tables,
+      including migration locks/cache)
     - Recreates a clean v2 schema.
     This ensures that each migration test starts from a known baseline.
     """
@@ -28,7 +33,9 @@ async def _reset_v2_schema(postgres_test_db: AsyncConnectionPool):
 
 
 @pytest.fixture
-async def cursor_provider(postgres_test_db: AsyncConnectionPool) -> AsyncGenerator[AsyncCursor, None]:
+async def cursor_provider(
+    postgres_test_db: AsyncConnectionPool,
+) -> AsyncGenerator[AsyncCursor, None]:
     """
     Provides a reusable cursor provider function that wraps the connection pool.
     """
@@ -44,7 +51,7 @@ async def cursor_provider(postgres_test_db: AsyncConnectionPool) -> AsyncGenerat
 
 @pytest.mark.asyncio
 async def test_postgres_run_migrations_successfully(
-    postgres_test_db: AsyncConnectionPool, 
+    postgres_test_db: AsyncConnectionPool,
     cursor_provider: AsyncCursor,
 ):
     """
@@ -52,10 +59,13 @@ async def test_postgres_run_migrations_successfully(
     and that the final schema is as expected.
     """
     path_to_migrations = (
-        Path(__file__).parent.parent.parent.parent / "sema4ai_agent_server" 
+        Path(__file__).parent.parent.parent.parent / "sema4ai_agent_server"
         / "migrations" / "v2" / "postgres"
     )
-    migrations = PostgresMigrationsV2(cursor_provider, migrations_path=path_to_migrations)
+    migrations = PostgresMigrationsV2(
+        cursor_provider,
+        migrations_path=path_to_migrations,
+    )
 
     # Run the migrations
     await migrations.run_migrations()
@@ -66,7 +76,7 @@ async def test_postgres_run_migrations_successfully(
             # Example: Check that a "v2.agent" table now exists
             await cur.execute("""
                 SELECT EXISTS (
-                    SELECT FROM information_schema.tables 
+                    SELECT FROM information_schema.tables
                     WHERE  table_schema = 'v2'
                     AND    table_name   = 'agent'
                 );
@@ -78,21 +88,29 @@ async def test_postgres_run_migrations_successfully(
     # You might also check the migrations table to ensure the highest version is correct
     async with postgres_test_db.connection() as conn:
         async with conn.cursor(row_factory=dict_row) as cur:
-            await cur.execute("SELECT version FROM v2.migrations ORDER BY version DESC LIMIT 1;")
+            await cur.execute(
+                "SELECT version FROM v2.migrations ORDER BY version DESC LIMIT 1;",
+            )
             row = await cur.fetchone()
             latest_version = row["version"] if row else None
 
             # Let's count the number of migrations we have in the migrations folder
-            migration_files = [f for f in path_to_migrations.iterdir() if f.is_file() and f.name.endswith(".up.sql")]
+            migration_files = [
+                f for f in path_to_migrations.iterdir()
+                if f.is_file() and f.name.endswith(".up.sql")
+            ]
             num_migrations = len(migration_files)
             assert (
                 latest_version == num_migrations
-            ), f"Expected the latest migration version to be {num_migrations}, got {latest_version}"
+            ), (
+                f"Expected the latest migration version to be {num_migrations}, "
+                f"got {latest_version}"
+            )
 
 
 @pytest.mark.asyncio
 async def test_postgres_run_migrations_dirty_state(
-    postgres_test_db: AsyncConnectionPool, 
+    postgres_test_db: AsyncConnectionPool,
     cursor_provider: AsyncCursor,
 ):
     """
@@ -129,7 +147,7 @@ async def test_postgres_run_migrations_dirty_state(
 
 @pytest.mark.asyncio
 async def test_postgres_migration_timeout(
-    cursor_provider: AsyncCursor, 
+    cursor_provider: AsyncCursor,
     tmp_path: Path,
 ):
     """
@@ -151,7 +169,9 @@ async def test_postgres_migration_timeout(
 
         # Create a PostgresMigrationsV2 instance with a shorter timeout
         migrations = PostgresMigrationsV2(
-            cursor_provider, timeout=1.0, migrations_path=Path(str(temp_migration_path.parent)),
+            cursor_provider,
+            timeout=1.0,
+            migrations_path=Path(str(temp_migration_path.parent)),
         )
 
         # Run migrations and expect timeout
@@ -166,8 +186,8 @@ async def test_postgres_migration_timeout(
 
 @pytest.mark.asyncio
 async def test_postgres_invalid_migration_filename(
-    postgres_test_db: AsyncConnectionPool, 
-    cursor_provider: AsyncCursor, 
+    postgres_test_db: AsyncConnectionPool,
+    cursor_provider: AsyncCursor,
     tmp_path: Path,
 ):
     """
@@ -181,7 +201,10 @@ async def test_postgres_invalid_migration_filename(
             f.write("CREATE TABLE test (id SERIAL PRIMARY KEY);")
 
         # Initialize migrations instance pointing to the temporary directory
-        migrations = PostgresMigrationsV2(cursor_provider, migrations_path=Path(str(temp_migration_path.parent)))
+        migrations = PostgresMigrationsV2(
+            cursor_provider,
+            migrations_path=Path(str(temp_migration_path.parent)),
+        )
 
         # Run migrations
         await migrations.run_migrations()
@@ -189,11 +212,14 @@ async def test_postgres_invalid_migration_filename(
         # Check that the invalid file was ignored
         async with postgres_test_db.connection() as conn:
             async with conn.cursor() as cur:
-                await cur.execute("SELECT version FROM v2.migrations ORDER BY version DESC LIMIT 1;")
+                await cur.execute(
+                    "SELECT version FROM v2.migrations ORDER BY version DESC LIMIT 1;",
+                )
                 row = await cur.fetchone()
                 latest_version = row[0] if row else 0
 
-                # Since the invalid file was ignored, no new migrations should have been applied
+                # Since the invalid file was ignored, no new
+                # migrations should have been applied
                 assert latest_version == 0
 
     finally:
@@ -204,7 +230,7 @@ async def test_postgres_invalid_migration_filename(
 
 @pytest.mark.asyncio
 async def test_postgres_migration_lock_cannot_be_acquired(
-    postgres_test_db: AsyncConnectionPool, 
+    postgres_test_db: AsyncConnectionPool,
     cursor_provider: AsyncCursor,
 ):
     """
@@ -244,7 +270,7 @@ async def test_postgres_migration_lock_cannot_be_acquired(
 
 @pytest.mark.asyncio
 async def test_postgres_migration_checksum_drift(
-    cursor_provider: AsyncCursor, 
+    cursor_provider: AsyncCursor,
     tmp_path: Path,
 ):
     """
@@ -265,7 +291,9 @@ async def test_postgres_migration_checksum_drift(
         await cur.execute("DELETE FROM v2.migration_locks WHERE id = 1;")
 
     # 3) Modify the SAME file content (simulate drift)
-    migration_file.write_text("CREATE TABLE drift_test (id SERIAL PRIMARY KEY, name TEXT);")
+    migration_file.write_text(
+        "CREATE TABLE drift_test (id SERIAL PRIMARY KEY, name TEXT);",
+    )
 
     # 4) Run migrations again and expect a checksum drift error
     with pytest.raises(MigrationError) as exc_info:
@@ -275,7 +303,10 @@ async def test_postgres_migration_checksum_drift(
 
 
 @pytest.mark.asyncio
-async def test_postgres_empty_migration_file(cursor_provider: AsyncCursor, tmp_path: Path):
+async def test_postgres_empty_migration_file(
+    cursor_provider: AsyncCursor,
+    tmp_path: Path,
+):
     """
     Test that an empty migration file raises a MigrationError.
     """
@@ -294,8 +325,8 @@ async def test_postgres_empty_migration_file(cursor_provider: AsyncCursor, tmp_p
 
 @pytest.mark.asyncio
 async def test_postgres_migration_sql_syntax_error(
-    postgres_test_db: AsyncConnectionPool, 
-    cursor_provider: AsyncCursor, 
+    postgres_test_db: AsyncConnectionPool,
+    cursor_provider: AsyncCursor,
     tmp_path: Path,
 ):
     """
@@ -304,14 +335,17 @@ async def test_postgres_migration_sql_syntax_error(
     """
     # Create a migration file with a syntax error
     bad_migration = tmp_path / "3_bad_syntax.up.sql"
-    bad_migration.write_text("CREAT TABLE bad_syntax (id SERIAL PRIMARY KEY);")  # Missing 'E'
+    # Missing 'E'
+    bad_migration.write_text("CREAT TABLE bad_syntax (id SERIAL PRIMARY KEY);")
 
     migrations = PostgresMigrationsV2(cursor_provider, migrations_path=tmp_path)
 
     with pytest.raises(MigrationError) as exc_info:
         await migrations.run_migrations()
 
-    assert "Migration 3 failed:" in str(exc_info.value), "Expected a MigrationError due to syntax error."
+    assert (
+        "Migration 3 failed:" in str(exc_info.value)
+    ), "Expected a MigrationError due to syntax error."
 
     # Verify that the migration is still marked 'dirty' (or not in DB at all)
     async with postgres_test_db.connection() as conn:
@@ -319,19 +353,23 @@ async def test_postgres_migration_sql_syntax_error(
             await cur.execute("SELECT dirty FROM v2.migrations WHERE version = 3;")
             row = await cur.fetchone()
             # Either row won't exist or it will be dirty.
-            # Implementation detail: we first insert dirty=TRUE, then run the migration, then rollback.
+            # Implementation detail: we first insert dirty=TRUE, then run the
+            # migration, then rollback.
             # So the record might remain with dirty=TRUE.
             if row:
-                assert row[0] is True, "Expected migration 3 to remain dirty after SQL error."
+                assert (
+                    row[0] is True
+                ), "Expected migration 3 to remain dirty after SQL error."
 
 @pytest.mark.asyncio
 async def test_postgres_migrations_idempotency(
-    postgres_test_db: AsyncConnectionPool, 
-    cursor_provider: AsyncCursor, 
+    postgres_test_db: AsyncConnectionPool,
+    cursor_provider: AsyncCursor,
     tmp_path: Path,
 ):
     """
-    Run migrations twice and verify that the number of applied migrations remains the same.
+    Run migrations twice and verify that the number of applied
+    migrations remains the same.
     """
     # Use your normal migrations directory.
     migrations_path = (
@@ -339,7 +377,7 @@ async def test_postgres_migrations_idempotency(
         "sema4ai_agent_server" / "migrations" / "v2" / "postgres"
     )
     migrations = PostgresMigrationsV2(cursor_provider, migrations_path=migrations_path)
-    
+
     await migrations.run_migrations()
     async with postgres_test_db.connection() as conn:
         async with conn.cursor() as cur:
@@ -351,21 +389,21 @@ async def test_postgres_migrations_idempotency(
     async with cursor_provider() as cur:
         # Just wipe out the lock row entirely (or only if locked_by = <pid1>)
         await cur.execute("DELETE FROM v2.migration_locks WHERE id = 1;")
-    
+
     await migrations.run_migrations()
     async with postgres_test_db.connection() as conn:
         async with conn.cursor() as cur:
             await cur.execute("SELECT COUNT(*) FROM v2.migrations")
             row = await cur.fetchone()
             second_count = row[0]
-    
+
     assert initial_count == second_count, "Postgres migrations are not idempotent."
 
 
 @pytest.mark.asyncio
 async def test_postgres_empty_migrations_directory(
-    postgres_test_db: AsyncConnectionPool, 
-    cursor_provider: AsyncCursor, 
+    postgres_test_db: AsyncConnectionPool,
+    cursor_provider: AsyncCursor,
     tmp_path: Path,
 ):
     """
@@ -375,22 +413,22 @@ async def test_postgres_empty_migrations_directory(
     empty_dir = tmp_path / "empty_migrations"
     empty_dir.mkdir()
     migrations = PostgresMigrationsV2(cursor_provider, migrations_path=empty_dir)
-    
+
     await migrations.run_migrations()
-    
+
     async with postgres_test_db.connection() as conn:
         async with conn.cursor() as cur:
             await cur.execute("SELECT COUNT(*) FROM v2.migrations")
             row = await cur.fetchone()
             count = row[0]
-    
+
     assert count == 0, "Expected no migrations when the migrations directory is empty."
 
 
 @pytest.mark.asyncio
 async def test_postgres_rollback_on_failure(
-    postgres_test_db: AsyncConnectionPool, 
-    cursor_provider: AsyncCursor, 
+    postgres_test_db: AsyncConnectionPool,
+    cursor_provider: AsyncCursor,
     tmp_path: Path,
 ):
     """
@@ -400,45 +438,59 @@ async def test_postgres_rollback_on_failure(
     migration_dir = tmp_path / "faulty_migrations"
     migration_dir.mkdir()
     migration_file = migration_dir / "1_faulty.up.sql"
-    
+
     # Make sure we have explicit transaction boundaries in the migration SQL
     migration_file.write_text("""
         CREATE TABLE v2.rollback_test (id INTEGER PRIMARY KEY);
         SELECT INVALID_FUNCTION();  -- This will cause an error
     """)
-    
+
     migrations = PostgresMigrationsV2(cursor_provider, migrations_path=migration_dir)
-    
+
     with pytest.raises(MigrationError):
         await migrations.run_migrations()
-    
+
     # Check if the table exists - the EXISTS query returns a boolean
     async with postgres_test_db.connection() as conn:
         async with conn.cursor() as cur:
             await cur.execute("""
                 SELECT EXISTS (
-                    SELECT FROM information_schema.tables 
+                    SELECT FROM information_schema.tables
                     WHERE table_schema = 'v2'
                     AND    table_name   = 'rollback_test'
                 );
             """)
             row = await cur.fetchone()
             table_exists = row[0] if row else False
-    
-    assert not table_exists, "Table 'rollback_test' should not exist after a migration failure."
+
+    assert not table_exists, (
+        "Table 'rollback_test' should not exist after a migration failure."
+    )
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("bad_sql", "err_msg"),
     [
-        ("BEGIN;\nCREATE TABLE test (id INTEGER);", "Migration file contains 'BEGIN;'"),
-        ("   BEGIN;  \nCREATE TABLE test (id INTEGER);", "Migration file contains 'BEGIN;'"),
-        ("CREATE TABLE test (id INTEGER);\nCOMMIT;", "Migration file contains 'COMMIT;'"),
-        ("ROLLBACK;\nCREATE TABLE test (id INTEGER);", "Migration file contains 'ROLLBACK;'"),
+        (
+            "BEGIN;\nCREATE TABLE test (id INTEGER);",
+            "Migration file contains 'BEGIN;'",
+        ),
+        (
+            "   BEGIN;  \nCREATE TABLE test (id INTEGER);",
+            "Migration file contains 'BEGIN;'",
+        ),
+        (
+            "CREATE TABLE test (id INTEGER);\nCOMMIT;",
+            "Migration file contains 'COMMIT;'",
+        ),
+        (
+            "ROLLBACK;\nCREATE TABLE test (id INTEGER);",
+            "Migration file contains 'ROLLBACK;'",
+        ),
     ],
 )
 async def test_migration_script_with_transaction_commands(
-    cursor_provider: AsyncCursor, 
+    cursor_provider: AsyncCursor,
     tmp_path: Path,
     bad_sql: str,
     err_msg: str,
@@ -450,15 +502,17 @@ async def test_migration_script_with_transaction_commands(
     # Create a temporary migrations directory
     migration_dir = tmp_path / "bad_migrations"
     migration_dir.mkdir(exist_ok=True)
-    
-    # Write the bad migration file; the filename has the correct version/description pattern.
+
+    # Write the bad migration file; the filename
+    # has the correct version/description pattern.
     migration_file = migration_dir / "1_bad.up.sql"
     migration_file.write_text(bad_sql)
-    
+
     # Initialize the migrations provider with the temporary migration directory.
     migrations = PostgresMigrationsV2(cursor_provider, migrations_path=migration_dir)
 
-    # Running the migrations should trigger a MigrationError due to forbidden transaction commands.
+    # Running the migrations should trigger a MigrationError
+    # due to forbidden transaction commands.
     with pytest.raises(MigrationError) as excinfo:
         await migrations.run_migrations()
 

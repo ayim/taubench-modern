@@ -47,7 +47,10 @@ async def test_agent_crud_operations(
         sample_agent.model_dump() | {"name": "Updated Agent Name"},
     )
     await storage.upsert_agent_v2(sample_user_id, updated_agent)
-    retrieved_updated = await storage.get_agent_v2(sample_user_id, sample_agent.agent_id)
+    retrieved_updated = await storage.get_agent_v2(
+        sample_user_id, sample_agent.agent_id,
+    )
+    assert retrieved_updated is not None
     assert retrieved_updated.name == "Updated Agent Name"
 
     # Delete the agent.
@@ -115,7 +118,9 @@ async def test_agent_system_user_access(
     # The system user should be allowed to access this agent.
     system_user_id: str = await storage.get_system_user_id_v2()
     if system_user_id:
-        system_accessed_agent = await storage.get_agent_v2(system_user_id, sample_agent.agent_id)
+        system_accessed_agent = await storage.get_agent_v2(
+            system_user_id, sample_agent.agent_id,
+        )
         assert system_accessed_agent is not None
         assert system_accessed_agent.agent_id == sample_agent.agent_id
 
@@ -126,7 +131,9 @@ async def test_agent_regular_user_access(
 ) -> None:
     # Insert an agent for the current (regular) user.
     await storage.upsert_agent_v2(sample_user_id, sample_agent)
-    regular_accessed_agent = await storage.get_agent_v2(sample_user_id, sample_agent.agent_id)
+    regular_accessed_agent = await storage.get_agent_v2(
+        sample_user_id, sample_agent.agent_id,
+    )
     assert regular_accessed_agent is not None
     assert regular_accessed_agent.agent_id == sample_agent.agent_id
 
@@ -140,14 +147,19 @@ async def test_agent_regular_user_access(
 
 @pytest.mark.asyncio
 async def test_agent_delete_cascades_threads(
-    storage: PostgresStorageV2, sample_user_id: str, sample_agent: Agent, sample_thread: Thread,
+    storage: PostgresStorageV2,
+    sample_user_id: str,
+    sample_agent: Agent,
+    sample_thread: Thread,
 ) -> None:
     # Create an agent and an associated thread.
     await storage.upsert_agent_v2(sample_user_id, sample_agent)
     await storage.upsert_thread_v2(sample_user_id, sample_thread)
 
     # Verify the thread exists.
-    existing_thread = await storage.get_thread_v2(sample_user_id, sample_thread.thread_id)
+    existing_thread = await storage.get_thread_v2(
+        sample_user_id, sample_thread.thread_id,
+    )
     assert existing_thread is not None
 
     # Delete the agent; threads should be cascaded (removed).
@@ -177,8 +189,12 @@ async def test_agent_case_insensitive_lookup(
     # Insert the agent.
     await storage.upsert_agent_v2(sample_user_id, sample_agent)
     # Look up the agent using lower-case and upper-case variations.
-    agent_lower = await storage.get_agent_by_name_v2(sample_user_id, sample_agent.name.lower())
-    agent_upper = await storage.get_agent_by_name_v2(sample_user_id, sample_agent.name.upper())
+    agent_lower = await storage.get_agent_by_name_v2(
+        sample_user_id, sample_agent.name.lower(),
+    )
+    agent_upper = await storage.get_agent_by_name_v2(
+        sample_user_id, sample_agent.name.upper(),
+    )
     assert agent_lower is not None
     assert agent_upper is not None
     assert agent_lower.agent_id == sample_agent.agent_id
