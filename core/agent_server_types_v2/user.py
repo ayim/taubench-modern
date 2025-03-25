@@ -53,7 +53,7 @@ class User:
         """Control Room System ID"""
         return self._parsed_sub["system"]
 
-    def to_json_dict(self) -> dict:
+    def model_dump(self) -> dict:
         """Convert the user to a dictionary."""
         return {
             "user_id": self.user_id,
@@ -62,7 +62,7 @@ class User:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "User":
+    def model_validate(cls, data: dict) -> "User":
         """Create a User from a dictionary."""
         data = data.copy()
         if "user_id" in data and isinstance(data["user_id"], UUID):

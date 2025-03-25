@@ -1,9 +1,10 @@
 from dataclasses import dataclass, field, fields
-from typing import Self
-
-from botocore.config import Config
+from typing import TYPE_CHECKING, Literal, Self
 
 from agent_server_types_v2.platforms.base import PlatformParameters
+
+if TYPE_CHECKING:
+    from botocore.config import Config
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -70,6 +71,13 @@ class BedrockPlatformParameters(PlatformParameters):
         )
         ```
     """
+
+    kind: Literal["bedrock"] = field(
+        default="bedrock",
+        metadata={"description": "The kind of platform parameters."},
+        init=False,
+    )
+    """The kind of platform parameters."""
 
     # Direct client parameters
     region_name: str | None = field(
@@ -157,43 +165,49 @@ class BedrockPlatformParameters(PlatformParameters):
         },
     )
 
-    # Config object for additional settings
-    config: Config | None = field(
-        default=None,
-        metadata={
-            "description": "Botocore Config object for advanced client configuration. "
-            "Can be used to set retry behavior, timeouts, connection parameters, "
-            "and more. See botocore.config.Config documentation for all available "
-            "options.",
-            "example": "Config(retries={'max_attempts': 3}, connect_timeout=5)",
-        },
-    )
-
     _extra_config_params: dict | None = field(default=None, init=False, repr=False)
+
+    @property
+    def config(self) -> "Config | None":
+        """The botocore Config object for advanced client configuration."""
+        return self._config
 
     def __post_init__(self) -> None:
         """Process any extra kwargs as Config parameters after dataclass
         initialization."""
+        object.__setattr__(self, "_config", None)
+
         # Get all dataclass fields that are meant for initialization
         all_fields = {f.name for f in fields(self) if f.init}
 
         # Get any parameters that aren't part of our declared fields
         extra_params = {}
+        to_delete = []
         for k, v in vars(self).items():
             if k not in all_fields and not k.startswith("_"):
                 extra_params[k] = v
-                object.__delattr__(self, k)
+                to_delete.append(k)
+
+        # Pop kind from extra_params if it exists
+        extra_params.pop("kind", None)
+
+        # Delete the extra attributes after iteration
+        # (Can't do this in the above loop, or you'll get a RuntimeError)
+        for k in to_delete:
+            object.__delattr__(self, k)
 
         if extra_params:
+            from botocore.config import Config
+
             # Store for later use in model_copy
             object.__setattr__(self, "_extra_config_params", extra_params)
 
             # Create or update the Config object
             new_config = Config(**extra_params)
-            if self.config is None:
-                object.__setattr__(self, "config", new_config)
+            if self._config is None:
+                object.__setattr__(self, "_config", new_config)
             else:
-                object.__setattr__(self, "config", self.config.merge(new_config))
+                object.__setattr__(self, "_config", self._config.merge(new_config))
 
     def model_dump(
         self,
@@ -213,6 +227,7 @@ class BedrockPlatformParameters(PlatformParameters):
                 default values. Not implemented.
         """
         result = {
+            "kind": self.kind,
             "region_name": self.region_name,
             "api_version": self.api_version,
             "use_ssl": self.use_ssl,
@@ -221,7 +236,7 @@ class BedrockPlatformParameters(PlatformParameters):
             "aws_access_key_id": self.aws_access_key_id,
             "aws_secret_access_key": self.aws_secret_access_key,
             "aws_session_token": self.aws_session_token,
-            "config": self.config,
+            "config": self._config,
         }
 
         if exclude_none:
@@ -265,3 +280,12 @@ class BedrockPlatformParameters(PlatformParameters):
         final_params = {**current_params, **update_params, **config_updates}
         final_params = {k: v for k, v in final_params.items() if v is not None}
         return BedrockPlatformParameters(**final_params)
+
+    @classmethod
+    def model_validate(cls, obj: dict) -> "BedrockPlatformParameters":
+        # Directly pass the dictionary to the constructor.
+        # The constructor and __post_init__ will handle extra parameters.
+        return cls(**obj)
+
+
+PlatformParameters.register_platform_parameters("bedrock", BedrockPlatformParameters)

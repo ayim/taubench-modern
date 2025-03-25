@@ -27,7 +27,7 @@ class ThreadQuickActionContent:
     )
     """The icon of the quick action (if any)"""
 
-    def to_json_dict(self) -> dict:
+    def model_dump(self) -> dict:
         """Serializes the quick action content to a dictionary.
         Useful for JSON serialization."""
         return {
@@ -37,7 +37,7 @@ class ThreadQuickActionContent:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "ThreadQuickActionContent":
+    def model_validate(cls, data: dict) -> "ThreadQuickActionContent":
         """Create a thread quick action content from a dictionary."""
         return cls(**data)
 
@@ -105,20 +105,20 @@ class ThreadQuickActionsContent(ThreadMessageContent):
         actions_str = "\n".join(actions_as_strs)
         return f"<quick_actions>\n{actions_str}\n</quick_actions>"
 
-    def to_json_dict(self) -> dict:
+    def model_dump(self) -> dict:
         """Serializes the quick actions content to a dictionary.
         Useful for JSON serialization."""
         return {
-            **super().to_json_dict(),
-            "actions": [action.to_json_dict() for action in self.actions],
+            **super().model_dump(),
+            "actions": [action.model_dump() for action in self.actions],
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "ThreadQuickActionsContent":
+    def model_validate(cls, data: dict) -> "ThreadQuickActionsContent":
         """Create a thread quick actions content from a dictionary."""
         data = data.copy()
         actions = [
-            ThreadQuickActionContent.from_dict(action)
+            ThreadQuickActionContent.model_validate(action)
             for action in data.pop("actions")
         ]
         return cls(**data, actions=actions)

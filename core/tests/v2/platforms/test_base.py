@@ -6,8 +6,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from agent_server_types_v2.kernel import Kernel
-from agent_server_types_v2.models.model import Model
-from agent_server_types_v2.models.provider import ModelProvider
 from agent_server_types_v2.platforms.base import (
     PlatformClient,
     PlatformConfigs,
@@ -62,19 +60,22 @@ class MockPlatformParameters(PlatformParameters):
 class MockPlatformConverters(PlatformConverters):
     """Mock converters for testing."""
 
-    def convert_text_content(self, content: PromptTextContent) -> dict:
+    async def convert_text_content(self, content: PromptTextContent) -> dict:
         """Mock convert text content."""
         return {"type": "text", "text": content.text}
 
-    def convert_image_content(self, content: PromptImageContent) -> dict:
+    async def convert_image_content(self, content: PromptImageContent) -> dict:
         """Mock convert image content."""
         return {"type": "image", "image_url": content.source.url}
 
-    def convert_audio_content(self, content: PromptAudioContent) -> dict:
+    async def convert_audio_content(self, content: PromptAudioContent) -> dict:
         """Mock convert audio content."""
         return {"type": "audio", "audio_url": content.audio_url}
 
-    def convert_tool_use_content(self, content: PromptToolUseContent) -> dict:
+    async def convert_tool_use_content(
+        self,
+        content: PromptToolUseContent,
+    ) -> dict:
         """Mock convert tool use content."""
         return {
             "type": "tool_use",
@@ -82,7 +83,10 @@ class MockPlatformConverters(PlatformConverters):
             "tool_name": content.tool_name,
         }
 
-    def convert_tool_result_content(self, content: PromptToolResultContent) -> dict:
+    async def convert_tool_result_content(
+        self,
+        content: PromptToolResultContent,
+    ) -> dict:
         """Mock convert tool result content."""
         return {
             "type": "tool_result",
@@ -90,7 +94,10 @@ class MockPlatformConverters(PlatformConverters):
             "tool_name": content.tool_name,
         }
 
-    def convert_document_content(self, content: PromptDocumentContent) -> dict:
+    async def convert_document_content(
+        self,
+        content: PromptDocumentContent,
+    ) -> dict:
         """Mock convert document content."""
         return {"type": "document", "document_url": content.document_url}
 
@@ -149,9 +156,6 @@ class MockPlatformParsers(PlatformParsers):
 class MockPlatformConfigs(PlatformConfigs):
     """Mock platform configs for testing."""
 
-    supported_providers: ClassVar[list[ModelProvider]] = []
-    supported_models: ClassVar[list[Model]] = []
-
 
 class MockPlatformClient(PlatformClient):
     """Mock platform client for testing."""
@@ -168,12 +172,9 @@ class MockPlatformClient(PlatformClient):
             converters.attach_kernel(kernel)
         return converters
 
-    def _init_parsers(self, kernel: Kernel | None = None) -> MockPlatformParsers:
+    def _init_parsers(self) -> MockPlatformParsers:
         """Initialize mock parsers."""
-        parsers = MockPlatformParsers()
-        if kernel is not None:
-            parsers.attach_kernel(kernel)
-        return parsers
+        return MockPlatformParsers()
 
     def _init_parameters(
         self,
@@ -183,12 +184,9 @@ class MockPlatformClient(PlatformClient):
         """Initialize mock parameters."""
         return MockPlatformParameters()
 
-    def _init_configs(self, kernel: Kernel | None = None) -> MockPlatformConfigs:
+    def _init_configs(self) -> MockPlatformConfigs:
         """Initialize mock configs."""
-        configs = MockPlatformConfigs()
-        if kernel is not None:
-            configs.attach_kernel(kernel)
-        return configs
+        return MockPlatformConfigs()
 
     async def generate_response(self, prompt: Prompt) -> ResponseMessage:
         """Generate a mock response."""
@@ -245,13 +243,9 @@ class TestPlatformBaseComponents:
 
         # Make the component's attach_kernel methods return mocks so we can verify calls
         mock_converters = MagicMock()
-        mock_parsers = MagicMock()
-        mock_configs = MagicMock()
 
         # Save references to the original components
         original_converters = mock_platform_client.converters
-        original_parsers = mock_platform_client.parsers
-        original_configs = mock_platform_client.configs
 
         # Replace the attach_kernel methods with mocks
         with (
@@ -260,16 +254,12 @@ class TestPlatformBaseComponents:
                 "attach_kernel",
                 return_value=mock_converters,
             ),
-            patch.object(original_parsers, "attach_kernel", return_value=mock_parsers),
-            patch.object(original_configs, "attach_kernel", return_value=mock_configs),
         ):
             # Attach a new kernel
             mock_platform_client.attach_kernel(new_kernel)
 
             # Verify that attach_kernel was called on each component
             original_converters.attach_kernel.assert_called_with(new_kernel)
-            original_parsers.attach_kernel.assert_called_with(new_kernel)
-            original_configs.attach_kernel.assert_called_with(new_kernel)
 
     @pytest.mark.asyncio
     async def test_platform_client_generate_response(
@@ -318,7 +308,8 @@ class TestPlatformBaseComponents:
             },
         }
 
-    def test_platform_converters_convert_content_item(
+    @pytest.mark.asyncio
+    async def test_platform_converters_convert_content_item(
         self,
         mock_platform_client: MockPlatformClient,
     ) -> None:
@@ -327,7 +318,9 @@ class TestPlatformBaseComponents:
 
         # Test text content
         text_content = PromptTextContent(text="Hello, World!")
-        text_result = converters.convert_content_item_to_platform_part(text_content)
+        text_result = await converters.convert_content_item_to_platform_part(
+            text_content,
+        )
         assert text_result == {"type": "text", "text": "Hello, World!"}
 
         # Test unsupported content type
@@ -337,4 +330,4 @@ class TestPlatformBaseComponents:
             ValueError,
             match="Unsupported PromptMessageContent type: unsupported",
         ):
-            converters.convert_content_item_to_platform_part(invalid_content)
+            await converters.convert_content_item_to_platform_part(invalid_content)

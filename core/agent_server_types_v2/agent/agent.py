@@ -7,6 +7,11 @@ from agent_server_types_v2.actions.action_package import ActionPackage
 from agent_server_types_v2.agent.agent_architecture import AgentArchitecture
 from agent_server_types_v2.agent.observability_config import ObservabilityConfig
 from agent_server_types_v2.agent.question_group import QuestionGroup
+from agent_server_types_v2.mcp import MCPServer
+from agent_server_types_v2.platforms.base import PlatformParameters
+from agent_server_types_v2.platforms.bedrock.parameters import (
+    BedrockPlatformParameters,
+)
 from agent_server_types_v2.runbook.runbook import Runbook
 from agent_server_types_v2.utils import assert_literal_value_valid
 
@@ -34,22 +39,29 @@ class Agent:
     version: str = field(metadata={"description": "The version of the agent."})
     """The version of the agent."""
 
-    # TODO: this is worth thinking through more --- are "provider configs" a seperate
-    # entity and we just pass strings to what's available?
-    provider_configs: list[str] = field(
-        metadata={"description": "The provider configs this agent can use."},
+    platform_configs: list[BedrockPlatformParameters] = field(
+        metadata={"description": "The platform configs this agent can use."},
     )
-    """The provider configs this agent can use."""
-
-    action_packages: list[ActionPackage] = field(
-        metadata={"description": "The action packages this agent uses."},
-    )
-    """The action packages this agent uses."""
+    """The platform configs this agent can use."""
 
     agent_architecture: AgentArchitecture = field(
         metadata={"description": "The architecture details for the agent."},
     )
     """The architecture details for the agent."""
+
+    action_packages: list[ActionPackage] = field(
+        metadata={"description": "The action packages this agent uses."},
+        default_factory=list,
+    )
+    """The action packages this agent uses."""
+
+    mcp_servers: list[MCPServer] = field(
+        metadata={
+            "description": "The Model Context Protocol (MCP) servers this agent uses.",
+        },
+        default_factory=list,
+    )
+    """The Model Context Protocol (MCP) servers this agent uses."""
 
     question_groups: list[QuestionGroup] = field(
         metadata={"description": "The question groups of the agent."},
@@ -109,6 +121,7 @@ class Agent:
             version=self.version,
             provider_configs=self.provider_configs,
             action_packages=[pkg.copy() for pkg in self.action_packages],
+            mcp_servers=[server.copy() for server in self.mcp_servers],
             agent_architecture=self.agent_architecture.copy(),
             question_groups=[group.copy() for group in self.question_groups],
             observability_configs=[
@@ -121,29 +134,36 @@ class Agent:
             extra=deepcopy(self.extra) if self.extra != {} else {},
         )
 
-    def to_json_dict(self) -> dict:
+    def model_dump(self) -> dict:
         """Serializes the agent to a dictionary. Useful for JSON serialization."""
         return {
             "action_packages": [
-                action_package.to_json_dict()
+                action_package.model_dump()
                 for action_package in self.action_packages
             ],
-            "agent_architecture": self.agent_architecture.to_json_dict(),
+            "mcp_servers": [
+                mcp_server.model_dump()
+                for mcp_server in self.mcp_servers
+            ],
+            "agent_architecture": self.agent_architecture.model_dump(),
             "created_at": self.created_at.isoformat(),
             "description": self.description,
             "extra": self.extra,
             "mode": self.mode,
-            "provider_configs": self.provider_configs,
+            "platform_configs": [
+                platform_config.model_dump()
+                for platform_config in self.platform_configs
+            ],
             "name": self.name,
             "observability_configs": [
-                observability_config.to_json_dict()
+                observability_config.model_dump()
                 for observability_config in self.observability_configs
             ],
             "question_groups": [
-                question_group.to_json_dict()
+                question_group.model_dump()
                 for question_group in self.question_groups
             ],
-            "runbook": self.runbook.to_json_dict(),
+            "runbook": self.runbook.model_dump(),
             "agent_id": self.agent_id,
             "updated_at": self.updated_at.isoformat(),
             "user_id": self.user_id,
@@ -151,7 +171,7 @@ class Agent:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "Agent":
+    def model_validate(cls, data: dict) -> "Agent":
         """Create an agent from a dictionary."""
         # Create a copy to avoid modifying the input
         data = data.copy()
@@ -164,21 +184,29 @@ class Agent:
 
         # Parse nested objects
         actions_packages = [
-            ActionPackage.from_dict(action_package)
+            ActionPackage.model_validate(action_package)
             for action_package in data.pop("action_packages", [])
         ]
-        agent_architecture = AgentArchitecture.from_dict(
+        mcp_servers = [
+            MCPServer.model_validate(mcp_server)
+            for mcp_server in data.pop("mcp_servers", [])
+        ]
+        agent_architecture = AgentArchitecture.model_validate(
             data.pop("agent_architecture", {}),
         )
         observability_configs = [
-            ObservabilityConfig.from_dict(observability_config)
+            ObservabilityConfig.model_validate(observability_config)
             for observability_config in data.pop("observability_configs", [])
         ]
         question_groups = [
-            QuestionGroup.from_dict(question_group)
+            QuestionGroup.model_validate(question_group)
             for question_group in data.pop("question_groups", [])
         ]
-        runbook = Runbook.from_dict(data.pop("runbook", {}))
+        runbook = Runbook.model_validate(data.pop("runbook", {}))
+        platform_configs = [
+            PlatformParameters.model_validate(platform_config)
+            for platform_config in data.pop("platform_configs", [])
+        ]
 
         # Parse datetime fields
         if "created_at" in data and isinstance(data["created_at"], str):
@@ -188,9 +216,11 @@ class Agent:
 
         return cls(
             action_packages=actions_packages,
+            mcp_servers=mcp_servers,
             agent_architecture=agent_architecture,
             observability_configs=observability_configs,
             question_groups=question_groups,
             runbook=runbook,
+            platform_configs=platform_configs,
             **data,
         )

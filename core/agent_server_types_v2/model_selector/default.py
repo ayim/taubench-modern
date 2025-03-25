@@ -1,68 +1,77 @@
 from dataclasses import dataclass, field
-from typing import Literal
+from typing import TYPE_CHECKING
 
 from agent_server_types_v2.configurations import Configuration
 from agent_server_types_v2.model_selector.base import ModelSelector
-from agent_server_types_v2.models.model import Model
-from agent_server_types_v2.models.provider import ModelProviders
+from agent_server_types_v2.model_selector.selection_request import ModelSelectionRequest
 
-# TODO: We also need to provide for a "type" or "category" of model, that is,
-# we might have to select an "embedding" model, a "text-to-speech" model,
-# a "speech-to-text" model, a "text-to-image" model, a "image-to-text" model,
-# etc.
+if TYPE_CHECKING:
+    from agent_server_types_v2.platforms import PlatformClient
 
 
 @dataclass(frozen=True)
-class ModelQualityTierConfig(Configuration):
-    """Configuration for model quality tiers by platform.
-
-    Maps quality tiers (best, balanced, fastest) to specific models for each platform.
+class ModelMappingConfig(Configuration):
+    """
+    Configuration mapping across multiple dimensions:
+      (platform, provider, model_type, quality_tier) -> model_name
     """
 
-    BEDROCK_MODELS: dict[str, str] = field(
+    mappings: dict[str, dict[str, dict[str, dict[str, str]]]] = field(
         default_factory=lambda: {
-            "best": "claude-3-5-sonnet",
-            "balanced": "claude-3-5-sonnet",
-            "fastest": "claude-3-5-haiku",
+            "bedrock": {
+                "anthropic": {
+                    "llm": {
+                        "best": "claude-3-5-sonnet",
+                        "balanced": "claude-3-5-sonnet",
+                        "fastest": "claude-3-5-haiku",
+                    },
+                },
+                # Potentially other providers on bedrock
+            },
+            "openai": {
+                "openai": {
+                    "llm": {
+                        "best": "o3-mini-high",
+                        "balanced": "gpt-4o",
+                        "fastest": "gpt-4o-mini",
+                    },
+                    "text-to-image": {
+                        "best": "openai-dalle2-highres",
+                        "balanced": "openai-dalle2",
+                        "fastest": "openai-dalle2-lite",
+                    },
+                },
+            },
+            "anthropic": {
+                "anthropic": {
+                    "llm": {
+                        "best": "claude-3-5-sonnet",
+                        "balanced": "claude-3-5-sonnet",
+                        "fastest": "claude-3-5-haiku",
+                    },
+                },
+            },
         },
     )
 
-    OPENAI_MODELS: dict[str, str] = field(
-        default_factory=lambda: {
-            "best": "o3-mini-high",
-            "balanced": "gpt-4o",
-            "fastest": "gpt-4o-mini",
-        },
-    )
+    def get_model_name(
+        self,
+        platform: str,
+        provider: str,
+        model_type: str,
+        tier: str,
+    ) -> str | None:
+        """Get model name from the multi-dimensional map."""
+        # Normalize to lower case as needed
+        p = platform.lower()
+        r = provider.lower()
+        mt = model_type.lower()
+        t = tier.lower()
 
-    ANTHROPIC_MODELS: dict[str, str] = field(
-        default_factory=lambda: {
-            "best": "claude-3-5-sonnet",
-            "balanced": "claude-3-5-sonnet",
-            "fastest": "claude-3-5-haiku",
-        },
-    )
-
-    # Add more platforms as needed
-
-    def get_model_name(self, platform: str, tier: str) -> str | None:
-        """Get the model name for a specific platform and quality tier.
-
-        Args:
-            platform: The platform name (e.g., "bedrock", "openai")
-            tier: The quality tier (e.g., "best", "balanced", "fastest")
-
-        Returns:
-            The model name or None if not found
-        """
-        platform = platform.upper()
-        config_key = f"{platform}_MODELS"
-
-        if hasattr(self, config_key):
-            models = getattr(self, config_key)
-            return models.get(tier)
-
-        return None
+        try:
+            return self.mappings[p][r][mt][t]
+        except KeyError:
+            return None
 
 
 @dataclass(frozen=True)
@@ -122,17 +131,16 @@ class PlatformDefaultModelConfig(Configuration):
 
 @dataclass
 class DefaultModelSelector(ModelSelector):
-    """Default implementation of model selection logic.
-
-    This selector provides a platform-specific strategy for selecting models based on:
-    1. Platform-specific default models for quality tiers
-    2. Fallback chains when requested models are unavailable
-
-    The selector uses Configuration classes to define mappings and defaults.
+    """
+    An enhanced model selector that:
+      1. Allows specifying a direct model name
+      2. Allows specifying a provider + model_type + tier
+      3. Falls back to platform defaults
+      4. Uses fallback chains if a chosen model is unavailable
     """
 
-    quality_tier_config: ModelQualityTierConfig = field(
-        default_factory=ModelQualityTierConfig,
+    model_mapping_config: ModelMappingConfig = field(
+        default_factory=ModelMappingConfig,
     )
     fallback_config: ModelFallbackConfig = field(
         default_factory=ModelFallbackConfig,
@@ -140,114 +148,121 @@ class DefaultModelSelector(ModelSelector):
     platform_default_config: PlatformDefaultModelConfig = field(
         default_factory=PlatformDefaultModelConfig,
     )
-    default_quality_tier: Literal["best", "balanced", "fastest"] = field(
-        default="balanced",
-    )
 
-    def _find_model_by_name(self, model_name: str) -> Model | None:
-        """Find a model by name from supported providers.
-
-        Args:
-            model_name: The name of the model to find
-
-        Returns:
-            The Model instance or None if not found
-        """
-        for provider in [ModelProviders.ANTHROPIC, ModelProviders.OPENAI]:
-            for model in provider.supported_models:
-                if model.name == model_name:
+    def _find_model_by_name(
+        self,
+        platform: "PlatformClient",
+        model_name: str,
+    ) -> str | None:
+        """Scan all supported providers for a given model name."""
+        for _, models in platform.configs.supported_models_by_provider.items():
+            for model in models:
+                if model == model_name:
                     return model
         return None
 
-    def _get_model_with_fallbacks(self, model_name: str) -> Model | None:
-        """Get a model with fallbacks if the primary model is not found.
+    def _get_model_with_fallbacks(
+        self,
+        platform: "PlatformClient",
+        model_name: str,
+    ) -> str | None:
+        """Try primary model, then fallback chain."""
+        primary = self._find_model_by_name(platform, model_name)
+        if primary:
+            return primary
 
-        Args:
-            model_name: The name of the primary model to find
-
-        Returns:
-            The Model instance or None if no suitable model found
-        """
-        # Try the primary model first
-        model = self._find_model_by_name(model_name)
-        if model:
-            return model
-
-        # Try fallbacks in order
         for fallback_name in self.fallback_config.get_fallbacks(model_name):
-            fallback_model = self._find_model_by_name(fallback_name)
-            if fallback_model:
-                return fallback_model
-
+            fb_model = self._find_model_by_name(platform, fallback_name)
+            if fb_model:
+                return fb_model
         return None
 
-    def select_model(self, selection: str | None = None) -> Model:
-        """Select a model for the agent architecture.
-
-        This implementation follows these steps:
-        1. Check if a selection parameter is provided (model name or quality tier)
-        2. If a model name is provided, try to find it in the supported models list
-        3. If a quality tier is specified, use the platform-specific model for that tier
-        4. Fall back to the platform's default model
-        5. Apply fallback chains when models are unavailable
-
-        Args:
-            selection: Optional selection criteria, which could be a model name or
-                quality tier. If not provided, the kernel's platform default model
-                will be used.
-
-        Returns:
-            The selected Model instance
-
-        Raises:
-            ValueError: If no suitable model can be selected
+    def select_model(   # noqa: C901 (lots of necessary nested conditionals)
+        self,
+        platform: "PlatformClient",
+        request: ModelSelectionRequest | None = None,
+    ) -> str:
         """
-        # Get platform information from kernel
-        platform_name = self.kernel.platform.name
+        Attempt to find a model with the following priority:
+          1. If request.direct_model_name is provided -> use it (with fallback).
+          2. Else if (provider, model_type, tier) is specified -> lookup
+             in config (with fallback).
+          3. Else use platform default (with fallback).
+          4. If still none found, pick the first from platform.configs.supported_models.
+          5. If still none, raise ValueError.
+        """
+        if request is None:
+            request = ModelSelectionRequest()  # empty
+
+        platform_name = platform.name.lower()
         if not platform_name:
-            raise ValueError("Platform name not specified in kernel configuration")
+            raise ValueError("Platform name not specified in configuration")
 
-        # First, check if selection parameter is provided
-        if selection:
-            # Try to interpret selection as a direct model name first
-            model = self._get_model_with_fallbacks(selection)
-            if model:
-                return model
-
-            # If not a model name, check if it's a quality tier
-            if selection in ["best", "balanced", "fastest"]:
-                model_name = self.quality_tier_config.get_model_name(
-                    platform_name,
-                    selection,
-                )
-                if model_name:
-                    model = self._get_model_with_fallbacks(model_name)
-                    if model:
-                        return model
-
-            # If we get here, the selection couldn't be resolved
+        # 1) If direct model name is given, try that first.
+        if request.direct_model_name:
+            maybe_model = self._get_model_with_fallbacks(
+                platform, request.direct_model_name,
+            )
+            if maybe_model:
+                return maybe_model
+            # If it fails, we raise right away or keep going.
+            # Example: We'll raise for clarity:
             raise ValueError(
-                f"Could not resolve selection '{selection}' to a valid model",
+                f"Could not resolve direct model name '{request.direct_model_name}'",
             )
 
-        # If no selection is provided, use the platform's default model
+        # 2) If provider/model_type/tier was specified, try to look up
+        #    in the multi-dimensional ModelMappingConfig. We only do this
+        #    if all three fields are available, or we can decide on defaults.
+        if request.provider or request.model_type or request.quality_tier:
+            # We need to handle partial specification. Let's define some defaults:
+            provider = request.provider or platform.configs.default_platform_provider
+            model_type = request.model_type or platform.configs.default_model_type
+            tier = request.quality_tier or platform.configs.default_quality_tier
+
+            model_name = self.model_mapping_config.get_model_name(
+                platform=platform_name,
+                provider=provider,
+                model_type=model_type,
+                tier=tier,
+            )
+            if model_name:
+                maybe_model = self._get_model_with_fallbacks(
+                    platform, model_name,
+                )
+                if maybe_model:
+                    return maybe_model
+                else:
+                    # If there's a config but we can't find or fallback
+                    raise ValueError(
+                        f"Model '{model_name}' for (provider={provider}, "
+                        f"type={model_type}, tier={tier}) not found "
+                        "or fallback failed.",
+                    )
+            # If that didn't work, we continue on to next step
+
+        # 3) If the request is entirely empty OR if the above didn't yield a model,
+        #    try platform default
         default_model_name = self.platform_default_config.get_default_model(
             platform_name,
         )
         if default_model_name:
-            model = self._get_model_with_fallbacks(default_model_name)
-            if model:
-                return model
+            maybe_model = self._get_model_with_fallbacks(
+                platform, default_model_name,
+            )
+            if maybe_model:
+                return maybe_model
 
-        # If we still don't have a model, check if the platform has a supported
-        # model list and use the first one
+        # 4) If we still don't have a model, check if the platform has a
+        #    `supported_models` list and use the first one
         if (
-            hasattr(self.kernel.platform.configs, "supported_models")
-            and self.kernel.platform.configs.supported_models
+            hasattr(platform.configs, "supported_models")
+            and platform.configs.supported_models
         ):
-            return self.kernel.platform.configs.supported_models[0]
+            return platform.configs.supported_models[0]
 
-        # If we get here, we couldn't find a suitable model
+        # 5) If we get here, no suitable model was found
         raise ValueError(
-            f"Could not find suitable model for platform '{platform_name}'",
+            f"Could not find suitable model for platform '{platform_name}' "
+            f"with selection request: {request}",
         )

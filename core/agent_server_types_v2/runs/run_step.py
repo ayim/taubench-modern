@@ -83,7 +83,7 @@ class RunStep:
     def __post_init__(self) -> None:
         assert_literal_value_valid(self, "step_status")
 
-    def to_json_dict(self) -> dict:
+    def model_dump(self) -> dict:
         return {
             "run_id": self.run_id,
             "step_id": self.step_id,
@@ -99,7 +99,7 @@ class RunStep:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "RunStep":
+    def model_validate(cls, data: dict) -> "RunStep":
         data = data.copy()
         for field_name in ["created_at", "finished_at"]:
             if field_name in data and isinstance(data[field_name], str):

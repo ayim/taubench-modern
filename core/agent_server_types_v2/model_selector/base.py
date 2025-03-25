@@ -1,16 +1,25 @@
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
 
-from agent_server_types_v2.kernel_interfaces.kernel_mixin import UsesKernelMixin
-from agent_server_types_v2.models import Model
+from agent_server_types_v2.model_selector.selection_request import (
+    ModelSelectionRequest,
+)
+
+if TYPE_CHECKING:
+    from agent_server_types_v2.platforms import PlatformInterface
 
 
-class ModelSelector(ABC, UsesKernelMixin):
+class ModelSelector(ABC):
     """This is a base class for implementing logic for selecting a model
     for an agent architecture.
     """
 
     @abstractmethod
-    def select_model(self, selection: str | None = None) -> Model:
+    def select_model(
+        self,
+        platform: "PlatformInterface",
+        request: ModelSelectionRequest | None = None,
+    ) -> str:
         """Select a model for the agent architecture.
 
         Args:

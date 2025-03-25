@@ -24,8 +24,8 @@ def compute_message_delta(
         The delta between the two messages.
     """
 
-    old_as_dict = old.to_json_dict() if old is not None else {}
-    new_as_dict = new.to_json_dict()
+    old_as_dict = old.model_dump() if old is not None else {}
+    new_as_dict = new.model_dump()
 
     # We will IGNORE updated_at in the delta computation
     if "updated_at" in old_as_dict:

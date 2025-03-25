@@ -68,27 +68,10 @@ class TestBedrockPlatformConfigs:
         """Test that the configs initialize with the expected values."""
         configs = BedrockPlatformConfigs()
 
-        # Check that supported_providers and supported_models are populated
-        assert len(configs.supported_providers) > 0
-        assert len(configs.supported_models) > 0
+        # Check that supported_models_by_provider is populated
+        assert len(configs.supported_models_by_provider) > 0
+        first_provider = next(iter(configs.supported_models_by_provider.keys()))
+        assert len(configs.supported_models_by_provider[first_provider]) > 0
 
-        # Check that all supported models have a provider
-        for model in configs.supported_models:
-            provider_name = model.scoped_name.split("/")[0]
-            assert any(
-                provider.name.lower() == provider_name.lower()
-                for provider in configs.supported_providers
-            )
-
-    def test_attach_kernel(self, kernel: Kernel) -> None:
-        """Test that attach_kernel works correctly."""
-        configs = BedrockPlatformConfigs()
-
-        # Initial state should not have a kernel
-        assert not hasattr(configs, "_internal_kernel")
-
-        # Attach a kernel
-        configs.attach_kernel(kernel)
-
-        # Check that the kernel was attached
-        assert configs._internal_kernel == kernel
+        # Check that default_platform_provider is set
+        assert configs.default_platform_provider == "anthropic"

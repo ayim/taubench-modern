@@ -6,7 +6,7 @@ from uuid import UUID
 from agent_server_types_v2.utils import assert_literal_value_valid
 
 
-@dataclass(frozen=True)
+@dataclass
 class Run:
     """Represents a single invocation of an agent (a run)
     with its status and metadata."""
@@ -58,7 +58,7 @@ class Run:
         assert_literal_value_valid(self, "status")
         assert_literal_value_valid(self, "run_type")
 
-    def to_json_dict(self) -> dict:
+    def model_dump(self) -> dict:
         return {
             "run_id": self.run_id,
             "agent_id": self.agent_id,
@@ -71,7 +71,7 @@ class Run:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "Run":
+    def model_validate(cls, data: dict) -> "Run":
         data = data.copy()
         for field_name in ["created_at", "finished_at"]:
             if field_name in data and isinstance(data[field_name], str):

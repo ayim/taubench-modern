@@ -116,3 +116,8 @@ class GenericDelta:
         if self.from_ is not None:
             result["from_"] = self.from_
         return result
+
+    @classmethod
+    def model_validate(cls, data: dict[str, Any]) -> "GenericDelta":
+        """Validate and convert a dictionary to a GenericDelta object."""
+        return cls(**data)

@@ -28,7 +28,13 @@ class Model:
     )
     """The last updated time of the model."""
 
-    type: Literal["llm", "embedding", "text_to_speech", "speech_to_text"] = field(
+    type: Literal[
+        "llm",
+        "embedding",
+        "text-to-image",
+        "text-to-speech",
+        "speech-to-text",
+    ] = field(
         metadata={"description": "The type of the model."},
     )
     """The type of the model."""
@@ -61,7 +67,7 @@ class Model:
             deprecated=self.deprecated,
         )
 
-    def to_json_dict(self) -> dict:
+    def model_dump(self) -> dict:
         """Serializes the model to a dictionary. Useful for JSON serialization."""
         return {
             "name": self.name,
@@ -75,7 +81,7 @@ class Model:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "Model":
+    def model_validate(cls, data: dict) -> "Model":
         """Create a model from a dictionary."""
         data = data.copy()
         if "last_updated_at" in data and isinstance(data["last_updated_at"], str):

@@ -2,13 +2,8 @@ from collections.abc import AsyncGenerator
 from copy import deepcopy
 from typing import TYPE_CHECKING, Any, ClassVar
 
-import boto3
-
 from agent_server_types_v2.delta import GenericDelta
 from agent_server_types_v2.delta.compute_delta import compute_generic_deltas
-from agent_server_types_v2.kernel import Kernel
-from agent_server_types_v2.model_selector.base import ModelSelector
-from agent_server_types_v2.models.model import Model
 from agent_server_types_v2.platforms.base import (
     PlatformClient,
 )
@@ -27,6 +22,8 @@ from agent_server_types_v2.responses.response import ResponseMessage
 if TYPE_CHECKING:
     from types_boto3_bedrock_runtime.client import BedrockRuntimeClient
 
+    from agent_server_types_v2.kernel import Kernel
+
 
 class BedrockClient(PlatformClient):
     """A client for the Bedrock platform."""
@@ -36,7 +33,7 @@ class BedrockClient(PlatformClient):
     def __init__(
         self,
         *,
-        kernel: Kernel | None = None,
+        kernel: "Kernel | None" = None,
         parameters: BedrockPlatformParameters | dict | None = None,
         region_name: str | None = None,
         aws_access_key_id: str | None = None,
@@ -55,17 +52,11 @@ class BedrockClient(PlatformClient):
             self._parameters,
         )
 
-    def _init_converters(self, kernel: Kernel | None = None) -> BedrockConverters:
-        self._converters = BedrockConverters()
+    def _init_converters(self, kernel: "Kernel | None" = None) -> BedrockConverters:
+        converters = BedrockConverters()
         if kernel is not None:
-            self._converters.attach_kernel(kernel)
-        return self._converters
-
-    def _init_parsers(self, kernel: Kernel | None = None) -> BedrockParsers:
-        self._parsers = BedrockParsers()
-        if kernel is not None:
-            self._parsers.attach_kernel(kernel)
-        return self._parsers
+            converters.attach_kernel(kernel)
+        return converters
 
     def _init_parameters(
         self,
@@ -92,25 +83,31 @@ class BedrockClient(PlatformClient):
             parameters = parameters.model_copy(update=kwargs)
         return parameters
 
-    def _init_configs(self, kernel: Kernel | None = None) -> BedrockPlatformConfigs:
-        self._configs = BedrockPlatformConfigs()
-        if kernel is not None:
-            self._configs.attach_kernel(kernel)
-        return self._configs
+    def _init_parsers(self) -> BedrockParsers:
+        return BedrockParsers()
+
+    def _init_configs(self) -> BedrockPlatformConfigs:
+        return BedrockPlatformConfigs()
 
     def _init_clients(
         self,
         parameters: BedrockPlatformParameters,
     ) -> "BedrockRuntimeClient":
+        import boto3
+
+        # Remove the kind from the parameters before passing them to boto3
+        without_kind = parameters.model_dump(exclude_none=True)
+        without_kind.pop("kind")
+
         return boto3.client(
             "bedrock-runtime",
-            **parameters.model_dump(exclude_none=True),
+            **without_kind,
         )
 
     async def generate_response(
         self,
         prompt: BedrockPrompt,
-        model: Model | ModelSelector,
+        model: str,
     ) -> ResponseMessage:
         """Generate a complete response from the Bedrock platform.
 
@@ -120,9 +117,7 @@ class BedrockClient(PlatformClient):
         Returns:
             The complete model response.
         """
-        if isinstance(model, ModelSelector):
-            model = model.select_model()
-        model_id = BedrockModelMap[model.name]
+        model_id = BedrockModelMap[model]
         request = prompt.as_platform_request(model_id)
         response = self._bedrock_runtime_client.converse(**request)
         return self.parsers.parse_response(response)
@@ -130,7 +125,7 @@ class BedrockClient(PlatformClient):
     async def generate_stream_response(
         self,
         prompt: BedrockPrompt,
-        model: Model | ModelSelector,
+        model: str,
     ) -> AsyncGenerator[GenericDelta, None]:
         """Stream a response from the Bedrock platform.
 
@@ -141,9 +136,7 @@ class BedrockClient(PlatformClient):
         Yields:
             GenericDeltas that update the ResponseMessage.
         """
-        if isinstance(model, ModelSelector):
-            model = model.select_model()
-        model_id = BedrockModelMap[model.name]
+        model_id = BedrockModelMap[model]
         request = prompt.as_platform_request(model_id, stream=True)
         response = self._bedrock_runtime_client.converse_stream(**request)
 
@@ -173,3 +166,6 @@ class BedrockClient(PlatformClient):
 
         for delta in compute_generic_deltas(last_message, message):
             yield delta
+
+
+PlatformClient.register_platform_client("bedrock", BedrockClient)

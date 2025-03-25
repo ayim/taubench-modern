@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+from agent_server_types_v2.kernel_interfaces.otel import OTelArtifact
 from agent_server_types_v2.storage import ScopedStorage
 from agent_server_types_v2.thread import ThreadMessage
 
@@ -30,4 +31,14 @@ class StorageInterface(ABC):
     @abstractmethod
     async def delete_scoped_storage(self, storage_id: str) -> None:
         """Deletes a scoped storage record by its ID."""
+        pass
+
+    @abstractmethod
+    async def get_otel_artifact(self, artifact_id: str) -> OTelArtifact:
+        """Gets an OTel artifact by its ID."""
+        pass
+
+    @abstractmethod
+    async def create_otel_artifact(self, artifact: OTelArtifact) -> None:
+        """Creates a new OTel artifact."""
         pass

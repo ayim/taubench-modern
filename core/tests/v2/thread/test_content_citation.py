@@ -20,7 +20,7 @@ class TestCitation:
         )
         assert c.cited_text == "Some snippet"
 
-    def test_citation_to_json_dict(self):
+    def test_citation_model_dump(self):
         c = Citation(
             document_uri="doc://xyz",
             start_char_index=2,

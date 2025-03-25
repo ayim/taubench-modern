@@ -25,7 +25,7 @@ class AgentArchitecture:
             version=self.version,
         )
 
-    def to_json_dict(self) -> dict:
+    def model_dump(self) -> dict:
         """Serializes the cognitive architecture to a dictionary.
         Useful for JSON serialization."""
         return {
@@ -34,6 +34,6 @@ class AgentArchitecture:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "AgentArchitecture":
+    def model_validate(cls, data: dict) -> "AgentArchitecture":
         """Create a agent architecture from a dictionary."""
         return cls(**data)

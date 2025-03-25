@@ -21,11 +21,9 @@ class TestBedrockParsers:
         return MagicMock(spec=Kernel)
 
     @pytest.fixture
-    def parsers(self, kernel: Kernel) -> BedrockParsers:
+    def parsers(self) -> BedrockParsers:
         """Create Bedrock parsers for testing."""
-        parsers = BedrockParsers()
-        parsers.attach_kernel(kernel)
-        return parsers
+        return BedrockParsers()
 
     def test_parse_text_content(self, parsers: BedrockParsers) -> None:
         """Test parsing text content."""

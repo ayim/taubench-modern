@@ -6,8 +6,6 @@ import pytest
 
 from agent_server_types_v2.delta import GenericDelta
 from agent_server_types_v2.kernel import Kernel
-from agent_server_types_v2.model_selector.base import ModelSelector
-from agent_server_types_v2.models import Model, Models
 from agent_server_types_v2.platforms.bedrock.client import BedrockClient
 from agent_server_types_v2.platforms.bedrock.configs import BedrockModelMap
 from agent_server_types_v2.platforms.bedrock.converters import BedrockConverters
@@ -242,18 +240,6 @@ class TestBedrockClient:
             return client
 
     @pytest.fixture
-    def model(self) -> Model:
-        """Create a model for testing."""
-        return Models.ANTHROPIC_CLAUDE_3_5_SONNET
-
-    @pytest.fixture
-    def model_selector(self, model: Model) -> ModelSelector:
-        """Create a model selector for testing."""
-        mock_selector = MagicMock(spec=ModelSelector)
-        mock_selector.select_model.return_value = model
-        return mock_selector
-
-    @pytest.fixture
     def prompt(self) -> Prompt:
         """Create a prompt for testing."""
         return Prompt(
@@ -347,47 +333,12 @@ class TestBedrockClient:
         self,
         bedrock_client: BedrockClient,
         bedrock_prompt: BedrockPrompt,
-        model: Model,
         mock_boto3_client: MagicMock,
     ) -> None:
         """Test that the Bedrock client generates a response correctly."""
         # Create a test model map and use it directly
         test_model_map = {
-            Models.ANTHROPIC_CLAUDE_3_5_SONNET.name: (
-                "anthropic.claude-3-5-sonnet-20240620-v1:0"
-            ),
-        }
-
-        # Mock BedrockModelMap.__class_getitem__ to return our test map
-        with patch.object(
-            BedrockModelMap,
-            "__class_getitem__",
-            return_value=test_model_map,
-        ):
-            # Update the mock to accept the expected argument
-            bedrock_prompt.as_platform_request.reset_mock()
-
-            response = await bedrock_client.generate_response(bedrock_prompt, model)
-
-            # Verify the bedrock runtime client was called
-            assert bedrock_prompt.as_platform_request.called
-            mock_boto3_client.converse.assert_called_once()
-
-            # Verify the response was correctly parsed
-            assert isinstance(response, ResponseMessage)
-
-    @pytest.mark.asyncio
-    async def test_generate_response_with_model_selector(
-        self,
-        bedrock_client: BedrockClient,
-        bedrock_prompt: BedrockPrompt,
-        model_selector: ModelSelector,
-        mock_boto3_client: MagicMock,
-    ) -> None:
-        """Test that the Bedrock client generates a response with a model selector."""
-        # Create a test model map and use it directly
-        test_model_map = {
-            Models.ANTHROPIC_CLAUDE_3_5_SONNET.name: (
+            "claude-3-5-sonnet": (
                 "anthropic.claude-3-5-sonnet-20240620-v1:0"
             ),
         }
@@ -403,11 +354,44 @@ class TestBedrockClient:
 
             response = await bedrock_client.generate_response(
                 bedrock_prompt,
-                model_selector,
+                "claude-3-5-sonnet",
             )
 
-            # Verify the model selector was called
-            model_selector.select_model.assert_called_once()
+            # Verify the bedrock runtime client was called
+            assert bedrock_prompt.as_platform_request.called
+            mock_boto3_client.converse.assert_called_once()
+
+            # Verify the response was correctly parsed
+            assert isinstance(response, ResponseMessage)
+
+    @pytest.mark.asyncio
+    async def test_generate_response_with_model_selector(
+        self,
+        bedrock_client: BedrockClient,
+        bedrock_prompt: BedrockPrompt,
+        mock_boto3_client: MagicMock,
+    ) -> None:
+        """Test that the Bedrock client generates a response with a model selector."""
+        # Create a test model map and use it directly
+        test_model_map = {
+            "claude-3-5-sonnet": (
+                "anthropic.claude-3-5-sonnet-20240620-v1:0"
+            ),
+        }
+
+        # Mock BedrockModelMap.__class_getitem__ to return our test map
+        with patch.object(
+            BedrockModelMap,
+            "__class_getitem__",
+            return_value=test_model_map,
+        ):
+            # Update the mock to accept the expected argument
+            bedrock_prompt.as_platform_request.reset_mock()
+
+            response = await bedrock_client.generate_response(
+                bedrock_prompt,
+                "claude-3-5-sonnet",
+            )
 
             # Verify the bedrock runtime client was called
             assert bedrock_prompt.as_platform_request.called
@@ -421,13 +405,12 @@ class TestBedrockClient:
         self,
         bedrock_client: BedrockClient,
         bedrock_prompt: BedrockPrompt,
-        model: Model,
         mock_boto3_client: MagicMock,
     ) -> None:
         """Test that the Bedrock client generates a stream response correctly."""
         # Create a test model map and use it directly
         test_model_map = {
-            Models.ANTHROPIC_CLAUDE_3_5_SONNET.name: (
+            "claude-3-5-sonnet": (
                 "anthropic.claude-3-5-sonnet-20240620-v1:0"
             ),
         }
@@ -454,7 +437,7 @@ class TestBedrockClient:
             deltas = []
             async for delta in bedrock_client.generate_stream_response(
                 bedrock_prompt,
-                model,
+                "claude-3-5-sonnet",
             ):
                 deltas.append(delta)
 
@@ -472,14 +455,13 @@ class TestBedrockClient:
         self,
         bedrock_client: BedrockClient,
         bedrock_prompt: BedrockPrompt,
-        model_selector: ModelSelector,
         mock_boto3_client: MagicMock,
     ) -> None:
         """Test that the Bedrock client generates a stream response
         with a model selector."""
         # Create a test model map and use it directly
         test_model_map = {
-            Models.ANTHROPIC_CLAUDE_3_5_SONNET.name: (
+            "claude-3-5-sonnet": (
                 "anthropic.claude-3-5-sonnet-20240620-v1:0"
             ),
         }
@@ -506,12 +488,9 @@ class TestBedrockClient:
             deltas = []
             async for delta in bedrock_client.generate_stream_response(
                 bedrock_prompt,
-                model_selector,
+                "claude-3-5-sonnet",
             ):
                 deltas.append(delta)
-
-            # Verify the model selector was called
-            model_selector.select_model.assert_called_once()
 
             # Verify the bedrock runtime client was called
             assert bedrock_prompt.as_platform_request.called

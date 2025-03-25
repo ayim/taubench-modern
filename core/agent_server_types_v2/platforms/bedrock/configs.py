@@ -1,8 +1,6 @@
 from dataclasses import dataclass, field
 
 from agent_server_types_v2.configurations import Configuration, MapConfiguration
-from agent_server_types_v2.models.model import Model, Models
-from agent_server_types_v2.models.provider import ModelProvider, ModelProviders
 from agent_server_types_v2.platforms.base import PlatformConfigs
 
 
@@ -86,17 +84,31 @@ class BedrockMimeTypeMap(MapConfiguration):
 class BedrockPlatformConfigs(PlatformConfigs):
     """The configs for the Bedrock platform."""
 
-    supported_providers: list[ModelProvider] = field(
-        default_factory=lambda: [ModelProviders.ANTHROPIC],
-        metadata={"description": "The supported providers for the platform."},
+    default_platform_provider: str = field(
+        default="anthropic",
+        metadata={"description": "The default platform provider."},
     )
-    """The supported providers for the platform."""
+    """The default platform provider."""
 
-    supported_models: list[Model] = field(
-        default_factory=lambda: [
-            Models.ANTHROPIC_CLAUDE_3_5_SONNET,
-            Models.ANTHROPIC_CLAUDE_3_5_HAIKU,
-        ],
-        metadata={"description": "The supported models for the platform."},
+    default_model_type: str = field(
+        default="llm",
+        metadata={"description": "The default model type."},
     )
-    """The supported models for the platform."""
+    """The default model type."""
+
+    default_quality_tier: str = field(
+        default="balanced",
+        metadata={"description": "The default quality tier."},
+    )
+    """The default quality tier."""
+
+    supported_models_by_provider: dict[str, list[str]] = field(
+        default_factory=lambda: {
+            "anthropic": [
+                "claude-3-5-sonnet",
+                "claude-3-5-haiku",
+            ],
+        },
+        metadata={"description": "The supported models by provider."},
+    )
+    """The supported models by provider."""

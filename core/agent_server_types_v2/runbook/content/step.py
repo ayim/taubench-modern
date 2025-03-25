@@ -46,7 +46,7 @@ class RunbookStepContent(RunbookContent):
             metadata=self.metadata,
         )
 
-    def to_json_dict(self) -> dict:
+    def model_dump(self) -> dict:
         """Serializes the runbook step content to a dictionary.
         Useful for JSON serialization."""
         return {
@@ -57,6 +57,6 @@ class RunbookStepContent(RunbookContent):
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "RunbookStepContent":
+    def model_validate(cls, data: dict) -> "RunbookStepContent":
         """Create a runbook step content from a dictionary."""
         return cls(**data)

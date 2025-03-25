@@ -29,7 +29,7 @@ class StreamingDelta:
     )
     """The type of streaming event."""
 
-    def to_json_dict(self) -> dict[str, Any]:
+    def model_dump(self) -> dict[str, Any]:
         return {
             "sequence_number": self.sequence_number,
             "message_id": self.message_id,
@@ -56,9 +56,9 @@ class StreamingDeltaMessageContent(StreamingDelta):
     )
     """The type of streaming event. (Always 'message_content' for this type.)"""
 
-    def to_json_dict(self) -> dict[str, Any]:
+    def model_dump(self) -> dict[str, Any]:
         return {
-            **super().to_json_dict(),
+            **super().model_dump(),
             "delta": self.delta.model_dump(),
         }
 
@@ -97,9 +97,9 @@ class StreamingDeltaMessageBegin(StreamingDelta):
     )
     """The type of streaming event. (Always 'message_begin' for this type.)"""
 
-    def to_json_dict(self) -> dict[str, Any]:
+    def model_dump(self) -> dict[str, Any]:
         return {
-            **super().to_json_dict(),
+            **super().model_dump(),
             "thread_id": self.thread_id,
             "agent_id": self.agent_id,
             "data": self.data,
@@ -139,9 +139,9 @@ class StreamingDeltaMessageEnd(StreamingDelta):
     )
     """The type of streaming event. (Always 'message_end' for this type.)"""
 
-    def to_json_dict(self) -> dict[str, Any]:
+    def model_dump(self) -> dict[str, Any]:
         return {
-            **super().to_json_dict(),
+            **super().model_dump(),
             "thread_id": self.thread_id,
             "agent_id": self.agent_id,
             "data": self.data,

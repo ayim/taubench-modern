@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "agent-server-types"
-version = "1.2.0-alpha.3"
+version = "1.2.0"
 description = "Shared types for the agent server and agent architecture plugins."
 authors = ["Sema4.ai Engineering <engineering@sema4.ai>"]
 readme = "README.md"
@@ -12,8 +12,14 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.11.0,<3.12"
+# We use jsonpatch for deltas
 jsonpatch = "^1.33"
-
+# MCP is going to be a core requirement going forward
+mcp = "^1.4.1"
+# Opentelemtry (API not SDK) is going has lightweight types
+opentelemetry-api = "^1.31.1"
+# We use ruamel.yaml for our YAML-related functionality
+ruamel-yaml = "^0.18.10"
 
 # optional=true here, as depending on the extras selected
 # we may not need all of these dependencies.
@@ -22,6 +28,7 @@ langchain-core = { version = ">=0.3.15", optional = true }
 google-generativeai = { version = ">=0.8.3", optional = true }
 openai = { version = ">=1.59.8", optional = true }
 anthropic = { version = ">=0.41.3", optional = true }
+
 # Wont add an extra for these two, as they are not required
 # even for specific providers (just convenience for image
 # content support)

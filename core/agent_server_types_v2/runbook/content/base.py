@@ -12,7 +12,7 @@ class RunbookContent(ABC):
         pass
 
     @abstractmethod
-    def to_json_dict(self) -> dict:
+    def model_dump(self) -> dict:
         """Serializes the runbook content to a dictionary.
         Useful for JSON serialization."""
         pass

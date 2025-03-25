@@ -9,12 +9,15 @@ this interface, ensuring a consistent and controlled interaction model.
 """
 
 from abc import ABC, abstractmethod
+from typing import Literal
 
 from agent_server_types_v2.agent import Agent
 from agent_server_types_v2.kernel_interfaces import (
+    ConvertersInterface,
     EventsInterface,
     FilesInterface,
     MemoryInterface,
+    OTelInterface,
     PlatformInterface,
     PromptsInterface,
     RunbookInterface,
@@ -23,6 +26,12 @@ from agent_server_types_v2.kernel_interfaces import (
     ToolsInterface,
     UserInteractionsInterface,
 )
+from agent_server_types_v2.model_selector import (
+    DefaultModelSelector,
+    ModelSelectionRequest,
+    ModelSelector,
+)
+from agent_server_types_v2.runs import Run
 from agent_server_types_v2.thread import Thread
 from agent_server_types_v2.user import User
 
@@ -36,8 +45,19 @@ class Kernel(ABC):
     """
 
     @property
+    def model_selector(self) -> ModelSelector:
+        """The model selector bound to this kernel instance."""
+        return DefaultModelSelector()
+
+    @property
+    def current_datetime_str(self) -> str:
+        """The current date and time as a string."""
+        from datetime import datetime
+        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    @property
     @abstractmethod
-    def agent(self) -> Agent:
+    def agent(self) -> "Agent":
         """The agent bound to this kernel instance.
 
         Returns:
@@ -62,6 +82,22 @@ class Kernel(ABC):
 
         Returns:
             Thread: The thread bound to this kernel instance.
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def run(self) -> Run:
+        """The run bound to this kernel instance.
+
+        Returns:
+            Run: The run bound to this kernel instance.
+        """
+        pass
+
+    @abstractmethod
+    def converters(self) -> ConvertersInterface:
+        """Interface for converting between thread, prompt, and response objects.
         """
         pass
 
@@ -125,7 +161,7 @@ class Kernel(ABC):
 
     @property
     @abstractmethod
-    def platform(self) -> PlatformInterface:
+    def platforms(self) -> list[PlatformInterface]:
         """Interface for interacting with the agent's model (LLM) platform.
 
         Every agent (and the kernel in general) has a model (LLM) platform
@@ -133,12 +169,8 @@ class Kernel(ABC):
         interact with the model defined for the agent.
 
         Returns:
-            PlatformInterface: Interface for model interactions.
+            list[PlatformInterface]: List of platform interfaces.
         """
-        # TODO: This implementation follows the idea that a user does not configure
-        # the model in the agent but instead configures a default platform for the
-        # kernel and then the agent architecture or the default model selector will
-        # select the model from the platform.
         pass
 
     @property
@@ -229,3 +261,57 @@ class Kernel(ABC):
             UserInterface: Interface for user interactions.
         """
         pass
+
+    @property
+    @abstractmethod
+    def otel(self) -> OTelInterface:
+        """Interface for interacting with the OpenTelemetry (OTel) API.
+
+        The OTel API is used to interact with the OpenTelemetry (OTel) API.
+        """
+        pass
+
+    async def get_platform_and_model(
+        self,
+        direct_model_name: str | None = None,
+        provider: str | None = None,
+        model_type: Literal[
+            "llm",
+            "embedding",
+            "text-to-image",
+            "text-to-audio",
+            "audio-to-text",
+        ] | None = None,
+        quality_tier: Literal["best", "balanced", "fastest"] | None = None,
+    ) -> tuple[PlatformInterface, str]:
+        """Get a platform and a selected model.
+
+        Arguments:
+            direct_model_name: The name of the model to select. (Optional)
+            provider: The provider of the model to select. (Optional)
+            model_type: The type of model to select. (Optional)
+            quality_tier: The quality tier of the model to select. (Optional)
+
+        Returns:
+            tuple[PlatformInterface, str]: A tuple of the first platform
+                that supports the requested model and the model id.
+        """
+        for platform in self.platforms:
+            model = self.model_selector.select_model(
+                platform.client,
+                ModelSelectionRequest(
+                    direct_model_name=direct_model_name,
+                    provider=provider,
+                    model_type=model_type,
+                    quality_tier=quality_tier,
+                ),
+            )
+            if model:
+                return platform, model
+
+        raise ValueError(
+            f"No platform found for model type: {model_type}, "
+            f"quality tier: {quality_tier}, "
+            f"provider: {provider}, "
+            f"direct model name: {direct_model_name}",
+        )

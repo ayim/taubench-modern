@@ -17,13 +17,13 @@ class ModelProvider:
     )
     """The models we support from the provider."""
 
-    def to_json_dict(self) -> dict:
+    def model_dump(self) -> dict:
         """Serializes the model provider to a dictionary.
         Useful for JSON serialization."""
         return {
             "name": self.name,
             "supported_models": [
-                model.to_json_dict() for model in self.supported_models
+                model.model_dump() for model in self.supported_models
             ],
         }
 
@@ -35,11 +35,11 @@ class ModelProvider:
         )
 
     @classmethod
-    def from_dict(cls, data: dict) -> "ModelProvider":
+    def model_validate(cls, data: dict) -> "ModelProvider":
         """Create a model provider from a dictionary."""
         data = data.copy()
         supported_models = [
-            Model.from_dict(model) for model in data.pop("supported_models", [])
+            Model.model_validate(model) for model in data.pop("supported_models", [])
         ]
         return cls(**data, supported_models=supported_models)
 

@@ -56,7 +56,7 @@ class ObservabilityConfig:
             settings=deepcopy(self.settings) if self.settings != {} else {},
         )
 
-    def to_json_dict(self) -> dict:
+    def model_dump(self) -> dict:
         """Serializes the observability config to a dictionary.
         Useful for JSON serialization."""
         return {
@@ -67,6 +67,6 @@ class ObservabilityConfig:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "ObservabilityConfig":
+    def model_validate(cls, data: dict) -> "ObservabilityConfig":
         """Create an observability config from a dictionary."""
         return cls(**data)

@@ -29,20 +29,26 @@ class TestBedrockConverters:
         converters.attach_kernel(kernel)
         return converters
 
-    def test_convert_text_content(self, converters: BedrockConverters) -> None:
+    @pytest.mark.asyncio
+    async def test_convert_text_content(self, converters: BedrockConverters) -> None:
         """Test converting text content."""
         text_content = PromptTextContent(text="Hello, world!")
 
-        result = converters.convert_text_content(text_content)
+        result = await converters.convert_text_content(text_content)
 
         assert result == {"text": "Hello, world!"}
 
-    def test_convert_image_content(self, converters: BedrockConverters) -> None:
+    @pytest.mark.asyncio
+    async def test_convert_image_content(self, converters: BedrockConverters) -> None:
         """Test converting image content."""
         # Skip this test for now until we know the correct API for PromptImageContent
         pass
 
-    def test_convert_tool_use_content(self, converters: BedrockConverters) -> None:
+    @pytest.mark.asyncio
+    async def test_convert_tool_use_content(
+        self,
+        converters: BedrockConverters,
+    ) -> None:
         """Test converting tool use content."""
         tool_use_content = PromptToolUseContent(
             tool_call_id="tool-1234",
@@ -50,7 +56,7 @@ class TestBedrockConverters:
             tool_input_raw='{"location": "New York"}',
         )
 
-        result = converters.convert_tool_use_content(tool_use_content)
+        result = await converters.convert_tool_use_content(tool_use_content)
 
         assert result == {
             "toolUse": {
@@ -61,7 +67,11 @@ class TestBedrockConverters:
         }
 
     @pytest.mark.asyncio
-    async def test_convert_prompt(self, converters: BedrockConverters) -> None:
+    async def test_convert_prompt(
+        self,
+        converters: BedrockConverters,
+        kernel: Kernel,
+    ) -> None:
         """Test converting a prompt."""
         # Create a simple prompt
         prompt = Prompt(
@@ -74,7 +84,8 @@ class TestBedrockConverters:
         )
 
         # Convert the prompt
-        result = converters.convert_prompt(prompt)
+        finalized_prompt = await prompt.finalize_messages(kernel)
+        result = await converters.convert_prompt(finalized_prompt)
 
         # Check that the result is a BedrockPrompt
         assert isinstance(result, BedrockPrompt)
@@ -89,6 +100,7 @@ class TestBedrockConverters:
     async def test_convert_prompt_with_tools(
         self,
         converters: BedrockConverters,
+        kernel: Kernel,
     ) -> None:
         """Test converting a prompt with tools."""
         # Create a tool
@@ -120,7 +132,8 @@ class TestBedrockConverters:
         )
 
         # Convert the prompt
-        result = converters.convert_prompt(prompt)
+        finalized_prompt = await prompt.finalize_messages(kernel)
+        result = await converters.convert_prompt(finalized_prompt)
 
         # Check that the result is a BedrockPrompt
         assert isinstance(result, BedrockPrompt)

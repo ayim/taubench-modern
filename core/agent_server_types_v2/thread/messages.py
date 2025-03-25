@@ -25,10 +25,10 @@ class ThreadUserMessage(ThreadMessage):
         """
         assert_literal_value_valid(self, "role")
 
-    def to_json_dict(self) -> dict:
+    def model_dump(self) -> dict:
         """Serializes the message to a dictionary. Useful for JSON serialization."""
         return {
-            **super().to_json_dict(),
+            **super().model_dump(),
         }
 
 
@@ -76,8 +76,8 @@ class ThreadAgentMessage(ThreadMessage):
         """Adds a new thought to the message."""
         self.content.append(ThreadThoughtContent(thought=text_piece))
 
-    def to_json_dict(self) -> dict:
+    def model_dump(self) -> dict:
         """Serializes the message to a dictionary. Useful for JSON serialization."""
         return {
-            **super().to_json_dict(),
+            **super().model_dump(),
         }

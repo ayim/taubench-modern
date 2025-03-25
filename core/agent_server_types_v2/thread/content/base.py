@@ -181,7 +181,7 @@ class ContentDelta(ABC):
             "content_id": self.content_id,
             "delta_id": self.delta_id,
             "kind": self.kind,
-            "delta": self.delta.to_json_dict(),
+            "delta": self.delta.model_dump(),
             "timestamp": self.timestamp,
         }
 

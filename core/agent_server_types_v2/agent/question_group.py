@@ -22,7 +22,7 @@ class QuestionGroup:
             questions=self.questions,
         )
 
-    def to_json_dict(self) -> dict:
+    def model_dump(self) -> dict:
         """Serializes the question group to a dictionary.
         Useful for JSON serialization."""
         return {
@@ -31,6 +31,6 @@ class QuestionGroup:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "QuestionGroup":
+    def model_validate(cls, data: dict) -> "QuestionGroup":
         """Create a question group from a dictionary."""
         return cls(**data)

@@ -29,8 +29,10 @@ class ThreadToolUsageContent(ThreadMessageContent):
 
     sub_type: Literal[
         "kernel-internal",
-        "ca-internal",
+        "aa-internal",
         "action-external",
+        "mcp-external",
+        "provider-side",
         "unknown",
     ] = field(
         default="unknown",
@@ -38,14 +40,16 @@ class ThreadToolUsageContent(ThreadMessageContent):
     )
     """The sub-type of the tool call, if it has one"""
 
-    status: Literal["running", "finished", "failed"] = field(
-        default="running",
+    status: Literal["running", "finished", "failed", "pending", "streaming"] = field(
+        default="pending",
         metadata={
             "description": "The status of the tool call, either 'running', "
-            "'finished', or 'failed'",
+            "'finished', 'failed', 'pending', or 'streaming'",
         },
     )
-    """The status of the tool call, either 'running', 'finished', or 'failed'"""
+    """The status of the tool call, either 'running', 'finished', 'failed',
+    'pending', or 'streaming'
+    """
 
     result: str | None = field(
         default=None,
@@ -61,6 +65,24 @@ class ThreadToolUsageContent(ThreadMessageContent):
     )
     """The error message of the tool call, if it has failed"""
 
+    discovered_at: datetime | None = field(
+        default=None,
+        metadata={
+            "description": "The timestamp when the tool call was discovered in "
+            "stream or response",
+        },
+    )
+    """The timestamp when the tool call was discovered in stream or response"""
+
+    pending_at: datetime | None = field(
+        default=None,
+        metadata={
+            "description": "The timestamp when the tool call was pending "
+            "(fully formed, not yet executed)",
+        },
+    )
+    """The timestamp when the tool call was pending (fully formed, not yet executed)"""
+
     started_at: datetime | None = field(
         default=None,
         metadata={"description": "The timestamp when the tool call started"},
@@ -73,8 +95,8 @@ class ThreadToolUsageContent(ThreadMessageContent):
     )
     """The timestamp when the tool call ended"""
 
-    metadata: dict[str, Any] | None = field(
-        default=None,
+    metadata: dict[str, Any] = field(
+        default_factory=dict,
         metadata={"description": "The metadata of the tool call"},
     )
     """The metadata of the tool call"""

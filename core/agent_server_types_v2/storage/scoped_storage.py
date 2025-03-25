@@ -62,7 +62,7 @@ class ScopedStorage:
     def __post_init__(self) -> None:
         assert_literal_value_valid(self, "scope_type")
 
-    def to_json_dict(self) -> dict:
+    def model_dump(self) -> dict:
         return {
             "storage_id": self.storage_id,
             "created_at": self.created_at.isoformat(),
@@ -75,7 +75,7 @@ class ScopedStorage:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "ScopedStorage":
+    def model_validate(cls, data: dict) -> "ScopedStorage":
         data = data.copy()
         for field_name in ["created_at", "updated_at"]:
             if field_name in data and isinstance(data[field_name], str):

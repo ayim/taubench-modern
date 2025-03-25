@@ -75,6 +75,15 @@ class ThreadMessage:
     )
     """The metadata associated with the message (for agent-server use only)"""
 
+    parent_run_id: str | None = field(
+        default=None,
+        metadata={"description": "The unique identifier for the run "
+                "that created this message or None if this message "
+                "was not created by a run"},
+    )
+    """The unique identifier for the run that created this message
+    or None if this message was not created by a run"""
+
     message_id: str = field(
         default_factory=lambda: str(uuid4()),
         metadata={"description": "The unique identifier for the message"},
@@ -111,11 +120,12 @@ class ThreadMessage:
             content=[c.model_copy() for c in self.content],
             agent_metadata=deepcopy(self.agent_metadata),
             server_metadata=deepcopy(self.server_metadata),
+            parent_run_id=self.parent_run_id,
         )
         new_message.message_id = self.message_id
         return new_message
 
-    def to_json_dict(self) -> dict:
+    def model_dump(self) -> dict:
         """Serializes the message to a dictionary. Useful for JSON serialization."""
         return {
             "message_id": self.message_id,
@@ -125,16 +135,19 @@ class ThreadMessage:
             "updated_at": self.updated_at.isoformat(),
             "agent_metadata": self.agent_metadata,
             "server_metadata": self.server_metadata,
+            "parent_run_id": self.parent_run_id,
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> Self:
+    def model_validate(cls, data: dict) -> Self:
         """Deserializes the message from a dictionary.
         Useful for JSON deserialization."""
         from agent_server_types_v2.thread.content import ThreadMessageContent
 
         if "message_id" in data and isinstance(data["message_id"], UUID):
             data["message_id"] = str(data["message_id"])
+        if "parent_run_id" in data and isinstance(data["parent_run_id"], UUID):
+            data["parent_run_id"] = str(data["parent_run_id"])
         if "created_at" in data and isinstance(data["created_at"], str):
             data["created_at"] = datetime.fromisoformat(data["created_at"])
         if "updated_at" in data and isinstance(data["updated_at"], str):

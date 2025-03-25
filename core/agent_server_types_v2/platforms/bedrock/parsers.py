@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING, Any
 
 from agent_server_types_v2.delta import GenericDelta
 from agent_server_types_v2.delta.compute_delta import compute_generic_deltas
-from agent_server_types_v2.kernel_interfaces.kernel_mixin import UsesKernelMixin
 from agent_server_types_v2.platforms.base import PlatformParsers
 from agent_server_types_v2.platforms.bedrock.configs import (
     BedrockMimeTypeMap,
@@ -35,7 +34,7 @@ if TYPE_CHECKING:
     )
 
 
-class BedrockParsers(PlatformParsers, UsesKernelMixin):
+class BedrockParsers(PlatformParsers):
     """Parsers that transform Bedrock types to agent-server prompt types."""
 
     def parse_text_content(self, content: str | bytes | dict) -> ResponseTextContent:
@@ -437,8 +436,7 @@ class BedrockParsers(PlatformParsers, UsesKernelMixin):
         This method will:
         1. Parse a single event from Bedrock's ConverseStreamOutputTypeDef
         2. Update the response message state based on the event
-        3. Push the event to the kernel's event bus
-        4. Compute and yield deltas between message states
+        3. Compute and yield deltas between message states
 
         Args:
             event: A single event from the stream.
@@ -471,6 +469,3 @@ class BedrockParsers(PlatformParsers, UsesKernelMixin):
         deltas = compute_generic_deltas(last_message, message)
         for delta in deltas:
             yield delta
-
-        # Push the event to the kernel's event bus
-        # await self.kernel.outgoing_events.dispatch(event)

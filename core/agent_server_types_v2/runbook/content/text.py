@@ -29,7 +29,7 @@ class RunbookTextContent(RunbookContent):
             content=self.content,
         )
 
-    def to_json_dict(self) -> dict:
+    def model_dump(self) -> dict:
         """Serializes the runbook text content to a dictionary.
         Useful for JSON serialization."""
         return {
@@ -38,6 +38,6 @@ class RunbookTextContent(RunbookContent):
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "RunbookTextContent":
+    def model_validate(cls, data: dict) -> "RunbookTextContent":
         """Create a runbook text content from a dictionary."""
         return cls(**data)

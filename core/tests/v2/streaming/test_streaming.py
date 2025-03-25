@@ -24,14 +24,14 @@ from agent_server_types_v2.streaming.error import StreamingError
 class MockThreadMessage:
     """
     A mock stand-in for ThreadMessage with the minimum attributes needed
-    to test compute_message_delta. It provides a .to_json_dict() and a .uid.
+    to test compute_message_delta. It provides a .model_dump() and a .uid.
     """
 
     def __init__(self, message_id, **kwargs):
         self.message_id = message_id
         self.data = kwargs
 
-    def to_json_dict(self):
+    def model_dump(self):
         return {
             "message_id": self.message_id,
             **self.data,
@@ -123,7 +123,7 @@ def test_streaming_delta_base():
         timestamp=datetime(2025, 1, 24, 12, 0, 0),
         event_type="message_metadata",
     )
-    d = delta.to_json_dict()
+    d = delta.model_dump()
     assert d["sequence_number"] == 1
     assert d["message_id"] == "msg-123"
     assert d["timestamp"] == "2025-01-24T12:00:00"
@@ -138,7 +138,7 @@ def test_streaming_delta_message_content():
         timestamp=datetime(2025, 1, 24, 13, 0, 0),
         delta=delta,
     )
-    d = msg_content.to_json_dict()
+    d = msg_content.model_dump()
     assert d["sequence_number"] == 1
     assert d["message_id"] == "msg-123"
     assert d["timestamp"] == "2025-01-24T13:00:00"
@@ -157,7 +157,7 @@ def test_streaming_delta_message_begin():
         timestamp=datetime(2025, 1, 24, 14, 0, 0),
         data={"initial": "data"},
     )
-    d = begin_event.to_json_dict()
+    d = begin_event.model_dump()
     assert d["sequence_number"] == 1
     assert d["message_id"] == "msg-001"
     assert d["thread_id"] == "thread-123"
@@ -179,7 +179,7 @@ def test_streaming_delta_message_end():
         timestamp=datetime(2025, 1, 24, 15, 0, 0),
         data={"final": "data"},
     )
-    d = end_event.to_json_dict()
+    d = end_event.model_dump()
     assert d["sequence_number"] == 1
     assert d["message_id"] == "msg-002"
     assert d["thread_id"] == "thread-123"

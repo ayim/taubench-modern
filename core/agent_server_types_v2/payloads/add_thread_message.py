@@ -44,12 +44,8 @@ class AddThreadMessagePayload(ThreadMessage):
     def to_thread_message(
         cls,
         payload: Self,
-        user_id: str,
-        thread_id: str,
     ) -> ThreadMessage:
         return ThreadMessage(
-            user_id=user_id,
-            thread_id=thread_id,
             message_id=str(uuid4()),
             created_at=datetime.now(),
             updated_at=datetime.now(),

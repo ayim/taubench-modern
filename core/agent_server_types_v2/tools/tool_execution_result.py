@@ -17,6 +17,11 @@ class ToolExecutionResult:
     )
     """The definition of the tool that was executed"""
 
+    tool_call_id: str = field(
+        metadata={"description": "The unique identifier of the tool call"},
+    )
+    """The unique identifier of the tool call"""
+
     execution_id: str = field(
         metadata={"description": "The unique identifier of the tool execution"},
     )
@@ -33,10 +38,15 @@ class ToolExecutionResult:
     )
     """The parsed input of the tool that was executed"""
 
-    output_raw: str = field(
+    output_raw: Any | None = field(
         metadata={"description": "The raw output of the tool that was executed"},
     )
     """The raw output of the tool that was executed"""
+
+    error: str | None = field(
+        metadata={"description": "The error that occurred during the tool execution"},
+    )
+    """The error that occurred during the tool execution"""
 
     execution_started_at: datetime = field(
         metadata={"description": "The timestamp when the tool execution started"},

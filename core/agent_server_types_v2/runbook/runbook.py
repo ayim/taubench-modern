@@ -37,18 +37,19 @@ class Runbook:
             content=[content.copy() for content in self.content],
         )
 
-    def to_json_dict(self) -> dict:
+    def model_dump(self) -> dict:
         """Serializes the runbook to a dictionary. Useful for JSON serialization."""
         return {
             "raw_text": self.raw_text,
-            "content": [content.to_json_dict() for content in self.content],
+            "content": [content.model_dump() for content in self.content],
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "Runbook":
+    def model_validate(cls, data: dict) -> "Runbook":
         """Create a runbook from a dictionary."""
         data = data.copy()
         content = [
-            RunbookTextContent.from_dict(content) for content in data.pop("content", [])
+            RunbookTextContent.model_validate(content)
+            for content in data.pop("content", [])
         ]
         return cls(**data, content=content)

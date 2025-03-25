@@ -36,7 +36,7 @@ if TYPE_CHECKING:
 class BedrockConverters(PlatformConverters, UsesKernelMixin):
     """Converters that transform agent-server prompt types to Bedrock types."""
 
-    def _verify_image_dimensions(self, image_data: bytes) -> None:
+    async def _verify_image_dimensions(self, image_data: bytes) -> None:
         """Verify that an image meets Bedrock's dimension requirements.
 
         Args:
@@ -64,7 +64,7 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
         except Exception as e:
             raise ValueError(f"Failed to verify image dimensions: {e}") from e
 
-    def _verify_image_size(self, image_data: bytes) -> None:
+    async def _verify_image_size(self, image_data: bytes) -> None:
         """Verify that an image meets Bedrock's size requirements.
 
         Args:
@@ -80,7 +80,10 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
                 f"{BedrockContentLimits.MAX_IMAGE_SIZE} bytes",
             )
 
-    def _verify_image_count(self, content_blocks: list["ContentBlockTypeDef"]) -> None:
+    async def _verify_image_count(
+        self,
+        content_blocks: list["ContentBlockTypeDef"],
+    ) -> None:
         """Verify that the number of images in content blocks doesn't exceed limits.
 
         Args:
@@ -96,7 +99,7 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
                 f"{BedrockContentLimits.MAX_IMAGE_COUNT}",
             )
 
-    def _verify_document_size(self, document_data: bytes) -> None:
+    async def _verify_document_size(self, document_data: bytes) -> None:
         """Verify that a document meets Bedrock's size requirements.
 
         Args:
@@ -112,7 +115,7 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
                 f"{BedrockContentLimits.MAX_DOCUMENT_SIZE} bytes",
             )
 
-    def _verify_document_count(
+    async def _verify_document_count(
         self,
         content_blocks: list["ContentBlockTypeDef"],
     ) -> None:
@@ -131,7 +134,7 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
                 f"{BedrockContentLimits.MAX_DOCUMENT_COUNT}",
             )
 
-    def _verify_document_name(self, name: str) -> None:
+    async def _verify_document_name(self, name: str) -> None:
         """Verify that a document name meets Bedrock's requirements.
 
         Args:
@@ -154,13 +157,16 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
                 "single spaces, hyphens, parentheses, and square brackets",
             )
 
-    def convert_text_content(self, content: PromptTextContent) -> "ContentBlockTypeDef":
+    async def convert_text_content(
+        self,
+        content: PromptTextContent,
+    ) -> "ContentBlockTypeDef":
         """Converts text content to Bedrock format."""
         from types_boto3_bedrock_runtime.type_defs import ContentBlockTypeDef
 
         return ContentBlockTypeDef(text=content.text)
 
-    def convert_image_content(
+    async def convert_image_content(
         self,
         content: PromptImageContent,
     ) -> "ContentBlockTypeDef":
@@ -172,17 +178,17 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
         from types_boto3_bedrock_runtime.type_defs import ContentBlockTypeDef
 
         # Convert to ImageBlockTypeDef and wrap in ContentBlockTypeDef
-        image_block = self._convert_to_image_block(content)
+        image_block = await self._convert_to_image_block(content)
         return ContentBlockTypeDef(image=image_block)
 
-    def convert_audio_content(
+    async def convert_audio_content(
         self,
         content: PromptAudioContent,
     ) -> "ContentBlockTypeDef":
         """Converts audio content to Bedrock format."""
         raise NotImplementedError("Audio content is not supported in Bedrock")
 
-    def convert_tool_use_content(
+    async def convert_tool_use_content(
         self,
         content: PromptToolUseContent,
     ) -> "ContentBlockTypeDef":
@@ -199,7 +205,7 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
         )
         return ContentBlockTypeDef(toolUse=tool_use)
 
-    def _convert_to_image_block(
+    async def _convert_to_image_block(
         self,
         content: PromptImageContent,
     ) -> "ImageBlockTypeDef":
@@ -229,8 +235,8 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
             # Verify the base64 data
             try:
                 decoded = base64.b64decode(content.value)
-                self._verify_image_size(decoded)
-                self._verify_image_dimensions(decoded)
+                await self._verify_image_size(decoded)
+                await self._verify_image_dimensions(decoded)
             except Exception as e:
                 raise ValueError(f"Invalid base64 image data: {e}") from e
             return ImageBlockTypeDef(
@@ -240,14 +246,14 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
         else:  # raw_bytes
             if not isinstance(content.value, bytes):
                 raise ValueError("Raw bytes image value must be bytes")
-            self._verify_image_size(content.value)
-            self._verify_image_dimensions(content.value)
+            await self._verify_image_size(content.value)
+            await self._verify_image_dimensions(content.value)
             return ImageBlockTypeDef(
                 format="base64",
                 source={"base64": base64.b64encode(content.value).decode()},
             )
 
-    def _convert_to_document_block(
+    async def _convert_to_document_block(
         self,
         content: PromptDocumentContent,
     ) -> "DocumentBlockTypeDef":
@@ -268,7 +274,7 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
         from types_boto3_bedrock_runtime.type_defs import DocumentBlockTypeDef
 
         # Verify document name format
-        self._verify_document_name(content.name)
+        await self._verify_document_name(content.name)
 
         if content.sub_type == "url":
             if not isinstance(content.value, str):
@@ -280,14 +286,14 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
             )
         elif content.sub_type == "base64":
             document_data = base64.b64decode(content.value)
-            self._verify_document_size(document_data)
+            await self._verify_document_size(document_data)
             return DocumentBlockTypeDef(
                 format="base64",
                 name=content.name,
                 source={"base64": content.value},
             )
         elif content.sub_type == "raw_bytes":
-            self._verify_document_size(content.value)
+            await self._verify_document_size(content.value)
             return DocumentBlockTypeDef(
                 format="base64",
                 name=content.name,
@@ -297,7 +303,7 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
             # TODO: handle UploadedFile once the kernel.files interface is implemented.
             raise NotImplementedError("No interface exists for UploadedFile")
 
-    def convert_tool_result_content(
+    async def convert_tool_result_content(
         self,
         content: PromptToolResultContent,
     ) -> "ContentBlockTypeDef":
@@ -321,11 +327,11 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
                 )
             elif isinstance(content_item, PromptImageContent):
                 # Convert to proper ImageBlockTypeDef
-                image_block = self._convert_to_image_block(content_item)
+                image_block = await self._convert_to_image_block(content_item)
                 result_content.append(ToolResultContentBlockTypeDef(image=image_block))
             elif isinstance(content_item, PromptDocumentContent):
                 # Convert to proper DocumentBlockTypeDef
-                document_block = self._convert_to_document_block(content_item)
+                document_block = await self._convert_to_document_block(content_item)
                 result_content.append(
                     ToolResultContentBlockTypeDef(document=document_block),
                 )
@@ -341,7 +347,7 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
         )
         return ContentBlockTypeDef(toolResult=tool_result)
 
-    def convert_document_content(
+    async def convert_document_content(
         self,
         content: PromptDocumentContent,
     ) -> "ContentBlockTypeDef":
@@ -354,10 +360,10 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
         from types_boto3_bedrock_runtime.type_defs import ContentBlockTypeDef
 
         # Convert to DocumentBlockTypeDef and wrap in ContentBlockTypeDef
-        document_block = self._convert_to_document_block(content)
+        document_block = await self._convert_to_document_block(content)
         return ContentBlockTypeDef(document=document_block)
 
-    def _reverse_role_map(self, role: str) -> str:
+    async def _reverse_role_map(self, role: str) -> str:
         """Reverse the role map.
 
         Args:
@@ -374,7 +380,7 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
                 return bedrock_role
         raise ValueError(f"Role '{role}' not found in BedrockRoleMap")
 
-    def _convert_messages(
+    async def _convert_messages(
         self,
         messages: list[PromptUserMessage | PromptAgentMessage],
     ) -> list["MessageTypeDef"]:
@@ -400,34 +406,36 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
             content_blocks: list[ContentBlockTypeDef] = []
             for content in message.content:
                 if isinstance(content, PromptTextContent):
-                    content_blocks.append(self.convert_text_content(content))
+                    content_blocks.append(await self.convert_text_content(content))
                 elif isinstance(content, PromptImageContent):
-                    content_blocks.append(self.convert_image_content(content))
+                    content_blocks.append(await self.convert_image_content(content))
                 elif isinstance(content, PromptAudioContent):
-                    content_blocks.append(self.convert_audio_content(content))
+                    content_blocks.append(await self.convert_audio_content(content))
                 elif isinstance(content, PromptToolUseContent):
-                    content_blocks.append(self.convert_tool_use_content(content))
+                    content_blocks.append(await self.convert_tool_use_content(content))
                 elif isinstance(content, PromptToolResultContent):
-                    content_blocks.append(self.convert_tool_result_content(content))
+                    content_blocks.append(
+                        await self.convert_tool_result_content(content),
+                    )
                 elif isinstance(content, PromptDocumentContent):
-                    content_blocks.append(self.convert_document_content(content))
+                    content_blocks.append(await self.convert_document_content(content))
 
             # Verify content limits
-            self._verify_image_count(content_blocks)
-            self._verify_document_count(content_blocks)
+            await self._verify_image_count(content_blocks)
+            await self._verify_document_count(content_blocks)
 
             converted_messages.append(
                 MessageTypeDef(
-                    role=self._reverse_role_map(message.role),
+                    role=await self._reverse_role_map(message.role),
                     content=content_blocks,
                 ),
             )
 
         return converted_messages
 
-    def _convert_system_instruction(
+    async def _convert_system_instruction(
         self,
-        system_instruction: str,
+        system_instruction: str | None,
     ) -> list["SystemContentBlockTypeDef"]:
         """Convert system instruction to Bedrock system format.
 
@@ -439,9 +447,12 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
         """
         from types_boto3_bedrock_runtime.type_defs import SystemContentBlockTypeDef
 
+        if system_instruction is None:
+            return []
+
         return [SystemContentBlockTypeDef(text=system_instruction)]
 
-    def _build_inference_config(
+    async def _build_inference_config(
         self,
         temperature: float | None,
         max_output_tokens: int | None,
@@ -473,7 +484,10 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
 
         return None if not config else config
 
-    def _build_additional_fields(self, seed: int | None) -> dict[str, Any] | None:
+    async def _build_additional_fields(
+        self,
+        seed: int | None,
+    ) -> dict[str, Any] | None:
         """Build additional model request fields from prompt parameters.
 
         Args:
@@ -486,7 +500,7 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
             return {"seed": seed}
         return None
 
-    def _convert_tools(
+    async def _convert_tools(
         self,
         tools: list[ToolDefinition],
     ) -> list["ToolTypeDef"]:
@@ -513,7 +527,7 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
             converted_tools.append(ToolTypeDef(toolSpec=tool_spec))
         return converted_tools
 
-    def _convert_tool_choice(
+    async def _convert_tool_choice(
         self,
         tool_choice: Literal["auto", "any"] | str,
         tools: list[ToolDefinition],
@@ -545,7 +559,7 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
     # TODO: Add tool use from the model back to ToolUsePromptContent, but we need to
     #       add hueristics to handle if the model uses the wrong case for the tool name.
 
-    def convert_prompt(self, prompt: Prompt) -> BedrockPrompt:
+    async def convert_prompt(self, prompt: Prompt) -> BedrockPrompt:
         """Converts a prompt to Bedrock format.
 
         Args:
@@ -557,15 +571,15 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
         Raises:
             ValueError: If any content in the prompt exceeds Bedrock's limits.
         """
-        messages = self._convert_messages(prompt.messages)
-        system = self._convert_system_instruction(prompt.system_instruction)
-        inference_config = self._build_inference_config(
+        messages = await self._convert_messages(prompt.finalized_messages)
+        system = await self._convert_system_instruction(prompt.system_instruction)
+        inference_config = await self._build_inference_config(
             prompt.temperature,
             prompt.max_output_tokens,
             prompt.stop_sequences,
             prompt.top_p,
         )
-        additional_fields = self._build_additional_fields(prompt.seed)
+        additional_fields = await self._build_additional_fields(prompt.seed)
 
         # Convert tools if present
         tool_config = None
@@ -573,8 +587,11 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
             from types_boto3_bedrock_runtime.type_defs import ToolConfigurationTypeDef
 
             tool_config = ToolConfigurationTypeDef(
-                tools=self._convert_tools(prompt.tools),
-                toolChoice=self._convert_tool_choice(prompt.tool_choice, prompt.tools),
+                tools=await self._convert_tools(prompt.tools),
+                toolChoice=await self._convert_tool_choice(
+                    prompt.tool_choice,
+                    prompt.tools,
+                ),
             )
 
         return BedrockPrompt(

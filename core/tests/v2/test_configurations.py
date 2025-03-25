@@ -129,8 +129,8 @@ class TestConfiguration:
             name: str = "default"
             count: int = 10
 
-        config = SampleConfig.from_dict({"name": "from_dict", "count": 40})
-        assert config.name == "from_dict"
+        config = SampleConfig.from_dict({"name": "model_validate", "count": 40})
+        assert config.name == "model_validate"
         assert config.count == 40
 
     def test_from_dict_invalid_type(self) -> None:
@@ -142,7 +142,9 @@ class TestConfiguration:
             count: int = 10
 
         with pytest.raises(TypeError):
-            SampleConfig.from_dict({"name": "from_dict", "count": "not an int"})
+            SampleConfig.from_dict(
+                {"name": "model_validate", "count": "not an int"},
+            )
 
     def test_default(self) -> None:
         """Test default method."""

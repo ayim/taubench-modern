@@ -109,7 +109,7 @@ class Memory:
     )
     """The ID of the linked embedding (possibly stored externally)"""
 
-    def to_json_dict(self) -> dict:
+    def model_dump(self) -> dict:
         """Serializes the memory entry to a dictionary.
         Useful for JSON serialization."""
         return {
@@ -136,7 +136,7 @@ class Memory:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "Memory":
+    def model_validate(cls, data: dict) -> "Memory":
         """Create a memory from a dictionary."""
         data = data.copy()
 

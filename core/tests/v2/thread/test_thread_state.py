@@ -33,10 +33,11 @@ class TestThreadState:
             #        'content',
             #        'created_at',
             #        'role',
-            #        'server_metadata'
+            #        'server_metadata',
+            #        'parent_run_id',
             #    }
             # Each of these will have a delta event.
-            assert mock_send.await_count == 6  # one delta event for each key
+            assert mock_send.await_count == 7  # one delta event for each key
 
     async def test_stream_message_delta_for_updated_message(self):
         ts = ThreadStateTestImpl()

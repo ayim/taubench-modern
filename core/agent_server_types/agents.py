@@ -211,7 +211,9 @@ class AgentAdvancedConfig(BaseModel):
         them to the legacy names. Only applies when serialize_legacy_names=True
         in the model_dump context.
         """
-        if not info.context.get("serialize_legacy_names", False):
+        if isinstance(info.context, dict) and not info.context.get(
+            "serialize_legacy_names", False
+        ):
             return value
 
         if value in [
@@ -340,6 +342,18 @@ class AgentPayload(BaseModel):
         )
 
 
+class UpdateAgentPayload(BaseModel):
+    """Payload for updating an agent."""
+
+    # TODO: Implement all other agent fields for patch updates. This will require
+    # nested models that allow for partial updates and validators will need to be
+    # turned into field validators so they can be reused by the patch endpoint.
+
+    name: str | None = Field(None, description="The name of the agent.")
+    description: str | None = Field(None, description="The description of the agent.")
+    version: str | None = Field(None, description="The version of the agent.")
+
+
 class Agent(AgentPayload):
     """
     Agent model that masks sensitive information unless serialized with special
@@ -357,6 +371,12 @@ class Agent(AgentPayload):
     updated_at: datetime = Field(description="The last time the agent was updated.")
     created_at: datetime = Field(description="The time the agent was created.")
 
+    def patch_agent(self, update_payload: UpdateAgentPayload) -> Self:
+        """Apply an update payload to the agent, returning a new agent object."""
+        return self.model_copy(
+            update=update_payload.model_dump(exclude_none=True), deep=True
+        )
+
 
 class AgentMetrics(BaseModel):
     threads_count: int = Field(description="Number of threads of the agent.")
@@ -369,7 +389,6 @@ class AgentMetrics(BaseModel):
 
 
 AGENT_LIST_ADAPTER = TypeAdapter(List[Agent])
-
 
 # Similar to the dummy_model, we must creat a dummy_agent to avoid breaking the app
 dummy_agent = Agent(

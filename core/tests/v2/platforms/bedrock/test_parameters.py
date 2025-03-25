@@ -44,6 +44,7 @@ class TestBedrockPlatformParameters:
 
         # Check result
         assert result == {
+            "kind": "bedrock",
             "region_name": "us-west-2",
             "aws_access_key_id": "test-access-key",
             "aws_secret_access_key": "test-secret-key",
@@ -66,6 +67,7 @@ class TestBedrockPlatformParameters:
 
         # Check result
         assert result == {
+            "kind": "bedrock",
             "region_name": "us-west-2",
             "api_version": None,
             "use_ssl": None,

@@ -25,6 +25,15 @@ class ToolDefinition:
     )
     """The function that implements the tool"""
 
+    def model_dump(self) -> dict:
+        """Dump the ToolDefinition as a dictionary."""
+        # Leave out the function as it's not serializable
+        return {
+            "name": self.name,
+            "description": self.description,
+            "input_schema": self.input_schema,
+        }
+
     @classmethod
     def from_callable(
         cls,
@@ -110,3 +119,10 @@ class ToolDefinition:
             input_schema=input_schema,
             function=func,
         )
+
+    @classmethod
+    def model_validate(cls, data: dict) -> "ToolDefinition":
+        """Validate and convert a dictionary into a ToolDefinition instance."""
+        # TODO: better impl?
+        return cls(**data)
+

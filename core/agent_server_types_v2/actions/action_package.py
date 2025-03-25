@@ -1,6 +1,10 @@
 from dataclasses import dataclass, field
 from typing import Self
 
+from agent_server_types_v2.actions.action_utils import (
+    _get_spec_and_build_tool_definitions,
+)
+from agent_server_types_v2.tools.tool_definition import ToolDefinition
 from agent_server_types_v2.utils import SecretString
 
 
@@ -78,7 +82,7 @@ class ActionPackage:
             allowed_actions=self.allowed_actions,
         )
 
-    def to_json_dict(self) -> dict:
+    def model_dump(self) -> dict:
         """Serializes the action package to a dictionary.
         Useful for JSON serialization."""
         return {
@@ -92,8 +96,16 @@ class ActionPackage:
             "allowed_actions": self.allowed_actions,
         }
 
+    async def to_tool_definitions(self) -> list[ToolDefinition]:
+        """Converts the action package to a list of tool definitions."""
+        return await _get_spec_and_build_tool_definitions(
+            self.url,
+            self.api_key.get_secret_value(),
+            self.allowed_actions,
+        )
+
     @classmethod
-    def from_dict(cls, data: dict) -> "ActionPackage":
+    def model_validate(cls, data: dict) -> "ActionPackage":
         """Deserializes the action package from a dictionary.
         Useful for JSON deserialization."""
         return cls(**data)

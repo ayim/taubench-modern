@@ -56,7 +56,9 @@ class ResponseToolUseContent(ResponseMessageContent):
         """
         assert_literal_value_valid(self, "kind")
 
-        object.__setattr__(self, "_tool_input", json.loads(self.tool_input_raw))
+        object.__setattr__(self, "_tool_input", json.loads(
+            self.tool_input_raw or "{}",  # Careful for tools w/ no params
+        ))
 
     @property
     def tool_input(self) -> dict[str, Any]:

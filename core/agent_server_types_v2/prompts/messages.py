@@ -3,6 +3,7 @@ from typing import Literal
 
 from agent_server_types_v2.prompts.base import PromptMessage
 from agent_server_types_v2.prompts.content.audio import PromptAudioContent
+from agent_server_types_v2.prompts.content.base import PromptMessageContent
 from agent_server_types_v2.prompts.content.image import PromptImageContent
 from agent_server_types_v2.prompts.content.text import PromptTextContent
 from agent_server_types_v2.prompts.content.tool_result import PromptToolResultContent
@@ -25,6 +26,16 @@ class PromptUserMessage(PromptMessage):
     )
     """The role of the message sender"""
 
+    @classmethod
+    def model_validate(cls, data: dict) -> "PromptUserMessage":
+        """Validate and convert a dictionary into a PromptUserMessage instance."""
+        data = data.copy()
+        raw_content = data.pop("content", [])
+        content = []
+        for item in raw_content:
+            content.append(PromptMessageContent.model_validate(item))
+        data["content"] = content
+        return cls(**data)
 
 @dataclass(frozen=True)
 class PromptAgentMessage(PromptMessage):
@@ -40,3 +51,17 @@ class PromptAgentMessage(PromptMessage):
         metadata={"description": "The role of the message sender"},
     )
     """The role of the message sender"""
+
+    @classmethod
+    def model_validate(cls, data: dict) -> "PromptAgentMessage":
+        """Validate and convert a dictionary into a PromptAgentMessage instance."""
+        data = data.copy()
+        raw_content = data.pop("content", [])
+        content = []
+        for item in raw_content:
+            content.append(PromptMessageContent.model_validate(item))
+        data["content"] = content
+        return cls(**data)
+
+PromptMessage.register_message_by_role("user", PromptUserMessage)
+PromptMessage.register_message_by_role("agent", PromptAgentMessage)
