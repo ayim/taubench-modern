@@ -111,6 +111,14 @@ const AgentMessage: React.FC<{ content?: any[], messageId?: string, artifacts: a
                 
                 // Generate unique ID for this tool call
                 const toolId = `tool-${index}`;
+
+                let prettyResult = item.result;
+                try {
+                  const parsed = JSON.parse(item.result);
+                  prettyResult = JSON.stringify(parsed, null, 2);
+                } catch (e) {
+                  // Keep original if not valid JSON
+                }
                 
                 return (
                   <div key={index} className="tool-call-content border rounded-md overflow-hidden">
@@ -155,7 +163,7 @@ const AgentMessage: React.FC<{ content?: any[], messageId?: string, artifacts: a
                             <span className="text-gray-400">{isSectionExpanded(toolId, 'result') ? '▼' : '►'}</span>
                           </button>
                           {isSectionExpanded(toolId, 'result') && (
-                            <pre className="text-xs bg-gray-50 p-2 rounded overflow-x-auto">{item.result}</pre>
+                            <pre className="text-xs bg-gray-50 p-2 rounded overflow-x-auto">{prettyResult}</pre>
                           )}
                         </div>
                       )}
