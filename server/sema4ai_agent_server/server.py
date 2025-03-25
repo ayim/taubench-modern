@@ -21,7 +21,7 @@ from sema4ai_agent_server.otel import setup_otel
 from sema4ai_agent_server.storage.option import get_storage
 
 # Do not change the version here. It is managed by versionbump (see versionbump.yaml)
-VERSION = "1.2.5-alpha"
+VERSION = "1.2.5"
 
 
 PUBLIC_V1_PREFIX = "/api/public/v1"
