@@ -6,7 +6,10 @@ from langchain.embeddings.base import Embeddings
 from pydantic import BaseModel, Field, SecretStr, model_validator
 import structlog
 
-from agent_architecture.chat_models.chat_snowflake_utils import get_connection_details
+from agent_architecture.chat_models.chat_snowflake_utils import (
+    get_connection_details,
+    safe_get_or_create_session,
+)
 
 # Try to import NumPy, but continue if not available
 try:
@@ -141,7 +144,9 @@ class SnowflakeCortexEmbeddings(BaseModel, Embeddings):
             f"schema={self.snowflake_schema}"
         )
 
-        self._session = Session.builder.configs(conn_details).getOrCreate()
+        self._session = safe_get_or_create_session(
+            Session.builder.configs(conn_details)
+        )
         
         # Handle warehouse selection to prevent "No active warehouse selected" errors
         if conn_details["warehouse"]:

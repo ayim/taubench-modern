@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sema4ai-agent-server"
-version = "1.2.4"
+version = "1.2.5-alpha"
 description = ""
 authors = ["Sema4.ai Engineering <engineering@sema4.ai>"]
 readme = "README.md"
@@ -49,10 +49,10 @@ langchain-postgres = "^0.0.12"
 traceloop-sdk = "^0.33.5"
 langchain-aws = "^0.2.1"
 agent-server-types = { git = "https://github.com/Sema4AI/agent-server-types.git", tag = "v1.2.0" }
-agent-architecture = { git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.2.1" }
-agent-architecture-default = { git = "https://github.com/Sema4AI/agent-architecture-default.git", tag = "v1.1.0" }
-agent-architecture-openai-plan-execute = { git = "https://github.com/Sema4AI/agent-architecture-openai-plan-execute.git", tag = "v1.1.0" }
-agent-architecture-claude-tools = { git = "https://github.com/Sema4AI/agent-architecture-claude-tools.git", tag = "v1.1.0" }
+agent-architecture = { git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.2.2" }
+agent-architecture-default = { git = "https://github.com/Sema4AI/agent-architecture-default.git", tag = "v1.1.1" }
+agent-architecture-openai-plan-execute = { git = "https://github.com/Sema4AI/agent-architecture-openai-plan-execute.git", tag = "v1.1.1" }
+agent-architecture-claude-tools = { git = "https://github.com/Sema4AI/agent-architecture-claude-tools.git", tag = "v1.1.1" }
 greenlet = "^3.1.1"
 sema4ai-common = "0.0.9"
 psutil = ">=5.0.0,<7.0.0"
@@ -90,7 +90,7 @@ pytest-cov = "^5.0.0"
 pytest-asyncio = "^0.24.0"
 pytest-mock = "^3.14.0"
 pytest-socket = "^0.7.0"
-pytest-watch = "^4.2.0"
+#pytest-watch = "^4.2.0"
 pytest-timeout = "^2.3.1"
 pytest-regressions = "1.0.6"
 

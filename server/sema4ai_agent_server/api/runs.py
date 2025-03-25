@@ -64,9 +64,14 @@ async def _run_input_and_config(payload: ChatRequest, user: User):
         knowledge_files = [file.file_ref for file in uploaded_files]
 
     thread_files = await get_storage().get_thread_files(thread.thread_id)
-    use_retrieval = (knowledge_files is not None and len(knowledge_files) > 0) or len(
-        thread_files
-    ) > 0
+
+    # Two cases we want the retrieval tool:
+    # 1. The agent has at least one knowledge file
+    # 2. The thread has some files and at least one of them is embedded
+    use_retrieval = (
+        (knowledge_files is not None and len(knowledge_files) > 0)
+        or (thread_files is not None and any(thread_file.embedded for thread_file in thread_files))
+    )
 
     config = AgentServerRunnableConfig(
         configurable=AgentServerRunnableConfigurable(
