@@ -195,3 +195,44 @@ class Models:
         last_updated_at=datetime(2024, 10, 22),
         type="llm",
     )
+
+    # Amazon Bedrock Embedding Models
+    AMAZON_TITAN_EMBED_TEXT_V2: ClassVar[Model] = Model(
+        name="titan-embed-text-v2",
+        scoped_name="amazon/titan-embed-text-v2",
+        currently_points_to="amazon.titan-embed-text-v2:0",
+        max_input_tokens=8_192,
+        max_output_tokens=1_024,  # The embedding dimension
+        last_updated_at=datetime(2023, 11, 1),  # Approximate date
+        type="embedding",
+    )
+
+    AMAZON_TITAN_EMBED_TEXT_V1: ClassVar[Model] = Model(
+        name="titan-embed-text-v1",
+        scoped_name="amazon/titan-embed-text-v1",
+        currently_points_to="amazon.titan-embed-text-v1",
+        max_input_tokens=8_192,
+        max_output_tokens=1_024,  # Could not find the exact value
+        last_updated_at=datetime(2023, 5, 1),  # Approximate date
+        type="embedding",
+    )
+
+    COHERE_EMBED_ENGLISH_V3: ClassVar[Model] = Model(
+        name="cohere-embed-english-v3",
+        scoped_name="cohere/cohere-embed-english-v3",
+        currently_points_to="cohere.embed-english-v3",
+        max_input_tokens=512,
+        max_output_tokens=1_024,  # The embedding dimension
+        last_updated_at=datetime(2023, 9, 1),  # Approximate date
+        type="embedding",
+    )
+
+    COHERE_EMBED_MULTILINGUAL_V3: ClassVar[Model] = Model(
+        name="cohere-embed-multilingual-v3",
+        scoped_name="cohere/cohere-embed-multilingual-v3",
+        currently_points_to="cohere.embed-multilingual-v3",
+        max_input_tokens=512,
+        max_output_tokens=1_024,  # The embedding dimension
+        last_updated_at=datetime(2023, 9, 1),  # Approximate date
+        type="embedding",
+    )

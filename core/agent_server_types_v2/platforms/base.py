@@ -265,11 +265,17 @@ class PlatformParsers(ABC):
 class PlatformConfigs(Configuration):
     """A platform-specific configs."""
 
-    default_platform_provider: str = field(
-        default="openai",
-        metadata={"description": "The default platform provider."},
+    default_platform_provider: dict[str, str] = field(
+        default_factory=lambda: {
+            "llm": "openai",
+            "embedding": "openai",
+            "text-to-image": "openai",
+        },
+        metadata={
+            "description": "The default platform provider by model type.",
+        },
     )
-    """The default platform provider."""
+    """The default platform provider by model type."""
 
     default_model_type: str = field(
         default="llm",
@@ -277,11 +283,17 @@ class PlatformConfigs(Configuration):
     )
     """The default model type."""
 
-    default_quality_tier: str = field(
-        default="balanced",
-        metadata={"description": "The default quality tier."},
+    default_quality_tier: dict[str, str] = field(
+        default_factory=lambda: {
+            "llm": "balanced",
+            "embedding": "balanced",
+            "text-to-image": "balanced",
+        },
+        metadata={
+            "description": "The default quality tier by model type.",
+        },
     )
-    """The default quality tier."""
+    """The default quality tier by model type."""
 
     supported_models_by_provider: dict[str, list[str]] = field(
         default_factory=dict,
@@ -422,6 +434,24 @@ class PlatformClient(ABC, UsesKernelMixin):
                 "platform_name": self.NAME,
             },
         }
+
+    @abstractmethod
+    async def create_embeddings(
+        self,
+        texts: list[str],
+        model: ModelSelector,
+    ) -> dict[str, Any]:
+        """Create embeddings using a model on the platform.
+
+        Args:
+            texts: The texts to create embeddings for.
+            model: The model to use to create embeddings.
+
+        Returns:
+            A dictionary containing the embeddings and any additional
+            model-specific information.
+        """
+        pass
 
     # Machinery to support a `from_platform_config` classmethod
     _platform_clients: ClassVar[dict[str, type["PlatformClient"]]] = {}

@@ -209,6 +209,33 @@ class MockPlatformClient(PlatformClient):
             content=[ResponseTextContent(text="mock response")],
         )
 
+    async def create_embeddings(
+        self,
+        texts: list[str],
+        model: str,
+    ) -> dict[str, Any]:
+        """Mock implementation of create_embeddings method.
+
+        Args:
+            texts: A list of texts to embed.
+            model: The model to use for embedding.
+
+        Returns:
+            A dictionary with embeddings, usage, and model info.
+        """
+        # Generate mock embeddings of dimension 3
+        mock_embeddings = [[0.1, 0.2, 0.3] for _ in texts]
+
+        # Create a mock response similar to what the real method returns
+        return {
+            "embeddings": mock_embeddings,
+            "model": model,
+            "usage": {
+                "prompt_tokens": sum(len(text.split()) for text in texts),
+                "total_tokens": sum(len(text.split()) for text in texts),
+            },
+        }
+
 
 # Tests for base platform components
 class TestPlatformBaseComponents:

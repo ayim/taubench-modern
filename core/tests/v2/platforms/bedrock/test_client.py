@@ -6,6 +6,11 @@ import pytest
 
 from agent_server_types_v2.delta import GenericDelta
 from agent_server_types_v2.kernel import Kernel
+from agent_server_types_v2.model_selector import (
+    DefaultModelSelector,
+    ModelSelectionRequest,
+)
+from agent_server_types_v2.model_selector.default import ModelMappingConfig
 from agent_server_types_v2.platforms.bedrock.client import BedrockClient
 from agent_server_types_v2.platforms.bedrock.configs import BedrockModelMap
 from agent_server_types_v2.platforms.bedrock.converters import BedrockConverters
@@ -136,25 +141,25 @@ class TestBedrockClient:
                     {
                         "chunk": {
                             "bytes": b'{"type":"message_start",'
-                                b'"message":{"role":"assistant"}}',
+                            b'"message":{"role":"assistant"}}',
                         },
                     },
                     {
                         "chunk": {
                             "bytes": b'{"type":"content_block_start","index":0,'
-                                b'"content_block":{"type":"text"}}',
+                            b'"content_block":{"type":"text"}}',
                         },
                     },
                     {
                         "chunk": {
                             "bytes": b'{"type":"content_block_delta","index":0,'
-                                b'"delta":{"type":"text_delta","text":"test "}}',
+                            b'"delta":{"type":"text_delta","text":"test "}}',
                         },
                     },
                     {
                         "chunk": {
                             "bytes": b'{"type":"content_block_delta","index":0,'
-                                b'"delta":{"type":"text_delta","text":"response"}}',
+                            b'"delta":{"type":"text_delta","text":"response"}}',
                         },
                     },
                     {
@@ -500,3 +505,215 @@ class TestBedrockClient:
 
             # Verify we got deltas
             assert len(deltas) > 0
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "text_embedding_model",
+        [
+            "titan-embed-text-v2",
+            "titan-embed-text-v1",
+            "cohere-embed-english-v3",
+            "cohere-embed-multilingual-v3",
+        ],
+    )
+    async def test_create_text_embeddings(
+        self,
+        bedrock_client: BedrockClient,
+        text_embedding_model: str,
+        mock_boto3_client: MagicMock,
+    ) -> None:
+        """Test creating embeddings using all available text embedding models."""
+        # Set up the appropriate mock response based on model type
+        if text_embedding_model.startswith("titan-embed-text"):
+            # Mock the invoke_model response for Titan embedding model
+            mock_response = {
+                "body": MagicMock(),
+            }
+            mock_response["body"].read.return_value = json.dumps(
+                {
+                    "embedding": [0.1, 0.2, 0.3],
+                    "inputTextTokenCount": 5,
+                },
+            ).encode()
+            mock_boto3_client.invoke_model.return_value = mock_response
+        else:  # Cohere models
+            # Mock the invoke_model response for Cohere embedding model
+            mock_response = {
+                "body": MagicMock(),
+            }
+            mock_response["body"].read.return_value = json.dumps(
+                {
+                    "embeddings": [
+                        [0.1, 0.2, 0.3],
+                    ],
+                    "texts": ["This is a test"],
+                    "token_count": 5,
+                },
+            ).encode()
+            mock_boto3_client.invoke_model.return_value = mock_response
+
+        # Test creating embeddings
+        texts = ["This is a test"]
+        result = await bedrock_client.create_embeddings(
+            texts=texts,
+            model=text_embedding_model,
+        )
+
+        # Verify the basic result structure
+        assert isinstance(result, dict)
+        assert "embeddings" in result
+        assert "model" in result
+        assert "usage" in result
+        assert len(result["embeddings"]) == 1
+        assert len(result["embeddings"][0]) == 3  # [0.1, 0.2, 0.3]
+
+        # Verify the invoke_model call with the correct model ID
+        mock_boto3_client.invoke_model.assert_called_once()
+        call_kwargs = mock_boto3_client.invoke_model.call_args[1]
+
+        # Get expected model ID from BedrockModelMap
+        expected_model_id = BedrockModelMap[text_embedding_model]
+        assert call_kwargs["modelId"] == expected_model_id
+
+        # Verify request body format matches the model type
+        request_body = json.loads(call_kwargs["body"])
+        if text_embedding_model.startswith("titan-embed-text"):
+            assert "inputText" in request_body
+            assert request_body["inputText"] == "This is a test"
+        else:  # Cohere models
+            assert "texts" in request_body
+            assert request_body["texts"] == ["This is a test"]
+            assert request_body["input_type"] == "search_document"
+            assert "embedding_types" in request_body
+            assert "float" in request_body["embedding_types"]
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "text_embedding_model",
+        [
+            "titan-embed-text-v2",
+            "titan-embed-text-v1",
+            "cohere-embed-english-v3",
+            "cohere-embed-multilingual-v3",
+        ],
+    )
+    async def test_create_text_embeddings_batch(
+        self,
+        bedrock_client: BedrockClient,
+        text_embedding_model: str,
+        mock_boto3_client: MagicMock,
+    ) -> None:
+        """Test creating embeddings for multiple texts with all available models."""
+        # Set up the appropriate mock response based on model type
+        texts = ["First text", "Second text"]
+
+        if text_embedding_model.startswith("titan-embed-text"):
+            # For Titan models, which process one text at a time
+            mock_response1 = {"body": MagicMock()}
+            mock_response1["body"].read.return_value = json.dumps(
+                {"embedding": [0.1, 0.2, 0.3], "inputTextTokenCount": 5},
+            ).encode()
+
+            mock_response2 = {"body": MagicMock()}
+            mock_response2["body"].read.return_value = json.dumps(
+                {"embedding": [0.4, 0.5, 0.6], "inputTextTokenCount": 3},
+            ).encode()
+
+            mock_boto3_client.invoke_model.side_effect = [
+                mock_response1,
+                mock_response2,
+            ]
+        else:  # Cohere models, which can process batches
+            mock_response = {"body": MagicMock()}
+            mock_response["body"].read.return_value = json.dumps(
+                {
+                    "embeddings": [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]],
+                    "texts": texts,
+                    "token_count": 8,
+                },
+            ).encode()
+            mock_boto3_client.invoke_model.return_value = mock_response
+
+        # Test creating embeddings
+        result = await bedrock_client.create_embeddings(
+            texts=texts,
+            model=text_embedding_model,
+        )
+
+        # Verify the result
+        assert isinstance(result, dict)
+        assert "embeddings" in result
+        assert "model" in result
+        assert "usage" in result
+        assert len(result["embeddings"]) == 2
+
+        # Check that embeddings have the expected structure
+        if text_embedding_model.startswith("titan-embed-text"):
+            assert mock_boto3_client.invoke_model.call_count == 2
+            assert result["embeddings"][0] == [0.1, 0.2, 0.3]
+            assert result["embeddings"][1] == [0.4, 0.5, 0.6]
+            assert result["usage"]["total_tokens"] == 8  # 5 + 3
+        else:  # Cohere models
+            assert mock_boto3_client.invoke_model.call_count == 1
+            assert result["embeddings"][0] == [0.1, 0.2, 0.3]
+            assert result["embeddings"][1] == [0.4, 0.5, 0.6]
+            assert result["usage"]["total_tokens"] == 8
+
+    @pytest.mark.asyncio
+    async def test_create_embeddings_with_model_selector(
+        self,
+        bedrock_client: BedrockClient,
+        mock_boto3_client: MagicMock,
+    ) -> None:
+        """Test creating embeddings with a model selector for all model types."""
+        # Make a default model selector
+        model_selector = DefaultModelSelector()
+        text_embedding_model = model_selector.select_model(
+            bedrock_client,
+            ModelSelectionRequest(
+                model_type="embedding",
+                quality_tier="balanced",
+            ),
+        )
+
+        # Set up the appropriate mock response based on model type
+        if text_embedding_model.startswith("titan-embed-text"):
+            mock_response = {"body": MagicMock()}
+            mock_response["body"].read.return_value = json.dumps(
+                {"embedding": [0.1, 0.2, 0.3], "inputTextTokenCount": 5},
+            ).encode()
+        else:  # Cohere models
+            mock_response = {"body": MagicMock()}
+            mock_response["body"].read.return_value = json.dumps(
+                {
+                    "embeddings": [[0.1, 0.2, 0.3]],
+                    "texts": ["This is a test"],
+                    "token_count": 5,
+                },
+            ).encode()
+
+        mock_boto3_client.invoke_model.return_value = mock_response
+
+        # Test creating embeddings
+        texts = ["This is a test"]
+        result = await bedrock_client.create_embeddings(
+            texts=texts,
+            model=text_embedding_model,
+        )
+
+        # Verify the model selector picked the default for embedding models
+        # on the platform
+        default_provider = bedrock_client.configs.default_platform_provider["embedding"]
+        default_tier = bedrock_client.configs.default_quality_tier["embedding"]
+        default_model = ModelMappingConfig().get_model_name(
+            platform=bedrock_client.name,
+            provider=default_provider,
+            model_type="embedding",
+            tier=default_tier,
+        )
+        assert text_embedding_model == default_model
+
+        # Verify the result
+        assert isinstance(result, dict)
+        assert "embeddings" in result
+        assert len(result["embeddings"]) == 1

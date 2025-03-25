@@ -22,8 +22,14 @@ class BedrockModelMap(MapConfiguration):
 
     mapping: dict[str, str] = field(
         default_factory=lambda: {
+            # LLM models
             "claude-3-5-sonnet": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
             "claude-3-5-haiku": "us.anthropic.claude-3-haiku-20240307-v1:0",
+            # Embedding models
+            "titan-embed-text-v2": "amazon.titan-embed-text-v2:0",
+            "titan-embed-text-v1": "amazon.titan-embed-text-v1",
+            "cohere-embed-english-v3": "cohere.embed-english-v3",
+            "cohere-embed-multilingual-v3": "cohere.embed-multilingual-v3",
         },
     )
 
@@ -84,11 +90,16 @@ class BedrockMimeTypeMap(MapConfiguration):
 class BedrockPlatformConfigs(PlatformConfigs):
     """The configs for the Bedrock platform."""
 
-    default_platform_provider: str = field(
-        default="anthropic",
-        metadata={"description": "The default platform provider."},
+    default_platform_provider: dict[str, str] = field(
+        default_factory=lambda: {
+            "llm": "anthropic",
+            "embedding": "amazon",
+        },
+        metadata={
+            "description": "The default platform provider by model type.",
+        },
     )
-    """The default platform provider."""
+    """The default platform provider by model type."""
 
     default_model_type: str = field(
         default="llm",
@@ -96,17 +107,30 @@ class BedrockPlatformConfigs(PlatformConfigs):
     )
     """The default model type."""
 
-    default_quality_tier: str = field(
-        default="balanced",
-        metadata={"description": "The default quality tier."},
+    default_quality_tier: dict[str, str] = field(
+        default_factory=lambda: {
+            "llm": "balanced",
+            "embedding": "balanced",
+        },
+        metadata={
+            "description": "The default quality tier by model type.",
+        },
     )
-    """The default quality tier."""
+    """The default quality tier by model type."""
 
     supported_models_by_provider: dict[str, list[str]] = field(
         default_factory=lambda: {
             "anthropic": [
                 "claude-3-5-sonnet",
                 "claude-3-5-haiku",
+            ],
+            "amazon": [
+                "titan-embed-text-v2",
+                "titan-embed-text-v1",
+            ],
+            "cohere": [
+                "cohere-embed-english-v3",
+                "cohere-embed-multilingual-v3",
             ],
         },
         metadata={"description": "The supported models by provider."},

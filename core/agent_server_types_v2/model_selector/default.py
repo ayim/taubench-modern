@@ -18,12 +18,35 @@ class ModelMappingConfig(Configuration):
 
     mappings: dict[str, dict[str, dict[str, dict[str, str]]]] = field(
         default_factory=lambda: {
+            "anthropic": {
+                "anthropic": {
+                    "llm": {
+                        "best": "claude-3-5-sonnet",
+                        "balanced": "claude-3-5-sonnet",
+                        "fastest": "claude-3-5-haiku",
+                    },
+                },
+            },
             "bedrock": {
                 "anthropic": {
                     "llm": {
                         "best": "claude-3-5-sonnet",
                         "balanced": "claude-3-5-sonnet",
                         "fastest": "claude-3-5-haiku",
+                    },
+                },
+                "amazon": {
+                    "embedding": {
+                        "best": "titan-embed-text-v2",
+                        "balanced": "titan-embed-text-v2",
+                        "fastest": "titan-embed-text-v1",
+                    },
+                },
+                "cohere": {
+                    "embedding": {
+                        "best": "cohere-embed-multilingual-v3",
+                        "balanced": "cohere-embed-multilingual-v3",
+                        "fastest": "cohere-embed-english-v3",
                     },
                 },
                 # Potentially other providers on bedrock
@@ -40,14 +63,10 @@ class ModelMappingConfig(Configuration):
                         "balanced": "openai-dalle2",
                         "fastest": "openai-dalle2-lite",
                     },
-                },
-            },
-            "anthropic": {
-                "anthropic": {
-                    "llm": {
-                        "best": "claude-3-5-sonnet",
-                        "balanced": "claude-3-5-sonnet",
-                        "fastest": "claude-3-5-haiku",
+                    "embedding": {
+                        "best": "text-embedding-3-large",
+                        "balanced": "text-embedding-3-large",
+                        "fastest": "text-embedding-3-small",
                     },
                 },
             },
@@ -86,6 +105,8 @@ class ModelFallbackConfig(Configuration):
             "claude-3-5-sonnet": ["gpt-4o", "claude-3-5-haiku"],
             "o1": ["gpt-4o", "claude-3-5-sonnet"],
             "gpt-4o": ["claude-3-5-sonnet", "gpt-4o-mini"],
+            "titan-embed-text-v2": ["titan-embed-text-v1"],
+            "cohere-embed-multilingual-v3": ["cohere-embed-english-v3"],
         },
     )
 
@@ -106,18 +127,27 @@ class PlatformDefaultModelConfig(Configuration):
     """Configuration for default models by platform.
 
     Defines the default model to use for each platform when no specific model
-    or quality tier is requested.
+    or quality tier is requested. The model type is necessary to specify.
     """
 
-    PLATFORM_DEFAULTS: dict[str, str] = field(
+    PLATFORM_DEFAULTS: dict[str, dict[str, str]] = field(
         default_factory=lambda: {
-            "bedrock": "claude-3-5-sonnet",
-            "openai": "gpt-4o",
-            "anthropic": "claude-3-5-sonnet",
+            "bedrock": {
+                "llm": "claude-3-5-sonnet",
+                "embedding": "titan-embed-text-v2",
+            },
+            "openai": {
+                "llm": "gpt-4o",
+                "text-to-image": "openai-dalle2",
+                "embedding": "text-embedding-3-large",
+            },
+            "anthropic": {
+                "llm": "claude-3-5-sonnet",
+            },
         },
     )
 
-    def get_default_model(self, platform: str) -> str | None:
+    def get_default_model(self, platform: str, model_type: str) -> str | None:
         """Get the default model for a specific platform.
 
         Args:
@@ -126,7 +156,10 @@ class PlatformDefaultModelConfig(Configuration):
         Returns:
             The default model name or None if not defined
         """
-        return self.PLATFORM_DEFAULTS.get(platform.lower())
+        defaults_by_type = self.PLATFORM_DEFAULTS.get(platform.lower())
+        if defaults_by_type:
+            return defaults_by_type.get(model_type, None)
+        return None
 
 
 @dataclass
@@ -216,9 +249,17 @@ class DefaultModelSelector(ModelSelector):
         #    if all three fields are available, or we can decide on defaults.
         if request.provider or request.model_type or request.quality_tier:
             # We need to handle partial specification. Let's define some defaults:
-            provider = request.provider or platform.configs.default_platform_provider
-            model_type = request.model_type or platform.configs.default_model_type
-            tier = request.quality_tier or platform.configs.default_quality_tier
+            model_type = (
+                request.model_type or platform.configs.default_model_type
+            )
+            provider = (
+                request.provider or
+                platform.configs.default_platform_provider[model_type]
+            )
+            tier = (
+                request.quality_tier or
+                platform.configs.default_quality_tier[model_type]
+            )
 
             model_name = self.model_mapping_config.get_model_name(
                 platform=platform_name,
@@ -241,10 +282,18 @@ class DefaultModelSelector(ModelSelector):
                     )
             # If that didn't work, we continue on to next step
 
-        # 3) If the request is entirely empty OR if the above didn't yield a model,
-        #    try platform default
+        # 3a) If at this point we don't have a model, and we have no model type,
+        # that's an error
+        if not request.model_type:
+            raise ValueError(
+                f"Failed to find model for platform '{platform_name}' "
+                f"with selection request: {request}",
+            )
+
+        # 3b) If the request is entirely empty OR if the above didn't yield a model,
+        #    try platform default (filtered by model type, that's important!)
         default_model_name = self.platform_default_config.get_default_model(
-            platform_name,
+            platform_name, request.model_type,
         )
         if default_model_name:
             maybe_model = self._get_model_with_fallbacks(

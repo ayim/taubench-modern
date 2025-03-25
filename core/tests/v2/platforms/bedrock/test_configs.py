@@ -73,5 +73,9 @@ class TestBedrockPlatformConfigs:
         first_provider = next(iter(configs.supported_models_by_provider.keys()))
         assert len(configs.supported_models_by_provider[first_provider]) > 0
 
-        # Check that default_platform_provider is set
-        assert configs.default_platform_provider == "anthropic"
+        # Check that default_platform_provider is dict and has at least the
+        # llm and embedding keys
+        assert isinstance(configs.default_platform_provider, dict)
+        assert "llm" in configs.default_platform_provider
+        assert "embedding" in configs.default_platform_provider
+

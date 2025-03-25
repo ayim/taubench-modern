@@ -68,3 +68,21 @@ class ModelProviders:
             Models.ANTHROPIC_CLAUDE_3_5_HAIKU,
         ],
     )
+
+    AMAZON: ClassVar[ModelProvider] = ModelProvider(
+        name="amazon",
+        supported_models=[
+            Models.AMAZON_TITAN_EMBED_TEXT_V2,
+            Models.AMAZON_TITAN_EMBED_TEXT_V1,
+            Models.COHERE_EMBED_ENGLISH_V3,
+            Models.COHERE_EMBED_MULTILINGUAL_V3,
+        ],
+    )
+
+    COHERE: ClassVar[ModelProvider] = ModelProvider(
+        name="cohere",
+        supported_models=[
+            Models.COHERE_EMBED_ENGLISH_V3,
+            Models.COHERE_EMBED_MULTILINGUAL_V3,
+        ],
+    )
