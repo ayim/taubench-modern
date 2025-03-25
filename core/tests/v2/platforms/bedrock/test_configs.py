@@ -3,7 +3,6 @@ from unittest.mock import MagicMock
 import pytest
 
 from agent_server_types_v2.kernel import Kernel
-from agent_server_types_v2.models.model import Models
 from agent_server_types_v2.platforms.bedrock.configs import (
     BedrockModelMap,
     BedrockPlatformConfigs,
@@ -19,14 +18,14 @@ class TestBedrockModelMap:
         default_map = BedrockModelMap()
 
         # Check that the default map contains mappings for key models
-        assert Models.ANTHROPIC_CLAUDE_3_5_SONNET.name in default_map
-        assert Models.ANTHROPIC_CLAUDE_3_5_HAIKU.name in default_map
+        assert "claude-3-5-sonnet" in default_map
+        assert "claude-3-5-haiku" in default_map
 
         # Check some specific mappings
-        assert default_map[Models.ANTHROPIC_CLAUDE_3_5_SONNET.name].startswith(
+        assert default_map["claude-3-5-sonnet"].startswith(
             "us.anthropic.claude-3-5-sonnet",
         )
-        assert default_map[Models.ANTHROPIC_CLAUDE_3_5_HAIKU.name].startswith(
+        assert default_map["claude-3-5-haiku"].startswith(
             "us.anthropic.claude-3-haiku",
         )
 
@@ -46,14 +45,14 @@ class TestBedrockModelMap:
     def test_custom_map(self) -> None:
         """Test that we can create a custom map."""
         custom_map = {
-            Models.ANTHROPIC_CLAUDE_3_5_SONNET.name: "test-model-id",
+            "claude-3-5-sonnet": "test-model-id",
         }
 
         # Create a custom map instance
         model_map = BedrockModelMap(mapping=custom_map)
 
         # Verify the custom map was used
-        assert model_map[Models.ANTHROPIC_CLAUDE_3_5_SONNET.name] == "test-model-id"
+        assert model_map["claude-3-5-sonnet"] == "test-model-id"
 
 
 class TestBedrockPlatformConfigs:
