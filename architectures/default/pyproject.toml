@@ -1,18 +1,24 @@
 [tool.poetry]
 name = "agent-architecture-default-v2"
 version = "1.0.2"
-description = "Tool using cognitive architecture for agents supporting OpenAI LLMs."
+description = "Generic default cognitive architecture for Sema4.ai agents (v2)."
 authors = ["Sema4.ai Engineering <engineering@sema4.ai>"]
 readme = "README.md"
 packages = [{ include = "agent_architecture_default_v2" }]
 
 [tool.poetry.dependencies]
 python = "^3.11.0,<3.12"
-agent-server-types = { git = "https://github.com/Sema4AI/agent-server-types.git", tag = "v1.1.2-alpha" }
-agent-architecture = { git = "https://github.com/Sema4AI/agent-architecture.git", tag = "v1.1.1-alpha.1" }
+agent-server-types = { git = "https://github.com/Sema4AI/agent-server-types.git", rev = "development-kernel" }
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.3"
+pytest-asyncio = "^0.25.2"
+toml = "^0.10.2"
+
 
 [tool.poetry.plugins."agent_architectures"]
-agent_architecture_default_v2 = "agent_architecture_default_v2:OpenaiToolsAgentArchitecture"
+agent_architecture_default_v2 = "agent_architecture_default_v2:entrypoint"
 
 
 [build-system]
