@@ -75,17 +75,23 @@ logger.info("Collecting chromadb.migrations submodules...")
 chromadb_migrations_submodules = collect_submodules("chromadb.migrations")
 logger.info("Collecting tiktoken_ext submodules...")
 tiktoken_ext_submodules = collect_submodules("tiktoken_ext")
+logger.info("Collecting all for psycopg...")
+psycopg_datas, psycopg_binaries, psycopg_hiddenimports = collect_all("psycopg")
+logger.info("Collecting all for psycopg_binary...")
+psycopg_binary_datas, psycopg_binary_binaries, psycopg_binary_hiddenimports = collect_all("psycopg_binary")
 
 logger.info("Starting main Analysis...")
 a = Analysis(
     ["sema4ai_agent_server/server.py"],
     pathex=[],
-    binaries=[*chromadb_binaries, *tiktoken_binaries],
+    binaries=[*chromadb_binaries, *tiktoken_binaries, *psycopg_binaries, *psycopg_binary_binaries],
     datas=[
         ("sema4ai_agent_server/migrations", "sema4ai_agent_server/migrations"),
         *agent_arch_metadata,
         *chromadb_datas,
         *tiktoken_datas,
+        *psycopg_datas,
+        *psycopg_binary_datas,
         ("LICENSE", "."),
     ],
     hiddenimports=[
@@ -101,6 +107,8 @@ a = Analysis(
         *tiktoken_hiddenimports,
         "tiktoken_ext",
         *tiktoken_ext_submodules,
+        *psycopg_hiddenimports,
+        *psycopg_binary_hiddenimports,
     ],
     hookspath=[],
     hooksconfig={},

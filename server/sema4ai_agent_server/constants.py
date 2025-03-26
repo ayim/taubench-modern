@@ -26,6 +26,12 @@ VECTOR_DATABASE_PATH = str(DATA_DIR / "chroma_db")
 DOMAIN_DATABASE_PATH = str(DATA_DIR / "agentserver.db")
 LOG_FILE_PATH = str(LOG_DIR / "agent-server.log")
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
+S4_AGENT_SERVER_LOG_MAX_BACKUP_FILES = int(
+    os.environ.get("S4_AGENT_SERVER_LOG_MAX_BACKUP_FILES", 5)
+)
+S4_AGENT_SERVER_LOG_FILE_SIZE = int(
+    os.environ.get("S4_AGENT_SERVER_LOG_FILE_SIZE", 1_048_576 * 10)
+)
 DEBUG_MODE = LOG_LEVEL in ["DEBUG", "TRACE"]
 
 

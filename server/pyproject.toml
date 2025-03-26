@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sema4ai-agent-server"
-version = "1.1.4-alpha.79"
+version = "1.2.5"
 description = ""
 authors = ["Sema4.ai Engineering <engineering@sema4.ai>"]
 readme = "README.md"
@@ -58,6 +58,8 @@ agent-architecture-default = { git = "https://github.com/Sema4AI/agent-architect
 agent-architecture-default-v2 = { git = "https://github.com/Sema4AI/agent-architecture-default-v2.git", rev = "henkel/gpt-649-agent-server-kernel" }
 agent-architecture-openai-plan-execute = { git = "https://github.com/Sema4AI/agent-architecture-openai-plan-execute.git", rev = "development-kernel" }
 agent-architecture-claude-tools = { git = "https://github.com/Sema4AI/agent-architecture-claude-tools.git", rev = "development-kernel" }
+sema4ai-common = "0.0.9"
+psutil = ">=5.0.0,<7.0.0"
 
 [tool.mypy]
 mypy_path = "."
@@ -66,6 +68,7 @@ mypy_path = "."
 uvicorn = "^0.34.0"
 pygithub = "^2.4.0"
 sema4ai-common = "0.0.3"
+sema4ai-agent-server-orchestrator = { git = "https://github.com/Sema4AI/agent-server-orchestrator.git", tag = "v0.0.1-alpha9" }
 invoke = ">=2.2.0"
 pydantic = ">=2.9.2"
 poetry = ">=2.0.0,<3.0.0"
@@ -85,7 +88,7 @@ pytest-cov = "^5.0.0"
 pytest-asyncio = "^0.24.0"
 pytest-mock = "^3.14.0"
 pytest-socket = "^0.7.0"
-pytest-watch = "^4.2.0"
+#pytest-watch = "^4.2.0"
 pytest-timeout = "^2.3.1"
 pytest-regressions = "1.0.6"
 

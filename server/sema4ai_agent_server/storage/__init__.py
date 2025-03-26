@@ -61,6 +61,7 @@ class BaseStorage(ABC):
         """Get an agent by ID."""
         pass
 
+
     @abstractmethod
     async def put_agent(
         self,
@@ -90,6 +91,7 @@ class BaseStorage(ABC):
     async def list_threads(self, user_id: str) -> List[Thread]:
         """List all threads for the current user."""
         pass
+
 
     @abstractmethod
     async def get_thread(self, user_id: str, thread_id: str) -> Optional[Thread]:

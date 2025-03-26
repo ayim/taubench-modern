@@ -2,7 +2,7 @@
 
 The Sema4.ai Agent Server provides the backend API services for both Sema4 Studio and Sema4 cloud.
 
-**Latest Release:** `1.1.4-alpha.79`
+**Latest Release:** `1.2.5`
 
 ## Documentation Content
 
@@ -43,6 +43,31 @@ However you run the server, you can pass the following command line flags to con
 - `--host`: The host to bind the server to. Default is `0.0.0.0`.
 - `--port`: The port to run the HTTP server on. Default is `8000`.
 - `--reload`: Enable auto-reload of the server on code changes, this is useful for development.
+- `--parent-pid=<PID>`: Parent PID of the agent server. When the specified parent process exits, the agent server will also exit.
+- `--use-data-dir-lock`: When set, uses a lock file to prevent multiple instances of the agent server from running in the same data directory. The data directory is defined by either `S4_AGENT_SERVER_HOME` or `SEMA4AI_STUDIO_HOME` environment variable.
+- `--kill-lock-holder`: When set along with `--use-data-dir-lock`, kills any existing process that holds the lock file. Use with caution as it will forcefully terminate other running instances.
+
+Note: the lock uses the SystemMutex in `sema4ai.common` which will create a file mutex that is released when the application exits (or the related Python variable has no references anymore). It's expected that `Studio` will use all the 3 newly added parameters to avoid leftover processes (and to force kill a running process).
+
+### Data Directory Files
+
+The agent server creates and manages the following files in the data directory (defined by either `S4_AGENT_SERVER_HOME` or `SEMA4AI_STUDIO_HOME` environment variable):
+
+- `agent-server.lock`: A lock file which starts with `PID: <pid>\n`. The file may contain other contents, but only the `PID: <pid>\n` at the start of the file should be considered stable. This file is created when `--use-data-dir-lock` is enabled.
+
+- `agent-server.pid`: A file containing information about the running server:
+  - `port`: The port number the server is running on (the real port is written, even if the ephemeral port `0` was passed).
+  - `pid`: Process ID of the agent server.
+  - `base_url`: Base URL where the server can be accessed.
+  - `lock_file`: Path to the lock file if `--use-data-dir-lock` is enabled, "<not used>" otherwise.
+
+Upon startup, the agent server logs the data directory permissions and the data directory being used.
+
+### Runtime Information
+
+Upon startup, a message in the format `Agent Server running on: {base_url} (Press CTRL+C to quit)` will be written to the output, where `base_url` is something like `http://127.0.0.1:56342`. This string is stable, so clients that launch the agent server can rely on that output to detect the address to connect to.
+
+Alternatively, clients can get the connection information from the `agent-server.pid` file contents. When using this approach, clients should verify that the `pid` in the file matches the process ID that currently holds the `agent-server.lock` to avoid racing conditions when getting the port being used.
 
 ### Environment Variables
 

@@ -29,7 +29,7 @@ test_watch:
 	poetry run ptw . -- $(TEST_FILE)
 
 test_api_interaction:
-	poetry run python tests/integration_tests/test_api_interaction.py --host $(API_HOST) --port $(API_PORT)
+	poetry run python -m pytest tests/integration_tests
 
 ######################
 # LINTING AND FORMATTING
