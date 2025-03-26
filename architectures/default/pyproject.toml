@@ -1,10 +1,10 @@
 [tool.poetry]
-name = "agent-architecture-default-v2"
+name = "agent-architecture-default"
 version = "1.0.2"
-description = "Generic default cognitive architecture for Sema4.ai agents (v2)."
+description = "Generic default cognitive architecture for Sema4.ai agents."
 authors = ["Sema4.ai Engineering <engineering@sema4.ai>"]
 readme = "README.md"
-packages = [{ include = "agent_architecture_default_v2" }]
+packages = [{ include = "agent_architecture_default" }]
 
 [tool.poetry.dependencies]
 python = "^3.11.0,<3.12"
@@ -18,7 +18,7 @@ toml = "^0.10.2"
 
 
 [tool.poetry.plugins."agent_architectures"]
-agent_architecture_default_v2 = "agent_architecture_default_v2:entrypoint"
+agent_architecture_default = "agent_architecture_default:entrypoint"
 
 
 [build-system]
@@ -95,7 +95,7 @@ unfixable = []
 "tests-v2/*.py" = ["PLR2004"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["agent_server_types_v2", "sema4ai_agent_server"]
+known-first-party = ["agent_platform_core"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

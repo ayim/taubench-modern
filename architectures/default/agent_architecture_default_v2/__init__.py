@@ -1,6 +1,6 @@
-from agent_architecture_default_v2.state import ArchState
-from agent_server_types_v2 import Kernel
-from agent_server_types_v2 import agent_architectures as aa
+from agent_architecture_default.state import ArchState
+from agent_platform_core import Kernel
+from agent_platform_core import agent_architectures as aa
 
 
 @aa.entrypoint
