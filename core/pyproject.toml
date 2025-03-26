@@ -1,0 +1,158 @@
+[tool.poetry]
+name = "agent-platform-core"
+version = "1.2.0"
+description = "Core types and functionality for the agent platform."
+authors = ["Sema4.ai Engineering <engineering@sema4.ai>"]
+readme = "README.md"
+packages = [
+    { include = "agent_platform_core" },
+]
+
+
+[tool.poetry.dependencies]
+python = "^3.11.0,<3.12"
+# We use jsonpatch for deltas
+jsonpatch = "^1.33"
+# MCP is going to be a core requirement going forward
+mcp = "^1.4.1"
+# Opentelemtry (API not SDK) is going has lightweight types
+opentelemetry-api = "^1.31.1"
+# We use ruamel.yaml for our YAML-related functionality
+ruamel-yaml = "^0.18.10"
+
+# optional=true here, as depending on the extras selected
+# we may not need all of these dependencies.
+google-generativeai = { version = ">=0.8.3", optional = true }
+openai = { version = ">=1.59.8", optional = true }
+anthropic = { version = ">=0.41.3", optional = true }
+
+# Wont add an extra for these two, as they are not required
+# even for specific providers (just convenience for image
+# content support)
+pillow = { version = ">=11.1.0", optional = true }
+IPython = { version = ">=8.31.0", optional = true }
+boto3 = { version = ">=1.36.9", optional = true }
+types-boto3 = { version = ">=1.36.9", extras = [
+    "bedrock",
+    "bedrock-runtime",
+], optional = true }
+
+
+[tool.poetry.extras]
+# We can have platform-specific "extras" so
+# that installs can include only the platform
+# dependencies that are needed. We will need
+# to write the code carefully to support this
+# approach (e.g., using TYPE_CHECKING to
+# conditionally import platform-specific
+# types; importing platform-specific code inside
+# a platform-specific function, etc.).
+platforms-snowflake = ["snowflake-connector-python"]
+platforms-openai = ["openai"]
+platforms-anthropic = ["anthropic"]
+platforms-aws = ["boto3", "types-boto3"]
+# Convenience extras for installing all platforms
+# at once.
+platforms-all = [
+    "google-generativeai",
+    "openai",
+    "anthropic",
+    "snowflake-connector-python",
+    "boto3",
+    "types-boto3",
+]
+
+
+[tool.poetry.group.lint.dependencies]
+ruff = "^0.7.2"
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.3"
+pytest-asyncio = "^0.25.2"
+# Will add these as dev deps though, for testing
+# purposes and example notebooks
+pillow = "^11.1.0"
+IPython = "^8.31.0"
+requests = "^2.31.0" # For fetching JSON Patch test data
+
+
+[tool.pytest.ini_options]
+testpaths = ["tests/"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+show-fixes = true
+respect-gitignore = true
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
+[tool.ruff.lint]
+# Combine your existing rules with some additional ones
+select = [
+    "E",
+    "F",
+    "I",
+    "PL",
+    "N",
+    "UP",
+    "B",
+    "A",
+    "COM",
+    "PT",
+    "RUF",
+    "W",
+    "C90",
+]
+ignore = ["PLR0913"]
+fixable = ["ALL"]
+unfixable = []
+
+# Keep your existing per-file-ignores
+[tool.ruff.lint.per-file-ignores]
+"examples/*.ipynb" = ["PLE1142"]
+"tests/v2/*.py" = ["PLR2004"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["agent_platform_core", "sema4ai.common"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
