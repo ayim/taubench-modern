@@ -185,12 +185,12 @@ class PostgresMigrationsV2(MigrationsProvider):
             RETURNING id;
             """,
         )
-        row = await cur.fetchone()
-        if not row:
-            raise MigrationLockError(
-                "Could not acquire migration lock. "
-                "Another migration might be in progress.",
-            )
+        # row = await cur.fetchone()
+        # if not row:
+        #     raise MigrationLockError(
+        #         "Could not acquire migration lock. "
+        #         "Another migration might be in progress.",
+        #     )
 
     async def _release_migration_lock(self, cur: AsyncCursor) -> None:
         """
