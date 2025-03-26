@@ -5,7 +5,7 @@ from sema4ai_agent_server.api.v2.debug import router as debug_router
 from sema4ai_agent_server.api.v2.runs import router as runs_router
 from sema4ai_agent_server.api.v2.threads import router as threads_router
 
-router = APIRouter(prefix="/api/v2")
+router = APIRouter()
 
 
 @router.get("/ok")

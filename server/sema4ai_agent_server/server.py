@@ -14,6 +14,7 @@ from starlette.requests import Request
 
 from sema4ai_agent_server.api.private_v1 import router as v1_router
 from sema4ai_agent_server.api.public_v1 import router as v2_router
+from sema4ai_agent_server.api.v2 import router as v2_internal_router
 from sema4ai_agent_server.constants import Constants
 from sema4ai_agent_server.lifespan import lifespan
 from sema4ai_agent_server.log_config import setup_logging
@@ -26,10 +27,11 @@ VERSION = "1.2.5"
 
 PUBLIC_V1_PREFIX = "/api/public/v1"
 PRIVATE_V1_PREFIX = "/api/v1"
+INTERNAL_V2_PREFIX = "/api/v2"
 # HTTPMiddleware to ensure that all requests are prefixed with /api/v1 or /api/public/v1
 class EnsureAPIPrefixMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        if not request.url.path.startswith((PUBLIC_V1_PREFIX, PRIVATE_V1_PREFIX)):
+        if not request.url.path.startswith((PUBLIC_V1_PREFIX, PRIVATE_V1_PREFIX, INTERNAL_V2_PREFIX)):
             return ORJSONResponse(status_code=404, content={"detail": "Not Found"})
         return await call_next(request)
 
@@ -102,6 +104,12 @@ app_v2 = _CustomFastAPI(
 )
 app_v2.include_router(v2_router)
 
+# Version 2 Internal API
+app_v2_internal = _CustomFastAPI(
+    title="Sema4.ai Agent Server Internal API Version 2",
+)
+app_v2_internal.include_router(v2_internal_router)
+
 # Main FastAPI app to include both versions
 app = FastAPI(
     lifespan=lifespan,
@@ -111,12 +119,12 @@ app = FastAPI(
 app.add_middleware(EnsureAPIPrefixMiddleware)
 app.include_router(v1_router)
 app.include_router(v2_router)
-
+app.include_router(v2_internal_router)
 
 # Mount the API versions under their respective prefixes
 app.mount(PRIVATE_V1_PREFIX, app_v1)
 app.mount(PUBLIC_V1_PREFIX, app_v2)
-
+app.mount(INTERNAL_V2_PREFIX, app_v2_internal)
 
 def _on_startup() -> None:
     # Ensure UPLOAD_DIR exists
