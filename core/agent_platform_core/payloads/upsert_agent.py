@@ -3,8 +3,8 @@ from datetime import datetime
 from typing import Self
 from uuid import uuid4
 
-from agent_server_types_v2.agent import Agent
-from agent_server_types_v2.runbook import Runbook
+from agent_platform_core.agent import Agent
+from agent_platform_core.runbook import Runbook
 
 
 @dataclass(frozen=True)

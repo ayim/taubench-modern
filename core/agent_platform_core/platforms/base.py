@@ -3,13 +3,13 @@ from collections.abc import AsyncGenerator
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from agent_server_types_v2.configurations import Configuration
-from agent_server_types_v2.delta import GenericDelta
-from agent_server_types_v2.kernel_interfaces.kernel_mixin import UsesKernelMixin
-from agent_server_types_v2.model_selector import ModelSelector
-from agent_server_types_v2.prompts import Prompt
-from agent_server_types_v2.prompts.base import PromptMessage
-from agent_server_types_v2.prompts.content import (
+from agent_platform_core.configurations import Configuration
+from agent_platform_core.delta import GenericDelta
+from agent_platform_core.kernel_interfaces.kernel_mixin import UsesKernelMixin
+from agent_platform_core.model_selector import ModelSelector
+from agent_platform_core.prompts import Prompt
+from agent_platform_core.prompts.base import PromptMessage
+from agent_platform_core.prompts.content import (
     PromptAudioContent,
     PromptDocumentContent,
     PromptImageContent,
@@ -18,7 +18,7 @@ from agent_server_types_v2.prompts.content import (
     PromptToolResultContent,
     PromptToolUseContent,
 )
-from agent_server_types_v2.responses.content import (
+from agent_platform_core.responses.content import (
     ResponseAudioContent,
     ResponseDocumentContent,
     ResponseImageContent,
@@ -26,10 +26,10 @@ from agent_server_types_v2.responses.content import (
     ResponseTextContent,
     ResponseToolUseContent,
 )
-from agent_server_types_v2.responses.response import ResponseMessage
+from agent_platform_core.responses.response import ResponseMessage
 
 if TYPE_CHECKING:
-    from agent_server_types_v2.kernel import Kernel
+    from agent_platform_core.kernel import Kernel
 
 
 @dataclass(frozen=True)

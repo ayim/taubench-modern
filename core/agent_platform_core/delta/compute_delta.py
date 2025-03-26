@@ -7,7 +7,7 @@ from typing import Any
 
 from jsonpatch import JsonPatch
 
-from agent_server_types_v2.delta.base import NO_VALUE, GenericDelta
+from agent_platform_core.delta.base import NO_VALUE, GenericDelta
 
 
 def compute_generic_deltas(

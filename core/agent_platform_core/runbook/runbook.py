@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Self
 
-from agent_server_types_v2.runbook.content import (
+from agent_platform_core.runbook.content import (
     RunbookStepsContent,
     RunbookTextContent,
 )

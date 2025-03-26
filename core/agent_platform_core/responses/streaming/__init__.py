@@ -1,14 +1,14 @@
-from agent_server_types_v2.responses.streaming.stream_pipe import ResponseStreamPipe
-from agent_server_types_v2.responses.streaming.stream_sink_base import (
+from agent_platform_core.responses.streaming.stream_pipe import ResponseStreamPipe
+from agent_platform_core.responses.streaming.stream_sink_base import (
     ResponseStreamSinkBase,
 )
-from agent_server_types_v2.responses.streaming.stream_sink_noop import (
+from agent_platform_core.responses.streaming.stream_sink_noop import (
     NoOpResponseStreamSink,
 )
-from agent_server_types_v2.responses.streaming.stream_sink_tool_use import (
+from agent_platform_core.responses.streaming.stream_sink_tool_use import (
     ToolUseResponseStreamSink,
 )
-from agent_server_types_v2.responses.streaming.stream_sink_xml_tag import (
+from agent_platform_core.responses.streaming.stream_sink_xml_tag import (
     XmlTagResponseStreamSink,
 )
 

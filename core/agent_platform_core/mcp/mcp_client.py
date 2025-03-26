@@ -6,10 +6,10 @@ from typing import TYPE_CHECKING, Any
 from mcp import ClientSession
 from mcp.client.sse import sse_client
 
-from agent_server_types_v2.tools.tool_definition import ToolDefinition
+from agent_platform_core.tools.tool_definition import ToolDefinition
 
 if TYPE_CHECKING:
-    from agent_server_types_v2.mcp.mcp_server import MCPServer
+    from agent_platform_core.mcp.mcp_server import MCPServer
 
 
 class MCPClient:

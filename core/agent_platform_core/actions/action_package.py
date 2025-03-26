@@ -1,11 +1,11 @@
 from dataclasses import dataclass, field
 from typing import Self
 
-from agent_server_types_v2.actions.action_utils import (
+from agent_platform_core.actions.action_utils import (
     _get_spec_and_build_tool_definitions,
 )
-from agent_server_types_v2.tools.tool_definition import ToolDefinition
-from agent_server_types_v2.utils import SecretString
+from agent_platform_core.tools.tool_definition import ToolDefinition
+from agent_platform_core.utils import SecretString
 
 
 @dataclass(frozen=True)

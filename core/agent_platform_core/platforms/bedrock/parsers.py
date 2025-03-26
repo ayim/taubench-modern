@@ -1,21 +1,21 @@
 from collections.abc import AsyncGenerator
 from typing import TYPE_CHECKING, Any
 
-from agent_server_types_v2.delta import GenericDelta
-from agent_server_types_v2.delta.compute_delta import compute_generic_deltas
-from agent_server_types_v2.platforms.base import PlatformParsers
-from agent_server_types_v2.platforms.bedrock.configs import (
+from agent_platform_core.delta import GenericDelta
+from agent_platform_core.delta.compute_delta import compute_generic_deltas
+from agent_platform_core.platforms.base import PlatformParsers
+from agent_platform_core.platforms.bedrock.configs import (
     BedrockMimeTypeMap,
     BedrockRoleMap,
 )
-from agent_server_types_v2.responses.content.audio import ResponseAudioContent
-from agent_server_types_v2.responses.content.base import ResponseMessageContent
-from agent_server_types_v2.responses.content.document import ResponseDocumentContent
-from agent_server_types_v2.responses.content.image import ResponseImageContent
-from agent_server_types_v2.responses.content.text import ResponseTextContent
-from agent_server_types_v2.responses.content.tool_use import ResponseToolUseContent
-from agent_server_types_v2.responses.response import ResponseMessage, TokenUsage
-from agent_server_types_v2.streaming.error import StreamingError
+from agent_platform_core.responses.content.audio import ResponseAudioContent
+from agent_platform_core.responses.content.base import ResponseMessageContent
+from agent_platform_core.responses.content.document import ResponseDocumentContent
+from agent_platform_core.responses.content.image import ResponseImageContent
+from agent_platform_core.responses.content.text import ResponseTextContent
+from agent_platform_core.responses.content.tool_use import ResponseToolUseContent
+from agent_platform_core.responses.response import ResponseMessage, TokenUsage
+from agent_platform_core.streaming.error import StreamingError
 
 if TYPE_CHECKING:
     from types_boto3_bedrock_runtime.type_defs import (

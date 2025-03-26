@@ -2,12 +2,12 @@ from abc import ABC, abstractmethod
 from contextlib import AbstractAsyncContextManager
 from typing import TYPE_CHECKING
 
-from agent_server_types_v2.prompts import Prompt
-from agent_server_types_v2.responses import ResponseMessage
-from agent_server_types_v2.responses.streaming import ResponseStreamPipe
+from agent_platform_core.prompts import Prompt
+from agent_platform_core.responses import ResponseMessage
+from agent_platform_core.responses.streaming import ResponseStreamPipe
 
 if TYPE_CHECKING:
-    from agent_server_types_v2.platforms.base import PlatformClient
+    from agent_platform_core.platforms.base import PlatformClient
 
 
 class PlatformInterface(ABC):

@@ -2,8 +2,8 @@ import json
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
-from agent_server_types_v2.responses.content.base import ResponseMessageContent
-from agent_server_types_v2.utils import assert_literal_value_valid
+from agent_platform_core.responses.content.base import ResponseMessageContent
+from agent_platform_core.utils import assert_literal_value_valid
 
 
 @dataclass(frozen=True)

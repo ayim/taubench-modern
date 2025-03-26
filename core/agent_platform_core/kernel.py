@@ -11,8 +11,8 @@ this interface, ensuring a consistent and controlled interaction model.
 from abc import ABC, abstractmethod
 from typing import Literal
 
-from agent_server_types_v2.agent import Agent
-from agent_server_types_v2.kernel_interfaces import (
+from agent_platform_core.agent import Agent
+from agent_platform_core.kernel_interfaces import (
     ConvertersInterface,
     EventsInterface,
     FilesInterface,
@@ -26,14 +26,14 @@ from agent_server_types_v2.kernel_interfaces import (
     ToolsInterface,
     UserInteractionsInterface,
 )
-from agent_server_types_v2.model_selector import (
+from agent_platform_core.model_selector import (
     DefaultModelSelector,
     ModelSelectionRequest,
     ModelSelector,
 )
-from agent_server_types_v2.runs import Run
-from agent_server_types_v2.thread import Thread
-from agent_server_types_v2.user import User
+from agent_platform_core.runs import Run
+from agent_platform_core.thread import Thread
+from agent_platform_core.user import User
 
 
 class Kernel(ABC):

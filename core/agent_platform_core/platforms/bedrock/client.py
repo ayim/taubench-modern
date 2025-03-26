@@ -3,27 +3,27 @@ from collections.abc import AsyncGenerator
 from copy import deepcopy
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from agent_server_types_v2.delta import GenericDelta
-from agent_server_types_v2.delta.compute_delta import compute_generic_deltas
-from agent_server_types_v2.platforms.base import (
+from agent_platform_core.delta import GenericDelta
+from agent_platform_core.delta.compute_delta import compute_generic_deltas
+from agent_platform_core.platforms.base import (
     PlatformClient,
 )
-from agent_server_types_v2.platforms.bedrock.configs import (
+from agent_platform_core.platforms.bedrock.configs import (
     BedrockModelMap,
     BedrockPlatformConfigs,
 )
-from agent_server_types_v2.platforms.bedrock.converters import BedrockConverters
-from agent_server_types_v2.platforms.bedrock.parameters import (
+from agent_platform_core.platforms.bedrock.converters import BedrockConverters
+from agent_platform_core.platforms.bedrock.parameters import (
     BedrockPlatformParameters,
 )
-from agent_server_types_v2.platforms.bedrock.parsers import BedrockParsers
-from agent_server_types_v2.platforms.bedrock.prompts import BedrockPrompt
-from agent_server_types_v2.responses.response import ResponseMessage
+from agent_platform_core.platforms.bedrock.parsers import BedrockParsers
+from agent_platform_core.platforms.bedrock.prompts import BedrockPrompt
+from agent_platform_core.responses.response import ResponseMessage
 
 if TYPE_CHECKING:
     from types_boto3_bedrock_runtime.client import BedrockRuntimeClient
 
-    from agent_server_types_v2.kernel import Kernel
+    from agent_platform_core.kernel import Kernel
 
 
 class BedrockClient(PlatformClient):

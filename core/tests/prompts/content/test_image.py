@@ -5,7 +5,7 @@ from IPython.display import Image as IPythonImage
 from PIL import Image as PILImage
 from PIL import UnidentifiedImageError
 
-from agent_server_types_v2.prompts.content.image import PromptImageContent
+from agent_platform_core.prompts.content.image import PromptImageContent
 
 
 @pytest.fixture

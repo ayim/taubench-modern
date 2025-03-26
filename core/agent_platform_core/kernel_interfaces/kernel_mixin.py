@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from agent_server_types_v2.kernel import Kernel
+    from agent_platform_core.kernel import Kernel
 
 
 class UsesKernelMixin:

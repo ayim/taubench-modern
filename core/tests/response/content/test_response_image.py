@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from agent_server_types_v2.responses.content.image import ResponseImageContent
+from agent_platform_core.responses.content.image import ResponseImageContent
 
 
 class TestResponseImageContent:

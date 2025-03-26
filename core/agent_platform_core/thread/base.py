@@ -4,7 +4,7 @@ from types import MappingProxyType
 from typing import Any, Literal, Self
 from uuid import UUID, uuid4
 
-from agent_server_types_v2.thread.content import (
+from agent_platform_core.thread.content import (
     ThreadAttachmentContent,
     ThreadQuickActionsContent,
     ThreadTextContent,
@@ -142,7 +142,7 @@ class ThreadMessage:
     def model_validate(cls, data: dict) -> Self:
         """Deserializes the message from a dictionary.
         Useful for JSON deserialization."""
-        from agent_server_types_v2.thread.content import ThreadMessageContent
+        from agent_platform_core.thread.content import ThreadMessageContent
 
         if "message_id" in data and isinstance(data["message_id"], UUID):
             data["message_id"] = str(data["message_id"])

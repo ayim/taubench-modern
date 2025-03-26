@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 
-from agent_server_types_v2.kernel_interfaces.otel import OTelArtifact
-from agent_server_types_v2.storage import ScopedStorage
-from agent_server_types_v2.thread import ThreadMessage
+from agent_platform_core.kernel_interfaces.otel import OTelArtifact
+from agent_platform_core.storage import ScopedStorage
+from agent_platform_core.thread import ThreadMessage
 
 
 class StorageInterface(ABC):

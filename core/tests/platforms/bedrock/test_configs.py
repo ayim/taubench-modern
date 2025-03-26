@@ -2,8 +2,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from agent_server_types_v2.kernel import Kernel
-from agent_server_types_v2.platforms.bedrock.configs import (
+from agent_platform_core.kernel import Kernel
+from agent_platform_core.platforms.bedrock.configs import (
     BedrockModelMap,
     BedrockPlatformConfigs,
 )

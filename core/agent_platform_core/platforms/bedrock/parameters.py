@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field, fields
 from typing import TYPE_CHECKING, Literal, Self
 
-from agent_server_types_v2.platforms.base import PlatformParameters
+from agent_platform_core.platforms.base import PlatformParameters
 
 if TYPE_CHECKING:
     from botocore.config import Config

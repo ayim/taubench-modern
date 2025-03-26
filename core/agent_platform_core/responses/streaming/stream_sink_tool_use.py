@@ -1,10 +1,10 @@
 from collections.abc import Awaitable, Callable
 
-from agent_server_types_v2.responses.content.tool_use import ResponseToolUseContent
-from agent_server_types_v2.responses.streaming.stream_sink_noop import (
+from agent_platform_core.responses.content.tool_use import ResponseToolUseContent
+from agent_platform_core.responses.streaming.stream_sink_noop import (
     NoOpResponseStreamSink,
 )
-from agent_server_types_v2.tools.tool_definition import ToolDefinition
+from agent_platform_core.tools.tool_definition import ToolDefinition
 
 
 async def _on_start_noop(

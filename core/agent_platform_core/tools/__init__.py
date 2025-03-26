@@ -1,7 +1,7 @@
 """Tools: types defining tools (definitions and execution results)."""
 
-from agent_server_types_v2.tools.tool_definition import ToolDefinition
-from agent_server_types_v2.tools.tool_execution_result import ToolExecutionResult
+from agent_platform_core.tools.tool_definition import ToolDefinition
+from agent_platform_core.tools.tool_execution_result import ToolExecutionResult
 
 __all__ = [
     "ToolDefinition",

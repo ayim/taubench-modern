@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Any, ClassVar, Literal
 from uuid import UUID, uuid5
 
-from agent_server_types_v2.utils import assert_literal_value_valid
+from agent_platform_core.utils import assert_literal_value_valid
 
 
 @dataclass

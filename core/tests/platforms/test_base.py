@@ -5,8 +5,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from agent_server_types_v2.kernel import Kernel
-from agent_server_types_v2.platforms.base import (
+from agent_platform_core.kernel import Kernel
+from agent_platform_core.platforms.base import (
     PlatformClient,
     PlatformConfigs,
     PlatformConverters,
@@ -14,7 +14,7 @@ from agent_server_types_v2.platforms.base import (
     PlatformParsers,
     PlatformPrompt,
 )
-from agent_server_types_v2.prompts import (
+from agent_platform_core.prompts import (
     Prompt,
     PromptAudioContent,
     PromptImageContent,
@@ -23,15 +23,15 @@ from agent_server_types_v2.prompts import (
     PromptToolResultContent,
     PromptToolUseContent,
 )
-from agent_server_types_v2.prompts.content import PromptDocumentContent
-from agent_server_types_v2.responses.content import (
+from agent_platform_core.prompts.content import PromptDocumentContent
+from agent_platform_core.responses.content import (
     ResponseAudioContent,
     ResponseDocumentContent,
     ResponseImageContent,
     ResponseTextContent,
     ResponseToolUseContent,
 )
-from agent_server_types_v2.responses.response import ResponseMessage
+from agent_platform_core.responses.response import ResponseMessage
 
 
 # Mock implementations for testing

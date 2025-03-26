@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Optional, Union
 
-from agent_server_types_v2.prompts import (
+from agent_platform_core.prompts import (
     Prompt,
     PromptAgentMessage,
     PromptAudioContent,
@@ -12,8 +12,8 @@ from agent_server_types_v2.prompts import (
     PromptToolUseContent,
     PromptUserMessage,
 )
-from agent_server_types_v2.prompts.base import PromptMessage
-from agent_server_types_v2.utils.fetch import fetch_url_data
+from agent_platform_core.prompts.base import PromptMessage
+from agent_platform_core.utils.fetch import fetch_url_data
 
 if TYPE_CHECKING:
     # For type-checking only. This ensures your library can refer to these

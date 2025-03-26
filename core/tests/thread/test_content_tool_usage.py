@@ -1,6 +1,6 @@
 import pytest
 
-from agent_server_types_v2.thread.content.tool_usage import ThreadToolUsageContent
+from agent_platform_core.thread.content.tool_usage import ThreadToolUsageContent
 
 
 class TestThreadToolUsageContent:

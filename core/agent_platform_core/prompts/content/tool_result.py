@@ -1,12 +1,12 @@
 from dataclasses import dataclass, field
 from typing import Literal
 
-from agent_server_types_v2.prompts.content.audio import PromptAudioContent
-from agent_server_types_v2.prompts.content.base import PromptMessageContent
-from agent_server_types_v2.prompts.content.document import PromptDocumentContent
-from agent_server_types_v2.prompts.content.image import PromptImageContent
-from agent_server_types_v2.prompts.content.text import PromptTextContent
-from agent_server_types_v2.utils import assert_literal_value_valid
+from agent_platform_core.prompts.content.audio import PromptAudioContent
+from agent_platform_core.prompts.content.base import PromptMessageContent
+from agent_platform_core.prompts.content.document import PromptDocumentContent
+from agent_platform_core.prompts.content.image import PromptImageContent
+from agent_platform_core.prompts.content.text import PromptTextContent
+from agent_platform_core.utils import assert_literal_value_valid
 
 
 @dataclass(frozen=True)

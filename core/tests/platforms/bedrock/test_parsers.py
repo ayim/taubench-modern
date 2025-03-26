@@ -3,13 +3,13 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from agent_server_types_v2.kernel import Kernel
-from agent_server_types_v2.platforms.bedrock.parsers import BedrockParsers
-from agent_server_types_v2.responses.content import (
+from agent_platform_core.kernel import Kernel
+from agent_platform_core.platforms.bedrock.parsers import BedrockParsers
+from agent_platform_core.responses.content import (
     ResponseTextContent,
     ResponseToolUseContent,
 )
-from agent_server_types_v2.responses.response import ResponseMessage
+from agent_platform_core.responses.response import ResponseMessage
 
 
 class TestBedrockParsers:

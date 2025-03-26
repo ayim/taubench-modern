@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from agent_server_types_v2.memory import Memory
+from agent_platform_core.memory import Memory
 
 
 class MemoryInterface(ABC):

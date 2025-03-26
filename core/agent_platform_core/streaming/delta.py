@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Literal
 
-from agent_server_types_v2.delta import GenericDelta
+from agent_platform_core.delta import GenericDelta
 
 StreamingDeltaType = Literal[
     "message_content",

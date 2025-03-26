@@ -4,22 +4,22 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from agent_server_types_v2.delta import GenericDelta
-from agent_server_types_v2.kernel import Kernel
-from agent_server_types_v2.model_selector import (
+from agent_platform_core.delta import GenericDelta
+from agent_platform_core.kernel import Kernel
+from agent_platform_core.model_selector import (
     DefaultModelSelector,
     ModelSelectionRequest,
 )
-from agent_server_types_v2.model_selector.default import ModelMappingConfig
-from agent_server_types_v2.platforms.bedrock.client import BedrockClient
-from agent_server_types_v2.platforms.bedrock.configs import BedrockModelMap
-from agent_server_types_v2.platforms.bedrock.converters import BedrockConverters
-from agent_server_types_v2.platforms.bedrock.parameters import BedrockPlatformParameters
-from agent_server_types_v2.platforms.bedrock.parsers import BedrockParsers
-from agent_server_types_v2.platforms.bedrock.prompts import BedrockPrompt
-from agent_server_types_v2.prompts import Prompt, PromptTextContent, PromptUserMessage
-from agent_server_types_v2.responses.content.text import ResponseTextContent
-from agent_server_types_v2.responses.response import ResponseMessage
+from agent_platform_core.model_selector.default import ModelMappingConfig
+from agent_platform_core.platforms.bedrock.client import BedrockClient
+from agent_platform_core.platforms.bedrock.configs import BedrockModelMap
+from agent_platform_core.platforms.bedrock.converters import BedrockConverters
+from agent_platform_core.platforms.bedrock.parameters import BedrockPlatformParameters
+from agent_platform_core.platforms.bedrock.parsers import BedrockParsers
+from agent_platform_core.platforms.bedrock.prompts import BedrockPrompt
+from agent_platform_core.prompts import Prompt, PromptTextContent, PromptUserMessage
+from agent_platform_core.responses.content.text import ResponseTextContent
+from agent_platform_core.responses.response import ResponseMessage
 
 
 class MockBedrockRuntimeClient:

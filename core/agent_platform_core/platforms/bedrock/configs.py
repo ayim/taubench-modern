@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 
-from agent_server_types_v2.configurations import Configuration, MapConfiguration
-from agent_server_types_v2.platforms.base import PlatformConfigs
+from agent_platform_core.configurations import Configuration, MapConfiguration
+from agent_platform_core.platforms.base import PlatformConfigs
 
 
 @dataclass(frozen=True)

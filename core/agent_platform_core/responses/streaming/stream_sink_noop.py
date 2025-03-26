@@ -1,4 +1,4 @@
-from agent_server_types_v2.responses.content import (
+from agent_platform_core.responses.content import (
     ResponseAudioContent,
     ResponseDocumentContent,
     ResponseImageContent,
@@ -6,11 +6,11 @@ from agent_server_types_v2.responses.content import (
     ResponseTextContent,
     ResponseToolUseContent,
 )
-from agent_server_types_v2.responses.response import ResponseMessage, TokenUsage
-from agent_server_types_v2.responses.streaming.stream_sink_base import (
+from agent_platform_core.responses.response import ResponseMessage, TokenUsage
+from agent_platform_core.responses.streaming.stream_sink_base import (
     ResponseStreamSinkBase,
 )
-from agent_server_types_v2.tools.tool_definition import ToolDefinition
+from agent_platform_core.tools.tool_definition import ToolDefinition
 
 
 class NoOpResponseStreamSink(ResponseStreamSinkBase):

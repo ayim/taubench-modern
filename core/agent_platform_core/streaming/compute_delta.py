@@ -1,8 +1,8 @@
 from datetime import datetime
 
-from agent_server_types_v2.delta import compute_generic_deltas
-from agent_server_types_v2.streaming.delta import StreamingDeltaMessageContent
-from agent_server_types_v2.thread.base import ThreadMessage
+from agent_platform_core.delta import compute_generic_deltas
+from agent_platform_core.streaming.delta import StreamingDeltaMessageContent
+from agent_platform_core.thread.base import ThreadMessage
 
 
 def compute_message_delta(

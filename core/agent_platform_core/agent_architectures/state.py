@@ -1,12 +1,12 @@
 from dataclasses import dataclass, field, fields
 
-from agent_server_types_v2.responses.content.tool_use import ResponseToolUseContent
-from agent_server_types_v2.responses.streaming import (
+from agent_platform_core.responses.content.tool_use import ResponseToolUseContent
+from agent_platform_core.responses.streaming import (
     ResponseStreamSinkBase,
     ToolUseResponseStreamSink,
     XmlTagResponseStreamSink,
 )
-from agent_server_types_v2.tools.tool_definition import ToolDefinition
+from agent_platform_core.tools.tool_definition import ToolDefinition
 
 PendingToolCall = tuple[ToolDefinition, ResponseToolUseContent]
 

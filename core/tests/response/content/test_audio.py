@@ -4,7 +4,7 @@ from dataclasses import FrozenInstanceError
 
 import pytest
 
-from agent_server_types_v2.responses.content.audio import ResponseAudioContent
+from agent_platform_core.responses.content.audio import ResponseAudioContent
 
 
 class TestResponseAudioContent:

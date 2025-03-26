@@ -3,7 +3,7 @@ from copy import deepcopy
 from dataclasses import asdict, dataclass, field
 from typing import Any, Literal, TypeVar
 
-from agent_server_types_v2.responses.content.base import ResponseMessageContent
+from agent_platform_core.responses.content.base import ResponseMessageContent
 
 
 @dataclass(frozen=True)

@@ -1,6 +1,6 @@
 import pytest
 
-from agent_server_types_v2.platforms.bedrock.prompts import BedrockPrompt
+from agent_platform_core.platforms.bedrock.prompts import BedrockPrompt
 
 
 class TestBedrockPrompt:

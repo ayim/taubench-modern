@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
-from agent_server_types_v2.prompts.prompt import Prompt
+from agent_platform_core.prompts.prompt import Prompt
 
 if TYPE_CHECKING:
-    from agent_server_types_v2.agent_architectures.state import StateBase
+    from agent_platform_core.agent_architectures.state import StateBase
 
 
 class PromptsInterface(ABC):

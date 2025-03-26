@@ -3,22 +3,22 @@ import re
 from io import BytesIO
 from typing import TYPE_CHECKING, Any, Literal
 
-from agent_server_types_v2.kernel_interfaces.kernel_mixin import UsesKernelMixin
-from agent_server_types_v2.platforms.base import PlatformConverters
-from agent_server_types_v2.platforms.bedrock.configs import (
+from agent_platform_core.kernel_interfaces.kernel_mixin import UsesKernelMixin
+from agent_platform_core.platforms.base import PlatformConverters
+from agent_platform_core.platforms.bedrock.configs import (
     BedrockContentLimits,
     BedrockRoleMap,
 )
-from agent_server_types_v2.platforms.bedrock.prompts import BedrockPrompt
-from agent_server_types_v2.prompts import Prompt
-from agent_server_types_v2.prompts.content.audio import PromptAudioContent
-from agent_server_types_v2.prompts.content.document import PromptDocumentContent
-from agent_server_types_v2.prompts.content.image import PromptImageContent
-from agent_server_types_v2.prompts.content.text import PromptTextContent
-from agent_server_types_v2.prompts.content.tool_result import PromptToolResultContent
-from agent_server_types_v2.prompts.content.tool_use import PromptToolUseContent
-from agent_server_types_v2.prompts.messages import PromptAgentMessage, PromptUserMessage
-from agent_server_types_v2.tools.tool_definition import ToolDefinition
+from agent_platform_core.platforms.bedrock.prompts import BedrockPrompt
+from agent_platform_core.prompts import Prompt
+from agent_platform_core.prompts.content.audio import PromptAudioContent
+from agent_platform_core.prompts.content.document import PromptDocumentContent
+from agent_platform_core.prompts.content.image import PromptImageContent
+from agent_platform_core.prompts.content.text import PromptTextContent
+from agent_platform_core.prompts.content.tool_result import PromptToolResultContent
+from agent_platform_core.prompts.content.tool_use import PromptToolUseContent
+from agent_platform_core.prompts.messages import PromptAgentMessage, PromptUserMessage
+from agent_platform_core.tools.tool_definition import ToolDefinition
 
 if TYPE_CHECKING:
     from types_boto3_bedrock_runtime.type_defs import (

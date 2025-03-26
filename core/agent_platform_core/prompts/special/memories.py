@@ -1,14 +1,14 @@
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from agent_server_types_v2.prompts.messages import (
+from agent_platform_core.prompts.messages import (
     PromptAgentMessage,
     PromptUserMessage,
 )
-from agent_server_types_v2.prompts.special.base import SpecialPromptMessage
+from agent_platform_core.prompts.special.base import SpecialPromptMessage
 
 if TYPE_CHECKING:
-    from agent_server_types_v2.kernel import Kernel
+    from agent_platform_core.kernel import Kernel
 
 
 @dataclass(frozen=True)

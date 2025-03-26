@@ -2,16 +2,16 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from agent_server_types_v2.kernel import Kernel
-from agent_server_types_v2.platforms.bedrock.converters import BedrockConverters
-from agent_server_types_v2.platforms.bedrock.prompts import BedrockPrompt
-from agent_server_types_v2.prompts import (
+from agent_platform_core.kernel import Kernel
+from agent_platform_core.platforms.bedrock.converters import BedrockConverters
+from agent_platform_core.platforms.bedrock.prompts import BedrockPrompt
+from agent_platform_core.prompts import (
     Prompt,
     PromptTextContent,
     PromptToolUseContent,
     PromptUserMessage,
 )
-from agent_server_types_v2.tools import ToolDefinition
+from agent_platform_core.tools import ToolDefinition
 
 
 class TestBedrockConverters:

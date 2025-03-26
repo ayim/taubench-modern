@@ -1,12 +1,12 @@
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
-from agent_server_types_v2.model_selector.selection_request import (
+from agent_platform_core.model_selector.selection_request import (
     ModelSelectionRequest,
 )
 
 if TYPE_CHECKING:
-    from agent_server_types_v2.platforms import PlatformInterface
+    from agent_platform_core.platforms import PlatformInterface
 
 
 class ModelSelector(ABC):

@@ -30,13 +30,13 @@ Note that `None` is a valid value for operations that accept values
 values (remove, move, copy) must use the special sentinel NO_VALUE.
 """
 
-from agent_server_types_v2.delta.base import (
+from agent_platform_core.delta.base import (
     NO_VALUE,
     DeltaOpType,
     GenericDelta,
 )
-from agent_server_types_v2.delta.combine_delta import combine_generic_deltas
-from agent_server_types_v2.delta.compute_delta import compute_generic_deltas
+from agent_platform_core.delta.combine_delta import combine_generic_deltas
+from agent_platform_core.delta.compute_delta import compute_generic_deltas
 
 __all__ = [
     "NO_VALUE",

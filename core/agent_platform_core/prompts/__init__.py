@@ -1,6 +1,6 @@
 """Prompt-related types and utilities."""
 
-from agent_server_types_v2.prompts.content import (
+from agent_platform_core.prompts.content import (
     PromptAudioContent,
     PromptImageContent,
     PromptMessageContent,
@@ -8,12 +8,12 @@ from agent_server_types_v2.prompts.content import (
     PromptToolResultContent,
     PromptToolUseContent,
 )
-from agent_server_types_v2.prompts.messages import (
+from agent_platform_core.prompts.messages import (
     PromptAgentMessage,
     PromptMessage,
     PromptUserMessage,
 )
-from agent_server_types_v2.prompts.prompt import Prompt
+from agent_platform_core.prompts.prompt import Prompt
 
 __all__ = [
     "Prompt",

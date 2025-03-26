@@ -1,6 +1,6 @@
-from agent_server_types_v2.thread.base import ThreadMessage
-from agent_server_types_v2.thread.content.text import ThreadTextContent
-from agent_server_types_v2.thread.thread import Thread
+from agent_platform_core.thread.base import ThreadMessage
+from agent_platform_core.thread.content.text import ThreadTextContent
+from agent_platform_core.thread.thread import Thread
 
 
 class TestThread:

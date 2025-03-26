@@ -1,7 +1,7 @@
 """Thread: types defining the thread of a conversation between an agent and a user."""
 
-from agent_server_types_v2.thread.base import ThreadMessage
-from agent_server_types_v2.thread.content import (
+from agent_platform_core.thread.base import ThreadMessage
+from agent_platform_core.thread.content import (
     ThreadAttachmentContent,
     ThreadMessageContent,
     ThreadQuickActionContent,
@@ -11,8 +11,8 @@ from agent_server_types_v2.thread.content import (
     ThreadToolUsageContent,
     ThreadVegaChartContent,
 )
-from agent_server_types_v2.thread.messages import ThreadAgentMessage, ThreadUserMessage
-from agent_server_types_v2.thread.thread import Thread
+from agent_platform_core.thread.messages import ThreadAgentMessage, ThreadUserMessage
+from agent_platform_core.thread.thread import Thread
 
 __all__ = [
     "Thread",
