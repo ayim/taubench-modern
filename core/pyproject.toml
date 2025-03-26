@@ -1,12 +1,11 @@
 [tool.poetry]
-name = "agent-server-types"
+name = "agent-platform-core"
 version = "1.2.0"
-description = "Shared types for the agent server and agent architecture plugins."
+description = "Core types and functionality for the agent platform."
 authors = ["Sema4.ai Engineering <engineering@sema4.ai>"]
 readme = "README.md"
 packages = [
-    { include = "agent_server_types" },
-    { include = "agent_server_types_v2" },
+    { include = "agent_platform_core" },
 ]
 
 
@@ -23,8 +22,6 @@ ruamel-yaml = "^0.18.10"
 
 # optional=true here, as depending on the extras selected
 # we may not need all of these dependencies.
-pydantic = { version = ">=2,<3", optional = true }
-langchain-core = { version = ">=0.3.15", optional = true }
 google-generativeai = { version = ">=0.8.3", optional = true }
 openai = { version = ">=1.59.8", optional = true }
 anthropic = { version = ">=0.41.3", optional = true }
@@ -42,9 +39,6 @@ types-boto3 = { version = ">=1.36.9", extras = [
 
 
 [tool.poetry.extras]
-# Legacy dependencies (langchain/pydantic can
-# eventually be dropped, hopefully)
-legacy = ["pydantic", "langchain-core"]
 # We can have platform-specific "extras" so
 # that installs can include only the platform
 # dependencies that are needed. We will need
@@ -84,7 +78,7 @@ requests = "^2.31.0" # For fetching JSON Patch test data
 
 
 [tool.pytest.ini_options]
-testpaths = ["tests/v2"]
+testpaths = ["tests/"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -158,7 +152,7 @@ unfixable = []
 "tests/v2/*.py" = ["PLR2004"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["agent_server_types_v2", "sema4ai_agent_server"]
+known-first-party = ["agent_platform_core", "sema4ai.common"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
