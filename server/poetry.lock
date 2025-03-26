@@ -2,7 +2,7 @@
 
 [[package]]
 name = "agent-architecture"
-version = "1.2.1-alpha.3"
+version = "1.2.2"
 description = "Core cognitive framework architecture for agents."
 optional = false
 python-versions = "^3.11.0,<3.12"
@@ -23,11 +23,11 @@ structlog = "^24.4.0"
 type = "git"
 url = "https://github.com/Sema4AI/agent-architecture.git"
 reference = "development-kernel"
-resolved_reference = "73c6f6f378653a9170cdfb5fa6670ef4e8d239ae"
+resolved_reference = "b65d14d3d89c7b42fb6a01d41591d4330c29b7c9"
 
 [[package]]
 name = "agent-architecture-claude-tools"
-version = "1.1.0-alpha.4"
+version = "1.1.1"
 description = "Tool using cognitive architecture for agents supporting Anthropic Claude LLMs."
 optional = false
 python-versions = "^3.11.0,<3.12"
@@ -43,11 +43,11 @@ agent-server-types = {git = "https://github.com/Sema4AI/agent-server-types.git",
 type = "git"
 url = "https://github.com/Sema4AI/agent-architecture-claude-tools.git"
 reference = "development-kernel"
-resolved_reference = "737673d44a3df31e5d463f5a6289fd84149fa82d"
+resolved_reference = "a4100fc1df37f36cea156e9f63121f36734f09e8"
 
 [[package]]
 name = "agent-architecture-default"
-version = "1.1.0-alpha.2"
+version = "1.1.1"
 description = "Tool using cognitive architecture for agents supporting OpenAI LLMs."
 optional = false
 python-versions = "^3.11.0,<3.12"
@@ -63,7 +63,7 @@ agent-server-types = {git = "https://github.com/Sema4AI/agent-server-types.git",
 type = "git"
 url = "https://github.com/Sema4AI/agent-architecture-default.git"
 reference = "development-kernel"
-resolved_reference = "24e251eca2364b895fae8a8ca283307a50918f31"
+resolved_reference = "698cc96fb9b8e4bb9fe04975a0c0f09d6825ff1c"
 
 [[package]]
 name = "agent-architecture-default-v2"
@@ -86,7 +86,7 @@ resolved_reference = "e34b11cb8c5466f8ae75120d75d9cad613bc925e"
 
 [[package]]
 name = "agent-architecture-openai-plan-execute"
-version = "1.1.0-alpha.2"
+version = "1.1.1"
 description = "Plan execute cognitive architecture for agents with support for OpenAI LLMs."
 optional = false
 python-versions = "^3.11.0,<3.12"
@@ -102,7 +102,7 @@ agent-server-types = {git = "https://github.com/Sema4AI/agent-server-types.git",
 type = "git"
 url = "https://github.com/Sema4AI/agent-architecture-openai-plan-execute.git"
 reference = "development-kernel"
-resolved_reference = "84eea3debfeb0a19aac4b965aca6da317dba0956"
+resolved_reference = "aa6a9bdf857f83e6543fe9c4b4b4964ea4d3bcda"
 
 [[package]]
 name = "agent-server-types"
