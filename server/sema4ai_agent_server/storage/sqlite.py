@@ -233,19 +233,33 @@ class SqliteStorage(BaseStorage):
             return count
 
 
-    async def list_threads(self, user_id: str) -> List[Thread]:
+    async def list_threads(self, user_id: str, aid: str = None, name: str = None, limit: int = None) -> List[Thread]:
         """List all threads for the current user and system threads."""
-        with self._connect() as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                """
+        sql = """
                 SELECT t.* 
                 FROM thread t
                 LEFT JOIN "user" u ON t.user_id = u.user_id
-                WHERE t.user_id = ? OR u.sub LIKE 'tenant:%:system:system_user'
-                """,
-                (user_id,),
-            )
+                WHERE (t.user_id = ? OR u.sub LIKE 'tenant:%:system:system_user')
+                """
+        params = [user_id]
+
+        if aid is not None:
+            sql += " AND t.agent_id = ?"
+            params.append(aid)
+
+        if name is not None:
+            sql += " AND t.name LIKE ?"
+            params.append(f"%{name}%")
+
+        sql += " ORDER BY t.updated_at DESC"
+        if limit is not None:
+            sql += " LIMIT ?"
+            params.append(limit)
+
+
+        with self._connect() as conn:
+            cursor = conn.cursor()
+            cursor.execute(sql, params)
             rows = cursor.fetchall()
 
             return THREAD_LIST_ADAPTER.validate_python([dict(row) for row in rows])

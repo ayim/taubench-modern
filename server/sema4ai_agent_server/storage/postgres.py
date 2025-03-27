@@ -51,7 +51,6 @@ class PostgresStorage(BaseStorage, PostgresConnectionManager):
     async def setup(self) -> None:
         if self._is_setup:
             return
-        print("Setting up PostgresStorage")
         await self._run_migrations()
         pgvector: PostgresVector = get_vector_store()
         await pgvector.acreate_collection()
@@ -443,18 +442,31 @@ class PostgresStorage(BaseStorage, PostgresConnectionManager):
                 ),
             )
 
-    async def list_threads(self, user_id: str) -> List[Thread]:
+    async def list_threads(self, user_id: str, aid: str = None, name: str = None, limit: int = None) -> List[Thread]:
         """List all threads for the current user and system threads."""
+        sql = """
+            SELECT t.* 
+            FROM thread t
+            LEFT JOIN "user" u ON t.user_id = u.user_id
+            WHERE (t.user_id = %s OR u.sub LIKE 'tenant:%%:system:system_user')
+        """
+        params = [user_id]
+
+        if aid is not None:
+            sql += " AND t.agent_id = %s"
+            params.append(aid)
+
+        if name is not None:
+            sql += " AND t.name LIKE %s"
+            params.append(f"%{name}%")
+
+        sql += " ORDER BY t.updated_at DESC"
+        if limit is not None:
+            sql += " LIMIT %s"
+            params.append(limit)
+
         async with self.async_cursor(dict_row) as cur:
-            await cur.execute(
-                """
-                SELECT t.* 
-                FROM thread t
-                LEFT JOIN "user" u ON t.user_id = u.user_id
-                WHERE t.user_id = %s OR u.sub LIKE 'tenant:%%:system:system_user'
-                """,
-                (user_id,),
-            )
+            await cur.execute(sql, params)
             rows = await cur.fetchall()
             return THREAD_LIST_ADAPTER.validate_python(rows)
 
