@@ -52,7 +52,7 @@ aiosqlite = "^0.20.0"
 testing-postgresql = "^1.3.0"
 greenlet = "^3.1.1"
 bs4 = "^0.0.2"
-agent-server-types = { git = "https://github.com/Sema4AI/agent-server-types.git", rev = "development-kernel" }
+agent-server-types = { git = "https://github.com/Sema4AI/agent-server-types.git", rev = "development-kernel-temp" }
 agent-architecture = { git = "https://github.com/Sema4AI/agent-architecture.git", rev = "development-kernel" }
 agent-architecture-default = { git = "https://github.com/Sema4AI/agent-architecture-default.git", rev = "development-kernel" }
 agent-architecture-default-v2 = { git = "https://github.com/Sema4AI/agent-architecture-default-v2.git", rev = "development" }

@@ -10,7 +10,7 @@ async def get_client() -> AsyncGenerator[AsyncClient, None]:
     from sema4ai_agent_server.app import create_app
 
     async with AsyncClient(
-        app=ASGITransport(create_app()),
+        transport=ASGITransport(create_app()),
         base_url="http://test",
     ) as ac:
         yield ac
