@@ -213,7 +213,7 @@ class Prompt:
 
     async def finalize_messages(
         self,
-        kernel: "Kernel",
+        kernel: "Kernel | None" = None,
     ) -> "Prompt":
         """Finalizes messages from the prompt.
 
@@ -233,6 +233,8 @@ class Prompt:
         new_messages = []
         for message in self.messages:
             if isinstance(message, SpecialPromptMessage):
+                if kernel is None:
+                    raise ValueError("Kernel is required to hydrate special messages")
                 new_messages.extend(await message.hydrate(kernel))
             else:
                 new_messages.append(message)
