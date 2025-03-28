@@ -1,4 +1,0 @@
-poetry<3.0.0
-invoke<2.3.0
-python-dotenv<1.1.0
-pyinstaller==6.11.1
