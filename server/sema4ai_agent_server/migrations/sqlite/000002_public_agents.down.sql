@@ -1,0 +1,2 @@
+ALTER TABLE agent
+DROP COLUMN public;

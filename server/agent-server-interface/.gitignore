@@ -1,0 +1,7 @@
+# Ignore everything in src folder because they are generated files
+/src/*
+/dist
+
+# Except these files because they are not generated
+!/src/index.ts
+!/src/test.ts

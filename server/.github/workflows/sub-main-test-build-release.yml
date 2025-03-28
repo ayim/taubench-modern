@@ -1,0 +1,155 @@
+name: Test, Build and Release Agent Server
+
+# This workflow is the full Agent Server pipeline, but the conditional
+# logic to decide whether to run it is large, so it is in the higher level build
+# workflow.
+
+on:
+  workflow_call:
+    inputs:
+      python_version:
+        description: "Python version to use"
+        required: false
+        type: string
+        default: "3.11"
+      node_version:
+        description: "Node version to use"
+        required: false
+        type: string
+        default: "18"
+      release_channel:
+        description: "The release channel to publish to (e.g. beta, stable)"
+        required: true
+        type: string
+      windows_runner:
+        description: "Windows runner to use"
+        required: false
+        type: string
+        default: "windows-large-runner"
+    secrets:
+      GIT_USERNAME:
+        description: "Username for Git operations"
+        required: true
+      GIT_TOKEN:
+        description: "Token for Git operations"
+        required: true
+      OPENAI_API_KEY:
+        description: "OpenAI API key"
+        required: true
+      NPM_AUTH_TOKEN:
+        description: "Node authentication token"
+        required: true
+      MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI:
+        description: "MacOS App ID for notarization"
+        required: true
+      MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI:
+        description: "MacOS App ID password for notarization"
+        required: true
+      MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI:
+        description: "MacOS Team ID for notarization"
+        required: true
+      MACOS_SIGNING_CERT_SEMA4AI:
+        description: "MacOS signing certificate"
+        required: true
+      MACOS_SIGNING_CERT_PASSWORD_SEMA4AI:
+        description: "MacOS signing certificate password"
+        required: true
+      MACOS_SIGNING_CERT_NAME_SEMA4AI:
+        description: "MacOS signing certificate name"
+        required: true
+      WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI:
+        description: "Windows sign Azure Key Vault URL"
+        required: true
+      WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI:
+        description: "Windows sign Azure Key Vault client ID"
+        required: true
+      WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI:
+        description: "Windows sign Azure Key Vault tenant ID"
+        required: true
+      WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI:
+        description: "Windows sign Azure Key Vault client secret"
+        required: true
+      WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI:
+        description: "Windows sign Azure Key Vault certificate name"
+        required: true
+
+jobs:
+  # TODO: Unit tests are not ready to be included in main pipeline yet as they are primarily still
+  # from when the project was OpenGPTs, so they are not well adapted to the current product
+  #
+  # unit-tests:
+  #   uses: ./.github/workflows/sub-test-unit-tests.yml
+  #   secrets:
+  #     GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
+  #     GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+
+  integration-tests:
+    uses: ./.github/workflows/sub-test-api-integration.yml
+    with:
+      python_version: ${{ inputs.python_version }}
+    secrets:
+      GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
+      GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+  build-agent-server:
+    uses: ./.github/workflows/sub-build-agent-server.yml
+    needs:
+      # - unit-tests
+      - integration-tests
+    with:
+      python_version: ${{ inputs.python_version }}
+      windows_runner: ${{ inputs.windows_runner }}
+    secrets:
+      GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
+      GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+      MACOS_SIGNING_CERT_SEMA4AI: ${{ secrets.MACOS_SIGNING_CERT_SEMA4AI }}
+      MACOS_SIGNING_CERT_PASSWORD_SEMA4AI: ${{ secrets.MACOS_SIGNING_CERT_PASSWORD_SEMA4AI }}
+      MACOS_SIGNING_CERT_NAME_SEMA4AI: ${{ secrets.MACOS_SIGNING_CERT_NAME_SEMA4AI }}
+
+  sign-binaries:
+    uses: ./.github/workflows/sub-build-sign-binaries.yml
+    needs: [build-agent-server]
+    secrets:
+      MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI: ${{ secrets.MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI }}
+      MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI: ${{ secrets.MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI }}
+      MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI: ${{ secrets.MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI }}
+      MACOS_SIGNING_CERT_NAME_SEMA4AI: ${{ secrets.MACOS_SIGNING_CERT_NAME_SEMA4AI }}
+      WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI }}
+      WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI }}
+      WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI }}
+      WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI }}
+      WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI }}
+
+  build-asi:
+    uses: ./.github/workflows/sub-build-asi.yml
+    with:
+      python_version: ${{ inputs.python_version }}
+      node_version: ${{ inputs.node_version }}
+    secrets:
+      GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
+      GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+      NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+
+  package-agent-server:
+    uses: ./.github/workflows/sub-publish-package-agent-server.yml
+    needs: [sign-binaries]
+
+  release-agent-server-gh:
+    uses: ./.github/workflows/sub-publish-agent-server-gh.yml
+    needs: [package-agent-server]
+    with:
+      agent_server_version: ${{ needs.package-agent-server.outputs.agent_server_version }}
+
+  release-agent-server-s3:
+    uses: ./.github/workflows/sub-publish-agent-server-s3.yml
+    needs: [package-agent-server]
+    with:
+      agent_server_version: ${{ needs.package-agent-server.outputs.agent_server_version }}
+      release_channel: ${{ inputs.release_channel }}
+
+  publish-asi-npm-package:
+    uses: ./.github/workflows/sub-publish-asi-npm.yml
+    needs: [build-asi]
+    secrets:
+      NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}

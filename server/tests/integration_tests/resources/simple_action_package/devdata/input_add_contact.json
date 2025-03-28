@@ -1,0 +1,25 @@
+{
+    "inputs": [
+        {
+            "inputName": "input-1",
+            "inputValue": {
+                "name": "Dave",
+                "email": "dave@example.com",
+                "phone": "1234567890"
+            }
+        }
+    ],
+    "metadata": {
+        "actionName": "add_contact",
+        "actionRelativePath": "crm_actions.py",
+        "schemaDescription": [
+            "name: string: The name of the contact.",
+            "email: string: The email address of the contact.",
+            "phone: string: The phone number of the contact."
+        ],
+        "managedParamsSchemaDescription": {},
+        "inputFileVersion": "v3",
+        "kind": "action",
+        "actionSignature": "action/args: 'name: str, email: str, phone: str'"
+    }
+}

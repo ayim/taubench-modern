@@ -1,0 +1,30 @@
+name: Test Agent Server
+
+on:
+  push:
+    branches:
+      - main
+      - release
+      - release-*
+      - development
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  # TODO: Unit tests are not ready to be included in main pipeline yet as they are primarily still
+  # from when the project was OpenGPTs, so they are not well adapted to the current product
+  #
+  # unit-tests:
+  #   uses: ./.github/workflows/sub-test-unit-tests.yml
+  #   secrets:
+  #     GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
+  #     GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+
+  api-interaction-tests:
+    uses: ./.github/workflows/sub-test-api-integration.yml
+    with:
+      python_version: "3.11"
+    secrets:
+      GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
+      GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

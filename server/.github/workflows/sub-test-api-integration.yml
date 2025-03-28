@@ -1,0 +1,115 @@
+name: API Interaction Tests
+
+on:
+  workflow_call:
+    inputs:
+      python_version:
+        description: "Python version to use"
+        required: false
+        type: string
+        default: "3.11"
+    secrets:
+      GIT_USERNAME:
+        description: "Username for Git operations"
+        required: true
+      GIT_TOKEN:
+        description: "Token for Git operations"
+        required: true
+      OPENAI_API_KEY:
+        description: "OpenAI API key"
+        required: true
+
+jobs:
+  test-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout and Pull Latest
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v1
+
+      - name: Install deps
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/install_deps@v1
+        with:
+          git_username: ${{ secrets.GIT_USERNAME }}
+          git_token: ${{ secrets.GIT_TOKEN }}
+          python_version: ${{ inputs.python_version }}
+          additional_poetry_groups: dev,lint,test
+
+      - name: Enable uuid-ossp extension
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -c 'CREATE EXTENSION IF NOT EXISTS "uuid-ossp";'
+
+      - name: Delete existing pg collection tables if they exist
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -c 'DROP TABLE IF EXISTS langchain_pg_collection CASCADE;'
+
+      - name: Run API interaction tests (PostgreSQL)
+        run: |
+          poetry run python -m pytest tests/integration_tests
+        env:
+          SEMA4AI_AGENT_SERVER_DB_TYPE: postgres
+          SCARF_NO_ANALYTICS: "true"
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_DB: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          INTEGRATION_TEST_START_SERVER: "true"
+
+      - name: Upload tests log directory
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-logs-postgres-logsdir
+          path: ./logs
+
+  test-sqlite:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout and Pull Latest
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/checkout_pull_latest@v1
+
+      - name: Install deps
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/install_deps@v1
+        with:
+          git_username: ${{ secrets.GIT_USERNAME }}
+          git_token: ${{ secrets.GIT_TOKEN }}
+          python_version: ${{ inputs.python_version }}
+          additional_poetry_groups: dev,lint,test
+
+      - name: Run API interaction tests (SQLite)
+        shell: bash
+        run: |
+          poetry run python -m pytest tests/integration_tests
+        env:
+          SEMA4AI_AGENT_SERVER_DB_TYPE: sqlite
+          SCARF_NO_ANALYTICS: "true"
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          INTEGRATION_TEST_START_SERVER: "true"
+
+      - name: Upload tests log directory
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-logs-sqlite-${{ matrix.os }}
+          path: ./logs
