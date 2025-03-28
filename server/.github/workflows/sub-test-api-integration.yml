@@ -60,7 +60,7 @@ jobs:
         run: |
           poetry run python -m pytest tests/integration_tests
         env:
-          S4_AGENT_SERVER_DB_TYPE: postgres
+          SEMA4AI_AGENT_SERVER_DB_TYPE: postgres
           SCARF_NO_ANALYTICS: "true"
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           POSTGRES_HOST: localhost
@@ -102,7 +102,7 @@ jobs:
         run: |
           poetry run python -m pytest tests/integration_tests
         env:
-          S4_AGENT_SERVER_DB_TYPE: sqlite
+          SEMA4AI_AGENT_SERVER_DB_TYPE: sqlite
           SCARF_NO_ANALYTICS: "true"
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           INTEGRATION_TEST_START_SERVER: "true"

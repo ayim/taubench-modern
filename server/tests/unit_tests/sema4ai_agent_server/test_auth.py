@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import jwt
 
+from sema4ai_agent_server.app import create_app
 from sema4ai_agent_server.auth.handlers import AuthedUser, get_auth_handler
 from sema4ai_agent_server.auth.settings import (
     AuthType,
@@ -15,8 +16,9 @@ from sema4ai_agent_server.auth.settings import (
     settings as auth_settings,
 )
 from sema4ai_agent_server.responses import PydanticResponse
-from sema4ai_agent_server.server import app
 from tests.unit_tests.sema4ai_agent_server.helpers import get_client
+
+app = create_app()
 
 
 @app.get("/me", response_model=AuthedUser, response_class=PydanticResponse)

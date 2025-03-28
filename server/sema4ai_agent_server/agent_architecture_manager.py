@@ -25,8 +25,23 @@ def load_agent_architectures() -> dict[str, Type[AgentArchitectureBase]]:
     return architectures
 
 
-# Load plugins at module import time
-logger.info("Loading agent architectures")
-agent_architectures = load_agent_architectures()
-architecture_names = list(agent_architectures.keys())
-logger.info(f"Loaded {len(architecture_names)} agent architectures")
+# Global instance
+_agent_architectures: dict[str, Type[AgentArchitectureBase]] | None = None
+
+
+def get_agent_architectures() -> dict[str, Type[AgentArchitectureBase]]:
+    """Get the global agent architectures dictionary.
+
+    If architectures haven't been loaded yet, they will be loaded on first call.
+
+    Returns:
+        Dictionary mapping architecture names to their implementation classes.
+    """
+    global _agent_architectures
+
+    if _agent_architectures is None:
+        logger.info("Loading agent architectures")
+        _agent_architectures = load_agent_architectures()
+        logger.info(f"Loaded {len(_agent_architectures)} agent architectures")
+
+    return _agent_architectures

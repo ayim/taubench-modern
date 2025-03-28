@@ -1,7 +1,6 @@
 """Module provides connection functions to the postgres server shared
 between the various other postgres modules."""
 
-import os
 from contextlib import asynccontextmanager, contextmanager
 from typing import (
     AsyncGenerator,
@@ -14,17 +13,25 @@ from psycopg.rows import tuple_row
 from psycopg.types.json import set_json_dumps
 from psycopg_pool import AsyncConnectionPool, ConnectionPool
 
+from sema4ai_agent_server.env_vars import (
+    POSTGRES_DB,
+    POSTGRES_HOST,
+    POSTGRES_PASSWORD,
+    POSTGRES_PORT,
+    POSTGRES_USER,
+)
+
 set_json_dumps(orjson.dumps)
 
 
 def get_dsn() -> str:
     """Get the DSN for the Postgres connection."""
-    database = (os.environ["POSTGRES_DB"],)
-    user = (os.environ["POSTGRES_USER"],)
-    password = (os.environ["POSTGRES_PASSWORD"],)
-    host = (os.environ["POSTGRES_HOST"],)
-    port = (os.environ["POSTGRES_PORT"],)
-    return f"postgresql://{user[0]}:{password[0]}@{host[0]}:{port[0]}/{database[0]}"
+    return (
+        f"postgresql://"
+        f"{POSTGRES_USER}:{POSTGRES_PASSWORD}@"
+        f"{POSTGRES_HOST}:{POSTGRES_PORT}/"
+        f"{POSTGRES_DB}"
+    )
 
 
 _sync_pool = None

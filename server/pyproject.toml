@@ -98,7 +98,7 @@ pyinstaller = "^6.11.1"
 invoke = "^2.2.0"
 
 [tool.poetry.scripts]
-agent-server = "sema4ai_agent_server.server:main"
+agent-server = "sema4ai_agent_server.main:main"
 
 [tool.coverage.run]
 omit = ["tests/*"]

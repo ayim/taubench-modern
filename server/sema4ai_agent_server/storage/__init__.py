@@ -1,3 +1,4 @@
+import os
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Sequence, Union
@@ -88,7 +89,7 @@ class BaseStorage(ABC):
         pass
 
     @abstractmethod
-    async def list_threads(self, user_id: str) -> List[Thread]:
+    async def list_threads(self, user_id: str, aid: str = None, name: str = None, limit: int = None) -> List[Thread]:
         """List all threads for the current user."""
         pass
 

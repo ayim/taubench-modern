@@ -1,8 +1,9 @@
-import os
 from typing import Callable, Dict, Final
 
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
+
+from sema4ai_agent_server.constants import SystemConfig
 
 
 def get_postgres_checkpointer() -> BaseCheckpointSaver:
@@ -24,7 +25,7 @@ CHECKPOINTER_TYPES: Final[Dict[str, Callable[[], BaseCheckpointSaver]]] = {
 
 
 def initialize_checkpointer() -> BaseCheckpointSaver:
-    db_type = os.environ.get("S4_AGENT_SERVER_DB_TYPE", "sqlite")
+    db_type = SystemConfig.db_type or "sqlite"
     checkpointer_func = CHECKPOINTER_TYPES.get(db_type)
     if checkpointer_func is None:
         raise ValueError(f"Invalid storage type: {db_type}")

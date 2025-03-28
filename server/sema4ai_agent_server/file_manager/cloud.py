@@ -1,5 +1,4 @@
 import json
-import os
 from datetime import datetime, timedelta, timezone
 from typing import Union
 from uuid import uuid4
@@ -9,6 +8,7 @@ import structlog
 from agent_server_types import Agent, EmbeddingStatus, Thread, UploadedFile
 from fastapi import UploadFile
 
+from sema4ai_agent_server.env_vars import FILE_MANAGEMENT_API_URL
 from sema4ai_agent_server.file_manager.base import (
     MISSING_FILE_HASH,
     BaseFileManager,
@@ -20,9 +20,6 @@ from sema4ai_agent_server.storage.embed import Blob, convert_to_blob
 from sema4ai_agent_server.storage.option import get_storage
 
 logger = structlog.get_logger(__name__)
-
-
-FILE_MANAGEMENT_API_URL = os.getenv("FILE_MANAGEMENT_API_URL")
 
 
 class CloudFileManager(BaseFileManager):

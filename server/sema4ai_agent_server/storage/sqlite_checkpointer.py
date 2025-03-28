@@ -15,7 +15,7 @@ from langgraph.checkpoint.base import (
 )
 from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 
-from sema4ai_agent_server.constants import DOMAIN_DATABASE_PATH
+from sema4ai_agent_server.constants import SystemPaths
 from sema4ai_agent_server.schema import AgentServerRunnableConfig
 from sema4ai_agent_server.storage.utils import search_where
 from sema4ai_agent_server.utils import get_thread_id_from_config
@@ -23,7 +23,7 @@ from sema4ai_agent_server.utils import get_thread_id_from_config
 
 @contextmanager
 def _connect_sqlite():
-    conn = sqlite3.connect(DOMAIN_DATABASE_PATH)
+    conn = sqlite3.connect(SystemPaths.domain_database_path)
     conn.row_factory = sqlite3.Row  # Enable dictionary access to row items.
     try:
         yield conn

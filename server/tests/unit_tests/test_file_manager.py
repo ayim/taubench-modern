@@ -18,6 +18,7 @@ from agent_server_types import (
 )
 from fastapi import UploadFile
 
+from sema4ai_agent_server.configuration_manager import init_configurations
 from sema4ai_agent_server.file_manager.base import BaseFileManager
 from sema4ai_agent_server.file_manager.cloud import CloudFileManager
 from sema4ai_agent_server.file_manager.local import LocalFileManager
@@ -47,12 +48,39 @@ def mock_requests():
 
 @pytest.fixture
 def mock_constants(tmpdir):
-    from sema4ai_agent_server.constants import Constants
+    import os
 
-    original_upload_dir = Constants.UPLOAD_DIR
-    Constants.UPLOAD_DIR = str(tmpdir / "uploads")
+    from sema4ai_agent_server.constants import SystemPaths
+
+    # Create a temporary upload directory
+    upload_dir = str(tmpdir / "uploads")
+    os.makedirs(upload_dir, exist_ok=True)
+
+    # Store original values before we change them
+    original_upload_dir = SystemPaths.upload_dir
+
+    # Initialize configurations with an override for upload_dir
+    # Use reinitialize=True to ensure test isolation
+    init_configurations(
+        config_modules=["sema4ai_agent_server.constants"],
+        overrides={
+            "sema4ai_agent_server.constants.SystemPaths": {"upload_dir": upload_dir}
+        },
+        reinitialize=True,  # Force reinitialization for testing
+    )
+
     yield
-    Constants.UPLOAD_DIR = original_upload_dir
+
+    # Restore original configuration using reinitialization
+    init_configurations(
+        config_modules=["sema4ai_agent_server.constants"],
+        overrides={
+            "sema4ai_agent_server.constants.SystemPaths": {
+                "upload_dir": original_upload_dir
+            }
+        },
+        reinitialize=True,  # Force reinitialization to restore original state
+    )
 
 
 @pytest.fixture(params=[LocalFileManager, CloudFileManager])

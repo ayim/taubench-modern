@@ -1,10 +1,11 @@
-import os
 from base64 import b64decode
 from enum import Enum
 from typing import Optional, Self, Union
 
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from sema4ai_agent_server.env_vars import AUTH_TYPE
 
 
 class AuthType(Enum):
@@ -63,7 +64,7 @@ class Settings(BaseSettings):
         return self
 
 
-auth_type = AuthType(os.getenv("AUTH_TYPE", AuthType.NOOP.value).lower())
+auth_type = AuthType((AUTH_TYPE or AuthType.NOOP.value).lower())
 kwargs = {"auth_type": auth_type}
 if auth_type == AuthType.JWT_LOCAL:
     kwargs["jwt_local"] = JWTSettingsLocal()
