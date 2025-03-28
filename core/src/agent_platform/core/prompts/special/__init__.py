@@ -1,13 +1,13 @@
-from agent_platform_core.prompts.special.base import SpecialPromptMessage
-from agent_platform_core.prompts.special.conversation_history import (
+from agent_platform.core.prompts.special.base import SpecialPromptMessage
+from agent_platform.core.prompts.special.conversation_history import (
     ConversationHistoryParams,
     ConversationHistorySpecialMessage,
 )
-from agent_platform_core.prompts.special.documents import (
+from agent_platform.core.prompts.special.documents import (
     DocumentsParams,
     DocumentsSpecialMessage,
 )
-from agent_platform_core.prompts.special.memories import (
+from agent_platform.core.prompts.special.memories import (
     MemoriesParams,
     MemoriesSpecialMessage,
 )

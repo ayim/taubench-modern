@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import ClassVar, Self
 from uuid import uuid4
 
-from agent_platform_core.delta import GenericDelta
+from agent_platform.core.delta import GenericDelta
 
 
 @dataclass

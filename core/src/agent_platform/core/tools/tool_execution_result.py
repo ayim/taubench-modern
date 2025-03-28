@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
-from agent_platform_core.tools.tool_definition import ToolDefinition
+from agent_platform.core.tools.tool_definition import ToolDefinition
 
 
 @dataclass(frozen=True)

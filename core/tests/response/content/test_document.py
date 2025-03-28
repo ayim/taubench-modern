@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from agent_platform_core.responses.content.document import ResponseDocumentContent
+from agent_platform.core.responses.content.document import ResponseDocumentContent
 
 
 class TestResponseDocumentContent:

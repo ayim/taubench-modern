@@ -1,7 +1,7 @@
 from collections.abc import Callable, Coroutine
 from typing import Any
 
-from agent_platform_core.tools.tool_definition import ToolDefinition
+from agent_platform.core.tools.tool_definition import ToolDefinition
 
 
 def _dereference_refs(spec: dict, full_schema: dict) -> dict:

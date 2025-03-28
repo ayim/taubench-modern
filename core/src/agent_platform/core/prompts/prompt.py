@@ -3,22 +3,22 @@ from importlib.resources.abc import Traversable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, TextIO
 
-from agent_platform_core.prompts.messages import (
+from agent_platform.core.prompts.messages import (
     PromptAgentMessage,
     PromptMessage,
     PromptTextContent,
     PromptUserMessage,
 )
-from agent_platform_core.prompts.special import (
+from agent_platform.core.prompts.special import (
     ConversationHistorySpecialMessage,
     DocumentsSpecialMessage,
     MemoriesSpecialMessage,
     SpecialPromptMessage,
 )
-from agent_platform_core.tools.tool_definition import ToolDefinition
+from agent_platform.core.tools.tool_definition import ToolDefinition
 
 if TYPE_CHECKING:
-    from agent_platform_core.kernel import Kernel
+    from agent_platform.core.kernel import Kernel
 
 
 @dataclass(frozen=True)
@@ -337,7 +337,7 @@ class Prompt:
 
     def to_pretty_yaml(self, width: int = 100) -> str:
         """Convert the prompt to a pretty YAML string."""
-        from agent_platform_core.prompts.debug import to_pretty_yaml
+        from agent_platform.core.prompts.debug import to_pretty_yaml
 
         return to_pretty_yaml(self, width)
 

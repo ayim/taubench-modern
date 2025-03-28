@@ -2,9 +2,9 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Literal
 
-from agent_platform_core.thread.base import ThreadMessage
-from agent_platform_core.thread.content import ThreadThoughtContent
-from agent_platform_core.utils import assert_literal_value_valid
+from agent_platform.core.thread.base import ThreadMessage
+from agent_platform.core.thread.content import ThreadThoughtContent
+from agent_platform.core.utils import assert_literal_value_valid
 
 
 @dataclass

@@ -2,13 +2,13 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, ClassVar, Literal
 
-from agent_platform_core.prompts.messages import (
+from agent_platform.core.prompts.messages import (
     PromptAgentMessage,
     PromptUserMessage,
 )
 
 if TYPE_CHECKING:
-    from agent_platform_core.kernel import Kernel
+    from agent_platform.core.kernel import Kernel
 
 
 @dataclass(frozen=True)

@@ -44,7 +44,7 @@ The response types are implemented with the following principles:
 6. Consistent validation and error handling across all types
 """
 
-from agent_platform_core.responses.content import (
+from agent_platform.core.responses.content import (
     ResponseAudioContent,
     ResponseDocumentContent,
     ResponseImageContent,
@@ -52,7 +52,7 @@ from agent_platform_core.responses.content import (
     ResponseTextContent,
     ResponseToolUseContent,
 )
-from agent_platform_core.responses.response import ResponseMessage, TokenUsage
+from agent_platform.core.responses.response import ResponseMessage, TokenUsage
 
 __all__ = [
     "ResponseAudioContent",

@@ -5,7 +5,7 @@ and tools, providing a structured way to represent and interact with different
 aspects of the agent system.
 """
 
-from agent_platform_core import (
+from agent_platform.core import (
     actions,
     agent,
     agent_architectures,
@@ -19,8 +19,8 @@ from agent_platform_core import (
     thread,
     tools,
 )
-from agent_platform_core.kernel import Kernel
-from agent_platform_core.user import User
+from agent_platform.core.kernel import Kernel
+from agent_platform.core.user import User
 
 __version__ = "1.1.0"
 

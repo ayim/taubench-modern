@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
-from agent_platform_core.runbook import Runbook
-from agent_platform_core.runbook.content import RunbookStepsContent
+from agent_platform.core.runbook import Runbook
+from agent_platform.core.runbook.content import RunbookStepsContent
 
 
 class RunbookInterface(ABC):

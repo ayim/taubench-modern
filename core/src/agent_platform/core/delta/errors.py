@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from agent_platform_core.delta.base import GenericDelta
+from agent_platform.core.delta.base import GenericDelta
 
 
 class DeltaError(Exception):

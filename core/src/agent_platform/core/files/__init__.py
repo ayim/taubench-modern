@@ -1,6 +1,6 @@
 """File-related types and utilities."""
 
-from agent_platform_core.files.files import (
+from agent_platform.core.files.files import (
     FileData,
     RemoteFileUploadData,
     UploadedFile,

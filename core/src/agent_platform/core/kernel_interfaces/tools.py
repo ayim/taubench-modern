@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator
 
-from agent_platform_core.actions import ActionPackage
-from agent_platform_core.mcp import MCPServer
-from agent_platform_core.responses import ResponseToolUseContent
-from agent_platform_core.tools import ToolDefinition, ToolExecutionResult
+from agent_platform.core.actions import ActionPackage
+from agent_platform.core.mcp import MCPServer
+from agent_platform.core.responses import ResponseToolUseContent
+from agent_platform.core.tools import ToolDefinition, ToolExecutionResult
 
 PendingToolCall = tuple[ToolDefinition, ResponseToolUseContent]
 

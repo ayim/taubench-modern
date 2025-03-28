@@ -2,10 +2,10 @@ import asyncio
 from collections.abc import AsyncGenerator
 from typing import cast
 
-from agent_platform_core.delta import GenericDelta
-from agent_platform_core.delta.combine_delta import combine_generic_deltas
-from agent_platform_core.prompts.prompt import Prompt
-from agent_platform_core.responses.content import (
+from agent_platform.core.delta import GenericDelta
+from agent_platform.core.delta.combine_delta import combine_generic_deltas
+from agent_platform.core.prompts.prompt import Prompt
+from agent_platform.core.responses.content import (
     ResponseAudioContent,
     ResponseDocumentContent,
     ResponseImageContent,
@@ -13,14 +13,14 @@ from agent_platform_core.responses.content import (
     ResponseTextContent,
     ResponseToolUseContent,
 )
-from agent_platform_core.responses.response import ResponseMessage
-from agent_platform_core.responses.streaming.stream_sink_base import (
+from agent_platform.core.responses.response import ResponseMessage
+from agent_platform.core.responses.streaming.stream_sink_base import (
     ResponseStreamSinkBase,
 )
-from agent_platform_core.responses.streaming.stream_sink_noop import (
+from agent_platform.core.responses.streaming.stream_sink_noop import (
     NoOpResponseStreamSink,
 )
-from agent_platform_core.tools.tool_definition import ToolDefinition
+from agent_platform.core.tools.tool_definition import ToolDefinition
 
 
 class ResponseStreamPipe:

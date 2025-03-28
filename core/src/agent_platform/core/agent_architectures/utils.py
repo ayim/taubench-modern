@@ -2,9 +2,9 @@ from asyncio import iscoroutinefunction
 from dataclasses import is_dataclass
 from inspect import signature
 
-from agent_platform_core.agent_architectures.fields import get_fields_by_scope
-from agent_platform_core.kernel import Kernel
-from agent_platform_core.storage import ScopedStorage
+from agent_platform.core.agent_architectures.fields import get_fields_by_scope
+from agent_platform.core.kernel import Kernel
+from agent_platform.core.storage import ScopedStorage
 
 
 def validate_2param_async(func, param_names=("kernel", "state")):

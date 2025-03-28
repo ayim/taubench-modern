@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Literal
 
-from agent_platform_core import agent_architectures as aa
+from agent_platform.core import agent_architectures as aa
 
 
 @dataclass

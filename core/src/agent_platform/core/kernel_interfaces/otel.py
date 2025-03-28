@@ -7,7 +7,7 @@ from uuid import uuid4
 from opentelemetry.trace import Span, SpanContext, Status, StatusCode
 from opentelemetry.util import types
 
-from agent_platform_core.kernel_interfaces.kernel_mixin import UsesKernelMixin
+from agent_platform.core.kernel_interfaces.kernel_mixin import UsesKernelMixin
 
 
 @dataclass(frozen=True)

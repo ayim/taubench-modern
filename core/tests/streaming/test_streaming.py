@@ -6,15 +6,15 @@ import pytest
 
 # Import the classes/functions to be tested
 # Assuming you have a structure like: agent_platform_core/streaming/...
-from agent_platform_core.delta import GenericDelta
-from agent_platform_core.streaming.compute_delta import compute_message_delta
-from agent_platform_core.streaming.delta import (
+from agent_platform.core.delta import GenericDelta
+from agent_platform.core.streaming.compute_delta import compute_message_delta
+from agent_platform.core.streaming.delta import (
     StreamingDelta,
     StreamingDeltaMessageBegin,
     StreamingDeltaMessageContent,
     StreamingDeltaMessageEnd,
 )
-from agent_platform_core.streaming.error import StreamingError
+from agent_platform.core.streaming.error import StreamingError
 
 ########################################
 # Mock classes and helpers

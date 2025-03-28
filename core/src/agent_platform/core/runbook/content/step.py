@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Literal, Self
 
-from agent_platform_core.runbook.content import RunbookContent
+from agent_platform.core.runbook.content import RunbookContent
 
 
 @dataclass

@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
-from agent_platform_core.prompts import PromptMessage
-from agent_platform_core.thread import ThreadMessage
+from agent_platform.core.prompts import PromptMessage
+from agent_platform.core.thread import ThreadMessage
 
 
 class ConvertersInterface(ABC):

@@ -3,17 +3,17 @@ from datetime import datetime
 from typing import Any, Literal, Self
 from uuid import UUID, uuid4
 
-from agent_platform_core.actions.action_package import ActionPackage
-from agent_platform_core.agent.agent_architecture import AgentArchitecture
-from agent_platform_core.agent.observability_config import ObservabilityConfig
-from agent_platform_core.agent.question_group import QuestionGroup
-from agent_platform_core.mcp import MCPServer
-from agent_platform_core.platforms.base import PlatformParameters
-from agent_platform_core.platforms.bedrock.parameters import (
+from agent_platform.core.actions.action_package import ActionPackage
+from agent_platform.core.agent.agent_architecture import AgentArchitecture
+from agent_platform.core.agent.observability_config import ObservabilityConfig
+from agent_platform.core.agent.question_group import QuestionGroup
+from agent_platform.core.mcp import MCPServer
+from agent_platform.core.platforms.base import PlatformParameters
+from agent_platform.core.platforms.bedrock.parameters import (
     BedrockPlatformParameters,
 )
-from agent_platform_core.runbook.runbook import Runbook
-from agent_platform_core.utils import assert_literal_value_valid
+from agent_platform.core.runbook.runbook import Runbook
+from agent_platform.core.utils import assert_literal_value_valid
 
 
 @dataclass(frozen=True)

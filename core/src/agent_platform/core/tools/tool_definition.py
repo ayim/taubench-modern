@@ -64,7 +64,7 @@ class ToolDefinition:
         """
         from inspect import iscoroutinefunction, signature
 
-        from agent_platform_core.tools.tool_utils import build_param_schema
+        from agent_platform.core.tools.tool_utils import build_param_schema
 
         # 1. Ensure the function is async
         if not iscoroutinefunction(func):

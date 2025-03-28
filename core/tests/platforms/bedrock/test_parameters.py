@@ -1,4 +1,4 @@
-from agent_platform_core.platforms.bedrock.parameters import BedrockPlatformParameters
+from agent_platform.core.platforms.bedrock.parameters import BedrockPlatformParameters
 
 
 class TestBedrockPlatformParameters:

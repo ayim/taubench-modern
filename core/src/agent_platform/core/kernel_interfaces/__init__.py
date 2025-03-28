@@ -6,18 +6,18 @@ agent-server, accessing functionality such as memory management,
 tool execution, and user interaction.
 """
 
-from agent_platform_core.kernel_interfaces.converters import ConvertersInterface
-from agent_platform_core.kernel_interfaces.events import EventsInterface
-from agent_platform_core.kernel_interfaces.files import FilesInterface
-from agent_platform_core.kernel_interfaces.memory import MemoryInterface
-from agent_platform_core.kernel_interfaces.model_platform import PlatformInterface
-from agent_platform_core.kernel_interfaces.otel import OTelInterface
-from agent_platform_core.kernel_interfaces.prompts import PromptsInterface
-from agent_platform_core.kernel_interfaces.runbook import RunbookInterface
-from agent_platform_core.kernel_interfaces.storage import StorageInterface
-from agent_platform_core.kernel_interfaces.thread_state import ThreadStateInterface
-from agent_platform_core.kernel_interfaces.tools import ToolsInterface
-from agent_platform_core.kernel_interfaces.user_interactions import (
+from agent_platform.core.kernel_interfaces.converters import ConvertersInterface
+from agent_platform.core.kernel_interfaces.events import EventsInterface
+from agent_platform.core.kernel_interfaces.files import FilesInterface
+from agent_platform.core.kernel_interfaces.memory import MemoryInterface
+from agent_platform.core.kernel_interfaces.model_platform import PlatformInterface
+from agent_platform.core.kernel_interfaces.otel import OTelInterface
+from agent_platform.core.kernel_interfaces.prompts import PromptsInterface
+from agent_platform.core.kernel_interfaces.runbook import RunbookInterface
+from agent_platform.core.kernel_interfaces.storage import StorageInterface
+from agent_platform.core.kernel_interfaces.thread_state import ThreadStateInterface
+from agent_platform.core.kernel_interfaces.tools import ToolsInterface
+from agent_platform.core.kernel_interfaces.user_interactions import (
     UserInteractionsInterface,
 )
 

@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from agent_platform_core.responses.content import (
+from agent_platform.core.responses.content import (
     ResponseAudioContent,
     ResponseDocumentContent,
     ResponseImageContent,
@@ -8,8 +8,8 @@ from agent_platform_core.responses.content import (
     ResponseTextContent,
     ResponseToolUseContent,
 )
-from agent_platform_core.responses.response import ResponseMessage, TokenUsage
-from agent_platform_core.tools.tool_definition import ToolDefinition
+from agent_platform.core.responses.response import ResponseMessage, TokenUsage
+from agent_platform.core.tools.tool_definition import ToolDefinition
 
 
 class ResponseStreamSinkBase(ABC):

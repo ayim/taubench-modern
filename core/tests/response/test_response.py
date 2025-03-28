@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from agent_platform_core.responses import (
+from agent_platform.core.responses import (
     ResponseMessage,
     ResponseTextContent,
     TokenUsage,

@@ -2,9 +2,9 @@ from base64 import b64decode
 from dataclasses import dataclass, field
 from typing import Literal
 
-# from agent_platform_core.files import UploadedFile
-from agent_platform_core.prompts.content.base import PromptMessageContent
-from agent_platform_core.utils.asserts import assert_literal_value_valid
+# from agent_platform.core.files import UploadedFile
+from agent_platform.core.prompts.content.base import PromptMessageContent
+from agent_platform.core.utils.asserts import assert_literal_value_valid
 
 # TODO: Remove this once the files module is implemented
 UploadedFile = type[None]

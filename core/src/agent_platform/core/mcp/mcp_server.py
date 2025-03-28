@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Self
 
-from agent_platform_core.mcp.mcp_client import MCPClient
-from agent_platform_core.tools.tool_definition import ToolDefinition
+from agent_platform.core.mcp.mcp_client import MCPClient
+from agent_platform.core.tools.tool_definition import ToolDefinition
 
 
 @dataclass(frozen=True)

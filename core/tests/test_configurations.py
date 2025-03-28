@@ -8,7 +8,7 @@ from typing import Any
 
 import pytest
 
-from agent_platform_core.configurations import Configuration, MapConfiguration
+from agent_platform.core.configurations import Configuration, MapConfiguration
 
 
 class TestConfiguration:

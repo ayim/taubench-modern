@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from json import dumps
 from typing import ClassVar, Self
 
-from agent_platform_core.delta import GenericDelta
+from agent_platform.core.delta import GenericDelta
 
 
 @dataclass(frozen=True)

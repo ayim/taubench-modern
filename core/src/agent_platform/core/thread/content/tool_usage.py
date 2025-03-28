@@ -3,9 +3,9 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Literal
 
-from agent_platform_core.responses.content.tool_use import ResponseToolUseContent
-from agent_platform_core.thread.content.base import ThreadMessageContent
-from agent_platform_core.utils import assert_literal_value_valid
+from agent_platform.core.responses.content.tool_use import ResponseToolUseContent
+from agent_platform.core.thread.content.base import ThreadMessageContent
+from agent_platform.core.utils import assert_literal_value_valid
 
 
 @dataclass

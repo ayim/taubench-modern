@@ -1,13 +1,13 @@
 from dataclasses import dataclass, field
 from typing import Literal
 
-from agent_platform_core.prompts.base import PromptMessage
-from agent_platform_core.prompts.content.audio import PromptAudioContent
-from agent_platform_core.prompts.content.base import PromptMessageContent
-from agent_platform_core.prompts.content.image import PromptImageContent
-from agent_platform_core.prompts.content.text import PromptTextContent
-from agent_platform_core.prompts.content.tool_result import PromptToolResultContent
-from agent_platform_core.prompts.content.tool_use import PromptToolUseContent
+from agent_platform.core.prompts.base import PromptMessage
+from agent_platform.core.prompts.content.audio import PromptAudioContent
+from agent_platform.core.prompts.content.base import PromptMessageContent
+from agent_platform.core.prompts.content.image import PromptImageContent
+from agent_platform.core.prompts.content.text import PromptTextContent
+from agent_platform.core.prompts.content.tool_result import PromptToolResultContent
+from agent_platform.core.prompts.content.tool_use import PromptToolUseContent
 
 
 @dataclass(frozen=True)

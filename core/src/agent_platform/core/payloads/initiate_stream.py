@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Self
 from uuid import UUID, uuid4
 
-from agent_platform_core.thread import Thread
+from agent_platform.core.thread import Thread
 
 
 @dataclass

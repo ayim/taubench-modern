@@ -2,32 +2,32 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any, Self
 
-from agent_platform_core.kernel_interfaces.kernel_mixin import UsesKernelMixin
-from agent_platform_core.responses.content.tool_use import ResponseToolUseContent
-from agent_platform_core.responses.streaming import (
+from agent_platform.core.kernel_interfaces.kernel_mixin import UsesKernelMixin
+from agent_platform.core.responses.content.tool_use import ResponseToolUseContent
+from agent_platform.core.responses.streaming import (
     ToolUseResponseStreamSink,
     XmlTagResponseStreamSink,
 )
-from agent_platform_core.streaming import (
+from agent_platform.core.streaming import (
     StreamingDelta,
     StreamingDeltaMessageBegin,
     StreamingDeltaMessageEnd,
     StreamingError,
     compute_message_delta,
 )
-from agent_platform_core.thread import (
+from agent_platform.core.thread import (
     ThreadAgentMessage,
     ThreadMessage,
     ThreadUserMessage,
 )
-from agent_platform_core.thread.base import AnyThreadMessageContent
-from agent_platform_core.thread.content import (
+from agent_platform.core.thread.base import AnyThreadMessageContent
+from agent_platform.core.thread.content import (
     ThreadTextContent,
     ThreadThoughtContent,
     ThreadToolUsageContent,
 )
-from agent_platform_core.tools.tool_definition import ToolDefinition
-from agent_platform_core.tools.tool_execution_result import ToolExecutionResult
+from agent_platform.core.tools.tool_definition import ToolDefinition
+from agent_platform.core.tools.tool_execution_result import ToolExecutionResult
 
 
 class ThreadMessageWithThreadState:

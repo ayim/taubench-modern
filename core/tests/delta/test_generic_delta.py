@@ -4,12 +4,12 @@ import pytest
 
 # Import the classes/functions to be tested
 # Assuming you have a structure like: agent_platform_core/streaming/...
-from agent_platform_core.delta import GenericDelta
-from agent_platform_core.delta.base import NO_VALUE
-from agent_platform_core.delta.combine_delta import combine_generic_deltas
-from agent_platform_core.delta.compute_delta import compute_generic_deltas
-from agent_platform_core.delta.errors import InvalidPathError
-from agent_platform_core.delta.utils import validate_delta_path
+from agent_platform.core.delta import GenericDelta
+from agent_platform.core.delta.base import NO_VALUE
+from agent_platform.core.delta.combine_delta import combine_generic_deltas
+from agent_platform.core.delta.compute_delta import compute_generic_deltas
+from agent_platform.core.delta.errors import InvalidPathError
+from agent_platform.core.delta.utils import validate_delta_path
 
 ########################################
 # Fixtures for tests

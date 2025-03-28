@@ -1,4 +1,4 @@
-from agent_platform_core.streaming.delta import StreamingDelta
+from agent_platform.core.streaming.delta import StreamingDelta
 
 
 class StreamingError(Exception):

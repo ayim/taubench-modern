@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from agent_platform_core.platforms.base import PlatformPrompt
+from agent_platform.core.platforms.base import PlatformPrompt
 
 if TYPE_CHECKING:
     from types_boto3_bedrock_runtime.type_defs import (

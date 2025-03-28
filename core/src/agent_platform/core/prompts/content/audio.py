@@ -2,8 +2,8 @@ from base64 import b64decode
 from dataclasses import dataclass, field
 from typing import Literal
 
-from agent_platform_core.prompts.content.base import PromptMessageContent
-from agent_platform_core.utils import assert_literal_value_valid
+from agent_platform.core.prompts.content.base import PromptMessageContent
+from agent_platform.core.utils import assert_literal_value_valid
 
 
 @dataclass(frozen=True)

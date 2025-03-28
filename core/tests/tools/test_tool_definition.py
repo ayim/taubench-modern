@@ -4,7 +4,7 @@ from typing import Annotated, Optional
 
 import pytest
 
-from agent_platform_core.tools.tool_definition import ToolDefinition
+from agent_platform.core.tools.tool_definition import ToolDefinition
 
 ##################################################
 # Example Enum to use in tests

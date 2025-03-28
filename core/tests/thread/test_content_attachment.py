@@ -1,6 +1,6 @@
 import pytest
 
-from agent_platform_core.thread.content.attachment import ThreadAttachmentContent
+from agent_platform.core.thread.content.attachment import ThreadAttachmentContent
 
 
 class TestThreadAttachmentContent:

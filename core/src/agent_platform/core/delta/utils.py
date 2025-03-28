@@ -4,10 +4,10 @@ from typing import Any
 
 from jsonpointer import JsonPointer, escape
 
-from agent_platform_core.delta.base import (
+from agent_platform.core.delta.base import (
     GenericDelta,
 )
-from agent_platform_core.delta.errors import InvalidPathError
+from agent_platform.core.delta.errors import InvalidPathError
 
 # Compile regex once at module level for better performance
 _ARRAY_INDEX_PATTERN = re.compile(r"^(?:0|[1-9][0-9]*)$")

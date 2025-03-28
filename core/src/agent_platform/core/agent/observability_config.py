@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Any, Literal, Self
 
-from agent_platform_core.utils import assert_literal_value_valid
+from agent_platform.core.utils import assert_literal_value_valid
 
 
 @dataclass(frozen=True)

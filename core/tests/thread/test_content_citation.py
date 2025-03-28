@@ -1,4 +1,4 @@
-from agent_platform_core.thread.content.text import Citation
+from agent_platform.core.thread.content.text import Citation
 
 
 class TestCitation:

@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Self
 from uuid import uuid4
 
-from agent_platform_core.thread import ThreadMessage
+from agent_platform.core.thread import ThreadMessage
 
 
 @dataclass

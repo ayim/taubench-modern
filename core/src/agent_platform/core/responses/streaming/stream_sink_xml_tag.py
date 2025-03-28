@@ -1,7 +1,7 @@
 from collections.abc import Awaitable, Callable
 
-from agent_platform_core.responses.content import ResponseTextContent
-from agent_platform_core.responses.streaming.stream_sink_noop import (
+from agent_platform.core.responses.content import ResponseTextContent
+from agent_platform.core.responses.streaming.stream_sink_noop import (
     NoOpResponseStreamSink,
 )
 

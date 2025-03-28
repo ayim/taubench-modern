@@ -2,7 +2,7 @@ from abc import ABC
 from dataclasses import dataclass
 from typing import ClassVar, Literal
 
-from agent_platform_core.prompts.content.base import PromptMessageContent
+from agent_platform.core.prompts.content.base import PromptMessageContent
 
 
 @dataclass(frozen=True)

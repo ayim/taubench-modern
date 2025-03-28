@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
-from agent_platform_core.utils import assert_literal_value_valid
+from agent_platform.core.utils import assert_literal_value_valid
 
 DeltaOpType = Literal[
     # Standard JSON Patch operations
@@ -69,7 +69,7 @@ class GenericDelta:
     """Source path for move/copy operations."""
 
     def __post_init__(self) -> None:
-        from agent_platform_core.delta.utils import validate_delta_path
+        from agent_platform.core.delta.utils import validate_delta_path
 
         assert_literal_value_valid(self, "op")
 

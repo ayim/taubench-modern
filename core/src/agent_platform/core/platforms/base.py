@@ -3,13 +3,13 @@ from collections.abc import AsyncGenerator
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from agent_platform_core.configurations import Configuration
-from agent_platform_core.delta import GenericDelta
-from agent_platform_core.kernel_interfaces.kernel_mixin import UsesKernelMixin
-from agent_platform_core.model_selector import ModelSelector
-from agent_platform_core.prompts import Prompt
-from agent_platform_core.prompts.base import PromptMessage
-from agent_platform_core.prompts.content import (
+from agent_platform.core.configurations import Configuration
+from agent_platform.core.delta import GenericDelta
+from agent_platform.core.kernel_interfaces.kernel_mixin import UsesKernelMixin
+from agent_platform.core.model_selector import ModelSelector
+from agent_platform.core.prompts import Prompt
+from agent_platform.core.prompts.base import PromptMessage
+from agent_platform.core.prompts.content import (
     PromptAudioContent,
     PromptDocumentContent,
     PromptImageContent,
@@ -18,7 +18,7 @@ from agent_platform_core.prompts.content import (
     PromptToolResultContent,
     PromptToolUseContent,
 )
-from agent_platform_core.responses.content import (
+from agent_platform.core.responses.content import (
     ResponseAudioContent,
     ResponseDocumentContent,
     ResponseImageContent,
@@ -26,10 +26,10 @@ from agent_platform_core.responses.content import (
     ResponseTextContent,
     ResponseToolUseContent,
 )
-from agent_platform_core.responses.response import ResponseMessage
+from agent_platform.core.responses.response import ResponseMessage
 
 if TYPE_CHECKING:
-    from agent_platform_core.kernel import Kernel
+    from agent_platform.core.kernel import Kernel
 
 
 @dataclass(frozen=True)

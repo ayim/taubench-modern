@@ -1,6 +1,6 @@
 from functools import wraps
 
-from agent_platform_core.agent_architectures.utils import (
+from agent_platform.core.agent_architectures.utils import (
     extract_kernel_and_create_or_get_state,
     restore_state_fields,
     rollback_state_fields,

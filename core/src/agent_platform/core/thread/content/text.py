@@ -2,8 +2,8 @@ import json
 from dataclasses import dataclass, field
 from typing import Literal
 
-from agent_platform_core.thread.content.base import ContentDelta, ThreadMessageContent
-from agent_platform_core.utils import assert_literal_value_valid
+from agent_platform.core.thread.content.base import ContentDelta, ThreadMessageContent
+from agent_platform.core.utils import assert_literal_value_valid
 
 
 @dataclass(frozen=True)

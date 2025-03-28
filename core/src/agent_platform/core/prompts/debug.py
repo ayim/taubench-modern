@@ -2,7 +2,7 @@ from dataclasses import asdict, fields
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from agent_platform_core.prompts.prompt import Prompt
+    from agent_platform.core.prompts.prompt import Prompt
 
 
 def _to_debug_dict_for_prompt(prompt: "Prompt", width: int = 100) -> dict:

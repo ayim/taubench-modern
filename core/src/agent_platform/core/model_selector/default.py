@@ -1,12 +1,12 @@
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from agent_platform_core.configurations import Configuration
-from agent_platform_core.model_selector.base import ModelSelector
-from agent_platform_core.model_selector.selection_request import ModelSelectionRequest
+from agent_platform.core.configurations import Configuration
+from agent_platform.core.model_selector.base import ModelSelector
+from agent_platform.core.model_selector.selection_request import ModelSelectionRequest
 
 if TYPE_CHECKING:
-    from agent_platform_core.platforms import PlatformClient
+    from agent_platform.core.platforms import PlatformClient
 
 
 @dataclass(frozen=True)

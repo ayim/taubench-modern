@@ -8,9 +8,9 @@ from typing import Any, TypeVar
 
 from jsonpatch import JsonPatch, JsonPatchException, JsonPointerException
 
-from agent_platform_core.delta.base import GenericDelta
-from agent_platform_core.delta.errors import InvalidOperationError, InvalidPathError
-from agent_platform_core.delta.utils import (
+from agent_platform.core.delta.base import GenericDelta
+from agent_platform.core.delta.errors import InvalidOperationError, InvalidPathError
+from agent_platform.core.delta.utils import (
     get_value_at_path,
     validate_delta_path,
 )

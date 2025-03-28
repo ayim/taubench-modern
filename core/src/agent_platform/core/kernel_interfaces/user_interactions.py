@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from agent_platform_core.thread import ThreadUserMessage
+from agent_platform.core.thread import ThreadUserMessage
 
 
 class UserInteractionsInterface(ABC):
