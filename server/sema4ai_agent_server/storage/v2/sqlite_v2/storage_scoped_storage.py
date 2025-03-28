@@ -15,7 +15,8 @@ from sema4ai_agent_server.storage.v2.sqlite_v2.common import CommonMixin
 class SQLiteStorageScopedStorageMixin(CommonMixin):
     """
     Mixin providing SQLite-based scoped storage operations.
-    Assumes that helper methods such as `_cursor()` and `_validate_uuid()` are available.
+    Assumes that helper methods such as `_cursor()` and
+    `_validate_uuid()` are available.
     """
     _logger = get_logger(__name__)
 
@@ -28,7 +29,7 @@ class SQLiteStorageScopedStorageMixin(CommonMixin):
         self._validate_uuid(storage.created_by_user_id)
         self._validate_uuid(storage.created_by_agent_id)
         self._validate_uuid(storage.created_by_thread_id)
-        storage_dict = storage.to_json_dict()
+        storage_dict = storage.model_dump()
         # Convert the storage field (which is a dict) to a JSON string.
         storage_dict["storage"] = json.dumps(storage_dict["storage"])
         try:
@@ -42,16 +43,20 @@ class SQLiteStorageScopedStorageMixin(CommonMixin):
                     )
                     VALUES (
                         :storage_id, :created_at, :updated_at,
-                        :created_by_user_id, :created_by_agent_id, :created_by_thread_id,
-                        :scope_type, :storage
+                        :created_by_user_id, :created_by_agent_id,
+                        :created_by_thread_id, :scope_type, :storage
                     )
                     """,
                     storage_dict,
                 )
         except IntegrityError as e:
             if "UNIQUE constraint failed: v2_scoped_storage.storage_id" in str(e):
-                raise RecordAlreadyExistsError(f"Scoped storage {storage.storage_id} already exists") from e
-            raise ReferenceIntegrityError("Invalid foreign key reference updating scoped storage") from e
+                raise RecordAlreadyExistsError(
+                    f"Scoped storage {storage.storage_id} already exists",
+                ) from e
+            raise ReferenceIntegrityError(
+                "Invalid foreign key reference updating scoped storage",
+            ) from e
 
     async def get_scoped_storage_v2(self, storage_id: str) -> ScopedStorage:
         """Retrieve a scoped storage record by its ID."""
@@ -70,14 +75,16 @@ class SQLiteStorageScopedStorageMixin(CommonMixin):
             raise ScopedStorageNotFoundError(f"Scoped storage {storage_id} not found")
         storage_dict = dict(row)
         storage_dict = self._convert_scoped_storage_json_fields(storage_dict)
-        return ScopedStorage.from_dict(storage_dict)
+        return ScopedStorage.model_validate(storage_dict)
 
-    async def list_scoped_storage_v2(self, scope_type: str, scope_id: str) -> list[ScopedStorage]:
+    async def list_scoped_storage_v2(
+        self, scope_type: str, scope_id: str,
+    ) -> list[ScopedStorage]:
         """
         List all scoped storage records for a given scope type and scope identifier.
         """
         self._validate_uuid(scope_id)
-        
+
         # Optionally validate the scope_type before running the query
         if scope_type not in ("user", "agent", "thread"):
             raise ValueError(f"Invalid scope_type: {scope_type}")
@@ -87,8 +94,9 @@ class SQLiteStorageScopedStorageMixin(CommonMixin):
                 """
                 SELECT *
                 FROM v2_scoped_storage
-                WHERE :scope_type = scope_type AND ( 
-                    -- Bit tricky, we write it this way to avoid building a dynamic SQL query.
+                WHERE :scope_type = scope_type AND (
+                    -- Bit tricky, we write it this way to
+                    -- avoid building a dynamic SQL query.
                     (:scope_type = 'user' AND created_by_user_id = :scope_id)
                     OR (:scope_type = 'agent' AND created_by_agent_id = :scope_id)
                     OR (:scope_type = 'thread' AND created_by_thread_id = :scope_id)
@@ -102,7 +110,9 @@ class SQLiteStorageScopedStorageMixin(CommonMixin):
         if not rows:
             return []
         return [
-            ScopedStorage.from_dict(self._convert_scoped_storage_json_fields(dict(r)))
+            ScopedStorage.model_validate(
+                self._convert_scoped_storage_json_fields(dict(r)),
+            )
             for r in rows
         ]
 
@@ -112,7 +122,7 @@ class SQLiteStorageScopedStorageMixin(CommonMixin):
         self._validate_uuid(storage.created_by_user_id)
         self._validate_uuid(storage.created_by_agent_id)
         self._validate_uuid(storage.created_by_thread_id)
-        storage_dict = storage.to_json_dict()
+        storage_dict = storage.model_dump()
         storage_dict["storage"] = json.dumps(storage_dict["storage"])
         try:
             async with self._cursor() as cur:
@@ -125,8 +135,8 @@ class SQLiteStorageScopedStorageMixin(CommonMixin):
                     )
                     VALUES (
                         :storage_id, :created_at, :updated_at,
-                        :created_by_user_id, :created_by_agent_id, :created_by_thread_id,
-                        :scope_type, :storage
+                        :created_by_user_id, :created_by_agent_id,
+                        :created_by_thread_id, :scope_type, :storage
                     )
                     ON CONFLICT(storage_id) DO UPDATE SET
                         created_at = excluded.created_at,
@@ -141,15 +151,21 @@ class SQLiteStorageScopedStorageMixin(CommonMixin):
                 )
                 if cur.rowcount == 0:
                     self._logger.warning(
-                        "Upsert scoped storage had no effect", storage_id=storage_dict["storage_id"],
+                        "Upsert scoped storage had no effect",
+                        storage_id=storage_dict["storage_id"],
                     )
         except IntegrityError as e:
             if "UNIQUE constraint failed: v2_scoped_storage.storage_id" in str(e):
-                raise RecordAlreadyExistsError(f"Scoped storage {storage.storage_id} already exists") from e
-            raise ReferenceIntegrityError("Invalid foreign key reference updating scoped storage") from e
+                raise RecordAlreadyExistsError(
+                    f"Scoped storage {storage.storage_id} already exists",
+                ) from e
+            raise ReferenceIntegrityError(
+                "Invalid foreign key reference updating scoped storage",
+            ) from e
 
     async def delete_scoped_storage_v2(self, storage_id: str) -> None:
-        """Delete a scoped storage record. Raises ScopedStorageNotFoundError if not found."""
+        """Delete a scoped storage record.
+        Raises ScopedStorageNotFoundError if not found."""
         self._validate_uuid(storage_id)
         async with self._cursor() as cur:
             await cur.execute(
@@ -160,7 +176,9 @@ class SQLiteStorageScopedStorageMixin(CommonMixin):
                 {"storage_id": storage_id},
             )
             if cur.rowcount == 0:
-                raise ScopedStorageNotFoundError(f"Scoped storage {storage_id} not found")
+                raise ScopedStorageNotFoundError(
+                    f"Scoped storage {storage_id} not found",
+                )
 
     # -------------------------------------------------------------------------
     # Helpers

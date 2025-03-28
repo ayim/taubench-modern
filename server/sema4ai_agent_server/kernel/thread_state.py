@@ -19,15 +19,15 @@ class AgentServerThreadStateInterface(ThreadStateInterface, UsesKernelMixin):
         """Sends a delta event to the UI.
 
         Arguments:
-            delta_object: The computed delta between the previous and current message state.
-                        Contains the changes that need to be sent to the UI.
+            delta_object: The computed delta between the previous and current
+                message state. Contains the changes that need to be sent to the UI.
 
         Raises:
             StreamingError: If the delta cannot be sent to the UI.
         """
         await self.kernel.outgoing_events.dispatch({
             "type": "delta",
-            "delta": delta_object.to_json_dict(),
+            "delta": delta_object.model_dump(),
         })
 
     async def _commit_message_to_storage(self, message: ThreadMessage) -> None:
@@ -40,3 +40,5 @@ class AgentServerThreadStateInterface(ThreadStateInterface, UsesKernelMixin):
             Exception: If the message cannot be committed to storage.
         """
         await self.kernel.storage.put_message(message)
+        # Make sure we also update the thread in memory
+        self._thread.messages.append(message)

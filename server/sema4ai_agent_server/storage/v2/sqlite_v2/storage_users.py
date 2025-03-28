@@ -45,7 +45,7 @@ class SQLiteStorageUsersMixin(CommonMixin):
             await cur.execute("SELECT * FROM v2_user WHERE sub = :sub", {"sub": sub})
             row = await cur.fetchone()
         if row:
-            return (User.from_dict(dict(row)), False)
+            return (User.model_validate(dict(row)), False)
 
         # Not found: create
         user_id = str(uuid4())
@@ -65,17 +65,23 @@ class SQLiteStorageUsersMixin(CommonMixin):
             # the same sub).
             if "UNIQUE constraint failed: v2_user.sub" in str(e):
                 async with self._cursor() as cur:
-                    await cur.execute("SELECT * FROM v2_user WHERE sub = :sub", {"sub": sub})
+                    await cur.execute(
+                        "SELECT * FROM v2_user WHERE sub = :sub",
+                        {"sub": sub},
+                    )
                     row = await cur.fetchone()
                     if row:
-                        return (User.from_dict(dict(row)), False)
+                        return (User.model_validate(dict(row)), False)
 
         # Fetch the newly created user
         async with self._cursor() as cur:
-            await cur.execute("SELECT * FROM v2_user WHERE user_id = :user_id", {"user_id": user_id})
+            await cur.execute(
+                "SELECT * FROM v2_user WHERE user_id = :user_id",
+                {"user_id": user_id},
+            )
             new_row = await cur.fetchone()
 
-        return (User.from_dict(dict(new_row)), True)
+        return (User.model_validate(dict(new_row)), True)
 
     async def delete_user_v2(self, user_id: str) -> None:
         """
@@ -83,4 +89,7 @@ class SQLiteStorageUsersMixin(CommonMixin):
         """
         self._validate_uuid(user_id)
         async with self._cursor() as cur:
-            await cur.execute("DELETE FROM v2_user WHERE user_id = :user_id", {"user_id": user_id})
+            await cur.execute(
+                "DELETE FROM v2_user WHERE user_id = :user_id",
+                {"user_id": user_id},
+            )

@@ -49,12 +49,12 @@ async def add_message_to_thread(
     tid: str,
     payload: AddThreadMessagePayload,
 ) -> Thread:
-    return await get_storage_v2().add_message_to_thread_v2(
+    await get_storage_v2().add_message_to_thread_v2(
         user.user_id,
         tid,
-        AddThreadMessagePayload.to_thread_message(payload, user.user_id, tid),
+        AddThreadMessagePayload.to_thread_message(payload),
     )
-
+    return await get_storage_v2().get_thread_v2(user.user_id, tid)
 
 # File operations
 file_manager = get_file_manager_v2()

@@ -4,7 +4,14 @@ from typing import Annotated, ClassVar
 
 import jwt
 import requests
-from fastapi import Depends, HTTPException, Request, WebSocket, WebSocketException, status
+from fastapi import (
+    Depends,
+    HTTPException,
+    Request,
+    WebSocket,
+    WebSocketException,
+    status,
+)
 from fastapi.security.http import HTTPBearer
 
 from agent_server_types_v2.user import User
@@ -89,7 +96,10 @@ class JWTAuthOIDCV2(JWTAuthBaseV2):
 
     def _decode_complete_unverified(self, token: str) -> dict:
         if token not in self._decode_key_cache:
-            self._decode_key_cache[token] = jwt.api_jwt.decode_complete(token, options={"verify_signature": False})
+            self._decode_key_cache[token] = jwt.api_jwt.decode_complete(
+                token,
+                options={"verify_signature": False},
+            )
         return self._decode_key_cache[token]
 
     def _get_jwk_client(self, issuer: str) -> jwt.PyJWKClient:
@@ -99,7 +109,10 @@ class JWTAuthOIDCV2(JWTAuthBaseV2):
         if issuer not in self._jwk_client_cache:
             url = issuer.rstrip("/") + "/.well-known/openid-configuration"
             config = requests.get(url).json()
-            self._jwk_client_cache[issuer] = jwt.PyJWKClient(config["jwks_uri"], cache_jwk_set=True)
+            self._jwk_client_cache[issuer] = jwt.PyJWKClient(
+                config["jwks_uri"],
+                cache_jwk_set=True,
+            )
         return self._jwk_client_cache[issuer]
 
 @lru_cache(maxsize=1)
@@ -135,9 +148,12 @@ async def auth_user_websocket_v2(
         "server": (str(websocket.url.hostname), websocket.url.port),
         "path": websocket.url.path,
         "query_string": websocket.url.query.encode(),
-        "headers": [(k.lower().encode(), v.encode()) for k, v in websocket.headers.items()],
+        "headers": [
+            (k.lower().encode(), v.encode())
+            for k, v in websocket.headers.items()
+        ],
     }
-    
+
     # Make a "fake" request object so we can re-use the auth handler
     fake_request = Request(http_scope)
     try:
@@ -145,7 +161,10 @@ async def auth_user_websocket_v2(
         return await auth_handler(fake_request)
     except HTTPException as exc:
         # If the auth handler raises an HTTPException, raise a WebSocketException
-        raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION, reason=str(exc.detail)) from exc
+        raise WebSocketException(
+            code=status.WS_1008_POLICY_VIOLATION,
+            reason=str(exc.detail),
+        ) from exc
 
 
 def get_authed_user_v2():

@@ -7,7 +7,7 @@ from tests.integration_tests.bootstrap_agent_server import AgentServerProcess
 
 
 @pytest.fixture(scope="session", autouse=True)
-def load_env():
+def _load_env():
     """Ensure environment variables are loaded."""
     try:
         from dotenv import load_dotenv
@@ -67,7 +67,7 @@ def _get_base_url(tmpdir, logs_dir, files_location, env_vars):
         agent_server_process.stop()
     else:
         host = os.getenv("API_HOST", "localhost")
-        port = os.getenv("API_PORT", 8000)
+        port = os.getenv("API_PORT", "8000")
         yield f"http://{host}:{port}"
 
 

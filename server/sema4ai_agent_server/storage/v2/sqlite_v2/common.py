@@ -13,7 +13,7 @@ class CommonMixin(BaseStorageV2):
     async def _cursor(self, cursor: Cursor|None=None) -> AsyncGenerator[Cursor, None]:
         """Get a cursor for the database (or uses the provided cursor)."""
         pass
-    
+
     def _validate_uuid(self, uuid: str) -> None:
         """Validate a UUID string."""
         try:

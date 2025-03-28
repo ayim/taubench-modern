@@ -47,8 +47,8 @@ async def test_memory_crud_operations(
     assert any(m.memory_id == sample_memory.memory_id for m in memories)
 
     # Upsert (update) the memory record
-    updated_memory = Memory.from_dict(
-        sample_memory.to_json_dict() | {"original_text": "updated original text"},
+    updated_memory = Memory.model_validate(
+        sample_memory.model_dump() | {"original_text": "updated original text"},
     )
     await storage.upsert_memory_v2(updated_memory)
     updated = await storage.get_memory_v2(sample_memory.memory_id)
@@ -99,8 +99,11 @@ async def test_memory_concurrent_upsert(storage: SQLiteStorageV2) -> None:
 
     async def update_memory(new_text: str) -> None:
         mem = await storage.get_memory_v2(sample_memory.memory_id)
-        updated = Memory.from_dict(
-            mem.to_json_dict() | {"original_text": new_text, "updated_at": datetime.now(UTC)},
+        updated = Memory.model_validate(
+            mem.model_dump() | {
+                "original_text": new_text,
+                "updated_at": datetime.now(UTC),
+            },
         )
         await storage.upsert_memory_v2(updated)
 
@@ -209,7 +212,7 @@ async def test_duplicate_memory_creation(storage: SQLiteStorageV2):
     )
     # Create the memory record once.
     await storage.create_memory_v2(memory_record)
-    
+
     # Attempt to create the same record a second time.
     with pytest.raises(RecordAlreadyExistsError):
         await storage.create_memory_v2(memory_record)
@@ -223,7 +226,7 @@ async def test_memory_edge_case_field_values(storage: SQLiteStorageV2):
     """
     long_text = "A" * 10000  # Very long string.
     special_text = "Special characters: !@#$%^&*()_+世界, emojis: 😃🚀"
-    
+
     memory_record = Memory(
         memory_id=str(uuid4()),
         original_text=long_text + special_text,
@@ -275,8 +278,11 @@ async def test_memory_timestamp_update_verification(storage: SQLiteStorageV2):
 
     # Wait a moment so that the updated_at can change noticeably.
     await asyncio.sleep(0.01)
-    updated_memory = Memory.from_dict(
-        fetched.to_json_dict() | {"original_text": "Updated text", "updated_at": datetime.now(UTC)},
+    updated_memory = Memory.model_validate(
+        fetched.model_dump() | {
+            "original_text": "Updated text",
+            "updated_at": datetime.now(UTC),
+        },
     )
     await storage.upsert_memory_v2(updated_memory)
     updated_fetched = await storage.get_memory_v2(memory_record.memory_id)
@@ -288,7 +294,8 @@ async def test_memory_timestamp_update_verification(storage: SQLiteStorageV2):
 # async def test_concurrent_deletion_and_update(storage: SQLiteStorageV2):
 #     """
 #     Simulate a race where one coroutine deletes a memory record while another
-#     attempts to update it. Verify the outcome based on the actual sequence of operations.
+#     attempts to update it. Verify the outcome based on the actual
+#     sequence of operations.
 #     """
 #     memory_record = Memory(
 #         memory_id=str(uuid4()),
@@ -308,7 +315,7 @@ async def test_memory_timestamp_update_verification(storage: SQLiteStorageV2):
 #     )
 #     await storage.create_memory_v2(memory_record)
 #     original_updated_at = memory_record.updated_at
-    
+
 #     async def delete_memory():
 #         await asyncio.sleep(0.01)
 #         delete_time = datetime.now(UTC)
@@ -317,14 +324,17 @@ async def test_memory_timestamp_update_verification(storage: SQLiteStorageV2):
 #             return ("deleted", delete_time)
 #         except Exception:
 #             return ("delete_failed", delete_time)
-    
+
 #     async def update_memory():
 #         await asyncio.sleep(0.01)
 #         update_time = datetime.now(UTC)
 #         try:
 #             current = await storage.get_memory_v2(memory_record.memory_id)
-#             updated = Memory.from_dict(
-#                 current.to_json_dict() | {"original_text": "Updated concurrently", "updated_at": datetime.now(UTC)},
+#             updated = Memory.model_validate(
+#                 current.model_dump() | {
+#                     "original_text": "Updated concurrently",
+#                     "updated_at": datetime.now(UTC),
+#                 },
 #             )
 #             await storage.upsert_memory_v2(updated)
 #             return ("updated", update_time)
@@ -332,21 +342,23 @@ async def test_memory_timestamp_update_verification(storage: SQLiteStorageV2):
 #             return ("not_found", update_time)
 #         except Exception:
 #             return ("update_failed", update_time)
-    
+
 #     (delete_status, delete_time), (update_status, update_time) = await asyncio.gather(
-#         delete_memory(), 
+#         delete_memory(),
 #         update_memory(),
 #     )
 
 #     # Check the final state based on operation timing
 #     if delete_time < update_time:
-#         # If delete happened first, the update should either fail or not find the record
+#         # If delete happened first, the update should either fail
+#         # or not find the record
 #         assert update_status in ["not_found", "update_failed"]
 #         if update_status == "not_found":
 #             with pytest.raises(MemoryNotFoundError):
 #                 await storage.get_memory_v2(memory_record.memory_id)
 #         else:
-#             # If the update re-created it, then it should have a later updated_at timestamp.
+#             # If the update re-created it, then it should have a later
+#             # updated_at timestamp.
 #             updated = await storage.get_memory_v2(memory_record.memory_id)
 #             assert updated.updated_at > original_updated_at
 #     else:
@@ -359,13 +371,13 @@ async def test_memory_timestamp_update_verification(storage: SQLiteStorageV2):
 @pytest.mark.asyncio
 async def test_memory_filtering_by_scope_id(storage: SQLiteStorageV2):
     """
-    Create multiple memory records under the same scope but with different metadata values
-    for 'scope_id', then list memories for a specific scope_id and verify that only the
-    correct records are returned.
+    Create multiple memory records under the same scope but with
+    different metadata values for 'scope_id', then list memories for
+    a specific scope_id and verify that only the correct records are returned.
     """
     scope = "filter_test"
     target_scope_id = "filter_target"
-    
+
     memory_target = Memory(
         memory_id=str(uuid4()),
         original_text="Target memory",
@@ -383,7 +395,7 @@ async def test_memory_filtering_by_scope_id(storage: SQLiteStorageV2):
         embedding_id=str(uuid4()),
     )
     await storage.create_memory_v2(memory_target)
-    
+
     memory_other = Memory(
         memory_id=str(uuid4()),
         original_text="Other memory",
@@ -401,7 +413,7 @@ async def test_memory_filtering_by_scope_id(storage: SQLiteStorageV2):
         embedding_id=str(uuid4()),
     )
     await storage.create_memory_v2(memory_other)
-    
+
     filtered_memories = await storage.list_memories_v2(scope, target_scope_id)
     filtered_ids = {mem.memory_id for mem in filtered_memories}
     assert memory_target.memory_id in filtered_ids

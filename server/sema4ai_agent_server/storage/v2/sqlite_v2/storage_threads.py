@@ -10,7 +10,9 @@ from sema4ai_agent_server.storage.v2.errors_v2 import (
     ThreadNotFoundError,
     UserAccessDeniedError,
 )
-from sema4ai_agent_server.storage.v2.sqlite_v2.storage_messages import SQLiteStorageMessagesMixin
+from sema4ai_agent_server.storage.v2.sqlite_v2.storage_messages import (
+    SQLiteStorageMessagesMixin,
+)
 
 
 class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
@@ -39,9 +41,14 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
 
         if not rows:
             return []
-        return [Thread.from_dict(self._convert_thread_json_fields(dict(r))) for r in rows]
+        return [
+            Thread.model_validate(self._convert_thread_json_fields(dict(r)))
+            for r in rows
+        ]
 
-    async def list_threads_for_agent_v2(self, user_id: str, agent_id: str) -> list[Thread]:
+    async def list_threads_for_agent_v2(
+        self, user_id: str, agent_id: str,
+    ) -> list[Thread]:
         """List all threads for a specific agent if user has access."""
         self._validate_uuid(user_id)
         self._validate_uuid(agent_id)
@@ -59,7 +66,10 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
 
         if not rows:
             return []
-        return [Thread.from_dict(self._convert_thread_json_fields(dict(r))) for r in rows]
+        return [
+            Thread.model_validate(self._convert_thread_json_fields(dict(r)))
+            for r in rows
+        ]
 
     async def get_thread_v2(self, user_id: str, thread_id: str) -> Thread:
         """
@@ -96,7 +106,7 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
         thread_dict.pop("has_access", None)
         messages = await self.get_thread_messages_v2(thread_id)
         thread_dict["messages"] = messages
-        return Thread.from_dict(self._convert_thread_json_fields(thread_dict))
+        return Thread.model_validate(self._convert_thread_json_fields(thread_dict))
 
     async def upsert_thread_v2(self, user_id: str, thread: Thread) -> None:
         """Upsert a thread record, then overwrite its messages."""
@@ -104,7 +114,7 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
         self._validate_uuid(thread.thread_id)
 
         # Convert to JSON for DB
-        thread_dict = thread.to_json_dict() | {"user_id": user_id}
+        thread_dict = thread.model_dump() | {"user_id": user_id}
         messages = thread_dict.pop("messages", [])
         thread_dict["metadata"] = json.dumps(thread_dict["metadata"])
 
@@ -132,15 +142,24 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
                     thread_dict,
                 )
 
-                # If rowcount is 0 but the thread does exist, it might be an access issue
+                # If rowcount is 0 but the thread does exist,
+                # it might be an access issue
                 if cur.rowcount == 0 and await self._thread_exists(thread.thread_id):
                     # We can do another check to see if user lacks access
-                    if not await self._user_can_access_thread(user_id, thread.thread_id):
-                        raise UserAccessDeniedError(f"Access denied to thread {thread.thread_id}")
+                    if not await self._user_can_access_thread(
+                        user_id, thread.thread_id,
+                    ):
+                        raise UserAccessDeniedError(
+                            f"Access denied to thread {thread.thread_id}",
+                        )
         except IntegrityError as e:
             if "UNIQUE constraint failed: v2_thread.thread_id" in str(e):
-                raise RecordAlreadyExistsError(f"Thread {thread.thread_id} already exists") from e
-            raise ReferenceIntegrityError("Invalid foreign key reference updating thread") from e
+                raise RecordAlreadyExistsError(
+                    f"Thread {thread.thread_id} already exists",
+                ) from e
+            raise ReferenceIntegrityError(
+                "Invalid foreign key reference updating thread",
+            ) from e
 
         # Overwrite messages
         await self.overwrite_thread_messages_v2(thread.thread_id, messages)

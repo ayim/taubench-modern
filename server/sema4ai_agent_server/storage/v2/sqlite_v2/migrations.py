@@ -21,16 +21,19 @@ class SQLiteMigrationsV2(MigrationsProvider):
     Mirrors the Postgres-based migration logic, but for SQLite.
 
     Key points:
-      1) Each migration is tracked as a row in v2_migrations (version, dirty, checksum, applied_at).
-      2) Locking is performed via a v2_migration_locks table, with locked_by defaulting to OS getpid().
-      3) We detect 'dirty' (partially applied) migrations and 'checksum drift' (when a previously applied
-         migration's SQL changes).
+      1) Each migration is tracked as a row in v2_migrations
+         (version, dirty, checksum, applied_at).
+      2) Locking is performed via a v2_migration_locks table, with
+         locked_by defaulting to OS getpid().
+      3) We detect 'dirty' (partially applied) migrations and 'checksum drift'
+         (when a previously applied migration's SQL changes).
       4) Each migration is applied in its own set of transactions:
          - Insert row dirty=TRUE
          - Actually run the SQL
          - Mark dirty=FALSE
-      5) Timeout is enforced by wrapping the migration in an asyncio wait_for(...) call, and calling
-         conn._conn.interrupt() if it times out (to attempt to interrupt the running query).
+      5) Timeout is enforced by wrapping the migration in an asyncio
+         wait_for(...) call, and calling conn._conn.interrupt() if it
+         times out (to attempt to interrupt the running query).
     """
 
     def __init__(
@@ -60,7 +63,7 @@ class SQLiteMigrationsV2(MigrationsProvider):
         current_dir = path.dirname(path.abspath(__file__))
         return Path(current_dir).parent.parent.parent / "migrations" / "v2" / "sqlite"
 
-    async def run_migrations(self) -> None:
+    async def run_migrations(self) -> None:  # noqa: C901
         """
         Main entrypoint for running migrations:
           1) Acquire migration lock
@@ -95,7 +98,9 @@ class SQLiteMigrationsV2(MigrationsProvider):
             for version, details in applied.items():
                 if details["dirty"] is True:
                     raise MigrationError(
-                        f"Migration {version} is dirty. No migrations will be applied. " "Please fix it manually.",
+                        f"Migration {version} is dirty. "
+                        f"No migrations will be applied. "
+                        f"Please fix it manually.",
                     )
 
             # 3) Gather .up.sql files
@@ -131,7 +136,9 @@ class SQLiteMigrationsV2(MigrationsProvider):
                     old = applied[version]
                     if old["dirty"]:
                         raise MigrationError(
-                            f"Migration {version} is dirty. " f"No migrations will be applied. Please fix it manually.",
+                            f"Migration {version} is dirty. "
+                            f"No migrations will be applied. "
+                            f"Please fix it manually.",
                         )
                     if old["checksum"] != new_checksum:
                         raise MigrationError(
@@ -185,7 +192,8 @@ class SQLiteMigrationsV2(MigrationsProvider):
                 current_locked_by = row[0]
                 if current_locked_by != locked_by:
                     raise MigrationLockError(
-                        "Could not acquire migration lock. Another migration might be in progress.",
+                        "Could not acquire migration lock. "
+                        "Another migration might be in progress.",
                     )
 
     async def _release_migration_lock(self, conn: Connection) -> None:
@@ -255,7 +263,8 @@ class SQLiteMigrationsV2(MigrationsProvider):
             self._logger.error(f"Failed to insert row for migration {filename}: {e}")
             raise MigrationError(f"Could not mark version={version} as dirty") from e
 
-        # Step 2: Actually run the migration (now fully atomic via the injected BEGIN/COMMIT)
+        # Step 2: Actually run the migration (now fully
+        # atomic via the injected BEGIN/COMMIT)
         fpath = path.join(self._migrations_path, filename)
         with open(fpath, encoding="utf-8") as f:
             migration_sql = f.read().strip()
@@ -286,7 +295,9 @@ class SQLiteMigrationsV2(MigrationsProvider):
         except Exception as e:
             await conn.rollback()
             self._logger.error(f"Failed to mark migration {version} as clean: {e}")
-            raise MigrationError(f"Could not mark version={version} as non-dirty") from e
+            raise MigrationError(
+                f"Could not mark version={version} as non-dirty",
+            ) from e
 
         self._logger.info(f"Successfully applied migration {filename}")
 
@@ -302,11 +313,15 @@ class SQLiteMigrationsV2(MigrationsProvider):
         m = re_match(pattern, filename)
         if not m:
             raise InvalidMigrationFilenameError(
-                f"Invalid migration filename: {filename}. " f"Expected '<version>_<desc>.up.sql'",
+                f"Invalid migration filename: {filename}. "
+                f"Expected '<version>_<desc>.up.sql'",
             )
         return int(m.group(1)), m.group(2)
-    
-    def _validate_migration_has_no_transaction_commands(self, migration_sql: str) -> None:
+
+    def _validate_migration_has_no_transaction_commands(
+        self,
+        migration_sql: str,
+    ) -> None:
         """
         Ensures the migration SQL does not contain any transaction commands
         (e.g., BEGIN, COMMIT).
@@ -319,8 +334,12 @@ class SQLiteMigrationsV2(MigrationsProvider):
             raise MigrationError("Migration file contains 'COMMIT;'")
         if search(r"^\s*ROLLBACK;\s*", migration_sql, MULTILINE):
             raise MigrationError("Migration file contains 'ROLLBACK;'")
-    
-    async def _run_migration_with_timeout(self, conn: Connection, migration_sql: str) -> None:
+
+    async def _run_migration_with_timeout(
+        self,
+        conn: Connection,
+        migration_sql: str,
+    ) -> None:
         """
         Executes the SQL with an asyncio timeout. If it times out, tries to interrupt
         the running query by calling conn._conn.interrupt() from an executor thread.
@@ -338,7 +357,9 @@ class SQLiteMigrationsV2(MigrationsProvider):
                 loop = get_running_loop()
                 await loop.run_in_executor(None, conn._conn.interrupt)
             except Exception as interrupt_err:
-                self._logger.warning(f"Failed to interrupt timed-out query: {interrupt_err}")
+                self._logger.warning(
+                    f"Failed to interrupt timed-out query: {interrupt_err}",
+                )
             raise MigrationTimeoutError(
                 f"Migration timed out after {self._timeout} seconds",
             ) from e

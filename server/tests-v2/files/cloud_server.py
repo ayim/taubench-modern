@@ -28,8 +28,8 @@ files_metadata: dict[str, dict] = {}
 
 
 class PresignedPostRequest(BaseModel):
-    fileId: str
-    expiresIn: int
+    file_id: str
+    expires_in: int
 
 
 @app.post("/")
@@ -38,36 +38,40 @@ async def handle_presigned_post(request: PresignedPostRequest):
     Endpoint for getting presigned POST URL
     Called by CFM's _get_presigned_post method
     """
-    log(f"Generating presigned POST URL for file ID: {request.fileId}")
+    log(f"Generating presigned POST URL for file ID: {request.file_id}")
     token = jwt.encode(
-        {"file_id": request.fileId, "exp": int(time.time()) + request.expiresIn},
+        {"file_id": request.file_id, "exp": int(time.time()) + request.expires_in},
         SECRET_KEY,
         algorithm="HS256",
     )
 
     return {
         "url": "http://localhost:8001/upload",
-        "form_data": {"token": token, "file_id": request.fileId},
+        "form_data": {"token": token, "file_id": request.file_id},
     }
 
 
 @app.get("/")
-async def handle_presigned_url(fileId: str, fileName: str, expiresIn: int):
+async def handle_presigned_url(file_id: str, file_name: str, expires_in: int):
     """
     Endpoint for getting presigned download URL
     Called by CFM's _get_presigned_url method
     """
-    log(f"Generating presigned URL for file: {fileName} (ID: {fileId})")
-    if not os.path.exists(os.path.join(UPLOAD_DIR, fileId)):
+    log(f"Generating presigned URL for file: {file_name} (ID: {file_id})")
+    if not os.path.exists(os.path.join(UPLOAD_DIR, file_id)):
         raise HTTPException(status_code=404, detail="File not found")
 
     token = jwt.encode(
-        {"file_id": fileId, "file_name": fileName, "exp": int(time.time()) + expiresIn},
+        {
+            "file_id": file_id,
+            "file_name": file_name,
+            "exp": int(time.time()) + expires_in,
+        },
         SECRET_KEY,
         algorithm="HS256",
     )
 
-    return {"url": f"http://localhost:8001/download/{fileId}?token={token}"}
+    return {"url": f"http://localhost:8001/download/{file_id}?token={token}"}
 
 
 @app.delete("/")
@@ -119,7 +123,7 @@ async def handle_upload(
 
         return {"status": "success"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.get("/download/{file_id}")
@@ -144,10 +148,10 @@ async def handle_download(file_id: str, token: str):
                 "application/octet-stream",
             ),
         )
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.ExpiredSignatureError as e:
+        raise HTTPException(status_code=401, detail="Token expired") from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 if __name__ == "__main__":

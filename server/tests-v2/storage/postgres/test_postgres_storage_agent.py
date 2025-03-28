@@ -43,11 +43,14 @@ async def test_agent_crud_operations(
     assert retrieved_agent.name == sample_agent.name
 
     # Update the agent name.
-    updated_agent = Agent.from_dict(
-        sample_agent.to_json_dict() | {"name": "Updated Agent Name"},
+    updated_agent = Agent.model_validate(
+        sample_agent.model_dump() | {"name": "Updated Agent Name"},
     )
     await storage.upsert_agent_v2(sample_user_id, updated_agent)
-    retrieved_updated = await storage.get_agent_v2(sample_user_id, sample_agent.agent_id)
+    retrieved_updated = await storage.get_agent_v2(
+        sample_user_id, sample_agent.agent_id,
+    )
+    assert retrieved_updated is not None
     assert retrieved_updated.name == "Updated Agent Name"
 
     # Delete the agent.
@@ -80,7 +83,7 @@ async def test_agent_list_all(
         agent_architecture=sample_agent.agent_architecture,
         question_groups=sample_agent.question_groups,
         observability_configs=sample_agent.observability_configs,
-        provider_configs=sample_agent.provider_configs,
+        platform_configs=sample_agent.platform_configs,
         extra=sample_agent.extra,
     )
     await storage.upsert_agent_v2(other_user.user_id, other_agent)
@@ -115,7 +118,9 @@ async def test_agent_system_user_access(
     # The system user should be allowed to access this agent.
     system_user_id: str = await storage.get_system_user_id_v2()
     if system_user_id:
-        system_accessed_agent = await storage.get_agent_v2(system_user_id, sample_agent.agent_id)
+        system_accessed_agent = await storage.get_agent_v2(
+            system_user_id, sample_agent.agent_id,
+        )
         assert system_accessed_agent is not None
         assert system_accessed_agent.agent_id == sample_agent.agent_id
 
@@ -126,7 +131,9 @@ async def test_agent_regular_user_access(
 ) -> None:
     # Insert an agent for the current (regular) user.
     await storage.upsert_agent_v2(sample_user_id, sample_agent)
-    regular_accessed_agent = await storage.get_agent_v2(sample_user_id, sample_agent.agent_id)
+    regular_accessed_agent = await storage.get_agent_v2(
+        sample_user_id, sample_agent.agent_id,
+    )
     assert regular_accessed_agent is not None
     assert regular_accessed_agent.agent_id == sample_agent.agent_id
 
@@ -140,14 +147,19 @@ async def test_agent_regular_user_access(
 
 @pytest.mark.asyncio
 async def test_agent_delete_cascades_threads(
-    storage: PostgresStorageV2, sample_user_id: str, sample_agent: Agent, sample_thread: Thread,
+    storage: PostgresStorageV2,
+    sample_user_id: str,
+    sample_agent: Agent,
+    sample_thread: Thread,
 ) -> None:
     # Create an agent and an associated thread.
     await storage.upsert_agent_v2(sample_user_id, sample_agent)
     await storage.upsert_thread_v2(sample_user_id, sample_thread)
 
     # Verify the thread exists.
-    existing_thread = await storage.get_thread_v2(sample_user_id, sample_thread.thread_id)
+    existing_thread = await storage.get_thread_v2(
+        sample_user_id, sample_thread.thread_id,
+    )
     assert existing_thread is not None
 
     # Delete the agent; threads should be cascaded (removed).
@@ -163,8 +175,8 @@ async def test_agent_duplicate_name_constraint(
     # Insert the first agent.
     await storage.upsert_agent_v2(sample_user_id, sample_agent)
     # Create a duplicate with the same name (ignoring case).
-    duplicate_agent = Agent.from_dict(
-        sample_agent.to_json_dict() | {"agent_id": str(uuid4()), "name": "test agent"},
+    duplicate_agent = Agent.model_validate(
+        sample_agent.model_dump() | {"agent_id": str(uuid4()), "name": "test agent"},
     )
     with pytest.raises(AgentWithNameAlreadyExistsError):
         await storage.upsert_agent_v2(sample_user_id, duplicate_agent)
@@ -177,8 +189,12 @@ async def test_agent_case_insensitive_lookup(
     # Insert the agent.
     await storage.upsert_agent_v2(sample_user_id, sample_agent)
     # Look up the agent using lower-case and upper-case variations.
-    agent_lower = await storage.get_agent_by_name_v2(sample_user_id, sample_agent.name.lower())
-    agent_upper = await storage.get_agent_by_name_v2(sample_user_id, sample_agent.name.upper())
+    agent_lower = await storage.get_agent_by_name_v2(
+        sample_user_id, sample_agent.name.lower(),
+    )
+    agent_upper = await storage.get_agent_by_name_v2(
+        sample_user_id, sample_agent.name.upper(),
+    )
     assert agent_lower is not None
     assert agent_upper is not None
     assert agent_lower.agent_id == sample_agent.agent_id
@@ -190,8 +206,8 @@ async def test_agent_invalid_json_metadata(
     storage: PostgresStorageV2, sample_user_id: str, sample_agent: Agent,
 ) -> None:
     # Attempt to insert an agent with invalid (unserializable) JSON metadata.
-    invalid_agent = Agent.from_dict(
-        sample_agent.to_json_dict() | {"extra": {"invalid": set([1, 2, 3])}},
+    invalid_agent = Agent.model_validate(
+        sample_agent.model_dump() | {"extra": {"invalid": set([1, 2, 3])}},
     )
     with pytest.raises((TypeError, ValueError)):
         await storage.upsert_agent_v2(sample_user_id, invalid_agent)
@@ -203,16 +219,16 @@ async def test_agent_filter_by_user(
 ) -> None:
     # Create an agent for user A.
     user_a, _ = await storage.get_or_create_user_v2(sub="tenant:testing:user:user_a")
-    agent_a = Agent.from_dict(
-        sample_agent.to_json_dict()
+    agent_a = Agent.model_validate(
+        sample_agent.model_dump()
         | {"agent_id": str(uuid4()), "name": "User A Agent", "user_id": user_a.user_id},
     )
     await storage.upsert_agent_v2(user_a.user_id, agent_a)
 
     # Create an agent for user B.
     user_b, _ = await storage.get_or_create_user_v2(sub="tenant:testing:user:user_b")
-    agent_b = Agent.from_dict(
-        sample_agent.to_json_dict()
+    agent_b = Agent.model_validate(
+        sample_agent.model_dump()
         | {"agent_id": str(uuid4()), "name": "User B Agent", "user_id": user_b.user_id},
     )
     await storage.upsert_agent_v2(user_b.user_id, agent_b)

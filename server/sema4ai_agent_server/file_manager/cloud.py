@@ -1,5 +1,4 @@
 import json
-import os
 from datetime import datetime, timedelta, timezone
 from typing import Union
 from uuid import uuid4
@@ -9,6 +8,7 @@ import structlog
 from agent_server_types import Agent, EmbeddingStatus, Thread, UploadedFile
 from fastapi import UploadFile
 
+from sema4ai_agent_server.env_vars import FILE_MANAGEMENT_API_URL
 from sema4ai_agent_server.file_manager.base import (
     MISSING_FILE_HASH,
     BaseFileManager,
@@ -20,9 +20,6 @@ from sema4ai_agent_server.storage.embed import Blob, convert_to_blob
 from sema4ai_agent_server.storage.option import get_storage
 
 logger = structlog.get_logger(__name__)
-
-
-FILE_MANAGEMENT_API_URL = os.getenv("FILE_MANAGEMENT_API_URL")
 
 
 class CloudFileManager(BaseFileManager):
@@ -197,14 +194,27 @@ class CloudFileManager(BaseFileManager):
     async def confirm_remote_file_upload(
         self, thread: Thread, file_ref: str, file_id: str
     ) -> UploadedFile:
+        # This use case is for when actions upload files directly to the cloud and then
+        # call the agent server to confirm the upload.
+        #
+        # The url is not available at this point, so we need to get it from
+        # the server to create the record in the database.
+        #
+        # Some notes:
+        # - We don't have a file hash at this point, so we use a placeholder value
+        # (we could ask actions to provide the hash in the future).
+        # - We could've asked the action to pass the url instead of querying it
+        # from the service which provides presigned urls (which may be faster, but
+        # the protocol needs to be changed to support it then).
+        refreshed_file_path = self._get_presigned_url(file_id, file_ref)
         file = await get_storage().put_file_owner(
             file_id=file_id,
-            file_path=None,
+            file_path=refreshed_file_path,
             file_ref=file_ref,
             file_hash=MISSING_FILE_HASH,
             embedded=False,
             embedding_status=None,
             owner=thread,
-            file_path_expiration=datetime.now(timezone.utc),
+            file_path_expiration=self._get_file_path_expiration(),
         )
         return file

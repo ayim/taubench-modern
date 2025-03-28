@@ -14,14 +14,15 @@ from sema4ai_agent_server.storage.v2.sqlite_v2.common import CommonMixin
 class SQLiteStorageMemoriesMixin(CommonMixin):
     """
     Mixin providing SQLite-based memory operations.
-    Assumes that helper methods such as `_cursor()` and `_validate_uuid()` are available.
+    Assumes that helper methods such as `_cursor()` and
+    `_validate_uuid()` are available.
     """
     _logger = get_logger(__name__)
 
     async def create_memory_v2(self, memory: Memory) -> None:
         """Insert a new memory record."""
         self._validate_uuid(memory.memory_id)
-        memory_dict = memory.to_json_dict()
+        memory_dict = memory.model_dump()
         # Convert JSONable fields to JSON strings
         memory_dict["metadata"] = json.dumps(memory_dict["metadata"])
         memory_dict["tags"] = json.dumps(memory_dict["tags"])
@@ -48,7 +49,9 @@ class SQLiteStorageMemoriesMixin(CommonMixin):
                 )
         except IntegrityError as e:
             if "UNIQUE constraint failed: v2_memory.memory_id" in str(e):
-                raise RecordAlreadyExistsError(f"Memory {memory.memory_id} already exists") from e
+                raise RecordAlreadyExistsError(
+                    f"Memory {memory.memory_id} already exists",
+                ) from e
             raise
 
     async def get_memory_v2(self, memory_id: str) -> Memory:
@@ -68,7 +71,7 @@ class SQLiteStorageMemoriesMixin(CommonMixin):
             raise MemoryNotFoundError(f"Memory {memory_id} not found")
         memory_dict = dict(row)
         memory_dict = self._convert_memory_json_fields(memory_dict)
-        return Memory.from_dict(memory_dict)
+        return Memory.model_validate(memory_dict)
 
     async def list_memories_v2(self, scope: str, scope_id: str) -> list[Memory]:
         """
@@ -94,13 +97,13 @@ class SQLiteStorageMemoriesMixin(CommonMixin):
         for row in rows:
             memory_dict = dict(row)
             memory_dict = self._convert_memory_json_fields(memory_dict)
-            memories.append(Memory.from_dict(memory_dict))
+            memories.append(Memory.model_validate(memory_dict))
         return memories
 
     async def upsert_memory_v2(self, memory: Memory) -> None:
         """Insert or update a memory record."""
         self._validate_uuid(memory.memory_id)
-        memory_dict = memory.to_json_dict()
+        memory_dict = memory.model_dump()
         memory_dict["metadata"] = json.dumps(memory_dict["metadata"])
         memory_dict["tags"] = json.dumps(memory_dict["tags"])
         memory_dict["refs"] = json.dumps(memory_dict["refs"])
@@ -137,7 +140,10 @@ class SQLiteStorageMemoriesMixin(CommonMixin):
                 memory_dict,
             )
             if cur.rowcount == 0:
-                self._logger.warning("Upsert memory had no effect", memory_id=memory_dict["memory_id"])
+                self._logger.warning(
+                    "Upsert memory had no effect",
+                    memory_id=memory_dict["memory_id"],
+                )
 
     async def delete_memory_v2(self, memory_id: str) -> None:
         """Delete a memory record. Raises MemoryNotFoundError if not found."""

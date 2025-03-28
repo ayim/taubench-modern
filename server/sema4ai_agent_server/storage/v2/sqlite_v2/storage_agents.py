@@ -31,7 +31,10 @@ class SQLiteStorageAgentsMixin(CommonMixin):
             rows = await cur.fetchall()
         if not rows:
             return []
-        return [Agent.from_dict(self._convert_agent_json_fields(dict(row))) for row in rows]
+        return [
+            Agent.model_validate(self._convert_agent_json_fields(dict(row)))
+            for row in rows
+        ]
 
     async def list_agents_v2(self, user_id: str) -> list[Agent]:
         """List all agents for the given user."""
@@ -49,7 +52,10 @@ class SQLiteStorageAgentsMixin(CommonMixin):
             rows = await cur.fetchall()
         if not rows:
             return []
-        return [Agent.from_dict(self._convert_agent_json_fields(dict(row))) for row in rows]
+        return [
+            Agent.model_validate(self._convert_agent_json_fields(dict(row)))
+            for row in rows
+        ]
 
     async def get_agent_v2(self, user_id: str, agent_id: str) -> Agent:
         """Get an agent by ID, raising errors if not found or no access."""
@@ -75,12 +81,14 @@ class SQLiteStorageAgentsMixin(CommonMixin):
 
         if not row["has_access"]:
             # The agent exists but user does not have access
-            raise UserAccessDeniedError(f"User {user_id} does not have access to agent {agent_id}")
+            raise UserAccessDeniedError(
+                f"User {user_id} does not have access to agent {agent_id}",
+            )
 
         # Convert JSON columns and return
         row_dict = dict(row)
         row_dict.pop("has_access", None)
-        return Agent.from_dict(self._convert_agent_json_fields(row_dict))
+        return Agent.model_validate(self._convert_agent_json_fields(row_dict))
 
     async def get_agent_by_name_v2(self, user_id: str, name: str) -> Agent:
         """Get an agent by name."""
@@ -102,11 +110,13 @@ class SQLiteStorageAgentsMixin(CommonMixin):
             raise AgentNotFoundError(f"Agent {name} not found")
 
         if not row["has_access"]:
-            raise UserAccessDeniedError(f"User {user_id} does not have access to agent {name}")
+            raise UserAccessDeniedError(
+                f"User {user_id} does not have access to agent {name}",
+            )
 
         row_dict = dict(row)
         row_dict.pop("has_access", None)
-        return Agent.from_dict(self._convert_agent_json_fields(row_dict))
+        return Agent.model_validate(self._convert_agent_json_fields(row_dict))
 
     async def upsert_agent_v2(self, user_id: str, agent: Agent) -> None:
         """Create or update an agent, enforcing user access similar to Postgres."""
@@ -114,14 +124,15 @@ class SQLiteStorageAgentsMixin(CommonMixin):
         self._validate_uuid(agent.agent_id)
 
         # Convert the agent to a dict; JSON-ify the complex fields
-        agent_dict = agent.to_json_dict() | {"user_id": user_id}
+        agent_dict = agent.model_dump() | {"user_id": user_id}
         for field in [
             "runbook",
             "action_packages",
+            "mcp_servers",
             "agent_architecture",
             "question_groups",
             "observability_configs",
-            "provider_configs",
+            "platform_configs",
             "extra",
         ]:
             agent_dict[field] = json.dumps(agent_dict[field])
@@ -132,14 +143,15 @@ class SQLiteStorageAgentsMixin(CommonMixin):
                     """
                     INSERT INTO v2_agent (
                         agent_id, name, description, user_id, runbook, version,
-                        created_at, updated_at, action_packages, agent_architecture,
-                        question_groups, observability_configs, provider_configs, extra, mode
+                        created_at, updated_at, action_packages, mcp_servers,
+                        agent_architecture, question_groups, observability_configs,
+                        platform_configs, extra, mode
                     )
                     VALUES (
                         :agent_id, :name, :description, :user_id, :runbook, :version,
-                        :created_at, :updated_at, :action_packages, :agent_architecture,
-                        :question_groups, :observability_configs, :provider_configs,
-                        :extra, :mode
+                        :created_at, :updated_at, :action_packages, :mcp_servers,
+                        :agent_architecture, :question_groups, :observability_configs,
+                        :platform_configs, :extra, :mode
                     )
                     ON CONFLICT(agent_id) DO UPDATE SET
                         name = excluded.name,
@@ -149,10 +161,11 @@ class SQLiteStorageAgentsMixin(CommonMixin):
                         version = excluded.version,
                         updated_at = excluded.updated_at,
                         action_packages = excluded.action_packages,
+                        mcp_servers = excluded.mcp_servers,
                         agent_architecture = excluded.agent_architecture,
                         question_groups = excluded.question_groups,
                         observability_configs = excluded.observability_configs,
-                        provider_configs = excluded.provider_configs,
+                        platform_configs = excluded.platform_configs,
                         extra = excluded.extra,
                         mode = excluded.mode
                     WHERE v2_check_user_access(v2_agent.user_id, :user_id) = 1
@@ -168,18 +181,29 @@ class SQLiteStorageAgentsMixin(CommonMixin):
                     is False
                 ):
                     raise UserAccessDeniedError(
-                        f"User {user_id} does not have permission to update agent {agent.agent_id}",
+                        f"User {user_id} does not have permission "
+                        f"to update agent {agent.agent_id}",
                     )
 
         except aiosqlite.IntegrityError as e:
             if "foreign key constraint" in str(e).lower():
-                raise ReferenceIntegrityError("Invalid foreign key reference updating agent") from e
+                raise ReferenceIntegrityError(
+                    "Invalid foreign key reference updating agent",
+                ) from e
             if "UNIQUE constraint failed: v2_agent.agent_id" in str(e):
-                raise RecordAlreadyExistsError(f"Agent ID {agent.agent_id} is not unique") from e
+                raise RecordAlreadyExistsError(
+                    f"Agent ID {agent.agent_id} is not unique",
+                ) from e
             # Possibly triggered by a unique constraint on name, etc.
-            self._logger.error("Error upserting agent", error=str(e), agent_id=agent.agent_id, user_id=user_id)
-            raise AgentWithNameAlreadyExistsError(f"Agent name {agent.name} is not unique") from e
-
+            self._logger.error(
+                "Error upserting agent",
+                error=str(e),
+                agent_id=agent.agent_id,
+                user_id=user_id,
+            )
+            raise AgentWithNameAlreadyExistsError(
+                f"Agent name {agent.name} is not unique",
+            ) from e
     async def delete_agent_v2(self, user_id: str, agent_id: str) -> None:
         """Delete an agent, enforcing user access."""
         self._validate_uuid(user_id)
@@ -192,7 +216,9 @@ class SQLiteStorageAgentsMixin(CommonMixin):
 
         # Then check user access
         if not await self._user_can_access_agent(user_id, agent_id):
-            raise UserAccessDeniedError(f"User {user_id} does not have access to agent {agent_id}")
+            raise UserAccessDeniedError(
+                f"User {user_id} does not have access to agent {agent_id}",
+            )
 
         async with self._cursor() as cur:
             await cur.execute(
@@ -237,14 +263,16 @@ class SQLiteStorageAgentsMixin(CommonMixin):
         return bool(row and row["has_access"])
 
     def _convert_agent_json_fields(self, agent_dict: dict) -> dict:
-        """Convert JSON string fields in agent dict to Python objects (similar to Postgres mixin)."""
+        """Convert JSON string fields in agent dict to
+        Python objects (similar to Postgres mixin)."""
         for field in [
             "runbook",
             "action_packages",
+            "mcp_servers",
             "agent_architecture",
             "question_groups",
             "observability_configs",
-            "provider_configs",
+            "platform_configs",
             "extra",
         ]:
             if agent_dict.get(field) is not None:

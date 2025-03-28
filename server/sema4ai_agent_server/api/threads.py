@@ -13,7 +13,7 @@ from agent_server_types import (
     Thread,
     UploadedFile,
 )
-from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile, Query
 from fastapi.responses import StreamingResponse
 from httpx import Response
 from langchain_core.messages import AIMessage
@@ -101,9 +101,14 @@ class FileByRefResponse(BaseModel):
 
 
 @router.get("/", response_model=List[Thread], response_class=TypeAdapterResponse)
-async def list_threads(user: AuthedUser):
+async def list_threads(user: AuthedUser,
+                       name: str | None = Query(None, description="Filter threads by name (contains)."),
+                       aid: str | None = Query(None, description="Filter threads by agent ID."),
+                       limit: int | None = Query(None, description="Limit the number of threads returned.")):
     """List all threads for the current user."""
-    threads = await get_storage().list_threads(user.user_id)
+    if limit is not None and limit < 1:
+        raise HTTPException(status_code=400, detail="Limit must be greater than 0.")
+    threads = await get_storage().list_threads(user.user_id, aid=aid, name=name, limit=limit)
     return TypeAdapterResponse(threads, adapter=THREAD_LIST_ADAPTER)
 
 

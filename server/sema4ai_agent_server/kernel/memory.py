@@ -25,7 +25,11 @@ class AgentServerMemoryInterface(MemoryInterface, UsesKernelMixin):
         """
         raise NotImplementedError("Not implemented")
 
-    async def retrieve_relevant_memories(self, query: str, top_n: int = 10) -> list[Memory]:
+    async def retrieve_relevant_memories(
+        self,
+        query: str,
+        top_n: int = 10,
+    ) -> list[Memory]:
         """Retrieves relevant memories from the memory store based on a query.
 
         Uses embeddings to find relevant memories.
@@ -39,7 +43,11 @@ class AgentServerMemoryInterface(MemoryInterface, UsesKernelMixin):
         """
         raise NotImplementedError("Not implemented")
 
-    async def retrieve_relevant_memories_by_text(self, text: str, top_n: int = 10) -> list[Memory]:
+    async def retrieve_relevant_memories_by_text(
+        self,
+        text: str,
+        top_n: int = 10,
+    ) -> list[Memory]:
         """Retrieves relevant memories from the memory store based on a text fragment.
 
         Uses text search to find relevant memories.

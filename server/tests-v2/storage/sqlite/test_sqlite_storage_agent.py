@@ -18,8 +18,8 @@ from sema4ai_agent_server.storage.v2.sqlite_v2 import SQLiteStorageV2
 
 @pytest.mark.asyncio
 async def test_agent_by_name(
-    storage: SQLiteStorageV2, 
-    sample_user_id: str, 
+    storage: SQLiteStorageV2,
+    sample_user_id: str,
     sample_agent: Agent,
 ) -> None:
     await storage.upsert_agent_v2(sample_user_id, sample_agent)
@@ -34,8 +34,8 @@ async def test_agent_by_name(
 
 @pytest.mark.asyncio
 async def test_agent_crud_operations(
-    storage: SQLiteStorageV2, 
-    sample_user_id: str, 
+    storage: SQLiteStorageV2,
+    sample_user_id: str,
     sample_agent: Agent,
 ) -> None:
     """Test Create, Read, Update, and Delete operations for agents."""
@@ -48,11 +48,13 @@ async def test_agent_crud_operations(
     assert retrieved_agent.name == sample_agent.name
 
     # Update
-    updated_agent = Agent.from_dict(
-        sample_agent.to_json_dict() | {"name": "Updated Agent Name"},
+    updated_agent = Agent.model_validate(
+        sample_agent.model_dump() | {"name": "Updated Agent Name"},
     )
     await storage.upsert_agent_v2(sample_user_id, updated_agent)
-    retrieved_updated = await storage.get_agent_v2(sample_user_id, sample_agent.agent_id)
+    retrieved_updated = await storage.get_agent_v2(
+        sample_user_id, sample_agent.agent_id,
+    )
     assert retrieved_updated.name == "Updated Agent Name"
 
     # Delete
@@ -62,7 +64,11 @@ async def test_agent_crud_operations(
 
 
 @pytest.mark.asyncio
-async def test_agent_list_all(storage: SQLiteStorageV2, sample_user_id: str, sample_agent: Agent) -> None:
+async def test_agent_list_all(
+    storage: SQLiteStorageV2,
+    sample_user_id: str,
+    sample_agent: Agent,
+) -> None:
     """
     Test that listing all agents (across all users) returns agents from different users.
     """
@@ -70,7 +76,9 @@ async def test_agent_list_all(storage: SQLiteStorageV2, sample_user_id: str, sam
     await storage.upsert_agent_v2(sample_user_id, sample_agent)
 
     # Create a second user and an agent for that user
-    other_user, _ = await storage.get_or_create_user_v2(sub="tenant:testing:user:other_user_all_agents")
+    other_user, _ = await storage.get_or_create_user_v2(
+        sub="tenant:testing:user:other_user_all_agents",
+    )
     other_agent = Agent(
         user_id=other_user.user_id,
         agent_id=str(uuid4()),
@@ -84,7 +92,7 @@ async def test_agent_list_all(storage: SQLiteStorageV2, sample_user_id: str, sam
         agent_architecture=sample_agent.agent_architecture,
         question_groups=sample_agent.question_groups,
         observability_configs=sample_agent.observability_configs,
-        provider_configs=sample_agent.provider_configs,
+        platform_configs=sample_agent.platform_configs,
         extra=sample_agent.extra,
     )
     await storage.upsert_agent_v2(other_user.user_id, other_agent)
@@ -98,8 +106,8 @@ async def test_agent_list_all(storage: SQLiteStorageV2, sample_user_id: str, sam
 
 @pytest.mark.asyncio
 async def test_agent_list(
-    storage: SQLiteStorageV2, 
-    sample_user_id: str, 
+    storage: SQLiteStorageV2,
+    sample_user_id: str,
     sample_agent: Agent,
 ) -> None:
     """Test listing agents for a user."""
@@ -111,38 +119,51 @@ async def test_agent_list(
 
 @pytest.mark.asyncio
 async def test_agent_system_user_access(
-    storage: SQLiteStorageV2, 
+    storage: SQLiteStorageV2,
     sample_agent: Agent,
 ) -> None:
     """Test system user's ability to access other users' resources."""
-    regular_user, _ = await storage.get_or_create_user_v2(sub="tenant:testing:user:regular_user")
+    regular_user, _ = await storage.get_or_create_user_v2(
+        sub="tenant:testing:user:regular_user",
+    )
     await storage.upsert_agent_v2(regular_user.user_id, sample_agent)
     system_user_id: str = await storage.get_system_user_id_v2()
     if system_user_id:
-        system_accessed_agent = await storage.get_agent_v2(system_user_id, sample_agent.agent_id)
+        system_accessed_agent = await storage.get_agent_v2(
+            system_user_id,
+            sample_agent.agent_id,
+        )
         assert system_accessed_agent is not None
         assert system_accessed_agent.agent_id == sample_agent.agent_id
 
 
 @pytest.mark.asyncio
 async def test_agent_regular_user_access(
-    storage: SQLiteStorageV2, 
-    sample_user_id: str, 
+    storage: SQLiteStorageV2,
+    sample_user_id: str,
     sample_agent: Agent,
 ) -> None:
     """Test regular user's ability to access their own resources."""
     await storage.upsert_agent_v2(sample_user_id, sample_agent)
-    regular_accessed_agent = await storage.get_agent_v2(sample_user_id, sample_agent.agent_id)
+    regular_accessed_agent = await storage.get_agent_v2(
+        sample_user_id,
+        sample_agent.agent_id,
+    )
     assert regular_accessed_agent is not None
     assert regular_accessed_agent.agent_id == sample_agent.agent_id
 
-    other_user, _ = await storage.get_or_create_user_v2(sub="tenant:testing:user:other_user")
+    other_user, _ = await storage.get_or_create_user_v2(
+        sub="tenant:testing:user:other_user",
+    )
     with pytest.raises(UserAccessDeniedError):
         await storage.get_agent_v2(other_user.user_id, sample_agent.agent_id)
 
 @pytest.mark.asyncio
 async def test_agent_delete_cascades_threads(
-    storage: SQLiteStorageV2, sample_user_id: str, sample_agent: Agent, sample_thread: Thread,
+    storage: SQLiteStorageV2,
+    sample_user_id: str,
+    sample_agent: Agent,
+    sample_thread: Thread,
 ) -> None:
     """
     Test that deleting an agent cascades to deletion of its associated threads.
@@ -152,7 +173,9 @@ async def test_agent_delete_cascades_threads(
     await storage.upsert_thread_v2(sample_user_id, sample_thread)
 
     # Verify the thread exists.
-    existing_thread = await storage.get_thread_v2(sample_user_id, sample_thread.thread_id)
+    existing_thread = await storage.get_thread_v2(
+        sample_user_id, sample_thread.thread_id,
+    )
     assert existing_thread is not None
 
     # Delete the agent.
@@ -175,8 +198,8 @@ async def test_agent_duplicate_name_constraint(
     # Create the first agent with name "Test Agent"
     await storage.upsert_agent_v2(sample_user_id, sample_agent)
     # Create a second agent with the same name (different case) and a new agent_id.
-    duplicate_agent = Agent.from_dict(
-        sample_agent.to_json_dict() | {"agent_id": str(uuid4()), "name": "test agent"},
+    duplicate_agent = Agent.model_validate(
+        sample_agent.model_dump() | {"agent_id": str(uuid4()), "name": "test agent"},
     )
     with pytest.raises(AgentWithNameAlreadyExistsError):
         await storage.upsert_agent_v2(sample_user_id, duplicate_agent)
@@ -191,8 +214,12 @@ async def test_agent_case_insensitive_lookup(
     """
     await storage.upsert_agent_v2(sample_user_id, sample_agent)
     # Lookup using lower-case and upper-case variations.
-    agent_lower = await storage.get_agent_by_name_v2(sample_user_id, sample_agent.name.lower())
-    agent_upper = await storage.get_agent_by_name_v2(sample_user_id, sample_agent.name.upper())
+    agent_lower = await storage.get_agent_by_name_v2(
+        sample_user_id, sample_agent.name.lower(),
+    )
+    agent_upper = await storage.get_agent_by_name_v2(
+        sample_user_id, sample_agent.name.upper(),
+    )
     assert agent_lower is not None
     assert agent_upper is not None
     assert agent_lower.agent_id == sample_agent.agent_id
@@ -210,8 +237,8 @@ async def test_agent_invalid_json_metadata(
     # In Python, trying to serialize an unserializable object (like a set)
     # should raise a TypeError before even reaching the database or,
     # if not caught, lead to a DB integrity error.
-    invalid_agent = Agent.from_dict(
-        sample_agent.to_json_dict() | {"extra": {"invalid": set([1, 2, 3])}},
+    invalid_agent = Agent.model_validate(
+        sample_agent.model_dump() | {"extra": {"invalid": set([1, 2, 3])}},
     )
     with pytest.raises((TypeError, ValueError)):
         await storage.upsert_agent_v2(sample_user_id, invalid_agent)
@@ -226,16 +253,16 @@ async def test_agent_filter_by_user(
     """
     # Create an agent for user A.
     user_a, _ = await storage.get_or_create_user_v2(sub="tenant:testing:user:user_a")
-    agent_a = Agent.from_dict(
-        sample_agent.to_json_dict()
+    agent_a = Agent.model_validate(
+        sample_agent.model_dump()
         | {"agent_id": str(uuid4()), "name": "User A Agent", "user_id": user_a.user_id},
     )
     await storage.upsert_agent_v2(user_a.user_id, agent_a)
 
     # Create an agent for user B.
     user_b, _ = await storage.get_or_create_user_v2(sub="tenant:testing:user:user_b")
-    agent_b = Agent.from_dict(
-        sample_agent.to_json_dict()
+    agent_b = Agent.model_validate(
+        sample_agent.model_dump()
         | {"agent_id": str(uuid4()), "name": "User B Agent", "user_id": user_b.user_id},
     )
     await storage.upsert_agent_v2(user_b.user_id, agent_b)

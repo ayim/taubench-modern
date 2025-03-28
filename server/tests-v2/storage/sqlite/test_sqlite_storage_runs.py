@@ -20,9 +20,9 @@ from sema4ai_agent_server.storage.v2.sqlite_v2 import SQLiteStorageV2
 
 @pytest.mark.asyncio
 async def test_run_crud_operations(
-    storage: SQLiteStorageV2, 
-    sample_user_id: str, 
-    sample_agent: Agent, 
+    storage: SQLiteStorageV2,
+    sample_user_id: str,
+    sample_agent: Agent,
     sample_thread: Thread,
 ) -> None:
     """
@@ -58,8 +58,8 @@ async def test_run_crud_operations(
     assert any(r.run_id == sample_run.run_id for r in runs_for_thread)
 
     # Update (upsert) the run
-    updated_run = Run.from_dict(
-        sample_run.to_json_dict() | {"status": "cancelled"},
+    updated_run = Run.model_validate(
+        sample_run.model_dump() | {"status": "cancelled"},
     )
     await storage.upsert_run_v2(updated_run)
     updated_run = await storage.get_run_v2(sample_run.run_id)
@@ -76,9 +76,9 @@ async def test_run_crud_operations(
 
 @pytest.mark.asyncio
 async def test_run_step_crud_operations(
-    storage: SQLiteStorageV2, 
-    sample_user_id: str, 
-    sample_agent: Agent, 
+    storage: SQLiteStorageV2,
+    sample_user_id: str,
+    sample_agent: Agent,
     sample_thread: Thread,
 ) -> None:
     """
@@ -153,7 +153,10 @@ async def test_invalid_uuid_run(
 
 @pytest.mark.asyncio
 async def test_run_deletion_cascades_run_steps(
-    storage: SQLiteStorageV2, sample_user_id: str, sample_agent: Agent, sample_thread: Thread,
+    storage: SQLiteStorageV2,
+    sample_user_id: str,
+    sample_agent: Agent,
+    sample_thread: Thread,
 ) -> None:
     """
     Test that deleting a run record cascades to delete its associated run steps.
@@ -228,8 +231,8 @@ async def test_run_update_invalid_foreign_keys(
     await storage.create_run_v2(valid_run)
 
     # Modify run with invalid foreign keys.
-    invalid_run = Run.from_dict(
-        valid_run.to_json_dict()
+    invalid_run = Run.model_validate(
+        valid_run.model_dump()
         | {"agent_id": str(uuid4()), "thread_id": str(uuid4())},
     )
     with pytest.raises(ReferenceIntegrityError):
@@ -243,21 +246,22 @@ async def test_run_not_found_error(
     Test that attempting to delete a non-existent run raises RunNotFoundError.
     """
     non_existent_run_id = str(uuid4())
-    with pytest.raises(RunNotFoundError):   
+    with pytest.raises(RunNotFoundError):
         await storage.get_run_v2(non_existent_run_id)
     with pytest.raises(RunNotFoundError):
         await storage.delete_run_v2(non_existent_run_id)
 
 @pytest.mark.asyncio
 async def test_run_reupsert_idempotency(
-    storage: SQLiteStorageV2, 
+    storage: SQLiteStorageV2,
     sample_user_id: str,
-    sample_agent: Agent, 
+    sample_agent: Agent,
     sample_thread: Thread,
 ):
     """
     Create a run and repeatedly update it using upsert.
-    Verify that no duplicate records are created and that the final state reflects the last update.
+    Verify that no duplicate records are created and that the
+    final state reflects the last update.
     """
     # Make sure the agent and thread exist.
     await storage.upsert_agent_v2(sample_user_id, sample_agent)
@@ -280,8 +284,11 @@ async def test_run_reupsert_idempotency(
     for status in statuses:
         current_run = await storage.get_run_v2(initial_run.run_id)
         # Create an updated run with the new status and a new updated_at timestamp.
-        updated_run = Run.from_dict(
-            current_run.to_json_dict() | {"status": status, "finished_at": datetime.now(UTC)},
+        updated_run = Run.model_validate(
+            current_run.model_dump() | {
+                "status": status,
+                "finished_at": datetime.now(UTC),
+            },
         )
         await storage.upsert_run_v2(updated_run)
 
@@ -291,14 +298,15 @@ async def test_run_reupsert_idempotency(
 
 @pytest.mark.asyncio
 async def test_run_ordering(
-    storage: SQLiteStorageV2, 
+    storage: SQLiteStorageV2,
     sample_user_id: str,
-    sample_agent: Agent, 
+    sample_agent: Agent,
     sample_thread: Thread,
 ):
     """
     Create several runs for the same agent with slight delays.
-    Then list runs for that agent and verify they are ordered by the created_at timestamp.
+    Then list runs for that agent and verify they are ordered
+    by the created_at timestamp.
     """
     # Make sure the agent and thread exist.
     await storage.upsert_agent_v2(sample_user_id, sample_agent)
@@ -335,9 +343,9 @@ async def test_run_ordering(
 
 @pytest.mark.asyncio
 async def test_concurrent_run_creation(
-    storage: SQLiteStorageV2, 
+    storage: SQLiteStorageV2,
     sample_user_id: str,
-    sample_agent: Agent, 
+    sample_agent: Agent,
     sample_thread: Thread,
 ):
     """
@@ -376,4 +384,6 @@ async def test_concurrent_run_creation(
     runs = await storage.list_runs_for_agent_v2(sample_agent.agent_id)
     listed_run_ids = {r.run_id for r in runs}
     for run_id in run_ids:
-        assert run_id in listed_run_ids, f"Run with ID {run_id} is not listed in agent runs"
+        assert run_id in listed_run_ids, (
+            f"Run with ID {run_id} is not listed in agent runs"
+        )

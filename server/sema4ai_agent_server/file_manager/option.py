@@ -1,5 +1,4 @@
-import os
-
+from sema4ai_agent_server.env_vars import FILE_MANAGER_TYPE
 from sema4ai_agent_server.file_manager.base import BaseFileManager
 from sema4ai_agent_server.file_manager.cloud import CloudFileManager
 from sema4ai_agent_server.file_manager.local import LocalFileManager
@@ -8,7 +7,7 @@ _file_manager = None
 
 
 def get_file_manager() -> BaseFileManager:
-    type_ = os.environ.get("S4_AGENT_SERVER_FILE_MANAGER_TYPE", "local")
+    type_ = FILE_MANAGER_TYPE or "local"
     global _file_manager
     if _file_manager is None:
         if type_ == "local":

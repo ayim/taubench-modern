@@ -21,7 +21,8 @@ from sema4ai_agent_server.storage.v2.sqlite_v2.common import CommonMixin
 class SQLiteStorageFilesMixin(CommonMixin):
     """
     Mixin providing SQLite-based file operations.
-    Assumes that helper methods such as `_cursor()` and `_validate_uuid()` are available.
+    Assumes that helper methods such as `_cursor()`
+    and `_validate_uuid()` are available.
     """
 
     _logger = get_logger(__name__)
@@ -33,7 +34,8 @@ class SQLiteStorageFilesMixin(CommonMixin):
             owner: Either an Agent or Thread instance
 
         Returns:
-            tuple[str, str | None]: (agent_id, thread_id) where thread_id is None for Agent owners
+            tuple[str, str | None]: (agent_id, thread_id) where
+                thread_id is None for Agent owners
 
         Raises:
             ValueError: If owner is neither Agent nor Thread
@@ -42,7 +44,7 @@ class SQLiteStorageFilesMixin(CommonMixin):
         """
         self._logger.debug(f"Validating owner type {owner}")
 
-        if not isinstance(owner, (Agent, Thread)):
+        if not isinstance(owner, Agent | Thread):
             raise ValueError("Owner must be either Agent or Thread instance")
 
         # Common validation for both types
@@ -85,7 +87,8 @@ class SQLiteStorageFilesMixin(CommonMixin):
             fs_path = url_to_fs_path(file_url)
             if os.path.exists(fs_path):
                 os.remove(fs_path)
-                # remove parent directory as that gets created by the file upload as well
+                # remove parent directory as that gets
+                # created by the file upload as well
                 os.rmdir(os.path.dirname(fs_path))
         except Exception as e:
             self._logger.exception(f"Error deleting file at {file_url}: {e!s}")
@@ -150,7 +153,9 @@ class SQLiteStorageFilesMixin(CommonMixin):
                 SELECT f.*,
                     v2_check_user_access(f.user_id, :user_id) AS has_access
                 FROM v2_file_owner f
-                WHERE file_ref = :file_ref AND (agent_id = :agent_id OR thread_id = :thread_id)
+                WHERE file_ref = :file_ref AND (
+                  agent_id = :agent_id OR thread_id = :thread_id
+                )
                 """,
                 {
                     "file_ref": file_ref,
@@ -211,7 +216,9 @@ class SQLiteStorageFilesMixin(CommonMixin):
                 SELECT f.file_path,
                     v2_check_user_access(f.user_id, :user_id) AS has_access
                 FROM v2_file_owner f
-                WHERE file_id = :file_id AND (agent_id = :agent_id OR thread_id = :thread_id)
+                WHERE file_id = :file_id AND (
+                  agent_id = :agent_id OR thread_id = :thread_id
+                )
                 """,
                 {
                     "file_id": file_id,
@@ -298,12 +305,16 @@ class SQLiteStorageFilesMixin(CommonMixin):
                 await cur.execute(
                     """
                     INSERT INTO v2_file_owner (
-                        file_id, file_path, file_ref, file_hash, file_size_raw, mime_type,
-                        user_id, embedded, agent_id, thread_id, file_path_expiration, created_at
+                        file_id, file_path, file_ref, file_hash,
+                        file_size_raw, mime_type, user_id, embedded,
+                        agent_id, thread_id, file_path_expiration,
+                        created_at
                     )
                     VALUES (
-                        :file_id, :file_path, :file_ref, :file_hash, :file_size_raw, :mime_type,
-                        :user_id, :embedded, :agent_id, :thread_id, :file_path_expiration, :created_at
+                        :file_id, :file_path, :file_ref, :file_hash,
+                        :file_size_raw, :mime_type, :user_id, :embedded,
+                        :agent_id, :thread_id, :file_path_expiration,
+                        :created_at
                     )
                     ON CONFLICT(file_id) DO UPDATE SET
                         file_path = excluded.file_path,
@@ -324,7 +335,9 @@ class SQLiteStorageFilesMixin(CommonMixin):
                     self._logger.exception("File already exists", file_ref=file_ref)
                     raise UniqueFileRefError(
                         file_ref,
-                        detail=f"A file with the given file_ref {file_ref} already exists",
+                        detail=(
+                            f"A file with the given file_ref {file_ref} already exists"
+                        ),
                     ) from e
                 else:
                     self._logger.exception(

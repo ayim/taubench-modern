@@ -1,4 +1,4 @@
-from asyncio import wait_for
+from asyncio import sleep, wait_for
 
 from agent_server_types_v2.kernel_interfaces import UserInteractionsInterface
 from agent_server_types_v2.thread import ThreadTextContent, ThreadUserMessage
@@ -18,9 +18,10 @@ class AgentServerUserInteractionsInterface(UserInteractionsInterface, UsesKernel
             TimeoutError: If the user fails to respond within timeout_seconds.
         """
 
-        # Step 1: Notify downstream (e.g. a UI or user prompt handler) that we are waiting for user input.
+        # Step 1: Notify downstream (e.g. a UI or user prompt handler)
+        # that we are waiting for user input.
         prompt_event = {
-            "type": "user_message_request", 
+            "type": "user_message_request",
             "message": "Awaiting user input...",
             "timeout": timeout_seconds,
         }
@@ -31,11 +32,17 @@ class AgentServerUserInteractionsInterface(UserInteractionsInterface, UsesKernel
             async for event in self.kernel.incoming_events.stream():
                 # Check if the event is indeed a user response.
                 if isinstance(event, dict) and event["type"] == "user_message_reply":
-                    return ThreadUserMessage(content=[ThreadTextContent(text=event["input"])])
+                    return ThreadUserMessage(
+                        content=[ThreadTextContent(text=event["input"])],
+                    )
+                # Make sure we yield to the event loop
+                await sleep(0)
 
         try:
             # Wrap the waiting coroutine with a timeout.
             user_response = await wait_for(wait_for_response(), timeout=timeout_seconds)
             return user_response
         except TimeoutError as e:
-            raise TimeoutError(f"User did not respond within {timeout_seconds} seconds.") from e
+            raise TimeoutError(
+                f"User did not respond within {timeout_seconds} seconds.",
+            ) from e

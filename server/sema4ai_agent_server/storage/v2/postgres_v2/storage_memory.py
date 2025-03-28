@@ -2,20 +2,23 @@ from psycopg.errors import UniqueViolation
 from psycopg.types.json import Jsonb
 
 from agent_server_types_v2.memory import Memory
-from sema4ai_agent_server.storage.v2.errors_v2 import MemoryNotFoundError, RecordAlreadyExistsError
+from sema4ai_agent_server.storage.v2.errors_v2 import (
+    MemoryNotFoundError,
+    RecordAlreadyExistsError,
+)
 from sema4ai_agent_server.storage.v2.postgres_v2.common import CommonMixin
 
 
 class PostgresStorageMemoriesMixin(CommonMixin):
     """
     Mixin providing PostgreSQL-based memory operations.
-    
+
     This mixin implements methods to create, retrieve, list, upsert,
     and delete memory records in the Postgres database. It assumes that
     a working `_cursor()` (which yields an async psycopg cursor) and
     a `_validate_uuid()` method (for validating UUID strings) are available
     via the inherited CommonMixin.
-    
+
     The implementation uses Postgres's native JSONB type (via psycopg's
     Jsonb wrapper) to store JSON data.
     """
@@ -24,7 +27,7 @@ class PostgresStorageMemoriesMixin(CommonMixin):
         """Insert a new memory record into the database."""
         # Validate that memory.memory_id is a valid UUID string.
         self._validate_uuid(memory.memory_id)
-        memory_dict = memory.to_json_dict()
+        memory_dict = memory.model_dump()
         # Convert the JSONable fields into Jsonb objects for proper Postgres handling.
         memory_dict["metadata"] = Jsonb(memory_dict["metadata"])
         memory_dict["tags"] = Jsonb(memory_dict["tags"])
@@ -51,7 +54,9 @@ class PostgresStorageMemoriesMixin(CommonMixin):
                 )
         except UniqueViolation as e:
             if "duplicate key value violates unique constraint" in str(e):
-                raise RecordAlreadyExistsError(f"Memory {memory.memory_id} already exists") from e
+                raise RecordAlreadyExistsError(
+                    f"Memory {memory.memory_id} already exists",
+                ) from e
             raise e
         except Exception:
             raise
@@ -72,10 +77,11 @@ class PostgresStorageMemoriesMixin(CommonMixin):
         if not row:
             raise MemoryNotFoundError(f"Memory {memory_id} not found")
 
-        # In psycopg with a dict_row factory, JSONB columns are usually already converted.
+        # In psycopg with a dict_row factory, JSONB columns are
+        # usually already converted.
         memory_dict = dict(row)
         memory_dict = self._convert_memory_json_fields(memory_dict)
-        return Memory.from_dict(memory_dict)
+        return Memory.model_validate(memory_dict)
 
     async def list_memories_v2(self, scope: str, scope_id: str) -> list[Memory]:
         """
@@ -102,13 +108,13 @@ class PostgresStorageMemoriesMixin(CommonMixin):
         for row in rows:
             memory_dict = dict(row)
             memory_dict = self._convert_memory_json_fields(memory_dict)
-            memories.append(Memory.from_dict(memory_dict))
+            memories.append(Memory.model_validate(memory_dict))
         return memories
 
     async def upsert_memory_v2(self, memory: Memory) -> None:
         """Insert or update a memory record in the database."""
         self._validate_uuid(memory.memory_id)
-        memory_dict = memory.to_json_dict()
+        memory_dict = memory.model_dump()
         # Wrap the JSON fields with Jsonb so that psycopg handles them correctly.
         memory_dict["metadata"] = Jsonb(memory_dict["metadata"])
         memory_dict["tags"] = Jsonb(memory_dict["tags"])
@@ -148,7 +154,9 @@ class PostgresStorageMemoriesMixin(CommonMixin):
                 )
         except UniqueViolation as e:
             if "duplicate key value violates unique constraint" in str(e):
-                raise RecordAlreadyExistsError(f"Memory {memory.memory_id} already exists") from e
+                raise RecordAlreadyExistsError(
+                    f"Memory {memory.memory_id} already exists",
+                ) from e
             raise e
         except Exception:
             raise

@@ -31,11 +31,20 @@ jobs:
         with:
           git_token: ${{ secrets.GIT_TOKEN }}
 
+      - name: Install Dependencies
+        uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/install_deps@v1
+        with:
+          git_username: ${{ secrets.GIT_USERNAME }}
+          git_token: ${{ secrets.GIT_TOKEN }}
+
+      - name: Regenerate Poetry lock file
+        run: |
+          poetry lock --regenerate
+          git add poetry.lock
+          git diff --staged --quiet || git commit -m "Update poetry.lock file"
+
       - name: Set up versionbump
         uses: Sema4AI/agent-server-team-gh-workflows/.github/actions/setup_versionbump@v1
-        with:
-          go_version: "1.22.2"
-          versionbump_version: "v0.7.0"
 
       - name: Bump version
         run: |

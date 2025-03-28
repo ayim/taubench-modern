@@ -6,18 +6,38 @@ from aiosqlite import Cursor, Row, connect
 from structlog import get_logger
 
 from sema4ai_agent_server.storage.v2.sqlite_v2.migrations import SQLiteMigrationsV2
-from sema4ai_agent_server.storage.v2.sqlite_v2.storage_agents import SQLiteStorageAgentsMixin
-from sema4ai_agent_server.storage.v2.sqlite_v2.storage_files import SQLiteStorageFilesMixin
-from sema4ai_agent_server.storage.v2.sqlite_v2.storage_memory import SQLiteStorageMemoriesMixin
-from sema4ai_agent_server.storage.v2.sqlite_v2.storage_messages import SQLiteStorageMessagesMixin
-from sema4ai_agent_server.storage.v2.sqlite_v2.storage_runs import SQLiteStorageRunsMixin
-from sema4ai_agent_server.storage.v2.sqlite_v2.storage_scoped_storage import SQLiteStorageScopedStorageMixin
-from sema4ai_agent_server.storage.v2.sqlite_v2.storage_threads import SQLiteStorageThreadsMixin
-from sema4ai_agent_server.storage.v2.sqlite_v2.storage_users import SQLiteStorageUsersMixin
+from sema4ai_agent_server.storage.v2.sqlite_v2.storage_agents import (
+    SQLiteStorageAgentsMixin,
+)
+from sema4ai_agent_server.storage.v2.sqlite_v2.storage_artifacts import (
+    SQLiteStorageArtifactsMixin,
+)
+from sema4ai_agent_server.storage.v2.sqlite_v2.storage_files import (
+    SQLiteStorageFilesMixin,
+)
+from sema4ai_agent_server.storage.v2.sqlite_v2.storage_memory import (
+    SQLiteStorageMemoriesMixin,
+)
+from sema4ai_agent_server.storage.v2.sqlite_v2.storage_messages import (
+    SQLiteStorageMessagesMixin,
+)
+from sema4ai_agent_server.storage.v2.sqlite_v2.storage_runs import (
+    SQLiteStorageRunsMixin,
+)
+from sema4ai_agent_server.storage.v2.sqlite_v2.storage_scoped_storage import (
+    SQLiteStorageScopedStorageMixin,
+)
+from sema4ai_agent_server.storage.v2.sqlite_v2.storage_threads import (
+    SQLiteStorageThreadsMixin,
+)
+from sema4ai_agent_server.storage.v2.sqlite_v2.storage_users import (
+    SQLiteStorageUsersMixin,
+)
 
 
 class SQLiteStorageV2(
     # Careful: order matters!
+    SQLiteStorageArtifactsMixin,
     SQLiteStorageAgentsMixin,
     SQLiteStorageThreadsMixin,
     SQLiteStorageMessagesMixin,
@@ -28,7 +48,7 @@ class SQLiteStorageV2(
     SQLiteStorageFilesMixin,
 ):
     """
-    SQLite-based storage that mirrors the Postgres-based semantics, including 
+    SQLite-based storage that mirrors the Postgres-based semantics, including
     a 'v2_check_user_access' custom function used in the SQL statements.
     """
 
@@ -39,7 +59,8 @@ class SQLiteStorageV2(
         self._is_setup = False
 
     async def setup_v2(self) -> None:
-        """Create and open the SQLite database connection, enable foreign keys, set up function, run migrations."""
+        """Create and open the SQLite database connection, enable foreign keys,
+        set up function, run migrations."""
         if self._is_setup:
             return  # Already setup
 
@@ -48,7 +69,7 @@ class SQLiteStorageV2(
         self._db.row_factory = Row
 
         # ---------------------------------------------------------------------
-        # Register the check_user_access function in SQLite 
+        # Register the check_user_access function in SQLite
         # ---------------------------------------------------------------------
         def check_user_access(record_user_id: str, requesting_user_id: str) -> int:
             """
@@ -71,9 +92,9 @@ class SQLiteStorageV2(
             # Use the underlying sync connection from aiosqlite
             cur = self._db._conn.execute(  # Access the synchronous sqlite3.Connection
                 """
-                SELECT 1 
-                FROM v2_user 
-                WHERE user_id = ? 
+                SELECT 1
+                FROM v2_user
+                WHERE user_id = ?
                   AND sub LIKE 'tenant:%:system:system_user'
                 """,
                 (requesting_user_id,),
@@ -88,7 +109,7 @@ class SQLiteStorageV2(
         # Run migrations
         await self._run_migrations()
         self._is_setup = True
-    
+
     async def teardown_v2(self) -> None:
         """Close the SQLite database connection."""
         if self._is_setup and self._db is not None:
@@ -97,15 +118,16 @@ class SQLiteStorageV2(
         self._is_setup = False
 
     def _get_db_path(self) -> str:
-        """Get the SQLite database path, defaulting to ./agentserver.db if env var not set."""
+        """Get the SQLite database path, defaulting to
+        ./agentserver.db if env var not set."""
         from os import getenv
         base_dir = getenv("SEMA4AI_STUDIO_HOME")
         if not base_dir:
             base_dir = Path(".")  # Default to a current working directory
-        
+
         db_path = Path(base_dir) / "agentserver.db"
         db_path.parent.mkdir(parents=True, exist_ok=True)
-        
+
         self._logger.info("Using SQLite database path", path=str(db_path.absolute()))
         return str(db_path.absolute())
 
@@ -122,4 +144,3 @@ class SQLiteStorageV2(
         yield cursor
         await self._db.commit()
 
-   

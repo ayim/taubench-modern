@@ -7,18 +7,38 @@ from psycopg_pool import AsyncConnectionPool
 from structlog import get_logger
 
 from sema4ai_agent_server.storage.v2.postgres_v2.migrations import PostgresMigrationsV2
-from sema4ai_agent_server.storage.v2.postgres_v2.storage_agents import PostgresStorageAgentsMixin
-from sema4ai_agent_server.storage.v2.postgres_v2.storage_files import PostgresStorageFilesMixin
-from sema4ai_agent_server.storage.v2.postgres_v2.storage_memory import PostgresStorageMemoriesMixin
-from sema4ai_agent_server.storage.v2.postgres_v2.storage_messages import PostgresStorageMessagesMixin
-from sema4ai_agent_server.storage.v2.postgres_v2.storage_runs import PostgresStorageRunsMixin
-from sema4ai_agent_server.storage.v2.postgres_v2.storage_scoped_storage import PostgresStorageScopedStorageMixin
-from sema4ai_agent_server.storage.v2.postgres_v2.storage_threads import PostgresStorageThreadsMixin
-from sema4ai_agent_server.storage.v2.postgres_v2.storage_users import PostgresStorageUsersMixin
+from sema4ai_agent_server.storage.v2.postgres_v2.storage_agents import (
+    PostgresStorageAgentsMixin,
+)
+from sema4ai_agent_server.storage.v2.postgres_v2.storage_artifacts import (
+    PostgresStorageArtifactsMixin,
+)
+from sema4ai_agent_server.storage.v2.postgres_v2.storage_files import (
+    PostgresStorageFilesMixin,
+)
+from sema4ai_agent_server.storage.v2.postgres_v2.storage_memory import (
+    PostgresStorageMemoriesMixin,
+)
+from sema4ai_agent_server.storage.v2.postgres_v2.storage_messages import (
+    PostgresStorageMessagesMixin,
+)
+from sema4ai_agent_server.storage.v2.postgres_v2.storage_runs import (
+    PostgresStorageRunsMixin,
+)
+from sema4ai_agent_server.storage.v2.postgres_v2.storage_scoped_storage import (
+    PostgresStorageScopedStorageMixin,
+)
+from sema4ai_agent_server.storage.v2.postgres_v2.storage_threads import (
+    PostgresStorageThreadsMixin,
+)
+from sema4ai_agent_server.storage.v2.postgres_v2.storage_users import (
+    PostgresStorageUsersMixin,
+)
 
 
 class PostgresStorageV2(
     # Careful: order matters!
+    PostgresStorageArtifactsMixin,
     PostgresStorageAgentsMixin,
     PostgresStorageThreadsMixin,
     PostgresStorageMessagesMixin,
@@ -74,7 +94,9 @@ class PostgresStorageV2(
         await self._migrations.run_migrations()
 
     @asynccontextmanager
-    async def _cursor(self, cursor: AsyncCursor|None=None) -> AsyncGenerator[AsyncCursor, None]:
+    async def _cursor(
+        self, cursor: AsyncCursor | None = None,
+    ) -> AsyncGenerator[AsyncCursor, None]:
         """Yield an async psycopg cursor from the pool (or uses the provided cursor)."""
         if not self._pool:
             raise RuntimeError("Pool not initialized; call setup_v2() first.")

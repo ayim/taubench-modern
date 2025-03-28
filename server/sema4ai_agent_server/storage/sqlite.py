@@ -26,7 +26,7 @@ from agent_server_types import (
 from langchain_core.messages import AnyMessage
 
 from sema4ai_agent_server.agent import runnable_agent
-from sema4ai_agent_server.constants import DOMAIN_DATABASE_PATH
+from sema4ai_agent_server.constants import SystemPaths
 from sema4ai_agent_server.storage import (
     BaseStorage,
     UniqueAgentNameError,
@@ -52,7 +52,7 @@ class SqliteStorage(BaseStorage):
     @classmethod
     @contextmanager
     def _connect(cls):
-        conn = sqlite3.connect(DOMAIN_DATABASE_PATH)
+        conn = sqlite3.connect(SystemPaths.domain_database_path)
         conn.row_factory = sqlite3.Row  # Enable dictionary access to row items.
         try:
             yield conn
@@ -232,19 +232,34 @@ class SqliteStorage(BaseStorage):
             count = cursor.fetchone()[0]
             return count
 
-    async def list_threads(self, user_id: str) -> List[Thread]:
+    async def list_threads(
+        self, user_id: str, aid: str = None, name: str = None, limit: int = None
+    ) -> List[Thread]:
         """List all threads for the current user and system threads."""
-        with self._connect() as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                """
+        sql = """
                 SELECT t.* 
                 FROM thread t
                 LEFT JOIN "user" u ON t.user_id = u.user_id
-                WHERE t.user_id = ? OR u.sub LIKE 'tenant:%:system:system_user'
-                """,
-                (user_id,),
-            )
+                WHERE (t.user_id = ? OR u.sub LIKE 'tenant:%:system:system_user')
+                """
+        params = [user_id]
+
+        if aid is not None:
+            sql += " AND t.agent_id = ?"
+            params.append(aid)
+
+        if name is not None:
+            sql += " AND t.name LIKE ?"
+            params.append(f"%{name}%")
+
+        sql += " ORDER BY t.updated_at DESC"
+        if limit is not None:
+            sql += " LIMIT ?"
+            params.append(limit)
+
+        with self._connect() as conn:
+            cursor = conn.cursor()
+            cursor.execute(sql, params)
             rows = cursor.fetchall()
 
             return THREAD_LIST_ADAPTER.validate_python([dict(row) for row in rows])

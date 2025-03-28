@@ -25,6 +25,7 @@ from agent_server_types import (
     LangsmithCredentials,
     ModelNotConfigured,
     SerializableSecretStr,
+    UpdateAgentPayload,
     UploadedFile,
 )
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Path, UploadFile
@@ -93,6 +94,12 @@ class AgentPayloadPackage(BaseModel):
                 "Exactly one of agent_package_url or agent_package_base64 must be provided"
             )
         return self
+
+
+class UpdateAgentResponse(BaseModel):
+    """Response model for update_agent endpoint."""
+
+    updated: Agent
 
 
 class DeletedAgentResponse(BaseModel):
@@ -217,6 +224,44 @@ async def get_agent_status(user: AuthedUser, aid: AgentID):
             issues.append(EmbeddingFileFailed(file_ref=file.file_ref))
 
     return PydanticResponse(AgentStatus(ready=len(issues) == 0, issues=issues))
+
+
+@router.patch("/{aid}", response_model=Agent, response_class=PydanticResponse)
+async def update_agent(
+    user: AuthedUser,
+    aid: AgentID,
+    payload: UpdateAgentPayload,
+):
+    agent = await get_storage().get_agent(user.user_id, aid)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    updated_agent = agent.patch_agent(payload)
+
+    try:
+        # TODO: The storage layer needs a patch endpoint as this currently writes
+        # all fields even if they are not provided.
+        agent = await get_storage().put_agent(
+            user.user_id,
+            aid,
+            public=updated_agent.public,
+            name=updated_agent.name,
+            description=updated_agent.description,
+            runbook=updated_agent.runbook.get_secret_value(),
+            version=updated_agent.version,
+            model=updated_agent.model,
+            advanced_config=updated_agent.advanced_config,
+            action_packages=updated_agent.action_packages,
+            metadata=updated_agent.metadata,
+            created_at=agent.created_at,
+        )
+
+        return PydanticResponse(agent, ser_context=LEGACY_ARCH_CONTEXT)
+    except Exception as e:
+        logger.exception("Failed to update agent", exception=e)
+        raise HTTPException(
+            status_code=400, detail=e.detail if isinstance(e, HTTPException) else str(e)
+        )
 
 
 @router.put("/package/{aid}", response_model=Agent, response_class=PydanticResponse)

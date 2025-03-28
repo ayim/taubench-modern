@@ -1,6 +1,13 @@
 from fastapi import HTTPException
 
 
+class ArtifactNotFoundError(HTTPException):
+    """An artifact with the given ID was not found."""
+
+    def __init__(self, detail: str = "An artifact with the given ID was not found"):
+        super().__init__(status_code=404, detail=detail)
+
+
 class AgentWithNameAlreadyExistsError(HTTPException):
     """An agent with the given name already exists."""
 

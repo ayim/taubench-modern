@@ -32,10 +32,11 @@ CREATE TABLE v2_agent (
     updated_at  TEXT NOT NULL DEFAULT (datetime('now')),
     created_at  TEXT NOT NULL DEFAULT (datetime('now')),
     action_packages       TEXT NOT NULL CHECK (json_valid(action_packages)),
+    mcp_servers           TEXT NOT NULL CHECK (json_valid(mcp_servers)),
     agent_architecture    TEXT NOT NULL CHECK (json_valid(agent_architecture)),
     question_groups       TEXT NOT NULL CHECK (json_valid(question_groups)),
     observability_configs TEXT NOT NULL CHECK (json_valid(observability_configs)),
-    provider_configs      TEXT NOT NULL CHECK (json_valid(provider_configs)),
+    platform_configs      TEXT NOT NULL CHECK (json_valid(platform_configs)),
     extra                 TEXT NOT NULL CHECK (json_valid(extra)),
 
     CONSTRAINT fk_agent_user_id
@@ -94,6 +95,7 @@ CREATE TABLE v2_thread_message (
     message_id    TEXT PRIMARY KEY,
     sequence_number INT NOT NULL,
     thread_id     TEXT NOT NULL,
+    parent_run_id TEXT,
     created_at    TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at    TEXT NOT NULL DEFAULT (datetime('now')),
     role          TEXT NOT NULL,  -- e.g., 'agent', 'user', 'system'
@@ -110,6 +112,9 @@ CREATE TABLE v2_thread_message (
 -- Index for quick retrieval of messages by thread
 CREATE INDEX idx_thread_message_thread_id_v2
     ON v2_thread_message(thread_id);
+
+CREATE INDEX idx_thread_message_parent_run_id_v2
+    ON v2_thread_message(parent_run_id);
 
 ------------------------------------------------------------------------------
 -- RUNS
@@ -302,6 +307,54 @@ CREATE TABLE v2_memory (
 
 CREATE INDEX idx_memory_scope 
     ON v2_memory(scope);
+
+------------------------------------------------------------------------------
+-- OTEL ARTIFACTS
+------------------------------------------------------------------------------
+-- A table to store OTel artifacts. Artifacts are created by the system,
+-- not necessarily by a specific user (although often they are).
+-- Artifacts are stored in the database for a limited time, after which they
+-- are deleted (exact retention policy TBD).
+------------------------------------------------------------------------------
+CREATE TABLE v2_otel_artifact (
+    artifact_id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    mime_type TEXT NOT NULL,
+    content BLOB NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    -- The trace ID to tie this artifact back to the original trace
+    trace_id TEXT NOT NULL,
+    -- An otel artifact could be associated with a user, an agent,
+    -- a thread, a run, a message, etc. Here we have nullable IDs
+    -- to correlate artifacts to other structured entities in our system
+    correlated_user_id TEXT NULL,
+    correlated_agent_id TEXT NULL,
+    correlated_thread_id TEXT NULL,
+    correlated_run_id TEXT NULL,
+    correlated_message_id TEXT NULL,
+    to_be_deleted_at TEXT
+);
+
+CREATE INDEX idx_otel_artifact_to_be_deleted_at
+    ON v2_otel_artifact(to_be_deleted_at);
+
+CREATE INDEX idx_otel_artifact_trace_id
+    ON v2_otel_artifact(trace_id);
+
+CREATE INDEX idx_otel_artifact_correlated_user_id
+    ON v2_otel_artifact(correlated_user_id);
+
+CREATE INDEX idx_otel_artifact_correlated_agent_id
+    ON v2_otel_artifact(correlated_agent_id);
+
+CREATE INDEX idx_otel_artifact_correlated_thread_id
+    ON v2_otel_artifact(correlated_thread_id);
+
+CREATE INDEX idx_otel_artifact_correlated_run_id
+    ON v2_otel_artifact(correlated_run_id);
+
+CREATE INDEX idx_otel_artifact_correlated_message_id
+    ON v2_otel_artifact(correlated_message_id);
 
 ------------------------------------------------------------------------------
 -- CHECK USER ACCESS

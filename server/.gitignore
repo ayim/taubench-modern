@@ -4,6 +4,9 @@ postgres-volume/
 redis-volume/
 chroma_db/
 uploads/
+agent-server.pid
+agent-server.lock
+agent-server-config.json
 
 **/repomix-output.txt
 
