@@ -20,7 +20,7 @@ image-support = [
     "IPython>=8.31.0,<9.0.0",
 ]
 platforms-snowflake = [
-    "snowflake-connector-python",
+    "snowflake-connector-python>=3.14.0,<4.0.0",
 ]
 platforms-openai = [
     "openai>=1.59.8,<2.0.0",
@@ -49,6 +49,17 @@ dev = [
     "pillow>=11.1.0,<12.0.0",
     "IPython>=8.31.0,<9.0.0",
     "requests>=2.31.0,<3.0.0",
+]
+lint = [
+    "ruff>=0.7.2,<0.8.0",
+]
+notebooks = [
+    "IPython>=8.31.0,<9.0.0",
+    "ipykernel>=6.29.5,<7.0.0",
+    "ipywidgets>=8.1.5,<9.0.0",
+    "requests>=2.31.0,<3.0.0",
+    "python-dotenv>=1.0.1,<2.0.0",
+    "anywidget>=0.9.15,<1.0.0",
 ]
 
 
