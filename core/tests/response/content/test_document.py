@@ -66,7 +66,7 @@ class TestResponseDocumentContent:
 
         # Patch the UploadedFile type check
         with patch(
-            "agent_platform_core.responses.content.document.UploadedFile",
+            "agent_platform.core.responses.content.document.UploadedFile",
             MagicMock,
         ):
             content = ResponseDocumentContent(
@@ -131,7 +131,7 @@ class TestResponseDocumentContent:
         """Test that ResponseDocumentContent raises an error for
         invalid UploadedFile."""
         with patch(
-            "agent_platform_core.responses.content.document.UploadedFile",
+            "agent_platform.core.responses.content.document.UploadedFile",
             MagicMock,
         ):
             with pytest.raises(

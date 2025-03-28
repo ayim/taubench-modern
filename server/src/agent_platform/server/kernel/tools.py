@@ -1,12 +1,12 @@
 from collections.abc import AsyncGenerator
 from datetime import datetime
 
-from agent_server_types_v2.actions import ActionPackage
-from agent_server_types_v2.kernel import ToolsInterface
-from agent_server_types_v2.mcp import MCPServer
-from agent_server_types_v2.responses.content.tool_use import ResponseToolUseContent
-from agent_server_types_v2.tools import ToolDefinition, ToolExecutionResult
-from sema4ai_agent_server.kernel.kernel_mixin import UsesKernelMixin
+from agent_platform.core.actions import ActionPackage
+from agent_platform.core.kernel import ToolsInterface
+from agent_platform.core.mcp import MCPServer
+from agent_platform.core.responses.content.tool_use import ResponseToolUseContent
+from agent_platform.core.tools import ToolDefinition, ToolExecutionResult
+from agent_platform.server.kernel.kernel_mixin import UsesKernelMixin
 
 PendingToolCall = tuple[ToolDefinition, ResponseToolUseContent]
 

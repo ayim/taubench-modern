@@ -2,8 +2,8 @@ from asyncio import Event, Queue
 from collections.abc import AsyncIterator
 from typing import Any
 
-from agent_server_types_v2.kernel import EventsInterface
-from sema4ai_agent_server.kernel.kernel_mixin import UsesKernelMixin
+from agent_platform.core.kernel import EventsInterface
+from agent_platform.server.kernel.kernel_mixin import UsesKernelMixin
 
 
 class AgentServerEventsInterface(EventsInterface, UsesKernelMixin):

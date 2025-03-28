@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 from typing import Any
 
-from agent_server_types_v2.kernel import Kernel
+from agent_platform.core.kernel import Kernel
 
 
 class BaseAgentRunner(ABC):

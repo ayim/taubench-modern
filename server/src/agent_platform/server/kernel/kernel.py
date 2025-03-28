@@ -1,6 +1,6 @@
-from agent_server_types_v2.agent import Agent
-from agent_server_types_v2.kernel import Kernel
-from agent_server_types_v2.kernel_interfaces import (
+from agent_platform.core.agent import Agent
+from agent_platform.core.kernel import Kernel
+from agent_platform.core.kernel_interfaces import (
     ConvertersInterface,
     EventsInterface,
     FilesInterface,
@@ -14,22 +14,22 @@ from agent_server_types_v2.kernel_interfaces import (
     ToolsInterface,
     UserInteractionsInterface,
 )
-from agent_server_types_v2.platforms.base import PlatformClient
-from agent_server_types_v2.runs import Run
-from agent_server_types_v2.thread import Thread
-from agent_server_types_v2.user import User
-from sema4ai_agent_server.kernel.converters import AgentServerConvertersInterface
-from sema4ai_agent_server.kernel.events import AgentServerEventsInterface
-from sema4ai_agent_server.kernel.files import AgentServerFilesInterface
-from sema4ai_agent_server.kernel.memory import AgentServerMemoryInterface
-from sema4ai_agent_server.kernel.model_platform import AgentServerPlatformInterface
-from sema4ai_agent_server.kernel.otel import AgentServerOTelInterface
-from sema4ai_agent_server.kernel.prompts import AgentServerPromptsInterface
-from sema4ai_agent_server.kernel.runbook import AgentServerRunbookInterface
-from sema4ai_agent_server.kernel.storage import AgentServerStorageInterface
-from sema4ai_agent_server.kernel.thread_state import AgentServerThreadStateInterface
-from sema4ai_agent_server.kernel.tools import AgentServerToolsInterface
-from sema4ai_agent_server.kernel.user_interactions import (
+from agent_platform.core.platforms.base import PlatformClient
+from agent_platform.core.runs import Run
+from agent_platform.core.thread import Thread
+from agent_platform.core.user import User
+from agent_platform.server.kernel.converters import AgentServerConvertersInterface
+from agent_platform.server.kernel.events import AgentServerEventsInterface
+from agent_platform.server.kernel.files import AgentServerFilesInterface
+from agent_platform.server.kernel.memory import AgentServerMemoryInterface
+from agent_platform.server.kernel.model_platform import AgentServerPlatformInterface
+from agent_platform.server.kernel.otel import AgentServerOTelInterface
+from agent_platform.server.kernel.prompts import AgentServerPromptsInterface
+from agent_platform.server.kernel.runbook import AgentServerRunbookInterface
+from agent_platform.server.kernel.storage import AgentServerStorageInterface
+from agent_platform.server.kernel.thread_state import AgentServerThreadStateInterface
+from agent_platform.server.kernel.tools import AgentServerToolsInterface
+from agent_platform.server.kernel.user_interactions import (
     AgentServerUserInteractionsInterface,
 )
 

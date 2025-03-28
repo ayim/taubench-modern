@@ -1,179 +1,116 @@
 import os
-import re
-import sys
+from io import BytesIO
 from pathlib import Path
-from typing import Union
-from urllib.parse import unquote, urlparse
 from uuid import uuid4
 
 import structlog
-from agent_server_types import Agent, EmbeddingStatus, Thread, UploadedFile
 from fastapi import UploadFile
 
-from sema4ai_agent_server.constants import SystemPaths
-from sema4ai_agent_server.file_manager.base import (
+from agent_platform.core.agent import Agent
+from agent_platform.core.files import FileData, UploadedFile, UploadFileRequest
+from agent_platform.core.thread import Thread
+from agent_platform.server.constants import SystemPaths
+from agent_platform.server.file_manager.base import (
     MISSING_FILE_HASH,
     BaseFileManager,
     RemoteFileUploadData,
     get_hash,
 )
-from sema4ai_agent_server.schema import UploadFileRequest
-from sema4ai_agent_server.storage.embed import Blob, convert_to_blob
-from sema4ai_agent_server.storage.option import get_storage
+from agent_platform.server.file_manager.utils import (
+    IS_WIN,
+    convert_to_file_data,
+    normalize_drive,
+    url_to_fs_path,
+)
+from agent_platform.server.storage.option import get_storage
 
 logger = structlog.get_logger(__name__)
 
 
-IS_WIN = sys.platform == "win32"
-RE_DRIVE_LETTER_PATH = re.compile(r"^\/[a-zA-Z]:")
-
-
-def normalize_drive(path: str) -> str:
-    """Normalize windows drive letters to lowercase."""
-    if len(path) >= 2 and path[0].isalpha() and path[1] == ":":
-        return path[0].lower() + path[1:]
-    return path
-
-
-def url_to_fs_path(file_url: str) -> str:
-    """Returns the filesystem path of the given URI.
-    Will handle UNC paths and normalize windows drive letters to lower-case.
-    Also uses the platform specific path separator. Will *not* validate the
-    path for invalid characters and semantics.
-    Will validate the scheme of this URI.
-
-    Examples:
-        - UNC path: file://shares/c$/far/boo
-        - Windows drive letter: file:///C:/far/boo
-        - Regular path: file:///path/to/file
-    """
-    # scheme://netloc/path;parameters?query#fragment
-    scheme, netloc, path, _params, _query, _fragment = urlparse(file_url)
-
-    if scheme != "file":
-        raise ValueError(f"Invalid file URL scheme: {file_url}")
-
-    path = unquote(path)
-
-    if netloc and path:
-        # UNC path: file://shares/c$/far/boo
-        value = f"//{netloc}{path}"
-
-    elif RE_DRIVE_LETTER_PATH.match(path):
-        # windows drive letter: file:///C:/far/boo
-        value = path[1].lower() + path[2:]
-
-    else:
-        # Other path
-        value = path
-
-    if IS_WIN:
-        value = value.replace("/", "\\")
-        value = normalize_drive(value)
-
-    return value
-
-
 class LocalFileManager(BaseFileManager):
-    async def _store(self, blob: Blob, file_url: str) -> str:
+    async def _store(self, file_data: FileData, file_url: str) -> str:
         logger.info(f"Storing {file_url}")
         fs_path = url_to_fs_path(file_url)
         os.makedirs(os.path.dirname(fs_path), exist_ok=True)
-        blob_as_bytes = blob.as_bytes()
+        file_data_as_bytes = file_data.content
         with open(fs_path, "wb") as f:
-            f.write(blob_as_bytes)
-        return get_hash(blob_as_bytes)
+            f.write(file_data_as_bytes)
+        return get_hash(file_data_as_bytes)
 
-    async def _delete_stored_file(self, file_url: str) -> None:
-        if not file_url:
-            return
-        logger.info(f"Deleting {file_url}")
-
-        try:
-            fs_path = url_to_fs_path(file_url)
-            if os.path.exists(fs_path):
-                os.remove(fs_path)
-        except Exception as e:
-            logger.exception(f"Error deleting file at {file_url}: {str(e)}")
-
-    async def _revert_uploads(self, uploads: list[tuple[str, str]]) -> None:
+    async def _revert_uploads(
+        self,
+        owner: Agent | Thread,
+        user_id: str,
+        uploads: list[tuple[str, str]],
+    ) -> None:
         """uploads is a list of tuples of the form (file_id, file_path)"""
         for file_id, file_url in uploads:
-            await self._delete_stored_file(file_url)
-            await get_storage().delete_file(file_id)
+            await get_storage().delete_file(owner, file_id, user_id)
 
-    async def _upload(
+    async def _upload_files(
         self,
-        file_id: str,
-        file_path: str,
-        file: UploadFile,
-        owner: Union[Agent, Thread],
-        embedded: bool,
-    ) -> UploadedFile:
-        blob = convert_to_blob(file)
-        file_hash = await self._store(blob, file_path)
-        assert file.filename, (
-            "Invalid (empty) file name (should've raised an error in self._validate_files_pre_upload already)."
-        )
-        return await get_storage().put_file_owner(
-            file_id,
-            file_path,
-            file.filename,
-            file_hash,
-            embedded,
-            EmbeddingStatus.PENDING if embedded else None,
-            owner,
-            file_path_expiration=None,
-        )
-
-    async def upload(
-        self, files: list[UploadFileRequest], owner: Union[Agent, Thread]
+        files: list[UploadFileRequest],
+        owner: Agent | Thread,
+        user_id: str,
     ) -> list[UploadedFile]:
         """Uploads all files or none to ensure consistency."""
-        self._validate_files_pre_upload(files)
         owner_id = owner.id if isinstance(owner, Agent) else owner.thread_id
+        logger.info(f"Uploading {len(files)} files to {owner_id}")
+
         uploaded_files: list[UploadedFile] = []
         for f in files:
             file_id = str(uuid4())
             assert f.file.filename, (
                 "Invalid (empty) file name (should've raised an error in self._validate_files_pre_upload already)."
             )
-            file_url = self._build_file_url(owner_id, file_id, f.file.filename)
-            embedded = (
-                f.embedded if f.embedded is not None else self._is_embeddable(f.file)
-            )
+            file_url = self._build_file_url(file_id, f.file.filename)
             try:
-                uploaded_file = await self._upload(
-                    file_id, file_url, f.file, owner, embedded
+                file_data = convert_to_file_data(f.file)
+                file_hash = await self._store(file_data, file_url)
+                uploaded_file = await get_storage().put_file_owner(
+                    file_id,
+                    file_url,
+                    f.file.filename,
+                    file_hash,
+                    file_data.file_size,
+                    file_data.mime_type,
+                    user_id,
+                    False,  # embedded
+                    None,
+                    owner,
+                    file_path_expiration=None,
                 )
+                uploaded_files.append(uploaded_file)
             except Exception as e:
                 logger.exception(
-                    f"Failed to upload {f.file.filename}. Reverting all uploads."
+                    f"Failed to upload {f.file.filename} with file id {file_id}. Error: {e}. Reverting all uploads.",
                 )
                 await self._revert_uploads(
-                    [(file_id, file_url)]
-                    + [(file.file_id, file.file_path) for file in uploaded_files]
+                    owner,
+                    user_id,
+                    [(file.file_id, file.file_path) for file in uploaded_files],
                 )
                 raise e
-            uploaded_files.append(uploaded_file)
         return uploaded_files
 
-    async def delete(self, file_id: str) -> None:
-        file = await get_storage().get_file_by_id(file_id)
-        if file is None:
-            raise Exception(f"Unable to delete file {file_id} (it does not exist).")
-        if not file.file_path:
-            raise Exception(f"Unable to delete file {file_id} (no file path).")
-        await self._delete_stored_file(file.file_path)
-        await self._delete_embeddings(file_id)
-        await get_storage().delete_file(file_id)
+    async def delete(self, thread_id: str, user_id: str, file_id: str) -> None:
+        # TODO: embeddings
+        # await self._delete_embeddings(file_id)
+        owner = await get_storage().get_thread(user_id, thread_id)
+        await get_storage().delete_file(owner, file_id, user_id)
+
+    async def delete_thread_files(self, thread_id: str, user_id: str) -> None:
+        """Delete all files associated with a thread."""
+        await get_storage().delete_thread_files(thread_id, user_id)
 
     async def refresh_file_paths(self, files: list[UploadedFile]) -> list[UploadedFile]:
         """Paths are not presigned in local storage"""
-        return files
+        raise NotImplementedError(
+            "Local file manager does not support refreshing file paths",
+        )
 
-    async def read_file_contents(self, file_id: str) -> bytes:
-        file = await get_storage().get_file_by_id(file_id)
+    async def read_file_contents(self, file_id: str, user_id: str) -> bytes:
+        file = await get_storage().get_file_by_id(file_id, user_id)
         if not file:
             raise Exception(f"File not found: {file_id}")
         if not file.file_path:
@@ -186,7 +123,7 @@ class LocalFileManager(BaseFileManager):
             logger.exception(f"File not found: {file.file_path}")
             raise
 
-    def _build_file_url(self, owner_id: str, file_id: str, file_ref: str) -> str:
+    def _build_file_url(self, file_id: str, file_ref: str) -> str:
         """Returns the file URI for a given path.
         Will handle UNC paths and normalize windows drive letters to lower-case.
 
@@ -195,17 +132,24 @@ class LocalFileManager(BaseFileManager):
             - Windows drive letter: file:///c:/far/boo
             - Regular path: file:///path/to/file
         """
-        abs_path = SystemPaths.upload_dir.joinpath(owner_id, file_id, file_ref)
+        abs_path = Path(SystemPaths.upload_dir).joinpath(file_id, file_ref)
         if IS_WIN:
             abs_path = Path(normalize_drive(str(abs_path)))
         return abs_path.as_uri()
 
     async def request_remote_file_upload(
-        self, thread: Thread, file_name: str
+        self,
+        thread: Thread,
+        file_name: str,
     ) -> RemoteFileUploadData:
         file_id = str(uuid4())
+        self._validate_files_pre_upload(
+            [
+                file_name,
+            ],
+        )
         file_ref = await self.generate_unique_file_ref(thread, file_name)
-        url = self._build_file_url(thread.thread_id, file_id, file_ref)
+        url = self._build_file_url(file_id, file_ref)
         return RemoteFileUploadData(
             url=url,
             form_data={},
@@ -214,16 +158,55 @@ class LocalFileManager(BaseFileManager):
         )
 
     async def confirm_remote_file_upload(
-        self, thread: Thread, file_ref: str, file_id: str
+        self,
+        thread: Thread,
+        file_ref: str,
+        file_id: str,
     ) -> UploadedFile:
         file = await get_storage().put_file_owner(
             file_id=file_id,
-            file_path=self._build_file_url(thread.thread_id, file_id, file_ref),
+            file_path=self._build_file_url(file_id, file_ref),
             file_ref=file_ref,
             file_hash=MISSING_FILE_HASH,
+            file_size_raw=0,
+            mime_type=None,
+            user_id=thread.user_id,
             embedded=False,
             embedding_status=None,
             owner=thread,
             file_path_expiration=None,
         )
         return file
+
+    async def generate_unique_file_ref(
+        self,
+        owner: Agent | Thread,
+        file_name: str,
+    ) -> str:
+        from agent_platform.server.storage.errors import UniqueFileRefError
+
+        uploaded_file = await get_storage().get_file_by_ref(
+            owner,
+            file_name,
+            owner.user_id,
+        )
+        if uploaded_file:
+            # This file already exists, so, double check if it's already embedded.
+            # If it is, we can't override it!
+            if uploaded_file.embedded:
+                raise UniqueFileRefError(file_name)
+
+        # Just return the file name as it is (which may override an existing file)
+
+        # Note: there is code in the repository to generate a unique file ref
+        # with a rule such as `data (1).csv`, `data (2).csv`, etc.
+
+        # This was changed because the usage of always creating a new file ref instead
+        # of overriding files with the same name made it more difficult to manage
+        # in actions (as actions are stateless, referencing a file by the same name is
+        # easy, but keeping a track of which is the new name to reference if a file
+        # is updated is not that straightforward).
+        # In the future maybe we could have some other versioning scheme to access old
+        # files, but for now, just overriding is simpler and easier to manage.
+
+        return file_name

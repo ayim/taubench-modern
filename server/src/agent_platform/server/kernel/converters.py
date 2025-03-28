@@ -1,5 +1,5 @@
-from agent_server_types_v2.kernel import ConvertersInterface
-from agent_server_types_v2.prompts import (
+from agent_platform.core.kernel import ConvertersInterface
+from agent_platform.core.prompts import (
     PromptAgentMessage,
     PromptMessage,
     PromptMessageContent,
@@ -8,14 +8,14 @@ from agent_server_types_v2.prompts import (
     PromptToolUseContent,
     PromptUserMessage,
 )
-from agent_server_types_v2.thread import (
+from agent_platform.core.thread import (
     ThreadMessage,
     ThreadMessageContent,
     ThreadTextContent,
     ThreadThoughtContent,
     ThreadToolUsageContent,
 )
-from sema4ai_agent_server.kernel.kernel_mixin import UsesKernelMixin
+from agent_platform.server.kernel.kernel_mixin import UsesKernelMixin
 
 
 class AgentServerConvertersInterface(ConvertersInterface, UsesKernelMixin):

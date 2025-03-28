@@ -12,8 +12,8 @@ import pytest
 import requests
 from fastapi import status
 
-from tests.integration_tests.agent_client import (
-    AgentServerClientV2,
+from ..agent_client import (
+    AgentServerClient,
     print_header,
     print_success,
 )
@@ -73,7 +73,7 @@ def cloud_server():
 
 
 def _file_uploads_with_existing_thread(
-    agent_client: AgentServerClientV2,
+    agent_client: AgentServerClient,
     thread_id: str,
     agent_id: str,
     create_sample_file: Callable,
@@ -153,7 +153,7 @@ def _file_uploads_with_existing_thread(
 
 
 def _file_uploads_with_non_existent_thread(
-    agent_client: AgentServerClientV2,
+    agent_client: AgentServerClient,
     agent_id: str,
     create_sample_file: Callable,
 ) -> None:
@@ -234,13 +234,12 @@ def test_file_uploads(
     base_url_agent_server_sqlite_cloud,
     base_url_agent_server_postgres_cloud,
     create_sample_file,
-    openai_api_key,
     cloud_server,
 ):
     """Test file upload functionality using the agent server client."""
     print_header("TESTING SQLITE FILE UPLOADS")
-    with AgentServerClientV2(base_url_agent_server_sqlite_cloud) as agent_client:
-        agent_id = agent_client.create_agent_and_return_agent_id(openai_api_key)
+    with AgentServerClient(base_url_agent_server_sqlite_cloud) as agent_client:
+        agent_id = agent_client.create_agent_and_return_agent_id()
         thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
 
         # Test with a valid thread ID (SQLite)
@@ -259,8 +258,8 @@ def test_file_uploads(
         )
 
     print_header("TESTING POSTGRES FILE UPLOADS")
-    with AgentServerClientV2(base_url_agent_server_postgres_cloud) as agent_client:
-        agent_id = agent_client.create_agent_and_return_agent_id(openai_api_key)
+    with AgentServerClient(base_url_agent_server_postgres_cloud) as agent_client:
+        agent_id = agent_client.create_agent_and_return_agent_id()
         thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
 
         # Test with a valid thread ID (Postgres)

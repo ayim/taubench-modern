@@ -1,13 +1,13 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from agent_server_types_v2.kernel import Kernel
-from agent_server_types_v2.kernel_interfaces.model_platform import PlatformInterface
-from agent_server_types_v2.platforms.base import PlatformClient
-from agent_server_types_v2.prompts import Prompt
-from agent_server_types_v2.responses import ResponseMessage
-from agent_server_types_v2.responses.streaming import ResponseStreamPipe
-from sema4ai_agent_server.kernel.kernel_mixin import UsesKernelMixin
+from agent_platform.core.kernel import Kernel
+from agent_platform.core.kernel_interfaces.model_platform import PlatformInterface
+from agent_platform.core.platforms.base import PlatformClient
+from agent_platform.core.prompts import Prompt
+from agent_platform.core.responses import ResponseMessage
+from agent_platform.core.responses.streaming import ResponseStreamPipe
+from agent_platform.server.kernel.kernel_mixin import UsesKernelMixin
 
 
 class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):

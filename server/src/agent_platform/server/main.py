@@ -8,13 +8,13 @@ from pathlib import Path
 import structlog
 import uvicorn
 
-import sema4ai_agent_server
-from sema4ai_agent_server.configuration_manager import (
+import agent_platform.server
+from agent_platform.server.configuration_manager import (
     get_configuration_manager,
     init_configurations,
 )
-from sema4ai_agent_server.constants import IS_FROZEN, ROOT, default_config_path
-from sema4ai_agent_server.log_config import setup_logging
+from agent_platform.server.constants import IS_FROZEN, ROOT, default_config_path
+from agent_platform.server.log_config import setup_logging
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
@@ -55,22 +55,28 @@ def is_port_in_use(port: int) -> bool:
     return False
 
 
-def main():
+def main():  # noqa: C901, PLR0912, PLR0915
     parser = argparse.ArgumentParser(description="Run the Sema4.ai Agent Server.")
     parser.add_argument(
         "--host",
         type=str,
-        help="Host address to run the HTTP server on. Default is from config or '0.0.0.0'.",
+        help=(
+            "Host address to run the HTTP server on. "
+            "Default is from config or '0.0.0.0'."
+        ),
     )
     parser.add_argument(
         "--port",
         type=int,
-        help="Port to run the HTTP server on. Default is from config or 8000.",
+        help=(
+            "Port to run the HTTP server on. "
+            "Default is from config or 8000."
+        ),
     )
     parser.add_argument(
         "--version",
         action="version",
-        version=f"Sema4.ai Agent Server v{sema4ai_agent_server.__version__}",
+        version=f"Sema4.ai Agent Server v{agent_platform.server.__version__}",
         help="Show program's version number and exit.",
     )
     parser.add_argument(
@@ -157,7 +163,7 @@ def main():
         else:
             license_path = ROOT / "LICENSE"
         try:
-            with open(license_path, "r") as f:
+            with open(license_path) as f:
                 print(f.read())
             sys.exit(0)
         except FileNotFoundError:
@@ -205,8 +211,8 @@ def main():
     )
 
     # Now we can import the constants and other modules that rely on them.
-    from sema4ai_agent_server.app import create_app
-    from sema4ai_agent_server.constants import SystemConfig, SystemPaths
+    from agent_platform.server.app import create_app
+    from agent_platform.server.constants import SystemConfig, SystemPaths
 
     logger.debug("Setting up logging")
     setup_logging()
@@ -225,20 +231,21 @@ def main():
 
     # Handle show-config or export-config action
     if args.show_config or args.export_config:
-        from sema4ai_agent_server.agent_architecture_manager import (
-            get_agent_architectures,
-        )
+        # from agent_platform.server.agent_architecture_manager import (
+        #     get_agent_architectures,
+        # )
 
         logger.debug(
             f"{'--show-config' if args.show_config else '--export-config'} flag detected, displaying configuration and exiting"
         )
         manager = get_configuration_manager()
         # Get all agent architectures so we can scan them for configurations
-        agent_architectures = get_agent_architectures()
+        # agent_architectures = get_agent_architectures()
         packages_to_scan = [
-            "sema4ai_agent_server",
-            "agent_server_types",
-            *[str(arch) for arch in agent_architectures],
+            "agent_platform.core",
+            "agent_platform.architectures.default",
+            "agent_platform.server",
+            # *[str(arch) for arch in agent_architectures],
         ]
         # Make sure all configurations are loaded
         manager.reload(packages_to_scan=packages_to_scan)
@@ -480,14 +487,15 @@ def main():
     # Step 2: Load all remaining configurations before running the server
     # This will use the already initialized manager and update it, not reinitialize it
     logger.info("Loading all configurations before starting server...")
-    from sema4ai_agent_server.agent_architecture_manager import get_agent_architectures
+    # from sema4ai_agent_server.agent_architecture_manager import get_agent_architectures
 
     manager = get_configuration_manager()
-    agent_architectures = get_agent_architectures()
+    # agent_architectures = get_agent_architectures()
     packages_to_scan = [
-        "sema4ai_agent_server",
-        "agent_server_types",
-        *[str(arch) for arch in agent_architectures],
+        "agent_platform.core",
+        "agent_platform.architectures.default",
+        "agent_platform.server",
+        # *[str(arch) for arch in agent_architectures],
     ]
     # Load configurations from all core packages and any plugins
     manager.reload(packages_to_scan=packages_to_scan)

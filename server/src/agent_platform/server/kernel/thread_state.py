@@ -1,10 +1,10 @@
-from agent_server_types_v2.agent import Agent
-from agent_server_types_v2.kernel import ThreadStateInterface
-from agent_server_types_v2.streaming import (
+from agent_platform.core.agent import Agent
+from agent_platform.core.kernel import ThreadStateInterface
+from agent_platform.core.streaming import (
     StreamingDelta,
 )
-from agent_server_types_v2.thread import Thread, ThreadMessage
-from sema4ai_agent_server.kernel.kernel_mixin import UsesKernelMixin
+from agent_platform.core.thread import Thread, ThreadMessage
+from agent_platform.server.kernel.kernel_mixin import UsesKernelMixin
 
 
 class AgentServerThreadStateInterface(ThreadStateInterface, UsesKernelMixin):

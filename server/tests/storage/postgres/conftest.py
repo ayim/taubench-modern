@@ -4,21 +4,19 @@ import pytest
 import testing.postgresql
 from psycopg_pool import AsyncConnectionPool
 
-from sema4ai_agent_server.storage.v2.postgres_v2 import PostgresStorageV2
+from agent_platform.server.storage.postgres import PostgresStorage
 
 
 @pytest.fixture(scope="session", autouse=True)
 def _disable_logging() -> Generator[None, None, None]:
     """Disable verbose logging for the entire session."""
-    from logging import CRITICAL, INFO
+    from logging import CRITICAL, INFO, getLogger
 
-    from structlog import get_logger
-
-    get_logger("sema4ai_agent_server.storage.v2.postgres_v2.migrations").setLevel(CRITICAL)
-    get_logger("sema4ai_agent_server.storage.v2.postgres_v2.postgres").setLevel(CRITICAL)
+    getLogger("agent_platform.server.storage.postgres.migrations").setLevel(CRITICAL)
+    getLogger("agent_platform.server.storage.postgres.postgres").setLevel(CRITICAL)
     yield
-    get_logger("sema4ai_agent_server.storage.v2.postgres_v2.migrations").setLevel(INFO)
-    get_logger("sema4ai_agent_server.storage.v2.postgres_v2.postgres").setLevel(INFO)
+    getLogger("agent_platform.server.storage.postgres.migrations").setLevel(INFO)
+    getLogger("agent_platform.server.storage.postgres.postgres").setLevel(INFO)
 
 @pytest.fixture(scope="session")
 async def postgres_test_db() -> AsyncGenerator[AsyncConnectionPool, None]:
@@ -66,14 +64,14 @@ async def storage(postgres_test_db: AsyncConnectionPool):
                 await cur.execute("CREATE SCHEMA v2;")
 
         # Now instantiate storage and run migrations.
-        storage = PostgresStorageV2(pool=postgres_test_db)
-        await storage.setup_v2()  # Runs migrations to re-create tables in 'v2'.
+        storage = PostgresStorage(pool=postgres_test_db)
+        await storage.setup()  # Runs migrations to re-create tables in 'v2'.
 
         # Seed the system user.
-        await storage.get_or_create_user_v2(sub="tenant:testing:system:system_user")
+        await storage.get_or_create_user(sub="tenant:testing:system:system_user")
         yield storage
         # No teardown: trying to keep pool open for the duration of the test session.
-        # await storage.teardown_v2()
+        # await storage.teardown()
     except Exception as e:
         # Log any connection issues
         import logging
@@ -81,5 +79,5 @@ async def storage(postgres_test_db: AsyncConnectionPool):
         raise
 
 @pytest.fixture
-async def sample_user_id(storage: PostgresStorageV2) -> str:
-    return await storage.get_system_user_id_v2()
+async def sample_user_id(storage: PostgresStorage) -> str:
+    return await storage.get_system_user_id()

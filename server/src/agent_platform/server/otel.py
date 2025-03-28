@@ -1,21 +1,19 @@
 import os
-from typing import Optional
 
 import structlog
 from opentelemetry import metrics
 from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
-from opentelemetry.instrumentation.langchain import LangchainInstrumentor
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.resources import Resource
 from traceloop.sdk import Traceloop
 
-from sema4ai_agent_server.env_vars import OTEL_COLLECTOR_URL
+from agent_platform.server.env_vars import OTEL_COLLECTOR_URL
 
 logger = structlog.get_logger(__name__)
 
 
-def get_otel_collector_url() -> Optional[str]:
+def get_otel_collector_url() -> str | None:
     return OTEL_COLLECTOR_URL
 
 
@@ -28,7 +26,7 @@ def setup_otel() -> None:
         logger.info("OTEL is not enabled. Skipping setup.")
         return
 
-    from sema4ai_agent_server.server import VERSION
+    from agent_platform.server.server import VERSION
 
     logger.info("Setting up OTEL")
 
@@ -37,7 +35,6 @@ def setup_otel() -> None:
     # OpenLLMetry setup
     os.environ["TRACELOOP_BASE_URL"] = otel_collector_url
     Traceloop.init()
-    LangchainInstrumentor().instrument()
 
     resource = Resource(
         attributes={"service.name": "agent-server", "service.version": VERSION}

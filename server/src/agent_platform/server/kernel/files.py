@@ -1,5 +1,5 @@
-from agent_server_types_v2.kernel import FilesInterface
-from sema4ai_agent_server.kernel.kernel_mixin import UsesKernelMixin
+from agent_platform.core.kernel import FilesInterface
+from agent_platform.server.kernel.kernel_mixin import UsesKernelMixin
 
 
 class AgentServerFilesInterface(FilesInterface, UsesKernelMixin):

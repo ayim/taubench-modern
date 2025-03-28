@@ -1,6 +1,14 @@
 # Repomix outputs
 **/repomix-output.txt
 
+# Uploads dir
+uploads/
+*.env
+agent-server.pid
+agent-server.lock
+agent-server-config.json
+agentserver.db
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

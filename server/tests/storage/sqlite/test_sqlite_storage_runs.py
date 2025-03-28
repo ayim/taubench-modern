@@ -4,23 +4,21 @@ from uuid import uuid4
 
 import pytest
 
-from agent_server_types_v2.agent import (
-    Agent,
-)
-from agent_server_types_v2.runs import Run, RunStep
-from agent_server_types_v2.thread import Thread
-from sema4ai_agent_server.storage.v2.errors_v2 import (
+from agent_platform.core.agent import Agent
+from agent_platform.core.runs import Run, RunStep
+from agent_platform.core.thread import Thread
+from agent_platform.server.storage.errors import (
     InvalidUUIDError,
     ReferenceIntegrityError,
     RunNotFoundError,
     RunStepNotFoundError,
 )
-from sema4ai_agent_server.storage.v2.sqlite_v2 import SQLiteStorageV2
+from agent_platform.server.storage.sqlite import SQLiteStorage
 
 
 @pytest.mark.asyncio
 async def test_run_crud_operations(
-    storage: SQLiteStorageV2,
+    storage: SQLiteStorage,
     sample_user_id: str,
     sample_agent: Agent,
     sample_thread: Thread,
@@ -29,8 +27,8 @@ async def test_run_crud_operations(
     Test creating, retrieving, listing, upserting, and deleting a run.
     """
     # Need to create the agent and thread first
-    await storage.upsert_agent_v2(sample_user_id, sample_agent)
-    await storage.upsert_thread_v2(sample_user_id, sample_thread)
+    await storage.upsert_agent(sample_user_id, sample_agent)
+    await storage.upsert_thread(sample_user_id, sample_thread)
 
     sample_run = Run(
         run_id=str(uuid4()),
@@ -44,39 +42,39 @@ async def test_run_crud_operations(
     )
 
     # Create the run record
-    await storage.create_run_v2(sample_run)
-    fetched = await storage.get_run_v2(sample_run.run_id)
+    await storage.create_run(sample_run)
+    fetched = await storage.get_run(sample_run.run_id)
     assert fetched is not None
     assert fetched.run_id == sample_run.run_id
     assert fetched.status == "completed"
 
     # List runs by agent and thread
-    runs_for_agent = await storage.list_runs_for_agent_v2(sample_run.agent_id)
+    runs_for_agent = await storage.list_runs_for_agent(sample_run.agent_id)
     assert any(r.run_id == sample_run.run_id for r in runs_for_agent)
 
-    runs_for_thread = await storage.list_runs_for_thread_v2(sample_run.thread_id)
+    runs_for_thread = await storage.list_runs_for_thread(sample_run.thread_id)
     assert any(r.run_id == sample_run.run_id for r in runs_for_thread)
 
     # Update (upsert) the run
     updated_run = Run.model_validate(
         sample_run.model_dump() | {"status": "cancelled"},
     )
-    await storage.upsert_run_v2(updated_run)
-    updated_run = await storage.get_run_v2(sample_run.run_id)
+    await storage.upsert_run(updated_run)
+    updated_run = await storage.get_run(sample_run.run_id)
     assert updated_run is not None
     assert updated_run.status == "cancelled"
 
     # Delete the run and verify deletion
-    await storage.delete_run_v2(sample_run.run_id)
+    await storage.delete_run(sample_run.run_id)
     with pytest.raises(RunNotFoundError):
-        await storage.get_run_v2(sample_run.run_id)
+        await storage.get_run(sample_run.run_id)
     with pytest.raises(RunNotFoundError):
-        await storage.delete_run_v2(sample_run.run_id)
+        await storage.delete_run(sample_run.run_id)
 
 
 @pytest.mark.asyncio
 async def test_run_step_crud_operations(
-    storage: SQLiteStorageV2,
+    storage: SQLiteStorage,
     sample_user_id: str,
     sample_agent: Agent,
     sample_thread: Thread,
@@ -85,8 +83,8 @@ async def test_run_step_crud_operations(
     Test creating a run step, listing by run_id, and retrieving by step_id.
     """
     # Need to create the agent and thread first
-    await storage.upsert_agent_v2(sample_user_id, sample_agent)
-    await storage.upsert_thread_v2(sample_user_id, sample_thread)
+    await storage.upsert_agent(sample_user_id, sample_agent)
+    await storage.upsert_thread(sample_user_id, sample_thread)
 
     sample_run = Run(
         run_id=str(uuid4()),
@@ -99,7 +97,7 @@ async def test_run_step_crud_operations(
         run_type="async",
     )
     # Create the run record
-    await storage.create_run_v2(sample_run)
+    await storage.create_run(sample_run)
 
     sample_run_step = RunStep(
         run_id=sample_run.run_id,
@@ -115,45 +113,45 @@ async def test_run_step_crud_operations(
         finished_at=None,
     )
     # Create the run step
-    await storage.create_run_step_v2(sample_run_step)
+    await storage.create_run_step(sample_run_step)
 
     # List run steps for the given run_id and verify our step is included
-    steps = await storage.list_run_steps_v2(sample_run.run_id)
+    steps = await storage.list_run_steps(sample_run.run_id)
     assert any(s.step_id == sample_run_step.step_id for s in steps)
 
     # Retrieve by step_id
-    fetched_step = await storage.get_run_step_v2(sample_run_step.step_id)
+    fetched_step = await storage.get_run_step(sample_run_step.step_id)
     assert fetched_step is not None
     assert fetched_step.step_id == sample_run_step.step_id
 
 
 @pytest.mark.asyncio
 async def test_run_list_empty(
-    storage: SQLiteStorageV2,
+    storage: SQLiteStorage,
 ) -> None:
     """
     Test that listing runs for a non-existent agent/thread returns an empty list.
     """
     non_existent = str(uuid4())
-    runs_agent = await storage.list_runs_for_agent_v2(non_existent)
-    runs_thread = await storage.list_runs_for_thread_v2(non_existent)
+    runs_agent = await storage.list_runs_for_agent(non_existent)
+    runs_thread = await storage.list_runs_for_thread(non_existent)
     assert runs_agent == []
     assert runs_thread == []
 
 
 @pytest.mark.asyncio
 async def test_invalid_uuid_run(
-    storage: SQLiteStorageV2,
+    storage: SQLiteStorage,
 ) -> None:
     """
     Test that providing an invalid UUID for a run operation raises InvalidUUIDError.
     """
     with pytest.raises(InvalidUUIDError):
-        await storage.get_run_v2("not-a-uuid")
+        await storage.get_run("not-a-uuid")
 
 @pytest.mark.asyncio
 async def test_run_deletion_cascades_run_steps(
-    storage: SQLiteStorageV2,
+    storage: SQLiteStorage,
     sample_user_id: str,
     sample_agent: Agent,
     sample_thread: Thread,
@@ -162,8 +160,8 @@ async def test_run_deletion_cascades_run_steps(
     Test that deleting a run record cascades to delete its associated run steps.
     """
     # Ensure agent and thread exist.
-    await storage.upsert_agent_v2(sample_user_id, sample_agent)
-    await storage.upsert_thread_v2(sample_user_id, sample_thread)
+    await storage.upsert_agent(sample_user_id, sample_agent)
+    await storage.upsert_thread(sample_user_id, sample_thread)
 
     # Create a run.
     sample_run = Run(
@@ -176,7 +174,7 @@ async def test_run_deletion_cascades_run_steps(
         metadata={"info": "cascade deletion test"},
         run_type="async",
     )
-    await storage.create_run_v2(sample_run)
+    await storage.create_run(sample_run)
 
     # Create a run step associated with the run.
     sample_run_step = RunStep(
@@ -192,22 +190,22 @@ async def test_run_deletion_cascades_run_steps(
         created_at=datetime.now(UTC),
         finished_at=datetime.now(UTC),
     )
-    await storage.create_run_step_v2(sample_run_step)
+    await storage.create_run_step(sample_run_step)
 
     # Verify the run step exists.
-    fetched_step = await storage.get_run_step_v2(sample_run_step.step_id)
+    fetched_step = await storage.get_run_step(sample_run_step.step_id)
     assert fetched_step is not None
 
     # Delete the run.
-    await storage.delete_run_v2(sample_run.run_id)
+    await storage.delete_run(sample_run.run_id)
 
     # After deleting the run, the run step should have been cascaded away.
     with pytest.raises(RunStepNotFoundError):
-        await storage.get_run_step_v2(sample_run_step.step_id)
+        await storage.get_run_step(sample_run_step.step_id)
 
 @pytest.mark.asyncio
 async def test_run_update_invalid_foreign_keys(
-    storage: SQLiteStorageV2,
+    storage: SQLiteStorage,
     sample_user_id: str,
     sample_agent: Agent,
     sample_thread: Thread,
@@ -216,8 +214,8 @@ async def test_run_update_invalid_foreign_keys(
     Test that updating a run with non-existent agent_id or thread_id is rejected.
     """
     # Create valid agent and thread.
-    await storage.upsert_agent_v2(sample_user_id, sample_agent)
-    await storage.upsert_thread_v2(sample_user_id, sample_thread)
+    await storage.upsert_agent(sample_user_id, sample_agent)
+    await storage.upsert_thread(sample_user_id, sample_thread)
     valid_run = Run(
         run_id=str(uuid4()),
         agent_id=sample_agent.agent_id,
@@ -228,7 +226,7 @@ async def test_run_update_invalid_foreign_keys(
         metadata={"info": "foreign key test"},
         run_type="async",
     )
-    await storage.create_run_v2(valid_run)
+    await storage.create_run(valid_run)
 
     # Modify run with invalid foreign keys.
     invalid_run = Run.model_validate(
@@ -236,24 +234,24 @@ async def test_run_update_invalid_foreign_keys(
         | {"agent_id": str(uuid4()), "thread_id": str(uuid4())},
     )
     with pytest.raises(ReferenceIntegrityError):
-        await storage.upsert_run_v2(invalid_run)
+        await storage.upsert_run(invalid_run)
 
 @pytest.mark.asyncio
 async def test_run_not_found_error(
-    storage: SQLiteStorageV2,
+    storage: SQLiteStorage,
 ) -> None:
     """
     Test that attempting to delete a non-existent run raises RunNotFoundError.
     """
     non_existent_run_id = str(uuid4())
     with pytest.raises(RunNotFoundError):
-        await storage.get_run_v2(non_existent_run_id)
+        await storage.get_run(non_existent_run_id)
     with pytest.raises(RunNotFoundError):
-        await storage.delete_run_v2(non_existent_run_id)
+        await storage.delete_run(non_existent_run_id)
 
 @pytest.mark.asyncio
 async def test_run_reupsert_idempotency(
-    storage: SQLiteStorageV2,
+    storage: SQLiteStorage,
     sample_user_id: str,
     sample_agent: Agent,
     sample_thread: Thread,
@@ -264,8 +262,8 @@ async def test_run_reupsert_idempotency(
     final state reflects the last update.
     """
     # Make sure the agent and thread exist.
-    await storage.upsert_agent_v2(sample_user_id, sample_agent)
-    await storage.upsert_thread_v2(sample_user_id, sample_thread)
+    await storage.upsert_agent(sample_user_id, sample_agent)
+    await storage.upsert_thread(sample_user_id, sample_thread)
 
     initial_run = Run(
         run_id=str(uuid4()),
@@ -277,12 +275,12 @@ async def test_run_reupsert_idempotency(
         metadata={"info": "reupsert test"},
         run_type="sync",
     )
-    await storage.create_run_v2(initial_run)
+    await storage.create_run(initial_run)
 
     # Repeatedly update the run with new status values.
     statuses = ["completed", "cancelled", "failed"]
     for status in statuses:
-        current_run = await storage.get_run_v2(initial_run.run_id)
+        current_run = await storage.get_run(initial_run.run_id)
         # Create an updated run with the new status and a new updated_at timestamp.
         updated_run = Run.model_validate(
             current_run.model_dump() | {
@@ -290,15 +288,15 @@ async def test_run_reupsert_idempotency(
                 "finished_at": datetime.now(UTC),
             },
         )
-        await storage.upsert_run_v2(updated_run)
+        await storage.upsert_run(updated_run)
 
-    final_run = await storage.get_run_v2(initial_run.run_id)
+    final_run = await storage.get_run(initial_run.run_id)
     assert final_run.status == "failed", "The final run status should be 'failed'"
 
 
 @pytest.mark.asyncio
 async def test_run_ordering(
-    storage: SQLiteStorageV2,
+    storage: SQLiteStorage,
     sample_user_id: str,
     sample_agent: Agent,
     sample_thread: Thread,
@@ -309,8 +307,8 @@ async def test_run_ordering(
     by the created_at timestamp.
     """
     # Make sure the agent and thread exist.
-    await storage.upsert_agent_v2(sample_user_id, sample_agent)
-    await storage.upsert_thread_v2(sample_user_id, sample_thread)
+    await storage.upsert_agent(sample_user_id, sample_agent)
+    await storage.upsert_thread(sample_user_id, sample_thread)
 
     run_ids = []
     # Create three runs with a small delay in between to ensure different timestamps.
@@ -325,12 +323,12 @@ async def test_run_ordering(
             metadata={"info": f"ordering test {i}"},
             run_type="sync",
         )
-        await storage.create_run_v2(run)
+        await storage.create_run(run)
         run_ids.append(run.run_id)
         await asyncio.sleep(0.01)
 
     # Retrieve all runs for the agent.
-    runs = await storage.list_runs_for_agent_v2(sample_agent.agent_id)
+    runs = await storage.list_runs_for_agent(sample_agent.agent_id)
     # Filter to only those runs created in this test.
     created_runs = [r for r in runs if r.run_id in run_ids]
 
@@ -343,7 +341,7 @@ async def test_run_ordering(
 
 @pytest.mark.asyncio
 async def test_concurrent_run_creation(
-    storage: SQLiteStorageV2,
+    storage: SQLiteStorage,
     sample_user_id: str,
     sample_agent: Agent,
     sample_thread: Thread,
@@ -364,24 +362,24 @@ async def test_concurrent_run_creation(
             metadata={"info": "concurrent test"},
             run_type="async",
         )
-        await storage.create_run_v2(run)
+        await storage.create_run(run)
         return run.run_id
 
     # Make sure the agent and thread exist.
-    await storage.upsert_agent_v2(sample_user_id, sample_agent)
-    await storage.upsert_thread_v2(sample_user_id, sample_thread)
+    await storage.upsert_agent(sample_user_id, sample_agent)
+    await storage.upsert_thread(sample_user_id, sample_thread)
 
     # Launch concurrent run creations.
     run_ids = await asyncio.gather(*(create_run() for _ in range(5)))
 
     # Verify that each run can be retrieved and has the expected status.
     for run_id in run_ids:
-        run = await storage.get_run_v2(run_id)
+        run = await storage.get_run(run_id)
         assert run is not None, f"Run with ID {run_id} not found"
         assert run.status == "running", f"Run with ID {run_id} has incorrect status"
 
     # Check that the created runs appear in the listing for the agent.
-    runs = await storage.list_runs_for_agent_v2(sample_agent.agent_id)
+    runs = await storage.list_runs_for_agent(sample_agent.agent_id)
     listed_run_ids = {r.run_id for r in runs}
     for run_id in run_ids:
         assert run_id in listed_run_ids, (

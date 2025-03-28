@@ -1,25 +1,27 @@
 import json
-from datetime import datetime, timedelta, timezone
-from typing import Union
+import os
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import requests
 import structlog
-from agent_server_types import Agent, EmbeddingStatus, Thread, UploadedFile
-from fastapi import UploadFile
+from fastapi import status
 
-from sema4ai_agent_server.env_vars import FILE_MANAGEMENT_API_URL
-from sema4ai_agent_server.file_manager.base import (
+from agent_platform.core.agent import Agent
+from agent_platform.core.files import FileData, UploadedFile, UploadFileRequest
+from agent_platform.core.thread import Thread
+from agent_platform.server.file_manager.base import (
     MISSING_FILE_HASH,
     BaseFileManager,
     RemoteFileUploadData,
     get_hash,
 )
-from sema4ai_agent_server.schema import UploadFileRequest
-from sema4ai_agent_server.storage.embed import Blob, convert_to_blob
-from sema4ai_agent_server.storage.option import get_storage
+from agent_platform.server.file_manager.utils import convert_to_file_data
+from agent_platform.server.storage.option import get_storage
 
 logger = structlog.get_logger(__name__)
+
+FILE_MANAGEMENT_API_URL = os.getenv("FILE_MANAGEMENT_API_URL")
 
 
 class CloudFileManager(BaseFileManager):
@@ -46,19 +48,59 @@ class CloudFileManager(BaseFileManager):
         )
         return response.json()["url"]
 
-    async def _store(self, blob: Blob, file_id: str) -> str:
+    async def _store(self, file_data: FileData, file_id: str) -> str:
         presigned_post = self._get_presigned_post(file_id)
         payload = presigned_post["form_data"]
         response = requests.post(
-            presigned_post["url"], data=payload, files={"file": blob.data}
+            presigned_post["url"],
+            data=payload,
+            files={"file": file_data.content},
         )
-        if response.status_code != 204:
+        if response.status_code != status.HTTP_200_OK:
             logger.error(
-                f"Failed to upload file {blob.path}", status_code=response.status_code
+                "Failed to upload file",
+                status_code=response.status_code,
             )
             raise Exception("Failed to upload file")
 
-        return get_hash(blob.data)
+        return get_hash(file_data.content)
+
+    async def _upload_files(
+        self,
+        files: list[UploadFileRequest],
+        owner: Agent | Thread,
+        user_id: str,
+    ) -> list[UploadedFile]:
+        """Uploads all files or none to ensure consistency."""
+        uploaded_files: list[UploadedFile] = []
+        for f in files:
+            file_id = str(uuid4())
+            try:
+                file_data = convert_to_file_data(f.file)
+                file_hash = await self._store(file_data, file_id)
+                file_path = self._get_presigned_url(file_id, f.file.filename)
+                uploaded_file = await get_storage().put_file_owner(
+                    file_id,
+                    file_path,
+                    f.file.filename,
+                    file_hash,
+                    file_data.file_size,
+                    file_data.mime_type,
+                    user_id,
+                    False,  # embedded
+                    None,
+                    owner,
+                    self._get_file_path_expiration(),
+                )
+                uploaded_files.append(uploaded_file)
+            except Exception as e:
+                logger.exception(f"Failed to upload file {f.file.filename}")
+                await self._revert_uploads(
+                    [file.file_id for file in uploaded_files],
+                    owner,
+                )
+                raise e
+        return uploaded_files
 
     async def _delete_stored_file(self, file_id: str) -> None:
         response = requests.delete(
@@ -66,74 +108,56 @@ class CloudFileManager(BaseFileManager):
             headers={"Content-Type": "application/json"},
             data=json.dumps({"fileId": file_id}),
         )
-        if response.status_code != 200 or response.json().get("deleted") is not True:
+        if response.status_code != status.HTTP_200_OK or (
+            response.json().get("deleted") is not True
+        ):
             logger.error(
                 f"Failed to delete file {file_id}",
                 status_code=response.status_code,
                 response=response.text,
             )
 
-    async def _revert_uploads(self, file_ids: list[str]) -> None:
+    async def _revert_uploads(
+        self,
+        file_ids: list[str],
+        owner: Agent | Thread,
+    ) -> None:
+        """Revert uploads by deleting files from both storage and cloud.
+
+        Args:
+            file_ids: List of file IDs to delete
+            owner: The owner (Agent or Thread) of the files
+        """
         for file_id in file_ids:
-            await self._delete_stored_file(file_id)
-            await get_storage().delete_file(file_id)
+            try:
+                # First try to delete from storage to validate existence
+                await get_storage().delete_file(owner, file_id, owner.user_id)
+                # Only delete from cloud if it exists in storage
+                await self._delete_stored_file(file_id)
+            except Exception as e:
+                # Log but continue with other files
+                logger.warning(f"Failed to revert upload for file {file_id}: {e}")
 
     def _get_file_path_expiration(self) -> datetime:
-        return datetime.now(timezone.utc) + timedelta(seconds=self.FILE_PATH_EXPIRES_IN)
+        return datetime.now(UTC) + timedelta(seconds=self.FILE_PATH_EXPIRES_IN)
 
     def _file_path_is_expired(self, file: UploadedFile) -> bool:
         expiration = file.file_path_expiration
-        return expiration and expiration < datetime.now(timezone.utc) + timedelta(
-            seconds=self.FILE_PATH_EXPIRATION_BUFFER
+        return expiration and expiration < datetime.now(UTC) + timedelta(
+            seconds=self.FILE_PATH_EXPIRATION_BUFFER,
         )
 
-    async def _upload(
-        self,
-        file_id: str,
-        file: UploadFile,
-        owner: Union[Agent, Thread],
-        embedded: bool,
-    ) -> UploadedFile:
-        blob = convert_to_blob(file)
-        file_hash = await self._store(blob, file_id)
-        file_path = self._get_presigned_url(file_id, file.filename)
-        return await get_storage().put_file_owner(
-            file_id,
-            file_path,
-            file.filename,
-            file_hash,
-            embedded,
-            EmbeddingStatus.PENDING if embedded else None,
-            owner,
-            self._get_file_path_expiration(),
-        )
-
-    async def upload(
-        self, files: list[UploadFileRequest], owner: Union[Agent, Thread]
-    ) -> list[UploadedFile]:
-        """Uploads all files or none to ensure consistency."""
-        self._validate_files_pre_upload(files)
-        uploaded_files: list[UploadedFile] = []
-        for f in files:
-            file_id = str(uuid4())
-            embedded = (
-                f.embedded if f.embedded is not None else self._is_embeddable(f.file)
-            )
-            try:
-                uploaded_file = await self._upload(file_id, f.file, owner, embedded)
-            except Exception as e:
-                logger.exception(f"Failed to upload file {f.file.filename}")
-                await self._revert_uploads(
-                    [file_id] + [file.file_id for file in uploaded_files]
-                )
-                raise e
-            uploaded_files.append(uploaded_file)
-        return uploaded_files
-
-    async def delete(self, file_id: str) -> None:
+    async def delete(self, thread_id: str, user_id: str, file_id: str) -> None:
         await self._delete_stored_file(file_id)
-        await self._delete_embeddings(file_id)
-        await get_storage().delete_file(file_id)
+        owner = await get_storage().get_thread(user_id, thread_id)
+        await get_storage().delete_file(owner, file_id, user_id)
+
+    async def delete_thread_files(self, thread_id: str, user_id: str) -> None:
+        files = await get_storage().get_thread_files(thread_id, user_id)
+        owner = await get_storage().get_thread(user_id, thread_id)
+        for file in files:
+            await self._delete_stored_file(file.file_id)
+            await get_storage().delete_file(owner, file.file_id, user_id)
 
     async def refresh_file_paths(self, files: list[UploadedFile]) -> list[UploadedFile]:
         storage = get_storage()
@@ -141,10 +165,11 @@ class CloudFileManager(BaseFileManager):
         for file in files:
             if self._file_path_is_expired(file):
                 refreshed_file_path = self._get_presigned_url(
-                    file.file_id, file.file_ref
+                    file_id=file.file_id,
+                    file_name=file.file_ref,
                 )
                 updated_file = await storage.update_file_retrieve_information(
-                    file.file_id,
+                    file_id=file.file_id,
                     file_path=refreshed_file_path,
                     file_path_expiration=self._get_file_path_expiration(),
                 )
@@ -153,8 +178,8 @@ class CloudFileManager(BaseFileManager):
                 ret.append(file)
         return ret
 
-    async def read_file_contents(self, file_id: str) -> bytes:
-        file = await get_storage().get_file_by_id(file_id)
+    async def read_file_contents(self, file_id: str, user_id: str) -> bytes:
+        file = await get_storage().get_file_by_id(file_id, user_id)
         if not file:
             raise Exception(f"File not found: {file_id}")
 
@@ -167,7 +192,7 @@ class CloudFileManager(BaseFileManager):
             file_path = updated_files[0].file_path
             if not file_path:
                 raise Exception(
-                    f"File path for file {file_id} not available after refreshing file paths"
+                    f"File path for file {file_id} not available after refreshing file paths",
                 )
 
         try:
@@ -175,13 +200,16 @@ class CloudFileManager(BaseFileManager):
             response.raise_for_status()
             return response.content
         except requests.RequestException as e:
-            logger.exception(f"Failed to download file {file_id}: {str(e)}")
+            logger.exception(f"Failed to download file {file_id}: {e!s}")
             raise e
 
     async def request_remote_file_upload(
-        self, thread: Thread, file_name: str
+        self,
+        thread: Thread,
+        file_name: str,
     ) -> RemoteFileUploadData:
         file_id = str(uuid4())
+        self._validate_files_pre_upload([file_name])
         file_ref = await self.generate_unique_file_ref(thread, file_name)
         presigned_post = self._get_presigned_post(file_id)
         return RemoteFileUploadData(
@@ -192,29 +220,55 @@ class CloudFileManager(BaseFileManager):
         )
 
     async def confirm_remote_file_upload(
-        self, thread: Thread, file_ref: str, file_id: str
+        self,
+        thread: Thread,
+        file_ref: str,
+        file_id: str,
     ) -> UploadedFile:
-        # This use case is for when actions upload files directly to the cloud and then
-        # call the agent server to confirm the upload.
-        #
-        # The url is not available at this point, so we need to get it from
-        # the server to create the record in the database.
-        #
-        # Some notes:
-        # - We don't have a file hash at this point, so we use a placeholder value
-        # (we could ask actions to provide the hash in the future).
-        # - We could've asked the action to pass the url instead of querying it
-        # from the service which provides presigned urls (which may be faster, but
-        # the protocol needs to be changed to support it then).
-        refreshed_file_path = self._get_presigned_url(file_id, file_ref)
         file = await get_storage().put_file_owner(
             file_id=file_id,
-            file_path=refreshed_file_path,
+            file_path=None,
             file_ref=file_ref,
             file_hash=MISSING_FILE_HASH,
+            file_size_raw=0,
+            mime_type=None,
+            user_id=thread.user_id,
             embedded=False,
             embedding_status=None,
             owner=thread,
-            file_path_expiration=self._get_file_path_expiration(),
+            file_path_expiration=datetime.now(UTC),
         )
         return file
+
+    async def generate_unique_file_ref(
+        self,
+        owner: Agent | Thread,
+        file_name: str,
+    ) -> str:
+        from agent_platform.server.storage.errors import UniqueFileRefError
+
+        uploaded_file = await get_storage().get_file_by_ref(
+            owner,
+            file_name,
+            owner.user_id,
+        )
+        if uploaded_file:
+            # This file already exists, so, double check if it's already embedded.
+            # If it is, we can't override it!
+            if uploaded_file.embedded:
+                raise UniqueFileRefError(file_name)
+
+        # Just return the file name as it is (which may override an existing file)
+
+        # Note: there is code in the repository to generate a unique file ref
+        # with a rule such as `data (1).csv`, `data (2).csv`, etc.
+
+        # This was changed because the usage of always creating a new file ref instead
+        # of overriding files with the same name made it more difficult to manage
+        # in actions (as actions are stateless, referencing a file by the same name is
+        # easy, but keeping a track of which is the new name to reference if a file
+        # is updated is not that straightforward).
+        # In the future maybe we could have some other versioning scheme to access old
+        # files, but for now, just overriding is simpler and easier to manage.
+
+        return file_name

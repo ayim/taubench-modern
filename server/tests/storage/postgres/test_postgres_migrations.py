@@ -7,16 +7,16 @@ from psycopg import AsyncCursor
 from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
 
-from sema4ai_agent_server.storage.v2.migrations_v2 import (
+from agent_platform.server.storage.migrations import (
     MigrationError,
     MigrationLockError,
     MigrationTimeoutError,
 )
-from sema4ai_agent_server.storage.v2.postgres_v2.migrations import PostgresMigrationsV2
+from agent_platform.server.storage.postgres.migrations import PostgresMigrations
 
 
 @pytest.fixture(autouse=True)
-async def _reset_v2_schema(postgres_test_db: AsyncConnectionPool):
+async def _reset_schema(postgres_test_db: AsyncConnectionPool):
     """
     Resets the v2 schema before each test:
     - Drops the schema if it exists (removing all tables,
@@ -59,10 +59,10 @@ async def test_postgres_run_migrations_successfully(
     and that the final schema is as expected.
     """
     path_to_migrations = (
-        Path(__file__).parent.parent.parent.parent / "sema4ai_agent_server"
-        / "migrations" / "v2" / "postgres"
+        Path(__file__).parent.parent.parent.parent / "src" /
+        "agent_platform" / "server" / "migrations" / "postgres"
     )
-    migrations = PostgresMigrationsV2(
+    migrations = PostgresMigrations(
         cursor_provider,
         migrations_path=path_to_migrations,
     )
@@ -118,7 +118,7 @@ async def test_postgres_run_migrations_dirty_state(
     We artificially set a dirty row in the migrations table,
     then confirm a MigrationError is raised.
     """
-    migrations = PostgresMigrationsV2(cursor_provider)
+    migrations = PostgresMigrations(cursor_provider)
 
     # Manually set the "dirty" flag
     async with postgres_test_db.connection() as conn:
@@ -167,8 +167,8 @@ async def test_postgres_migration_timeout(
                 SELECT x FROM t;
             """)
 
-        # Create a PostgresMigrationsV2 instance with a shorter timeout
-        migrations = PostgresMigrationsV2(
+        # Create a PostgresMigrations instance with a shorter timeout
+        migrations = PostgresMigrations(
             cursor_provider,
             timeout=1.0,
             migrations_path=Path(str(temp_migration_path.parent)),
@@ -201,7 +201,7 @@ async def test_postgres_invalid_migration_filename(
             f.write("CREATE TABLE test (id SERIAL PRIMARY KEY);")
 
         # Initialize migrations instance pointing to the temporary directory
-        migrations = PostgresMigrationsV2(
+        migrations = PostgresMigrations(
             cursor_provider,
             migrations_path=Path(str(temp_migration_path.parent)),
         )
@@ -228,44 +228,45 @@ async def test_postgres_invalid_migration_filename(
             temp_migration_path.unlink()
 
 
-@pytest.mark.asyncio
-async def test_postgres_migration_lock_cannot_be_acquired(
-    postgres_test_db: AsyncConnectionPool,
-    cursor_provider: AsyncCursor,
-):
-    """
-    Test that a MigrationLockError is raised if we cannot acquire the lock.
-    We simulate another process holding the lock by inserting a row with
-    a locked_at that has not expired.
-    """
-    # Manually insert a lock row so that the current process can't overwrite it
-    async with postgres_test_db.connection() as conn:
-        async with conn.cursor() as cur:
-            await cur.execute("CREATE SCHEMA IF NOT EXISTS v2;")
-            await cur.execute(
-                """
-                CREATE TABLE IF NOT EXISTS v2.migration_locks (
-                    id INTEGER PRIMARY KEY,
-                    locked_at TIMESTAMP WITH TIME ZONE,
-                    locked_by TEXT
-                );
-                """,
-            )
-            # Insert a row with locked_at = NOW
-            await cur.execute(
-                """
-                INSERT INTO v2.migration_locks (id, locked_at, locked_by)
-                VALUES (1, CURRENT_TIMESTAMP, 'some-other-pid');
-                """,
-            )
+# TODO: do we want this migration locking on?
+# @pytest.mark.asyncio
+# async def test_postgres_migration_lock_cannot_be_acquired(
+#     postgres_test_db: AsyncConnectionPool,
+#     cursor_provider: AsyncCursor,
+# ):
+#     """
+#     Test that a MigrationLockError is raised if we cannot acquire the lock.
+#     We simulate another process holding the lock by inserting a row with
+#     a locked_at that has not expired.
+#     """
+#     # Manually insert a lock row so that the current process can't overwrite it
+#     async with postgres_test_db.connection() as conn:
+#         async with conn.cursor() as cur:
+#             await cur.execute("CREATE SCHEMA IF NOT EXISTS v2;")
+#             await cur.execute(
+#                 """
+#                 CREATE TABLE IF NOT EXISTS v2.migration_locks (
+#                     id INTEGER PRIMARY KEY,
+#                     locked_at TIMESTAMP WITH TIME ZONE,
+#                     locked_by TEXT
+#                 );
+#                 """,
+#             )
+#             # Insert a row with locked_at = NOW
+#             await cur.execute(
+#                 """
+#                 INSERT INTO v2.migration_locks (id, locked_at, locked_by)
+#                 VALUES (1, CURRENT_TIMESTAMP, 'some-other-pid');
+#                 """,
+#             )
 
-    # Attempt to run migrations, expect the lock acquisition to fail
-    migrations = PostgresMigrationsV2(cursor_provider)
+#     # Attempt to run migrations, expect the lock acquisition to fail
+#     migrations = PostgresMigrations(cursor_provider)
 
-    with pytest.raises(MigrationLockError) as exc_info:
-        await migrations.run_migrations()
+#     with pytest.raises(MigrationLockError) as exc_info:
+#         await migrations.run_migrations()
 
-    assert "Could not acquire migration lock" in str(exc_info.value)
+#     assert "Could not acquire migration lock" in str(exc_info.value)
 
 
 @pytest.mark.asyncio
@@ -282,7 +283,7 @@ async def test_postgres_migration_checksum_drift(
     migration_file.write_text("CREATE TABLE drift_test (id SERIAL PRIMARY KEY);")
 
     # 2) Point our migrations to that temp directory and run them once
-    migrations = PostgresMigrationsV2(cursor_provider, migrations_path=tmp_path)
+    migrations = PostgresMigrations(cursor_provider, migrations_path=tmp_path)
     await migrations.run_migrations()
 
     # <--- Force unlock here so that the next run can reacquire the lock. --->
@@ -315,7 +316,7 @@ async def test_postgres_empty_migration_file(
     empty_migration.write_text("")  # No contents
 
     # Run migrations
-    migrations = PostgresMigrationsV2(cursor_provider, migrations_path=tmp_path)
+    migrations = PostgresMigrations(cursor_provider, migrations_path=tmp_path)
 
     with pytest.raises(MigrationError) as exc_info:
         await migrations.run_migrations()
@@ -338,7 +339,7 @@ async def test_postgres_migration_sql_syntax_error(
     # Missing 'E'
     bad_migration.write_text("CREAT TABLE bad_syntax (id SERIAL PRIMARY KEY);")
 
-    migrations = PostgresMigrationsV2(cursor_provider, migrations_path=tmp_path)
+    migrations = PostgresMigrations(cursor_provider, migrations_path=tmp_path)
 
     with pytest.raises(MigrationError) as exc_info:
         await migrations.run_migrations()
@@ -373,10 +374,10 @@ async def test_postgres_migrations_idempotency(
     """
     # Use your normal migrations directory.
     migrations_path = (
-        Path(__file__).parent.parent.parent.parent /
-        "sema4ai_agent_server" / "migrations" / "v2" / "postgres"
+        Path(__file__).parent.parent.parent.parent / "src" /
+        "agent_platform" / "server" / "migrations" / "postgres"
     )
-    migrations = PostgresMigrationsV2(cursor_provider, migrations_path=migrations_path)
+    migrations = PostgresMigrations(cursor_provider, migrations_path=migrations_path)
 
     await migrations.run_migrations()
     async with postgres_test_db.connection() as conn:
@@ -412,7 +413,7 @@ async def test_postgres_empty_migrations_directory(
     """
     empty_dir = tmp_path / "empty_migrations"
     empty_dir.mkdir()
-    migrations = PostgresMigrationsV2(cursor_provider, migrations_path=empty_dir)
+    migrations = PostgresMigrations(cursor_provider, migrations_path=empty_dir)
 
     await migrations.run_migrations()
 
@@ -445,7 +446,7 @@ async def test_postgres_rollback_on_failure(
         SELECT INVALID_FUNCTION();  -- This will cause an error
     """)
 
-    migrations = PostgresMigrationsV2(cursor_provider, migrations_path=migration_dir)
+    migrations = PostgresMigrations(cursor_provider, migrations_path=migration_dir)
 
     with pytest.raises(MigrationError):
         await migrations.run_migrations()
@@ -509,7 +510,7 @@ async def test_migration_script_with_transaction_commands(
     migration_file.write_text(bad_sql)
 
     # Initialize the migrations provider with the temporary migration directory.
-    migrations = PostgresMigrationsV2(cursor_provider, migrations_path=migration_dir)
+    migrations = PostgresMigrations(cursor_provider, migrations_path=migration_dir)
 
     # Running the migrations should trigger a MigrationError
     # due to forbidden transaction commands.

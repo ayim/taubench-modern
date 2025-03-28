@@ -4,10 +4,9 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 import structlog
-from pythonjsonlogger import jsonlogger
 from uvicorn.logging import AccessFormatter, DefaultFormatter
 
-from sema4ai_agent_server.constants import SystemConfig, SystemPaths
+from agent_platform.server.constants import SystemConfig, SystemPaths
 
 
 def setup_logging():
@@ -16,18 +15,16 @@ def setup_logging():
         raise ValueError(f"Invalid log level: {SystemConfig.log_level}")
 
     default_formatter = DefaultFormatter(
-        "%(asctime)s - %(name)s - %(levelprefix)s %(message)s"
+        "%(asctime)s - %(name)s - %(levelprefix)s %(message)s",
     )
     access_formatter = AccessFormatter(
-        '%(asctime)s - %(name)s - %(levelprefix)s  %(client_addr)s - "%(request_line)s" %(status_code)s'
-    )
-    json_formatter = jsonlogger.JsonFormatter(
-        "%(asctime)s - %(name)s - %(levelname)s %(message)s"
+        '%(asctime)s - %(name)s - %(levelprefix)s  '
+        '%(client_addr)s - "%(request_line)s" %(status_code)s',
     )
 
     # If LOG_FILE_PATH does not exist, create it (recursively)
     try:
-        path = Path(LOG_FILE_PATH)
+        path = Path(SystemPaths.log_file_path)
         path.parent.mkdir(parents=True, exist_ok=True)
     except Exception:
         pass
@@ -41,7 +38,7 @@ def setup_logging():
         maxBytes=SystemConfig.log_file_size,
         backupCount=SystemConfig.log_max_backup_files,
     )
-    file_handler.setFormatter(json_formatter)
+    # file_handler.setFormatter(json_formatter)
 
     root_logger = logging.getLogger()
     root_logger.setLevel(level)

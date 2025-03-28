@@ -1,5 +1,6 @@
-from unittest.mock import MagicMock
+from typing import ClassVar
 
+from unittest.mock import MagicMock
 import pytest
 
 from agent_platform.core.kernel import Kernel
@@ -44,12 +45,13 @@ class TestBedrockModelMap:
 
     def test_custom_map(self) -> None:
         """Test that we can create a custom map."""
-        custom_map = {
-            "claude-3-5-sonnet": "test-model-id",
-        }
+        class CustomModelMap(BedrockModelMap):
+            mapping: ClassVar[dict[str, str]] = {
+                "claude-3-5-sonnet": "test-model-id",
+            }
 
         # Create a custom map instance
-        model_map = BedrockModelMap(mapping=custom_map)
+        model_map = CustomModelMap()
 
         # Verify the custom map was used
         assert model_map["claude-3-5-sonnet"] == "test-model-id"

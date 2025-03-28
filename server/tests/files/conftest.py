@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.integration_tests.bootstrap_agent_server import AgentServerProcess
+from ..bootstrap_agent_server import AgentServerProcess
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -15,6 +15,19 @@ def _load_env():
     except ImportError:
         pass
 
+
+@pytest.fixture
+def logs_dir(request) -> Path:
+    directory = (
+        Path(os.path.normpath(os.path.abspath(os.path.dirname(__file__))))
+        / f"logs/{request.node.name}-{os.getpid()}"
+    )
+    directory.mkdir(parents=True, exist_ok=True)
+    return directory
+
+@pytest.fixture
+def files_location(tmpdir) -> Path:
+    return Path(tmpdir) / "files"
 
 @pytest.fixture
 def create_sample_file(tmpdir):

@@ -1,4 +1,4 @@
-import sema4ai_agent_server
+import agent_platform.server
 
 if __name__ == "__main__":
-    sema4ai_agent_server.main()
+    agent_platform.server.main()

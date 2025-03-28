@@ -1,37 +1,21 @@
-from typing import Callable, Dict, Final
+from os import getenv
+from typing import Final
 
-from sema4ai_agent_server.constants import SystemConfig
-from sema4ai_agent_server.storage import BaseStorage
-
-
-def get_postgres_storage() -> BaseStorage:
-    from sema4ai_agent_server.storage.postgres import PostgresStorage
-
-    return PostgresStorage()
-
-
-def get_sqlite_storage() -> BaseStorage:
-    from sema4ai_agent_server.storage.sqlite import SqliteStorage
-
-    return SqliteStorage()
-
-
-STORAGE_TYPES: Final[Dict[str, Callable[[], BaseStorage]]] = {
-    "postgres": get_postgres_storage,
-    "sqlite": get_sqlite_storage,
-}
+from agent_platform.server.storage.base import BaseStorage
+from agent_platform.server.storage.postgres import PostgresStorage
+from agent_platform.server.storage.sqlite import SQLiteStorage
 
 
 def initialize_storage() -> BaseStorage:
-    db_type = SystemConfig.db_type or "sqlite"
-    storage_func = STORAGE_TYPES.get(db_type)
-    if storage_func is None:
-        raise ValueError(f"Invalid storage type: {db_type}")
-    return storage_func()
-
+    db_type = getenv("S4_AGENT_SERVER_DB_TYPE", "sqlite")
+    if db_type == "postgres":
+        return PostgresStorage()
+    elif db_type == "sqlite":
+        return SQLiteStorage()
+    else:
+        raise ValueError(f"Unsupported DB type: {db_type}")
 
 STORAGE: Final[BaseStorage] = initialize_storage()
-
 
 def get_storage() -> BaseStorage:
     return STORAGE

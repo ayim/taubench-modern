@@ -2,9 +2,9 @@
 
 import json
 import tempfile
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 import pytest
 
@@ -156,6 +156,7 @@ class TestConfiguration:
 
             @classmethod
             def default(cls) -> "SampleConfig":
+                # Return a SampleConfig with a custom name
                 return cls(name="custom_default")
 
         config = SampleConfig.default()
@@ -250,9 +251,10 @@ class TestMapConfiguration:
         @dataclass(frozen=True)
         class SampleMap(MapConfiguration):
             # Explicitly define mapping to override the parent
-            mapping: dict[str, Any] = field(
-                default_factory=lambda: {"key1": "value1", "key2": 2},
-            )
+            mapping: ClassVar[dict[str, Any]] = {
+                "key1": "value1",
+                "key2": 2,
+            }
 
         # Test __getitem__
         map_instance = SampleMap()
@@ -294,13 +296,11 @@ class TestMapConfiguration:
         # Create with custom mapping
         @dataclass(frozen=True)
         class CustomMap(MapConfiguration):
-            mapping: dict[str, Any] = field(
-                default_factory=lambda: {
-                    "name": "test",
-                    "count": 42,
-                    "nested": {"a": 1, "b": 2},
-                },
-            )
+            mapping: ClassVar[dict[str, Any]] = {
+                "name": "test",
+                "count": 42,
+                "nested": {"a": 1, "b": 2},
+            }
 
         config = CustomMap()
 
@@ -323,7 +323,7 @@ class TestMapConfiguration:
         # Create a MapConfiguration with an empty mapping
         @dataclass(frozen=True)
         class TestMap(MapConfiguration):
-            mapping: dict[str, Any] = field(default_factory=dict)
+            mapping: ClassVar[dict[str, Any]] = {}
 
         # Create an instance
         config = TestMap()
@@ -344,19 +344,25 @@ class TestMapConfiguration:
         # Create a MapConfiguration subclass
         @dataclass(frozen=True)
         class ClassMethodMap(MapConfiguration):
-            mapping: dict[str, Any] = field(
-                default_factory=lambda: {"key1": "value1", "key2": 2},
-            )
+            mapping: ClassVar[dict[str, Any]] = {
+                "key1": "value1",
+                "key2": 2,
+            }
 
         # Test class_items method
         items = dict(ClassMethodMap.class_items())
         assert items == {"key1": "value1", "key2": 2}
 
-        # Create a new instance with different values
-        new_instance = ClassMethodMap(mapping={"key1": "new_value", "key3": 3})
+        # Create a new subclass with a different mapping
+        @dataclass(frozen=True)
+        class NewClassMethodMap(ClassMethodMap):
+            mapping: ClassVar[dict[str, Any]] = {
+                "key1": "new_value",
+                "key3": 3,
+            }
 
-        # Set the class instance to our new instance
-        ClassMethodMap.set_instance(new_instance)
+        # TODO: why would we ever do this?
+        ClassMethodMap.set_instance(NewClassMethodMap())
 
         # Verify class methods now use the new instance
         assert ClassMethodMap["key1"] == "new_value"
@@ -378,17 +384,15 @@ class TestRealWorldUsage:
         class BedrockModelMap(MapConfiguration):
             """A map of model names to Bedrock model IDs."""
 
-            mapping: dict[str, str] = field(
-                default_factory=lambda: {
-                    "claude-3-5-sonnet": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
-                    "claude-3-5-haiku": "us.anthropic.claude-3-haiku-20240307-v1:0",
-                },
-            )
+            mapping: ClassVar[dict[str, str]] = {
+                "claude-3-5-sonnet": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+                "claude-3-5-haiku": "us.anthropic.claude-3-haiku-20240307-v1:0",
+            }
 
         # Define a method that doesn't rely on class singletons
         def get_supported_models(model_map: BedrockModelMap) -> list[str]:
             """Get list of supported model names from a model map instance."""
-            return list(model_map.mapping.keys())
+            return list(model_map.class_keys())
 
         # Instance-level tests that don't rely on class singletons
         model_map = BedrockModelMap()
@@ -409,22 +413,22 @@ class TestRealWorldUsage:
         )
 
         # Create a new instance with different mapping
-        expanded_map = BedrockModelMap(
-            mapping={
+        class CustomModelMap(BedrockModelMap):
+            mapping: ClassVar[dict[str, str]] = {
                 "claude-3-5-sonnet": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
                 "claude-3-5-haiku": "us.anthropic.claude-3-haiku-20240307-v1:0",
                 "claude-3-opus": "us.anthropic.claude-3-opus-20240229-v1:0",
-            },
-        )
+            }
 
         # Test the expanded map
-        assert "claude-3-opus" in expanded_map
+        assert "claude-3-opus" in CustomModelMap()
         assert (
-            expanded_map["claude-3-opus"] == "us.anthropic.claude-3-opus-20240229-v1:0"
+            CustomModelMap()["claude-3-opus"]
+            == "us.anthropic.claude-3-opus-20240229-v1:0"
         )
 
         # Test the helper method with the expanded map
-        expanded_models = get_supported_models(expanded_map)
+        expanded_models = get_supported_models(CustomModelMap())
         assert len(expanded_models) == 3
         assert "claude-3-opus" in expanded_models
 
@@ -444,12 +448,10 @@ class TestRealWorldUsage:
         class BedrockModelMap(MapConfiguration):
             """Map of model names to Bedrock model IDs."""
 
-            mapping: dict[str, str] = field(
-                default_factory=lambda: {
-                    "claude-3-5-sonnet": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
-                    "claude-3-5-haiku": "us.anthropic.claude-3-haiku-20240307-v1:0",
-                },
-            )
+            mapping: ClassVar[dict[str, str]] = {
+                "claude-3-5-sonnet": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+                "claude-3-5-haiku": "us.anthropic.claude-3-haiku-20240307-v1:0",
+            }
 
         # Test that both configurations can be used in tandem
         limits = BedrockContentLimits()

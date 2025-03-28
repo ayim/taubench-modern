@@ -1,4 +1,4 @@
-from agent_server_types_v2.kernel import Kernel
+from agent_platform.core.kernel import Kernel
 
 
 class UsesKernelMixin:

@@ -4,9 +4,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
-from agent_server_types.configurations import Configuration
+from agent_platform.core.configurations import Configuration
 
-from sema4ai_agent_server.env_vars import (
+from agent_platform.server.env_vars import (
     CONFIG_PATH,
     DATA_DIR,
     DB_TYPE,
@@ -50,16 +50,16 @@ class SystemConfig(Configuration):
 
     # Database configuration
     db_type: Literal["sqlite", "postgres"] = field(
-        default_factory=lambda: DB_TYPE or "sqlite"
+        default_factory=lambda: DB_TYPE or "sqlite",
     )
 
     # Logging settings
     log_level: str = field(default_factory=lambda: (LOG_LEVEL or "INFO").upper())
     log_max_backup_files: int = field(
-        default_factory=lambda: int(LOG_MAX_BACKUP_FILES or "5")
+        default_factory=lambda: int(LOG_MAX_BACKUP_FILES or "5"),
     )
     log_file_size: int = field(
-        default_factory=lambda: int(LOG_FILE_SIZE or str(10 * 1_048_576))
+        default_factory=lambda: int(LOG_FILE_SIZE or str(10 * 1_048_576)),
     )
 
     def __post_init__(self) -> None:

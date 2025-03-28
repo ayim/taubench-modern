@@ -36,7 +36,8 @@ Example structure:
 
 ## Configuration Classes
 
-The system separates physical paths from general system configuration settings for better organization:
+The system separates physical paths from general system configuration settings
+for better organization:
 
 ### SystemPaths
 
@@ -50,7 +51,8 @@ Manages all file system paths used by the agent server:
 ```
 
 Note: The derived paths (vector_database_path, domain_database_path, log_file_path,
-upload_dir, config_dir) are calculated automatically and don't need to be specified in the JSON.
+upload_dir, config_dir) are calculated automatically and don't need to be
+specified in the JSON.
 
 ### SystemConfig
 
@@ -138,9 +140,9 @@ from pathlib import Path
 from typing import Any, Sequence, TypeVar
 
 import structlog
-from agent_server_types.configurations import ConfigMeta, Configuration
+from agent_platform.core.configurations import ConfigMeta, Configuration
 
-from sema4ai_agent_server.constants import default_config_path
+from agent_platform.server.constants import default_config_path
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 

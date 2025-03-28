@@ -4,17 +4,17 @@ from uuid import uuid4
 
 import pytest
 
-from agent_server_types_v2.memory import Memory
-from sema4ai_agent_server.storage.v2.errors_v2 import (
+from agent_platform.core.memory import Memory
+from agent_platform.server.storage.errors import (
     MemoryNotFoundError,
     RecordAlreadyExistsError,
 )
-from sema4ai_agent_server.storage.v2.sqlite_v2 import SQLiteStorageV2
+from agent_platform.server.storage.sqlite import SQLiteStorage
 
 
 @pytest.mark.asyncio
 async def test_memory_crud_operations(
-    storage: SQLiteStorageV2,
+    storage: SQLiteStorage,
 ) -> None:
     """
     Test create, get, list, upsert, and delete operations for a memory record.
@@ -36,45 +36,45 @@ async def test_memory_crud_operations(
         embedding_id=str(uuid4()),
     )
     # Create the memory record
-    await storage.create_memory_v2(sample_memory)
-    fetched = await storage.get_memory_v2(sample_memory.memory_id)
+    await storage.create_memory(sample_memory)
+    fetched = await storage.get_memory(sample_memory.memory_id)
     assert fetched is not None
     assert fetched.memory_id == sample_memory.memory_id
     assert fetched.original_text == "original memory text"
 
     # List memories by scope and scope_id
-    memories = await storage.list_memories_v2("test_scope", "scope123")
+    memories = await storage.list_memories("test_scope", "scope123")
     assert any(m.memory_id == sample_memory.memory_id for m in memories)
 
     # Upsert (update) the memory record
     updated_memory = Memory.model_validate(
         sample_memory.model_dump() | {"original_text": "updated original text"},
     )
-    await storage.upsert_memory_v2(updated_memory)
-    updated = await storage.get_memory_v2(sample_memory.memory_id)
+    await storage.upsert_memory(updated_memory)
+    updated = await storage.get_memory(sample_memory.memory_id)
     assert updated.original_text == "updated original text"
 
     # Delete the memory and verify it no longer exists
-    await storage.delete_memory_v2(sample_memory.memory_id)
+    await storage.delete_memory(sample_memory.memory_id)
     with pytest.raises(MemoryNotFoundError):
-        await storage.get_memory_v2(sample_memory.memory_id)
+        await storage.get_memory(sample_memory.memory_id)
     with pytest.raises(MemoryNotFoundError):
-        await storage.delete_memory_v2(sample_memory.memory_id)
+        await storage.delete_memory(sample_memory.memory_id)
 
 
 @pytest.mark.asyncio
 async def test_memory_list_empty(
-    storage: SQLiteStorageV2,
+    storage: SQLiteStorage,
 ) -> None:
     """
     Test that listing memories for a scope/ID that has no records returns an empty list.
     """
-    memories = await storage.list_memories_v2("nonexistent_scope", "no-id")
+    memories = await storage.list_memories("nonexistent_scope", "no-id")
     assert memories == []
 
 
 @pytest.mark.asyncio
-async def test_memory_concurrent_upsert(storage: SQLiteStorageV2) -> None:
+async def test_memory_concurrent_upsert(storage: SQLiteStorage) -> None:
     """
     Test that concurrent upserts on the same memory record
     do not cause corruption and the final state is valid.
@@ -95,17 +95,17 @@ async def test_memory_concurrent_upsert(storage: SQLiteStorageV2) -> None:
         embedded=False,
         embedding_id=str(uuid4()),
     )
-    await storage.create_memory_v2(sample_memory)
+    await storage.create_memory(sample_memory)
 
     async def update_memory(new_text: str) -> None:
-        mem = await storage.get_memory_v2(sample_memory.memory_id)
+        mem = await storage.get_memory(sample_memory.memory_id)
         updated = Memory.model_validate(
             mem.model_dump() | {
                 "original_text": new_text,
                 "updated_at": datetime.now(UTC),
             },
         )
-        await storage.upsert_memory_v2(updated)
+        await storage.upsert_memory(updated)
 
     # Run several concurrent upserts.
     await asyncio.gather(
@@ -113,12 +113,12 @@ async def test_memory_concurrent_upsert(storage: SQLiteStorageV2) -> None:
         update_memory("Update 2"),
         update_memory("Update 3"),
     )
-    final_mem = await storage.get_memory_v2(sample_memory.memory_id)
+    final_mem = await storage.get_memory(sample_memory.memory_id)
     assert final_mem.original_text in ["Update 1", "Update 2", "Update 3"]
 
 
 @pytest.mark.asyncio
-async def test_memory_deletion_impacts_listing(storage: SQLiteStorageV2) -> None:
+async def test_memory_deletion_impacts_listing(storage: SQLiteStorage) -> None:
     """
     Test that once a memory record is deleted,
     it no longer appears in listings for its scope.
@@ -157,17 +157,17 @@ async def test_memory_deletion_impacts_listing(storage: SQLiteStorageV2) -> None
         embedded=False,
         embedding_id=str(uuid4()),
     )
-    await storage.create_memory_v2(memory1)
-    await storage.create_memory_v2(memory2)
+    await storage.create_memory(memory1)
+    await storage.create_memory(memory2)
 
-    memories_before = await storage.list_memories_v2(scope, scope_id)
+    memories_before = await storage.list_memories(scope, scope_id)
     mem_ids_before = {m.memory_id for m in memories_before}
     assert memory1.memory_id in mem_ids_before
     assert memory2.memory_id in mem_ids_before
 
     # Delete memory1 and verify it is removed.
-    await storage.delete_memory_v2(memory1.memory_id)
-    memories_after = await storage.list_memories_v2(scope, scope_id)
+    await storage.delete_memory(memory1.memory_id)
+    memories_after = await storage.list_memories(scope, scope_id)
     mem_ids_after = {m.memory_id for m in memories_after}
     assert memory1.memory_id not in mem_ids_after
     assert memory2.memory_id in mem_ids_after
@@ -175,19 +175,19 @@ async def test_memory_deletion_impacts_listing(storage: SQLiteStorageV2) -> None
 
 @pytest.mark.asyncio
 async def test_memory_not_found_error(
-    storage: SQLiteStorageV2,
+    storage: SQLiteStorage,
 ) -> None:
     """
     Test that deleting a non-existent memory record raises MemoryNotFoundError.
     """
     non_existent_memory_id = str(uuid4())
     with pytest.raises(MemoryNotFoundError):
-        await storage.get_memory_v2(non_existent_memory_id)
+        await storage.get_memory(non_existent_memory_id)
     with pytest.raises(MemoryNotFoundError):
-        await storage.delete_memory_v2(non_existent_memory_id)
+        await storage.delete_memory(non_existent_memory_id)
 
 @pytest.mark.asyncio
-async def test_duplicate_memory_creation(storage: SQLiteStorageV2):
+async def test_duplicate_memory_creation(storage: SQLiteStorage):
     """
     Attempt to create two memory records with the same memory_id.
     Expect that the second insertion raises an error (e.g. an integrity error)
@@ -211,15 +211,15 @@ async def test_duplicate_memory_creation(storage: SQLiteStorageV2):
         embedding_id=str(uuid4()),
     )
     # Create the memory record once.
-    await storage.create_memory_v2(memory_record)
+    await storage.create_memory(memory_record)
 
     # Attempt to create the same record a second time.
     with pytest.raises(RecordAlreadyExistsError):
-        await storage.create_memory_v2(memory_record)
+        await storage.create_memory(memory_record)
 
 
 @pytest.mark.asyncio
-async def test_memory_edge_case_field_values(storage: SQLiteStorageV2):
+async def test_memory_edge_case_field_values(storage: SQLiteStorage):
     """
     Create a memory record with extreme values—very long strings and special characters—
     and verify that it is stored and retrieved correctly.
@@ -243,15 +243,15 @@ async def test_memory_edge_case_field_values(storage: SQLiteStorageV2):
         embedded=False,
         embedding_id=str(uuid4()),
     )
-    await storage.create_memory_v2(memory_record)
-    fetched = await storage.get_memory_v2(memory_record.memory_id)
+    await storage.create_memory(memory_record)
+    fetched = await storage.get_memory(memory_record.memory_id)
     assert fetched is not None
     assert fetched.original_text == memory_record.original_text
     assert fetched.metadata["info"] == special_text
 
 
 @pytest.mark.asyncio
-async def test_memory_timestamp_update_verification(storage: SQLiteStorageV2):
+async def test_memory_timestamp_update_verification(storage: SQLiteStorage):
     """
     Create a memory record, then update it and verify that the updated_at timestamp
     changes to a later value.
@@ -272,8 +272,8 @@ async def test_memory_timestamp_update_verification(storage: SQLiteStorageV2):
         embedded=False,
         embedding_id=str(uuid4()),
     )
-    await storage.create_memory_v2(memory_record)
-    fetched = await storage.get_memory_v2(memory_record.memory_id)
+    await storage.create_memory(memory_record)
+    fetched = await storage.get_memory(memory_record.memory_id)
     original_updated_at = fetched.updated_at
 
     # Wait a moment so that the updated_at can change noticeably.
@@ -284,14 +284,14 @@ async def test_memory_timestamp_update_verification(storage: SQLiteStorageV2):
             "updated_at": datetime.now(UTC),
         },
     )
-    await storage.upsert_memory_v2(updated_memory)
-    updated_fetched = await storage.get_memory_v2(memory_record.memory_id)
+    await storage.upsert_memory(updated_memory)
+    updated_fetched = await storage.get_memory(memory_record.memory_id)
     assert updated_fetched.updated_at > original_updated_at
     assert updated_fetched.original_text == "Updated text"
 
 
 # @pytest.mark.asyncio
-# async def test_concurrent_deletion_and_update(storage: SQLiteStorageV2):
+# async def test_concurrent_deletion_and_update(storage: SQLiteStorage):
 #     """
 #     Simulate a race where one coroutine deletes a memory record while another
 #     attempts to update it. Verify the outcome based on the actual
@@ -313,14 +313,14 @@ async def test_memory_timestamp_update_verification(storage: SQLiteStorageV2):
 #         embedded=False,
 #         embedding_id=str(uuid4()),
 #     )
-#     await storage.create_memory_v2(memory_record)
+#     await storage.create_memory(memory_record)
 #     original_updated_at = memory_record.updated_at
 
 #     async def delete_memory():
 #         await asyncio.sleep(0.01)
 #         delete_time = datetime.now(UTC)
 #         try:
-#             await storage.delete_memory_v2(memory_record.memory_id)
+#             await storage.delete_memory(memory_record.memory_id)
 #             return ("deleted", delete_time)
 #         except Exception:
 #             return ("delete_failed", delete_time)
@@ -329,14 +329,14 @@ async def test_memory_timestamp_update_verification(storage: SQLiteStorageV2):
 #         await asyncio.sleep(0.01)
 #         update_time = datetime.now(UTC)
 #         try:
-#             current = await storage.get_memory_v2(memory_record.memory_id)
+#             current = await storage.get_memory(memory_record.memory_id)
 #             updated = Memory.model_validate(
 #                 current.model_dump() | {
 #                     "original_text": "Updated concurrently",
 #                     "updated_at": datetime.now(UTC),
 #                 },
 #             )
-#             await storage.upsert_memory_v2(updated)
+#             await storage.upsert_memory(updated)
 #             return ("updated", update_time)
 #         except MemoryNotFoundError:
 #             return ("not_found", update_time)
@@ -355,21 +355,21 @@ async def test_memory_timestamp_update_verification(storage: SQLiteStorageV2):
 #         assert update_status in ["not_found", "update_failed"]
 #         if update_status == "not_found":
 #             with pytest.raises(MemoryNotFoundError):
-#                 await storage.get_memory_v2(memory_record.memory_id)
+#                 await storage.get_memory(memory_record.memory_id)
 #         else:
 #             # If the update re-created it, then it should have a later
 #             # updated_at timestamp.
-#             updated = await storage.get_memory_v2(memory_record.memory_id)
+#             updated = await storage.get_memory(memory_record.memory_id)
 #             assert updated.updated_at > original_updated_at
 #     else:
 #         # If update happened first, the record should still be deleted
 #         assert delete_status == "deleted"
 #         with pytest.raises(MemoryNotFoundError):
-#             await storage.get_memory_v2(memory_record.memory_id)
+#             await storage.get_memory(memory_record.memory_id)
 
 
 @pytest.mark.asyncio
-async def test_memory_filtering_by_scope_id(storage: SQLiteStorageV2):
+async def test_memory_filtering_by_scope_id(storage: SQLiteStorage):
     """
     Create multiple memory records under the same scope but with
     different metadata values for 'scope_id', then list memories for
@@ -394,7 +394,7 @@ async def test_memory_filtering_by_scope_id(storage: SQLiteStorageV2):
         embedded=False,
         embedding_id=str(uuid4()),
     )
-    await storage.create_memory_v2(memory_target)
+    await storage.create_memory(memory_target)
 
     memory_other = Memory(
         memory_id=str(uuid4()),
@@ -412,9 +412,9 @@ async def test_memory_filtering_by_scope_id(storage: SQLiteStorageV2):
         embedded=False,
         embedding_id=str(uuid4()),
     )
-    await storage.create_memory_v2(memory_other)
+    await storage.create_memory(memory_other)
 
-    filtered_memories = await storage.list_memories_v2(scope, target_scope_id)
+    filtered_memories = await storage.list_memories(scope, target_scope_id)
     filtered_ids = {mem.memory_id for mem in filtered_memories}
     assert memory_target.memory_id in filtered_ids
     assert memory_other.memory_id not in filtered_ids

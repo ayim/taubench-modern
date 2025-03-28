@@ -4,12 +4,12 @@ from pathlib import Path
 import aiosqlite
 import pytest
 
-from sema4ai_agent_server.storage.v2.migrations_v2 import (
+from agent_platform.server.storage.migrations import (
     MigrationError,
     MigrationLockError,
     MigrationTimeoutError,
 )
-from sema4ai_agent_server.storage.v2.sqlite_v2.migrations import SQLiteMigrationsV2
+from agent_platform.server.storage.sqlite.migrations import SQLiteMigrations
 
 
 @pytest.fixture
@@ -23,10 +23,10 @@ async def sqlite_db_path(tmp_path_factory):
 async def test_sqlite_run_migrations_successfully(sqlite_db_path):
     """Test that migrations run successfully and create expected tables in SQLite."""
     path_to_migrations = (
-        Path(__file__).parent.parent.parent.parent / "sema4ai_agent_server"
-        / "migrations" / "v2" / "sqlite"
+        Path(__file__).parent.parent.parent.parent / "src" /
+        "agent_platform" / "server" / "migrations" / "sqlite"
     )
-    migrations = SQLiteMigrationsV2(sqlite_db_path, migrations_path=path_to_migrations)
+    migrations = SQLiteMigrations(sqlite_db_path, migrations_path=path_to_migrations)
     await migrations.run_migrations()
 
     # Check that a table is created, for example 'v2_agent'.
@@ -81,7 +81,7 @@ async def test_sqlite_run_migrations_dirty_state(sqlite_db_path):
         """)
         await conn.commit()
 
-    migrations = SQLiteMigrationsV2(sqlite_db_path)
+    migrations = SQLiteMigrations(sqlite_db_path)
 
     with pytest.raises(MigrationError) as exc_info:
         await migrations.run_migrations()
@@ -109,7 +109,7 @@ async def test_sqlite_migration_timeout(sqlite_db_path, tmp_path):
             """)
 
         # Create a SQLiteMigrationsV2 instance with a shorter timeout
-        migrations = SQLiteMigrationsV2(
+        migrations = SQLiteMigrations(
             sqlite_db_path, timeout=1.0, migrations_path=temp_migration_path.parent,
         )
 
@@ -136,7 +136,7 @@ async def test_sqlite_invalid_migration_filename(sqlite_db_path, tmp_path):
             f.write("CREATE TABLE test (id INTEGER PRIMARY KEY);")
 
         # Initialize migrations instance pointing to the temporary directory
-        migrations = SQLiteMigrationsV2(
+        migrations = SQLiteMigrations(
             sqlite_db_path, migrations_path=temp_migration_path.parent,
         )
 
@@ -183,7 +183,7 @@ async def test_sqlite_migration_lock_cannot_be_acquired(sqlite_db_path):
         await conn.commit()
 
     # Attempt to run migrations, expect the lock acquisition to fail
-    migrations = SQLiteMigrationsV2(sqlite_db_path)
+    migrations = SQLiteMigrations(sqlite_db_path)
 
     with pytest.raises(MigrationLockError) as exc_info:
         await migrations.run_migrations()
@@ -201,7 +201,7 @@ async def test_sqlite_migration_checksum_drift(sqlite_db_path, tmp_path):
     migration_file.write_text("CREATE TABLE drift_test (id INTEGER PRIMARY KEY);")
 
     # 2) Point migrations to that temp directory and run them once
-    migrations = SQLiteMigrationsV2(sqlite_db_path, migrations_path=tmp_path)
+    migrations = SQLiteMigrations(sqlite_db_path, migrations_path=tmp_path)
     await migrations.run_migrations()
 
     # 3) Modify the SAME file content (simulate drift)
@@ -227,7 +227,7 @@ async def test_sqlite_migration_sql_syntax_error(sqlite_db_path, tmp_path):
     # 'CREAT' missing 'E'
     bad_migration.write_text("CREAT TABLE bad_syntax (id INTEGER PRIMARY KEY);")
 
-    migrations = SQLiteMigrationsV2(sqlite_db_path, migrations_path=tmp_path)
+    migrations = SQLiteMigrations(sqlite_db_path, migrations_path=tmp_path)
 
     with pytest.raises(MigrationError) as exc_info:
         await migrations.run_migrations()
@@ -255,7 +255,7 @@ async def test_sqlite_empty_migration_file(sqlite_db_path, tmp_path):
     empty_migration = tmp_path / "3_empty_file.up.sql"
     empty_migration.write_text("")  # no contents
 
-    migrations = SQLiteMigrationsV2(sqlite_db_path, migrations_path=tmp_path)
+    migrations = SQLiteMigrations(sqlite_db_path, migrations_path=tmp_path)
 
     with pytest.raises(MigrationError) as exc_info:
         await migrations.run_migrations()
@@ -271,10 +271,10 @@ async def test_sqlite_migrations_idempotency(sqlite_db_path, tmp_path):
     """
     # Use your normal migrations directory.
     migrations_path = (
-        Path(__file__).parent.parent.parent.parent /
-        "sema4ai_agent_server" / "migrations" / "v2" / "sqlite"
+        Path(__file__).parent.parent.parent.parent / "src" /
+        "agent_platform" / "server" / "migrations" / "sqlite"
     )
-    migrations = SQLiteMigrationsV2(sqlite_db_path, migrations_path=migrations_path)
+    migrations = SQLiteMigrations(sqlite_db_path, migrations_path=migrations_path)
 
     await migrations.run_migrations()
     async with aiosqlite.connect(sqlite_db_path) as conn:
@@ -299,7 +299,7 @@ async def test_sqlite_empty_migrations_directory(sqlite_db_path, tmp_path):
     """
     empty_dir = tmp_path / "empty_migrations"
     empty_dir.mkdir()
-    migrations = SQLiteMigrationsV2(sqlite_db_path, migrations_path=empty_dir)
+    migrations = SQLiteMigrations(sqlite_db_path, migrations_path=empty_dir)
 
     await migrations.run_migrations()
 
@@ -324,7 +324,7 @@ async def test_sqlite_rollback_on_failure(sqlite_db_path, tmp_path):
         CREATE TABLE rollback_test (id INTEGER PRIMARY KEY);
         INVALID SQL STATEMENT;
     """)
-    migrations = SQLiteMigrationsV2(sqlite_db_path, migrations_path=migration_dir)
+    migrations = SQLiteMigrations(sqlite_db_path, migrations_path=migration_dir)
 
     with pytest.raises(MigrationError):
         await migrations.run_migrations()
@@ -382,7 +382,7 @@ async def test_migration_script_with_transaction_commands(
     # Initialize the migrations provider with the temporary migration directory.
     # Note that sqlite_db_path is a fixture that should point to an
     # empty SQLite DB file.
-    migrations = SQLiteMigrationsV2(
+    migrations = SQLiteMigrations(
         str(sqlite_db_path), migrations_path=migration_dir,
     )
 

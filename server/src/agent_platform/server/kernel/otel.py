@@ -6,12 +6,12 @@ from logging import getLogger
 
 from opentelemetry.trace import NoOpTracer, SpanContext, Tracer
 
-from agent_server_types_v2.kernel_interfaces.otel import (
+from agent_platform.core.kernel_interfaces.otel import (
     OTelArtifact,
     OTelInterface,
     WrappedSpan,
 )
-from sema4ai_agent_server.kernel.kernel_mixin import UsesKernelMixin
+from agent_platform.server.kernel.kernel_mixin import UsesKernelMixin
 
 
 class AgentServerOTelInterface(OTelInterface, UsesKernelMixin):

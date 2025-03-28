@@ -1,7 +1,7 @@
 from collections.abc import AsyncIterator
 
-from agent_server_types_v2.kernel import Kernel
-from sema4ai_agent_server.agent_architectures.base_runner import BaseAgentRunner
+from agent_platform.core.kernel import Kernel
+from agent_platform.server.agent_architectures.base_runner import BaseAgentRunner
 
 
 class OutOfProcessAgentRunner(BaseAgentRunner):

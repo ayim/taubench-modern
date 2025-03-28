@@ -6,14 +6,12 @@ from fastapi.responses import ORJSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
-from sema4ai_agent_server import __version__
-from sema4ai_agent_server.api.private_v1 import router as v1_router
-from sema4ai_agent_server.api.public_v1 import router as v2_router
-from sema4ai_agent_server.lifespan import lifespan
-from sema4ai_agent_server.storage.option import get_storage
+from agent_platform.server import __version__
+from agent_platform.server.api.private_v2 import router as private_v2_router
+from agent_platform.server.lifespan import lifespan
+from agent_platform.server.storage.option import get_storage
 
-PUBLIC_V1_PREFIX = "/api/public/v1"
-PRIVATE_V1_PREFIX = "/api/v1"
+PRIVATE_V2_PREFIX = "/api/v2"
 
 logger = structlog.get_logger(__name__)
 
@@ -21,7 +19,7 @@ logger = structlog.get_logger(__name__)
 # HTTPMiddleware to ensure that all requests are prefixed with /api/v1 or /api/public/v1
 class EnsureAPIPrefixMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        if not request.url.path.startswith((PUBLIC_V1_PREFIX, PRIVATE_V1_PREFIX)):
+        if not request.url.path.startswith((PRIVATE_V2_PREFIX,)):
             return ORJSONResponse(status_code=404, content={"detail": "Not Found"})
         return await call_next(request)
 
@@ -57,15 +55,9 @@ class _CustomFastAPI(FastAPI):
 def create_app() -> FastAPI:
     # Version 1 API
     app_v1 = _CustomFastAPI(
-        title="Sema4.ai Agent Server Private API Version 1",
+        title="Sema4.ai Agent Server Private API Version 2",
     )
-    app_v1.include_router(v1_router)
-
-    # Version 2 API
-    app_v2 = _CustomFastAPI(
-        title="Sema4.ai Agent Server Public API Version 1",
-    )
-    app_v2.include_router(v2_router)
+    app_v1.include_router(private_v2_router)
 
     # Main FastAPI app to include both versions
     app = FastAPI(
@@ -74,18 +66,16 @@ def create_app() -> FastAPI:
     )
 
     app.add_middleware(EnsureAPIPrefixMiddleware)
-    app.include_router(v1_router)
-    app.include_router(v2_router)
+    app.include_router(private_v2_router)
 
     # Mount the API versions under their respective prefixes
-    app.mount(PRIVATE_V1_PREFIX, app_v1)
-    app.mount(PUBLIC_V1_PREFIX, app_v2)
+    app.mount(PRIVATE_V2_PREFIX, app_v1)
 
-    @app.get("/api/v1/health")
+    @app.get("/api/v2/health")
     async def health() -> dict:
         return {"status": "ok"}
 
-    @app.get("/api/v1/metrics")
+    @app.get("/api/v2/metrics")
     async def metrics() -> dict:
         return {
             "agentCount": await get_storage().agent_count(),

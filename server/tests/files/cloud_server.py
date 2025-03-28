@@ -1,13 +1,13 @@
 import os
 import shutil
 import time
+from dataclasses import dataclass
 from datetime import datetime
 
 import jwt
 import uvicorn
 from fastapi import FastAPI, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
 
 
 def log(message: str) -> None:
@@ -27,7 +27,8 @@ SECRET_KEY = "your-secret-key-here"
 files_metadata: dict[str, dict] = {}
 
 
-class PresignedPostRequest(BaseModel):
+@dataclass
+class PresignedPostRequest:
     file_id: str
     expires_in: int
 

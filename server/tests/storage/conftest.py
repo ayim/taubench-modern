@@ -3,15 +3,15 @@ from uuid import uuid4
 
 import pytest
 
-from agent_server_types_v2.actions import ActionPackage
-from agent_server_types_v2.agent import (
+from agent_platform.core.actions import ActionPackage
+from agent_platform.core.agent import (
     Agent,
     AgentArchitecture,
     ObservabilityConfig,
     QuestionGroup,
 )
-from agent_server_types_v2.runbook import Runbook
-from agent_server_types_v2.thread import Thread, ThreadMessage, ThreadTextContent
+from agent_platform.core.runbook import Runbook
+from agent_platform.core.thread import Thread, ThreadMessage, ThreadTextContent
 
 
 @pytest.fixture

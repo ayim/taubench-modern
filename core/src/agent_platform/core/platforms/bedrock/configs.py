@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import ClassVar
 
 from agent_platform.core.configurations import Configuration, MapConfiguration
 from agent_platform.core.platforms.base import PlatformConfigs
@@ -20,32 +21,31 @@ class BedrockContentLimits(Configuration):
 class BedrockModelMap(MapConfiguration):
     """A map of our model names to Bedrock model IDs."""
 
-    mapping: dict[str, str] = field(
-        default_factory=lambda: {
-            # LLM models
-            "claude-3-5-sonnet": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
-            "claude-3-5-haiku": "us.anthropic.claude-3-haiku-20240307-v1:0",
-            # Embedding models
-            "titan-embed-text-v2": "amazon.titan-embed-text-v2:0",
-            "titan-embed-text-v1": "amazon.titan-embed-text-v1",
-            "cohere-embed-english-v3": "cohere.embed-english-v3",
-            "cohere-embed-multilingual-v3": "cohere.embed-multilingual-v3",
-        },
-    )
+    mapping: ClassVar[dict[str, str]] = {
+        # LLM models
+        "claude-3-5-sonnet": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+        "claude-3-5-haiku": "us.anthropic.claude-3-haiku-20240307-v1:0",
+        # Embedding models
+        "titan-embed-text-v2": "amazon.titan-embed-text-v2:0",
+        "titan-embed-text-v1": "amazon.titan-embed-text-v1",
+        "cohere-embed-english-v3": "cohere.embed-english-v3",
+        "cohere-embed-multilingual-v3": "cohere.embed-multilingual-v3",
+    }
 
     @classmethod
     def supported_models(cls) -> list[str]:
         """Get list of supported model names."""
-        return list(super().__class_getitem__("MODEL_MAP").keys())
+        return list(cls.class_keys())
 
 
 @dataclass(frozen=True)
 class BedrockRoleMap(MapConfiguration):
     """A map of Bedrock role names to our role names."""
 
-    mapping: dict[str, str] = field(
-        default_factory=lambda: {"user": "user", "assistant": "agent"},
-    )
+    mapping: ClassVar[dict[str, str]] = {
+        "user": "user",
+        "assistant": "agent",
+    }
 
 
 @dataclass(frozen=True)
@@ -61,29 +61,27 @@ class BedrockDefaultModel(Configuration):
 class BedrockMimeTypeMap(MapConfiguration):
     """A map of Bedrock format types to MIME types supported by the platform."""
 
-    mapping: dict[str, str] = field(
-        default_factory=lambda: {
-            "jpeg": "image/jpeg",
-            "png": "image/png",
-            "gif": "image/gif",
-            "webp": "image/webp",
-            "pdf": "application/pdf",
-            "txt": "text/plain",
-            "csv": "text/csv",
-            "md": "text/markdown",
-            "html": "text/html",
-            "xls": "application/vnd.ms-excel",
-            "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "doc": "application/msword",
-            "docx": "application/"
-            "vnd.openxmlformats-officedocument.wordprocessingml.document",
-        },
-    )
+    mapping: ClassVar[dict[str, str]] = {
+        "jpeg": "image/jpeg",
+        "png": "image/png",
+        "gif": "image/gif",
+        "webp": "image/webp",
+        "pdf": "application/pdf",
+        "txt": "text/plain",
+        "csv": "text/csv",
+        "md": "text/markdown",
+        "html": "text/html",
+        "xls": "application/vnd.ms-excel",
+        "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "doc": "application/msword",
+        "docx": "application/"
+        "vnd.openxmlformats-officedocument.wordprocessingml.document",
+    }
 
     @classmethod
     def supported_format_types(cls) -> list[str]:
         """Get list of supported format types."""
-        return list(super().__class_getitem__("mapping").keys())
+        return list(cls.class_keys())
 
 
 @dataclass(frozen=True)

@@ -9,8 +9,79 @@ from typing import Any, ClassVar, TypeVar
 T = TypeVar("T", bound="Configuration")
 
 
+class ConfigMeta(type):
+    """Metaclass for Configuration classes to enable class attribute access.
+
+    This metaclass intercepts attribute access on Configuration classes
+    to retrieve values from the singleton instance. It also automatically marks
+    classes as abstract or concrete for configuration management.
+    """
+
+    # Registry of concrete configuration classes
+    _concrete_configs: ClassVar[dict[str, type]] = {}
+
+    def __new__(cls, name, bases, attrs):
+        # Create the class instance
+        super_cls = super().__new__(cls, name, bases, attrs)
+
+        # Skip the base Configuration class itself
+        if (
+            name == "Configuration"
+            and attrs.get("__module__") == "agent_platform.core.configurations"
+        ):
+            return super_cls
+
+        # Determine if this is an abstract base class or a concrete configuration
+        # A class is abstract if it's explicitly marked as such or is one of our
+        # known base classes like MapConfiguration
+        is_abstract = attrs.get("__abstract__", False)
+
+        # MapConfiguration is explicitly marked as abstract
+        if (
+            name == "MapConfiguration"
+            and attrs.get("__module__") == "agent_platform.core.configurations"
+        ):
+            is_abstract = True
+
+        # If not abstract, register this as a concrete configuration class
+        if not is_abstract:
+            # Generate full path for the configuration class
+            full_path = f"{super_cls.__module__}.{super_cls.__name__}"
+            cls._concrete_configs[full_path] = super_cls
+
+        return super_cls
+
+    def __getattr__(cls, name: str) -> Any:
+        """Get configuration value by attribute name at class level.
+
+        Enables direct attribute access like MyConfig.name instead of MyConfig["name"].
+
+        Args:
+            name: The attribute name to get
+
+        Returns:
+            The value of the attribute from the singleton instance
+
+        Raises:
+            AttributeError: If the attribute doesn't exist
+        """
+        try:
+            return cls.__class_getitem__(name)
+        except (KeyError, AttributeError) as e:
+            raise AttributeError(f"{cls.__name__} has no attribute '{name}'") from e
+
+    @classmethod
+    def get_concrete_configs(cls) -> dict[str, type]:
+        """Get all registered concrete configuration classes.
+
+        Returns:
+            Dictionary mapping configuration paths to their class objects.
+        """
+        return cls._concrete_configs
+
+
 @dataclass(frozen=True)
-class Configuration:
+class Configuration(metaclass=ConfigMeta):
     """Base class for all configurations.
 
     This class provides common functionality for JSON-based configurations including:
@@ -20,6 +91,24 @@ class Configuration:
     - Serialization
     - Type checking
     - Class-level singleton access
+
+    ## Singleton Pattern
+
+    The Configuration system uses a singleton pattern to ensure only
+    one instance of each configuration exists. This is important because
+    configurations are loaded once during startup and should remain
+    consistent throughout the application's lifetime.
+
+    ### Accessing Configurations
+
+    After initialization, configurations can be accessed in two ways:
+    1. Using class-level attribute access (recommended):
+        value = MyConfig.count  # 10 (default)
+        value = MyConfig.name   # "default"
+
+    2. Using class-level subscription:
+        value = MyConfig["count"]  # 10 (default)
+        value = MyConfig["name"]   # "default"
 
     Example:
         @dataclass(frozen=True)
@@ -31,6 +120,34 @@ class Configuration:
             def default(cls) -> "MyConfig":
                 return cls(name="default")
 
+    ### Initialization
+
+    The singleton instance is set during application startup by the
+    ConfigurationManager. You should not create instances directly,
+    but rather use the class-level accessors after initialization.
+
+    Example:
+        # During startup
+        manager = ConfigurationManager()
+        manager._load_configuration(MyConfig)  # Sets up singleton
+
+        # During application use
+        value = MyConfig["count"]  # Uses singleton instance
+
+    ### Updating Configurations
+
+    When you need to update a configuration, use the ConfigurationManager to ensure
+    the singleton is updated properly:
+
+        manager = get_configuration_manager()
+        new_config = MyConfig(name="new", count=20)
+        manager.update_configuration(MyConfig, new_config)
+
+    ## JSON Support
+
+    The class also provides JSON serialization support:
+
+    Example:
         # Create from defaults
         config = MyConfig.default()
 
@@ -40,12 +157,6 @@ class Configuration:
 
         # Save to JSON
         config.to_json("new_config.json")
-
-        # Use as a dictionary (instance level)
-        config["count"]  # 20
-
-        # Use as a dictionary (class level, uses cached singleton)
-        MyConfig["count"]  # 10 (default)
     """
 
     # Optional class variable for configuration file path
@@ -118,7 +229,7 @@ class Configuration:
         return cls(**validated_config)
 
     @classmethod
-    def from_dict(cls: type[T], config_dict: dict[str, Any]) -> T:
+    def from_dict(cls: type[T], config_dict: dict[str, Any]) -> T:  # noqa: C901
         """Load configuration from a dictionary.
 
         Args:
@@ -140,12 +251,58 @@ class Configuration:
                 continue
 
             field = config_fields[key]
-            if not isinstance(value, field.type) and value is not None:
+            # Skip fields that should not be passed to __init__
+            if field.init is False:
+                continue
+
+            field_type = field.type
+
+            try:
+                # Special handling for Path objects - convert strings to Path
+                if field_type == Path and isinstance(value, str):
+                    validated_config[key] = Path(value)
+                    continue
+
+                # Handle Literal types specially by checking field_type signature
+                if hasattr(field_type, "__args__") and "Literal" in str(field_type):
+                    # For Literal types, just check if the
+                    # value is one of the allowed values
+                    allowed_values = field_type.__args__
+                    if value not in allowed_values and value is not None:
+                        raise TypeError(
+                            f"Invalid value for {key}: got {value}, "
+                            f"expected one of {allowed_values}",
+                        )
+                    validated_config[key] = value
+                    continue
+
+                # Skip advanced type checking for other
+                # subscripted generics (List[x], Dict[x,y], etc.)
+                # as they can't be used with isinstance()
+                if hasattr(field_type, "__origin__"):
+                    # For subscripted generics, just use the
+                    # container type (list, dict, etc)
+                    container_type = field_type.__origin__
+                    if not isinstance(value, container_type) and value is not None:
+                        raise TypeError(
+                            f"Invalid type for {key}: expected container type "
+                            f"{container_type.__name__}, got {type(value).__name__}",
+                        )
+                    validated_config[key] = value
+                    continue
+
+                # Regular type checking
+                if not isinstance(value, field_type) and value is not None:
+                    raise TypeError(
+                        f"Invalid type for {key}: expected {field_type.__name__}, "
+                        f"got {type(value).__name__}",
+                    )
+                validated_config[key] = value
+            except Exception as e:
+                # Add more context to the error
                 raise TypeError(
-                    f"Invalid type for {key}: expected {field.type.__name__}, "
-                    f"got {type(value).__name__}",
-                )
-            validated_config[key] = value
+                    f"Error processing field '{key}' with value {value}: {e!s}",
+                ) from e
 
         return cls(**validated_config)
 
@@ -184,6 +341,15 @@ class Configuration:
         """
         return asdict(self)
 
+    # Tests will fail without this, as you don't guarantee that this
+    # class generates an __init__ method and, as such, subclasses may
+    # not generate their __init__ method with kwargs correctly... this
+    # get's a bit down in the weeds on dataclass machinery, but suffice
+    # it to say that we need at least an empty __post_init__ here.
+    def __post_init__(self) -> None:
+        """Post-initialization hook for validation or other processing."""
+        pass
+
 
 class MapConfiguration(Configuration):
     """A configuration that is made up of only one mapping.
@@ -191,6 +357,9 @@ class MapConfiguration(Configuration):
     This class provides helper access methods to allow direct
     subscript access to the underlying mapping.
     """
+
+    # Mark as an abstract base class, not a concrete configuration
+    __abstract__ = True
 
     mapping: dict[str, Any] = field(
         default_factory=dict,
