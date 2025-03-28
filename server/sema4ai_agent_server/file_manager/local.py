@@ -10,7 +10,7 @@ import structlog
 from agent_server_types import Agent, EmbeddingStatus, Thread, UploadedFile
 from fastapi import UploadFile
 
-from sema4ai_agent_server.constants import Constants
+from sema4ai_agent_server.constants import SystemPaths
 from sema4ai_agent_server.file_manager.base import (
     MISSING_FILE_HASH,
     BaseFileManager,
@@ -112,7 +112,9 @@ class LocalFileManager(BaseFileManager):
     ) -> UploadedFile:
         blob = convert_to_blob(file)
         file_hash = await self._store(blob, file_path)
-        assert file.filename, "Invalid (empty) file name (should've raised an error in self._validate_files_pre_upload already)."
+        assert file.filename, (
+            "Invalid (empty) file name (should've raised an error in self._validate_files_pre_upload already)."
+        )
         return await get_storage().put_file_owner(
             file_id,
             file_path,
@@ -133,7 +135,9 @@ class LocalFileManager(BaseFileManager):
         uploaded_files: list[UploadedFile] = []
         for f in files:
             file_id = str(uuid4())
-            assert f.file.filename, "Invalid (empty) file name (should've raised an error in self._validate_files_pre_upload already)."
+            assert f.file.filename, (
+                "Invalid (empty) file name (should've raised an error in self._validate_files_pre_upload already)."
+            )
             file_url = self._build_file_url(owner_id, file_id, f.file.filename)
             embedded = (
                 f.embedded if f.embedded is not None else self._is_embeddable(f.file)
@@ -191,7 +195,7 @@ class LocalFileManager(BaseFileManager):
             - Windows drive letter: file:///c:/far/boo
             - Regular path: file:///path/to/file
         """
-        abs_path = Path(Constants.UPLOAD_DIR).joinpath(owner_id, file_id, file_ref)
+        abs_path = SystemPaths.upload_dir.joinpath(owner_id, file_id, file_ref)
         if IS_WIN:
             abs_path = Path(normalize_drive(str(abs_path)))
         return abs_path.as_uri()

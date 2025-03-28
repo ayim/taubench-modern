@@ -11,7 +11,7 @@ from langgraph.graph.message import Messages
 from langgraph.pregel import Pregel
 from pydantic import Field
 
-from sema4ai_agent_server.agent_architecture_manager import agent_architectures
+from sema4ai_agent_server.agent_architecture_manager import get_agent_architectures
 from sema4ai_agent_server.kernal import AgentServerKernal
 from sema4ai_agent_server.storage.checkpoint import get_checkpointer
 
@@ -68,7 +68,9 @@ class ConfigurableAgent(RunnableBinding):
         others.pop("bound", None)
         if agent is None:
             agent = dummy_agent
-        agent_factory_class = agent_architectures[agent.advanced_config.architecture]
+        agent_factory_class = get_agent_architectures()[
+            agent.advanced_config.architecture
+        ]
         agent_factory = agent_factory_class(
             agent=agent,
             thread=thread,

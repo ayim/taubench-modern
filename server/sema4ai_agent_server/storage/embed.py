@@ -6,7 +6,6 @@ This module supports both PostgreSQL (PGVector) and SQLite (ChromaDB) as backend
 from __future__ import annotations
 
 import mimetypes
-import os
 from asyncio import get_event_loop
 from typing import BinaryIO, List, Optional, Union
 
@@ -35,7 +34,14 @@ from langchain_openai import AzureOpenAIEmbeddings, OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter, TextSplitter
 from pydantic import ConfigDict, Field
 
-from sema4ai_agent_server.constants import VECTOR_DATABASE_PATH
+from sema4ai_agent_server.constants import SystemConfig, SystemPaths
+from sema4ai_agent_server.env_vars import (
+    POSTGRES_DB,
+    POSTGRES_HOST,
+    POSTGRES_PASSWORD,
+    POSTGRES_PORT,
+    POSTGRES_USER,
+)
 from sema4ai_agent_server.parsing import MIMETYPE_BASED_PARSER
 from sema4ai_agent_server.snowflake_cortex_embeddings import SnowflakeCortexEmbeddings
 from sema4ai_agent_server.storage.vectorstore import (
@@ -171,6 +177,7 @@ def get_embedding_function(
         )
         return BedrockEmbeddings(client=client, model_id="amazon.titan-embed-text-v2:0")
     elif isinstance(model, SnowflakeCortex):
+
         def _none_if_not_configured_or_empty(value: str | None) -> str | None:
             if value is None or value.strip() == "":
                 return None
@@ -179,18 +186,32 @@ def get_embedding_function(
             return value
 
         return SnowflakeCortexEmbeddings(
-            snowflake_username=_none_if_not_configured_or_empty(model.config.snowflake_username),
+            snowflake_username=_none_if_not_configured_or_empty(
+                model.config.snowflake_username
+            ),
             snowflake_password=_none_if_not_configured_or_empty(
                 model.config.snowflake_password.get_secret_value()
                 if model.config.snowflake_password
                 else None
             ),
-            snowflake_account=_none_if_not_configured_or_empty(model.config.snowflake_account),
-            snowflake_host=_none_if_not_configured_or_empty(model.config.snowflake_host),
-            snowflake_database=_none_if_not_configured_or_empty(model.config.snowflake_database),
-            snowflake_schema=_none_if_not_configured_or_empty(model.config.snowflake_schema),
-            snowflake_role=_none_if_not_configured_or_empty(model.config.snowflake_role),
-            snowflake_warehouse=_none_if_not_configured_or_empty(model.config.snowflake_warehouse),
+            snowflake_account=_none_if_not_configured_or_empty(
+                model.config.snowflake_account
+            ),
+            snowflake_host=_none_if_not_configured_or_empty(
+                model.config.snowflake_host
+            ),
+            snowflake_database=_none_if_not_configured_or_empty(
+                model.config.snowflake_database
+            ),
+            snowflake_schema=_none_if_not_configured_or_empty(
+                model.config.snowflake_schema
+            ),
+            snowflake_role=_none_if_not_configured_or_empty(
+                model.config.snowflake_role
+            ),
+            snowflake_warehouse=_none_if_not_configured_or_empty(
+                model.config.snowflake_warehouse
+            ),
         )
     raise ValueError(f"Unsupported model type {model} for embeddings.")
 
@@ -198,11 +219,11 @@ def get_embedding_function(
 def get_pg_vector(model: Optional[MODEL]) -> PostgresVector:
     connection_string = PostgresVector.connection_string_from_db_params(
         driver="psycopg",
-        host=os.environ["POSTGRES_HOST"],
-        port=int(os.environ["POSTGRES_PORT"]),
-        database=os.environ["POSTGRES_DB"],
-        user=os.environ["POSTGRES_USER"],
-        password=os.environ["POSTGRES_PASSWORD"],
+        host=POSTGRES_HOST,
+        port=int(POSTGRES_PORT),
+        database=POSTGRES_DB,
+        user=POSTGRES_USER,
+        password=POSTGRES_PASSWORD,
     )
     return PostgresVector(
         embeddings=get_embedding_function(model) if model else None,
@@ -223,7 +244,7 @@ def get_chroma_vector(model: Optional[MODEL]) -> ChromaVector:
         collection_name=(
             model.provider.value if model is not None else "default"
         ).replace(" ", "-"),
-        persist_directory=VECTOR_DATABASE_PATH,
+        persist_directory=str(SystemPaths.vector_database_path),
         embedding_function=get_embedding_function(model) if model else None,
         client_settings=Settings(
             anonymized_telemetry=False,
@@ -233,7 +254,7 @@ def get_chroma_vector(model: Optional[MODEL]) -> ChromaVector:
 
 
 def get_vector_store(model: Optional[MODEL] = None) -> VectorStoreBase:
-    db_type = os.environ.get("S4_AGENT_SERVER_DB_TYPE", "sqlite")
+    db_type = SystemConfig.db_type or "sqlite"
     if db_type == "postgres":
         return get_pg_vector(model)
     elif db_type == "sqlite":

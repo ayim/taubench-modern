@@ -10,11 +10,13 @@ from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.resources import Resource
 from traceloop.sdk import Traceloop
 
+from sema4ai_agent_server.env_vars import OTEL_COLLECTOR_URL
+
 logger = structlog.get_logger(__name__)
 
 
 def get_otel_collector_url() -> Optional[str]:
-    return os.getenv("OTEL_COLLECTOR_URL")
+    return OTEL_COLLECTOR_URL
 
 
 def otel_is_enabled() -> bool:

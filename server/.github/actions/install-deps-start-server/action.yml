@@ -64,7 +64,7 @@ runs:
         
         echo "Server is healthy!"
       env:
-        S4_AGENT_SERVER_DB_TYPE: sqlite
+        SEMA4AI_AGENT_SERVER_DB_TYPE: sqlite
         SCARF_NO_ANALYTICS: "true"
         OPENAI_API_KEY: ${{ inputs.openai_api_key }}
         

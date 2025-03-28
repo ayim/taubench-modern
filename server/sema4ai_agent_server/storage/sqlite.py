@@ -26,7 +26,7 @@ from agent_server_types import (
 from langchain_core.messages import AnyMessage
 
 from sema4ai_agent_server.agent import runnable_agent
-from sema4ai_agent_server.constants import DOMAIN_DATABASE_PATH
+from sema4ai_agent_server.constants import SystemPaths
 from sema4ai_agent_server.storage import (
     BaseStorage,
     UniqueAgentNameError,
@@ -52,7 +52,7 @@ class SqliteStorage(BaseStorage):
     @classmethod
     @contextmanager
     def _connect(cls):
-        conn = sqlite3.connect(DOMAIN_DATABASE_PATH)
+        conn = sqlite3.connect(SystemPaths.domain_database_path)
         conn.row_factory = sqlite3.Row  # Enable dictionary access to row items.
         try:
             yield conn
@@ -232,8 +232,9 @@ class SqliteStorage(BaseStorage):
             count = cursor.fetchone()[0]
             return count
 
-
-    async def list_threads(self, user_id: str, aid: str = None, name: str = None, limit: int = None) -> List[Thread]:
+    async def list_threads(
+        self, user_id: str, aid: str = None, name: str = None, limit: int = None
+    ) -> List[Thread]:
         """List all threads for the current user and system threads."""
         sql = """
                 SELECT t.* 
@@ -255,7 +256,6 @@ class SqliteStorage(BaseStorage):
         if limit is not None:
             sql += " LIMIT ?"
             params.append(limit)
-
 
         with self._connect() as conn:
             cursor = conn.cursor()

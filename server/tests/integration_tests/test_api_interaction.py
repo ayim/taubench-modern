@@ -25,18 +25,16 @@ def test_start_agent_server_with_lock_file(tmpdir, logs_dir):
 
     @contextmanager
     def start(parent_pid: int = 0):
-        class CustomAgentServerProcess(AgentServerProcess):
-            def get_base_args(self) -> list[str]:
-                return super().get_base_args() + [
-                    "--use-data-dir-lock",
-                    "--kill-lock-holder",
-                    "--parent-pid",
-                    str(parent_pid),
-                ]
+        additional_args = [
+            "--use-data-dir-lock",
+            "--kill-lock-holder",
+            "--parent-pid",
+            str(parent_pid),
+        ]
 
         agent_server_data_dir.mkdir(parents=True, exist_ok=True)
-        agent_server_process = CustomAgentServerProcess(datadir=agent_server_data_dir)
-        agent_server_process.start(logs_dir=logs_dir)
+        agent_server_process = AgentServerProcess(datadir=agent_server_data_dir)
+        agent_server_process.start(logs_dir=logs_dir, additional_args=additional_args)
         try:
             yield agent_server_process
         finally:

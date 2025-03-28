@@ -8,7 +8,7 @@ print_usage() {
 }
 
 # Set default database type
-DB_TYPE=${S4_AGENT_SERVER_DB_TYPE:-postgres}
+DB_TYPE=${SEMA4AI_AGENT_SERVER_DB_TYPE:-postgres}
 
 # Parse command-line options
 while getopts ":d:h" opt; do
@@ -40,7 +40,7 @@ if [[ "$DB_TYPE" != "postgres" && "$DB_TYPE" != "sqlite" ]]; then
     exit 1
 fi
 
-export S4_AGENT_SERVER_DB_TYPE=$DB_TYPE
+export SEMA4AI_AGENT_SERVER_DB_TYPE=$DB_TYPE
 export SCARF_NO_ANALYTICS=true
 # PostgreSQL-specific environment variables
 export POSTGRES_HOST=localhost

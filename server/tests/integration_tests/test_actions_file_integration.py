@@ -46,7 +46,7 @@ def test_api_interaction_expected_from_actions(
     """
     from tests.integration_tests.integration_fixtures import start_agent_server
 
-    env = {"S4_AGENT_SERVER_FILE_MANAGER_TYPE": file_manager_type}
+    env = {"SEMA4AI_AGENT_SERVER_FILE_MANAGER_TYPE": file_manager_type}
 
     # Note that in the local use-case it uses datadir/uploads.
     if file_manager_type == "cloud":
@@ -236,9 +236,9 @@ You are an agent just to call other tools actions as requested.
         result.print_info()
 
         file_refs = agent_client.list_files(thread_id)
-        assert (
-            "full-action-contents.json" in file_refs
-        ), f"Did not find the file full-action-contents.json in the thread files list: {file_refs}"
+        assert "full-action-contents.json" in file_refs, (
+            f"Did not find the file full-action-contents.json in the thread files list: {file_refs}"
+        )
 
         result_json_txt = agent_client.get_file_by_ref(
             thread_id, "full-action-contents.json"
@@ -248,9 +248,9 @@ You are an agent just to call other tools actions as requested.
         except Exception:
             raise RuntimeError(f"Failed to parse result_json: {result_json_txt}")
 
-        assert result_json_dict.get(
-            "runbook"
-        ), f"Found result_json_dict: {json.dumps(result_json_dict, indent=2)}"
+        assert result_json_dict.get("runbook"), (
+            f"Found result_json_dict: {json.dumps(result_json_dict, indent=2)}"
+        )
 
         # Change it and make sure we can get the new version
         result = agent_client.send_message_to_agent_thread_collect_all(
@@ -262,6 +262,6 @@ You are an agent just to call other tools actions as requested.
         result_json_txt = agent_client.get_file_by_ref(
             thread_id, "full-action-contents.json"
         )
-        assert (
-            "updated version" in result_json_txt
-        ), f"Did not find the updated version in the file: {result_json_txt}"
+        assert "updated version" in result_json_txt, (
+            f"Did not find the updated version in the file: {result_json_txt}"
+        )
