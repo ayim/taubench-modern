@@ -1,2 +1,0 @@
--- This is a no-op migration
--- The up migration targets situations where agent server upgrades were accidentally applied

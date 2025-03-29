@@ -11,7 +11,7 @@ import traitlets
 import websockets
 from websockets.exceptions import ConnectionClosed
 
-from agent_server_types_v2.delta import GenericDelta, combine_generic_deltas
+from agent_platform.core.delta import GenericDelta, combine_generic_deltas
 
 # In dev, point to your local dev server
 ESM = "http://localhost:5173/src/index.tsx?anywidget"

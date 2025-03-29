@@ -3,7 +3,7 @@ from dataclasses import FrozenInstanceError
 
 import pytest
 
-from agent_platform_core.responses.content.tool_use import ResponseToolUseContent
+from agent_platform.core.responses.content.tool_use import ResponseToolUseContent
 
 
 class TestResponseToolUseContent:

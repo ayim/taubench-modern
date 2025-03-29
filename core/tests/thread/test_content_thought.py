@@ -1,6 +1,6 @@
 import pytest
 
-from agent_platform_core.thread.content.thought import ThreadThoughtContent
+from agent_platform.core.thread.content.thought import ThreadThoughtContent
 
 
 class TestThreadThoughtContent:

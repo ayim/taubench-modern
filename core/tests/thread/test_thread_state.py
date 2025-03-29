@@ -2,10 +2,10 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from agent_platform_core.kernel_interfaces.thread_state import ThreadStateInterface
-from agent_platform_core.streaming import StreamingDelta, StreamingError
-from agent_platform_core.thread.content.text import ThreadTextContent
-from agent_platform_core.thread.messages import ThreadAgentMessage, ThreadMessage
+from agent_platform.core.kernel_interfaces.thread_state import ThreadStateInterface
+from agent_platform.core.streaming import StreamingDelta, StreamingError
+from agent_platform.core.thread.content.text import ThreadTextContent
+from agent_platform.core.thread.messages import ThreadAgentMessage, ThreadMessage
 
 
 class ThreadStateTestImpl(ThreadStateInterface):

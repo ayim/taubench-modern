@@ -45,6 +45,7 @@ def setup_notebook(required_keys: list[str] | None = None):
     3. Returns True if setup is successful
     """
     ensure_env_file()
+    setup_sys_path()
     if required_keys:
         return check_env_variables(required_keys)
     return True
@@ -53,3 +54,20 @@ def setup_notebook(required_keys: list[str] | None = None):
 def json_pretty_print(title: str, json_dict: dict) -> None:
     """Pretty print a JSON dictionary."""
     display(Markdown(f"{title}\n```json\n{json.dumps(json_dict, indent=2)}\n```"))
+
+
+def setup_sys_path():
+    from os import getcwd
+    from pathlib import Path
+    from sys import path
+
+    # Get the project root directory (adjust if needed based on notebook location)
+    project_root = Path.joinpath(Path(getcwd()), "..", "..").resolve()
+
+    # Add the same paths as in pyproject.toml
+    path.append(str(project_root / "core" / "src"))
+    path.append(str(project_root / "architectures" / "default" / "src"))
+    path.append(str(project_root / "server" / "src"))
+
+    # Confirm the paths were added
+    print(f"Added paths to sys.path: {path[-3:]}")

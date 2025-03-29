@@ -1,0 +1,132 @@
+[project]
+name = "agent_platform"
+version = "2.0.0"
+requires-python = ">=3.12"
+authors = [
+    {name="Sema4.ai Engineering", email="engineering@sema4.ai"}
+]
+description = "Platform for building and running agents."
+readme = "README.md"
+dependencies = [
+    "jsonpatch>=1.33,<2.0.0",
+    "mcp>=1.4.1,<2.0.0",
+    "opentelemetry-api>=1.31.1,<2.0.0",
+    "ruamel.yaml>=0.18.10,<0.19.0",
+    "sema4ai-common>=0.0.9,<0.1.0",
+]
+
+[project.optional-dependencies]
+image-support = [
+    "pillow>=11.1.0,<12.0.0",
+    "IPython>=8.31.0,<9.0.0",
+]
+platforms-snowflake = [
+    "snowflake-connector-python>=3.14.0,<4.0.0",
+]
+platforms-openai = [
+    "openai>=1.59.8,<2.0.0",
+]
+platforms-anthropic = [
+    "anthropic>=0.41.3,<1.0.0",
+]
+platforms-aws = [
+    "boto3>=1.36.9,<2.0.0",
+    "types-boto3[bedrock,bedrock-runtime]>=1.36.9,<2.0.0",
+]
+platforms-all = [
+    "google-generativeai>=0.8.3,<1.0.0",
+    "openai>=1.59.8,<2.0.0",
+    "anthropic>=0.41.3,<1.0.0",
+    "snowflake-connector-python",
+    "boto3>=1.36.9,<2.0.0",
+    "types-boto3[bedrock,bedrock-runtime]>=1.36.9,<2.0.0",
+]
+
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.3,<9.0.0",
+    "pytest-asyncio>=0.25.2,<0.26.0",
+    "pillow>=11.1.0,<12.0.0",
+    "IPython>=8.31.0,<9.0.0",
+    "requests>=2.31.0,<3.0.0",
+    "testing-postgresql>=1.3.0,<2.0.0",
+]
+lint = [
+    "ruff>=0.7.2,<0.8.0",
+]
+notebooks = [
+    "IPython>=8.31.0,<9.0.0",
+    "ipykernel>=6.29.5,<7.0.0",
+    "ipywidgets>=8.1.5,<9.0.0",
+    "requests>=2.31.0,<3.0.0",
+    "python-dotenv>=1.0.1,<2.0.0",
+    "anywidget>=0.9.15,<1.0.0",
+    "numpy>=1.26.1,<2.0.0",
+    "websockets>=11.0.3,<12.0.0",
+]
+build = [
+    "pyinstaller>=6.11.0,<7.0.0",
+]
+
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+agent_platform_core = { workspace = true }
+agent_platform_architectures_default = { workspace = true }
+agent_platform_server = { workspace = true }
+
+[tool.uv.workspace]
+members = ["architectures/default/", "core/", "server/"]
+
+
+[tool.pyright]
+extraPaths = ["core/src", "architectures/default/src", "server/src"]
+
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+pythonpath = ["core/src", "architectures/default/src", "server/src"]
+
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+show-fixes = true
+respect-gitignore = true
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "PL", "N", "UP", "B", "A", "COM", "PT", "RUF", "W", "C90"]
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.lint.per-file-ignores]
+"core/examples/**/*.ipynb" = ["PLE1142"]
+"core/tests/**/*.py" = ["PLR2004"]
+"architectures/*/examples/**/*.ipynb" = ["PLE1142"]
+"architectures/*/tests/**/*.py" = ["PLR2004"]
+"server/examples/**/*.ipynb" = ["PLE1142"]
+"server/tests/**/*.py" = ["PLR2004"]
+
+[tool.ruff.lint.isort]
+known-first-party = [
+    "agent_platform.core",
+    "agent_platform.architectures.default",
+    "agent_platform.server",
+    "sema4ai.common",
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"

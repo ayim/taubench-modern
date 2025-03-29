@@ -4,8 +4,8 @@ from typing import Literal
 
 import pytest
 
-from agent_platform_core.delta import GenericDelta
-from agent_platform_core.responses.content.base import ResponseMessageContent
+from agent_platform.core.delta import GenericDelta
+from agent_platform.core.responses.content.base import ResponseMessageContent
 
 
 # Create a simple concrete implementation for testing

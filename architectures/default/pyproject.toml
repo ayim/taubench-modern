@@ -1,101 +1,20 @@
-[tool.poetry]
-name = "agent-architecture-default"
-version = "1.0.2"
-description = "Generic default cognitive architecture for Sema4.ai agents."
-authors = ["Sema4.ai Engineering <engineering@sema4.ai>"]
-readme = "README.md"
-packages = [{ include = "agent_architecture_default" }]
+[project]
+name = "agent_platform_architectures_default"
+version = "2.0.0"
+requires-python = ">=3.12"
+authors = [
+    {name="Sema4.ai Engineering", email="engineering@sema4.ai"}
+]
+dependencies = [
+    "agent_platform_core",
+]
 
-[tool.poetry.dependencies]
-python = "^3.11.0,<3.12"
-agent-server-types = { git = "https://github.com/Sema4AI/agent-server-types.git", rev = "development-kernel" }
-
-
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.3.3"
-pytest-asyncio = "^0.25.2"
-toml = "^0.10.2"
-
-
-[tool.poetry.plugins."agent_architectures"]
-agent_architecture_default = "agent_architecture_default:entrypoint"
-
+[tool.hatch.build.targets.wheel]
+packages = ["src/agent_platform/architectures/default"]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = ["test_*.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-asyncio_mode = "auto"
-asyncio_default_fixture_loop_scope = "function"
-
-
-[tool.ruff]
-line-length = 88
-target-version = "py311"
-show-fixes = true
-respect-gitignore = true
-exclude = [
-    ".bzr",
-    ".direnv",
-    ".eggs",
-    ".git",
-    ".git-rewrite",
-    ".hg",
-    ".mypy_cache",
-    ".nox",
-    ".pants.d",
-    ".pytype",
-    ".ruff_cache",
-    ".svn",
-    ".tox",
-    ".venv",
-    "__pypackages__",
-    "_build",
-    "buck-out",
-    "build",
-    "dist",
-    "node_modules",
-    "venv",
-]
-
-[tool.ruff.format]
-quote-style = "double"
-indent-style = "space"
-line-ending = "auto"
-
-[tool.ruff.lint]
-# Combine your existing rules with some additional ones
-select = [
-    "E",
-    "F",
-    "I",
-    "PL",
-    "N",
-    "UP",
-    "B",
-    "A",
-    "COM",
-    "PT",
-    "RUF",
-    "W",
-    "C90",
-]
-fixable = ["ALL"]
-unfixable = []
-
-# Keep your existing per-file-ignores
-[tool.ruff.lint.per-file-ignores]
-"examples/*.ipynb" = ["PLE1142"]
-"tests-v2/*.py" = ["PLR2004"]
-
-[tool.ruff.lint.isort]
-known-first-party = ["agent_platform_core"]
-
-[tool.ruff.lint.pydocstyle]
-convention = "google"
+[project.entry-points."agent_platform.architectures"]
+"agent_platform.architectures.default" = "agent_platform.architectures.default:entrypoint"

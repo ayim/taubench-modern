@@ -40,7 +40,7 @@ logger.info("=====================")
 agent_arch_packages = [
     dist.key
     for dist in pkg_resources.working_set
-    if dist.key.startswith("agent-architecture")
+    if dist.key.startswith("agent-platform-architectures-")
 ]
 logger.info("=== Found Agent Architecture Packages ===")
 logger.info(",".join(agent_arch_packages))
@@ -51,7 +51,12 @@ agent_arch_metadata = []
 agent_arch_imports = []
 for package in agent_arch_packages:
     agent_arch_metadata.extend(copy_metadata(package))
-    agent_arch_imports.append(package.replace("-", "_"))
+    agent_arch_imports.append(
+        package.replace(
+            "agent-platform-architectures-",
+            "agent_platform.architectures.",
+        )
+    )
 
 logger.info("=== Analyzing Imports ===")
 logger.info("Starting Analysis phase...")
@@ -77,27 +82,46 @@ logger.info("Collecting tiktoken_ext submodules...")
 tiktoken_ext_submodules = collect_submodules("tiktoken_ext")
 logger.info("Collecting all for psycopg...")
 psycopg_datas, psycopg_binaries, psycopg_hiddenimports = collect_all("psycopg")
-logger.info("Collecting all for psycopg_binary...")
-psycopg_binary_datas, psycopg_binary_binaries, psycopg_binary_hiddenimports = collect_all("psycopg_binary")
+
+# Add explicit psycopg binary imports
+psycopg_hiddenimports.extend([
+    'psycopg.binary',
+    'psycopg._impl',
+    'psycopg._impl.adapt',
+    'psycopg._impl.cursor',
+    'psycopg._impl.connection',
+])
 
 logger.info("Starting main Analysis...")
 a = Analysis(
-    ["sema4ai_agent_server/server.py"],
-    pathex=[],
-    binaries=[*chromadb_binaries, *tiktoken_binaries, *psycopg_binaries, *psycopg_binary_binaries],
+    ["src/agent_platform/server/server.py"],
+    pathex=[
+        "core/src",
+        "architectures/default/src",
+        "server/src"
+    ],
+    binaries=[*chromadb_binaries, *tiktoken_binaries, *psycopg_binaries],
     datas=[
-        ("sema4ai_agent_server/migrations", "sema4ai_agent_server/migrations"),
+        (
+            "src/agent_platform/server/migrations",
+            "agent_platform/server/migrations",
+        ),
+        # TODO: auto add a prompts dir for each architecture automatically?
+        (
+            "../architectures/default/src/agent_platform/architectures/default/prompts",
+            "agent_platform/architectures/default/prompts",
+        ),
         *agent_arch_metadata,
         *chromadb_datas,
         *tiktoken_datas,
         *psycopg_datas,
-        *psycopg_binary_datas,
         ("LICENSE", "."),
     ],
     hiddenimports=[
         "pydantic.deprecated.decorator",
         "chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2",
         "onnxruntime",
+        "agent_platform.architectures",
         *agent_arch_imports,
         *chromadb_submodules,
         *chromadb_db_submodules,
@@ -108,7 +132,6 @@ a = Analysis(
         "tiktoken_ext",
         *tiktoken_ext_submodules,
         *psycopg_hiddenimports,
-        *psycopg_binary_hiddenimports,
     ],
     hookspath=[],
     hooksconfig={},
@@ -134,14 +157,14 @@ else:
 # Executable kwargs
 exe_kwargs = {
     "name": options.name,
-    "bootloader_ignore_signals": False,
+    "bootloader_ignore_signals": True,
     "strip": False,
     "upx": True,
     "console": True,
     "disable_windowed_traceback": False,
     "argv_emulation": False,
     "target_arch": None,
-    "codesign_identity": os.environ.get("MACOS_SIGNING_CERT_NAME", "--"),
+    "codesign_identity": os.environ.get("MACOS_SIGNING_CERT_NAME", "-"),
     "entitlements_file": "./entitlements.mac.plist"
     if os.path.exists("./entitlements.mac.plist")
     else None,

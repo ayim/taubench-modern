@@ -1,7 +1,0 @@
-DROP TABLE IF EXISTS file_owners;
-DROP TABLE IF EXISTS checkpoints;
-DROP TABLE IF EXISTS thread;
-DROP INDEX IF EXISTS idx_unique_agent_name;
-DROP TABLE IF EXISTS agent;
-DROP TABLE IF EXISTS "user";
-DROP TABLE IF EXISTS async_runs;

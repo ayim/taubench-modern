@@ -4,17 +4,17 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from agent_platform_core.kernel_interfaces.thread_state import (
+from agent_platform.core.kernel_interfaces.thread_state import (
     ThreadMessageWithThreadState,
 )
-from agent_platform_core.thread.base import ThreadMessage
-from agent_platform_core.thread.content import (
+from agent_platform.core.thread.base import ThreadMessage
+from agent_platform.core.thread.content import (
     ThreadQuickActionContent,
     ThreadQuickActionsContent,
     ThreadTextContent,
     ThreadVegaChartContent,
 )
-from agent_platform_core.thread.messages import ThreadAgentMessage, ThreadUserMessage
+from agent_platform.core.thread.messages import ThreadAgentMessage, ThreadUserMessage
 
 
 class TestThreadTextContent:
