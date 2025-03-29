@@ -18,7 +18,7 @@ from agent_platform.core.runs import Run
 from agent_platform.core.thread import Thread
 from agent_platform.core.user import User
 from agent_platform.server.agent_architectures import AgentArchManager
-from agent_platform.server.auth.handlers import AuthedUser
+from agent_platform.server.auth.handlers import AuthedUser, AuthedUserWebsocket
 from agent_platform.server.kernel import AgentServerKernel
 from agent_platform.server.storage import get_storage
 from agent_platform.server.storage.errors import (
@@ -92,7 +92,7 @@ async def get_run_messages(
 @router.websocket("/{agent_id}/stream")
 async def stream_run(  # noqa: C901, PLR0915 (complex entrypoint, split up in the future)
     websocket: WebSocket,
-    user: AuthedUser,
+    user: AuthedUserWebsocket,
     agent_id: str,
 ):
     agent_arch_manager = AgentArchManager(

@@ -26,7 +26,7 @@ class InProcessAgentRunner(BaseAgentRunner):
 
         # Possibly load the CA entrypoint:
         self._started = True
-        entry_points = entry_points(group="agent_architectures")
+        entry_points = entry_points(group="agent_platform.architectures")
 
         self.entry_func = None
         for ep in entry_points:

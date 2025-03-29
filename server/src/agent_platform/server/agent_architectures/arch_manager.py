@@ -20,7 +20,7 @@ class AgentArchManager:
 
         # A list of “trusted” or “builtin” packages that can run in-process:
         self.in_process_allowlist = {
-            ("agent_architecture_default_v2", "1.0.0"),
+            ("agent_platform.architectures.default", "1.0.0"),
         }
 
     async def get_runner(

@@ -15,3 +15,6 @@ packages = ["src/agent_platform/architectures/default"]
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[project.entry-points."agent_platform.architectures"]
+"agent_platform.architectures.default" = "agent_platform.architectures.default:entrypoint"
