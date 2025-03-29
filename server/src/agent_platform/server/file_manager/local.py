@@ -1,10 +1,8 @@
 import os
-from io import BytesIO
 from pathlib import Path
 from uuid import uuid4
 
 import structlog
-from fastapi import UploadFile
 
 from agent_platform.core.agent import Agent
 from agent_platform.core.files import FileData, UploadedFile, UploadFileRequest
@@ -44,7 +42,7 @@ class LocalFileManager(BaseFileManager):
         uploads: list[tuple[str, str]],
     ) -> None:
         """uploads is a list of tuples of the form (file_id, file_path)"""
-        for file_id, file_url in uploads:
+        for file_id, _ in uploads:
             await get_storage().delete_file(owner, file_id, user_id)
 
     async def _upload_files(
@@ -61,7 +59,8 @@ class LocalFileManager(BaseFileManager):
         for f in files:
             file_id = str(uuid4())
             assert f.file.filename, (
-                "Invalid (empty) file name (should've raised an error in self._validate_files_pre_upload already)."
+                "Invalid (empty) file name (should've raised an error in "
+                "self._validate_files_pre_upload already)."
             )
             file_url = self._build_file_url(file_id, f.file.filename)
             try:
@@ -83,7 +82,8 @@ class LocalFileManager(BaseFileManager):
                 uploaded_files.append(uploaded_file)
             except Exception as e:
                 logger.exception(
-                    f"Failed to upload {f.file.filename} with file id {file_id}. Error: {e}. Reverting all uploads.",
+                    f"Failed to upload {f.file.filename} with file id {file_id}. "
+                    f"Error: {e}. Reverting all uploads.",
                 )
                 await self._revert_uploads(
                     owner,

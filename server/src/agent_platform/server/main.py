@@ -46,7 +46,7 @@ def is_port_in_use(port: int) -> bool:
                 continue
     except Exception as e:
         logger.warning(
-            f"Could not use psutil to check ports, port checks may be unreliable: {e}"
+            f"Could not use psutil to check ports, port checks may be unreliable: {e}",
         )
         return False
 
@@ -88,15 +88,15 @@ def main():  # noqa: C901, PLR0912, PLR0915
         "--parent-pid",
         type=int,
         default=0,
-        help="Parent PID of the agent server (when the given pid exits, the agent server "
-        "will also exit).",
+        help="Parent PID of the agent server (when the given pid exits, "
+        "the agent server will also exit).",
     )
     parser.add_argument(
         "--use-data-dir-lock",
         action="store_true",
-        help="Use a lock file to prevent multiple instances of the agent server from running "
-        "in the same data directory (defined by the SEMA4AI_AGENT_SERVER_HOME or "
-        "SEMA4AI_STUDIO_HOME environment variable).",
+        help="Use a lock file to prevent multiple instances of the agent server "
+        "from running in the same data directory (defined by the "
+        "SEMA4AI_AGENT_SERVER_HOME or SEMA4AI_STUDIO_HOME environment variable).",
     )
     parser.add_argument(
         "--kill-lock-holder",
@@ -120,16 +120,16 @@ def main():  # noqa: C901, PLR0912, PLR0915
         type=str,
         default=None,
         help="Path to the data directory. If not provided, defaults to the "
-        "SEMA4AI_AGENT_SERVER_HOME or SEMA4AI_STUDIO_HOME environment variable, in that order. "
-        "If none of the above are set, the server defaults are used.",
+        "SEMA4AI_AGENT_SERVER_HOME or SEMA4AI_STUDIO_HOME environment variable, "
+        "in that order. If none of the above are set, the server defaults are used.",
     )
     parser.add_argument(
         "--log-dir",
         type=str,
         default=None,
         help="Path to the log directory. If not provided, defaults to the "
-        "SEMA4AI_AGENT_SERVER_HOME or SEMA4AI_STUDIO_HOME environment variable, in that order. "
-        "If none of the above are set, the server defaults are used.",
+        "SEMA4AI_AGENT_SERVER_HOME or SEMA4AI_STUDIO_HOME environment variable, "
+        "in that order. If none of the above are set, the server defaults are used.",
     )
     parser.add_argument(
         "--ignore-config",
@@ -140,8 +140,8 @@ def main():  # noqa: C901, PLR0912, PLR0915
     parser.add_argument(
         "--show-config",
         action="store_true",
-        help="Show the current configuration and exit. Shows defaults for any missing values "
-        "and provides usage information.",
+        help="Show the current configuration and exit. Shows defaults for any "
+        "missing values and provides usage information.",
     )
     parser.add_argument(
         "--export-config",
@@ -168,7 +168,8 @@ def main():  # noqa: C901, PLR0912, PLR0915
             sys.exit(0)
         except FileNotFoundError:
             print(
-                "License file not found. Please visit https://sema4.ai for license information."
+                "License file not found. Please visit https://sema4.ai "
+                "for license information.",
             )
             sys.exit(1)
 
@@ -203,7 +204,8 @@ def main():  # noqa: C901, PLR0912, PLR0915
             overrides[config_path_key]["log_dir"] = str(Path(args.log_dir))
 
     # Step 1: Initialize only the essential configurations needed for startup
-    # This allows us to import constants and set up paths before loading the full application
+    # This allows us to import constants and set up paths before loading
+    # the full application
     init_configurations(
         config_path,
         config_modules=["sema4ai_agent_server.constants"],
@@ -222,8 +224,9 @@ def main():  # noqa: C901, PLR0912, PLR0915
     config_status = "using defaults" if not is_config_path else "from file"
 
     logger.info(
-        f"Initialized essential configurations: config_path={config_path} ({config_status}), "
-        f"data_dir={SystemPaths.data_dir}, log_dir={SystemPaths.log_dir}"
+        f"Initialized essential configurations: config_path={config_path} "
+        f"({config_status}), data_dir={SystemPaths.data_dir}, "
+        f"log_dir={SystemPaths.log_dir}",
     )
 
     # Debug point to ensure we're getting past the show-config check
@@ -236,7 +239,8 @@ def main():  # noqa: C901, PLR0912, PLR0915
         # )
 
         logger.debug(
-            f"{'--show-config' if args.show_config else '--export-config'} flag detected, displaying configuration and exiting"
+            f"{'--show-config' if args.show_config else '--export-config'} "
+            "flag detected, displaying configuration and exiting",
         )
         manager = get_configuration_manager()
         # Get all agent architectures so we can scan them for configurations
@@ -269,34 +273,41 @@ def main():  # noqa: C901, PLR0912, PLR0915
             print("----------------------------")
             print("1. The configuration file should be a JSON file.")
             print(
-                "2. The server looks for the configuration file in the following order:"
+                "2. The server looks for the configuration file in the "
+                "following order:",
             )
             print(
-                "   - Path specified by SEMA4AI_AGENT_SERVER_CONFIG_PATH environment variable"
+                "   - Path specified by SEMA4AI_AGENT_SERVER_CONFIG_PATH "
+                "environment variable",
             )
             print("   - SEMA4AI_AGENT_SERVER_HOME/agent-server-config.json")
             print("   - SEMA4AI_STUDIO_HOME/agent-server-config.json")
             print("   - Current working directory")
             print("\n3. To create or modify a configuration file:")
             print(
-                "   a. Use --export-config > agent-server-config.json to create a template"
+                "   a. Use --export-config > agent-server-config.json to "
+                "create a template",
             )
             print("   b. Save it as a JSON file (e.g., agent-server-config.json)")
             print("   c. Place it in one of the locations listed above")
             print("   d. Edit the file to customize your settings")
             print(
-                "\n4. The configuration file supports partial updates - you only need to specify"
+                "\n4. The configuration file supports partial updates - "
+                "you only need to specify",
             )
             print(
-                "   the settings you want to override. Default values will be used for any"
+                "   the settings you want to override. "
+                "Default values will be used for any",
             )
             print("   unspecified settings.")
             print(
-                "\n5. Configuration changes require editing the file and restarting the server."
+                "\n5. Configuration changes require editing the file and "
+                "restarting the server.",
             )
             print("   Runtime configuration updates are not supported.")
             print(
-                "\n6. For development/testing, you can also use the --config-path argument"
+                "\n6. For development/testing, you can also use the --config-path "
+                "argument",
             )
             print("   to specify a custom configuration file location.")
         sys.exit(0)
@@ -323,13 +334,14 @@ def main():  # noqa: C901, PLR0912, PLR0915
     except Exception as e:
         logger.exception(f"Failed to create data directory: {SystemPaths.data_dir}")
         raise RuntimeError(
-            f"Failed to create data directory: {SystemPaths.data_dir}"
+            f"Failed to create data directory: {SystemPaths.data_dir}",
         ) from e
 
     # Log the data directory permissions as a hex number.
     pretty_permissions = oct(SystemPaths.data_dir.stat().st_mode)
     logger.info(
-        f"Data directory available at: {SystemPaths.data_dir} (permissions: {pretty_permissions})"
+        f"Data directory available at: {SystemPaths.data_dir} "
+        f"(permissions: {pretty_permissions})",
     )
 
     try:
@@ -339,13 +351,14 @@ def main():  # noqa: C901, PLR0912, PLR0915
     except Exception as e:
         logger.exception(f"Failed to create log directory: {SystemPaths.log_dir}")
         raise RuntimeError(
-            f"Failed to create log directory: {SystemPaths.log_dir}"
+            f"Failed to create log directory: {SystemPaths.log_dir}",
         ) from e
 
     # Log the log directory permissions as a hex number.
     pretty_permissions = oct(SystemPaths.log_dir.stat().st_mode)
     logger.info(
-        f"Log directory available at: {SystemPaths.log_dir} (permissions: {pretty_permissions})"
+        f"Log directory available at: {SystemPaths.log_dir} "
+        f"(permissions: {pretty_permissions})",
     )
 
     if args.use_data_dir_lock:
@@ -353,7 +366,8 @@ def main():  # noqa: C901, PLR0912, PLR0915
 
         logger.debug("Attempting to obtain app mutex lock")
         # The obtain_app_mutex function is used to obtain a mutex for the agent server.
-        # The mutex obtained should be kept locked until the `mutex` variable is destroyed.
+        # The mutex obtained should be kept locked until the
+        # `mutex` variable is destroyed.
         mutex = obtain_app_mutex(
             kill_lock_holder=args.kill_lock_holder,
             data_dir=SystemPaths.data_dir,
@@ -368,8 +382,9 @@ def main():  # noqa: C901, PLR0912, PLR0915
         # Otherwise, keep the mutex alive until the process exits (in a local variable).
 
     # On Windows, explicitly check if the port is in use first. This is needed because
-    # Uvicorn's bind_socket method uses the `SO_REUSEADDR` socket option, which on Windows
-    # will allow the socket to bind to a socket that is already in use by another process.
+    # Uvicorn's bind_socket method uses the `SO_REUSEADDR` socket option,
+    # which on Windows will allow the socket to bind to a socket that is
+    # already in use by another process.
     if port != 0 and platform.system() == "Windows":
         logger.debug(f"Checking if port {port} is already in use")
         if is_port_in_use(port):
@@ -422,19 +437,22 @@ def main():  # noqa: C901, PLR0912, PLR0915
     # For proper network URL construction, we need to handle this carefully
     if host == "0.0.0.0" and actual_host != host:
         logger.info(
-            f"Socket bound to all interfaces (0.0.0.0) but actual socket reports: {actual_host}"
+            "Socket bound to all interfaces (0.0.0.0) but "
+            f"actual socket reports: {actual_host}",
         )
-        # We'll still use 0.0.0.0 or the provided host for the PID file for user-friendliness
+        # We'll still use 0.0.0.0 or the provided host for
+        # the PID file for user-friendliness
         bound_host = host
     elif host == "::" and actual_host != host:
         logger.info(
-            f"Socket bound to all IPv6 interfaces (::) but actual socket reports: {actual_host}"
+            "Socket bound to all IPv6 interfaces (::) but "
+            f"actual socket reports: {actual_host}",
         )
         bound_host = host
     elif actual_host != host and host not in ["localhost", "127.0.0.1"]:
         # If requested host doesn't match actual and isn't a special case, log a warning
         logger.warning(
-            f"Requested host {host} differs from actual bound host {actual_host}"
+            f"Requested host {host} differs from actual bound host {actual_host}",
         )
         # Decide whether to use the actual bound host or the requested host
         bound_host = actual_host  # Use the actual bound host for accuracy
@@ -487,7 +505,8 @@ def main():  # noqa: C901, PLR0912, PLR0915
     # Step 2: Load all remaining configurations before running the server
     # This will use the already initialized manager and update it, not reinitialize it
     logger.info("Loading all configurations before starting server...")
-    # from sema4ai_agent_server.agent_architecture_manager import get_agent_architectures
+    # from sema4ai_agent_server.agent_architecture_manager
+    # import get_agent_architectures
 
     manager = get_configuration_manager()
     # agent_architectures = get_agent_architectures()

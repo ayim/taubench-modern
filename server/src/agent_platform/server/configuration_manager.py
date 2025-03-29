@@ -136,12 +136,13 @@ to Path objects when loaded.
 import importlib
 import json
 import pkgutil
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Sequence, TypeVar
+from typing import Any, TypeVar
 
 import structlog
-from agent_platform.core.configurations import ConfigMeta, Configuration
 
+from agent_platform.core.configurations import ConfigMeta, Configuration
 from agent_platform.server.constants import default_config_path
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
@@ -163,10 +164,11 @@ class ConfigurationManager:
 
         Args:
             config_path: Path to the configuration file. If None, uses default path.
-            packages_to_scan: List of package names to recursively scan for Configuration
-                classes. This is the preferred way to load configurations.
-            config_modules: List of specific module paths to load configurations from.
-                Only used if packages_to_scan is None.
+            packages_to_scan: List of package names to recursively scan for
+                Configuration classes. This is the preferred way to load
+                configurations.
+            config_modules: List of specific module paths to load configurations
+                from. Only used if packages_to_scan is None.
             overrides: Dictionary of overrides to apply to configurations.
                 Format: {config_path: {attr_name: value}}
         """
@@ -212,7 +214,7 @@ class ConfigurationManager:
             f"{f', config_file={self._main_config_file}' if config_file_exists else ''}"
             f", packages_scanned={self.packages_to_scan}"
             f", config_modules={self.config_modules}"
-            f", num_configs={len(self.config_classes)}"
+            f", num_configs={len(self.config_classes)}",
         )
 
     def _import_packages(self) -> None:
@@ -316,7 +318,8 @@ class ConfigurationManager:
         complete_config: dict[str, dict[str, Any]] = {}
 
         for config_path, config_class in self.config_classes.items():
-            # Get the current instance which has either values from config file or defaults
+            # Get the current instance which has either values from
+            # config file or defaults
             instance = config_class._instances.get(config_class, config_class.default())
             # Add the config values to the complete configuration
             complete_config[config_path] = instance.to_dict()
@@ -359,7 +362,7 @@ class ConfigurationManager:
                 config_class.set_instance(instance)
                 logger.info(
                     f"Loaded configuration from file: {config_class.__name__} "
-                    f"at {config_path}"
+                    f"at {config_path}",
                 )
             else:
                 # Create default config
@@ -367,13 +370,13 @@ class ConfigurationManager:
                 # Set the instance as the singleton
                 config_class.set_instance(instance)
                 logger.info(
-                    f"Using default configuration (no entry in file): {config_class.__name__} "
-                    f"at {config_path}"
+                    f"Using default configuration (no entry in file): "
+                    f"{config_class.__name__} at {config_path}",
                 )
         except Exception as e:
             logger.error(
                 f"Failed to load configuration: {config_class.__name__} "
-                f"at {config_path}: {str(e)}"
+                f"at {config_path}: {e!s}",
             )
             # Still create a default instance
             instance = config_class.default()
@@ -405,8 +408,8 @@ class ConfigurationManager:
             self._load()
         except Exception as e:
             logger.warning(
-                f"Configuration loading error: {str(e)}. Using defaults. "
-                "Please refer to documentation."
+                f"Configuration loading error: {e!s}. Using defaults. "
+                "Please refer to documentation.",
             )
 
     def update_configuration(self, config_class: type[T], new_instance: T) -> None:
@@ -451,12 +454,12 @@ def init_configurations(
 
     Should be called during server startup.
     """
-    global _manager
+    global _manager  # noqa: PLW0603
 
     if _manager is None or reinitialize:
         # Create a new manager if none exists or reinitialize is requested
         _manager = ConfigurationManager(
-            config_path, packages_to_scan, config_modules, overrides
+            config_path, packages_to_scan, config_modules, overrides,
         )
     else:
         # Manager already exists, update its configuration
@@ -465,10 +468,10 @@ def init_configurations(
         # Update overrides and reload configurations
         new_overrides = _manager.overrides.copy()
         if overrides:
-            for config_path, attrs in overrides.items():
-                if config_path not in new_overrides:
-                    new_overrides[config_path] = {}
-                new_overrides[config_path].update(attrs)
+            for override_config_path, override_attrs in overrides.items():
+                if override_config_path not in new_overrides:
+                    new_overrides[override_config_path] = {}
+                new_overrides[override_config_path].update(override_attrs)
 
         _manager.reload(
             packages_to_scan=packages_to_scan,
@@ -490,14 +493,14 @@ def get_configuration_manager() -> ConfigurationManager:
         # Instead of raising an error, initialize with defaults as a fallback
         logger.warning(
             "Configuration manager not initialized. Initializing with defaults. "
-            "This is unexpected and may indicate a problem with the startup sequence."
+            "This is unexpected and may indicate a problem with the startup sequence.",
         )
         init_configurations()
 
     if _manager is None:
         # If initialization with defaults also failed, then raise an error
         raise RuntimeError(
-            "Configuration manager initialization failed. This is a critical error."
+            "Configuration manager initialization failed. This is a critical error.",
         )
 
     return _manager

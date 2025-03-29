@@ -102,8 +102,10 @@ class AgentServerConvertersInterface(ConvertersInterface, UsesKernelMixin):
                 case "agent":
                     # There's a split here for things like tool calling: agent decides
                     # to call a tool, and then the user provides the result.
-                    agent_contents, user_contents = await self.agent_thread_contents_to_prompt_contents(
-                        message.content,
+                    agent_contents, user_contents = (
+                        await self.agent_thread_contents_to_prompt_contents(
+                            message.content,
+                        )
                     )
 
                     prompt_messages.append(

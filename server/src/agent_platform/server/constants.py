@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Literal
 
 from agent_platform.core.configurations import Configuration
-
 from agent_platform.server.env_vars import (
     CONFIG_PATH,
     DATA_DIR,
@@ -69,7 +68,7 @@ class SystemConfig(Configuration):
             raise ValueError(f"Invalid database type: {self.db_type}")
 
         # Validate port
-        if not isinstance(self.port, int) or self.port < 0 or self.port > 65535:
+        if not isinstance(self.port, int) or self.port < 0 or self.port > 65535:  # noqa: PLR2004
             raise ValueError(f"Invalid port number: {self.port}")
 
     @property
@@ -130,7 +129,7 @@ class SystemPaths(Configuration):
         # We need to use object.__setattr__ because the dataclass is frozen
         object.__setattr__(self, "vector_database_path", self.data_dir / "chroma_db")
         object.__setattr__(
-            self, "domain_database_path", self.data_dir / "agentserver.db"
+            self, "domain_database_path", self.data_dir / "agentserver.db",
         )
         object.__setattr__(self, "log_file_path", self.log_dir / "agent-server.log")
         object.__setattr__(self, "upload_dir", self.data_dir / "uploads")

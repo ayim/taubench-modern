@@ -9,7 +9,6 @@ from structlog import get_logger
 from agent_platform.server.storage.migrations import (
     InvalidMigrationFilenameError,
     MigrationError,
-    MigrationLockError,
     MigrationsProvider,
     MigrationTimeoutError,
 )

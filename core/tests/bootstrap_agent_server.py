@@ -4,7 +4,7 @@ Module with code to start the agent server and stop it.
 
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from sema4ai.common.process import Process
@@ -38,7 +38,7 @@ class AgentServerProcess:
         from io import StringIO
 
         self._datadir = datadir.absolute()
-        self._process: Optional["Process"] = None
+        self._process: Process | None = None
         self._host: str = ""
         self._port: int = -1
         self.started: bool = False
@@ -53,7 +53,7 @@ class AgentServerProcess:
     def host(self) -> str:
         if not self.started:
             raise RuntimeError(
-                "The agent server was not properly started (no host available)"
+                "The agent server was not properly started (no host available)",
             )
 
         assert (
@@ -65,7 +65,7 @@ class AgentServerProcess:
     def port(self) -> int:
         if not self.started:
             raise RuntimeError(
-                "The agent server was not properly started (no port available)"
+                "The agent server was not properly started (no port available)",
             )
 
         assert (
@@ -80,20 +80,19 @@ class AgentServerProcess:
         ), "The agent server was not properly started (process is None)."
         return self._process
 
-    def start(
+    def start(  # noqa: C901, PLR0913, PLR0915
         self,
         *,
         logs_dir: Path,
         timeout: int = 25,
-        cwd: Optional[Path | str] = None,
-        additional_args: Optional[list[str]] = None,
-        env: Optional[Dict[str, str]] = None,
+        cwd: Path | str | None = None,
+        additional_args: list[str] | None = None,
+        env: dict[str, str] | None = None,
         port=0,
     ) -> None:
         import os
         import re
         import time
-        from typing import Tuple
 
         from sema4ai.common.process import Process
 
@@ -106,13 +105,14 @@ class AgentServerProcess:
         # Allow the `SEMA4AI_TEST_AGENT_SERVER_EXECUTABLE` to be set in the environment
         # (to test a built version of the agent server).
         test_agent_server_executable = os.environ.get(
-            "SEMA4AI_TEST_AGENT_SERVER_EXECUTABLE"
+            "SEMA4AI_TEST_AGENT_SERVER_EXECUTABLE",
         )
         if test_agent_server_executable:
             base_args = [test_agent_server_executable]
         else:
             base_args = [sys.executable, "-m", "sema4ai_agent_server.server"]
-        new_args = base_args + [
+        new_args = [
+            *base_args,
             "--host=127.0.0.1",
             f"--port={port}",
         ]
@@ -120,7 +120,7 @@ class AgentServerProcess:
         if additional_args:
             new_args = new_args + additional_args
 
-        use_env: Dict[str, str] = {}
+        use_env: dict[str, str] = {}
         if env:
             use_env.update(env)
         use_env["SEMA4AI_STUDIO_HOME"] = str(self._datadir)
@@ -129,10 +129,11 @@ class AgentServerProcess:
         process = self._process = Process(new_args, cwd=cwd, env=use_env)
 
         # The line we want to match is something as:
-        # 'INFO:     Uvicorn running on http://127.0.0.1:51980 (Press CTRL+C to quit)\r\n'
+        # 'INFO:     Uvicorn running on http://127.0.0.1:51980
+        # (Press CTRL+C to quit)\r\n'
         # We want to extract the host and port from this line.
         compiled = re.compile(r".*running on http://([\w.-]+):(\d+)\s.*")
-        future: Future[Tuple[str, str]] = Future()
+        future: Future[tuple[str, str]] = Future()
 
         def collect_port_from_stdout(line: str) -> None:
             # Note: this is called in a thread.
@@ -173,17 +174,17 @@ class AgentServerProcess:
                     try:
                         host, port = future.result(1)
                         break
-                    except TimeoutError:
+                    except TimeoutError as ex:
                         if is_debugger_active():
                             continue
                         if time.monotonic() - initial_time >= timeout:
-                            raise TimeoutError()
+                            raise TimeoutError() from ex
                         if not process.is_alive():
                             raise AgentServerExitedError(
                                 f"The process already exited with returncode: "
                                 f"{process.returncode}\n"
-                                f"Args: {new_args}"
-                            )
+                                f"Args: {new_args}",
+                            ) from ex
             else:
                 host, port = future.result(timeout)
         assert host

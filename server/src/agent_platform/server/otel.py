@@ -37,11 +37,11 @@ def setup_otel() -> None:
     Traceloop.init()
 
     resource = Resource(
-        attributes={"service.name": "agent-server", "service.version": VERSION}
+        attributes={"service.name": "agent-server", "service.version": VERSION},
     )
     otlp_exporter = OTLPMetricExporter(endpoint=f"{otel_collector_url}/v1/metrics")
     reader = PeriodicExportingMetricReader(
-        exporter=otlp_exporter, export_interval_millis=15000
+        exporter=otlp_exporter, export_interval_millis=15000,
     )
     meter_provider = MeterProvider(resource=resource, metric_readers=[reader])
     metrics.set_meter_provider(meter_provider)

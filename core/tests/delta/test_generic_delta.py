@@ -112,7 +112,7 @@ class TestGenericDelta:
             "06_move_invalid_source",
         ],
     )
-    def test_generic_delta_path_validation(
+    def test_generic_delta_path_validation(  # noqa: PLR0913
         self,
         op: str,
         path: str,
@@ -356,7 +356,7 @@ class TestGenericDelta:
             "30_invalid_object_path_on_nested_array",
         ],
     )
-    def test_generic_delta_path_validation_with_initial_value(
+    def test_generic_delta_path_validation_with_initial_value(  # noqa: PLR0913
         self,
         op: str,
         path: str,

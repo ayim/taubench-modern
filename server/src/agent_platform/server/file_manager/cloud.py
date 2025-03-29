@@ -192,7 +192,8 @@ class CloudFileManager(BaseFileManager):
             file_path = updated_files[0].file_path
             if not file_path:
                 raise Exception(
-                    f"File path for file {file_id} not available after refreshing file paths",
+                    f"File path for file {file_id} not available after "
+                    "refreshing file paths",
                 )
 
         try:

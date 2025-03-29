@@ -9,7 +9,7 @@ from uvicorn.logging import AccessFormatter, DefaultFormatter
 from agent_platform.server.constants import SystemConfig, SystemPaths
 
 
-def setup_logging():
+def setup_logging():  # noqa: PLR0915
     level = getattr(logging, SystemConfig.log_level, None)
     if not isinstance(level, int):
         raise ValueError(f"Invalid log level: {SystemConfig.log_level}")
@@ -38,6 +38,7 @@ def setup_logging():
         maxBytes=SystemConfig.log_file_size,
         backupCount=SystemConfig.log_max_backup_files,
     )
+    # TODO: want this dep just for json format?
     # file_handler.setFormatter(json_formatter)
 
     root_logger = logging.getLogger()

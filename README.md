@@ -8,6 +8,7 @@ Initial setup with uv;
 4. `uv sync --all-extras --all-groups --all-packages` to install the whole monorepo
 5. `PYTHONPATH=core/src:architectures/default/src:server/src uv run -m agent_platform.server` to run the server
 6. `uv run pytest core/ server/` to run tests
+7. `uv run ruff check` to lint everything
 
 Blissfully simple.
 

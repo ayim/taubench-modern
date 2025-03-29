@@ -1,6 +1,6 @@
 from typing import ClassVar
-
 from unittest.mock import MagicMock
+
 import pytest
 
 from agent_platform.core.kernel import Kernel

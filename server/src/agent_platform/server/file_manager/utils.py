@@ -13,7 +13,7 @@ RE_DRIVE_LETTER_PATH = re.compile(r"^\/[a-zA-Z]:")
 
 def normalize_drive(path: str) -> str:
     """Normalize windows drive letters to lowercase."""
-    if len(path) >= 2 and path[0].isalpha() and path[1] == ":":
+    if len(path) >= 2 and path[0].isalpha() and path[1] == ":":  # noqa: PLR2004
         return path[0].lower() + path[1:]
     return path
 

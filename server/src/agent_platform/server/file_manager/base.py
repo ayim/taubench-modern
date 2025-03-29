@@ -98,8 +98,6 @@ class BaseFileManager(ABC):
 
     def _validate_files_pre_upload(self, file_names: list[str]) -> None:
         # https://stackoverflow.com/questions/1976007/what-characters-are-forbidden-in-windows-and-linux-directory-names/31976060#31976060
-        forbidden_unix_characters = {"/"}
-        forbidden_windows_characters = {"<", ">", ":", '"', "/", "\\", "|", "?", "*"}
         reserved_unix_file_names = {".", ".."}
         reserved_windows_file_names = {
             "CON",

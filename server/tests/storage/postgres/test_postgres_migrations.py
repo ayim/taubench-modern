@@ -9,7 +9,6 @@ from psycopg_pool import AsyncConnectionPool
 
 from agent_platform.server.storage.migrations import (
     MigrationError,
-    MigrationLockError,
     MigrationTimeoutError,
 )
 from agent_platform.server.storage.postgres.migrations import PostgresMigrations

@@ -30,7 +30,8 @@ class _CustomFastAPI(FastAPI):
         super().__init__(
             title=title,
             version=__version__,
-            default_response_class=ORJSONResponse,  # Use more efficient JSON serialization
+            # TODO: now the only place we use ORJSON I think? Does it _really_ help?
+            default_response_class=ORJSONResponse,
             separate_input_output_schemas=False,
         )
 
