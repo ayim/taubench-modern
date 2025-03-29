@@ -13,3 +13,11 @@ Initial setup with uv;
 Blissfully simple.
 
 (To run notebook, you need a terminal in `./server/examples/debug_widget` and to have `pnpm` installed; then `pnpm i` and `pnpm run dev` in that terminal to build the widget UX.)
+
+Note: we have some dep that doesn't like python > 3.12 (at least on OSX). I had to run:
+
+```shell
+uv venv --python=python3.12
+```
+
+To make a venv pinned to 3.12 on my mac. Still easy peasy.

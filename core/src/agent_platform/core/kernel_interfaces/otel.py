@@ -177,9 +177,18 @@ class WrappedSpan(Span):
         for artifact_name, _ in artifacts:
             mime_type = guess_type(artifact_name)[0]
             if mime_type is None:
-                raise ValueError(
-                    f"Could not infer mime type for artifact {artifact_name}",
-                )
+                # Put in some of these fallbacks, as I've found on OSX
+                # guess_type doesn't always work for yaml...
+                if artifact_name.endswith(".json"):
+                    mime_type = "application/json"
+                elif artifact_name.endswith(".yaml"):
+                    mime_type = "text/yaml"
+                elif artifact_name.endswith(".yml"):
+                    mime_type = "text/yaml"
+                else:
+                    raise ValueError(
+                        f"Could not infer mime type for artifact {artifact_name}",
+                    )
             mime_types.append(mime_type)
 
         # Generate artifact IDs upfront
