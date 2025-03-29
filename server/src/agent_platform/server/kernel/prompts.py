@@ -1,68 +1,57 @@
+import logging
+
 from agent_platform.core.agent_architectures import StateBase
 from agent_platform.core.kernel import PromptsInterface
 from agent_platform.core.prompts.prompt import Prompt
 from agent_platform.server.kernel.kernel_mixin import UsesKernelMixin
 
+logger = logging.getLogger(__name__)
 
 class AgentServerPromptsInterface(PromptsInterface, UsesKernelMixin):
-    """Handles prompt building and management with opinionated formatting."""
+    """Handles prompt building/management via importlib.resources."""
 
     async def load_and_format(
         self,
         path: str,
+        *,
+        package: str,
         state: StateBase | None = None,
     ) -> Prompt:
-        """Load a prompt from a YAML file and format it with values from the
-        kernel and the given architecture state.
+        """
+        Load a prompt from a YAML file stored as package data, then format it.
 
         Arguments:
-            path: The path to the YAML file containing the prompt (relative to
-                  the agent architecture's root directory).
-            state: The architecture's state to use in formatting. (Optional.)
+            path:    The relative path to the YAML file within `package`.
+            package: The fully-qualified Python package where the YAML file lives.
+                     For example, "agent_platform.architectures.default".
+            state:   The agent architecture's state to use in formatting. (Optional.)
 
         Returns:
-            The fully formatted prompt.
+            A fully formatted Prompt.
         """
-        pre_format_prompt = None
+        from importlib import resources
+
+        # Locate the data file in the specified package
         try:
-            # This is a little wonky, but we're making the dev UX nicer
-            # on the other side by allowing for file references relative
-            # to the agent architecture's root directory.
-            from importlib import resources
-            from inspect import getmodule, stack
-            from pathlib import PurePosixPath
+            resource_path = resources.files(package) / path
+        except AttributeError as ex:
+            # (In older Pythons without resources.files, use
+            # `importlib_resources.files` or fallback)
+            raise ValueError(
+                f"Failed to locate resource files in package {package}. "
+                "Are you sure it's a valid Python package?",
+            ) from ex
 
-            # Inspect the call stack to find the caller's module
-            caller_frame = stack()[1]
-            caller_module = getmodule(caller_frame[0])
-            if caller_module is None or caller_module.__package__ is None:
-                raise ValueError(
-                    "Cannot determine caller's package for relative resource loading.",
-                )
-
-            # Split the relative path into parts
-            path_parts = PurePosixPath(path).parts
-            package = caller_module.__package__ + "." + ".".join(path_parts[:-1])
-            resource_name = path_parts[-1]
-
-            # Use importlib resources to open the prompt file
-            pre_format_prompt = Prompt.load_yaml(
-                resources.files(package).joinpath(resource_name),
+        if not resource_path.is_file():
+            raise FileNotFoundError(
+                f"Prompt file not found in package '{package}' at path '{path}'",
             )
-        except Exception as outer_ex:
-            try:
-                # If we can't load the prompt from the resource, try the
-                # file system the "regular" way.
-                pre_format_prompt = Prompt.load_yaml(path)
-            except Exception as inner_ex:
-                raise inner_ex from outer_ex
 
-        # If we have a None prompt, raise an error
-        if pre_format_prompt is None:
-            raise ValueError(f"Failed to load prompt from {path}")
+        # Load the YAML into a Prompt
+        with resource_path.open('r') as f:
+            pre_format_prompt = Prompt.load_yaml(f)
 
-        # Next, let's format the prompt with applicable values from the kernel
-        # and the architecture state.
+        # Format with kernel & state
         with self.kernel.otel.span("format_prompt") as span:
             span.add_event_with_artifacts(
                 "formatting prompt",

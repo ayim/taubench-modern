@@ -15,6 +15,7 @@ class PromptsInterface(ABC):
         self,
         path: str,
         state: "StateBase | None" = None,
+        package: str | None = None,
     ) -> Prompt:
         """Load a prompt from a YAML file and format it with values from the
         kernel and the given architecture state.

@@ -1,6 +1,34 @@
 # Monorepo Work In Progress
 
-Initial setup with uv;
+## Basic make commands
+
+Run `make help` to see full list:
+
+```shell
+(agent-platform) agent-platform % make help
+Usage: make [target]
+
+Available targets:
+  all                   Default to 'build'
+  build-exe             Build a PyInstaller executable
+  build-wheels          Build Python wheels into dist/ via uv
+  build                 Build both wheels and PyInstaller executable
+  clean                 Remove build/dist artifacts
+  dev-widget            Run pnpm run dev on server/examples/debug_widget
+  help                  Show this help
+  lint                  Run ruff linting
+  run-server-exe        Run the agent server executable
+  run-server            Run the agent server with a custom PYTHONPATH
+  setup-keychain        Setup macOS keychain for code signing (no-op on non-macOS)
+  sync                  Sync/install all packages in the monorepo
+  test                  Run tests with pytest
+```
+
+## Manual Setup Commands
+
+Good to know these for more advanced config or fixing issues.
+
+Initial setup with `uv`:
 
 1. You need `uv` installed
 2. `uv venv` to create a venv in the root directory

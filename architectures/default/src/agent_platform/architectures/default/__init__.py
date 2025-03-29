@@ -32,7 +32,8 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
     # Load and format the prompt we'll be using
     conversation_prompt = await kernel.prompts.load_and_format(
         "prompts/conversation-default.yml",
-        state,
+        package=__package__,  # Slightly annoying, but it saves so much pain
+        state=state,
     )
 
     # And let's add the tools to the prompt
