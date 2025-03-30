@@ -49,6 +49,7 @@ async def test_user_access_function(
         )
         result1 = await cur.fetchone()
         # System user can access any user -> expect 1
+        assert result1 is not None
         assert result1["check_user_access"] == 1
 
         await cur.execute(
@@ -57,6 +58,7 @@ async def test_user_access_function(
         )
         result2 = await cur.fetchone()
         # Other user cannot access random user -> expect 0
+        assert result2 is not None
         assert result2["check_user_access"] == 0
 
         await cur.execute(
@@ -65,6 +67,7 @@ async def test_user_access_function(
         )
         result3 = await cur.fetchone()
         # A user can access themselves -> expect 1
+        assert result3 is not None
         assert result3["check_user_access"] == 1
 
         await cur.execute(
@@ -73,6 +76,7 @@ async def test_user_access_function(
         )
         result4 = await cur.fetchone()
         # System user can access themselves -> expect 1
+        assert result4 is not None
         assert result4["check_user_access"] == 1
 
 @pytest.mark.asyncio
@@ -273,6 +277,7 @@ async def test_bulk_user_creation(storage: SQLiteStorage) -> None:
     async with storage._cursor() as cur:
         await cur.execute("SELECT COUNT(*) AS count FROM v2_user")
         row = await cur.fetchone()
+        assert row is not None
         total_users = row["count"]
 
     # Because other tests may have already created users, we verify that the count

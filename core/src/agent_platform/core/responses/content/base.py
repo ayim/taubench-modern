@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from json import dumps
-from typing import ClassVar, Self
+from typing import ClassVar
 
 from agent_platform.core.delta import GenericDelta
 
@@ -63,7 +63,7 @@ class ResponseMessageContent:
         """Returns a JSON string representation of the content."""
         return dumps(self.model_dump())
 
-    def model_copy(self) -> Self:
+    def model_copy(self) -> "ResponseMessageContent":
         """Returns a deep copy of the response content."""
         cls = type(self)
         dict_no_kind = self.model_dump()

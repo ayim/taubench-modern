@@ -15,7 +15,7 @@ class ConvertersInterface(ABC):
     @abstractmethod
     async def thread_messages_to_prompt_messages(
         self,
-        messages: list[ThreadMessage],
+        thread_messages: list[ThreadMessage],
     ) -> list[PromptMessage]:
         """Convert a list of thread messages to a list of prompt messages.
 

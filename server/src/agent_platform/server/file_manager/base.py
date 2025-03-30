@@ -32,8 +32,15 @@ class BaseFileManager(ABC):
         if not files:
             raise InvalidFileUploadError("Files list cannot be empty")
 
+        if any(not f.file.filename for f in files):
+            raise InvalidFileUploadError("Invalid empty file name")
+
         # Use existing validation method
-        self._validate_files_pre_upload([f.file.filename for f in files])
+        self._validate_files_pre_upload([
+            f.file.filename
+            for f in files
+            if f.file.filename
+        ])
 
         return await self._upload_files(files, owner, user_id)
 

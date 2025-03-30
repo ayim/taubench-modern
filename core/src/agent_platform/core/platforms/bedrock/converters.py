@@ -249,8 +249,10 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
             await self._verify_image_size(content.value)
             await self._verify_image_dimensions(content.value)
             return ImageBlockTypeDef(
-                format="base64",
-                source={"base64": base64.b64encode(content.value).decode()},
+                format=content.mime_type,
+                source={
+                    "bytes": base64.b64encode(content.value).decode(),
+                },
             )
 
     async def _convert_to_document_block(
@@ -363,7 +365,7 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
         document_block = await self._convert_to_document_block(content)
         return ContentBlockTypeDef(document=document_block)
 
-    async def _reverse_role_map(self, role: str) -> str:
+    async def _reverse_role_map(self, role: str) -> Literal["user", "assistant"]:
         """Reverse the role map.
 
         Args:
@@ -377,6 +379,7 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
         """
         for bedrock_role, our_role in BedrockRoleMap.class_items():
             if our_role == role:
+                assert bedrock_role in BedrockRoleMap.mapping
                 return bedrock_role
         raise ValueError(f"Role '{role}' not found in BedrockRoleMap")
 

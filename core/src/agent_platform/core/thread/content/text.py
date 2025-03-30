@@ -135,9 +135,5 @@ class TextDelta(ContentDelta):
     )
     """Content kind: always 'text'"""
 
-    def as_thread_message_content(self) -> "ThreadTextContent":
-        """Convert the text delta to a thread text content."""
-
-
 ThreadMessageContent.register_content_kind("text", ThreadTextContent)
 ContentDelta.register_content_kind("text", TextDelta)

@@ -120,7 +120,7 @@ class TestPromptImageContent:
             PromptImageContent(
                 mime_type="image/jpeg",
                 value="some_url",
-                sub_type="invalid_subtype",
+                sub_type="invalid_subtype",  # type: ignore (invalid on purpose)
             )
 
     def test_init_with_invalid_detail_literal(self):
@@ -130,7 +130,7 @@ class TestPromptImageContent:
                 mime_type="image/jpeg",
                 value="some_url",
                 sub_type="url",
-                detail="medium_res",  # not valid
+                detail="medium_res",  # type: ignore (invalid on purpose)
             )
 
     def test_init_with_low_res_detail(self):
@@ -176,7 +176,9 @@ class TestPromptImageContent:
     def test_from_pil_image_non_pil_object_raises_error(self):
         """Test passing a non-PIL object to from_pil_image."""
         with pytest.raises(ValueError, match="Image must be a PIL Image"):
-            PromptImageContent.from_pil_image("not_a_pil_image")
+            PromptImageContent.from_pil_image(
+                "not_a_pil_image",  # type: ignore (invalid on purpose)
+            )
 
     @patch("PIL.Image.Image.save", side_effect=UnidentifiedImageError("Mock error"))
     def test_from_pil_image_save_error(self, mock_save):
@@ -235,4 +237,6 @@ class TestPromptImageContent:
     def test_from_ipython_image_non_ipy_object_raises_error(self):
         """Test passing a non-IPython display object."""
         with pytest.raises(ValueError, match="Image must be an IPython Image"):
-            PromptImageContent.from_ipython_image("not_an_ipython_image")
+            PromptImageContent.from_ipython_image(
+                "not_an_ipython_image",  # type: ignore (invalid on purpose)
+            )

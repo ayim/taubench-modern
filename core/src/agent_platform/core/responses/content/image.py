@@ -1,6 +1,6 @@
 from base64 import b64decode
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, cast
 
 from agent_platform.core.responses.content.base import ResponseMessageContent
 from agent_platform.core.utils import assert_literal_value_valid
@@ -9,6 +9,19 @@ if TYPE_CHECKING:
     from IPython.display import Image as IPythonImageType
     from PIL.Image import Image as PILImageType
 
+
+ResponseImageMimeTypes = Literal[
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+]
+RESPONSE_IMAGE_MIME_TYPES: set[ResponseImageMimeTypes] = {
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+}
 
 @dataclass(frozen=True)
 class ResponseImageContent(ResponseMessageContent):
@@ -19,7 +32,7 @@ class ResponseImageContent(ResponseMessageContent):
     validation and conversion utilities for working with image data.
     """
 
-    mime_type: Literal["image/jpeg", "image/png", "image/gif", "image/webp"] = field(
+    mime_type: ResponseImageMimeTypes = field(
         metadata={"description": "MIME type of the image"},
     )
     """MIME type of the image"""
@@ -111,8 +124,10 @@ class ResponseImageContent(ResponseMessageContent):
         # save image to bytesio as webp and use that instead)
         has_valid_filename = (
             hasattr(image, "filename")
-            and image.filename is not None
-            and Path(image.filename).is_file()
+            # TODO: consider if it's possible to have make this check true...
+            # Types are saying this isn't possible, but I'm not sure
+            and image.filename is not None  # type: ignore
+            and Path(image.filename).is_file()  # type: ignore
         )
 
         if not has_valid_filename:
@@ -130,8 +145,9 @@ class ResponseImageContent(ResponseMessageContent):
                 raise ValueError("Failed to save image to bytesio as webp") from e
         else:
             # Otherwise, we have a valid file, so use that
-            mime_type = image.get_format_mimetype()
-            image_bytes = Path(image.filename).read_bytes()
+            # TODO: why do I need type ignore here?
+            mime_type = image.get_format_mimetype()  # type: ignore
+            image_bytes = Path(image.filename).read_bytes()  # type: ignore
 
         return cls(
             mime_type=mime_type,
@@ -170,10 +186,13 @@ class ResponseImageContent(ResponseMessageContent):
             and Path(image.filename).is_file()
         )
 
-        if has_valid_filename:
+        if has_valid_filename and image.filename:
             mime_type = guess_type(image.filename)[0] or fallback_mime_type
+            if mime_type not in RESPONSE_IMAGE_MIME_TYPES:
+                raise ValueError(f"Invalid image mime type: {mime_type}")
+
             return cls(
-                mime_type=mime_type,
+                mime_type=cast(ResponseImageMimeTypes, mime_type),
                 value=Path(image.filename).read_bytes(),
                 sub_type="raw_bytes",
             )
@@ -186,8 +205,11 @@ class ResponseImageContent(ResponseMessageContent):
             if not mime_type.startswith("image/"):
                 mime_type = "image/" + mime_type
 
+            if mime_type not in RESPONSE_IMAGE_MIME_TYPES:
+                raise ValueError(f"Invalid image mime type: {mime_type}")
+
             return cls(
-                mime_type=mime_type,
+                mime_type=cast(ResponseImageMimeTypes, mime_type),
                 value=image.url,
                 sub_type="url",
             )
@@ -203,8 +225,11 @@ class ResponseImageContent(ResponseMessageContent):
             if not mime_type.startswith("image/"):
                 mime_type = "image/" + mime_type
 
+            if mime_type not in RESPONSE_IMAGE_MIME_TYPES:
+                raise ValueError(f"Invalid image mime type: {mime_type}")
+
             return cls(
-                mime_type=mime_type,
+                mime_type=cast(ResponseImageMimeTypes, mime_type),
                 value=image.data,
                 sub_type="raw_bytes",
             )

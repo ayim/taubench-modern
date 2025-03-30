@@ -43,11 +43,12 @@ class InProcessAgentRunner(BaseAgentRunner):
     async def invoke(self, kernel: Kernel) -> None:
         try:
             self._kernel = kernel
-            await self.entry_func(kernel)
+            if self.entry_func:
+                await self.entry_func(kernel)
         except Exception as e:
             import traceback
 
-            await self._kernel.outgoing_events.dispatch(
+            await kernel.outgoing_events.dispatch(
                 {
                     "type": "error",
                     "message": f"Error in agent architecture: {e}",
@@ -56,10 +57,14 @@ class InProcessAgentRunner(BaseAgentRunner):
             )
 
     def get_event_stream(self) -> AsyncIterator[Any]:
+        if not self._kernel:
+            raise RuntimeError("Kernel not attached")
         return self._kernel.outgoing_events.stream()
 
-    async def stop(self) -> None:
-        await self._kernel.outgoing_events.stop()
-
-    async def dispatch_event(self, event: Any):
+    async def dispatch_event(self, event: Any) -> None:
+        if not self._kernel:
+            raise RuntimeError("Kernel not attached")
         await self._kernel.incoming_events.dispatch(event)
+
+    async def stop(self) -> None:
+        pass

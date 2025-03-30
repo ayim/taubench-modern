@@ -84,7 +84,8 @@ class ResponseStreamPipe:
             await self._compute_response_update()
 
         # Dispatch "end" of the message
-        await self._dispatch_message_end(self.last_message)
+        if self.last_message:
+            await self._dispatch_message_end(self.last_message)
 
         self.stream_closed = True
 
@@ -321,7 +322,7 @@ class ResponseStreamPipe:
         Dispatch a content end to sinks.
         """
         for sink in self.sinks:
-            await sink.on_content_end(idx, final_content)
+            await sink.on_content_end(idx, final_content, final_content)
             match final_content:
                 case ResponseTextContent() as final_text_content:
                     await sink.on_text_content_end(

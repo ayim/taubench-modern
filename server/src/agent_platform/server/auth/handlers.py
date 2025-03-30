@@ -37,6 +37,8 @@ class NOOPAuth(AuthHandler):
 class JWTAuthBase(AuthHandler):
     async def __call__(self, request: Request) -> User:
         http_bearer = await HTTPBearer()(request)
+        if not http_bearer:
+            raise HTTPException(status_code=401, detail="No token provided")
         token = http_bearer.credentials
 
         try:
@@ -58,6 +60,8 @@ class JWTAuthLocal(JWTAuthBase):
     """Auth handler that uses a hardcoded decode key from env."""
 
     def decode_token(self, token: str, decode_key: str) -> dict:
+        if not settings.jwt_local:
+            raise HTTPException(status_code=401, detail="No local JWT settings")
         return jwt.decode(
             token,
             decode_key,
@@ -68,6 +72,10 @@ class JWTAuthLocal(JWTAuthBase):
         )
 
     def get_decode_key(self, token: str) -> str:
+        if not settings.jwt_local:
+            raise HTTPException(status_code=401, detail="No local JWT settings")
+        if not settings.jwt_local.decode_key:
+            raise HTTPException(status_code=401, detail="No local JWT decode key")
         return settings.jwt_local.decode_key
 
 
@@ -79,6 +87,8 @@ class JWTAuthOIDC(JWTAuthBase):
 
     def decode_token(self, token: str, decode_key: str) -> dict:
         alg = self._decode_complete_unverified(token)["header"]["alg"]
+        if not settings.jwt_oidc:
+            raise HTTPException(status_code=401, detail="No OIDC settings")
         return jwt.decode(
             token,
             decode_key,

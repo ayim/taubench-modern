@@ -4,7 +4,7 @@ Module with code to start the agent server and stop it.
 
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from sema4ai.common.process import Process
@@ -38,7 +38,7 @@ class AgentServerProcess:
         from io import StringIO
 
         self._datadir = datadir.absolute()
-        self._process: Literal["Process"] | None = None
+        self._process: Process | None = None
         self._host: str = ""
         self._port: int = -1
         self.started: bool = False
@@ -88,7 +88,7 @@ class AgentServerProcess:
         cwd: Path | str | None = None,
         additional_args: list[str] | None = None,
         env: dict[str, str] | None = None,
-        port: int = 0,
+        port: int | str = 0,
     ) -> None:
         import os
         import re

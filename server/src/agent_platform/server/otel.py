@@ -26,18 +26,20 @@ def setup_otel() -> None:
         logger.info("OTEL is not enabled. Skipping setup.")
         return
 
-    from agent_platform.server.server import VERSION
+    from agent_platform.server import __version__
 
     logger.info("Setting up OTEL")
 
     otel_collector_url = get_otel_collector_url()
 
     # OpenLLMetry setup
-    os.environ["TRACELOOP_BASE_URL"] = otel_collector_url
+    if otel_collector_url:
+        os.environ["TRACELOOP_BASE_URL"] = otel_collector_url
+
     Traceloop.init()
 
     resource = Resource(
-        attributes={"service.name": "agent-server", "service.version": VERSION},
+        attributes={"service.name": "agent-server", "service.version": __version__},
     )
     otlp_exporter = OTLPMetricExporter(endpoint=f"{otel_collector_url}/v1/metrics")
     reader = PeriodicExportingMetricReader(

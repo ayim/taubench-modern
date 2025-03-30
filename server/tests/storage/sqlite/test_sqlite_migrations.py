@@ -280,12 +280,14 @@ async def test_sqlite_migrations_idempotency(sqlite_db_path, tmp_path):
     async with aiosqlite.connect(sqlite_db_path) as conn:
         async with conn.execute("SELECT COUNT(*) FROM v2_migrations") as cur:
             row = await cur.fetchone()
+            assert row is not None
             initial_count = row[0]
 
     await migrations.run_migrations()
     async with aiosqlite.connect(sqlite_db_path) as conn:
         async with conn.execute("SELECT COUNT(*) FROM v2_migrations") as cur:
             row = await cur.fetchone()
+            assert row is not None
             second_count = row[0]
 
     assert initial_count == second_count, "SQLite migrations are not idempotent."
@@ -306,6 +308,7 @@ async def test_sqlite_empty_migrations_directory(sqlite_db_path, tmp_path):
     async with aiosqlite.connect(sqlite_db_path) as conn:
         async with conn.execute("SELECT COUNT(*) FROM v2_migrations") as cur:
             row = await cur.fetchone()
+            assert row is not None
             count = row[0]
 
     assert count == 0, "Expected no migrations when the migrations directory is empty."

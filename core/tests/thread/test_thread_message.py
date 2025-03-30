@@ -12,6 +12,7 @@ from agent_platform.core.thread.content import (
     ThreadQuickActionContent,
     ThreadQuickActionsContent,
     ThreadTextContent,
+    ThreadThoughtContent,
     ThreadVegaChartContent,
 )
 from agent_platform.core.thread.messages import ThreadAgentMessage, ThreadUserMessage
@@ -77,7 +78,10 @@ class TestThreadVegaChartContent:
             "height": 200,
             "data": [{"name": "table", "values": [1, 2, 3]}],
         }
-        content = ThreadVegaChartContent(chart_spec_raw=json.dumps(spec, indent=2))
+        content = ThreadVegaChartContent(
+            chart_spec_raw=json.dumps(spec, indent=2),
+            sub_type="vega",
+        )
         assert content.kind == "vega_chart"
         assert content.sub_type == "vega"
         assert content.chart_spec == spec
@@ -130,11 +134,13 @@ class TestThreadVegaChartContent:
 
     def test_non_string_chart_spec_raises(self):
         with pytest.raises(ValueError, match="Chart spec value must be a string"):
-            ThreadVegaChartContent(chart_spec_raw={
-                "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
-                "width": 400,
-                "height": 300,
-            })
+            ThreadVegaChartContent(
+                chart_spec_raw={
+                    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+                    "width": 400,
+                    "height": 300,
+                }, # type: ignore (invalid on purpose)
+            )
 
 
 @pytest.mark.asyncio
@@ -175,6 +181,7 @@ class TestThreadMessageBase:
         )
         msg.append_content("New text here")
         assert len(msg.message.content) == 1
+        assert isinstance(msg.message.content[0], ThreadTextContent)
         assert msg.message.content[0].text == "New text here"
 
     async def test_append_content_raises_if_committed(self):
@@ -204,6 +211,7 @@ class TestThreadUserMessage:
     def test_create_user_message(self):
         user_msg = ThreadUserMessage(content=[ThreadTextContent(text="Hi!")])
         assert user_msg.role == "user"
+        assert isinstance(user_msg.content[0], ThreadTextContent)
         assert user_msg.content[0].text == "Hi!"
 
     def test_role_is_forced_literal(self):
@@ -216,6 +224,7 @@ class TestThreadAgentMessage:
     async def test_create_agent_message(self):
         agent_msg = ThreadAgentMessage(content=[ThreadTextContent(text="Hello user!")])
         assert agent_msg.role == "agent"
+        assert isinstance(agent_msg.content[0], ThreadTextContent)
         assert agent_msg.content[0].text == "Hello user!"
 
     async def test_append_thought_appends_by_default(self):
@@ -229,6 +238,7 @@ class TestThreadAgentMessage:
         agent_msg.append_thought(" Appended more stuff")
         await agent_msg.stream_delta()
         assert len(agent_msg.message.content) == 2
+        assert isinstance(agent_msg.message.content[-1], ThreadThoughtContent)
         assert (
             agent_msg.message.content[-1].thought
             == "Initial thought. Appended more stuff"
@@ -247,6 +257,7 @@ class TestThreadAgentMessage:
         agent_msg.new_thought("Second thought separate")
         assert len(agent_msg.message.content) == 3
         # The second is an entirely new text block
+        assert isinstance(agent_msg.message.content[-1], ThreadThoughtContent)
         assert agent_msg.message.content[-1].thought == "Second thought separate"
 
     async def test_append_thought_raises_if_committed(self):

@@ -116,6 +116,9 @@ class SQLiteStorage(
             if record_user_id == requesting_user_id:
                 return 1
 
+            if self._db is None:
+                raise RuntimeError("Database not initialized; call setup_v2() first.")
+
             # Otherwise, see if requesting_user_id is a system user
             # i.e. sub like 'tenant:%:system:system_user'
             # Use the underlying sync connection from aiosqlite

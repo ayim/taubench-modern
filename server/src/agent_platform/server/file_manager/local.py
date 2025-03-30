@@ -5,7 +5,8 @@ from uuid import uuid4
 import structlog
 
 from agent_platform.core.agent import Agent
-from agent_platform.core.files import FileData, UploadedFile, UploadFileRequest
+from agent_platform.core.files import FileData, UploadedFile
+from agent_platform.core.payloads import UploadFilePayload
 from agent_platform.core.thread import Thread
 from agent_platform.server.constants import SystemPaths
 from agent_platform.server.file_manager.base import (
@@ -47,12 +48,12 @@ class LocalFileManager(BaseFileManager):
 
     async def _upload_files(
         self,
-        files: list[UploadFileRequest],
+        files: list[UploadFilePayload],
         owner: Agent | Thread,
         user_id: str,
     ) -> list[UploadedFile]:
         """Uploads all files or none to ensure consistency."""
-        owner_id = owner.id if isinstance(owner, Agent) else owner.thread_id
+        owner_id = owner.agent_id if isinstance(owner, Agent) else owner.thread_id
         logger.info(f"Uploading {len(files)} files to {owner_id}")
 
         uploaded_files: list[UploadedFile] = []
@@ -88,7 +89,11 @@ class LocalFileManager(BaseFileManager):
                 await self._revert_uploads(
                     owner,
                     user_id,
-                    [(file.file_id, file.file_path) for file in uploaded_files],
+                    [
+                        (file.file_id, file.file_path)
+                        for file in uploaded_files
+                        if file.file_path
+                    ],
                 )
                 raise e
         return uploaded_files
@@ -169,7 +174,7 @@ class LocalFileManager(BaseFileManager):
             file_ref=file_ref,
             file_hash=MISSING_FILE_HASH,
             file_size_raw=0,
-            mime_type=None,
+            mime_type="text/plain",
             user_id=thread.user_id,
             embedded=False,
             embedding_status=None,

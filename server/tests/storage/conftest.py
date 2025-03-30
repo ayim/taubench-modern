@@ -12,6 +12,7 @@ from agent_platform.core.agent import (
 )
 from agent_platform.core.runbook import Runbook
 from agent_platform.core.thread import Thread, ThreadMessage, ThreadTextContent
+from agent_platform.core.utils import SecretString
 
 
 @pytest.fixture
@@ -34,7 +35,7 @@ def sample_agent(sample_user_id: str) -> Agent:
                 organization="test-organization",
                 version="1.0.0",
                 url="https://api.test.com",
-                api_key="test",
+                api_key=SecretString("test"),
                 allowed_actions=["action_1", "action_2"],
             ),
             ActionPackage(
@@ -42,7 +43,7 @@ def sample_agent(sample_user_id: str) -> Agent:
                 organization="test-organization-2",
                 version="1.0.0",
                 url="https://api.test-2.com",
-                api_key="test-2",
+                api_key=SecretString("test-2"),
                 allowed_actions=[],
             ),
         ],

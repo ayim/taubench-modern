@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Literal, Self
+from typing import Literal
 
 from agent_platform.core.runbook.content import RunbookContent
 
@@ -30,15 +30,16 @@ class RunbookStepContent(RunbookContent):
     )
     """The metadata of the step"""
 
-    type: Literal["step"] = field(
+    kind: Literal["step"] = field(
         default="step",
         metadata={
-            "description": "The type of content",
+            "description": "The kind of content",
         },
+        init=False,
     )
-    """The type of content"""
+    """The kind of content"""
 
-    def copy(self) -> Self:
+    def copy(self) -> "RunbookStepContent":
         """Returns a deep copy of the runbook step content."""
         return RunbookStepContent(
             name=self.name,
@@ -53,10 +54,12 @@ class RunbookStepContent(RunbookContent):
             "name": self.name,
             "content": self.content,
             "metadata": self.metadata,
-            "type": self.type,
+            "kind": self.kind,
         }
 
     @classmethod
     def model_validate(cls, data: dict) -> "RunbookStepContent":
         """Create a runbook step content from a dictionary."""
         return cls(**data)
+
+RunbookStepContent.register_content_kind("step", RunbookStepContent)

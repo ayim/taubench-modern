@@ -126,7 +126,7 @@ class ThreadMessageContent(ABC):
 
 
 @dataclass
-class ContentDelta(ABC):
+class ContentDelta:
     """A delta for a thread message content.
 
     This type is used to represent incoming message parts to be applied
@@ -178,7 +178,6 @@ class ContentDelta(ABC):
 
     def model_dump(self) -> dict:
         return {
-            "content_id": self.content_id,
             "delta_id": self.delta_id,
             "kind": self.kind,
             "delta": self.delta.model_dump(),
@@ -189,9 +188,13 @@ class ContentDelta(ABC):
         """Returns a deep copy of the content delta."""
         cls = type(self)
         dict_no_content_id_delta_id = self.model_dump()
-        dict_no_content_id_delta_id.pop("content_id")
-        dict_no_content_id_delta_id.pop("delta_id")
-        return cls.model_validate(dict_no_content_id_delta_id)
+        dict_no_content_id_delta_id.pop("content_id", None)
+        dict_no_content_id_delta_id.pop("delta_id", None)
+        # Since model_validate returns ContentDelta,
+        # we need to cast it to the correct type
+        result = cls.model_validate(dict_no_content_id_delta_id)
+        assert isinstance(result, cls)
+        return result
 
     @classmethod
     def register_content_kind(
@@ -229,8 +232,3 @@ class ContentDelta(ABC):
         result.delta_id = delta_id
         result.timestamp = timestamp
         return result
-
-    @abstractmethod
-    def as_thread_message_content(self) -> "ThreadMessageContent":
-        """Convert the content delta to a thread message content."""
-        pass

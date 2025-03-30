@@ -95,6 +95,7 @@ class Kernel(ABC):
         """
         pass
 
+    @property
     @abstractmethod
     def converters(self) -> ConvertersInterface:
         """Interface for converting between thread, prompt, and response objects.

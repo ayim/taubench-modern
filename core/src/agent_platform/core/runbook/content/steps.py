@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Literal, Self
+from typing import Literal
 
 from agent_platform.core.runbook.content import RunbookContent
 from agent_platform.core.runbook.content.step import RunbookStepContent
@@ -25,15 +25,16 @@ class RunbookStepsContent(RunbookContent):
     )
     """Any extra metadata for the steps collection"""
 
-    type: Literal["steps"] = field(
+    kind: Literal["steps"] = field(
         default="steps",
         metadata={
-            "description": "The type of content",
+            "description": "The kind of content",
         },
+        init=False,
     )
-    """The type of content"""
+    """The kind of content"""
 
-    def copy(self) -> Self:
+    def copy(self) -> "RunbookStepsContent":
         """Returns a deep copy of the runbook steps content."""
         return RunbookStepsContent(
             steps=[step.copy() for step in self.steps],
@@ -46,7 +47,7 @@ class RunbookStepsContent(RunbookContent):
         return {
             "steps": [step.model_dump() for step in self.steps],
             "metadata": self.metadata,
-            "type": self.type,
+            "kind": self.kind,
         }
 
     @classmethod
@@ -57,3 +58,5 @@ class RunbookStepsContent(RunbookContent):
             RunbookStepContent.model_validate(step) for step in data.pop("steps", [])
         ]
         return cls(**data, steps=steps)
+
+RunbookStepsContent.register_content_kind("steps", RunbookStepsContent)

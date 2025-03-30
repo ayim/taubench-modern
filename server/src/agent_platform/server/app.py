@@ -79,8 +79,8 @@ def create_app() -> FastAPI:
     @app.get("/api/v2/metrics")
     async def metrics() -> dict:
         return {
-            "agentCount": await get_storage().agent_count(),
-            "threadCount": await get_storage().thread_count(),
+            "agentCount": await get_storage().count_agents(),
+            "threadCount": await get_storage().count_threads(),
         }
 
     return app

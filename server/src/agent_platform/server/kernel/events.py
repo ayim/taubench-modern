@@ -1,5 +1,5 @@
 from asyncio import Event, Queue
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from typing import Any
 
 from agent_platform.core.kernel import EventsInterface
@@ -31,7 +31,7 @@ class AgentServerEventsInterface(EventsInterface, UsesKernelMixin):
             raise RuntimeError("Event bus has been stopped")
         await self._queue.put(event)
 
-    async def stream(self) -> AsyncIterator[Any]:
+    async def stream(self) -> AsyncGenerator[Any, None]:
         """Stream events from the event bus until a stop is signaled.
 
         Yields:

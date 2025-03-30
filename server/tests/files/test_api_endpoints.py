@@ -54,6 +54,7 @@ def _file_uploads_with_existing_thread(
     # Get files from thread
     total_files = 1 + 2
     thread_file_refs = agent_client.list_files(thread_id)
+    assert thread_file_refs is not None, "Thread file refs not found"
     assert (
         len(thread_file_refs) == total_files
     ), f"Expected {total_files} files, got {len(thread_file_refs)}"
@@ -63,6 +64,7 @@ def _file_uploads_with_existing_thread(
     file_id = next(iter(thread_file_refs.keys()))
     file_ref = thread_file_refs[file_id]
     file_info = agent_client.get_file_info_by_ref(thread_id, file_ref)
+    assert file_info is not None, "File info not found"
     assert (
         file_info["file_id"] == file_id
     ), f"Expected file ID {file_id}, got {file_info['file_id']}"
@@ -71,6 +73,7 @@ def _file_uploads_with_existing_thread(
     # Delete file from thread
     agent_client.delete_file_by_ref(thread_id, file_id)
     thread_files = agent_client.list_files(thread_id)
+    assert thread_files is not None, "Thread files not found"
     assert (
         len(thread_files) == total_files - 1
     ), f"Expected {total_files - 1} files, got {len(thread_files)}"
@@ -99,7 +102,7 @@ def _file_uploads_with_non_existent_thread(
     """Test file upload functionality with a non-existent thread ID."""
     print_header("TESTING FILE UPLOADS WITH NON-EXISTENT THREAD ID")
 
-    non_existent_thread_id = uuid.uuid4()
+    non_existent_thread_id = str(uuid.uuid4())
     thread_file, thread_key, thread_value = create_sample_file()
 
     # Upload single file to non-existent thread

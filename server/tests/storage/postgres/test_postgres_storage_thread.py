@@ -80,6 +80,8 @@ async def test_thread_add_message(
     assert len(updated_thread.messages) == len(sample_thread.messages) + 1
     # Verify that the last message is the one we just added.
     last_message = updated_thread.messages[-1]
+    assert len(last_message.content) > 0
+    assert isinstance(last_message.content[0], ThreadTextContent)
     assert last_message.content[0].text == "This is an additional message"
 
 
@@ -130,6 +132,8 @@ async def test_thread_message_ordering(
     assert retrieved is not None
     assert len(retrieved.messages) == 5
     for i, msg in enumerate(retrieved.messages):
+        assert len(msg.content) > 0
+        assert isinstance(msg.content[0], ThreadTextContent)
         assert msg.content[0].text == f"Message {i}"
 
 

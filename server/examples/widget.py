@@ -12,6 +12,14 @@ import websockets
 from websockets.exceptions import ConnectionClosed
 
 from agent_platform.core.delta import GenericDelta, combine_generic_deltas
+from agent_platform.core.kernel_interfaces.otel import OTelArtifact
+from agent_platform.core.thread import (
+    Thread,
+    ThreadAgentMessage,
+    ThreadMessage,
+    ThreadTextContent,
+    ThreadUserMessage,
+)
 
 # In dev, point to your local dev server
 ESM = "http://localhost:5173/src/index.tsx?anywidget"
@@ -28,32 +36,36 @@ class AgentApiClient:
         url = f"{self.base_url}/threads?agent_id={agent_id}"
         resp = requests.get(url)
         resp.raise_for_status()
-        return resp.json()  # list of {thread_id, name, messages, ...}
+        return [
+            Thread.model_validate(t) for t in resp.json()
+        ]
 
     def create_thread(self, agent_id: str, thread_name: str = "New Thread"):
         url = f"{self.base_url}/threads"
         payload = {"agent_id": agent_id, "name": thread_name, "messages": []}
         resp = requests.post(url, json=payload)
         resp.raise_for_status()
-        return resp.json()  # a single Thread object
+        return Thread.model_validate(resp.json())
 
     def get_thread(self, thread_id: str):
         url = f"{self.base_url}/threads/{thread_id}"
         resp = requests.get(url)
         resp.raise_for_status()
-        return resp.json()  # a single Thread object
+        return Thread.model_validate(resp.json())
 
     def get_thread_artifacts(self, thread_id: str):
         url = f"{self.base_url}/debug/artifacts/search?thread_id={thread_id}"
         resp = requests.get(url)
         resp.raise_for_status()
-        return resp.json()  # a list of Artifact objects
+        return [
+            OTelArtifact.model_validate(a) for a in resp.json()
+        ]
 
     def add_message_to_thread(self, thread_id: str, message: dict):
         url = f"{self.base_url}/threads/{thread_id}/messages"
         resp = requests.post(url, json=message)
         resp.raise_for_status()
-        return resp.json()  # a single Thread object
+        return Thread.model_validate(resp.json())
 
     def delete_thread(self, thread_id: str):
         url = f"{self.base_url}/threads/{thread_id}"
@@ -76,10 +88,18 @@ class DebugChatWidget(anywidget.AnyWidget):
     agent_id = traitlets.Unicode().tag(sync=True)
     base_url = traitlets.Unicode().tag(sync=True)
 
-    threads = traitlets.List(traitlets.Dict()).tag(sync=True)
-    selected_thread_id = traitlets.Unicode(allow_none=True).tag(sync=True)
-    selected_thread_name = traitlets.Unicode(allow_none=True).tag(sync=True)
-    messages = traitlets.List(traitlets.Dict()).tag(sync=True)
+    threads: list[Thread]
+    threads_out =  traitlets.List(traitlets.Dict()).tag(sync=True)
+
+    selected_thread_id: str | None
+    selected_thread_id_out = traitlets.Unicode(allow_none=True).tag(sync=True)
+
+    selected_thread_name: str | None
+    selected_thread_name_out = traitlets.Unicode(allow_none=True).tag(sync=True)
+
+    messages: list[ThreadMessage]
+    messages_out = traitlets.List(traitlets.Dict()).tag(sync=True)
+
     is_loading = traitlets.Bool(default_value=False).tag(sync=True)
     status_message = traitlets.Unicode(default_value="Ready").tag(sync=True)
     active_thread_artifacts = traitlets.List(traitlets.Dict()).tag(sync=True)
@@ -93,6 +113,10 @@ class DebugChatWidget(anywidget.AnyWidget):
         self.active_thread_id = None
         self.threads_to_runs = {}
         self.active_thread_artifacts = []
+        self.selected_thread_id = None
+        self.selected_thread_id_out = None
+        self.selected_thread_name = None
+        self.selected_thread_name_out = None
         self._temp_files = []  # Track all temp files for cleanup
 
         self.handle_custom_message()
@@ -104,8 +128,10 @@ class DebugChatWidget(anywidget.AnyWidget):
         self.refresh_threads()
         if self.threads:
             # Select the first thread by default
-            self.selected_thread_id = self.threads[0]["thread_id"]
-            self.selected_thread_name = self.threads[0].get("name", "")
+            self.selected_thread_id = self.threads[0].thread_id
+            self.selected_thread_id_out = self.threads[0].thread_id
+            self.selected_thread_name = self.threads[0].name
+            self.selected_thread_name_out = self.threads[0].name
             self.refresh_messages()
             self.refresh_active_thread_artifacts()
 
@@ -113,9 +139,11 @@ class DebugChatWidget(anywidget.AnyWidget):
         try:
             data = self.api.list_threads(self.agent_id)
             self.threads = data
+            self.threads_out = [t.model_dump() for t in data]
         except Exception as e:
             print("Error listing threads:", e)
             self.threads = []
+            self.threads_out = []
 
     def refresh_active_thread_artifacts(self):
         from tempfile import mkdtemp
@@ -139,7 +167,7 @@ class DebugChatWidget(anywidget.AnyWidget):
             # Create files with artifact names in the temp directory
             for idx, artifact in enumerate(artifacts):
                 try:
-                    artifact_name = f"{idx:03d}-{artifact['name']}"
+                    artifact_name = f"{idx:03d}-{artifact.name}"
                     # Sanitize filename to remove any invalid characters
                     safe_name = ''.join(
                         c for c in artifact_name if c.isalnum() or c in '._- '
@@ -147,17 +175,17 @@ class DebugChatWidget(anywidget.AnyWidget):
 
                     file_path = os.path.join(temp_dir, safe_name)
                     with open(file_path, 'w', encoding='utf-8') as f:
-                        f.write(artifact["content"])
+                        f.write(artifact.content.decode("utf-8"))
 
                     new_thread_artifacts.append({
                         "name": artifact_name,
                         "path": file_path,
-                        "run_id": artifact["correlated_run_id"],
-                        "message_id": artifact["correlated_message_id"],
+                        "run_id": artifact.correlated_run_id,
+                        "message_id": artifact.correlated_message_id,
                     })
                 except Exception as e:
                     print(
-                        f"Error creating file for artifact {artifact['name']}: "
+                        f"Error creating file for artifact {artifact.name}: "
                         f"{e}",
                     )
 
@@ -191,11 +219,14 @@ class DebugChatWidget(anywidget.AnyWidget):
         if not self.selected_thread_id:
             self.messages = []
             self.selected_thread_name = ""
+            self.selected_thread_name_out = ""
+            self.messages_out = []
             return
         try:
             thread_data = self.api.get_thread(self.selected_thread_id)
-            self.selected_thread_name = thread_data.get("name", "")
-            self.messages = thread_data.get("messages", [])
+            self.selected_thread_name = thread_data.name
+            self.messages = thread_data.messages
+            self.messages_out = [m.model_dump() for m in self.messages]
         except Exception as e:
             print(f"Error fetching thread={self.selected_thread_id}: {e}")
 
@@ -208,13 +239,19 @@ class DebugChatWidget(anywidget.AnyWidget):
             )
 
     # ~~~~~ WebSocket logic ~~~~~
-    async def _start_websocket(self, thread_id: str):
+    async def _start_websocket(self, thread_id: str | None):
         """Close existing ws, open a new one for the chosen thread."""
+        if thread_id is None:
+            print("No thread selected --- not connecting to WebSocket")
+            return
+
         await self._close_websocket()
 
         ws_url = f"ws://localhost:8000/api/v2/runs/{self.agent_id}/stream"
         try:
-            self._ws = await websockets.connect(ws_url)
+            # No idea why types don't check for this... connect is definitely
+            # defined in websockets/__init__.py (it does some lazy loading tho...)
+            self._ws = await websockets.connect(ws_url)  # type: ignore
         except Exception as e:
             print("WebSocket connection failed:", e)
             return
@@ -235,7 +272,7 @@ class DebugChatWidget(anywidget.AnyWidget):
 
     async def _ws_receive_loop(self):  # noqa: C901, PLR0912, PLR0915
         try:
-            while True:
+            while True and self._ws:
                 msg = await self._ws.recv()
                 message_dict = json.loads(msg)
 
@@ -276,10 +313,10 @@ class DebugChatWidget(anywidget.AnyWidget):
                     if event_type == "message_begin":
                         self.is_loading = True
                         self.status_message = "Message streaming..."
-                        self.messages = [*self.messages.copy(), {
-                            "role": "agent",
-                            "content": [],
-                        }]
+                        self.messages = [
+                            *self.messages.copy(),
+                            ThreadAgentMessage(content=[]),
+                        ]
                     elif event_type == "message_content":
                         delta = GenericDelta.model_validate(
                             message_dict["delta"].get("delta", {}),
@@ -321,7 +358,14 @@ class DebugChatWidget(anywidget.AnyWidget):
 
     def _append_message(self, role: str, text: str):
         current = list(self.messages)
-        current.append({"role": role, "content": [{"kind": "text", "text": text}]})
+        if role == "user":
+            current.append(ThreadUserMessage(
+                content=[ThreadTextContent(text=text)],
+            ))
+        else:
+            current.append(ThreadAgentMessage(
+                content=[ThreadTextContent(text=text)],
+            ))
         self.messages = current
 
     def handle_custom_message(self):
@@ -333,6 +377,7 @@ class DebugChatWidget(anywidget.AnyWidget):
                 thread_id = content.get("thread_id")
                 if thread_id:
                     widget.selected_thread_id = thread_id
+                    widget.selected_thread_id_out = thread_id
                     widget.refresh_active_thread_artifacts()
             elif msg_type == "new_thread":
                 widget.create_new_thread()
@@ -419,18 +464,16 @@ class DebugChatWidget(anywidget.AnyWidget):
 
         if self._ws:
             try:
+                if self.selected_thread_id is None:
+                    print("No thread selected --- not sending user message")
+                    return
+
                 # Update the thread with what the user typed
                 self.api.add_message_to_thread(
                     self.selected_thread_id,
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "text",
-                                "text": user_text,
-                            },
-                        ],
-                    },
+                    ThreadUserMessage(
+                        content=[ThreadTextContent(text=user_text)],
+                    ).model_dump(),
                 )
 
                 # Send initial handshake
@@ -506,11 +549,13 @@ class DebugChatWidget(anywidget.AnyWidget):
             thread_name = self._generate_fun_thread_name()
             new_thread = self.api.create_thread(self.agent_id, thread_name)
             self.refresh_threads()
-            self.selected_thread_id = new_thread["thread_id"]
-            self.selected_thread_name = new_thread["name"]
+            self.selected_thread_id = new_thread.thread_id
+            self.selected_thread_id_out = new_thread.thread_id
+            self.selected_thread_name = new_thread.name
+            self.selected_thread_name_out = new_thread.name
             self.refresh_messages()
             self._ws_connect_task = asyncio.ensure_future(
-                self._start_websocket(new_thread["thread_id"]),
+                self._start_websocket(new_thread.thread_id),
             )
         except Exception as e:
             print("Error creating thread:", e)

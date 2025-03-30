@@ -6,9 +6,31 @@ from typing import Literal
 from agent_platform.core.responses.content.base import ResponseMessageContent
 from agent_platform.core.utils.asserts import assert_literal_value_valid
 
-# TODO: Remove this once the files module is implemented
-UploadedFile = type[None]
+ResponseDocumentMimeTypes = Literal[
+    "application/pdf",
+    "text/plain",
+    "text/csv",
+    "text/tab-separated-values",
+    "text/markdown",
+    "text/html",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]
 
+RESPONSE_DOCUMENT_MIME_TYPES: set[ResponseDocumentMimeTypes] = {
+    "application/pdf",
+    "text/plain",
+    "text/csv",
+    "text/tab-separated-values",
+    "text/markdown",
+    "text/html",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+}
 
 @dataclass(frozen=True)
 class ResponseDocumentContent(ResponseMessageContent):
@@ -20,23 +42,12 @@ class ResponseDocumentContent(ResponseMessageContent):
     document data.
     """
 
-    mime_type: Literal[
-        "application/pdf",
-        "text/plain",
-        "text/csv",
-        "text/tab-separated-values",
-        "text/markdown",
-        "text/html",
-        "application/vnd.ms-excel",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "application/msword",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    ] = field(
+    mime_type: ResponseDocumentMimeTypes = field(
         metadata={"description": "MIME type of the document"},
     )
     """MIME type of the document"""
 
-    value: str | bytes | UploadedFile = field(
+    value: str | bytes = field(
         metadata={
             "description": "The document data - either an agent-server UploadedFile, "
             "base64 encoded string, or raw bytes",
@@ -84,8 +95,7 @@ class ResponseDocumentContent(ResponseMessageContent):
 
         # Validate UploadedFile if applicable
         if self.sub_type == "UploadedFile":
-            if not isinstance(self.value, UploadedFile):
-                raise ValueError("Document value must be an agent-server UploadedFile")
+            raise NotImplementedError("UploadedFile is not implemented")
 
         # Validate base64 data if applicable
         if self.sub_type == "base64":

@@ -1,9 +1,9 @@
 from dataclasses import dataclass, field
-from typing import Self
+from typing import cast
 
 from agent_platform.core.runbook.content import (
-    RunbookStepsContent,
-    RunbookTextContent,
+    AnyRunbookContent,
+    RunbookContent,
 )
 
 
@@ -22,15 +22,14 @@ class Runbook:
     # There is some dynamic validation here, we can only have up to
     # ONE steps content; any number of text content components are
     # allowed. By default, we'll make this an empty list.
-    content: list[RunbookTextContent | RunbookStepsContent] = field(
-        default_factory=list,
+    content: list[AnyRunbookContent] = field(
         metadata={
             "description": "The content of the runbook",
         },
     )
     """The content of the runbook"""
 
-    def copy(self) -> Self:
+    def copy(self) -> "Runbook":
         """Returns a deep copy of the runbook."""
         return Runbook(
             raw_text=self.raw_text,
@@ -48,8 +47,11 @@ class Runbook:
     def model_validate(cls, data: dict) -> "Runbook":
         """Create a runbook from a dictionary."""
         data = data.copy()
-        content = [
-            RunbookTextContent.model_validate(content)
-            for content in data.pop("content", [])
-        ]
+        content = cast(
+            list[AnyRunbookContent],
+            [
+                RunbookContent.model_validate(content)
+                for content in data.pop("content", [])
+            ],
+        )
         return cls(**data, content=content)

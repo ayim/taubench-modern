@@ -1,10 +1,10 @@
-from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager
+from collections.abc import Callable
+from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from pathlib import Path
 
 import pytest
 from psycopg import AsyncCursor
-from psycopg.rows import dict_row
+from psycopg.rows import DictRow, dict_row
 from psycopg_pool import AsyncConnectionPool
 
 from agent_platform.server.storage.migrations import (
@@ -12,6 +12,8 @@ from agent_platform.server.storage.migrations import (
     MigrationTimeoutError,
 )
 from agent_platform.server.storage.postgres.migrations import PostgresMigrations
+
+CursorProvider = Callable[[], AbstractAsyncContextManager[AsyncCursor[DictRow]]]
 
 
 @pytest.fixture(autouse=True)
@@ -34,7 +36,7 @@ async def _reset_schema(postgres_test_db: AsyncConnectionPool):
 @pytest.fixture
 async def cursor_provider(
     postgres_test_db: AsyncConnectionPool,
-) -> AsyncGenerator[AsyncCursor, None]:
+) -> CursorProvider:
     """
     Provides a reusable cursor provider function that wraps the connection pool.
     """
@@ -81,6 +83,7 @@ async def test_postgres_run_migrations_successfully(
                 );
             """)
             row = await cur.fetchone()
+            assert row is not None
             table_exists = row[0]
             assert table_exists, "Expected 'v2.agent' table to exist after migrations"
 
@@ -110,7 +113,7 @@ async def test_postgres_run_migrations_successfully(
 @pytest.mark.asyncio
 async def test_postgres_run_migrations_dirty_state(
     postgres_test_db: AsyncConnectionPool,
-    cursor_provider: AsyncCursor,
+    cursor_provider: CursorProvider,
 ):
     """
     Test that running migrations fails if the 'dirty' flag is set.
@@ -146,7 +149,7 @@ async def test_postgres_run_migrations_dirty_state(
 
 @pytest.mark.asyncio
 async def test_postgres_migration_timeout(
-    cursor_provider: AsyncCursor,
+    cursor_provider: CursorProvider,
     tmp_path: Path,
 ):
     """
@@ -186,7 +189,7 @@ async def test_postgres_migration_timeout(
 @pytest.mark.asyncio
 async def test_postgres_invalid_migration_filename(
     postgres_test_db: AsyncConnectionPool,
-    cursor_provider: AsyncCursor,
+    cursor_provider: CursorProvider,
     tmp_path: Path,
 ):
     """
@@ -231,7 +234,7 @@ async def test_postgres_invalid_migration_filename(
 # @pytest.mark.asyncio
 # async def test_postgres_migration_lock_cannot_be_acquired(
 #     postgres_test_db: AsyncConnectionPool,
-#     cursor_provider: AsyncCursor,
+#     cursor_provider: CursorProvider,
 # ):
 #     """
 #     Test that a MigrationLockError is raised if we cannot acquire the lock.
@@ -270,7 +273,7 @@ async def test_postgres_invalid_migration_filename(
 
 @pytest.mark.asyncio
 async def test_postgres_migration_checksum_drift(
-    cursor_provider: AsyncCursor,
+    cursor_provider: CursorProvider,
     tmp_path: Path,
 ):
     """
@@ -304,7 +307,7 @@ async def test_postgres_migration_checksum_drift(
 
 @pytest.mark.asyncio
 async def test_postgres_empty_migration_file(
-    cursor_provider: AsyncCursor,
+    cursor_provider: CursorProvider,
     tmp_path: Path,
 ):
     """
@@ -326,7 +329,7 @@ async def test_postgres_empty_migration_file(
 @pytest.mark.asyncio
 async def test_postgres_migration_sql_syntax_error(
     postgres_test_db: AsyncConnectionPool,
-    cursor_provider: AsyncCursor,
+    cursor_provider: CursorProvider,
     tmp_path: Path,
 ):
     """
@@ -364,7 +367,7 @@ async def test_postgres_migration_sql_syntax_error(
 @pytest.mark.asyncio
 async def test_postgres_migrations_idempotency(
     postgres_test_db: AsyncConnectionPool,
-    cursor_provider: AsyncCursor,
+    cursor_provider: CursorProvider,
     tmp_path: Path,
 ):
     """
@@ -383,6 +386,7 @@ async def test_postgres_migrations_idempotency(
         async with conn.cursor() as cur:
             await cur.execute("SELECT COUNT(*) FROM v2.migrations")
             row = await cur.fetchone()
+            assert row is not None
             initial_count = row[0]
 
     # <--- Force unlock here so that the next run can reacquire the lock. --->
@@ -395,6 +399,7 @@ async def test_postgres_migrations_idempotency(
         async with conn.cursor() as cur:
             await cur.execute("SELECT COUNT(*) FROM v2.migrations")
             row = await cur.fetchone()
+            assert row is not None
             second_count = row[0]
 
     assert initial_count == second_count, "Postgres migrations are not idempotent."
@@ -403,7 +408,7 @@ async def test_postgres_migrations_idempotency(
 @pytest.mark.asyncio
 async def test_postgres_empty_migrations_directory(
     postgres_test_db: AsyncConnectionPool,
-    cursor_provider: AsyncCursor,
+    cursor_provider: CursorProvider,
     tmp_path: Path,
 ):
     """
@@ -420,6 +425,7 @@ async def test_postgres_empty_migrations_directory(
         async with conn.cursor() as cur:
             await cur.execute("SELECT COUNT(*) FROM v2.migrations")
             row = await cur.fetchone()
+            assert row is not None
             count = row[0]
 
     assert count == 0, "Expected no migrations when the migrations directory is empty."
@@ -428,7 +434,7 @@ async def test_postgres_empty_migrations_directory(
 @pytest.mark.asyncio
 async def test_postgres_rollback_on_failure(
     postgres_test_db: AsyncConnectionPool,
-    cursor_provider: AsyncCursor,
+    cursor_provider: CursorProvider,
     tmp_path: Path,
 ):
     """
@@ -490,7 +496,7 @@ async def test_postgres_rollback_on_failure(
     ],
 )
 async def test_migration_script_with_transaction_commands(
-    cursor_provider: AsyncCursor,
+    cursor_provider: CursorProvider,
     tmp_path: Path,
     bad_sql: str,
     err_msg: str,

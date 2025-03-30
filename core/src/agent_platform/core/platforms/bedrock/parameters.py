@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field, fields
-from typing import TYPE_CHECKING, Literal, Self
+from typing import TYPE_CHECKING, Literal
 
 from agent_platform.core.platforms.base import PlatformParameters
 
@@ -166,6 +166,7 @@ class BedrockPlatformParameters(PlatformParameters):
     )
 
     _extra_config_params: dict | None = field(default=None, init=False, repr=False)
+    # _config: "Config | None"
 
     @property
     def config(self) -> "Config | None":
@@ -244,7 +245,7 @@ class BedrockPlatformParameters(PlatformParameters):
 
         return result
 
-    def model_copy(self, *, update: dict | None = None) -> Self:
+    def model_copy(self, *, update: dict | None = None) -> "BedrockPlatformParameters":
         """Create a new instance of the model with the same values as
         the current instance.
 

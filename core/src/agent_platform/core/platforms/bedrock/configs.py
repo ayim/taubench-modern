@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import ClassVar
+from typing import ClassVar, Literal
 
 from agent_platform.core.configurations import Configuration, MapConfiguration
 from agent_platform.core.platforms.base import PlatformConfigs
@@ -42,7 +42,10 @@ class BedrockModelMap(MapConfiguration):
 class BedrockRoleMap(MapConfiguration):
     """A map of Bedrock role names to our role names."""
 
-    mapping: ClassVar[dict[str, str]] = {
+    mapping: ClassVar[dict[
+        Literal["user", "assistant"],
+        Literal["user", "agent"]]
+    ] = {
         "user": "user",
         "assistant": "agent",
     }

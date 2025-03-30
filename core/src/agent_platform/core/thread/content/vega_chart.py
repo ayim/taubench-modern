@@ -46,6 +46,8 @@ class ThreadVegaChartContent(ThreadMessageContent):
     @property
     def chart_spec(self) -> dict:
         """The Vega or Vega-Lite chart spec JSON (parsed as a dictionary) to display"""
+        if self._chart_spec is None:
+            raise ValueError("Chart spec has not been parsed yet")
         return self._chart_spec
 
     def __post_init__(self) -> None:

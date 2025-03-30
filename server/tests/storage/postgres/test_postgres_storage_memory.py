@@ -25,7 +25,7 @@ async def test_memory_crud_operations(storage: PostgresStorage) -> None:
         updated_at=datetime.now(UTC),
         relevant_until_timestamp=datetime.now(UTC),
         relevant_after_timestamp=datetime.now(UTC),
-        scope="test_scope",
+        scope="agent",
         metadata={"scope_id": "scope123"},
         tags=["tag1", "tag2"],
         refs=["ref1"],
@@ -41,7 +41,7 @@ async def test_memory_crud_operations(storage: PostgresStorage) -> None:
     assert fetched.original_text == "original memory text"
 
     # List memories by scope and scope_id
-    memories = await storage.list_memories("test_scope", "scope123")
+    memories = await storage.list_memories("agent", "scope123")
     assert any(m.memory_id == sample_memory.memory_id for m in memories)
 
     # Upsert (update) the memory record
@@ -83,7 +83,7 @@ async def test_memory_concurrent_upsert(storage: PostgresStorage) -> None:
         updated_at=datetime.now(UTC),
         relevant_until_timestamp=datetime.now(UTC),
         relevant_after_timestamp=datetime.now(UTC),
-        scope="concurrent_test",
+        scope="agent",
         metadata={"info": "test"},
         tags=["tag1"],
         refs=["ref1"],
@@ -119,7 +119,7 @@ async def test_memory_deletion_impacts_listing(storage: PostgresStorage) -> None
     Test that once a memory record is deleted,
     it no longer appears in listings for its scope.
     """
-    scope = "memory_test_scope"
+    scope = "thread"
     scope_id = "test123"
     memory1 = Memory(
         memory_id=str(uuid4()),
@@ -197,7 +197,7 @@ async def test_duplicate_memory_creation(storage: PostgresStorage) -> None:
         updated_at=datetime.now(UTC),
         relevant_until_timestamp=datetime.now(UTC),
         relevant_after_timestamp=datetime.now(UTC),
-        scope="duplicate_test",
+        scope="agent",
         metadata={"scope_id": "dup123"},
         tags=["tag1"],
         refs=["ref1"],
@@ -230,7 +230,7 @@ async def test_memory_edge_case_field_values(storage: PostgresStorage) -> None:
         updated_at=datetime.now(UTC),
         relevant_until_timestamp=datetime.now(UTC),
         relevant_after_timestamp=datetime.now(UTC),
-        scope="edge_case",
+        scope="agent",
         metadata={"scope_id": "edge123", "info": special_text},
         tags=["long", "special", "edge"],
         refs=["ref_edge"],
@@ -259,7 +259,7 @@ async def test_memory_timestamp_update_verification(storage: PostgresStorage) ->
         updated_at=datetime.now(UTC),
         relevant_until_timestamp=datetime.now(UTC),
         relevant_after_timestamp=datetime.now(UTC),
-        scope="timestamp_test",
+        scope="agent",
         metadata={"scope_id": "ts123"},
         tags=["timestamp"],
         refs=["ref_ts"],
@@ -300,7 +300,7 @@ async def test_memory_timestamp_update_verification(storage: PostgresStorage) ->
 #         updated_at=datetime.now(UTC),
 #         relevant_until_timestamp=datetime.now(UTC),
 #         relevant_after_timestamp=datetime.now(UTC),
-#         scope="concurrent_test",
+#         scope="agent",
 #         metadata={"scope_id": "conc123"},
 #         tags=["concurrent"],
 #         refs=["ref_conc"],
@@ -370,7 +370,7 @@ async def test_memory_filtering_by_scope_id(storage: PostgresStorage) -> None:
     for a specific scope_id and verify that only the correct records
     are returned.
     """
-    scope = "filter_test"
+    scope = "thread"
     target_scope_id = "filter_target"
 
     memory_target = Memory(

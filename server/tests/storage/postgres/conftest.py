@@ -1,7 +1,10 @@
 from collections.abc import AsyncGenerator, Generator
+from typing import cast
 
 import pytest
 import testing.postgresql
+from psycopg import AsyncConnection
+from psycopg.rows import TupleRow
 from psycopg_pool import AsyncConnectionPool
 
 from agent_platform.server.storage.postgres import PostgresStorage
@@ -19,7 +22,10 @@ def _disable_logging() -> Generator[None, None, None]:
     getLogger("agent_platform.server.storage.postgres.postgres").setLevel(INFO)
 
 @pytest.fixture(scope="session")
-async def postgres_test_db() -> AsyncGenerator[AsyncConnectionPool, None]:
+async def postgres_test_db() -> AsyncGenerator[
+    AsyncConnectionPool[AsyncConnection[TupleRow]],
+    None,
+]:
     """Creates a shared temporary Postgres instance for the entire test session."""
     with testing.postgresql.Postgresql() as postgresql:
         dsn = postgresql.url()
@@ -41,14 +47,14 @@ async def postgres_test_db() -> AsyncGenerator[AsyncConnectionPool, None]:
                 max_idle=300,  # Close idle connections after 5 minutes
             )
             await pool.open()
-            yield pool
+            yield cast(AsyncConnectionPool[AsyncConnection[TupleRow]], pool)
         finally:
             if pool:
                 await pool.close()
             postgresql.stop()
 
 @pytest.fixture
-async def storage(postgres_test_db: AsyncConnectionPool):
+async def storage(postgres_test_db: AsyncConnectionPool[AsyncConnection[TupleRow]]):
     """
     Initialize storage with the shared test database.
 

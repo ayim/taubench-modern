@@ -1,7 +1,7 @@
 import json
 from collections.abc import AsyncGenerator
 from copy import deepcopy
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 from agent_platform.core.delta import GenericDelta
 from agent_platform.core.delta.compute_delta import compute_generic_deltas
@@ -26,7 +26,14 @@ if TYPE_CHECKING:
     from agent_platform.core.kernel import Kernel
 
 
-class BedrockClient(PlatformClient):
+class BedrockClient(
+    PlatformClient[
+        BedrockConverters,
+        BedrockParsers,
+        BedrockPlatformParameters,
+        BedrockPlatformConfigs,
+    ],
+):
     """A client for the Bedrock platform."""
 
     NAME: ClassVar[str] = "bedrock"
@@ -118,7 +125,7 @@ class BedrockClient(PlatformClient):
         Returns:
             The complete model response.
         """
-        model_id = BedrockModelMap[model]
+        model_id = cast(str, BedrockModelMap[model])
         request = prompt.as_platform_request(model_id)
         response = self._bedrock_runtime_client.converse(**request)
         return self.parsers.parse_response(response)
@@ -137,7 +144,7 @@ class BedrockClient(PlatformClient):
         Yields:
             GenericDeltas that update the ResponseMessage.
         """
-        model_id = BedrockModelMap[model]
+        model_id = cast(str, BedrockModelMap[model])
         request = prompt.as_platform_request(model_id, stream=True)
         response = self._bedrock_runtime_client.converse_stream(**request)
 
@@ -183,7 +190,7 @@ class BedrockClient(PlatformClient):
             A dictionary containing the embeddings and any
             additional model-specific information.
         """
-        model_id = BedrockModelMap[model]
+        model_id = cast(str, BedrockModelMap[model])
 
         # Different Bedrock embedding models use different request formats;
         # so we need to handle them differently.

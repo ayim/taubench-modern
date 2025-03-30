@@ -172,7 +172,7 @@ class ThreadToolUsageContent(ThreadMessageContent):
             name=response_tool_use.tool_name,
             tool_call_id=response_tool_use.tool_call_id,
             arguments_raw=response_tool_use.tool_input_raw,
-            metadata=metadata,
+            metadata=metadata or {},
         )
 
 

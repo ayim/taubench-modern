@@ -4,6 +4,7 @@ from pathlib import Path
 
 from psycopg import AsyncCursor
 from psycopg.errors import QueryCanceled
+from psycopg.rows import DictRow
 from structlog import get_logger
 
 from agent_platform.server.storage.migrations import (
@@ -191,7 +192,7 @@ class PostgresMigrations(MigrationsProvider):
         #         "Another migration might be in progress.",
         #     )
 
-    async def _release_migration_lock(self, cur: AsyncCursor) -> None:
+    async def _release_migration_lock(self, cur: AsyncCursor[DictRow]) -> None:
         """
         Releases the migration lock if we hold it.
         """
@@ -205,7 +206,7 @@ class PostgresMigrations(MigrationsProvider):
             """,
         )
         result = await cur.fetchone()
-        table_exists = result["exists"] if result else False
+        table_exists = result['exists'] if result else False
         if table_exists:
             # Release only if locked_by matches
             await cur.execute(
@@ -352,8 +353,8 @@ class PostgresMigrations(MigrationsProvider):
         statement_ms = int(self._timeout * 1000)
         try:
             # Only affects the current transaction scope
-            await cur.execute(f"SET LOCAL statement_timeout = {statement_ms}")
-            await cur.execute(migration_sql)
+            await cur.execute(f"SET LOCAL statement_timeout = {statement_ms}".encode())
+            await cur.execute(migration_sql.encode())
 
         except QueryCanceled as exc:
             # Postgres forcibly canceled the query due to statement_timeout

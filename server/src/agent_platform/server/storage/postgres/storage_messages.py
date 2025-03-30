@@ -1,5 +1,6 @@
 from psycopg import AsyncCursor
 from psycopg.errors import ForeignKeyViolation, UniqueViolation
+from psycopg.rows import DictRow
 from psycopg.types.json import Jsonb
 
 from agent_platform.core.thread import ThreadMessage
@@ -18,7 +19,7 @@ class PostgresStorageMessagesMixin(CommonMixin):
         self,
         thread_id: str,
         messages: list[ThreadMessage],
-        cursor: AsyncCursor|None=None,
+        cursor: AsyncCursor[DictRow] | None = None,
     ) -> None:
         """Overwrite the messages for the given thread."""
         # 1. Validate the uuid
@@ -33,16 +34,16 @@ class PostgresStorageMessagesMixin(CommonMixin):
 
             # 3. Perpare messages for batch insert
             values = [{
-                "message_id": msg["message_id"],
+                "message_id": msg.message_id,
                 "thread_id": thread_id,
                 "sequence_number": i,
-                "role": msg["role"],
-                "content": Jsonb(msg["content"]),
-                "agent_metadata": Jsonb(msg["agent_metadata"]),
-                "server_metadata": Jsonb(msg["server_metadata"]),
-                "created_at": msg["created_at"],
-                "updated_at": msg["updated_at"],
-                "parent_run_id": msg["parent_run_id"],
+                "role": msg.role,
+                "content": Jsonb([c.model_dump() for c in msg.content]),
+                "agent_metadata": Jsonb(msg.agent_metadata),
+                "server_metadata": Jsonb(msg.server_metadata),
+                "created_at": msg.created_at,
+                "updated_at": msg.updated_at,
+                "parent_run_id": msg.parent_run_id,
             } for i, msg in enumerate(messages)]
 
             # 4. No values to insert?
@@ -141,7 +142,7 @@ class PostgresStorageMessagesMixin(CommonMixin):
             except UniqueViolation as e:
                 if "duplicate key value violates unique constraint" in str(e):
                     raise RecordAlreadyExistsError(
-                        f"Message {message_dict['message_id']} already exists",
+                        f"Message {message.message_id} already exists",
                     ) from e
                 raise e
             except Exception:

@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Literal, Self
+from typing import Any, Literal
 from uuid import UUID, uuid4
 
 from agent_platform.core.actions.action_package import ActionPackage
@@ -109,7 +109,7 @@ class Agent:
         """Post-initialization checks."""
         assert_literal_value_valid(self, "mode")
 
-    def copy(self) -> Self:
+    def copy(self) -> "Agent":
         """Returns a deep copy of the agent."""
         from copy import deepcopy
 
@@ -119,11 +119,14 @@ class Agent:
             user_id=self.user_id,
             runbook=self.runbook.copy(),
             version=self.version,
-            provider_configs=self.provider_configs,
             action_packages=[pkg.copy() for pkg in self.action_packages],
             mcp_servers=[server.copy() for server in self.mcp_servers],
             agent_architecture=self.agent_architecture.copy(),
             question_groups=[group.copy() for group in self.question_groups],
+            platform_configs=[
+                platform_config.model_copy()
+                for platform_config in self.platform_configs
+            ],
             observability_configs=[
                 config.copy() for config in self.observability_configs
             ],

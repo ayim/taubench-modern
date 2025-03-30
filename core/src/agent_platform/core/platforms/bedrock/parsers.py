@@ -1,5 +1,6 @@
+import json
 from collections.abc import AsyncGenerator
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from agent_platform.core.delta import GenericDelta
 from agent_platform.core.delta.compute_delta import compute_generic_deltas
@@ -10,8 +11,14 @@ from agent_platform.core.platforms.bedrock.configs import (
 )
 from agent_platform.core.responses.content.audio import ResponseAudioContent
 from agent_platform.core.responses.content.base import ResponseMessageContent
-from agent_platform.core.responses.content.document import ResponseDocumentContent
-from agent_platform.core.responses.content.image import ResponseImageContent
+from agent_platform.core.responses.content.document import (
+    ResponseDocumentContent,
+    ResponseDocumentMimeTypes,
+)
+from agent_platform.core.responses.content.image import (
+    ResponseImageContent,
+    ResponseImageMimeTypes,
+)
 from agent_platform.core.responses.content.text import ResponseTextContent
 from agent_platform.core.responses.content.tool_use import ResponseToolUseContent
 from agent_platform.core.responses.response import ResponseMessage, TokenUsage
@@ -62,7 +69,10 @@ class BedrockParsers(PlatformParsers):
             raise ValueError("Image content must have a format")
 
         source = content.get("source", {})
-        mime_type = BedrockMimeTypeMap[image_format]
+        mime_type = cast(
+            ResponseImageMimeTypes,
+            BedrockMimeTypeMap[image_format],
+        )
 
         if "base64" in source:
             return ResponseImageContent(
@@ -77,8 +87,19 @@ class BedrockParsers(PlatformParsers):
                 mime_type=mime_type,
             )
         elif "bytes" in source:
+            # Source bytes can be Union[str, bytes, IO[Any], StreamingBody]
+            raw_bytes = None
+            if isinstance(source["bytes"], str):
+                raw_bytes = source["bytes"].encode("utf-8")
+            elif isinstance(source["bytes"], bytes):
+                raw_bytes = source["bytes"]
+            elif isinstance(source["bytes"], bytearray):
+                raw_bytes = bytes(source["bytes"])
+            else:
+                raise ValueError(f"Invalid image source format: {source}")
+
             return ResponseImageContent(
-                value=source["bytes"],
+                value=raw_bytes,
                 sub_type="raw_bytes",
                 mime_type=mime_type,
             )
@@ -107,10 +128,7 @@ class BedrockParsers(PlatformParsers):
         # Ensure input is already a string as expected from the Bedrock API
         tool_input = content["input"]
         if not isinstance(tool_input, str):
-            raise ValueError(
-                f"Tool input must be a string, got {type(tool_input).__name__}. "
-                "The Bedrock API returns tool inputs as serialized JSON strings.",
-            )
+            tool_input = json.dumps(tool_input)
 
         return ResponseToolUseContent(
             tool_call_id=content["toolUseId"],
@@ -136,7 +154,10 @@ class BedrockParsers(PlatformParsers):
         if not name:
             raise ValueError("Document content must have a name")
 
-        mime_type = BedrockMimeTypeMap[doc_format]
+        mime_type = cast(
+            ResponseDocumentMimeTypes,
+            BedrockMimeTypeMap[doc_format],
+        )
 
         if "base64" in source:
             return ResponseDocumentContent(
@@ -153,8 +174,19 @@ class BedrockParsers(PlatformParsers):
                 mime_type=mime_type,
             )
         elif "bytes" in source:
+            # Source bytes can be Union[str, bytes, IO[Any], StreamingBody]
+            raw_bytes = None
+            if isinstance(source["bytes"], str):
+                raw_bytes = source["bytes"].encode("utf-8")
+            elif isinstance(source["bytes"], bytes):
+                raw_bytes = source["bytes"]
+            elif isinstance(source["bytes"], bytearray):
+                raw_bytes = bytes(source["bytes"])
+            else:
+                raise ValueError(f"Invalid image source format: {source}")
+
             return ResponseDocumentContent(
-                value=source["bytes"],
+                value=raw_bytes,
                 sub_type="raw_bytes",
                 name=name,
                 mime_type=mime_type,
@@ -180,9 +212,10 @@ class BedrockParsers(PlatformParsers):
         elif "guardContent" in item:
             # Handle guard content - for now just extract text if present
             # TODO: Handle guard content more robustly
-            guard = item["guardContent"]
-            if isinstance(guard, dict) and "text" in guard:
-                return self.parse_text_content(guard["text"])
+            # guard = item["guardContent"]
+            # if isinstance(guard, dict) and "text" in guard:
+            #     return self.parse_text_content(guard["text"])
+            pass
 
         raise ValueError(f"Unsupported content type in item: {item}")
 
@@ -258,7 +291,7 @@ class BedrockParsers(PlatformParsers):
             raw_response=response,
             stop_reason=response.get("stopReason"),
             usage=token_usage,
-            metrics=metrics,
+            metrics=dict(metrics),
             metadata=metadata,
             additional_response_fields=additional_fields,
         )
@@ -278,9 +311,9 @@ class BedrockParsers(PlatformParsers):
         if not isinstance(delta, dict):
             raise ValueError(f"Unsupported delta type: {type(delta)}")
 
-        if delta.get("text"):
+        if "text" in delta:
             return GenericDelta(op="concat_string", path="text", value=delta["text"])
-        elif delta.get("toolUse"):
+        elif "toolUse" in delta:
             # For tool use, we replace the entire input object
             return GenericDelta(
                 op="replace",
@@ -395,7 +428,12 @@ class BedrockParsers(PlatformParsers):
                 "additionalModelResponseFields"
             ]
 
-    def _handle_metadata(self, event: dict, message: dict, response: dict) -> None:
+    def _handle_metadata(
+        self,
+        event: dict,
+        message: dict,
+        response: "ConverseStreamResponseTypeDef | ConverseResponseTypeDef",
+    ) -> None:
         """Handle a metadata event.
 
         Args:

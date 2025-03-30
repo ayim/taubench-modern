@@ -56,7 +56,9 @@ def test_function_must_be_async():
         pass
 
     with pytest.raises(ValueError, match="must be async"):
-        ToolDefinition.from_callable(not_async)
+        ToolDefinition.from_callable(
+            not_async,  # type: ignore (testing invalid usage)
+        )
 
 
 async def dummy_no_params():
@@ -411,4 +413,6 @@ def test_reject_non_async_function():
         pass
 
     with pytest.raises(ValueError, match="must be async"):
-        ToolDefinition.from_callable(not_async)
+        ToolDefinition.from_callable(
+            not_async,  # type: ignore (testing invalid usage)
+        )

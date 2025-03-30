@@ -15,7 +15,27 @@ from agent_platform.core.prompts.messages import (
 )
 from agent_platform.core.prompts.prompt import Prompt
 
+AnyPromptMessageContent = (
+    PromptAudioContent
+    | PromptImageContent
+    | PromptTextContent
+    | PromptToolResultContent
+    | PromptToolUseContent
+)
+
+UserPromptMessageContent = (
+    PromptTextContent
+    | PromptImageContent
+    | PromptAudioContent
+    | PromptToolResultContent
+)
+
+AgentPromptMessageContent = PromptTextContent | PromptToolUseContent
+
 __all__ = [
+    "AnyPromptMessageContent",
+    "AgentPromptMessageContent",
+    "UserPromptMessageContent",
     "Prompt",
     "PromptAgentMessage",
     "PromptAudioContent",

@@ -84,11 +84,11 @@ class AgentServerClient:
         for agent_id in self._created_agent_ids:
             self.delete_agent(agent_id)
 
-    def list_files(self, thread_id: str) -> set[str]:
+    def list_files(self, thread_id: str) -> dict[str, str] | None:
         """
         Lists all files in the specified thread.
 
-        Returns: A set of file references.
+        Returns: A dictionary of file IDs and their corresponding references.
         """
         base_url_api = f"{self.base_url}"
         url = f"{base_url_api}/threads/{thread_id}/files"
@@ -115,7 +115,7 @@ class AgentServerClient:
         self,
         thread_id: str,
         file_ref: str,
-    ) -> dict:
+    ) -> dict | None:
         """Retrieves a file using the new get-file endpoint."""
         url = f"{self.base_url}/threads/{thread_id}/file-by-ref"
         headers = {
@@ -142,19 +142,19 @@ class AgentServerClient:
         file_ref: str,
         output_type: Literal["str", "bytes"] = "str",
     ) -> str | bytes:
-        import urllib
         from pathlib import Path
+        from urllib.parse import urlparse
 
         from agent_platform.server.file_manager.local import url_to_fs_path
 
         file_info = self.get_file_info_by_ref(thread_id, file_ref)
-        file_url = file_info.get("file_url")
+        file_url = file_info.get("file_url") if file_info else None
         if not file_url:
             raise ValueError(
                 f"file_url not available in response. " f"Response: {file_info}",
             )
 
-        parsed_url = urllib.parse.urlparse(file_url)
+        parsed_url = urlparse(file_url)
         if parsed_url.scheme == "file":
             p = Path(url_to_fs_path(file_url))
             if output_type == "str":
@@ -345,8 +345,16 @@ class AgentServerClient:
             ) from e
         return response
 
-    def upload_files_to_thread(self, thread_id: str, thread_files: list[str]) -> None:
+    def upload_files_to_thread(
+        self,
+        thread_id: str,
+        thread_files: list[str],
+    ) -> requests.models.Response:
         return self._upload_multiple_files("threads", thread_id, thread_files)
 
-    def upload_files_to_agent(self, agent_id: str, agent_files: list[str]) -> None:
+    def upload_files_to_agent(
+        self,
+        agent_id: str,
+        agent_files: list[str],
+    ) -> requests.models.Response:
         return self._upload_multiple_files("agents", agent_id, agent_files)

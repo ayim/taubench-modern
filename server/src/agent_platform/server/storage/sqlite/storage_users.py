@@ -81,6 +81,8 @@ class SQLiteStorageUsersMixin(CommonMixin):
             )
             new_row = await cur.fetchone()
 
+        if new_row is None:
+            raise ValueError("New row not found")
         return (User.model_validate(dict(new_row)), True)
 
     async def delete_user(self, user_id: str) -> None:

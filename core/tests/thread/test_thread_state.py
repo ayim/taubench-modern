@@ -71,4 +71,4 @@ class TestThreadState:
         """Tests the _send_delta_event is an abstract method."""
         with pytest.raises(TypeError, match="Can't instantiate abstract class"):
             # We try to instantiate the ABC directly, should fail
-            _ = ThreadStateInterface()
+            _ = ThreadStateInterface()  # type: ignore

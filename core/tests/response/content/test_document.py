@@ -1,7 +1,7 @@
 import base64
 import json
 from dataclasses import FrozenInstanceError
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -65,21 +65,17 @@ class TestResponseDocumentContent:
         mock_uploaded_file = MagicMock()
 
         # Patch the UploadedFile type check
-        with patch(
-            "agent_platform.core.responses.content.document.UploadedFile",
-            MagicMock,
+        with pytest.raises(
+            NotImplementedError,
+            match="UploadedFile is not implemented",
         ):
-            content = ResponseDocumentContent(
+            ResponseDocumentContent(
                 mime_type="application/pdf",
                 value=mock_uploaded_file,
                 name="uploaded.pdf",
                 sub_type="UploadedFile",
             )
-            assert content.mime_type == "application/pdf"
-            assert content.value == mock_uploaded_file
-            assert content.name == "uploaded.pdf"
-            assert content.kind == "document"
-            assert content.sub_type == "UploadedFile"
+
 
     def test_init_empty_value(self) -> None:
         """Test that ResponseDocumentContent raises an error for empty value."""
@@ -130,20 +126,16 @@ class TestResponseDocumentContent:
     def test_init_invalid_uploaded_file(self) -> None:
         """Test that ResponseDocumentContent raises an error for
         invalid UploadedFile."""
-        with patch(
-            "agent_platform.core.responses.content.document.UploadedFile",
-            MagicMock,
+        with pytest.raises(
+            NotImplementedError,
+            match="UploadedFile is not implemented",
         ):
-            with pytest.raises(
-                ValueError,
-                match="Document value must be an agent-server UploadedFile",
-            ):
-                ResponseDocumentContent(
-                    mime_type="application/pdf",
-                    value="not an uploaded file",
-                    name="invalid.pdf",
-                    sub_type="UploadedFile",
-                )
+            ResponseDocumentContent(
+                mime_type="application/pdf",
+                value="not an uploaded file",
+                name="invalid.pdf",
+                sub_type="UploadedFile",
+            )
 
     def test_model_dump(self, valid_base64_document: str) -> None:
         """Test that model_dump returns a dictionary with the document data."""

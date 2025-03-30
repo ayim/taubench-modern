@@ -53,6 +53,7 @@ async def test_user_access_function(
             )
             result1 = await cur.fetchone()
             # System user can access any user → expect 1.
+            assert result1 is not None
             assert result1[0] == 1
 
             await cur.execute(
@@ -61,6 +62,7 @@ async def test_user_access_function(
             )
             result2 = await cur.fetchone()
             # Other user cannot access random user → expect 0.
+            assert result2 is not None
             assert result2[0] == 0
 
             await cur.execute(
@@ -69,6 +71,7 @@ async def test_user_access_function(
             )
             result3 = await cur.fetchone()
             # A user can access themselves → expect 1.
+            assert result3 is not None
             assert result3[0] == 1
 
             await cur.execute(
@@ -77,6 +80,7 @@ async def test_user_access_function(
             )
             result4 = await cur.fetchone()
             # System user can access themselves → expect 1.
+            assert result4 is not None
             assert result4[0] == 1
 
 
@@ -186,7 +190,10 @@ async def test_concurrent_get_or_create_user(storage: PostgresStorage):
     )
 
     # Filter out any exceptions and valid results
-    valid_results = [r for r in results if not isinstance(r, Exception)]
+    valid_results: list[tuple[str, bool]] = [
+        r for r in results
+        if not isinstance(r, BaseException)
+    ]
 
     if not valid_results:
         pytest.fail("All concurrent operations failed")
@@ -294,6 +301,7 @@ async def test_bulk_user_creation(storage: PostgresStorage):
     async with storage._cursor() as cur:
         await cur.execute("SELECT COUNT(*) AS count FROM v2.user")
         row = await cur.fetchone()
+        assert row is not None
         total_users = row["count"]
 
     # Because other tests may have already created users, verify that the count
