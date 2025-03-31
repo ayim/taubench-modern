@@ -43,7 +43,7 @@ venv:  ## Create a new virtual environment with uv
 		echo "Already in virtual environment: $$VIRTUAL_ENV"; \
 	else \
 		echo "Creating new virtual environment..."; \
-		uv venv; \
+		uv venv --python=python3.12 \
 	fi
 
 sync:  ## Sync/install all packages in the monorepo
@@ -52,19 +52,19 @@ sync:  ## Sync/install all packages in the monorepo
 # --------------------------------------------------------------------
 # Building: Wheels & PyInstaller
 # --------------------------------------------------------------------
-build-wheels:  ## Build Python wheels into dist/ via uv
+build-wheels:  sync ## Build Python wheels into dist/ via uv
 	@echo "Building wheels..."
 	uv build --out-dir $(DIST_PATH) --package agent_platform_core
 	uv build --out-dir $(DIST_PATH) --package agent_platform_architectures_default
 	uv build --out-dir $(DIST_PATH) --package agent_platform_server
 
-build-exe:  ## Build a PyInstaller executable
+build-exe:  sync ## Build a PyInstaller executable
 	@echo "Building PyInstaller executable..."
-	# Construct PyInstaller flags based on DEBUG/CI/ONEFILE
+	@# Construct PyInstaller flags based on DEBUG/CI/ONEFILE
 	$(eval PYI_FLAGS :=)
 	$(eval SPEC_FLAGS :=)
 ifneq ($(DEBUG),false)
-	# Debug mode => set debug flags, no CI
+	@# Debug mode => set debug flags, no CI
 	$(eval PYI_FLAGS += --log-level=DEBUG)
 	$(eval SPEC_FLAGS += --debug)
 endif
@@ -78,15 +78,15 @@ endif
 
 	uv run pyinstaller $(PYI_FLAGS) --distpath=$(DIST_PATH) $(PYINSTALLER_SPEC) -- $(SPEC_FLAGS)
 ifeq ($(shell uname -s),Darwin)
-	# This should be happening anyway... but binary fails to run without it 
-	# for me on OSX using adhoc signing.
+	@# This should be happening anyway... but binary fails to run without it
+	@# for me on OSX using adhoc signing.
 	@if [ -z "$(MACOS_SIGNING_CERT_NAME)" ]; then \
 		echo "No signing certificate specified, using ad-hoc signing..."; \
 		codesign --force --deep --sign - ./$(DIST_PATH)/$(NAME); \
 	fi
 endif
 
-build: build-wheels build-exe  ## Build both wheels and PyInstaller executable
+build: clean build-wheels build-exe  ## Build both wheels and PyInstaller executable
 
 # --------------------------------------------------------------------
 # Mac Code Signing Keychain Setup (Optional)
@@ -117,9 +117,9 @@ endif
 # Debug UX Widget
 # --------------------------------------------------------------------
 dev-widget:  ## Run pnpm run dev on server/examples/debug_widget
-	# First, make sure we have pnpm installed
+	@# First, make sure we have pnpm installed
 	which pnpm || npm install -g pnpm
-	# Save current directory and change to widget directory
+	@# Save current directory and change to widget directory
 	pushd server/examples/debug_widget && \
 	pnpm install && \
 	pnpm run dev; \
@@ -144,7 +144,10 @@ run-server-exe:  ## Run the agent server executable
 test:  ## Run tests with pytest
 	uv run pytest core/ server/
 
-lint:  ## Run ruff linting
+lint:  ## Run ruff linting (check only)
+	uv run ruff check
+
+lint-fix:  ## Run ruff linting (fix violations)
 	uv run ruff check --fix
 
 typecheck:  ## Run typechecking with pyright
@@ -155,14 +158,14 @@ typecheck:  ## Run typechecking with pyright
 # --------------------------------------------------------------------
 clean:  ## Remove build/dist artifacts
 	@echo "Cleaning build/dist..."
-	rm -rf build
-	rm -rf dist
-	rm -rf *.egg-info
+	@rm -rf build
+	@rm -rf dist
+	@rm -rf *.egg-info
 
 # --------------------------------------------------------------------
 # All
 # --------------------------------------------------------------------
-all: build  ## Default to 'build'
+all: clean sync lint typecheck test build  ## Perform a clean build of everything
 
 # --------------------------------------------------------------------
 # End
