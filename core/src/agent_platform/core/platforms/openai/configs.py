@@ -5,6 +5,7 @@ from agent_platform.core.configurations import Configuration, MapConfiguration
 from agent_platform.core.platforms.base import PlatformConfigs
 
 
+# TODO: Verify content limits
 @dataclass(frozen=True)
 class OpenAIContentLimits(Configuration):
     """Content limits and associated global configurations for the OpenAI platform."""
@@ -22,9 +23,14 @@ class OpenAIModelMap(MapConfiguration):
     """A map of our model names to OpenAI model configurations."""
 
     mapping: ClassVar[dict[str, str]] = {
+        # LLM models
         "gpt-4": "gpt-4",
         "gpt-4-turbo": "gpt-4-turbo",
         "gpt-3.5-turbo": "gpt-3.5-turbo",
+        # Embedding models
+        "text-embedding-ada-002": "text-embedding-ada-002",
+        "text-embedding-ada-002-v2": "text-embedding-ada-002-v2",
+        "text-embedding-ada-002-v3": "text-embedding-ada-002-v3",
     }
 
     @classmethod
@@ -34,12 +40,23 @@ class OpenAIModelMap(MapConfiguration):
 
 
 @dataclass(frozen=True)
+class OpenAIRoleMap(MapConfiguration):
+    """A map of OpenAI role names to our role names."""
+
+    mapping: ClassVar[dict[str, str]] = {
+        "user": "user",
+        "assistant": "agent",
+    }
+
+
+@dataclass(frozen=True)
 class OpenAIDefaultModel(Configuration):
     """The default model to use for the OpenAI platform."""
 
     DEFAULT_MODEL: str = "gpt-4-turbo"
 
 
+# TODO: Verify mime type map
 @dataclass(frozen=True)
 class OpenAIMimeTypeMap(MapConfiguration):
     """A map of OpenAI format types to MIME types supported by the platform."""
@@ -74,7 +91,7 @@ class OpenAIMimeTypeMap(MapConfiguration):
 
 @dataclass(frozen=True)
 class OpenAIPlatformConfigs(PlatformConfigs):
-    """OpenAI platform configurations."""
+    """The configs for the OpenAI platform."""
 
     default_platform_provider: dict[str, str] = field(
         default_factory=lambda: {

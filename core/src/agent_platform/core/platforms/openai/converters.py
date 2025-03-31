@@ -17,7 +17,7 @@ from agent_platform.core.prompts.content import (
 
 
 class OpenAIConverters(PlatformConverters, UsesKernelMixin):
-    """OpenAI platform converters."""
+    """Converters that transform agent-server prompt types to OpenAI types."""
 
     async def convert_text_content(
         self,

@@ -8,7 +8,49 @@ from agent_platform.core.platforms.base import PlatformParameters
 
 @dataclass(frozen=True)
 class OpenAIPlatformParameters(PlatformParameters):
-    """OpenAI platform parameters."""
+    """Parameters for the OpenAI platform.
+
+    This class encapsulates all configuration parameters for OpenAI client
+    initialization. It supports both direct client parameters and
+    advanced configuration via the botocore Config object.
+
+    Direct Parameters:
+        api_key: The OpenAI API key.
+        organization_id: The OpenAI organization ID.
+        base_url: The OpenAI API base URL.
+        timeout: The timeout in seconds for API calls.
+        max_retries: The maximum number of retries for API calls.
+        retry_delay: The delay in seconds between retries.
+        additional_parameters: Additional parameters for OpenAI API calls.
+
+    Examples:
+        Basic usage with region:
+        ```python
+        params = OpenAIPlatformParameters(api_key='YOUR_API_KEY')
+        ```
+
+        Using custom endpoint and credentials:
+        ```python
+        params = OpenAIPlatformParameters(
+            base_url='https://api.openai.com/v1',
+            api_key='YOUR_API_KEY',
+            organization_id='YOUR_ORGANIZATION_ID'
+        )
+        ```
+
+        Advanced configuration with retries and timeouts:
+        ```python
+        params = OpenAIPlatformParameters(
+            base_url='https://api.openai.com/v1',
+            api_key='YOUR_API_KEY',
+            organization_id='YOUR_ORGANIZATION_ID',
+            timeout=60,
+            max_retries=3,
+            retry_delay=1.0,
+            additional_parameters={'proxy': 'http://your.proxy.com:8080'}
+        )
+        ```
+    """
 
     api_key: str = field(
         metadata={"description": "OpenAI API key"},
@@ -134,12 +176,20 @@ class OpenAIPlatformParameters(PlatformParameters):
         current_params = {f.name: getattr(self, f.name) for f in fields(self) if f.init}
 
         if not update:
-            current_params = {k: v for k, v in current_params.items() if v is not None}
-            return OpenAIPlatformParameters(**current_params)
+            # Always include api_key
+            filtered_params = {
+                k: v
+                for k, v in current_params.items()
+                if v is not None or k == "api_key"
+            }
+            return OpenAIPlatformParameters(**filtered_params)
 
         # Merge all parameters
         final_params = {**current_params, **update}
-        final_params = {k: v for k, v in final_params.items() if v is not None}
+        # Always include api_key
+        final_params = {
+            k: v for k, v in final_params.items() if v is not None or k == "api_key"
+        }
         return OpenAIPlatformParameters(**final_params)
 
     @classmethod

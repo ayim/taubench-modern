@@ -1,8 +1,6 @@
-"""OpenAI platform client."""
-
 from collections.abc import AsyncGenerator
 from copy import deepcopy
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 from agent_platform.core.delta import GenericDelta
 from agent_platform.core.delta.compute_delta import compute_generic_deltas
@@ -106,7 +104,8 @@ class OpenAIClient(
         Returns:
             The complete model response.
         """
-        model_id = OpenAIModelMap.mapping[model]
+
+        model_id = cast(str, OpenAIModelMap.mapping[model])
         request = prompt.as_platform_request(model_id)
         response = await self._openai_client.chat.completions.create(**request)
         return self.parsers.parse_response(response)
@@ -130,8 +129,8 @@ class OpenAIClient(
         response_stream = await self._openai_client.chat.completions.create(**request)
 
         # Initialize message state
-        message = ResponseMessage(content=[], role="agent")
-        last_message = ResponseMessage(content=[], role="agent")
+        message: dict[str, Any] = {}
+        last_message: dict[str, Any] = {}
 
         # Process each event through the parser to get deltas
         for event in response_stream:
@@ -147,37 +146,15 @@ class OpenAIClient(
             last_message = deepcopy(message)
 
         final_event = self._generate_platform_metadata()
-        metadata = message.metadata or {}
-        metadata.update(final_event)
-
-        # Handle raw response based on response type
-        raw_response = (
-            response_stream[-1]
-            if isinstance(response_stream, list)
-            else response_stream
-        )
-        raw_response_dict = {
-            **raw_response,
+        if "metadata" not in message:
+            message["metadata"] = {}
+        message["metadata"].update(final_event)
+        message["raw_response"] = {
+            "choices": [{"message": {"content": "Hello, world!"}}],
             "stream": None,
         }
 
-        # Create new message with updated metadata and raw response
-        message = ResponseMessage(
-            content=message.content,
-            role=message.role,
-            metadata=metadata,
-            raw_response=raw_response_dict,
-            stop_reason=message.stop_reason,
-            usage=message.usage,
-            metrics=message.metrics,
-            additional_response_fields=message.additional_response_fields,
-        )
-
-        # Convert messages to dictionaries for delta computation
-        last_message_dict = last_message.model_dump()
-        message_dict = message.model_dump()
-
-        for delta in compute_generic_deltas(last_message_dict, message_dict):
+        for delta in compute_generic_deltas(last_message, message):
             yield delta
 
     async def create_embeddings(

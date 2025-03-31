@@ -477,8 +477,8 @@ class OpenAIParsers(PlatformParsers):
         self,
         event: dict[str, Any],
         response: dict[str, Any],
-        message: ResponseMessage,
-        last_message: ResponseMessage,
+        message: dict[str, Any],
+        last_message: dict[str, Any],
     ) -> AsyncGenerator[GenericDelta, None]:
         """Parse a single stream event into GenericDeltas.
 
