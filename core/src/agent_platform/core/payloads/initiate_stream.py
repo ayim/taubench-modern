@@ -16,28 +16,34 @@ class InitiateStreamPayload(Thread):
     )
     """The ID of the user that owns the thread."""
 
-    created_at: datetime = field(
+    created_at: datetime = field(  # type: ignore
         init=False, repr=False,
         metadata={"description": "The time the thread was created."},
     )
+    # Intentionally overriden without a default value (to ensure it's set
+    # in the payload)
     """The time the thread was created."""
 
-    updated_at: datetime = field(
+    updated_at: datetime = field(  # type: ignore
         init=False, repr=False,
         metadata={"description": "The time the thread was last updated."},
     )
+    # Intentionally overriden without a default value (to ensure it's set
+    # in the payload)
     """The time the thread was last updated."""
 
-    thread_id: str | None = field(
+    thread_id: str | None = field(  # type: ignore
         default=None,
         metadata={"description": "The ID of the thread to stream against."},
     )
+    # Intentionally overriden to be optional in the payload
     """The ID of the thread to stream against."""
 
-    name: str | None = field(
+    name: str | None = field(  # type: ignore
         default=None,
         metadata={"description": "The name of the thread to stream against."},
     )
+    # Intentionally overriden to be optional in the payload
     """The name of the thread to stream against."""
 
     def __post_init__(self) -> None:

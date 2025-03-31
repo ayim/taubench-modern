@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from collections.abc import Generator
+from collections.abc import Generator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from uuid import uuid4
@@ -97,7 +97,11 @@ class OTelArtifact:
         return cls(
             name=data["name"],
             mime_type=data["mime_type"],
-            content=data["content"],
+            content=(
+                data["content"]
+                if isinstance(data["content"], bytes)
+                else data["content"].encode("utf-8")
+            ),
             artifact_id=data["artifact_id"],
             trace_id=data["trace_id"],
             correlated_user_id=data["correlated_user_id"],
@@ -120,7 +124,7 @@ class WrappedSpan(Span):
     def get_span_context(self) -> SpanContext:
         return self.span.get_span_context()
 
-    def set_attributes(self, attributes: dict[str, types.AttributeValue]) -> None:
+    def set_attributes(self, attributes: Mapping[str, types.AttributeValue]) -> None:
         self.span.set_attributes(attributes)
 
     def set_attribute(self, key: str, value: types.AttributeValue) -> None:
@@ -129,7 +133,7 @@ class WrappedSpan(Span):
     def add_event(
         self,
         name: str,
-        attributes: dict[str, types.AttributeValue] | None = None,
+        attributes: types.Attributes | None = None,
         timestamp: int | None = None,
     ) -> None:
         self.span.add_event(name, attributes=attributes, timestamp=timestamp)
@@ -150,7 +154,7 @@ class WrappedSpan(Span):
     def record_exception(
         self,
         exception: BaseException,
-        attributes: dict[str, types.AttributeValue] | None = None,
+        attributes: types.Attributes = None,
         timestamp: int | None = None,
         escaped: bool = False,
     ) -> None:

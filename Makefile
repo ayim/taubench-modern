@@ -147,6 +147,9 @@ test:  ## Run tests with pytest
 lint:  ## Run ruff linting
 	uv run ruff check --fix
 
+typecheck:  ## Run typechecking with pyright
+	uv run pyright
+
 # --------------------------------------------------------------------
 # Cleanup
 # --------------------------------------------------------------------

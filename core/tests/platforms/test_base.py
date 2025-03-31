@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from agent_platform.core.delta import GenericDelta
 from agent_platform.core.kernel import Kernel
 from agent_platform.core.platforms.base import (
     PlatformClient,
@@ -66,11 +67,19 @@ class MockPlatformConverters(PlatformConverters):
 
     async def convert_image_content(self, content: PromptImageContent) -> dict:
         """Mock convert image content."""
-        return {"type": "image", "image_url": content.source.url}
+        return {
+            "type": "image",
+            "mime_type": content.mime_type,
+            "value": content.value,
+        }
 
     async def convert_audio_content(self, content: PromptAudioContent) -> dict:
         """Mock convert audio content."""
-        return {"type": "audio", "audio_url": content.audio_url}
+        return {
+            "type": "audio",
+            "mime_type": content.mime_type,
+            "value": content.value,
+        }
 
     async def convert_tool_use_content(
         self,
@@ -99,7 +108,12 @@ class MockPlatformConverters(PlatformConverters):
         content: PromptDocumentContent,
     ) -> dict:
         """Mock convert document content."""
-        return {"type": "document", "document_url": content.document_url}
+        return {
+            "type": "document",
+            "mime_type": content.mime_type,
+            "value": content.value,
+            "name": content.name,
+        }
 
     async def convert_prompt(self, prompt: Prompt) -> MockPlatformPrompt:
         """Mock convert prompt."""
@@ -117,11 +131,17 @@ class MockPlatformParsers(PlatformParsers):
 
     def parse_image_content(self, content: str | bytes | dict) -> ResponseImageContent:
         """Mock parse image content."""
-        return ResponseImageContent(image_url="mock_image_url")
+        return ResponseImageContent(
+            mime_type="image/jpeg",
+            value="mock_image_value",
+        )
 
     def parse_audio_content(self, content: str | bytes | dict) -> ResponseAudioContent:
         """Mock parse audio content."""
-        return ResponseAudioContent(audio_url="mock_audio_url")
+        return ResponseAudioContent(
+            mime_type="audio/wav",
+            value="mock_audio_value",
+        )
 
     def parse_tool_use_content(
         self,
@@ -139,7 +159,11 @@ class MockPlatformParsers(PlatformParsers):
         content: str | bytes | dict,
     ) -> ResponseDocumentContent:
         """Mock parse document content."""
-        return ResponseDocumentContent(document_url="mock_document_url")
+        return ResponseDocumentContent(
+            mime_type="application/pdf",
+            value="mock_document_value",
+            name="mock_document_name",
+        )
 
     def parse_content_item(self, item: str | bytes | dict) -> ResponseTextContent:
         """Mock parse content item."""
@@ -148,7 +172,7 @@ class MockPlatformParsers(PlatformParsers):
     def parse_response(self, response: str | bytes | dict) -> ResponseMessage:
         """Mock parse response."""
         return ResponseMessage(
-            role="assistant",
+            role="agent",
             content=[self.parse_text_content("mock response")],
         )
 
@@ -188,25 +212,32 @@ class MockPlatformClient(PlatformClient):
         """Initialize mock configs."""
         return MockPlatformConfigs()
 
-    async def generate_response(self, prompt: Prompt) -> ResponseMessage:
+    async def generate_response(
+        self,
+        prompt: PlatformPrompt,
+        model: str,
+    ) -> ResponseMessage:
         """Generate a mock response."""
         return ResponseMessage(
-            role="assistant",
+            role="agent",
             content=[ResponseTextContent(text="mock response")],
         )
 
     async def generate_stream_response(
         self,
-        prompt: Prompt,
-    ) -> AsyncGenerator[ResponseMessage, None]:
+        prompt: PlatformPrompt,
+        model: str,
+    ) -> AsyncGenerator[GenericDelta, None]:
         """Generate a mock stream response."""
-        yield ResponseMessage(
-            role="assistant",
-            content=[ResponseTextContent(text="mock")],
+        yield GenericDelta(
+            op="add",
+            path="",
+            value="Hello",
         )
-        yield ResponseMessage(
-            role="assistant",
-            content=[ResponseTextContent(text="mock response")],
+        yield GenericDelta(
+            op="add",
+            path="",
+            value=", world!",
         )
 
     async def create_embeddings(
@@ -275,18 +306,18 @@ class TestPlatformBaseComponents:
         original_converters = mock_platform_client.converters
 
         # Replace the attach_kernel methods with mocks
-        with (
-            patch.object(
-                original_converters,
-                "attach_kernel",
-                return_value=mock_converters,
-            ),
+        with patch.object(
+            original_converters,
+            "attach_kernel",
+            return_value=mock_converters,
         ):
             # Attach a new kernel
             mock_platform_client.attach_kernel(new_kernel)
 
             # Verify that attach_kernel was called on each component
-            original_converters.attach_kernel.assert_called_with(new_kernel)
+            original_converters.attach_kernel.assert_called_with(  # type: ignore
+                new_kernel,
+            )
 
     @pytest.mark.asyncio
     async def test_platform_client_generate_response(
@@ -296,10 +327,10 @@ class TestPlatformBaseComponents:
         """Test that the platform client generates a response correctly."""
         prompt = MagicMock(spec=Prompt)
 
-        response = await mock_platform_client.generate_response(prompt)
+        response = await mock_platform_client.generate_response(prompt, "mock_model")
 
         assert isinstance(response, ResponseMessage)
-        assert response.role == "assistant"
+        assert response.role == "agent"
         assert len(response.content) == 1
         assert isinstance(response.content[0], ResponseTextContent)
         assert response.content[0].text == "mock response"
@@ -313,14 +344,21 @@ class TestPlatformBaseComponents:
         prompt = MagicMock(spec=Prompt)
 
         responses = []
-        async for response in mock_platform_client.generate_stream_response(prompt):
+        async for response in mock_platform_client.generate_stream_response(
+            prompt,
+            model="mock_model",
+        ):
             responses.append(response)
 
         assert len(responses) == 2
-        assert isinstance(responses[0], ResponseMessage)
-        assert isinstance(responses[1], ResponseMessage)
-        assert responses[0].content[0].text == "mock"
-        assert responses[1].content[0].text == "mock response"
+        assert isinstance(responses[0], GenericDelta)
+        assert isinstance(responses[1], GenericDelta)
+        assert responses[0].op == "add"
+        assert responses[1].op == "add"
+        assert responses[0].path == ""
+        assert responses[1].path == ""
+        assert responses[0].value == "Hello"
+        assert responses[1].value == ", world!"
 
     def test_platform_client_generate_platform_metadata(
         self,

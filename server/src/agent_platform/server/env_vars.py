@@ -10,10 +10,9 @@ avoid conflicts with other packages and dependencies.
 
 import os
 import warnings
-from typing import Any
 
 
-def get_env_var(var_names: list[str], default: Any = None) -> Any:
+def get_env_var(var_names: list[str], default: str | None = None) -> str | None:
     """Get an environment variable with warning for legacy variables.
 
     Args:

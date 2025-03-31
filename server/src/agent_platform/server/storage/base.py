@@ -311,7 +311,7 @@ class BaseStorage(ABC):
         self,
         file_id: str,
         user_id: str,
-    ) -> UploadedFile:
+    ) -> UploadedFile | None:
         """Get a file by ID."""
         pass
 

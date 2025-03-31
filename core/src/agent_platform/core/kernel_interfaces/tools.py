@@ -13,7 +13,7 @@ class ToolsInterface(ABC):
     and CA-defined tools."""
 
     @abstractmethod
-    async def execute_pending_tool_calls(
+    def execute_pending_tool_calls(
         self,
         pending_tool_calls: list[PendingToolCall],
     ) -> AsyncGenerator[ToolExecutionResult, None]:

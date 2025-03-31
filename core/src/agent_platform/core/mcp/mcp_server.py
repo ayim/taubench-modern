@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from typing import Self
 
 from agent_platform.core.mcp.mcp_client import MCPClient
 from agent_platform.core.tools.tool_definition import ToolDefinition
@@ -17,7 +16,7 @@ class MCPServer:
 
     # TODO: what all do we need here? Auth/transport/etc?
 
-    def copy(self) -> Self:
+    def copy(self) -> "MCPServer":
         """Returns a deep copy of the MCP server."""
         return MCPServer(
             name=self.name,

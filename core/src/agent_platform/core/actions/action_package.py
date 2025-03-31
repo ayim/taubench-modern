@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from typing import Self
 
 from agent_platform.core.actions.action_utils import (
     _get_spec_and_build_tool_definitions,
@@ -67,7 +66,7 @@ class ActionPackage:
             # Need to be careful setting in a frozen dataclass
             object.__setattr__(self, "api_key", SecretString(self.api_key))
 
-    def copy(self) -> Self:
+    def copy(self) -> "ActionPackage":
         """Returns a deep copy of the action package."""
         return ActionPackage(
             name=self.name,
@@ -99,8 +98,8 @@ class ActionPackage:
     async def to_tool_definitions(self) -> list[ToolDefinition]:
         """Converts the action package to a list of tool definitions."""
         return await _get_spec_and_build_tool_definitions(
-            self.url,
-            self.api_key.get_secret_value(),
+            self.url or "",
+            self.api_key.get_secret_value() if self.api_key is not None else "",
             self.allowed_actions,
         )
 

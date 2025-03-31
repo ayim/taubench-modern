@@ -70,7 +70,7 @@ class SQLiteStorageArtifactsMixin(CommonMixin):
             row = await cur.fetchone()
             if not row:
                 raise ArtifactNotFoundError(f"Artifact {artifact_id} not found")
-            return OTelArtifact.model_validate(row)
+            return OTelArtifact.model_validate(dict(row))
 
     async def get_otel_artifacts(
         self,
@@ -88,7 +88,7 @@ class SQLiteStorageArtifactsMixin(CommonMixin):
                 {"artifact_ids": artifact_ids if artifact_ids else None},
             )
             rows = await cur.fetchall()
-            return [OTelArtifact.model_validate(row) for row in rows]
+            return [OTelArtifact.model_validate(dict(row)) for row in rows]
 
     async def search_otel_artifacts(  # noqa: PLR0913
         self,
@@ -136,7 +136,7 @@ class SQLiteStorageArtifactsMixin(CommonMixin):
                 },
             )
             rows = await cur.fetchall()
-            return [OTelArtifact.model_validate(row) for row in rows]
+            return [OTelArtifact.model_validate(dict(row)) for row in rows]
 
     async def cleanup_otel_artifacts(self) -> int:
         """Cleanup expired artifacts."""

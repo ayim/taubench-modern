@@ -4,7 +4,6 @@ from typing import Literal
 
 import pytest
 
-from agent_platform.core.delta import GenericDelta
 from agent_platform.core.responses.content.base import ResponseMessageContent
 
 
@@ -87,38 +86,4 @@ class TestResponseMessageContent:
         content = MockContent(value="test value")
         copy = content.model_copy()
         assert copy is not content
-        assert copy.kind == content.kind
-        assert copy.value == content.value
-
-    def test_append_delta(self) -> None:
-        """Test that deltas can be appended."""
-        content = MockContent(value="test value")
-        delta = GenericDelta(op="replace", path="/value", value="new value")
-        content.append(delta)
-        assert content.uncommitted_deltas == [delta]
-        assert content.is_dirty
-
-    def test_extend_deltas(self) -> None:
-        """Test that deltas can be extended."""
-        content = MockContent(value="test value")
-        deltas = [
-            GenericDelta(op="replace", path="/value", value="new value"),
-            GenericDelta(op="replace", path="/kind", value="new kind"),
-        ]
-        content.extend(deltas)
-        assert content.uncommitted_deltas == deltas
-        assert content.is_dirty
-
-    def test_is_dirty(self) -> None:
-        """Test that is_dirty returns True when there are uncommitted deltas."""
-        content = MockContent(value="test value")
-        assert not content.is_dirty
-        content.append(GenericDelta(op="replace", path="/value", value="new value"))
-        assert content.is_dirty
-
-    def test_model_dump_with_uncommitted_deltas(self) -> None:
-        """Test that model_dump raises an error when there are uncommitted deltas."""
-        content = MockContent(value="test value")
-        content.append(GenericDelta(op="replace", path="/value", value="new value"))
-        with pytest.raises(ValueError, match="Cannot serialize dirty content"):
-            content.model_dump()
+        assert copy.model_dump() == content.model_dump()

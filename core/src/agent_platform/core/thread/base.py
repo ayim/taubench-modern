@@ -23,6 +23,9 @@ AnyThreadMessageContent = (
 )
 
 
+ThreadMessageRole = Literal["user", "agent"]
+
+
 @dataclass
 class ThreadMessage:
     """Base class for all messages in a thread."""
@@ -32,7 +35,9 @@ class ThreadMessage:
     )
     """The contents of the thread message"""
 
-    role: Literal["user", "agent"]
+    role: ThreadMessageRole = field(
+        metadata={"description": "The role of the message sender."},
+    )
     """The role of the message sender."""
 
     commited: bool = field(
@@ -91,7 +96,7 @@ class ThreadMessage:
     """The unique identifier for the message"""
 
     @property
-    def metadata(self) -> dict[str, Any]:
+    def metadata(self) -> MappingProxyType[str, MappingProxyType[str, Any]]:
         """The metadata associated with the message. This is a read-only
         property that combines agent_metadata and server_metadata. Any
         attempts to modify the returned dictionary or its nested

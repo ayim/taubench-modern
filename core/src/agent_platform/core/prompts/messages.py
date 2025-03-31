@@ -14,10 +14,12 @@ from agent_platform.core.prompts.content.tool_use import PromptToolUseContent
 class PromptUserMessage(PromptMessage):
     """Represents a user message in the prompt."""
 
-    content: list[
+    content: list[  # type: ignore
         PromptTextContent | PromptImageContent | PromptAudioContent
         | PromptToolResultContent
     ] = field(metadata={"description": "The contents of the prompt message"})
+    # Type ignore here as we have a refinement on the kinds of content
+    # that can be in the list for a PromptUserMessage
     """The contents of the prompt message"""
 
     role: Literal["user"] = field(
@@ -41,9 +43,11 @@ class PromptUserMessage(PromptMessage):
 class PromptAgentMessage(PromptMessage):
     """Represents an agent message in the prompt."""
 
-    content: list[PromptTextContent | PromptToolUseContent] = field(
+    content: list[PromptTextContent | PromptToolUseContent] = field(  # type: ignore
         metadata={"description": "The contents of the prompt message"},
     )
+    # Type ignore here as we have a refinement on the kinds of content
+    # that can be in the list for a PromptAgentMessage
     """The contents of the prompt message"""
 
     role: Literal["agent"] = field(
@@ -62,6 +66,9 @@ class PromptAgentMessage(PromptMessage):
             content.append(PromptMessageContent.model_validate(item))
         data["content"] = content
         return cls(**data)
+
+
+AnyPromptMessage = PromptUserMessage | PromptAgentMessage
 
 PromptMessage.register_message_by_role("user", PromptUserMessage)
 PromptMessage.register_message_by_role("agent", PromptAgentMessage)

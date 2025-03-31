@@ -16,22 +16,28 @@ class UpsertThreadPayload(Thread):
     )
     """The ID of the user that owns the thread."""
 
-    thread_id: str = field(
+    thread_id: str = field(  # type: ignore
         init=False, repr=False,
         metadata={"description": "The ID of the thread."},
     )
+    # Intentionally overriden without a default value (to ensure it's set
+    # in the payload)
     """The ID of the thread."""
 
-    created_at: datetime = field(
+    created_at: datetime = field(  # type: ignore
         init=False, repr=False,
         metadata={"description": "The time the thread was created."},
     )
+    # Intentionally overriden without a default value (to ensure it's set
+    # in the payload)
     """The time the thread was created."""
 
-    updated_at: datetime = field(
+    updated_at: datetime = field(  # type: ignore
         init=False, repr=False,
         metadata={"description": "The last time the thread was updated."},
     )
+    # Intentionally overriden without a default value (to ensure it's set
+    # in the payload)
     """The last time the thread was updated."""
 
     @classmethod

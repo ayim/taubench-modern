@@ -341,7 +341,7 @@ class ConfigurationManager:
         # Create a path like "agent_server_types_v2.models.provider.ModelProviders"
         return f"{'.'.join(module_parts)}.{class_name}"
 
-    def _load_configuration(self, config_class: type[T]) -> None:
+    def _load_configuration(self, config_class: type[Configuration]) -> None:
         """Load a specific configuration class.
 
         This will:
@@ -458,6 +458,8 @@ def init_configurations(
 
     if _manager is None or reinitialize:
         # Create a new manager if none exists or reinitialize is requested
+        if isinstance(config_path, str):
+            config_path = Path(config_path)
         _manager = ConfigurationManager(
             config_path, packages_to_scan, config_modules, overrides,
         )

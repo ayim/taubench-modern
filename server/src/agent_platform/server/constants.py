@@ -22,7 +22,7 @@ True if the application is running in a frozen environment (e.g. via PyInstaller
 """
 
 
-def _normalized_path(path: str) -> Path:
+def _normalized_path(path: str | Path) -> Path:
     return Path(os.path.normpath(os.path.abspath(path)))
 
 
@@ -50,7 +50,7 @@ class SystemConfig(Configuration):
     # Database configuration
     db_type: Literal["sqlite", "postgres"] = field(
         default_factory=lambda: DB_TYPE or "sqlite",
-    )
+    )  # type: ignore (we can ignore here as we validate in __post_init__...)
 
     # Logging settings
     log_level: str = field(default_factory=lambda: (LOG_LEVEL or "INFO").upper())
@@ -83,6 +83,8 @@ def default_config_path() -> Path:
     the current working directory.
     """
     potential_path = CONFIG_PATH or Path.cwd() / DEFAULT_CONFIG_FILE_NAME
+    if isinstance(potential_path, str):
+        potential_path = Path(potential_path)
     # if path is a directory, add the default config file name to it
     if potential_path.is_dir():
         potential_path = potential_path / DEFAULT_CONFIG_FILE_NAME

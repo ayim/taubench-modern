@@ -48,15 +48,18 @@ class SQLiteStorageMessagesMixin(CommonMixin):
                 inserts = []
                 for i, msg in enumerate(messages):
                     inserts.append({
-                        "message_id": msg["message_id"],
+                        "message_id": msg.message_id,
                         "thread_id": thread_id,
                         "sequence_number": i,
-                        "role": msg["role"],
-                        "content": json.dumps(msg["content"]),
-                        "agent_metadata": json.dumps(msg["agent_metadata"]),
-                        "server_metadata": json.dumps(msg["server_metadata"]),
-                        "created_at": msg["created_at"],
-                        "updated_at": msg["updated_at"],
+                        "role": msg.role,
+                        "content": json.dumps([
+                            c.model_dump()
+                            for c in msg.content
+                        ]),
+                        "agent_metadata": json.dumps(msg.agent_metadata),
+                        "server_metadata": json.dumps(msg.server_metadata),
+                        "created_at": msg.created_at,
+                        "updated_at": msg.updated_at,
                     })
 
                 await cur.executemany(
@@ -93,7 +96,7 @@ class SQLiteStorageMessagesMixin(CommonMixin):
         self._validate_uuid(thread_id)
 
         # Check existence and access at the thread level if desired
-        if not await self._thread_exists(thread_id):
+        if not await self._thread_exists(user_id, thread_id):
             raise ThreadNotFoundError(f"Thread {thread_id} not found")
 
         try:
@@ -141,7 +144,7 @@ class SQLiteStorageMessagesMixin(CommonMixin):
         except IntegrityError as e:
             if "UNIQUE constraint failed: v2_thread_message.message_id" in str(e):
                 raise RecordAlreadyExistsError(
-                    f"Message {message_dict['message_id']} already exists",
+                    f"Message {message.message_id} already exists",
                 ) from e
             raise ReferenceIntegrityError(
                 "Invalid foreign key reference updating message",
@@ -206,10 +209,10 @@ class SQLiteStorageMessagesMixin(CommonMixin):
                     message_id, created_at, updated_at,
                     role, content, agent_metadata, server_metadata,
                     parent_run_id
-                FROM v2_thread_message
-                WHERE parent_run_id = :parent_run_id
+                FROM v2_thread_message AS m
+                WHERE m.parent_run_id = :parent_run_id
                 AND v2_check_user_access(
-                    t.user_id, :user_id
+                    m.user_id, :user_id
                 )
                 ORDER BY sequence_number, created_at, message_id
                 """,
@@ -249,8 +252,8 @@ class SQLiteStorageMessagesMixin(CommonMixin):
         async with self._cursor() as cur:
             await cur.execute(
                 """
-                SELECT 1 FROM v2_thread
-                WHERE thread_id = :thread_id
+                SELECT 1 FROM v2_thread AS t
+                WHERE t.thread_id = :thread_id
                 AND v2_check_user_access(
                     t.user_id, :user_id
                 )
@@ -258,3 +261,5 @@ class SQLiteStorageMessagesMixin(CommonMixin):
                 """,
                 {"thread_id": thread_id, "user_id": user_id},
             )
+            row = await cur.fetchone()
+            return row is not None

@@ -44,9 +44,9 @@ export const ThreadsPanel: React.FC<ThreadsPanelProps> = ({
               ${selectedThreadId === thread.thread_id ? "bg-blue-100" : ""}
               flex justify-between items-center
             `}
+            onClick={() => onSelectThread(thread.thread_id)}
           >
             <div 
-              onClick={() => onSelectThread(thread.thread_id)}
               className="text-sm font-medium text-gray-800 truncate flex-grow"
             >
               {thread.name || "Unnamed Thread"}

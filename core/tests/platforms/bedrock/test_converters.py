@@ -92,8 +92,10 @@ class TestBedrockConverters:
 
         # Check that the prompt has the expected structure
         assert result.system == [{"text": "You are a helpful assistant."}]
+        assert result.messages is not None
         assert len(result.messages) == 1
         assert result.messages[0]["role"] == "user"
+        assert "text" in result.messages[0]["content"][0]
         assert result.messages[0]["content"][0]["text"] == "Hello, world!"
 
     @pytest.mark.asyncio
@@ -140,8 +142,10 @@ class TestBedrockConverters:
 
         # Check that the prompt has the expected structure
         assert result.system == [{"text": "You are a helpful assistant."}]
+        assert result.messages is not None
         assert len(result.messages) == 1
         assert result.messages[0]["role"] == "user"
+        assert "text" in result.messages[0]["content"][0]
         assert (
             result.messages[0]["content"][0]["text"]
             == "What's the weather in New York?"
@@ -150,5 +154,6 @@ class TestBedrockConverters:
         # Check that the tool config is present
         assert result.tool_config is not None
         assert len(result.tool_config["tools"]) == 1
+        assert "toolSpec" in result.tool_config["tools"][0]
         assert result.tool_config["tools"][0]["toolSpec"]["name"] == "get_weather"
         assert "toolChoice" in result.tool_config

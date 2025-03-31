@@ -1,8 +1,9 @@
 from abc import abstractmethod
-from collections.abc import AsyncGenerator
+from contextlib import AbstractAsyncContextManager
 from uuid import UUID
 
 from psycopg import AsyncCursor
+from psycopg.rows import DictRow
 
 from agent_platform.server.storage.base import BaseStorage
 from agent_platform.server.storage.errors import InvalidUUIDError
@@ -10,9 +11,9 @@ from agent_platform.server.storage.errors import InvalidUUIDError
 
 class CommonMixin(BaseStorage):
     @abstractmethod
-    async def _cursor(
-        self, cursor: AsyncCursor | None = None,
-    ) -> AsyncGenerator[AsyncCursor, None]:
+    def _cursor(
+        self, cursor: AsyncCursor[DictRow] | None = None,
+    ) -> AbstractAsyncContextManager[AsyncCursor[DictRow]]:
         """Get a cursor for the database (or uses the provided cursor)."""
         pass
 

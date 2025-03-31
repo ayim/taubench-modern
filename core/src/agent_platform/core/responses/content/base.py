@@ -1,8 +1,6 @@
 from dataclasses import dataclass, field
 from json import dumps
-from typing import ClassVar, Self
-
-from agent_platform.core.delta import GenericDelta
+from typing import ClassVar
 
 
 @dataclass(frozen=True)
@@ -24,37 +22,8 @@ class ResponseMessageContent:
     )
     """The kind of the response content"""
 
-    # TODO: Consider if this is useful, I did not use this in the examples
-    uncommitted_deltas: list[GenericDelta] = field(
-        default_factory=list,
-        metadata={"description": "The uncommitted deltas for the content"},
-        init=False,
-    )
-    """The uncommitted deltas for the content"""
-
-    def append(self, delta: GenericDelta) -> None:
-        """Append a delta to the response content."""
-        self.uncommitted_deltas.append(delta)
-
-    def extend(self, deltas: list[GenericDelta]) -> None:
-        """Extend the response content with a list of deltas."""
-        self.uncommitted_deltas.extend(deltas)
-
-    def commit_deltas(self) -> None:
-        """Commit the uncommitted deltas to the response content."""
-        if not self.is_dirty:
-            return
-
-    @property
-    def is_dirty(self) -> bool:
-        """Whether the content has uncommitted deltas."""
-        return bool(self.uncommitted_deltas)
-
     def model_dump(self) -> dict:
         """Returns a dictionary representation suitable for serialization."""
-        # TODO: Should we commit them, dump them, or raise an error?
-        if self.is_dirty:
-            raise ValueError("Cannot serialize dirty content")
         return {
             "kind": self.kind,
         }
@@ -63,7 +32,7 @@ class ResponseMessageContent:
         """Returns a JSON string representation of the content."""
         return dumps(self.model_dump())
 
-    def model_copy(self) -> Self:
+    def model_copy(self) -> "ResponseMessageContent":
         """Returns a deep copy of the response content."""
         cls = type(self)
         dict_no_kind = self.model_dump()

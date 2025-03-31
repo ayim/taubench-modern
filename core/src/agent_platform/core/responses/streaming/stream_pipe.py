@@ -84,7 +84,8 @@ class ResponseStreamPipe:
             await self._compute_response_update()
 
         # Dispatch "end" of the message
-        await self._dispatch_message_end(self.last_message)
+        if self.last_message:
+            await self._dispatch_message_end(self.last_message)
 
         self.stream_closed = True
 

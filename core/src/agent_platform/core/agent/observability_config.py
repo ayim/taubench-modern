@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any, Literal, Self
+from typing import Any, Literal
 
 from agent_platform.core.utils import assert_literal_value_valid
 
@@ -45,7 +45,7 @@ class ObservabilityConfig:
             if self.api_key is None or self.api_url is None:
                 raise ValueError("Langsmith API key and URL are required.")
 
-    def copy(self) -> Self:
+    def copy(self) -> "ObservabilityConfig":
         """Returns a deep copy of the observability config."""
         from copy import deepcopy
 

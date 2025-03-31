@@ -4,7 +4,7 @@ objects back into a single object.
 """
 
 from copy import deepcopy
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 from jsonpatch import JsonPatch, JsonPatchException, JsonPointerException
 
@@ -69,7 +69,7 @@ def _handle_concat_string(
             {
                 "op": "replace",
                 "path": delta.path,
-                "value": current_value + delta.value,
+                "value": current_value + cast(str, delta.value),
             },
         ],
     )
@@ -95,7 +95,7 @@ def _handle_inc(
             {
                 "op": "replace",
                 "path": delta.path,
-                "value": current_value + delta.value,
+                "value": current_value + cast(int | float, delta.value),
             },
         ],
     )
@@ -123,7 +123,10 @@ def combine_generic_deltas(
         InvalidOperationError: If a delta operation is not supported.
     """
     if not deltas:
-        return initial_value if initial_value is not None else {}
+        assert initial_value is not None, (
+            "initial_value must be provided if deltas is empty"
+        )
+        return initial_value
 
     # Make a copy of the initial value to avoid modifying it
     result = deepcopy(initial_value) if initial_value is not None else {}
@@ -158,4 +161,4 @@ def combine_generic_deltas(
             case _:
                 raise InvalidOperationError(delta.op, delta_object=delta)
 
-    return result
+    return cast(T, result)

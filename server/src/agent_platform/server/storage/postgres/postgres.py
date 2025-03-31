@@ -2,7 +2,7 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from psycopg import AsyncConnection, AsyncCursor
-from psycopg.rows import dict_row
+from psycopg.rows import DictRow, dict_row
 from psycopg_pool import AsyncConnectionPool
 from structlog import get_logger
 
@@ -78,7 +78,7 @@ class PostgresStorage(
         """Get a connection from the pool."""
         if not self._pool:
             raise RuntimeError("Pool not initialized; call setup() first.")
-        return await self._pool.connection()
+        return await self._pool.getconn()
 
     def _get_dsn(self) -> str:
         from os import getenv
@@ -95,8 +95,8 @@ class PostgresStorage(
 
     @asynccontextmanager
     async def _cursor(
-        self, cursor: AsyncCursor | None = None,
-    ) -> AsyncGenerator[AsyncCursor, None]:
+        self, cursor: AsyncCursor[DictRow] | None = None,
+    ) -> AsyncGenerator[AsyncCursor[DictRow], None]:
         """Yield an async psycopg cursor from the pool (or uses the provided cursor)."""
         if not self._pool:
             raise RuntimeError("Pool not initialized; call setup() first.")

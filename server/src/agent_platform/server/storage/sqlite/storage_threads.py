@@ -3,7 +3,7 @@ import json
 from aiosqlite import IntegrityError
 from structlog import get_logger
 
-from agent_platform.core.thread import Thread
+from agent_platform.core.thread import Thread, ThreadMessage
 from agent_platform.server.storage.errors import (
     RecordAlreadyExistsError,
     ReferenceIntegrityError,
@@ -115,7 +115,9 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
 
         # Convert to JSON for DB
         thread_dict = thread.model_dump() | {"user_id": user_id}
-        messages = thread_dict.pop("messages", [])
+        messages = [
+            ThreadMessage.model_validate(m) for m in thread_dict.pop("messages", [])
+        ]
         thread_dict["metadata"] = json.dumps(thread_dict["metadata"])
 
         try:
@@ -144,7 +146,9 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
 
                 # If rowcount is 0 but the thread does exist,
                 # it might be an access issue
-                if cur.rowcount == 0 and await self._thread_exists(thread.thread_id):
+                if cur.rowcount == 0 and await self._thread_exists(
+                    user_id, thread.thread_id,
+                ):
                     # We can do another check to see if user lacks access
                     if not await self._user_can_access_thread(
                         user_id, thread.thread_id,
@@ -170,7 +174,7 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
         self._validate_uuid(thread_id)
 
         # Check existence
-        if not await self._thread_exists(thread_id):
+        if not await self._thread_exists(user_id, thread_id):
             raise ThreadNotFoundError(f"Thread {thread_id} not found")
 
         # Check access
@@ -196,15 +200,6 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
     # -------------------------------------------------------------------------
     # Helpers
     # -------------------------------------------------------------------------
-    async def _thread_exists(self, thread_id: str) -> bool:
-        """Check if the thread with given ID exists."""
-        async with self._cursor() as cur:
-            await cur.execute(
-                "SELECT 1 FROM v2_thread WHERE thread_id = :thread_id LIMIT 1",
-                {"thread_id": thread_id},
-            )
-            return bool(await cur.fetchone())
-
     async def _user_can_access_thread(self, user_id: str, thread_id: str) -> bool:
         """Helper to check if user has access to a thread."""
         async with self._cursor() as cur:

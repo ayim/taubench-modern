@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any, Self
+from typing import Any, cast
 
 from agent_platform.core.kernel_interfaces.kernel_mixin import UsesKernelMixin
 from agent_platform.core.responses.content.tool_use import ResponseToolUseContent
@@ -159,7 +159,10 @@ class ThreadMessageWithThreadState:
                 self._message.content.append(ThreadTextContent(text=text_piece))
             else:
                 # Directly mutate the text content instead of creating a new object
-                self._message.content[index_of_last_text_content].text += text_piece
+                cast(
+                    ThreadTextContent,
+                    self._message.content[index_of_last_text_content],
+                ).text += text_piece
         else:
             # For other content types, just append directly
             self._message.content.append(content)
@@ -182,7 +185,10 @@ class ThreadMessageWithThreadState:
             self._message.content.append(ThreadThoughtContent(thought=thought))
         else:
             # Directly mutate the thought content instead of creating a new object
-            self._message.content[index_of_last_thought_content].thought += thought
+            cast(
+                ThreadThoughtContent,
+                self._message.content[index_of_last_thought_content],
+            ).thought += thought
 
     def update_tool_use(
         self,
@@ -202,9 +208,13 @@ class ThreadMessageWithThreadState:
                 continue
 
             # If we're here, we have a matching tool use
-            self._message.content[idx].tool_name = tool_use.tool_name
-            self._message.content[idx].arguments_raw = tool_use.tool_input_raw
-            self._message.content[idx].pending_at = (
+            match_as_tool_use = cast(
+                ThreadToolUsageContent,
+                self._message.content[idx],
+            )
+            match_as_tool_use.name = tool_use.tool_name
+            match_as_tool_use.arguments_raw = tool_use.tool_input_raw
+            match_as_tool_use.pending_at = (
                 datetime.now() if completed else None
             )
             break  # Only can match one tool use
@@ -248,26 +258,30 @@ class ThreadMessageWithThreadState:
                 f"No matching tool use found for tool call ID {result.execution_id}",
             )
 
-        if self._message.content[match_idx].metadata is None:
-            self._message.content[match_idx].metadata = {}
+        match_as_tool_use = cast(
+            ThreadToolUsageContent,
+            self._message.content[match_idx],
+        )
+
+        if match_as_tool_use.metadata is None:
+            match_as_tool_use.metadata = {}
 
         # Update the tool use with the result
-        self._message.content[match_idx].started_at = result.execution_started_at
-        self._message.content[match_idx].ended_at = result.execution_ended_at
+        match_as_tool_use.started_at = result.execution_started_at
+        match_as_tool_use.ended_at = result.execution_ended_at
         # TODO: handle non-string results
-        self._message.content[match_idx].result = str(result.output_raw)
-        self._message.content[match_idx].error = result.error
-        self._message.content[match_idx].metadata["execution"] = (
+        match_as_tool_use.result = str(result.output_raw)
+        match_as_tool_use.error = result.error
+        match_as_tool_use.metadata["execution"] = (
             result.execution_metadata
         )
-        self._message.content[match_idx].status = (
+        match_as_tool_use.status = (
             "failed" if result.error else "finished"
         )
 
-    def copy(self) -> Self:
+    def copy(self) -> "ThreadMessageWithThreadState":
         """Returns a deep copy of the message with thread state."""
         new_message = self._message.copy()
-        new_message._thread_state = self._thread_state
         return ThreadMessageWithThreadState(new_message, self._thread_state)
 
 
@@ -440,7 +454,7 @@ class ThreadStateInterface(ABC, UsesKernelMixin):
                 ),
             )
 
-            await self._commit_message_to_storage(message)
+            await self._commit_message_to_storage(unwrapped_message)
 
             if unwrapped_message.message_id in self._previous_message_states:
                 del self._previous_message_states[unwrapped_message.message_id]

@@ -1,7 +1,7 @@
 from psycopg.errors import ForeignKeyViolation, UniqueViolation
 from psycopg.types.json import Jsonb
 
-from agent_platform.core.thread import Thread
+from agent_platform.core.thread import Thread, ThreadMessage
 from agent_platform.server.storage.errors import (
     RecordAlreadyExistsError,
     ReferenceIntegrityError,
@@ -121,7 +121,10 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
             # 4. Prepare the thread for upsert
             thread_dict = thread.model_dump() | {"user_id": user_id}
             thread_dict["metadata"] = Jsonb(thread_dict["metadata"])
-            messages = thread_dict.pop('messages', [])
+            messages = [
+                ThreadMessage.model_validate(m)
+                for m in thread_dict.pop("messages", [])
+            ]
 
             # 5. Upsert the thread
             try:
@@ -198,5 +201,5 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
         async with self._cursor() as cur:
             await cur.execute("SELECT COUNT(*) FROM v2.thread")
             if row := await cur.fetchone():
-                return row['count']
+                return row["count"]
         return 0

@@ -1,12 +1,11 @@
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypeVar
 
 from agent_platform.core.configurations import Configuration
 from agent_platform.core.delta import GenericDelta
 from agent_platform.core.kernel_interfaces.kernel_mixin import UsesKernelMixin
-from agent_platform.core.model_selector import ModelSelector
 from agent_platform.core.prompts import Prompt
 from agent_platform.core.prompts.base import PromptMessage
 from agent_platform.core.prompts.content import (
@@ -176,18 +175,28 @@ class PlatformConverters(ABC, UsesKernelMixin):
         Raises ValueError if unrecognized content.type.
         """
         ctype = content.kind
-        if ctype == "text":
+        if ctype == "text" and isinstance(content, PromptTextContent):
             return await self.convert_text_content(content)
-        elif ctype == "image":
+        elif ctype == "image" and isinstance(content, PromptImageContent):
             return await self.convert_image_content(content)
-        elif ctype == "audio":
+        elif ctype == "audio" and isinstance(content, PromptAudioContent):
             return await self.convert_audio_content(content)
-        elif ctype == "tool_use":
+        elif ctype == "tool_use" and isinstance(content, PromptToolUseContent):
             return await self.convert_tool_use_content(content)
-        elif ctype == "tool_result":
+        elif ctype == "tool_result" and isinstance(content, PromptToolResultContent):
             return await self.convert_tool_result_content(content)
         else:
             raise ValueError(f"Unsupported PromptMessageContent type: {ctype}.")
+
+    async def convert_prompt_message_to_platform_message(
+        self,
+        message: PromptMessage,
+    ) -> Any:
+        """Converts a prompt message to a platform message."""
+        parts = []
+        for content in message.content:
+            parts.append(await self.convert_content_item_to_platform_part(content))
+        return parts
 
     async def convert_prompt_messages_to_platform_messages(
         self,
@@ -201,7 +210,8 @@ class PlatformConverters(ABC, UsesKernelMixin):
         """
         parts = []
         for msg in messages:
-            parts.append(await self.convert_content_item_to_platform_part(msg))
+            # TODO: had to edit here, types are wonky, was this in use?
+            parts.append(await self.convert_prompt_message_to_platform_message(msg))
         return parts
 
     @abstractmethod
@@ -219,24 +229,24 @@ class PlatformParsers(ABC):
     # specific types (e.g., an image will have a `bytes` object).
 
     @abstractmethod
-    def parse_text_content(self, content: str | bytes | dict) -> ResponseTextContent:
+    def parse_text_content(self, content: Any) -> ResponseTextContent:
         """Parses a platform-specific text content to an agent-server text content."""
         pass
 
     @abstractmethod
-    def parse_image_content(self, content: str | bytes | dict) -> ResponseImageContent:
+    def parse_image_content(self, content: Any) -> ResponseImageContent:
         """Parses a platform-specific image content to an agent-server image content."""
         pass
 
     @abstractmethod
-    def parse_audio_content(self, content: str | bytes | dict) -> ResponseAudioContent:
+    def parse_audio_content(self, content: Any) -> ResponseAudioContent:
         """Parses a platform-specific audio content to an agent-server audio content."""
         pass
 
     @abstractmethod
     def parse_tool_use_content(
         self,
-        content: str | bytes | dict,
+        content: Any,
     ) -> ResponseToolUseContent:
         """Parses a platform-specific tool use content to an agent-server
         tool use content."""
@@ -244,19 +254,19 @@ class PlatformParsers(ABC):
     @abstractmethod
     def parse_document_content(
         self,
-        content: str | bytes | dict,
+        content: Any,
     ) -> ResponseDocumentContent:
         """Parses a platform-specific document content to an agent-server
         document content."""
         pass
 
     @abstractmethod
-    def parse_content_item(self, item: str | bytes | dict) -> ResponseMessageContent:
+    def parse_content_item(self, item: Any) -> ResponseMessageContent:
         """Parses a platform-specific content item to an agent-server content item."""
         pass
 
     @abstractmethod
-    def parse_response(self, response: str | bytes | dict) -> ResponseMessage:
+    def parse_response(self, response: Any) -> ResponseMessage:
         """Parses a platform-specific response to an agent-server model response."""
         pass
 
@@ -302,7 +312,18 @@ class PlatformConfigs(Configuration):
     """The supported models by provider."""
 
 
-class PlatformClient(ABC, UsesKernelMixin):
+# Define type variables for the components
+TConverters = TypeVar('TConverters', bound=PlatformConverters)
+TParsers = TypeVar('TParsers', bound=PlatformParsers)
+TParameters = TypeVar('TParameters', bound=PlatformParameters)
+TConfigs = TypeVar('TConfigs', bound=PlatformConfigs)
+TPrompt = TypeVar('TPrompt', bound=PlatformPrompt)
+
+class PlatformClient(
+    ABC,
+    UsesKernelMixin,
+    Generic[TConverters, TParsers, TParameters, TConfigs, TPrompt],
+):
     """Provides a client to interact with a AI platform."""
 
     NAME: ClassVar[str] = ""
@@ -311,7 +332,7 @@ class PlatformClient(ABC, UsesKernelMixin):
         self,
         *,
         kernel: "Kernel | None" = None,
-        parameters: PlatformParameters | dict | None = None,
+        parameters: TParameters | None = None,
         **kwargs: Any,
     ):
         """Initialize the platform client.
@@ -341,36 +362,36 @@ class PlatformClient(ABC, UsesKernelMixin):
         return self.NAME
 
     @property
-    def converters(self) -> PlatformConverters:
+    def converters(self) -> TConverters:
         """The platform-specific converters."""
         return self._converters
 
     @property
-    def parsers(self) -> PlatformParsers:
+    def parsers(self) -> TParsers:
         """The platform-specific parsers."""
         return self._parsers
 
     @property
-    def parameters(self) -> PlatformParameters:
+    def parameters(self) -> TParameters:
         """The platform-specific parameters."""
         return self._parameters
 
     @property
-    def configs(self) -> PlatformConfigs:
+    def configs(self) -> TConfigs:
         """The platform-specific configs."""
         return self._configs
 
     @abstractmethod
-    def _init_converters(self, kernel: "Kernel | None" = None) -> PlatformConverters:
+    def _init_converters(self, kernel: "Kernel | None" = None) -> TConverters:
         """Initializes the platform-specific converters."""
         pass
 
     @abstractmethod
     def _init_parameters(
         self,
-        parameters: PlatformParameters | dict | None = None,
+        parameters: TParameters | None = None,
         **kwargs: Any,
-    ) -> PlatformParameters:
+    ) -> TParameters:
         """Initializes the platform-specific parameters.
 
         Args:
@@ -382,20 +403,20 @@ class PlatformClient(ABC, UsesKernelMixin):
         pass
 
     @abstractmethod
-    def _init_configs(self) -> PlatformConfigs:
+    def _init_configs(self) -> TConfigs:
         """Initializes the platform-specific configs."""
         pass
 
     @abstractmethod
-    def _init_parsers(self) -> PlatformParsers:
+    def _init_parsers(self) -> TParsers:
         """Initializes the platform-specific parsers."""
         pass
 
     @abstractmethod
     async def generate_response(
         self,
-        prompt: PlatformPrompt,
-        model: ModelSelector,
+        prompt: TPrompt,
+        model: str,
     ) -> ResponseMessage:
         """Generates a response to a prompt.
 
@@ -408,10 +429,10 @@ class PlatformClient(ABC, UsesKernelMixin):
         pass
 
     @abstractmethod
-    async def generate_stream_response(
+    def generate_stream_response(
         self,
-        prompt: PlatformPrompt,
-        model: ModelSelector,
+        prompt: TPrompt,
+        model: str,
     ) -> AsyncGenerator[GenericDelta, None]:
         """Streams a response to a prompt.
 
@@ -439,7 +460,7 @@ class PlatformClient(ABC, UsesKernelMixin):
     async def create_embeddings(
         self,
         texts: list[str],
-        model: ModelSelector,
+        model: str,
     ) -> dict[str, Any]:
         """Create embeddings using a model on the platform.
 
@@ -460,7 +481,7 @@ class PlatformClient(ABC, UsesKernelMixin):
     def register_platform_client(
         cls,
         name: str,
-        platform_client: "PlatformClient",
+        platform_client: type["PlatformClient"],
     ) -> None:
         """Register a platform client."""
         cls._platform_clients[name] = platform_client

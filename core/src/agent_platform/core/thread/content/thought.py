@@ -1,9 +1,7 @@
 import json
 from dataclasses import dataclass, field
-from typing import Literal
 
 from agent_platform.core.thread.content.base import ThreadMessageContent
-from agent_platform.core.utils import assert_literal_value_valid
 
 
 @dataclass
@@ -19,7 +17,7 @@ class ThreadThoughtContent(ThreadMessageContent):
     )
     """The actual text content of the thought"""
 
-    kind: Literal["thought"] = field(
+    kind: str = field(
         default="thought",
         metadata={"description": "Content kind: always 'thought'"},
         init=False,
@@ -33,7 +31,7 @@ class ThreadThoughtContent(ThreadMessageContent):
             AssertionError: If the type field doesn't match the literal "thought".
             ValueError: If the text field is empty.
         """
-        assert_literal_value_valid(self, "kind")
+        assert self.kind == "thought"
 
         if not self.thought:
             raise ValueError("Thought value cannot be empty")

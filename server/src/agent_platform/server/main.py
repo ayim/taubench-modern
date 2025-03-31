@@ -4,6 +4,7 @@ import os
 import platform
 import sys
 from pathlib import Path
+from typing import Any  # Add typing imports for type annotations
 
 import structlog
 import uvicorn
@@ -37,9 +38,20 @@ def is_port_in_use(port: int) -> bool:
         # Check all network connections for this port
         for conn in psutil.net_connections():
             try:
-                if conn.laddr.port == port:
-                    # Port is definitely in use
-                    return True
+                # Check connection structure to extract port safely
+                if isinstance(conn.laddr, tuple):
+                    # Check if tuple has enough elements to access index 1
+                    if len(conn.laddr) > 1 and conn.laddr[1] == port:
+                        return True
+                else:
+                    # For named tuple or object-like structure, use try/except
+                    try:
+                        laddr: Any = conn.laddr  # Type hint to avoid linter errors
+                        if laddr.port == port:
+                            return True
+                    except AttributeError:
+                        # This connection doesn't have the expected structure
+                        continue
             except (PermissionError, OSError) as e:
                 logger.warning(f"Could not use psutil to check port {port}: {e}")
                 logger.warning("Port availability checks may be less reliable")

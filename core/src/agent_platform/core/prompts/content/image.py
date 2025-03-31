@@ -1,6 +1,6 @@
 from base64 import b64decode
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, cast
 
 from agent_platform.core.prompts.content.base import PromptMessageContent
 from agent_platform.core.utils import assert_literal_value_valid
@@ -10,6 +10,14 @@ if TYPE_CHECKING:
     from PIL.Image import Image as PILImageType
 
 
+PromptImageMimeType = Literal["image/jpeg", "image/png", "image/gif", "image/webp"]
+PROMPT_IMAGE_MIME_TYPES = {
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+}
+
 @dataclass(frozen=True)
 class PromptImageContent(PromptMessageContent):
     """Represents an image message in the agent system.
@@ -18,7 +26,7 @@ class PromptImageContent(PromptMessageContent):
     for different resolutions and image formats.
     """
 
-    mime_type: Literal["image/jpeg", "image/png", "image/gif", "image/webp"] = field(
+    mime_type: PromptImageMimeType = field(
         metadata={"description": "MIME type of the image"},
     )
     """MIME type of the image"""
@@ -86,6 +94,16 @@ class PromptImageContent(PromptMessageContent):
             if not isinstance(self.value, bytes):
                 raise ValueError("Image value must be bytes")
 
+    @property
+    def value_bytes(self) -> bytes:
+        """The image value as bytes."""
+        if isinstance(self.value, str):
+            return self.value.encode("utf-8")
+        elif isinstance(self.value, bytes):
+            return self.value
+        else:
+            raise ValueError("Image value must be a string or bytes")
+
     @classmethod
     def from_pil_image(cls, image: "PILImageType") -> "PromptImageContent":
         """Create a PromptImageContent from a PIL Image.
@@ -109,7 +127,10 @@ class PromptImageContent(PromptMessageContent):
 
         # Make sure the image filename is a valid file (if it's not we could
         # save image to bytesio as webp and use that instead)
-        if not hasattr(image, "filename") or not Path(image.filename).is_file():
+        if (
+            not hasattr(image, "filename") or
+            not Path(image.filename).is_file()  # type: ignore
+        ):
             try:
                 from io import BytesIO
 
@@ -124,8 +145,8 @@ class PromptImageContent(PromptMessageContent):
                 raise ValueError("Failed to save image to bytesio as webp") from e
         else:
             # Otherwise, we have a valid file, so use that
-            mime_type = image.get_format_mimetype()
-            image_bytes = Path(image.filename).read_bytes()
+            mime_type = image.get_format_mimetype()  # type: ignore
+            image_bytes = Path(image.filename).read_bytes()  # type: ignore
 
         return cls(
             mime_type=mime_type,
@@ -160,8 +181,11 @@ class PromptImageContent(PromptMessageContent):
         # If we have a valid filename, use that
         if image.filename and Path(image.filename).is_file():
             mime_type = guess_type(image.filename)[0] or fallback_mime_type
+            if mime_type not in PROMPT_IMAGE_MIME_TYPES:
+                raise ValueError(f"Invalid mime type: {mime_type}")
+
             return cls(
-                mime_type=mime_type,
+                mime_type=cast(PromptImageMimeType, mime_type),
                 value=Path(image.filename).read_bytes(),
                 sub_type="raw_bytes",
             )
@@ -170,12 +194,15 @@ class PromptImageContent(PromptMessageContent):
         if image.url:
             # We are expecting the format to be set otherwise, we'll
             # have to just guess the mime type
-            mime_type = image.format or fallback_mime_type
+            mime_type = cast(str, image.format) or fallback_mime_type
             if not mime_type.startswith("image/"):
                 mime_type = "image/" + mime_type
 
+            if mime_type not in PROMPT_IMAGE_MIME_TYPES:
+                raise ValueError(f"Invalid mime type: {mime_type}")
+
             return cls(
-                mime_type=mime_type,
+                mime_type=cast(PromptImageMimeType, mime_type),
                 value=image.url,
                 sub_type="url",
             )
@@ -191,8 +218,11 @@ class PromptImageContent(PromptMessageContent):
             if not mime_type.startswith("image/"):
                 mime_type = "image/" + mime_type
 
+            if mime_type not in PROMPT_IMAGE_MIME_TYPES:
+                raise ValueError(f"Invalid mime type: {mime_type}")
+
             return cls(
-                mime_type=mime_type,
+                mime_type=cast(PromptImageMimeType, mime_type),
                 value=image.data,
                 sub_type="raw_bytes",
             )

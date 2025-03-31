@@ -3,12 +3,15 @@ from collections.abc import AsyncGenerator
 from datetime import UTC, datetime, timedelta
 from io import BytesIO
 from pathlib import Path
+from typing import cast
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import pytest
 import testing.postgresql
 from fastapi import UploadFile
+from psycopg import AsyncConnection
+from psycopg.rows import TupleRow
 from psycopg_pool import AsyncConnectionPool
 
 from agent_platform.core.actions import ActionPackage
@@ -18,9 +21,11 @@ from agent_platform.core.agent import (
     ObservabilityConfig,
     QuestionGroup,
 )
-from agent_platform.core.files import UploadedFile, UploadFileRequest
+from agent_platform.core.files import UploadedFile
+from agent_platform.core.payloads import UploadFilePayload
 from agent_platform.core.runbook import Runbook
 from agent_platform.core.thread import Thread, ThreadMessage, ThreadTextContent
+from agent_platform.core.utils import SecretString
 from agent_platform.server.file_manager.base import (
     BaseFileManager,
     InvalidFileUploadError,
@@ -94,7 +99,10 @@ def sample_file2(tmpdir):
 
 
 @pytest.fixture(scope="session")
-async def postgres_test_db() -> AsyncGenerator[AsyncConnectionPool, None]:
+async def postgres_test_db() -> AsyncGenerator[
+    AsyncConnectionPool[AsyncConnection[TupleRow]],
+    None,
+]:
     """Creates a shared temporary Postgres instance for the entire test session."""
     with testing.postgresql.Postgresql() as postgresql:
         dsn = postgresql.url()
@@ -112,7 +120,7 @@ async def postgres_test_db() -> AsyncGenerator[AsyncConnectionPool, None]:
                 max_idle=300,
             )
             await pool.open()
-            yield pool
+            yield cast(AsyncConnectionPool[AsyncConnection[TupleRow]], pool)
         finally:
             if pool:
                 await pool.close()
@@ -185,7 +193,7 @@ def sample_agent(sample_user_id: str) -> Agent:
                 organization="test-organization",
                 version="1.0.0",
                 url="https://api.test.com",
-                api_key="test",
+                api_key=SecretString("test"),
                 allowed_actions=["action_1", "action_2"],
             ),
             ActionPackage(
@@ -193,7 +201,7 @@ def sample_agent(sample_user_id: str) -> Agent:
                 organization="test-organization-2",
                 version="1.0.0",
                 url="https://api.test-2.com",
-                api_key="test-2",
+                api_key=SecretString("test-2"),
                 allowed_actions=[],
             ),
         ],
@@ -298,7 +306,7 @@ class TestFileManager:
         mock_get_storage_local.return_value = setup_storage
 
         results = await file_manager.upload(
-            files=[UploadFileRequest(file=sample_file)],
+            files=[UploadFilePayload(file=sample_file)],
             owner=sample_thread,
             user_id=sample_thread.user_id,
         )
@@ -326,8 +334,8 @@ class TestFileManager:
         with pytest.raises(InvalidFileUploadError, match="File names must be unique"):
             await file_manager.upload(
                 files=[
-                    UploadFileRequest(file=sample_file),
-                    UploadFileRequest(file=sample_file),
+                    UploadFilePayload(file=sample_file),
+                    UploadFilePayload(file=sample_file),
                 ],
                 owner=sample_thread,
                 user_id=sample_thread.user_id,
@@ -344,13 +352,21 @@ class TestFileManager:
     ):
         mock_get_storage_cloud.return_value = setup_storage
         mock_get_storage_local.return_value = setup_storage
-        invalid_names = ["CON", "PRN", "AUX", "NUL", "COM1", "LPT1", ".", "..", ""]
+        invalid_names = ["CON", "PRN", "AUX", "NUL", "COM1", "LPT1", ".", ".."]
+
+        sample_file.filename = ""
+        with pytest.raises(InvalidFileUploadError, match="Invalid empty file name"):
+            await file_manager.upload(
+                files=[UploadFilePayload(file=sample_file)],
+                owner=sample_thread,
+                user_id=sample_thread.user_id,
+            )
 
         for invalid_name in invalid_names:
             sample_file.filename = invalid_name
             with pytest.raises(InvalidFileUploadError, match="Invalid file name"):
                 await file_manager.upload(
-                    files=[UploadFileRequest(file=sample_file)],
+                    files=[UploadFilePayload(file=sample_file)],
                     owner=sample_thread,
                     user_id=sample_thread.user_id,
                 )
@@ -372,7 +388,7 @@ class TestFileManager:
             sample_file.filename = f"test{char}file.txt"
             with pytest.raises(InvalidFileUploadError, match="Invalid file name"):
                 await file_manager.upload(
-                    files=[UploadFileRequest(file=sample_file)],
+                    files=[UploadFilePayload(file=sample_file)],
                     owner=sample_thread,
                     user_id=sample_thread.user_id,
                 )
@@ -391,7 +407,7 @@ class TestFileManager:
 
         # Upload a file first
         results = await file_manager.upload(
-            files=[UploadFileRequest(file=sample_file)],
+            files=[UploadFilePayload(file=sample_file)],
             owner=sample_thread,
             user_id=sample_thread.user_id,
         )
@@ -423,12 +439,12 @@ class TestFileManager:
 
         # Upload multiple files
         await file_manager.upload(
-            files=[UploadFileRequest(file=sample_file)],
+            files=[UploadFilePayload(file=sample_file)],
             owner=sample_thread,
             user_id=sample_thread.user_id,
         )
         await file_manager.upload(
-            files=[UploadFileRequest(file=sample_file2)],
+            files=[UploadFilePayload(file=sample_file2)],
             owner=sample_thread,
             user_id=sample_thread.user_id,
         )
@@ -458,7 +474,7 @@ class TestFileManager:
         mock_get_storage_cloud.return_value = setup_storage
         mock_get_storage_local.return_value = setup_storage
         results = await file_manager.upload(
-            files=[UploadFileRequest(file=sample_file)],
+            files=[UploadFilePayload(file=sample_file)],
             owner=sample_thread,
             user_id=sample_thread.user_id,
         )
@@ -487,7 +503,7 @@ class TestFileManager:
 
         # Upload file with one user
         results = await file_manager.upload(
-            files=[UploadFileRequest(file=sample_file)],
+            files=[UploadFilePayload(file=sample_file)],
             owner=sample_thread,
             user_id=sample_thread.user_id,
         )
@@ -543,7 +559,7 @@ class TestFileManager:
 
         # The file manager should handle large files gracefully
         results = await file_manager.upload(
-            files=[UploadFileRequest(file=large_file)],
+            files=[UploadFilePayload(file=large_file)],
             owner=sample_thread,
             user_id=sample_thread.user_id,
         )
@@ -590,7 +606,7 @@ class TestFileManager:
             content = b"test content"
             file = UploadFile(filename=filename, file=BytesIO(content))
             results = await file_manager.upload(
-                files=[UploadFileRequest(file=file)],
+                files=[UploadFilePayload(file=file)],
                 owner=sample_thread,
                 user_id=sample_thread.user_id,
             )

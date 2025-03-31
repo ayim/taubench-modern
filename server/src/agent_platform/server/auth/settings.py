@@ -2,6 +2,7 @@ import os
 from base64 import b64decode
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 
 from agent_platform.server.env_vars import AUTH_TYPE
 
@@ -82,7 +83,7 @@ def get_env_var(name, default=None):
 
 # Create settings based on auth type
 auth_type = AuthType((AUTH_TYPE or AuthType.NOOP.value).lower())
-kwargs = {"auth_type": auth_type}
+kwargs: dict[str, Any] = {"auth_type": auth_type}
 
 if auth_type == AuthType.JWT_LOCAL:
     kwargs["jwt_local"] = JWTSettingsLocal.from_env()

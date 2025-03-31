@@ -1,8 +1,12 @@
 from fastapi import APIRouter, HTTPException, UploadFile
 from structlog import get_logger
 
-from agent_platform.core.files import UploadedFile, UploadFileRequest
-from agent_platform.core.payloads import AddThreadMessagePayload, UpsertThreadPayload
+from agent_platform.core.files import UploadedFile
+from agent_platform.core.payloads import (
+    AddThreadMessagePayload,
+    UploadFilePayload,
+    UpsertThreadPayload,
+)
 from agent_platform.core.thread import Thread
 from agent_platform.server.auth.handlers import AuthedUser
 from agent_platform.server.file_manager.option import get_file_manager
@@ -110,7 +114,7 @@ async def upload_thread_files(
     if thread is None:
         raise HTTPException(status_code=404, detail="Thread not found")
 
-    upload_requests = [UploadFileRequest(file=f) for f in files]
+    upload_requests = [UploadFilePayload(file=f) for f in files]
     stored_files = await file_manager.upload(upload_requests, thread, user.user_id)
 
     return stored_files

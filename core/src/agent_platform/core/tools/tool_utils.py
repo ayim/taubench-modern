@@ -5,6 +5,7 @@ from typing import (
     Annotated,
     Any,
     Union,
+    cast,
     get_args,
     get_origin,
 )
@@ -217,7 +218,7 @@ def build_param_schema(
     # 2) If it's a dataclass
     if is_dataclass(unwrapped_type):
         return build_dataclass_schema(
-            cls=unwrapped_type,
+            cls=cast(type[Any], unwrapped_type),
             annotated_description=annotated_description,
             is_nullable=is_nullable,
         )

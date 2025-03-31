@@ -38,6 +38,8 @@ class AgentServerUserInteractionsInterface(UserInteractionsInterface, UsesKernel
                 # Make sure we yield to the event loop
                 await sleep(0)
 
+            return ThreadUserMessage(content=[])
+
         try:
             # Wrap the waiting coroutine with a timeout.
             user_response = await wait_for(wait_for_response(), timeout=timeout_seconds)

@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from typing import Literal, Self
 
 from agent_platform.core.runbook.content import RunbookContent
 
@@ -15,15 +14,24 @@ class RunbookTextContent(RunbookContent):
     )
     """The content of the text"""
 
-    type: Literal["text"] = field(
+    kind: str = field(
         default="text",
         metadata={
-            "description": "The type of content",
+            "description": "The kind of content",
         },
+        init=False,
     )
-    """The type of content"""
+    """The kind of content"""
 
-    def copy(self) -> Self:
+    def __post_init__(self) -> None:
+        """Validates the content type and text content after initialization.
+
+        Raises:
+            AssertionError: If the type field doesn't match the literal "text".
+        """
+        assert self.kind == "text"
+
+    def copy(self) -> "RunbookTextContent":
         """Returns a deep copy of the runbook text content."""
         return RunbookTextContent(
             content=self.content,
@@ -34,10 +42,12 @@ class RunbookTextContent(RunbookContent):
         Useful for JSON serialization."""
         return {
             "content": self.content,
-            "type": self.type,
+            "kind": self.kind,
         }
 
     @classmethod
     def model_validate(cls, data: dict) -> "RunbookTextContent":
         """Create a runbook text content from a dictionary."""
         return cls(**data)
+
+RunbookTextContent.register_content_kind("text", RunbookTextContent)

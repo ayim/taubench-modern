@@ -63,12 +63,14 @@ class TestBedrockPrompt:
 
         # Check the request structure
         assert request["modelId"] == model_id
+        assert "messages" in request
         assert request["messages"] == [
             {
                 "role": "user",
                 "content": [{"text": "Hello, world!"}],
             },
         ]
+        assert "system" in request
         assert request["system"] == [{"text": "You are a helpful assistant."}]
         assert "stream" not in request
 
@@ -80,12 +82,14 @@ class TestBedrockPrompt:
 
         # Check the request structure
         assert request["modelId"] == model_id
+        assert "messages" in request
         assert request["messages"] == [
             {
                 "role": "user",
                 "content": [{"text": "Hello, world!"}],
             },
         ]
+        assert "system" in request
         assert request["system"] == [{"text": "You are a helpful assistant."}]
 
     def test_as_platform_request_with_tools(
@@ -99,13 +103,16 @@ class TestBedrockPrompt:
 
         # Check the request structure
         assert request["modelId"] == model_id
+        assert "messages" in request
         assert request["messages"] == [
             {
                 "role": "user",
                 "content": [{"text": "Use the tool to get the weather."}],
             },
         ]
+        assert "system" in request
         assert request["system"] == [{"text": "You are a helpful assistant."}]
+        assert "toolConfig" in request
         assert request["toolConfig"] == {
             "tools": [
                 {
@@ -148,6 +155,7 @@ class TestBedrockPrompt:
         request = prompt.as_platform_request(model_id)
 
         # Check the additional fields
+        assert "additionalModelRequestFields" in request
         assert request["additionalModelRequestFields"] == {
             "temperature": 0.7,
             "maxTokens": 1000,

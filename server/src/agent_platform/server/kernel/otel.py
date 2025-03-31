@@ -58,7 +58,7 @@ class AgentServerOTelInterface(OTelInterface, UsesKernelMixin):
 
     @property
     def trace_id(self) -> str:
-        return self.context.trace_id
+        return str(self.context.trace_id)
 
     async def create_artifact(
         self,

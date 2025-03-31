@@ -4,7 +4,7 @@ import json
 from collections.abc import Iterator
 from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
-from typing import Any, ClassVar, TypeVar
+from typing import Any, ClassVar, TypeVar, cast
 
 T = TypeVar("T", bound="Configuration")
 
@@ -219,9 +219,11 @@ class Configuration(metaclass=ConfigMeta):
                 continue
 
             field = config_fields[key]
-            if not isinstance(value, field.type) and value is not None:
+            # TODO: revisit if these casts are always valid...
+            field_as_type = cast(type[Any], field.type)
+            if not isinstance(value, field_as_type) and value is not None:
                 raise TypeError(
-                    f"Invalid type for {key}: expected {field.type.__name__}, "
+                    f"Invalid type for {key}: expected {field_as_type.__name__}, "
                     f"got {type(value).__name__}",
                 )
             validated_config[key] = value
@@ -267,7 +269,7 @@ class Configuration(metaclass=ConfigMeta):
                 if hasattr(field_type, "__args__") and "Literal" in str(field_type):
                     # For Literal types, just check if the
                     # value is one of the allowed values
-                    allowed_values = field_type.__args__
+                    allowed_values = cast(type[Any], field_type).__args__
                     if value not in allowed_values and value is not None:
                         raise TypeError(
                             f"Invalid value for {key}: got {value}, "
@@ -282,7 +284,7 @@ class Configuration(metaclass=ConfigMeta):
                 if hasattr(field_type, "__origin__"):
                     # For subscripted generics, just use the
                     # container type (list, dict, etc)
-                    container_type = field_type.__origin__
+                    container_type = cast(type[Any], field_type).__origin__
                     if not isinstance(value, container_type) and value is not None:
                         raise TypeError(
                             f"Invalid type for {key}: expected container type "
@@ -292,9 +294,10 @@ class Configuration(metaclass=ConfigMeta):
                     continue
 
                 # Regular type checking
-                if not isinstance(value, field_type) and value is not None:
+                field_as_type = cast(type[Any], field_type)
+                if not isinstance(value, field_as_type) and value is not None:
                     raise TypeError(
-                        f"Invalid type for {key}: expected {field_type.__name__}, "
+                        f"Invalid type for {key}: expected {field_as_type.__name__}, "
                         f"got {type(value).__name__}",
                     )
                 validated_config[key] = value
@@ -361,7 +364,7 @@ class MapConfiguration(Configuration):
     # Mark as an abstract base class, not a concrete configuration
     __abstract__ = True
 
-    mapping: dict[str, Any] = field(
+    mapping: ClassVar[dict[str, Any]] = field(
         default_factory=dict,
     )
     """The mapping to access."""
@@ -389,17 +392,17 @@ class MapConfiguration(Configuration):
         """Get the length of the mapping."""
         return len(self.mapping)
 
-    def items(self) -> Iterator[tuple[str, Any]]:
+    def items(self) -> list[tuple[str, Any]]:
         """Get the items of the mapping."""
-        return self.mapping.items()
+        return list(self.mapping.items())
 
-    def keys(self) -> Iterator[str]:
+    def keys(self) -> list[str]:
         """Get the keys of the mapping."""
-        return self.mapping.keys()
+        return list(self.mapping.keys())
 
-    def values(self) -> Iterator[Any]:
+    def values(self) -> list[Any]:
         """Get the values of the mapping."""
-        return self.mapping.values()
+        return list(self.mapping.values())
 
     @classmethod
     def __class_getitem__(cls: type[T], key: str) -> Any:

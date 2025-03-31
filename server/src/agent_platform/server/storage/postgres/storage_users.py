@@ -19,7 +19,7 @@ class PostgresStorageUsersMixin(CommonMixin):
             """)
             if row := await cur.fetchone():
                 # Str because we're getting back a UUID instance from psycopg
-                return str(row["user_id"])
+                return str(dict(row)["user_id"])
         raise NoSystemUserError()
 
     async def get_or_create_user(self, sub: str) -> tuple[User, bool]:
@@ -28,7 +28,7 @@ class PostgresStorageUsersMixin(CommonMixin):
         async with self._cursor() as cur:
             await cur.execute("SELECT * FROM v2.user WHERE sub = %(sub)s", {"sub": sub})
             if row := await cur.fetchone():
-                return User.model_validate(row), False
+                return User.model_validate(dict(row)), False
 
         # Not found: create
         user_id = str(uuid4())
@@ -43,7 +43,9 @@ class PostgresStorageUsersMixin(CommonMixin):
                     {"user_id": user_id, "sub": sub, "created_at": created_at},
                 )
                 row = await cur.fetchone()
-                return User.model_validate(row), True
+                if row is None:
+                    raise ValueError("New row not found")
+                return User.model_validate(dict(row)), True
         except UniqueViolation as e:
             if "sub" in str(e):
                 async with self._cursor() as cur:
@@ -52,7 +54,8 @@ class PostgresStorageUsersMixin(CommonMixin):
                         {"sub": sub},
                     )
                     if row := await cur.fetchone():
-                        return User.model_validate(row), False
+                        return User.model_validate(dict(row)), False
+            raise e
 
 
     async def delete_user(self, user_id: str) -> None:

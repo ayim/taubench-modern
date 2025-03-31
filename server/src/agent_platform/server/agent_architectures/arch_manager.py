@@ -1,13 +1,8 @@
-import sys
-import time
 from pathlib import Path
 
 from agent_platform.server.agent_architectures.base_runner import BaseAgentRunner
 from agent_platform.server.agent_architectures.in_process_runner import (
     InProcessAgentRunner,
-)
-from agent_platform.server.agent_architectures.out_of_process_runner import (
-    OutOfProcessAgentRunner,
 )
 
 
@@ -41,40 +36,31 @@ class AgentArchManager:
         else:
             # Out-of-process
             # We need to create (or find) the venv
-            venv_path = await self._get_or_create_venv(package_name, version)
-            identity_str = f"{package_name}-{version}-{thread_id}-{int(time.time())}"
-            runner = OutOfProcessAgentRunner(
-                package_name,
-                version,
-                thread_id,
-                venv_path,
-                self.websocket_addr,
-                identity_str,
-            )
+            raise NotImplementedError("Out of process runner not implemented yet")
 
         self.active_runners[key] = runner
         return runner
 
-    async def _get_or_create_venv(self, package_name: str, version: str) -> Path:
-        # Simplified example: create venv and install the wheel, etc.
-        # Or you might keep a dictionary of (pkg,ver)->venv_path for caching.
-        from subprocess import run
+    # async def _get_or_create_venv(self, package_name: str, version: str) -> Path:
+    #     # Simplified example: create venv and install the wheel, etc.
+    #     # Or you might keep a dictionary of (pkg,ver)->venv_path for caching.
+    #     from subprocess import run
 
-        import virtualenv
+    #     import virtualenv
 
-        venv_path = Path(f".venvs/{package_name}-{version}")
-        if not venv_path.exists():
-            # create it
-            virtualenv.cli_run([str(venv_path)], program_name="virtualenv")
-            # install the wheel
-            wheel_path = self._find_wheel(package_name, version)
-            pip_bin = (
-                venv_path / ("Scripts" if sys.platform.startswith("win") else "bin")
-                / "pip"
-            )
-            run([str(pip_bin), "install", str(wheel_path)], check=True)
+    #     venv_path = Path(f".venvs/{package_name}-{version}")
+    #     if not venv_path.exists():
+    #         # create it
+    #         virtualenv.cli_run([str(venv_path)], program_name="virtualenv")
+    #         # install the wheel
+    #         wheel_path = self._find_wheel(package_name, version)
+    #         pip_bin = (
+    #             venv_path / ("Scripts" if sys.platform.startswith("win") else "bin")
+    #             / "pip"
+    #         )
+    #         run([str(pip_bin), "install", str(wheel_path)], check=True)
 
-        return venv_path
+    #     return venv_path
 
     def _find_wheel(self, package_name: str, version: str) -> Path:
         pattern = f"{package_name.replace('-', '_')}-{version}-*.whl"

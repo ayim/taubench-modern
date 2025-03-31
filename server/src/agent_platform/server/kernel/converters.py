@@ -1,16 +1,17 @@
 from agent_platform.core.kernel import ConvertersInterface
 from agent_platform.core.prompts import (
+    AgentPromptMessageContent,
     PromptAgentMessage,
-    PromptMessage,
-    PromptMessageContent,
     PromptTextContent,
     PromptToolResultContent,
     PromptToolUseContent,
     PromptUserMessage,
+    UserPromptMessageContent,
 )
+from agent_platform.core.prompts.messages import AnyPromptMessage
 from agent_platform.core.thread import (
+    AnyThreadMessageContent,
     ThreadMessage,
-    ThreadMessageContent,
     ThreadTextContent,
     ThreadThoughtContent,
     ThreadToolUsageContent,
@@ -26,10 +27,10 @@ class AgentServerConvertersInterface(ConvertersInterface, UsesKernelMixin):
 
     async def user_thread_contents_to_prompt_contents(
         self,
-        contents: list[ThreadMessageContent],
-    ) -> list[PromptMessageContent]:
+        contents: list[AnyThreadMessageContent],
+    ) -> list[UserPromptMessageContent]:
         """Converts a thread content to a prompt content."""
-        prompt_contents: list[PromptMessageContent] = []
+        prompt_contents: list[UserPromptMessageContent] = []
 
         for content in contents:
             match content:
@@ -45,11 +46,11 @@ class AgentServerConvertersInterface(ConvertersInterface, UsesKernelMixin):
 
     async def agent_thread_contents_to_prompt_contents(
         self,
-        contents: list[ThreadMessageContent],
-    ) -> tuple[list[PromptMessageContent], list[PromptMessageContent]]:
+        contents: list[AnyThreadMessageContent],
+    ) -> tuple[list[AgentPromptMessageContent], list[UserPromptMessageContent]]:
         """Converts a thread content to a prompt content."""
-        prompt_agent_contents: list[PromptMessageContent] = []
-        prompt_user_contents: list[PromptMessageContent] = []
+        prompt_agent_contents: list[AgentPromptMessageContent] = []
+        prompt_user_contents: list[UserPromptMessageContent] = []
 
         for content in contents:
             match content:
@@ -72,7 +73,7 @@ class AgentServerConvertersInterface(ConvertersInterface, UsesKernelMixin):
                         tool_name=tool_usage_content.name,
                         content=[
                             PromptTextContent(
-                                text=tool_usage_content.result,
+                                text=tool_usage_content.result or "",
                             ),
                         ],
                         is_error=tool_usage_content.status == "failed",
@@ -86,9 +87,9 @@ class AgentServerConvertersInterface(ConvertersInterface, UsesKernelMixin):
     async def thread_messages_to_prompt_messages(
         self,
         thread_messages: list[ThreadMessage],
-    ) -> list[PromptMessage]:
+    ) -> list[AnyPromptMessage]:
         """Converts a list of thread messages to a list of prompt messages."""
-        prompt_messages: list[PromptMessage] = []
+        prompt_messages: list[AnyPromptMessage] = []
         for message in thread_messages:
             match message.role:
                 case "user":

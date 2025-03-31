@@ -22,22 +22,28 @@ class AddThreadMessagePayload(ThreadMessage):
     )
     """The ID of the thread to add the message to."""
 
-    message_id: str = field(
+    message_id: str = field(  # type: ignore
         init=False, repr=False,
         metadata={"description": "The ID of the message."},
     )
+    # Intentionally overriden without a default value (to ensure it's set
+    # in the payload)
     """The ID of the message."""
 
-    created_at: datetime = field(
+    created_at: datetime = field(  # type: ignore
         init=False, repr=False,
         metadata={"description": "The time the message was created."},
     )
+    # Intentionally overriden without a default value (to ensure it's set
+    # in the payload)
     """The time the message was created."""
 
-    updated_at: datetime = field(
+    updated_at: datetime = field(  # type: ignore
         init=False, repr=False,
         metadata={"description": "The time the message was last updated."},
     )
+    # Intentionally overriden without a default value (to ensure it's set
+    # in the payload)
     """The time the message was last updated."""
 
     @classmethod

@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from typing import Self
 
 
 @dataclass(frozen=True)
@@ -15,7 +14,7 @@ class QuestionGroup:
     )
     """The questions in the question group."""
 
-    def copy(self) -> Self:
+    def copy(self) -> "QuestionGroup":
         """Returns a deep copy of the question group."""
         return QuestionGroup(
             title=self.title,

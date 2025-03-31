@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from typing import Any
 
 
@@ -16,7 +16,7 @@ class EventsInterface(ABC):
         pass
 
     @abstractmethod
-    async def stream(self) -> AsyncIterator[Any]:
+    def stream(self) -> AsyncGenerator[Any, None]:
         """Stream events from the event bus.
 
         Returns:

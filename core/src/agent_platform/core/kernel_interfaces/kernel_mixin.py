@@ -16,4 +16,6 @@ class UsesKernelMixin:
     @property
     def kernel(self) -> "Kernel":
         """The kernel attached to the class."""
-        return self._internal_kernel
+        if getattr(self, "_internal_kernel", None) is None:
+            raise RuntimeError("Kernel not attached")
+        return self._internal_kernel  # type: ignore

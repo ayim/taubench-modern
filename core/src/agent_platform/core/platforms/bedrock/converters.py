@@ -1,12 +1,13 @@
 import base64
 import re
 from io import BytesIO
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 from agent_platform.core.kernel_interfaces.kernel_mixin import UsesKernelMixin
 from agent_platform.core.platforms.base import PlatformConverters
 from agent_platform.core.platforms.bedrock.configs import (
     BedrockContentLimits,
+    BedrockMimeTypeMap,
     BedrockRoleMap,
 )
 from agent_platform.core.platforms.bedrock.prompts import BedrockPrompt
@@ -220,19 +221,28 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
         Raises:
             ValueError: If the image exceeds Bedrock's size or dimension limits.
         """
+        from types_boto3_bedrock_runtime.literals import ImageFormatType
         from types_boto3_bedrock_runtime.type_defs import ImageBlockTypeDef
+
+        converted_format = cast(
+            ImageFormatType,
+            BedrockMimeTypeMap.reverse_mapping().get(content.mime_type),
+        )
+        if converted_format is None:
+            raise ValueError(f"Unsupported MIME type: {content.mime_type}")
+        if converted_format not in {"gif", "jpeg", "png", "webp"}:
+            raise ValueError(f"Unsupported image format: {converted_format}")
 
         if content.sub_type == "url":
             if not isinstance(content.value, str):
                 raise ValueError("URL image value must be a string")
-            return ImageBlockTypeDef(
-                format="url",
-                source={"url": content.value},
-            )
+            # TODO: Implement URL image source (fetch and get bytes)
+            raise NotImplementedError("URL image source is not supported in Bedrock")
         elif content.sub_type == "base64":
             if not isinstance(content.value, str):
                 raise ValueError("Base64 image value must be a string")
             # Verify the base64 data
+            decoded = None
             try:
                 decoded = base64.b64decode(content.value)
                 await self._verify_image_size(decoded)
@@ -240,8 +250,8 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
             except Exception as e:
                 raise ValueError(f"Invalid base64 image data: {e}") from e
             return ImageBlockTypeDef(
-                format="base64",
-                source={"base64": content.value},
+                format=converted_format,
+                source={"bytes": decoded},
             )
         else:  # raw_bytes
             if not isinstance(content.value, bytes):
@@ -249,8 +259,10 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
             await self._verify_image_size(content.value)
             await self._verify_image_dimensions(content.value)
             return ImageBlockTypeDef(
-                format="base64",
-                source={"base64": base64.b64encode(content.value).decode()},
+                format=converted_format,
+                source={
+                    "bytes": base64.b64encode(content.value).decode(),
+                },
             )
 
     async def _convert_to_document_block(
@@ -271,7 +283,17 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
             NotImplementedError: If the content type is not supported
                 (e.g. UploadedFile).
         """
+        from types_boto3_bedrock_runtime.literals import DocumentFormatType
         from types_boto3_bedrock_runtime.type_defs import DocumentBlockTypeDef
+
+        converted_format = cast(
+            DocumentFormatType,
+            BedrockMimeTypeMap.reverse_mapping().get(content.mime_type),
+        )
+        if converted_format is None:
+            raise ValueError(f"Unsupported MIME type: {content.mime_type}")
+        if converted_format not in {"csv", "doc", "docx", "html", "md", "pdf", "txt"}:
+            raise ValueError(f"Unsupported document format: {converted_format}")
 
         # Verify document name format
         await self._verify_document_name(content.name)
@@ -279,25 +301,26 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
         if content.sub_type == "url":
             if not isinstance(content.value, str):
                 raise ValueError("URL document value must be a string")
-            return DocumentBlockTypeDef(
-                format="url",
-                name=content.name,
-                source={"url": content.value},
-            )
+            # TODO: Implement URL document source (fetch and get bytes)
+            raise NotImplementedError("URL document source is not supported in Bedrock")
         elif content.sub_type == "base64":
+            if not isinstance(content.value, str):
+                raise ValueError("Base64 document value must be a string")
             document_data = base64.b64decode(content.value)
             await self._verify_document_size(document_data)
             return DocumentBlockTypeDef(
-                format="base64",
+                format=converted_format,
                 name=content.name,
-                source={"base64": content.value},
+                source={"bytes": document_data},
             )
         elif content.sub_type == "raw_bytes":
+            if not isinstance(content.value, bytes):
+                raise ValueError("Raw bytes document value must be bytes")
             await self._verify_document_size(content.value)
             return DocumentBlockTypeDef(
-                format="base64",
+                format=converted_format,
                 name=content.name,
-                source={"base64": base64.b64encode(content.value).decode()},
+                source={"bytes": base64.b64encode(content.value).decode()},
             )
         else:  # UploadedFile
             # TODO: handle UploadedFile once the kernel.files interface is implemented.
@@ -363,7 +386,7 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
         document_block = await self._convert_to_document_block(content)
         return ContentBlockTypeDef(document=document_block)
 
-    async def _reverse_role_map(self, role: str) -> str:
+    async def _reverse_role_map(self, role: str) -> Literal["user", "assistant"]:
         """Reverse the role map.
 
         Args:
@@ -377,7 +400,7 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
         """
         for bedrock_role, our_role in BedrockRoleMap.class_items():
             if our_role == role:
-                return bedrock_role
+                return cast(Literal["user", "assistant"], bedrock_role)
         raise ValueError(f"Role '{role}' not found in BedrockRoleMap")
 
     async def _convert_messages(

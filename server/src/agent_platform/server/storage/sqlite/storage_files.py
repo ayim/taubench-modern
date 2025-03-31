@@ -118,7 +118,7 @@ class SQLiteStorageFilesMixin(CommonMixin):
                 {"thread_id": thread_id, "user_id": user_id},
             )
             rows = await cur.fetchall()
-            self._logger.debug(f"Found {len(rows)} files for thread {thread_id}")
+            self._logger.debug(f"Found {len(list(rows))} files for thread {thread_id}")
             if not all(row["has_access"] for row in rows):
                 raise UserPermissionError(
                     "User does not have access to one or more files",

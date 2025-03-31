@@ -8,7 +8,8 @@ import structlog
 from fastapi import status
 
 from agent_platform.core.agent import Agent
-from agent_platform.core.files import FileData, UploadedFile, UploadFileRequest
+from agent_platform.core.files import FileData, UploadedFile
+from agent_platform.core.payloads import UploadFilePayload
 from agent_platform.core.thread import Thread
 from agent_platform.server.file_manager.base import (
     MISSING_FILE_HASH,
@@ -67,7 +68,7 @@ class CloudFileManager(BaseFileManager):
 
     async def _upload_files(
         self,
-        files: list[UploadFileRequest],
+        files: list[UploadFilePayload],
         owner: Agent | Thread,
         user_id: str,
     ) -> list[UploadedFile]:
@@ -75,6 +76,8 @@ class CloudFileManager(BaseFileManager):
         uploaded_files: list[UploadedFile] = []
         for f in files:
             file_id = str(uuid4())
+            if not f.file.filename:
+                raise ValueError("File name is required")
             try:
                 file_data = convert_to_file_data(f.file)
                 file_hash = await self._store(file_data, file_id)
@@ -143,7 +146,9 @@ class CloudFileManager(BaseFileManager):
 
     def _file_path_is_expired(self, file: UploadedFile) -> bool:
         expiration = file.file_path_expiration
-        return expiration and expiration < datetime.now(UTC) + timedelta(
+        if not expiration:
+            return False
+        return expiration < datetime.now(UTC) + timedelta(
             seconds=self.FILE_PATH_EXPIRATION_BUFFER,
         )
 
@@ -172,6 +177,7 @@ class CloudFileManager(BaseFileManager):
                     file_id=file.file_id,
                     file_path=refreshed_file_path,
                     file_path_expiration=self._get_file_path_expiration(),
+                    user_id=file.user_id or "", # TODO: fix?
                 )
                 ret.append(updated_file)
             else:
@@ -232,7 +238,7 @@ class CloudFileManager(BaseFileManager):
             file_ref=file_ref,
             file_hash=MISSING_FILE_HASH,
             file_size_raw=0,
-            mime_type=None,
+            mime_type="text/plain",
             user_id=thread.user_id,
             embedded=False,
             embedding_status=None,

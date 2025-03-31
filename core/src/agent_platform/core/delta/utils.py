@@ -1,6 +1,6 @@
 import re
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Any, Literal, cast
 
 from jsonpointer import JsonPointer, escape
 
@@ -93,7 +93,7 @@ def _is_valid_array_index(index_str: str, array_len: int | None = None) -> bool:
 def _validate_direct_array_op(
     initial_value: Any,
     pointer: JsonPointer,
-    path_attr: str,
+    path_attr: Literal["path", "from_"],
     is_add_op: bool = False,
 ) -> None:
     """Validate an operation directly on an array (e.g., adding/removing elements).
@@ -114,7 +114,8 @@ def _validate_direct_array_op(
     for part in pointer.parts:
         if _is_array(current):
             try:
-                _validate_array_index(part, len(current))
+                as_array = cast(Sequence, current)
+                _validate_array_index(part, len(as_array))
             except ValueError as e:
                 raise InvalidPathError(
                     pointer.path,
@@ -136,7 +137,7 @@ def _validate_direct_array_op(
 
 def _validate_array_element_property_op(
     pointer: JsonPointer,
-    path_attr: str,
+    path_attr: Literal["path", "from_"],
     array_value: Any,
 ) -> None:
     """Validate an operation on an array element's property (e.g., modifying object
@@ -198,7 +199,7 @@ def _validate_array_element_property_op(
 def _validate_single_path(
     initial_value: Any,
     pointer: JsonPointer,
-    path_attr: str,
+    path_attr: Literal["path", "from_"],
     is_add_op: bool = False,
 ) -> None:
     """Helper to validate a single path string.
@@ -245,7 +246,7 @@ def _validate_single_path(
         # Handle operations on array element properties
         elif _is_array(grandparent_value) and _is_valid_array_index(
             pointer.parts[-2],
-            len(grandparent_value),
+            len(grandparent_value) if grandparent_value is not None else None,
         ):
             _validate_array_element_property_op(
                 pointer,

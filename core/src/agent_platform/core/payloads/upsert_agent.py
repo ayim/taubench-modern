@@ -29,21 +29,28 @@ class UpsertAgentPayload(Agent):
     )
     """The ID of the user that owns the agent."""
 
-    agent_id: str = field(
+    agent_id: str = field(  # type: ignore
         init=False, repr=False,
         metadata={"description": "The ID of the agent."},
     )
+    # Intentionally overriden without a default value (to ensure it's set
+    # in the payload)
     """The ID of the agent."""
-    created_at: datetime = field(
+
+    created_at: datetime = field(  # type: ignore
         init=False, repr=False,
         metadata={"description": "The time the agent was created."},
     )
+    # Intentionally overriden without a default value (to ensure it's set
+    # in the payload)
     """The time the agent was created."""
 
-    updated_at: datetime = field(
+    updated_at: datetime = field(  # type: ignore
         init=False, repr=False,
         metadata={"description": "The last time the agent was updated."},
     )
+    # Intentionally overriden without a default value (to ensure it's set
+    # in the payload)
     """The last time the agent was updated."""
 
     def __post_init__(self):
@@ -51,7 +58,11 @@ class UpsertAgentPayload(Agent):
         if not self.runbook_raw_text:
             raise ValueError("runbook_raw_text is required")
 
-        object.__setattr__(self, "runbook", Runbook(raw_text=self.runbook_raw_text))
+        object.__setattr__(
+            self,
+            "runbook",
+            Runbook(raw_text=self.runbook_raw_text, content=[]),
+        )
 
     @classmethod
     def to_agent(cls, payload: Self, user_id: str) -> Agent:

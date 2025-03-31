@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from collections.abc import AsyncGenerator
+from contextlib import AbstractAsyncContextManager
 from uuid import UUID
 
 from aiosqlite.cursor import Cursor
@@ -10,7 +10,10 @@ from agent_platform.server.storage.errors import InvalidUUIDError
 
 class CommonMixin(BaseStorage):
     @abstractmethod
-    async def _cursor(self, cursor: Cursor|None=None) -> AsyncGenerator[Cursor, None]:
+    def _cursor(
+        self,
+        cursor: Cursor | None = None,
+    ) -> AbstractAsyncContextManager[Cursor]:
         """Get a cursor for the database (or uses the provided cursor)."""
         pass
 

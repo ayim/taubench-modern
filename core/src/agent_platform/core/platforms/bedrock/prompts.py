@@ -44,13 +44,13 @@ class BedrockPrompt(PlatformPrompt):
 
     def as_platform_request(
         self,
-        model_id: str,
+        model: str,
         stream: bool = False,
     ) -> "ConverseRequestTypeDef | ConverseStreamRequestTypeDef":
         """Convert the prompt to a Bedrock request.
 
         Args:
-            model_id: The Bedrock model ID to use to generate the request.
+            model: The Bedrock model ID to use to generate the request.
             stream: Whether to return a stream request.
 
         Returns:
@@ -62,7 +62,7 @@ class BedrockPrompt(PlatformPrompt):
         )
 
         request_dict = {
-            "modelId": model_id,
+            "modelId": model,
             "messages": self.messages,
             "system": self.system,
             "inferenceConfig": self.inference_config,

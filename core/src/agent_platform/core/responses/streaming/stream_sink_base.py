@@ -73,8 +73,7 @@ class ResponseStreamSinkBase(ABC):
     async def on_content_end(
         self,
         idx: int,
-        old_content: ResponseMessageContent,
-        new_content: ResponseMessageContent,
+        final_content: ResponseMessageContent,
     ) -> None:
         """
         Called when the content item at `idx` is considered final/completed.

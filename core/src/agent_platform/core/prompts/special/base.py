@@ -63,10 +63,14 @@ class SpecialPromptMessage(ABC):
     @classmethod
     def model_validate(cls, data: dict) -> "SpecialPromptMessage":
         """Validate and convert a dictionary into a SpecialPromptMessage instance."""
-        if data.get("role") in cls._special_message_by_role:
-            return cls._special_message_by_role[data.get("role")].model_validate(data)
+        role = data.get("role")
+        if role is None:
+            raise ValueError("Special message role is required")
+
+        if role in cls._special_message_by_role.keys():
+            return cls._special_message_by_role[role].model_validate(data)
         else:
-            raise ValueError(f"Unknown special message role: {data.get('role')}")
+            raise ValueError(f"Unknown special message role: {role}")
 
     @abstractmethod
     async def hydrate(

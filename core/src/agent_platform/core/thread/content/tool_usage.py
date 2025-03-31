@@ -5,7 +5,6 @@ from typing import Any, Literal
 
 from agent_platform.core.responses.content.tool_use import ResponseToolUseContent
 from agent_platform.core.thread.content.base import ThreadMessageContent
-from agent_platform.core.utils import assert_literal_value_valid
 
 
 @dataclass
@@ -101,7 +100,7 @@ class ThreadToolUsageContent(ThreadMessageContent):
     )
     """The metadata of the tool call"""
 
-    kind: Literal["tool_call"] = field(
+    kind: str = field(
         default="tool_call",
         metadata={"description": "Content kind: always 'tool_call'"},
         init=False,
@@ -115,7 +114,7 @@ class ThreadToolUsageContent(ThreadMessageContent):
             AssertionError: If the type field doesn't match the literal "text".
             ValueError: If the tool_name field is empty.
         """
-        assert_literal_value_valid(self, "kind")
+        assert self.kind == "tool_call"
 
         if not self.name:
             raise ValueError("Tool name cannot be empty")
@@ -172,7 +171,7 @@ class ThreadToolUsageContent(ThreadMessageContent):
             name=response_tool_use.tool_name,
             tool_call_id=response_tool_use.tool_call_id,
             arguments_raw=response_tool_use.tool_input_raw,
-            metadata=metadata,
+            metadata=metadata or {},
         )
 
 

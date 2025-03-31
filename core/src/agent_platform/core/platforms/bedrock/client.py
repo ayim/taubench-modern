@@ -1,7 +1,7 @@
 import json
 from collections.abc import AsyncGenerator
 from copy import deepcopy
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 from agent_platform.core.delta import GenericDelta
 from agent_platform.core.delta.compute_delta import compute_generic_deltas
@@ -26,7 +26,15 @@ if TYPE_CHECKING:
     from agent_platform.core.kernel import Kernel
 
 
-class BedrockClient(PlatformClient):
+class BedrockClient(
+    PlatformClient[
+        BedrockConverters,
+        BedrockParsers,
+        BedrockPlatformParameters,
+        BedrockPlatformConfigs,
+        BedrockPrompt,
+    ],
+):
     """A client for the Bedrock platform."""
 
     NAME: ClassVar[str] = "bedrock"
@@ -35,7 +43,7 @@ class BedrockClient(PlatformClient):
         self,
         *,
         kernel: "Kernel | None" = None,
-        parameters: BedrockPlatformParameters | dict | None = None,
+        parameters: BedrockPlatformParameters | None = None,
         region_name: str | None = None,
         aws_access_key_id: str | None = None,
         aws_secret_access_key: str | None = None,
@@ -61,7 +69,7 @@ class BedrockClient(PlatformClient):
 
     def _init_parameters(
         self,
-        parameters: BedrockPlatformParameters | dict | None = None,
+        parameters: BedrockPlatformParameters | None = None,
         region_name: str | None = None,
         aws_access_key_id: str | None = None,
         aws_secret_access_key: str | None = None,
@@ -118,8 +126,10 @@ class BedrockClient(PlatformClient):
         Returns:
             The complete model response.
         """
-        model_id = BedrockModelMap[model]
-        request = prompt.as_platform_request(model_id)
+        from types_boto3_bedrock_runtime.type_defs import ConverseRequestTypeDef
+
+        model_id = cast(str, BedrockModelMap[model])
+        request = cast(ConverseRequestTypeDef, prompt.as_platform_request(model_id))
         response = self._bedrock_runtime_client.converse(**request)
         return self.parsers.parse_response(response)
 
@@ -137,8 +147,13 @@ class BedrockClient(PlatformClient):
         Yields:
             GenericDeltas that update the ResponseMessage.
         """
-        model_id = BedrockModelMap[model]
-        request = prompt.as_platform_request(model_id, stream=True)
+        from types_boto3_bedrock_runtime.type_defs import ConverseStreamRequestTypeDef
+
+        model_id = cast(str, BedrockModelMap[model])
+        request = cast(
+            ConverseStreamRequestTypeDef,
+            prompt.as_platform_request(model_id, stream=True),
+        )
         response = self._bedrock_runtime_client.converse_stream(**request)
 
         # Initialize message state
@@ -148,7 +163,7 @@ class BedrockClient(PlatformClient):
         # Process each event through the parser to get deltas
         for event in response["stream"]:
             async for delta in self._parsers.parse_stream_event(
-                event,
+                event,  # type: ignore
                 response,
                 message,
                 last_message,
@@ -159,11 +174,13 @@ class BedrockClient(PlatformClient):
             last_message = deepcopy(message)
 
         final_event = self._generate_platform_metadata()
-        response["stream"] = repr(response["stream"])
         if "metadata" not in message:
             message["metadata"] = {}
         message["metadata"].update(final_event)
-        message["raw_response"] = response
+        message["raw_response"] = {
+            **response,
+            "stream": None,
+        }
 
         for delta in compute_generic_deltas(last_message, message):
             yield delta
@@ -183,7 +200,7 @@ class BedrockClient(PlatformClient):
             A dictionary containing the embeddings and any
             additional model-specific information.
         """
-        model_id = BedrockModelMap[model]
+        model_id = cast(str, BedrockModelMap[model])
 
         # Different Bedrock embedding models use different request formats;
         # so we need to handle them differently.

@@ -97,6 +97,9 @@ class MCPClient:
         if not self.is_connected:
             await self.connect()
 
+        if not self._session:
+            raise RuntimeError("MCP client not connected")
+
         response = await self._session.list_tools()
 
         def _get_tool_function(
@@ -107,6 +110,9 @@ class MCPClient:
                     # Ensure we have a valid connection
                     if not self.is_connected:
                         await self.connect()
+
+                    if not self._session:
+                        raise RuntimeError("MCP client not connected")
 
                     # Execute the tool call
                     response = await self._session.call_tool(tool_name, args)

@@ -15,13 +15,14 @@ from agent_platform.core.streaming.delta import (
     StreamingDeltaMessageEnd,
 )
 from agent_platform.core.streaming.error import StreamingError
+from agent_platform.core.thread import ThreadMessage
 
 ########################################
 # Mock classes and helpers
 ########################################
 
 
-class MockThreadMessage:
+class MockThreadMessage(ThreadMessage):
     """
     A mock stand-in for ThreadMessage with the minimum attributes needed
     to test compute_message_delta. It provides a .model_dump() and a .uid.

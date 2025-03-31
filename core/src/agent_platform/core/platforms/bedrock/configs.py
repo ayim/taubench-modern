@@ -83,6 +83,11 @@ class BedrockMimeTypeMap(MapConfiguration):
         """Get list of supported format types."""
         return list(cls.class_keys())
 
+    @classmethod
+    def reverse_mapping(cls) -> dict[str, str]:
+        """Get reverse mapping of MIME types to format types."""
+        return {v: k for k, v in cls.mapping.items()}
+
 
 @dataclass(frozen=True)
 class BedrockPlatformConfigs(PlatformConfigs):

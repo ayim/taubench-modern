@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field, fields
 from importlib.resources.abc import Traversable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, TextIO
+from typing import IO, TYPE_CHECKING, Any, Literal, TextIO
 
 from agent_platform.core.prompts.messages import (
     PromptAgentMessage,
@@ -190,7 +190,9 @@ class Prompt:
             raise ValueError(
                 f"Invalid tool choice: {self.tool_choice}. "
                 f"Must be 'auto', 'any', or the name of a provided "
-                f"tool.{' Available tools: ' + ', '.join(self.tools)}",
+                f"tool.{' Available tools: ' + ', '.join(
+                    tool.name for tool in self.tools
+                )}",
             )
 
     def overwrite_last_content_with_text(self, text: str) -> None:
@@ -259,7 +261,10 @@ class Prompt:
         if not self._finalized:
             raise ValueError("Prompt has not been finalized")
 
-        return self.messages
+        return [
+            message for message in self.messages
+            if isinstance(message, PromptUserMessage | PromptAgentMessage)
+        ]
 
     def extend_messages(
         self,
@@ -312,7 +317,7 @@ class Prompt:
 
             for content in message.content:
                 # TODO: other bits of content need formatting?
-                if hasattr(content, "text"):
+                if isinstance(content, PromptTextContent):
                     object.__setattr__(
                         content,
                         "text",
@@ -371,7 +376,10 @@ class Prompt:
         return cls(**data)
 
     @classmethod
-    def load_yaml(cls, path_or_file: str | Path | TextIO | Traversable) -> "Prompt":
+    def load_yaml(
+        cls,
+        path_or_file: str | IO[str] | Path | TextIO | Traversable,
+    ) -> "Prompt":
         """Load a prompt from a YAML file.
 
         Arguments:
@@ -380,7 +388,7 @@ class Prompt:
         Returns:
             Prompt: The loaded prompt.
         """
-        from ruamel.yaml import YAML
+        from ruamel.yaml import YAML, YAMLError
 
         yaml = YAML()
 
@@ -396,8 +404,8 @@ class Prompt:
                 data = yaml.load(path_or_file)
         except FileNotFoundError as e:
             raise FileNotFoundError(f"Prompt file not found: {path_or_file}") from e
-        except yaml.YAMLError as e:
-            raise yaml.YAMLError(f"Error loading YAML file: {path_or_file}") from e
+        except YAMLError as e:
+            raise YAMLError(f"Error loading YAML file: {path_or_file}") from e
 
         # Make sure we got some data and it's a dict
         if not data or not isinstance(data, dict):

@@ -18,7 +18,6 @@ from agent_platform.core.utils.fetch import fetch_url_data
 if TYPE_CHECKING:
     # For type-checking only. This ensures your library can refer to these
     # without forcing users to install `google-generativeai`.
-    from google.generativeai import GenerationConfig
     from google.generativeai.protos import (
         FunctionCall,
         FunctionResponse,
@@ -27,6 +26,7 @@ if TYPE_CHECKING:
         BlobDict,
         ContentDict,
         File,
+        GenerationConfig,
         PartType,
     )
 
@@ -55,11 +55,11 @@ def _maybe_upload_if_large(
         # Do an on-demand import so we don't require the library for non-Gemini uses.
         from io import BytesIO
 
-        import google.generativeai as genai
+        from google.generativeai.files import upload_file
 
         # Create a file-like object from the bytes
         file_obj = BytesIO(raw_data)
-        uploaded_file = genai.upload_file(file_obj, mime_type=mime_type)
+        uploaded_file = upload_file(file_obj, mime_type=mime_type)
         return uploaded_file
     else:
         return BlobDict(mime_type=mime_type, data=raw_data)
@@ -91,7 +91,7 @@ def _convert_image_content(
     from base64 import b64decode
 
     if content_item.sub_type == "url":
-        if not content_item.value:
+        if not content_item.value or not isinstance(content_item.value, str):
             raise ValueError("Empty image URL encountered, cannot convert.")
         raw_data = fetch_url_data(content_item.value)
         return _maybe_upload_if_large(raw_data, content_item.mime_type)
@@ -105,7 +105,10 @@ def _convert_image_content(
     elif content_item.sub_type == "raw_bytes":
         if not content_item.value:
             raise ValueError("Empty image raw_bytes encountered, cannot convert.")
-        return _maybe_upload_if_large(content_item.value, content_item.mime_type)
+        return _maybe_upload_if_large(
+            content_item.value_bytes,
+            content_item.mime_type,
+        )
 
     else:
         raise ValueError(f"Unsupported image sub_type: {content_item.sub_type}")
@@ -173,7 +176,7 @@ def _convert_tool_result_content(
         else:
             # TODO: image outputs? (Doesn't have the special handling like Anthropic)
             raise ValueError(
-                f"Unsupported sub-content in tool_result: {sub.type}. "
+                f"Unsupported sub-content in tool_result: {sub.kind}. "
                 "Extend logic if you want more detail.",
             )
 
@@ -195,19 +198,20 @@ def convert_content_item_to_gemini_part(
 
     Raises ValueError if unrecognized content_item.type.
     """
-    ctype = content_item.kind
-    if ctype == "text":
+    if isinstance(content_item, PromptTextContent):
         return _convert_text_content(content_item)
-    elif ctype == "image":
+    elif isinstance(content_item, PromptImageContent):
         return _convert_image_content(content_item)
-    elif ctype == "audio":
+    elif isinstance(content_item, PromptAudioContent):
         return _convert_audio_content(content_item)
-    elif ctype == "tool_use":
+    elif isinstance(content_item, PromptToolUseContent):
         return _convert_tool_use_content(content_item)
-    elif ctype == "tool_result":
+    elif isinstance(content_item, PromptToolResultContent):
         return _convert_tool_result_content(content_item)
     else:
-        raise ValueError(f"Unsupported PromptMessageContent type: {ctype}.")
+        raise ValueError(
+            f"Unsupported PromptMessageContent type: {content_item.kind}.",
+        )
 
 
 # -------------------------------------------------------------------
@@ -285,11 +289,14 @@ def convert_prompt_to_gemini_dict(prompt: Prompt) -> GeminiParams:
     We only type-hint Gemini objects if TYPE_CHECKING is True, so
     consumers don't need the google-generativeai library installed.
     """
-    from google.generativeai import GenerationConfig
-    from google.generativeai.types import ContentDict
+    from google.generativeai.types import ContentDict, GenerationConfig
 
     # Convert history
-    history = convert_prompt_messages_to_gemini_history(prompt.messages)
+    history = convert_prompt_messages_to_gemini_history(
+        prompt.finalized_messages,  # type: ignore
+        # Type ignore here... getting tired, this needs to get rewritten
+        # as a platform client anyway
+    )
 
     # Build generation_config
     generation_config = GenerationConfig()
@@ -315,7 +322,7 @@ def convert_prompt_to_gemini_dict(prompt: Prompt) -> GeminiParams:
         message = ContentDict(role="user", parts=[])
 
     return GeminiParams(
-        system_instruction=prompt.system_instruction,
+        system_instruction=prompt.system_instruction or "",
         message=message,
         history=history,
         generation_config=generation_config,
