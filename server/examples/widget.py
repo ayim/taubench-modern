@@ -27,9 +27,11 @@ def is_url_accessible(url):
     try:
         from requests.status_codes import codes
 
-        response = requests.head(url, timeout=1.5)
+        response = requests.get(url, timeout=1.5)
+        print(f"GET request to {url} returned status code {response.status_code}")
         return response.status_code < codes.BAD_REQUEST
-    except requests.RequestException:
+    except requests.RequestException as ex:
+        print(f"Error checking if {url} is accessible: {ex}")
         return False
 
 # Development URL
