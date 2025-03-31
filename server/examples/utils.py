@@ -7,10 +7,16 @@ from IPython.display import Markdown, display
 
 def ensure_env_file():
     """Ensure .env file exists in the examples directory."""
-    env_path = Path(__file__).parent / ".env"
-    if not env_path.exists():
-        env_path.touch()
+    from dotenv import find_dotenv
+
+    env_path = find_dotenv()
+    if not env_path:
+        env_path = Path(__file__).parent / ".env"
+        if not env_path.exists():
+            env_path.touch()
         print("Created empty .env file")
+    else:
+        print(f"Using .env file: {env_path}")
     return env_path
 
 
