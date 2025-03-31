@@ -5,7 +5,7 @@ from pathlib import Path
 from IPython.display import Markdown, display
 
 
-def ensure_env_file():
+def ensure_env_file() -> Path | str:
     """Ensure .env file exists in the examples directory."""
     from dotenv import find_dotenv
 
@@ -20,14 +20,14 @@ def ensure_env_file():
     return env_path
 
 
-def check_env_variables(required_keys: list[str]) -> bool:
+def check_env_variables(env_path: Path | str, required_keys: list[str]) -> bool:
     """Check if all required environment variables are set.
 
     Returns True if all keys exist, False otherwise.
     """
     import dotenv
 
-    dotenv.load_dotenv()
+    dotenv.load_dotenv(env_path)
 
     missing_keys = []
     for key in required_keys:
@@ -50,10 +50,10 @@ def setup_notebook(required_keys: list[str] | None = None):
     2. Checks required environment variables
     3. Returns True if setup is successful
     """
-    ensure_env_file()
+    env_path = ensure_env_file()
     setup_sys_path()
     if required_keys:
-        return check_env_variables(required_keys)
+        return check_env_variables(env_path, required_keys)
     return True
 
 
