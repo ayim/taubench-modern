@@ -212,7 +212,11 @@ class MockPlatformClient(PlatformClient):
         """Initialize mock configs."""
         return MockPlatformConfigs()
 
-    async def generate_response(self, prompt: Prompt, model: str) -> ResponseMessage:
+    async def generate_response(
+        self,
+        prompt: PlatformPrompt,
+        model: str,
+    ) -> ResponseMessage:
         """Generate a mock response."""
         return ResponseMessage(
             role="agent",
@@ -221,7 +225,7 @@ class MockPlatformClient(PlatformClient):
 
     async def generate_stream_response(
         self,
-        prompt: Prompt,
+        prompt: PlatformPrompt,
         model: str,
     ) -> AsyncGenerator[GenericDelta, None]:
         """Generate a mock stream response."""

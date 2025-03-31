@@ -1,8 +1,6 @@
 from dataclasses import dataclass, field
-from typing import Literal
 
 from agent_platform.core.thread.content.base import ThreadMessageContent
-from agent_platform.core.utils import assert_literal_value_valid
 
 
 @dataclass
@@ -55,7 +53,7 @@ class ThreadQuickActionsContent(ThreadMessageContent):
     )
     """The list of quick actions to display"""
 
-    kind: Literal["quick_actions"] = field(
+    kind: str = field(
         default="quick_actions",
         metadata={"description": "Content kind: always 'quick_actions'"},
         init=False,
@@ -75,7 +73,7 @@ class ThreadQuickActionsContent(ThreadMessageContent):
             AssertionError: If the kind field doesn't match the literal "quick_actions".
             ValueError: If the actions field is empty.
         """
-        assert_literal_value_valid(self, "kind")
+        assert self.kind == "quick_actions"
 
         # Make sure we have at least one action
         if len(self.actions) == 0:

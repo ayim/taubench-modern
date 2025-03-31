@@ -1,5 +1,4 @@
 import json
-from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import ClassVar, Self
@@ -9,7 +8,7 @@ from agent_platform.core.delta import GenericDelta
 
 
 @dataclass
-class ThreadMessageContent(ABC):
+class ThreadMessageContent:
     """Base class for all thread message content types."""
 
     _content_kinds: ClassVar[dict[str, type["ThreadMessageContent"]]] = {}
@@ -28,45 +27,8 @@ class ThreadMessageContent(ABC):
     )
     """The kind of the thread message content"""
 
-    uncommitted_deltas: list[GenericDelta] = field(
-        default_factory=list,
-        metadata={"description": "The uncommitted deltas for the content"},
-        init=False,
-    )
-    """The uncommitted deltas for the content"""
-
-    @abstractmethod
-    def as_text_content(self) -> str:
-        """Converts the thread message content to a string."""
-        pass
-
-    def append(self, delta: GenericDelta) -> None:
-        """Appends a delta to the content, does not commit it."""
-        self.uncommitted_deltas.append(delta)
-
-    def extend(self, deltas: list[GenericDelta]) -> None:
-        """Appends a list of deltas to the content, does not commit them."""
-        self.uncommitted_deltas.extend(deltas)
-
-    def commit_deltas(self) -> None:
-        """Commits the uncommitted deltas to the content.
-
-        This is a generic implementation that can be overriden by
-        concrete content types.
-        """
-        if not self.is_dirty:
-            return
-
-    @property
-    def is_dirty(self) -> bool:
-        """Whether the content has uncommitted deltas."""
-        return bool(self.uncommitted_deltas)
-
     def model_dump(self) -> dict:
         """Serializes the content to a dictionary. Useful for JSON serialization."""
-        # TODO: Should we commit them, dump them, or raise an error?
-        if self.is_dirty:
-            raise ValueError("Cannot serialize dirty content")
         return {
             "content_id": self.content_id,
             "kind": self.kind,

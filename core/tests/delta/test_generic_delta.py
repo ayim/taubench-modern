@@ -2,10 +2,8 @@ from typing import Any
 
 import pytest
 
-# Import the classes/functions to be tested
-# Assuming you have a structure like: agent_platform_core/streaming/...
 from agent_platform.core.delta import GenericDelta
-from agent_platform.core.delta.base import NO_VALUE
+from agent_platform.core.delta.base import NO_VALUE, DeltaOpType
 from agent_platform.core.delta.combine_delta import combine_generic_deltas
 from agent_platform.core.delta.compute_delta import compute_generic_deltas
 from agent_platform.core.delta.errors import InvalidPathError
@@ -114,7 +112,7 @@ class TestGenericDelta:
     )
     def test_generic_delta_path_validation(  # noqa: PLR0913
         self,
-        op: str,
+        op: DeltaOpType,
         path: str,
         value: Any,
         from_: str | None,
@@ -358,7 +356,7 @@ class TestGenericDelta:
     )
     def test_generic_delta_path_validation_with_initial_value(  # noqa: PLR0913
         self,
-        op: str,
+        op: DeltaOpType,
         path: str,
         value: Any,
         from_: str | None,

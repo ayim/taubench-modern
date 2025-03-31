@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Self
 from uuid import UUID, uuid4
 
 from agent_platform.core.thread.base import ThreadMessage
@@ -76,7 +75,7 @@ class Thread:
                 return msg
         return None
 
-    def copy(self) -> Self:
+    def copy(self) -> "Thread":
         """Returns a deep copy of the thread."""
         return Thread(
             user_id=self.user_id,
@@ -219,7 +218,7 @@ class Thread:
         as_text = ""
         for content in latest_user_message.content:
             if content.kind == "text":
-                as_text += content.text
+                as_text += getattr(content, "text", "")
 
         return as_text
 

@@ -1,13 +1,13 @@
 from base64 import b64decode
 from dataclasses import dataclass, field
-from typing import Literal
+from typing import Any, Literal
 
 # from agent_platform.core.files import UploadedFile
 from agent_platform.core.prompts.content.base import PromptMessageContent
 from agent_platform.core.utils.asserts import assert_literal_value_valid
 
 # TODO: Remove this once the files module is implemented
-UploadedFile = type[None]
+UploadedFile = Any
 
 
 @dataclass(frozen=True)
@@ -67,7 +67,7 @@ class PromptDocumentContent(PromptMessageContent):
     """Format of the document data - either an agent-server UploadedFile, base64
     encoded string, raw bytes, or URL"""
 
-    def __post_init__(self) -> None:  # noqa: C901
+    def __post_init__(self) -> None:
         """Validates the document content after initialization.
 
         Performs validation of literal values and ensures the document value is valid.
@@ -82,8 +82,7 @@ class PromptDocumentContent(PromptMessageContent):
 
         # Validate UploadedFile if applicable
         if self.sub_type == "UploadedFile":
-            if not isinstance(self.value, UploadedFile):
-                raise ValueError("Document value must be an agent-server UploadedFile")
+            raise NotImplementedError("UploadedFile is not implemented")
 
         # Validate base64 data if applicable
         if self.sub_type == "base64":

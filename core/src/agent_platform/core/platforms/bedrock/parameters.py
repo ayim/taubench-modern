@@ -171,7 +171,7 @@ class BedrockPlatformParameters(PlatformParameters):
     @property
     def config(self) -> "Config | None":
         """The botocore Config object for advanced client configuration."""
-        return self._config
+        return getattr(self, "_config", None)
 
     def __post_init__(self) -> None:
         """Process any extra kwargs as Config parameters after dataclass
@@ -205,10 +205,12 @@ class BedrockPlatformParameters(PlatformParameters):
 
             # Create or update the Config object
             new_config = Config(**extra_params)
-            if self._config is None:
+            if getattr(self, "_config", None) is None:
                 object.__setattr__(self, "_config", new_config)
             else:
-                object.__setattr__(self, "_config", self._config.merge(new_config))
+                old_config = getattr(self, "_config", None)
+                if old_config is not None:
+                    object.__setattr__(self, "_config", old_config.merge(new_config))
 
     def model_dump(
         self,
@@ -237,7 +239,7 @@ class BedrockPlatformParameters(PlatformParameters):
             "aws_access_key_id": self.aws_access_key_id,
             "aws_secret_access_key": self.aws_secret_access_key,
             "aws_session_token": self.aws_session_token,
-            "config": self._config,
+            "config": getattr(self, "_config", None),
         }
 
         if exclude_none:

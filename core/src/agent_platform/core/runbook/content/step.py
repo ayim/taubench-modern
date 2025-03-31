@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from typing import Literal
 
 from agent_platform.core.runbook.content import RunbookContent
 
@@ -30,7 +29,7 @@ class RunbookStepContent(RunbookContent):
     )
     """The metadata of the step"""
 
-    kind: Literal["step"] = field(
+    kind: str = field(
         default="step",
         metadata={
             "description": "The kind of content",
@@ -38,6 +37,14 @@ class RunbookStepContent(RunbookContent):
         init=False,
     )
     """The kind of content"""
+
+    def __post_init__(self) -> None:
+        """Validates the content type and text content after initialization.
+
+        Raises:
+            AssertionError: If the type field doesn't match the literal "text".
+        """
+        assert self.kind == "step"
 
     def copy(self) -> "RunbookStepContent":
         """Returns a deep copy of the runbook step content."""

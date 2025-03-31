@@ -22,6 +22,8 @@ Available targets:
   setup-keychain        Setup macOS keychain for code signing (no-op on non-macOS)
   sync                  Sync/install all packages in the monorepo
   test                  Run tests with pytest
+  typecheck             Run typechecking with pyright
+  venv                  Create a new virtual environment with uv
 ```
 
 ## Manual Setup Commands

@@ -6,7 +6,7 @@ from agent_platform.core.model_selector.selection_request import (
 )
 
 if TYPE_CHECKING:
-    from agent_platform.core.platforms import PlatformInterface
+    from agent_platform.core.platforms import PlatformClient
 
 
 class ModelSelector(ABC):
@@ -17,7 +17,7 @@ class ModelSelector(ABC):
     @abstractmethod
     def select_model(
         self,
-        platform: "PlatformInterface",
+        platform: "PlatformClient",
         request: ModelSelectionRequest | None = None,
     ) -> str:
         """Select a model for the agent architecture.

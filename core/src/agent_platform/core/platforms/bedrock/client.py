@@ -32,6 +32,7 @@ class BedrockClient(
         BedrockParsers,
         BedrockPlatformParameters,
         BedrockPlatformConfigs,
+        BedrockPrompt,
     ],
 ):
     """A client for the Bedrock platform."""
@@ -42,7 +43,7 @@ class BedrockClient(
         self,
         *,
         kernel: "Kernel | None" = None,
-        parameters: BedrockPlatformParameters | dict | None = None,
+        parameters: BedrockPlatformParameters | None = None,
         region_name: str | None = None,
         aws_access_key_id: str | None = None,
         aws_secret_access_key: str | None = None,
@@ -68,7 +69,7 @@ class BedrockClient(
 
     def _init_parameters(
         self,
-        parameters: BedrockPlatformParameters | dict | None = None,
+        parameters: BedrockPlatformParameters | None = None,
         region_name: str | None = None,
         aws_access_key_id: str | None = None,
         aws_secret_access_key: str | None = None,
@@ -125,8 +126,10 @@ class BedrockClient(
         Returns:
             The complete model response.
         """
+        from types_boto3_bedrock_runtime.type_defs import ConverseRequestTypeDef
+
         model_id = cast(str, BedrockModelMap[model])
-        request = prompt.as_platform_request(model_id)
+        request = cast(ConverseRequestTypeDef, prompt.as_platform_request(model_id))
         response = self._bedrock_runtime_client.converse(**request)
         return self.parsers.parse_response(response)
 
@@ -144,8 +147,13 @@ class BedrockClient(
         Yields:
             GenericDeltas that update the ResponseMessage.
         """
+        from types_boto3_bedrock_runtime.type_defs import ConverseStreamRequestTypeDef
+
         model_id = cast(str, BedrockModelMap[model])
-        request = prompt.as_platform_request(model_id, stream=True)
+        request = cast(
+            ConverseStreamRequestTypeDef,
+            prompt.as_platform_request(model_id, stream=True),
+        )
         response = self._bedrock_runtime_client.converse_stream(**request)
 
         # Initialize message state
@@ -155,7 +163,7 @@ class BedrockClient(
         # Process each event through the parser to get deltas
         for event in response["stream"]:
             async for delta in self._parsers.parse_stream_event(
-                event,
+                event,  # type: ignore
                 response,
                 message,
                 last_message,
@@ -166,11 +174,13 @@ class BedrockClient(
             last_message = deepcopy(message)
 
         final_event = self._generate_platform_metadata()
-        response["stream"] = repr(response["stream"])
         if "metadata" not in message:
             message["metadata"] = {}
         message["metadata"].update(final_event)
-        message["raw_response"] = response
+        message["raw_response"] = {
+            **response,
+            "stream": None,
+        }
 
         for delta in compute_generic_deltas(last_message, message):
             yield delta

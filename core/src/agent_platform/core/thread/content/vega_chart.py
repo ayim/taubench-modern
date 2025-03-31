@@ -22,11 +22,12 @@ class ThreadVegaChartContent(ThreadMessageContent):
     )
     """The Vega or Vega-Lite chart spec JSON (as a string) to display"""
 
-    kind: Literal["vega_chart"] = field(
+    kind: Literal["vega_chart"] = field(  # type: ignore
         default="vega_chart",
         metadata={"description": "Content kind: always 'vega_chart'"},
         init=False,
     )
+    # Type ignore here as we can narrow the kind to Literal["vega_chart"]
     """Content kind: always 'vega_chart'"""
 
     sub_type: Literal["vega", "vega-lite"] = field(

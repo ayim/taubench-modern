@@ -1,10 +1,7 @@
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from agent_platform.core.prompts.messages import (
-    PromptAgentMessage,
-    PromptUserMessage,
-)
+from agent_platform.core.prompts.messages import AnyPromptMessage
 from agent_platform.core.prompts.special.base import SpecialPromptMessage
 
 if TYPE_CHECKING:
@@ -55,7 +52,7 @@ class ConversationHistorySpecialMessage(SpecialPromptMessage):
     async def hydrate(
         self,
         kernel: "Kernel",
-    ) -> list[PromptUserMessage | PromptAgentMessage]:
+    ) -> list[AnyPromptMessage]:
         """Hydrate the conversation history special message."""
         # Get the last N message turns
         historical_messages = kernel.thread.get_last_n_message_turns(

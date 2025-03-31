@@ -229,24 +229,24 @@ class PlatformParsers(ABC):
     # specific types (e.g., an image will have a `bytes` object).
 
     @abstractmethod
-    def parse_text_content(self, content: str | bytes | dict) -> ResponseTextContent:
+    def parse_text_content(self, content: Any) -> ResponseTextContent:
         """Parses a platform-specific text content to an agent-server text content."""
         pass
 
     @abstractmethod
-    def parse_image_content(self, content: str | bytes | dict) -> ResponseImageContent:
+    def parse_image_content(self, content: Any) -> ResponseImageContent:
         """Parses a platform-specific image content to an agent-server image content."""
         pass
 
     @abstractmethod
-    def parse_audio_content(self, content: str | bytes | dict) -> ResponseAudioContent:
+    def parse_audio_content(self, content: Any) -> ResponseAudioContent:
         """Parses a platform-specific audio content to an agent-server audio content."""
         pass
 
     @abstractmethod
     def parse_tool_use_content(
         self,
-        content: str | bytes | dict,
+        content: Any,
     ) -> ResponseToolUseContent:
         """Parses a platform-specific tool use content to an agent-server
         tool use content."""
@@ -254,19 +254,19 @@ class PlatformParsers(ABC):
     @abstractmethod
     def parse_document_content(
         self,
-        content: str | bytes | dict,
+        content: Any,
     ) -> ResponseDocumentContent:
         """Parses a platform-specific document content to an agent-server
         document content."""
         pass
 
     @abstractmethod
-    def parse_content_item(self, item: str | bytes | dict) -> ResponseMessageContent:
+    def parse_content_item(self, item: Any) -> ResponseMessageContent:
         """Parses a platform-specific content item to an agent-server content item."""
         pass
 
     @abstractmethod
-    def parse_response(self, response: str | bytes | dict) -> ResponseMessage:
+    def parse_response(self, response: Any) -> ResponseMessage:
         """Parses a platform-specific response to an agent-server model response."""
         pass
 
@@ -317,11 +317,12 @@ TConverters = TypeVar('TConverters', bound=PlatformConverters)
 TParsers = TypeVar('TParsers', bound=PlatformParsers)
 TParameters = TypeVar('TParameters', bound=PlatformParameters)
 TConfigs = TypeVar('TConfigs', bound=PlatformConfigs)
+TPrompt = TypeVar('TPrompt', bound=PlatformPrompt)
 
 class PlatformClient(
     ABC,
     UsesKernelMixin,
-    Generic[TConverters, TParsers, TParameters, TConfigs],
+    Generic[TConverters, TParsers, TParameters, TConfigs, TPrompt],
 ):
     """Provides a client to interact with a AI platform."""
 
@@ -331,7 +332,7 @@ class PlatformClient(
         self,
         *,
         kernel: "Kernel | None" = None,
-        parameters: PlatformParameters | dict | None = None,
+        parameters: TParameters | None = None,
         **kwargs: Any,
     ):
         """Initialize the platform client.
@@ -388,7 +389,7 @@ class PlatformClient(
     @abstractmethod
     def _init_parameters(
         self,
-        parameters: PlatformParameters | dict | None = None,
+        parameters: TParameters | None = None,
         **kwargs: Any,
     ) -> TParameters:
         """Initializes the platform-specific parameters.
@@ -414,7 +415,7 @@ class PlatformClient(
     @abstractmethod
     async def generate_response(
         self,
-        prompt: PlatformPrompt,
+        prompt: TPrompt,
         model: str,
     ) -> ResponseMessage:
         """Generates a response to a prompt.
@@ -430,7 +431,7 @@ class PlatformClient(
     @abstractmethod
     def generate_stream_response(
         self,
-        prompt: PlatformPrompt,
+        prompt: TPrompt,
         model: str,
     ) -> AsyncGenerator[GenericDelta, None]:
         """Streams a response to a prompt.

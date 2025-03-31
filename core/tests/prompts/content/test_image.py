@@ -223,7 +223,10 @@ class TestPromptImageContent:
     def test_from_ipython_image_url_no_format_raises_error(self):
         """Test IPython Image with no valid filename or data."""
         ipy_img = IPythonImage(url="https://picsum.photos/200/300")
-        with pytest.raises(ValueError, match="Invalid value for 'mime_type'"):
+        with pytest.raises(
+            ValueError,
+            match="Invalid mime type: image/https://picsum.photos/200/300",
+        ):
             PromptImageContent.from_ipython_image(ipy_img)
 
     def test_from_ipython_image_url_with_format(self):

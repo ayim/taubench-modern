@@ -30,7 +30,7 @@ class User:
         match = re_match(pattern, sub)
 
         if not match:
-            return {"tenant": None, "user": None, "system": None}
+            return None
 
         result = {"tenant": match.group(1), "user": None, "system": None}
         if match.group("type"):
@@ -41,16 +41,22 @@ class User:
     @property
     def cr_tenant_id(self) -> str | None:
         """Control Room Tenant ID"""
+        if self._parsed_sub is None:
+            return None
         return self._parsed_sub["tenant"]
 
     @property
     def cr_user_id(self) -> str | None:
         """Control Room User ID"""
+        if self._parsed_sub is None:
+            return None
         return self._parsed_sub["user"]
 
     @property
     def cr_system_id(self) -> str | None:
         """Control Room System ID"""
+        if self._parsed_sub is None:
+            return None
         return self._parsed_sub["system"]
 
     def model_dump(self) -> dict:

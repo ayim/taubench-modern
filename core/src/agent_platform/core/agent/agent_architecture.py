@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from typing import Self
 
 
 @dataclass(frozen=True)
@@ -18,7 +17,7 @@ class AgentArchitecture:
     )
     """The version of the agent architecture."""
 
-    def copy(self) -> Self:
+    def copy(self) -> "AgentArchitecture":
         """Returns a deep copy of the agent architecture."""
         return AgentArchitecture(
             name=self.name,

@@ -23,6 +23,9 @@ AnyThreadMessageContent = (
 )
 
 
+ThreadMessageRole = Literal["user", "agent"]
+
+
 @dataclass
 class ThreadMessage:
     """Base class for all messages in a thread."""
@@ -32,7 +35,9 @@ class ThreadMessage:
     )
     """The contents of the thread message"""
 
-    role: Literal["user", "agent"]
+    role: ThreadMessageRole = field(
+        metadata={"description": "The role of the message sender."},
+    )
     """The role of the message sender."""
 
     commited: bool = field(

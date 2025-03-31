@@ -93,7 +93,7 @@ class GenericDelta:
 
     def to_json_patch(self) -> dict[str, Any]:
         """Convert to a JSON Patch operation object."""
-        patch = {"op": self.op, "path": self.path}
+        patch: dict[str, Any] = {"op": self.op, "path": self.path}
 
         # Add value for operations that need it
         if self.op in {"add", "replace", "test"}:
@@ -107,7 +107,7 @@ class GenericDelta:
 
     def model_dump(self) -> dict[str, Any]:
         """Convert to a dictionary, including optional fields."""
-        result = {
+        result: dict[str, Any] = {
             "op": self.op,
             "path": self.path,
         }

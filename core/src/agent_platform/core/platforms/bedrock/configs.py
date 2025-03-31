@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import ClassVar, Literal
+from typing import ClassVar
 
 from agent_platform.core.configurations import Configuration, MapConfiguration
 from agent_platform.core.platforms.base import PlatformConfigs
@@ -42,10 +42,7 @@ class BedrockModelMap(MapConfiguration):
 class BedrockRoleMap(MapConfiguration):
     """A map of Bedrock role names to our role names."""
 
-    mapping: ClassVar[dict[
-        Literal["user", "assistant"],
-        Literal["user", "agent"]]
-    ] = {
+    mapping: ClassVar[dict[str, str]] = {
         "user": "user",
         "assistant": "agent",
     }
@@ -85,6 +82,11 @@ class BedrockMimeTypeMap(MapConfiguration):
     def supported_format_types(cls) -> list[str]:
         """Get list of supported format types."""
         return list(cls.class_keys())
+
+    @classmethod
+    def reverse_mapping(cls) -> dict[str, str]:
+        """Get reverse mapping of MIME types to format types."""
+        return {v: k for k, v in cls.mapping.items()}
 
 
 @dataclass(frozen=True)

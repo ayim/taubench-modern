@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Literal
+from typing import Any, Literal, cast
 from uuid import UUID, uuid4
 
 from agent_platform.core.actions.action_package import ActionPackage
@@ -8,10 +8,8 @@ from agent_platform.core.agent.agent_architecture import AgentArchitecture
 from agent_platform.core.agent.observability_config import ObservabilityConfig
 from agent_platform.core.agent.question_group import QuestionGroup
 from agent_platform.core.mcp import MCPServer
+from agent_platform.core.platforms import AnyPlatformParameters
 from agent_platform.core.platforms.base import PlatformParameters
-from agent_platform.core.platforms.bedrock.parameters import (
-    BedrockPlatformParameters,
-)
 from agent_platform.core.runbook.runbook import Runbook
 from agent_platform.core.utils import assert_literal_value_valid
 
@@ -39,7 +37,7 @@ class Agent:
     version: str = field(metadata={"description": "The version of the agent."})
     """The version of the agent."""
 
-    platform_configs: list[BedrockPlatformParameters] = field(
+    platform_configs: list[AnyPlatformParameters] = field(
         metadata={"description": "The platform configs this agent can use."},
     )
     """The platform configs this agent can use."""
@@ -224,6 +222,6 @@ class Agent:
             observability_configs=observability_configs,
             question_groups=question_groups,
             runbook=runbook,
-            platform_configs=platform_configs,
+            platform_configs=cast(list[AnyPlatformParameters], platform_configs),
             **data,
         )

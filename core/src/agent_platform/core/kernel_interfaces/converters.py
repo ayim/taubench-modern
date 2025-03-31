@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from agent_platform.core.prompts import PromptMessage
+from agent_platform.core.prompts.messages import AnyPromptMessage
 from agent_platform.core.thread import ThreadMessage
 
 
@@ -16,7 +16,7 @@ class ConvertersInterface(ABC):
     async def thread_messages_to_prompt_messages(
         self,
         thread_messages: list[ThreadMessage],
-    ) -> list[PromptMessage]:
+    ) -> list[AnyPromptMessage]:
         """Convert a list of thread messages to a list of prompt messages.
 
         Why is this a big deal? There may be things in the thread state

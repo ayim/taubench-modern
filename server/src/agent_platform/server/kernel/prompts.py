@@ -14,7 +14,7 @@ class AgentServerPromptsInterface(PromptsInterface, UsesKernelMixin):
         self,
         path: str,
         *,
-        package: str,
+        package: str | None = None,
         state: StateBase | None = None,
     ) -> Prompt:
         """

@@ -1,8 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Literal
 
-from agent_platform.core.thread.base import ThreadMessage
+from agent_platform.core.thread.base import ThreadMessage, ThreadMessageRole
 from agent_platform.core.thread.content import ThreadThoughtContent
 from agent_platform.core.utils import assert_literal_value_valid
 
@@ -11,7 +10,7 @@ from agent_platform.core.utils import assert_literal_value_valid
 class ThreadUserMessage(ThreadMessage):
     """Represents a user message in a thread."""
 
-    role: Literal["user"] = field(
+    role: ThreadMessageRole = field(
         default="user",
         metadata={"description": "The role of the message sender (always 'user')"},
     )
@@ -36,7 +35,7 @@ class ThreadUserMessage(ThreadMessage):
 class ThreadAgentMessage(ThreadMessage):
     """Represents an agent message in a thread."""
 
-    role: Literal["agent"] = field(
+    role: ThreadMessageRole = field(
         default="agent",
         metadata={"description": "The role of the message sender (always 'agent')"},
     )

@@ -36,7 +36,10 @@ class PromptMessage(ABC):
     @classmethod
     def model_validate(cls, data: dict) -> "PromptMessage":
         """Validate and convert a dictionary into a PromptMessage instance."""
-        if data.get("role") in cls._message_by_role:
-            return cls._message_by_role[data.get("role")].model_validate(data)
+        role = data.get("role")
+        if role is None:
+            raise ValueError("Message role is required")
+        if role in cls._message_by_role:
+            return cls._message_by_role[role].model_validate(data)
         else:
             raise ValueError(f"Unknown message role: {data.get('role')}")

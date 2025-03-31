@@ -1,8 +1,7 @@
+import json
 from dataclasses import dataclass, field
-from typing import Literal
 
 from agent_platform.core.thread.content.base import ThreadMessageContent
-from agent_platform.core.utils import assert_literal_value_valid
 
 
 @dataclass
@@ -42,7 +41,7 @@ class ThreadAttachmentContent(ThreadMessageContent):
     )
     """The base64 encoded data of the attachment, if the attachment is a file"""
 
-    kind: Literal["attachment"] = field(
+    kind: str = field(
         default="attachment",
         metadata={"description": "Content kind: always 'attachment'"},
         init=False,
@@ -63,7 +62,7 @@ class ThreadAttachmentContent(ThreadMessageContent):
                 or if the base64_data field is empty (attachment is NOT a handle),
                 or if the base64_data field holds invalid base64 data.
         """
-        assert_literal_value_valid(self, "kind")
+        assert self.kind == "attachment"
 
         # Ensure the mime_type is valid
         if not self.mime_type:
@@ -101,17 +100,22 @@ class ThreadAttachmentContent(ThreadMessageContent):
             f"/>"
         )
 
-    def model_dump_json(self) -> dict:
+    def model_dump(self) -> dict:
         """Serializes the attachment content to a dictionary.
         Useful for JSON serialization."""
         return {
-            **super().model_dump_json(),
+            **super().model_dump(),
             "name": self.name,
             "mime_type": self.mime_type,
             "description": self.description,
             "uri": self.uri,
             "base64_data": self.base64_data,
         }
+
+    def model_dump_json(self) -> str:
+        """Serializes the attachment content to a JSON string.
+        Useful for JSON serialization."""
+        return json.dumps(self.model_dump())
 
     @classmethod
     def model_validate(cls, data: dict) -> "ThreadAttachmentContent":

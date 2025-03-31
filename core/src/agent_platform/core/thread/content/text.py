@@ -1,9 +1,7 @@
 import json
 from dataclasses import dataclass, field
-from typing import Literal
 
 from agent_platform.core.thread.content.base import ContentDelta, ThreadMessageContent
-from agent_platform.core.utils import assert_literal_value_valid
 
 
 @dataclass(frozen=True)
@@ -78,7 +76,7 @@ class ThreadTextContent(ThreadMessageContent):
     )
     """The citations in the text content"""
 
-    kind: Literal["text"] = field(
+    kind: str = field(
         default="text",
         metadata={"description": "Content kind: always 'text'"},
         init=False,
@@ -92,7 +90,7 @@ class ThreadTextContent(ThreadMessageContent):
             AssertionError: If the type field doesn't match the literal "text".
             ValueError: If the text field is empty.
         """
-        assert_literal_value_valid(self, "kind")
+        assert self.kind == "text"
 
         if not self.text:
             raise ValueError("Text value cannot be empty")
@@ -128,7 +126,7 @@ class ThreadTextContent(ThreadMessageContent):
 class TextDelta(ContentDelta):
     """A delta for a thread text content."""
 
-    kind: Literal["text"] = field(
+    kind: str = field(
         default="text",
         metadata={"description": "Content kind: always 'text'"},
         init=False,

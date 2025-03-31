@@ -175,7 +175,7 @@ class DebugChatWidget(anywidget.AnyWidget):
 
                     file_path = os.path.join(temp_dir, safe_name)
                     with open(file_path, 'w', encoding='utf-8') as f:
-                        f.write(artifact.content.decode("utf-8"))
+                        f.write(artifact.content.decode())
 
                     new_thread_artifacts.append({
                         "name": artifact_name,
@@ -324,10 +324,13 @@ class DebugChatWidget(anywidget.AnyWidget):
                         # Need to _assign_ to update in traitlets
                         self.messages = [
                             *self.messages[:-1].copy(),
-                            combine_generic_deltas(
-                                [delta], self.messages[-1],
+                            ThreadAgentMessage.model_validate(
+                                combine_generic_deltas(
+                                    [delta], self.messages[-1].model_dump(),
+                                ),
                             ),
                         ]
+                        self.messages_out = [m.model_dump() for m in self.messages]
                     elif event_type == "message_end":
                         # Refresh active thread artifacts
                         self.refresh_active_thread_artifacts()
@@ -367,6 +370,7 @@ class DebugChatWidget(anywidget.AnyWidget):
                 content=[ThreadTextContent(text=text)],
             ))
         self.messages = current
+        self.messages_out = [m.model_dump() for m in current]
 
     def handle_custom_message(self):
         def _handle_msg(widget, content, buffers):

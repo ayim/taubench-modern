@@ -56,9 +56,10 @@ class StateBase:
             """
             async def _on_tool_complete(
                 content: ResponseToolUseContent,
-                tool_def: ToolDefinition,
+                tool_def: ToolDefinition | None,
             ) -> None:
-                self.state.pending_tool_calls.append((tool_def, content))
+                if tool_def is not None:
+                    self.state.pending_tool_calls.append((tool_def, content))
 
             return ToolUseResponseStreamSink(
                 on_tool_complete=_on_tool_complete,
@@ -88,13 +89,14 @@ class StateBase:
 
             async def _on_tool_complete(
                 content: ResponseToolUseContent,
-                tool_def: ToolDefinition,
+                tool_def: ToolDefinition | None,
             ) -> None:
-                setattr(
-                    self.state,
-                    field_name,
-                    [*previous_value, (tool_def, content)],
-                )
+                if tool_def is not None:
+                    setattr(
+                        self.state,
+                        field_name,
+                        [*previous_value, (tool_def, content)],
+                    )
 
             return ToolUseResponseStreamSink(
                 on_tool_complete=_on_tool_complete,

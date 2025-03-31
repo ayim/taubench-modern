@@ -84,8 +84,8 @@ def _openapi_spec_to_tool_definitions(
 
             # Start building the schema
             tool_definition = ToolDefinition(
-                name=resolved_spec.get("operationId"),
-                description=resolved_spec.get("summary"),
+                name=resolved_spec.get("operationId", ""),
+                description=resolved_spec.get("summary", ""),
                 input_schema={
                     "type": "object",
                     "properties": args_schema,
