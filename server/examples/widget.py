@@ -21,9 +21,35 @@ from agent_platform.core.thread import (
     ThreadUserMessage,
 )
 
-# In dev, point to your local dev server
-ESM = "http://localhost:5173/src/index.tsx?anywidget"
-CSS = ""
+
+# Check if dev server is available, otherwise use static files
+def is_url_accessible(url):
+    try:
+        from requests.status_codes import codes
+
+        response = requests.get(url, timeout=1.5)
+        print(f"GET request to {url} returned status code {response.status_code}")
+        return response.status_code < codes.BAD_REQUEST
+    except requests.RequestException as ex:
+        print(f"Error checking if {url} is accessible: {ex}")
+        return False
+
+# Development URL
+DEV_ESM = "http://localhost:5173/src/index.tsx?anywidget"
+# Use dev URL if accessible, otherwise fall back to static files
+if is_url_accessible(DEV_ESM):
+    print("Using widget in dev mode (hot-reloading)")
+    ESM = DEV_ESM
+else:
+    print("Using static widget")
+    ESM = "./debug_widget/static/index.js"
+
+# Similarly for CSS
+DEV_CSS = ""
+CSS = (
+    DEV_CSS if DEV_CSS and is_url_accessible(DEV_CSS)
+    else "./debug_widget/static/style.css"
+)
 
 
 class AgentApiClient:
