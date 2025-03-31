@@ -10,6 +10,7 @@ from agent_platform.core.platforms.base import (
     PlatformClient,
 )
 from agent_platform.core.platforms.openai.configs import (
+    OpenAIModelMap,
     OpenAIPlatformConfigs,
 )
 from agent_platform.core.platforms.openai.converters import OpenAIConverters
@@ -105,7 +106,7 @@ class OpenAIClient(
         Returns:
             The complete model response.
         """
-        model_id = self._configs.model_maps[model].model_id
+        model_id = OpenAIModelMap.mapping[model]
         request = prompt.as_platform_request(model_id)
         response = await self._openai_client.chat.completions.create(**request)
         return self.parsers.parse_response(response)
@@ -124,7 +125,7 @@ class OpenAIClient(
         Yields:
             GenericDeltas that update the ResponseMessage.
         """
-        model_id = self._configs.model_maps[model].model_id
+        model_id = OpenAIModelMap.mapping[model]
         request = prompt.as_platform_request(model_id, stream=True)
         response_stream = await self._openai_client.chat.completions.create(**request)
 
@@ -194,7 +195,7 @@ class OpenAIClient(
             A dictionary containing the embeddings and any
             additional model-specific information.
         """
-        model_id = self._configs.model_maps[model].model_id
+        model_id = OpenAIModelMap.mapping[model]
         response = await self._openai_client.embeddings.create(
             model=model_id,
             input=texts,

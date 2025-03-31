@@ -7,7 +7,6 @@ import pytest
 
 from agent_platform.core.kernel import Kernel
 from agent_platform.core.platforms.openai.client import OpenAIClient
-from agent_platform.core.platforms.openai.configs import OpenAIModelMap
 from agent_platform.core.platforms.openai.parameters import OpenAIPlatformParameters
 from agent_platform.core.platforms.openai.prompts import OpenAIPrompt
 from agent_platform.core.prompts import Prompt, PromptTextContent, PromptUserMessage
@@ -208,15 +207,10 @@ class TestOpenAIClient:
         """Test generating a response."""
         # Add the model to the model maps
         test_model_map = {
-            "gpt-4": OpenAIModelMap(
-                model_id="gpt-4",
-                model_name="GPT-4",
-                context_window=8192,
-                max_tokens=4096,
-            ),
+            "gpt-4": "gpt-4",
         }
         with patch(
-            "agent_platform.core.platforms.openai.configs.OpenAIPlatformConfigs.model_maps",
+            "agent_platform.core.platforms.openai.configs.OpenAIModelMap.mapping",
             new_callable=PropertyMock,
             return_value=test_model_map,
         ):
@@ -254,15 +248,10 @@ class TestOpenAIClient:
         """Test generating a stream response."""
         # Add the model to the model maps
         test_model_map = {
-            "gpt-4": OpenAIModelMap(
-                model_id="gpt-4",
-                model_name="GPT-4",
-                context_window=8192,
-                max_tokens=4096,
-            ),
+            "gpt-4": "gpt-4",
         }
         with patch(
-            "agent_platform.core.platforms.openai.configs.OpenAIPlatformConfigs.model_maps",
+            "agent_platform.core.platforms.openai.configs.OpenAIModelMap.mapping",
             new_callable=PropertyMock,
             return_value=test_model_map,
         ):
@@ -285,15 +274,10 @@ class TestOpenAIClient:
         """Test creating embeddings."""
         # Add the embedding model to the model maps
         test_model_map = {
-            "text-embedding-ada-002": OpenAIModelMap(
-                model_id="text-embedding-ada-002",
-                model_name="text-embedding-ada-002",
-                context_window=8191,
-                max_tokens=8191,
-            ),
+            "text-embedding-ada-002": "text-embedding-ada-002",
         }
         with patch(
-            "agent_platform.core.platforms.openai.configs.OpenAIPlatformConfigs.model_maps",
+            "agent_platform.core.platforms.openai.configs.OpenAIModelMap.mapping",
             new_callable=PropertyMock,
             return_value=test_model_map,
         ):
@@ -318,15 +302,10 @@ class TestOpenAIClient:
         """Test creating embeddings in batch."""
         # Add the embedding model to the model maps
         test_model_map = {
-            "text-embedding-ada-002": OpenAIModelMap(
-                model_id="text-embedding-ada-002",
-                model_name="text-embedding-ada-002",
-                context_window=8191,
-                max_tokens=8191,
-            ),
+            "text-embedding-ada-002": "text-embedding-ada-002",
         }
         with patch(
-            "agent_platform.core.platforms.openai.configs.OpenAIPlatformConfigs.model_maps",
+            "agent_platform.core.platforms.openai.configs.OpenAIModelMap.mapping",
             new_callable=PropertyMock,
             return_value=test_model_map,
         ):

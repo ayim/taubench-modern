@@ -1,111 +1,104 @@
-"""OpenAI platform configurations."""
-
 from dataclasses import dataclass, field
-from typing import Any, ClassVar
+from typing import ClassVar
 
+from agent_platform.core.configurations import Configuration, MapConfiguration
 from agent_platform.core.platforms.base import PlatformConfigs
 
 
 @dataclass(frozen=True)
-class OpenAIModelMap:
-    """OpenAI model mapping."""
+class OpenAIContentLimits(Configuration):
+    """Content limits and associated global configurations for the OpenAI platform."""
 
-    model_id: str
-    """OpenAI model ID"""
-
-    model_name: str
-    """OpenAI model name"""
-
-    context_window: int
-    """Context window size"""
-
-    max_tokens: int
-    """Maximum tokens per request"""
-
-    supports_functions: bool = field(default=False)
-    """Whether the model supports function calling"""
-
-    supports_vision: bool = field(default=False)
-    """Whether the model supports vision"""
-
-    supports_audio: bool = field(default=False)
-    """Whether the model supports audio"""
+    MAX_IMAGE_COUNT: int = 20
+    MAX_IMAGE_SIZE: int = 3_750_000  # 3.75MB
+    MAX_IMAGE_HEIGHT: int = 8_000
+    MAX_IMAGE_WIDTH: int = 8_000
+    MAX_DOCUMENT_COUNT: int = 5
+    MAX_DOCUMENT_SIZE: int = 4_500_000  # 4.5MB
 
 
 @dataclass(frozen=True)
-class OpenAIContentLimits:
-    """OpenAI content limits."""
+class OpenAIModelMap(MapConfiguration):
+    """A map of our model names to OpenAI model configurations."""
 
-    max_tokens: int = field(default=4096)
-    """Maximum tokens per request"""
+    mapping: ClassVar[dict[str, str]] = {
+        "gpt-4": "gpt-4",
+        "gpt-4-turbo": "gpt-4-turbo",
+        "gpt-3.5-turbo": "gpt-3.5-turbo",
+    }
 
-    max_tokens_per_message: int = field(default=4096)
-    """Maximum tokens per message"""
-
-    max_messages: int = field(default=100)
-    """Maximum number of messages"""
-
-    max_tools: int = field(default=10)
-    """Maximum number of tools"""
-
-    max_tool_calls: int = field(default=10)
-    """Maximum number of tool calls per request"""
+    @classmethod
+    def supported_models(cls) -> list[str]:
+        """Get list of supported model names."""
+        return list(cls.class_keys())
 
 
 @dataclass(frozen=True)
-class OpenAIMimeTypeMap:
-    """OpenAI MIME type mapping."""
+class OpenAIDefaultModel(Configuration):
+    """The default model to use for the OpenAI platform."""
 
-    mime_type: str
-    """MIME type"""
+    DEFAULT_MODEL: str = "gpt-4-turbo"
 
-    content_type: str
-    """OpenAI content type"""
+
+@dataclass(frozen=True)
+class OpenAIMimeTypeMap(MapConfiguration):
+    """A map of OpenAI format types to MIME types supported by the platform."""
+
+    mapping: ClassVar[dict[str, str]] = {
+        "jpeg": "image/jpeg",
+        "png": "image/png",
+        "gif": "image/gif",
+        "webp": "image/webp",
+        "pdf": "application/pdf",
+        "txt": "text/plain",
+        "csv": "text/csv",
+        "md": "text/markdown",
+        "html": "text/html",
+        "xls": "application/vnd.ms-excel",
+        "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "doc": "application/msword",
+        "docx": "application/"
+        "vnd.openxmlformats-officedocument.wordprocessingml.document",
+    }
+
+    @classmethod
+    def supported_format_types(cls) -> list[str]:
+        """Get list of supported format types."""
+        return list(cls.class_keys())
+
+    @classmethod
+    def reverse_mapping(cls) -> dict[str, str]:
+        """Get reverse mapping of MIME types to format types."""
+        return {v: k for k, v in cls.mapping.items()}
 
 
 @dataclass(frozen=True)
 class OpenAIPlatformConfigs(PlatformConfigs):
     """OpenAI platform configurations."""
 
-    _model_maps: ClassVar[dict[str, OpenAIModelMap]] = {
-        "gpt-4": OpenAIModelMap(
-            model_id="gpt-4",
-            model_name="GPT-4",
-            context_window=8192,
-            max_tokens=4096,
-            supports_functions=True,
-        ),
-        "gpt-4-turbo": OpenAIModelMap(
-            model_id="gpt-4-turbo-preview",
-            model_name="GPT-4 Turbo",
-            context_window=128000,
-            max_tokens=4096,
-            supports_functions=True,
-            supports_vision=True,
-        ),
-        "gpt-3.5-turbo": OpenAIModelMap(
-            model_id="gpt-3.5-turbo",
-            model_name="GPT-3.5 Turbo",
-            context_window=16385,
-            max_tokens=4096,
-            supports_functions=True,
-        ),
-    }
+    default_platform_provider: dict[str, str] = field(
+        default_factory=lambda: {
+            "llm": "openai",
+            "embedding": "openai",
+        },
+        metadata={"description": "The default platform provider by model type."},
+    )
+    """The default platform provider by model type."""
 
-    _content_limits: ClassVar[OpenAIContentLimits] = OpenAIContentLimits()
+    default_model_type: str = field(
+        default="llm",
+        metadata={"description": "The default model type."},
+    )
+    """The default model type."""
 
-    _mime_type_maps: ClassVar[list[OpenAIMimeTypeMap]] = [
-        OpenAIMimeTypeMap(mime_type="image/jpeg", content_type="image_url"),
-        OpenAIMimeTypeMap(mime_type="image/png", content_type="image_url"),
-        OpenAIMimeTypeMap(mime_type="image/gif", content_type="image_url"),
-        OpenAIMimeTypeMap(mime_type="image/webp", content_type="image_url"),
-        OpenAIMimeTypeMap(mime_type="image/heic", content_type="image_url"),
-        OpenAIMimeTypeMap(mime_type="image/heif", content_type="image_url"),
-        OpenAIMimeTypeMap(mime_type="audio/mpeg", content_type="audio_url"),
-        OpenAIMimeTypeMap(mime_type="audio/wav", content_type="audio_url"),
-        OpenAIMimeTypeMap(mime_type="audio/ogg", content_type="audio_url"),
-        OpenAIMimeTypeMap(mime_type="audio/webm", content_type="audio_url"),
-    ]
+    default_quality_tier: dict[str, str] = field(
+        default_factory=lambda: {
+            "llm": "balanced",
+            "embedding": "balanced",
+        },
+        metadata={"description": "The default quality tier by model type."},
+    )
+    """The default quality tier by model type."""
 
     supported_models_by_provider: dict[str, list[str]] = field(
         default_factory=lambda: {
@@ -118,33 +111,3 @@ class OpenAIPlatformConfigs(PlatformConfigs):
         metadata={"description": "The supported models by provider."},
     )
     """The supported models by provider."""
-
-    @property
-    def model_maps(self) -> dict[str, OpenAIModelMap]:
-        """Get model mappings."""
-        return self._model_maps
-
-    @property
-    def content_limits(self) -> OpenAIContentLimits:
-        """Get content limits."""
-        return self._content_limits
-
-    @property
-    def mime_type_maps(self) -> list[OpenAIMimeTypeMap]:
-        """Get MIME type mappings."""
-        return self._mime_type_maps
-
-    @property
-    def default_model(self) -> str:
-        """Get default model."""
-        return "gpt-4-turbo"
-
-    @property
-    def supported_features(self) -> dict[str, Any]:
-        """Get supported features."""
-        return {
-            "functions": True,
-            "vision": True,
-            "audio": True,
-            "streaming": True,
-        }
