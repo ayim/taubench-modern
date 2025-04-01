@@ -9,9 +9,9 @@ from typing import Any
 import structlog
 import uvicorn
 
+from agent_platform.server.cli.args import ServerArgs
+from agent_platform.server.cli.configurations import load_full_config
 from agent_platform.server.constants import SystemConfig, SystemPaths
-from server.cli.args import ServerArgs
-from server.cli.configurations import load_full_config
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 

@@ -8,10 +8,10 @@ from typing import Literal
 
 import structlog
 
-from server.agent_architectures.arch_manager import AgentArchManager
-from server.cli.args import ServerArgs
-from server.configuration_manager import get_configuration_manager
-from server.constants import default_config_path
+from agent_platform.server.agent_architectures.arch_manager import AgentArchManager
+from agent_platform.server.cli.args import ServerArgs
+from agent_platform.server.configuration_manager import get_configuration_manager
+from agent_platform.server.constants import default_config_path
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 

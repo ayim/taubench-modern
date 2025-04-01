@@ -4,7 +4,7 @@ import sys
 
 import structlog
 
-from server.constants import ROOT
+from agent_platform.server.constants import ROOT
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 

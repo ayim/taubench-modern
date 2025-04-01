@@ -3,14 +3,17 @@ from typing import Any  # Add typing imports for type annotations
 
 import structlog
 
+from agent_platform.server.cli.args import ServerArgs, parse_args
+from agent_platform.server.cli.configurations import (
+    parse_config_path_args,
+    print_config,
+)
+from agent_platform.server.cli.license import print_license
+from agent_platform.server.cli.lifecycle import ServerLifecycleManager
 from agent_platform.server.configuration_manager import (
     init_configurations,
 )
 from agent_platform.server.log_config import setup_logging
-from server.cli.args import ServerArgs, parse_args
-from server.cli.configurations import parse_config_path_args, print_config
-from server.cli.license import print_license
-from server.cli.lifecycle import ServerLifecycleManager
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
