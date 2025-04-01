@@ -128,9 +128,9 @@ dev-widget:  ## Run pnpm run dev on server/examples/debug_widget
 # --------------------------------------------------------------------
 # Run & Test
 # --------------------------------------------------------------------
-run-server:  ## Run the agent server with a custom PYTHONPATH
+run-server:  ## Run the agent server
 	@echo "Running server from agent_platform.server..."
-	PYTHONPATH=core/src:architectures/default/src:server/src uv run -m agent_platform.server
+	uv run -m agent_platform.server
 
 run-server-exe:  ## Run the agent server executable
 	@if [ ! -f dist/agent-server ]; then \

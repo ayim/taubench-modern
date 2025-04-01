@@ -2,15 +2,11 @@
 name = "agent_platform_architectures_default"
 version = "2.0.0"
 requires-python = ">=3.12"
-authors = [
-    {name="Sema4.ai Engineering", email="engineering@sema4.ai"}
-]
-dependencies = [
-    "agent_platform_core",
-]
+authors = [{ name = "Sema4.ai Engineering", email = "engineering@sema4.ai" }]
+dependencies = ["agent_platform_core"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/agent_platform/architectures/default"]
+packages = ["src"]
 
 [build-system]
 requires = ["hatchling"]
@@ -18,3 +14,9 @@ build-backend = "hatchling.build"
 
 [project.entry-points."agent_platform.architectures"]
 "agent_platform.architectures.default" = "agent_platform.architectures.default:entrypoint"
+
+[tool.setuptools.package-data]
+"agent_platform.architectures.default" = ["py.typed"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
