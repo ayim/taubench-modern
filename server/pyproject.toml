@@ -2,9 +2,7 @@
 name = "agent_platform_server"
 version = "2.0.0"
 requires-python = ">=3.12"
-authors = [
-    {name="Sema4.ai Engineering", email="engineering@sema4.ai"}
-]
+authors = [{ name = "Sema4.ai Engineering", email = "engineering@sema4.ai" }]
 dependencies = [
     "agent_platform_core",
     "agent_platform_architectures_default",
@@ -23,8 +21,14 @@ dependencies = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/agent_platform/server"]
+packages = ["src"]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.setuptools.package-data]
+"agent_platform.server" = ["py.typed"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
