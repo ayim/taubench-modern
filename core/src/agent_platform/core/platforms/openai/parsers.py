@@ -142,30 +142,111 @@ class OpenAIParsers(PlatformParsers):
             ValueError: If the response format is invalid or missing required fields.
         """
         response_messages = []
-        for choice in response["choices"]:
-            if "message" not in choice:
+
+        # Check if response is a dictionary or an OpenAI object
+        if isinstance(response, dict):
+            choices = response.get("choices", [])
+        else:
+            # Handle OpenAI ChatCompletion object
+            choices = response.choices if hasattr(response, "choices") else []
+
+        for choice in choices:
+            if isinstance(choice, dict):
+                message = choice.get("message")
+            else:
+                # Handle OpenAI Choice object
+                message = choice.message if hasattr(choice, "message") else None
+
+            if not message:
                 continue
 
             response_content = []
 
-            message = choice["message"]
-            message_content = ""
-            if message.get("content"):
-                response_content.append(
-                    ResponseTextContent(text=message["content"]),
+            # Extract content based on type (string or list)
+            if isinstance(message, dict):
+                content = message.get("content")
+                tool_calls = message.get("tool_calls", [])
+            else:
+                # Handle OpenAI Message object
+                content = message.content if hasattr(message, "content") else None
+                tool_calls = (
+                    message.tool_calls if hasattr(message, "tool_calls") else []
                 )
 
-            usage = response.get("usage", {})
+            # Handle text content if present
+            if content:
+                response_content.append(ResponseTextContent(text=content))
+
+            # Handle tool calls if present - ensure tool_calls is not None
+            if tool_calls:  # Added check to make sure tool_calls is not None
+                for tool_call in tool_calls:
+                    if isinstance(tool_call, dict):
+                        tool_id = tool_call.get("id")
+                        function = tool_call.get("function", {})
+                        name = function.get("name", "")
+                        arguments = function.get("arguments", "{}")
+                    else:
+                        # Handle OpenAI ToolCall object
+                        tool_id = tool_call.id if hasattr(tool_call, "id") else None
+                        function = (
+                            tool_call.function
+                            if hasattr(tool_call, "function")
+                            else None
+                        )
+                        if function is not None:
+                            name = function.name if hasattr(function, "name") else ""
+                            arguments = (
+                                function.arguments
+                                if hasattr(function, "arguments")
+                                else "{}"
+                            )
+                    # Make sure tool_id is a string
+                    tool_id_str = str(tool_id) if tool_id is not None else ""
+                    response_content.append(
+                        ResponseToolUseContent(
+                            tool_call_id=tool_id_str,
+                            tool_name=name,
+                            tool_input_raw=arguments,
+                        ),
+                    )
+
+            # Extract usage metrics
+            if isinstance(response, dict):
+                usage = response.get("usage", {})
+                input_tokens = usage.get("prompt_tokens", 0)
+                output_tokens = usage.get("completion_tokens", 0)
+                total_tokens = usage.get("total_tokens", 0)
+            else:
+                # Handle OpenAI Usage object
+                usage = response.usage if hasattr(response, "usage") else None
+                if usage is None:
+                    input_tokens = 0
+                    output_tokens = 0
+                    total_tokens = 0
+                else:
+                    input_tokens = (
+                        usage.prompt_tokens if hasattr(usage, "prompt_tokens") else 0
+                    )
+                    output_tokens = (
+                        usage.completion_tokens
+                        if hasattr(usage, "completion_tokens")
+                        else 0
+                    )
+                    total_tokens = (
+                        usage.total_tokens if hasattr(usage, "total_tokens") else 0
+                    )
+
             token_usage = TokenUsage(
-                input_tokens=usage.get("prompt_tokens", 0),
-                output_tokens=usage.get("completion_tokens", 0),
-                total_tokens=usage.get("total_tokens", 0),
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                total_tokens=total_tokens,
             )
 
             response = ResponseMessage(
                 role="agent",
                 content=response_content,
                 usage=token_usage,
+                raw_response=response,
             )
             response_messages.append(response)
 
