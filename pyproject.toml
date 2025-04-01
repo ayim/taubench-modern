@@ -43,10 +43,6 @@ agent_platform_server = { workspace = true }
 members = ["architectures/default/", "core/", "server/"]
 
 
-[tool.pyright]
-extraPaths = ["core/src", "architectures/default/src", "server/src"]
-
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
@@ -54,7 +50,6 @@ python_classes = ["Test*"]
 python_functions = ["test_*"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
-pythonpath = ["core/src", "architectures/default/src", "server/src"]
 
 
 [tool.ruff]

@@ -18,7 +18,7 @@ Available targets:
   help                  Show this help
   lint                  Run ruff linting
   run-server-exe        Run the agent server executable
-  run-server            Run the agent server with a custom PYTHONPATH
+  run-server            Run the agent server via uv run -m
   setup-keychain        Setup macOS keychain for code signing (no-op on non-macOS)
   sync                  Sync/install all packages in the monorepo
   test                  Run tests with pytest
@@ -36,7 +36,7 @@ Initial setup with `uv`:
 2. `uv venv --python=python3.12` to create a Python 3.12 venv in the root directory
 3. `source .venv/bin/activate` to activate the venv
 4. `uv sync --all-extras --all-groups --all-packages` to install the whole monorepo
-5. `PYTHONPATH=core/src:architectures/default/src:server/src uv run -m agent_platform.server` to run the server
+5. `uv run -m agent_platform.server` to run the server
 6. `uv run pytest core/ server/` to run tests
 7. `uv run ruff check` to lint everything
 
