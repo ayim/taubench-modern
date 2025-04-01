@@ -203,7 +203,7 @@ def main():  # noqa: C901, PLR0912, PLR0915
 
     # Prepare configuration overrides
     overrides = {}
-    config_path_key = "sema4ai_agent_server.constants.SystemPaths"
+    config_path_key = "agent_platform.server.constants.SystemPaths"
 
     # Apply CLI data_dir and log_dir if provided
     if args.data_dir or args.log_dir:
@@ -220,7 +220,7 @@ def main():  # noqa: C901, PLR0912, PLR0915
     # the full application
     init_configurations(
         config_path,
-        config_modules=["sema4ai_agent_server.constants"],
+        config_modules=["agent_platform.server.constants"],
         overrides=overrides,
     )
 
@@ -517,7 +517,7 @@ def main():  # noqa: C901, PLR0912, PLR0915
     # Step 2: Load all remaining configurations before running the server
     # This will use the already initialized manager and update it, not reinitialize it
     logger.info("Loading all configurations before starting server...")
-    # from sema4ai_agent_server.agent_architecture_manager
+    # from agent_platform.agent_architecture_manager
     # import get_agent_architectures
 
     manager = get_configuration_manager()

@@ -24,6 +24,6 @@ files:                   # The files to update with the new version.
     replace:
       - "\"version\": \"{version}\""
 
-  - path: "sema4ai_agent_server/server.py"
+  - path: "agent_platform/server.py"
     replace:
       - "VERSION = \"{version}\""
