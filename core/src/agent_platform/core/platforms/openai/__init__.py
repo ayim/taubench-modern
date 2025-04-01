@@ -1,5 +1,3 @@
-"""OpenAI platform implementation for agent-server-types."""
-
 from agent_platform.core.platforms.openai.client import OpenAIClient
 from agent_platform.core.platforms.openai.configs import (
     OpenAIContentLimits,

@@ -1,12 +1,10 @@
-"""OpenAI platform parameters."""
-
 from dataclasses import MISSING, dataclass, field, fields
-from typing import Any, Union
+from typing import Any, Literal
 
 from agent_platform.core.platforms.base import PlatformParameters
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class OpenAIPlatformParameters(PlatformParameters):
     """Parameters for the OpenAI platform.
 
@@ -52,6 +50,13 @@ class OpenAIPlatformParameters(PlatformParameters):
         ```
     """
 
+    kind: Literal["openai"] = field(
+        default="openai",
+        metadata={"description": "The kind of platform parameters."},
+        init=False,
+    )
+    """The kind of platform parameters."""
+
     api_key: str = field(
         metadata={"description": "OpenAI API key"},
     )
@@ -93,6 +98,34 @@ class OpenAIPlatformParameters(PlatformParameters):
     )
     """Additional parameters for OpenAI API calls"""
 
+    _extra_config_params: dict | None = field(default=None, init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        """Process any extra kwargs as Config parameters after dataclass
+        initialization."""
+        # Get all dataclass fields that are meant for initialization
+        all_fields = {f.name for f in fields(self) if f.init}
+
+        # Get any parameters that aren't part of our declared fields
+        extra_params = {}
+        to_delete = []
+        for k, v in vars(self).items():
+            if k not in all_fields and not k.startswith("_"):
+                extra_params[k] = v
+                to_delete.append(k)
+
+        # Pop kind from extra_params if it exists
+        extra_params.pop("kind", None)
+
+        # Delete the extra attributes after iteration
+        # (Can't do this in the above loop, or you'll get a RuntimeError)
+        for k in to_delete:
+            object.__delattr__(self, k)
+
+        if extra_params:
+            # Store for later use in model_copy
+            object.__setattr__(self, "_extra_config_params", extra_params)
+
     def model_dump(
         self,
         *,
@@ -124,7 +157,7 @@ class OpenAIPlatformParameters(PlatformParameters):
         }
 
         # Start with only api_key
-        result = {"api_key": field_info["api_key"][0]}
+        result = {"kind": self.kind, "api_key": field_info["api_key"][0]}
 
         # Handle exclude_none
         if exclude_none:
@@ -175,21 +208,28 @@ class OpenAIPlatformParameters(PlatformParameters):
         # Start with current direct parameters
         current_params = {f.name: getattr(self, f.name) for f in fields(self) if f.init}
 
+        # Add stored extra config params if they exist
+        if self._extra_config_params:
+            current_params.update(self._extra_config_params)
+
         if not update:
-            # Always include api_key
-            filtered_params = {
-                k: v
-                for k, v in current_params.items()
-                if v is not None or k == "api_key"
-            }
-            return OpenAIPlatformParameters(**filtered_params)
+            current_params = {k: v for k, v in current_params.items() if v is not None}
+            return OpenAIPlatformParameters(**current_params)
+
+        # Split updates into direct params and config params
+        direct_param_names = {f.name for f in fields(self) if f.init}
+        update_params = {}
+        config_updates = {}
+
+        for k, v in update.items():
+            if k in direct_param_names:
+                update_params[k] = v
+            else:
+                config_updates[k] = v
 
         # Merge all parameters
-        final_params = {**current_params, **update}
-        # Always include api_key
-        final_params = {
-            k: v for k, v in final_params.items() if v is not None or k == "api_key"
-        }
+        final_params = {**current_params, **update_params, **config_updates}
+        final_params = {k: v for k, v in final_params.items() if v is not None}
         return OpenAIPlatformParameters(**final_params)
 
     @classmethod
@@ -205,34 +245,6 @@ class OpenAIPlatformParameters(PlatformParameters):
         Raises:
             ValueError: If any field has an invalid type.
         """
-        # Remove kind from obj as it's not a field
-        obj = obj.copy()
-        obj.pop("kind", None)
-
-        # Validate field types
-        field_types = {f.name: f.type for f in fields(cls) if f.init}
-        for field_name, value in obj.items():
-            if field_name not in field_types or value is None:
-                continue
-            field_type = field_types[field_name]
-            # Handle string type hints
-            if isinstance(field_type, str):
-                continue
-            # Handle union types
-            if hasattr(field_type, "__origin__") and field_type.__origin__ is Union:
-                valid_types = [t for t in field_type.__args__ if not isinstance(t, str)]
-                if not any(isinstance(value, t) for t in valid_types):
-                    raise ValueError(
-                        f"Field {field_name} must be one of types {valid_types}, "
-                        f"got {type(value)}",
-                    )
-            # Handle simple types
-            elif not isinstance(value, field_type):
-                raise ValueError(
-                    f"Field {field_name} must be of type {field_type}, "
-                    f"got {type(value)}",
-                )
-
         return cls(**obj)
 
 

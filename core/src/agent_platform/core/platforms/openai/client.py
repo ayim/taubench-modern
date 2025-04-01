@@ -107,7 +107,7 @@ class OpenAIClient(
 
         model_id = cast(str, OpenAIModelMap.mapping[model])
         request = prompt.as_platform_request(model_id)
-        response = await self._openai_client.chat.completions.create(**request)
+        response = self._openai_client.chat.completions.create(**request)
         return self.parsers.parse_response(response)
 
     async def generate_stream_response(
@@ -126,9 +126,9 @@ class OpenAIClient(
         """
         model_id = OpenAIModelMap.mapping[model]
         request = prompt.as_platform_request(model_id, stream=True)
-        response_stream = await self._openai_client.chat.completions.create(**request)
+        response_stream = self._openai_client.chat.completions.create(**request)
 
-        # Initialize message state
+        # Initialize message state as empty dictionary like Bedrock
         message: dict[str, Any] = {}
         last_message: dict[str, Any] = {}
 
@@ -145,15 +145,17 @@ class OpenAIClient(
             # Update last message state after processing each event
             last_message = deepcopy(message)
 
+        # Add platform metadata
         final_event = self._generate_platform_metadata()
         if "metadata" not in message:
             message["metadata"] = {}
         message["metadata"].update(final_event)
         message["raw_response"] = {
-            "choices": [{"message": {"content": "Hello, world!"}}],
+            "choices": [{"message": message}],
             "stream": None,
         }
 
+        # Yield any remaining deltas
         for delta in compute_generic_deltas(last_message, message):
             yield delta
 
@@ -173,16 +175,28 @@ class OpenAIClient(
             additional model-specific information.
         """
         model_id = OpenAIModelMap.mapping[model]
-        response = await self._openai_client.embeddings.create(
+        response = self._openai_client.embeddings.create(
             model=model_id,
             input=texts,
         )
 
+        # Handle both object-style and dictionary-style responses
+        if hasattr(response, "data") and hasattr(response, "usage"):
+            # Object-style response
+            embeddings = [item.embedding for item in response.data]
+            total_tokens = response.usage.total_tokens
+        elif isinstance(response, dict):
+            # Dictionary-style response
+            embeddings = [item["embedding"] for item in response["data"]]
+            total_tokens = response["usage"]["total_tokens"]
+        else:
+            raise ValueError(f"Unexpected response format: {type(response)}")
+
         return {
-            "embeddings": [item["embedding"] for item in response["data"]],
+            "embeddings": embeddings,
             "model": model,
             "usage": {
-                "total_tokens": response["usage"]["total_tokens"],
+                "total_tokens": total_tokens,
             },
         }
 

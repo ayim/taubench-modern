@@ -27,6 +27,8 @@ class OpenAIModelMap(MapConfiguration):
         "gpt-4": "gpt-4",
         "gpt-4-turbo": "gpt-4-turbo",
         "gpt-3.5-turbo": "gpt-3.5-turbo",
+        "gpt-4o": "gpt-4o",
+        "gpt-4o-mini": "gpt-4o-mini",
         # Embedding models
         "text-embedding-ada-002": "text-embedding-ada-002",
         "text-embedding-ada-002-v2": "text-embedding-ada-002-v2",
@@ -45,7 +47,7 @@ class OpenAIRoleMap(MapConfiguration):
 
     mapping: ClassVar[dict[str, str]] = {
         "user": "user",
-        "assistant": "agent",
+        "assistant": "assistant",
     }
 
 
@@ -53,7 +55,9 @@ class OpenAIRoleMap(MapConfiguration):
 class OpenAIDefaultModel(Configuration):
     """The default model to use for the OpenAI platform."""
 
-    DEFAULT_MODEL: str = "gpt-4-turbo"
+    DEFAULT_MODEL: str = field(
+        default="gpt-4-turbo",
+    )
 
 
 # TODO: Verify mime type map
@@ -98,7 +102,9 @@ class OpenAIPlatformConfigs(PlatformConfigs):
             "llm": "openai",
             "embedding": "openai",
         },
-        metadata={"description": "The default platform provider by model type."},
+        metadata={
+            "description": "The default platform provider by model type.",
+        },
     )
     """The default platform provider by model type."""
 
@@ -113,7 +119,9 @@ class OpenAIPlatformConfigs(PlatformConfigs):
             "llm": "balanced",
             "embedding": "balanced",
         },
-        metadata={"description": "The default quality tier by model type."},
+        metadata={
+            "description": "The default quality tier by model type.",
+        },
     )
     """The default quality tier by model type."""
 
@@ -122,7 +130,12 @@ class OpenAIPlatformConfigs(PlatformConfigs):
             "openai": [
                 "gpt-4",
                 "gpt-4-turbo",
+                "gpt-4o",
+                "gpt-4o-mini",
                 "gpt-3.5-turbo",
+                "text-embedding-ada-002",
+                "text-embedding-ada-002-v2",
+                "text-embedding-ada-002-v3",
             ],
         },
         metadata={"description": "The supported models by provider."},

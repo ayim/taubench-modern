@@ -1,5 +1,3 @@
-"""OpenAI platform prompts."""
-
 from dataclasses import dataclass
 from typing import Any
 
@@ -126,8 +124,15 @@ class OpenAIPrompt(PlatformPrompt):
         if not content:
             return {}
 
+        # Map our internal roles to OpenAI roles
+        role_map = {
+            "user": "user",
+            "agent": "assistant",
+        }
+        openai_role = role_map.get(message.role, message.role)
+
         return {
-            "role": message.role,
+            "role": openai_role,
             "content": content,
         }
 

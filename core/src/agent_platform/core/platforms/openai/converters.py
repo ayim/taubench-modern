@@ -1,5 +1,3 @@
-"""OpenAI platform converters."""
-
 from typing import Any
 
 from agent_platform.core.kernel_interfaces.kernel_mixin import UsesKernelMixin
