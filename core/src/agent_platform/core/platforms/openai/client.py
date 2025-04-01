@@ -12,14 +12,14 @@ from agent_platform.core.platforms.openai.configs import (
     OpenAIPlatformConfigs,
 )
 from agent_platform.core.platforms.openai.converters import OpenAIConverters
-from agent_platform.core.platforms.openai.parameters import (
-    OpenAIPlatformParameters,
-)
+from agent_platform.core.platforms.openai.parameters import OpenAIPlatformParameters
 from agent_platform.core.platforms.openai.parsers import OpenAIParsers
 from agent_platform.core.platforms.openai.prompts import OpenAIPrompt
 from agent_platform.core.responses.response import ResponseMessage
 
 if TYPE_CHECKING:
+    from openai import OpenAI
+
     from agent_platform.core.kernel import Kernel
 
 
@@ -48,9 +48,12 @@ class OpenAIClient(
             parameters=parameters,
             **kwargs,
         )
-        self._openai_client = self._init_clients(
-            self._parameters,
-        )
+        self._openai_client = self._init_client(self._parameters)
+
+    def _init_client(self, parameters: OpenAIPlatformParameters) -> "OpenAI":
+        from openai import OpenAI
+
+        return OpenAI(api_key=parameters.openai_api_key)
 
     def _init_converters(self, kernel: "Kernel | None" = None) -> OpenAIConverters:
         converters = OpenAIConverters()
@@ -64,9 +67,7 @@ class OpenAIClient(
         **kwargs: Any,
     ) -> OpenAIPlatformParameters:
         if parameters is None:
-            parameters = OpenAIPlatformParameters(**kwargs)
-        else:
-            parameters = parameters.model_copy(update=kwargs)
+            raise ValueError("Parameters are required for OpenAI client")
         return parameters
 
     def _init_parsers(self) -> OpenAIParsers:
@@ -75,68 +76,66 @@ class OpenAIClient(
     def _init_configs(self) -> OpenAIPlatformConfigs:
         return OpenAIPlatformConfigs()
 
-    def _init_clients(
+    async def _generate_response(
         self,
-        parameters: OpenAIPlatformParameters,
-    ) -> Any:
-        import openai
+        request: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Generate a response from the OpenAI platform."""
+        response = self._openai_client.chat.completions.create(**request)
+        return response
 
-        # Create OpenAI client with parameters
-        client = openai.OpenAI(
-            api_key=parameters.api_key,
-            organization=parameters.organization_id,
-            base_url=parameters.base_url,
-        )
+    async def _generate_stream_response(
+        self,
+        request: dict[str, Any],
+    ) -> AsyncGenerator[Any, None]:
+        """Stream a response from the OpenAI platform."""
+        # Add stream=True to ensure streaming is enabled
+        request["stream"] = True
+        print("Inside _generate_stream_response, request:", request)
 
-        return client
+        # Get the streaming response
+        response = self._openai_client.chat.completions.create(**request)
+
+        # Yield each chunk directly
+        for chunk in response:
+            print("Raw chunk:", chunk)
+            yield chunk
 
     async def generate_response(
         self,
         prompt: OpenAIPrompt,
         model: str,
     ) -> ResponseMessage:
-        """Generate a complete response from the OpenAI platform.
-
-        Args:
-            prompt: The prompt to send to the model.
-            model: The model to use to generate the response.
-
-        Returns:
-            The complete model response.
-        """
-
-        model_id = cast(str, OpenAIModelMap.mapping[model])
+        """Generate a response from the OpenAI platform."""
+        # TODO: Otel Span?
+        model_id = cast(str, OpenAIModelMap[model])
         request = prompt.as_platform_request(model_id)
-        response = self._openai_client.chat.completions.create(**request)
-        return self.parsers.parse_response(response)
+        response = await self._generate_response(request)
+        return self._parsers.parse_response(response)
 
     async def generate_stream_response(
         self,
         prompt: OpenAIPrompt,
         model: str,
     ) -> AsyncGenerator[GenericDelta, None]:
-        """Stream a response from the OpenAI platform.
+        """Stream a response from the OpenAI platform."""
 
-        Args:
-            prompt: The prompt to send to the model.
-            model: The model to use to generate the response.
-
-        Yields:
-            GenericDeltas that update the ResponseMessage.
-        """
-        model_id = OpenAIModelMap.mapping[model]
+        model_id = cast(str, OpenAIModelMap[model])
         request = prompt.as_platform_request(model_id, stream=True)
-        response_stream = self._openai_client.chat.completions.create(**request)
+        print("Request: ", request)
 
-        # Initialize message state as empty dictionary like Bedrock
-        message: dict[str, Any] = {}
+        # Initialize message state
+        message: dict[str, Any] = {
+            "role": "agent",
+            "content": [],
+            "additional_response_fields": {},
+        }
         last_message: dict[str, Any] = {}
 
-        # Process each event through the parser to get deltas
-        for event in response_stream:
+        # Process each event through the parser
+        async for event in self._generate_stream_response(request):
             async for delta in self._parsers.parse_stream_event(
                 event,
-                response_stream,
                 message,
                 last_message,
             ):
@@ -145,17 +144,24 @@ class OpenAIClient(
             # Update last message state after processing each event
             last_message = deepcopy(message)
 
-        # Add platform metadata
+        # Add final metadata and platform info
         final_event = self._generate_platform_metadata()
         if "metadata" not in message:
             message["metadata"] = {}
         message["metadata"].update(final_event)
+
+        # Put request ID (if any) into raw_response
+        request_id = message.get("additional_response_fields", {}).get("id", "unknown")
         message["raw_response"] = {
-            "choices": [{"message": message}],
+            "ResponseMetadata": {
+                "RequestId": request_id,
+                "HTTPStatusCode": 200,
+                "RetryAttempts": 0,
+            },
             "stream": None,
         }
 
-        # Yield any remaining deltas
+        # Generate final deltas
         for delta in compute_generic_deltas(last_message, message):
             yield delta
 
@@ -164,41 +170,27 @@ class OpenAIClient(
         texts: list[str],
         model: str,
     ) -> dict[str, Any]:
-        """Create embeddings using an OpenAI embedding model.
+        """Create embeddings using a OpenAI embedding model."""
+        # TODO: Implement embeddings
+        # with self.kernel.otel.span("create_embeddings") as span:
+        #     model_id = cast(str, OpenAIModelMap[model])
+        #     span.add_event("embedding on model", {"model": model_id})
 
-        Args:
-            texts: List of text strings to create embeddings for.
-            model: The model to use to generate embeddings.
+        #     if not texts:
+        #         span.add_event("no texts provided to embed; returning empty list")
+        #         return {
+        #             "embeddings": [],
+        #             "model": model,
+        #             "usage": {"total_tokens": 0},
+        #         }
 
-        Returns:
-            A dictionary containing the embeddings and any
-            additional model-specific information.
-        """
-        model_id = OpenAIModelMap.mapping[model]
-        response = self._openai_client.embeddings.create(
-            model=model_id,
-            input=texts,
-        )
-
-        # Handle both object-style and dictionary-style responses
-        if hasattr(response, "data") and hasattr(response, "usage"):
-            # Object-style response
-            embeddings = [item.embedding for item in response.data]
-            total_tokens = response.usage.total_tokens
-        elif isinstance(response, dict):
-            # Dictionary-style response
-            embeddings = [item["embedding"] for item in response["data"]]
-            total_tokens = response["usage"]["total_tokens"]
-        else:
-            raise ValueError(f"Unexpected response format: {type(response)}")
-
-        return {
-            "embeddings": embeddings,
-            "model": model,
-            "usage": {
-                "total_tokens": total_tokens,
-            },
-        }
+        #     request = {
+        #         "model": model_id,
+        #         "input": texts,
+        #     }
+        #     response = await self._openai_client.embeddings.create(**request)
+        #     return response
+        raise NotImplementedError("OpenAI embeddings are not yet implemented")
 
 
 PlatformClient.register_platform_client("openai", OpenAIClient)

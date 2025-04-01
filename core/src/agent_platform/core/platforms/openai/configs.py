@@ -5,34 +5,19 @@ from agent_platform.core.configurations import Configuration, MapConfiguration
 from agent_platform.core.platforms.base import PlatformConfigs
 
 
-# TODO: Verify content limits
-@dataclass(frozen=True)
-class OpenAIContentLimits(Configuration):
-    """Content limits and associated global configurations for the OpenAI platform."""
-
-    MAX_IMAGE_COUNT: int = 20
-    MAX_IMAGE_SIZE: int = 3_750_000  # 3.75MB
-    MAX_IMAGE_HEIGHT: int = 8_000
-    MAX_IMAGE_WIDTH: int = 8_000
-    MAX_DOCUMENT_COUNT: int = 5
-    MAX_DOCUMENT_SIZE: int = 4_500_000  # 4.5MB
-
-
 @dataclass(frozen=True)
 class OpenAIModelMap(MapConfiguration):
-    """A map of our model names to OpenAI model configurations."""
+    """A map of our model names to OpenAI model IDs."""
 
     mapping: ClassVar[dict[str, str]] = {
-        # LLM models
-        "gpt-4": "gpt-4",
-        "gpt-4-turbo": "gpt-4-turbo",
-        "gpt-3.5-turbo": "gpt-3.5-turbo",
-        "gpt-4o": "gpt-4o",
-        "gpt-4o-mini": "gpt-4o-mini",
+        "gpt-4o": "gpt-4o-2024-08-06",
+        "gpt-4o-mini": "gpt-4o-mini-2024-07-18",
+        "gpt-4-turbo": "gpt-4-turbo-2024-04-09",
+        "gpt-3.5-turbo": "gpt-3.5-turbo-0125",
         # Embedding models
+        "text-embedding-3-small": "text-embedding-3-small",
+        "text-embedding-3-large": "text-embedding-3-large",
         "text-embedding-ada-002": "text-embedding-ada-002",
-        "text-embedding-ada-002-v2": "text-embedding-ada-002-v2",
-        "text-embedding-ada-002-v3": "text-embedding-ada-002-v3",
     }
 
     @classmethod
@@ -47,7 +32,7 @@ class OpenAIRoleMap(MapConfiguration):
 
     mapping: ClassVar[dict[str, str]] = {
         "user": "user",
-        "assistant": "assistant",
+        "assistant": "agent",
     }
 
 
@@ -56,41 +41,8 @@ class OpenAIDefaultModel(Configuration):
     """The default model to use for the OpenAI platform."""
 
     DEFAULT_MODEL: str = field(
-        default="gpt-4-turbo",
+        default="gpt-4o",
     )
-
-
-# TODO: Verify mime type map
-@dataclass(frozen=True)
-class OpenAIMimeTypeMap(MapConfiguration):
-    """A map of OpenAI format types to MIME types supported by the platform."""
-
-    mapping: ClassVar[dict[str, str]] = {
-        "jpeg": "image/jpeg",
-        "png": "image/png",
-        "gif": "image/gif",
-        "webp": "image/webp",
-        "pdf": "application/pdf",
-        "txt": "text/plain",
-        "csv": "text/csv",
-        "md": "text/markdown",
-        "html": "text/html",
-        "xls": "application/vnd.ms-excel",
-        "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "doc": "application/msword",
-        "docx": "application/"
-        "vnd.openxmlformats-officedocument.wordprocessingml.document",
-    }
-
-    @classmethod
-    def supported_format_types(cls) -> list[str]:
-        """Get list of supported format types."""
-        return list(cls.class_keys())
-
-    @classmethod
-    def reverse_mapping(cls) -> dict[str, str]:
-        """Get reverse mapping of MIME types to format types."""
-        return {v: k for k, v in cls.mapping.items()}
 
 
 @dataclass(frozen=True)
@@ -127,16 +79,7 @@ class OpenAIPlatformConfigs(PlatformConfigs):
 
     supported_models_by_provider: dict[str, list[str]] = field(
         default_factory=lambda: {
-            "openai": [
-                "gpt-4",
-                "gpt-4-turbo",
-                "gpt-4o",
-                "gpt-4o-mini",
-                "gpt-3.5-turbo",
-                "text-embedding-ada-002",
-                "text-embedding-ada-002-v2",
-                "text-embedding-ada-002-v3",
-            ],
+            "openai": OpenAIModelMap.supported_models(),
         },
         metadata={"description": "The supported models by provider."},
     )
