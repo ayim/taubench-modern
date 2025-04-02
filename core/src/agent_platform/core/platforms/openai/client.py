@@ -53,7 +53,7 @@ class OpenAIClient(
     def _init_client(self, parameters: OpenAIPlatformParameters) -> "OpenAI":
         from openai import OpenAI
 
-        return OpenAI(api_key=parameters.openai_api_key)
+        return OpenAI(api_key=parameters.openai_api_key.get_secret_value())
 
     def _init_converters(self, kernel: "Kernel | None" = None) -> OpenAIConverters:
         converters = OpenAIConverters()
@@ -91,14 +91,12 @@ class OpenAIClient(
         """Stream a response from the OpenAI platform."""
         # Add stream=True to ensure streaming is enabled
         request["stream"] = True
-        print("Inside _generate_stream_response, request:", request)
 
         # Get the streaming response
         response = self._openai_client.chat.completions.create(**request)
 
         # Yield each chunk directly
         for chunk in response:
-            print("Raw chunk:", chunk)
             yield chunk
 
     async def generate_response(
@@ -122,7 +120,6 @@ class OpenAIClient(
 
         model_id = cast(str, OpenAIModelMap[model])
         request = prompt.as_platform_request(model_id, stream=True)
-        print("Request: ", request)
 
         # Initialize message state
         message: dict[str, Any] = {

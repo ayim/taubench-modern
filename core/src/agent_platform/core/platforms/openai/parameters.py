@@ -2,6 +2,7 @@ from dataclasses import dataclass, field, fields
 from typing import Literal
 
 from agent_platform.core.platforms.base import PlatformParameters
+from agent_platform.core.utils import SecretString
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -19,14 +20,38 @@ class OpenAIPlatformParameters(PlatformParameters):
     )
     """The kind of platform parameters."""
 
-    openai_api_key: str = field(
+    openai_api_key: SecretString | None = field(
+        default=None,
         metadata={
-            "description": "The OpenAI API key.",
+            "description": "The OpenAI API key. If not provided, it will be "
+            "attempted to be inferred from the environment.",
         },
     )
-    """The OpenAI API key."""
+    """The OpenAI API key. If not provided, it will be attempted to be inferred
+    from the environment."""
 
     # TODO: add other parameters in post_init
+    def __post_init__(self):
+        from os import getenv
+
+        # Handle case where openai_api_key is passed as a string
+        if self.openai_api_key and not isinstance(self.openai_api_key, SecretString):
+            object.__setattr__(
+                self,
+                "openai_api_key",
+                SecretString(str(self.openai_api_key)),
+            )
+        # Handle case where openai_api_key is not provided
+        elif not self.openai_api_key:
+            openai_api_key = getenv("OPENAI_API_KEY")
+            if openai_api_key:
+                object.__setattr__(
+                    self,
+                    "openai_api_key",
+                    SecretString(openai_api_key),
+                )
+            else:
+                raise ValueError("OPENAI_API_KEY environment variable is required")
 
     def model_dump(
         self,
@@ -45,9 +70,16 @@ class OpenAIPlatformParameters(PlatformParameters):
             exclude_defaults: Whether to exclude fields that are set to their
                 default values. Not implemented.
         """
+        api_key_value = None
+        if self.openai_api_key:
+            if isinstance(self.openai_api_key, SecretString):
+                api_key_value = self.openai_api_key.get_secret_value()
+            else:
+                api_key_value = str(self.openai_api_key)
+
         result = {
             "kind": self.kind,
-            "openai_api_key": self.openai_api_key,
+            "openai_api_key": api_key_value,
         }
 
         if exclude_none:
@@ -87,6 +119,7 @@ class OpenAIPlatformParameters(PlatformParameters):
         Returns:
             An OpenAIParameters instance.
         """
+
         # Directly pass the dictionary to the constructor.
         # The constructor and __post_init__ will handle extra parameters.
         return cls(**obj)
