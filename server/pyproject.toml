@@ -2,9 +2,7 @@
 name = "agent_platform_server"
 version = "2.0.0"
 requires-python = ">=3.12"
-authors = [
-    {name="Sema4.ai Engineering", email="engineering@sema4.ai"}
-]
+authors = [{ name = "Sema4.ai Engineering", email = "engineering@sema4.ai" }]
 dependencies = [
     "agent_platform_core",
     "agent_platform_architectures_default",
@@ -20,10 +18,12 @@ dependencies = [
     "traceloop-sdk>=0.34.0,<0.35.0",
     "opentelemetry-sdk>=1.31.1,<2.0.0",
     "opentelemetry-api>=1.31.1,<2.0.0",
+    "sema4ai-common>=0.0.9,<0.1.0",
+    "pyjwt[crypto]>=2.9.0,<3.0.0",
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/agent_platform/server"]
+packages = ["src/agent_platform"]
 
 [build-system]
 requires = ["hatchling"]

@@ -21,11 +21,11 @@ Example structure:
       }
     }
   },
-  "sema4ai_agent_server.constants.SystemPaths": {
+  "agent_platform.server.constants.SystemPaths": {
     "data_dir": "/path/to/data",
     "log_dir": "/path/to/logs"
   },
-  "sema4ai_agent_server.constants.SystemConfig": {
+  "agent_platform.server.constants.SystemConfig": {
     "db_type": "sqlite",
     "log_level": "INFO",
     "log_max_backup_files": 5,
@@ -44,7 +44,7 @@ for better organization:
 Manages all file system paths used by the agent server:
 
 ```json
-"sema4ai_agent_server.constants.SystemPaths": {
+"agent_platform.server.constants.SystemPaths": {
   "data_dir": "/path/to/data",            // Base directory for data storage
   "log_dir": "/path/to/logs"              // Directory for log files
 }
@@ -59,7 +59,7 @@ specified in the JSON.
 Manages general configuration settings:
 
 ```json
-"sema4ai_agent_server.constants.SystemConfig": {
+"agent_platform.server.constants.SystemConfig": {
   "db_type": "sqlite",                    // Database type (sqlite or postgres)
   "log_level": "INFO",                    // Log level (INFO, DEBUG, etc.)
   "log_max_backup_files": 5,              // Number of log rotation files
@@ -73,7 +73,7 @@ Manages general configuration settings:
 
 ```python
 # Import the appropriate helpers
-from sema4ai_agent_server.constants import (
+from agent_platform.server.constants import (
     SystemPaths, SystemConfig, get_path, get_config
 )
 
@@ -97,8 +97,8 @@ log_level = config.log_level
 
 ```python
 from pathlib import Path
-from sema4ai_agent_server.constants import SystemPaths, SystemConfig
-from sema4ai_agent_server.configuration_manager import get_configuration_manager
+from agent_platform.server.constants import SystemPaths, SystemConfig
+from agent_platform.server.configuration_manager import get_configuration_manager
 
 # Get the configuration manager
 manager = get_configuration_manager()
@@ -229,6 +229,7 @@ class ConfigurationManager:
                     importlib.import_module(package_name)
                     # Also import all submodules to ensure all classes are registered
                     self._import_submodules(package_name)
+                    logger.info(f"Imported package {package_name}")
                 except ImportError as e:
                     logger.warning(f"Failed to import package {package_name}: {e}")
 
@@ -237,6 +238,7 @@ class ConfigurationManager:
             for module_path in self.config_modules:
                 try:
                     importlib.import_module(module_path)
+                    logger.info(f"Imported module {module_path}")
                 except ImportError as e:
                     logger.warning(f"Failed to import module {module_path}: {e}")
 

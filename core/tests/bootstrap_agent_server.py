@@ -110,7 +110,7 @@ class AgentServerProcess:
         if test_agent_server_executable:
             base_args = [test_agent_server_executable]
         else:
-            base_args = [sys.executable, "-m", "sema4ai_agent_server.server"]
+            base_args = [sys.executable, "-m", "agent_platform.server"]
         new_args = [
             *base_args,
             "--host=127.0.0.1",
