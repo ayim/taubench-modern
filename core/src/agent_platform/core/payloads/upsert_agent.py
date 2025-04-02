@@ -1,15 +1,23 @@
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Self
+from typing import Self, cast
 from uuid import uuid4
 
 from agent_platform.core.agent import Agent
+from agent_platform.core.platforms import AnyPlatformParameters
+from agent_platform.core.platforms.base import PlatformParameters
 from agent_platform.core.runbook import Runbook
 
 
 @dataclass(frozen=True)
 class UpsertAgentPayload(Agent):
     """Payload for upserting an agent."""
+
+    platform_configs: list[dict] = field(  # type: ignore
+        metadata={"description": "The platform configs for the agent."},
+    )
+    # Intentionally overriden with different type
+    """The platform configs for the agent."""
 
     runbook_raw_text: str = field(
         default="",
@@ -18,19 +26,22 @@ class UpsertAgentPayload(Agent):
     """The raw text of the runbook."""
 
     runbook: Runbook = field(
-        init=False, repr=False,
+        init=False,
+        repr=False,
         metadata={"description": "The runbook of the agent."},
     )
     """The runbook of the agent."""
 
     user_id: str = field(
-        init=False, repr=False,
+        init=False,
+        repr=False,
         metadata={"description": "The ID of the user that owns the agent."},
     )
     """The ID of the user that owns the agent."""
 
     agent_id: str = field(  # type: ignore
-        init=False, repr=False,
+        init=False,
+        repr=False,
         metadata={"description": "The ID of the agent."},
     )
     # Intentionally overriden without a default value (to ensure it's set
@@ -38,7 +49,8 @@ class UpsertAgentPayload(Agent):
     """The ID of the agent."""
 
     created_at: datetime = field(  # type: ignore
-        init=False, repr=False,
+        init=False,
+        repr=False,
         metadata={"description": "The time the agent was created."},
     )
     # Intentionally overriden without a default value (to ensure it's set
@@ -46,7 +58,8 @@ class UpsertAgentPayload(Agent):
     """The time the agent was created."""
 
     updated_at: datetime = field(  # type: ignore
-        init=False, repr=False,
+        init=False,
+        repr=False,
         metadata={"description": "The last time the agent was updated."},
     )
     # Intentionally overriden without a default value (to ensure it's set
@@ -57,6 +70,11 @@ class UpsertAgentPayload(Agent):
         # Ensure runbook text is valid
         if not self.runbook_raw_text:
             raise ValueError("runbook_raw_text is required")
+
+        # Ensure platform configs are valid
+        for config in self.platform_configs:
+            if not isinstance(config, dict):
+                raise ValueError("platform_configs must be a list of dictionaries")
 
         object.__setattr__(
             self,
@@ -76,7 +94,10 @@ class UpsertAgentPayload(Agent):
             action_packages=payload.action_packages,
             mcp_servers=payload.mcp_servers,
             agent_architecture=payload.agent_architecture,
-            platform_configs=payload.platform_configs,
+            platform_configs=[
+                cast(AnyPlatformParameters, PlatformParameters.model_validate(config))
+                for config in payload.platform_configs
+            ],
             extra=payload.extra,
             user_id=user_id,
             agent_id=str(uuid4()),
