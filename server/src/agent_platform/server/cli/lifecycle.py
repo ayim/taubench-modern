@@ -177,6 +177,10 @@ class ServerLifecycleManager:
 
             # Create server instance
             self.server = uvicorn.Server(config)
+            logger.info(
+                f"{self.name.capitalize()} will listen on "
+                f"{self.bound_host}:{self.actual_port}",
+            )
             return True
 
         except (OSError, SystemExit) as e:
@@ -238,7 +242,6 @@ class ServerLifecycleManager:
             data["lock_file"] = "<not used>"
 
         self.pid_file.write_text(json.dumps(data))
-        logger.info(f"Agent Server running on: {base_url} (Press CTRL+C to quit)")
         logger.info(f"pid file: {self.pid_file}")
 
     def setup_signal_handlers(self) -> None:
