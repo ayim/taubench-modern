@@ -20,29 +20,36 @@ class TestOpenAIModelMap:
         default_map = OpenAIModelMap()
 
         # Check that the default map contains mappings for key models
-        assert "gpt-4" in default_map
+        assert "gpt-4o" in default_map
         assert "gpt-4-turbo" in default_map
         assert "gpt-3.5-turbo" in default_map
+
+        # Check that model IDs map correctly
+        assert default_map["gpt-4o"].startswith("gpt-4o-")
+        assert default_map["gpt-4-turbo"].startswith("gpt-4-turbo-")
+        assert default_map["gpt-3.5-turbo"].startswith("gpt-3.5-turbo-")
 
     def test_class_getitem(self) -> None:
         """Test that the class can be used as a mapping."""
         # We should be able to access model IDs directly from the class
-        model_map = OpenAIModelMap()
+        model_id = OpenAIModelMap()["gpt-4o"]
 
         # It should be a string and match the expected format
-        assert isinstance(model_map["gpt-4"], str)
-        assert model_map["gpt-4"] == "gpt-4"
+        assert isinstance(model_id, str)
+        assert model_id.startswith("gpt-4o-")
 
-    def test_custom_map(self) -> None:
-        """Test that we can create a custom map."""
-        # Create a custom model map with specific parameters
-        model_map = OpenAIModelMap()
+        # We should be able to check if a model is in the map
+        assert "gpt-4o" in OpenAIModelMap()
+        assert "non-existent-model" not in OpenAIModelMap()
 
-        # Set a custom mapping
-        model_map["test-model-id"] = "test-model-name"
-
-        # Verify the custom mapping was set
-        assert model_map["test-model-id"] == "test-model-name"
+    def test_supported_models(self) -> None:
+        """Test getting supported models."""
+        supported = OpenAIModelMap.supported_models()
+        assert isinstance(supported, list)
+        assert len(supported) > 0
+        assert "gpt-4o" in supported
+        assert "gpt-4-turbo" in supported
+        assert "gpt-3.5-turbo" in supported
 
 
 class TestOpenAIPlatformConfigs:

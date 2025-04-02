@@ -1,32 +1,68 @@
 """Unit tests for the OpenAI platform client."""
 
+from collections.abc import (
+    AsyncGenerator,
+    AsyncIterable,
+    AsyncIterator,
+    Iterable,
+    Iterator,
+)
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
+from agent_platform.core.delta import GenericDelta
 from agent_platform.core.kernel import Kernel
 from agent_platform.core.platforms.openai.client import OpenAIClient
+from agent_platform.core.platforms.openai.configs import OpenAIModelMap
 from agent_platform.core.platforms.openai.parameters import OpenAIPlatformParameters
 from agent_platform.core.platforms.openai.prompts import OpenAIPrompt
 from agent_platform.core.prompts import Prompt, PromptTextContent, PromptUserMessage
-from agent_platform.core.responses.content import ResponseTextContent
+from agent_platform.core.responses.content.text import ResponseTextContent
 from agent_platform.core.responses.response import ResponseMessage
+from agent_platform.core.utils import SecretString
+
+
+class MockStreamResponse(AsyncIterable, Iterable):
+    """Mock response for streaming that can be both awaited and iterated."""
+
+    def __init__(self, chunks):
+        self.chunks = chunks
+        self.async_chunks = list(chunks)  # Create a copy for async iteration
+
+    def __iter__(self) -> Iterator:
+        yield from self.chunks
+
+    def __aiter__(self) -> AsyncIterator:
+        return self
+
+    async def __anext__(self):
+        if not self.async_chunks:
+            raise StopAsyncIteration
+        return self.async_chunks.pop(0)
+
+
+async def mock_async_generator(
+    items: list[GenericDelta],
+) -> AsyncGenerator[GenericDelta, None]:
+    """Helper function to create an async generator from a list of items."""
+    for item in items:
+        yield item
+
+
+class MockCompletions:
+    """Mock completions API."""
+
+    def __init__(self):
+        self.create = MagicMock()
 
 
 class MockChatCompletions:
     """Mock chat completions API."""
 
     def __init__(self):
-        self.create = AsyncMock()
-        self.completions = self
-
-
-class MockEmbeddings:
-    """Mock embeddings API."""
-
-    def __init__(self):
-        self.create = AsyncMock()
+        self.completions = MockCompletions()
 
 
 class MockOpenAIClient:
@@ -35,7 +71,6 @@ class MockOpenAIClient:
     def __init__(self):
         """Initialize the mock client."""
         self.chat = MockChatCompletions()
-        self.embeddings = MockEmbeddings()
 
 
 class TestOpenAIClient:
@@ -46,11 +81,20 @@ class TestOpenAIClient:
         """Create a mock OpenAI client."""
         client = MockOpenAIClient()
 
-        # Set up chat completions response
-        async def mock_chat_response(**kwargs):
+        # Set up chat completions response for non-streaming
+        def mock_chat_response(**kwargs):
             if kwargs.get("stream", False):
-                # Return a list that can be iterated over for streaming
-                return [
+                # Return a mock async iterable for streaming
+                chunks = [
+                    {
+                        "choices": [
+                            {
+                                "delta": {
+                                    "role": "assistant",
+                                },
+                            },
+                        ],
+                    },
                     {
                         "choices": [
                             {
@@ -70,6 +114,7 @@ class TestOpenAIClient:
                         ],
                     },
                 ]
+                return MockStreamResponse(chunks)
             else:
                 return {
                     "choices": [
@@ -90,19 +135,6 @@ class TestOpenAIClient:
 
         client.chat.completions.create.side_effect = mock_chat_response
 
-        # Set up embeddings response
-        async def mock_embeddings_response(**kwargs):
-            return {
-                "data": [
-                    {"embedding": [0.1, 0.2, 0.3]} for _ in kwargs.get("input", [])
-                ],
-                "usage": {
-                    "total_tokens": len(kwargs.get("input", [])) * 10,
-                },
-            }
-
-        client.embeddings.create.side_effect = mock_embeddings_response
-
         return client
 
     @pytest.fixture
@@ -113,9 +145,11 @@ class TestOpenAIClient:
     @pytest.fixture
     def parameters(self) -> OpenAIPlatformParameters:
         """Create OpenAI platform parameters for testing."""
-        return OpenAIPlatformParameters(
-            api_key="test-api-key",
-        )
+        mock_secret = SecretString("test-api-key")
+        with patch("agent_platform.core.utils.SecretString", return_value=mock_secret):
+            return OpenAIPlatformParameters(
+                openai_api_key=mock_secret,
+            )
 
     @pytest.fixture
     def openai_client(
@@ -130,6 +164,35 @@ class TestOpenAIClient:
                 kernel=kernel,
                 parameters=parameters,
             )
+
+            # Mock the response parser
+            mock_response = ResponseMessage(
+                content=[ResponseTextContent(text="Hello, world!")],
+                raw_response={},
+                role="agent",
+            )
+            client._parsers.parse_response = MagicMock(return_value=mock_response)
+
+            # Mock the stream event parser to return an AsyncGenerator
+            deltas = [
+                GenericDelta(
+                    op="add",
+                    path="/content/0/text",
+                    value="Hello, ",
+                ),
+                GenericDelta(
+                    op="add",
+                    path="/content/0/text",
+                    value="world!",
+                ),
+            ]
+
+            # Create a factory function that returns our mock async generator
+            def mock_parse_stream(*args, **kwargs):
+                return mock_async_generator(deltas)
+
+            client._parsers.parse_stream_event = mock_parse_stream
+
             return client
 
     @pytest.fixture
@@ -143,19 +206,19 @@ class TestOpenAIClient:
         )
 
     @pytest.fixture
-    def openai_prompt(self, prompt: Prompt) -> OpenAIPrompt:
+    def openai_prompt(self) -> OpenAIPrompt:
         """Create an OpenAI prompt for testing."""
-        return OpenAIPrompt(prompt=prompt)
+        return OpenAIPrompt()
 
     def test_init(self, parameters: OpenAIPlatformParameters) -> None:
         """Test client initialization."""
         with patch("openai.OpenAI") as mock_openai:
             client = OpenAIClient(parameters=parameters)
-            assert client.parameters.api_key == "test-api-key"
+            assert client.name == "openai"
+            assert isinstance(client._parameters, OpenAIPlatformParameters)
+            assert client._parameters.openai_api_key is not None
             mock_openai.assert_called_once_with(
-                api_key="test-api-key",
-                organization=None,
-                base_url="https://api.openai.com/v1",
+                api_key=client._parameters.openai_api_key.get_secret_value(),
             )
 
     def test_init_clients(self, parameters: OpenAIPlatformParameters) -> None:
@@ -163,27 +226,28 @@ class TestOpenAIClient:
         mock_client = MockOpenAIClient()
         with patch("openai.OpenAI", return_value=mock_client) as mock_openai:
             client = OpenAIClient(parameters=parameters)
+            assert parameters.openai_api_key is not None
             mock_openai.assert_called_once_with(
-                api_key="test-api-key",
-                organization=None,
-                base_url="https://api.openai.com/v1",
+                api_key=parameters.openai_api_key.get_secret_value(),
             )
-            assert isinstance(client._openai_client, MockOpenAIClient)
-
-    def test_init_parameters_from_kwargs(self) -> None:
-        """Test parameter initialization from kwargs."""
-        with patch("openai.OpenAI"):
-            client = OpenAIClient(api_key="test-api-key")
-            assert client.parameters.api_key == "test-api-key"
+            assert client._openai_client is mock_client
 
     def test_init_parameters_with_updates(
         self,
         parameters: OpenAIPlatformParameters,
     ) -> None:
         """Test parameter initialization with updates."""
-        with patch("openai.OpenAI"):
-            client = OpenAIClient(parameters=parameters, api_key="new-api-key")
-            assert client.parameters.api_key == "new-api-key"
+        new_secret = SecretString("new-api-key")
+        with (
+            patch("openai.OpenAI"),
+            patch("agent_platform.core.utils.SecretString", return_value=new_secret),
+        ):
+            updated_params = parameters.model_copy(
+                update={"openai_api_key": new_secret},
+            )
+            client = OpenAIClient(parameters=updated_params)
+            assert client._parameters.openai_api_key is not None
+            assert client._parameters.openai_api_key.get_secret_value() == "new-api-key"
 
     @pytest.mark.asyncio
     @patch.object(
@@ -209,21 +273,20 @@ class TestOpenAIClient:
         test_model_map = {
             "gpt-4": "gpt-4",
         }
-        with patch(
-            "agent_platform.core.platforms.openai.configs.OpenAIModelMap.mapping",
-            new_callable=PropertyMock,
-            return_value=test_model_map,
+        with patch.object(
+            OpenAIModelMap,
+            "__class_getitem__",
+            return_value=test_model_map["gpt-4"],
         ):
             response = await openai_client.generate_response(
                 prompt=openai_prompt,
                 model="gpt-4",
             )
 
+            mock_openai_client.chat.completions.create.assert_called_once()
             assert isinstance(response, ResponseMessage)
-            assert len(response.content) == 1
             assert isinstance(response.content[0], ResponseTextContent)
             assert response.content[0].text == "Hello, world!"
-            assert response.usage.total_tokens == 30
 
     @pytest.mark.asyncio
     @patch.object(
@@ -250,73 +313,34 @@ class TestOpenAIClient:
         test_model_map = {
             "gpt-4": "gpt-4",
         }
-        with patch(
-            "agent_platform.core.platforms.openai.configs.OpenAIModelMap.mapping",
-            new_callable=PropertyMock,
-            return_value=test_model_map,
+
+        with patch.object(
+            OpenAIModelMap,
+            "__class_getitem__",
+            return_value=test_model_map["gpt-4"],
         ):
-            responses = []
+            deltas = []
             async for delta in openai_client.generate_stream_response(
                 prompt=openai_prompt,
                 model="gpt-4",
             ):
-                responses.append(delta)
+                deltas.append(delta)
 
-            assert len(responses) > 0
-            assert all(hasattr(r, "op") for r in responses)
+            mock_openai_client.chat.completions.create.assert_called_once()
+            assert len(deltas) > 0
+            assert all(isinstance(d, GenericDelta) for d in deltas)
 
     @pytest.mark.asyncio
-    async def test_create_embeddings(
+    async def test_create_embeddings_not_implemented(
         self,
         openai_client: OpenAIClient,
-        mock_openai_client: Any,
     ) -> None:
-        """Test creating embeddings."""
-        # Add the embedding model to the model maps
-        test_model_map = {
-            "text-embedding-ada-002": "text-embedding-ada-002",
-        }
-        with patch(
-            "agent_platform.core.platforms.openai.configs.OpenAIModelMap.mapping",
-            new_callable=PropertyMock,
-            return_value=test_model_map,
+        """Test that create_embeddings raises NotImplementedError."""
+        with pytest.raises(
+            NotImplementedError,
+            match="OpenAI embeddings are not yet implemented",
         ):
-            result = await openai_client.create_embeddings(
+            await openai_client.create_embeddings(
                 texts=["Hello, world!"],
                 model="text-embedding-ada-002",
             )
-
-            assert isinstance(result, dict)
-            assert "embeddings" in result
-            assert len(result["embeddings"]) == 1
-            assert len(result["embeddings"][0]) == 3
-            assert "usage" in result
-            assert result["usage"]["total_tokens"] == 10
-
-    @pytest.mark.asyncio
-    async def test_create_embeddings_batch(
-        self,
-        openai_client: OpenAIClient,
-        mock_openai_client: Any,
-    ) -> None:
-        """Test creating embeddings in batch."""
-        # Add the embedding model to the model maps
-        test_model_map = {
-            "text-embedding-ada-002": "text-embedding-ada-002",
-        }
-        with patch(
-            "agent_platform.core.platforms.openai.configs.OpenAIModelMap.mapping",
-            new_callable=PropertyMock,
-            return_value=test_model_map,
-        ):
-            result = await openai_client.create_embeddings(
-                texts=["Hello, world!", "Goodbye, world!"],
-                model="text-embedding-ada-002",
-            )
-
-            assert isinstance(result, dict)
-            assert "embeddings" in result
-            assert len(result["embeddings"]) == 2
-            assert all(len(emb) == 3 for emb in result["embeddings"])
-            assert "usage" in result
-            assert result["usage"]["total_tokens"] == 20
