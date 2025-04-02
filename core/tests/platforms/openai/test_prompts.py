@@ -3,13 +3,11 @@
 from unittest.mock import MagicMock
 
 import pytest
+from openai.types import FunctionDefinition
 
 from agent_platform.core.kernel import Kernel
+from agent_platform.core.platforms.openai.adapters import format_message_for_api
 from agent_platform.core.platforms.openai.prompts import OpenAIPrompt
-from agent_platform.core.platforms.openai.types import (
-    OpenAIPromptMessage,
-    OpenAIPromptToolSpec,
-)
 
 
 class TestOpenAIPrompt:
@@ -21,15 +19,18 @@ class TestOpenAIPrompt:
         return MagicMock(spec=Kernel)
 
     @pytest.fixture
-    def messages(self) -> list[OpenAIPromptMessage]:
+    def messages(self):
         """Create a list of messages for testing."""
         return [
-            OpenAIPromptMessage(role="system", content="You are a helpful assistant."),
-            OpenAIPromptMessage(role="user", content="Hello, world!"),
+            format_message_for_api(
+                role="system",
+                content="You are a helpful assistant.",
+            ),
+            format_message_for_api(role="user", content="Hello, world!"),
         ]
 
     @pytest.fixture
-    def openai_prompt(self, messages: list[OpenAIPromptMessage]) -> OpenAIPrompt:
+    def openai_prompt(self, messages) -> OpenAIPrompt:
         """Create an OpenAI prompt for testing."""
         return OpenAIPrompt(
             messages=messages,
@@ -59,13 +60,14 @@ class TestOpenAIPrompt:
         assert len(request["messages"]) == 2
         assert request["messages"][0]["role"] == "system"
         assert request["messages"][1]["role"] == "user"
+        assert request["stream"] is True
 
     def test_as_platform_request_with_tools(self) -> None:
         """Test converting to platform request with tools."""
-        tool_spec = OpenAIPromptToolSpec(
+        tool_def = FunctionDefinition(
             name="test-tool",
             description="A test tool",
-            input_schema={
+            parameters={
                 "type": "object",
                 "properties": {
                     "key": {
@@ -78,13 +80,16 @@ class TestOpenAIPrompt:
         )
 
         messages = [
-            OpenAIPromptMessage(role="system", content="You are a helpful assistant."),
-            OpenAIPromptMessage(role="user", content="Hello, world!"),
+            format_message_for_api(
+                role="system",
+                content="You are a helpful assistant.",
+            ),
+            format_message_for_api(role="user", content="Hello, world!"),
         ]
 
         openai_prompt = OpenAIPrompt(
             messages=messages,
-            tools=[tool_spec],
+            tools=[tool_def],
         )
 
         request = openai_prompt.as_platform_request(model="gpt-4")
@@ -100,7 +105,7 @@ class TestOpenAIPrompt:
 
     def test_prompt_properties(self) -> None:
         """Test prompt properties and defaults."""
-        messages = [OpenAIPromptMessage(role="user", content="Hello")]
+        messages = [format_message_for_api(role="user", content="Hello")]
 
         # Test with defaults
         prompt = OpenAIPrompt(messages=messages)
@@ -112,7 +117,7 @@ class TestOpenAIPrompt:
 
         # Test with custom values
         tools = [
-            OpenAIPromptToolSpec(name="test", description="Test tool", input_schema={}),
+            FunctionDefinition(name="test", description="Test tool", parameters={}),
         ]
         prompt = OpenAIPrompt(
             messages=messages,

@@ -1,10 +1,12 @@
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
+from openai.types import FunctionDefinition
+
 from agent_platform.core.platforms.base import PlatformPrompt
-from agent_platform.core.platforms.openai.types import (
-    OpenAIPromptMessage,
-    OpenAIPromptToolSpec,
+from agent_platform.core.platforms.openai.adapters import (
+    function_definition_to_tool_param,
 )
 
 
@@ -12,20 +14,22 @@ from agent_platform.core.platforms.openai.types import (
 class OpenAIPrompt(PlatformPrompt):
     """A prompt for the OpenAI platform."""
 
-    messages: list[OpenAIPromptMessage] | None = field(
+    messages: Sequence[dict[str, Any]] | None = field(
         default_factory=list,
         metadata={
             "description": "The list of messages for the prompt.",
         },
     )
     """The list of messages for the prompt."""
-    tools: list[OpenAIPromptToolSpec] | None = field(
+
+    tools: list[FunctionDefinition] | None = field(
         default_factory=list,
         metadata={
             "description": "The list of tools for the prompt.",
         },
     )
     """The list of tools for the prompt."""
+
     max_tokens: int = field(
         default=4096,
         metadata={
@@ -33,6 +37,7 @@ class OpenAIPrompt(PlatformPrompt):
         },
     )
     """The maximum number of tokens for the prompt."""
+
     temperature: float = field(
         default=0.0,
         metadata={
@@ -40,6 +45,7 @@ class OpenAIPrompt(PlatformPrompt):
         },
     )
     """The temperature for the prompt."""
+
     top_p: float = field(
         default=1.0,
         metadata={
@@ -63,12 +69,15 @@ class OpenAIPrompt(PlatformPrompt):
             A OpenAI request."""
         results_dict: dict[str, Any] = {
             "model": model,
-            "messages": [message.model_dump() for message in self.messages]
-            if self.messages
-            else [],
+            "messages": self.messages or [],
         }
 
         if self.tools:
-            results_dict["tools"] = [tool.model_dump() for tool in self.tools]
+            results_dict["tools"] = [
+                function_definition_to_tool_param(tool) for tool in self.tools
+            ]
+
+        if stream:
+            results_dict["stream"] = True
 
         return results_dict

@@ -1,23 +1,26 @@
-from collections.abc import Sequence
-from typing import Literal, cast
+import json
+from typing import Any, Literal, cast
+
+from openai.types import FunctionDefinition
+from openai.types.chat import ChatCompletionMessageToolCall
+from openai.types.chat.chat_completion_message_tool_call import Function
 
 from agent_platform.core.kernel_interfaces.kernel_mixin import UsesKernelMixin
 from agent_platform.core.platforms.base import PlatformConverters
+from agent_platform.core.platforms.openai.adapters import (
+    format_message_for_api,
+)
 from agent_platform.core.platforms.openai.configs import OpenAIRoleMap
 from agent_platform.core.platforms.openai.prompts import OpenAIPrompt
 from agent_platform.core.platforms.openai.types import (
     OpenAIPromptContent,
-    OpenAIPromptMessage,
     OpenAIPromptToolResults,
-    OpenAIPromptToolSpec,
-    OpenAIPromptToolUse,
 )
 from agent_platform.core.prompts import (
     Prompt,
     PromptAgentMessage,
     PromptAudioContent,
     PromptImageContent,
-    PromptMessageContent,
     PromptTextContent,
     PromptToolResultContent,
     PromptToolUseContent,
@@ -59,13 +62,18 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
         content: PromptToolUseContent,
     ) -> OpenAIPromptContent:
         """Converts tool use content to OpenAI format."""
+        tool_call = ChatCompletionMessageToolCall(
+            id=content.tool_call_id,
+            type="function",
+            function=Function(
+                name=content.tool_name,
+                arguments=json.dumps(content.tool_input),
+            ),
+        )
+
         return OpenAIPromptContent(
             type="tool_use",
-            tool_use=OpenAIPromptToolUse(
-                tool_use_id=content.tool_call_id,
-                name=content.tool_name,
-                input=content.tool_input,
-            ),
+            tool_use=tool_call,
         )
 
     async def convert_tool_result_content(
@@ -122,97 +130,44 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
                 return cast(Literal["user", "assistant"], openai_role)
         raise ValueError(f"Role '{role}' not found in OpenAIRoleMap")
 
-    async def _convert_messages(
+    async def _convert_messages_to_openai(
         self,
         messages: list[PromptUserMessage | PromptAgentMessage],
-    ) -> list[OpenAIPromptMessage]:
+    ) -> list[dict[str, Any]]:
         """Convert prompt messages to OpenAI message format.
 
         Args:
             messages: The list of prompt messages to convert.
 
         Returns:
-            The list of OpenAI messages.
+            The list of OpenAI message dictionaries.
         """
-        converted_messages: list[OpenAIPromptMessage] = []
+        converted_messages: list[dict[str, Any]] = []
 
         for message in messages:
-            content_blocks = await self._convert_message_content(message.content)
-            openai_message = await self._create_openai_message(
-                message.role,
-                content_blocks,
+            # Get content as a string
+            content = ""
+            for content_item in message.content:
+                if isinstance(content_item, PromptTextContent):
+                    content += content_item.text + "\n"
+
+            # Get role
+            openai_role = await self._reverse_role_map(message.role)
+
+            # Create formatted message
+            formatted_message = format_message_for_api(
+                role=openai_role,
+                content=content.strip(),
             )
-            converted_messages.append(openai_message)
+
+            converted_messages.append(formatted_message)
 
         return converted_messages
 
-    async def _convert_message_content(
-        self,
-        content_list: Sequence[PromptMessageContent],
-    ) -> list[OpenAIPromptContent]:
-        """Convert prompt message content to OpenAI content blocks.
-
-        Args:
-            content_list: The list of content to convert.
-
-        Returns:
-            The list of OpenAI content blocks.
-        """
-        content_blocks: list[OpenAIPromptContent] = []
-
-        for content in content_list:
-            if isinstance(content, PromptTextContent):
-                content_blocks.append(await self.convert_text_content(content))
-            elif isinstance(content, PromptImageContent):
-                content_blocks.append(await self.convert_image_content(content))
-            elif isinstance(content, PromptAudioContent):
-                content_blocks.append(await self.convert_audio_content(content))
-            elif isinstance(content, PromptToolUseContent):
-                content_blocks.append(await self.convert_tool_use_content(content))
-            elif isinstance(content, PromptToolResultContent):
-                content_blocks.append(
-                    await self.convert_tool_result_content(content),
-                )
-            elif isinstance(content, PromptDocumentContent):
-                content_blocks.append(await self.convert_document_content(content))
-
-        return content_blocks
-
-    async def _create_openai_message(
-        self,
-        role: str,
-        content_blocks: list[OpenAIPromptContent],
-    ) -> OpenAIPromptMessage:
-        """Create an OpenAI message from role and content blocks.
-
-        Args:
-            role: The role of the message.
-            content_blocks: The content blocks of the message.
-
-        Returns:
-            The OpenAI message.
-        """
-        # Extract text content
-        text_content = ""
-        for block in content_blocks:
-            if block.type == "text" and block.text is not None:
-                text_content += block.text + "\n"
-
-        # Filter out text blocks (they're combined in the content field)
-        filtered_content_blocks = [
-            block for block in content_blocks if block.type != "text"
-        ]
-
-        return OpenAIPromptMessage(
-            role=await self._reverse_role_map(role),
-            content=text_content,
-            content_list=filtered_content_blocks,
-        )
-
-    async def _convert_system_instruction(
+    async def _convert_system_instruction_to_openai(
         self,
         system_instruction: str | None,
-    ) -> list[OpenAIPromptMessage]:
+    ) -> list[dict[str, Any]]:
         """Convert system instruction to OpenAI message format.
 
         Args:
@@ -224,29 +179,33 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
         if system_instruction is None:
             return []
 
-        return [OpenAIPromptMessage(role="system", content=system_instruction)]
+        system_message = format_message_for_api(
+            role="system",
+            content=system_instruction,
+        )
+
+        return [system_message]
 
     async def _convert_tools(
         self,
         tools: list[ToolDefinition],
-    ) -> list[OpenAIPromptToolSpec]:
-        """Convert tool definitions to OpenAI tool spec format.
+    ) -> list[FunctionDefinition]:
+        """Convert tool definitions to OpenAI function definitions.
 
         Args:
             tools: The list of tool definitions to convert.
 
         Returns:
-            The list of OpenAI tool specs.
+            The list of OpenAI function definitions.
         """
-        converted_tools: list[OpenAIPromptToolSpec] = []
+        converted_tools: list[FunctionDefinition] = []
         for tool in tools:
-            tool_spec = OpenAIPromptToolSpec(
-                type="function",
+            function_def = FunctionDefinition(
                 name=tool.name,
                 description=tool.description,
-                input_schema=tool.input_schema,
+                parameters=tool.input_schema,
             )
-            converted_tools.append(tool_spec)
+            converted_tools.append(function_def)
         return converted_tools
 
     async def convert_prompt(self, prompt: Prompt) -> OpenAIPrompt:
@@ -258,14 +217,19 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
         Returns:
             The converted prompt.
         """
-        messages = await self._convert_messages(prompt.finalized_messages)
-        system = await self._convert_system_instruction(prompt.system_instruction)
+        # Use the new message conversion method
+        messages = await self._convert_messages_to_openai(prompt.finalized_messages)
+        system = await self._convert_system_instruction_to_openai(
+            prompt.system_instruction,
+        )
         if system and len(system) > 0:
             messages.insert(0, system[0])
+
         # Convert tools if present
         tools = None
         if prompt.tools:
             tools = await self._convert_tools(prompt.tools)
+
         return OpenAIPrompt(
             messages=messages,
             tools=tools,
