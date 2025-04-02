@@ -105,29 +105,29 @@ class OpenAIParsers(PlatformParsers):
         """
         raise NotImplementedError("Document content not supported yet")
 
-    def parse_content_item(self, content: Any) -> ResponseMessageContent:
+    def parse_content_item(self, item: Any) -> ResponseMessageContent:
         """Parses a platform-specific content item to an agent-server
         content item.
 
         Args:
-            content: The content to parse.
+            item: The content to parse.
 
         Returns:
             The parsed content item.
         """
-        if not isinstance(content, dict) or "type" not in content:
-            raise ValueError(f"Invalid content item format: {content}")
+        if not isinstance(item, dict) or "type" not in item:
+            raise ValueError(f"Invalid content item format: {item}")
 
-        if content["type"] == "text":
-            return self.parse_text_content(content["text"])
-        elif content["type"] == "image":
-            return self.parse_image_content(content["image"])
-        elif content["type"] == "audio":
-            return self.parse_audio_content(content["audio"])
-        elif content["type"] == "function":  # OpenAI uses "function" for tool use
-            return self.parse_tool_use_content(content)
+        if item["type"] == "text":
+            return self.parse_text_content(item["text"])
+        elif item["type"] == "image":
+            return self.parse_image_content(item["image"])
+        elif item["type"] == "audio":
+            return self.parse_audio_content(item["audio"])
+        elif item["type"] == "function":  # OpenAI uses "function" for tool use
+            return self.parse_tool_use_content(item)
 
-        raise ValueError(f"Unsupported content type in item: {content}")
+        raise ValueError(f"Unsupported content type in item: {item}")
 
     def parse_response(self, response: Any) -> ResponseMessage:
         """Parses an OpenAI response to an agent-server response.

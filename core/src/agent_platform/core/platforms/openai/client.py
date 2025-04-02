@@ -53,6 +53,9 @@ class OpenAIClient(
     def _init_client(self, parameters: OpenAIPlatformParameters) -> "OpenAI":
         from openai import OpenAI
 
+        if parameters.openai_api_key is None:
+            raise ValueError("OpenAI API key is required")
+
         return OpenAI(api_key=parameters.openai_api_key.get_secret_value())
 
     def _init_converters(self, kernel: "Kernel | None" = None) -> OpenAIConverters:

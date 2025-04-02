@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from typing import Literal, cast
 
 from agent_platform.core.kernel_interfaces.kernel_mixin import UsesKernelMixin
@@ -147,7 +148,7 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
 
     async def _convert_message_content(
         self,
-        content_list: list[PromptMessageContent],
+        content_list: Sequence[PromptMessageContent],
     ) -> list[OpenAIPromptContent]:
         """Convert prompt message content to OpenAI content blocks.
 
