@@ -11,16 +11,18 @@ from agent_platform.core.platforms.openai.types import (
     OpenAIPromptToolSpec,
     OpenAIPromptToolUse,
 )
-from agent_platform.core.prompts import Prompt
-from agent_platform.core.prompts.content import (
+from agent_platform.core.prompts import (
+    Prompt,
+    PromptAgentMessage,
     PromptAudioContent,
-    PromptDocumentContent,
     PromptImageContent,
+    PromptMessageContent,
     PromptTextContent,
     PromptToolResultContent,
     PromptToolUseContent,
+    PromptUserMessage,
 )
-from agent_platform.core.prompts.messages import PromptAgentMessage, PromptUserMessage
+from agent_platform.core.prompts.content.document import PromptDocumentContent
 from agent_platform.core.tools.tool_definition import ToolDefinition
 
 
@@ -134,40 +136,77 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
         converted_messages: list[OpenAIPromptMessage] = []
 
         for message in messages:
-            content_blocks: list[OpenAIPromptContent] = []
-            for content in message.content:
-                if isinstance(content, PromptTextContent):
-                    content_blocks.append(await self.convert_text_content(content))
-                elif isinstance(content, PromptImageContent):
-                    content_blocks.append(await self.convert_image_content(content))
-                elif isinstance(content, PromptAudioContent):
-                    content_blocks.append(await self.convert_audio_content(content))
-                elif isinstance(content, PromptToolUseContent):
-                    content_blocks.append(await self.convert_tool_use_content(content))
-                elif isinstance(content, PromptToolResultContent):
-                    content_blocks.append(
-                        await self.convert_tool_result_content(content),
-                    )
-                elif isinstance(content, PromptDocumentContent):
-                    content_blocks.append(await self.convert_document_content(content))
-            text_content = ""
-            for block in content_blocks:
-                if block.type == "text" and block.text is not None:
-                    text_content += block.text + "\n"
-
-            filtered_content_blocks = [
-                block for block in content_blocks if block.type != "text"
-            ]
-
-            converted_messages.append(
-                OpenAIPromptMessage(
-                    role=await self._reverse_role_map(message.role),
-                    content=text_content,
-                    content_list=filtered_content_blocks,
-                ),
+            content_blocks = await self._convert_message_content(message.content)
+            openai_message = await self._create_openai_message(
+                message.role,
+                content_blocks,
             )
+            converted_messages.append(openai_message)
 
         return converted_messages
+
+    async def _convert_message_content(
+        self,
+        content_list: list[PromptMessageContent],
+    ) -> list[OpenAIPromptContent]:
+        """Convert prompt message content to OpenAI content blocks.
+
+        Args:
+            content_list: The list of content to convert.
+
+        Returns:
+            The list of OpenAI content blocks.
+        """
+        content_blocks: list[OpenAIPromptContent] = []
+
+        for content in content_list:
+            if isinstance(content, PromptTextContent):
+                content_blocks.append(await self.convert_text_content(content))
+            elif isinstance(content, PromptImageContent):
+                content_blocks.append(await self.convert_image_content(content))
+            elif isinstance(content, PromptAudioContent):
+                content_blocks.append(await self.convert_audio_content(content))
+            elif isinstance(content, PromptToolUseContent):
+                content_blocks.append(await self.convert_tool_use_content(content))
+            elif isinstance(content, PromptToolResultContent):
+                content_blocks.append(
+                    await self.convert_tool_result_content(content),
+                )
+            elif isinstance(content, PromptDocumentContent):
+                content_blocks.append(await self.convert_document_content(content))
+
+        return content_blocks
+
+    async def _create_openai_message(
+        self,
+        role: str,
+        content_blocks: list[OpenAIPromptContent],
+    ) -> OpenAIPromptMessage:
+        """Create an OpenAI message from role and content blocks.
+
+        Args:
+            role: The role of the message.
+            content_blocks: The content blocks of the message.
+
+        Returns:
+            The OpenAI message.
+        """
+        # Extract text content
+        text_content = ""
+        for block in content_blocks:
+            if block.type == "text" and block.text is not None:
+                text_content += block.text + "\n"
+
+        # Filter out text blocks (they're combined in the content field)
+        filtered_content_blocks = [
+            block for block in content_blocks if block.type != "text"
+        ]
+
+        return OpenAIPromptMessage(
+            role=await self._reverse_role_map(role),
+            content=text_content,
+            content_list=filtered_content_blocks,
+        )
 
     async def _convert_system_instruction(
         self,

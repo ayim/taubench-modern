@@ -261,71 +261,149 @@ class OpenAIPromptMessage:
         Returns:
             A dictionary representation of the message.
         """
-        # Special case: If this is a user message with tool results, convert it to
-        # a tool message
-        if (
-            self.role == "user"
-            and self.content_list
-            and any(
-                c.type == "tool_results" and c.tool_results for c in self.content_list
-            )
-        ):
-            for content in self.content_list:
-                if content.type == "tool_results" and content.tool_results:
-                    # Extract the text content from tool results
-                    result_text = ""
-                    for result_content in content.tool_results.content:
-                        if result_content.type == "text" and result_content.text:
-                            result_text = result_content.text
-                            break
-
-                    # Create a tool message instead of a user message
-                    return {
-                        # This is the key change - use role "tool" not "user"
-                        "role": "tool",
-                        "tool_call_id": content.tool_results.tool_use_id,
-                        "content": result_text,  # The tool result as a string
-                    }
+        # Special case: tool result message
+        if self._is_tool_result_message():
+            return self._create_tool_result_message()
 
         # Regular case: Assistant with tool calls or normal messages
         result: dict[str, Any] = {"role": self.role}
 
-        # Handle content list - special processing for tool calls
         if self.content_list:
-            # Extract tool use content (if any)
-            tool_calls = []
-            has_tool_calls = False
-            text_content = []
-
-            for content in self.content_list:
-                if content.type == "text" and content.text:
-                    text_content.append(content.text)
-                elif content.type == "tool_use" and content.tool_use:
-                    has_tool_calls = True
-                    # Format tool call according to OpenAI's expected structure
-                    tool_calls.append(
-                        {
-                            "id": content.tool_use.tool_use_id,
-                            "type": "function",
-                            "function": {
-                                "name": content.tool_use.name,
-                                "arguments": json.dumps(content.tool_use.input),
-                            },
-                        },
-                    )
-
-            # If it's an assistant message with tool calls
-            if self.role == "assistant" and has_tool_calls:
-                # For assistant with tool calls, content is null
-                if tool_calls:
-                    result["tool_calls"] = tool_calls
-                # Set content to empty string rather than None to avoid type issues
-                result["content"] = ""
-            else:
-                # Otherwise use joined text content
-                result["content"] = "\n".join(text_content) if text_content else ""
+            self._process_content_list(result)
         else:
             # Simple string content
             result["content"] = self.content
 
         return result
+
+    def _is_tool_result_message(self) -> bool:
+        """Check if this is a user message with tool results.
+
+        Returns:
+            True if this is a tool result message, False otherwise.
+        """
+        return (
+            self.role == "user"
+            and self.content_list is not None
+            and any(
+                c.type == "tool_results" and c.tool_results for c in self.content_list
+            )
+        )
+
+    def _create_tool_result_message(self) -> dict:
+        """Create a tool result message.
+
+        Returns:
+            A dictionary representation of the tool result message.
+        """
+        assert self.content_list is not None
+
+        for content in self.content_list:
+            if content.type == "tool_results" and content.tool_results:
+                # Extract the text content from tool results
+                result_text = self._extract_tool_result_text(content)
+
+                # Create a tool message instead of a user message
+                return {
+                    "role": "tool",
+                    "tool_call_id": content.tool_results.tool_use_id,
+                    "content": result_text,  # The tool result as a string
+                }
+
+        # This should never happen due to the _is_tool_result_message check
+        return {"role": self.role, "content": self.content or ""}
+
+    def _extract_tool_result_text(self, content: OpenAIPromptContent) -> str:
+        """Extract text content from tool results.
+
+        Args:
+            content: The tool results content.
+
+        Returns:
+            The extracted text content.
+        """
+        assert content.tool_results is not None
+
+        result_text = ""
+        for result_content in content.tool_results.content:
+            if result_content.type == "text" and result_content.text:
+                result_text = result_content.text
+                break
+
+        return result_text
+
+    def _process_content_list(self, result: dict[str, Any]) -> None:
+        """Process the content list and update the result dictionary.
+
+        Args:
+            result: The result dictionary to update.
+        """
+        assert self.content_list is not None
+
+        # Extract text content and tool calls
+        text_content, tool_calls, has_tool_calls = self._extract_content_items()
+
+        # If it's an assistant message with tool calls
+        if self.role == "assistant" and has_tool_calls:
+            self._add_tool_calls_to_result(result, tool_calls)
+        else:
+            # Otherwise use joined text content
+            result["content"] = "\n".join(text_content) if text_content else ""
+
+    def _extract_content_items(self) -> tuple[list[str], list[dict], bool]:
+        """Extract text content and tool calls from the content list.
+
+        Returns:
+            A tuple of (text_content, tool_calls, has_tool_calls).
+        """
+        assert self.content_list is not None
+
+        tool_calls = []
+        has_tool_calls = False
+        text_content = []
+
+        for content in self.content_list:
+            if content.type == "text" and content.text:
+                text_content.append(content.text)
+            elif content.type == "tool_use" and content.tool_use:
+                has_tool_calls = True
+                tool_call = self._format_tool_call(content)
+                tool_calls.append(tool_call)
+
+        return text_content, tool_calls, has_tool_calls
+
+    def _format_tool_call(self, content: OpenAIPromptContent) -> dict:
+        """Format a tool call according to OpenAI's expected structure.
+
+        Args:
+            content: The tool use content.
+
+        Returns:
+            A dictionary representation of the tool call.
+        """
+        assert content.tool_use is not None
+
+        return {
+            "id": content.tool_use.tool_use_id,
+            "type": "function",
+            "function": {
+                "name": content.tool_use.name,
+                "arguments": json.dumps(content.tool_use.input),
+            },
+        }
+
+    def _add_tool_calls_to_result(
+        self,
+        result: dict[str, Any],
+        tool_calls: list[dict],
+    ) -> None:
+        """Add tool calls to the result dictionary.
+
+        Args:
+            result: The result dictionary to update.
+            tool_calls: The tool calls to add.
+        """
+        if tool_calls:
+            result["tool_calls"] = tool_calls
+        # Set content to empty string rather than None to avoid type issues
+        result["content"] = ""
