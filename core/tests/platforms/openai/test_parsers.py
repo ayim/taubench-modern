@@ -61,7 +61,8 @@ class TestOpenAIParsers:
         assert result.tool_input_raw == '{"key": "value"}'
 
     def test_parse_document_content_not_implemented(
-        self, parsers: OpenAIParsers
+        self,
+        parsers: OpenAIParsers,
     ) -> None:
         """Test parsing document content."""
         # This is expected to fail until document content is supported

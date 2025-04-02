@@ -348,7 +348,8 @@ class OpenAIParsers(PlatformParsers):
                                 break
 
                         if not tool_found and tool_id:
-                            # Create a new tool use content with exactly the fields expected by ResponseToolUseContent
+                            # Create a new tool use content with exactly the fields
+                            # expected by ResponseToolUseContent
                             tool_content = {
                                 "kind": "tool_use",
                                 "tool_call_id": tool_id,
@@ -379,7 +380,8 @@ class OpenAIParsers(PlatformParsers):
                         hasattr(tool_call.function, "name")
                         or hasattr(tool_call.function, "arguments")
                     ):
-                        # Find any existing tool use content that doesn't have complete details
+                        # Find any existing tool use content that doesn't have
+                        # complete details
                         found = False
                         for i, item in enumerate(message["content"]):
                             if item.get("kind") == "tool_use":
@@ -465,8 +467,8 @@ class OpenAIParsers(PlatformParsers):
                         if item.get("kind") == "tool_use" and not item.get(
                             "tool_input_raw",
                         ):
-                            # If we're missing arguments but have an ID, try to find the arguments
-                            # in the message or additional data
+                            # If we're missing arguments but have an ID, try to find
+                            # the arguments in the message or additional data
                             if hasattr(choice, "message") and hasattr(
                                 choice.message,
                                 "tool_calls",
@@ -480,7 +482,8 @@ class OpenAIParsers(PlatformParsers):
                                             tc.function.arguments
                                         )
 
-        # Handle other event fields - store in additional_response_fields instead of top level
+        # Handle other event fields - store in additional_response_fields
+        # instead of top level
         if hasattr(event, "id"):
             message["additional_response_fields"]["id"] = event.id
 
@@ -508,16 +511,15 @@ class OpenAIParsers(PlatformParsers):
         """
         delta = event.get("choices", [{}])[0].get("delta", {})
 
-        last_item_type = None
-        if "content" in message:
-            last_item_type = message["content"][-1]["type"]
-
         for content_item in delta["content_list"]:
-            # First, we need to deduce the type of the item
-            item_type = None
+            # Determine how to handle the content item based on its properties
             if "type" in content_item and content_item["type"] == "text":
-                item_type = "text"
+                # Handle text content
+                # Implementation here
+                pass
             elif "tool_use_id" in content_item or "input" in content_item:
-                item_type = "tool_use"
+                # Handle tool use content
+                # Implementation here
+                pass
             else:
                 raise ValueError(f"Unsupported content item type: {content_item}")

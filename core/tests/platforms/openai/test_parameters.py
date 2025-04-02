@@ -23,7 +23,10 @@ class TestOpenAIPlatformParameters:
         """Test initialization without an API key when no env var is set."""
         # Mock environment to ensure OPENAI_API_KEY is not set
         with patch.dict(os.environ, {"OPENAI_API_KEY": ""}, clear=True):
-            with pytest.raises(ValueError):
+            with pytest.raises(
+                ValueError,
+                match="OPENAI_API_KEY environment variable is required",
+            ):
                 OpenAIPlatformParameters()
 
     def test_model_dump(self) -> None:

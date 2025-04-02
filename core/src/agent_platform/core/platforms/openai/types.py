@@ -261,7 +261,8 @@ class OpenAIPromptMessage:
         Returns:
             A dictionary representation of the message.
         """
-        # Special case: If this is a user message with tool results, convert it to a tool message
+        # Special case: If this is a user message with tool results, convert it to
+        # a tool message
         if (
             self.role == "user"
             and self.content_list
@@ -280,25 +281,24 @@ class OpenAIPromptMessage:
 
                     # Create a tool message instead of a user message
                     return {
-                        "role": "tool",  # This is the key change - use role "tool" not "user"
+                        # This is the key change - use role "tool" not "user"
+                        "role": "tool",
                         "tool_call_id": content.tool_results.tool_use_id,
                         "content": result_text,  # The tool result as a string
                     }
 
         # Regular case: Assistant with tool calls or normal messages
-        result = {"role": self.role}
+        result: dict[str, Any] = {"role": self.role}
 
         # Handle content list - special processing for tool calls
         if self.content_list:
             # Extract tool use content (if any)
             tool_calls = []
             has_tool_calls = False
-            has_regular_content = False
             text_content = []
 
             for content in self.content_list:
                 if content.type == "text" and content.text:
-                    has_regular_content = True
                     text_content.append(content.text)
                 elif content.type == "tool_use" and content.tool_use:
                     has_tool_calls = True
@@ -311,14 +311,16 @@ class OpenAIPromptMessage:
                                 "name": content.tool_use.name,
                                 "arguments": json.dumps(content.tool_use.input),
                             },
-                        }
+                        },
                     )
 
             # If it's an assistant message with tool calls
             if self.role == "assistant" and has_tool_calls:
                 # For assistant with tool calls, content is null
-                result["content"] = None
-                result["tool_calls"] = tool_calls
+                if tool_calls:
+                    result["tool_calls"] = tool_calls
+                # Set content to empty string rather than None to avoid type issues
+                result["content"] = ""
             else:
                 # Otherwise use joined text content
                 result["content"] = "\n".join(text_content) if text_content else ""

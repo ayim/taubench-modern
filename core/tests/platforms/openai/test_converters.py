@@ -46,7 +46,8 @@ class TestOpenAIConverters:
 
     @pytest.mark.asyncio
     async def test_convert_image_content_not_implemented(
-        self, converters: OpenAIConverters
+        self,
+        converters: OpenAIConverters,
     ) -> None:
         """Test converting image content."""
         content = PromptImageContent(
