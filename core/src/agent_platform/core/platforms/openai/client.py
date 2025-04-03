@@ -171,26 +171,28 @@ class OpenAIClient(
         model: str,
     ) -> dict[str, Any]:
         """Create embeddings using a OpenAI embedding model."""
-        # TODO: Implement embeddings
-        # with self.kernel.otel.span("create_embeddings") as span:
-        #     model_id = cast(str, OpenAIModelMap[model])
-        #     span.add_event("embedding on model", {"model": model_id})
-
-        #     if not texts:
-        #         span.add_event("no texts provided to embed; returning empty list")
-        #         return {
-        #             "embeddings": [],
-        #             "model": model,
-        #             "usage": {"total_tokens": 0},
-        #         }
-
-        #     request = {
-        #         "model": model_id,
-        #         "input": texts,
-        #     }
-        #     response = await self._openai_client.embeddings.create(**request)
-        #     return response
-        raise NotImplementedError("OpenAI embeddings are not yet implemented")
+        model_id = cast(str, OpenAIModelMap[model])
+        if not texts:
+            return {
+                "embeddings": [],
+                "model": model,
+                "usage": {"total_tokens": 0},
+            }
+        embeddings = []
+        total_tokens = 0
+        for text in texts:
+            response = self._openai_client.embeddings.create(
+                model=model_id,
+                input=text,
+            )
+            embedding = response.data[0].embedding
+            total_tokens += response.usage.total_tokens
+            embeddings.append(embedding)
+        return {
+            "embeddings": embeddings,
+            "model": model,
+            "usage": {"total_tokens": total_tokens},
+        }
 
 
 PlatformClient.register_platform_client("openai", OpenAIClient)
