@@ -101,31 +101,92 @@ class ServerLifecycleManager:
         logger.debug("Successfully obtained app mutex lock")
         return True
 
+    def _check_connection_for_port(self, conn: Any, port: int) -> bool:
+        """Check if a single connection uses the specified port."""
+        try:
+            if isinstance(conn.laddr, tuple):
+                if len(conn.laddr) > 1 and conn.laddr[1] == port:
+                    return True
+            else:
+                try:
+                    laddr: Any = conn.laddr
+                    if laddr.port == port:
+                        return True
+                except AttributeError:
+                    pass
+            return False
+        except (PermissionError, OSError) as e:
+            error_details = {
+                "error_type": type(e).__name__,
+                "errno": getattr(e, "errno", None),
+                "strerror": getattr(e, "strerror", None),
+                "filename": getattr(e, "filename", None),
+                "filename2": getattr(e, "filename2", None),
+                "winerror": getattr(e, "winerror", None),
+            }
+
+            # Map errno to human-readable descriptions for common errors
+            if hasattr(e, "errno"):
+                import errno
+
+                error_codes = {
+                    errno.EACCES: "Permission denied",
+                    errno.EPERM: "Operation not permitted",
+                    errno.ECONNREFUSED: "Connection refused",
+                    errno.EADDRINUSE: "Address already in use",
+                }
+                error_details["error_code_name"] = errno.errorcode.get(
+                    e.errno,
+                    "UNKNOWN",
+                )
+                error_details["error_description"] = error_codes.get(
+                    e.errno,
+                    "",
+                )
+
+            logger.warning(
+                f"Could not use psutil to check port {port}: {e}",
+                error_details=error_details,
+            )
+            logger.warning("Port availability checks may be less reliable")
+            return False
+
     def is_port_in_use(self, port: int) -> bool:
         """Check if a port is already in use without binding to it."""
         try:
             import psutil
 
             for conn in psutil.net_connections():
-                try:
-                    if isinstance(conn.laddr, tuple):
-                        if len(conn.laddr) > 1 and conn.laddr[1] == port:
-                            return True
-                    else:
-                        try:
-                            laddr: Any = conn.laddr
-                            if laddr.port == port:
-                                return True
-                        except AttributeError:
-                            continue
-                except (PermissionError, OSError) as e:
-                    logger.warning(f"Could not use psutil to check port {port}: {e}")
-                    logger.warning("Port availability checks may be less reliable")
-                    continue
+                if self._check_connection_for_port(conn, port):
+                    return True
         except Exception as e:
+            error_details = {
+                "error_type": type(e).__name__,
+                "error_message": str(e),
+            }
+
+            # Extract OS-specific error details if available
+            if isinstance(e, OSError):
+                error_details = error_details | {
+                    "errno": getattr(e, "errno", None),
+                    "strerror": getattr(e, "strerror", None),
+                    "filename": getattr(e, "filename", None),
+                    "winerror": getattr(e, "winerror", None),
+                }
+
+                # Add symbolic name for errno if available
+                if hasattr(e, "errno"):
+                    import errno
+
+                    error_details["error_code_name"] = errno.errorcode.get(
+                        e.errno,
+                        "UNKNOWN",
+                    )
+
             logger.warning(
                 f"Could not use psutil to check ports, port checks "
                 f"may be unreliable: {e}",
+                **error_details,
             )
             return False
 

@@ -46,6 +46,10 @@ class SystemConfig(Configuration):
     # Server configuration
     host: str = field(default="127.0.0.1")
     port: int = field(default=8000)
+    parent_pid: int = field(default=0)
+    use_data_dir_lock: bool = field(default=False)
+    kill_lock_holder: bool = field(default=False)
+    ignore_config: bool = field(default=False)
 
     # Database configuration
     db_type: Literal["sqlite", "postgres"] = field(
@@ -131,7 +135,9 @@ class SystemPaths(Configuration):
         # We need to use object.__setattr__ because the dataclass is frozen
         object.__setattr__(self, "vector_database_path", self.data_dir / "chroma_db")
         object.__setattr__(
-            self, "domain_database_path", self.data_dir / "agentserver.db",
+            self,
+            "domain_database_path",
+            self.data_dir / "agentserver.db",
         )
         object.__setattr__(self, "log_file_path", self.log_dir / "agent-server.log")
         object.__setattr__(self, "upload_dir", self.data_dir / "uploads")

@@ -7,42 +7,53 @@ from os import PathLike
 import structlog
 
 import agent_platform.server
+from agent_platform.server.constants import DEFAULT_CONFIG_FILE_NAME, SystemConfig
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
 
+# Note: that at parse time, the SystemConfig values will not be loaded, so we would
+# be getting the default values here.
 @dataclass
 class ServerArgs:
-    host: str = "127.0.0.1"
-    port: int = 8000
+    host: str = SystemConfig.host
+    port: int = SystemConfig.port
     version: bool = False
     license: bool = False
-    parent_pid: int = 0
-    use_data_dir_lock: bool = False
-    kill_lock_holder: bool = False
+    parent_pid: int = SystemConfig.parent_pid
+    use_data_dir_lock: bool = SystemConfig.use_data_dir_lock
+    kill_lock_holder: bool = SystemConfig.kill_lock_holder
     config_path: PathLike | None = None
     data_dir: PathLike | None = None
     log_dir: PathLike | None = None
-    ignore_config: bool = False
+    ignore_config: bool = SystemConfig.ignore_config
     show_config: bool = False
     export_config: bool = False
 
 
 def parse_args() -> ServerArgs:
     """Parse the CLI arguments for the Agent Server."""
-    parser = argparse.ArgumentParser(description="Run the Sema4.ai Agent Server.")
+    parser = argparse.ArgumentParser(
+        prog="agent-server",
+        description="Run the Sema4.ai Agent Server.",
+    )
     parser.add_argument(
         "--host",
         type=str,
+        default=SystemConfig.host,
         help=(
             "Host address to run the HTTP server on. "
-            "Default is from config or '0.0.0.0'."
+            f"Default is from config or '{SystemConfig.host}'."
         ),
     )
     parser.add_argument(
         "--port",
         type=int,
-        help=("Port to run the HTTP server on. Default is from config or 8000."),
+        default=SystemConfig.port,
+        help=(
+            f"Port to run the HTTP server on. Default is from config or "
+            f"{SystemConfig.port}."
+        ),
     )
     parser.add_argument(
         "--version",
@@ -58,7 +69,7 @@ def parse_args() -> ServerArgs:
     parser.add_argument(
         "--parent-pid",
         type=int,
-        default=0,
+        default=SystemConfig.parent_pid,
         help="Parent PID of the agent server (when the given pid exits, "
         "the agent server will also exit).",
     )
@@ -66,8 +77,7 @@ def parse_args() -> ServerArgs:
         "--use-data-dir-lock",
         action="store_true",
         help="Use a lock file to prevent multiple instances of the agent server "
-        "from running in the same data directory (defined by the "
-        "SEMA4AI_AGENT_SERVER_HOME or SEMA4AI_STUDIO_HOME environment variable).",
+        "from running in the same data directory.",
     )
     parser.add_argument(
         "--kill-lock-holder",
@@ -79,28 +89,35 @@ def parse_args() -> ServerArgs:
         "--config-path",
         type=str,
         default=None,
-        help="Path to the configuration file. Search order if not specified: "
-        "1. SEMA4AI_AGENT_SERVER_CONFIG_PATH environment variable "
-        "2. SEMA4AI_AGENT_SERVER_HOME/agent-server-config.json "
-        "3. SEMA4AI_STUDIO_HOME/agent-server-config.json "
-        "4. Current working directory "
-        "If no configuration file is found, server defaults will be used.",
+        help=(
+            f"Path to the configuration file. Search order if not specified: "
+            f"1. SEMA4AI_AGENT_SERVER_CONFIG_PATH environment variable "
+            f"2. SEMA4AI_AGENT_SERVER_HOME/{DEFAULT_CONFIG_FILE_NAME} "
+            f"3. SEMA4AI_STUDIO_HOME/{DEFAULT_CONFIG_FILE_NAME} "
+            f"4. File '{DEFAULT_CONFIG_FILE_NAME}' in the current working directory"
+        ),
     )
     parser.add_argument(
         "--data-dir",
         type=str,
         default=None,
-        help="Path to the data directory. If not provided, defaults to the "
-        "SEMA4AI_AGENT_SERVER_HOME or SEMA4AI_STUDIO_HOME environment variable, "
-        "in that order. If none of the above are set, the server defaults are used.",
+        help=(
+            "Path to the data directory. If not provided, the environment variable "
+            "SEMA4AI_AGENT_SERVER_DATA_DIR or SEMA4AI_STUDIO_DATA_DIR will be used, "
+            "in that order. If none of the above are set, the current working "
+            "directory will be used."
+        ),
     )
     parser.add_argument(
         "--log-dir",
         type=str,
         default=None,
-        help="Path to the log directory. If not provided, defaults to the "
-        "SEMA4AI_AGENT_SERVER_HOME or SEMA4AI_STUDIO_HOME environment variable, "
-        "in that order. If none of the above are set, the server defaults are used.",
+        help=(
+            "Path to the log directory. If not provided, the environment variable "
+            "SEMA4AI_AGENT_SERVER_LOG_DIR or SEMA4AI_STUDIO_LOG_DIR will be used, "
+            "in that order. If none of the above are set, the current working "
+            "directory will be used."
+        ),
     )
     parser.add_argument(
         "--ignore-config",
