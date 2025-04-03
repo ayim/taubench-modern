@@ -121,8 +121,8 @@ class TestOpenAIPrompt:
         assert len(request["tools"]) == 1
         assert request["tools"][0]["function"]["name"] == "test-tool"
 
-    def test_as_platform_request_with_claude(self) -> None:
-        """Test converting to platform request with Claude model."""
+    def test_as_platform_request_with_reasoning_models(self) -> None:
+        """Test converting to platform request with reasoning models."""
         messages = [
             {"role": "user", "content": "Hello, world!"},
         ]
