@@ -1,5 +1,4 @@
 import sys
-from typing import Any  # Add typing imports for type annotations
 
 import structlog
 
@@ -18,54 +17,10 @@ from agent_platform.server.log_config import setup_logging
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
 
-def is_port_in_use(port: int) -> bool:
-    """Check if a port is already in use without binding to it.
-
-    Uses psutil to check active connections, which is more reliable on Windows
-    and avoids the race condition of binding/releasing.
-
-    Args:
-        port: The port number to check
-
-    Returns:
-        bool: True if the port is in use, False otherwise
-    """
-    try:
-        import psutil
-
-        # Check all network connections for this port
-        for conn in psutil.net_connections():
-            try:
-                # Check connection structure to extract port safely
-                if isinstance(conn.laddr, tuple):
-                    # Check if tuple has enough elements to access index 1
-                    if len(conn.laddr) > 1 and conn.laddr[1] == port:
-                        return True
-                else:
-                    # For named tuple or object-like structure, use try/except
-                    try:
-                        laddr: Any = conn.laddr  # Type hint to avoid linter errors
-                        if laddr.port == port:
-                            return True
-                    except AttributeError:
-                        # This connection doesn't have the expected structure
-                        continue
-            except (PermissionError, OSError) as e:
-                logger.warning(f"Could not use psutil to check port {port}: {e}")
-                logger.warning("Port availability checks may be less reliable")
-                continue
-    except Exception as e:
-        logger.warning(
-            f"Could not use psutil to check ports, port checks may be unreliable: {e}",
-        )
-        return False
-
-    # If we got here and found no active connections using this port,
-    # it's likely available
-    return False
-
-
 def main():
+    # Set up basic logging with environment variables before any configuration
+    setup_logging(default_mode=True)
+
     args: ServerArgs = parse_args()
 
     if args.license:
@@ -93,7 +48,8 @@ def main():
     # Now we can import the constants and other modules that rely on them.
     from agent_platform.server.constants import SystemPaths
 
-    setup_logging()
+    # Set up full logging with system configuration
+    setup_logging(default_mode=False)
 
     # Log configuration information
     config_status = "using defaults" if not is_config_path else "from file"

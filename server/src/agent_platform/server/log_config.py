@@ -7,21 +7,22 @@ import structlog
 from uvicorn.logging import AccessFormatter, DefaultFormatter
 
 from agent_platform.server.constants import SystemConfig, SystemPaths
+from agent_platform.server.env_vars import LOG_LEVEL
 
 
-def setup_logging():  # noqa: PLR0915
-    level = getattr(logging, SystemConfig.log_level, None)
-    if not isinstance(level, int):
-        raise ValueError(f"Invalid log level: {SystemConfig.log_level}")
-
-    default_formatter = DefaultFormatter(
-        "%(asctime)s - %(name)s - %(levelprefix)s %(message)s",
-    )
+def _get_access_handler() -> logging.StreamHandler:
+    """Set up access handler for Uvicorn."""
     access_formatter = AccessFormatter(
-        '%(asctime)s - %(name)s - %(levelprefix)s  '
+        "%(asctime)s - %(name)s - %(levelprefix)s  "
         '%(client_addr)s - "%(request_line)s" %(status_code)s',
     )
+    access_handler = logging.StreamHandler(sys.stdout)
+    access_handler.setFormatter(access_formatter)
+    return access_handler
 
+
+def _get_file_handler() -> RotatingFileHandler:
+    """Set up file handler for logging."""
     # If LOG_FILE_PATH does not exist, create it (recursively)
     try:
         path = Path(SystemPaths.log_file_path)
@@ -29,25 +30,23 @@ def setup_logging():  # noqa: PLR0915
     except Exception:
         pass
 
-    default_handler = logging.StreamHandler(sys.stderr)
-    default_handler.setFormatter(default_formatter)
-    access_handler = logging.StreamHandler(sys.stdout)
-    access_handler.setFormatter(access_formatter)
     file_handler = RotatingFileHandler(
         SystemPaths.log_file_path,
         maxBytes=SystemConfig.log_file_size,
         backupCount=SystemConfig.log_max_backup_files,
     )
-    # TODO: want this dep just for json format?
-    # file_handler.setFormatter(json_formatter)
+    return file_handler
 
-    root_logger = logging.getLogger()
-    root_logger.setLevel(level)
-    root_logger.addHandler(default_handler)
-    root_logger.addHandler(file_handler)
 
+def _setup_additional_loggers(
+    level: int,
+    default_handler: logging.Handler,
+    file_handler: logging.Handler,
+):
+    """Set up additional loggers."""
     app_logger = logging.getLogger("app")
     app_logger.setLevel(level)
+    app_logger.handlers.clear()
     app_logger.addHandler(default_handler)
     app_logger.addHandler(file_handler)
     app_logger.propagate = False
@@ -69,7 +68,7 @@ def setup_logging():  # noqa: PLR0915
     uvicorn_access_logger = logging.getLogger("uvicorn.access")
     uvicorn_access_logger.setLevel(level)
     uvicorn_access_logger.handlers.clear()
-    uvicorn_access_logger.addHandler(access_handler)
+    uvicorn_access_logger.addHandler(_get_access_handler())
     uvicorn_access_logger.addHandler(file_handler)
     uvicorn_access_logger.propagate = False
 
@@ -80,11 +79,51 @@ def setup_logging():  # noqa: PLR0915
     aiosqlite_logger.addHandler(file_handler)
     aiosqlite_logger.propagate = False
 
-    # Prevents getting spammed with watchfiles logs when --reload is used in development
-    watchfiles_logger = logging.getLogger("watchfiles.main")
-    watchfiles_logger.setLevel(logging.WARNING)
-    watchfiles_logger.propagate = False
+    # # Prevents getting spammed with watchfiles logs when
+    # # --reload is used in development
+    # watchfiles_logger = logging.getLogger("watchfiles.main")
+    # watchfiles_logger.setLevel(logging.WARNING)
+    # watchfiles_logger.propagate = False
 
+
+def setup_logging(default_mode: bool = False):
+    """Set up logging configuration.
+
+    Args:
+        default_mode: If True, use environment variables for minimal setup.
+                     If False, use full system configuration.
+    """
+    if default_mode:
+        level = getattr(logging, LOG_LEVEL or "INFO")
+    else:
+        level = getattr(logging, SystemConfig.log_level, None)
+    if not isinstance(level, int):
+        raise ValueError(f"Invalid log level: {level}")
+
+    default_formatter = DefaultFormatter(
+        "%(asctime)s - %(name)s - %(levelprefix)s %(message)s",
+    )
+
+    # Set up handlers
+    default_handler = logging.StreamHandler(sys.stderr)
+    default_handler.setFormatter(default_formatter)
+
+    root_handlers = [default_handler]
+
+    # Only set up additional loggers in full configuration mode
+    if not default_mode:
+        file_handler = _get_file_handler()
+        root_handlers.append(file_handler)
+        _setup_additional_loggers(level, default_handler, file_handler)
+
+    # Configure root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(level)
+    root_logger.handlers.clear()
+    for handler in root_handlers:
+        root_logger.addHandler(handler)
+
+    # Configure structlog
     structlog.configure(
         processors=[
             structlog.stdlib.filter_by_level,

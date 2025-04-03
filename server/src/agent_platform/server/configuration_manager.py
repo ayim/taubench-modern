@@ -229,7 +229,7 @@ class ConfigurationManager:
                     importlib.import_module(package_name)
                     # Also import all submodules to ensure all classes are registered
                     self._import_submodules(package_name)
-                    logger.info(f"Imported package {package_name}")
+                    logger.debug(f"Imported package {package_name}")
                 except ImportError as e:
                     logger.warning(f"Failed to import package {package_name}: {e}")
 
@@ -238,7 +238,7 @@ class ConfigurationManager:
             for module_path in self.config_modules:
                 try:
                     importlib.import_module(module_path)
-                    logger.info(f"Imported module {module_path}")
+                    logger.debug(f"Imported module {module_path}")
                 except ImportError as e:
                     logger.warning(f"Failed to import module {module_path}: {e}")
 
@@ -362,7 +362,7 @@ class ConfigurationManager:
                 instance = config_class.from_dict(self._config_data[config_path])
                 # Set the instance as the singleton
                 config_class.set_instance(instance)
-                logger.info(
+                logger.debug(
                     f"Loaded configuration from file: {config_class.__name__} "
                     f"at {config_path}",
                 )
@@ -371,7 +371,7 @@ class ConfigurationManager:
                 instance = config_class.default()
                 # Set the instance as the singleton
                 config_class.set_instance(instance)
-                logger.info(
+                logger.debug(
                     f"Using default configuration (no entry in file): "
                     f"{config_class.__name__} at {config_path}",
                 )
@@ -426,7 +426,9 @@ class ConfigurationManager:
         config_class.set_instance(new_instance)
         # Also update the config data for persistence
         self._config_data[config_path] = new_instance.to_dict()
-        logger.info(f"Updated configuration: {config_class.__name__} at {config_path}")
+        logger.warning(
+            f"Updated configuration: {config_class.__name__} at {config_path}"
+        )
 
 
 # Global instance
@@ -463,7 +465,10 @@ def init_configurations(
         if isinstance(config_path, str):
             config_path = Path(config_path)
         _manager = ConfigurationManager(
-            config_path, packages_to_scan, config_modules, overrides,
+            config_path,
+            packages_to_scan,
+            config_modules,
+            overrides,
         )
     else:
         # Manager already exists, update its configuration
