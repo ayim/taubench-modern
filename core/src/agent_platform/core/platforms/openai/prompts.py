@@ -1,10 +1,14 @@
+import logging
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, cast
 
 from openai.types import FunctionDefinition
 from openai.types.chat import ChatCompletionMessageParam, ChatCompletionToolParam
 
 from agent_platform.core.platforms.base import PlatformPrompt
+from agent_platform.core.platforms.openai.configs import OpenAIModelMap
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -69,9 +73,10 @@ class OpenAIPrompt(PlatformPrompt):
 
         Returns:
             A OpenAI request."""
-
+        model_id = cast(str, OpenAIModelMap[model])
+        logger.info(f"Using OpenAI model: {model} (model_id: {model_id})")
         results_dict: dict[str, Any] = {
-            "model": model,
+            "model": model_id,
             "messages": self.messages or [],
         }
 
@@ -82,15 +87,21 @@ class OpenAIPrompt(PlatformPrompt):
             # For o1/o3 models, adjust temperature based on high/low reasoning
             if model.endswith("-high"):
                 results_dict["reasoning_effort"] = "high"
+                logger.info(f"Using model {model} with high reasoning effort")
             elif model.endswith("-low"):
                 results_dict["reasoning_effort"] = "low"
+                logger.info(f"Using model {model} with low reasoning effort")
+            else:
+                logger.info(f"Using model {model} with default reasoning effort")
+        else:
+            logger.info(f"Using model {model}")
 
         if self.tools:
             results_dict["tools"] = self.tools
+            logger.info(f"Request includes {len(self.tools)} tools")
 
         if stream:
             results_dict["stream"] = True
-
-        print(results_dict)
+            logger.info("Streaming enabled for this request")
 
         return results_dict

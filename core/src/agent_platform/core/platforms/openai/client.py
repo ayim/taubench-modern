@@ -1,3 +1,4 @@
+import logging
 from collections.abc import AsyncGenerator
 from copy import deepcopy
 from typing import TYPE_CHECKING, Any, ClassVar, cast
@@ -21,6 +22,8 @@ if TYPE_CHECKING:
     from openai import OpenAI
 
     from agent_platform.core.kernel import Kernel
+
+logger = logging.getLogger(__name__)
 
 
 class OpenAIClient(
@@ -109,8 +112,7 @@ class OpenAIClient(
     ) -> ResponseMessage:
         """Generate a response from the OpenAI platform."""
         # TODO: Otel Span?
-        model_id = cast(str, OpenAIModelMap[model])
-        request = prompt.as_platform_request(model_id)
+        request = prompt.as_platform_request(model)
         response = await self._generate_response(request)
         return self._parsers.parse_response(response)
 
@@ -119,10 +121,17 @@ class OpenAIClient(
         prompt: OpenAIPrompt,
         model: str,
     ) -> AsyncGenerator[GenericDelta, None]:
-        """Stream a response from the OpenAI platform."""
+        """Stream a response from the OpenAI platform.
 
-        model_id = cast(str, OpenAIModelMap[model])
-        request = prompt.as_platform_request(model_id, stream=True)
+        Args:
+            prompt: The prompt to send to the model.
+            model: The model to use to generate the response.
+
+        Yields:
+            GenericDeltas that update the ResponseMessage.
+        """
+        logger.info(f"Streaming with OpenAI model: {model}")
+        request = prompt.as_platform_request(model, stream=True)
 
         # Initialize message state
         message: dict[str, Any] = {
@@ -172,6 +181,10 @@ class OpenAIClient(
     ) -> dict[str, Any]:
         """Create embeddings using a OpenAI embedding model."""
         model_id = cast(str, OpenAIModelMap[model])
+        logger.info(
+            f"Creating embeddings with OpenAI model: {model} (model_id: {model_id})",
+        )
+
         if not texts:
             return {
                 "embeddings": [],
