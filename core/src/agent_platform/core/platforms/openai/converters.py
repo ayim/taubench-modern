@@ -1,19 +1,15 @@
 import json
 from collections.abc import Sequence
-from typing import Any, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
-from openai.types import FunctionDefinition
-from openai.types.chat import (
-    ChatCompletionAssistantMessageParam,
-    ChatCompletionContentPartTextParam,
-    ChatCompletionMessageParam,
-    ChatCompletionMessageToolCall,
-    ChatCompletionSystemMessageParam,
-    ChatCompletionToolMessageParam,
-    ChatCompletionToolParam,
-    ChatCompletionUserMessageParam,
-)
-from openai.types.chat.chat_completion_message_tool_call import Function
+if TYPE_CHECKING:
+    from openai.types.chat import (
+        ChatCompletionContentPartTextParam,
+        ChatCompletionMessageParam,
+        ChatCompletionMessageToolCall,
+        ChatCompletionToolMessageParam,
+        ChatCompletionToolParam,
+    )
 
 from agent_platform.core.kernel_interfaces.kernel_mixin import UsesKernelMixin
 from agent_platform.core.platforms.base import PlatformConverters
@@ -40,7 +36,7 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
     async def convert_text_content(
         self,
         content: PromptTextContent,
-    ) -> ChatCompletionContentPartTextParam:
+    ) -> "ChatCompletionContentPartTextParam":
         """Converts text content to OpenAI format."""
         return {
             "type": "text",
@@ -64,8 +60,11 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
     async def convert_tool_use_content(
         self,
         content: PromptToolUseContent,
-    ) -> ChatCompletionMessageToolCall:
+    ) -> "ChatCompletionMessageToolCall":
         """Converts tool use content to OpenAI format."""
+        from openai.types.chat import ChatCompletionMessageToolCall
+        from openai.types.chat.chat_completion_message_tool_call import Function
+
         return ChatCompletionMessageToolCall(
             id=content.tool_call_id,
             type="function",
@@ -78,7 +77,7 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
     async def convert_tool_result_content(
         self,
         content: PromptToolResultContent,
-    ) -> ChatCompletionToolMessageParam:
+    ) -> "ChatCompletionToolMessageParam":
         """Converts tool result content to OpenAI format.
 
         Args:
@@ -145,7 +144,12 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
             A dictionary containing text content and tool calls.
         """
         text_content = ""
-        tool_calls: list[ChatCompletionMessageToolCall] = []
+        if TYPE_CHECKING:
+            from openai.types.chat import ChatCompletionMessageToolCall
+
+            tool_calls: list[ChatCompletionMessageToolCall] = []
+        else:
+            tool_calls: list[Any] = []
 
         for content in content_list:
             if isinstance(content, PromptTextContent):
@@ -174,7 +178,7 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
         role: str,
         content: str,
         tool_calls: list[dict[str, Any]] | None = None,
-    ) -> ChatCompletionMessageParam:
+    ) -> "ChatCompletionMessageParam":
         """Create an OpenAI message parameter based on role.
 
         Args:
@@ -185,6 +189,12 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
         Returns:
             A message parameter for the OpenAI API.
         """
+        from openai.types.chat import (
+            ChatCompletionAssistantMessageParam,
+            ChatCompletionSystemMessageParam,
+            ChatCompletionUserMessageParam,
+        )
+
         if role == "system":
             return ChatCompletionSystemMessageParam(role=role, content=content)
         elif role == "user":
@@ -200,7 +210,7 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
     async def _convert_messages(
         self,
         messages: list[PromptUserMessage | PromptAgentMessage],
-    ) -> list[ChatCompletionMessageParam]:
+    ) -> list["ChatCompletionMessageParam"]:
         """Convert prompt messages to OpenAI message format.
 
         Args:
@@ -289,7 +299,7 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
     async def _convert_system_instruction_to_openai(
         self,
         system_instruction: str | None,
-    ) -> list[ChatCompletionMessageParam]:
+    ) -> list["ChatCompletionMessageParam"]:
         """Convert system instruction to OpenAI message format.
 
         Args:
@@ -311,7 +321,7 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
     async def _convert_tools(
         self,
         tools: list[ToolDefinition],
-    ) -> list[ChatCompletionToolParam]:
+    ) -> list["ChatCompletionToolParam"]:
         """Convert tool definitions to OpenAI tool parameters.
 
         Args:
@@ -320,6 +330,8 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
         Returns:
             The list of OpenAI tool parameters.
         """
+        from openai.types import FunctionDefinition
+
         converted_tools: list[ChatCompletionToolParam] = []
         for tool in tools:
             function_def = FunctionDefinition(
@@ -328,7 +340,7 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
                 parameters=tool.input_schema,
             )
             tool_param = cast(
-                ChatCompletionToolParam,
+                "ChatCompletionToolParam",
                 {
                     "type": "function",
                     "function": {

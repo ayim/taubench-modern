@@ -1,9 +1,10 @@
 import logging
 from dataclasses import dataclass, field
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
-from openai.types import FunctionDefinition
-from openai.types.chat import ChatCompletionMessageParam, ChatCompletionToolParam
+if TYPE_CHECKING:
+    from openai.types import FunctionDefinition
+    from openai.types.chat import ChatCompletionMessageParam, ChatCompletionToolParam
 
 from agent_platform.core.platforms.base import PlatformPrompt
 from agent_platform.core.platforms.openai.configs import OpenAIModelMap
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 class OpenAIPrompt(PlatformPrompt):
     """A prompt for the OpenAI platform."""
 
-    messages: list[ChatCompletionMessageParam] | list[dict[str, Any]] = field(
+    messages: list["ChatCompletionMessageParam"] | list[dict[str, Any]] = field(
         default_factory=list,
         metadata={
             "description": "The list of messages for the prompt.",
@@ -24,9 +25,9 @@ class OpenAIPrompt(PlatformPrompt):
     """The list of messages for the prompt."""
 
     tools: (
-        list[ChatCompletionToolParam]
+        list["ChatCompletionToolParam"]
         | list[dict[str, Any]]
-        | list[FunctionDefinition]
+        | list["FunctionDefinition"]
         | None
     ) = field(
         default_factory=list,
