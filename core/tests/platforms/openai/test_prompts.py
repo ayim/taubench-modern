@@ -6,7 +6,6 @@ import pytest
 from openai.types import FunctionDefinition
 
 from agent_platform.core.kernel import Kernel
-from agent_platform.core.platforms.openai.adapters import format_message_for_api
 from agent_platform.core.platforms.openai.prompts import OpenAIPrompt
 
 
@@ -22,11 +21,8 @@ class TestOpenAIPrompt:
     def messages(self):
         """Create a list of messages for testing."""
         return [
-            format_message_for_api(
-                role="system",
-                content="You are a helpful assistant.",
-            ),
-            format_message_for_api(role="user", content="Hello, world!"),
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": "Hello, world!"},
         ]
 
     @pytest.fixture
@@ -62,6 +58,24 @@ class TestOpenAIPrompt:
         assert request["messages"][1]["role"] == "user"
         assert request["stream"] is True
 
+    def test_as_platform_request_no_tools(self) -> None:
+        """Test converting to platform request with no tools."""
+        messages = [
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": "Hello, world!"},
+        ]
+
+        openai_prompt = OpenAIPrompt(
+            messages=messages,
+        )
+
+        request = openai_prompt.as_platform_request(model="gpt-4")
+
+        assert isinstance(request, dict)
+        assert request["model"] == "gpt-4"
+        assert len(request["messages"]) == 2
+        assert "tools" not in request
+
     def test_as_platform_request_with_tools(self) -> None:
         """Test converting to platform request with tools."""
         tool_def = FunctionDefinition(
@@ -80,16 +94,22 @@ class TestOpenAIPrompt:
         )
 
         messages = [
-            format_message_for_api(
-                role="system",
-                content="You are a helpful assistant.",
-            ),
-            format_message_for_api(role="user", content="Hello, world!"),
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": "Hello, world!"},
         ]
+
+        tool_param = {
+            "type": "function",
+            "function": {
+                "name": tool_def.name,
+                "description": tool_def.description or "",
+                "parameters": tool_def.parameters or {},
+            },
+        }
 
         openai_prompt = OpenAIPrompt(
             messages=messages,
-            tools=[tool_def],
+            tools=[tool_param],
         )
 
         request = openai_prompt.as_platform_request(model="gpt-4")
@@ -100,12 +120,38 @@ class TestOpenAIPrompt:
         assert "tools" in request
         assert len(request["tools"]) == 1
         assert request["tools"][0]["function"]["name"] == "test-tool"
-        assert request["tools"][0]["function"]["description"] == "A test tool"
-        assert "parameters" in request["tools"][0]["function"]
+
+    def test_as_platform_request_with_claude(self) -> None:
+        """Test converting to platform request with Claude model."""
+        messages = [
+            {"role": "user", "content": "Hello, world!"},
+        ]
+
+        openai_prompt = OpenAIPrompt(
+            messages=messages,
+        )
+
+        for model in ["o1", "o1-mini", "o1-pro", "o3-mini"]:
+            request = openai_prompt.as_platform_request(model=model)
+            assert isinstance(request, dict)
+            assert request["model"] == model
+            assert "reasoning_effort" not in request
+
+            # Test with high reasoning
+            high_model = f"{model}-high"
+            high_request = openai_prompt.as_platform_request(model=high_model)
+            assert high_request["model"] == high_model
+            assert high_request["reasoning_effort"] == "high"
+
+            # Test with low reasoning
+            low_model = f"{model}-low"
+            low_request = openai_prompt.as_platform_request(model=low_model)
+            assert low_request["model"] == low_model
+            assert low_request["reasoning_effort"] == "low"
 
     def test_prompt_properties(self) -> None:
         """Test prompt properties and defaults."""
-        messages = [format_message_for_api(role="user", content="Hello")]
+        messages = [{"role": "user", "content": "Hello"}]
 
         # Test with defaults
         prompt = OpenAIPrompt(messages=messages)

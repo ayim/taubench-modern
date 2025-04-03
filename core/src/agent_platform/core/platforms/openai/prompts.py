@@ -1,20 +1,17 @@
-from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
 from openai.types import FunctionDefinition
+from openai.types.chat import ChatCompletionMessageParam, ChatCompletionToolParam
 
 from agent_platform.core.platforms.base import PlatformPrompt
-from agent_platform.core.platforms.openai.adapters import (
-    function_definition_to_tool_param,
-)
 
 
 @dataclass(frozen=True)
 class OpenAIPrompt(PlatformPrompt):
     """A prompt for the OpenAI platform."""
 
-    messages: Sequence[dict[str, Any]] | None = field(
+    messages: list[ChatCompletionMessageParam] | list[dict[str, Any]] = field(
         default_factory=list,
         metadata={
             "description": "The list of messages for the prompt.",
@@ -22,7 +19,12 @@ class OpenAIPrompt(PlatformPrompt):
     )
     """The list of messages for the prompt."""
 
-    tools: list[FunctionDefinition] | None = field(
+    tools: (
+        list[ChatCompletionToolParam]
+        | list[dict[str, Any]]
+        | list[FunctionDefinition]
+        | None
+    ) = field(
         default_factory=list,
         metadata={
             "description": "The list of tools for the prompt.",
@@ -58,7 +60,7 @@ class OpenAIPrompt(PlatformPrompt):
         self,
         model: str,
         stream: bool = False,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Convert the prompt to a OpenAI request.
 
         Args:
@@ -67,17 +69,28 @@ class OpenAIPrompt(PlatformPrompt):
 
         Returns:
             A OpenAI request."""
+
         results_dict: dict[str, Any] = {
             "model": model,
             "messages": self.messages or [],
         }
 
+        if any(
+            model.startswith(prefix)
+            for prefix in ["o3-mini", "o1", "o1-mini", "o1-pro"]
+        ):
+            # For o1/o3 models, adjust temperature based on high/low reasoning
+            if model.endswith("-high"):
+                results_dict["reasoning_effort"] = "high"
+            elif model.endswith("-low"):
+                results_dict["reasoning_effort"] = "low"
+
         if self.tools:
-            results_dict["tools"] = [
-                function_definition_to_tool_param(tool) for tool in self.tools
-            ]
+            results_dict["tools"] = self.tools
 
         if stream:
             results_dict["stream"] = True
+
+        print(results_dict)
 
         return results_dict
