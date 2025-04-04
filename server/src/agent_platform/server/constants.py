@@ -70,6 +70,16 @@ class SystemConfig(Configuration):
         default_factory=lambda: int(LOG_FILE_SIZE or str(10 * 1_048_576)),
     )
 
+    # CORS settings
+    cors_mode: Literal["all", None] = field(
+        default_factory=lambda: CORS_MODE,
+    )  # type: ignore (we can ignore here as we validate in __post_init__...)
+    """
+    The mode for CORS settings. Can be "all", or None.
+    If "all", all origins, methods, headers are allowed.
+    If anything else, CORS is not enabled.
+    """
+
     # Derived settings
     hyphenated_name: str = field(default="agent-server")
 
@@ -78,6 +88,12 @@ class SystemConfig(Configuration):
         # Validate db_type
         if self.db_type not in ("sqlite", "postgres"):
             raise ValueError(f"Invalid database type: {self.db_type}")
+
+        # Validate cors_mode
+        if self.cors_mode not in ("all", None):
+            raise ValueError(
+                f"Invalid CORS mode: {self.cors_mode}. Must be one of: 'all', or None.",
+            )
 
         # Validate port
         if not isinstance(self.port, int) or self.port < 0 or self.port > 65535:  # noqa: PLR2004

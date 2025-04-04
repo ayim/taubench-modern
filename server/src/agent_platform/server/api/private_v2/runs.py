@@ -33,7 +33,7 @@ logger = get_logger(__name__)
 async def _get_initial_payload(websocket: WebSocket) -> InitiateStreamPayload:
     initial_data = await websocket.receive_json()
     try:
-        return InitiateStreamPayload(**initial_data)
+        return InitiateStreamPayload.model_validate(initial_data)
     except (ValueError, TypeError) as e:
         logger.error("Invalid initial payload", error=e)
         raise WebSocketException(
@@ -45,6 +45,14 @@ async def _get_initial_payload(websocket: WebSocket) -> InitiateStreamPayload:
 async def _get_thread_state(user: User, payload: InitiateStreamPayload) -> Thread:
     as_thread = InitiateStreamPayload.to_thread(payload, user.user_id)
     try:
+        # TODO: Batch insert this?
+        for message in payload.messages:
+            await get_storage().add_message_to_thread(
+                user.user_id,
+                as_thread.thread_id,
+                message,
+            )
+
         thread_state = await get_storage().get_thread(
             user.user_id,
             as_thread.thread_id,

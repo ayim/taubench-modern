@@ -4,10 +4,12 @@ import structlog
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 
 from agent_platform.server import __version__
 from agent_platform.server.api.private_v2 import router as private_v2_router
+from agent_platform.server.constants import SystemConfig
 from agent_platform.server.lifespan import lifespan
 from agent_platform.server.storage.option import get_storage
 
@@ -65,6 +67,17 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
         openapi_url=None,  # Disable the default /openapi.json path
     )
+
+    # CORS middleware (completely configurable via SystemConfig)
+    if SystemConfig.cors_mode == "all":
+        # This is for local development ONLY. Simply allow all
+        # origins, credentials, methods, headers, etc.
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
 
     app.add_middleware(EnsureAPIPrefixMiddleware)
     app.include_router(private_v2_router)
