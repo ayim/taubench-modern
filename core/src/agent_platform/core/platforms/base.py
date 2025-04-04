@@ -346,10 +346,10 @@ class PlatformClient(
                 constructor, these will override any values provided in the
                 `parameters` argument.
         """
-        self._parameters = self._init_parameters(parameters, **kwargs)
-        self._converters = self._init_converters(kernel)
-        self._parsers = self._init_parsers()
-        self._configs = self._init_configs()
+        self._parameters: TParameters = self._init_parameters(parameters, **kwargs)
+        self._converters: TConverters = self._init_converters(kernel)
+        self._parsers: TParsers = self._init_parsers()
+        self._configs: TConfigs = self._init_configs()
 
     def attach_kernel(self, kernel: "Kernel") -> None:
         """Attach the kernel to the client."""

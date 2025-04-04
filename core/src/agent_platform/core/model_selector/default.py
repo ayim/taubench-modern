@@ -51,6 +51,48 @@ class ModelMappingConfig(Configuration):
                 },
                 # Potentially other providers on bedrock
             },
+            "cortex": {
+                "anthropic": {
+                    "llm": {
+                        "best": "claude-3-5-sonnet",
+                        "balanced": "claude-3-5-sonnet",
+                        "fastest": "claude-3-5-sonnet",
+                    },
+                },
+                "deepseek": {
+                    "llm": {
+                        "best": "deepseek-r1",
+                        "balanced": "deepseek-r1",
+                        "fastest": "deepseek-r1",
+                    },
+                },
+                "meta": {
+                    "llm": {
+                        "best": "llama-3-1-70b",
+                        "balanced": "llama-3-1-8b",
+                        "fastest": "llama-3-1-8b",
+                    },
+                },
+                "snowflake": {
+                    "llm": {
+                        "best": "snowflake-llama-3-3-70b",
+                        "balanced": "snowflake-llama-3-3-70b",
+                        "fastest": "snowflake-llama-3-3-70b",
+                    },
+                    "embedding": {
+                        "best": "snowflake-arctic-embed-l",
+                        "balanced": "snowflake-arctic-embed-m",
+                        "fastest": "snowflake-arctic-embed-m",
+                    },
+                },
+                "voyage": {
+                    "llm": {
+                        "best": "voyage-multilingual",
+                        "balanced": "voyage-multilingual",
+                        "fastest": "voyage-multilingual",
+                    },
+                },
+            },
             "openai": {
                 "openai": {
                     "llm": {
@@ -107,6 +149,8 @@ class ModelFallbackConfig(Configuration):
             "gpt-4o": ["claude-3-5-sonnet", "gpt-4o-mini"],
             "titan-embed-text-v2": ["titan-embed-text-v1"],
             "cohere-embed-multilingual-v3": ["cohere-embed-english-v3"],
+            "snowflake-llama-3-3-70b": ["snowflake-llama-3-3-70b"],
+            "snowflake-arctic-embed-l": ["snowflake-arctic-embed-m"],
         },
     )
 
@@ -143,6 +187,10 @@ class PlatformDefaultModelConfig(Configuration):
             },
             "anthropic": {
                 "llm": "claude-3-5-sonnet",
+            },
+            "cortex": {
+                "llm": "claude-3-5-sonnet",
+                "embedding": "snowflake-arctic-embed-m",
             },
         },
     )

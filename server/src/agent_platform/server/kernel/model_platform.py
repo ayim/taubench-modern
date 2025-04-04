@@ -101,5 +101,14 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
             try:
                 yield stream_pipe
             finally:
+                if stream_pipe.reassembled_response:
+                    span.add_event_with_artifacts(
+                        "stream closed",
+                        (
+                            "response-reassembled.json",
+                            stream_pipe.reassembled_response.model_dump_json(indent=2),
+                        ),
+                    )
                 await stream_pipe.aclose()
+                span.add_event("stream closed")
 

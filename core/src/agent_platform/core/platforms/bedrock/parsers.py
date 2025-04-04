@@ -26,7 +26,6 @@ from agent_platform.core.streaming.error import StreamingError
 
 if TYPE_CHECKING:
     from types_boto3_bedrock_runtime.type_defs import (
-        ContentBlockDeltaTypeDef,
         ContentBlockOutputTypeDef,
         ContentBlockTypeDef,
         ConverseResponseTypeDef,
@@ -295,33 +294,6 @@ class BedrockParsers(PlatformParsers):
             metadata=metadata,
             additional_response_fields=additional_fields,
         )
-
-    def parse_delta(self, delta: "ContentBlockDeltaTypeDef") -> GenericDelta | None:
-        """Parses a Bedrock ContentBlockDeltaTypeDef to a GenericDelta.
-
-        Args:
-            delta: The Bedrock content block delta to parse.
-
-        Returns:
-            A GenericDelta representing the parsed delta, or None if no valid delta.
-
-        Raises:
-            ValueError: If the delta type is unsupported.
-        """
-        if not isinstance(delta, dict):
-            raise ValueError(f"Unsupported delta type: {type(delta)}")
-
-        if "text" in delta:
-            return GenericDelta(op="concat_string", path="text", value=delta["text"])
-        elif "toolUse" in delta:
-            # For tool use, we replace the entire input object
-            return GenericDelta(
-                op="replace",
-                path="tool_input_raw",
-                value=delta["toolUse"],
-            )
-
-        return None
 
     def _check_stream_errors(self, event: dict) -> None:
         """Check for error events in the stream and raise appropriate exceptions.

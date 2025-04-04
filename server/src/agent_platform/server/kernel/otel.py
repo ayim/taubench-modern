@@ -3,6 +3,7 @@ from collections import deque
 from collections.abc import Generator
 from contextlib import contextmanager
 from logging import getLogger
+from typing import Any
 
 from opentelemetry.trace import NoOpTracer, SpanContext, Tracer
 
@@ -66,6 +67,7 @@ class AgentServerOTelInterface(OTelInterface, UsesKernelMixin):
         mime_type: str,
         content: str | bytes,
         artifact_id: str | None = None,
+        **kwargs: Any,
     ) -> OTelArtifact:
         if artifact_id is None:
             from uuid import uuid4
@@ -82,11 +84,21 @@ class AgentServerOTelInterface(OTelInterface, UsesKernelMixin):
             ),
             artifact_id=artifact_id,
             trace_id=self.trace_id,
-            correlated_user_id=self.kernel.user.user_id,
-            correlated_agent_id=self.kernel.agent.agent_id,
-            correlated_thread_id=self.kernel.thread.thread_id,
-            correlated_run_id=self.kernel.run.run_id,
-            correlated_message_id=self.kernel.thread_state.active_message_id,
+            correlated_user_id=(
+                kwargs.get("user_id", self.kernel.user.user_id)
+            ),
+            correlated_agent_id=(
+                kwargs.get("agent_id", self.kernel.agent.agent_id)
+            ),
+            correlated_thread_id=(
+                kwargs.get("thread_id", self.kernel.thread.thread_id)
+            ),
+            correlated_run_id=(
+                kwargs.get("run_id", self.kernel.run.run_id)
+            ),
+            correlated_message_id=(
+                kwargs.get("message_id", self.kernel.thread_state.active_message_id)
+            ),
         )
 
         await self.kernel.storage.create_otel_artifact(artifact)
@@ -102,6 +114,12 @@ class AgentServerOTelInterface(OTelInterface, UsesKernelMixin):
         """Add an artifact creation task to the queue."""
         task = create_task(self._process_artifact_creation(
             name, mime_type, content, artifact_id,
+            # Grab these _now_ so we don't the correct associations
+            user_id=self.kernel.user.user_id,
+            agent_id=self.kernel.agent.agent_id,
+            thread_id=self.kernel.thread.thread_id,
+            run_id=self.kernel.run.run_id,
+            message_id=self.kernel.thread_state.active_message_id,
         ))
         self._artifact_tasks.add(task)
         task.add_done_callback(self._artifact_tasks.discard)
@@ -112,6 +130,7 @@ class AgentServerOTelInterface(OTelInterface, UsesKernelMixin):
         mime_type: str,
         content: str | bytes,
         artifact_id: str,
+        **kwargs: Any,
     ) -> None:
         """Process artifact creation with rate limiting and error handling."""
         async with self._artifact_semaphore:
