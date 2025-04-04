@@ -239,7 +239,7 @@ class ServerLifecycleManager:
             # Create server instance
             self.server = uvicorn.Server(config)
             logger.info(
-                f"{self.name.capitalize()} will listen on "
+                f"{self.name.title()} will listen on "
                 f"{self.bound_host}:{self.actual_port}",
             )
             return True

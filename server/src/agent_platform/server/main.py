@@ -24,7 +24,7 @@ def main():
 
     args: ServerArgs = parse_args()
 
-    logger.info(f"{args.name.capitalize()} version {server.__version__} starting...")
+    logger.info(f"{args.name.title()} version {server.__version__} starting...")
 
     if args.license:
         print_license()
