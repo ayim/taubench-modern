@@ -7,7 +7,6 @@ from typing import Literal
 from agent_platform.core.configurations import Configuration
 from agent_platform.server.env_vars import (
     CONFIG_PATH,
-    CORS_MODE,
     DATA_DIR,
     DB_TYPE,
     LOG_DIR,
@@ -36,6 +35,10 @@ in this directory.
 DEFAULT_CONFIG_FILE_NAME = "agent-server-config.json"
 
 
+def _hyphenated_name(name: str) -> str:
+    return name.lower().replace(" ", "-")
+
+
 @dataclass(frozen=True)
 class SystemConfig(Configuration):
     """System-wide configuration settings for the agent server.
@@ -45,8 +48,13 @@ class SystemConfig(Configuration):
     """
 
     # Server configuration
+    name: str = field(default="Agent Server")
     host: str = field(default="127.0.0.1")
     port: int = field(default=8000)
+    parent_pid: int = field(default=0)
+    use_data_dir_lock: bool = field(default=False)
+    kill_lock_holder: bool = field(default=False)
+    ignore_config: bool = field(default=False)
 
     # Database configuration
     db_type: Literal["sqlite", "postgres"] = field(
@@ -72,6 +80,9 @@ class SystemConfig(Configuration):
     If anything else, CORS is not enabled.
     """
 
+    # Derived settings
+    hyphenated_name: str = field(default="agent-server")
+
     def __post_init__(self) -> None:
         """Validate configuration settings."""
         # Validate db_type
@@ -81,13 +92,15 @@ class SystemConfig(Configuration):
         # Validate cors_mode
         if self.cors_mode not in ("all", None):
             raise ValueError(
-                f"Invalid CORS mode: {self.cors_mode}. "
-                "Must be one of: 'all', or None.",
+                f"Invalid CORS mode: {self.cors_mode}. Must be one of: 'all', or None.",
             )
 
         # Validate port
         if not isinstance(self.port, int) or self.port < 0 or self.port > 65535:  # noqa: PLR2004
             raise ValueError(f"Invalid port number: {self.port}")
+
+        # Derived settings
+        object.__setattr__(self, "hyphenated_name", _hyphenated_name(self.name))
 
     @property
     def debug_mode(self) -> bool:
@@ -149,7 +162,9 @@ class SystemPaths(Configuration):
         # We need to use object.__setattr__ because the dataclass is frozen
         object.__setattr__(self, "vector_database_path", self.data_dir / "chroma_db")
         object.__setattr__(
-            self, "domain_database_path", self.data_dir / "agentserver.db",
+            self,
+            "domain_database_path",
+            self.data_dir / "agentserver.db",
         )
         object.__setattr__(self, "log_file_path", self.log_dir / "agent-server.log")
         object.__setattr__(self, "upload_dir", self.data_dir / "uploads")
