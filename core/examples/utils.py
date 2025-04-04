@@ -45,7 +45,6 @@ def setup_notebook(required_keys: list[str] | None = None):
     3. Returns True if setup is successful
     """
     ensure_env_file()
-    setup_sys_path()
     if required_keys:
         return check_env_variables(required_keys)
     return True
@@ -56,18 +55,28 @@ def json_pretty_print(title: str, json_dict: dict) -> None:
     display(Markdown(f"{title}\n```json\n{json.dumps(json_dict, indent=2)}\n```"))
 
 
-def setup_sys_path():
-    from os import getcwd
-    from pathlib import Path
-    from sys import path
+class _MockSpan:
+    def __enter__(self):
+        return self
 
-    # Get the project root directory (adjust if needed based on notebook location)
-    project_root = Path.joinpath(Path(getcwd()), "..", "..").resolve()
+    def __exit__(self, *args, **kwargs):
+        pass
 
-    # Add the same paths as in pyproject.toml
-    path.append(str(project_root / "core" / "src"))
-    path.append(str(project_root / "architectures" / "default" / "src"))
-    path.append(str(project_root / "server" / "src"))
+    def add_event(self, *args, **kwargs):
+        pass
 
-    # Confirm the paths were added
-    print(f"Added paths to sys.path: {path[-3:]}")
+    def add_event_with_artifacts(self, *args, **kwargs):
+        pass
+
+
+class _MockOtel:
+    def span(self, *args, **kwargs):
+        return _MockSpan()
+
+
+class MockKernel:
+    """Mock kernel for testing."""
+
+    @property
+    def otel(self):
+        return _MockOtel()

@@ -50,6 +50,12 @@ python_classes = ["Test*"]
 python_functions = ["test_*"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
+filterwarnings = [
+    # Ignore pkg_resources/declare_namespace deprecation warnings from snowflake-snowpark-python
+    # Annoying, but reduces log noise
+    "ignore:pkg_resources is deprecated as an API:DeprecationWarning:snowflake\\.snowpark\\.session.*",
+    "ignore:Deprecated call to `pkg_resources.declare_namespace.*`:DeprecationWarning:pkg_resources.*",
+]
 
 
 [tool.ruff]

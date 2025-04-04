@@ -43,7 +43,7 @@ venv:  ## Create a new virtual environment with uv
 		echo "Already in virtual environment: $$VIRTUAL_ENV"; \
 	else \
 		echo "Creating new virtual environment..."; \
-		uv venv --python=python3.12 \
+		uv venv --python=python3.12; \
 	fi
 
 sync:  ## Sync/install all packages in the monorepo

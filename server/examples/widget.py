@@ -256,7 +256,7 @@ class DebugChatWidget(anywidget.AnyWidget):
         except Exception as e:
             print(f"Error fetching thread={self.selected_thread_id}: {e}")
 
-    @traitlets.observe("selected_thread_id")
+    @traitlets.observe("selected_thread_id_out")
     def _on_thread_change(self, change):
         if change["new"]:
             self.refresh_messages()
@@ -510,6 +510,7 @@ class DebugChatWidget(anywidget.AnyWidget):
                 init_payload = {
                     "agent_id": self.agent_id,
                     "thread_id": self.selected_thread_id,
+                    "messages": [],
                 }
                 await self._ws.send(json.dumps(init_payload))
             except ConnectionClosed:

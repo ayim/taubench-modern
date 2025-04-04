@@ -49,6 +49,13 @@ class ResponseStreamPipe:
         # Sinks that we'll call on partial updates
         self.sinks: tuple[ResponseStreamSinkBase, ...] = ()
 
+    @property
+    def reassembled_response(self) -> ResponseMessage | None:
+        """
+        The reassembled response message, if available.
+        """
+        return self.last_message
+
     async def __aenter__(self) -> "ResponseStreamPipe":
         """Allow this class to be used as an async context manager."""
         return self

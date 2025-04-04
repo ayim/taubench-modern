@@ -1,0 +1,16 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug Agent Server",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "agent_platform.server",
+            "justMyCode": false,
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/core/src:${workspaceFolder}/architectures/default/src:${workspaceFolder}/server/src"
+            },
+            "console": "integratedTerminal"
+        }
+    ]
+}

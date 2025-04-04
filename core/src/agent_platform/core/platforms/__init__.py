@@ -3,7 +3,25 @@ from agent_platform.core.platforms.bedrock import (
     BedrockClient,
     BedrockPlatformParameters,
 )
+from agent_platform.core.platforms.cortex import (
+    CortexClient,
+    CortexPlatformParameters,
+)
+from agent_platform.core.platforms.openai import (
+    OpenAIClient,
+    OpenAIPlatformParameters,
+)
 
-AnyPlatformParameters = BedrockPlatformParameters
+AnyPlatformParameters = (
+    BedrockPlatformParameters
+    | CortexPlatformParameters
+    | OpenAIPlatformParameters
+)
 
-__all__ = ["BedrockClient", "PlatformClient", "AnyPlatformParameters"]
+__all__ = [
+    "BedrockClient",
+    "CortexClient",
+    "OpenAIClient",
+    "PlatformClient",
+    "AnyPlatformParameters",
+]
