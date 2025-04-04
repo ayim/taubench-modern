@@ -7,10 +7,10 @@
             "request": "launch",
             "module": "agent_platform.server",
             "justMyCode": false,
+            "console": "integratedTerminal",
             "env": {
-                "PYTHONPATH": "${workspaceFolder}/core/src:${workspaceFolder}/architectures/default/src:${workspaceFolder}/server/src"
-            },
-            "console": "integratedTerminal"
+                "SEMA4AI_AGENT_SERVER_CORS_MODE": "all",
+            }
         }
     ]
 }

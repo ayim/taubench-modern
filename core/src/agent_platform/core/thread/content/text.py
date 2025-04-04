@@ -117,7 +117,7 @@ class ThreadTextContent(ThreadMessageContent):
         """Create a thread text content from a dictionary."""
         data = data.copy()
         citations = [
-            Citation.model_validate(citation) for citation in data.pop("citations")
+            Citation.model_validate(citation) for citation in data.pop("citations", [])
         ]
         return cls(**data, citations=citations)
 

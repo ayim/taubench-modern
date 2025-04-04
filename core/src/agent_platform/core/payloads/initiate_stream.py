@@ -1,9 +1,9 @@
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Self
+from typing import Any
 from uuid import UUID, uuid4
 
-from agent_platform.core.thread import Thread
+from agent_platform.core.thread import Thread, ThreadMessage
 
 
 @dataclass
@@ -65,7 +65,7 @@ class InitiateStreamPayload(Thread):
                 raise ValueError("The thread_id must be a valid UUID.") from e
 
     @classmethod
-    def to_thread(cls, payload: Self, user_id: str) -> Thread:
+    def to_thread(cls, payload: "InitiateStreamPayload", user_id: str) -> Thread:
         # Make sure the user_id is a valid UUID
         try:
             UUID(user_id)
@@ -79,6 +79,19 @@ class InitiateStreamPayload(Thread):
             thread_id=payload.thread_id or str(uuid4()),
             created_at=datetime.now(),
             updated_at=datetime.now(),
-            messages=[],
+            messages=payload.messages,
             metadata={},
+        )
+
+    @classmethod
+    def model_validate(cls, data: Any) -> "InitiateStreamPayload":
+        return InitiateStreamPayload(
+            agent_id=data["agent_id"],
+            name=data["name"] if "name" in data else None,
+            thread_id=data["thread_id"] if "thread_id" in data else None,
+            messages=[
+                ThreadMessage.model_validate(message)
+                for message in data["messages"]
+            ],
+            metadata=data["metadata"] if "metadata" in data else {},
         )
