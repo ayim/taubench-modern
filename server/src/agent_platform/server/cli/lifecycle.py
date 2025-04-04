@@ -11,7 +11,7 @@ import uvicorn
 
 from agent_platform.server.cli.args import ServerArgs
 from agent_platform.server.cli.configurations import load_full_config
-from agent_platform.server.constants import SystemConfig, SystemPaths
+from agent_platform.server.constants import SystemConfig, SystemPaths, _hyphenated_name
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
@@ -20,10 +20,10 @@ class ServerLifecycleManager:
     """Manages the lifecycle of the agent server including startup,
     locking, and shutdown."""
 
-    def __init__(self, args: ServerArgs, name: str = "Agent Server"):
+    def __init__(self, args: ServerArgs, name: str = SystemConfig.name):
         self.args = args
         self.name = name
-        self.hyphenated_name = name.lower().replace(" ", "-")
+        self.hyphenated_name = _hyphenated_name(self.name)
         self.host: str = args.host if args.host is not None else SystemConfig.host
         self.port: int = args.port if args.port is not None else SystemConfig.port
         self.mutex = None

@@ -35,6 +35,10 @@ in this directory.
 DEFAULT_CONFIG_FILE_NAME = "agent-server-config.json"
 
 
+def _hyphenated_name(name: str) -> str:
+    return name.lower().replace(" ", "-")
+
+
 @dataclass(frozen=True)
 class SystemConfig(Configuration):
     """System-wide configuration settings for the agent server.
@@ -44,6 +48,7 @@ class SystemConfig(Configuration):
     """
 
     # Server configuration
+    name: str = field(default="Agent Server")
     host: str = field(default="127.0.0.1")
     port: int = field(default=8000)
     parent_pid: int = field(default=0)
@@ -65,6 +70,9 @@ class SystemConfig(Configuration):
         default_factory=lambda: int(LOG_FILE_SIZE or str(10 * 1_048_576)),
     )
 
+    # Derived settings
+    hyphenated_name: str = field(default="agent-server")
+
     def __post_init__(self) -> None:
         """Validate configuration settings."""
         # Validate db_type
@@ -74,6 +82,9 @@ class SystemConfig(Configuration):
         # Validate port
         if not isinstance(self.port, int) or self.port < 0 or self.port > 65535:  # noqa: PLR2004
             raise ValueError(f"Invalid port number: {self.port}")
+
+        # Derived settings
+        object.__setattr__(self, "hyphenated_name", _hyphenated_name(self.name))
 
     @property
     def debug_mode(self) -> bool:

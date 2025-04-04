@@ -16,6 +16,7 @@ logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 # be getting the default values here.
 @dataclass
 class ServerArgs:
+    name: str = SystemConfig.name
     host: str = SystemConfig.host
     port: int = SystemConfig.port
     version: bool = False
@@ -136,6 +137,12 @@ def parse_args() -> ServerArgs:
         action="store_true",
         help="Export the current configuration as JSON without any additional text. "
         "Useful for shell redirection (e.g., --export-config > config.json)",
+    )
+    parser.add_argument(
+        "--name",
+        type=str,
+        default=SystemConfig.name,
+        help=f"Name of the agent server process, defaults to '{SystemConfig.name}'.",
     )
     args = parser.parse_args()
     logger.debug(f"Parsed command-line arguments: {vars(args)}")

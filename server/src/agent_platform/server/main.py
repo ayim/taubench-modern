@@ -1,6 +1,7 @@
 import sys
 
 import structlog
+from agent_platform import server
 
 from agent_platform.server.cli.args import ServerArgs, parse_args
 from agent_platform.server.cli.configurations import (
@@ -22,6 +23,8 @@ def main():
     setup_logging(default_mode=True)
 
     args: ServerArgs = parse_args()
+
+    logger.info(f"{args.name.capitalize()} version {server.__version__} starting...")
 
     if args.license:
         print_license()
