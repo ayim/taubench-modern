@@ -7,6 +7,7 @@ from typing import Literal
 from agent_platform.core.configurations import Configuration
 from agent_platform.server.env_vars import (
     CONFIG_PATH,
+    CORS_MODE,
     DATA_DIR,
     DB_TYPE,
     LOG_DIR,

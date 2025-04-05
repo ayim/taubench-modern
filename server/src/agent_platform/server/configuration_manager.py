@@ -427,7 +427,7 @@ class ConfigurationManager:
         # Also update the config data for persistence
         self._config_data[config_path] = new_instance.to_dict()
         logger.warning(
-            f"Updated configuration: {config_class.__name__} at {config_path}"
+            f"Updated configuration: {config_class.__name__} at {config_path}",
         )
 
 

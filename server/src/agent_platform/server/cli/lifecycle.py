@@ -126,7 +126,7 @@ class ServerLifecycleManager:
             }
 
             # Map errno to human-readable descriptions for common errors
-            if hasattr(e, "errno"):
+            if hasattr(e, "errno") and e.errno is not None:
                 import errno
 
                 error_codes = {
@@ -175,7 +175,7 @@ class ServerLifecycleManager:
                 }
 
                 # Add symbolic name for errno if available
-                if hasattr(e, "errno"):
+                if hasattr(e, "errno") and e.errno is not None:
                     import errno
 
                     error_details["error_code_name"] = errno.errorcode.get(
