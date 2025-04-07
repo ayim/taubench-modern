@@ -9,21 +9,27 @@ Run `make help` to see full list:
 Usage: make [target]
 
 Available targets:
-  all                   Default to 'build'
-  build-exe             Build a PyInstaller executable
-  build-wheels          Build Python wheels into dist/ via uv
-  build                 Build both wheels and PyInstaller executable
-  clean                 Remove build/dist artifacts
-  dev-widget            Run pnpm run dev on server/examples/debug_widget
-  help                  Show this help
-  lint                  Run ruff linting
-  run-server-exe        Run the agent server executable
-  run-server            Run the agent server via uv run -m
-  setup-keychain        Setup macOS keychain for code signing (no-op on non-macOS)
-  sync                  Sync/install all packages in the monorepo
-  test                  Run tests with pytest
-  typecheck             Run typechecking with pyright
-  venv                  Create a new virtual environment with uv
+  all                       Perform a clean build of everything
+  build                     Build both wheels and PyInstaller executable
+  build-exe                 Build a PyInstaller executable
+  build-wheels              Build Python wheels into dist/ via uv
+  check-env                 Check that all required environment variables are set in the .env file
+  clean                     Remove build/dist artifacts
+  coverage                  Run tests with pytest and generate coverage report
+  dev-widget                Run pnpm run dev on server/examples/debug_widget
+  help                      Show this help
+  lint-fix                  Run ruff linting (fix violations)
+  lint                      Run ruff linting (check only)
+  new-empty-env             Create a new empty .env file if one doesn't exist
+  run-server-exe            Run the agent server executable
+  run-server                Run the agent server
+  setup-keychain            Setup macOS keychain for code signing (no-op on non-macOS)
+  sync                      Sync/install all packages in the monorepo
+  test                      Run tests with pytest (VCR playback only)
+  test-vcr-record-fresh     Run tests with pytest and record VCR cassettes
+  test-vcr-record-new       Run tests with pytest and record VCR cassettes for new requests
+  typecheck                 Run typechecking with pyright
+  venv                      Create a new virtual environment with uv
 ```
 
 ## Manual Setup Commands

@@ -33,7 +33,7 @@ help:  ## Show this help
 	@echo "Available targets:"
 	@grep -E '^[a-zA-Z0-9_-]+:.*?##' $(MAKEFILE_LIST) \
 	 | sort \
-	 | awk 'BEGIN {FS = ":.*?##"}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
+	 | awk 'BEGIN {FS = ":.*?##"}; {printf "  \033[36m%-24s\033[0m %s\n", $$1, $$2}'
 
 # --------------------------------------------------------------------
 # Setup & Install
@@ -141,10 +141,10 @@ run-server-exe:  ## Run the agent server executable
 	@echo "Running server from dist/..."
 	./dist/agent-server
 
-test:  ## Run tests with pytest (VCR playback only)
+test:  check-env-or-no-env ## Run tests with pytest (VCR playback only)
 	VCR_RECORD=none uv run pytest
 
-test-vcr-record-new:  ## Run tests with pytest and record VCR cassettes for new requests
+test-vcr-record-new:  check-env ## Run tests with pytest and record VCR cassettes for new requests
 	@NUM_EXISTING_CASSETTES=$$(find core/tests/fixtures/vcr_cassettes/ -type f | wc -l); \
 	echo "Found $$NUM_EXISTING_CASSETTES existing cassettes!"; \
 	echo "Running tests and recording new VCR cassettes..."; \
@@ -153,7 +153,7 @@ test-vcr-record-new:  ## Run tests with pytest and record VCR cassettes for new 
 	echo "Recorded $$(( NUM_NEW_CASSETTES - NUM_EXISTING_CASSETTES )) new cassettes!"; \
 	echo "Total cassettes: $$NUM_NEW_CASSETTES"
 
-test-vcr-record-fresh:  ## Run tests with pytest and record VCR cassettes
+test-vcr-record-fresh:  check-env ## Run tests with pytest and record VCR cassettes
 	@echo "Cleaning VCR cassettes..."
 	@rm -rf core/tests/fixtures/vcr_cassettes/*
 	@rm -rf server/tests/fixtures/vcr_cassettes/*
@@ -175,6 +175,97 @@ lint-fix:  ## Run ruff linting (fix violations)
 
 typecheck:  ## Run typechecking with pyright
 	uv run pyright
+
+# --------------------------------------------------------------------
+# Environment Validation
+# --------------------------------------------------------------------
+check-env-or-no-env:
+	@if [ -f .env ]; then \
+		echo "Found .env file, checking environment variables..."; \
+		$(MAKE) check-env; \
+	else \
+		echo "No .env file found, skipping environment checks."; \
+		echo "This is fine for targets like make test and run-server, which don't require env vars."; \
+		echo "If you want to record fresh VCR cassettes, env vars are required."; \
+		echo "Run make new-empty-env to create a new .env file with all required variables set to empty strings."; \
+	fi
+
+check-env:  ## Check that all required environment variables are set in the .env file
+	@if [ ! -f .env ]; then \
+		echo "❌ .env file not found!"; \
+		exit 1; \
+	fi
+	@echo "Checking that all required environment variables are set in .env file..."
+	@( \
+		set -a; \
+		. ./.env; \
+		set +a; \
+		echo "Checking variables needed for OpenAI Model Platform Client..."; \
+		if [ -z "$$OPENAI_API_KEY" ]; then \
+			echo "❌ OPENAI_API_KEY is not set"; \
+			exit 1; \
+		fi; \
+		echo "  ✅ All OpenAI variables are set!"; \
+		\
+		echo "Checking variables needed for Bedrock Model Platform Client..."; \
+		if [ -z "$$AWS_ACCESS_KEY_ID" ]; then \
+			echo "❌ AWS_ACCESS_KEY_ID is not set"; \
+			exit 1; \
+		fi; \
+		if [ -z "$$AWS_SECRET_ACCESS_KEY" ]; then \
+			echo "❌ AWS_SECRET_ACCESS_KEY is not set"; \
+			exit 1; \
+		fi; \
+		if [ -z "$$AWS_DEFAULT_REGION" ]; then \
+			echo "❌ AWS_DEFAULT_REGION is not set"; \
+			exit 1; \
+		fi; \
+		echo "  ✅ All Bedrock variables are set!"; \
+		\
+		echo "Checking for Snowflake configuration..."; \
+		if [ -f ~/.sema4ai/sf-auth.json ]; then \
+			echo "  ✅ Snowflake linking file exists, no environment variables needed!"; \
+		else \
+			echo "  ℹ️ Linking file not found, checking for Snowflake credentials..."; \
+			if [ -z "$$SNOWFLAKE_USERNAME" ]; then \
+				echo "❌ SNOWFLAKE_USERNAME is not set"; \
+				exit 1; \
+			fi; \
+			if [ -z "$$SNOWFLAKE_PASSWORD" ]; then \
+				echo "❌ SNOWFLAKE_PASSWORD is not set"; \
+				exit 1; \
+			fi; \
+			if [ -z "$$SNOWFLAKE_ACCOUNT" ]; then \
+				echo "❌ SNOWFLAKE_ACCOUNT is not set"; \
+				exit 1; \
+			fi; \
+			if [ -z "$$SNOWFLAKE_ROLE" ]; then \
+				echo "❌ SNOWFLAKE_ROLE is not set"; \
+				exit 1; \
+			fi; \
+			echo "    ✅ All Snowflake variables are set!"; \
+		fi; \
+		\
+		echo "✅ Environment validation complete - all required credentials are available."; \
+	)
+
+new-empty-env:  ## Create a new empty .env file if one doesn't exist
+	@if [ ! -f .env ]; then \
+		echo "Creating new empty .env file..."; \
+		touch .env; \
+		echo "OPENAI_API_KEY=" >> .env; \
+		echo "AWS_ACCESS_KEY_ID=" >> .env; \
+		echo "AWS_SECRET_ACCESS_KEY=" >> .env; \
+		echo "AWS_DEFAULT_REGION=" >> .env; \
+		echo "SNOWFLAKE_USERNAME=" >> .env; \
+		echo "SNOWFLAKE_PASSWORD=" >> .env; \
+		echo "SNOWFLAKE_ACCOUNT=" >> .env; \
+		echo "SNOWFLAKE_ROLE=" >> .env; \
+		echo "New empty .env file created!"; \
+	else \
+		echo "❌ .env file already exists!"; \
+		exit 1; \
+	fi
 
 # --------------------------------------------------------------------
 # Cleanup
