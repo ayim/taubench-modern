@@ -54,6 +54,7 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
             )
             converted_prompt = await self._internal_client.converters.convert_prompt(
                 finalized_prompt,
+                model_id=model,
             )
 
             return await self._internal_client.generate_response(
@@ -87,6 +88,7 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
 
             converted_prompt = await self._internal_client.converters.convert_prompt(
                 finalized_prompt,
+                model_id=model,
             )
 
             response_stream = self._internal_client.generate_stream_response(

@@ -1,0 +1,87 @@
+interactions:
+- request:
+    body: '{"model":"llama3.1-8b","messages":[{"role":"system","content":"\n            Always
+      provide your response wrapped in <response> tags.\n            "},{"role":"user","content":"\n                This
+      is an end-to-end test, please respond with a\n                message containing
+      only the word ''apple''\n                "}],"max_tokens":512,"top_p":1.0,"temperature":0.0,"stream":true}'
+    headers:
+      accept:
+      - application/json, text/event-stream
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      content-length:
+      - '384'
+      content-type:
+      - application/json
+      host:
+      - zvzwmyo-hp00956.snowflakecomputing.com
+      user-agent:
+      - python-httpx/0.28.1
+    method: POST
+    uri: https://zvzwmyo-hp00956.snowflakecomputing.com/api/v2/cortex/inference:complete
+  response:
+    content: 'data: {"id":"f77970eb-4c8f-4a18-825f-c7c832ef3a20","created":1743969846,"model":"llama3.1-8b","choices":[{"delta":{}}],"usage":{"prompt_tokens":49,"completion_tokens":1,"total_tokens":50}}
+
+
+      data: {"id":"f77970eb-4c8f-4a18-825f-c7c832ef3a20","created":1743969846,"model":"llama3.1-8b","choices":[{"delta":{}}],"usage":{"prompt_tokens":49,"completion_tokens":2,"total_tokens":51}}
+
+
+      data: {"id":"f77970eb-4c8f-4a18-825f-c7c832ef3a20","created":1743969846,"model":"llama3.1-8b","choices":[{"delta":{"content":"\u003c","content_list":[{"type":"text","text":"\u003c"}]}}],"usage":{"prompt_tokens":49,"completion_tokens":3,"total_tokens":52}}
+
+
+      data: {"id":"f77970eb-4c8f-4a18-825f-c7c832ef3a20","created":1743969846,"model":"llama3.1-8b","choices":[{"delta":{"content":"respo","content_list":[{"type":"text","text":"respo"}]}}],"usage":{"prompt_tokens":49,"completion_tokens":4,"total_tokens":53}}
+
+
+      data: {"id":"f77970eb-4c8f-4a18-825f-c7c832ef3a20","created":1743969846,"model":"llama3.1-8b","choices":[{"delta":{"content":"ns","content_list":[{"type":"text","text":"ns"}]}}],"usage":{"prompt_tokens":49,"completion_tokens":5,"total_tokens":54}}
+
+
+      data: {"id":"f77970eb-4c8f-4a18-825f-c7c832ef3a20","created":1743969846,"model":"llama3.1-8b","choices":[{"delta":{"content":"e\u003eapple\u003c","content_list":[{"type":"text","text":"e\u003eapple\u003c"}]}}],"usage":{"prompt_tokens":49,"completion_tokens":6,"total_tokens":55}}
+
+
+      data: {"id":"f77970eb-4c8f-4a18-825f-c7c832ef3a20","created":1743969846,"model":"llama3.1-8b","choices":[{"delta":{"content":"/","content_list":[{"type":"text","text":"/"}]}}],"usage":{"prompt_tokens":49,"completion_tokens":7,"total_tokens":56}}
+
+
+      data: {"id":"f77970eb-4c8f-4a18-825f-c7c832ef3a20","created":1743969846,"model":"llama3.1-8b","choices":[{"delta":{"content":"response\u003e","content_list":[{"type":"text","text":"response\u003e"}]},"finish_reason":"stop"}],"usage":{"prompt_tokens":49,"completion_tokens":8,"total_tokens":57}}
+
+
+      '
+    headers:
+      Cache-Control:
+      - no-cache
+      Content-Type:
+      - text/event-stream
+      Date:
+      - Sun, 06 Apr 2025 20:04:06 GMT,Sun, 06 Apr 2025 20:04:06 GMT
+      Expect-Ct:
+      - enforce, max-age=3600
+      Server:
+      - SF-LB
+      Strict-Transport-Security:
+      - max-age=31536000
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Accept-Encoding, User-Agent
+      X-Accel-Buffering:
+      - 'no'
+      X-Content-Type-Options:
+      - nosniff
+      X-Envoy-Attempt-Count:
+      - '1'
+      X-Envoy-Upstream-Service-Time:
+      - '154'
+      X-Frame-Options:
+      - deny
+      X-Snowflake-Fe-Config:
+      - ef89176a_1742962852_8fede9a5_1743969787512_0_0_1743969802174
+      X-Snowflake-Fe-Instance:
+      - envoy-ingress-awsuseast2-d22cb
+      X-Snowflake-Request-Id:
+      - f77970eb-4c8f-4a18-825f-c7c832ef3a20
+      X-Xss-Protection:
+      - 1; mode=block
+    http_version: HTTP/1.1
+    status_code: 200
+version: 1

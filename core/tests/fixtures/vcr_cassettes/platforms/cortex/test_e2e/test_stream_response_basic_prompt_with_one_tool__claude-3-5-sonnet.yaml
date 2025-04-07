@@ -1,0 +1,111 @@
+interactions:
+- request:
+    body: '{"model":"claude-3-5-sonnet","messages":[{"role":"system","content":"\n            You
+      are an expert librarian. You are given a book\n            and you need to add
+      it to the database. If any\n            information is missing/optional, you
+      should leave\n            it out instead of trying to guess it!! Do NOT even\n            include
+      an empty string/null for optional fields, completely\n            omit them.\n            "},{"role":"user","content":"\n                This
+      is an end-to-end test, please call the tool\n                called add_book
+      with the following book:\n\n                Title: \"Foundation\"\n                Author:
+      \"Isaac Asimov\"\n                Year: 1951\n\n                Emit nothing
+      else but the tool call with the\n                book information _exactly_
+      as shown above. Completely\n                omit any optional fields.\n                "}],"max_tokens":512,"top_p":1.0,"temperature":0.0,"stream":true,"tools":[{"tool_spec":{"type":"generic","name":"_add_book","description":"Store
+      a new book in the database.","input_schema":{"type":"object","properties":{"book":{"type":"object","properties":{"title":{"type":"string","description":"The
+      title of the book"},"author":{"type":"string","description":"The author''s name"},"category":{"type":["string","null"],"description":"The
+      category of the book"},"year":{"type":"integer"}},"required":["title","author","category","year"],"description":"The
+      book to add to the database"}},"required":["book"],"strict":true,"additionalProperties":false}}}]}'
+    headers:
+      accept:
+      - application/json, text/event-stream
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      content-length:
+      - '1545'
+      content-type:
+      - application/json
+      host:
+      - zvzwmyo-hp00956.snowflakecomputing.com
+      user-agent:
+      - python-httpx/0.28.1
+    method: POST
+    uri: https://zvzwmyo-hp00956.snowflakecomputing.com/api/v2/cortex/inference:complete
+  response:
+    content: 'data: {"id":"6f9fa8b5-8157-4fb4-b886-b2a9d1641905","model":"claude-3-5-sonnet","choices":[{"delta":{"content_list":[{"tool_use_id":"tooluse_umdLT20-RY2ntP19QcMEwQ","name":"_add_book"}]}}],"usage":{}}
+
+
+      data: {"id":"6f9fa8b5-8157-4fb4-b886-b2a9d1641905","model":"claude-3-5-sonnet","choices":[{"delta":{"content_list":[{"input":"{\"book\":"}]}}],"usage":{}}
+
+
+      data: {"id":"6f9fa8b5-8157-4fb4-b886-b2a9d1641905","model":"claude-3-5-sonnet","choices":[{"delta":{"content_list":[{"input":"
+      {\"ti"}]}}],"usage":{}}
+
+
+      data: {"id":"6f9fa8b5-8157-4fb4-b886-b2a9d1641905","model":"claude-3-5-sonnet","choices":[{"delta":{"content_list":[{"input":"tle\":"}]}}],"usage":{}}
+
+
+      data: {"id":"6f9fa8b5-8157-4fb4-b886-b2a9d1641905","model":"claude-3-5-sonnet","choices":[{"delta":{"content_list":[{"input":"\"Foundation"}]}}],"usage":{}}
+
+
+      data: {"id":"6f9fa8b5-8157-4fb4-b886-b2a9d1641905","model":"claude-3-5-sonnet","choices":[{"delta":{"content_list":[{"input":"\",\"author\":"}]}}],"usage":{}}
+
+
+      data: {"id":"6f9fa8b5-8157-4fb4-b886-b2a9d1641905","model":"claude-3-5-sonnet","choices":[{"delta":{"content_list":[{"input":"\"Isaac
+      Asim"}]}}],"usage":{}}
+
+
+      data: {"id":"6f9fa8b5-8157-4fb4-b886-b2a9d1641905","model":"claude-3-5-sonnet","choices":[{"delta":{"content_list":[{"input":"ov\""}]}}],"usage":{}}
+
+
+      data: {"id":"6f9fa8b5-8157-4fb4-b886-b2a9d1641905","model":"claude-3-5-sonnet","choices":[{"delta":{"content_list":[{"input":",\"year\":"}]}}],"usage":{}}
+
+
+      data: {"id":"6f9fa8b5-8157-4fb4-b886-b2a9d1641905","model":"claude-3-5-sonnet","choices":[{"delta":{"content_list":[{"input":"19"}]}}],"usage":{}}
+
+
+      data: {"id":"6f9fa8b5-8157-4fb4-b886-b2a9d1641905","model":"claude-3-5-sonnet","choices":[{"delta":{"content_list":[{"input":"51}}"}]}}],"usage":{}}
+
+
+      data: {"id":"6f9fa8b5-8157-4fb4-b886-b2a9d1641905","model":"claude-3-5-sonnet","choices":[{"delta":{}}],"usage":{"prompt_tokens":636,"completion_tokens":44,"total_tokens":680}}
+
+
+      '
+    headers:
+      Cache-Control:
+      - no-cache
+      Content-Type:
+      - text/event-stream
+      Date:
+      - Sun, 06 Apr 2025 20:03:42 GMT,Sun, 06 Apr 2025 20:03:44 GMT
+      Expect-Ct:
+      - enforce, max-age=3600
+      Server:
+      - SF-LB
+      Strict-Transport-Security:
+      - max-age=31536000
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Accept-Encoding, User-Agent
+      X-Accel-Buffering:
+      - 'no'
+      X-Content-Type-Options:
+      - nosniff
+      X-Envoy-Attempt-Count:
+      - '1'
+      X-Envoy-Upstream-Service-Time:
+      - '2251'
+      X-Frame-Options:
+      - deny
+      X-Snowflake-Fe-Config:
+      - ef89176a_1742962852_8fede9a5_1743969787512_0_0_1743969802174
+      X-Snowflake-Fe-Instance:
+      - envoy-ingress-awsuseast2-4br74
+      X-Snowflake-Request-Id:
+      - 6f9fa8b5-8157-4fb4-b886-b2a9d1641905
+      X-Xss-Protection:
+      - 1; mode=block
+    http_version: HTTP/1.1
+    status_code: 200
+version: 1

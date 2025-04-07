@@ -14,6 +14,19 @@ from agent_platform.core.prompts.messages import (
     PromptUserMessage,
 )
 from agent_platform.core.prompts.prompt import Prompt
+from agent_platform.core.prompts.special import (
+    ConversationHistorySpecialMessage,
+    DocumentsSpecialMessage,
+    MemoriesSpecialMessage,
+)
+
+AnyPromptMessage = (
+    PromptUserMessage |
+    PromptAgentMessage |
+    ConversationHistorySpecialMessage |
+    DocumentsSpecialMessage |
+    MemoriesSpecialMessage
+)
 
 AnyPromptMessageContent = (
     PromptAudioContent

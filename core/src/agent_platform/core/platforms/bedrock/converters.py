@@ -582,7 +582,11 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
     # TODO: Add tool use from the model back to ToolUsePromptContent, but we need to
     #       add hueristics to handle if the model uses the wrong case for the tool name.
 
-    async def convert_prompt(self, prompt: Prompt) -> BedrockPrompt:
+    async def convert_prompt(
+        self,
+        prompt: Prompt,
+        model_id: str | None = None,
+    ) -> BedrockPrompt:
         """Converts a prompt to Bedrock format.
 
         Args:

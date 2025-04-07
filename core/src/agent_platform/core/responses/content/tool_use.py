@@ -56,9 +56,26 @@ class ResponseToolUseContent(ResponseMessageContent):
         """
         assert_literal_value_valid(self, "kind")
 
-        object.__setattr__(self, "_tool_input", json.loads(
-            self.tool_input_raw or "{}",  # Careful for tools w/ no params
-        ))
+        # Handle empty args we probably should handle as empty obj
+        if self.tool_input_raw == "":
+            object.__setattr__(self, "tool_input_raw", "{}")
+
+        # Try to parse the tool input and remove any odd empty
+        # keys (e.g. {"":""}) This is somehow a scenario that can happen
+        try:
+            tool_input_parsed = json.loads(self.tool_input_raw)
+        except json.JSONDecodeError as exc:
+            raise ValueError("tool_input_raw is not valid JSON") from exc
+
+        # Remove any empty keys
+        new_tool_input_parsed = {}
+        for key, value in tool_input_parsed.items():
+            if key == "":
+                continue
+            new_tool_input_parsed[key] = value
+
+        object.__setattr__(self, "tool_input_raw", json.dumps(new_tool_input_parsed))
+        object.__setattr__(self, "_tool_input", new_tool_input_parsed)
 
     @property
     def tool_input(self) -> dict[str, Any]:

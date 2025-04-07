@@ -12,7 +12,7 @@ import pytest
 import requests
 from fastapi import status
 
-from ..agent_client import (
+from server.tests.agent_client import (
     AgentServerClient,
     print_header,
     print_success,

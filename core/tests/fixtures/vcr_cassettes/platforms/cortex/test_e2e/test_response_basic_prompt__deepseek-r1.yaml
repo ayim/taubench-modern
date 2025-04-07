@@ -1,0 +1,78 @@
+interactions:
+- request:
+    body: '{"model":"deepseek-r1","messages":[{"role":"user","content":"\n                This
+      is an end-to-end test, please respond with a\n                message containing
+      only the word ''sunflower''\n                "}],"max_tokens":512,"top_p":1.0,"temperature":0.0,"stream":false}'
+    headers:
+      accept:
+      - application/json, text/event-stream
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      content-length:
+      - '274'
+      content-type:
+      - application/json
+      host:
+      - zvzwmyo-hp00956.snowflakecomputing.com
+      user-agent:
+      - python-httpx/0.28.1
+    method: POST
+    uri: https://zvzwmyo-hp00956.snowflakecomputing.com/api/v2/cortex/inference:complete
+  response:
+    content: '{"choices":[{"message":{"content":"\u003cthink\u003e\nOkay, the user
+      sent a message asking for a response containing only the word ''sunflower''.
+      Let me make sure I understand the instructions correctly. They mentioned it''s
+      an end-to-end test, so they probably want to check if the system can follow
+      simple directions precisely. The key here is to respond with just the single
+      word without any additional text or formatting.\n\nFirst, I need to confirm
+      that there''s no hidden formatting or extra characters. The response should
+      be exactly ''sunflower'' and nothing else. Let me double-check the output to
+      ensure there are no typos. Sometimes, even a small mistake like a missing letter
+      or an extra space can cause issues. \n\nAlso, considering the user might be
+      testing the bot''s ability to adhere strictly to instructions, I should avoid
+      adding any explanations, punctuation, or emojis. Just the plain word. Alright,
+      I think that''s all. Let me send ''sunflower'' as the response.\n\u003c/think\u003e\n\nsunflower"}}],"usage":{"prompt_tokens":30,"completion_tokens":199,"total_tokens":229}}
+
+      '
+    headers:
+      Cache-Control:
+      - no-cache
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json;charset=utf-8
+      Date:
+      - Sun, 06 Apr 2025 20:03:19 GMT,Sun, 06 Apr 2025 20:03:25 GMT
+      Expect-Ct:
+      - enforce, max-age=3600
+      Server:
+      - SF-LB
+      Strict-Transport-Security:
+      - max-age=31536000
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Accept-Encoding, User-Agent
+      X-Accel-Buffering:
+      - 'no'
+      X-Content-Type-Options:
+      - nosniff
+      X-Envoy-Attempt-Count:
+      - '1'
+      X-Envoy-Upstream-Service-Time:
+      - '5998'
+      X-Frame-Options:
+      - deny
+      X-Snowflake-Fe-Config:
+      - ef89176a_1742962852_8fede9a5_1743969708556_0_0_1743969724174
+      X-Snowflake-Fe-Instance:
+      - envoy-ingress-awsuseast2-4br74
+      X-Snowflake-Request-Id:
+      - e66f83cc-2878-4af8-97b3-d6aa98517d4f
+      X-Xss-Protection:
+      - 1; mode=block
+    http_version: HTTP/1.1
+    status_code: 200
+version: 1

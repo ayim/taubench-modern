@@ -1,4 +1,6 @@
+import json
 from collections.abc import AsyncGenerator
+from logging import getLogger
 from typing import Any
 
 from agent_platform.core.delta import GenericDelta
@@ -16,6 +18,7 @@ from agent_platform.core.responses.content.text import ResponseTextContent
 from agent_platform.core.responses.content.tool_use import ResponseToolUseContent
 from agent_platform.core.responses.response import ResponseMessage, TokenUsage
 
+logger = getLogger(__name__)
 
 class OpenAIParsers(PlatformParsers):
     """Parsers that transform OpenAI types to agent-server prompt types."""
@@ -84,14 +87,44 @@ class OpenAIParsers(PlatformParsers):
             raise ValueError("tool_name is required")
 
         tool_input = content.get("function", {}).get("arguments")
-        if not tool_input:
-            raise ValueError("tool_input is required")
+        # We can handle empty tool input (treat it as empty obj)
+        if tool_input is None:
+            tool_input = "{}"
 
-        return ResponseToolUseContent(
+        # UNIQUE SCENARIO (encountered during further testing)
+        # The reasoning models are producing weird tool call JSON
+        # occasionally, I've seen a { function_name: { args... } }
+        # which, of course, breaks...
+        # It's unclear if we should handle this here... as you could
+        # have a function named foo with an argument named foo...
+        as_tool_use = ResponseToolUseContent(
             tool_call_id=tool_use_id,
             tool_name=tool_name,
             tool_input_raw=tool_input,
         )
+
+        if as_tool_use.tool_name in as_tool_use.tool_input:
+            logger.warning(
+                "Tool name found in tool input: %s",
+                as_tool_use.tool_name,
+            )
+            # If this is the _only_ key and it's a dict, we'll
+            # "un-nest" the tool input
+            all_keys = list(as_tool_use.tool_input.keys())
+            if len(all_keys) == 1:
+                content_at_name = as_tool_use.tool_input[all_keys[0]]
+                if isinstance(content_at_name, dict):
+                    logger.warning(
+                        "Un-nesting tool input: %s",
+                        content_at_name,
+                    )
+                    return ResponseToolUseContent(
+                        tool_call_id=tool_use_id,
+                        tool_name=tool_name,
+                        tool_input_raw=json.dumps(content_at_name),
+                    )
+
+        return as_tool_use
 
     def parse_document_content(self, content: Any) -> ResponseDocumentContent:
         """Parses a platform-specific document content to an agent-server

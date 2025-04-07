@@ -275,7 +275,11 @@ class CortexConverters(PlatformConverters, UsesKernelMixin):
             converted_tools.append(tool_spec)
         return converted_tools
 
-    async def convert_prompt(self, prompt: Prompt) -> CortexPrompt:
+    async def convert_prompt(
+        self,
+        prompt: Prompt,
+        model_id: str | None = None,
+    ) -> CortexPrompt:
         """Converts a prompt to Cortex format.
 
         Args:

@@ -22,20 +22,93 @@ class BedrockModelMap(MapConfiguration):
     """A map of our model names to Bedrock model IDs."""
 
     mapping: ClassVar[dict[str, str]] = {
-        # LLM models
+        # Anthropic
+        # We don't have on-demand access for 3.7-sonnet?
+        # "claude-3-7-sonnet": "anthropic.claude-3-7-sonnet-20250219-v1:0",
         "claude-3-5-sonnet": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
         "claude-3-5-haiku": "us.anthropic.claude-3-haiku-20240307-v1:0",
-        # Embedding models
+        # Amazon
         "titan-embed-text-v2": "amazon.titan-embed-text-v2:0",
         "titan-embed-text-v1": "amazon.titan-embed-text-v1",
+        # Cohere
+        # And no access to command-r-plus?
+        # "cohere-command-r-plus": "cohere.command-r-plus-v1:0",
         "cohere-embed-english-v3": "cohere.embed-english-v3",
         "cohere-embed-multilingual-v3": "cohere.embed-multilingual-v3",
     }
 
+    models_to_type: ClassVar[dict[str, str]] = {
+        # Anthropic
+        "claude-3-7-sonnet": "llm",
+        "claude-3-5-sonnet": "llm",
+        "claude-3-5-haiku": "llm",
+        # Amazon
+        "titan-embed-text-v2": "embedding",
+        "titan-embed-text-v1": "embedding",
+        # Cohere (LLM)
+        "cohere-command-r-plus": "llm",
+        # Cohere (Embedding)
+        "cohere-embed-english-v3": "embedding",
+        "cohere-embed-multilingual-v3": "embedding",
+    }
+
+    models_to_input_modalities: ClassVar[dict[str, list[str]]] = {
+        # Anthropic
+        "claude-3-7-sonnet": ["text", "tools", "images"],
+        "claude-3-5-sonnet": ["text", "tools", "images"],
+        "claude-3-5-haiku": ["text", "tools", "images"],
+        # Amazon
+        "titan-embed-text-v2": ["text"],
+        "titan-embed-text-v1": ["text"],
+        # Cohere (LLM)
+        "cohere-command-r-plus": ["text", "tools"],
+        # Cohere (Embedding)
+        "cohere-embed-english-v3": ["text"],
+        "cohere-embed-multilingual-v3": ["text"],
+    }
+
+    models_to_output_modalities: ClassVar[dict[str, list[str]]] = {
+        # Anthropic
+        "claude-3-7-sonnet": ["text"],
+        "claude-3-5-sonnet": ["text"],
+        "claude-3-5-haiku": ["text"],
+        # Amazon
+        "titan-embed-text-v2": ["embedding"],
+        "titan-embed-text-v1": ["embedding"],
+        # Cohere (LLM)
+        "cohere-command-r-plus": ["text"],
+        # Cohere (Embedding)
+        "cohere-embed-english-v3": ["embedding"],
+        "cohere-embed-multilingual-v3": ["embedding"],
+    }
     @classmethod
     def supported_models(cls) -> list[str]:
         """Get list of supported model names."""
         return list(cls.class_keys())
+
+    @classmethod
+    def distinct_llm_model_ids(cls) -> list[str]:
+        """Get list of distinct LLM model IDs."""
+        return [
+            m for m in cls.class_keys() if cls.models_to_type[m] == "llm"
+        ]
+
+    @classmethod
+    def distinct_llm_model_ids_with_tool_input(cls) -> list[str]:
+        """Get list of distinct LLM model IDs that support tool calling."""
+        return [
+            model
+            for model in cls.class_keys()
+            if cls.models_to_type[model] == "llm"
+            and "tools" in cls.models_to_input_modalities[model]
+        ]
+
+    @classmethod
+    def distinct_embedding_model_ids(cls) -> list[str]:
+        """Get list of distinct embedding model IDs."""
+        return [
+            m for m in cls.class_keys() if cls.models_to_type[m] == "embedding"
+        ]
 
 
 @dataclass(frozen=True)

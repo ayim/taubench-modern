@@ -1,6 +1,10 @@
 # Repomix outputs
 **/repomix-output.txt
 
+# DS_Store
+.DS_Store
+**/.DS_Store
+
 # Uploads dir
 uploads/
 *.env

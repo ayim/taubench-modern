@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from ..bootstrap_agent_server import AgentServerProcess
+from server.tests.bootstrap_agent_server import AgentServerProcess
 
 
 @pytest.fixture(scope="session", autouse=True)

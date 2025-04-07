@@ -3,7 +3,6 @@
 from unittest.mock import MagicMock
 
 import pytest
-from openai.types import FunctionDefinition
 
 from agent_platform.core.kernel import Kernel
 from agent_platform.core.platforms.openai.prompts import OpenAIPrompt
@@ -60,9 +59,20 @@ class TestOpenAIPrompt:
 
     def test_as_platform_request_no_tools(self) -> None:
         """Test converting to platform request with no tools."""
-        messages = [
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": "Hello, world!"},
+        from openai.types.chat import (
+            ChatCompletionMessageParam,
+            ChatCompletionSystemMessageParam,
+            ChatCompletionUserMessageParam,
+        )
+        messages: list[ChatCompletionMessageParam] = [
+            ChatCompletionSystemMessageParam(
+                role="system",
+                content="You are a helpful assistant.",
+            ),
+            ChatCompletionUserMessageParam(
+                role="user",
+                content="Hello, world!",
+            ),
         ]
 
         openai_prompt = OpenAIPrompt(
@@ -78,6 +88,14 @@ class TestOpenAIPrompt:
 
     def test_as_platform_request_with_tools(self) -> None:
         """Test converting to platform request with tools."""
+        from openai.types.chat import (
+            ChatCompletionMessageParam,
+            ChatCompletionSystemMessageParam,
+            ChatCompletionToolParam,
+            ChatCompletionUserMessageParam,
+        )
+        from openai.types.shared_params.function_definition import FunctionDefinition
+
         tool_def = FunctionDefinition(
             name="test-tool",
             description="A test tool",
@@ -93,19 +111,21 @@ class TestOpenAIPrompt:
             },
         )
 
-        messages = [
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": "Hello, world!"},
+        messages: list[ChatCompletionMessageParam] = [
+            ChatCompletionSystemMessageParam(
+                role="system",
+                content="You are a helpful assistant.",
+            ),
+            ChatCompletionUserMessageParam(
+                role="user",
+                content="Hello, world!",
+            ),
         ]
 
-        tool_param = {
-            "type": "function",
-            "function": {
-                "name": tool_def.name,
-                "description": tool_def.description or "",
-                "parameters": tool_def.parameters or {},
-            },
-        }
+        tool_param = ChatCompletionToolParam(
+            type="function",
+            function=tool_def,
+        )
 
         openai_prompt = OpenAIPrompt(
             messages=messages,
@@ -123,15 +143,22 @@ class TestOpenAIPrompt:
 
     def test_as_platform_request_with_reasoning_models(self) -> None:
         """Test converting to platform request with reasoning models."""
-        messages = [
-            {"role": "user", "content": "Hello, world!"},
-        ]
+        from openai.types.chat import (
+            ChatCompletionMessageParam,
+            ChatCompletionUserMessageParam,
+        )
 
+        messages: list[ChatCompletionMessageParam] = [
+            ChatCompletionUserMessageParam(
+                role="user",
+                content="Hello, world!",
+            ),
+        ]
         openai_prompt = OpenAIPrompt(
             messages=messages,
         )
 
-        for model in ["o1", "o1-mini", "o1-pro", "o3-mini"]:
+        for model in ["o1", "o3-mini"]:
             # Test with high reasoning
             high_model = f"{model}-high"
             high_request = openai_prompt.as_platform_request(model=high_model)
@@ -150,19 +177,34 @@ class TestOpenAIPrompt:
 
     def test_prompt_properties(self) -> None:
         """Test prompt properties and defaults."""
-        messages = [{"role": "user", "content": "Hello"}]
+        from openai.types.chat import (
+            ChatCompletionMessageParam,
+            ChatCompletionToolParam,
+            ChatCompletionUserMessageParam,
+        )
+        from openai.types.shared_params.function_definition import FunctionDefinition
 
+        messages: list[ChatCompletionMessageParam] = [
+            ChatCompletionUserMessageParam(role="user", content="Hello"),
+        ]
         # Test with defaults
         prompt = OpenAIPrompt(messages=messages)
         assert prompt.messages == messages
         assert prompt.temperature == 0.0
         assert prompt.top_p == 1.0
         assert prompt.max_tokens == 4096
-        assert prompt.tools == []
+        assert prompt.tools is None
 
         # Test with custom values
         tools = [
-            FunctionDefinition(name="test", description="Test tool", parameters={}),
+            ChatCompletionToolParam(
+                type="function",
+                function=FunctionDefinition(
+                    name="test",
+                    description="Test tool",
+                    parameters={},
+                ),
+            ),
         ]
         prompt = OpenAIPrompt(
             messages=messages,

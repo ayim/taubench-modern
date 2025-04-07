@@ -1,0 +1,80 @@
+interactions:
+- request:
+    body: '{"model":"deepseek-r1","messages":[{"role":"user","content":"\n                You
+      are acting as an agent named ''Test Agent''. You\n                are to assist
+      the user with their request.\n                "},{"role":"assistant","content":"\n                Understood,
+      I will assist the user with their request.\n                "},{"role":"user","content":"\n                Reply
+      with the answer only, nothing else. What is the\n                capital of
+      the state of Wisconsin, USA?\n\n                The answer must be one word.
+      Starting with a capital\n                letter, and ending with a period. Emit
+      nothing else\n                aside from the capital of Wisconsin with a period\n                at
+      the end and starting with a capital letter.\n\n                NOTE: We are
+      not looking for ALL CAPS. Just regular\n                capitalization with
+      a period at the end.\n                "}],"max_tokens":512,"top_p":1.0,"temperature":0.0,"stream":false}'
+    headers:
+      accept:
+      - application/json, text/event-stream
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      content-length:
+      - '973'
+      content-type:
+      - application/json
+      host:
+      - zvzwmyo-hp00956.snowflakecomputing.com
+      user-agent:
+      - python-httpx/0.28.1
+    method: POST
+    uri: https://zvzwmyo-hp00956.snowflakecomputing.com/api/v2/cortex/inference:complete
+  response:
+    content: '{"choices":[{"message":{"content":"\u003cthink\u003e\nOkay, the user
+      is asking for the capital of Wisconsin. Let me make sure I remember correctly.
+      I think it''s Madison. Wait, sometimes people confuse it with Milwaukee, which
+      is a bigger city, but the capital is definitely Madison. Let me double-check
+      that. Yes, Madison is the capital. The user wants just the one-word answer starting
+      with a capital letter and ending with a period. So the response should be \"Madison.\"
+      without any extra text. Got it.\n\u003c/think\u003e\n\nMadison."}}],"usage":{"prompt_tokens":147,"completion_tokens":106,"total_tokens":253}}
+
+      '
+    headers:
+      Cache-Control:
+      - no-cache
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json;charset=utf-8
+      Date:
+      - Sun, 06 Apr 2025 20:03:28 GMT,Sun, 06 Apr 2025 20:03:31 GMT
+      Expect-Ct:
+      - enforce, max-age=3600
+      Server:
+      - SF-LB
+      Strict-Transport-Security:
+      - max-age=31536000
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Accept-Encoding, User-Agent
+      X-Accel-Buffering:
+      - 'no'
+      X-Content-Type-Options:
+      - nosniff
+      X-Envoy-Attempt-Count:
+      - '1'
+      X-Envoy-Upstream-Service-Time:
+      - '3318'
+      X-Frame-Options:
+      - deny
+      X-Snowflake-Fe-Config:
+      - ef89176a_1742962852_8fede9a5_1743969708556_0_0_1743969724174
+      X-Snowflake-Fe-Instance:
+      - envoy-ingress-awsuseast2-9cn5b
+      X-Snowflake-Request-Id:
+      - 4be542d3-0833-4b58-b37d-63a261b3ebf3
+      X-Xss-Protection:
+      - 1; mode=block
+    http_version: HTTP/1.1
+    status_code: 200
+version: 1

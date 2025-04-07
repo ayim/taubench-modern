@@ -60,6 +60,65 @@ class TestOpenAIParsers:
         assert result.tool_name == "test-tool"
         assert result.tool_input_raw == '{"key": "value"}'
 
+    def test_parse_tool_use_odd_empty_content(self, parsers: OpenAIParsers) -> None:
+        """Test parsing of {"":""} as tool use content. This is an odd case I saw
+        testing against the actual API. We probably should elide empty keys."""
+        content = {
+            "id": "test-tool-call-id",
+            "function": {
+                "name": "test-tool",
+                "arguments": '{"":""}',
+            },
+        }
+        result = parsers.parse_tool_use_content(content)
+
+        assert isinstance(result, ResponseToolUseContent)
+        assert result.tool_call_id == "test-tool-call-id"
+        assert result.tool_name == "test-tool"
+
+        # Also completely empty args we probably should handle as empty obj
+        content_2 = {
+            "id": "test-tool-call-id",
+            "function": {
+                "name": "test-tool",
+                "arguments": "",
+            },
+        }
+        result_2 = parsers.parse_tool_use_content(content_2)
+
+        assert isinstance(result_2, ResponseToolUseContent)
+        assert result_2.tool_call_id == "test-tool-call-id"
+        assert result_2.tool_name == "test-tool"
+        assert result_2.tool_input_raw == "{}"
+
+    def test_parse_tool_use_odd_nested_content(self, parsers: OpenAIParsers) -> None:
+        """Test parsing of {"function_name": {"args..."}} as tool use content.
+        This is an odd case I saw testing against the actual API. We probably
+        should elide the function_name in the tool input."""
+        from unittest.mock import patch
+
+        content = {
+            "id": "test-tool-call-id",
+            "function": {
+                "name": "test-tool",
+                "arguments": '{"test-tool": {"key": "value", "key1": 123}}',
+            },
+        }
+        # Capture logs to check if the warning is produced
+        with patch(
+            "agent_platform.core.platforms.openai.parsers.logger.warning",
+        ) as mock_warning:
+            result = parsers.parse_tool_use_content(content)
+
+        assert mock_warning.call_count == 2
+        assert "Tool name found in tool input" in mock_warning.call_args_list[0].args[0]
+        assert "Un-nesting tool input" in mock_warning.call_args_list[1].args[0]
+
+        assert isinstance(result, ResponseToolUseContent)
+        assert result.tool_call_id == "test-tool-call-id"
+        assert result.tool_name == "test-tool"
+        assert result.tool_input_raw == '{"key": "value", "key1": 123}'
+
     def test_parse_document_content_not_implemented(
         self,
         parsers: OpenAIParsers,

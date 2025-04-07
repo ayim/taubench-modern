@@ -1,0 +1,46 @@
+interactions:
+- request:
+    body: '{"messages": [{"role": "user", "content": [{"text": "\n                This
+      is an end-to-end test, please respond with a\n                message containing
+      only the word ''sunflower''\n                "}]}], "system": [], "inferenceConfig":
+      {"temperature": 0.0, "maxTokens": 512}}'
+    headers:
+      Content-Length:
+      - '279'
+      Content-Type:
+      - !!binary |
+        YXBwbGljYXRpb24vanNvbg==
+      User-Agent:
+      - !!binary |
+        Qm90bzMvMS4zNy4yNCBtZC9Cb3RvY29yZSMxLjM3LjI0IHVhLzIuMSBvcy9tYWNvcyMyNC4zLjAg
+        bWQvYXJjaCNhcm02NCBsYW5nL3B5dGhvbiMzLjEyLjkgbWQvcHlpbXBsI0NQeXRob24gY2ZnL3Jl
+        dHJ5LW1vZGUjbGVnYWN5IEJvdG9jb3JlLzEuMzcuMjQ=
+      X-Amz-Date:
+      - !!binary |
+        MjAyNTA0MDdUMDI1NjU5Wg==
+      amz-sdk-invocation-id:
+      - !!binary |
+        YWJjY2FhN2MtY2Y1Mi00MWZlLTgxMWEtNjlhODMxZjQ2ZDBk
+      amz-sdk-request:
+      - !!binary |
+        YXR0ZW1wdD0x
+    method: POST
+    uri: https://bedrock-runtime.us-east-1.amazonaws.com/model/us.anthropic.claude-3-haiku-20240307-v1%3A0/converse
+  response:
+    body:
+      string: '{"metrics":{"latencyMs":332},"output":{"message":{"content":[{"text":"sunflower"}],"role":"assistant"}},"stopReason":"end_turn","usage":{"inputTokens":39,"outputTokens":6,"totalTokens":45}}'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '189'
+      Content-Type:
+      - application/json
+      Date:
+      - Mon, 07 Apr 2025 02:56:59 GMT
+      x-amzn-RequestId:
+      - 5800d0be-8564-4371-990c-2119e6e48998
+    status:
+      code: 200
+      message: OK
+version: 1

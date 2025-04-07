@@ -115,7 +115,11 @@ class MockPlatformConverters(PlatformConverters):
             "name": content.name,
         }
 
-    async def convert_prompt(self, prompt: Prompt) -> MockPlatformPrompt:
+    async def convert_prompt(
+        self,
+        prompt: Prompt,
+        model_id: str | None = None,
+    ) -> MockPlatformPrompt:
         """Mock convert prompt."""
         return MockPlatformPrompt()
 

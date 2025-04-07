@@ -215,8 +215,16 @@ class PlatformConverters(ABC, UsesKernelMixin):
         return parts
 
     @abstractmethod
-    async def convert_prompt(self, prompt: Prompt) -> PlatformPrompt:
-        """Converts a prompt to a platform-specific prompt."""
+    async def convert_prompt(
+        self,
+        prompt: Prompt,
+        model_id: str | None = None,
+    ) -> PlatformPrompt:
+        """Converts a prompt to a platform-specific prompt.
+
+        Sometimes, there may be model-specific changes for certain
+        providers, so we allow a model_id to be provided.
+        """
         pass
 
 

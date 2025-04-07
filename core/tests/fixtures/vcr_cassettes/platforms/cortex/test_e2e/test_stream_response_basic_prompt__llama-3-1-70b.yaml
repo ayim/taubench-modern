@@ -1,0 +1,71 @@
+interactions:
+- request:
+    body: '{"model":"llama3.1-70b","messages":[{"role":"user","content":"\n                This
+      is an end-to-end test, please respond with a\n                message containing
+      only the word ''sunflower''\n                "}],"max_tokens":512,"top_p":1.0,"temperature":0.0,"stream":true}'
+    headers:
+      accept:
+      - application/json, text/event-stream
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      content-length:
+      - '274'
+      content-type:
+      - application/json
+      host:
+      - zvzwmyo-hp00956.snowflakecomputing.com
+      user-agent:
+      - python-httpx/0.28.1
+    method: POST
+    uri: https://zvzwmyo-hp00956.snowflakecomputing.com/api/v2/cortex/inference:complete
+  response:
+    content: 'data: {"id":"1fdc493e-bc79-4d65-b271-d35d663c2050","created":1743969843,"model":"llama3.1-70b","choices":[{"delta":{}}],"usage":{"prompt_tokens":34,"completion_tokens":1,"total_tokens":35}}
+
+
+      data: {"id":"1fdc493e-bc79-4d65-b271-d35d663c2050","created":1743969843,"model":"llama3.1-70b","choices":[{"delta":{}}],"usage":{"prompt_tokens":34,"completion_tokens":2,"total_tokens":36}}
+
+
+      data: {"id":"1fdc493e-bc79-4d65-b271-d35d663c2050","created":1743969843,"model":"llama3.1-70b","choices":[{"delta":{"content":"sunflower","content_list":[{"type":"text","text":"sunflower"}]},"finish_reason":"stop"}],"usage":{"prompt_tokens":34,"completion_tokens":3,"total_tokens":37}}
+
+
+      '
+    headers:
+      Cache-Control:
+      - no-cache
+      Content-Type:
+      - text/event-stream
+      Date:
+      - Sun, 06 Apr 2025 20:04:03 GMT,Sun, 06 Apr 2025 20:04:03 GMT
+      Expect-Ct:
+      - enforce, max-age=3600
+      Server:
+      - SF-LB
+      Strict-Transport-Security:
+      - max-age=31536000
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Accept-Encoding, User-Agent
+      X-Accel-Buffering:
+      - 'no'
+      X-Content-Type-Options:
+      - nosniff
+      X-Envoy-Attempt-Count:
+      - '1'
+      X-Envoy-Upstream-Service-Time:
+      - '163'
+      X-Frame-Options:
+      - deny
+      X-Snowflake-Fe-Config:
+      - ef89176a_1742962852_8fede9a5_1743969787512_0_0_1743969802174
+      X-Snowflake-Fe-Instance:
+      - envoy-ingress-awsuseast2-nszkg
+      X-Snowflake-Request-Id:
+      - 1fdc493e-bc79-4d65-b271-d35d663c2050
+      X-Xss-Protection:
+      - 1; mode=block
+    http_version: HTTP/1.1
+    status_code: 200
+version: 1

@@ -3,7 +3,6 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
-    from openai.types import FunctionDefinition
     from openai.types.chat import ChatCompletionMessageParam, ChatCompletionToolParam
 
 from agent_platform.core.platforms.base import PlatformPrompt
@@ -16,7 +15,7 @@ logger = logging.getLogger(__name__)
 class OpenAIPrompt(PlatformPrompt):
     """A prompt for the OpenAI platform."""
 
-    messages: list["ChatCompletionMessageParam"] | list[dict[str, Any]] = field(
+    messages: list["ChatCompletionMessageParam"] = field(
         default_factory=list,
         metadata={
             "description": "The list of messages for the prompt.",
@@ -24,13 +23,8 @@ class OpenAIPrompt(PlatformPrompt):
     )
     """The list of messages for the prompt."""
 
-    tools: (
-        list["ChatCompletionToolParam"]
-        | list[dict[str, Any]]
-        | list["FunctionDefinition"]
-        | None
-    ) = field(
-        default_factory=list,
+    tools: list["ChatCompletionToolParam"] | None = field(
+        default=None,
         metadata={
             "description": "The list of tools for the prompt.",
         },
@@ -82,8 +76,11 @@ class OpenAIPrompt(PlatformPrompt):
         }
 
         if any(
-            model.startswith(prefix)
-            for prefix in ["o3-mini", "o1", "o1-mini", "o1-pro"]
+            # It's a bit odd right now, o3-mini and o1 have reasoning effort
+            # For o1-mini it's either o1-mini-high or o1-mini-low (as the model
+            # name, no reasoning effort param supported)
+            model.startswith(prefix) and not model.startswith("o1-mini-")
+            for prefix in ["o3-mini", "o1"]
         ):
             # For o1/o3 models, adjust temperature based on high/low reasoning
             if model.endswith("-high"):

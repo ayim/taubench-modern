@@ -1,0 +1,117 @@
+interactions:
+- request:
+    body: '{"messages":[{"role":"user","content":"\n            Always provide your
+      response wrapped in <response> tags.\n            "},{"role":"user","content":"This
+      is an end-to-end test, please respond with a\n                message containing
+      only the word ''apple''"}],"model":"o1-mini-2024-09-12","stream":true}'
+    headers:
+      accept:
+      - application/json
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      content-length:
+      - '306'
+      content-type:
+      - application/json
+      host:
+      - api.openai.com
+      user-agent:
+      - OpenAI/Python 1.70.0
+      x-stainless-arch:
+      - arm64
+      x-stainless-async:
+      - 'false'
+      x-stainless-lang:
+      - python
+      x-stainless-os:
+      - MacOS
+      x-stainless-package-version:
+      - 1.70.0
+      x-stainless-read-timeout:
+      - '600'
+      x-stainless-retry-count:
+      - '0'
+      x-stainless-runtime:
+      - CPython
+      x-stainless-runtime-version:
+      - 3.12.9
+    method: POST
+    uri: https://api.openai.com/v1/chat/completions
+  response:
+    content: 'data: {"id":"chatcmpl-BJ4zDfQPvPbc9ZrflnRPjF3wI1Qkl","object":"chat.completion.chunk","created":1743887099,"model":"o1-mini-2024-09-12","service_tier":"default","system_fingerprint":"fp_e8044cf94c","choices":[{"index":0,"delta":{"role":"assistant","content":"","refusal":null},"finish_reason":null}]}
+
+
+      data: {"id":"chatcmpl-BJ4zDfQPvPbc9ZrflnRPjF3wI1Qkl","object":"chat.completion.chunk","created":1743887099,"model":"o1-mini-2024-09-12","service_tier":"default","system_fingerprint":"fp_e8044cf94c","choices":[{"index":0,"delta":{"content":"<"},"finish_reason":null}]}
+
+
+      data: {"id":"chatcmpl-BJ4zDfQPvPbc9ZrflnRPjF3wI1Qkl","object":"chat.completion.chunk","created":1743887099,"model":"o1-mini-2024-09-12","service_tier":"default","system_fingerprint":"fp_e8044cf94c","choices":[{"index":0,"delta":{"content":"response"},"finish_reason":null}]}
+
+
+      data: {"id":"chatcmpl-BJ4zDfQPvPbc9ZrflnRPjF3wI1Qkl","object":"chat.completion.chunk","created":1743887099,"model":"o1-mini-2024-09-12","service_tier":"default","system_fingerprint":"fp_e8044cf94c","choices":[{"index":0,"delta":{"content":">"},"finish_reason":null}]}
+
+
+      data: {"id":"chatcmpl-BJ4zDfQPvPbc9ZrflnRPjF3wI1Qkl","object":"chat.completion.chunk","created":1743887099,"model":"o1-mini-2024-09-12","service_tier":"default","system_fingerprint":"fp_e8044cf94c","choices":[{"index":0,"delta":{"content":"apple"},"finish_reason":null}]}
+
+
+      data: {"id":"chatcmpl-BJ4zDfQPvPbc9ZrflnRPjF3wI1Qkl","object":"chat.completion.chunk","created":1743887099,"model":"o1-mini-2024-09-12","service_tier":"default","system_fingerprint":"fp_e8044cf94c","choices":[{"index":0,"delta":{"content":"</"},"finish_reason":null}]}
+
+
+      data: {"id":"chatcmpl-BJ4zDfQPvPbc9ZrflnRPjF3wI1Qkl","object":"chat.completion.chunk","created":1743887099,"model":"o1-mini-2024-09-12","service_tier":"default","system_fingerprint":"fp_e8044cf94c","choices":[{"index":0,"delta":{"content":"response"},"finish_reason":null}]}
+
+
+      data: {"id":"chatcmpl-BJ4zDfQPvPbc9ZrflnRPjF3wI1Qkl","object":"chat.completion.chunk","created":1743887099,"model":"o1-mini-2024-09-12","service_tier":"default","system_fingerprint":"fp_e8044cf94c","choices":[{"index":0,"delta":{"content":">"},"finish_reason":null}]}
+
+
+      data: {"id":"chatcmpl-BJ4zDfQPvPbc9ZrflnRPjF3wI1Qkl","object":"chat.completion.chunk","created":1743887099,"model":"o1-mini-2024-09-12","service_tier":"default","system_fingerprint":"fp_e8044cf94c","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}
+
+
+      data: [DONE]
+
+
+      '
+    headers:
+      Connection:
+      - keep-alive
+      Content-Type:
+      - text/event-stream; charset=utf-8
+      Date:
+      - Sat, 05 Apr 2025 21:05:00 GMT
+      Server:
+      - cloudflare
+      Transfer-Encoding:
+      - chunked
+      X-Content-Type-Options:
+      - nosniff
+      access-control-expose-headers:
+      - X-Request-ID
+      alt-svc:
+      - h3=":443"; ma=86400
+      cf-cache-status:
+      - DYNAMIC
+      openai-organization:
+      - robocorp-1
+      openai-processing-ms:
+      - '293'
+      openai-version:
+      - '2020-10-01'
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains; preload
+      x-ratelimit-limit-requests:
+      - '30000'
+      x-ratelimit-limit-tokens:
+      - '150000000'
+      x-ratelimit-remaining-requests:
+      - '29999'
+      x-ratelimit-remaining-tokens:
+      - '149999949'
+      x-ratelimit-reset-requests:
+      - 2ms
+      x-ratelimit-reset-tokens:
+      - 0s
+      x-request-id:
+      - req_e883f20bc41538a1f39bce3cbb7e80ee
+    http_version: HTTP/1.1
+    status_code: 200
+version: 1

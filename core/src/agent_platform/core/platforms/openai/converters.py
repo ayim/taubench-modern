@@ -191,12 +191,18 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
         """
         from openai.types.chat import (
             ChatCompletionAssistantMessageParam,
-            ChatCompletionSystemMessageParam,
+            ChatCompletionDeveloperMessageParam,
             ChatCompletionUserMessageParam,
         )
 
         if role == "system":
-            return ChatCompletionSystemMessageParam(role=role, content=content)
+            # OpenAI is deprecating "system" in favor of "developer"
+            # prompts --- some reasoning models fail in the presence of
+            # "system" messages now (04/05/2025)
+            return ChatCompletionDeveloperMessageParam(
+                role="developer",
+                content=content,
+            )
         elif role == "user":
             return ChatCompletionUserMessageParam(role=role, content=content)
         elif role == "assistant":
@@ -299,6 +305,7 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
     async def _convert_system_instruction_to_openai(
         self,
         system_instruction: str | None,
+        model_id: str,
     ) -> list["ChatCompletionMessageParam"]:
         """Convert system instruction to OpenAI message format.
 
@@ -311,10 +318,17 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
         if system_instruction is None:
             return []
 
-        system_message = self._create_openai_message_param(
-            role="system",
-            content=system_instruction,
-        )
+        if model_id.startswith("o1-mini-"):
+            # For o1-mini, the system message is always a user message
+            system_message = self._create_openai_message_param(
+                role="user",
+                content=system_instruction,
+            )
+        else:
+            system_message = self._create_openai_message_param(
+                role="system",
+                content=system_instruction,
+            )
 
         return [system_message]
 
@@ -353,7 +367,11 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
             converted_tools.append(tool_param)
         return converted_tools
 
-    async def convert_prompt(self, prompt: Prompt) -> OpenAIPrompt:
+    async def convert_prompt(
+        self,
+        prompt: Prompt,
+        model_id: str | None = None,
+    ) -> OpenAIPrompt:
         """Convert a prompt to OpenAI format.
 
         Args:
@@ -362,16 +380,25 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
         Returns:
             The converted prompt.
         """
+        if model_id is None:
+            raise ValueError(
+                "OpenAI requires a model_id to be provided to convert a prompt."
+                "\nThere are some model-specific changes such as a lack of "
+                "system messages for some models.",
+            )
+
         # Convert messages and system instruction
         messages = await self._convert_messages(prompt.finalized_messages)
+
         system = await self._convert_system_instruction_to_openai(
-            prompt.system_instruction,
+            prompt.system_instruction, model_id,
         )
 
         # Add system message at the beginning if present
         all_messages = list(messages)
         if system and len(system) > 0:
-            all_messages.insert(0, system[0])
+            for msg in system:
+                all_messages.insert(0, msg)
 
         # Convert tools if present
         tools = None

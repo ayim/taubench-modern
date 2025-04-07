@@ -141,8 +141,31 @@ run-server-exe:  ## Run the agent server executable
 	@echo "Running server from dist/..."
 	./dist/agent-server
 
-test:  ## Run tests with pytest
-	uv run pytest core/ server/
+test:  ## Run tests with pytest (VCR playback only)
+	VCR_RECORD=none uv run pytest
+
+test-vcr-record-new:  ## Run tests with pytest and record VCR cassettes for new requests
+	@NUM_EXISTING_CASSETTES=$$(find core/tests/fixtures/vcr_cassettes/ -type f | wc -l); \
+	echo "Found $$NUM_EXISTING_CASSETTES existing cassettes!"; \
+	echo "Running tests and recording new VCR cassettes..."; \
+	VCR_RECORD=new_episodes uv run pytest -v ; \
+	NUM_NEW_CASSETTES=$$(find core/tests/fixtures/vcr_cassettes/ -type f | wc -l); \
+	echo "Recorded $$(( NUM_NEW_CASSETTES - NUM_EXISTING_CASSETTES )) new cassettes!"; \
+	echo "Total cassettes: $$NUM_NEW_CASSETTES"
+
+test-vcr-record-fresh:  ## Run tests with pytest and record VCR cassettes
+	@echo "Cleaning VCR cassettes..."
+	@rm -rf core/tests/fixtures/vcr_cassettes/*
+	@rm -rf server/tests/fixtures/vcr_cassettes/*
+	@echo "Running tests and recording fresh VCR cassettes..."
+	VCR_RECORD=all uv run pytest -v
+	@NUM_NEW_CASSETTES=$$(find core/tests/fixtures/vcr_cassettes/ -type f | wc -l); \
+	echo "Recorded $$NUM_NEW_CASSETTES cassettes!"
+
+coverage:  ## Run tests with pytest and generate coverage report
+	uv run coverage run -m pytest
+	uv run coverage report
+	uv run coverage html
 
 lint:  ## Run ruff linting (check only)
 	uv run ruff check

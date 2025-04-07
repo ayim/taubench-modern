@@ -1,0 +1,88 @@
+interactions:
+- request:
+    body: '{"model":"claude-3-5-sonnet","messages":[{"role":"user","content":"\n                You
+      are a helpful assistant. You are acting\n                as an agent named ''Test
+      Agent''. You will do\n                your best to assist the user with their
+      request.\n                "},{"role":"assistant","content":"\n                Understood,
+      I will assist the user with their request.\n                "},{"role":"user","content":"\n                Please
+      confirm the request using the provided\n                tool.\n                "}],"max_tokens":512,"top_p":1.0,"temperature":0.0,"stream":true,"tools":[{"tool_spec":{"type":"generic","name":"_add_book","description":"Store
+      a new book in the database.","input_schema":{"type":"object","properties":{"book":{"type":"object","properties":{"title":{"type":"string","description":"The
+      title of the book"},"author":{"type":"string","description":"The author''s name"},"category":{"type":["string","null"],"description":"The
+      category of the book"},"year":{"type":"integer"}},"required":["title","author","category","year"],"description":"The
+      book to add to the database"}},"required":["book"],"strict":true,"additionalProperties":false}}},{"tool_spec":{"type":"generic","name":"_confirm_request","description":"Confirm
+      the request, takes no arguments.","input_schema":{"type":"object","properties":{},"required":[],"strict":true,"additionalProperties":false}}}]}'
+    headers:
+      accept:
+      - application/json, text/event-stream
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      content-length:
+      - '1406'
+      content-type:
+      - application/json
+      host:
+      - zvzwmyo-hp00956.snowflakecomputing.com
+      user-agent:
+      - python-httpx/0.28.1
+    method: POST
+    uri: https://zvzwmyo-hp00956.snowflakecomputing.com/api/v2/cortex/inference:complete
+  response:
+    content: 'data: {"id":"61a19130-1702-48b8-91ae-ad7e6659df07","model":"claude-3-5-sonnet","choices":[{"delta":{"content":"I","content_list":[{"type":"text","text":"I"}]}}],"usage":{}}
+
+
+      data: {"id":"61a19130-1702-48b8-91ae-ad7e6659df07","model":"claude-3-5-sonnet","choices":[{"delta":{"content":"''ll
+      confirm the request using the `_confirm_request","content_list":[{"type":"text","text":"''ll
+      confirm the request using the `_confirm_request"}]}}],"usage":{}}
+
+
+      data: {"id":"61a19130-1702-48b8-91ae-ad7e6659df07","model":"claude-3-5-sonnet","choices":[{"delta":{"content":"`
+      tool.","content_list":[{"type":"text","text":"` tool."}]}}],"usage":{}}
+
+
+      data: {"id":"61a19130-1702-48b8-91ae-ad7e6659df07","model":"claude-3-5-sonnet","choices":[{"delta":{"content_list":[{"tool_use_id":"tooluse_YqlHG5k-TQ-Saj-V36xTWg","name":"_confirm_request"}]}}],"usage":{}}
+
+
+      data: {"id":"61a19130-1702-48b8-91ae-ad7e6659df07","model":"claude-3-5-sonnet","choices":[{"delta":{}}],"usage":{"prompt_tokens":593,"completion_tokens":52,"total_tokens":645}}
+
+
+      '
+    headers:
+      Cache-Control:
+      - no-cache
+      Content-Type:
+      - text/event-stream
+      Date:
+      - Sun, 06 Apr 2025 20:03:46 GMT,Sun, 06 Apr 2025 20:03:48 GMT
+      Expect-Ct:
+      - enforce, max-age=3600
+      Server:
+      - SF-LB
+      Strict-Transport-Security:
+      - max-age=31536000
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Accept-Encoding, User-Agent
+      X-Accel-Buffering:
+      - 'no'
+      X-Content-Type-Options:
+      - nosniff
+      X-Envoy-Attempt-Count:
+      - '1'
+      X-Envoy-Upstream-Service-Time:
+      - '2773'
+      X-Frame-Options:
+      - deny
+      X-Snowflake-Fe-Config:
+      - ef89176a_1742962852_8fede9a5_1743969787512_0_0_1743969802174
+      X-Snowflake-Fe-Instance:
+      - envoy-ingress-awsuseast2-nszkg
+      X-Snowflake-Request-Id:
+      - 61a19130-1702-48b8-91ae-ad7e6659df07
+      X-Xss-Protection:
+      - 1; mode=block
+    http_version: HTTP/1.1
+    status_code: 200
+version: 1

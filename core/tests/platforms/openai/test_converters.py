@@ -88,16 +88,50 @@ class TestOpenAIConverters:
             ],
         )
         finalized_prompt = await prompt.finalize_messages(kernel)
-        result = await converters.convert_prompt(finalized_prompt)
+        result = await converters.convert_prompt(finalized_prompt, model_id="gpt-4o")
 
         assert isinstance(result, OpenAIPrompt)
         assert result.messages is not None
         assert len(result.messages) == 2
 
         # Use .get() to safely access dictionary keys that might be optional
-        system_msg = cast(dict[str, Any], result.messages[0])
-        assert system_msg.get("role") == "system"
-        assert system_msg.get("content") == "You are a helpful assistant."
+        developer_msg = cast(dict[str, Any], result.messages[0])
+        assert developer_msg.get("role") == "developer"
+        assert developer_msg.get("content") == "You are a helpful assistant."
+
+        user_msg = cast(dict[str, Any], result.messages[1])
+        assert user_msg.get("role") == "user"
+        assert user_msg.get("content") == "Hello, world!"
+
+    @pytest.mark.asyncio
+    async def test_convert_prompt_o1_mini(
+        self,
+        converters: OpenAIConverters,
+        kernel: Kernel,
+    ) -> None:
+        """Test converting a prompt."""
+        prompt = Prompt(
+            system_instruction="You are a helpful assistant.",
+            messages=[
+                PromptUserMessage([PromptTextContent(text="Hello, world!")]),
+            ],
+        )
+        finalized_prompt = await prompt.finalize_messages(kernel)
+        result = await converters.convert_prompt(
+            finalized_prompt,
+            model_id="o1-mini-2024-07-18",
+        )
+
+        assert isinstance(result, OpenAIPrompt)
+        assert result.messages is not None
+        assert len(result.messages) == 2
+
+        # Use .get() to safely access dictionary keys that might be optional
+        developer_msg = cast(dict[str, Any], result.messages[0])
+        # NOTE: here, for o1-mini, the role is indeed "user" as this
+        # model does not support system/developer messages!!
+        assert developer_msg.get("role") == "user"
+        assert developer_msg.get("content") == "You are a helpful assistant."
 
         user_msg = cast(dict[str, Any], result.messages[1])
         assert user_msg.get("role") == "user"
@@ -133,7 +167,7 @@ class TestOpenAIConverters:
             tools=[tool],
         )
         finalized_prompt = await prompt.finalize_messages(kernel)
-        result = await converters.convert_prompt(finalized_prompt)
+        result = await converters.convert_prompt(finalized_prompt, model_id="gpt-4o")
 
         assert isinstance(result, OpenAIPrompt)
         assert result.tools is not None
@@ -182,15 +216,15 @@ class TestOpenAIConverters:
             messages=[],
         )
         finalized_prompt = await prompt.finalize_messages(kernel)
-        result = await converters.convert_prompt(finalized_prompt)
+        result = await converters.convert_prompt(finalized_prompt, model_id="gpt-4o")
 
         assert isinstance(result, OpenAIPrompt)
         assert result.messages is not None
         assert len(result.messages) == 1
 
-        system_msg = cast(dict[str, Any], result.messages[0])
-        assert system_msg.get("role") == "system"
-        assert system_msg.get("content") == "You are a helpful assistant."
+        developer_msg = cast(dict[str, Any], result.messages[0])
+        assert developer_msg.get("role") == "developer"
+        assert developer_msg.get("content") == "You are a helpful assistant."
 
     @pytest.mark.asyncio
     async def test_convert_prompt_with_no_system_instruction(
@@ -205,7 +239,7 @@ class TestOpenAIConverters:
             ],
         )
         finalized_prompt = await prompt.finalize_messages(kernel)
-        result = await converters.convert_prompt(finalized_prompt)
+        result = await converters.convert_prompt(finalized_prompt, model_id="gpt-4o")
 
         assert isinstance(result, OpenAIPrompt)
         assert result.messages is not None
@@ -240,18 +274,38 @@ class TestOpenAIConverters:
         converters: OpenAIConverters,
     ) -> None:
         """Test converting system instruction."""
-        system_msg = await converters._convert_system_instruction_to_openai(
+        developer_msg = await converters._convert_system_instruction_to_openai(
             "Test instruction",
+            model_id="gpt-4o",
         )
-        assert len(system_msg) == 1
+        assert len(developer_msg) == 1
 
-        msg = cast(dict[str, Any], system_msg[0])
-        assert msg.get("role") == "system"
+        msg = cast(dict[str, Any], developer_msg[0])
+        assert msg.get("role") == "developer"
         assert msg.get("content") == "Test instruction"
 
         # Test with None
-        empty_system = await converters._convert_system_instruction_to_openai(None)
+        empty_system = await converters._convert_system_instruction_to_openai(
+            None,
+            model_id="gpt-4o",
+        )
         assert len(empty_system) == 0
+
+        # Test with o1-mini (which does not support system/developer messages)
+        o1_mini_system = await converters._convert_system_instruction_to_openai(
+            "Test instruction",
+            model_id="o1-mini-2024-07-18",
+        )
+        assert len(o1_mini_system) == 1
+        assert o1_mini_system[0].get("role") == "user"
+        assert o1_mini_system[0].get("content") == "Test instruction"
+
+        # Test with o1-mini and None
+        o1_mini_empty_system = await converters._convert_system_instruction_to_openai(
+            None,
+            model_id="o1-mini-2024-07-18",
+        )
+        assert len(o1_mini_empty_system) == 0
 
     @pytest.mark.asyncio
     async def test_process_message_content(

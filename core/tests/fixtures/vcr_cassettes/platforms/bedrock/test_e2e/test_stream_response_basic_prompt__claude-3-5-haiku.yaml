@@ -1,0 +1,65 @@
+interactions:
+- request:
+    body: '{"messages": [{"role": "user", "content": [{"text": "\n                This
+      is an end-to-end test, please respond with a\n                message containing
+      only the word ''sunflower''\n                "}]}], "system": [], "inferenceConfig":
+      {"temperature": 0.0, "maxTokens": 512}}'
+    headers:
+      Content-Length:
+      - '279'
+      Content-Type:
+      - !!binary |
+        YXBwbGljYXRpb24vanNvbg==
+      User-Agent:
+      - !!binary |
+        Qm90bzMvMS4zNy4yNCBtZC9Cb3RvY29yZSMxLjM3LjI0IHVhLzIuMSBvcy9tYWNvcyMyNC4zLjAg
+        bWQvYXJjaCNhcm02NCBsYW5nL3B5dGhvbiMzLjEyLjkgbWQvcHlpbXBsI0NQeXRob24gY2ZnL3Jl
+        dHJ5LW1vZGUjbGVnYWN5IEJvdG9jb3JlLzEuMzcuMjQ=
+      X-Amz-Date:
+      - !!binary |
+        MjAyNTA0MDdUMDI1NzEwWg==
+      amz-sdk-invocation-id:
+      - !!binary |
+        MWRhOTEyOGMtYzlmZi00ZTNmLWIyMzEtY2YzYzQwNjhjNDY5
+      amz-sdk-request:
+      - !!binary |
+        YXR0ZW1wdD0x
+    method: POST
+    uri: https://bedrock-runtime.us-east-1.amazonaws.com/model/us.anthropic.claude-3-haiku-20240307-v1%3A0/converse-stream
+  response:
+    body:
+      string: !!binary |
+        AAAAswAAAFK3IJ11CzpldmVudC10eXBlBwAMbWVzc2FnZVN0YXJ0DTpjb250ZW50LXR5cGUHABBh
+        cHBsaWNhdGlvbi9qc29uDTptZXNzYWdlLXR5cGUHAAVldmVudHsicCI6ImFiY2RlZmdoaWprbG1u
+        b3BxcnN0dXZ3eHl6QUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVowMSIsInJvbGUiOiJhc3Npc3Rh
+        bnQifRl7p7oAAACnAAAAV1IqWLgLOmV2ZW50LXR5cGUHABFjb250ZW50QmxvY2tEZWx0YQ06Y29u
+        dGVudC10eXBlBwAQYXBwbGljYXRpb24vanNvbg06bWVzc2FnZS10eXBlBwAFZXZlbnR7ImNvbnRl
+        bnRCbG9ja0luZGV4IjowLCJkZWx0YSI6eyJ0ZXh0Ijoic3VuIn0sInAiOiJhYmNkZWZnaGlqayJ9
+        ioeVKgAAALYAAABXD6rmigs6ZXZlbnQtdHlwZQcAEWNvbnRlbnRCbG9ja0RlbHRhDTpjb250ZW50
+        LXR5cGUHABBhcHBsaWNhdGlvbi9qc29uDTptZXNzYWdlLXR5cGUHAAVldmVudHsiY29udGVudEJs
+        b2NrSW5kZXgiOjAsImRlbHRhIjp7InRleHQiOiJmbG93ZXIifSwicCI6ImFiY2RlZmdoaWprbG1u
+        b3BxcnN0dXZ3In3RjS98AAAAjgAAAFbp/CVbCzpldmVudC10eXBlBwAQY29udGVudEJsb2NrU3Rv
+        cA06Y29udGVudC10eXBlBwAQYXBwbGljYXRpb24vanNvbg06bWVzc2FnZS10eXBlBwAFZXZlbnR7
+        ImNvbnRlbnRCbG9ja0luZGV4IjowLCJwIjoiYWJjZGVmZ2hpaiJ9ze7ZRAAAAIcAAABReojSiQs6
+        ZXZlbnQtdHlwZQcAC21lc3NhZ2VTdG9wDTpjb250ZW50LXR5cGUHABBhcHBsaWNhdGlvbi9qc29u
+        DTptZXNzYWdlLXR5cGUHAAVldmVudHsicCI6ImFiY2RlZiIsInN0b3BSZWFzb24iOiJlbmRfdHVy
+        biJ9w3kHVAAAAN4AAABOwoNyxgs6ZXZlbnQtdHlwZQcACG1ldGFkYXRhDTpjb250ZW50LXR5cGUH
+        ABBhcHBsaWNhdGlvbi9qc29uDTptZXNzYWdlLXR5cGUHAAVldmVudHsibWV0cmljcyI6eyJsYXRl
+        bmN5TXMiOjI4MH0sInAiOiJhYmNkZWZnaGlqa2xtbm9wcXJzdHV2d3h5ekFCQ0RFIiwidXNhZ2Ui
+        OnsiaW5wdXRUb2tlbnMiOjM5LCJvdXRwdXRUb2tlbnMiOjYsInRvdGFsVG9rZW5zIjo0NX19svX6
+        Qw==
+    headers:
+      Connection:
+      - keep-alive
+      Content-Type:
+      - application/vnd.amazon.eventstream
+      Date:
+      - Mon, 07 Apr 2025 02:57:10 GMT
+      Transfer-Encoding:
+      - chunked
+      x-amzn-RequestId:
+      - bcc3bc65-0645-40f3-a385-6c86d2a881a5
+    status:
+      code: 200
+      message: OK
+version: 1

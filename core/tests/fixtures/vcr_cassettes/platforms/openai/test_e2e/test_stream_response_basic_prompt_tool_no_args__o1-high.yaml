@@ -1,0 +1,105 @@
+interactions:
+- request:
+    body: '{"messages":[{"role":"user","content":"You are a helpful assistant. You
+      are acting\n                as an agent named ''Test Agent''. You will do\n                your
+      best to assist the user with their request."},{"role":"assistant","content":"Understood,
+      I will assist the user with their request."},{"role":"user","content":"Please
+      confirm the request using the provided\n                tool."}],"model":"o1-2024-12-17","reasoning_effort":"high","stream":true,"tools":[{"type":"function","function":{"name":"_add_book","description":"Store
+      a new book in the database.","parameters":{"type":"object","properties":{"book":{"type":"object","properties":{"title":{"type":"string","description":"The
+      title of the book"},"author":{"type":"string","description":"The author''s name"},"category":{"type":["string","null"],"description":"The
+      category of the book"},"year":{"type":"integer"}},"required":["title","author","category","year"],"description":"The
+      book to add to the database"}},"required":["book"],"strict":true,"additionalProperties":false}}},{"type":"function","function":{"name":"_confirm_request","description":"Confirm
+      the request, takes no arguments.","parameters":{"type":"object","properties":{},"required":[],"strict":true,"additionalProperties":false}}}]}'
+    headers:
+      accept:
+      - application/json
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      content-length:
+      - '1269'
+      content-type:
+      - application/json
+      host:
+      - api.openai.com
+      user-agent:
+      - OpenAI/Python 1.70.0
+      x-stainless-arch:
+      - arm64
+      x-stainless-async:
+      - 'false'
+      x-stainless-lang:
+      - python
+      x-stainless-os:
+      - MacOS
+      x-stainless-package-version:
+      - 1.70.0
+      x-stainless-read-timeout:
+      - '600'
+      x-stainless-retry-count:
+      - '0'
+      x-stainless-runtime:
+      - CPython
+      x-stainless-runtime-version:
+      - 3.12.9
+    method: POST
+    uri: https://api.openai.com/v1/chat/completions
+  response:
+    content: 'data: {"id":"chatcmpl-BJ4ykLUTUOn934VyRBgAdXwRaBrYA","object":"chat.completion.chunk","created":1743887070,"model":"o1-2024-12-17","service_tier":"default","system_fingerprint":"fp_688960522e","choices":[{"index":0,"delta":{"role":"assistant","content":null,"tool_calls":[{"index":0,"id":"call_3HIMm739PrhRO4cYnl0AQIul","type":"function","function":{"name":"_confirm_request","arguments":""}}],"refusal":null},"logprobs":null,"finish_reason":null}]}
+
+
+      data: {"id":"chatcmpl-BJ4ykLUTUOn934VyRBgAdXwRaBrYA","object":"chat.completion.chunk","created":1743887070,"model":"o1-2024-12-17","service_tier":"default","system_fingerprint":"fp_688960522e","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{}"}}]},"logprobs":null,"finish_reason":null}]}
+
+
+      data: {"id":"chatcmpl-BJ4ykLUTUOn934VyRBgAdXwRaBrYA","object":"chat.completion.chunk","created":1743887070,"model":"o1-2024-12-17","service_tier":"default","system_fingerprint":"fp_688960522e","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"tool_calls"}]}
+
+
+      data: [DONE]
+
+
+      '
+    headers:
+      Connection:
+      - keep-alive
+      Content-Type:
+      - text/event-stream; charset=utf-8
+      Date:
+      - Sat, 05 Apr 2025 21:04:34 GMT
+      Server:
+      - cloudflare
+      Transfer-Encoding:
+      - chunked
+      X-Content-Type-Options:
+      - nosniff
+      access-control-expose-headers:
+      - X-Request-ID
+      alt-svc:
+      - h3=":443"; ma=86400
+      cf-cache-status:
+      - DYNAMIC
+      openai-organization:
+      - robocorp-1
+      openai-processing-ms:
+      - '3504'
+      openai-version:
+      - '2020-10-01'
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains; preload
+      x-ratelimit-limit-requests:
+      - '10000'
+      x-ratelimit-limit-tokens:
+      - '30000000'
+      x-ratelimit-remaining-requests:
+      - '9999'
+      x-ratelimit-remaining-tokens:
+      - '29999922'
+      x-ratelimit-reset-requests:
+      - 6ms
+      x-ratelimit-reset-tokens:
+      - 0s
+      x-request-id:
+      - req_805ee4d832741566b7a7593d20c32d68
+    http_version: HTTP/1.1
+    status_code: 200
+version: 1

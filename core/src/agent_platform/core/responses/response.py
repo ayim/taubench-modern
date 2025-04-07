@@ -181,3 +181,21 @@ class ResponseMessage:
         """
         data = self.model_dump(exclude_none=exclude_none)
         return json.dumps(data, indent=indent)
+
+    def model_copy(self, **kwargs: Any) -> "ResponseMessage":
+        """Create a copy of the ResponseMessage with optional updates.
+
+        Args:
+            **kwargs: Keyword arguments to update the ResponseMessage.
+
+        Returns:
+            A new ResponseMessage instance with the updated values.
+        """
+        # Create a dictionary from current instance
+        data = self.model_dump(exclude_none=True)
+
+        # Update with provided kwargs
+        data.update(kwargs)
+
+        # Use the class method to validate and create a new instance
+        return self.__class__.model_validate(data)
