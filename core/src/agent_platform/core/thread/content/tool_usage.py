@@ -141,8 +141,18 @@ class ThreadToolUsageContent(ThreadMessageContent):
             "status": self.status,
             "result": self.result,
             "error": self.error,
-            "started_at": self.started_at.isoformat() if self.started_at else None,
-            "ended_at": self.ended_at.isoformat() if self.ended_at else None,
+            # TODO: This is a hack to get around the fact that the started_at and
+            # ended_at fields are sometimes not datetime objects. Need to fix this
+            "started_at": (
+                self.started_at.isoformat()
+                if isinstance(self.started_at, datetime)
+                else None
+            ),
+            "ended_at": (
+                self.ended_at.isoformat()
+                if isinstance(self.ended_at, datetime)
+                else None
+            ),
             "metadata": self.metadata,
         }
 
