@@ -106,67 +106,109 @@ class TestOpenAIClient:
         client = MockOpenAIClient()
 
         # Set up chat completions response for non-streaming
-        def mock_chat_response(**kwargs):
+        async def mock_chat_response(**kwargs):
+            from openai.types.chat import ChatCompletion
+            from openai.types.chat.chat_completion import Choice
+            from openai.types.chat.chat_completion_message import ChatCompletionMessage
+            from openai.types.completion_usage import CompletionUsage
+
             if kwargs.get("stream", False):
                 # Return a mock async iterable for streaming
+                from openai.types.chat.chat_completion_chunk import (
+                    ChatCompletionChunk,
+                    ChoiceDelta,
+                )
+                from openai.types.chat.chat_completion_chunk import (
+                    Choice as ChunkChoice,
+                )
+
                 chunks = [
-                    {
-                        "choices": [
-                            {
-                                "delta": {
-                                    "role": "assistant",
-                                },
-                            },
+                    ChatCompletionChunk(
+                        id="chunk1",
+                        object="chat.completion.chunk",
+                        created=1234567890,
+                        model=kwargs.get("model", "default-model"),
+                        choices=[
+                            ChunkChoice(
+                                index=0,
+                                delta=ChoiceDelta(role="assistant"),
+                                finish_reason=None,
+                            ),
                         ],
-                    },
-                    {
-                        "choices": [
-                            {
-                                "delta": {
-                                    "content": "Hello, ",
-                                },
-                            },
+                    ),
+                    ChatCompletionChunk(
+                        id="chunk2",
+                        object="chat.completion.chunk",
+                        created=1234567891,
+                        model=kwargs.get("model", "default-model"),
+                        choices=[
+                            ChunkChoice(
+                                index=0,
+                                delta=ChoiceDelta(content="Hello, "),
+                                finish_reason=None,
+                            ),
                         ],
-                    },
-                    {
-                        "choices": [
-                            {
-                                "delta": {
-                                    "content": "world!",
-                                },
-                            },
+                    ),
+                    ChatCompletionChunk(
+                        id="chunk3",
+                        object="chat.completion.chunk",
+                        created=1234567892,
+                        model=kwargs.get("model", "default-model"),
+                        choices=[
+                            ChunkChoice(
+                                index=0,
+                                delta=ChoiceDelta(content="world!"),
+                                finish_reason="stop",
+                            ),
                         ],
-                    },
+                    ),
                 ]
                 return MockStreamResponse(chunks)
             else:
-                return {
-                    "choices": [
-                        {
-                            "message": {
-                                "role": "assistant",
-                                "content": "Hello, world!",
-                            },
-                            "finish_reason": "stop",
-                        },
+                return ChatCompletion(
+                    id="response-id",
+                    object="chat.completion",
+                    created=1234567890,
+                    model=kwargs.get("model", "default-model"),
+                    choices=[
+                        Choice(
+                            index=0,
+                            message=ChatCompletionMessage(
+                                role="assistant",
+                                content="Hello, world!",
+                            ),
+                            finish_reason="stop",
+                        ),
                     ],
-                    "usage": {
-                        "prompt_tokens": 10,
-                        "completion_tokens": 20,
-                        "total_tokens": 30,
-                    },
-                }
+                    usage=CompletionUsage(
+                        prompt_tokens=10,
+                        completion_tokens=20,
+                        total_tokens=30,
+                    ),
+                )
 
         client.chat.completions.create.side_effect = mock_chat_response
 
         # Set up embeddings response
-        def mock_embedding_response(**kwargs):
+        async def mock_embedding_response(**kwargs):
+            from openai.types.create_embedding_response import (
+                CreateEmbeddingResponse,
+                Usage,
+            )
+            from openai.types.embedding import Embedding
+
             text = kwargs.get("input", "")
             # Simple deterministic embedding based on text length
             embedding_size = 1536  # Common OpenAI embedding size
             embedding = [0.1] * embedding_size
             token_count = len(text.split())
-            return MockEmbeddingResponse(embedding, token_count)
+
+            return CreateEmbeddingResponse(
+                object="list",
+                data=[Embedding(embedding=embedding, index=0, object="embedding")],
+                model=kwargs.get("model", "text-embedding-ada-002"),
+                usage=Usage(prompt_tokens=token_count, total_tokens=token_count),
+            )
 
         client.embeddings.create.side_effect = mock_embedding_response
 
@@ -194,7 +236,7 @@ class TestOpenAIClient:
         mock_openai_client: Any,
     ) -> OpenAIClient:
         """Create an OpenAI client for testing."""
-        with patch("openai.OpenAI", return_value=mock_openai_client):
+        with patch("openai.AsyncOpenAI", return_value=mock_openai_client):
             client = OpenAIClient(
                 kernel=kernel,
                 parameters=parameters,
@@ -247,7 +289,7 @@ class TestOpenAIClient:
 
     def test_init(self, parameters: OpenAIPlatformParameters) -> None:
         """Test client initialization."""
-        with patch("openai.OpenAI") as mock_openai:
+        with patch("openai.AsyncOpenAI") as mock_openai:
             client = OpenAIClient(parameters=parameters)
             assert client.name == "openai"
             assert isinstance(client._parameters, OpenAIPlatformParameters)
@@ -259,7 +301,7 @@ class TestOpenAIClient:
     def test_init_clients(self, parameters: OpenAIPlatformParameters) -> None:
         """Test client initialization with OpenAI client."""
         mock_client = MockOpenAIClient()
-        with patch("openai.OpenAI", return_value=mock_client) as mock_openai:
+        with patch("openai.AsyncOpenAI", return_value=mock_client) as mock_openai:
             client = OpenAIClient(parameters=parameters)
             assert parameters.openai_api_key is not None
             mock_openai.assert_called_once_with(
@@ -274,7 +316,7 @@ class TestOpenAIClient:
         """Test parameter initialization with updates."""
         new_secret = SecretString("new-api-key")
         with (
-            patch("openai.OpenAI"),
+            patch("openai.AsyncOpenAI"),
             patch("agent_platform.core.utils.SecretString", return_value=new_secret),
         ):
             updated_params = parameters.model_copy(

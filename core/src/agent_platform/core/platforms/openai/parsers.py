@@ -1,16 +1,13 @@
-import json
+
 from collections.abc import AsyncGenerator
 from logging import getLogger
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from agent_platform.core.delta import GenericDelta
 from agent_platform.core.delta.compute_delta import compute_generic_deltas
 from agent_platform.core.platforms.base import PlatformParsers
 from agent_platform.core.responses.content.audio import ResponseAudioContent
 from agent_platform.core.responses.content.base import ResponseMessageContent
-from agent_platform.core.responses.content.document import (
-    ResponseDocumentContent,
-)
 from agent_platform.core.responses.content.image import (
     ResponseImageContent,
 )
@@ -18,13 +15,21 @@ from agent_platform.core.responses.content.text import ResponseTextContent
 from agent_platform.core.responses.content.tool_use import ResponseToolUseContent
 from agent_platform.core.responses.response import ResponseMessage, TokenUsage
 
+if TYPE_CHECKING:
+    from openai.types.chat import (
+        ChatCompletion,
+        ChatCompletionChunk,
+        ChatCompletionMessageToolCall,
+    )
+    from openai.types.chat.chat_completion_chunk import Choice, ChoiceDeltaToolCall
+
 logger = getLogger(__name__)
 
 
 class OpenAIParsers(PlatformParsers):
     """Parsers that transform OpenAI types to agent-server prompt types."""
 
-    def parse_text_content(self, content: Any) -> ResponseTextContent:
+    def parse_text_content(self, content: str) -> ResponseTextContent:
         """Parses a platform-specific text content to an agent-server
         text content.
 
@@ -34,13 +39,7 @@ class OpenAIParsers(PlatformParsers):
         Returns:
             The parsed text content.
         """
-        if isinstance(content, str):
-            return ResponseTextContent(text=content)
-        elif isinstance(content, bytes):
-            return ResponseTextContent(text=content.decode("utf-8"))
-        elif isinstance(content, dict) and "text" in content:
-            return ResponseTextContent(text=content["text"])
-        raise ValueError(f"Invalid text content format: {content}")
+        return ResponseTextContent(text=content)
 
     def parse_image_content(self, content: Any) -> ResponseImageContent:
         """Parses a platform-specific image content to an agent-server
@@ -66,7 +65,10 @@ class OpenAIParsers(PlatformParsers):
         """
         raise NotImplementedError("Audio content not supported yet")
 
-    def parse_tool_use_content(self, content: Any) -> ResponseToolUseContent:
+    def parse_tool_use_content(
+        self,
+        content: "ChatCompletionMessageToolCall",
+    ) -> ResponseToolUseContent:
         """Parses a platform-specific tool use content to an agent-server
         tool use content.
 
@@ -76,21 +78,7 @@ class OpenAIParsers(PlatformParsers):
         Returns:
             The parsed tool use content.
         """
-        if not isinstance(content, dict):
-            raise ValueError(f"Invalid tool use content format: {content}")
-
-        tool_use_id = content.get("id")
-        if not tool_use_id:
-            raise ValueError("tool_use_id is required")
-
-        tool_name = content.get("function", {}).get("name")
-        if not tool_name:
-            raise ValueError("tool_name is required")
-
-        tool_input = content.get("function", {}).get("arguments")
-        # We can handle empty tool input (treat it as empty obj)
-        if tool_input is None:
-            tool_input = "{}"
+        from json import dumps
 
         # UNIQUE SCENARIO (encountered during further testing)
         # The reasoning models are producing weird tool call JSON
@@ -99,9 +87,9 @@ class OpenAIParsers(PlatformParsers):
         # It's unclear if we should handle this here... as you could
         # have a function named foo with an argument named foo...
         as_tool_use = ResponseToolUseContent(
-            tool_call_id=tool_use_id,
-            tool_name=tool_name,
-            tool_input_raw=tool_input,
+            tool_call_id=content.id,
+            tool_name=content.function.name,
+            tool_input_raw=content.function.arguments,
         )
 
         if as_tool_use.tool_name in as_tool_use.tool_input:
@@ -120,50 +108,15 @@ class OpenAIParsers(PlatformParsers):
                         content_at_name,
                     )
                     return ResponseToolUseContent(
-                        tool_call_id=tool_use_id,
-                        tool_name=tool_name,
-                        tool_input_raw=json.dumps(content_at_name),
+                        tool_call_id=as_tool_use.tool_call_id,
+                        tool_name=as_tool_use.tool_name,
+                        tool_input_raw=dumps(content_at_name),
                     )
 
         return as_tool_use
 
-    def parse_document_content(self, content: Any) -> ResponseDocumentContent:
-        """Parses a platform-specific document content to an agent-server
-        document content.
 
-        Args:
-            content: The content to parse.
-
-        Returns:
-            The parsed document content.
-        """
-        raise NotImplementedError("Document content not supported yet")
-
-    def parse_content_item(self, item: Any) -> ResponseMessageContent:
-        """Parses a platform-specific content item to an agent-server
-        content item.
-
-        Args:
-            item: The content to parse.
-
-        Returns:
-            The parsed content item.
-        """
-        if not isinstance(item, dict) or "type" not in item:
-            raise ValueError(f"Invalid content item format: {item}")
-
-        if item["type"] == "text":
-            return self.parse_text_content(item["text"])
-        elif item["type"] == "image":
-            return self.parse_image_content(item["image"])
-        elif item["type"] == "audio":
-            return self.parse_audio_content(item["audio"])
-        elif item["type"] == "function":  # OpenAI uses "function" for tool use
-            return self.parse_tool_use_content(item)
-
-        raise ValueError(f"Unsupported content type in item: {item}")
-
-    def parse_response(self, response: Any) -> ResponseMessage:
+    def parse_response(self, response: "ChatCompletion") -> ResponseMessage:
         """Parses an OpenAI response to an agent-server response.
 
         Args:
@@ -176,23 +129,18 @@ class OpenAIParsers(PlatformParsers):
             ValueError: If the response format is invalid or missing required fields.
         """
         response_messages = []
-        choices = self._extract_choices(response)
 
-        for choice in choices:
-            message = self._extract_message(choice)
-            if not message:
-                continue
-
+        for choice in response.choices:
             response_content = []
-            content, tool_calls = self._extract_content_and_tool_calls(message)
 
             # Handle text content if present
-            if content:
-                response_content.append(ResponseTextContent(text=content))
+            if choice.message.content:
+                response_content.append(self.parse_text_content(choice.message.content))
 
             # Handle tool calls if present
-            if tool_calls:
-                self._process_response_tool_calls(tool_calls, response_content)
+            if choice.message.tool_calls:
+                for tool_call in choice.message.tool_calls:
+                    response_content.append(self.parse_tool_use_content(tool_call))
 
             # Extract usage metrics
             token_usage = self._extract_token_usage(response)
@@ -211,112 +159,32 @@ class OpenAIParsers(PlatformParsers):
 
         return response_messages[0]
 
-    def _extract_choices(self, response: Any) -> list[Any]:
-        """Extracts choices from the response."""
-        if isinstance(response, dict):
-            return response.get("choices", [])
-        # Handle OpenAI ChatCompletion object
-        return response.choices if hasattr(response, "choices") else []
-
-    def _extract_message(self, choice: Any) -> Any:
-        """Extracts message from a choice."""
-        if isinstance(choice, dict):
-            return choice.get("message")
-        # Handle OpenAI Choice object
-        return choice.message if hasattr(choice, "message") else None
-
-    def _extract_content_and_tool_calls(
-        self,
-        message: Any,
-    ) -> tuple[str | None, list[Any]]:
-        """Extracts content and tool calls from a message."""
-        if isinstance(message, dict):
-            content = message.get("content")
-            tool_calls = message.get("tool_calls", [])
-        else:
-            # Handle OpenAI Message object
-            content = message.content if hasattr(message, "content") else None
-            tool_calls = message.tool_calls if hasattr(message, "tool_calls") else []
-
-        return content, tool_calls
-
     def _process_response_tool_calls(
         self,
-        tool_calls: list[Any],
+        tool_calls: list["ChatCompletionMessageToolCall"],
         response_content: list[ResponseMessageContent],
     ) -> None:
         """Processes tool calls from a response."""
         for tool_call in tool_calls:
-            tool_id, name, arguments = self._extract_tool_call_data(tool_call)
-
-            # Make sure tool_id is a string
-            tool_id_str = str(tool_id) if tool_id is not None else ""
             response_content.append(
                 ResponseToolUseContent(
-                    tool_call_id=tool_id_str,
-                    tool_name=name,
-                    tool_input_raw=arguments,
+                    tool_call_id=tool_call.id,
+                    tool_name=tool_call.function.name,
+                    tool_input_raw=tool_call.function.arguments,
                 ),
             )
 
-    def _extract_tool_call_data(self, tool_call: Any) -> tuple[Any, str, str]:
-        """Extracts data from a tool call."""
-        if isinstance(tool_call, dict):
-            tool_id = tool_call.get("id")
-            function = tool_call.get("function", {})
-            name = function.get("name", "")
-            arguments = function.get("arguments", "{}")
-        else:
-            # Handle OpenAI ToolCall object
-            tool_id = tool_call.id if hasattr(tool_call, "id") else None
-            function = tool_call.function if hasattr(tool_call, "function") else None
-            if function is not None:
-                name = function.name if hasattr(function, "name") else ""
-                arguments = (
-                    function.arguments if hasattr(function, "arguments") else "{}"
-                )
-            else:
-                name = ""
-                arguments = "{}"
-
-        return tool_id, name, arguments
-
-    def _extract_token_usage(self, response: Any) -> TokenUsage:
+    def _extract_token_usage(self, response: "ChatCompletion") -> TokenUsage:
         """Extracts token usage from a response."""
-        if isinstance(response, dict):
-            usage = response.get("usage", {})
-            input_tokens = usage.get("prompt_tokens", 0)
-            output_tokens = usage.get("completion_tokens", 0)
-            total_tokens = usage.get("total_tokens", 0)
-        else:
-            # Handle OpenAI Usage object
-            usage = response.usage if hasattr(response, "usage") else None
-            if usage is None:
-                input_tokens = 0
-                output_tokens = 0
-                total_tokens = 0
-            else:
-                input_tokens = (
-                    usage.prompt_tokens if hasattr(usage, "prompt_tokens") else 0
-                )
-                output_tokens = (
-                    usage.completion_tokens
-                    if hasattr(usage, "completion_tokens")
-                    else 0
-                )
-                total_tokens = (
-                    usage.total_tokens if hasattr(usage, "total_tokens") else 0
-                )
-
         return TokenUsage(
-            input_tokens=input_tokens,
-            output_tokens=output_tokens,
-            total_tokens=total_tokens,
+            input_tokens=response.usage.prompt_tokens if response.usage else 0,
+            output_tokens=response.usage.completion_tokens if response.usage else 0,
+            total_tokens=response.usage.total_tokens if response.usage else 0,
         )
 
     async def parse_stream_event(
         self,
-        event: Any,
+        event: "ChatCompletionChunk",
         message: dict[str, Any],
         last_message: dict[str, Any],
     ) -> AsyncGenerator[GenericDelta, None]:
@@ -325,11 +193,11 @@ class OpenAIParsers(PlatformParsers):
         self._ensure_message_structure(message)
 
         # Process the event
-        if hasattr(event, "choices") and event.choices:
+        if len(event.choices) > 0:
             choice = event.choices[0]
             self._process_delta_content(choice, message)
             self._process_tool_calls(choice, message)
-            self._process_finish_reason(choice, message)
+            message["stop_reason"] = choice.finish_reason
 
         # Process metadata
         self._process_event_metadata(event, message)
@@ -351,13 +219,9 @@ class OpenAIParsers(PlatformParsers):
         if "additional_response_fields" not in message:
             message["additional_response_fields"] = {}
 
-    def _process_delta_content(self, choice: Any, message: dict[str, Any]) -> None:
+    def _process_delta_content(self, choice: "Choice", message: dict[str, Any]) -> None:
         """Processes text content from the delta."""
-        if (
-            hasattr(choice, "delta")
-            and hasattr(choice.delta, "content")
-            and choice.delta.content
-        ):
+        if choice.delta.content:
             # Find or create text content
             text_found = False
             for i, item in enumerate(message["content"]):
@@ -371,248 +235,58 @@ class OpenAIParsers(PlatformParsers):
                     {"kind": "text", "text": choice.delta.content},
                 )
 
-    def _process_tool_calls(self, choice: Any, message: dict[str, Any]) -> None:
+    def _process_tool_calls(self, choice: "Choice", message: dict[str, Any]) -> None:
         """Processes tool calls from the delta or message."""
         # Process tool calls in delta
-        if (
-            hasattr(choice, "delta")
-            and hasattr(choice.delta, "tool_calls")
-            and choice.delta.tool_calls
-        ):
+        if choice.delta.tool_calls:
             self._process_delta_tool_calls(choice.delta.tool_calls, message)
-
-        # Process tool calls in complete message (some API versions)
-        if hasattr(choice, "message") and hasattr(choice.message, "tool_calls"):
-            self._process_message_tool_calls(choice.message.tool_calls, message)
 
     def _process_delta_tool_calls(
         self,
-        tool_calls: list[Any],
+        tool_calls: list["ChoiceDeltaToolCall"],
         message: dict[str, Any],
     ) -> None:
         """Processes tool calls from a delta object."""
-        for tool_call in tool_calls:
-            # Get the index from the tool call if available
-            tool_index = getattr(tool_call, "index", None)
-
-            # Handle tool call with ID
-            tool_id = (
-                tool_call.id if hasattr(tool_call, "id") and tool_call.id else None
-            )
-
-            if tool_id:
-                self._process_tool_call_with_id(tool_call, tool_id, message)
-            # Handle tool call without ID (function details only)
-            elif hasattr(tool_call, "function") and (
-                hasattr(tool_call.function, "name")
-                or hasattr(tool_call.function, "arguments")
-            ):
-                self._process_tool_call_without_id(tool_call, tool_index, message)
-
-    def _process_tool_call_with_id(
-        self,
-        tool_call: Any,
-        tool_id: str,
-        message: dict[str, Any],
-    ) -> None:
-        """Processes a tool call that has an ID."""
-        # Look for an existing tool use content with this ID
-        tool_found = False
+        tool_indices = []
         for i, item in enumerate(message["content"]):
-            if item.get("kind") == "tool_use" and item.get("tool_call_id") == tool_id:
-                tool_found = True
-                # Update tool use content
-                if hasattr(tool_call, "function"):
-                    self._update_existing_tool_function(
-                        tool_call.function,
-                        message["content"][i],
-                    )
-                break
+            if item.get("kind") != "tool_use":
+                continue
+            tool_indices.append(i)
 
-        if not tool_found:
-            # Create a new tool use content
-            tool_content = {
-                "kind": "tool_use",
-                "tool_call_id": tool_id,
-                "tool_name": "",
-                "tool_input_raw": "",
-            }
-
-            # Add initial data if available
-            if hasattr(tool_call, "function"):
-                self._update_existing_tool_function(
-                    tool_call.function,
-                    tool_content,
-                )
-
-            message["content"].append(tool_content)
-
-    def _update_existing_tool_function(
-        self,
-        function: Any,
-        tool_content: dict[str, Any],
-    ) -> None:
-        """Updates tool content with function data."""
-        if hasattr(function, "name") and function.name:
-            tool_content["tool_name"] = function.name
-
-        if hasattr(function, "arguments") and function.arguments:
-            # Initialize if not present
-            if "tool_input_raw" not in tool_content:
-                tool_content["tool_input_raw"] = ""
-
-            # Accumulate arguments
-            tool_content["tool_input_raw"] += function.arguments
-
-    def _process_tool_call_without_id(
-        self,
-        tool_call: Any,
-        tool_index: int | None,
-        message: dict[str, Any],
-    ) -> None:
-        """Processes a tool call that has no ID but has function details and possibly an index."""
-        # Process arguments only if they exist
-        if not (
-            hasattr(tool_call.function, "arguments") and tool_call.function.arguments
-        ):
-            return
-
-        arguments = tool_call.function.arguments
-        tool_name = ""
-        if hasattr(tool_call.function, "name") and tool_call.function.name:
-            tool_name = tool_call.function.name
-
-        # If we have an index, try to find the tool at that index
-        if tool_index is not None and tool_index < len(message["content"]):
-            # Use the index to find the correct content
-            target_content = message["content"][tool_index]
-            if target_content.get("kind") == "tool_use":
-                # Update tool name if provided
-                if tool_name:
-                    target_content["tool_name"] = tool_name
-
-                # Append arguments
-                if "tool_input_raw" not in target_content:
-                    target_content["tool_input_raw"] = ""
-                target_content["tool_input_raw"] += arguments
-                return
-
-        # Fall back to finding by name if index doesn't work
-        # This should rarely happen but is a safety measure
-        if tool_name:
-            for i, item in enumerate(message["content"]):
-                if item.get("kind") == "tool_use" and (
-                    item.get("tool_name") == tool_name or not item.get("tool_name")
-                ):
-                    # Update tool name
-                    message["content"][i]["tool_name"] = tool_name
-
-                    # Append arguments
-                    if "tool_input_raw" not in message["content"][i]:
-                        message["content"][i]["tool_input_raw"] = ""
-                    message["content"][i]["tool_input_raw"] += arguments
-                    return
-
-        # Create a new tool use content if we can't find an existing one
-        # This should only happen in rare cases
-        tool_content = {
-            "kind": "tool_use",
-            "tool_call_id": f"call_default_{tool_index if tool_index is not None else 0}",
-            "tool_name": tool_name,
-            "tool_input_raw": arguments,
-        }
-        message["content"].append(tool_content)
-
-    def _process_message_tool_calls(
-        self,
-        tool_calls: list[Any],
-        message: dict[str, Any],
-    ) -> None:
-        """Processes tool calls from a complete message object."""
         for tool_call in tool_calls:
-            if hasattr(tool_call, "id") and hasattr(tool_call, "function"):
-                tool_found = False
-                for i, item in enumerate(message["content"]):
-                    if (
-                        item.get("kind") == "tool_use"
-                        and item.get("tool_call_id") == tool_call.id
-                    ):
-                        tool_found = True
-                        # Update with complete data
-                        message["content"][i]["tool_name"] = tool_call.function.name
-                        message["content"][i]["tool_input_raw"] = (
-                            tool_call.function.arguments
-                        )
-                        break
+            tool_name = tool_call.function.name if tool_call.function else ""
+            tool_input_raw = tool_call.function.arguments if tool_call.function else ""
 
-                if not tool_found:
-                    # Create new with complete data
-                    tool_content = {
-                        "kind": "tool_use",
-                        "tool_call_id": tool_call.id,
-                        "tool_name": tool_call.function.name,
-                        "tool_input_raw": tool_call.function.arguments,
-                    }
-                    message["content"].append(tool_content)
-
-    def _process_finish_reason(self, choice: Any, message: dict[str, Any]) -> None:
-        """Processes the finish reason from the event."""
-        if hasattr(choice, "finish_reason") and choice.finish_reason:
-            message["stop_reason"] = choice.finish_reason
-
-            # If we're done with a tool call, double check the content
-            if choice.finish_reason == "tool_calls":
-                self._ensure_tool_calls_complete(choice, message)
-
-    def _ensure_tool_calls_complete(self, choice: Any, message: dict[str, Any]) -> None:
-        """Ensures tool calls have complete information."""
-        # Check if we have any tool use without arguments
-        for i, item in enumerate(message["content"]):
-            if item.get("kind") == "tool_use" and not item.get("tool_input_raw"):
-                # If we're missing arguments but have an ID, try to find them
-                if hasattr(choice, "message") and hasattr(choice.message, "tool_calls"):
-                    for tc in choice.message.tool_calls:
-                        if tc.id == item.get("tool_call_id") and hasattr(
-                            tc.function,
-                            "arguments",
-                        ):
-                            message["content"][i]["tool_input_raw"] = (
-                                tc.function.arguments
-                            )
-
-    def _process_event_metadata(self, event: Any, message: dict[str, Any]) -> None:
-        """Processes metadata from the event."""
-        if hasattr(event, "id"):
-            message["additional_response_fields"]["id"] = event.id
-
-        if hasattr(event, "model"):
-            message["additional_response_fields"]["model"] = event.model
-
-        if hasattr(event, "usage") and event.usage:
-            message["usage"] = {
-                "input_tokens": getattr(event.usage, "prompt_tokens", 0),
-                "output_tokens": getattr(event.usage, "completion_tokens", 0),
-                "total_tokens": getattr(event.usage, "total_tokens", 0),
-            }
-
-    def _handle_delta_content_list(self, event: dict, message: dict) -> None:
-        """Handle a delta content list event.
-
-        Args:
-            event: The delta content list event.
-            message: The message state to update.
-        """
-        delta = event.get("choices", [{}])[0].get("delta", {})
-
-        for content_item in delta["content_list"]:
-            # Determine how to handle the content item based on its properties
-            if "type" in content_item and content_item["type"] == "text":
-                # Handle text content
-                # Implementation here
-                pass
-            elif "tool_use_id" in content_item or "input" in content_item:
-                # Handle tool use content
-                # Implementation here
-                pass
+            if tool_call.index >= len(tool_indices):
+                message["content"].append({
+                    "kind": "tool_use",
+                    "tool_call_id": tool_call.id,
+                    "tool_name": tool_name or "",
+                    "tool_input_raw": tool_input_raw or "",
+                })
             else:
-                raise ValueError(f"Unsupported content item type: {content_item}")
+                matching_tool_idx = tool_indices[tool_call.index]
+                if tool_call.function:
+                    message["content"][matching_tool_idx]["tool_name"] += (
+                        tool_name or ""
+                    )
+                    message["content"][matching_tool_idx]["tool_input_raw"] += (
+                        tool_input_raw or ""
+                    )
+
+    def _process_event_metadata(
+        self,
+        event: "ChatCompletionChunk",
+        message: dict[str, Any],
+    ) -> None:
+        """Processes metadata from the event."""
+        message["additional_response_fields"]["id"] = event.id
+        message["additional_response_fields"]["model"] = event.model
+
+        if event.usage:
+            message["usage"] = {
+                "input_tokens": event.usage.prompt_tokens,
+                "output_tokens": event.usage.completion_tokens,
+                "total_tokens": event.usage.total_tokens,
+            }
+

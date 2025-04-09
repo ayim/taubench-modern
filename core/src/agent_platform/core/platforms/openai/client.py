@@ -19,7 +19,7 @@ from agent_platform.core.platforms.openai.prompts import OpenAIPrompt
 from agent_platform.core.responses.response import ResponseMessage
 
 if TYPE_CHECKING:
-    from openai import OpenAI
+    from openai import AsyncOpenAI
 
     from agent_platform.core.kernel import Kernel
 
@@ -53,13 +53,13 @@ class OpenAIClient(
         )
         self._openai_client = self._init_client(self._parameters)
 
-    def _init_client(self, parameters: OpenAIPlatformParameters) -> "OpenAI":
-        from openai import OpenAI
+    def _init_client(self, parameters: OpenAIPlatformParameters) -> "AsyncOpenAI":
+        from openai import AsyncOpenAI
 
         if parameters.openai_api_key is None:
             raise ValueError("OpenAI API key is required")
 
-        return OpenAI(api_key=parameters.openai_api_key.get_secret_value())
+        return AsyncOpenAI(api_key=parameters.openai_api_key.get_secret_value())
 
     def _init_converters(self, kernel: "Kernel | None" = None) -> OpenAIConverters:
         converters = OpenAIConverters()
@@ -82,29 +82,6 @@ class OpenAIClient(
     def _init_configs(self) -> OpenAIPlatformConfigs:
         return OpenAIPlatformConfigs()
 
-    async def _generate_response(
-        self,
-        request: dict[str, Any],
-    ) -> dict[str, Any]:
-        """Generate a response from the OpenAI platform."""
-        response = self._openai_client.chat.completions.create(**request)
-        return response
-
-    async def _generate_stream_response(
-        self,
-        request: dict[str, Any],
-    ) -> AsyncGenerator[Any, None]:
-        """Stream a response from the OpenAI platform."""
-        # Add stream=True to ensure streaming is enabled
-        request["stream"] = True
-
-        # Get the streaming response
-        response = self._openai_client.chat.completions.create(**request)
-
-        # Yield each chunk directly
-        for chunk in response:
-            yield chunk
-
     async def generate_response(
         self,
         prompt: OpenAIPrompt,
@@ -113,7 +90,7 @@ class OpenAIClient(
         """Generate a response from the OpenAI platform."""
         # TODO: Otel Span?
         request = prompt.as_platform_request(model)
-        response = await self._generate_response(request)
+        response = await self._openai_client.chat.completions.create(**request)
         return self._parsers.parse_response(response)
 
     async def generate_stream_response(
@@ -141,8 +118,10 @@ class OpenAIClient(
         }
         last_message: dict[str, Any] = {}
 
-        # Process each event through the parser
-        async for event in self._generate_stream_response(request):
+        # Add stream=True to ensure streaming is enabled
+        request["stream"] = True
+        response = await self._openai_client.chat.completions.create(**request)
+        async for event in response:
             async for delta in self._parsers.parse_stream_event(
                 event,
                 message,
@@ -194,7 +173,7 @@ class OpenAIClient(
         embeddings = []
         total_tokens = 0
         for text in texts:
-            response = self._openai_client.embeddings.create(
+            response = await self._openai_client.embeddings.create(
                 model=model_id,
                 input=text,
             )

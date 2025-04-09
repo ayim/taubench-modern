@@ -1,6 +1,5 @@
 """Unit tests for the OpenAI platform parsers."""
 
-from unittest.mock import MagicMock
 
 import pytest
 
@@ -21,38 +20,28 @@ class TestOpenAIParsers:
 
     def test_parse_text_content(self, parsers: OpenAIParsers) -> None:
         """Test parsing text content."""
-        content = {
-            "text": "Hello, world!",
-        }
+        content = "Hello, world!"
         result = parsers.parse_text_content(content)
 
         assert isinstance(result, ResponseTextContent)
         assert result.text == "Hello, world!"
 
-    def test_parse_image_content_not_implemented(self, parsers: OpenAIParsers) -> None:
-        """Test parsing image content."""
-        # This is expected to fail until image content is supported
-        content = {
-            "type": "image_url",
-            "image_url": {
-                "url": "base64_encoded_image",
-            },
-        }
-        with pytest.raises(
-            NotImplementedError,
-            match="Image content not supported yet",
-        ):
-            parsers.parse_image_content(content)
 
     def test_parse_tool_use_content(self, parsers: OpenAIParsers) -> None:
         """Test parsing tool use content."""
-        content = {
-            "id": "test-tool-call-id",
-            "function": {
-                "name": "test-tool",
-                "arguments": '{"key": "value"}',
-            },
-        }
+        from openai.types.chat.chat_completion_message_tool_call import (
+            ChatCompletionMessageToolCall,
+            Function,
+        )
+
+        content = ChatCompletionMessageToolCall(
+            id="test-tool-call-id",
+            type="function",
+            function=Function(
+                name="test-tool",
+                arguments='{"key": "value"}',
+            ),
+        )
         result = parsers.parse_tool_use_content(content)
 
         assert isinstance(result, ResponseToolUseContent)
@@ -63,13 +52,19 @@ class TestOpenAIParsers:
     def test_parse_tool_use_odd_empty_content(self, parsers: OpenAIParsers) -> None:
         """Test parsing of {"":""} as tool use content. This is an odd case I saw
         testing against the actual API. We probably should elide empty keys."""
-        content = {
-            "id": "test-tool-call-id",
-            "function": {
-                "name": "test-tool",
-                "arguments": '{"":""}',
-            },
-        }
+        from openai.types.chat.chat_completion_message_tool_call import (
+            ChatCompletionMessageToolCall,
+            Function,
+        )
+
+        content = ChatCompletionMessageToolCall(
+            id="test-tool-call-id",
+            type="function",
+            function=Function(
+                name="test-tool",
+                arguments='{"":""}',
+            ),
+        )
         result = parsers.parse_tool_use_content(content)
 
         assert isinstance(result, ResponseToolUseContent)
@@ -77,13 +72,14 @@ class TestOpenAIParsers:
         assert result.tool_name == "test-tool"
 
         # Also completely empty args we probably should handle as empty obj
-        content_2 = {
-            "id": "test-tool-call-id",
-            "function": {
-                "name": "test-tool",
-                "arguments": "",
-            },
-        }
+        content_2 = ChatCompletionMessageToolCall(
+            id="test-tool-call-id",
+            type="function",
+            function=Function(
+                name="test-tool",
+                arguments="",
+            ),
+        )
         result_2 = parsers.parse_tool_use_content(content_2)
 
         assert isinstance(result_2, ResponseToolUseContent)
@@ -97,13 +93,19 @@ class TestOpenAIParsers:
         should elide the function_name in the tool input."""
         from unittest.mock import patch
 
-        content = {
-            "id": "test-tool-call-id",
-            "function": {
-                "name": "test-tool",
-                "arguments": '{"test-tool": {"key": "value", "key1": 123}}',
-            },
-        }
+        from openai.types.chat.chat_completion_message_tool_call import (
+            ChatCompletionMessageToolCall,
+            Function,
+        )
+
+        content = ChatCompletionMessageToolCall(
+            id="test-tool-call-id",
+            type="function",
+            function=Function(
+                name="test-tool",
+                arguments='{"test-tool": {"key": "value", "key1": 123}}',
+            ),
+        )
         # Capture logs to check if the warning is produced
         with patch(
             "agent_platform.core.platforms.openai.parsers.logger.warning",
@@ -119,62 +121,34 @@ class TestOpenAIParsers:
         assert result.tool_name == "test-tool"
         assert result.tool_input_raw == '{"key": "value", "key1": 123}'
 
-    def test_parse_document_content_not_implemented(
-        self,
-        parsers: OpenAIParsers,
-    ) -> None:
-        """Test parsing document content."""
-        # This is expected to fail until document content is supported
-        content = {
-            "type": "file",
-            "file": {
-                "name": "test.pdf",
-                "url": "https://example.com/test.pdf",
-            },
-        }
-        with pytest.raises(
-            NotImplementedError,
-            match="Document content not supported yet",
-        ):
-            parsers.parse_document_content(content)
-
-    def test_parse_content_item(self, parsers: OpenAIParsers) -> None:
-        """Test parsing a content item."""
-        content = {
-            "type": "text",
-            "text": "Hello, world!",
-        }
-        result = parsers.parse_content_item(content)
-
-        assert isinstance(result, ResponseTextContent)
-        assert result.text == "Hello, world!"
-
-    def test_parse_content_item_invalid_type(self, parsers: OpenAIParsers) -> None:
-        """Test parsing a content item with invalid type."""
-        content = {
-            "type": "invalid",
-            "text": "Hello, world!",
-        }
-        with pytest.raises(ValueError, match="Unsupported content type in item:"):
-            parsers.parse_content_item(content)
-
     def test_parse_response(self, parsers: OpenAIParsers) -> None:
         """Test parsing a response."""
-        response = {
-            "choices": [
-                {
-                    "message": {
-                        "role": "assistant",
-                        "content": "Hello, world!",
-                    },
-                },
-            ],
-            "usage": {
-                "prompt_tokens": 10,
-                "completion_tokens": 20,
-                "total_tokens": 30,
-            },
-        }
+        from openai.types.chat import (
+            ChatCompletion,
+            ChatCompletionMessage,
+        )
+        from openai.types.chat.chat_completion import Choice
+        from openai.types.completion_usage import CompletionUsage
+
+        response = ChatCompletion(
+            id="test-completion-id",
+            object="chat.completion",
+            created=1717171717,
+            model="test-model",
+            choices=[Choice(
+                message=ChatCompletionMessage(
+                    role="assistant",
+                    content="Hello, world!",
+                ),
+                finish_reason="stop",
+                index=0,
+            )],
+            usage=CompletionUsage(
+                prompt_tokens=10,
+                completion_tokens=20,
+                total_tokens=30,
+            ),
+        )
         result = parsers.parse_response(response)
 
         assert isinstance(result, ResponseMessage)
@@ -186,31 +160,44 @@ class TestOpenAIParsers:
 
     def test_parse_response_with_tool_call(self, parsers: OpenAIParsers) -> None:
         """Test parsing a response with tool call."""
-        response = {
-            "choices": [
-                {
-                    "message": {
-                        "role": "assistant",
-                        "content": None,
-                        "tool_calls": [
-                            {
-                                "id": "test-tool-call-id",
-                                "type": "function",
-                                "function": {
-                                    "name": "test-tool",
-                                    "arguments": '{"key": "value"}',
-                                },
-                            },
-                        ],
-                    },
-                },
-            ],
-            "usage": {
-                "prompt_tokens": 10,
-                "completion_tokens": 20,
-                "total_tokens": 30,
-            },
-        }
+        from openai.types.chat import (
+            ChatCompletion,
+            ChatCompletionMessage,
+            ChatCompletionMessageToolCall,
+        )
+        from openai.types.chat.chat_completion import Choice
+        from openai.types.chat.chat_completion_message_tool_call import Function
+        from openai.types.completion_usage import CompletionUsage
+
+        response = ChatCompletion(
+            id="test-completion-id",
+            object="chat.completion",
+            created=1717171717,
+            model="test-model",
+            choices=[Choice(
+                message=ChatCompletionMessage(
+                    role="assistant",
+                    content=None,
+                    tool_calls=[
+                        ChatCompletionMessageToolCall(
+                            id="test-tool-call-id",
+                            type="function",
+                            function=Function(
+                                name="test-tool",
+                                arguments='{"key": "value"}',
+                            ),
+                        ),
+                    ],
+                ),
+                finish_reason="stop",
+                index=0,
+            )],
+            usage=CompletionUsage(
+                prompt_tokens=10,
+                completion_tokens=20,
+                total_tokens=30,
+            ),
+        )
         result = parsers.parse_response(response)
 
         assert isinstance(result, ResponseMessage)
@@ -225,16 +212,23 @@ class TestOpenAIParsers:
     @pytest.mark.asyncio
     async def test_parse_stream_event(self, parsers: OpenAIParsers) -> None:
         """Test parsing a stream event."""
+        from openai.types.chat.chat_completion_chunk import (
+            ChatCompletionChunk,
+            Choice,
+            ChoiceDelta,
+        )
 
-        # Create a mock object with correct structure for parse_stream_event
-        class Delta:
-            content = "Hello, world!"
-
-        class Choice:
-            delta = Delta()
-
-        event = MagicMock()
-        event.choices = [Choice()]
+        event = ChatCompletionChunk(
+            id="test-chunk-id",
+            object="chat.completion.chunk",
+            created=1717171717,
+            model="test-model",
+            choices=[Choice(
+                index=0,
+                delta=ChoiceDelta(content="Hello, world!"),
+                finish_reason="stop",
+            )],
+        )
 
         message = {
             "role": "agent",
@@ -270,32 +264,39 @@ class TestOpenAIParsers:
         parsers: OpenAIParsers,
     ) -> None:
         """Test parsing a stream event with tool call."""
-
-        # Create mock function object
-        class Function:
-            name = "test-tool"
-            arguments = '{"key": "value"}'
-
-        # Create mock tool call object
-        class ToolCall:
-            id = "test-tool-call-id"
-            function = Function()
-
-        # Create mock delta object
-        class Delta:
-            content = None
-
-            @property
-            def tool_calls(self):
-                return [ToolCall()]
-
-        # Create mock choice object
-        class Choice:
-            delta = Delta()
+        from openai.types.chat.chat_completion_chunk import (
+            ChatCompletionChunk,
+            Choice,
+            ChoiceDelta,
+            ChoiceDeltaToolCall,
+            ChoiceDeltaToolCallFunction,
+        )
 
         # Create mock event object
-        event = MagicMock()
-        event.choices = [Choice()]
+        event = ChatCompletionChunk(
+            id="test-chunk-id",
+            object="chat.completion.chunk",
+            created=1717171717,
+            model="test-model",
+            choices=[Choice(
+                index=0,
+                delta=ChoiceDelta(
+                    content="Hello, world!",
+                    tool_calls=[
+                        ChoiceDeltaToolCall(
+                            index=0,
+                            id="test-tool-call-id",
+                            type="function",
+                            function=ChoiceDeltaToolCallFunction(
+                                name="test-tool",
+                                arguments='{"key": "value"}',
+                            ),
+                        ),
+                    ],
+                ),
+                finish_reason="stop",
+            )],
+        )
 
         message = {
             "role": "agent",
