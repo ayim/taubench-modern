@@ -34,11 +34,6 @@ class PromptTextContent(PromptMessageContent):
         """
         assert_literal_value_valid(self, "kind")
 
-        # Generally, we can't have an empty text value in our prompts
-        # (Maybe there's a time to weaken this, but for now, let's keep it strict)
-        if not self.text:
-            raise ValueError("Text value cannot be empty")
-
     def model_dump(self) -> dict:
         """Returns a dictionary representation suitable for serialization."""
         return {
