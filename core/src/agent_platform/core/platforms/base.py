@@ -17,14 +17,6 @@ from agent_platform.core.prompts.content import (
     PromptToolResultContent,
     PromptToolUseContent,
 )
-from agent_platform.core.responses.content import (
-    ResponseAudioContent,
-    ResponseDocumentContent,
-    ResponseImageContent,
-    ResponseMessageContent,
-    ResponseTextContent,
-    ResponseToolUseContent,
-)
 from agent_platform.core.responses.response import ResponseMessage
 
 if TYPE_CHECKING:
@@ -232,46 +224,9 @@ class PlatformParsers(ABC):
     """Platform-specific parsers for content kinds to transform platform-specific
     types to agent-server response types."""
 
-    # For Bedrock at least, all streamed content is str which may ultimately be
-    # bytes or a serialized JSON object, but a sync response may have more
-    # specific types (e.g., an image will have a `bytes` object).
-
-    @abstractmethod
-    def parse_text_content(self, content: Any) -> ResponseTextContent:
-        """Parses a platform-specific text content to an agent-server text content."""
-        pass
-
-    @abstractmethod
-    def parse_image_content(self, content: Any) -> ResponseImageContent:
-        """Parses a platform-specific image content to an agent-server image content."""
-        pass
-
-    @abstractmethod
-    def parse_audio_content(self, content: Any) -> ResponseAudioContent:
-        """Parses a platform-specific audio content to an agent-server audio content."""
-        pass
-
-    @abstractmethod
-    def parse_tool_use_content(
-        self,
-        content: Any,
-    ) -> ResponseToolUseContent:
-        """Parses a platform-specific tool use content to an agent-server
-        tool use content."""
-
-    @abstractmethod
-    def parse_document_content(
-        self,
-        content: Any,
-    ) -> ResponseDocumentContent:
-        """Parses a platform-specific document content to an agent-server
-        document content."""
-        pass
-
-    @abstractmethod
-    def parse_content_item(self, item: Any) -> ResponseMessageContent:
-        """Parses a platform-specific content item to an agent-server content item."""
-        pass
+    # As we are adding more platform clients, it's becoming more clear that
+    # it's a bit hard to pin down the exact interface for platform-specific
+    # output parsing. Let's revisit this once platforms are more mature.
 
     @abstractmethod
     def parse_response(self, response: Any) -> ResponseMessage:
