@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import Callable, Coroutine
 from contextlib import AsyncExitStack
 from json import dumps
@@ -18,6 +19,8 @@ class MCPClient:
         self._session: ClientSession | None = None
         self._exit_stack = AsyncExitStack()
         self._connected = False
+        self._connect_lock = asyncio.Lock()
+        self._call_lock = asyncio.Lock()
 
     async def __aenter__(self) -> "MCPClient":
         await self.connect()
@@ -41,38 +44,39 @@ class MCPClient:
         Opens an SSE client connection to the remote MCP server, creates
         a ClientSession, and initializes it.
         """
-        if self.is_connected:
-            return
+        async with self._connect_lock:
+            if self.is_connected:
+                return
 
-        try:
-            # TODO: headers?
-            headers = {}
+            try:
+                # TODO: headers?
+                headers = {}
 
-            # Open the SSE-based transport within our async context manager
-            sse_transport = await self._exit_stack.enter_async_context(
-                sse_client(
-                    url=self.target_server.url,
-                    headers=headers or None,
-                ),
-            )
+                # Open the SSE-based transport within our async context manager
+                sse_transport = await self._exit_stack.enter_async_context(
+                    sse_client(
+                        url=self.target_server.url,
+                        headers=headers or None,
+                    ),
+                )
 
-            # Create the MCP ClientSession using the read/write from SSE transport
-            self._session = await self._exit_stack.enter_async_context(
-                ClientSession(
-                    read_stream=sse_transport[0],
-                    write_stream=sse_transport[1],
-                ),
-            )
+                # Create the MCP ClientSession using the read/write from SSE transport
+                self._session = await self._exit_stack.enter_async_context(
+                    ClientSession(
+                        read_stream=sse_transport[0],
+                        write_stream=sse_transport[1],
+                    ),
+                )
 
-            # Initialize session (MCP handshake, listing tools, etc.)
-            await self._session.initialize()
-            self._connected = True
-        except Exception as e:
-            # If anything fails during connection setup, ensure we clean up properly
-            await self._exit_stack.aclose()
-            self._session = None
-            self._connected = False
-            raise ConnectionError(f"Failed to connect to MCP server: {e!s}") from e
+                # Initialize session (MCP handshake, listing tools, etc.)
+                await self._session.initialize()
+                self._connected = True
+            except Exception as e:
+                # If anything fails during connection setup, ensure we clean up properly
+                await self._exit_stack.aclose()
+                self._session = None
+                self._connected = False
+                raise ConnectionError(f"Failed to connect to MCP server: {e!s}") from e
 
     async def close(self) -> None:
         """
@@ -114,9 +118,11 @@ class MCPClient:
                     if not self._session:
                         raise RuntimeError("MCP client not connected")
 
-                    # Execute the tool call
-                    response = await self._session.call_tool(tool_name, args)
-                    return response.model_dump_json()
+                    # Use the call lock to ensure only one call is processed at a time
+                    async with self._call_lock:
+                        # Execute the tool call
+                        response = await self._session.call_tool(tool_name, args)
+                        return response.model_dump_json()
                 except Exception as e:
                     # Could enhance error handling with more specific error types
                     return dumps({"internal-error": str(e)})
