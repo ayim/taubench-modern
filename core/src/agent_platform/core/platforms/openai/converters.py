@@ -7,6 +7,7 @@ if TYPE_CHECKING:
         ChatCompletionContentPartTextParam,
         ChatCompletionMessageParam,
         ChatCompletionMessageToolCall,
+        ChatCompletionMessageToolCallParam,
         ChatCompletionToolMessageParam,
         ChatCompletionToolParam,
     )
@@ -86,6 +87,8 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
         Returns:
             A tool message parameter for the OpenAI API.
         """
+        from openai.types.chat import ChatCompletionToolMessageParam
+
         text_content = ""
         for content_item in content.content:
             if isinstance(content_item, PromptTextContent):
@@ -101,11 +104,11 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
 
         # Ensure we return a properly formatted tool message
         # that conforms to OpenAI's expectations
-        return {
-            "role": "tool",
-            "tool_call_id": content.tool_call_id,
-            "content": text_content.strip(),
-        }
+        return ChatCompletionToolMessageParam(
+            role="tool",
+            tool_call_id=content.tool_call_id,
+            content=text_content.strip(),
+        )
 
     async def convert_document_content(
         self,
@@ -143,13 +146,10 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
         Returns:
             A dictionary containing text content and tool calls.
         """
-        text_content = ""
-        if TYPE_CHECKING:
-            from openai.types.chat import ChatCompletionMessageToolCall
+        from openai.types.chat import ChatCompletionMessageToolCall
 
-            tool_calls: list[ChatCompletionMessageToolCall] = []
-        else:
-            tool_calls: list[Any] = []
+        text_content = ""
+        tool_calls: list[ChatCompletionMessageToolCall] = []
 
         for content in content_list:
             if isinstance(content, PromptTextContent):
@@ -177,7 +177,7 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
         self,
         role: str,
         content: str,
-        tool_calls: list[dict[str, Any]] | None = None,
+        tool_calls: list["ChatCompletionMessageToolCallParam"] | None = None,
     ) -> "ChatCompletionMessageParam":
         """Create an OpenAI message parameter based on role.
 
@@ -206,10 +206,17 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
         elif role == "user":
             return ChatCompletionUserMessageParam(role=role, content=content)
         elif role == "assistant":
-            message: dict[str, Any] = {"role": role, "content": content}
-            if tool_calls:
-                message["tool_calls"] = tool_calls
-            return cast(ChatCompletionAssistantMessageParam, message)
+            if tool_calls and len(tool_calls) > 0:
+                return ChatCompletionAssistantMessageParam(
+                    role=role,
+                    content=content,
+                    tool_calls=tool_calls,
+                )
+            else:
+                return ChatCompletionAssistantMessageParam(
+                    role=role,
+                    content=content,
+                )
         else:
             raise ValueError(f"Unsupported role: {role}")
 
@@ -228,71 +235,26 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
         converted_messages: list[ChatCompletionMessageParam] = []
 
         for message in messages:
-            # Check for tool results first since they need special handling
-            has_tool_results = any(
-                isinstance(content_item, PromptToolResultContent)
-                for content_item in message.content
-            )
-
-            # If this is a user message with only tool results,
-            # we want to convert directly to a tool message
-            if (
-                has_tool_results
-                and isinstance(message, PromptUserMessage)
-                and len(message.content) == 1
-            ):
-                tool_result = next(
-                    (
-                        item
-                        for item in message.content
-                        if isinstance(item, PromptToolResultContent)
-                    ),
-                    None,
-                )
-                if tool_result:
-                    tool_message = await self.convert_tool_result_content(tool_result)
-                    converted_messages.append(tool_message)
-                    continue
-
             # Process the message content to get text and tool components
             processed_content = await self._process_message_content(message.content)
 
             # Get the appropriate OpenAI role
             openai_role = await self._reverse_role_map(message.role)
 
-            # Create the message
-            message_dict = {
-                "role": openai_role,
-                "content": processed_content["text"],
-            }
-
-            # Add tool calls for assistant messages if needed
-            if openai_role == "assistant" and processed_content["tool_calls"]:
-                tool_calls = [
-                    {
-                        "id": tool_call.id,
-                        "type": "function",
-                        "function": {
-                            "name": tool_call.function.name,
-                            "arguments": tool_call.function.arguments,
-                        },
-                    }
-                    for tool_call in processed_content["tool_calls"]
-                ]
-                message_dict["tool_calls"] = tool_calls
-
-                # Set content to empty string when there are tool calls but no text
-                if not processed_content["text"]:
-                    message_dict["content"] = ""
-
             # Convert to the proper message type
             formatted_message = self._create_openai_message_param(
                 role=openai_role,
-                content=message_dict["content"],
-                tool_calls=message_dict.get("tool_calls"),
+                content=processed_content["text"],
+                tool_calls=processed_content["tool_calls"],
             )
 
-            converted_messages.append(formatted_message)
+            # Can't have an empty user message (especially before tool messages, throws
+            # off the API which expects tool messages to follow assistant messages)
+            if (
+                formatted_message['role'] != "user"
+                or formatted_message['content'] != ""
+            ):
+                converted_messages.append(formatted_message)
 
             # Add tool result messages that follow a tool use
             for content_item in message.content:
