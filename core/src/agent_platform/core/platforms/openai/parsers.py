@@ -20,6 +20,7 @@ from agent_platform.core.responses.response import ResponseMessage, TokenUsage
 
 logger = getLogger(__name__)
 
+
 class OpenAIParsers(PlatformParsers):
     """Parsers that transform OpenAI types to agent-server prompt types."""
 
@@ -391,6 +392,9 @@ class OpenAIParsers(PlatformParsers):
     ) -> None:
         """Processes tool calls from a delta object."""
         for tool_call in tool_calls:
+            # Get the index from the tool call if available
+            tool_index = getattr(tool_call, "index", None)
+
             # Handle tool call with ID
             tool_id = (
                 tool_call.id if hasattr(tool_call, "id") and tool_call.id else None
@@ -403,7 +407,7 @@ class OpenAIParsers(PlatformParsers):
                 hasattr(tool_call.function, "name")
                 or hasattr(tool_call.function, "arguments")
             ):
-                self._process_tool_call_without_id(tool_call, message)
+                self._process_tool_call_without_id(tool_call, tool_index, message)
 
     def _process_tool_call_with_id(
         self,
@@ -463,46 +467,61 @@ class OpenAIParsers(PlatformParsers):
     def _process_tool_call_without_id(
         self,
         tool_call: Any,
+        tool_index: int | None,
         message: dict[str, Any],
     ) -> None:
-        """Processes a tool call that has no ID but has function details."""
-        # Find any existing tool use content to update
-        found = False
-        for i, item in enumerate(message["content"]):
-            if item.get("kind") == "tool_use":
-                if hasattr(tool_call.function, "name") and tool_call.function.name:
-                    message["content"][i]["tool_name"] = tool_call.function.name
+        """Processes a tool call that has no ID but has function details and possibly an index."""
+        # Process arguments only if they exist
+        if not (
+            hasattr(tool_call.function, "arguments") and tool_call.function.arguments
+        ):
+            return
 
-                if (
-                    hasattr(tool_call.function, "arguments")
-                    and tool_call.function.arguments
+        arguments = tool_call.function.arguments
+        tool_name = ""
+        if hasattr(tool_call.function, "name") and tool_call.function.name:
+            tool_name = tool_call.function.name
+
+        # If we have an index, try to find the tool at that index
+        if tool_index is not None and tool_index < len(message["content"]):
+            # Use the index to find the correct content
+            target_content = message["content"][tool_index]
+            if target_content.get("kind") == "tool_use":
+                # Update tool name if provided
+                if tool_name:
+                    target_content["tool_name"] = tool_name
+
+                # Append arguments
+                if "tool_input_raw" not in target_content:
+                    target_content["tool_input_raw"] = ""
+                target_content["tool_input_raw"] += arguments
+                return
+
+        # Fall back to finding by name if index doesn't work
+        # This should rarely happen but is a safety measure
+        if tool_name:
+            for i, item in enumerate(message["content"]):
+                if item.get("kind") == "tool_use" and (
+                    item.get("tool_name") == tool_name or not item.get("tool_name")
                 ):
+                    # Update tool name
+                    message["content"][i]["tool_name"] = tool_name
+
+                    # Append arguments
                     if "tool_input_raw" not in message["content"][i]:
                         message["content"][i]["tool_input_raw"] = ""
-                    message["content"][i]["tool_input_raw"] += (
-                        tool_call.function.arguments
-                    )
-                found = True
-                break
+                    message["content"][i]["tool_input_raw"] += arguments
+                    return
 
-        # If no tool use content exists, create one with a placeholder ID
-        if (
-            not found
-            and hasattr(tool_call.function, "arguments")
-            and tool_call.function.arguments
-        ):
-            tool_name = ""
-            if hasattr(tool_call.function, "name") and tool_call.function.name:
-                tool_name = tool_call.function.name
-
-            # Create with a placeholder ID if none exists
-            tool_content = {
-                "kind": "tool_use",
-                "tool_call_id": "call_default",
-                "tool_name": tool_name,
-                "tool_input_raw": tool_call.function.arguments,
-            }
-            message["content"].append(tool_content)
+        # Create a new tool use content if we can't find an existing one
+        # This should only happen in rare cases
+        tool_content = {
+            "kind": "tool_use",
+            "tool_call_id": f"call_default_{tool_index if tool_index is not None else 0}",
+            "tool_name": tool_name,
+            "tool_input_raw": arguments,
+        }
+        message["content"].append(tool_content)
 
     def _process_message_tool_calls(
         self,
