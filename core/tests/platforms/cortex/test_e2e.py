@@ -2,6 +2,7 @@ import os
 from unittest.mock import MagicMock
 
 import pytest
+from snowflake.snowpark import Session
 
 from agent_platform.core.delta import combine_generic_deltas
 from agent_platform.core.kernel import Kernel
@@ -70,24 +71,41 @@ def kernel() -> Kernel:
     """Fixture for the Kernel mock."""
     return MagicMock(spec=Kernel)
 
-
 @pytest.fixture
-def cortex_client(kernel: Kernel):
+def cortex_client(kernel: Kernel, monkeypatch):
     """Fixture for Cortex client with proper cleanup."""
     from pathlib import Path
+
+    from core.tests.vcr_setup import VCR_RECORD_MODE
 
     # If we don't have a linking file, we can still run tests, but
     # actually put a non-None value in here so the parameters are
     # "set" (we don't actually make network requests so this is fine)
     unused_or_none: str | None = "UNUSED"
     linking_file_path = Path.home() / ".sema4ai" / "sf-auth.json"
-    if not linking_file_path.exists():
+    if linking_file_path.exists():
         unused_or_none = None
 
     snowflake_username = os.environ.get("SNOWFLAKE_USERNAME", unused_or_none)
     snowflake_password = os.environ.get("SNOWFLAKE_PASSWORD", unused_or_none)
     snowflake_account = os.environ.get("SNOWFLAKE_ACCOUNT", unused_or_none)
     snowflake_role = os.environ.get("SNOWFLAKE_ROLE", unused_or_none)
+
+    mock_session = MagicMock(spec=Session)
+    # You can customize additional attributes of the session if needed
+    mock_session.connection = MagicMock()
+    mock_session.connection.host = "zvzwmyo-hp00956.snowflakecomputing.com"
+    mock_session.connection.rest = MagicMock()
+    mock_session.connection.rest.token = "DUMMY_TOKEN_VALUE"
+
+    if VCR_RECORD_MODE == "none":
+        # When we are doing replays, mock to make sure we don't
+        # try and connect to Snowflake
+        monkeypatch.setattr(
+            "agent_platform.core.platforms.cortex.client.CortexClient._init_session",
+            lambda self, parameters: mock_session,
+        )
+
     client = CortexClient(
         parameters=CortexPlatformParameters(
             snowflake_username=snowflake_username,
@@ -100,6 +118,7 @@ def cortex_client(kernel: Kernel):
             snowflake_role=snowflake_role,
         ),
     )
+
     client.attach_kernel(kernel)
     return client
 
