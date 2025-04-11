@@ -233,6 +233,7 @@ def _file_uploads_with_non_existent_thread(
     print_success("Successfully tested file uploads with non-existent thread")
 
 
+@pytest.mark.integration
 def test_file_uploads(
     base_url_agent_server_sqlite_cloud,
     base_url_agent_server_postgres_cloud,

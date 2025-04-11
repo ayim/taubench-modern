@@ -141,8 +141,14 @@ run-server-exe:  ## Run the agent server executable
 	@echo "Running server from dist/..."
 	./dist/agent-server
 
-test:  check-env-or-no-env ## Run tests with pytest (VCR playback only)
+test:  check-env-or-no-env ## Run all tests with pytest (VCR playback only)
 	VCR_RECORD=none uv run pytest
+
+test-unit:  ## Run only unit tests
+	VCR_RECORD=none uv run pytest -v -m "not integration"
+
+test-integration:  check-env-or-no-env ## Run only integration tests
+	VCR_RECORD=none uv run pytest -v -m integration
 
 test-vcr-record-new:  check-env ## Run tests with pytest and record VCR cassettes for new requests
 	@NUM_EXISTING_CASSETTES=$$(find core/tests/fixtures/vcr_cassettes/ -type f | wc -l); \
@@ -185,7 +191,7 @@ check-env-or-no-env:
 		$(MAKE) check-env; \
 	else \
 		echo "No .env file found, skipping environment checks."; \
-		echo "This is fine for targets like make test and run-server, which don't require env vars."; \
+		echo "This is fine for targets like make test-unit and run-server, which don't require env vars."; \
 		echo "If you want to record fresh VCR cassettes, env vars are required."; \
 		echo "Run make new-empty-env to create a new .env file with all required variables set to empty strings."; \
 	fi
