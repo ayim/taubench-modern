@@ -112,6 +112,25 @@ class ModelMappingConfig(Configuration):
                     },
                 },
             },
+            "azure": {
+                "azure": {
+                    "llm": {
+                        "best": "o3-mini-high",
+                        "balanced": "gpt-4o",
+                        "fastest": "gpt-4o-mini",
+                    },
+                    "text-to-image": {
+                        "best": "openai-dalle2-highres",
+                        "balanced": "openai-dalle2",
+                        "fastest": "openai-dalle2-lite",
+                    },
+                    "embedding": {
+                        "best": "text-embedding-3-large",
+                        "balanced": "text-embedding-3-large",
+                        "fastest": "text-embedding-3-small",
+                    },
+                },
+            },
         },
     )
 
@@ -258,7 +277,7 @@ class DefaultModelSelector(ModelSelector):
                 return fb_model
         return None
 
-    def select_model(   # noqa: C901 (lots of necessary nested conditionals)
+    def select_model(  # noqa: C901 (lots of necessary nested conditionals)
         self,
         platform: "PlatformClient",
         request: ModelSelectionRequest | None = None,
@@ -282,7 +301,8 @@ class DefaultModelSelector(ModelSelector):
         # 1) If direct model name is given, try that first.
         if request.direct_model_name:
             maybe_model = self._get_model_with_fallbacks(
-                platform, request.direct_model_name,
+                platform,
+                request.direct_model_name,
             )
             if maybe_model:
                 return maybe_model
@@ -297,16 +317,14 @@ class DefaultModelSelector(ModelSelector):
         #    if all three fields are available, or we can decide on defaults.
         if request.provider or request.model_type or request.quality_tier:
             # We need to handle partial specification. Let's define some defaults:
-            model_type = (
-                request.model_type or platform.configs.default_model_type
-            )
+            model_type = request.model_type or platform.configs.default_model_type
             provider = (
-                request.provider or
-                platform.configs.default_platform_provider[model_type]
+                request.provider
+                or platform.configs.default_platform_provider[model_type]
             )
             tier = (
-                request.quality_tier or
-                platform.configs.default_quality_tier[model_type]
+                request.quality_tier
+                or platform.configs.default_quality_tier[model_type]
             )
 
             model_name = self.model_mapping_config.get_model_name(
@@ -317,7 +335,8 @@ class DefaultModelSelector(ModelSelector):
             )
             if model_name:
                 maybe_model = self._get_model_with_fallbacks(
-                    platform, model_name,
+                    platform,
+                    model_name,
                 )
                 if maybe_model:
                     return maybe_model
@@ -341,11 +360,13 @@ class DefaultModelSelector(ModelSelector):
         # 3b) If the request is entirely empty OR if the above didn't yield a model,
         #    try platform default (filtered by model type, that's important!)
         default_model_name = self.platform_default_config.get_default_model(
-            platform_name, request.model_type,
+            platform_name,
+            request.model_type,
         )
         if default_model_name:
             maybe_model = self._get_model_with_fallbacks(
-                platform, default_model_name,
+                platform,
+                default_model_name,
             )
             if maybe_model:
                 return maybe_model

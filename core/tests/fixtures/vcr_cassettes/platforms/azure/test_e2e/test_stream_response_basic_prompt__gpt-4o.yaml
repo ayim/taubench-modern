@@ -1,0 +1,102 @@
+interactions:
+- request:
+    body: '{"messages":[{"role":"user","content":"This is an end-to-end test, please
+      respond with a\n                message containing only the word ''sunflower''"}],"model":"gpt-4o","stream":true}'
+    headers:
+      accept:
+      - application/json
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      content-length:
+      - '185'
+      content-type:
+      - application/json
+      host:
+      - sema4ai-internal-testing.openai.azure.com
+      user-agent:
+      - AsyncAzureOpenAI/Python 1.70.0
+      x-stainless-arch:
+      - arm64
+      x-stainless-async:
+      - async:asyncio
+      x-stainless-lang:
+      - python
+      x-stainless-os:
+      - MacOS
+      x-stainless-package-version:
+      - 1.70.0
+      x-stainless-read-timeout:
+      - '600'
+      x-stainless-retry-count:
+      - '0'
+      x-stainless-runtime:
+      - CPython
+      x-stainless-runtime-version:
+      - 3.12.9
+    method: POST
+    uri: https://azure-openai-endpoint.example.com/openai/deployments/example-deployment-name/chat/completions?api-version=2023-03-15-preview
+  response:
+    content: 'data: {"choices":[{"delta":{"refusal":null,"role":"assistant"},"finish_reason":null,"index":0}],"created":1744403452,"id":"chatcmpl-BLFJUYVAxfJeHmjlWHnfIMPri09f1","model":"gpt-4o-mini-2024-07-18","object":"chat.completion.chunk","system_fingerprint":"fp_ded0d14823"}
+
+
+      data: {"choices":[{"delta":{"content":"sun"},"finish_reason":null,"index":0}],"created":1744403452,"id":"chatcmpl-BLFJUYVAxfJeHmjlWHnfIMPri09f1","model":"gpt-4o-mini-2024-07-18","object":"chat.completion.chunk","system_fingerprint":"fp_ded0d14823"}
+
+
+      data: {"choices":[{"delta":{"content":"flower"},"finish_reason":null,"index":0}],"created":1744403452,"id":"chatcmpl-BLFJUYVAxfJeHmjlWHnfIMPri09f1","model":"gpt-4o-mini-2024-07-18","object":"chat.completion.chunk","system_fingerprint":"fp_ded0d14823"}
+
+
+      data: {"choices":[{"delta":{},"finish_reason":"stop","index":0}],"created":1744403452,"id":"chatcmpl-BLFJUYVAxfJeHmjlWHnfIMPri09f1","model":"gpt-4o-mini-2024-07-18","object":"chat.completion.chunk","system_fingerprint":"fp_ded0d14823"}
+
+
+      data: [DONE]
+
+
+      '
+    headers:
+      Content-Type:
+      - text/event-stream; charset=utf-8
+      Date:
+      - Fri, 11 Apr 2025 20:30:52 GMT
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubDomains; preload
+      Transfer-Encoding:
+      - chunked
+      apim-request-id:
+      - 3fabcca4-d106-4486-967b-a05d54a68b09
+      azureml-model-session:
+      - v20250319-1-test-4
+      cmp-upstream-response-duration:
+      - '277'
+      ms-azureml-model-time:
+      - '228'
+      x-accel-buffering:
+      - 'no'
+      x-aml-cluster:
+      - hyena-westus3-01
+      x-content-type-options:
+      - nosniff
+      x-envoy-upstream-service-time:
+      - '230'
+      x-ms-client-request-id:
+      - 3fabcca4-d106-4486-967b-a05d54a68b09
+      x-ms-deployment-name:
+      - internal-testing-gpt-4o-mini
+      x-ms-rai-invoked:
+      - 'true'
+      x-ms-region:
+      - East US
+      x-ratelimit-limit-requests:
+      - '7580'
+      x-ratelimit-limit-tokens:
+      - '758000'
+      x-ratelimit-remaining-requests:
+      - '7569'
+      x-ratelimit-remaining-tokens:
+      - '749926'
+      x-request-id:
+      - 34ee4dc9-8f25-415c-8114-e5f0451e34c0
+    http_version: HTTP/1.1
+    status_code: 200
+version: 1

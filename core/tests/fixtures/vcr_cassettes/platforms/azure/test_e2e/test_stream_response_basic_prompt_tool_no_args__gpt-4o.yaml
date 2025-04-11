@@ -1,0 +1,107 @@
+interactions:
+- request:
+    body: '{"messages":[{"role":"user","content":"You are a helpful assistant. You
+      are acting\n                as an agent named ''Test Agent''. You will do\n                your
+      best to assist the user with their request."},{"role":"assistant","content":"Understood,
+      I will assist the user with their request."},{"role":"user","content":"Please
+      confirm the request using the provided\n                tool."}],"model":"gpt-4o","stream":true,"tools":[{"type":"function","function":{"name":"_add_book","description":"Store
+      a new book in the database.","parameters":{"type":"object","properties":{"book":{"type":"object","properties":{"title":{"type":"string","description":"The
+      title of the book"},"author":{"type":"string","description":"The author''s name"},"category":{"type":["string","null"],"description":"The
+      category of the book"},"year":{"type":"integer"}},"required":["title","author","category","year"],"description":"The
+      book to add to the database"}},"required":["book"],"strict":true,"additionalProperties":false}}},{"type":"function","function":{"name":"_confirm_request","description":"Confirm
+      the request, takes no arguments.","parameters":{"type":"object","properties":{},"required":[],"strict":true,"additionalProperties":false}}}]}'
+    headers:
+      accept:
+      - application/json
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      content-length:
+      - '1236'
+      content-type:
+      - application/json
+      host:
+      - sema4ai-internal-testing.openai.azure.com
+      user-agent:
+      - AsyncAzureOpenAI/Python 1.70.0
+      x-stainless-arch:
+      - arm64
+      x-stainless-async:
+      - async:asyncio
+      x-stainless-lang:
+      - python
+      x-stainless-os:
+      - MacOS
+      x-stainless-package-version:
+      - 1.70.0
+      x-stainless-read-timeout:
+      - '600'
+      x-stainless-retry-count:
+      - '0'
+      x-stainless-runtime:
+      - CPython
+      x-stainless-runtime-version:
+      - 3.12.9
+    method: POST
+    uri: https://azure-openai-endpoint.example.com/openai/deployments/example-deployment-name/chat/completions?api-version=2023-03-15-preview
+  response:
+    content: 'data: {"choices":[{"delta":{"refusal":null,"role":"assistant","tool_calls":[{"function":{"arguments":"","name":"_confirm_request"},"id":"call_5fLruVMVDxWpdDpSSNEOp2xL","index":0,"type":"function"}]},"finish_reason":null,"index":0}],"created":1744403455,"id":"chatcmpl-BLFJXziS03sOfrGa7IgpIp9RxzMHn","model":"gpt-4o-mini-2024-07-18","object":"chat.completion.chunk","system_fingerprint":"fp_b705f0c291"}
+
+
+      data: {"choices":[{"delta":{"tool_calls":[{"function":{"arguments":"{}"},"index":0}]},"finish_reason":null,"index":0}],"created":1744403455,"id":"chatcmpl-BLFJXziS03sOfrGa7IgpIp9RxzMHn","model":"gpt-4o-mini-2024-07-18","object":"chat.completion.chunk","system_fingerprint":"fp_b705f0c291"}
+
+
+      data: {"choices":[{"delta":{},"finish_reason":"tool_calls","index":0}],"created":1744403455,"id":"chatcmpl-BLFJXziS03sOfrGa7IgpIp9RxzMHn","model":"gpt-4o-mini-2024-07-18","object":"chat.completion.chunk","system_fingerprint":"fp_b705f0c291"}
+
+
+      data: [DONE]
+
+
+      '
+    headers:
+      Content-Type:
+      - text/event-stream; charset=utf-8
+      Date:
+      - Fri, 11 Apr 2025 20:30:55 GMT
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubDomains; preload
+      Transfer-Encoding:
+      - chunked
+      apim-request-id:
+      - 9da0b605-d03a-4ebd-ad08-7d442b9d86f7
+      azureml-model-session:
+      - v20250319-1-test-2
+      cmp-upstream-response-duration:
+      - '538'
+      ms-azureml-model-time:
+      - '484'
+      x-accel-buffering:
+      - 'no'
+      x-aml-cluster:
+      - hyena-westus3-01
+      x-content-type-options:
+      - nosniff
+      x-envoy-upstream-service-time:
+      - '486'
+      x-ms-client-request-id:
+      - 9da0b605-d03a-4ebd-ad08-7d442b9d86f7
+      x-ms-deployment-name:
+      - internal-testing-gpt-4o-mini
+      x-ms-rai-invoked:
+      - 'true'
+      x-ms-region:
+      - East US
+      x-ratelimit-limit-requests:
+      - '7580'
+      x-ratelimit-limit-tokens:
+      - '758000'
+      x-ratelimit-remaining-requests:
+      - '7565'
+      x-ratelimit-remaining-tokens:
+      - '746891'
+      x-request-id:
+      - 4b5c1d94-8bc8-4728-9635-66b5c901c9ec
+    http_version: HTTP/1.1
+    status_code: 200
+version: 1

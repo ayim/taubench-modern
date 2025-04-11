@@ -1,0 +1,102 @@
+interactions:
+- request:
+    body: '{"messages":[{"role":"developer","content":"\n            You are an expert
+      librarian. You are given a book\n            and you need to add it to the database.
+      If any\n            information is missing/optional, you should leave\n            it
+      out instead of trying to guess it!! Do NOT even\n            include an empty
+      string/null for optional fields, completely\n            omit them.\n            "},{"role":"user","content":"This
+      is an end-to-end test, please call the tool\n                called add_book
+      with the following book:\n\n                Title: \"Foundation\"\n                Author:
+      \"Isaac Asimov\"\n                Year: 1951\n\n                Emit nothing
+      else but the tool call with the\n                book information _exactly_
+      as shown above. Completely\n                omit any optional fields."}],"model":"gpt-4o","tools":[{"type":"function","function":{"name":"_add_book","description":"Store
+      a new book in the database.","parameters":{"type":"object","properties":{"book":{"type":"object","properties":{"title":{"type":"string","description":"The
+      title of the book"},"author":{"type":"string","description":"The author''s name"},"category":{"type":["string","null"],"description":"The
+      category of the book"},"year":{"type":"integer"}},"required":["title","author","category","year"],"description":"The
+      book to add to the database"}},"required":["book"],"strict":true,"additionalProperties":false}}}]}'
+    headers:
+      accept:
+      - application/json
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      content-length:
+      - '1438'
+      content-type:
+      - application/json
+      host:
+      - sema4ai-internal-testing.openai.azure.com
+      user-agent:
+      - AsyncAzureOpenAI/Python 1.70.0
+      x-stainless-arch:
+      - arm64
+      x-stainless-async:
+      - async:asyncio
+      x-stainless-lang:
+      - python
+      x-stainless-os:
+      - MacOS
+      x-stainless-package-version:
+      - 1.70.0
+      x-stainless-read-timeout:
+      - '600'
+      x-stainless-retry-count:
+      - '0'
+      x-stainless-runtime:
+      - CPython
+      x-stainless-runtime-version:
+      - 3.12.9
+    method: POST
+    uri: https://azure-openai-endpoint.example.com/openai/deployments/example-deployment-name/chat/completions?api-version=2023-03-15-preview
+  response:
+    content: '{"choices":[{"finish_reason":"tool_calls","index":0,"message":{"content":null,"refusal":null,"role":"assistant","tool_calls":[{"function":{"arguments":"{\"book\":{\"title\":\"Foundation\",\"author\":\"Isaac
+      Asimov\",\"year\":1951}}","name":"_add_book"},"id":"call_C8G2PZO3AI9JC43KpuU7ts3C","type":"function"}]}}],"created":1744403447,"id":"chatcmpl-BLFJPw6lB2zzeLtGsLlFSSvC5DvdX","model":"gpt-4o-mini-2024-07-18","object":"chat.completion","system_fingerprint":"fp_ded0d14823","usage":{"completion_tokens":31,"completion_tokens_details":{"accepted_prediction_tokens":0,"audio_tokens":0,"reasoning_tokens":0,"rejected_prediction_tokens":0},"prompt_tokens":250,"prompt_tokens_details":{"audio_tokens":0,"cached_tokens":0},"total_tokens":281}}
+
+      '
+    headers:
+      Content-Length:
+      - '741'
+      Content-Type:
+      - application/json
+      Date:
+      - Fri, 11 Apr 2025 20:30:47 GMT
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubDomains; preload
+      apim-request-id:
+      - e0cc8cb5-5fca-4456-8b77-86380a27a437
+      azureml-model-session:
+      - v20250319-1-test-2
+      cmp-upstream-response-duration:
+      - '543'
+      ms-azureml-model-time:
+      - '524'
+      x-accel-buffering:
+      - 'no'
+      x-aml-cluster:
+      - hyena-westus3-02
+      x-content-type-options:
+      - nosniff
+      x-envoy-upstream-service-time:
+      - '525'
+      x-ms-client-request-id:
+      - e0cc8cb5-5fca-4456-8b77-86380a27a437
+      x-ms-deployment-name:
+      - internal-testing-gpt-4o-mini
+      x-ms-rai-invoked:
+      - 'true'
+      x-ms-region:
+      - East US
+      x-ratelimit-limit-requests:
+      - '7580'
+      x-ratelimit-limit-tokens:
+      - '758000'
+      x-ratelimit-remaining-requests:
+      - '7576'
+      x-ratelimit-remaining-tokens:
+      - '755011'
+      x-request-id:
+      - f3c31447-8fc4-4190-86f5-d2915a9b864b
+    http_version: HTTP/1.1
+    status_code: 200
+version: 1
