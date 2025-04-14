@@ -9,11 +9,13 @@ from starlette.requests import Request
 
 from agent_platform.server import __version__
 from agent_platform.server.api.private_v2 import router as private_v2_router
+from agent_platform.server.api.public_v1 import router as public_v1_router
 from agent_platform.server.constants import SystemConfig
 from agent_platform.server.lifespan import lifespan
 from agent_platform.server.storage.option import get_storage
 
 PRIVATE_V2_PREFIX = "/api/v2"
+PUBLIC_V1_PREFIX = "/api/public/v1"
 
 logger = structlog.get_logger(__name__)
 
@@ -21,7 +23,7 @@ logger = structlog.get_logger(__name__)
 # HTTPMiddleware to ensure that all requests are prefixed with /api/v1 or /api/public/v1
 class EnsureAPIPrefixMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        if not request.url.path.startswith((PRIVATE_V2_PREFIX,)):
+        if not request.url.path.startswith((PUBLIC_V1_PREFIX, PRIVATE_V2_PREFIX)):
             return ORJSONResponse(status_code=404, content={"detail": "Not Found"})
         return await call_next(request)
 
@@ -57,10 +59,15 @@ class _CustomFastAPI(FastAPI):
 
 def create_app() -> FastAPI:
     # Version 1 API
-    app_v1 = _CustomFastAPI(
+    app_private_v2 = _CustomFastAPI(
         title="Sema4.ai Agent Server Private API Version 2",
     )
-    app_v1.include_router(private_v2_router)
+    app_private_v2.include_router(private_v2_router)
+
+    app_public_v1 = _CustomFastAPI(
+        title="Sema4.ai Agent Server Public API Version 1",
+    )
+    app_public_v1.include_router(public_v1_router)
 
     # Main FastAPI app to include both versions
     app = FastAPI(
@@ -81,10 +88,12 @@ def create_app() -> FastAPI:
 
     app.add_middleware(EnsureAPIPrefixMiddleware)
     app.include_router(private_v2_router)
-
+    app.include_router(public_v1_router)
     # Mount the API versions under their respective prefixes
-    app.mount(PRIVATE_V2_PREFIX, app_v1)
+    app.mount(PRIVATE_V2_PREFIX, app_private_v2)
+    app.mount(PUBLIC_V1_PREFIX, app_public_v1)
 
+    # TODO: move these to the v2 router
     @app.get("/api/v2/health")
     async def health() -> dict:
         return {"status": "ok"}
