@@ -12,6 +12,10 @@ class OpenAIModelMap(MapConfiguration):
     mapping: ClassVar[dict[str, str]] = {
         # 4.5 series
         "gpt-4.5": "gpt-4.5-preview-2025-02-27",
+        # 4.1 series
+        "gpt-4.1": "gpt-4.1-2025-04-14",
+        "gpt-4.1-mini": "gpt-4.1-mini-2025-04-14",
+        "gpt-4.1-nano": "gpt-4.1-nano-2025-04-14",
         # 4o series
         "chatgpt-4o-latest": "chatgpt-4o-latest",
         "gpt-4o": "gpt-4o-2024-08-06",
@@ -41,6 +45,10 @@ class OpenAIModelMap(MapConfiguration):
     models_to_type: ClassVar[dict[str, str]] = {
         # 4.5 series
         "gpt-4.5": "llm",
+        # 4.1 series
+        "gpt-4.1": "llm",
+        "gpt-4.1-mini": "llm",
+        "gpt-4.1-nano": "llm",
         # 4o series
         "chatgpt-4o-latest": "llm",
         "gpt-4o": "llm",
@@ -70,6 +78,10 @@ class OpenAIModelMap(MapConfiguration):
     models_to_input_modalities: ClassVar[dict[str, list[str]]] = {
         # 4.5 series
         "gpt-4.5": ["text","tools","images"],
+        # 4.1 series
+        "gpt-4.1": ["text","tools","images"],
+        "gpt-4.1-mini": ["text","tools","images"],
+        "gpt-4.1-nano": ["text","tools","images"],
         # 4o series
         "chatgpt-4o-latest": ["text","images"],
         "gpt-4o": ["text","tools","images"],
@@ -99,6 +111,10 @@ class OpenAIModelMap(MapConfiguration):
     models_to_output_modalities: ClassVar[dict[str, list[str]]] = {
         # 4.5 series
         "gpt-4.5": ["text"],
+        # 4.1 series
+        "gpt-4.1": ["text"],
+        "gpt-4.1-mini": ["text"],
+        "gpt-4.1-nano": ["text"],
         # 4o series
         "chatgpt-4o-latest": ["text"],
         "gpt-4o": ["text"],

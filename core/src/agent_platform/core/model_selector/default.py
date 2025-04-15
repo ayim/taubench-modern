@@ -97,8 +97,8 @@ class ModelMappingConfig(Configuration):
                 "openai": {
                     "llm": {
                         "best": "o3-mini-high",
-                        "balanced": "gpt-4o",
-                        "fastest": "gpt-4o-mini",
+                        "balanced": "gpt-4.1",
+                        "fastest": "gpt-4.1-nano",
                     },
                     "text-to-image": {
                         "best": "openai-dalle2-highres",
@@ -116,6 +116,7 @@ class ModelMappingConfig(Configuration):
                 "azure": {
                     "llm": {
                         "best": "o3-mini-high",
+                        # TODO: Update to 4.1 when azure confirmed supports it?
                         "balanced": "gpt-4o",
                         "fastest": "gpt-4o-mini",
                     },
@@ -200,10 +201,11 @@ class PlatformDefaultModelConfig(Configuration):
                 "embedding": "titan-embed-text-v2",
             },
             "openai": {
-                "llm": "gpt-4o",
+                "llm": "gpt-4.1",
                 "text-to-image": "openai-dalle2",
                 "embedding": "text-embedding-3-large",
             },
+            # TODO: defaults for azure here?
             "anthropic": {
                 "llm": "claude-3-5-sonnet",
             },
