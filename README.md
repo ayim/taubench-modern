@@ -43,7 +43,7 @@ Initial setup with `uv`:
 3. `source .venv/bin/activate` to activate the venv
 4. `uv sync --all-extras --all-groups --all-packages` to install the whole monorepo
 5. `uv run -m agent_platform.server` to run the server
-6. `uv run pytest core/ server/` to run tests
+6. `uv run pytest core/ server/` to run tests (`brew install postgresql` before trying to run tests)
 7. `uv run ruff check` to lint everything
 
 Blissfully simple.
