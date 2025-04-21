@@ -1,6 +1,6 @@
 import logging
 from collections.abc import AsyncGenerator
-from typing import TYPE_CHECKING, Any, ClassVar, cast
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from agent_platform.core.delta import GenericDelta
 from agent_platform.core.platforms.azure.configs import (
@@ -197,7 +197,7 @@ class AzureOpenAIClient(
         model: str,
     ) -> dict[str, Any]:
         """Create embeddings using a AzureOpenAI embedding model."""
-        model_id = cast(str, AzureOpenAIModelMap[model])
+        model_id = AzureOpenAIModelMap.model_aliases[model]
         logger.info(
             f"Creating embeddings with Azure model: {model} (model_id: {model_id})",
         )

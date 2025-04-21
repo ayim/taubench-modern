@@ -15,27 +15,40 @@ from fastapi import (
 from fastapi.security.http import HTTPBearer
 
 from agent_platform.core.user import User
-from agent_platform.server.auth.settings import AuthType, settings
-from agent_platform.server.storage.option import get_storage
+from agent_platform.server.api import StorageDependency
+from agent_platform.server.auth.settings import (
+    AuthConfig,
+    AuthType,
+    JWTSettingsLocal,
+    JWTSettingsOIDC,
+)
+from agent_platform.server.storage import BaseStorage
 
 
 class AuthHandler(ABC):
+    def __init__(self, storage: StorageDependency):
+        self._storage = storage
+
+    @property
+    def storage(self) -> BaseStorage:
+        return self._storage
+
     @abstractmethod
-    async def __call__(self, request: Request) -> User:
+    async def handle(self, request: Request) -> User:
         """Auth handler that returns a user object or raises an HTTPException."""
 
 
 class NOOPAuth(AuthHandler):
     _default_sub = "static-default-user-id"
 
-    async def __call__(self, request: Request) -> User:
+    async def handle(self, request: Request) -> User:
         sub = request.cookies.get("agent_server_user_id") or self._default_sub
-        user, _ = await get_storage().get_or_create_user(sub)
+        user, _ = await self.storage.get_or_create_user(sub)
         return user
 
 
 class JWTAuthBase(AuthHandler):
-    async def __call__(self, request: Request) -> User:
+    async def handle(self, request: Request) -> User:
         http_bearer = await HTTPBearer()(request)
         if not http_bearer:
             raise HTTPException(status_code=401, detail="No token provided")
@@ -46,7 +59,7 @@ class JWTAuthBase(AuthHandler):
         except jwt.PyJWTError as e:
             raise HTTPException(status_code=401, detail=str(e)) from e
 
-        user, _ = await get_storage().get_or_create_user(payload["sub"])
+        user, _ = await self.storage.get_or_create_user(payload["sub"])
         return user
 
     @abstractmethod
@@ -60,23 +73,29 @@ class JWTAuthLocal(JWTAuthBase):
     """Auth handler that uses a hardcoded decode key from env."""
 
     def decode_token(self, token: str, decode_key: str) -> dict:
-        if not settings.jwt_local:
+        if (
+            not isinstance(AuthConfig.jwt_settings, JWTSettingsLocal)
+            or not AuthConfig.jwt_settings
+        ):
             raise HTTPException(status_code=401, detail="No local JWT settings")
         return jwt.decode(
             token,
             decode_key,
-            issuer=settings.jwt_local.iss,
-            audience=settings.jwt_local.aud,
-            algorithms=[settings.jwt_local.alg.upper()],
+            issuer=AuthConfig.jwt_settings.iss,
+            audience=AuthConfig.jwt_settings.aud,
+            algorithms=[AuthConfig.jwt_settings.alg.upper()],
             options={"require": ["exp", "iss", "aud", "sub"]},
         )
 
     def get_decode_key(self, token: str) -> str:
-        if not settings.jwt_local:
+        if (
+            not isinstance(AuthConfig.jwt_settings, JWTSettingsLocal)
+            or not AuthConfig.jwt_settings
+        ):
             raise HTTPException(status_code=401, detail="No local JWT settings")
-        if not settings.jwt_local.decode_key:
+        if not AuthConfig.jwt_settings.decode_key:
             raise HTTPException(status_code=401, detail="No local JWT decode key")
-        return settings.jwt_local.decode_key
+        return AuthConfig.jwt_settings.decode_key
 
 
 class JWTAuthOIDC(JWTAuthBase):
@@ -87,13 +106,16 @@ class JWTAuthOIDC(JWTAuthBase):
 
     def decode_token(self, token: str, decode_key: str) -> dict:
         alg = self._decode_complete_unverified(token)["header"]["alg"]
-        if not settings.jwt_oidc:
+        if (
+            not isinstance(AuthConfig.jwt_settings, JWTSettingsOIDC)
+            or not AuthConfig.jwt_settings
+        ):
             raise HTTPException(status_code=401, detail="No OIDC settings")
         return jwt.decode(
             token,
             decode_key,
-            issuer=settings.jwt_oidc.iss,
-            audience=settings.jwt_oidc.aud,
+            issuer=AuthConfig.jwt_settings.iss,
+            audience=AuthConfig.jwt_settings.aud,
             algorithms=[alg.upper()],
             options={"require": ["exp", "iss", "aud", "sub"]},
         )
@@ -125,26 +147,30 @@ class JWTAuthOIDC(JWTAuthBase):
             )
         return self._jwk_client_cache[issuer]
 
+
+# TODO: @kylie-bee: I don't think we need to cache as FastAPI likely does caching.
 @lru_cache(maxsize=1)
-def get_auth_handler() -> AuthHandler:
-    if settings.auth_type == AuthType.JWT_LOCAL:
-        return JWTAuthLocal()
-    elif settings.auth_type == AuthType.JWT_OIDC:
-        return JWTAuthOIDC()
-    return NOOPAuth()
+def get_auth_handler(storage: StorageDependency) -> AuthHandler:
+    if AuthConfig.auth_type == AuthType.JWT_LOCAL:
+        return JWTAuthLocal(storage)
+    elif AuthConfig.auth_type == AuthType.JWT_OIDC:
+        return JWTAuthOIDC(storage)
+    return NOOPAuth(storage)
 
 
-AuthHandlerDependency = Depends(get_auth_handler)
+AuthHandlerDependency = Annotated[AuthHandler, Depends(get_auth_handler)]
+
 
 async def auth_user(
-    request: Request, auth_handler: AuthHandler = AuthHandlerDependency,
+    request: Request,
+    auth_handler: AuthHandlerDependency,
 ):
-    return await auth_handler(request)
+    return await auth_handler.handle(request)
 
 
 async def auth_user_websocket(
     websocket: WebSocket,
-    auth_handler: AuthHandler = AuthHandlerDependency,
+    auth_handler: AuthHandlerDependency,
 ) -> User:
     """
     WebSocket authentication that mirrors the behavior of HTTP endpoint auth.
@@ -159,8 +185,7 @@ async def auth_user_websocket(
         "path": websocket.url.path,
         "query_string": websocket.url.query.encode(),
         "headers": [
-            (k.lower().encode(), v.encode())
-            for k, v in websocket.headers.items()
+            (k.lower().encode(), v.encode()) for k, v in websocket.headers.items()
         ],
     }
 
@@ -168,7 +193,7 @@ async def auth_user_websocket(
     fake_request = Request(http_scope)
     try:
         # Call the auth handler with the fake request
-        return await auth_handler(fake_request)
+        return await auth_handler.handle(fake_request)
     except HTTPException as exc:
         # If the auth handler raises an HTTPException, raise a WebSocketException
         raise WebSocketException(
@@ -177,13 +202,5 @@ async def auth_user_websocket(
         ) from exc
 
 
-def get_authed_user():
-    return Depends(auth_user)
-
-
-def get_authed_user_websocket():
-    return Depends(auth_user_websocket)
-
-
-AuthedUser = Annotated[User, get_authed_user()]
-AuthedUserWebsocket = Annotated[User, get_authed_user_websocket()]
+AuthedUser = Annotated[User, Depends(auth_user)]
+AuthedUserWebsocket = Annotated[User, Depends(auth_user_websocket)]

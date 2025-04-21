@@ -20,27 +20,27 @@ class TestOpenAIModelMap:
         default_map = OpenAIModelMap()
 
         # Check that the default map contains mappings for key models
-        assert "gpt-4o" in default_map
-        assert "gpt-4-turbo" in default_map
-        assert "gpt-3.5-turbo" in default_map
+        assert "gpt-4o" in default_map.model_aliases
+        assert "gpt-4-turbo" in default_map.model_aliases
+        assert "gpt-3.5-turbo" in default_map.model_aliases
 
         # Check that model IDs map correctly
-        assert default_map["gpt-4o"].startswith("gpt-4o-")
-        assert default_map["gpt-4-turbo"].startswith("gpt-4-turbo-")
-        assert default_map["gpt-3.5-turbo"].startswith("gpt-3.5-turbo-")
+        assert default_map.model_aliases["gpt-4o"].startswith("gpt-4o-")
+        assert default_map.model_aliases["gpt-4-turbo"].startswith("gpt-4-turbo-")
+        assert default_map.model_aliases["gpt-3.5-turbo"].startswith("gpt-3.5-turbo-")
 
     def test_class_getitem(self) -> None:
         """Test that the class can be used as a mapping."""
         # We should be able to access model IDs directly from the class
-        model_id = OpenAIModelMap()["gpt-4o"]
+        model_id = OpenAIModelMap().model_aliases["gpt-4o"]
 
         # It should be a string and match the expected format
         assert isinstance(model_id, str)
         assert model_id.startswith("gpt-4o-")
 
         # We should be able to check if a model is in the map
-        assert "gpt-4o" in OpenAIModelMap()
-        assert "non-existent-model" not in OpenAIModelMap()
+        assert "gpt-4o" in OpenAIModelMap().model_aliases
+        assert "non-existent-model" not in OpenAIModelMap().model_aliases
 
     def test_supported_models(self) -> None:
         """Test getting supported models."""

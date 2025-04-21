@@ -2,14 +2,139 @@
 # Someday we should use this as a shared dependency. (Not today, no time.)
 
 import json
-import os
 import threading
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Literal
+from typing import ClassVar, Literal
 
-SPCS_TOKEN_FILE_PATH = Path("/snowflake/session/token")
-LOCAL_AUTH_FILE_PATH = Path.home() / ".sema4ai" / "sf-auth.json"
+from agent_platform.core.configurations import Configuration
+from agent_platform.core.configurations.base import FieldMetadata
+from agent_platform.server.constants import SystemPaths
+
+
+@dataclass(frozen=True)
+class SPCSConnnectionConfig(Configuration):
+    """Configuration for a Snowflake connection in SPCS."""
+
+    host: str = field(
+        default="https://snowflake.com",
+        metadata=FieldMetadata(
+            description="The host to use.",
+            env_vars=["SEMA4AI_AGENT_SERVER_SNOWFLAKE_HOST", "SNOWFLAKE_HOST"],
+        ),
+    )
+    account: str | None = field(
+        default=None,
+        metadata=FieldMetadata(
+            description="The Snowflake account to use.",
+            env_vars=["SEMA4AI_AGENT_SERVER_SNOWFLAKE_ACCOUNT", "SNOWFLAKE_ACCOUNT"],
+        ),
+    )
+    token: str | None = field(
+        default=None,
+        metadata=FieldMetadata(
+            description="The SPCS token to use. If not provided, the token will be "
+            "read from the token_file_path.",
+        ),
+    )
+    token_file_path: Path = field(
+        default=Path("/snowflake/session/token"),
+        metadata=FieldMetadata(
+            description="The path to the SPCS token file.",
+        ),
+    )
+    role: str | None = field(
+        default=None,
+        metadata=FieldMetadata(
+            description="The role to use.",
+            env_vars=["SEMA4AI_AGENT_SERVER_SNOWFLAKE_ROLE", "SNOWFLAKE_ROLE"],
+        ),
+    )
+    warehouse: str | None = field(
+        default=None,
+        metadata=FieldMetadata(
+            description="The warehouse to use.",
+            env_vars=[
+                "SEMA4AI_AGENT_SERVER_SNOWFLAKE_WAREHOUSE",
+                "SNOWFLAKE_WAREHOUSE",
+            ],
+        ),
+    )
+    database: str | None = field(
+        default=None,
+        metadata=FieldMetadata(
+            description="The database to use.",
+            env_vars=["SEMA4AI_AGENT_SERVER_SNOWFLAKE_DATABASE", "SNOWFLAKE_DATABASE"],
+        ),
+    )
+    schema: str | None = field(
+        default=None,
+        metadata=FieldMetadata(
+            description="The schema to use.",
+            env_vars=["SEMA4AI_AGENT_SERVER_SNOWFLAKE_SCHEMA", "SNOWFLAKE_SCHEMA"],
+        ),
+    )
+    port: int = field(
+        default=443,
+        metadata=FieldMetadata(
+            description="The port to use.",
+            env_vars=["SEMA4AI_AGENT_SERVER_SNOWFLAKE_PORT", "SNOWFLAKE_PORT"],
+        ),
+    )
+
+    # Preset fields
+    authenticator: Literal["OAUTH"] = field(default="OAUTH", init=False)
+    protocol: Literal["https"] = field(default="https", init=False)
+    client_session_keep_alive: bool = field(default=True, init=False)
+
+    def __post_init__(self) -> None:
+        if self.token is None and self.token_file_path.exists():
+            object.__setattr__(
+                self,
+                "token",
+                self.token_file_path.read_text().strip(),
+            )
+
+
+@dataclass(frozen=True)
+class SnowflakeAuthConfig(Configuration):
+    """Configuration for Snowflake authentication.
+
+    Used to set the server to expect a specific authentication method and
+    where to load it from if it's not provided directly.
+    """
+
+    depends_on: ClassVar[list[type[Configuration]]] = [
+        SystemPaths,
+        SPCSConnnectionConfig,
+    ]
+
+    mode: Literal["SPCS", "LOCAL", "CREDENTIALS"] = field(
+        default="CREDENTIALS",
+        metadata=FieldMetadata(
+            description="The mode to use for authentication.\n"
+            "- SPCS: Expect SPCS configuration to be set or related environment "
+            "variables.\n"
+            "- LOCAL: Expect a local authentication file at the provided path.\n"
+            "- CREDENTIALS: The default fallback mode, this allows for username and "
+            "password to be provided directly.",
+            env_vars=["SEMA4AI_AGENT_SERVER_SNOWFLAKE_AUTH_MODE"],
+        ),
+    )
+    local_auth_file_path: Path = field(
+        default=SystemPaths.data_dir / "sf-auth.json",
+        metadata=FieldMetadata(
+            description="The path to the local authentication file.",
+        ),
+    )
+
+    def __post_init__(self) -> None:
+        # Try to guess the mode
+        if self.mode == "CREDENTIALS":
+            if SPCSConnnectionConfig.token is not None:
+                object.__setattr__(self, "mode", "SPCS")
+            elif self.local_auth_file_path.exists():
+                object.__setattr__(self, "mode", "LOCAL")
 
 
 @dataclass
@@ -20,6 +145,7 @@ class LinkingDetails:
     application_url: str
     private_key_path: str
     private_key_passphrase: str | None = None
+
 
 @dataclass
 class AuthDetails:
@@ -156,36 +282,31 @@ def get_connection_details(  # noqa: PLR0913
         }
 
     # Check for SPCS environment first
-    if SPCS_TOKEN_FILE_PATH.exists():
-        token = SPCS_TOKEN_FILE_PATH.read_text().strip()
-
-        host = os.getenv("SNOWFLAKE_HOST")
-        account = os.getenv("SNOWFLAKE_ACCOUNT")
-
-        if not host or not account:
+    if SnowflakeAuthConfig.mode == "SPCS":
+        if not SPCSConnnectionConfig.host or not SPCSConnnectionConfig.account:
             raise SnowflakeAuthenticationError(
                 "Required environment variables SNOWFLAKE_HOST and "
                 "SNOWFLAKE_ACCOUNT must be set",
             )
 
         return {
-            "host": host,
-            "account": account,
+            "host": SPCSConnnectionConfig.host,
+            "account": SPCSConnnectionConfig.account,
             "authenticator": "OAUTH",
-            "token": token,
-            "role": role or os.getenv("SNOWFLAKE_ROLE"),
-            "warehouse": warehouse or os.getenv("SNOWFLAKE_WAREHOUSE"),
-            "database": database or os.getenv("SNOWFLAKE_DATABASE"),
-            "schema": schema or os.getenv("SNOWFLAKE_SCHEMA"),
+            "token": SPCSConnnectionConfig.token,
+            "role": role or SPCSConnnectionConfig.role,
+            "warehouse": warehouse or SPCSConnnectionConfig.warehouse,
+            "database": database or SPCSConnnectionConfig.database,
+            "schema": schema or SPCSConnnectionConfig.schema,
             "client_session_keep_alive": True,
-            "port": os.getenv("SNOWFLAKE_PORT"),
+            "port": SPCSConnnectionConfig.port,
             "protocol": "https",
         }
 
     # Fall back to local config-based authentication
-    if LOCAL_AUTH_FILE_PATH.exists():
+    if SnowflakeAuthConfig.mode == "LOCAL":
         try:
-            auth_data = json.loads(LOCAL_AUTH_FILE_PATH.read_text())
+            auth_data = json.loads(SnowflakeAuthConfig.local_auth_file_path.read_text())
             sf_auth = SnowflakeAuth.from_dict(auth_data)
         except Exception as e:
             raise SnowflakeAuthenticationError(

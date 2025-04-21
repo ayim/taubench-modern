@@ -11,7 +11,7 @@ class AgentArchManager:
         self.wheels_path = Path(wheels_path)
         self.websocket_addr = websocket_addr
         # Cache of runners: (package,version,thread_id) -> runner
-        self.active_runners: dict[tuple[str,str,str], BaseAgentRunner] = {}
+        self.active_runners: dict[tuple[str, str, str], BaseAgentRunner] = {}
 
         # A list of “trusted” or “builtin” packages that can run in-process:
         self.in_process_allowlist = {
@@ -19,7 +19,10 @@ class AgentArchManager:
         }
 
     async def get_runner(
-        self, package_name: str, version: str, thread_id: str,
+        self,
+        package_name: str,
+        version: str,
+        thread_id: str,
     ) -> BaseAgentRunner:
         """
         Return a runner object for the given CA + thread. If no runner exists,

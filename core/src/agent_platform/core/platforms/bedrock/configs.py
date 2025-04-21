@@ -1,124 +1,156 @@
 from dataclasses import dataclass, field
-from typing import ClassVar
 
-from agent_platform.core.configurations import Configuration, MapConfiguration
-from agent_platform.core.platforms.base import PlatformConfigs
+from agent_platform.core.configurations import Configuration
+from agent_platform.core.configurations.base import FieldMetadata
+from agent_platform.core.platforms.base import PlatformConfigs, PlatformModelMap
 
 
 @dataclass(frozen=True)
 class BedrockContentLimits(Configuration):
     """Content limits and associated global configurations for the Bedrock platform."""
 
-    MAX_IMAGE_COUNT: int = 20
-    MAX_IMAGE_SIZE: int = 3_750_000  # 3.75MB
-    MAX_IMAGE_HEIGHT: int = 8_000
-    MAX_IMAGE_WIDTH: int = 8_000
-    MAX_DOCUMENT_COUNT: int = 5
-    MAX_DOCUMENT_SIZE: int = 4_500_000  # 4.5MB
+    max_image_count: int = field(
+        default=20,
+        metadata=FieldMetadata(
+            description="The maximum number of images that can be included "
+            "in a request.",
+        ),
+    )
+    max_image_size: int = field(
+        default=3_750_000,
+        metadata=FieldMetadata(
+            description="The maximum size of an image in bytes.",
+        ),
+    )
+    max_image_height: int = field(
+        default=8_000,
+        metadata=FieldMetadata(
+            description="The maximum height of an image in pixels.",
+        ),
+    )
+    max_image_width: int = field(
+        default=8_000,
+        metadata=FieldMetadata(
+            description="The maximum width of an image in pixels.",
+        ),
+    )
+    max_document_count: int = field(
+        default=5,
+        metadata=FieldMetadata(
+            description="The maximum number of documents that can be included "
+            "in a request.",
+        ),
+    )
+    max_document_size: int = field(
+        default=4_500_000,
+        metadata=FieldMetadata(
+            description="The maximum size of a document in bytes.",
+        ),
+    )
 
 
 @dataclass(frozen=True)
-class BedrockModelMap(MapConfiguration):
-    """A map of our model names to Bedrock model IDs."""
+class BedrockModelMap(PlatformModelMap):
+    """A set of mappings between our model names and Bedrock model IDs.
 
-    mapping: ClassVar[dict[str, str]] = {
-        # Anthropic
-        # We don't have on-demand access for 3.7-sonnet?
-        # "claude-3-7-sonnet": "anthropic.claude-3-7-sonnet-20250219-v1:0",
-        "claude-3-5-sonnet": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
-        "claude-3-5-haiku": "us.anthropic.claude-3-haiku-20240307-v1:0",
-        # Amazon
-        "titan-embed-text-v2": "amazon.titan-embed-text-v2:0",
-        "titan-embed-text-v1": "amazon.titan-embed-text-v1",
-        # Cohere
-        # And no access to command-r-plus?
-        # "cohere-command-r-plus": "cohere.command-r-plus-v1:0",
-        "cohere-embed-english-v3": "cohere.embed-english-v3",
-        "cohere-embed-multilingual-v3": "cohere.embed-multilingual-v3",
-    }
+    All mappings keys should be the model name used in the Agent Server.
+    """
 
-    models_to_type: ClassVar[dict[str, str]] = {
-        # Anthropic
-        "claude-3-7-sonnet": "llm",
-        "claude-3-5-sonnet": "llm",
-        "claude-3-5-haiku": "llm",
-        # Amazon
-        "titan-embed-text-v2": "embedding",
-        "titan-embed-text-v1": "embedding",
-        # Cohere (LLM)
-        "cohere-command-r-plus": "llm",
-        # Cohere (Embedding)
-        "cohere-embed-english-v3": "embedding",
-        "cohere-embed-multilingual-v3": "embedding",
-    }
+    model_aliases: dict[str, str] = field(
+        default_factory=lambda: {
+            # Anthropic
+            # We don't have on-demand access for 3.7-sonnet?
+            # "claude-3-7-sonnet": "anthropic.claude-3-7-sonnet-20250219-v1:0",
+            "claude-3-5-sonnet": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+            "claude-3-5-haiku": "us.anthropic.claude-3-haiku-20240307-v1:0",
+            # Amazon
+            "titan-embed-text-v2": "amazon.titan-embed-text-v2:0",
+            "titan-embed-text-v1": "amazon.titan-embed-text-v1",
+            # Cohere
+            # And no access to command-r-plus?
+            # "cohere-command-r-plus": "cohere.command-r-plus-v1:0",
+            "cohere-embed-english-v3": "cohere.embed-english-v3",
+            "cohere-embed-multilingual-v3": "cohere.embed-multilingual-v3",
+        },
+        metadata=FieldMetadata(
+            description=("A mapping between our model names and Bedrock model IDs."),
+        ),
+    )
 
-    models_to_input_modalities: ClassVar[dict[str, list[str]]] = {
-        # Anthropic
-        "claude-3-7-sonnet": ["text", "tools", "images"],
-        "claude-3-5-sonnet": ["text", "tools", "images"],
-        "claude-3-5-haiku": ["text", "tools", "images"],
-        # Amazon
-        "titan-embed-text-v2": ["text"],
-        "titan-embed-text-v1": ["text"],
-        # Cohere (LLM)
-        "cohere-command-r-plus": ["text", "tools"],
-        # Cohere (Embedding)
-        "cohere-embed-english-v3": ["text"],
-        "cohere-embed-multilingual-v3": ["text"],
-    }
+    models_to_type: dict[str, str] = field(
+        default_factory=lambda: {
+            # Anthropic
+            "claude-3-7-sonnet": "llm",
+            "claude-3-5-sonnet": "llm",
+            "claude-3-5-haiku": "llm",
+            # Amazon
+            "titan-embed-text-v2": "embedding",
+            "titan-embed-text-v1": "embedding",
+            # Cohere (LLM)
+            "cohere-command-r-plus": "llm",
+            # Cohere (Embedding)
+            "cohere-embed-english-v3": "embedding",
+            "cohere-embed-multilingual-v3": "embedding",
+        },
+        metadata=FieldMetadata(
+            description=("A mapping between our model names and model types."),
+        ),
+    )
 
-    models_to_output_modalities: ClassVar[dict[str, list[str]]] = {
-        # Anthropic
-        "claude-3-7-sonnet": ["text"],
-        "claude-3-5-sonnet": ["text"],
-        "claude-3-5-haiku": ["text"],
-        # Amazon
-        "titan-embed-text-v2": ["embedding"],
-        "titan-embed-text-v1": ["embedding"],
-        # Cohere (LLM)
-        "cohere-command-r-plus": ["text"],
-        # Cohere (Embedding)
-        "cohere-embed-english-v3": ["embedding"],
-        "cohere-embed-multilingual-v3": ["embedding"],
-    }
-    @classmethod
-    def supported_models(cls) -> list[str]:
-        """Get list of supported model names."""
-        return list(cls.class_keys())
+    models_to_input_modalities: dict[str, list[str]] = field(
+        default_factory=lambda: {
+            # Anthropic
+            "claude-3-7-sonnet": ["text", "tools", "images"],
+            "claude-3-5-sonnet": ["text", "tools", "images"],
+            "claude-3-5-haiku": ["text", "tools", "images"],
+            # Amazon
+            "titan-embed-text-v2": ["text"],
+            "titan-embed-text-v1": ["text"],
+            # Cohere (LLM)
+            "cohere-command-r-plus": ["text", "tools"],
+            # Cohere (Embedding)
+            "cohere-embed-english-v3": ["text"],
+            "cohere-embed-multilingual-v3": ["text"],
+        },
+        metadata=FieldMetadata(
+            description=("A mapping between our model names and input modalities."),
+        ),
+    )
 
-    @classmethod
-    def distinct_llm_model_ids(cls) -> list[str]:
-        """Get list of distinct LLM model IDs."""
-        return [
-            m for m in cls.class_keys() if cls.models_to_type[m] == "llm"
-        ]
-
-    @classmethod
-    def distinct_llm_model_ids_with_tool_input(cls) -> list[str]:
-        """Get list of distinct LLM model IDs that support tool calling."""
-        return [
-            model
-            for model in cls.class_keys()
-            if cls.models_to_type[model] == "llm"
-            and "tools" in cls.models_to_input_modalities[model]
-        ]
-
-    @classmethod
-    def distinct_embedding_model_ids(cls) -> list[str]:
-        """Get list of distinct embedding model IDs."""
-        return [
-            m for m in cls.class_keys() if cls.models_to_type[m] == "embedding"
-        ]
+    models_to_output_modalities: dict[str, list[str]] = field(
+        default_factory=lambda: {
+            # Anthropic
+            "claude-3-7-sonnet": ["text"],
+            "claude-3-5-sonnet": ["text"],
+            "claude-3-5-haiku": ["text"],
+            # Amazon
+            "titan-embed-text-v2": ["embedding"],
+            "titan-embed-text-v1": ["embedding"],
+            # Cohere (LLM)
+            "cohere-command-r-plus": ["text"],
+            # Cohere (Embedding)
+            "cohere-embed-english-v3": ["embedding"],
+            "cohere-embed-multilingual-v3": ["embedding"],
+        },
+        metadata=FieldMetadata(
+            description=("A mapping between our model names and output modalities."),
+        ),
+    )
 
 
 @dataclass(frozen=True)
-class BedrockRoleMap(MapConfiguration):
+class BedrockRoleMap(Configuration):
     """A map of Bedrock role names to our role names."""
 
-    mapping: ClassVar[dict[str, str]] = {
-        "user": "user",
-        "assistant": "agent",
-    }
+    role_map: dict[str, str] = field(
+        default_factory=lambda: {
+            "user": "user",
+            "assistant": "agent",
+        },
+        metadata=FieldMetadata(
+            description=("A map of Bedrock role names to our role names."),
+        ),
+    )
 
 
 @dataclass(frozen=True)
@@ -131,35 +163,42 @@ class BedrockDefaultModel(Configuration):
 
 
 @dataclass(frozen=True)
-class BedrockMimeTypeMap(MapConfiguration):
+class BedrockMimeTypeMap(Configuration):
     """A map of Bedrock format types to MIME types supported by the platform."""
 
-    mapping: ClassVar[dict[str, str]] = {
-        "jpeg": "image/jpeg",
-        "png": "image/png",
-        "gif": "image/gif",
-        "webp": "image/webp",
-        "pdf": "application/pdf",
-        "txt": "text/plain",
-        "csv": "text/csv",
-        "md": "text/markdown",
-        "html": "text/html",
-        "xls": "application/vnd.ms-excel",
-        "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "doc": "application/msword",
-        "docx": "application/"
-        "vnd.openxmlformats-officedocument.wordprocessingml.document",
-    }
+    mime_type_map: dict[str, str] = field(
+        default_factory=lambda: {
+            "jpeg": "image/jpeg",
+            "png": "image/png",
+            "gif": "image/gif",
+            "webp": "image/webp",
+            "pdf": "application/pdf",
+            "txt": "text/plain",
+            "csv": "text/csv",
+            "md": "text/markdown",
+            "html": "text/html",
+            "xls": "application/vnd.ms-excel",
+            "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "doc": "application/msword",
+            "docx": "application/"
+            "vnd.openxmlformats-officedocument.wordprocessingml.document",
+        },
+        metadata=FieldMetadata(
+            description=(
+                "A map of Bedrock format types to MIME types supported by the platform."
+            ),
+        ),
+    )
 
     @classmethod
     def supported_format_types(cls) -> list[str]:
         """Get list of supported format types."""
-        return list(cls.class_keys())
+        return list(cls.mime_type_map.keys())
 
     @classmethod
     def reverse_mapping(cls) -> dict[str, str]:
         """Get reverse mapping of MIME types to format types."""
-        return {v: k for k, v in cls.mapping.items()}
+        return {v: k for k, v in cls.mime_type_map.items()}
 
 
 @dataclass(frozen=True)
@@ -171,15 +210,17 @@ class BedrockPlatformConfigs(PlatformConfigs):
             "llm": "anthropic",
             "embedding": "amazon",
         },
-        metadata={
-            "description": "The default platform provider by model type.",
-        },
+        metadata=FieldMetadata(
+            description="The default platform provider by model type.",
+        ),
     )
     """The default platform provider by model type."""
 
     default_model_type: str = field(
         default="llm",
-        metadata={"description": "The default model type."},
+        metadata=FieldMetadata(
+            description="The default model type.",
+        ),
     )
     """The default model type."""
 
@@ -188,9 +229,9 @@ class BedrockPlatformConfigs(PlatformConfigs):
             "llm": "balanced",
             "embedding": "balanced",
         },
-        metadata={
-            "description": "The default quality tier by model type.",
-        },
+        metadata=FieldMetadata(
+            description="The default quality tier by model type.",
+        ),
     )
     """The default quality tier by model type."""
 
@@ -209,6 +250,8 @@ class BedrockPlatformConfigs(PlatformConfigs):
                 "cohere-embed-multilingual-v3",
             ],
         },
-        metadata={"description": "The supported models by provider."},
+        metadata=FieldMetadata(
+            description="The supported models by provider.",
+        ),
     )
     """The supported models by provider."""

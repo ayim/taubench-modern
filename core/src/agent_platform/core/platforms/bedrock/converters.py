@@ -52,15 +52,15 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
             img = Image.open(BytesIO(image_data))
             width, height = img.size
 
-            if width > BedrockContentLimits.MAX_IMAGE_WIDTH:
+            if width > BedrockContentLimits.max_image_width:
                 raise ValueError(
                     f"Image width {width}px exceeds maximum allowed "
-                    f"{BedrockContentLimits.MAX_IMAGE_WIDTH}px",
+                    f"{BedrockContentLimits.max_image_width}px",
                 )
-            if height > BedrockContentLimits.MAX_IMAGE_HEIGHT:
+            if height > BedrockContentLimits.max_image_height:
                 raise ValueError(
                     f"Image height {height}px exceeds maximum allowed "
-                    f"{BedrockContentLimits.MAX_IMAGE_HEIGHT}px",
+                    f"{BedrockContentLimits.max_image_height}px",
                 )
         except Exception as e:
             raise ValueError(f"Failed to verify image dimensions: {e}") from e
@@ -75,10 +75,10 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
             ValueError: If the image size exceeds Bedrock's limits.
         """
         size = len(image_data)
-        if size > BedrockContentLimits.MAX_IMAGE_SIZE:
+        if size > BedrockContentLimits.max_image_size:
             raise ValueError(
                 f"Image size {size} bytes exceeds maximum allowed "
-                f"{BedrockContentLimits.MAX_IMAGE_SIZE} bytes",
+                f"{BedrockContentLimits.max_image_size} bytes",
             )
 
     async def _verify_image_count(
@@ -94,10 +94,10 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
             ValueError: If the number of images exceeds Bedrock's limits.
         """
         image_count = sum(1 for block in content_blocks if "image" in block)
-        if image_count > BedrockContentLimits.MAX_IMAGE_COUNT:
+        if image_count > BedrockContentLimits.max_image_count:
             raise ValueError(
                 f"Number of images {image_count} exceeds maximum allowed "
-                f"{BedrockContentLimits.MAX_IMAGE_COUNT}",
+                f"{BedrockContentLimits.max_image_count}",
             )
 
     async def _verify_document_size(self, document_data: bytes) -> None:
@@ -110,10 +110,10 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
             ValueError: If the document size exceeds Bedrock's limits.
         """
         size = len(document_data)
-        if size > BedrockContentLimits.MAX_DOCUMENT_SIZE:
+        if size > BedrockContentLimits.max_document_size:
             raise ValueError(
                 f"Document size {size} bytes exceeds maximum allowed "
-                f"{BedrockContentLimits.MAX_DOCUMENT_SIZE} bytes",
+                f"{BedrockContentLimits.max_document_size} bytes",
             )
 
     async def _verify_document_count(
@@ -129,10 +129,10 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
             ValueError: If the number of documents exceeds Bedrock's limits.
         """
         doc_count = sum(1 for block in content_blocks if "document" in block)
-        if doc_count > BedrockContentLimits.MAX_DOCUMENT_COUNT:
+        if doc_count > BedrockContentLimits.max_document_count:
             raise ValueError(
                 f"Number of documents {doc_count} exceeds maximum allowed "
-                f"{BedrockContentLimits.MAX_DOCUMENT_COUNT}",
+                f"{BedrockContentLimits.max_document_count}",
             )
 
     async def _verify_document_name(self, name: str) -> None:
@@ -398,7 +398,7 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
         Raises:
             ValueError: If the role is not found in the map.
         """
-        for bedrock_role, our_role in BedrockRoleMap.class_items():
+        for bedrock_role, our_role in BedrockRoleMap.role_map.items():
             if our_role == role:
                 return cast(Literal["user", "assistant"], bedrock_role)
         raise ValueError(f"Role '{role}' not found in BedrockRoleMap")

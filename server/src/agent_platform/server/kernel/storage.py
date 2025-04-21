@@ -3,14 +3,14 @@ from agent_platform.core.kernel_interfaces.otel import OTelArtifact
 from agent_platform.core.storage import ScopedStorage
 from agent_platform.core.thread import ThreadMessage
 from agent_platform.server.kernel.kernel_mixin import UsesKernelMixin
-from agent_platform.server.storage import get_storage
+from agent_platform.server.storage import StorageService
 
 
 class AgentServerStorageInterface(StorageInterface, UsesKernelMixin):
     """Handles persistent storage operations for CA data across agents and runs."""
 
     def __init__(self):
-        self._internal_storage = get_storage()
+        self._internal_storage = StorageService.get_instance()
 
     async def put_message(self, message: ThreadMessage) -> None:
         """Puts a message into the storage."""

@@ -70,7 +70,7 @@ class BedrockParsers(PlatformParsers):
         source = content.get("source", {})
         mime_type = cast(
             ResponseImageMimeTypes,
-            BedrockMimeTypeMap[image_format],
+            BedrockMimeTypeMap.mime_type_map[image_format],
         )
 
         if "base64" in source:
@@ -155,7 +155,7 @@ class BedrockParsers(PlatformParsers):
 
         mime_type = cast(
             ResponseDocumentMimeTypes,
-            BedrockMimeTypeMap[doc_format],
+            BedrockMimeTypeMap.mime_type_map[doc_format],
         )
 
         if "base64" in source:
@@ -325,7 +325,7 @@ class BedrockParsers(PlatformParsers):
             event: The message start event.
             message: The message state to update.
         """
-        message["role"] = BedrockRoleMap[event["messageStart"]["role"]]
+        message["role"] = BedrockRoleMap.role_map[event["messageStart"]["role"]]
         message["content"] = []
 
     def _handle_content_block_start(self, event: dict, message: dict) -> None:

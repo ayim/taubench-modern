@@ -1,7 +1,13 @@
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
+
+# Import types for type checking only
+from types_boto3_bedrock_runtime.type_defs import (
+    ConverseResponseTypeDef,
+    ConverseStreamResponseTypeDef,
+)
 
 from agent_platform.core.kernel import Kernel
 from agent_platform.core.platforms.bedrock.parsers import BedrockParsers
@@ -10,12 +16,6 @@ from agent_platform.core.responses.content import (
     ResponseToolUseContent,
 )
 from agent_platform.core.responses.response import ResponseMessage
-
-if TYPE_CHECKING:
-    from types_boto3_bedrock_runtime.type_defs import (
-        ConverseResponseTypeDef,
-        ConverseStreamResponseTypeDef,
-    )
 
 
 class TestBedrockParsers:
@@ -32,7 +32,7 @@ class TestBedrockParsers:
         return BedrockParsers()
 
     @pytest.fixture
-    def response_item(self) -> "ConverseResponseTypeDef":
+    def response_item(self) -> ConverseResponseTypeDef:
         """Fixture for creating a response item."""
         from types_boto3_bedrock_runtime.type_defs import (
             ContentBlockOutputTypeDef,
@@ -82,7 +82,7 @@ class TestBedrockParsers:
         )
 
     @pytest.fixture
-    def stream_item(self) -> "ConverseStreamResponseTypeDef":
+    def stream_item(self) -> ConverseStreamResponseTypeDef:
         """Fixture for creating a mock stream item."""
         from botocore.eventstream import EventStream
         from types_boto3_bedrock_runtime.type_defs import (
@@ -188,7 +188,7 @@ class TestBedrockParsers:
     def test_parse_response(
         self,
         parsers: BedrockParsers,
-        response_item: "ConverseResponseTypeDef",
+        response_item: ConverseResponseTypeDef,
     ) -> None:
         """Test parsing a complete response."""
         response = parsers.parse_response(response_item)
@@ -205,7 +205,7 @@ class TestBedrockParsers:
     async def test_parse_stream_event(
         self,
         parsers: BedrockParsers,
-        stream_item: "ConverseStreamResponseTypeDef",
+        stream_item: ConverseStreamResponseTypeDef,
     ) -> None:
         """Test parsing a stream event."""
         # Initialize message state

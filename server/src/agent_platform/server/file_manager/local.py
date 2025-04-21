@@ -21,7 +21,6 @@ from agent_platform.server.file_manager.utils import (
     normalize_drive,
     url_to_fs_path,
 )
-from agent_platform.server.storage.option import get_storage
 
 logger = structlog.get_logger(__name__)
 
@@ -44,7 +43,7 @@ class LocalFileManager(BaseFileManager):
     ) -> None:
         """uploads is a list of tuples of the form (file_id, file_path)"""
         for file_id, _ in uploads:
-            await get_storage().delete_file(owner, file_id, user_id)
+            await self.storage.delete_file(owner, file_id, user_id)
 
     async def _upload_files(
         self,
@@ -67,7 +66,7 @@ class LocalFileManager(BaseFileManager):
             try:
                 file_data = convert_to_file_data(f.file)
                 file_hash = await self._store(file_data, file_url)
-                uploaded_file = await get_storage().put_file_owner(
+                uploaded_file = await self.storage.put_file_owner(
                     file_id,
                     file_url,
                     f.file.filename,
@@ -101,12 +100,12 @@ class LocalFileManager(BaseFileManager):
     async def delete(self, thread_id: str, user_id: str, file_id: str) -> None:
         # TODO: embeddings
         # await self._delete_embeddings(file_id)
-        owner = await get_storage().get_thread(user_id, thread_id)
-        await get_storage().delete_file(owner, file_id, user_id)
+        owner = await self.storage.get_thread(user_id, thread_id)
+        await self.storage.delete_file(owner, file_id, user_id)
 
     async def delete_thread_files(self, thread_id: str, user_id: str) -> None:
         """Delete all files associated with a thread."""
-        await get_storage().delete_thread_files(thread_id, user_id)
+        await self.storage.delete_thread_files(thread_id, user_id)
 
     async def refresh_file_paths(self, files: list[UploadedFile]) -> list[UploadedFile]:
         """Paths are not presigned in local storage"""
@@ -115,7 +114,7 @@ class LocalFileManager(BaseFileManager):
         )
 
     async def read_file_contents(self, file_id: str, user_id: str) -> bytes:
-        file = await get_storage().get_file_by_id(file_id, user_id)
+        file = await self.storage.get_file_by_id(file_id, user_id)
         if not file:
             raise Exception(f"File not found: {file_id}")
         if not file.file_path:
@@ -137,7 +136,8 @@ class LocalFileManager(BaseFileManager):
             - Windows drive letter: file:///c:/far/boo
             - Regular path: file:///path/to/file
         """
-        abs_path = Path(SystemPaths.upload_dir).joinpath(file_id, file_ref)
+        # Ensure we have an absolute path by resolving it
+        abs_path = Path(SystemPaths.upload_dir).absolute().joinpath(file_id, file_ref)
         if IS_WIN:
             abs_path = Path(normalize_drive(str(abs_path)))
         return abs_path.as_uri()
@@ -168,7 +168,7 @@ class LocalFileManager(BaseFileManager):
         file_ref: str,
         file_id: str,
     ) -> UploadedFile:
-        file = await get_storage().put_file_owner(
+        file = await self.storage.put_file_owner(
             file_id=file_id,
             file_path=self._build_file_url(file_id, file_ref),
             file_ref=file_ref,
@@ -190,7 +190,7 @@ class LocalFileManager(BaseFileManager):
     ) -> str:
         from agent_platform.server.storage.errors import UniqueFileRefError
 
-        uploaded_file = await get_storage().get_file_by_ref(
+        uploaded_file = await self.storage.get_file_by_ref(
             owner,
             file_name,
             owner.user_id,

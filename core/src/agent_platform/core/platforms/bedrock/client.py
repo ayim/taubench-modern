@@ -128,7 +128,7 @@ class BedrockClient(
         """
         from types_boto3_bedrock_runtime.type_defs import ConverseRequestTypeDef
 
-        model_id = cast(str, BedrockModelMap[model])
+        model_id = BedrockModelMap.model_aliases[model]
         request = cast(ConverseRequestTypeDef, prompt.as_platform_request(model_id))
         response = self._bedrock_runtime_client.converse(**request)
         return self.parsers.parse_response(response)
@@ -149,7 +149,7 @@ class BedrockClient(
         """
         from types_boto3_bedrock_runtime.type_defs import ConverseStreamRequestTypeDef
 
-        model_id = cast(str, BedrockModelMap[model])
+        model_id = BedrockModelMap.model_aliases[model]
         request = cast(
             ConverseStreamRequestTypeDef,
             prompt.as_platform_request(model_id, stream=True),
@@ -200,7 +200,7 @@ class BedrockClient(
             A dictionary containing the embeddings and any
             additional model-specific information.
         """
-        model_id = cast(str, BedrockModelMap[model])
+        model_id = BedrockModelMap.model_aliases[model]
 
         # Different Bedrock embedding models use different request formats;
         # so we need to handle them differently.
@@ -250,5 +250,6 @@ class BedrockClient(
 
         else:
             raise ValueError(f"Model {model_id} is not a supported embedding model")
+
 
 PlatformClient.register_platform_client("bedrock", BedrockClient)

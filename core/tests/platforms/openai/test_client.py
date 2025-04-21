@@ -352,8 +352,8 @@ class TestOpenAIClient:
         }
         with patch.object(
             OpenAIModelMap,
-            "__class_getitem__",
-            return_value=test_model_map["gpt-4"],
+            "model_aliases",
+            test_model_map,
         ):
             response = await openai_client.generate_response(
                 prompt=openai_prompt,
@@ -393,8 +393,8 @@ class TestOpenAIClient:
 
         with patch.object(
             OpenAIModelMap,
-            "__class_getitem__",
-            return_value=test_model_map["gpt-4"],
+            "model_aliases",
+            test_model_map,
         ):
             deltas = []
             async for delta in openai_client.generate_stream_response(
@@ -432,8 +432,8 @@ class TestOpenAIClient:
 
         with patch.object(
             OpenAIModelMap,
-            "__class_getitem__",
-            return_value=test_model_map[embedding_model],
+            "model_aliases",
+            test_model_map,
         ):
             text = "This is a test text for embedding"
             result = await openai_client.create_embeddings([text], embedding_model)
@@ -479,8 +479,8 @@ class TestOpenAIClient:
 
         with patch.object(
             OpenAIModelMap,
-            "__class_getitem__",
-            return_value=test_model_map[embedding_model],
+            "model_aliases",
+            test_model_map,
         ):
             texts = ["First test text", "Second test text", "Third test text"]
             result = await openai_client.create_embeddings(texts, embedding_model)
@@ -515,8 +515,8 @@ class TestOpenAIClient:
 
         with patch.object(
             OpenAIModelMap,
-            "__class_getitem__",
-            return_value=test_model_map[embedding_model],
+            "model_aliases",
+            test_model_map,
         ):
             result = await openai_client.create_embeddings([], embedding_model)
 

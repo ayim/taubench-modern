@@ -10,24 +10,26 @@ from sse_starlette import EventSourceResponse
 
 from agent_platform.server.auth.handlers import AuthedUser
 
+PUBLIC_V1_PREFIX = "/api/public/v1"
+
 router = APIRouter()
 
 
 class Mode(str, Enum):
-    CONVERSATIONAL = 'conversational'
-    WORKER = 'worker'
+    CONVERSATIONAL = "conversational"
+    WORKER = "worker"
 
 
 class Architecture(str, Enum):
-    AGENT = 'agent'
-    PLAN_EXECUTE = 'plan_execute'
+    AGENT = "agent"
+    PLAN_EXECUTE = "plan_execute"
 
 
 class Provider(str, Enum):
-    OPENAI = 'OpenAI'
-    AZURE = 'Azure'
-    AMAZON = 'Amazon'
-    SNOWFLAKE_CORTEX = 'Snowflake Cortex AI'
+    OPENAI = "OpenAI"
+    AZURE = "Azure"
+    AMAZON = "Amazon"
+    SNOWFLAKE_CORTEX = "Snowflake Cortex AI"
 
 
 @dataclass
@@ -54,10 +56,10 @@ class Agent:
     mode: Mode
 
 
-
 class Role(str, Enum):
-    AGENT = 'agent'
-    HUMAN = 'human'
+    AGENT = "agent"
+    HUMAN = "human"
+
 
 class MessageType(str, Enum):
     MESSAGE = "message"
@@ -76,6 +78,7 @@ class Message:
     content: str
     channel: str = field(default="chat")
 
+
 @dataclass
 class TokenMessage:
     id: str | None
@@ -85,11 +88,13 @@ class TokenMessage:
     token_sequence: int
     channel: str = field(default="chat")
 
+
 @dataclass
 class ToolCall:
     id: str
     name: str
     args: dict
+
 
 @dataclass
 class ToolRequest:
@@ -99,6 +104,7 @@ class ToolRequest:
     role: Role
     content: str
     channel: str = field(default="chat")
+
 
 @dataclass
 class ToolResponse:
@@ -110,6 +116,7 @@ class ToolResponse:
     role: Role
     content: str
     channel: str = field(default="chat")
+
 
 @dataclass
 class CreateChatRequest:
@@ -164,6 +171,7 @@ async def get_agents(
     ),
 ) -> PaginatedResponse:
     raise NotImplementedError("Not implemented")
+
 
 @router.get(
     "/agents/{aid}",
@@ -228,6 +236,7 @@ async def get_chat_messages(
 ) -> ConversationState:
     raise NotImplementedError("Not implemented")
 
+
 @router.post(
     "/agents/{aid}/conversations",
     summary="Create new conversation",
@@ -248,7 +257,6 @@ async def create_conversation(
     body: Annotated[CreateChatRequest, Body()],
 ) -> Conversation:
     raise NotImplementedError("Not implemented")
-
 
 
 @router.post(
@@ -325,6 +333,7 @@ async def post_messages_detailed(
 ) -> ConversationState:
     raise NotImplementedError("Not implemented")
 
+
 @router.post(
     "/agents/{aid}/conversations/{cid}/stream/detailed",
     summary="Post messages to a conversation and stream the response",
@@ -348,8 +357,6 @@ async def post_public_api_messages_detailed(
     raise NotImplementedError("Not implemented")
 
 
-
-
 @router.delete(
     "/agents/{aid}/conversations/{cid}",
     summary="Delete conversation",
@@ -371,4 +378,3 @@ async def delete_chat(
     cid: str,
 ):
     raise NotImplementedError("Not implemented")
-

@@ -29,7 +29,7 @@ class AzureOpenAIPrompt(OpenAIPrompt):
         Returns:
             An AzureOpenAI request.
         """
-        model_id = AzureOpenAIModelMap[model]
+        model_id = AzureOpenAIModelMap.model_aliases[model]
         logger.info(f"Using AzureOpenAI model: {model} (model_id: {model_id})")
         results_dict = {
             "model": model_id,

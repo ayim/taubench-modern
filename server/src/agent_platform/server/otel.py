@@ -1,4 +1,5 @@
 import os
+from dataclasses import dataclass, field
 
 import structlog
 from opentelemetry import metrics
@@ -8,21 +9,33 @@ from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.resources import Resource
 from traceloop.sdk import Traceloop
 
-from agent_platform.server.env_vars import OTEL_COLLECTOR_URL
+from agent_platform.core.configurations import Configuration, FieldMetadata
 
 logger = structlog.get_logger(__name__)
 
 
-def get_otel_collector_url() -> str | None:
-    return OTEL_COLLECTOR_URL
+@dataclass(frozen=True)
+class OTELConfig(Configuration):
+    """Configuration for OpenTelemetry."""
 
-
-def otel_is_enabled() -> bool:
-    return get_otel_collector_url() is not None
+    collector_url: str = field(
+        default="",
+        metadata=FieldMetadata(
+            description="The URL of the OpenTelemetry collector.",
+            env_vars=["SEMA4AI_AGENT_SERVER_OTEL_COLLECTOR_URL", "OTEL_COLLECTOR_URL"],
+        ),
+    )
+    is_enabled: bool = field(
+        default=False,
+        metadata=FieldMetadata(
+            description="Whether to enable OpenTelemetry.",
+            env_vars=["SEMA4AI_AGENT_SERVER_OTEL_ENABLED", "OTEL_ENABLED"],
+        ),
+    )
 
 
 def setup_otel() -> None:
-    if not otel_is_enabled():
+    if not OTELConfig.is_enabled:
         logger.info("OTEL is not enabled. Skipping setup.")
         return
 
@@ -30,7 +43,7 @@ def setup_otel() -> None:
 
     logger.info("Setting up OTEL")
 
-    otel_collector_url = get_otel_collector_url()
+    otel_collector_url = OTELConfig.collector_url
 
     # OpenLLMetry setup
     if otel_collector_url:
@@ -43,7 +56,8 @@ def setup_otel() -> None:
     )
     otlp_exporter = OTLPMetricExporter(endpoint=f"{otel_collector_url}/v1/metrics")
     reader = PeriodicExportingMetricReader(
-        exporter=otlp_exporter, export_interval_millis=15000,
+        exporter=otlp_exporter,
+        export_interval_millis=15000,
     )
     meter_provider = MeterProvider(resource=resource, metric_readers=[reader])
     metrics.set_meter_provider(meter_provider)

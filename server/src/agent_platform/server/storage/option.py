@@ -1,21 +1,49 @@
-from os import getenv
-from typing import Final
-
+from agent_platform.server.constants import SystemConfig
 from agent_platform.server.storage.base import BaseStorage
 from agent_platform.server.storage.postgres import PostgresStorage
 from agent_platform.server.storage.sqlite import SQLiteStorage
 
 
-def initialize_storage() -> BaseStorage:
-    db_type = getenv("S4_AGENT_SERVER_DB_TYPE", "sqlite")
-    if db_type == "postgres":
-        return PostgresStorage()
-    elif db_type == "sqlite":
-        return SQLiteStorage()
-    else:
-        raise ValueError(f"Unsupported DB type: {db_type}")
+class StorageService:
+    """Service for storage using a singleton pattern."""
 
-STORAGE: Final[BaseStorage] = initialize_storage()
+    _instance: BaseStorage | None = None
 
-def get_storage() -> BaseStorage:
-    return STORAGE
+    @classmethod
+    def get_instance(cls) -> BaseStorage:
+        """Get the singleton instance of the storage service.
+
+        Returns:
+            The storage service instance.
+        """
+        if cls._instance is None:
+            cls._instance = cls._initialize_storage()
+        return cls._instance
+
+    @classmethod
+    def _initialize_storage(cls) -> BaseStorage:
+        """Initialize the appropriate storage implementation based on configuration.
+
+        Returns:
+            The initialized storage service.
+        """
+        if SystemConfig.db_type == "postgres":
+            return PostgresStorage()
+        elif SystemConfig.db_type == "sqlite":
+            return SQLiteStorage()
+        else:
+            raise ValueError(f"Unsupported DB type: {SystemConfig.db_type}")
+
+    @classmethod
+    def reset(cls) -> None:
+        """Reset the storage instance (for testing)."""
+        cls._instance = None
+
+    @classmethod
+    def set_for_testing(cls, storage: BaseStorage) -> None:
+        """Set a custom storage implementation (for testing).
+
+        Args:
+            storage: The storage implementation to use.
+        """
+        cls._instance = storage

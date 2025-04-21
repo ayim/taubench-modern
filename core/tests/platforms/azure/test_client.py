@@ -353,10 +353,12 @@ class TestAzureOpenAIClient:
         test_model_map = {
             "gpt-4": "gpt-4",
         }
+
+        # Create a model map instance with our test mapping
         with patch.object(
             AzureOpenAIModelMap,
-            "__class_getitem__",
-            return_value=test_model_map["gpt-4"],
+            "model_aliases",
+            test_model_map,
         ):
             response = await azure_client.generate_response(
                 prompt=azure_prompt,
@@ -396,8 +398,8 @@ class TestAzureOpenAIClient:
 
         with patch.object(
             AzureOpenAIModelMap,
-            "__class_getitem__",
-            return_value=test_model_map["gpt-4"],
+            "model_aliases",
+            test_model_map,
         ):
             deltas = []
             async for delta in azure_client.generate_stream_response(
@@ -426,40 +428,33 @@ class TestAzureOpenAIClient:
         mock_azure_client: Any,
     ) -> None:
         """Test creating embeddings for a single text."""
-        # Set up model map
-        test_model_map = {
-            "text-embedding-ada-002": "text-embedding-ada-002",
-            "text-embedding-3-small": "text-embedding-3-small",
-            "text-embedding-3-large": "text-embedding-3-large",
+        # Expected model mappings from AzureOpenAIModelMap
+        expected_model_mappings = {
+            "text-embedding-ada-002": "embedding-ada",
+            "text-embedding-3-small": "embedding-3-small",
+            "text-embedding-3-large": "embedding-3-large",
         }
 
-        with patch.object(
-            AzureOpenAIModelMap,
-            "__class_getitem__",
-            return_value=test_model_map[embedding_model],
-        ):
-            text = "This is a test text for embedding"
-            result = await azure_client.create_embeddings([text], embedding_model)
+        text = "This is a test text for embedding"
+        result = await azure_client.create_embeddings([text], embedding_model)
 
-            # Verify API call
-            mock_azure_client.embeddings.create.assert_called_once_with(
-                model=test_model_map[embedding_model],
-                input=text,
-            )
+        # Verify API call
+        mock_azure_client.embeddings.create.assert_called_once_with(
+            model=expected_model_mappings[embedding_model],
+            input=text,
+        )
 
-            # Verify result structure
-            assert isinstance(result, dict)
-            assert "embeddings" in result
-            assert "model" in result
-            assert "usage" in result
+        # Verify result structure
+        assert isinstance(result, dict)
+        assert "embeddings" in result
+        assert "model" in result
+        assert "usage" in result
 
-            # Verify embedding data
-            assert len(result["embeddings"]) == 1
-            assert (
-                len(result["embeddings"][0]) == 1536
-            )  # Common AzureOpenAI embedding size
-            assert result["model"] == embedding_model
-            assert "total_tokens" in result["usage"]
+        # Verify embedding data
+        assert len(result["embeddings"]) == 1
+        assert len(result["embeddings"][0]) == 1536  # Common AzureOpenAI embedding size
+        assert result["model"] == embedding_model
+        assert "total_tokens" in result["usage"]
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -476,35 +471,30 @@ class TestAzureOpenAIClient:
         mock_azure_client: Any,
     ) -> None:
         """Test creating embeddings for multiple texts."""
-        # Set up model map
-        test_model_map = {
-            "text-embedding-ada-002": "text-embedding-ada-002",
-            "text-embedding-3-small": "text-embedding-3-small",
+        # Expected model mappings from AzureOpenAIModelMap
+        expected_model_mappings = {
+            "text-embedding-ada-002": "embedding-ada",
+            "text-embedding-3-small": "embedding-3-small",
         }
 
-        with patch.object(
-            AzureOpenAIModelMap,
-            "__class_getitem__",
-            return_value=test_model_map[embedding_model],
-        ):
-            texts = ["First test text", "Second test text", "Third test text"]
-            result = await azure_client.create_embeddings(texts, embedding_model)
+        texts = ["First test text", "Second test text", "Third test text"]
+        result = await azure_client.create_embeddings(texts, embedding_model)
 
-            # Verify API calls (one per text)
-            assert mock_azure_client.embeddings.create.call_count == len(texts)
-            for i, text in enumerate(texts):
-                call_args = mock_azure_client.embeddings.create.call_args_list[i][1]
-                assert call_args["model"] == test_model_map[embedding_model]
-                assert call_args["input"] == text
+        # Verify API calls (one per text)
+        assert mock_azure_client.embeddings.create.call_count == len(texts)
+        for i, text in enumerate(texts):
+            call_args = mock_azure_client.embeddings.create.call_args_list[i][1]
+            assert call_args["model"] == expected_model_mappings[embedding_model]
+            assert call_args["input"] == text
 
-            # Verify result structure
-            assert isinstance(result, dict)
-            assert "embeddings" in result
-            assert len(result["embeddings"]) == len(texts)
-            assert "model" in result
-            assert result["model"] == embedding_model
-            assert "usage" in result
-            assert "total_tokens" in result["usage"]
+        # Verify result structure
+        assert isinstance(result, dict)
+        assert "embeddings" in result
+        assert len(result["embeddings"]) == len(texts)
+        assert "model" in result
+        assert result["model"] == embedding_model
+        assert "usage" in result
+        assert "total_tokens" in result["usage"]
 
     @pytest.mark.asyncio
     async def test_create_embeddings_empty_texts(
@@ -514,26 +504,18 @@ class TestAzureOpenAIClient:
     ) -> None:
         """Test creating embeddings with empty text list."""
         embedding_model = "text-embedding-3-small"
-        test_model_map = {
-            "text-embedding-3-small": "text-embedding-3-small",
-        }
 
-        with patch.object(
-            AzureOpenAIModelMap,
-            "__class_getitem__",
-            return_value=test_model_map[embedding_model],
-        ):
-            result = await azure_client.create_embeddings([], embedding_model)
+        result = await azure_client.create_embeddings([], embedding_model)
 
-            # Verify no API calls made
-            mock_azure_client.embeddings.create.assert_not_called()
+        # Verify no API calls made
+        mock_azure_client.embeddings.create.assert_not_called()
 
-            # Verify result is empty but structured correctly
-            assert isinstance(result, dict)
-            assert "embeddings" in result
-            assert len(result["embeddings"]) == 0
-            assert "model" in result
-            assert result["model"] == embedding_model
-            assert "usage" in result
-            assert "total_tokens" in result["usage"]
-            assert result["usage"]["total_tokens"] == 0
+        # Verify result is empty but structured correctly
+        assert isinstance(result, dict)
+        assert "embeddings" in result
+        assert len(result["embeddings"]) == 0
+        assert "model" in result
+        assert result["model"] == embedding_model
+        assert "usage" in result
+        assert "total_tokens" in result["usage"]
+        assert result["usage"]["total_tokens"] == 0

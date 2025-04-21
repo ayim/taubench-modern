@@ -9,6 +9,7 @@ from agent_platform.core.agent import Agent
 from agent_platform.core.files import RemoteFileUploadData, UploadedFile
 from agent_platform.core.payloads import UploadFilePayload
 from agent_platform.core.thread import Thread
+from agent_platform.server.storage import BaseStorage
 
 logger = structlog.get_logger(__name__)
 
@@ -22,6 +23,19 @@ class InvalidFileUploadError(HTTPException):
 
 
 class BaseFileManager(ABC):
+    def __init__(self, storage: BaseStorage | None = None):
+        self._storage = storage
+
+    @property
+    def storage(self) -> BaseStorage:
+        if self._storage is None:
+            raise ValueError("Storage is not set")
+        return self._storage
+
+    @storage.setter
+    def storage(self, storage: BaseStorage) -> None:
+        self._storage = storage
+
     async def upload(
         self,
         files: list[UploadFilePayload],
@@ -36,11 +50,9 @@ class BaseFileManager(ABC):
             raise InvalidFileUploadError("Invalid empty file name")
 
         # Use existing validation method
-        self._validate_files_pre_upload([
-            f.file.filename
-            for f in files
-            if f.file.filename
-        ])
+        self._validate_files_pre_upload(
+            [f.file.filename for f in files if f.file.filename],
+        )
 
         return await self._upload_files(files, owner, user_id)
 

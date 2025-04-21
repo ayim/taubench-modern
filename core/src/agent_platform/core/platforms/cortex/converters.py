@@ -107,7 +107,6 @@ class CortexConverters(PlatformConverters, UsesKernelMixin):
             ),
         )
 
-
     async def convert_document_content(
         self,
         content: PromptDocumentContent,
@@ -119,7 +118,6 @@ class CortexConverters(PlatformConverters, UsesKernelMixin):
         """
         raise NotImplementedError("Document content is not supported in Cortex")
 
-
     async def _reverse_role_map(self, role: str) -> Literal["user", "assistant"]:
         """Reverse the role map.
 
@@ -127,14 +125,14 @@ class CortexConverters(PlatformConverters, UsesKernelMixin):
             role: The role to reverse.
 
         Returns:
-            The corresponding Bedrock role name.
+            The corresponding Cortex role name.
 
         Raises:
             ValueError: If the role is not found in the map.
         """
-        for bedrock_role, our_role in CortexRoleMap.class_items():
+        for cortex_role, our_role in CortexRoleMap.role_map.items():
             if our_role == role:
-                return cast(Literal["user", "assistant"], bedrock_role)
+                return cast(Literal["user", "assistant"], cortex_role)
         raise ValueError(f"Role '{role}' not found in CortexRoleMap")
 
     async def _convert_messages(  # noqa: C901, PLR0912
@@ -168,7 +166,6 @@ class CortexConverters(PlatformConverters, UsesKernelMixin):
                     )
                 elif isinstance(content, PromptDocumentContent):
                     content_blocks.append(await self.convert_document_content(content))
-
 
             # CHOICE: Collect all text content, concat (newline delimited)
             # and then put that into content; the rest remain in content_list

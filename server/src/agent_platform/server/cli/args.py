@@ -8,6 +8,7 @@ import structlog
 
 import agent_platform.server
 from agent_platform.server.constants import DEFAULT_CONFIG_FILE_NAME, SystemConfig
+from agent_platform.server.log_config import disable_logging
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
@@ -28,8 +29,20 @@ class ServerArgs:
     data_dir: PathLike | None = None
     log_dir: PathLike | None = None
     ignore_config: bool = SystemConfig.ignore_config
-    show_config: bool = False
-    export_config: bool = False
+    export_config: PathLike | None = None
+    log_level: str = SystemConfig.log_level
+
+
+def set_no_logging(args: ServerArgs) -> None:
+    """Disabled logging across the server when certain arguments are provided."""
+    # Config output is not included here because it may be useful to the user to see
+    # how the config was loaded, but we could add it.
+    no_logging_args = [
+        args.license,
+        args.export_config,
+    ]
+    if any(no_logging_args):
+        disable_logging()
 
 
 def parse_args() -> ServerArgs:
@@ -91,7 +104,9 @@ def parse_args() -> ServerArgs:
         type=str,
         default=None,
         help=(
-            f"Path to the configuration file. Search order if not specified: "
+            f"Path to the config file or directory. If a directory is provided, any "
+            f".yaml, .yml, or .json file in the directory will be loaded. "
+            f"Search order if not specified: "
             f"1. SEMA4AI_AGENT_SERVER_CONFIG_PATH environment variable "
             f"2. SEMA4AI_AGENT_SERVER_HOME/{DEFAULT_CONFIG_FILE_NAME} "
             f"3. SEMA4AI_STUDIO_HOME/{DEFAULT_CONFIG_FILE_NAME} "
@@ -127,22 +142,27 @@ def parse_args() -> ServerArgs:
         "arguments or environment variables.",
     )
     parser.add_argument(
-        "--show-config",
-        action="store_true",
-        help="Show the current configuration and exit. Shows defaults for any "
-        "missing values and provides usage information.",
-    )
-    parser.add_argument(
         "--export-config",
-        action="store_true",
-        help="Export the current configuration as JSON without any additional text. "
-        "Useful for shell redirection (e.g., --export-config > config.json)",
+        type=str,
+        nargs="?",
+        const=True,
+        default=False,
+        help="Output the current configuration as YAML with documentation comments. "
+        "If a value is provided, the configuration will be written to that file path. "
+        "If the specified file path is a directory, the default filename will be used. "
+        "If no value is provided, the configuration will be printed to stdout.",
     )
     parser.add_argument(
         "--name",
         type=str,
         default=SystemConfig.name,
         help=f"Name of the agent server process, defaults to '{SystemConfig.name}'.",
+    )
+    parser.add_argument(
+        "--log-level",
+        type=str,
+        default=SystemConfig.log_level,
+        help=f"Log level to use, defaults to '{SystemConfig.log_level}'.",
     )
     args = parser.parse_args()
     logger.debug(f"Parsed command-line arguments: {vars(args)}")

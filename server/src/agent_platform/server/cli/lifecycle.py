@@ -218,6 +218,7 @@ class ServerLifecycleManager:
                 "app": create_app(),
                 "host": self.host,
                 "port": self.port,
+                "log_config": None,
             }
 
             config = uvicorn.Config(**config_kwargs)

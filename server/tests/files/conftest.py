@@ -11,6 +11,7 @@ def _load_env():
     """Ensure environment variables are loaded."""
     try:
         from dotenv import load_dotenv
+
         load_dotenv()
     except ImportError:
         pass
@@ -25,9 +26,11 @@ def logs_dir(request) -> Path:
     directory.mkdir(parents=True, exist_ok=True)
     return directory
 
+
 @pytest.fixture
 def files_location(tmpdir) -> Path:
     return Path(tmpdir) / "files"
+
 
 @pytest.fixture
 def create_sample_file(tmpdir):
@@ -108,7 +111,7 @@ def base_url_agent_server_postgres(tmpdir, logs_dir, files_location):
 def base_url_agent_server_sqlite_cloud(tmpdir, logs_dir, files_location):
     env_vars = {
         "S4_AGENT_SERVER_DB_TYPE": "sqlite",
-        "FILE_MANAGEMENT_API_URL": "https://localhost:8001",
+        "FILE_MANAGEMENT_API_URL": "http://localhost:8001",
         "S4_AGENT_SERVER_FILE_MANAGER": "cloud",
     }
     yield from _get_base_url(tmpdir, logs_dir, files_location, env_vars)
@@ -122,7 +125,7 @@ def base_url_agent_server_postgres_cloud(tmpdir, logs_dir, files_location):
         "POSTGRES_DB": "agent-server",
         "POSTGRES_USER": "postgres",
         "POSTGRES_PASSWORD": "postgres",
-        "FILE_MANAGEMENT_API_URL": "https://localhost:8001",
+        "FILE_MANAGEMENT_API_URL": "http://localhost:8001",
         "S4_AGENT_SERVER_FILE_MANAGER": "cloud",
     }
     yield from _get_base_url(tmpdir, logs_dir, files_location, env_vars)

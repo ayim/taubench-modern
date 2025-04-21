@@ -1,5 +1,5 @@
 import json
-import os
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
@@ -8,6 +8,7 @@ import structlog
 from fastapi import status
 
 from agent_platform.core.agent import Agent
+from agent_platform.core.configurations import Configuration, FieldMetadata
 from agent_platform.core.files import FileData, UploadedFile
 from agent_platform.core.payloads import UploadFilePayload
 from agent_platform.core.thread import Thread
@@ -18,20 +19,63 @@ from agent_platform.server.file_manager.base import (
     get_hash,
 )
 from agent_platform.server.file_manager.utils import convert_to_file_data
-from agent_platform.server.storage.option import get_storage
 
-logger = structlog.get_logger(__name__)
+logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
-FILE_MANAGEMENT_API_URL = os.getenv("FILE_MANAGEMENT_API_URL")
+
+@dataclass(frozen=True)
+class CloudFileMgrConfig(Configuration):
+    file_management_api_url: str = field(
+        default="http://localhost",
+        metadata=FieldMetadata(
+            description="The URL of the file management API when using the "
+            "cloud file manager.",
+            env_vars=[
+                "SEMA4AI_AGENT_SERVER_FILE_MANAGEMENT_API_URL",
+                "FILE_MANAGEMENT_API_URL",
+            ],
+        ),
+    )
+    file_path_expiration: int = field(
+        default=43200,
+        metadata=FieldMetadata(
+            description="The expiration time of the file path in seconds, "
+            "defaults to 12 hours.",
+            env_vars=["SEMA4AI_AGENT_SERVER_FILE_PATH_EXPIRATION"],
+        ),
+    )
+    file_path_expiration_buffer: int = field(
+        default=300,
+        metadata=FieldMetadata(
+            description="The buffer time of the file path in seconds, "
+            "defaults to 5 minutes.",
+            env_vars=["SEMA4AI_AGENT_SERVER_FILE_PATH_EXPIRATION_BUFFER"],
+        ),
+    )
+
+    def __post_init__(self) -> None:
+        """Validate configuration after initialization."""
+        # Validate that file_management_api_url is a valid URL
+        try:
+            from urllib.parse import urlparse
+
+            parsed_url = urlparse(self.file_management_api_url)
+            if not all([parsed_url.scheme, parsed_url.netloc]):
+                raise ValueError(
+                    f"Invalid file_management_api_url: {self.file_management_api_url}. "
+                    "URL must include scheme (http:// or https://) and host.",
+                )
+        except Exception as e:
+            raise ValueError(
+                f"Invalid file_management_api_url: {self.file_management_api_url}. "
+                f"{e!s}",
+            ) from e
 
 
 class CloudFileManager(BaseFileManager):
-    FILE_PATH_EXPIRES_IN = 43200  # 12 hours
-    FILE_PATH_EXPIRATION_BUFFER = 300  # 5 minutes
-
     def _get_presigned_post(self, file_id: str) -> dict:
         response = requests.post(
-            f"{FILE_MANAGEMENT_API_URL}",
+            f"{CloudFileMgrConfig.file_management_api_url}",
             headers={"Content-Type": "application/json"},
             data=json.dumps({"fileId": file_id, "expiresIn": 300}),
         )
@@ -39,11 +83,11 @@ class CloudFileManager(BaseFileManager):
 
     def _get_presigned_url(self, file_id: str, file_name: str) -> str:
         response = requests.get(
-            f"{FILE_MANAGEMENT_API_URL}",
+            f"{CloudFileMgrConfig.file_management_api_url}",
             headers={"Content-Type": "application/json"},
             params={
                 "fileId": file_id,
-                "expiresIn": self.FILE_PATH_EXPIRES_IN,
+                "expiresIn": CloudFileMgrConfig.file_path_expiration,
                 "fileName": file_name,
             },
         )
@@ -82,7 +126,7 @@ class CloudFileManager(BaseFileManager):
                 file_data = convert_to_file_data(f.file)
                 file_hash = await self._store(file_data, file_id)
                 file_path = self._get_presigned_url(file_id, f.file.filename)
-                uploaded_file = await get_storage().put_file_owner(
+                uploaded_file = await self.storage.put_file_owner(
                     file_id,
                     file_path,
                     f.file.filename,
@@ -107,7 +151,7 @@ class CloudFileManager(BaseFileManager):
 
     async def _delete_stored_file(self, file_id: str) -> None:
         response = requests.delete(
-            f"{FILE_MANAGEMENT_API_URL}",
+            f"{CloudFileMgrConfig.file_management_api_url}",
             headers={"Content-Type": "application/json"},
             data=json.dumps({"fileId": file_id}),
         )
@@ -134,7 +178,7 @@ class CloudFileManager(BaseFileManager):
         for file_id in file_ids:
             try:
                 # First try to delete from storage to validate existence
-                await get_storage().delete_file(owner, file_id, owner.user_id)
+                await self.storage.delete_file(owner, file_id, owner.user_id)
                 # Only delete from cloud if it exists in storage
                 await self._delete_stored_file(file_id)
             except Exception as e:
@@ -142,30 +186,31 @@ class CloudFileManager(BaseFileManager):
                 logger.warning(f"Failed to revert upload for file {file_id}: {e}")
 
     def _get_file_path_expiration(self) -> datetime:
-        return datetime.now(UTC) + timedelta(seconds=self.FILE_PATH_EXPIRES_IN)
+        return datetime.now(UTC) + timedelta(
+            seconds=CloudFileMgrConfig.file_path_expiration,
+        )
 
     def _file_path_is_expired(self, file: UploadedFile) -> bool:
         expiration = file.file_path_expiration
         if not expiration:
             return False
         return expiration < datetime.now(UTC) + timedelta(
-            seconds=self.FILE_PATH_EXPIRATION_BUFFER,
+            seconds=CloudFileMgrConfig.file_path_expiration_buffer,
         )
 
     async def delete(self, thread_id: str, user_id: str, file_id: str) -> None:
         await self._delete_stored_file(file_id)
-        owner = await get_storage().get_thread(user_id, thread_id)
-        await get_storage().delete_file(owner, file_id, user_id)
+        owner = await self.storage.get_thread(user_id, thread_id)
+        await self.storage.delete_file(owner, file_id, user_id)
 
     async def delete_thread_files(self, thread_id: str, user_id: str) -> None:
-        files = await get_storage().get_thread_files(thread_id, user_id)
-        owner = await get_storage().get_thread(user_id, thread_id)
+        files = await self.storage.get_thread_files(thread_id, user_id)
+        owner = await self.storage.get_thread(user_id, thread_id)
         for file in files:
             await self._delete_stored_file(file.file_id)
-            await get_storage().delete_file(owner, file.file_id, user_id)
+            await self.storage.delete_file(owner, file.file_id, user_id)
 
     async def refresh_file_paths(self, files: list[UploadedFile]) -> list[UploadedFile]:
-        storage = get_storage()
         ret = []
         for file in files:
             if self._file_path_is_expired(file):
@@ -173,11 +218,11 @@ class CloudFileManager(BaseFileManager):
                     file_id=file.file_id,
                     file_name=file.file_ref,
                 )
-                updated_file = await storage.update_file_retrieve_information(
+                updated_file = await self.storage.update_file_retrieve_information(
                     file_id=file.file_id,
                     file_path=refreshed_file_path,
                     file_path_expiration=self._get_file_path_expiration(),
-                    user_id=file.user_id or "", # TODO: fix?
+                    user_id=file.user_id or "",  # TODO: fix?
                 )
                 ret.append(updated_file)
             else:
@@ -185,7 +230,7 @@ class CloudFileManager(BaseFileManager):
         return ret
 
     async def read_file_contents(self, file_id: str, user_id: str) -> bytes:
-        file = await get_storage().get_file_by_id(file_id, user_id)
+        file = await self.storage.get_file_by_id(file_id, user_id)
         if not file:
             raise Exception(f"File not found: {file_id}")
 
@@ -232,7 +277,7 @@ class CloudFileManager(BaseFileManager):
         file_ref: str,
         file_id: str,
     ) -> UploadedFile:
-        file = await get_storage().put_file_owner(
+        file = await self.storage.put_file_owner(
             file_id=file_id,
             file_path=None,
             file_ref=file_ref,
@@ -254,7 +299,7 @@ class CloudFileManager(BaseFileManager):
     ) -> str:
         from agent_platform.server.storage.errors import UniqueFileRefError
 
-        uploaded_file = await get_storage().get_file_by_ref(
+        uploaded_file = await self.storage.get_file_by_ref(
             owner,
             file_name,
             owner.user_id,

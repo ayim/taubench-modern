@@ -1,131 +1,130 @@
 from dataclasses import dataclass, field
-from typing import ClassVar
 
-from agent_platform.core.configurations import Configuration, MapConfiguration
-from agent_platform.core.platforms.base import PlatformConfigs
+from agent_platform.core.configurations import Configuration
+from agent_platform.core.configurations.base import FieldMetadata
+from agent_platform.core.platforms.base import PlatformConfigs, PlatformModelMap
+
+
+@dataclass(frozen=True)
+class CortexModelMap(PlatformModelMap):
+    """A set of mappings between our model names and Cortex model IDs.
+
+    All mappings keys should be the model name used in the Agent Server.
+    """
+
+    model_aliases: dict[str, str] = field(
+        default_factory=lambda: {
+            # Anthropic
+            "claude-3-5-sonnet": "claude-3-5-sonnet",
+            # DeepSeek
+            "deepseek-r1": "deepseek-r1",
+            # Meta
+            "llama-3-1-8b": "llama3.1-8b",
+            "llama-3-1-70b": "llama3.1-70b",
+            # Snowflake (LLM)
+            "snowflake-llama-3-3-70b": "snowflake-llama-3.3-70b",
+            # Snowflake (Embedding)
+            "snowflake-arctic-embed-m": "snowflake-arctic-embed-m-v1.5",
+            "snowflake-arctic-embed-l": "snowflake-arctic-embed-l-v2.0",
+            # Voyage
+            "voyage-multilingual": "voyage-multilingual-2",
+        },
+        metadata=FieldMetadata(
+            description=("A mapping between our model names and Cortex model IDs."),
+        ),
+    )
+
+    models_to_type: dict[str, str] = field(
+        default_factory=lambda: {
+            # Anthropic
+            "claude-3-5-sonnet": "llm",
+            # DeepSeek
+            "deepseek-r1": "llm",
+            # Meta
+            "llama-3-1-8b": "llm",
+            "llama-3-1-70b": "llm",
+            # Snowflake (LLM)
+            "snowflake-llama-3-3-70b": "llm",
+            # Snowflake (Embedding)
+            "snowflake-arctic-embed-m": "embedding",
+            "snowflake-arctic-embed-l": "embedding",
+            # Voyage
+            "voyage-multilingual": "embedding",
+        },
+        metadata=FieldMetadata(
+            description=("A mapping between our model names and model types."),
+        ),
+    )
+
+    models_to_input_modalities: dict[str, list[str]] = field(
+        default_factory=lambda: {
+            # Anthropic
+            "claude-3-5-sonnet": ["text", "tools"],  # Images?
+            # DeepSeek
+            "deepseek-r1": ["text"],
+            # Meta
+            "llama-3-1-8b": ["text"],
+            "llama-3-1-70b": ["text"],
+            # Snowflake (LLM)
+            "snowflake-llama-3-3-70b": ["text"],
+            # Snowflake (Embedding)
+            "snowflake-arctic-embed-m": ["text"],
+            "snowflake-arctic-embed-l": ["text"],
+            # Voyage
+            "voyage-multilingual": ["text"],
+        },
+        metadata=FieldMetadata(
+            description=("A mapping between our model names and input modalities."),
+        ),
+    )
+
+    models_to_output_modalities: dict[str, list[str]] = field(
+        default_factory=lambda: {
+            # Anthropic
+            "claude-3-5-sonnet": ["text"],
+            # DeepSeek
+            "deepseek-r1": ["text"],
+            # Meta
+            "llama-3-1-8b": ["text"],
+            "llama-3-1-70b": ["text"],
+            # Snowflake (LLM)
+            "snowflake-llama-3-3-70b": ["text"],
+            # Snowflake (Embedding)
+            "snowflake-arctic-embed-m": ["embedding"],
+            "snowflake-arctic-embed-l": ["embedding"],
+            # Voyage
+            "voyage-multilingual": ["embedding"],
+        },
+        metadata=FieldMetadata(
+            description=("A mapping between our model names and output modalities."),
+        ),
+    )
 
 
 @dataclass(frozen=True)
-class CortexModelMap(MapConfiguration):
-    """A map of our model names to Cortex model IDs."""
-
-    mapping: ClassVar[dict[str, str]] = {
-        # Anthropic
-        "claude-3-5-sonnet": "claude-3-5-sonnet",
-        # DeepSeek
-        "deepseek-r1": "deepseek-r1",
-        # Meta
-        "llama-3-1-8b": "llama3.1-8b",
-        "llama-3-1-70b": "llama3.1-70b",
-        # Snowflake (LLM)
-        "snowflake-llama-3-3-70b": "snowflake-llama-3.3-70b",
-        # Snowflake (Embedding)
-        "snowflake-arctic-embed-m": "snowflake-arctic-embed-m-v1.5",
-        "snowflake-arctic-embed-l": "snowflake-arctic-embed-l-v2.0",
-        # Voyage
-        "voyage-multilingual": "voyage-multilingual-2",
-    }
-
-    models_to_type: ClassVar[dict[str, str]] = {
-        # Anthropic
-        "claude-3-5-sonnet": "llm",
-        # DeepSeek
-        "deepseek-r1": "llm",
-        # Meta
-        "llama-3-1-8b": "llm",
-        "llama-3-1-70b": "llm",
-        # Snowflake (LLM)
-        "snowflake-llama-3-3-70b": "llm",
-        # Snowflake (Embedding)
-        "snowflake-arctic-embed-m": "embedding",
-        "snowflake-arctic-embed-l": "embedding",
-        # Voyage
-        "voyage-multilingual": "embedding",
-    }
-
-    models_to_input_modalities: ClassVar[dict[str, list[str]]] = {
-        # Anthropic
-        "claude-3-5-sonnet": ["text", "tools"],  # Images?
-        # DeepSeek
-        "deepseek-r1": ["text"],
-        # Meta
-        "llama-3-1-8b": ["text"],
-        "llama-3-1-70b": ["text"],
-        # Snowflake (LLM)
-        "snowflake-llama-3-3-70b": ["text"],
-        # Snowflake (Embedding)
-        "snowflake-arctic-embed-m": ["text"],
-        "snowflake-arctic-embed-l": ["text"],
-        # Voyage
-        "voyage-multilingual": ["text"],
-    }
-
-    models_to_output_modalities: ClassVar[dict[str, list[str]]] = {
-        # Anthropic
-        "claude-3-5-sonnet": ["text"],
-        # DeepSeek
-        "deepseek-r1": ["text"],
-        # Meta
-        "llama-3-1-8b": ["text"],
-        "llama-3-1-70b": ["text"],
-        # Snowflake (LLM)
-        "snowflake-llama-3-3-70b": ["text"],
-        # Snowflake (Embedding)
-        "snowflake-arctic-embed-m": ["embedding"],
-        "snowflake-arctic-embed-l": ["embedding"],
-        # Voyage
-        "voyage-multilingual": ["embedding"],
-    }
-
-    @classmethod
-    def supported_models(cls) -> list[str]:
-        """Get list of supported model names."""
-        return list(cls.class_keys())
-
-    @classmethod
-    def distinct_llm_model_ids(cls) -> list[str]:
-        """Get list of distinct LLM model IDs."""
-        return [
-            model
-            for model in cls.class_keys()
-            if cls.models_to_type[model] == "llm"
-        ]
-
-    @classmethod
-    def distinct_llm_model_ids_with_tool_input(cls) -> list[str]:
-        """Get list of distinct LLM model IDs that support tool calling."""
-        return [
-            model
-            for model in cls.class_keys()
-            if cls.models_to_type[model] == "llm"
-            and "tools" in cls.models_to_input_modalities[model]
-        ]
-
-    @classmethod
-    def distinct_embedding_model_ids(cls) -> list[str]:
-        """Get list of distinct embedding model IDs."""
-        return [
-            model
-            for model in cls.class_keys()
-            if cls.models_to_type[model] == "embedding"
-        ]
-
-@dataclass(frozen=True)
-class CortexRoleMap(MapConfiguration):
+class CortexRoleMap(Configuration):
     """A map of Cortex role names to our role names."""
 
-    mapping: ClassVar[dict[str, str]] = {
-        "user": "user",
-        "assistant": "agent",
-    }
+    role_map: dict[str, str] = field(
+        default_factory=lambda: {
+            "user": "user",
+            "assistant": "agent",
+        },
+        metadata=FieldMetadata(
+            description=("A map of Cortex role names to our role names."),
+        ),
+    )
 
 
 @dataclass(frozen=True)
 class CortexDefaultModel(Configuration):
     """The default model to use for the Cortex platform."""
 
-    DEFAULT_MODEL: str = field(
+    default_model: str = field(
         default="claude-3-5-sonnet",
+        metadata=FieldMetadata(
+            description="The default model to use for the Cortex platform.",
+        ),
     )
 
 

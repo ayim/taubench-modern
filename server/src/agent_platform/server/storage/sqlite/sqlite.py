@@ -1,11 +1,15 @@
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
+from typing import ClassVar
 
 from aiosqlite import Cursor, Row, connect
 from structlog import get_logger
 
+from agent_platform.core.configurations.base import Configuration, FieldMetadata
+from agent_platform.server.constants import SystemPaths
 from agent_platform.server.storage.sqlite.migrations import SQLiteMigrations
 from agent_platform.server.storage.sqlite.storage_agents import (
     SQLiteStorageAgentsMixin,
@@ -36,6 +40,30 @@ from agent_platform.server.storage.sqlite.storage_users import (
 )
 
 
+@dataclass(frozen=True)
+class SQLiteConfig(Configuration):
+    """Configuration for the SQLite database."""
+
+    depends_on: ClassVar[list[type[Configuration]]] = [SystemPaths]
+
+    db_path: Path = field(
+        default=Path("agentserver.db"),
+        metadata=FieldMetadata(
+            description=(
+                "The path to the SQLite database file. If a relative path is given, "
+                "it will be interpreted relative to the server's data directory."
+            ),
+            env_vars=["SEMA4AI_AGENT_SERVER_SQLITE_DB_PATH"],
+        ),
+    )
+
+    def __post_init__(self) -> None:
+        """Initialize derived paths after the main paths are set."""
+        # We need to use object.__setattr__ because the dataclass is frozen
+        if not self.db_path.is_absolute():
+            object.__setattr__(self, "db_path", SystemPaths.data_dir / self.db_path)
+
+
 def _register_sqlite_adapters():
     """
     Register adapters and converters for the SQLite database.
@@ -50,7 +78,6 @@ def _register_sqlite_adapters():
         ISO 8601 date string.
         """
         return date_time.isoformat()
-
 
     def _convert_timestamp(time_stamp: bytes) -> datetime:
         """
@@ -150,14 +177,9 @@ class SQLiteStorage(
         self._is_setup = False
 
     def _get_db_path(self) -> str:
-        """Get the SQLite database path, defaulting to
-        ./agentserver.db if env var not set."""
-        from os import getenv
-        base_dir = getenv("SEMA4AI_STUDIO_HOME")
-        if not base_dir:
-            base_dir = Path(".")  # Default to a current working directory
+        """Get the SQLite database path."""
 
-        db_path = Path(base_dir) / "agentserver.db"
+        db_path = SQLiteConfig.db_path
         db_path.parent.mkdir(parents=True, exist_ok=True)
 
         self._logger.info("Using SQLite database path", path=str(db_path.absolute()))
@@ -167,7 +189,10 @@ class SQLiteStorage(
         await self._migrations.run_migrations()
 
     @asynccontextmanager
-    async def _cursor(self, cursor: Cursor|None=None) -> AsyncGenerator[Cursor, None]:
+    async def _cursor(
+        self,
+        cursor: Cursor | None = None,
+    ) -> AsyncGenerator[Cursor, None]:
         """Yield an async SQLite cursor and then commit on exit."""
         if not self._db:
             raise RuntimeError("Database not initialized; call setup_v2() first.")
@@ -175,4 +200,3 @@ class SQLiteStorage(
             cursor = await self._db.cursor()
         yield cursor
         await self._db.commit()
-

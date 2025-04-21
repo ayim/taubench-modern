@@ -4,17 +4,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
-from agent_platform.core.configurations import Configuration
-from agent_platform.server.env_vars import (
-    CONFIG_PATH,
-    CORS_MODE,
-    DATA_DIR,
-    DB_TYPE,
-    LOG_DIR,
-    LOG_FILE_SIZE,
-    LOG_LEVEL,
-    LOG_MAX_BACKUP_FILES,
-)
+from agent_platform.core.configurations import Configuration, FieldMetadata
 
 # Determine if we are running in a frozen environment (via PyInstaller)
 IS_FROZEN = getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS")
@@ -33,7 +23,7 @@ The root directory of the application. You can find static files, like LICENSE,
 in this directory.
 """
 
-DEFAULT_CONFIG_FILE_NAME = "agent-server-config.json"
+DEFAULT_CONFIG_FILE_NAME = "agent-server-config.yaml"
 
 
 def _hyphenated_name(name: str) -> str:
@@ -49,40 +39,141 @@ class SystemConfig(Configuration):
     """
 
     # Server configuration
-    name: str = field(default="Agent Server")
-    host: str = field(default="127.0.0.1")
-    port: int = field(default=8000)
-    parent_pid: int = field(default=0)
-    use_data_dir_lock: bool = field(default=False)
-    kill_lock_holder: bool = field(default=False)
-    ignore_config: bool = field(default=False)
+    name: str = field(
+        default="Agent Server",
+        metadata=FieldMetadata(
+            description="The name of the agent server.",
+            env_vars=["SEMA4AI_AGENT_SERVER_NAME"],
+        ),
+    )
+    host: str = field(
+        default="127.0.0.1",
+        metadata=FieldMetadata(
+            description="The host address of the agent server.",
+            env_vars=["SEMA4AI_AGENT_SERVER_HOST"],
+        ),
+    )
+    port: int = field(
+        default=8000,
+        metadata=FieldMetadata(
+            description="The port number of the agent server.",
+            env_vars=["SEMA4AI_AGENT_SERVER_PORT"],
+        ),
+    )
+    parent_pid: int = field(
+        default=0,
+        metadata=FieldMetadata(
+            description=(
+                "The parent process ID of the agent server (when "
+                "the given pid exits, the agent server will also exit)."
+            ),
+            env_vars=["SEMA4AI_AGENT_SERVER_PARENT_PID"],
+        ),
+    )
+    use_data_dir_lock: bool = field(
+        default=False,
+        metadata=FieldMetadata(
+            description=(
+                "Whether to use a lock on the data directory. "
+                "If True, the agent server will not start if the lock file exists."
+            ),
+            env_vars=["SEMA4AI_AGENT_SERVER_USE_DATA_DIR_LOCK"],
+        ),
+    )
+    kill_lock_holder: bool = field(
+        default=False,
+        metadata=FieldMetadata(
+            description=(
+                "Whether to kill the lock holder of the data directory. "
+                "If True, the agent server will kill the process holding the lock file "
+                "when it starts up if the lock file exists."
+            ),
+            env_vars=["SEMA4AI_AGENT_SERVER_KILL_LOCK_HOLDER"],
+        ),
+    )
+    ignore_config: bool = field(
+        default=False,
+        metadata=FieldMetadata(
+            description=(
+                "Whether to ignore the configuration file. "
+                "If True, the agent server will not load the configuration file "
+                "and will use the default values."
+            ),
+            env_vars=["SEMA4AI_AGENT_SERVER_IGNORE_CONFIG"],
+        ),
+    )
 
     # Database configuration
     db_type: Literal["sqlite", "postgres"] = field(
-        default_factory=lambda: DB_TYPE or "sqlite",
-    )  # type: ignore (we can ignore here as we validate in __post_init__...)
+        default="sqlite",
+        metadata=FieldMetadata(
+            description="The type of database to use. "
+            "Must be one of: 'sqlite', 'postgres'.",
+            env_vars=["SEMA4AI_AGENT_SERVER_DB_TYPE", "DB_TYPE"],
+        ),
+    )
+
+    # File manager configuration
+    file_manager_type: Literal["local", "cloud"] = field(
+        default="local",
+        metadata=FieldMetadata(
+            description="The type of file manager to use.",
+            env_vars=[
+                "SEMA4AI_AGENT_SERVER_FILE_MANAGER_TYPE",
+                "S4_AGENT_SERVER_FILE_MANAGER_TYPE",
+            ],
+        ),
+    )
 
     # Logging settings
-    log_level: str = field(default_factory=lambda: (LOG_LEVEL or "INFO").upper())
+    log_level: str = field(
+        default="INFO",
+        metadata=FieldMetadata(
+            description=(
+                "The log level to use. "
+                "Must be one of: 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'."
+            ),
+            env_vars=["SEMA4AI_AGENT_SERVER_LOG_LEVEL", "LOG_LEVEL"],
+        ),
+    )
     log_max_backup_files: int = field(
-        default_factory=lambda: int(LOG_MAX_BACKUP_FILES or "5"),
+        default=5,
+        metadata=FieldMetadata(
+            description=(
+                "The maximum number of backup files to keep. "
+                "If the number of backup files exceeds this value, the oldest "
+                "backup file will be deleted."
+            ),
+            env_vars=[
+                "SEMA4AI_AGENT_SERVER_LOG_MAX_BACKUP_FILES",
+                "LOG_MAX_BACKUP_FILES",
+            ],
+        ),
     )
     log_file_size: int = field(
-        default_factory=lambda: int(LOG_FILE_SIZE or str(10 * 1_048_576)),
+        default=10 * 1_048_576,  # 10MB
+        metadata=FieldMetadata(
+            description=(
+                "The maximum size of the log file. "
+                "If the log file exceeds this value, it will be rotated. "
+                "The default value is 10MB."
+            ),
+            env_vars=["SEMA4AI_AGENT_SERVER_LOG_FILE_SIZE", "LOG_FILE_SIZE"],
+        ),
     )
 
     # CORS settings
     cors_mode: Literal["all", None] = field(
-        default_factory=lambda: CORS_MODE,
-    )  # type: ignore (we can ignore here as we validate in __post_init__...)
-    """
-    The mode for CORS settings. Can be "all", or None.
-    If "all", all origins, methods, headers are allowed.
-    If anything else, CORS is not enabled.
-    """
-
-    # Derived settings
-    hyphenated_name: str = field(default="agent-server")
+        default=None,
+        metadata=FieldMetadata(
+            description=(
+                "The mode for CORS settings. Can be 'all', or None. "
+                "If 'all', all origins, methods, headers are allowed. "
+                "If anything else, CORS is not enabled."
+            ),
+            env_vars=["SEMA4AI_AGENT_SERVER_CORS_MODE"],
+        ),
+    )
 
     def __post_init__(self) -> None:
         """Validate configuration settings."""
@@ -100,43 +191,30 @@ class SystemConfig(Configuration):
         if not isinstance(self.port, int) or self.port < 0 or self.port > 65535:  # noqa: PLR2004
             raise ValueError(f"Invalid port number: {self.port}")
 
-        # Derived settings
-        object.__setattr__(self, "hyphenated_name", _hyphenated_name(self.name))
-
     @property
     def debug_mode(self) -> bool:
         """Determine if debug mode is enabled based on log level."""
         return self.log_level in ["DEBUG", "TRACE"]
 
+    @property
+    def hyphenated_name(self) -> str:
+        """The hyphenated name of the agent server."""
+        return _hyphenated_name(self.name)
+
 
 def default_config_path() -> Path:
-    """Get the default configuration path for the agent server, which is
-    either the value of the SEMA4AI_AGENT_SERVER_CONFIG_PATH environment variable or
-    the current working directory.
+    """Get the default configuration path for the agent server.
+
+    This path can be overridden by setting the SEMA4AI_AGENT_SERVER_CONFIG_PATH
+    environment variable.
+
+    Returns:
+        The default path to the configuration file.
     """
-    potential_path = CONFIG_PATH or Path.cwd() / DEFAULT_CONFIG_FILE_NAME
-    if isinstance(potential_path, str):
-        potential_path = Path(potential_path)
-    # if path is a directory, add the default config file name to it
-    if potential_path.is_dir():
-        potential_path = potential_path / DEFAULT_CONFIG_FILE_NAME
+    # Default is the current working directory with the default config file name
+    potential_path = Path.cwd() / DEFAULT_CONFIG_FILE_NAME
+
     return _normalized_path(potential_path)
-
-
-def default_data_dir() -> Path:
-    """Get the default data directory for the agent server, which is
-    either the value of the SEMA4AI_AGENT_SERVER_DATA_DIR environment variable or
-    the current working directory.
-    """
-    return _normalized_path(DATA_DIR or ".")
-
-
-def default_log_dir() -> Path:
-    """Get the default log directory for the agent server, which is
-    either the value of the SEMA4AI_AGENT_SERVER_LOG_DIR environment variable or
-    the current working directory.
-    """
-    return _normalized_path(LOG_DIR or ".")
 
 
 @dataclass(frozen=True)
@@ -147,9 +225,30 @@ class SystemPaths(Configuration):
     """
 
     # Environment variable fallbacks
-    data_dir: Path = field(default_factory=default_data_dir)
+    data_dir: Path = field(
+        default=Path("."),
+        metadata=FieldMetadata(
+            description="Base directory for all data storage",
+            env_vars=[
+                "SEMA4AI_AGENT_SERVER_DATA_DIR",
+                "SEMA4AI_AGENT_SERVER_HOME",
+                "S4_AGENT_SERVER_HOME",
+                "SEMA4AI_STUDIO_HOME",
+            ],
+        ),
+    )
 
-    log_dir: Path = field(default_factory=default_log_dir)
+    log_dir: Path = field(
+        default=Path("."),
+        metadata=FieldMetadata(
+            description="Directory for storing log files",
+            env_vars=[
+                "SEMA4AI_AGENT_SERVER_LOG_DIR",
+                "SEMA4AI_STUDIO_LOG",
+                "SEMA4AI_STUDIO_HOME",
+            ],
+        ),
+    )
 
     # Derived paths
     vector_database_path: Path = field(init=False)

@@ -1,7 +1,7 @@
 import logging
 from collections.abc import AsyncGenerator
 from copy import deepcopy
-from typing import TYPE_CHECKING, Any, ClassVar, cast
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from agent_platform.core.delta import GenericDelta
 from agent_platform.core.delta.compute_delta import compute_generic_deltas
@@ -159,7 +159,7 @@ class OpenAIClient(
         model: str,
     ) -> dict[str, Any]:
         """Create embeddings using a OpenAI embedding model."""
-        model_id = cast(str, OpenAIModelMap[model])
+        model_id = OpenAIModelMap.model_aliases[model]
         logger.info(
             f"Creating embeddings with OpenAI model: {model} (model_id: {model_id})",
         )

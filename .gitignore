@@ -11,6 +11,7 @@ uploads/
 agent-server.pid
 agent-server.lock
 agent-server-config.json
+agent-server-config.yaml
 agentserver.db
 
 # Byte-compiled / optimized / DLL files
@@ -187,3 +188,6 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Cursor settings
+.cursor/

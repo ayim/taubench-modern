@@ -3,13 +3,15 @@ import sys
 import structlog
 from agent_platform import server
 
-from agent_platform.server.cli.args import ServerArgs, parse_args
-from agent_platform.server.cli.configurations import (
+from agent_platform.server.cli import (
+    ServerArgs,
+    ServerLifecycleManager,
+    parse_args,
     parse_config_path_args,
     print_config,
+    print_license,
+    set_no_logging,
 )
-from agent_platform.server.cli.license import print_license
-from agent_platform.server.cli.lifecycle import ServerLifecycleManager
 from agent_platform.server.configuration_manager import (
     init_configurations,
 )
@@ -23,6 +25,10 @@ def main():
     setup_logging(default_mode=True)
 
     args: ServerArgs = parse_args()
+
+    # Disable logging if certain arguments are provided
+    set_no_logging(args)
+    setup_logging(default_mode=True, log_level=args.log_level)
 
     logger.info(f"{args.name.title()} version {server.__version__} starting...")
 
@@ -38,6 +44,8 @@ def main():
         overrides[config_key]["data_dir"] = args.data_dir
     if args.log_dir:
         overrides[config_key]["log_dir"] = args.log_dir
+    if overrides == {config_key: {}}:
+        overrides = None
 
     # Step 1: Initialize only the essential configurations needed for startup
     # This allows us to import constants and set up paths before loading
@@ -65,13 +73,9 @@ def main():
     # Debug point to ensure we're getting past the show-config check
     logger.debug("Past initial argument checks, proceeding with configuration")
 
-    # Handle show-config or export-config action
-    if args.show_config or args.export_config:
-        print_config(
-            "show" if args.show_config else "export",
-            should_exit=True,
-        )
-    logger.debug("Continuing with server initialization (not in show-config mode)")
+    # Handle config output or schema export actions
+    if args.export_config:
+        print_config(should_exit=True, export_path=args.export_config)
 
     # Create and run the server lifecycle manager
     lifecycle_manager = ServerLifecycleManager(args)

@@ -44,7 +44,6 @@ def print_info(message):
         print(f"\033[94mINFO\033[0m: {message}")  # Blue color
 
 
-
 class AgentServerClient:
     """
     A client for interacting with the agent server.
@@ -145,13 +144,13 @@ class AgentServerClient:
         from pathlib import Path
         from urllib.parse import urlparse
 
-        from agent_platform.server.file_manager.local import url_to_fs_path
+        from agent_platform.server.file_manager import url_to_fs_path
 
         file_info = self.get_file_info_by_ref(thread_id, file_ref)
         file_url = file_info.get("file_url") if file_info else None
         if not file_url:
             raise ValueError(
-                f"file_url not available in response. " f"Response: {file_info}",
+                f"file_url not available in response. Response: {file_info}",
             )
 
         parsed_url = urlparse(file_url)
@@ -218,9 +217,9 @@ class AgentServerClient:
         if not name:
             name = f"Test Agent {self._next_agent_id()}"
 
-        action_packages_raw: list[dict] = [
-            asdict(ap) for ap in action_packages
-        ] if action_packages else []
+        action_packages_raw: list[dict] = (
+            [asdict(ap) for ap in action_packages] if action_packages else []
+        )
         data = {
             "mode": "conversational",
             "name": name,

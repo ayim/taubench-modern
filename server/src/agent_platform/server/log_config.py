@@ -10,6 +10,14 @@ from agent_platform.server.constants import SystemConfig, SystemPaths
 from agent_platform.server.env_vars import LOG_LEVEL
 
 
+def _get_default_formatter(use_color: bool = True) -> logging.Formatter:
+    """Set up default formatter for logging."""
+    return DefaultFormatter(
+        "%(asctime)s - %(name)s - %(levelprefix)s %(message)s",
+        use_colors=use_color,
+    )
+
+
 def _get_access_handler() -> logging.StreamHandler:
     """Set up access handler for Uvicorn."""
     access_formatter = AccessFormatter(
@@ -35,6 +43,7 @@ def _get_file_handler() -> RotatingFileHandler:
         maxBytes=SystemConfig.log_file_size,
         backupCount=SystemConfig.log_max_backup_files,
     )
+    file_handler.setFormatter(_get_default_formatter(use_color=False))
     return file_handler
 
 
@@ -86,27 +95,33 @@ def _setup_additional_loggers(
     # watchfiles_logger.propagate = False
 
 
-def setup_logging(default_mode: bool = False):
+def disable_logging() -> None:
+    """Disable logging across the server."""
+    logging.disable(logging.CRITICAL)
+
+
+def setup_logging(default_mode: bool = False, log_level: str | None = None):
     """Set up logging configuration.
 
     Args:
         default_mode: If True, use environment variables for minimal setup.
                      If False, use full system configuration.
+        log_level: The log level to use. If None, tries to use environment
+                   variable SEMA4AI_AGENT_SERVER_LOG_LEVEL or defaults to
+                   "INFO".
     """
+    if log_level is None:
+        log_level = LOG_LEVEL if isinstance(LOG_LEVEL, str) else "INFO"
     if default_mode:
-        level = getattr(logging, LOG_LEVEL or "INFO")
+        level = getattr(logging, log_level)
     else:
         level = getattr(logging, SystemConfig.log_level, None)
     if not isinstance(level, int):
         raise ValueError(f"Invalid log level: {level}")
 
-    default_formatter = DefaultFormatter(
-        "%(asctime)s - %(name)s - %(levelprefix)s %(message)s",
-    )
-
     # Set up handlers
     default_handler = logging.StreamHandler(sys.stderr)
-    default_handler.setFormatter(default_formatter)
+    default_handler.setFormatter(_get_default_formatter())
 
     root_handlers = [default_handler]
 
@@ -120,8 +135,17 @@ def setup_logging(default_mode: bool = False):
     root_logger = logging.getLogger()
     root_logger.setLevel(level)
     root_logger.handlers.clear()
+
+    # Configure uvicorn error logger
+    uvicorn_error_logger = logging.getLogger("uvicorn.error")
+    uvicorn_error_logger.setLevel(level)
+    uvicorn_error_logger.handlers.clear()
+
     for handler in root_handlers:
         root_logger.addHandler(handler)
+        uvicorn_error_logger.addHandler(handler)
+
+    uvicorn_error_logger.propagate = False
 
     # Configure structlog
     structlog.configure(

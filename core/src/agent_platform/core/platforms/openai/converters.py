@@ -129,7 +129,7 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
         Raises:
             ValueError: If the role is not found in the map.
         """
-        for openai_role, our_role in OpenAIRoleMap.class_items():
+        for openai_role, our_role in OpenAIRoleMap.role_map.items():
             if our_role == role:
                 return cast(Literal["user", "assistant"], openai_role)
         raise ValueError(f"Role '{role}' not found in OpenAIRoleMap")
@@ -251,8 +251,8 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
             # Can't have an empty user message (especially before tool messages, throws
             # off the API which expects tool messages to follow assistant messages)
             if (
-                formatted_message['role'] != "user"
-                or formatted_message['content'] != ""
+                formatted_message["role"] != "user"
+                or formatted_message["content"] != ""
             ):
                 converted_messages.append(formatted_message)
 
@@ -353,7 +353,8 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
         messages = await self._convert_messages(prompt.finalized_messages)
 
         system = await self._convert_system_instruction_to_openai(
-            prompt.system_instruction, model_id,
+            prompt.system_instruction,
+            model_id,
         )
 
         # Add system message at the beginning if present

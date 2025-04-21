@@ -152,7 +152,7 @@ class TestBedrockClient:
                             "bytes": (
                                 b'{"type":"metadata","usage":{"input_tokens":10,"output_'
                                 b'tokens":20,"total_tokens":30},"metrics":{"latency_ms":'
-                                b'500}}'
+                                b"500}}"
                             ),
                         },
                     },
@@ -255,7 +255,8 @@ class TestBedrockClient:
             assert client.parameters.aws_secret_access_key == "test-secret-key"
 
     def test_init_parameters_with_updates(
-        self, parameters: BedrockPlatformParameters,
+        self,
+        parameters: BedrockPlatformParameters,
     ) -> None:
         with patch("boto3.client"):
             client = BedrockClient(parameters=parameters, region_name="us-east-1")
@@ -285,11 +286,12 @@ class TestBedrockClient:
         }
         with patch.object(
             BedrockModelMap,
-            "__class_getitem__",
-            return_value=test_model_map,
+            "model_aliases",
+            test_model_map,
         ):
             response = await bedrock_client.generate_response(
-                bedrock_prompt, "claude-3-5-sonnet",
+                bedrock_prompt,
+                "claude-3-5-sonnet",
             )
             mock_boto3_client.converse.assert_called_once()
             assert isinstance(response, ResponseMessage)
@@ -318,11 +320,12 @@ class TestBedrockClient:
         }
         with patch.object(
             BedrockModelMap,
-            "__class_getitem__",
-            return_value=test_model_map,
+            "model_aliases",
+            test_model_map,
         ):
             response = await bedrock_client.generate_response(
-                bedrock_prompt, "claude-3-5-sonnet",
+                bedrock_prompt,
+                "claude-3-5-sonnet",
             )
             mock_boto3_client.converse.assert_called_once()
             assert isinstance(response, ResponseMessage)
@@ -348,22 +351,25 @@ class TestBedrockClient:
         test_model_map = {
             "claude-3-5-sonnet": "anthropic.claude-3-5-sonnet-20240620-v1:0",
         }
+
         async def mock_stream_generator(
-            *args: Any, **kwargs: Any,
+            *args: Any,
+            **kwargs: Any,
         ) -> AsyncGenerator[GenericDelta, None]:
             yield MagicMock(spec=GenericDelta)
 
         with patch.object(
             BedrockModelMap,
-            "__class_getitem__",
-            return_value=test_model_map,
+            "model_aliases",
+            test_model_map,
         ):
             mock_boto3_client.converse_stream.return_value = {"stream": [{}]}
             bedrock_client.parsers.parse_stream_event = mock_stream_generator
 
             deltas: list[GenericDelta] = []
             async for delta in bedrock_client.generate_stream_response(
-                bedrock_prompt, "claude-3-5-sonnet",
+                bedrock_prompt,
+                "claude-3-5-sonnet",
             ):
                 deltas.append(delta)
             mock_boto3_client.converse_stream.assert_called_once()
@@ -390,22 +396,25 @@ class TestBedrockClient:
         test_model_map = {
             "claude-3-5-sonnet": "anthropic.claude-3-5-sonnet-20240620-v1:0",
         }
+
         async def mock_stream_generator(
-            *args: Any, **kwargs: Any,
+            *args: Any,
+            **kwargs: Any,
         ) -> AsyncGenerator[GenericDelta, None]:
             yield MagicMock(spec=GenericDelta)
 
         with patch.object(
             BedrockModelMap,
-            "__class_getitem__",
-            return_value=test_model_map,
+            "model_aliases",
+            test_model_map,
         ):
             mock_boto3_client.converse_stream.return_value = {"stream": [{}]}
             bedrock_client.parsers.parse_stream_event = mock_stream_generator
 
             deltas: list[GenericDelta] = []
             async for delta in bedrock_client.generate_stream_response(
-                bedrock_prompt, "claude-3-5-sonnet",
+                bedrock_prompt,
+                "claude-3-5-sonnet",
             ):
                 deltas.append(delta)
             mock_boto3_client.converse_stream.assert_called_once()
@@ -456,7 +465,7 @@ class TestBedrockClient:
 
         mock_boto3_client.invoke_model.assert_called_once()
         call_kwargs = mock_boto3_client.invoke_model.call_args[1]
-        expected_model_id = BedrockModelMap[text_embedding_model]
+        expected_model_id = BedrockModelMap.model_aliases[text_embedding_model]
         assert call_kwargs["modelId"] == expected_model_id
 
     @pytest.mark.asyncio

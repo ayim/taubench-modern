@@ -1,55 +1,75 @@
 from dataclasses import dataclass, field
 from typing import ClassVar
 
-from agent_platform.core.configurations import Configuration, MapConfiguration
-from agent_platform.core.platforms.base import PlatformConfigs
+from agent_platform.core.configurations import Configuration
+from agent_platform.core.configurations.base import FieldMetadata
+from agent_platform.core.platforms.base import PlatformConfigs, PlatformModelMap
 
 
 @dataclass(frozen=True)
-class AzureOpenAIModelMap(MapConfiguration):
-    """A map of our model names to Azure OpenAI deployment IDs."""
+class AzureOpenAIModelMap(PlatformModelMap):
+    """A set of mappings between our model names and Azure OpenAI deployment IDs.
 
-    mapping: ClassVar[dict[str, str]] = {
-        "gpt-4o": "gpt-4o",
-        "gpt-4o-mini": "gpt-4o-mini",
-        "gpt-4-turbo": "gpt-4-turbo",
-        "gpt-3.5-turbo": "gpt-35-turbo",
-        "o3-mini-high": "o3-mini",
-        "o3-mini-low": "o3-mini",
-        "o1-mini-high": "o1-mini",
-        "o1-mini-low": "o1-mini",
-        "o1-pro-high": "o1-pro",
-        "o1-pro-low": "o1-pro",
-        "o1-high": "o1",
-        "o1-low": "o1",
-        # Embedding models
-        "text-embedding-3-small": "embedding-3-small",
-        "text-embedding-3-large": "embedding-3-large",
-        "text-embedding-ada-002": "embedding-ada",
-    }
+    All mappings keys should be the model name used in the Agent Server.
+    """
 
-    @classmethod
-    def supported_models(cls) -> list[str]:
-        """Get list of supported model names."""
-        return list(cls.class_keys())
+    model_aliases: dict[str, str] = field(
+        default_factory=lambda: {
+            "gpt-4o": "gpt-4o",
+            "gpt-4o-mini": "gpt-4o-mini",
+            "gpt-4-turbo": "gpt-4-turbo",
+            "gpt-3.5-turbo": "gpt-35-turbo",
+            "o3-mini-high": "o3-mini",
+            "o3-mini-low": "o3-mini",
+            "o1-mini-high": "o1-mini",
+            "o1-mini-low": "o1-mini",
+            "o1-pro-high": "o1-pro",
+            "o1-pro-low": "o1-pro",
+            "o1-high": "o1",
+            "o1-low": "o1",
+            # Embedding models
+            "text-embedding-3-small": "embedding-3-small",
+            "text-embedding-3-large": "embedding-3-large",
+            "text-embedding-ada-002": "embedding-ada",
+        },
+        metadata=FieldMetadata(
+            description=(
+                "A mapping between our model names and Azure OpenAI deployment IDs."
+            ),
+        ),
+    )
+    # TODO: Add mappings for model types, input modalities, and output modalities
 
 
 @dataclass(frozen=True)
-class AzureOpenAIRoleMap(MapConfiguration):
-    """A map of OpenAI role names to our role names."""
+class AzureOpenAIRoleMap(Configuration):
+    """A mapping between Azure Open AI message role names and Agent Server
+    message role names keyed with the Azure Open AI role name.
+    """
 
-    mapping: ClassVar[dict[str, str]] = {
-        "user": "user",
-        "assistant": "agent",
-    }
+    role_map: dict[str, str] = field(
+        default_factory=lambda: {
+            "user": "user",
+            "assistant": "agent",
+        },
+        metadata=FieldMetadata(
+            description=(
+                "A mapping between Azure Open AI message role names and Agent Server "
+                "message role names keyed with the Azure Open AI role name."
+            ),
+        ),
+    )
 
 
 @dataclass(frozen=True)
 class AzureOpenAIDefaultModel(Configuration):
     """The default model to use for the Azure OpenAI platform."""
 
-    DEFAULT_MODEL: str = field(
+    default_model: str = field(
         default="gpt-4o",
+        metadata=FieldMetadata(
+            description=("The default model to use for the Azure OpenAI platform."),
+        ),
     )
 
 
@@ -57,20 +77,24 @@ class AzureOpenAIDefaultModel(Configuration):
 class AzureOpenAIPlatformConfigs(PlatformConfigs):
     """The configs for the Azure OpenAI platform."""
 
+    depends_on: ClassVar[list[type[Configuration]]] = [AzureOpenAIModelMap]
+
     default_platform_provider: dict[str, str] = field(
         default_factory=lambda: {
             "llm": "azure",
             "embedding": "azure",
         },
-        metadata={
-            "description": "The default platform provider by model type.",
-        },
+        metadata=FieldMetadata(
+            description="The default platform provider by model type.",
+        ),
     )
     """The default platform provider by model type."""
 
     default_model_type: str = field(
         default="llm",
-        metadata={"description": "The default model type."},
+        metadata=FieldMetadata(
+            description="The default model type.",
+        ),
     )
     """The default model type."""
 
@@ -79,9 +103,9 @@ class AzureOpenAIPlatformConfigs(PlatformConfigs):
             "llm": "balanced",
             "embedding": "balanced",
         },
-        metadata={
-            "description": "The default quality tier by model type.",
-        },
+        metadata=FieldMetadata(
+            description="The default quality tier by model type.",
+        ),
     )
     """The default quality tier by model type."""
 
@@ -89,6 +113,8 @@ class AzureOpenAIPlatformConfigs(PlatformConfigs):
         default_factory=lambda: {
             "azure": AzureOpenAIModelMap.supported_models(),
         },
-        metadata={"description": "The supported models by provider."},
+        metadata=FieldMetadata(
+            description="The supported models by provider.",
+        ),
     )
     """The supported models by provider."""

@@ -1,4 +1,3 @@
-from typing import ClassVar
 from unittest.mock import MagicMock
 
 import pytest
@@ -19,42 +18,40 @@ class TestBedrockModelMap:
         default_map = BedrockModelMap()
 
         # Check that the default map contains mappings for key models
-        assert "claude-3-5-sonnet" in default_map
-        assert "claude-3-5-haiku" in default_map
+        assert "claude-3-5-sonnet" in default_map.model_aliases
+        assert "claude-3-5-haiku" in default_map.model_aliases
 
         # Check some specific mappings
-        assert default_map["claude-3-5-sonnet"].startswith(
+        assert default_map.model_aliases["claude-3-5-sonnet"].startswith(
             "us.anthropic.claude-3-5-sonnet",
         )
-        assert default_map["claude-3-5-haiku"].startswith(
+        assert default_map.model_aliases["claude-3-5-haiku"].startswith(
             "us.anthropic.claude-3-haiku",
         )
 
     def test_class_getitem(self) -> None:
         """Test that the class can be used as a mapping."""
         # We should be able to access model IDs directly from the class
-        model_id = BedrockModelMap()["claude-3-5-sonnet"]
+        model_id = BedrockModelMap().model_aliases["claude-3-5-sonnet"]
 
         # It should be a string and match the expected format
         assert isinstance(model_id, str)
         assert model_id.startswith("us.anthropic.claude-3-5-sonnet")
 
         # We should be able to check if a model is in the map
-        assert "claude-3-5-sonnet" in BedrockModelMap()
-        assert "non-existent-model" not in BedrockModelMap()
+        assert "claude-3-5-sonnet" in BedrockModelMap().model_aliases
+        assert "non-existent-model" not in BedrockModelMap().model_aliases
 
     def test_custom_map(self) -> None:
         """Test that we can create a custom map."""
-        class CustomModelMap(BedrockModelMap):
-            mapping: ClassVar[dict[str, str]] = {
-                "claude-3-5-sonnet": "test-model-id",
-            }
-
-        # Create a custom map instance
-        model_map = CustomModelMap()
+        # Create a custom map with the test value
+        custom_aliases = {
+            "claude-3-5-sonnet": "test-model-id",
+        }
+        model_map = BedrockModelMap(model_aliases=custom_aliases)
 
         # Verify the custom map was used
-        assert model_map["claude-3-5-sonnet"] == "test-model-id"
+        assert model_map.model_aliases["claude-3-5-sonnet"] == "test-model-id"
 
 
 class TestBedrockPlatformConfigs:
@@ -79,4 +76,3 @@ class TestBedrockPlatformConfigs:
         assert isinstance(configs.default_platform_provider, dict)
         assert "llm" in configs.default_platform_provider
         assert "embedding" in configs.default_platform_provider
-

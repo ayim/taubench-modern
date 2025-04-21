@@ -1,7 +1,7 @@
 from collections.abc import AsyncGenerator
 from copy import deepcopy
 from logging import getLogger
-from typing import TYPE_CHECKING, Any, ClassVar, cast
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from httpx import AsyncClient, AsyncHTTPTransport, Timeout, codes
 
@@ -87,7 +87,7 @@ class CortexClient(
     ) -> "Session":
         from snowflake.snowpark import Session
 
-        from agent_platform.core.platforms.cortex.utils import (
+        from agent_platform.core.platforms.cortex.connect import (
             get_connection_details,
             safe_get_or_create_session,
         )
@@ -151,8 +151,7 @@ class CortexClient(
         self,
         request: dict[str, Any],
     ) -> dict[str, Any]:
-        """Generate a response from the Cortex platform.
-        """
+        """Generate a response from the Cortex platform."""
         transport = AsyncHTTPTransport(retries=2)
         timeout = Timeout(300.0)
 
@@ -242,7 +241,7 @@ class CortexClient(
         Returns:
             The complete model response.
         """
-        model_id = cast(str, CortexModelMap[model])
+        model_id = CortexModelMap.model_aliases[model]
         request = prompt.as_platform_request(model_id)
         response = await self._generate_response(request)
         return self.parsers.parse_response(response)
@@ -264,7 +263,7 @@ class CortexClient(
         import json
 
         with self.kernel.otel.span("generate_stream_response") as span:
-            model_id = cast(str, CortexModelMap[model])
+            model_id = CortexModelMap.model_aliases[model]
             span.add_event("streaming on model", {"model": model_id})
 
             request = prompt.as_platform_request(model_id, stream=True)
@@ -395,7 +394,7 @@ class CortexClient(
             span.add_event("ensuring warehouse is selected")
             await self._ensure_warehouse_selected()
 
-            model_id = cast(str, CortexModelMap[model])
+            model_id = CortexModelMap.model_aliases[model]
             span.add_event("embedding on model", {"model": model_id})
 
             if not texts:
@@ -448,5 +447,6 @@ class CortexClient(
                 "model": model,
                 "usage": {"total_tokens": total_tokens},
             }
+
 
 PlatformClient.register_platform_client("cortex", CortexClient)

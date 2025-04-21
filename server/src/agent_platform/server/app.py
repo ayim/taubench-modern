@@ -8,14 +8,15 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 
 from agent_platform.server import __version__
-from agent_platform.server.api.private_v2 import router as private_v2_router
-from agent_platform.server.api.public_v1 import router as public_v1_router
+from agent_platform.server.api import (
+    PRIVATE_V2_PREFIX,
+    PUBLIC_V1_PREFIX,
+    private_v2_router,
+    public_v1_router,
+)
+from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.constants import SystemConfig
 from agent_platform.server.lifespan import lifespan
-from agent_platform.server.storage.option import get_storage
-
-PRIVATE_V2_PREFIX = "/api/v2"
-PUBLIC_V1_PREFIX = "/api/public/v1"
 
 logger = structlog.get_logger(__name__)
 
@@ -99,10 +100,10 @@ def create_app() -> FastAPI:
         return {"status": "ok"}
 
     @app.get("/api/v2/metrics")
-    async def metrics() -> dict:
+    async def metrics(storage: StorageDependency) -> dict:
         return {
-            "agentCount": await get_storage().count_agents(),
-            "threadCount": await get_storage().count_threads(),
+            "agentCount": await storage.count_agents(),
+            "threadCount": await storage.count_threads(),
         }
 
     return app

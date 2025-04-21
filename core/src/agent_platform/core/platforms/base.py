@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypeVar
 
 from agent_platform.core.configurations import Configuration
+from agent_platform.core.configurations.base import FieldMetadata
 from agent_platform.core.delta import GenericDelta
 from agent_platform.core.kernel_interfaces.kernel_mixin import UsesKernelMixin
 from agent_platform.core.prompts import Prompt
@@ -47,9 +48,7 @@ class PlatformPrompt(ABC):
 class PlatformParameters(ABC):
     """A platform-specific parameters."""
 
-    _platform_parameters_registry: ClassVar[
-        dict[str, type["PlatformParameters"]]
-    ] = {}
+    _platform_parameters_registry: ClassVar[dict[str, type["PlatformParameters"]]] = {}
 
     kind: str = field(
         default="platform",
@@ -234,53 +233,145 @@ class PlatformParsers(ABC):
         pass
 
 
-@dataclass(frozen=True)
+class PlatformModelMap(Configuration):
+    """A set of mappings between platform model names and agent server model names.
+
+    All mappings keys should be the model name used in the Agent Server.
+
+    This configuration includes various types of mappings to allow for
+    selection of models based on type, modality, etc.
+    """
+
+    _abstract = True
+
+    model_aliases: dict[str, str] = field(
+        default_factory=dict,
+        metadata=FieldMetadata(
+            description=(
+                "A mapping between platform model names and agent server model names."
+            ),
+        ),
+    )
+    models_to_type: dict[str, str] = field(
+        default_factory=dict,
+        metadata=FieldMetadata(
+            description=("A mapping between agent server model names and model types."),
+        ),
+    )
+    models_to_input_modalities: dict[str, list[str]] = field(
+        default_factory=dict,
+        metadata=FieldMetadata(
+            description=(
+                "A mapping between agent server model names and input modalities "
+                "supported by the model."
+            ),
+        ),
+    )
+    models_to_output_modalities: dict[str, list[str]] = field(
+        default_factory=dict,
+        metadata=FieldMetadata(
+            description=(
+                "A mapping between agent server model names and output modalities "
+                "supported by the model."
+            ),
+        ),
+    )
+
+    @classmethod
+    def supported_models(cls) -> list[str]:
+        """Get list of supported model names."""
+        return list(cls.model_aliases.keys())
+
+    @classmethod
+    def distinct_llm_model_ids(cls) -> list[str]:
+        """Get list of distinct Large Language Model names."""
+        return list(
+            set(
+                model
+                for model in cls.supported_models()
+                if cls.models_to_type[model] == "llm"
+            ),
+        )
+
+    @classmethod
+    def llm_models_with_input_modalities(cls, modalities: list[str]) -> list[str]:
+        """Get list of model names that support the given input modalities."""
+        return [
+            model
+            for model in cls.distinct_llm_model_ids()
+            if all(
+                modality in cls.models_to_input_modalities[model]
+                for modality in modalities
+            )
+        ]
+
+    @classmethod
+    def distinct_llm_model_ids_with_tool_input(cls) -> list[str]:
+        """Get list of distinct LLM model IDs that support tool calling."""
+        return cls.llm_models_with_input_modalities(["tools"])
+
+    @classmethod
+    def distinct_llm_model_ids_with_audio_input(cls) -> list[str]:
+        """Get list of distinct LLM model IDs that support audio input."""
+        return cls.llm_models_with_input_modalities(["audio"])
+
+    @classmethod
+    def distinct_embedding_model_ids(cls) -> list[str]:
+        """Get list of distinct embedding model IDs."""
+        return list(
+            set(
+                model
+                for model in cls.supported_models()
+                if cls.models_to_type[model] == "embedding"
+            ),
+        )
+
+
 class PlatformConfigs(Configuration):
     """A platform-specific configs."""
 
+    _abstract = True
+
     default_platform_provider: dict[str, str] = field(
-        default_factory=lambda: {
-            "llm": "openai",
-            "embedding": "openai",
-            "text-to-image": "openai",
-        },
-        metadata={
-            "description": "The default platform provider by model type.",
-        },
+        default_factory=dict,
+        metadata=FieldMetadata(
+            description="The default platform provider by model type.",
+        ),
     )
     """The default platform provider by model type."""
 
     default_model_type: str = field(
         default="llm",
-        metadata={"description": "The default model type."},
+        metadata=FieldMetadata(
+            description="The default model type.",
+        ),
     )
     """The default model type."""
 
     default_quality_tier: dict[str, str] = field(
-        default_factory=lambda: {
-            "llm": "balanced",
-            "embedding": "balanced",
-            "text-to-image": "balanced",
-        },
-        metadata={
-            "description": "The default quality tier by model type.",
-        },
+        default_factory=dict,
+        metadata=FieldMetadata(
+            description="The default quality tier by model type.",
+        ),
     )
     """The default quality tier by model type."""
 
     supported_models_by_provider: dict[str, list[str]] = field(
         default_factory=dict,
-        metadata={"description": "The supported models by provider."},
+        metadata=FieldMetadata(
+            description="The supported models by provider.",
+        ),
     )
     """The supported models by provider."""
 
 
 # Define type variables for the components
-TConverters = TypeVar('TConverters', bound=PlatformConverters)
-TParsers = TypeVar('TParsers', bound=PlatformParsers)
-TParameters = TypeVar('TParameters', bound=PlatformParameters)
-TConfigs = TypeVar('TConfigs', bound=PlatformConfigs)
-TPrompt = TypeVar('TPrompt', bound=PlatformPrompt)
+TConverters = TypeVar("TConverters", bound=PlatformConverters)
+TParsers = TypeVar("TParsers", bound=PlatformParsers)
+TParameters = TypeVar("TParameters", bound=PlatformParameters)
+TConfigs = TypeVar("TConfigs", bound=PlatformConfigs)
+TPrompt = TypeVar("TPrompt", bound=PlatformPrompt)
+
 
 class PlatformClient(
     ABC,

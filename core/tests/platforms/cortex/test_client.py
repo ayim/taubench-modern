@@ -14,9 +14,6 @@ from agent_platform.core.model_selector import (
 )
 from agent_platform.core.model_selector.default import ModelMappingConfig
 from agent_platform.core.platforms.cortex.client import CortexClient
-from agent_platform.core.platforms.cortex.configs import (
-    CortexModelMap,
-)
 from agent_platform.core.platforms.cortex.converters import CortexConverters
 from agent_platform.core.platforms.cortex.parameters import CortexPlatformParameters
 from agent_platform.core.platforms.cortex.parsers import CortexParsers
@@ -196,11 +193,13 @@ async def test_generate_response_success(
     # We pretend that the mapping is direct for the test
     mock_raw_response_data = Response(
         status_code=200,
-        content=json.dumps({
-            "choices": [
-                {"message": {"content": "mock api response"}},
-            ],
-        }),
+        content=json.dumps(
+            {
+                "choices": [
+                    {"message": {"content": "mock api response"}},
+                ],
+            },
+        ),
     )
 
     # Patch httpx.AsyncClient.post to return the mock data
@@ -223,21 +222,18 @@ async def test_generate_response_http_failure(
     Test generate_response scenario where the HTTP status is not 200 (e.g. 400).
     We expect an HTTPError or some exception from httpx.
     """
-    test_model = "claude-fail-model"
-    test_model_map = {test_model: "claude-fail-actual-id"}
+    test_model = "claude-3-5-sonnet"  # Use a model that already exists in the model map
 
     # We create a mock that raises an httpx.HTTPStatusError
     async def mock_generate_response_failure(*args, **kwargs):
         from httpx import HTTPStatusError
+
         request = Request("POST", "http://test-url")
         response = Response(status_code=400, request=request)
         raise HTTPStatusError("Bad Request", request=request, response=response)
 
+    # Only patch the _generate_response method
     with patch.object(
-        CortexModelMap,
-        "__class_getitem__",
-        return_value=test_model_map,
-    ), patch.object(
         cortex_client,
         "_generate_response",
         side_effect=mock_generate_response_failure,
@@ -275,14 +271,17 @@ async def test_generate_stream_response_success(
             ',"usage":{"prompt_tokens":1,"completion_tokens":3,"total_tokens":4}}'
         )
 
-    with patch.object(
-        cortex_client,
-        "_generate_stream_response",
-        side_effect=mock_stream_responder,
-    ) as mock_internal_stream, patch.object(
-        cortex_client,
-        "_generate_platform_metadata",
-        return_value={"final": "meta"},
+    with (
+        patch.object(
+            cortex_client,
+            "_generate_stream_response",
+            side_effect=mock_stream_responder,
+        ) as mock_internal_stream,
+        patch.object(
+            cortex_client,
+            "_generate_platform_metadata",
+            return_value={"final": "meta"},
+        ),
     ):
         deltas: list[GenericDelta] = []
         async for delta in cortex_client.generate_stream_response(
@@ -325,7 +324,6 @@ async def test_generate_stream_response_success(
         )
 
 
-@pytest.mark.asyncio
 @pytest.mark.asyncio
 async def test_generate_stream_response_http_failure(
     cortex_client: CortexClient,
@@ -397,10 +395,7 @@ async def test_create_embeddings(
         {"EMBEDDING": [0.1, 0.2, 0.3]},
     ]
     (
-        mock_snowpark_session
-        .create_dataframe.return_value
-        .select.return_value
-        .collect.return_value
+        mock_snowpark_session.create_dataframe.return_value.select.return_value.collect.return_value
     ) = mock_collect_result
 
     texts = ["This is a test"]
@@ -445,10 +440,7 @@ async def test_create_embeddings_model_selector(
     # Mock session usage
     mock_collect_result = [{"EMBEDDING": [0.1, 0.2, 0.3]}]
     (
-        mock_snowpark_session
-        .create_dataframe.return_value
-        .select.return_value
-        .collect.return_value
+        mock_snowpark_session.create_dataframe.return_value.select.return_value.collect.return_value
     ) = mock_collect_result
 
     # Suppose the selector chooses "snowflake-arctic-embed-m"
@@ -462,12 +454,15 @@ async def test_create_embeddings_model_selector(
 
     texts = ["This is a test"]
 
-    with patch(
-        "agent_platform.core.model_selector.default.DefaultModelSelector",
-        return_value=mock_selector,
-    ), patch(
-        "agent_platform.core.model_selector.default.ModelMappingConfig",
-        return_value=mock_model_mapping_config,
+    with (
+        patch(
+            "agent_platform.core.model_selector.default.DefaultModelSelector",
+            return_value=mock_selector,
+        ),
+        patch(
+            "agent_platform.core.model_selector.default.ModelMappingConfig",
+            return_value=mock_model_mapping_config,
+        ),
     ):
         model_selection_request = ModelSelectionRequest(
             model_type="embedding",
@@ -545,12 +540,14 @@ async def test_ensure_warehouse_selected_auto_selection(
 
     # Assert calls on the mock_sql method itself
     assert mock_sql_method.call_count == 2
-    mock_sql_method.assert_has_calls([
-        call("SHOW WAREHOUSES"),
-        call().collect(),
-        call("USE WAREHOUSE AUTO_SELECTED_WH"),
-        call().collect(),
-    ])
+    mock_sql_method.assert_has_calls(
+        [
+            call("SHOW WAREHOUSES"),
+            call().collect(),
+            call("USE WAREHOUSE AUTO_SELECTED_WH"),
+            call().collect(),
+        ],
+    )
 
     # Assert calls on the collect() method of the return value of sql()
     assert mock_sql_method.return_value.collect.call_count == 2

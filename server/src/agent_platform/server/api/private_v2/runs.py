@@ -18,10 +18,10 @@ from agent_platform.core.runs import Run
 from agent_platform.core.thread import Thread
 from agent_platform.core.user import User
 from agent_platform.server.agent_architectures import AgentArchManager
-from agent_platform.server.auth.handlers import AuthedUser, AuthedUserWebsocket
+from agent_platform.server.api.dependencies import StorageDependency
+from agent_platform.server.auth import AuthedUser, AuthedUserWebsocket
 from agent_platform.server.kernel import AgentServerKernel
-from agent_platform.server.storage import get_storage
-from agent_platform.server.storage.errors import (
+from agent_platform.server.storage import (
     AgentNotFoundError,
     ThreadNotFoundError,
 )
@@ -42,33 +42,41 @@ async def _get_initial_payload(websocket: WebSocket) -> InitiateStreamPayload:
         ) from e
 
 
-async def _get_thread_state(user: User, payload: InitiateStreamPayload) -> Thread:
+async def _get_thread_state(
+    user: User,
+    payload: InitiateStreamPayload,
+    storage: StorageDependency,
+) -> Thread:
     as_thread = InitiateStreamPayload.to_thread(payload, user.user_id)
     try:
         # TODO: Batch insert this?
         for message in payload.messages:
-            await get_storage().add_message_to_thread(
+            await storage.add_message_to_thread(
                 user.user_id,
                 as_thread.thread_id,
                 message,
             )
 
-        thread_state = await get_storage().get_thread(
+        thread_state = await storage.get_thread(
             user.user_id,
             as_thread.thread_id,
         )
         return thread_state
     except ThreadNotFoundError:
-        await get_storage().upsert_thread(
+        await storage.upsert_thread(
             user.user_id,
             as_thread,
         )
         return as_thread
 
 
-async def _get_agent(user: User, thread_state: Thread) -> Agent:
+async def _get_agent(
+    user: User,
+    thread_state: Thread,
+    storage: StorageDependency,
+) -> Agent:
     try:
-        agent = await get_storage().get_agent(
+        agent = await storage.get_agent(
             user.user_id,
             str(thread_state.agent_id),
         )
@@ -85,8 +93,9 @@ async def _get_agent(user: User, thread_state: Thread) -> Agent:
 async def get_run_messages(
     run_id: str,
     user: AuthedUser,
+    storage: StorageDependency,
 ):
-    messages = await get_storage().get_messages_by_parent_run_id(
+    messages = await storage.get_messages_by_parent_run_id(
         user.user_id,
         run_id,
     )
@@ -102,6 +111,7 @@ async def stream_run(  # noqa: C901, PLR0915 (complex entrypoint, split up in th
     websocket: WebSocket,
     user: AuthedUserWebsocket,
     agent_id: str,
+    storage: StorageDependency,
 ):
     agent_arch_manager = AgentArchManager(
         wheels_path="./todo-for-out-of-process/wheels",
@@ -114,8 +124,8 @@ async def stream_run(  # noqa: C901, PLR0915 (complex entrypoint, split up in th
 
     try:
         initial_payload = await _get_initial_payload(websocket)
-        thread_state = await _get_thread_state(user, initial_payload)
-        agent = await _get_agent(user, thread_state)
+        thread_state = await _get_thread_state(user, initial_payload, storage)
+        agent = await _get_agent(user, thread_state, storage)
 
         # Make sure the initial payload's agent id matches the agent id in the url
         if initial_payload.agent_id != agent_id:
@@ -132,7 +142,7 @@ async def stream_run(  # noqa: C901, PLR0915 (complex entrypoint, split up in th
             status="running",
             run_type="stream",
         )
-        await get_storage().create_run(active_run)
+        await storage.create_run(active_run)
 
         # Get our runner instance for the CA
         runner = await agent_arch_manager.get_runner(
@@ -209,7 +219,7 @@ async def stream_run(  # noqa: C901, PLR0915 (complex entrypoint, split up in th
                 **active_run.metadata,
                 "finish_reason": "websocket_disconnected",
             }
-            await get_storage().upsert_run(active_run)
+            await storage.upsert_run(active_run)
     except WebSocketException as e:
         logger.error("WebSocket error", error=e)
         await websocket.close(code=e.code, reason=e.reason)
@@ -222,7 +232,7 @@ async def stream_run(  # noqa: C901, PLR0915 (complex entrypoint, split up in th
                 "error": str(e),
                 "finish_reason": "websocket_error",
             }
-            await get_storage().upsert_run(active_run)
+            await storage.upsert_run(active_run)
     except Exception as e:
         logger.error(f"Unexpected error in websocket stream for agent {agent_id} : {e}")
         # Log stack trace
@@ -240,4 +250,4 @@ async def stream_run(  # noqa: C901, PLR0915 (complex entrypoint, split up in th
                 "error": str(e),
                 "finish_reason": "unexpected_error",
             }
-            await get_storage().upsert_run(active_run)
+            await storage.upsert_run(active_run)

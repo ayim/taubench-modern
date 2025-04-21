@@ -26,18 +26,19 @@ from agent_platform.core.payloads import UploadFilePayload
 from agent_platform.core.runbook import Runbook
 from agent_platform.core.thread import Thread, ThreadMessage, ThreadTextContent
 from agent_platform.core.utils import SecretString
-from agent_platform.server.file_manager.base import (
+from agent_platform.server.file_manager import (
     BaseFileManager,
+    CloudFileManager,
+    FileManagerService,
     InvalidFileUploadError,
+    LocalFileManager,
 )
-from agent_platform.server.file_manager.cloud import CloudFileManager
-from agent_platform.server.file_manager.local import LocalFileManager
-from agent_platform.server.storage.errors import (
+from agent_platform.server.storage import (
+    PostgresStorage,
+    SQLiteStorage,
     ThreadFileNotFoundError,
     UserPermissionError,
 )
-from agent_platform.server.storage.postgres import PostgresStorage
-from agent_platform.server.storage.sqlite import SQLiteStorage
 
 
 @pytest.fixture
@@ -62,22 +63,27 @@ def mock_requests():
     return mock
 
 
-@pytest.fixture(params=[LocalFileManager, CloudFileManager])
-def file_manager(request, mock_requests):
-    manager_class = request.param
-    manager = manager_class()
+@pytest.fixture(params=["local", "cloud"])
+def file_manager(request, mock_requests, storage):
+    manager_type = request.param
 
-    if isinstance(manager, CloudFileManager):
-        # Mock cloud file manager specific methods
-        patch_target = "agent_platform.server.file_manager.cloud.requests"
+    # Reset the FileManagerService to ensure a clean state
+    FileManagerService.reset()
+
+    if manager_type == "cloud":
         # Set required environment variable
         os.environ["FILE_MANAGEMENT_API_URL"] = "https://example.com/files"
-        with patch(patch_target, mock_requests):
+        with patch("agent_platform.server.file_manager.cloud.requests", mock_requests):
+            manager = FileManagerService.get_instance(storage, manager_type="cloud")
             yield manager
         # Clean up environment variable
         del os.environ["FILE_MANAGEMENT_API_URL"]
     else:
+        manager = FileManagerService.get_instance(storage, manager_type="local")
         yield manager
+
+    # Clean up after the test
+    FileManagerService.reset()
 
 
 @pytest.fixture
@@ -288,23 +294,15 @@ async def setup_storage(
 
 
 @pytest.mark.asyncio
-@patch("agent_platform.server.file_manager.local.get_storage")
-@patch("agent_platform.server.file_manager.cloud.get_storage")
 class TestFileManager:
-    async def test_upload_success(  # noqa: PLR0913
+    async def test_upload_success(
         self,
-        mock_get_storage_cloud,
-        mock_get_storage_local,
         file_manager: BaseFileManager,
         sample_file: UploadFile,
         sample_thread: Thread,
         setup_storage: SQLiteStorage | PostgresStorage,
         sample_uploaded_file: UploadedFile,
     ):
-        # Set up both mocks to return the same storage
-        mock_get_storage_cloud.return_value = setup_storage
-        mock_get_storage_local.return_value = setup_storage
-
         results = await file_manager.upload(
             files=[UploadFilePayload(file=sample_file)],
             owner=sample_thread,
@@ -318,19 +316,14 @@ class TestFileManager:
         assert results[0].thread_id == sample_uploaded_file.thread_id
         assert results[0].agent_id == sample_uploaded_file.agent_id
 
-    async def test_upload_duplicate_file_names(  # noqa: PLR0913
+    async def test_upload_duplicate_file_names(
         self,
-        mock_get_storage_cloud,
-        mock_get_storage_local,
         file_manager: BaseFileManager,
         sample_file: UploadFile,
         sample_file2: UploadFile,
         sample_thread: Thread,
         setup_storage: SQLiteStorage | PostgresStorage,
     ):
-        mock_get_storage_cloud.return_value = setup_storage
-        mock_get_storage_local.return_value = setup_storage
-
         with pytest.raises(InvalidFileUploadError, match="File names must be unique"):
             await file_manager.upload(
                 files=[
@@ -341,17 +334,13 @@ class TestFileManager:
                 user_id=sample_thread.user_id,
             )
 
-    async def test_upload_invalid_file_names(  # noqa: PLR0913
+    async def test_upload_invalid_file_names(
         self,
-        mock_get_storage_cloud,
-        mock_get_storage_local,
         file_manager: BaseFileManager,
         sample_file: UploadFile,
         sample_thread: Thread,
         setup_storage: SQLiteStorage | PostgresStorage,
     ):
-        mock_get_storage_cloud.return_value = setup_storage
-        mock_get_storage_local.return_value = setup_storage
         invalid_names = ["CON", "PRN", "AUX", "NUL", "COM1", "LPT1", ".", ".."]
 
         sample_file.filename = ""
@@ -371,17 +360,13 @@ class TestFileManager:
                     user_id=sample_thread.user_id,
                 )
 
-    async def test_upload_invalid_characters(  # noqa: PLR0913
+    async def test_upload_invalid_characters(
         self,
-        mock_get_storage_cloud,
-        mock_get_storage_local,
         file_manager: BaseFileManager,
         sample_file: UploadFile,
         sample_thread: Thread,
         setup_storage: SQLiteStorage | PostgresStorage,
     ):
-        mock_get_storage_cloud.return_value = setup_storage
-        mock_get_storage_local.return_value = setup_storage
         invalid_chars = ["<", ">", ":", '"', "/", "\\", "|", "?", "*"]
 
         for char in invalid_chars:
@@ -393,18 +378,13 @@ class TestFileManager:
                     user_id=sample_thread.user_id,
                 )
 
-    async def test_delete_file(  # noqa: PLR0913
+    async def test_delete_file(
         self,
-        mock_get_storage_cloud,
-        mock_get_storage_local,
         file_manager: BaseFileManager,
         sample_file: UploadFile,
         sample_thread: Thread,
         setup_storage: SQLiteStorage | PostgresStorage,
     ):
-        mock_get_storage_cloud.return_value = setup_storage
-        mock_get_storage_local.return_value = setup_storage
-
         # Upload a file first
         results = await file_manager.upload(
             files=[UploadFilePayload(file=sample_file)],
@@ -424,19 +404,14 @@ class TestFileManager:
         file = await setup_storage.get_file_by_id(file_id, sample_thread.user_id)
         assert file is None
 
-    async def test_delete_thread_files(  # noqa: PLR0913
+    async def test_delete_thread_files(
         self,
-        mock_get_storage_cloud,
-        mock_get_storage_local,
         file_manager: BaseFileManager,
         sample_file: UploadFile,
         sample_file2: UploadFile,
         sample_thread: Thread,
         setup_storage: SQLiteStorage | PostgresStorage,
     ):
-        mock_get_storage_cloud.return_value = setup_storage
-        mock_get_storage_local.return_value = setup_storage
-
         # Upload multiple files
         await file_manager.upload(
             files=[UploadFilePayload(file=sample_file)],
@@ -462,17 +437,13 @@ class TestFileManager:
                 sample_thread.thread_id,
             )
 
-    async def test_read_file_contents(  # noqa: PLR0913
+    async def test_read_file_contents(
         self,
-        mock_get_storage_cloud,
-        mock_get_storage_local,
         file_manager: BaseFileManager,
         sample_file: UploadFile,
         sample_thread: Thread,
         setup_storage: SQLiteStorage | PostgresStorage,
     ):
-        mock_get_storage_cloud.return_value = setup_storage
-        mock_get_storage_local.return_value = setup_storage
         results = await file_manager.upload(
             files=[UploadFilePayload(file=sample_file)],
             owner=sample_thread,
@@ -488,19 +459,14 @@ class TestFileManager:
         await sample_file.seek(0)
         assert contents == await sample_file.read()
 
-    async def test_access_file_wrong_user(  # noqa: PLR0913
+    async def test_access_file_wrong_user(
         self,
-        mock_get_storage_cloud,
-        mock_get_storage_local,
         file_manager: BaseFileManager,
         sample_thread: Thread,
         sample_file: UploadFile,
         setup_storage: SQLiteStorage | PostgresStorage,
     ):
         """Test accessing a file with wrong user ID."""
-        mock_get_storage_cloud.return_value = setup_storage
-        mock_get_storage_local.return_value = setup_storage
-
         # Upload file with one user
         results = await file_manager.upload(
             files=[UploadFilePayload(file=sample_file)],
@@ -522,16 +488,11 @@ class TestFileManager:
 
     async def test_upload_empty_file_list(
         self,
-        mock_get_storage_cloud,
-        mock_get_storage_local,
         file_manager: BaseFileManager,
         sample_thread: Thread,
         setup_storage: SQLiteStorage | PostgresStorage,
     ):
         """Test uploading an empty list of files."""
-        mock_get_storage_cloud.return_value = setup_storage
-        mock_get_storage_local.return_value = setup_storage
-
         with pytest.raises(InvalidFileUploadError, match="Files list cannot be empty"):
             await file_manager.upload(
                 files=[],  # Empty list
@@ -541,16 +502,11 @@ class TestFileManager:
 
     async def test_upload_large_file(
         self,
-        mock_get_storage_cloud,
-        mock_get_storage_local,
         file_manager: BaseFileManager,
         sample_thread: Thread,
         setup_storage: SQLiteStorage | PostgresStorage,
     ):
         """Test uploading a file that exceeds size limits."""
-        mock_get_storage_cloud.return_value = setup_storage
-        mock_get_storage_local.return_value = setup_storage
-
         # Create a large file
         large_content = BytesIO()
         large_content.write(b"x" * (100 * 1024 * 1024 + 1))  # 100MB + 1 byte
@@ -567,15 +523,10 @@ class TestFileManager:
 
     async def test_read_file_contents_nonexistent(
         self,
-        mock_get_storage_cloud,
-        mock_get_storage_local,
         file_manager: BaseFileManager,
         setup_storage: SQLiteStorage | PostgresStorage,
     ):
         """Test reading contents of a non-existent file."""
-        mock_get_storage_cloud.return_value = setup_storage
-        mock_get_storage_local.return_value = setup_storage
-
         nonexistent_file_id = str(uuid4())
         with pytest.raises(Exception, match=f"File not found: {nonexistent_file_id}"):
             await file_manager.read_file_contents(
@@ -585,16 +536,11 @@ class TestFileManager:
 
     async def test_file_mime_type_detection(
         self,
-        mock_get_storage_cloud,
-        mock_get_storage_local,
         file_manager: BaseFileManager,
         sample_thread: Thread,
         setup_storage: SQLiteStorage | PostgresStorage,
     ):
         """Test correct MIME type detection for different file types."""
-        mock_get_storage_cloud.return_value = setup_storage
-        mock_get_storage_local.return_value = setup_storage
-
         # Test different file types (txt, pdf, json, etc.)
         file_types = {
             "test.txt": "text/plain",
@@ -612,19 +558,14 @@ class TestFileManager:
             )
             assert results[0].mime_type == expected_mime
 
-    async def test_request_remote_file_upload(  # noqa: PLR0913
+    async def test_request_remote_file_upload(
         self,
-        mock_get_storage_cloud,
-        mock_get_storage_local,
         file_manager: BaseFileManager,
         sample_thread: Thread,
         sample_agent: Agent,
         setup_storage: SQLiteStorage | PostgresStorage,
     ):
         """Test requesting remote file upload credentials."""
-        mock_get_storage_cloud.return_value = setup_storage
-        mock_get_storage_local.return_value = setup_storage
-
         # Mock _build_file_url for LocalFileManager
         if isinstance(file_manager, LocalFileManager):
             file_manager._build_file_url = MagicMock(return_value="file:///test/path")
@@ -646,16 +587,11 @@ class TestFileManager:
 
     async def test_confirm_remote_file_upload(
         self,
-        mock_get_storage_cloud,
-        mock_get_storage_local,
         file_manager: BaseFileManager,
         sample_thread: Thread,
         setup_storage: SQLiteStorage | PostgresStorage,
     ):
         """Test confirming a remote file upload."""
-        mock_get_storage_cloud.return_value = setup_storage
-        mock_get_storage_local.return_value = setup_storage
-
         # Clean up any existing files for this thread first
         try:
             await file_manager.delete_thread_files(
@@ -713,16 +649,11 @@ class TestFileManager:
 
     async def test_request_remote_file_upload_invalid_filename(
         self,
-        mock_get_storage_cloud,
-        mock_get_storage_local,
         file_manager: BaseFileManager,
         sample_thread: Thread,
         setup_storage: SQLiteStorage | PostgresStorage,
     ):
         """Test requesting remote file upload with invalid filename."""
-        mock_get_storage_cloud.return_value = setup_storage
-        mock_get_storage_local.return_value = setup_storage
-
         # Reserved Windows names
         reserved_names = ["CON", "PRN", "AUX", "NUL", "COM1", "LPT1", ".", "..", ""]
         # Invalid characters

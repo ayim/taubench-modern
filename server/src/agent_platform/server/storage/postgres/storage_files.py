@@ -7,7 +7,7 @@ from structlog import get_logger
 from agent_platform.core.agent import Agent
 from agent_platform.core.files import UploadedFile
 from agent_platform.core.thread import Thread
-from agent_platform.server.file_manager.utils import url_to_fs_path
+from agent_platform.server.constants import SystemConfig
 from agent_platform.server.storage.errors import (
     AgentNotFoundError,
     ThreadFileNotFoundError,
@@ -79,6 +79,11 @@ class PostgresStorageFilesMixin(CommonMixin):
             raise AgentNotFoundError(f"Agent {agent_id} not found") from None
 
     def _delete_stored_file(self, file_url: str) -> None:
+        # TODO: @kylie-bee: We need to separate concerns here, file manager should
+        # handle file operations, not storage. They need to work together, but
+        # they should have separate concerns. For now, this is a quick fix.
+        from agent_platform.server.file_manager import url_to_fs_path
+
         if not file_url:
             return
         self._logger.debug(f"Deleting {file_url}")
@@ -235,7 +240,7 @@ class PostgresStorageFilesMixin(CommonMixin):
             if not row["has_access"]:
                 raise UserPermissionError("User does not have access to this file")
 
-            if os.environ.get("S4_AGENT_SERVER_FILE_MANAGER_TYPE") == "local":
+            if SystemConfig.file_manager_type == "local":
                 file_url = row["file_path"]
                 self._delete_stored_file(file_url)
 

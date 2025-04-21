@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from openai.types.chat import ChatCompletionMessageParam, ChatCompletionToolParam
@@ -68,7 +68,7 @@ class OpenAIPrompt(PlatformPrompt):
 
         Returns:
             A OpenAI request."""
-        model_id = cast(str, OpenAIModelMap[model])
+        model_id = OpenAIModelMap.model_aliases[model]
         logger.info(f"Using OpenAI model: {model} (model_id: {model_id})")
         results_dict: dict[str, Any] = {
             "model": model_id,

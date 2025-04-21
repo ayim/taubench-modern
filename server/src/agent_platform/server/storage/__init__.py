@@ -1,23 +1,29 @@
 from agent_platform.server.storage.base import BaseStorage
 from agent_platform.server.storage.errors import (
+    AgentNotFoundError,
     AgentWithNameAlreadyExistsError,
     InvalidUUIDError,
     NoSystemUserError,
+    ThreadFileNotFoundError,
     ThreadNotFoundError,
     UserAccessDeniedError,
+    UserPermissionError,
 )
-from agent_platform.server.storage.option import get_storage
+from agent_platform.server.storage.option import StorageService
 from agent_platform.server.storage.postgres import PostgresStorage
 from agent_platform.server.storage.sqlite import SQLiteStorage
 
 __all__ = [
+    "AgentNotFoundError",
     "AgentWithNameAlreadyExistsError",
     "BaseStorage",
     "InvalidUUIDError",
     "NoSystemUserError",
     "PostgresStorage",
     "SQLiteStorage",
+    "StorageService",
+    "ThreadFileNotFoundError",
     "ThreadNotFoundError",
     "UserAccessDeniedError",
-    "get_storage",
+    "UserPermissionError",
 ]
