@@ -1,13 +1,23 @@
+import logging
+
 from agent_platform.architectures.default.state import ArchState
 from agent_platform.core import Kernel
 from agent_platform.core import agent_architectures as aa
 
+logger = logging.getLogger(__name__)
 
 @aa.entrypoint
 async def entrypoint(kernel: Kernel, state: ArchState) -> ArchState:
     while True:
         if state.step in ("processing", "initial"):
-            state = await _process_conversation_step(kernel, state)
+            try:
+                state = await _process_conversation_step(kernel, state)
+            except Exception as e:
+                logger.error(
+                    "Error processing conversation step: %s",
+                    e,
+                )
+                raise e
         elif state.step == "done":
             break
         else:
