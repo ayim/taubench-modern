@@ -115,9 +115,16 @@ class PostgresStorageAgentsMixin(CommonMixin):
         agent_dict = agent.model_dump() | {"user_id": user_id}
 
         # 3. Convert dict fields to Jsonb objects for proper PostgreSQL handling
-        for field in ["runbook", "action_packages", "mcp_servers", "agent_architecture",
-                    "question_groups", "observability_configs",
-                    "platform_configs", "extra"]:
+        for field in [
+            "runbook",
+            "action_packages",
+            "mcp_servers",
+            "agent_architecture",
+            "question_groups",
+            "observability_configs",
+            "platform_configs",
+            "extra",
+        ]:
             agent_dict[field] = Jsonb(agent_dict[field])
 
         # 4. Insert the agent

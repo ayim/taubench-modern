@@ -139,13 +139,9 @@ class Agent:
         """Serializes the agent to a dictionary. Useful for JSON serialization."""
         return {
             "action_packages": [
-                action_package.model_dump()
-                for action_package in self.action_packages
+                action_package.model_dump() for action_package in self.action_packages
             ],
-            "mcp_servers": [
-                mcp_server.model_dump()
-                for mcp_server in self.mcp_servers
-            ],
+            "mcp_servers": [mcp_server.model_dump() for mcp_server in self.mcp_servers],
             "agent_architecture": self.agent_architecture.model_dump(),
             "created_at": self.created_at.isoformat(),
             "description": self.description,
@@ -161,8 +157,7 @@ class Agent:
                 for observability_config in self.observability_configs
             ],
             "question_groups": [
-                question_group.model_dump()
-                for question_group in self.question_groups
+                question_group.model_dump() for question_group in self.question_groups
             ],
             "runbook": self.runbook.model_dump(),
             "agent_id": self.agent_id,

@@ -55,7 +55,6 @@ class CortexPrompt(PlatformPrompt):
     )
     """The top p for the prompt."""
 
-
     def as_platform_request(
         self,
         model: str,
@@ -73,10 +72,9 @@ class CortexPrompt(PlatformPrompt):
 
         results_dict: dict[str, Any] = {
             "model": model,
-            "messages": [
-                message.model_dump()
-                for message in self.messages
-            ] if self.messages else [],
+            "messages": [message.model_dump() for message in self.messages]
+            if self.messages
+            else [],
             "max_tokens": self.max_tokens,
             "top_p": self.top_p,
             "temperature": self.temperature,
@@ -85,8 +83,7 @@ class CortexPrompt(PlatformPrompt):
 
         if self.tools:
             results_dict["tools"] = [
-                { "tool_spec": tool.model_dump() }
-                for tool in self.tools
+                {"tool_spec": tool.model_dump()} for tool in self.tools
             ]
 
         return results_dict

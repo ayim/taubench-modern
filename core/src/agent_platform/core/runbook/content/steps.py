@@ -66,4 +66,5 @@ class RunbookStepsContent(RunbookContent):
         ]
         return cls(**data, steps=steps)
 
+
 RunbookStepsContent.register_content_kind("steps", RunbookStepsContent)

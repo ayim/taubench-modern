@@ -129,7 +129,7 @@ class CortexParsers(PlatformParsers):
                     ResponseTextContent(text=message["content"]),
                 )
 
-            for item in (message["content_list"] if "content_list" in message else []):
+            for item in message["content_list"] if "content_list" in message else []:
                 # Ignore if repeated in content_list
                 if "text" in item and item["text"] == message_content:
                     continue
@@ -143,7 +143,9 @@ class CortexParsers(PlatformParsers):
                         input_tokens=0,
                         output_tokens=0,
                         total_tokens=0,
-                    ) if "usage" not in response else (
+                    )
+                    if "usage" not in response
+                    else (
                         TokenUsage(
                             input_tokens=response["usage"].get("prompt_tokens", 0),
                             output_tokens=response["usage"].get("completion_tokens", 0),
@@ -154,12 +156,10 @@ class CortexParsers(PlatformParsers):
             )
             response_messages.append(response)
 
-
         if len(response_messages) == 0:
             raise ValueError("No response messages found in Cortex response")
 
         return response_messages[0]
-
 
     async def parse_stream_event(
         self,

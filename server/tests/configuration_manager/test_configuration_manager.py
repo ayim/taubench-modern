@@ -281,9 +281,9 @@ class TestConfigurationManager:
                 # Verify the expected imports were made
                 assert "test.package" in actual_calls, "Base package not imported"
                 assert "test.package.module1" in actual_calls, "Module not imported"
-                assert "test.package.subpackage" in actual_calls, (
-                    "Subpackage not imported"
-                )
+                assert (
+                    "test.package.subpackage" in actual_calls
+                ), "Subpackage not imported"
 
     def test_load_registered_configurations(self, tmp_path: Path) -> None:
         """Test loading registered configuration classes."""

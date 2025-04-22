@@ -47,20 +47,21 @@ class SQLiteStorageMessagesMixin(CommonMixin):
                 # 3) Insert new messages in order
                 inserts = []
                 for i, msg in enumerate(messages):
-                    inserts.append({
-                        "message_id": msg.message_id,
-                        "thread_id": thread_id,
-                        "sequence_number": i,
-                        "role": msg.role,
-                        "content": json.dumps([
-                            c.model_dump()
-                            for c in msg.content
-                        ]),
-                        "agent_metadata": json.dumps(msg.agent_metadata),
-                        "server_metadata": json.dumps(msg.server_metadata),
-                        "created_at": msg.created_at,
-                        "updated_at": msg.updated_at,
-                    })
+                    inserts.append(
+                        {
+                            "message_id": msg.message_id,
+                            "thread_id": thread_id,
+                            "sequence_number": i,
+                            "role": msg.role,
+                            "content": json.dumps(
+                                [c.model_dump() for c in msg.content],
+                            ),
+                            "agent_metadata": json.dumps(msg.agent_metadata),
+                            "server_metadata": json.dumps(msg.server_metadata),
+                            "created_at": msg.created_at,
+                            "updated_at": msg.updated_at,
+                        },
+                    )
 
                 await cur.executemany(
                     """
@@ -76,7 +77,7 @@ class SQLiteStorageMessagesMixin(CommonMixin):
                 )
         except IntegrityError as e:
             if "UNIQUE constraint failed: v2_thread_message.message_id" in str(e):
-                message_ids = ','.join([msg.message_id for msg in messages])
+                message_ids = ",".join([msg.message_id for msg in messages])
                 raise RecordAlreadyExistsError(
                     f"One of the following messages already exists: {message_ids}",
                 ) from e
@@ -176,8 +177,7 @@ class SQLiteStorageMessagesMixin(CommonMixin):
         for row in rows:
             row_dict = dict(row)
             row_dict["content"] = (
-                json.loads(row_dict["content"])
-                if row_dict["content"] else []
+                json.loads(row_dict["content"]) if row_dict["content"] else []
             )
             row_dict["agent_metadata"] = (
                 json.loads(row_dict["agent_metadata"])
@@ -186,7 +186,8 @@ class SQLiteStorageMessagesMixin(CommonMixin):
             )
             row_dict["server_metadata"] = (
                 json.loads(row_dict["server_metadata"])
-                if row_dict["server_metadata"] else {}
+                if row_dict["server_metadata"]
+                else {}
             )
             messages.append(ThreadMessage.model_validate(row_dict))
 
@@ -227,8 +228,7 @@ class SQLiteStorageMessagesMixin(CommonMixin):
         for row in rows:
             row_dict = dict(row)
             row_dict["content"] = (
-                json.loads(row_dict["content"])
-                if row_dict["content"] else []
+                json.loads(row_dict["content"]) if row_dict["content"] else []
             )
             row_dict["agent_metadata"] = (
                 json.loads(row_dict["agent_metadata"])
@@ -237,7 +237,8 @@ class SQLiteStorageMessagesMixin(CommonMixin):
             )
             row_dict["server_metadata"] = (
                 json.loads(row_dict["server_metadata"])
-                if row_dict["server_metadata"] else {}
+                if row_dict["server_metadata"]
+                else {}
             )
             messages.append(ThreadMessage.model_validate(row_dict))
 

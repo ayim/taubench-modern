@@ -75,7 +75,8 @@ def sample_agent(sample_user_id: str) -> Agent:
 
 @pytest.fixture
 def sample_thread(
-    sample_user_id: str, sample_agent: Agent,
+    sample_user_id: str,
+    sample_agent: Agent,
 ) -> Thread:
     return Thread(
         thread_id=str(uuid4()),

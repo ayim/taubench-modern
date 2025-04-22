@@ -10,6 +10,7 @@ from agent_platform.core.tools.tool_definition import ToolDefinition
 
 PendingToolCall = tuple[ToolDefinition, ResponseToolUseContent]
 
+
 @dataclass
 class StateBase:
     """
@@ -54,6 +55,7 @@ class StateBase:
             A sink that will appending incoming tool calls to the
             pending_tool_calls field.
             """
+
             async def _on_tool_complete(
                 content: ResponseToolUseContent,
                 tool_def: ToolDefinition | None,
@@ -151,7 +153,6 @@ class StateBase:
                     f"The field '{field_obj.name}' with scope"
                     f" '{scope}' is not JSON serializable: {e}",
                 ) from e
-
 
     pending_tool_calls: list[PendingToolCall] = field(
         default_factory=list,

@@ -61,6 +61,7 @@ TEST_CASES = [
     },
 ]
 
+
 # -------------------------------------------------------------------------
 # FIXTURES
 # -------------------------------------------------------------------------
@@ -86,9 +87,11 @@ def bedrock_client(kernel: Kernel):
     client.attach_kernel(kernel)
     return client
 
+
 # -------------------------------------------------------------------------
 # TESTS
 # -------------------------------------------------------------------------
+
 
 def _fixup_haiku_response(response: ResponseMessage) -> ResponseMessage:
     """Haiku is bad at following even the basic
@@ -103,17 +106,22 @@ def _fixup_haiku_response(response: ResponseMessage) -> ResponseMessage:
                 as_text = as_text.split("<response>")[1]
                 as_text = as_text.split("</response>")[0]
                 as_text = as_text.strip()
-                new_content.append(ResponseTextContent(
-                    text=f"<response>{as_text}</response>",
-                ))
+                new_content.append(
+                    ResponseTextContent(
+                        text=f"<response>{as_text}</response>",
+                    ),
+                )
             else:
                 new_content.append(content)
 
-    return response.model_copy(content=[
-        # Dump as we're going to re-parse w/ model_validate in copy
-        c.model_dump()
-        for c in new_content
-    ])
+    return response.model_copy(
+        content=[
+            # Dump as we're going to re-parse w/ model_validate in copy
+            c.model_dump()
+            for c in new_content
+        ],
+    )
+
 
 @pytest.mark.parametrize("case", TEST_CASES, ids=[c["case_name"] for c in TEST_CASES])
 @pytest.mark.parametrize("model_id", ALL_MODELS)
@@ -147,8 +155,7 @@ async def test_bedrock_generate_responses(request, bedrock_client, case, model_i
         )
 
     final_response = (
-        _fixup_haiku_response(response)
-        if "haiku" in model_id else response
+        _fixup_haiku_response(response) if "haiku" in model_id else response
     )
     compare_responses(final_response, expected_response)
 
@@ -190,7 +197,6 @@ async def test_bedrock_stream_responses(request, bedrock_client, case, model_id)
         )
 
     final_response = (
-        _fixup_haiku_response(response)
-        if "haiku" in model_id else response
+        _fixup_haiku_response(response) if "haiku" in model_id else response
     )
     compare_responses(final_response, expected_response)

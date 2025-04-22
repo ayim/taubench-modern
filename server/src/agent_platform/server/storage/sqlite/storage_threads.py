@@ -47,7 +47,9 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
         ]
 
     async def list_threads_for_agent(
-        self, user_id: str, agent_id: str,
+        self,
+        user_id: str,
+        agent_id: str,
     ) -> list[Thread]:
         """List all threads for a specific agent if user has access."""
         self._validate_uuid(user_id)
@@ -147,11 +149,13 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
                 # If rowcount is 0 but the thread does exist,
                 # it might be an access issue
                 if cur.rowcount == 0 and await self._thread_exists(
-                    user_id, thread.thread_id,
+                    user_id,
+                    thread.thread_id,
                 ):
                     # We can do another check to see if user lacks access
                     if not await self._user_can_access_thread(
-                        user_id, thread.thread_id,
+                        user_id,
+                        thread.thread_id,
                     ):
                         raise UserAccessDeniedError(
                             f"Access denied to thread {thread.thread_id}",

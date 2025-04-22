@@ -96,6 +96,7 @@ select = [
 ]
 fixable = ["ALL"]
 unfixable = []
+ignore = ["COM812"]
 
 [tool.ruff.lint.per-file-ignores]
 "core/examples/**/*.ipynb" = ["PLE1142"]

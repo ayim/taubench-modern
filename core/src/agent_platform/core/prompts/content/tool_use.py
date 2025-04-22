@@ -62,9 +62,13 @@ class PromptToolUseContent(PromptMessageContent):
         if isinstance(self.tool_input_raw, str):
             # Need to use setattr in a frozen dataclass
             # so we can't use the property here
-            object.__setattr__(self, "_tool_input", json.loads(
-                self.tool_input_raw or "{}",
-            ))
+            object.__setattr__(
+                self,
+                "_tool_input",
+                json.loads(
+                    self.tool_input_raw or "{}",
+                ),
+            )
         else:
             object.__setattr__(self, "_tool_input", self.tool_input_raw or {})
 

@@ -37,9 +37,10 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
             # 4. Return the threads
             return [Thread.model_validate(row) for row in rows]
 
-
     async def list_threads_for_agent(
-        self, user_id: str, agent_id: str,
+        self,
+        user_id: str,
+        agent_id: str,
     ) -> list[Thread]:
         """List all threads for the given agent."""
         # 1. Validate the uuids
@@ -112,7 +113,7 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
             )
 
             # 3. If the thread was found, we must have access
-            if (access_row := await cur.fetchone()):
+            if access_row := await cur.fetchone():
                 if not access_row.pop("has_access"):
                     raise UserAccessDeniedError(
                         f"Access denied to thread {thread.thread_id}",
@@ -122,8 +123,7 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
             thread_dict = thread.model_dump() | {"user_id": user_id}
             thread_dict["metadata"] = Jsonb(thread_dict["metadata"])
             messages = [
-                ThreadMessage.model_validate(m)
-                for m in thread_dict.pop("messages", [])
+                ThreadMessage.model_validate(m) for m in thread_dict.pop("messages", [])
             ]
 
             # 5. Upsert the thread
@@ -160,9 +160,10 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
 
             # 6. Overwrite messages
             await self.overwrite_thread_messages(
-                thread.thread_id, messages, cursor=cur,
+                thread.thread_id,
+                messages,
+                cursor=cur,
             )
-
 
     async def delete_thread(self, user_id: str, thread_id: str) -> None:
         """Delete a thread."""

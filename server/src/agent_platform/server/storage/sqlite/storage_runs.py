@@ -19,6 +19,7 @@ class SQLiteStorageRunsMixin(CommonMixin):
     Assumes that helper methods such as `_cursor()` and
     `_validate_uuid()` are available.
     """
+
     _logger = get_logger(__name__)
 
     # ---------------------------
@@ -92,8 +93,7 @@ class SQLiteStorageRunsMixin(CommonMixin):
         if not rows:
             return []
         return [
-            Run.model_validate(self._convert_run_json_fields(dict(r)))
-            for r in rows
+            Run.model_validate(self._convert_run_json_fields(dict(r))) for r in rows
         ]
 
     async def list_runs_for_thread(self, thread_id: str) -> list[Run]:
@@ -113,8 +113,7 @@ class SQLiteStorageRunsMixin(CommonMixin):
         if not rows:
             return []
         return [
-            Run.model_validate(self._convert_run_json_fields(dict(r)))
-            for r in rows
+            Run.model_validate(self._convert_run_json_fields(dict(r))) for r in rows
         ]
 
     async def upsert_run(self, run: Run) -> None:

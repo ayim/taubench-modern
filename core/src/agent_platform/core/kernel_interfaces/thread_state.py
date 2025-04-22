@@ -36,6 +36,7 @@ class ThreadMessageWithThreadState:
 
     class Sinks:
         """A class that contains the sinks for the message."""
+
         def __init__(
             self,
             message: "ThreadMessageWithThreadState",
@@ -49,6 +50,7 @@ class ThreadMessageWithThreadState:
         @property
         def content(self) -> XmlTagResponseStreamSink:
             """The sink for the content of the message."""
+
             async def _append_content(tag: str, content: str) -> None:
                 self._message.append_content(content)
                 await self._message.stream_delta()
@@ -61,6 +63,7 @@ class ThreadMessageWithThreadState:
         @property
         def thoughts(self) -> XmlTagResponseStreamSink:
             """The sink for the thoughts of the message."""
+
             async def _append_thought(tag: str, content: str) -> None:
                 self._message.append_thought(content)
                 await self._message.stream_delta()
@@ -73,6 +76,7 @@ class ThreadMessageWithThreadState:
         @property
         def tool_calls(self) -> ToolUseResponseStreamSink:
             """The sink for the tool calls of the message."""
+
             async def _update_tool_use(
                 content: ResponseToolUseContent,
                 tool_def: ToolDefinition | None,
@@ -214,9 +218,7 @@ class ThreadMessageWithThreadState:
             )
             match_as_tool_use.name = tool_use.tool_name
             match_as_tool_use.arguments_raw = tool_use.tool_input_raw
-            match_as_tool_use.pending_at = (
-                datetime.now() if completed else None
-            )
+            match_as_tool_use.pending_at = datetime.now() if completed else None
             break  # Only can match one tool use
 
         else:  # No matching tool use found, so we add a new one
@@ -245,8 +247,8 @@ class ThreadMessageWithThreadState:
                 idx
                 for idx, content in enumerate(self._message.content)
                 if (
-                    isinstance(content, ThreadToolUsageContent) and
-                    content.tool_call_id == result.tool_call_id
+                    isinstance(content, ThreadToolUsageContent)
+                    and content.tool_call_id == result.tool_call_id
                 )
             ),
             None,
@@ -272,12 +274,8 @@ class ThreadMessageWithThreadState:
         # TODO: handle non-string results
         match_as_tool_use.result = str(result.output_raw)
         match_as_tool_use.error = result.error
-        match_as_tool_use.metadata["execution"] = (
-            result.execution_metadata
-        )
-        match_as_tool_use.status = (
-            "failed" if result.error else "finished"
-        )
+        match_as_tool_use.metadata["execution"] = result.execution_metadata
+        match_as_tool_use.status = "failed" if result.error else "finished"
 
     def copy(self) -> "ThreadMessageWithThreadState":
         """Returns a deep copy of the message with thread state."""

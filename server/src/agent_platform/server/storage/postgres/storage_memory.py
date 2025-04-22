@@ -50,7 +50,7 @@ class PostgresStorageMemoriesMixin(CommonMixin):
                     %(tags)s, %(refs)s, %(weight)s, %(embedded)s, %(embedding_id)s
                 )
                 """,
-                memory_dict,
+                    memory_dict,
                 )
         except UniqueViolation as e:
             if "duplicate key value violates unique constraint" in str(e):
@@ -191,5 +191,6 @@ class PostgresStorageMemoriesMixin(CommonMixin):
         for field in ["metadata", "tags", "refs"]:
             if field in memory_dict and isinstance(memory_dict[field], str):
                 import json
+
                 memory_dict[field] = json.loads(memory_dict[field])
         return memory_dict

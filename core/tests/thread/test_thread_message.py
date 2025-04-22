@@ -30,6 +30,7 @@ class TestThreadTextContent:
         with pytest.raises(ValueError, match="Text value cannot be empty"):
             ThreadTextContent(text="")
 
+
 class TestThreadQuickActionsContent:
     def test_create_valid_quick_actions(self):
         actions = [
@@ -139,7 +140,7 @@ class TestThreadVegaChartContent:
                     "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
                     "width": 400,
                     "height": 300,
-                }, # type: ignore (invalid on purpose)
+                },  # type: ignore (invalid on purpose)
             )
 
 
@@ -194,7 +195,8 @@ class TestThreadMessageBase:
             AsyncMock(),
         )
         with pytest.raises(
-            ValueError, match="Cannot add content to a committed message",
+            ValueError,
+            match="Cannot add content to a committed message",
         ):
             msg.append_content(" some more text")
 
@@ -243,7 +245,9 @@ class TestThreadAgentMessage:
             agent_msg.message.content[-1].thought
             == "Initial thought. Appended more stuff"
         )
-        mock_thread_state.stream_message_delta.assert_awaited_once_with(agent_msg.message)
+        mock_thread_state.stream_message_delta.assert_awaited_once_with(
+            agent_msg.message,
+        )
 
     async def test_new_thought_creates_new_thought(self):
         mock_thread_state = AsyncMock()

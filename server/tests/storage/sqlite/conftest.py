@@ -41,4 +41,3 @@ async def storage(tmp_path: Path) -> AsyncGenerator[SQLiteStorage, None]:
 @pytest.fixture
 async def sample_user_id(storage: SQLiteStorage) -> str:
     return await storage.get_system_user_id()
-

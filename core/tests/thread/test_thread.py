@@ -103,5 +103,12 @@ class TestThread:
         assert thread.get_last_n_message_turns(0) == []
         assert thread.get_last_n_message_turns(-1) == []
         assert thread.get_last_n_message_turns(10) == [
-            msg1, msg2, msg3, msg4, msg5, msg6, msg7, msg8,
+            msg1,
+            msg2,
+            msg3,
+            msg4,
+            msg5,
+            msg6,
+            msg7,
+            msg8,
         ]

@@ -50,7 +50,8 @@ async def test_scoped_storage_crud_operations(
 
     # Upsert: modify the stored dict and update
     updated_scoped_storage = ScopedStorage.model_validate(
-        sample_scoped_storage.model_dump() | {
+        sample_scoped_storage.model_dump()
+        | {
             "storage": {"key": "new_value"},
             "updated_at": datetime.now(UTC),
         },
@@ -76,7 +77,8 @@ async def test_scoped_storage_list_empty(
     Verify that listing scoped storage for a nonexistent scope returns an empty list.
     """
     storages = await storage.list_scoped_storage(
-        "user", "00000000-0000-0000-0000-000000000000",
+        "user",
+        "00000000-0000-0000-0000-000000000000",
     )
     assert storages == []
 
@@ -122,7 +124,6 @@ async def test_scoped_storage_update_timestamp(
     assert fetched_after.updated_at > original_updated
 
 
-
 @pytest.mark.asyncio
 async def test_scoped_storage_not_found_error(
     storage: SQLiteStorage,
@@ -136,7 +137,6 @@ async def test_scoped_storage_not_found_error(
         await storage.get_scoped_storage(non_existent_storage_id)
     with pytest.raises(ScopedStorageNotFoundError):
         await storage.delete_scoped_storage(non_existent_storage_id)
-
 
 
 @pytest.mark.asyncio
@@ -253,7 +253,8 @@ async def test_scoped_storage_concurrent_updates(
             rec = await storage.get_scoped_storage(original.storage_id)
             new_value = rec.storage.get("counter", 0) + increment
             updated = ScopedStorage.model_validate(
-                rec.model_dump() | {
+                rec.model_dump()
+                | {
                     "storage": {"counter": new_value},
                     "updated_at": datetime.now(UTC),
                 },
@@ -348,7 +349,8 @@ async def test_scoped_storage_cross_scope_isolation(
     assert all(rec.scope_type == "user" for rec in listed_type_user)
 
     listed_type_agent = await storage.list_scoped_storage(
-        "agent", sample_agent.agent_id,
+        "agent",
+        sample_agent.agent_id,
     )
     assert any(rec.storage_id == record2.storage_id for rec in listed_type_agent)
     assert all(rec.scope_type == "agent" for rec in listed_type_agent)
@@ -409,7 +411,6 @@ async def test_scoped_storage_recreation_after_deletion(
     assert fetched.created_by_thread_id == sample_thread.thread_id
 
 
-
 @pytest.mark.asyncio
 async def test_scoped_storage_foreign_key_errors(
     storage: SQLiteStorage,
@@ -422,9 +423,9 @@ async def test_scoped_storage_foreign_key_errors(
     key reference is invalid. (For users first, then agents,
     then threads.)
     """
-    non_existant_user_id = '00000000-0000-0000-0000-000000000000'
-    non_existant_agent_id = '00000000-0000-0000-0000-000000000000'
-    non_existant_thread_id = '00000000-0000-0000-0000-000000000000'
+    non_existant_user_id = "00000000-0000-0000-0000-000000000000"
+    non_existant_agent_id = "00000000-0000-0000-0000-000000000000"
+    non_existant_thread_id = "00000000-0000-0000-0000-000000000000"
 
     # Create a scoped storage record with a user that doesn't exist.
     scoped_storage = ScopedStorage(

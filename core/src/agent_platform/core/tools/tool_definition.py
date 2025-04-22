@@ -125,4 +125,3 @@ class ToolDefinition:
         """Validate and convert a dictionary into a ToolDefinition instance."""
         # TODO: better impl?
         return cls(**data)
-

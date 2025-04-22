@@ -79,6 +79,7 @@ async def test_user_access_function(
         assert result4 is not None
         assert result4["check_user_access"] == 1
 
+
 @pytest.mark.asyncio
 async def test_get_or_create_user_idempotent(storage: SQLiteStorage) -> None:
     """
@@ -95,6 +96,7 @@ async def test_get_or_create_user_idempotent(storage: SQLiteStorage) -> None:
     # and the second call to recognize the user already exists (created2 False).
     assert created1 is True
     assert created2 is False
+
 
 @pytest.mark.asyncio
 async def test_count_after_deletion(
@@ -113,10 +115,13 @@ async def test_count_after_deletion(
 
     # Create two agents.
     agent1 = sample_agent
-    agent2 = Agent.model_validate(sample_agent.model_dump() | {
-        "agent_id": str(uuid4()),
-        "name": "Second Agent",
-    })
+    agent2 = Agent.model_validate(
+        sample_agent.model_dump()
+        | {
+            "agent_id": str(uuid4()),
+            "name": "Second Agent",
+        },
+    )
     await storage.upsert_agent(sample_user_id, agent1)
     await storage.upsert_agent(sample_user_id, agent2)
 

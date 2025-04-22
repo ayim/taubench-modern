@@ -93,10 +93,12 @@ class TestCortexConverters:
             tool_results=CortexPromptToolResults(
                 tool_use_id="tool-1234",
                 name="get_weather",
-                content=[CortexPromptContent(
-                    type="text",
-                    text='{"temp": 72, "condition": "sunny"}',
-                )],
+                content=[
+                    CortexPromptContent(
+                        type="text",
+                        text='{"temp": 72, "condition": "sunny"}',
+                    ),
+                ],
             ),
         )
 
@@ -306,4 +308,3 @@ class TestCortexConverters:
         # Check collapsed content
         assert result.messages[1].content == "Hi!\n\nHow can I help?"
         assert result.messages[1].content_list == []
-

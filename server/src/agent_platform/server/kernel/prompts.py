@@ -7,6 +7,7 @@ from agent_platform.server.kernel.kernel_mixin import UsesKernelMixin
 
 logger = logging.getLogger(__name__)
 
+
 class AgentServerPromptsInterface(PromptsInterface, UsesKernelMixin):
     """Handles prompt building/management via importlib.resources."""
 
@@ -48,7 +49,7 @@ class AgentServerPromptsInterface(PromptsInterface, UsesKernelMixin):
             )
 
         # Load the YAML into a Prompt
-        with resource_path.open('r') as f:
+        with resource_path.open("r") as f:
             pre_format_prompt = Prompt.load_yaml(f)
 
         # Format with kernel & state

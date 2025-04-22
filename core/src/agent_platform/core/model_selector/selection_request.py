@@ -12,9 +12,16 @@ class ModelSelectionRequest:
 
     direct_model_name: str | None = None
     provider: str | None = None
-    model_type: Literal[
-        "llm", "embedding", "text-to-image", "text-to-audio", "audio-to-text",
-    ] | None = None
+    model_type: (
+        Literal[
+            "llm",
+            "embedding",
+            "text-to-image",
+            "text-to-audio",
+            "audio-to-text",
+        ]
+        | None
+    ) = None
     quality_tier: Literal["best", "balanced", "fastest"] | None = None
 
     def is_empty(self) -> bool:

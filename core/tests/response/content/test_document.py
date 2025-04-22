@@ -76,7 +76,6 @@ class TestResponseDocumentContent:
                 sub_type="UploadedFile",
             )
 
-
     def test_init_empty_value(self) -> None:
         """Test that ResponseDocumentContent raises an error for empty value."""
         with pytest.raises(ValueError, match="Document value cannot be empty"):

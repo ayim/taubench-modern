@@ -21,11 +21,14 @@ def _disable_logging() -> Generator[None, None, None]:
     getLogger("agent_platform.server.storage.postgres.migrations").setLevel(INFO)
     getLogger("agent_platform.server.storage.postgres.postgres").setLevel(INFO)
 
+
 @pytest.fixture(scope="session")
-async def postgres_test_db() -> AsyncGenerator[
-    AsyncConnectionPool[AsyncConnection[TupleRow]],
-    None,
-]:
+async def postgres_test_db() -> (
+    AsyncGenerator[
+        AsyncConnectionPool[AsyncConnection[TupleRow]],
+        None,
+    ]
+):
     """Creates a shared temporary Postgres instance for the entire test session."""
     with testing.postgresql.Postgresql() as postgresql:
         dsn = postgresql.url()
@@ -52,6 +55,7 @@ async def postgres_test_db() -> AsyncGenerator[
             if pool:
                 await pool.close()
             postgresql.stop()
+
 
 @pytest.fixture
 async def storage(postgres_test_db: AsyncConnectionPool[AsyncConnection[TupleRow]]):
@@ -81,8 +85,10 @@ async def storage(postgres_test_db: AsyncConnectionPool[AsyncConnection[TupleRow
     except Exception as e:
         # Log any connection issues
         import logging
+
         logging.error(f"Error in storage fixture: {e}")
         raise
+
 
 @pytest.fixture
 async def sample_user_id(storage: PostgresStorage) -> str:

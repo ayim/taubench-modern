@@ -43,7 +43,7 @@ class ActionPackage:
     api_key: SecretString | None = field(
         metadata={
             "description": "API Key of the action server that"
-                " hosts the action package.",
+            " hosts the action package.",
         },
         default=None,
     )
@@ -52,8 +52,8 @@ class ActionPackage:
     allowed_actions: list[str] = field(
         metadata={
             "description": "Actions to enable in the action server that"
-                " hosts the action package. An empty list"
-                " implies all actions are enabled.",
+            " hosts the action package. An empty list"
+            " implies all actions are enabled.",
         },
         default_factory=list,
     )

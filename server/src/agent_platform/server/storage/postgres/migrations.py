@@ -56,7 +56,8 @@ class PostgresMigrations(MigrationsProvider):
         self._logger = get_logger(__name__)
         self._timeout = timeout
         self._migrations_path = (
-            migrations_path if migrations_path is not None
+            migrations_path
+            if migrations_path is not None
             else self._get_migrations_path()
         )
 
@@ -206,7 +207,7 @@ class PostgresMigrations(MigrationsProvider):
             """,
         )
         result = await cur.fetchone()
-        table_exists = result['exists'] if result else False
+        table_exists = result["exists"] if result else False
         if table_exists:
             # Release only if locked_by matches
             await cur.execute(
@@ -233,12 +234,15 @@ class PostgresMigrations(MigrationsProvider):
             """,
         )
 
-
     # -------------------------------------------------------------------------
     # Applying Migrations
     # -------------------------------------------------------------------------
     async def _apply_migration(
-        self, cur: AsyncCursor, version: int, filename: str, checksum: str,
+        self,
+        cur: AsyncCursor,
+        version: int,
+        filename: str,
+        checksum: str,
     ) -> None:
         """
         Apply a single migration:
@@ -328,7 +332,8 @@ class PostgresMigrations(MigrationsProvider):
         return version, description
 
     def _validate_migration_has_no_transaction_commands(
-        self, migration_sql: str,
+        self,
+        migration_sql: str,
     ) -> None:
         """
         Ensures the migration SQL does not contain any transaction commands
@@ -344,7 +349,9 @@ class PostgresMigrations(MigrationsProvider):
             raise MigrationError("Migration file contains 'ROLLBACK;'")
 
     async def _run_migration_with_timeout(
-        self, cur: AsyncCursor, migration_sql: str,
+        self,
+        cur: AsyncCursor,
+        migration_sql: str,
     ) -> None:
         """
         Runs migration_sql with a Postgres-side *local* statement_timeout

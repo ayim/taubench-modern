@@ -24,7 +24,7 @@ from agent_platform.core.tools import ToolDefinition
 class _Book:
     title: Annotated[str, "The title of the book"]
     author: Annotated[str, "The author's name"]
-    category: Annotated[str|None, "The category of the book"]
+    category: Annotated[str | None, "The category of the book"]
     # Showing example of using field(metadata={"description": ...})
     year: int = field(metadata={"description": "Year the book was published"})
 
@@ -32,6 +32,7 @@ class _Book:
 async def _add_book(book: Annotated[_Book, "The book to add to the database"]):
     """Store a new book in the database."""
     return {"status": "success", "title": book.title}
+
 
 async def _confirm_request():
     """Confirm the request, takes no arguments."""
@@ -95,6 +96,7 @@ def compare_responses(
         # Default processing
         assert given_content.model_dump() == expected_content.model_dump()
 
+
 @pytest.fixture
 def basic_prompt_no_tools():
     """
@@ -102,14 +104,16 @@ def basic_prompt_no_tools():
     "does it work" test.
     """
     messages: list[AnyPromptMessage] = [
-        PromptUserMessage(content=[
-            PromptTextContent(
-                text="""
+        PromptUserMessage(
+            content=[
+                PromptTextContent(
+                    text="""
                 This is an end-to-end test, please respond with a
                 message containing only the word 'sunflower'
                 """,
-            ),
-        ]),
+                ),
+            ],
+        ),
     ]
     return Prompt(
         messages=messages,
@@ -131,6 +135,7 @@ def response_to_basic_prompt_no_tools():
         ],
     )
 
+
 @pytest.fixture
 def basic_prompt_with_system_message():
     """
@@ -139,14 +144,16 @@ def basic_prompt_with_system_message():
     across varius model platforms.)
     """
     messages: list[AnyPromptMessage] = [
-        PromptUserMessage(content=[
-            PromptTextContent(
-                """
+        PromptUserMessage(
+            content=[
+                PromptTextContent(
+                    """
                 This is an end-to-end test, please respond with a
                 message containing only the word 'apple'
                 """,
-            ),
-        ]),
+                ),
+            ],
+        ),
     ]
     return Prompt(
         system_instruction=(
@@ -160,6 +167,7 @@ def basic_prompt_with_system_message():
         max_output_tokens=512,
     )
 
+
 @pytest.fixture
 def response_to_basic_prompt_with_system_message():
     """
@@ -172,6 +180,7 @@ def response_to_basic_prompt_with_system_message():
         ],
     )
 
+
 @pytest.fixture
 def basic_prompt_with_three_messages():
     """
@@ -180,24 +189,29 @@ def basic_prompt_with_three_messages():
     interactions.)
     """
     messages: list[AnyPromptMessage] = [
-        PromptUserMessage(content=[
-            PromptTextContent(
-                """
+        PromptUserMessage(
+            content=[
+                PromptTextContent(
+                    """
                 You are acting as an agent named 'Test Agent'. You
                 are to assist the user with their request.
                 """,
-            ),
-        ]),
-        PromptAgentMessage(content=[
-            PromptTextContent(
-                """
+                ),
+            ],
+        ),
+        PromptAgentMessage(
+            content=[
+                PromptTextContent(
+                    """
                 Understood, I will assist the user with their request.
                 """,
-            ),
-        ]),
-        PromptUserMessage(content=[
-            PromptTextContent(
-                """
+                ),
+            ],
+        ),
+        PromptUserMessage(
+            content=[
+                PromptTextContent(
+                    """
                 Reply with the answer only, nothing else. What is the
                 capital of the state of Wisconsin, USA?
 
@@ -209,8 +223,9 @@ def basic_prompt_with_three_messages():
                 NOTE: We are not looking for ALL CAPS. Just regular
                 capitalization with a period at the end.
                 """,
-            ),
-        ]),
+                ),
+            ],
+        ),
     ]
     return Prompt(
         messages=messages,
@@ -218,6 +233,7 @@ def basic_prompt_with_three_messages():
         temperature=0.0,
         max_output_tokens=512,
     )
+
 
 @pytest.fixture
 def response_to_basic_prompt_with_three_messages():
@@ -231,15 +247,17 @@ def response_to_basic_prompt_with_three_messages():
         ],
     )
 
+
 @pytest.fixture
 def basic_prompt_with_one_tool():
     """
     A basic prompt with one tool.
     """
     messages: list[AnyPromptMessage] = [
-        PromptUserMessage(content=[
-            PromptTextContent(
-                """
+        PromptUserMessage(
+            content=[
+                PromptTextContent(
+                    """
                 This is an end-to-end test, please call the tool
                 called add_book with the following book:
 
@@ -251,8 +269,9 @@ def basic_prompt_with_one_tool():
                 book information _exactly_ as shown above. Completely
                 omit any optional fields.
                 """,
-            ),
-        ]),
+                ),
+            ],
+        ),
     ]
 
     return Prompt(
@@ -271,6 +290,7 @@ def basic_prompt_with_one_tool():
         temperature=0.0,
         max_output_tokens=512,
     )
+
 
 @pytest.fixture
 def response_to_basic_prompt_with_one_tool():
@@ -303,36 +323,43 @@ def response_to_basic_prompt_with_one_tool():
         ],
     )
 
+
 @pytest.fixture
 def basic_prompt_tool_no_args():
     """
     A basic prompt with a tool that takes no arguments.
     """
     messages: list[AnyPromptMessage] = [
-        PromptUserMessage(content=[
-            PromptTextContent(
-                """
+        PromptUserMessage(
+            content=[
+                PromptTextContent(
+                    """
                 You are a helpful assistant. You are acting
                 as an agent named 'Test Agent'. You will do
                 your best to assist the user with their request.
                 """,
-            ),
-        ]),
-        PromptAgentMessage(content=[
-            PromptTextContent(
-                """
+                ),
+            ],
+        ),
+        PromptAgentMessage(
+            content=[
+                PromptTextContent(
+                    """
                 Understood, I will assist the user with their request.
                 """,
-            ),
-        ]),
-        PromptUserMessage(content=[
-            PromptTextContent(
-                """
+                ),
+            ],
+        ),
+        PromptUserMessage(
+            content=[
+                PromptTextContent(
+                    """
                 Please confirm the request using the provided
                 tool.
                 """,
-            ),
-        ]),
+                ),
+            ],
+        ),
     ]
     return Prompt(
         messages=messages,
@@ -343,6 +370,7 @@ def basic_prompt_tool_no_args():
         temperature=0.0,
         max_output_tokens=512,
     )
+
 
 @pytest.fixture
 def response_to_basic_prompt_tool_no_args():

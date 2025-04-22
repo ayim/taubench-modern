@@ -64,9 +64,9 @@ class XmlTagResponseStreamSink(NoOpResponseStreamSink):
         self.on_tag_complete = on_tag_complete  # (tag_str, all_text_inside)
 
         # Internal state
-        self.parse_buffer = ""   # Accumulates partial data across callbacks
-        self.is_open = False     # Are we currently inside <tag> ... </tag>?
-        self.tag_content = ""    # Accumulates text inside the open tag
+        self.parse_buffer = ""  # Accumulates partial data across callbacks
+        self.is_open = False  # Are we currently inside <tag> ... </tag>?
+        self.tag_content = ""  # Accumulates text inside the open tag
 
     async def on_text_content_begin(
         self,
@@ -134,7 +134,8 @@ class XmlTagResponseStreamSink(NoOpResponseStreamSink):
                     closing_tag_len = len(self.as_closing_tag)
                     # We'll keep up to closing_tag_len - 1 characters at the end
                     potential_partial_start = max(
-                        0, len(self.parse_buffer) - (closing_tag_len - 1),
+                        0,
+                        len(self.parse_buffer) - (closing_tag_len - 1),
                     )
 
                     # The definitely-safe chunk is everything *before* that

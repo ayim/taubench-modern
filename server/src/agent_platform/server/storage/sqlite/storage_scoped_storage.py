@@ -18,6 +18,7 @@ class SQLiteStorageScopedStorageMixin(CommonMixin):
     Assumes that helper methods such as `_cursor()` and
     `_validate_uuid()` are available.
     """
+
     _logger = get_logger(__name__)
 
     # -------------------------------------------------------------------------
@@ -78,7 +79,9 @@ class SQLiteStorageScopedStorageMixin(CommonMixin):
         return ScopedStorage.model_validate(storage_dict)
 
     async def list_scoped_storage(
-        self, scope_type: str, scope_id: str,
+        self,
+        scope_type: str,
+        scope_id: str,
     ) -> list[ScopedStorage]:
         """
         List all scoped storage records for a given scope type and scope identifier.

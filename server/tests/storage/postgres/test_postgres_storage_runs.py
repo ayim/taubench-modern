@@ -279,7 +279,8 @@ async def test_run_reupsert_idempotency(
     for status in statuses:
         current_run = await storage.get_run(initial_run.run_id)
         updated_run = Run.model_validate(
-            current_run.model_dump() | {
+            current_run.model_dump()
+            | {
                 "status": status,
                 "finished_at": datetime.now(UTC),
             },
@@ -347,6 +348,7 @@ async def test_concurrent_run_creation(
       - Each created run can be fetched and has the correct status.
       - All created runs appear in the listing for the given agent.
     """
+
     async def create_run():
         run = Run(
             run_id=str(uuid4()),
@@ -378,6 +380,6 @@ async def test_concurrent_run_creation(
     runs = await storage.list_runs_for_agent(sample_agent.agent_id)
     listed_run_ids = {r.run_id for r in runs}
     for run_id in run_ids:
-        assert run_id in listed_run_ids, (
-            f"Run with ID {run_id} is not listed in agent runs"
-        )
+        assert (
+            run_id in listed_run_ids
+        ), f"Run with ID {run_id} is not listed in agent runs"

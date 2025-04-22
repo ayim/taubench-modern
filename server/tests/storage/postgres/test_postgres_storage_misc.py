@@ -191,8 +191,7 @@ async def test_concurrent_get_or_create_user(storage: PostgresStorage):
 
     # Filter out any exceptions and valid results
     valid_results: list[tuple[str, bool]] = [
-        r for r in results
-        if not isinstance(r, BaseException)
+        r for r in results if not isinstance(r, BaseException)
     ]
 
     if not valid_results:
@@ -203,7 +202,6 @@ async def test_concurrent_get_or_create_user(storage: PostgresStorage):
 
     created_flags = [created for _, created in valid_results]
     assert any(created_flags)  # At least one operation should have created the user
-
 
 
 @pytest.mark.asyncio

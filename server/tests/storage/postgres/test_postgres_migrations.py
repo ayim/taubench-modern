@@ -60,8 +60,12 @@ async def test_postgres_run_migrations_successfully(
     and that the final schema is as expected.
     """
     path_to_migrations = (
-        Path(__file__).parent.parent.parent.parent / "src" /
-        "agent_platform" / "server" / "migrations" / "postgres"
+        Path(__file__).parent.parent.parent.parent
+        / "src"
+        / "agent_platform"
+        / "server"
+        / "migrations"
+        / "postgres"
     )
     migrations = PostgresMigrations(
         cursor_provider,
@@ -98,13 +102,12 @@ async def test_postgres_run_migrations_successfully(
 
             # Let's count the number of migrations we have in the migrations folder
             migration_files = [
-                f for f in path_to_migrations.iterdir()
+                f
+                for f in path_to_migrations.iterdir()
                 if f.is_file() and f.name.endswith(".up.sql")
             ]
             num_migrations = len(migration_files)
-            assert (
-                latest_version == num_migrations
-            ), (
+            assert latest_version == num_migrations, (
                 f"Expected the latest migration version to be {num_migrations}, "
                 f"got {latest_version}"
             )
@@ -346,8 +349,8 @@ async def test_postgres_migration_sql_syntax_error(
     with pytest.raises(MigrationError) as exc_info:
         await migrations.run_migrations()
 
-    assert (
-        "Migration 3 failed:" in str(exc_info.value)
+    assert "Migration 3 failed:" in str(
+        exc_info.value,
     ), "Expected a MigrationError due to syntax error."
 
     # Verify that the migration is still marked 'dirty' (or not in DB at all)
@@ -364,6 +367,7 @@ async def test_postgres_migration_sql_syntax_error(
                     row[0] is True
                 ), "Expected migration 3 to remain dirty after SQL error."
 
+
 @pytest.mark.asyncio
 async def test_postgres_migrations_idempotency(
     postgres_test_db: AsyncConnectionPool,
@@ -376,8 +380,12 @@ async def test_postgres_migrations_idempotency(
     """
     # Use your normal migrations directory.
     migrations_path = (
-        Path(__file__).parent.parent.parent.parent / "src" /
-        "agent_platform" / "server" / "migrations" / "postgres"
+        Path(__file__).parent.parent.parent.parent
+        / "src"
+        / "agent_platform"
+        / "server"
+        / "migrations"
+        / "postgres"
     )
     migrations = PostgresMigrations(cursor_provider, migrations_path=migrations_path)
 
@@ -469,9 +477,10 @@ async def test_postgres_rollback_on_failure(
             row = await cur.fetchone()
             table_exists = row[0] if row else False
 
-    assert not table_exists, (
-        "Table 'rollback_test' should not exist after a migration failure."
-    )
+    assert (
+        not table_exists
+    ), "Table 'rollback_test' should not exist after a migration failure."
+
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(

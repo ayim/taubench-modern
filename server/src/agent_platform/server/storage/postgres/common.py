@@ -12,7 +12,8 @@ from agent_platform.server.storage.errors import InvalidUUIDError
 class CommonMixin(BaseStorage):
     @abstractmethod
     def _cursor(
-        self, cursor: AsyncCursor[DictRow] | None = None,
+        self,
+        cursor: AsyncCursor[DictRow] | None = None,
     ) -> AbstractAsyncContextManager[AsyncCursor[DictRow]]:
         """Get a cursor for the database (or uses the provided cursor)."""
         pass

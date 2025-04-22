@@ -10,6 +10,7 @@ from agent_platform.server.kernel.kernel_mixin import UsesKernelMixin
 
 PendingToolCall = tuple[ToolDefinition, ResponseToolUseContent]
 
+
 class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
     """Manages building and execution of agent actions,
     internal tools, and CA-defined tools."""

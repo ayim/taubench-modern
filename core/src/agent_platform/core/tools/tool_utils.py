@@ -211,8 +211,9 @@ def build_param_schema(
     """
 
     # 1) Unwrap Annotated & Optional
-    unwrapped_type, is_nullable, annotated_description = (
-        unwrap_annotated_and_optional(hint, param_name)
+    unwrapped_type, is_nullable, annotated_description = unwrap_annotated_and_optional(
+        hint,
+        param_name,
     )
 
     # 2) If it's a dataclass
@@ -231,9 +232,7 @@ def build_param_schema(
         # For a typical enum, they're often strings, but could be int
         # if it's an IntEnum
         schema_type = (
-            "integer"
-            if all(isinstance(v, int) for v in possible_values)
-            else "string"
+            "integer" if all(isinstance(v, int) for v in possible_values) else "string"
         )
         schema_type = [schema_type, "null"] if is_nullable else schema_type
 

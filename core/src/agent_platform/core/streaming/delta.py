@@ -49,7 +49,7 @@ class StreamingDeltaMessageContent(StreamingDelta):
     event_type: Literal["message_content"] = field(
         metadata={
             "description": "The type of streaming event."
-                "(Always 'message_content' for this type.)",
+            "(Always 'message_content' for this type.)",
         },
         default="message_content",
         init=False,
@@ -81,7 +81,7 @@ class StreamingDeltaMessageBegin(StreamingDelta):
     channel: Literal["events"] = field(
         metadata={
             "description": "The channel for this delta."
-                "(Always 'events' for this type.)",
+            "(Always 'events' for this type.)",
         },
         default="events",
         init=False,
@@ -90,7 +90,7 @@ class StreamingDeltaMessageBegin(StreamingDelta):
     event_type: Literal["message_begin"] = field(
         metadata={
             "description": "The type of streaming event."
-                "(Always 'message_begin' for this type.)",
+            "(Always 'message_begin' for this type.)",
         },
         default="message_begin",
         init=False,
@@ -124,7 +124,7 @@ class StreamingDeltaMessageEnd(StreamingDelta):
     channel: Literal["events"] = field(
         metadata={
             "description": "The channel for this delta."
-                "(Always 'events' for this type.)",
+            "(Always 'events' for this type.)",
         },
         default="events",
     )
@@ -132,7 +132,7 @@ class StreamingDeltaMessageEnd(StreamingDelta):
     event_type: Literal["message_end"] = field(
         metadata={
             "description": "The type of streaming event."
-                "(Always 'message_end' for this type.)",
+            "(Always 'message_end' for this type.)",
         },
         default="message_end",
         init=False,

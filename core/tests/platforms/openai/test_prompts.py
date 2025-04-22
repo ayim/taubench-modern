@@ -64,6 +64,7 @@ class TestOpenAIPrompt:
             ChatCompletionSystemMessageParam,
             ChatCompletionUserMessageParam,
         )
+
         messages: list[ChatCompletionMessageParam] = [
             ChatCompletionSystemMessageParam(
                 role="system",

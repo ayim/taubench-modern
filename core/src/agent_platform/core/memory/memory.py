@@ -104,7 +104,7 @@ class Memory:
         default=None,
         metadata={
             "description": "The ID of the linked embedding"
-                "(possibly stored externally)",
+            "(possibly stored externally)",
         },
     )
     """The ID of the linked embedding (possibly stored externally)"""
@@ -120,11 +120,13 @@ class Memory:
             "updated_at": self.updated_at.isoformat(),
             "relevant_until_timestamp": (
                 self.relevant_until_timestamp.isoformat()
-                if self.relevant_until_timestamp else None
+                if self.relevant_until_timestamp
+                else None
             ),
             "relevant_after_timestamp": (
                 self.relevant_after_timestamp.isoformat()
-                if self.relevant_after_timestamp else None
+                if self.relevant_after_timestamp
+                else None
             ),
             "scope": self.scope,
             "metadata": self.metadata,

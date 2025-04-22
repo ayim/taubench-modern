@@ -24,4 +24,3 @@ class UploadFilePayload:
         },
     )
     """Whether the file is embedded. If None, it will be inferred from file type."""
-

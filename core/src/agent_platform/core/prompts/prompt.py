@@ -43,11 +43,11 @@ class Prompt:
     """Initial instruction that defines the AI's behavior and context"""
 
     messages: list[
-        PromptUserMessage |
-        PromptAgentMessage |
-        ConversationHistorySpecialMessage |
-        DocumentsSpecialMessage |
-        MemoriesSpecialMessage
+        PromptUserMessage
+        | PromptAgentMessage
+        | ConversationHistorySpecialMessage
+        | DocumentsSpecialMessage
+        | MemoriesSpecialMessage
     ] = field(
         default_factory=list,
         metadata={
@@ -262,7 +262,8 @@ class Prompt:
             raise ValueError("Prompt has not been finalized")
 
         return [
-            message for message in self.messages
+            message
+            for message in self.messages
             if isinstance(message, PromptUserMessage | PromptAgentMessage)
         ]
 
@@ -416,9 +417,7 @@ class Prompt:
 
         # Filter the loaded YAML data to only include valid Prompt fields
         filtered_data = {
-            key: value for key, value in data.items()
-            if key in prompt_fields
+            key: value for key, value in data.items() if key in prompt_fields
         }
 
         return cls.model_validate(filtered_data)
-

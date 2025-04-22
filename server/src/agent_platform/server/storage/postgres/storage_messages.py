@@ -33,18 +33,21 @@ class PostgresStorageMessagesMixin(CommonMixin):
             )
 
             # 3. Perpare messages for batch insert
-            values = [{
-                "message_id": msg.message_id,
-                "thread_id": thread_id,
-                "sequence_number": i,
-                "role": msg.role,
-                "content": Jsonb([c.model_dump() for c in msg.content]),
-                "agent_metadata": Jsonb(msg.agent_metadata),
-                "server_metadata": Jsonb(msg.server_metadata),
-                "created_at": msg.created_at,
-                "updated_at": msg.updated_at,
-                "parent_run_id": msg.parent_run_id,
-            } for i, msg in enumerate(messages)]
+            values = [
+                {
+                    "message_id": msg.message_id,
+                    "thread_id": thread_id,
+                    "sequence_number": i,
+                    "role": msg.role,
+                    "content": Jsonb([c.model_dump() for c in msg.content]),
+                    "agent_metadata": Jsonb(msg.agent_metadata),
+                    "server_metadata": Jsonb(msg.server_metadata),
+                    "created_at": msg.created_at,
+                    "updated_at": msg.updated_at,
+                    "parent_run_id": msg.parent_run_id,
+                }
+                for i, msg in enumerate(messages)
+            ]
 
             # 4. No values to insert?
             if not values:

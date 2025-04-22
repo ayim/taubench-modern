@@ -104,7 +104,7 @@ class TestCortexPrompt:
                 ),
                 CortexPromptMessage(
                     role="assistant",
-                    content="", # Assistant message might be empty before tool use
+                    content="",  # Assistant message might be empty before tool use
                     content_list=[
                         CortexPromptContent(
                             type="tool_use",
@@ -117,7 +117,7 @@ class TestCortexPrompt:
                     ],
                 ),
             ],
-            tools=[ # Tools must be present if tool_use is
+            tools=[  # Tools must be present if tool_use is
                 CortexPromptToolSpec(
                     name="get_weather",
                     description="Get weather",
@@ -150,8 +150,8 @@ class TestCortexPrompt:
                     ],
                 ),
                 CortexPromptMessage(
-                    role="user", # Tool results come back in user role for Cortex
-                    content="Tool results:", # Placeholder content often needed
+                    role="user",  # Tool results come back in user role for Cortex
+                    content="Tool results:",  # Placeholder content often needed
                     content_list=[
                         CortexPromptContent(
                             type="tool_results",
@@ -169,7 +169,7 @@ class TestCortexPrompt:
                     ],
                 ),
             ],
-            tools=[ # Tools must be present if tool_results are
+            tools=[  # Tools must be present if tool_results are
                 CortexPromptToolSpec(
                     name="get_weather",
                     description="Get weather",
@@ -417,7 +417,7 @@ class TestCortexPrompt:
                 },
             ],
         }
-        assert "tools" in request # Tools must be present
+        assert "tools" in request  # Tools must be present
         assert len(request["tools"]) == 1
         assert request["tools"][0]["tool_spec"]["name"] == "get_weather"
         assert not request["stream"]
@@ -447,6 +447,6 @@ class TestCortexPrompt:
                 {"type": "text", "text": '{"temperature": 15, "unit": "C"}'},
             ],
         }
-        assert "tools" in request # Tools must be present
+        assert "tools" in request  # Tools must be present
         assert len(request["tools"]) == 1
         assert not request["stream"]

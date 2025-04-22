@@ -92,7 +92,9 @@ def _openapi_spec_to_tool_definitions(
                     "required": request_body_required,
                 },
                 function=_build_post_async_function(
-                    action_url, api_key, additional_headers,
+                    action_url,
+                    api_key,
+                    additional_headers,
                 ),
             )
 
@@ -125,9 +127,9 @@ async def _get_spec_and_build_tool_definitions(
         # Only filter the definitions if we have allowed actions
         # (empty list means all actions are allowed)
         definitions = [
-            definition for definition in definitions
+            definition
+            for definition in definitions
             if definition.name in allowed_actions
         ]
 
     return definitions
-

@@ -25,10 +25,12 @@ class AgentServerThreadStateInterface(ThreadStateInterface, UsesKernelMixin):
         Raises:
             StreamingError: If the delta cannot be sent to the UI.
         """
-        await self.kernel.outgoing_events.dispatch({
-            "type": "delta",
-            "delta": delta_object.model_dump(),
-        })
+        await self.kernel.outgoing_events.dispatch(
+            {
+                "type": "delta",
+                "delta": delta_object.model_dump(),
+            },
+        )
 
     async def _commit_message_to_storage(self, message: ThreadMessage) -> None:
         """Commits a message to the thread state storage.

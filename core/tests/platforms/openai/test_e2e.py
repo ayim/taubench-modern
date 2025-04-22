@@ -72,6 +72,7 @@ TEST_CASES = [
     },
 ]
 
+
 # -------------------------------------------------------------------------
 # FIXTURES
 # -------------------------------------------------------------------------
@@ -93,9 +94,11 @@ def openai_client(kernel: Kernel):
     client.attach_kernel(kernel)
     return client
 
+
 # -------------------------------------------------------------------------
 # TESTS
 # -------------------------------------------------------------------------
+
 
 @pytest.mark.parametrize("case", TEST_CASES, ids=[c["case_name"] for c in TEST_CASES])
 @pytest.mark.parametrize("model_id", ALL_MODELS)

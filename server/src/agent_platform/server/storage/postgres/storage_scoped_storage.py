@@ -84,7 +84,9 @@ class PostgresStorageScopedStorageMixin(CommonMixin):
         return ScopedStorage.model_validate(storage_dict)
 
     async def list_scoped_storage(
-        self, scope_type: str, scope_id: str,
+        self,
+        scope_type: str,
+        scope_id: str,
     ) -> list[ScopedStorage]:
         """
         List all scoped storage records for a given scope type and scope identifier.
@@ -216,5 +218,6 @@ class PostgresStorageScopedStorageMixin(CommonMixin):
         """
         if "storage" in storage_dict and isinstance(storage_dict["storage"], str):
             import json
+
             storage_dict["storage"] = json.loads(storage_dict["storage"])
         return storage_dict

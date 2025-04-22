@@ -34,6 +34,7 @@ def is_url_accessible(url):
         print(f"Error checking if {url} is accessible: {ex}")
         return False
 
+
 # Development URL
 DEV_ESM = "http://localhost:5173/src/index.tsx?anywidget"
 # Use dev URL if accessible, otherwise fall back to static files
@@ -47,7 +48,8 @@ else:
 # Similarly for CSS
 DEV_CSS = ""
 CSS = (
-    DEV_CSS if DEV_CSS and is_url_accessible(DEV_CSS)
+    DEV_CSS
+    if DEV_CSS and is_url_accessible(DEV_CSS)
     else "./debug_widget/static/style.css"
 )
 
@@ -62,9 +64,7 @@ class AgentApiClient:
         url = f"{self.base_url}/threads?agent_id={agent_id}"
         resp = requests.get(url)
         resp.raise_for_status()
-        return [
-            Thread.model_validate(t) for t in resp.json()
-        ]
+        return [Thread.model_validate(t) for t in resp.json()]
 
     def create_thread(self, agent_id: str, thread_name: str = "New Thread"):
         url = f"{self.base_url}/threads"
@@ -83,9 +83,7 @@ class AgentApiClient:
         url = f"{self.base_url}/debug/artifacts/search?thread_id={thread_id}"
         resp = requests.get(url)
         resp.raise_for_status()
-        return [
-            OTelArtifact.model_validate(a) for a in resp.json()
-        ]
+        return [OTelArtifact.model_validate(a) for a in resp.json()]
 
     def add_message_to_thread(self, thread_id: str, message: dict):
         url = f"{self.base_url}/threads/{thread_id}/messages"
@@ -96,7 +94,7 @@ class AgentApiClient:
     def delete_thread(self, thread_id: str):
         url = f"{self.base_url}/threads/{thread_id}"
         resp = requests.delete(url)
-        resp.raise_for_status() # This should just return 204
+        resp.raise_for_status()  # This should just return 204
 
 
 class DebugChatWidget(anywidget.AnyWidget):
@@ -115,7 +113,7 @@ class DebugChatWidget(anywidget.AnyWidget):
     base_url = traitlets.Unicode().tag(sync=True)
 
     threads: list[Thread]
-    threads_out =  traitlets.List(traitlets.Dict()).tag(sync=True)
+    threads_out = traitlets.List(traitlets.Dict()).tag(sync=True)
 
     selected_thread_id: str | None
     selected_thread_id_out = traitlets.Unicode(allow_none=True).tag(sync=True)
@@ -195,24 +193,25 @@ class DebugChatWidget(anywidget.AnyWidget):
                 try:
                     artifact_name = f"{idx:03d}-{artifact.name}"
                     # Sanitize filename to remove any invalid characters
-                    safe_name = ''.join(
-                        c for c in artifact_name if c.isalnum() or c in '._- '
+                    safe_name = "".join(
+                        c for c in artifact_name if c.isalnum() or c in "._- "
                     )
 
                     file_path = os.path.join(temp_dir, safe_name)
-                    with open(file_path, 'w', encoding='utf-8') as f:
+                    with open(file_path, "w", encoding="utf-8") as f:
                         f.write(artifact.content.decode())
 
-                    new_thread_artifacts.append({
-                        "name": artifact_name,
-                        "path": file_path,
-                        "run_id": artifact.correlated_run_id,
-                        "message_id": artifact.correlated_message_id,
-                    })
+                    new_thread_artifacts.append(
+                        {
+                            "name": artifact_name,
+                            "path": file_path,
+                            "run_id": artifact.correlated_run_id,
+                            "message_id": artifact.correlated_message_id,
+                        },
+                    )
                 except Exception as e:
                     print(
-                        f"Error creating file for artifact {artifact.name}: "
-                        f"{e}",
+                        f"Error creating file for artifact {artifact.name}: " f"{e}",
                     )
 
             self.active_thread_artifacts = new_thread_artifacts
@@ -352,7 +351,8 @@ class DebugChatWidget(anywidget.AnyWidget):
                             *self.messages[:-1].copy(),
                             ThreadAgentMessage.model_validate(
                                 combine_generic_deltas(
-                                    [delta], self.messages[-1].model_dump(),
+                                    [delta],
+                                    self.messages[-1].model_dump(),
                                 ),
                             ),
                         ]
@@ -365,7 +365,8 @@ class DebugChatWidget(anywidget.AnyWidget):
                     print(message_dict.get("stack_trace"))
                     self.is_loading = False
                     self.status_message = "Error: " + message_dict.get(
-                        "message", "Unknown error",
+                        "message",
+                        "Unknown error",
                     )
                 else:
                     # Possibly partial text or other event
@@ -388,13 +389,17 @@ class DebugChatWidget(anywidget.AnyWidget):
     def _append_message(self, role: str, text: str):
         current = list(self.messages)
         if role == "user":
-            current.append(ThreadUserMessage(
-                content=[ThreadTextContent(text=text)],
-            ))
+            current.append(
+                ThreadUserMessage(
+                    content=[ThreadTextContent(text=text)],
+                ),
+            )
         else:
-            current.append(ThreadAgentMessage(
-                content=[ThreadTextContent(text=text)],
-            ))
+            current.append(
+                ThreadAgentMessage(
+                    content=[ThreadTextContent(text=text)],
+                ),
+            )
         self.messages = current
         self.messages_out = [m.model_dump() for m in current]
 

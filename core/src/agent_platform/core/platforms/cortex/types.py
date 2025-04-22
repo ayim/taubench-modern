@@ -79,6 +79,7 @@ class CortexPromptToolUse:
             "input": self.input,
         }
 
+
 @dataclass(frozen=True)
 class CortexPromptToolResults:
     """A tool results for the Cortex prompt."""
@@ -111,6 +112,7 @@ class CortexPromptToolResults:
             "name": self.name,
             "content": [content.model_dump() for content in self.content],
         }
+
 
 @dataclass(frozen=True)
 class CortexPromptContent:
@@ -240,7 +242,6 @@ class CortexPromptMessage:
         }
         if self.content_list:
             final_result["content_list"] = [
-                content.model_dump()
-                for content in self.content_list
+                content.model_dump() for content in self.content_list
             ]
         return final_result

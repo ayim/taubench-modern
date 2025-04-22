@@ -6,6 +6,7 @@ from agent_platform.core import agent_architectures as aa
 
 logger = logging.getLogger(__name__)
 
+
 @aa.entrypoint
 async def entrypoint(kernel: Kernel, state: ArchState) -> ArchState:
     while True:

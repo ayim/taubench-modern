@@ -17,7 +17,7 @@ class ThreadVegaChartContent(ThreadMessageContent):
     chart_spec_raw: str = field(
         metadata={
             "description": "The Vega or Vega-Lite chart spec JSON "
-                "(as a string) to display",
+            "(as a string) to display",
         },
     )
     """The Vega or Vega-Lite chart spec JSON (as a string) to display"""

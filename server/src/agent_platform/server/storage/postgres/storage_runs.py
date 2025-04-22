@@ -102,8 +102,7 @@ class PostgresStorageRunsMixin(CommonMixin):
             )
             rows = await cur.fetchall()
         return [
-            Run.model_validate(self._convert_run_json_fields(dict(row)))
-            for row in rows
+            Run.model_validate(self._convert_run_json_fields(dict(row))) for row in rows
         ]
 
     async def list_runs_for_thread(self, thread_id: str) -> list[Run]:
@@ -121,8 +120,7 @@ class PostgresStorageRunsMixin(CommonMixin):
             )
             rows = await cur.fetchall()
         return [
-            Run.model_validate(self._convert_run_json_fields(dict(row)))
-            for row in rows
+            Run.model_validate(self._convert_run_json_fields(dict(row))) for row in rows
         ]
 
     async def upsert_run(self, run: Run) -> None:

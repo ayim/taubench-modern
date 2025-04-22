@@ -69,4 +69,5 @@ class RunbookStepContent(RunbookContent):
         """Create a runbook step content from a dictionary."""
         return cls(**data)
 
+
 RunbookStepContent.register_content_kind("step", RunbookStepContent)

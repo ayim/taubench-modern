@@ -18,6 +18,7 @@ class OTelArtifact:
     that can be linked to a span. This is useful for things like prompts,
     runbooks, files, images, etc.
     """
+
     name: str = field(metadata={"description": "The name of the artifact"})
     """The name of the artifact"""
 
@@ -26,9 +27,7 @@ class OTelArtifact:
 
     content: bytes = field(
         metadata={
-            "description": (
-                "The content of the artifact, which must be bytes"
-            ),
+            "description": ("The content of the artifact, which must be bytes"),
         },
     )
     """The content of the artifact, which must be bytes"""
@@ -159,7 +158,10 @@ class WrappedSpan(Span):
         escaped: bool = False,
     ) -> None:
         self.span.record_exception(
-            exception, attributes=attributes, timestamp=timestamp, escaped=escaped,
+            exception,
+            attributes=attributes,
+            timestamp=timestamp,
+            escaped=escaped,
         )
 
     def add_event_with_artifacts(

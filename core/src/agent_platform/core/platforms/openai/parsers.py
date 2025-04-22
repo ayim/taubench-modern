@@ -1,4 +1,3 @@
-
 from collections.abc import AsyncGenerator
 from logging import getLogger
 from typing import TYPE_CHECKING, Any
@@ -114,7 +113,6 @@ class OpenAIParsers(PlatformParsers):
                     )
 
         return as_tool_use
-
 
     def parse_response(self, response: "ChatCompletion") -> ResponseMessage:
         """Parses an OpenAI response to an agent-server response.
@@ -258,12 +256,14 @@ class OpenAIParsers(PlatformParsers):
             tool_input_raw = tool_call.function.arguments if tool_call.function else ""
 
             if tool_call.index >= len(tool_indices):
-                message["content"].append({
-                    "kind": "tool_use",
-                    "tool_call_id": tool_call.id,
-                    "tool_name": tool_name or "",
-                    "tool_input_raw": tool_input_raw or "",
-                })
+                message["content"].append(
+                    {
+                        "kind": "tool_use",
+                        "tool_call_id": tool_call.id,
+                        "tool_name": tool_name or "",
+                        "tool_input_raw": tool_input_raw or "",
+                    },
+                )
             else:
                 matching_tool_idx = tool_indices[tool_call.index]
                 if tool_call.function:
@@ -289,4 +289,3 @@ class OpenAIParsers(PlatformParsers):
                 "output_tokens": event.usage.completion_tokens,
                 "total_tokens": event.usage.total_tokens,
             }
-

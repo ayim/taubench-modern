@@ -18,6 +18,7 @@ PROMPT_IMAGE_MIME_TYPES = {
     "image/webp",
 }
 
+
 @dataclass(frozen=True)
 class PromptImageContent(PromptMessageContent):
     """Represents an image message in the agent system.
@@ -34,7 +35,7 @@ class PromptImageContent(PromptMessageContent):
     value: str | bytes = field(
         metadata={
             "description": "The image data - either a URL or base64 encoded string, "
-                "or raw bytes",
+            "or raw bytes",
         },
     )
     """The image data - either a URL or base64 encoded string, or raw bytes"""
@@ -50,7 +51,7 @@ class PromptImageContent(PromptMessageContent):
         default="url",
         metadata={
             "description": "Format of the image data - either a URL or base64"
-                "encoded string, or raw bytes",
+            "encoded string, or raw bytes",
         },
     )
     """Format of the image data - either a URL or base64
@@ -128,8 +129,7 @@ class PromptImageContent(PromptMessageContent):
         # Make sure the image filename is a valid file (if it's not we could
         # save image to bytesio as webp and use that instead)
         if (
-            not hasattr(image, "filename") or
-            not Path(image.filename).is_file()  # type: ignore
+            not hasattr(image, "filename") or not Path(image.filename).is_file()  # type: ignore
         ):
             try:
                 from io import BytesIO

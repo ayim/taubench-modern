@@ -133,7 +133,7 @@ class MCPClient:
             return {
                 k: v
                 for k, v in input_schema.items()
-                if k not in ['$schema', 'additionalProperties']
+                if k not in ["$schema", "additionalProperties"]
             }
 
         return [

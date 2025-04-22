@@ -1,6 +1,5 @@
 """Unit tests for the OpenAI platform parsers."""
 
-
 import pytest
 
 from agent_platform.core.delta import GenericDelta
@@ -25,7 +24,6 @@ class TestOpenAIParsers:
 
         assert isinstance(result, ResponseTextContent)
         assert result.text == "Hello, world!"
-
 
     def test_parse_tool_use_content(self, parsers: OpenAIParsers) -> None:
         """Test parsing tool use content."""
@@ -135,14 +133,16 @@ class TestOpenAIParsers:
             object="chat.completion",
             created=1717171717,
             model="test-model",
-            choices=[Choice(
-                message=ChatCompletionMessage(
-                    role="assistant",
-                    content="Hello, world!",
+            choices=[
+                Choice(
+                    message=ChatCompletionMessage(
+                        role="assistant",
+                        content="Hello, world!",
+                    ),
+                    finish_reason="stop",
+                    index=0,
                 ),
-                finish_reason="stop",
-                index=0,
-            )],
+            ],
             usage=CompletionUsage(
                 prompt_tokens=10,
                 completion_tokens=20,
@@ -174,24 +174,26 @@ class TestOpenAIParsers:
             object="chat.completion",
             created=1717171717,
             model="test-model",
-            choices=[Choice(
-                message=ChatCompletionMessage(
-                    role="assistant",
-                    content=None,
-                    tool_calls=[
-                        ChatCompletionMessageToolCall(
-                            id="test-tool-call-id",
-                            type="function",
-                            function=Function(
-                                name="test-tool",
-                                arguments='{"key": "value"}',
+            choices=[
+                Choice(
+                    message=ChatCompletionMessage(
+                        role="assistant",
+                        content=None,
+                        tool_calls=[
+                            ChatCompletionMessageToolCall(
+                                id="test-tool-call-id",
+                                type="function",
+                                function=Function(
+                                    name="test-tool",
+                                    arguments='{"key": "value"}',
+                                ),
                             ),
-                        ),
-                    ],
+                        ],
+                    ),
+                    finish_reason="stop",
+                    index=0,
                 ),
-                finish_reason="stop",
-                index=0,
-            )],
+            ],
             usage=CompletionUsage(
                 prompt_tokens=10,
                 completion_tokens=20,
@@ -223,11 +225,13 @@ class TestOpenAIParsers:
             object="chat.completion.chunk",
             created=1717171717,
             model="test-model",
-            choices=[Choice(
-                index=0,
-                delta=ChoiceDelta(content="Hello, world!"),
-                finish_reason="stop",
-            )],
+            choices=[
+                Choice(
+                    index=0,
+                    delta=ChoiceDelta(content="Hello, world!"),
+                    finish_reason="stop",
+                ),
+            ],
         )
 
         message = {
@@ -278,24 +282,26 @@ class TestOpenAIParsers:
             object="chat.completion.chunk",
             created=1717171717,
             model="test-model",
-            choices=[Choice(
-                index=0,
-                delta=ChoiceDelta(
-                    content="Hello, world!",
-                    tool_calls=[
-                        ChoiceDeltaToolCall(
-                            index=0,
-                            id="test-tool-call-id",
-                            type="function",
-                            function=ChoiceDeltaToolCallFunction(
-                                name="test-tool",
-                                arguments='{"key": "value"}',
+            choices=[
+                Choice(
+                    index=0,
+                    delta=ChoiceDelta(
+                        content="Hello, world!",
+                        tool_calls=[
+                            ChoiceDeltaToolCall(
+                                index=0,
+                                id="test-tool-call-id",
+                                type="function",
+                                function=ChoiceDeltaToolCallFunction(
+                                    name="test-tool",
+                                    arguments='{"key": "value"}',
+                                ),
                             ),
-                        ),
-                    ],
+                        ],
+                    ),
+                    finish_reason="stop",
                 ),
-                finish_reason="stop",
-            )],
+            ],
         )
 
         message = {

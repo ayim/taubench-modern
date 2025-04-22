@@ -27,7 +27,8 @@ async def test_thread_crud_operations(
     await storage.upsert_thread(sample_user_id, sample_thread)
     # Read
     retrieved_thread = await storage.get_thread(
-        sample_user_id, sample_thread.thread_id,
+        sample_user_id,
+        sample_thread.thread_id,
     )
     assert retrieved_thread is not None
     assert retrieved_thread.thread_id == sample_thread.thread_id
@@ -38,7 +39,8 @@ async def test_thread_crud_operations(
     updated_thread.name = "Updated Thread Name"
     await storage.upsert_thread(sample_user_id, updated_thread)
     retrieved_updated = await storage.get_thread(
-        sample_user_id, sample_thread.thread_id,
+        sample_user_id,
+        sample_thread.thread_id,
     )
     assert retrieved_updated is not None
     assert retrieved_updated.name == "Updated Thread Name"
@@ -68,12 +70,15 @@ async def test_thread_add_message(
         content=[ThreadTextContent(text="This is an additional message")],
     )
     await storage.add_message_to_thread(
-        sample_user_id, sample_thread.thread_id, additional_message,
+        sample_user_id,
+        sample_thread.thread_id,
+        additional_message,
     )
 
     # Retrieve the thread and verify that the new message was appended.
     updated_thread = await storage.get_thread(
-        sample_user_id, sample_thread.thread_id,
+        sample_user_id,
+        sample_thread.thread_id,
     )
     assert updated_thread is not None
     # Expect one more message than originally seeded.
@@ -96,7 +101,8 @@ async def test_list_threads_for_agent(
     await storage.upsert_agent(sample_user_id, sample_agent)
     await storage.upsert_thread(sample_user_id, sample_thread)
     threads = await storage.list_threads_for_agent(
-        sample_user_id, sample_agent.agent_id,
+        sample_user_id,
+        sample_agent.agent_id,
     )
     assert len(threads) == 1
     assert threads[0].thread_id == sample_thread.thread_id
@@ -240,6 +246,7 @@ async def test_thread_error_cases(
     assert retrieved is not None
     assert len(retrieved.messages) == 0
 
+
 @pytest.mark.asyncio
 async def test_thread_listing_with_multiple_agents(
     storage: PostgresStorage,
@@ -286,7 +293,8 @@ async def test_thread_listing_with_multiple_agents(
 
     # Test listing threads for the first agent
     agent_threads = await storage.list_threads_for_agent(
-        sample_user_id, agents[0].agent_id,
+        sample_user_id,
+        agents[0].agent_id,
     )
     assert len(agent_threads) == 2
     for t in agent_threads:
@@ -295,7 +303,8 @@ async def test_thread_listing_with_multiple_agents(
 
 @pytest.mark.asyncio
 async def test_thread_deletion_nonexistent(
-    storage: PostgresStorage, sample_user_id: str,
+    storage: PostgresStorage,
+    sample_user_id: str,
 ) -> None:
     """
     Test that attempting to delete a non-existent thread raises ThreadNotFoundError.
@@ -307,7 +316,8 @@ async def test_thread_deletion_nonexistent(
 
 @pytest.mark.asyncio
 async def test_thread_add_message_to_nonexistent(
-    storage: PostgresStorage, sample_user_id: str,
+    storage: PostgresStorage,
+    sample_user_id: str,
 ) -> None:
     """
     Test that attempting to add a message to a non-existent thread
@@ -320,5 +330,7 @@ async def test_thread_add_message_to_nonexistent(
     )
     with pytest.raises(ThreadNotFoundError):
         await storage.add_message_to_thread(
-            sample_user_id, non_existent_thread_id, additional_message,
+            sample_user_id,
+            non_existent_thread_id,
+            additional_message,
         )

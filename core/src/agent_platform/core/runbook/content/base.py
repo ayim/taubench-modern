@@ -61,4 +61,3 @@ class RunbookContent(ABC):
 
         content_class = cls._content_kinds[kind]
         return content_class.model_validate(data)
-

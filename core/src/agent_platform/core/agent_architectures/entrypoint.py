@@ -23,7 +23,7 @@ def entrypoint(func):
     # Validate the function signature and async nature.
     sig = validate_2param_async(func)
 
-    @wraps(func) # TODO: type the wrapper how we want (kernel, state...)
+    @wraps(func)  # TODO: type the wrapper how we want (kernel, state...)
     async def wrapper(*args, **kwargs):
         # Extract and validate kernel and state.
         kernel, state = extract_kernel_and_create_or_get_state(sig, *args, **kwargs)

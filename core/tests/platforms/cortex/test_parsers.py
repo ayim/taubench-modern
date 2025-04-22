@@ -63,85 +63,68 @@ class TestCortexParsers:
         """Fixture for creating a sse response stream."""
         # Actual response sampled from curl request
         return [
-            "data: {\"id\":\"08318161-92b0-40e7-a0c9-d66851104e0b\",\"model\""
-            ":\"claude-3-5-sonnet\",\"choices\":[{\"delta\":"
-            "{\"content\":\"I'll\",\"content_list\":[{\"type\":\"text\","
-            "\"text\":\"I'll\"}]}}],\"usage\":{}}",
-
-            "data: {\"id\":\"08318161-92b0-40e7-a0c9-d66851104e0b\",\"model\""
-            ":\"claude-3-5-sonnet\",\"choices\":[{\"delta\":"
-            "{\"content\":\" help you evaluate this classic\",\"content_list\":"
-            "[{\"type\":\"text\",\"text\":\" help you evaluate this classic"
-            "\"}]}}],\"usage\":{}}",
-
-            "data: {\"id\":\"08318161-92b0-40e7-a0c9-d66851104e0b\",\"model\""
-            ":\"claude-3-5-sonnet\",\"choices\":[{\"delta\":"
-            "{\"content\":\" joke using the joke_judge tool.\",\"content_list\":"
-            "[{\"type\":\"text\",\"text\":\" joke using the joke_judge tool"
-            ".\"}]}}],\"usage\":{}}",
-
-            "data: {\"id\":\"08318161-92b0-40e7-a0c9-d66851104e0b\",\"model\""
-            ":\"claude-3-5-sonnet\",\"choices\":[{\"delta\":"
-            "{\"content\":\" I'll submit the complete joke including both\""
-            ",\"content_list\":[{\"type\":\"text\",\"text\":\" I'll submit the "
-            "complete joke including both\"}]}}],\"usage\":{}}",
-
+            'data: {"id":"08318161-92b0-40e7-a0c9-d66851104e0b","model"'
+            ':"claude-3-5-sonnet","choices":[{"delta":'
+            '{"content":"I\'ll","content_list":[{"type":"text",'
+            '"text":"I\'ll"}]}}],"usage":{}}',
+            'data: {"id":"08318161-92b0-40e7-a0c9-d66851104e0b","model"'
+            ':"claude-3-5-sonnet","choices":[{"delta":'
+            '{"content":" help you evaluate this classic","content_list":'
+            '[{"type":"text","text":" help you evaluate this classic'
+            '"}]}}],"usage":{}}',
+            'data: {"id":"08318161-92b0-40e7-a0c9-d66851104e0b","model"'
+            ':"claude-3-5-sonnet","choices":[{"delta":'
+            '{"content":" joke using the joke_judge tool.","content_list":'
+            '[{"type":"text","text":" joke using the joke_judge tool'
+            '."}]}}],"usage":{}}',
+            'data: {"id":"08318161-92b0-40e7-a0c9-d66851104e0b","model"'
+            ':"claude-3-5-sonnet","choices":[{"delta":'
+            '{"content":" I\'ll submit the complete joke including both"'
+            ',"content_list":[{"type":"text","text":" I\'ll submit the '
+            'complete joke including both"}]}}],"usage":{}}',
             # Insert an empty event (should get ignored)
             "",
-
-            "data: {\"id\":\"08318161-92b0-40e7-a0c9-d66851104e0b\",\"model\""
-            ":\"claude-3-5-sonnet\",\"choices\":[{\"delta\":"
-            "{\"content\":\" the setup and punchline.\",\"content_list\":"
-            "[{\"type\":\"text\",\"text\":\" the setup and punchline."
-            "\"}]}}],\"usage\":{}}",
-
-            "data: {\"id\":\"08318161-92b0-40e7-a0c9-d66851104e0b\",\"model\""
-            ":\"claude-3-5-sonnet\",\"choices\":[{\"delta\":"
-            "{\"content_list\":[{\"tool_use_id\":\"tooluse_jcKi9GD4SkajSgUYoujtXA\","
-            "\"name\":\"joke_judge\"}]}}],\"usage\":{}}",
-
-            "data: {\"id\":\"08318161-92b0-40e7-a0c9-d66851104e0b\",\"model\""
-            ":\"claude-3-5-sonnet\",\"choices\":[{\"delta\":"
-            "{\"content_list\":[{\"input\":\"{\\\"joke\\\": \\\"Wh\"}]}}],"
-            "\"usage\":{}}",
-
-            "data: {\"id\":\"08318161-92b0-40e7-a0c9-d66851104e0b\",\"model\""
-            ":\"claude-3-5-sonnet\",\"choices\":[{\"delta\":"
-            "{\"content_list\":[{\"input\":\"y di\"}]}}],\"usage\":{}}",
-
-            "data: {\"id\":\"08318161-92b0-40e7-a0c9-d66851104e0b\",\"model\""
-            ":\"claude-3-5-sonnet\",\"choices\":[{\"delta\":"
-            "{\"content_list\":[{\"input\":\"d the chick\"}]}}],\"usage\":{}}",
-
-            "data: {\"id\":\"08318161-92b0-40e7-a0c9-d66851104e0b\",\"model\""
-            ":\"claude-3-5-sonnet\",\"choices\":[{\"delta\":"
-            "{\"content_list\":[{\"input\":\"en \"}]}}],\"usage\":{}}",
-
-            "data: {\"id\":\"08318161-92b0-40e7-a0c9-d66851104e0b\",\"model\""
-            ":\"claude-3-5-sonnet\",\"choices\":[{\"delta\":"
-            "{\"content_list\":[{\"input\":\"cross \"}]}}],\"usage\":{}}",
-
-            "data: {\"id\":\"08318161-92b0-40e7-a0c9-d66851104e0b\",\"model\""
-            ":\"claude-3-5-sonnet\",\"choices\":[{\"delta\":"
-            "{\"content_list\":[{\"input\":\"the road\"}]}}],\"usage\":{}}",
-
-            "data: {\"id\":\"08318161-92b0-40e7-a0c9-d66851104e0b\",\"model\""
-            ":\"claude-3-5-sonnet\",\"choices\":[{\"delta\":"
-            "{\"content_list\":[{\"input\":\"? To get to \"}]}}],\"usage\":{}}",
-
-            "data: {\"id\":\"08318161-92b0-40e7-a0c9-d66851104e0b\",\"model\""
-            ":\"claude-3-5-sonnet\",\"choices\":[{\"delta\":"
-            "{\"content_list\":[{\"input\":\"the other\"}]}}],\"usage\":{}}",
-
-            "data: {\"id\":\"08318161-92b0-40e7-a0c9-d66851104e0b\",\"model\""
-            ":\"claude-3-5-sonnet\",\"choices\":[{\"delta\":"
-            "{\"content_list\":[{\"input\":\" side!\\\"}\"}]}}],\"usage\":{}}",
-
-            "data: {\"id\":\"08318161-92b0-40e7-a0c9-d66851104e0b\",\"model\""
-            ":\"claude-3-5-sonnet\",\"choices\":[{\"delta\":{}}], \"usage\":{"
-            "\"prompt_tokens\":413,\"completion_tokens\":66,\"total_tokens\":479}}",
+            'data: {"id":"08318161-92b0-40e7-a0c9-d66851104e0b","model"'
+            ':"claude-3-5-sonnet","choices":[{"delta":'
+            '{"content":" the setup and punchline.","content_list":'
+            '[{"type":"text","text":" the setup and punchline.'
+            '"}]}}],"usage":{}}',
+            'data: {"id":"08318161-92b0-40e7-a0c9-d66851104e0b","model"'
+            ':"claude-3-5-sonnet","choices":[{"delta":'
+            '{"content_list":[{"tool_use_id":"tooluse_jcKi9GD4SkajSgUYoujtXA",'
+            '"name":"joke_judge"}]}}],"usage":{}}',
+            'data: {"id":"08318161-92b0-40e7-a0c9-d66851104e0b","model"'
+            ':"claude-3-5-sonnet","choices":[{"delta":'
+            '{"content_list":[{"input":"{\\"joke\\": \\"Wh"}]}}],'
+            '"usage":{}}',
+            'data: {"id":"08318161-92b0-40e7-a0c9-d66851104e0b","model"'
+            ':"claude-3-5-sonnet","choices":[{"delta":'
+            '{"content_list":[{"input":"y di"}]}}],"usage":{}}',
+            'data: {"id":"08318161-92b0-40e7-a0c9-d66851104e0b","model"'
+            ':"claude-3-5-sonnet","choices":[{"delta":'
+            '{"content_list":[{"input":"d the chick"}]}}],"usage":{}}',
+            'data: {"id":"08318161-92b0-40e7-a0c9-d66851104e0b","model"'
+            ':"claude-3-5-sonnet","choices":[{"delta":'
+            '{"content_list":[{"input":"en "}]}}],"usage":{}}',
+            'data: {"id":"08318161-92b0-40e7-a0c9-d66851104e0b","model"'
+            ':"claude-3-5-sonnet","choices":[{"delta":'
+            '{"content_list":[{"input":"cross "}]}}],"usage":{}}',
+            'data: {"id":"08318161-92b0-40e7-a0c9-d66851104e0b","model"'
+            ':"claude-3-5-sonnet","choices":[{"delta":'
+            '{"content_list":[{"input":"the road"}]}}],"usage":{}}',
+            'data: {"id":"08318161-92b0-40e7-a0c9-d66851104e0b","model"'
+            ':"claude-3-5-sonnet","choices":[{"delta":'
+            '{"content_list":[{"input":"? To get to "}]}}],"usage":{}}',
+            'data: {"id":"08318161-92b0-40e7-a0c9-d66851104e0b","model"'
+            ':"claude-3-5-sonnet","choices":[{"delta":'
+            '{"content_list":[{"input":"the other"}]}}],"usage":{}}',
+            'data: {"id":"08318161-92b0-40e7-a0c9-d66851104e0b","model"'
+            ':"claude-3-5-sonnet","choices":[{"delta":'
+            '{"content_list":[{"input":" side!\\"}"}]}}],"usage":{}}',
+            'data: {"id":"08318161-92b0-40e7-a0c9-d66851104e0b","model"'
+            ':"claude-3-5-sonnet","choices":[{"delta":{}}], "usage":{'
+            '"prompt_tokens":413,"completion_tokens":66,"total_tokens":479}}',
         ]
-
 
     def test_parse_text_content(self, parsers: CortexParsers) -> None:
         """Test parsing text content."""
@@ -272,8 +255,7 @@ class TestCortexParsers:
         assert isinstance(as_response.content[1], ResponseToolUseContent)
         assert as_response.content[1].tool_name == "joke_judge"
         assert as_response.content[1].tool_input == {
-            "joke": "Why did the chicken cross the road?"
-            " To get to the other side!",
+            "joke": "Why did the chicken cross the road?" " To get to the other side!",
         }
         assert as_response.content[1].tool_input_raw == (
             '{"joke": "Why did the chicken cross the road?'

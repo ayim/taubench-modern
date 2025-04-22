@@ -21,11 +21,11 @@ from agent_platform.core.prompts.special import (
 )
 
 AnyPromptMessage = (
-    PromptUserMessage |
-    PromptAgentMessage |
-    ConversationHistorySpecialMessage |
-    DocumentsSpecialMessage |
-    MemoriesSpecialMessage
+    PromptUserMessage
+    | PromptAgentMessage
+    | ConversationHistorySpecialMessage
+    | DocumentsSpecialMessage
+    | MemoriesSpecialMessage
 )
 
 AnyPromptMessageContent = (

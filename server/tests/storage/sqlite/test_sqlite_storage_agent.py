@@ -51,7 +51,8 @@ async def test_agent_crud_operations(
     )
     await storage.upsert_agent(sample_user_id, updated_agent)
     retrieved_updated = await storage.get_agent(
-        sample_user_id, sample_agent.agent_id,
+        sample_user_id,
+        sample_agent.agent_id,
     )
     assert retrieved_updated.name == "Updated Agent Name"
 
@@ -156,6 +157,7 @@ async def test_agent_regular_user_access(
     with pytest.raises(UserAccessDeniedError):
         await storage.get_agent(other_user.user_id, sample_agent.agent_id)
 
+
 @pytest.mark.asyncio
 async def test_agent_delete_cascades_threads(
     storage: SQLiteStorage,
@@ -172,7 +174,8 @@ async def test_agent_delete_cascades_threads(
 
     # Verify the thread exists.
     existing_thread = await storage.get_thread(
-        sample_user_id, sample_thread.thread_id,
+        sample_user_id,
+        sample_thread.thread_id,
     )
     assert existing_thread is not None
 
@@ -187,7 +190,9 @@ async def test_agent_delete_cascades_threads(
 
 @pytest.mark.asyncio
 async def test_agent_duplicate_name_constraint(
-    storage: SQLiteStorage, sample_user_id: str, sample_agent: Agent,
+    storage: SQLiteStorage,
+    sample_user_id: str,
+    sample_agent: Agent,
 ) -> None:
     """
     Test that creating two agents with the same name (ignoring case)
@@ -205,7 +210,9 @@ async def test_agent_duplicate_name_constraint(
 
 @pytest.mark.asyncio
 async def test_agent_case_insensitive_lookup(
-    storage: SQLiteStorage, sample_user_id: str, sample_agent: Agent,
+    storage: SQLiteStorage,
+    sample_user_id: str,
+    sample_agent: Agent,
 ) -> None:
     """
     Test that retrieving an agent by name is case-insensitive.
@@ -213,10 +220,12 @@ async def test_agent_case_insensitive_lookup(
     await storage.upsert_agent(sample_user_id, sample_agent)
     # Lookup using lower-case and upper-case variations.
     agent_lower = await storage.get_agent_by_name(
-        sample_user_id, sample_agent.name.lower(),
+        sample_user_id,
+        sample_agent.name.lower(),
     )
     agent_upper = await storage.get_agent_by_name(
-        sample_user_id, sample_agent.name.upper(),
+        sample_user_id,
+        sample_agent.name.upper(),
     )
     assert agent_lower is not None
     assert agent_upper is not None
@@ -226,7 +235,9 @@ async def test_agent_case_insensitive_lookup(
 
 @pytest.mark.asyncio
 async def test_agent_invalid_json_metadata(
-    storage: SQLiteStorage, sample_user_id: str, sample_agent: Agent,
+    storage: SQLiteStorage,
+    sample_user_id: str,
+    sample_agent: Agent,
 ) -> None:
     """
     Test that attempting to insert an agent with invalid JSON metadata
@@ -244,7 +255,8 @@ async def test_agent_invalid_json_metadata(
 
 @pytest.mark.asyncio
 async def test_agent_filter_by_user(
-    storage: SQLiteStorage, sample_agent: Agent,
+    storage: SQLiteStorage,
+    sample_agent: Agent,
 ) -> None:
     """
     Test that listing agents for a specific user returns only agents for that user.

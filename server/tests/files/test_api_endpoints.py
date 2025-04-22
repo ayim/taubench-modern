@@ -28,9 +28,7 @@ def _file_uploads_with_existing_thread(
         thread_file,
         embedded=True,
     )
-    assert (
-        thread_response.status_code == status.HTTP_200_OK
-    ), (
+    assert thread_response.status_code == status.HTTP_200_OK, (
         f"File upload to thread: bad response: {thread_response.status_code} "
         f"{thread_response.text}"
     )
@@ -42,9 +40,7 @@ def _file_uploads_with_existing_thread(
         thread_id,
         thread_files,
     )
-    assert (
-        thread_multi_response.status_code == status.HTTP_200_OK
-    ), (
+    assert thread_multi_response.status_code == status.HTTP_200_OK, (
         f"Multiple file upload to thread: "
         f"bad response: {thread_multi_response.status_code} "
         f"{thread_multi_response.text}"

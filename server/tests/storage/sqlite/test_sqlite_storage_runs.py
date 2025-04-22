@@ -149,6 +149,7 @@ async def test_invalid_uuid_run(
     with pytest.raises(InvalidUUIDError):
         await storage.get_run("not-a-uuid")
 
+
 @pytest.mark.asyncio
 async def test_run_deletion_cascades_run_steps(
     storage: SQLiteStorage,
@@ -203,6 +204,7 @@ async def test_run_deletion_cascades_run_steps(
     with pytest.raises(RunStepNotFoundError):
         await storage.get_run_step(sample_run_step.step_id)
 
+
 @pytest.mark.asyncio
 async def test_run_update_invalid_foreign_keys(
     storage: SQLiteStorage,
@@ -230,11 +232,11 @@ async def test_run_update_invalid_foreign_keys(
 
     # Modify run with invalid foreign keys.
     invalid_run = Run.model_validate(
-        valid_run.model_dump()
-        | {"agent_id": str(uuid4()), "thread_id": str(uuid4())},
+        valid_run.model_dump() | {"agent_id": str(uuid4()), "thread_id": str(uuid4())},
     )
     with pytest.raises(ReferenceIntegrityError):
         await storage.upsert_run(invalid_run)
+
 
 @pytest.mark.asyncio
 async def test_run_not_found_error(
@@ -248,6 +250,7 @@ async def test_run_not_found_error(
         await storage.get_run(non_existent_run_id)
     with pytest.raises(RunNotFoundError):
         await storage.delete_run(non_existent_run_id)
+
 
 @pytest.mark.asyncio
 async def test_run_reupsert_idempotency(
@@ -283,7 +286,8 @@ async def test_run_reupsert_idempotency(
         current_run = await storage.get_run(initial_run.run_id)
         # Create an updated run with the new status and a new updated_at timestamp.
         updated_run = Run.model_validate(
-            current_run.model_dump() | {
+            current_run.model_dump()
+            | {
                 "status": status,
                 "finished_at": datetime.now(UTC),
             },
@@ -351,6 +355,7 @@ async def test_concurrent_run_creation(
       - Each created run can be fetched and has the correct status.
       - All created runs appear in the listing for the given agent.
     """
+
     async def create_run():
         run = Run(
             run_id=str(uuid4()),
@@ -382,6 +387,6 @@ async def test_concurrent_run_creation(
     runs = await storage.list_runs_for_agent(sample_agent.agent_id)
     listed_run_ids = {r.run_id for r in runs}
     for run_id in run_ids:
-        assert run_id in listed_run_ids, (
-            f"Run with ID {run_id} is not listed in agent runs"
-        )
+        assert (
+            run_id in listed_run_ids
+        ), f"Run with ID {run_id} is not listed in agent runs"

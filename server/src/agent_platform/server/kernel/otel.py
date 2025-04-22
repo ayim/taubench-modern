@@ -20,9 +20,7 @@ class AgentServerOTelInterface(OTelInterface, UsesKernelMixin):
         # Use noop tracer if none is provided
         # TODO: warn if noop tracer is used?
         self.span_stack: list[WrappedSpan] = []
-        self.tracer = (
-            tracer if tracer is not None else NoOpTracer()
-        )
+        self.tracer = tracer if tracer is not None else NoOpTracer()
         # Queue for artifact creation
         self._artifact_queue = deque()
         self._artifact_semaphore = Semaphore(10)  # Limit concurrent uploads
@@ -77,25 +75,15 @@ class AgentServerOTelInterface(OTelInterface, UsesKernelMixin):
         artifact = OTelArtifact(
             name=name,
             mime_type=mime_type,
-            content=(
-                content.encode("utf-8")
-                if isinstance(content, str)
-                else content
-            ),
+            content=(content.encode("utf-8") if isinstance(content, str) else content),
             artifact_id=artifact_id,
             trace_id=self.trace_id,
-            correlated_user_id=(
-                kwargs.get("user_id", self.kernel.user.user_id)
-            ),
-            correlated_agent_id=(
-                kwargs.get("agent_id", self.kernel.agent.agent_id)
-            ),
+            correlated_user_id=(kwargs.get("user_id", self.kernel.user.user_id)),
+            correlated_agent_id=(kwargs.get("agent_id", self.kernel.agent.agent_id)),
             correlated_thread_id=(
                 kwargs.get("thread_id", self.kernel.thread.thread_id)
             ),
-            correlated_run_id=(
-                kwargs.get("run_id", self.kernel.run.run_id)
-            ),
+            correlated_run_id=(kwargs.get("run_id", self.kernel.run.run_id)),
             correlated_message_id=(
                 kwargs.get("message_id", self.kernel.thread_state.active_message_id)
             ),
@@ -112,15 +100,20 @@ class AgentServerOTelInterface(OTelInterface, UsesKernelMixin):
         artifact_id: str,
     ) -> None:
         """Add an artifact creation task to the queue."""
-        task = create_task(self._process_artifact_creation(
-            name, mime_type, content, artifact_id,
-            # Grab these _now_ so we don't the correct associations
-            user_id=self.kernel.user.user_id,
-            agent_id=self.kernel.agent.agent_id,
-            thread_id=self.kernel.thread.thread_id,
-            run_id=self.kernel.run.run_id,
-            message_id=self.kernel.thread_state.active_message_id,
-        ))
+        task = create_task(
+            self._process_artifact_creation(
+                name,
+                mime_type,
+                content,
+                artifact_id,
+                # Grab these _now_ so we don't the correct associations
+                user_id=self.kernel.user.user_id,
+                agent_id=self.kernel.agent.agent_id,
+                thread_id=self.kernel.thread.thread_id,
+                run_id=self.kernel.run.run_id,
+                message_id=self.kernel.thread_state.active_message_id,
+            ),
+        )
         self._artifact_tasks.add(task)
         task.add_done_callback(self._artifact_tasks.discard)
 
@@ -136,7 +129,10 @@ class AgentServerOTelInterface(OTelInterface, UsesKernelMixin):
         async with self._artifact_semaphore:
             try:
                 await self.create_artifact(
-                    name, mime_type, content, artifact_id,
+                    name,
+                    mime_type,
+                    content,
+                    artifact_id,
                 )
             except Exception as e:
                 self._logger.error(f"Failed to create artifact {name}: {e}")

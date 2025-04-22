@@ -22,7 +22,7 @@ class TestThreadToolUsageContent:
             ThreadToolUsageContent(
                 name="",
                 tool_call_id="call-999",
-                arguments_raw='{}',
+                arguments_raw="{}",
             )
 
     def test_as_text_content_for_finished_status_includes_result(self):

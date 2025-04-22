@@ -1,4 +1,3 @@
-
 from pathlib import Path
 
 import aiosqlite
@@ -23,8 +22,12 @@ async def sqlite_db_path(tmp_path_factory):
 async def test_sqlite_run_migrations_successfully(sqlite_db_path):
     """Test that migrations run successfully and create expected tables in SQLite."""
     path_to_migrations = (
-        Path(__file__).parent.parent.parent.parent / "src" /
-        "agent_platform" / "server" / "migrations" / "sqlite"
+        Path(__file__).parent.parent.parent.parent
+        / "src"
+        / "agent_platform"
+        / "server"
+        / "migrations"
+        / "sqlite"
     )
     migrations = SQLiteMigrations(sqlite_db_path, migrations_path=path_to_migrations)
     await migrations.run_migrations()
@@ -50,13 +53,12 @@ async def test_sqlite_run_migrations_successfully(sqlite_db_path):
 
             # Let's count the number of migrations we have in the migrations folder
             migration_files = [
-                f for f in path_to_migrations.iterdir()
+                f
+                for f in path_to_migrations.iterdir()
                 if f.is_file() and f.name.endswith(".up.sql")
             ]
             num_migrations = len(migration_files)
-            assert (
-                latest_version == num_migrations
-            ), (
+            assert latest_version == num_migrations, (
                 f"Expected the latest migration version to be {num_migrations}, "
                 f"got {latest_version}"
             )
@@ -110,7 +112,9 @@ async def test_sqlite_migration_timeout(sqlite_db_path, tmp_path):
 
         # Create a SQLiteMigrationsV2 instance with a shorter timeout
         migrations = SQLiteMigrations(
-            sqlite_db_path, timeout=1.0, migrations_path=temp_migration_path.parent,
+            sqlite_db_path,
+            timeout=1.0,
+            migrations_path=temp_migration_path.parent,
         )
 
         # Run migrations and expect timeout
@@ -137,7 +141,8 @@ async def test_sqlite_invalid_migration_filename(sqlite_db_path, tmp_path):
 
         # Initialize migrations instance pointing to the temporary directory
         migrations = SQLiteMigrations(
-            sqlite_db_path, migrations_path=temp_migration_path.parent,
+            sqlite_db_path,
+            migrations_path=temp_migration_path.parent,
         )
 
         # Run migrations
@@ -159,6 +164,7 @@ async def test_sqlite_invalid_migration_filename(sqlite_db_path, tmp_path):
         # Clean up the temporary file
         if temp_migration_path.exists():
             temp_migration_path.unlink()
+
 
 @pytest.mark.asyncio
 async def test_sqlite_migration_lock_cannot_be_acquired(sqlite_db_path):
@@ -189,6 +195,7 @@ async def test_sqlite_migration_lock_cannot_be_acquired(sqlite_db_path):
         await migrations.run_migrations()
 
     assert "Could not acquire migration lock" in str(exc_info.value)
+
 
 @pytest.mark.asyncio
 async def test_sqlite_migration_checksum_drift(sqlite_db_path, tmp_path):
@@ -271,8 +278,12 @@ async def test_sqlite_migrations_idempotency(sqlite_db_path, tmp_path):
     """
     # Use your normal migrations directory.
     migrations_path = (
-        Path(__file__).parent.parent.parent.parent / "src" /
-        "agent_platform" / "server" / "migrations" / "sqlite"
+        Path(__file__).parent.parent.parent.parent
+        / "src"
+        / "agent_platform"
+        / "server"
+        / "migrations"
+        / "sqlite"
     )
     migrations = SQLiteMigrations(sqlite_db_path, migrations_path=migrations_path)
 
@@ -339,9 +350,9 @@ async def test_sqlite_rollback_on_failure(sqlite_db_path, tmp_path):
         """) as cur:
             row = await cur.fetchone()
 
-    assert row is None, (
-        "Table 'rollback_test' should not exist after a migration failure."
-    )
+    assert (
+        row is None
+    ), "Table 'rollback_test' should not exist after a migration failure."
 
 
 @pytest.mark.asyncio
@@ -367,7 +378,10 @@ async def test_sqlite_rollback_on_failure(sqlite_db_path, tmp_path):
     ],
 )
 async def test_migration_script_with_transaction_commands(
-    sqlite_db_path, tmp_path, bad_sql, err_msg,
+    sqlite_db_path,
+    tmp_path,
+    bad_sql,
+    err_msg,
 ):
     """
     Write a migration file that contains transaction commands and ensure
@@ -386,7 +400,8 @@ async def test_migration_script_with_transaction_commands(
     # Note that sqlite_db_path is a fixture that should point to an
     # empty SQLite DB file.
     migrations = SQLiteMigrations(
-        str(sqlite_db_path), migrations_path=migration_dir,
+        str(sqlite_db_path),
+        migrations_path=migration_dir,
     )
 
     # Running the migrations should trigger a MigrationError due to

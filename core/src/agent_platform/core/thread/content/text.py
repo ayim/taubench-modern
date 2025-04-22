@@ -133,5 +133,6 @@ class TextDelta(ContentDelta):
     )
     """Content kind: always 'text'"""
 
+
 ThreadMessageContent.register_content_kind("text", ThreadTextContent)
 ContentDelta.register_content_kind("text", TextDelta)

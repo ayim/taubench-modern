@@ -35,9 +35,11 @@ class AgentServerConvertersInterface(ConvertersInterface, UsesKernelMixin):
         for content in contents:
             match content:
                 case ThreadTextContent() as text_content:
-                    prompt_contents.append(PromptTextContent(
-                        text=text_content.text.strip(),
-                    ))
+                    prompt_contents.append(
+                        PromptTextContent(
+                            text=text_content.text.strip(),
+                        ),
+                    )
                 # TODO: multi-modal content/docs
                 case _:
                     raise ValueError(f"Unsupported thread content kind: {content.kind}")
@@ -55,29 +57,37 @@ class AgentServerConvertersInterface(ConvertersInterface, UsesKernelMixin):
         for content in contents:
             match content:
                 case ThreadThoughtContent() as thought_content:
-                    prompt_agent_contents.append(PromptTextContent(
-                        text=f"<thinking>\n{thought_content.thought.strip()}\n</thinking>\n",
-                    ))
+                    prompt_agent_contents.append(
+                        PromptTextContent(
+                            text=f"<thinking>\n{thought_content.thought.strip()}\n</thinking>\n",
+                        ),
+                    )
                 case ThreadTextContent() as text_content:
-                    prompt_agent_contents.append(PromptTextContent(
-                        text=f"<response>\n{text_content.text.strip()}\n</response>\n",
-                    ))
+                    prompt_agent_contents.append(
+                        PromptTextContent(
+                            text=f"<response>\n{text_content.text.strip()}\n</response>\n",
+                        ),
+                    )
                 case ThreadToolUsageContent() as tool_usage_content:
-                    prompt_agent_contents.append(PromptToolUseContent(
-                        tool_call_id=tool_usage_content.tool_call_id,
-                        tool_name=tool_usage_content.name,
-                        tool_input_raw=tool_usage_content.arguments_raw,
-                    ))
-                    prompt_user_contents.append(PromptToolResultContent(
-                        tool_call_id=tool_usage_content.tool_call_id,
-                        tool_name=tool_usage_content.name,
-                        content=[
-                            PromptTextContent(
-                                text=tool_usage_content.result or "",
-                            ),
-                        ],
-                        is_error=tool_usage_content.status == "failed",
-                    ))
+                    prompt_agent_contents.append(
+                        PromptToolUseContent(
+                            tool_call_id=tool_usage_content.tool_call_id,
+                            tool_name=tool_usage_content.name,
+                            tool_input_raw=tool_usage_content.arguments_raw,
+                        ),
+                    )
+                    prompt_user_contents.append(
+                        PromptToolResultContent(
+                            tool_call_id=tool_usage_content.tool_call_id,
+                            tool_name=tool_usage_content.name,
+                            content=[
+                                PromptTextContent(
+                                    text=tool_usage_content.result or "",
+                                ),
+                            ],
+                            is_error=tool_usage_content.status == "failed",
+                        ),
+                    )
                 # TODO: multi-modal content/docs
                 case _:
                     raise ValueError(f"Unsupported thread content kind: {content.kind}")
@@ -103,10 +113,11 @@ class AgentServerConvertersInterface(ConvertersInterface, UsesKernelMixin):
                 case "agent":
                     # There's a split here for things like tool calling: agent decides
                     # to call a tool, and then the user provides the result.
-                    agent_contents, user_contents = (
-                        await self.agent_thread_contents_to_prompt_contents(
-                            message.content,
-                        )
+                    (
+                        agent_contents,
+                        user_contents,
+                    ) = await self.agent_thread_contents_to_prompt_contents(
+                        message.content,
                     )
 
                     prompt_messages.append(

@@ -113,4 +113,3 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
                     )
                 await stream_pipe.aclose()
                 span.add_event("stream closed")
-

@@ -18,9 +18,7 @@ class MemoriesParams:
     maximum_number_of_memories: int = field(
         default=20,
         metadata={
-            "description": (
-                "The maximum number of memories to include in the prompt."
-            ),
+            "description": ("The maximum number of memories to include in the prompt."),
         },
     )
     """The maximum number of memories to include in the prompt."""

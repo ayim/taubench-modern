@@ -53,6 +53,7 @@ class Kernel(ABC):
     def current_datetime_str(self) -> str:
         """The current date and time as a string."""
         from datetime import datetime
+
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     @property
@@ -98,8 +99,7 @@ class Kernel(ABC):
     @property
     @abstractmethod
     def converters(self) -> ConvertersInterface:
-        """Interface for converting between thread, prompt, and response objects.
-        """
+        """Interface for converting between thread, prompt, and response objects."""
         pass
 
     @property
@@ -282,7 +282,8 @@ class Kernel(ABC):
             "text-to-image",
             "text-to-audio",
             "audio-to-text",
-        ] | None = None,
+        ]
+        | None = None,
         quality_tier: Literal["best", "balanced", "fastest"] | None = None,
     ) -> tuple[PlatformInterface, str]:
         """Get a platform and a selected model.

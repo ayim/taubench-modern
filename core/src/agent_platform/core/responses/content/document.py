@@ -32,6 +32,7 @@ RESPONSE_DOCUMENT_MIME_TYPES: set[ResponseDocumentMimeTypes] = {
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 }
 
+
 @dataclass(frozen=True)
 class ResponseDocumentContent(ResponseMessageContent):
     """Represents a document generated or referenced in a model's response.

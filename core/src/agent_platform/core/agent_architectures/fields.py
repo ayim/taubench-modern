@@ -16,6 +16,7 @@ def user_scoped(**kwargs: Any) -> dict[str, Any]:
     metadata.update(kwargs)
     return metadata
 
+
 def thread_scoped(**kwargs: Any) -> dict[str, Any]:
     """
     Marks a dataclass field as thread-scoped.
@@ -30,6 +31,7 @@ def thread_scoped(**kwargs: Any) -> dict[str, Any]:
     metadata.update(kwargs)
     return metadata
 
+
 def agent_scoped(**kwargs: Any) -> dict[str, Any]:
     """
     Marks a dataclass field as agent-scoped.
@@ -43,6 +45,7 @@ def agent_scoped(**kwargs: Any) -> dict[str, Any]:
     metadata = {"scope": "agent"}
     metadata.update(kwargs)
     return metadata
+
 
 def get_fields_by_scope(state_obj: Any, scope: str) -> dict[str, Any]:
     """
@@ -60,13 +63,15 @@ def get_fields_by_scope(state_obj: Any, scope: str) -> dict[str, Any]:
         A dict mapping field names to their values if the field's metadata scope
         matches.
     """
-    assert scope in ["user", "thread", "agent"], (
-        f"Invalid scope: {scope} (must be one of 'user', 'thread', or 'agent')"
-    )
+    assert scope in [
+        "user",
+        "thread",
+        "agent",
+    ], f"Invalid scope: {scope} (must be one of 'user', 'thread', or 'agent')"
     assert is_dataclass(state_obj), "State object must be a dataclass"
 
     return {
         field_obj.name: getattr(state_obj, field_obj.name)
         for field_obj in fields(state_obj)
-        if field_obj.metadata.get('scope') == scope
+        if field_obj.metadata.get("scope") == scope
     }

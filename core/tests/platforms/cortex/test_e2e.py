@@ -63,6 +63,7 @@ TEST_CASES = [
     },
 ]
 
+
 # -------------------------------------------------------------------------
 # FIXTURES
 # -------------------------------------------------------------------------
@@ -70,6 +71,7 @@ TEST_CASES = [
 def kernel() -> Kernel:
     """Fixture for the Kernel mock."""
     return MagicMock(spec=Kernel)
+
 
 @pytest.fixture
 def cortex_client(kernel: Kernel, monkeypatch):
@@ -122,9 +124,11 @@ def cortex_client(kernel: Kernel, monkeypatch):
     client.attach_kernel(kernel)
     return client
 
+
 # -------------------------------------------------------------------------
 # TESTS
 # -------------------------------------------------------------------------
+
 
 def _strip_deepseek_r1_think_tags(response: ResponseMessage) -> ResponseMessage:
     from re import DOTALL, sub
@@ -151,11 +155,14 @@ def _strip_deepseek_r1_think_tags(response: ResponseMessage) -> ResponseMessage:
                 ),
             )
 
-    return response.model_copy(content=[
-        # Dump as we're going to re-parse w/ model_validate in copy
-        c.model_dump()
-        for c in new_content
-    ])
+    return response.model_copy(
+        content=[
+            # Dump as we're going to re-parse w/ model_validate in copy
+            c.model_dump()
+            for c in new_content
+        ],
+    )
+
 
 @pytest.mark.parametrize("case", TEST_CASES, ids=[c["case_name"] for c in TEST_CASES])
 @pytest.mark.parametrize("model_id", ALL_MODELS)

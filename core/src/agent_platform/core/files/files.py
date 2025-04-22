@@ -57,9 +57,9 @@ class UploadedFile:
             data["agent_id"] = str(data["agent_id"])
         if "thread_id" in data and isinstance(data["thread_id"], UUID):
             data["thread_id"] = str(data["thread_id"])
-        if (
-            "file_path_expiration" in data
-            and isinstance(data["file_path_expiration"], str)
+        if "file_path_expiration" in data and isinstance(
+            data["file_path_expiration"],
+            str,
         ):
             data["file_path_expiration"] = datetime.fromisoformat(
                 data["file_path_expiration"],

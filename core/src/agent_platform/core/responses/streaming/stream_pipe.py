@@ -74,8 +74,7 @@ class ResponseStreamPipe:
 
         # Ignore noop sinks
         self.sinks = tuple(
-            sink for sink in sinks
-            if type(sink) is not NoOpResponseStreamSink
+            sink for sink in sinks if type(sink) is not NoOpResponseStreamSink
         )
 
         async for chunk in self.stream:
@@ -125,7 +124,8 @@ class ResponseStreamPipe:
         # into a single object
         try:
             self.buffer_object = combine_generic_deltas(
-                self.chunk_buffer, self.buffer_object,
+                self.chunk_buffer,
+                self.buffer_object,
             )
             # We managed to combine, so clear the buffer
             self.chunk_buffer.clear()
@@ -206,7 +206,8 @@ class ResponseStreamPipe:
         # the last message content
         if len(new_msg.content) > len(old_msg.content) and len(old_msg.content) > 0:
             await self._dispatch_content_end(
-                len(old_msg.content) - 1, old_msg.content[-1],
+                len(old_msg.content) - 1,
+                old_msg.content[-1],
             )
 
         # We assume the stream is append only and content grows monotonically
@@ -235,7 +236,8 @@ class ResponseStreamPipe:
         """
         # End the last content (other content gets ended in _dispatch_content_partial)
         await self._dispatch_content_end(
-            len(msg.content) - 1, msg.content[-1],
+            len(msg.content) - 1,
+            msg.content[-1],
         )
 
         # TODO: other content only relevant at end?
@@ -273,7 +275,9 @@ class ResponseStreamPipe:
                 case ResponseToolUseContent() as tool_use_content:
                     tool_def = self._find_matching_tool_def(tool_use_content)
                     await sink.on_tool_use_content_begin(
-                        idx, tool_use_content, tool_def,
+                        idx,
+                        tool_use_content,
+                        tool_def,
                     )
 
     async def _dispatch_content_partial(
@@ -292,32 +296,45 @@ class ResponseStreamPipe:
                 case ResponseTextContent() as new_text_content:
                     old_text_content = cast(ResponseTextContent, old_content)
                     await sink.on_text_content_partial(
-                        idx, old_text_content, new_text_content,
+                        idx,
+                        old_text_content,
+                        new_text_content,
                     )
                 case ResponseImageContent() as new_image_content:
                     old_image_content = cast(ResponseImageContent, old_content)
                     await sink.on_image_content_partial(
-                        idx, old_image_content, new_image_content,
+                        idx,
+                        old_image_content,
+                        new_image_content,
                     )
                 case ResponseAudioContent() as new_audio_content:
                     old_audio_content = cast(ResponseAudioContent, old_content)
                     await sink.on_audio_content_partial(
-                        idx, old_audio_content, new_audio_content,
+                        idx,
+                        old_audio_content,
+                        new_audio_content,
                     )
                 case ResponseDocumentContent() as new_document_content:
                     old_document_content = cast(
-                        ResponseDocumentContent, old_content,
+                        ResponseDocumentContent,
+                        old_content,
                     )
                     await sink.on_document_content_partial(
-                        idx, old_document_content, new_document_content,
+                        idx,
+                        old_document_content,
+                        new_document_content,
                     )
                 case ResponseToolUseContent() as new_tool_use_content:
                     old_tool_use_content = cast(
-                        ResponseToolUseContent, old_content,
+                        ResponseToolUseContent,
+                        old_content,
                     )
                     tool_def = self._find_matching_tool_def(new_tool_use_content)
                     await sink.on_tool_use_content_partial(
-                        idx, old_tool_use_content, new_tool_use_content, tool_def,
+                        idx,
+                        old_tool_use_content,
+                        new_tool_use_content,
+                        tool_def,
                     )
 
     async def _dispatch_content_end(
@@ -333,22 +350,28 @@ class ResponseStreamPipe:
             match final_content:
                 case ResponseTextContent() as final_text_content:
                     await sink.on_text_content_end(
-                        idx, final_text_content,
+                        idx,
+                        final_text_content,
                     )
                 case ResponseImageContent() as final_image_content:
                     await sink.on_image_content_end(
-                        idx, final_image_content,
+                        idx,
+                        final_image_content,
                     )
                 case ResponseAudioContent() as final_audio_content:
                     await sink.on_audio_content_end(
-                        idx, final_audio_content,
+                        idx,
+                        final_audio_content,
                     )
                 case ResponseDocumentContent() as final_document_content:
                     await sink.on_document_content_end(
-                        idx, final_document_content,
+                        idx,
+                        final_document_content,
                     )
                 case ResponseToolUseContent() as final_tool_use_content:
                     tool_def = self._find_matching_tool_def(final_tool_use_content)
                     await sink.on_tool_use_content_end(
-                        idx, final_tool_use_content, tool_def,
+                        idx,
+                        final_tool_use_content,
+                        tool_def,
                     )

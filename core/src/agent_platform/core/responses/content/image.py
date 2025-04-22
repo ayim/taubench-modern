@@ -23,6 +23,7 @@ RESPONSE_IMAGE_MIME_TYPES: set[ResponseImageMimeTypes] = {
     "image/webp",
 }
 
+
 @dataclass(frozen=True)
 class ResponseImageContent(ResponseMessageContent):
     """Represents an image generated or referenced in a model's response.

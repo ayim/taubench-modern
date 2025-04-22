@@ -44,7 +44,7 @@ class ThreadMessage:
         default=False,
         metadata={
             "description": "Whether the message has been committed to the thread "
-                "(saved to backing storage)",
+            "(saved to backing storage)",
         },
     )
     """Whether the message has been committed to the thread
@@ -66,7 +66,7 @@ class ThreadMessage:
         default_factory=dict,
         metadata={
             "description": "The metadata associated with the message "
-                "(for agent architecture use only)",
+            "(for agent architecture use only)",
         },
     )
     """The metadata associated with the message (for agent architecture use only)"""
@@ -75,16 +75,18 @@ class ThreadMessage:
         default_factory=dict,
         metadata={
             "description": "The metadata associated with the message "
-                "(for agent-server use only)",
+            "(for agent-server use only)",
         },
     )
     """The metadata associated with the message (for agent-server use only)"""
 
     parent_run_id: str | None = field(
         default=None,
-        metadata={"description": "The unique identifier for the run "
-                "that created this message or None if this message "
-                "was not created by a run"},
+        metadata={
+            "description": "The unique identifier for the run "
+            "that created this message or None if this message "
+            "was not created by a run",
+        },
     )
     """The unique identifier for the run that created this message
     or None if this message was not created by a run"""

@@ -15,7 +15,9 @@ class PromptUserMessage(PromptMessage):
     """Represents a user message in the prompt."""
 
     content: list[  # type: ignore
-        PromptTextContent | PromptImageContent | PromptAudioContent
+        PromptTextContent
+        | PromptImageContent
+        | PromptAudioContent
         | PromptToolResultContent
     ] = field(metadata={"description": "The contents of the prompt message"})
     # Type ignore here as we have a refinement on the kinds of content
@@ -38,6 +40,7 @@ class PromptUserMessage(PromptMessage):
             content.append(PromptMessageContent.model_validate(item))
         data["content"] = content
         return cls(**data)
+
 
 @dataclass(frozen=True)
 class PromptAgentMessage(PromptMessage):

@@ -82,19 +82,19 @@ class ScopedStorage:
                 data[field_name] = datetime.fromisoformat(data[field_name])
         if "storage_id" in data and isinstance(data["storage_id"], UUID):
             data["storage_id"] = str(data["storage_id"])
-        if (
-            "created_by_user_id" in data
-            and isinstance(data["created_by_user_id"], UUID)
+        if "created_by_user_id" in data and isinstance(
+            data["created_by_user_id"],
+            UUID,
         ):
             data["created_by_user_id"] = str(data["created_by_user_id"])
-        if (
-            "created_by_agent_id" in data
-            and isinstance(data["created_by_agent_id"], UUID)
+        if "created_by_agent_id" in data and isinstance(
+            data["created_by_agent_id"],
+            UUID,
         ):
             data["created_by_agent_id"] = str(data["created_by_agent_id"])
-        if (
-            "created_by_thread_id" in data
-            and isinstance(data["created_by_thread_id"], UUID)
+        if "created_by_thread_id" in data and isinstance(
+            data["created_by_thread_id"],
+            UUID,
         ):
             data["created_by_thread_id"] = str(data["created_by_thread_id"])
         return cls(**data)
@@ -108,13 +108,20 @@ class ScopedStorage:
         created_by_agent_id: str,
         created_by_thread_id: str,
     ) -> "ScopedStorage":
-        storage_id = str(uuid5(cls.STORAGE_ID_NAMESPACE, ".".join([
-            scope,
-            field_name,
-            created_by_user_id,
-            created_by_agent_id,
-            created_by_thread_id,
-        ])))
+        storage_id = str(
+            uuid5(
+                cls.STORAGE_ID_NAMESPACE,
+                ".".join(
+                    [
+                        scope,
+                        field_name,
+                        created_by_user_id,
+                        created_by_agent_id,
+                        created_by_thread_id,
+                    ],
+                ),
+            ),
+        )
 
         return cls(
             storage_id=storage_id,

@@ -17,6 +17,7 @@ class SQLiteStorageMemoriesMixin(CommonMixin):
     Assumes that helper methods such as `_cursor()` and
     `_validate_uuid()` are available.
     """
+
     _logger = get_logger(__name__)
 
     async def create_memory(self, memory: Memory) -> None:

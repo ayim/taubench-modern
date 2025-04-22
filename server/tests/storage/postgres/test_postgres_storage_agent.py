@@ -16,7 +16,9 @@ from agent_platform.server.storage.postgres import PostgresStorage
 
 @pytest.mark.asyncio
 async def test_agent_by_name(
-    storage: PostgresStorage, sample_user_id: str, sample_agent: Agent,
+    storage: PostgresStorage,
+    sample_user_id: str,
+    sample_agent: Agent,
 ) -> None:
     # Insert the agent and then retrieve by its name.
     await storage.upsert_agent(sample_user_id, sample_agent)
@@ -32,7 +34,9 @@ async def test_agent_by_name(
 
 @pytest.mark.asyncio
 async def test_agent_crud_operations(
-    storage: PostgresStorage, sample_user_id: str, sample_agent: Agent,
+    storage: PostgresStorage,
+    sample_user_id: str,
+    sample_agent: Agent,
 ) -> None:
     # Create (via upsert)
     await storage.upsert_agent(sample_user_id, sample_agent)
@@ -48,7 +52,8 @@ async def test_agent_crud_operations(
     )
     await storage.upsert_agent(sample_user_id, updated_agent)
     retrieved_updated = await storage.get_agent(
-        sample_user_id, sample_agent.agent_id,
+        sample_user_id,
+        sample_agent.agent_id,
     )
     assert retrieved_updated is not None
     assert retrieved_updated.name == "Updated Agent Name"
@@ -61,7 +66,9 @@ async def test_agent_crud_operations(
 
 @pytest.mark.asyncio
 async def test_agent_list_all(
-    storage: PostgresStorage, sample_user_id: str, sample_agent: Agent,
+    storage: PostgresStorage,
+    sample_user_id: str,
+    sample_agent: Agent,
 ) -> None:
     # Insert an agent for the default user.
     await storage.upsert_agent(sample_user_id, sample_agent)
@@ -97,7 +104,9 @@ async def test_agent_list_all(
 
 @pytest.mark.asyncio
 async def test_agent_list(
-    storage: PostgresStorage, sample_user_id: str, sample_agent: Agent,
+    storage: PostgresStorage,
+    sample_user_id: str,
+    sample_agent: Agent,
 ) -> None:
     # Insert an agent and then list agents for that user.
     await storage.upsert_agent(sample_user_id, sample_agent)
@@ -108,7 +117,8 @@ async def test_agent_list(
 
 @pytest.mark.asyncio
 async def test_agent_system_user_access(
-    storage: PostgresStorage, sample_agent: Agent,
+    storage: PostgresStorage,
+    sample_agent: Agent,
 ) -> None:
     # Insert an agent under a regular user.
     regular_user, _ = await storage.get_or_create_user(
@@ -119,7 +129,8 @@ async def test_agent_system_user_access(
     system_user_id: str = await storage.get_system_user_id()
     if system_user_id:
         system_accessed_agent = await storage.get_agent(
-            system_user_id, sample_agent.agent_id,
+            system_user_id,
+            sample_agent.agent_id,
         )
         assert system_accessed_agent is not None
         assert system_accessed_agent.agent_id == sample_agent.agent_id
@@ -127,12 +138,15 @@ async def test_agent_system_user_access(
 
 @pytest.mark.asyncio
 async def test_agent_regular_user_access(
-    storage: PostgresStorage, sample_user_id: str, sample_agent: Agent,
+    storage: PostgresStorage,
+    sample_user_id: str,
+    sample_agent: Agent,
 ) -> None:
     # Insert an agent for the current (regular) user.
     await storage.upsert_agent(sample_user_id, sample_agent)
     regular_accessed_agent = await storage.get_agent(
-        sample_user_id, sample_agent.agent_id,
+        sample_user_id,
+        sample_agent.agent_id,
     )
     assert regular_accessed_agent is not None
     assert regular_accessed_agent.agent_id == sample_agent.agent_id
@@ -158,7 +172,8 @@ async def test_agent_delete_cascades_threads(
 
     # Verify the thread exists.
     existing_thread = await storage.get_thread(
-        sample_user_id, sample_thread.thread_id,
+        sample_user_id,
+        sample_thread.thread_id,
     )
     assert existing_thread is not None
 
@@ -170,7 +185,9 @@ async def test_agent_delete_cascades_threads(
 
 @pytest.mark.asyncio
 async def test_agent_duplicate_name_constraint(
-    storage: PostgresStorage, sample_user_id: str, sample_agent: Agent,
+    storage: PostgresStorage,
+    sample_user_id: str,
+    sample_agent: Agent,
 ) -> None:
     # Insert the first agent.
     await storage.upsert_agent(sample_user_id, sample_agent)
@@ -184,16 +201,20 @@ async def test_agent_duplicate_name_constraint(
 
 @pytest.mark.asyncio
 async def test_agent_case_insensitive_lookup(
-    storage: PostgresStorage, sample_user_id: str, sample_agent: Agent,
+    storage: PostgresStorage,
+    sample_user_id: str,
+    sample_agent: Agent,
 ) -> None:
     # Insert the agent.
     await storage.upsert_agent(sample_user_id, sample_agent)
     # Look up the agent using lower-case and upper-case variations.
     agent_lower = await storage.get_agent_by_name(
-        sample_user_id, sample_agent.name.lower(),
+        sample_user_id,
+        sample_agent.name.lower(),
     )
     agent_upper = await storage.get_agent_by_name(
-        sample_user_id, sample_agent.name.upper(),
+        sample_user_id,
+        sample_agent.name.upper(),
     )
     assert agent_lower is not None
     assert agent_upper is not None
@@ -203,7 +224,9 @@ async def test_agent_case_insensitive_lookup(
 
 @pytest.mark.asyncio
 async def test_agent_invalid_json_metadata(
-    storage: PostgresStorage, sample_user_id: str, sample_agent: Agent,
+    storage: PostgresStorage,
+    sample_user_id: str,
+    sample_agent: Agent,
 ) -> None:
     # Attempt to insert an agent with invalid (unserializable) JSON metadata.
     invalid_agent = Agent.model_validate(
@@ -215,7 +238,8 @@ async def test_agent_invalid_json_metadata(
 
 @pytest.mark.asyncio
 async def test_agent_filter_by_user(
-    storage: PostgresStorage, sample_agent: Agent,
+    storage: PostgresStorage,
+    sample_agent: Agent,
 ) -> None:
     # Create an agent for user A.
     user_a, _ = await storage.get_or_create_user(sub="tenant:testing:user:user_a")

@@ -36,7 +36,7 @@ class ThreadAttachmentContent(ThreadMessageContent):
         default=None,
         metadata={
             "description": "The base64 encoded data of the attachment, if the "
-                "attachment is a file",
+            "attachment is a file",
         },
     )
     """The base64 encoded data of the attachment, if the attachment is a file"""

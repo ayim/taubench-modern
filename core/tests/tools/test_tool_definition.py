@@ -162,9 +162,9 @@ def test_optional_nullable():
     # The param is not in "required" because it has no default? Actually
     # Note that "Optional" alone doesn't mean it has a default.
     # It's "required" if there's no default. It's also "nullable" in the type.
-    assert "x" in schema["required"], (
-        "Optional without a default is still required, but can be null."
-    )
+    assert (
+        "x" in schema["required"]
+    ), "Optional without a default is still required, but can be null."
     assert x_schema["type"] == ["string", "null"]
 
 

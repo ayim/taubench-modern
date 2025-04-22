@@ -96,7 +96,8 @@ async def test_memory_concurrent_upsert(storage: PostgresStorage) -> None:
     async def update_memory(new_text: str) -> None:
         mem = await storage.get_memory(sample_memory.memory_id)
         updated = Memory.model_validate(
-            mem.model_dump() | {
+            mem.model_dump()
+            | {
                 "original_text": new_text,
                 "updated_at": datetime.now(UTC),
             },
@@ -274,7 +275,8 @@ async def test_memory_timestamp_update_verification(storage: PostgresStorage) ->
     # Wait a moment so that the updated_at can change noticeably.
     await asyncio.sleep(0.01)
     updated_memory = Memory.model_validate(
-        fetched.model_dump() | {
+        fetched.model_dump()
+        | {
             "original_text": "Updated text",
             "updated_at": datetime.now(UTC),
         },

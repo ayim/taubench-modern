@@ -11,13 +11,15 @@ class InitiateStreamPayload(Thread):
     """Payload for initiating a stream against a thread."""
 
     user_id: str = field(
-        init=False, repr=False,
+        init=False,
+        repr=False,
         metadata={"description": "The ID of the user that owns the thread."},
     )
     """The ID of the user that owns the thread."""
 
     created_at: datetime = field(  # type: ignore
-        init=False, repr=False,
+        init=False,
+        repr=False,
         metadata={"description": "The time the thread was created."},
     )
     # Intentionally overriden without a default value (to ensure it's set
@@ -25,7 +27,8 @@ class InitiateStreamPayload(Thread):
     """The time the thread was created."""
 
     updated_at: datetime = field(  # type: ignore
-        init=False, repr=False,
+        init=False,
+        repr=False,
         metadata={"description": "The time the thread was last updated."},
     )
     # Intentionally overriden without a default value (to ensure it's set
@@ -90,8 +93,7 @@ class InitiateStreamPayload(Thread):
             name=data["name"] if "name" in data else None,
             thread_id=data["thread_id"] if "thread_id" in data else None,
             messages=[
-                ThreadMessage.model_validate(message)
-                for message in data["messages"]
+                ThreadMessage.model_validate(message) for message in data["messages"]
             ],
             metadata=data["metadata"] if "metadata" in data else {},
         )

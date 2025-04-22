@@ -11,19 +11,22 @@ class AddThreadMessagePayload(ThreadMessage):
     """Payload for adding a message to a thread."""
 
     user_id: str = field(
-        init=False, repr=False,
+        init=False,
+        repr=False,
         metadata={"description": "The ID of the user that owns the thread."},
     )
     """The ID of the user that owns the thread."""
 
     thread_id: str = field(
-        init=False, repr=False,
+        init=False,
+        repr=False,
         metadata={"description": "The ID of the thread to add the message to."},
     )
     """The ID of the thread to add the message to."""
 
     message_id: str = field(  # type: ignore
-        init=False, repr=False,
+        init=False,
+        repr=False,
         metadata={"description": "The ID of the message."},
     )
     # Intentionally overriden without a default value (to ensure it's set
@@ -31,7 +34,8 @@ class AddThreadMessagePayload(ThreadMessage):
     """The ID of the message."""
 
     created_at: datetime = field(  # type: ignore
-        init=False, repr=False,
+        init=False,
+        repr=False,
         metadata={"description": "The time the message was created."},
     )
     # Intentionally overriden without a default value (to ensure it's set
@@ -39,7 +43,8 @@ class AddThreadMessagePayload(ThreadMessage):
     """The time the message was created."""
 
     updated_at: datetime = field(  # type: ignore
-        init=False, repr=False,
+        init=False,
+        repr=False,
         metadata={"description": "The time the message was last updated."},
     )
     # Intentionally overriden without a default value (to ensure it's set

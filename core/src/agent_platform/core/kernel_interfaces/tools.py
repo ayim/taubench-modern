@@ -8,6 +8,7 @@ from agent_platform.core.tools import ToolDefinition, ToolExecutionResult
 
 PendingToolCall = tuple[ToolDefinition, ResponseToolUseContent]
 
+
 class ToolsInterface(ABC):
     """Manages building and execution of agent actions, internal tools,
     and CA-defined tools."""

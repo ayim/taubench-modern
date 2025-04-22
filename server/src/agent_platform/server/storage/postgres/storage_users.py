@@ -9,7 +9,6 @@ from agent_platform.server.storage.postgres.common import CommonMixin
 
 
 class PostgresStorageUsersMixin(CommonMixin):
-
     async def get_system_user_id(self) -> str:
         """Get the system user ID."""
         async with self._cursor() as cur:
@@ -35,7 +34,8 @@ class PostgresStorageUsersMixin(CommonMixin):
         created_at = datetime.now()
         try:
             async with self._cursor() as cur:
-                await cur.execute("""
+                await cur.execute(
+                    """
                     INSERT INTO v2.user (user_id, sub, created_at)
                     VALUES (%(user_id)s, %(sub)s, %(created_at)s)
                     RETURNING user_id, sub, created_at
@@ -56,7 +56,6 @@ class PostgresStorageUsersMixin(CommonMixin):
                     if row := await cur.fetchone():
                         return User.model_validate(dict(row)), False
             raise e
-
 
     async def delete_user(self, user_id: str) -> None:
         """

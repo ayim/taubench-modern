@@ -105,9 +105,7 @@ def to_pretty_yaml(self, width: int = 100) -> str:
             # Force block style for specific fields or long/multiline strings
             last_field = path[-1] if path else None
             should_block = (
-                last_field in _block_fields or
-                len(obj) > width or
-                '\n' in obj
+                last_field in _block_fields or len(obj) > width or "\n" in obj
             )
             if should_block:
                 # Create a tagged object that ruamel will format as block

@@ -13,7 +13,7 @@ class ThreadQuickActionContent:
     value: str = field(
         metadata={
             "description": "The value of the quick action (the text that will be "
-                "submitted when the action is clicked)",
+            "submitted when the action is clicked)",
         },
     )
     """The value of the quick action (the text that will be submitted when
@@ -92,9 +92,7 @@ class ThreadQuickActionsContent(ThreadMessageContent):
         for action in self.actions:
             # <choice data-message="Valid message" data-icon="IconInfo">Label</choice>
             # ^ Example of how the UX is expecting the inlined HTML to look
-            icon_attr = (
-                f'data-icon="{escape(action.icon)}"' if action.icon else ""
-            )
+            icon_attr = f'data-icon="{escape(action.icon)}"' if action.icon else ""
             data_attr = f'data-message="{escape(action.value, quote=True)}"'
             actions_as_strs.append(
                 f"<choice {data_attr} {icon_attr}>{action.label}</choice>",

@@ -354,6 +354,7 @@ class SQLiteMigrations(MigrationsProvider):
         except TimeoutError as e:
             try:
                 from asyncio import get_running_loop
+
                 loop = get_running_loop()
                 await loop.run_in_executor(None, conn._conn.interrupt)
             except Exception as interrupt_err:

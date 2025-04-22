@@ -50,4 +50,5 @@ class RunbookTextContent(RunbookContent):
         """Create a runbook text content from a dictionary."""
         return cls(**data)
 
+
 RunbookTextContent.register_content_kind("text", RunbookTextContent)

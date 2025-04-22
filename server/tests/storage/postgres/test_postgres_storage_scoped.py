@@ -50,7 +50,8 @@ async def test_scoped_storage_crud_operations(
 
     # Upsert: modify the stored dict and update
     updated_scoped_storage = ScopedStorage.model_validate(
-        sample_scoped_storage.model_dump() | {
+        sample_scoped_storage.model_dump()
+        | {
             "storage": {"key": "new_value"},
             "updated_at": datetime.now(UTC),
         },
@@ -110,7 +111,8 @@ async def test_scoped_storage_update_timestamp(
     # Pause briefly to ensure a later timestamp.
     await asyncio.sleep(0.01)
     updated_scoped_storage = ScopedStorage.model_validate(
-        fetched.model_dump() | {
+        fetched.model_dump()
+        | {
             "storage": {"key": "updated"},
             "updated_at": datetime.now(UTC),
         },
@@ -203,7 +205,8 @@ async def test_scoped_storage_immutable_created_by_fields(
     original_thread_id = original.created_by_thread_id
 
     updated = ScopedStorage.model_validate(
-        original.model_dump() | {
+        original.model_dump()
+        | {
             "storage": {"key": "updated"},
             "updated_at": datetime.now(UTC),
         },
@@ -248,7 +251,8 @@ async def test_scoped_storage_concurrent_updates(
             rec = await storage.get_scoped_storage(original.storage_id)
             new_value = rec.storage.get("counter", 0) + increment
             updated = ScopedStorage.model_validate(
-                rec.model_dump() | {
+                rec.model_dump()
+                | {
                     "storage": {"counter": new_value},
                     "updated_at": datetime.now(UTC),
                 },
@@ -418,9 +422,9 @@ async def test_scoped_storage_foreign_key_errors(
     foreign key reference is invalid. (For users first,
     then agents, then threads.)
     """
-    non_existant_user_id = '00000000-0000-0000-0000-000000000000'
-    non_existant_agent_id = '00000000-0000-0000-0000-000000000000'
-    non_existant_thread_id = '00000000-0000-0000-0000-000000000000'
+    non_existant_user_id = "00000000-0000-0000-0000-000000000000"
+    non_existant_agent_id = "00000000-0000-0000-0000-000000000000"
+    non_existant_thread_id = "00000000-0000-0000-0000-000000000000"
 
     # Create a scoped storage record with a user that doesn't exist.
     scoped_storage = ScopedStorage(

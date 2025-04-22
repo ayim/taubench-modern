@@ -39,7 +39,8 @@ class Thread:
     """A unique ID for this thread."""
 
     messages: list[ThreadMessage] = field(
-        default_factory=list, metadata={"description": "All messages in this thread."},
+        default_factory=list,
+        metadata={"description": "All messages in this thread."},
     )
     """All messages in this thread."""
 

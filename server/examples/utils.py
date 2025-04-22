@@ -59,4 +59,3 @@ def setup_notebook(required_keys: list[str] | None = None):
 def json_pretty_print(title: str, json_dict: dict) -> None:
     """Pretty print a JSON dictionary."""
     display(Markdown(f"{title}\n```json\n{json.dumps(json_dict, indent=2)}\n```"))
-

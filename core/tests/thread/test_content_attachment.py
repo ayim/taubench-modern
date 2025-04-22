@@ -74,5 +74,5 @@ class TestThreadAttachmentContent:
         text_obj = content.as_text_content()
         assert "application/pdf" in text_obj
         assert "doc" in text_obj
-        assert "description=\"A PDF doc\"" in text_obj
-        assert "uri=\"http://example.com/doc.pdf\"" in text_obj
+        assert 'description="A PDF doc"' in text_obj
+        assert 'uri="http://example.com/doc.pdf"' in text_obj

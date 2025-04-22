@@ -36,7 +36,7 @@ class Run:
         default="created",
         metadata={
             "description": "The run's status (e.g., 'created', 'running',"
-                "'completed', 'failed', 'cancelled')",
+            "'completed', 'failed', 'cancelled')",
         },
     )
     """The run's status (e.g., 'created', 'running',

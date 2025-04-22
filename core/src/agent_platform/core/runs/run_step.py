@@ -27,12 +27,16 @@ class RunStep:
     """The sequence number of the step within the run"""
 
     step_status: Literal[
-        "created", "running", "completed", "failed", "cancelled",
+        "created",
+        "running",
+        "completed",
+        "failed",
+        "cancelled",
     ] = field(
         default="created",
         metadata={
             "description": "The step's status (e.g., 'created', 'running', "
-                "'completed', 'failed', 'cancelled')",
+            "'completed', 'failed', 'cancelled')",
         },
     )
     """The step's status (e.g., 'created', 'running',
