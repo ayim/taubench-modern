@@ -1,0 +1,114 @@
+name: Build and Sign Agent Server Executable
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: "The git ref to checkout (defaults to github.sha)"
+        required: false
+        type: string
+        default: ${{ github.sha }}
+      windows-runner:
+        description: "The windows runner to use"
+        required: false
+        type: string
+        default: "windows-2025" # prefer windows-large-runner from the organization
+      linux-runner:
+        description: "The linux runner to use"
+        required: false
+        type: string
+        default: "ubuntu-24.04"
+      macos-arm64-runner:
+        description: "The macos arm64 runner to use"  
+        required: false
+        type: string
+        default: "macos-15"
+      macos-x64-runner:
+        description: "The macos x64 runner to use"
+        required: false
+        type: string
+        default: "macos-13"
+    secrets:
+      MACOS_SIGNING_CERT_SEMA4AI:
+        description: "Signing certificate for macOS"
+        required: true
+      MACOS_SIGNING_CERT_PASSWORD_SEMA4AI:
+        description: "Signing certificate password for macOS"
+        required: true
+      MACOS_SIGNING_CERT_NAME_SEMA4AI:
+        description: "Signing certificate name for macOS"
+        required: true
+      MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI:
+        description: "Apple ID for notarization"
+        required: true
+      MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI:
+        description: "Apple ID password for notarization"
+        required: true
+      MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI:
+        description: "Apple Team ID for notarization"
+        required: true
+      # TODO: Add for windows signing in the future
+      # WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI:
+      #   description: "Windows sign Azure Key Vault URL"
+      #   required: true
+      # WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI:
+      #   description: "Windows sign Azure Key Vault client ID"
+      #   required: true
+      # WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI:
+      #   description: "Windows sign Azure Key Vault tenant ID"
+      #   required: true
+      # WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI:
+      #   description: "Windows sign Azure Key Vault client secret"
+      #   required: true
+      # WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI:
+      #   description: "Windows sign Azure Key Vault certificate name"
+      #   required: true
+
+jobs:
+  build-agent-server:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ${{ inputs.linux-runner }}
+            arch: x64
+            build-type: ubuntu
+          # TODO: Add windows support (determine compatible make targets)
+          # - os: ${{ inputs.windows-runner }}
+          #   arch: x64
+          #   build-type: windows
+          - os: ${{ inputs.macos-arm64-runner }}
+            arch: arm64
+            build-type: macos
+          - os: ${{ inputs.macos-x64-runner }}
+            arch: x64
+            build-type: macos
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+      
+      - name: Sync environment
+        run: make sync
+
+      - name: Build
+        run: make build-exe CI=true ONEFILE=true CERT=${{ secrets.MACOS_SIGNING_CERT_SEMA4AI }} PASSWORD=${{ secrets.MACOS_SIGNING_CERT_PASSWORD_SEMA4AI }} KEYCHAIN_NAME=${{ secrets.MACOS_SIGNING_CERT_NAME_SEMA4AI }}
+
+      - name: Notarize (macOS only)
+        if: contains(matrix.os, 'macos')
+        run: make notarize APPLEID=${{ secrets.MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI }} APPLETEAMID=${{ secrets.MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI }} APPLEIDPASS=${{ secrets.MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI }}
+
+      # TODO: Add windows support (determine compatible make targets)
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-server-build-${{ matrix.build-type }}-${{ matrix.arch }}
+          path: dist
+      
+          
+          
+

@@ -1,0 +1,11 @@
+name: Test Agent Server
+
+on:
+  push:
+    branches: [main, development]
+  pull_request:
+    branches: [main, development]
+
+jobs:
+  test:
+    uses: ./.github/workflows/sub-test-unit.yml

@@ -1,24 +1,18 @@
-# -*- mode: python ; coding: utf-8 -*-
-
 import argparse
 import os
 import pprint
 import sys
 
 import pkg_resources
-
-# Prevent PyInstaller from using the NLTK runtime hook
-import PyInstaller.config
 from PyInstaller.building.api import COLLECT, EXE, PYZ
 from PyInstaller.building.build_main import Analysis
 from PyInstaller.log import logger
 from PyInstaller.utils.hooks import (
     collect_all,
+    collect_data_files,
     collect_submodules,
     copy_metadata,
 )
-
-PyInstaller.config.CONF["excludes"] = ["_pyi_rth_nltk"]
 
 sys.setrecursionlimit(sys.getrecursionlimit() * 5)
 
@@ -62,45 +56,49 @@ logger.info("=== Analyzing Imports ===")
 logger.info("Starting Analysis phase...")
 
 # Log each major collection step
-logger.info("Collecting chromadb dependencies...")
-chromadb_datas, chromadb_binaries, chromadb_hiddenimports = collect_all("chromadb")
+# logger.info("Collecting chromadb dependencies...")
+# chromadb_datas, chromadb_binaries, chromadb_hiddenimports = collect_all("chromadb")
 logger.info("Collecting tiktoken dependencies...")
-tiktoken_datas, tiktoken_binaries, tiktoken_hiddenimports = collect_all("tiktoken")
+tiktoken_binaries = collect_data_files("tiktoken")
+tiktoken_hiddenimports = ["tiktoken_ext"]  # Only need the extension module
 
 # Collect submodules with logging
-logger.info("Collecting chromadb submodules...")
-chromadb_submodules = collect_submodules(
-    "chromadb", filter=lambda name: not name.startswith("chromadb.test")
-)
-logger.info("Collecting chromadb.db submodules...")
-chromadb_db_submodules = collect_submodules(
-    "chromadb.db", filter=lambda name: not name.startswith("chromadb.db.test")
-)
-logger.info("Collecting chromadb.migrations submodules...")
-chromadb_migrations_submodules = collect_submodules("chromadb.migrations")
+# logger.info("Collecting chromadb submodules...")
+# chromadb_submodules = collect_submodules(
+#     "chromadb", filter=lambda name: not name.startswith("chromadb.test")
+# )
+# logger.info("Collecting chromadb.db submodules...")
+# chromadb_db_submodules = collect_submodules(
+#     "chromadb.db", filter=lambda name: not name.startswith("chromadb.db.test")
+# )
+# logger.info("Collecting chromadb.migrations submodules...")
+# chromadb_migrations_submodules = collect_submodules("chromadb.migrations")
 logger.info("Collecting tiktoken_ext submodules...")
 tiktoken_ext_submodules = collect_submodules("tiktoken_ext")
 logger.info("Collecting all for psycopg...")
 psycopg_datas, psycopg_binaries, psycopg_hiddenimports = collect_all("psycopg")
 
-# Add explicit psycopg binary imports
-psycopg_hiddenimports.extend([
-    'psycopg.binary',
-    'psycopg._impl',
-    'psycopg._impl.adapt',
-    'psycopg._impl.cursor',
-    'psycopg._impl.connection',
-])
+# Add explicit psycopg binary imports - these are the core components needed
+psycopg_hiddenimports.extend(
+    [
+        "psycopg.binary",  # Binary package support
+        "psycopg._impl",  # Core implementation
+        "psycopg._impl.adapt",  # Type adaptation
+        "psycopg._impl.cursor",  # Cursor implementation
+        "psycopg._impl.connection",  # Connection handling
+        "psycopg.pool",  # Connection pooling support
+    ]
+)
 
 logger.info("Starting main Analysis...")
 a = Analysis(
     ["src/agent_platform/server/server.py"],
-    pathex=[
-        "core/src",
-        "architectures/default/src",
-        "server/src"
+    pathex=["core/src", "architectures/default/src", "server/src"],
+    binaries=[
+        # *chromadb_binaries,
+        *tiktoken_binaries,
+        *psycopg_binaries,
     ],
-    binaries=[*chromadb_binaries, *tiktoken_binaries, *psycopg_binaries],
     datas=[
         (
             "src/agent_platform/server/migrations",
@@ -112,8 +110,8 @@ a = Analysis(
             "agent_platform/architectures/default/prompts",
         ),
         *agent_arch_metadata,
-        *chromadb_datas,
-        *tiktoken_datas,
+        # *chromadb_datas,
+        # *tiktoken_datas,
         *psycopg_datas,
         ("LICENSE", "."),
     ],
@@ -123,11 +121,12 @@ a = Analysis(
         "onnxruntime",
         "agent_platform.architectures",
         *agent_arch_imports,
-        *chromadb_submodules,
-        *chromadb_db_submodules,
-        *chromadb_migrations_submodules,
-        "chromadb.migrations.embeddings_queue",
-        *chromadb_hiddenimports,
+        # Chromadb imports commented out as they're not currently used
+        # *chromadb_submodules,
+        # *chromadb_db_submodules,
+        # *chromadb_migrations_submodules,
+        # "chromadb.migrations.embeddings_queue",
+        # *chromadb_hiddenimports,
         *tiktoken_hiddenimports,
         "tiktoken_ext",
         *tiktoken_ext_submodules,
@@ -136,7 +135,9 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=["nltk"],
+    # in v1 we excluded nltk and magic but those are not installed in v2
+    # so they are not needed
+    excludes=[],
     noarchive=False,
     optimize=0,
 )

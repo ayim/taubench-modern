@@ -1,7 +1,7 @@
 version: "1.0.2"        # The current version of the project. This is the version source of truth.
                          # Do not change this value manually. VersionBump will update it automatically.
 git-commit: true         # Whether to create a git commit for the version bump.
-git-tag: true            # Whether to create a git tag for the version bump.
+git-tag: false            # Whether to create a git tag for the version bump.
 
 files:                   # The files to update with the new version.
   - path: "pyproject.toml"

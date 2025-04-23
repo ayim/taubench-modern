@@ -341,7 +341,7 @@ class GoogleClient(
             for attr in metadata_attrs:
                 if hasattr(chunk.usage_metadata, attr):
                     logger.debug(
-                        f"{attr} type: " f"{type(getattr(chunk.usage_metadata, attr))}",
+                        f"{attr} type: {type(getattr(chunk.usage_metadata, attr))}",
                     )
 
     def _add_error_to_message(self, message: dict[str, Any], error: Exception) -> None:
@@ -447,7 +447,7 @@ class GoogleClient(
         for i, text in enumerate(texts):
             # Note: Gemini does not provide a token count for embeddings.
             # Generate the embedding
-            logger.info(f"Generating embedding for text #{i+1}")
+            logger.info(f"Generating embedding for text #{i + 1}")
             embedding_result = await self._google_client.aio.models.embed_content(
                 model=model_id,
                 contents=text,

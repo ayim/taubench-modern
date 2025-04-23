@@ -1,0 +1,151 @@
+name: Build and Release Agent Server
+
+# This workflow is the full Agent Server pipeline that is the same for both
+# prerelease and release, those top level workflows call this one with the
+# appropriate parameters.
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: "The git ref to checkout (defaults to github.sha)"
+        required: false
+        type: string
+        default: ${{ github.sha }}
+      release_channel:
+        description: "The release channel to publish to (e.g. beta, stable)"
+        required: true
+        type: string
+      windows-runner:
+        description: "The windows runner to use"
+        required: false
+        type: string
+        default: "windows-2025"
+      linux-runner:
+        description: "The linux runner to use"
+        required: false
+        type: string
+        default: "ubuntu-24.04"
+      macos-arm64-runner:
+        description: "The macos arm64 runner to use"
+        required: false
+        type: string
+        default: "macos-15"
+      macos-x64-runner:
+        description: "The macos x64 runner to use"
+        required: false
+        type: string
+        default: "macos-13"
+    secrets:
+      # TODO: Add for integration tests
+      # OPENAI_API_KEY:
+      #   description: "OpenAI API key"
+      #   required: true
+      # TODO: Add for sdk builds in the future
+      # NPM_AUTH_TOKEN:
+      #   description: "Node authentication token"
+      #   required: true
+      MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI:
+        description: "MacOS App ID for notarization"
+        required: true
+      MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI:
+        description: "MacOS App ID password for notarization"
+        required: true
+      MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI:
+        description: "MacOS Team ID for notarization"
+        required: true
+      MACOS_SIGNING_CERT_SEMA4AI:
+        description: "MacOS signing certificate"
+        required: true
+      MACOS_SIGNING_CERT_PASSWORD_SEMA4AI:
+        description: "MacOS signing certificate password"
+        required: true
+      MACOS_SIGNING_CERT_NAME_SEMA4AI:
+        description: "MacOS signing certificate name"
+        required: true
+      # TODO: Add for windows signing in the future
+      # WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI:
+      #   description: "Windows sign Azure Key Vault URL"
+      #   required: true
+      # WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI:
+      #   description: "Windows sign Azure Key Vault client ID"
+      #   required: true
+      # WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI:
+      #   description: "Windows sign Azure Key Vault tenant ID"
+      #   required: true
+      # WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI:
+      #   description: "Windows sign Azure Key Vault client secret"
+      #   required: true
+      # WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI:
+      #   description: "Windows sign Azure Key Vault certificate name"
+      #   required: true
+
+
+jobs:
+  unit-tests:
+    uses: ./.github/workflows/sub-test-unit.yml
+    with:
+      ref: ${{ inputs.ref }}
+      windows-runner: ${{ inputs.windows-runner }}
+      linux-runner: ${{ inputs.linux-runner }}
+      macos-arm64-runner: ${{ inputs.macos-arm64-runner }}
+      macos-x64-runner: ${{ inputs.macos-x64-runner }}
+
+  # TODO: Add integration tests
+  # integration-tests:
+  #   uses: ./.github/workflows/sub-test-integration.yml
+  #   with:
+  #     windows-runner: ${{ inputs.windows-runner }}
+  #     linux-runner: ${{ inputs.linux-runner }}
+  #     macos-runner: ${{ inputs.macos-runner }}
+
+  build-agent-server:
+    uses: ./.github/workflows/sub-build-server-exe.yml
+    needs: 
+      - unit-tests
+      # - integration-tests
+    with:
+      ref: ${{ inputs.ref }}
+      windows-runner: ${{ inputs.windows-runner }}
+      linux-runner: ${{ inputs.linux-runner }}
+      macos-arm64-runner: ${{ inputs.macos-arm64-runner }}
+      macos-x64-runner: ${{ inputs.macos-x64-runner }}
+    secrets:
+      MACOS_SIGNING_CERT_SEMA4AI: ${{ secrets.MACOS_SIGNING_CERT_SEMA4AI }}
+      MACOS_SIGNING_CERT_PASSWORD_SEMA4AI: ${{ secrets.MACOS_SIGNING_CERT_PASSWORD_SEMA4AI }}
+      MACOS_SIGNING_CERT_NAME_SEMA4AI: ${{ secrets.MACOS_SIGNING_CERT_NAME_SEMA4AI }}
+      MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI: ${{ secrets.MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI }}
+      MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI: ${{ secrets.MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI }}
+      MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI: ${{ secrets.MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI }}
+      # TODO: Add for windows signing in the future
+      # WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI }}
+      # WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI }}
+      # WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI }}
+      # WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI }}
+      # WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI }}
+
+
+  package-agent-server:
+    uses: ./.github/workflows/sub-publish-server-packager.yml
+    needs:
+      - build-agent-server
+    with:
+      ref: ${{ inputs.ref }}
+
+  publish-agent-server-s3:
+    uses: ./.github/workflows/sub-publish-server-s3.yml
+    needs:
+      - package-agent-server
+    with:
+      ref: ${{ inputs.ref }}
+      release_channel: ${{ inputs.release_channel }}
+
+  publish-agent-server-gh:
+    uses: ./.github/workflows/sub-publish-server-gh.yml
+    needs:
+      - package-agent-server
+      - publish-agent-server-s3
+    with:
+      ref: ${{ inputs.ref }}
+
+          

@@ -8,7 +8,7 @@ SHELL := /bin/bash
 DEBUG     ?= false
 CI        ?= false
 ONEFILE   ?= true
-NAME      ?= agent-server
+EXE_NAME  ?= agent-server
 DIST_PATH ?= dist
 
 # --------------------------------------------------------------------
@@ -58,7 +58,7 @@ build-wheels:  sync ## Build Python wheels into dist/ via uv
 	uv build --out-dir $(DIST_PATH) --package agent_platform_architectures_default
 	uv build --out-dir $(DIST_PATH) --package agent_platform_server
 
-build-exe:  sync ## Build a PyInstaller executable
+build-exe: setup-keychain sync ## Build a PyInstaller executable
 	@echo "Building PyInstaller executable..."
 	@# Construct PyInstaller flags based on DEBUG/CI/ONEFILE
 	$(eval PYI_FLAGS :=)
@@ -74,15 +74,17 @@ endif
 ifneq ($(ONEFILE),false)
 	$(eval SPEC_FLAGS += --onefile)
 endif
-	$(eval SPEC_FLAGS += --name=$(NAME))
+	$(eval SPEC_FLAGS += --name=$(EXE_NAME))
 
-	uv run pyinstaller $(PYI_FLAGS) --distpath=$(DIST_PATH) $(PYINSTALLER_SPEC) -- $(SPEC_FLAGS)
+	@# Set LD_LIBRARY_PATH to the uv's venv lib location
+	@# This ensures PyInstaller can find the required libraries
+	LD_LIBRARY_PATH=.venv/lib uv run pyinstaller $(PYI_FLAGS) --distpath=$(DIST_PATH) $(PYINSTALLER_SPEC) -- $(SPEC_FLAGS)
 ifeq ($(shell uname -s),Darwin)
 	@# This should be happening anyway... but binary fails to run without it
 	@# for me on OSX using adhoc signing.
 	@if [ -z "$(MACOS_SIGNING_CERT_NAME)" ]; then \
 		echo "No signing certificate specified, using ad-hoc signing..."; \
-		codesign --force --deep --sign - ./$(DIST_PATH)/$(NAME); \
+		codesign --force --deep --sign - ./$(DIST_PATH)/$(EXE_NAME); \
 	fi
 endif
 
@@ -113,6 +115,57 @@ else
 	@echo "Not macOS; skipping keychain setup."
 endif
 
+notarize:  ## Notarize the agent server executable (macOS only)
+ifeq ($(shell uname -s),Darwin)
+	@if [ ! -f $(DIST_PATH)/$(EXE_NAME) ]; then \
+		echo "Error: Executable not found at $(DIST_PATH)/$(EXE_NAME)"; \
+		echo "Please build the executable first with 'make build-exe'"; \
+		exit 1; \
+	fi
+	@if [ -z "$(APPLEID)" ] || [ -z "$(APPLETEAMID)" ] || [ -z "$(APPLEIDPASS)" ]; then \
+		echo "Error: Apple ID credentials not provided."; \
+		echo "Usage: make notarize APPLEID=your.apple.id@example.com APPLETEAMID=YOUR_TEAM_ID APPLEIDPASS=your_app_specific_password"; \
+		exit 1; \
+	fi
+	@echo "Verifying code signature..."
+	codesign --verify --verbose=2 --deep $(DIST_PATH)/$(EXE_NAME)
+	@echo "Displaying signature information..."
+	codesign --verify --verbose=2 --display $(DIST_PATH)/$(EXE_NAME)
+	@echo "Submitting for notarization..."
+	@# Create a temporary directory for the zip file
+	@mkdir -p $(DIST_PATH)/notarize_temp
+	@# Zip the executable (notarization doesn't allow executable files directly)
+	cd $(DIST_PATH) && zip notarize_temp/$(EXE_NAME).zip $(EXE_NAME)
+	@# Submit for notarization with retry mechanism
+	@# Define retry parameters
+	@MAX_RETRIES=5; \
+	RETRY_COUNT=0; \
+	RETRY_DELAY=10; \
+	SUCCESS=false; \
+	while [ $$RETRY_COUNT -lt $$MAX_RETRIES ] && [ "$$SUCCESS" = "false" ]; do \
+		echo "Notarization attempt $$((RETRY_COUNT+1)) of $$MAX_RETRIES..."; \
+		if xcrun notarytool submit --apple-id $(APPLEID) --team-id $(APPLETEAMID) --password $(APPLEIDPASS) $(DIST_PATH)/notarize_temp/$(EXE_NAME).zip; then \
+			SUCCESS=true; \
+			echo "Notarization submitted successfully!"; \
+		else \
+			RETRY_COUNT=$$((RETRY_COUNT+1)); \
+			if [ $$RETRY_COUNT -lt $$MAX_RETRIES ]; then \
+				echo "Notarization submission failed. Retrying in $$RETRY_DELAY seconds..."; \
+				sleep $$RETRY_DELAY; \
+				RETRY_DELAY=$$((RETRY_DELAY*2)); \
+			else \
+				echo "Notarization submission failed after $$MAX_RETRIES attempts."; \
+				exit 1; \
+			fi \
+		fi \
+	done
+	@# Clean up
+	@rm -rf $(DIST_PATH)/notarize_temp
+	@echo "Notarization process completed."
+else
+	@echo "Notarization is only supported on macOS."
+endif
+
 # --------------------------------------------------------------------
 # Debug UX Widget
 # --------------------------------------------------------------------
@@ -133,13 +186,13 @@ run-server:  ## Run the agent server
 	uv run -m agent_platform.server
 
 run-server-exe:  ## Run the agent server executable
-	@if [ ! -f dist/agent-server ]; then \
+	@if [ ! -f dist/$(EXE_NAME) ]; then \
 		echo "Executable not found in dist/"; \
 		echo "Please build the executable first with 'make build-exe'"; \
 		exit 1; \
 	fi
 	@echo "Running server from dist/..."
-	./dist/agent-server
+	./dist/$(EXE_NAME)
 
 test:  check-env-or-no-env ## Run all tests with pytest (VCR playback only)
 	VCR_RECORD=none uv run pytest

@@ -304,7 +304,7 @@ class GoogleConverters(PlatformConverters, UsesKernelMixin):
             prop_schema: The property schema to modify.
         """
         logger.debug(
-            f"Found union type in property {prop_name}: " f"{prop_schema['type']}",
+            f"Found union type in property {prop_name}: {prop_schema['type']}",
         )
 
         # Save the original type list for documentation
@@ -367,7 +367,7 @@ class GoogleConverters(PlatformConverters, UsesKernelMixin):
         # choose the first one. Google API doesn't support true union types
         primary_type = original_types[0]
         logger.debug(
-            f"Using {primary_type} as primary type for union " f"in {prop_name}",
+            f"Using {primary_type} as primary type for union in {prop_name}",
         )
         prop_schema["type"] = primary_type
 
@@ -397,8 +397,7 @@ class GoogleConverters(PlatformConverters, UsesKernelMixin):
             else:
                 # For non-arrays, remove the empty items field
                 logger.debug(
-                    f"Removing empty items field from non-array property "
-                    f"{prop_name}",
+                    f"Removing empty items field from non-array property {prop_name}",
                 )
                 del prop_schema["items"]
 
@@ -484,7 +483,7 @@ class GoogleConverters(PlatformConverters, UsesKernelMixin):
         try:
             # Log the original schema
             logger.debug(
-                f"Original schema for {tool.name}: " f"{json.dumps(tool.input_schema)}",
+                f"Original schema for {tool.name}: {json.dumps(tool.input_schema)}",
             )
 
             # Apply fixes to make the schema compatible with Google's API

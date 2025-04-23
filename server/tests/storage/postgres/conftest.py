@@ -1,8 +1,8 @@
+import platform
 from collections.abc import AsyncGenerator, Generator
 from typing import cast
 
 import pytest
-import testing.postgresql
 from psycopg import AsyncConnection
 from psycopg.rows import TupleRow
 from psycopg_pool import AsyncConnectionPool
@@ -23,11 +23,22 @@ def _disable_logging() -> Generator[None, None, None]:
 
 
 @pytest.fixture(scope="session")
+@pytest.mark.postgresql
 async def postgres_test_db() -> AsyncGenerator[
     AsyncConnectionPool[AsyncConnection[TupleRow]],
     None,
 ]:
     """Creates a shared temporary Postgres instance for the entire test session."""
+    # Skip on macOS
+    if platform.system() == "Darwin":
+        pytest.skip(
+            "PostgreSQL tests are skipped on macOS as PostgreSQL is not pre-installed "
+            "and not used in any production context."
+        )
+
+    # Lazy import testing.postgresql only when needed
+    import testing.postgresql
+
     with testing.postgresql.Postgresql() as postgresql:
         dsn = postgresql.url()
         pool = None

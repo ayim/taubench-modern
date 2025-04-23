@@ -15,7 +15,6 @@ from agent_platform.core.streaming.error import StreamingError
 
 __all__ = [
     "StreamingDelta",
-    "StreamingDeltaRequestUserInput",
     "StreamingDeltaAgent",
     "StreamingDeltaAgentError",
     "StreamingDeltaAgentFinished",
@@ -24,6 +23,7 @@ __all__ = [
     "StreamingDeltaMessageBegin",
     "StreamingDeltaMessageContent",
     "StreamingDeltaMessageEnd",
+    "StreamingDeltaRequestUserInput",
     "StreamingError",
     "compute_message_delta",
 ]

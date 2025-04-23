@@ -1,0 +1,52 @@
+name: Checkout and Prepare Common CI Environment
+description: |
+  This action prepares the common CI environment for our actions. It will
+  checkout the repository, set up uv, install dependences, configure git, and
+  set up versionbump.
+
+inputs:
+  ref:
+    description: "The git ref to checkout, defaults to github.sha, which is the default for actions/checkout"
+    required: false
+    default: ${{ github.sha }}
+  go_version:
+    description: "The version of Go to use, defaults to stable"
+    required: false
+    default: "stable"
+  versionbump_version:
+    description: "The version of versionbump to install, defaults to latest"
+    required: false
+    default: "latest"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.ref }}
+
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
+        cache-dependency-glob: |
+          **/pyproject.toml
+
+    - name: Sync environment (Installs dependencies)
+      shell: bash
+      run: make sync
+
+    - name: Configure git
+      shell: bash
+      run: |
+        git config --global user.email "agent-team@no-reply.sema4.ai"
+        git config --global user.name "Sema4.ai Agent Team"
+
+    - name: Set up Versionbump
+      uses: ./.github/actions/setup_versionbump
+      with:
+        go_version: ${{ inputs.go_version }}
+        versionbump_version: ${{ inputs.versionbump_version }}
+
+      

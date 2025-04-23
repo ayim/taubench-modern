@@ -56,6 +56,7 @@ asyncio_default_fixture_loop_scope = "session"
 markers = [
     "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
     "unit: marks tests as unit tests (deselect with '-m \"not unit\"')",
+    "postgresql: marks tests that require PostgreSQL (deselect with '-m \"not postgresql\"')",
 ]
 filterwarnings = [
     # Ignore pkg_resources/declare_namespace deprecation warnings from snowflake-snowpark-python
@@ -69,7 +70,6 @@ filterwarnings = [
 
 [tool.ruff]
 line-length = 88
-target-version = "py311"
 show-fixes = true
 respect-gitignore = true
 

@@ -1,0 +1,153 @@
+name: Publish Agent Server to S3
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: "The git ref to checkout (defaults to github.sha)"
+        required: false
+        type: string
+        default: ${{ github.sha }}
+      release_channel:
+        description: The release channel to publish to (e.g. beta, stable)
+        type: string
+        required: true
+    outputs:
+      windows_x64_binary_url:
+        description: "URL to the Windows x64 binary"
+        value: ${{ jobs.publish-to-s3.outputs.windows_x64_binary_url }}
+      macos_x64_binary_url:
+        description: "URL to the macOS x64 binary"
+        value: ${{ jobs.publish-to-s3.outputs.macos_x64_binary_url }}
+      macos_arm64_binary_url:
+        description: "URL to the macOS ARM64 binary"
+        value: ${{ jobs.publish-to-s3.outputs.macos_arm64_binary_url }}
+      linux_x64_binary_url:
+        description: "URL to the Linux x64 binary"
+        value: ${{ jobs.publish-to-s3.outputs.linux_x64_binary_url }}
+
+jobs:
+  publish-to-s3:
+    name: Deploy to S3
+    permissions:
+      id-token: write
+      contents: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    outputs:
+      windows_x64_binary_url: ${{ steps.set_urls.outputs.windows_x64_binary_url }}
+      macos_x64_binary_url: ${{ steps.set_urls.outputs.macos_x64_binary_url }}
+      macos_arm64_binary_url: ${{ steps.set_urls.outputs.macos_arm64_binary_url }}
+      linux_x64_binary_url: ${{ steps.set_urls.outputs.linux_x64_binary_url }}
+    steps:
+      - uses: ./.github/actions/prep_environment
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Get version number
+        id: get_vers
+        uses: ./.github/actions/get_version
+        with:
+          path: ./server
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: agent-server-release-packages
+          path: s3-drop
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: eu-west-1
+          role-to-assume: arn:aws:iam::710450854638:role/github-action-agent-server
+
+      - name: AWS S3 copies
+        id: set_urls
+        run: |
+          S3_BASE_URL="s3://downloads.robocorp.com/agent-server/${{ inputs.release_channel }}/v${{ steps.get_vers.outputs.version }}"
+          CDN_BASE_URL="https://cdn.sema4.ai/agent-server/${{ inputs.release_channel }}/v${{ steps.get_vers.outputs.version }}"
+
+          # Initialize all outputs with empty strings
+          echo "windows_x64_binary_url=" >> $GITHUB_OUTPUT
+          echo "macos_x64_binary_url=" >> $GITHUB_OUTPUT
+          echo "macos_arm64_binary_url=" >> $GITHUB_OUTPUT
+          echo "linux_x64_binary_url=" >> $GITHUB_OUTPUT
+
+          # Function to show directory contents on missing file
+          show_directory_contents() {
+            echo "Contents of s3-drop directory (due to missing file):"
+            ls -la s3-drop/
+          }
+
+          # Create temp directory for extractions
+          mkdir -p temp_extract
+
+          # Function to set URL output if upload succeeds
+          set_url_output() {
+            local platform=$1
+            local encoded_url=$(echo "$CDN_BASE_URL/$platform/agent-server" | sed 's/+/%2B/g')
+            echo "${platform}_binary_url=$encoded_url" >> $GITHUB_OUTPUT
+          }
+
+          # Windows x64
+          if [ -f "s3-drop/agent-server-${{ steps.get_vers.outputs.version }}-windows-x64.zip" ]; then
+            echo "Processing Windows x64 build..."
+            unzip -j "s3-drop/agent-server-${{ steps.get_vers.outputs.version }}-windows-x64.zip" "agent-server.exe" -d temp_extract/
+            if aws s3 cp temp_extract/agent-server.exe "$S3_BASE_URL/windows_x64/agent-server.exe" --cache-control max-age=120 --content-type "application/octet-stream"; then
+              echo "Windows binary available at $CDN_BASE_URL/windows_x64/agent-server.exe"
+              set_url_output "windows_x64"
+            fi
+            rm temp_extract/agent-server.exe
+          else
+            echo "WARNING: Windows x64 build file not found: s3-drop/agent-server-${{ steps.get_vers.outputs.version }}-windows-x64.zip"
+            show_directory_contents
+          fi
+
+          # macOS ARM64
+          if [ -f "s3-drop/agent-server-${{ steps.get_vers.outputs.version }}-macos-arm64.tar.gz" ]; then
+            echo "Processing macOS ARM64 build..."
+            tar -xzf "s3-drop/agent-server-${{ steps.get_vers.outputs.version }}-macos-arm64.tar.gz" -C temp_extract/
+            if aws s3 cp temp_extract/agent-server "$S3_BASE_URL/macos_arm64/agent-server" --cache-control max-age=120 --content-type "application/octet-stream"; then
+              echo "macOS ARM64 binary available at $CDN_BASE_URL/macos_arm64/agent-server"
+              set_url_output "macos_arm64"
+            fi
+            rm temp_extract/agent-server
+          else
+            echo "WARNING: macOS ARM64 build file not found: s3-drop/agent-server-${{ steps.get_vers.outputs.version }}-macos-arm64.tar.gz"
+            show_directory_contents
+          fi
+
+          # macOS x64
+          if [ -f "s3-drop/agent-server-${{ steps.get_vers.outputs.version }}-macos-x64.tar.gz" ]; then
+            echo "Processing macOS x64 build..."
+            tar -xzf "s3-drop/agent-server-${{ steps.get_vers.outputs.version }}-macos-x64.tar.gz" -C temp_extract/
+            if aws s3 cp temp_extract/agent-server "$S3_BASE_URL/macos_x64/agent-server" --cache-control max-age=120 --content-type "application/octet-stream"; then
+              echo "macOS x64 binary available at $CDN_BASE_URL/macos_x64/agent-server"
+              set_url_output "macos_x64"
+            fi
+            rm temp_extract/agent-server
+          else
+            echo "WARNING: macOS x64 build file not found: s3-drop/agent-server-${{ steps.get_vers.outputs.version }}-macos-x64.tar.gz"
+            show_directory_contents
+          fi
+
+          # Linux x64
+          if [ -f "s3-drop/agent-server-${{ steps.get_vers.outputs.version }}-ubuntu-x64.tar.gz" ]; then
+            echo "Processing Linux x64 build..."
+            tar -xzf "s3-drop/agent-server-${{ steps.get_vers.outputs.version }}-ubuntu-x64.tar.gz" -C temp_extract/
+            if aws s3 cp temp_extract/agent-server "$S3_BASE_URL/linux_x64/agent-server" --cache-control max-age=120 --content-type "application/octet-stream"; then
+              echo "Linux x64 binary available at $CDN_BASE_URL/linux_x64/agent-server"
+              set_url_output "linux_x64"
+            fi
+            rm temp_extract/agent-server
+          else
+            echo "WARNING: Linux x64 build file not found: s3-drop/agent-server-${{ steps.get_vers.outputs.version }}-ubuntu-x64.tar.gz"
+            show_directory_contents
+          fi
+
+          # Upload version.txt from the artifact
+          aws s3 cp s3-drop/version.txt "$S3_BASE_URL/version.txt" --cache-control max-age=120 --content-type "text/plain"
+
+          # Cleanup
+          rm -rf temp_extract

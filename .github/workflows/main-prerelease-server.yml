@@ -1,0 +1,84 @@
+name: Prerelease Agent Server
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump-type:
+        description: "The type of bump to perform"
+        required: true
+        type: choice
+        options:
+          - pre
+          - pre-major
+          - pre-build
+          - new-pre-major
+          - new-pre-minor
+          - new-pre-patch
+      windows-runner:
+        description: "The windows runner to use"
+        required: false
+        type: string
+        default: "windows-2025"
+      linux-runner:
+        description: "The linux runner to use"
+        required: false
+        type: string
+        default: "ubuntu-24.04"
+      macos-arm64-runner:
+        description: "The macos arm64 runner to use"
+        required: false
+        type: string
+        default: "macos-15"
+      macos-x64-runner:
+        description: "The macos x64 runner to use"
+        required: false
+        type: string
+        default: "macos-13"
+        
+jobs:
+  prerelease:
+    if: github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/heads/release')
+    runs-on: ubuntu-24.04
+    outputs:
+      new_commit_sha: ${{ steps.bump_version.outputs.new_commit_sha }}
+    steps:
+      - name: Prepare the environment
+        uses: ./.github/actions/prep_environment
+
+      - name: Validate bump rule
+        uses: ./.github/actions/validate_bump_rule
+        with:
+          bump-type: ${{ inputs.bump-type }}
+
+      # TODO: Consider bumping core and architecture at the same time?
+      - name: Bump version
+        id: bump_version
+        uses: ./.github/actions/bump_version
+        with:
+          bump-type: ${{ inputs.bump-type }}
+          path: ./server
+          push-changes: true
+
+      # TODO: Add changelog generation
+
+  build-prerelease:
+    needs: prerelease
+    uses: ./.github/workflows/sub-build-server.yml
+    with:
+      ref: ${{ needs.prerelease.outputs.new_commit_sha }}
+      release_channel: beta # TODO: Consider making this an input
+      windows-runner: ${{ inputs.windows-runner }}
+      linux-runner: ${{ inputs.linux-runner }}
+      macos-arm64-runner: ${{ inputs.macos-arm64-runner }}
+      macos-x64-runner: ${{ inputs.macos-x64-runner }}
+    secrets:
+      MACOS_SIGNING_CERT_SEMA4AI: ${{ secrets.MACOS_SIGNING_CERT_SEMA4AI }}
+      MACOS_SIGNING_CERT_PASSWORD_SEMA4AI: ${{ secrets.MACOS_SIGNING_CERT_PASSWORD_SEMA4AI }}
+      MACOS_SIGNING_CERT_NAME_SEMA4AI: ${{ secrets.MACOS_SIGNING_CERT_NAME_SEMA4AI }}
+      MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI: ${{ secrets.MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI }}
+      MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI: ${{ secrets.MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI }}
+      MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI: ${{ secrets.MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI }}
+
+
+
+        

@@ -1,0 +1,57 @@
+name: Bump Version
+description: |
+  This action bumps the version of the named package. The package must have a 
+  versionbump.yaml file in its root and the provided path must be relative to the
+  root of the repository. The action will output the new version of the package.
+
+  If the push-changes input is true (the default), the action will push the
+  changes to the remote repository. If the push-changes input is true, the
+  action will also output the new commit SHA.
+
+  Note: This action expects versionbump to be already set up in the job. Use the
+  setup_versionbump action before calling this action.
+
+inputs:
+  bump-type:
+    description: "The type of bump to perform"
+    required: true
+  path:
+    description: "The path to the package to bump"
+    required: true
+  push-changes:
+    description: "Whether to push the changes"
+    required: false
+    default: "true"
+
+outputs:
+  new_version:
+    description: "The new version of the package"
+    value: ${{ steps.new_version.outputs.new_version }}
+  new_commit_sha:
+    description: "The new commit SHA"
+    value: ${{ steps.new_commit_sha.outputs.sha }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Bump version
+      shell: bash
+      working-directory: ${{ inputs.path }}
+      run: versionbump ${{ inputs.bump-type }} --no-prompt
+
+    - name: Get new version
+      id: new_version
+      uses: ./.github/actions/get_version
+      with:
+        path: ${{ inputs.path }}
+
+    - name: Push changes
+      shell: bash
+      if: ${{ inputs.push-changes }} == 'true'
+      run: git push origin HEAD
+
+    - name: Get new commit SHA
+      id: new_commit_sha
+      shell: bash
+      if: ${{ inputs.push-changes }} == 'true'
+      run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT

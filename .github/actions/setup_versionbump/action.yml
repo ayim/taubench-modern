@@ -1,0 +1,47 @@
+name: Setup Versionbump
+description: |
+  This action sets up Go and installs the versionbump tool.
+
+inputs:
+  go_version:
+    description: "The Go version to use versionbump."
+    required: false
+    default: "stable"
+  versionbump_version:
+    description: "The version of versionbump to install."
+    required: false
+    default: "latest"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ inputs.go_version }}
+        cache: true
+        cache-dependency-path: |
+          **/go.sum
+          **/go.mod
+
+    - name: Cache versionbump
+      uses: actions/cache@v4
+      id: versionbump-cache
+      with:
+        path: ~/go/bin/versionbump
+        key: ${{ runner.os }}-versionbump-${{ inputs.versionbump_version }}-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-versionbump-${{ inputs.versionbump_version }}-
+
+    - name: Install versionbump
+      if: steps.versionbump-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        go install github.com/ptgoetz/go-versionbump/cmd/versionbump@${{ inputs.versionbump_version }}
+        echo "Versionbump installed successfully."
+
+    - name: Verify versionbump installation
+      shell: bash
+      run: |
+        which versionbump
+        versionbump --version

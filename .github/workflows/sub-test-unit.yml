@@ -1,0 +1,66 @@
+name: Unit Tests
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: "The git ref to checkout (defaults to github.sha)"
+        required: false
+        type: string
+        default: ${{ github.sha }}
+      windows-runner:
+        description: "The windows runner to use"
+        required: false
+        type: string
+        default: "windows-2025"
+      linux-runner:
+        description: "The linux runner to use"
+        required: false
+        type: string
+        default: "ubuntu-24.04"
+      macos-arm64-runner:
+        description: "The macos arm64 runner to use"
+        required: false
+        type: string
+        default: "macos-15"
+      macos-x64-runner:
+        description: "The macos x64 runner to use"
+        required: false
+        type: string
+        default: "macos-13"
+
+jobs:
+  unit-tests:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ${{ inputs.linux-runner }}
+          - os: ${{ inputs.macos-arm64-runner }}
+          - os: ${{ inputs.macos-x64-runner }}
+          # TODO: Add windows support (requires invoke over make)
+          # - os: ${{ inputs.windows-runner }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+  
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+  
+      - name: Sync environment
+        run: make sync
+  
+      - name: Lint
+        run: make lint
+  
+      - name: Type check
+        run: make typecheck
+  
+      - name: Check formatting
+        run: make check-format
+  
+      - name: Run Unit tests
+        run: make test-unit
+      
