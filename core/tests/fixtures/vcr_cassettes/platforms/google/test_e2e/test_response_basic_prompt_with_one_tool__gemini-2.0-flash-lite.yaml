@@ -1,0 +1,74 @@
+interactions:
+- request:
+    body: '{"contents": [{"parts": [{"text": "\n            You are an expert librarian.
+      You are given a book\n            and you need to add it to the database. If
+      any\n            information is missing/optional, you should leave\n            it
+      out instead of trying to guess it!! Do NOT even\n            include an empty
+      string/null for optional fields, completely\n            omit them.\n            "}],
+      "role": "user"}, {"parts": [{"text": "\n                This is an end-to-end
+      test, please call the tool\n                called add_book with the following
+      book:\n\n                Title: \"Foundation\"\n                Author: \"Isaac
+      Asimov\"\n                Year: 1951\n\n                Emit nothing else but
+      the tool call with the\n                book information _exactly_ as shown
+      above. Completely\n                omit any optional fields.\n                "}],
+      "role": "user"}], "tools": [{"functionDeclarations": [{"description": "Store
+      a new book in the database.", "name": "_add_book", "parameters": {"properties":
+      {}, "type": "OBJECT"}}]}], "generationConfig": {"temperature": 0.0, "topP":
+      1.0, "maxOutputTokens": 512}}'
+    headers:
+      accept:
+      - '*/*'
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      content-length:
+      - '1138'
+      content-type:
+      - application/json
+      host:
+      - generativelanguage.googleapis.com
+      user-agent:
+      - google-genai-sdk/1.11.0 gl-python/3.12.9
+      x-goog-api-client:
+      - google-genai-sdk/1.11.0 gl-python/3.12.9
+    method: POST
+    uri: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent
+  response:
+    content: "{\n  \"candidates\": [\n    {\n      \"content\": {\n        \"parts\":
+      [\n          {\n            \"functionCall\": {\n              \"name\": \"_add_book\",\n
+      \             \"args\": {}\n            }\n          }\n        ],\n        \"role\":
+      \"model\"\n      },\n      \"finishReason\": \"STOP\",\n      \"avgLogprobs\":
+      -3.3956297556869686e-05\n    }\n  ],\n  \"usageMetadata\": {\n    \"promptTokenCount\":
+      168,\n    \"candidatesTokenCount\": 4,\n    \"totalTokenCount\": 172,\n    \"promptTokensDetails\":
+      [\n      {\n        \"modality\": \"TEXT\",\n        \"tokenCount\": 168\n      }\n
+      \   ],\n    \"candidatesTokensDetails\": [\n      {\n        \"modality\": \"TEXT\",\n
+      \       \"tokenCount\": 4\n      }\n    ]\n  },\n  \"modelVersion\": \"gemini-2.0-flash-lite\"\n}\n"
+    headers:
+      Alt-Svc:
+      - h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=UTF-8
+      Date:
+      - Mon, 21 Apr 2025 15:16:34 GMT
+      Server:
+      - scaffolding on HTTPServer2
+      Server-Timing:
+      - gfet4t7; dur=500
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Origin
+      - X-Origin
+      - Referer
+      X-Content-Type-Options:
+      - nosniff
+      X-Frame-Options:
+      - SAMEORIGIN
+      X-XSS-Protection:
+      - '0'
+    http_version: HTTP/1.1
+    status_code: 200
+version: 1

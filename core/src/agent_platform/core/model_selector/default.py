@@ -132,6 +132,20 @@ class ModelMappingConfig(Configuration):
                     },
                 },
             },
+            "google": {
+                "google": {
+                    "llm": {
+                        "best": "gemini-2.5-pro",
+                        "balanced": "gemini-2.5-flash-preview-04-17-high",
+                        "fastest": "gemini-2.5-flash-preview-04-17-low",
+                    },
+                    "embedding": {
+                        "best": "gemini-embedding-exp-03-07",
+                        "balanced": "gemini-embedding-exp-03-07",
+                        "fastest": "gemini-embedding-exp-03-07",
+                    },
+                },
+            },
         },
     )
 

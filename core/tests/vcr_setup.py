@@ -200,6 +200,7 @@ our_vcr = vcr.VCR(
     filter_headers=[
         "authorization",
         "api-key",  # For Azure OpenAI
+        "x-goog-api-key",  # For Google
     ],
     filter_query_parameters=[
         "api_key",
