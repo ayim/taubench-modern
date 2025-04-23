@@ -27,7 +27,6 @@ platforms-groq = [
     "groq>=0.22.0,<1.0.0",
 ]
 platforms-all = [
-    "google-generativeai>=0.8.3,<1.0.0",
     "openai>=1.59.8,<2.0.0",
     "anthropic>=0.41.3,<1.0.0",
     "snowflake-snowpark-python>=1.30.0,<2.0.0",
