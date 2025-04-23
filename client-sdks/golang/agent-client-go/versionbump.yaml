@@ -2,6 +2,8 @@ version: "0.1.2"        # The current version of the project. This is the versio
                          # Do not change this value manually. VersionBump will update it automatically.
 git-commit: true         # Whether to create a git commit for the version bump.
 git-tag: true            # Whether to create a git tag for the version bump.
+git-tag-template: agent-client-go-v{new}
+
 
 files:                   # The files to update with the new version.
   - path: "pkg/client/version.go"

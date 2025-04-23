@@ -10,7 +10,7 @@ import (
 	"os"
 	"testing"
 
-	acg "github.com/Sema4AI/agent-client-go/pkg/client"
+	acg "github.com/Sema4AI/agent-platform/client-sdks/golang/agent-client-go/pkg/client"
 	"github.com/stretchr/testify/require"
 )
 
