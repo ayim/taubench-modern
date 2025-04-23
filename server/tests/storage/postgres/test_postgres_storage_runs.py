@@ -331,9 +331,9 @@ async def test_run_ordering(
 
     # Check that the runs are in ascending order by created_at.
     for i in range(1, len(created_runs)):
-        assert (
-            created_runs[i - 1].created_at <= created_runs[i].created_at
-        ), "Runs are not ordered by created_at ascending"
+        assert created_runs[i - 1].created_at <= created_runs[i].created_at, (
+            "Runs are not ordered by created_at ascending"
+        )
 
 
 @pytest.mark.asyncio
@@ -380,6 +380,6 @@ async def test_concurrent_run_creation(
     runs = await storage.list_runs_for_agent(sample_agent.agent_id)
     listed_run_ids = {r.run_id for r in runs}
     for run_id in run_ids:
-        assert (
-            run_id in listed_run_ids
-        ), f"Run with ID {run_id} is not listed in agent runs"
+        assert run_id in listed_run_ids, (
+            f"Run with ID {run_id} is not listed in agent runs"
+        )

@@ -105,12 +105,10 @@ def sample_file2(tmpdir):
 
 
 @pytest.fixture(scope="session")
-async def postgres_test_db() -> (
-    AsyncGenerator[
-        AsyncConnectionPool[AsyncConnection[TupleRow]],
-        None,
-    ]
-):
+async def postgres_test_db() -> AsyncGenerator[
+    AsyncConnectionPool[AsyncConnection[TupleRow]],
+    None,
+]:
     """Creates a shared temporary Postgres instance for the entire test session."""
     with testing.postgresql.Postgresql() as postgresql:
         dsn = postgresql.url()

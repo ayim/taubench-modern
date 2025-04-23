@@ -211,7 +211,7 @@ class DebugChatWidget(anywidget.AnyWidget):
                     )
                 except Exception as e:
                     print(
-                        f"Error creating file for artifact {artifact.name}: " f"{e}",
+                        f"Error creating file for artifact {artifact.name}: {e}",
                     )
 
             self.active_thread_artifacts = new_thread_artifacts

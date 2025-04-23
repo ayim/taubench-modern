@@ -24,10 +24,10 @@ AnyPlatformParameters = (
 )
 
 __all__ = [
+    "AnyPlatformParameters",
+    "AzureOpenAIClient",
     "BedrockClient",
     "CortexClient",
     "OpenAIClient",
-    "AzureOpenAIClient",
     "PlatformClient",
-    "AnyPlatformParameters",
 ]

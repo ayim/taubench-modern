@@ -363,9 +363,9 @@ async def test_postgres_migration_sql_syntax_error(
             # migration, then rollback.
             # So the record might remain with dirty=TRUE.
             if row:
-                assert (
-                    row[0] is True
-                ), "Expected migration 3 to remain dirty after SQL error."
+                assert row[0] is True, (
+                    "Expected migration 3 to remain dirty after SQL error."
+                )
 
 
 @pytest.mark.asyncio
@@ -477,9 +477,9 @@ async def test_postgres_rollback_on_failure(
             row = await cur.fetchone()
             table_exists = row[0] if row else False
 
-    assert (
-        not table_exists
-    ), "Table 'rollback_test' should not exist after a migration failure."
+    assert not table_exists, (
+        "Table 'rollback_test' should not exist after a migration failure."
+    )
 
 
 @pytest.mark.asyncio

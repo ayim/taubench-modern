@@ -46,9 +46,8 @@ UserPromptMessageContent = (
 AgentPromptMessageContent = PromptTextContent | PromptToolUseContent
 
 __all__ = [
-    "AnyPromptMessageContent",
     "AgentPromptMessageContent",
-    "UserPromptMessageContent",
+    "AnyPromptMessageContent",
     "Prompt",
     "PromptAgentMessage",
     "PromptAudioContent",
@@ -59,4 +58,5 @@ __all__ = [
     "PromptToolResultContent",
     "PromptToolUseContent",
     "PromptUserMessage",
+    "UserPromptMessageContent",
 ]

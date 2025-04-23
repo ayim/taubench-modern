@@ -255,9 +255,8 @@ class TestCortexParsers:
         assert isinstance(as_response.content[1], ResponseToolUseContent)
         assert as_response.content[1].tool_name == "joke_judge"
         assert as_response.content[1].tool_input == {
-            "joke": "Why did the chicken cross the road?" " To get to the other side!",
+            "joke": "Why did the chicken cross the road? To get to the other side!",
         }
         assert as_response.content[1].tool_input_raw == (
-            '{"joke": "Why did the chicken cross the road?'
-            ' To get to the other side!"}'
+            '{"joke": "Why did the chicken cross the road? To get to the other side!"}'
         )

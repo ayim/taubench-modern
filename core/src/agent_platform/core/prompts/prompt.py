@@ -190,9 +190,9 @@ class Prompt:
             raise ValueError(
                 f"Invalid tool choice: {self.tool_choice}. "
                 f"Must be 'auto', 'any', or the name of a provided "
-                f"tool.{' Available tools: ' + ', '.join(
-                    tool.name for tool in self.tools
-                )}",
+                f"tool.{
+                    ' Available tools: ' + ', '.join(tool.name for tool in self.tools)
+                }",
             )
 
     def overwrite_last_content_with_text(self, text: str) -> None:

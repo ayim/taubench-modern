@@ -8,9 +8,9 @@ from agent_platform.core.runbook.content.text import RunbookTextContent
 AnyRunbookContent = RunbookStepContent | RunbookStepsContent | RunbookTextContent
 
 __all__ = [
+    "AnyRunbookContent",
     "RunbookContent",
     "RunbookStepContent",
     "RunbookStepsContent",
     "RunbookTextContent",
-    "AnyRunbookContent",
 ]

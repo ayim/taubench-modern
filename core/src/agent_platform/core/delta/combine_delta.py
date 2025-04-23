@@ -123,9 +123,9 @@ def combine_generic_deltas(
         InvalidOperationError: If a delta operation is not supported.
     """
     if not deltas:
-        assert (
-            initial_value is not None
-        ), "initial_value must be provided if deltas is empty"
+        assert initial_value is not None, (
+            "initial_value must be provided if deltas is empty"
+        )
         return initial_value
 
     # Make a copy of the initial value to avoid modifying it

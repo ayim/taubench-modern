@@ -103,8 +103,7 @@ class Memory:
     embedding_id: str | None = field(
         default=None,
         metadata={
-            "description": "The ID of the linked embedding"
-            "(possibly stored externally)",
+            "description": "The ID of the linked embedding(possibly stored externally)",
         },
     )
     """The ID of the linked embedding (possibly stored externally)"""
