@@ -63,6 +63,30 @@ async def test_agent_crud_operations(
 
 
 @pytest.mark.asyncio
+async def test_update_agent_prop_not_name(
+    storage: SQLiteStorage,
+    sample_user_id: str,
+    sample_agent: Agent,
+) -> None:
+    # Create an agent
+    await storage.upsert_agent(sample_user_id, sample_agent)
+
+    # Update a non-name property
+    updated_agent = Agent.model_validate(
+        sample_agent.model_dump() | {"description": "Updated Description"},
+    )
+    await storage.upsert_agent(sample_user_id, updated_agent)
+
+    # Verify the update
+    retrieved_updated = await storage.get_agent(
+        sample_user_id,
+        sample_agent.agent_id,
+    )
+    assert retrieved_updated is not None
+    assert retrieved_updated.description == "Updated Description"
+
+
+@pytest.mark.asyncio
 async def test_agent_list_all(
     storage: SQLiteStorage,
     sample_user_id: str,
@@ -83,7 +107,7 @@ async def test_agent_list_all(
         agent_id=str(uuid4()),
         name="Other Agent",
         description="Other Description",
-        runbook=sample_agent.runbook,
+        runbook_structured=sample_agent.runbook_structured,
         version="1.0.0",
         updated_at=datetime.now(UTC),
         created_at=datetime.now(UTC),

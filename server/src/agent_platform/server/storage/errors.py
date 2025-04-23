@@ -121,3 +121,10 @@ class UserPermissionError(HTTPException):
         detail: str = "The user does not have permission to access the given resource",
     ):
         super().__init__(status_code=403, detail=detail)
+
+
+class StorageError(HTTPException):
+    """Generic, unhandled storage error."""
+
+    def __init__(self, detail: str = "A storage error occurred"):
+        super().__init__(status_code=500, detail=detail)

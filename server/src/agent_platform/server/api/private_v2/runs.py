@@ -1,6 +1,7 @@
 import traceback
 from asyncio import FIRST_COMPLETED, create_task, wait
-from datetime import datetime
+from datetime import UTC, datetime
+from typing import Literal
 from uuid import uuid4
 
 from fastapi import (
@@ -15,6 +16,10 @@ from structlog import get_logger
 from agent_platform.core.agent import Agent
 from agent_platform.core.payloads import InitiateStreamPayload
 from agent_platform.core.runs import Run
+from agent_platform.core.streaming.delta import (
+    StreamingDeltaAgentFinished,
+    StreamingDeltaAgentReady,
+)
 from agent_platform.core.thread import Thread
 from agent_platform.core.user import User
 from agent_platform.server.agent_architectures import AgentArchManager
@@ -31,6 +36,7 @@ logger = get_logger(__name__)
 
 
 async def _get_initial_payload(websocket: WebSocket) -> InitiateStreamPayload:
+    """Receive the initial JSON payload from the client and validate it."""
     initial_data = await websocket.receive_json()
     try:
         return InitiateStreamPayload.model_validate(initial_data)
@@ -42,39 +48,51 @@ async def _get_initial_payload(websocket: WebSocket) -> InitiateStreamPayload:
         ) from e
 
 
-async def _get_thread_state(
+async def _upsert_thread_and_messages(
     user: User,
     payload: InitiateStreamPayload,
     storage: StorageDependency,
 ) -> Thread:
+    """
+    Fetch or create the user's thread, and persist any incoming messages
+    to storage, returning the updated thread state.
+    """
     as_thread = InitiateStreamPayload.to_thread(payload, user.user_id)
-    try:
-        # TODO: Batch insert this?
-        for message in payload.messages:
-            await storage.add_message_to_thread(
-                user.user_id,
-                as_thread.thread_id,
-                message,
-            )
 
-        thread_state = await storage.get_thread(
+    try:
+        # Try and get the thread from storage (to ensure it exists).
+        await storage.get_thread(
             user.user_id,
             as_thread.thread_id,
         )
-        return thread_state
     except ThreadNotFoundError:
+        # If the thread didn't exist, upsert it.
         await storage.upsert_thread(
             user.user_id,
             as_thread,
         )
-        return as_thread
+
+    # Persist any new messages to the thread.
+    for message in payload.messages:
+        await storage.add_message_to_thread(
+            user.user_id,
+            as_thread.thread_id,
+            message,
+        )
+
+    # Fetch the updated thread state.
+    return await storage.get_thread(
+        user.user_id,
+        as_thread.thread_id,
+    )
 
 
-async def _get_agent(
+async def _fetch_agent(
     user: User,
     thread_state: Thread,
     storage: StorageDependency,
 ) -> Agent:
+    """Fetch the agent for a given thread, handling any not-found errors."""
     try:
         agent = await storage.get_agent(
             user.user_id,
@@ -87,6 +105,42 @@ async def _get_agent(
             code=status.WS_1008_POLICY_VIOLATION,
             reason="Agent not found",
         ) from e
+
+
+async def _create_run(agent_id: str, thread_id: str, storage: StorageDependency) -> Run:
+    """Create a new Run record in 'running' state."""
+    run = Run(
+        run_id=str(uuid4()),
+        agent_id=agent_id,
+        thread_id=thread_id,
+        status="running",
+        run_type="stream",
+    )
+    await storage.create_run(run)
+    return run
+
+
+async def _update_run_status(
+    storage: StorageDependency,
+    run: Run | None,
+    status: Literal["created", "running", "completed", "failed", "cancelled"],
+    finish_reason: str,
+    error: str | None = None,
+):
+    """Mark the run as finished with the given status and optional error info."""
+    if run is None:
+        return
+
+    run.finished_at = datetime.now(UTC)
+    run.status = status
+    run.metadata = {
+        **run.metadata,
+        "finish_reason": finish_reason,
+    }
+    if error is not None:
+        run.metadata["error"] = error
+
+    await storage.upsert_run(run)
 
 
 @router.get("/{run_id}/messages")
@@ -102,17 +156,16 @@ async def get_run_messages(
     return messages
 
 
-# @router.post("/{agent_id}/invoke/sync")
-# @router.post("/{agent_id}/invoke/async")
-
-
 @router.websocket("/{agent_id}/stream")
-async def stream_run(  # noqa: C901, PLR0915 (complex entrypoint, split up in the future)
+async def stream_run(  # noqa: C901
     websocket: WebSocket,
     user: AuthedUserWebsocket,
     agent_id: str,
     storage: StorageDependency,
 ):
+    """
+    WebSocket endpoint to stream a conversation (run) with a given agent.
+    """
     agent_arch_manager = AgentArchManager(
         wheels_path="./todo-for-out-of-process/wheels",
         websocket_addr="todo://think-about-out-of-process",
@@ -120,134 +173,137 @@ async def stream_run(  # noqa: C901, PLR0915 (complex entrypoint, split up in th
 
     await websocket.accept()
 
-    active_run = None
+    active_run: Run | None = None
 
     try:
+        # 1. Receive and validate initial payload
         initial_payload = await _get_initial_payload(websocket)
-        thread_state = await _get_thread_state(user, initial_payload, storage)
-        agent = await _get_agent(user, thread_state, storage)
 
-        # Make sure the initial payload's agent id matches the agent id in the url
+        # 2. Upsert thread and messages
+        thread_state = await _upsert_thread_and_messages(
+            user,
+            initial_payload,
+            storage,
+        )
+
+        # 3. Fetch the agent
+        agent = await _fetch_agent(user, thread_state, storage)
+
+        # 4. Validate the agent ID from the URL vs. the payload
         if initial_payload.agent_id != agent_id:
             raise WebSocketException(
                 code=status.WS_1008_POLICY_VIOLATION,
                 reason="Agent id mismatch",
             )
 
-        # Create a new streaming run record
-        active_run = Run(
-            run_id=str(uuid4()),
-            agent_id=agent_id,
-            thread_id=thread_state.thread_id,
-            status="running",
-            run_type="stream",
-        )
-        await storage.create_run(active_run)
+        # 5. Create a new streaming run
+        active_run = await _create_run(agent_id, thread_state.thread_id, storage)
 
-        # Get our runner instance for the CA
+        # 6. Get the agent runner
         runner = await agent_arch_manager.get_runner(
             agent.agent_architecture.name,
             agent.agent_architecture.version,
             thread_state.thread_id,
         )
 
-        # Start the CA
+        # 7. Start the runner
         await runner.start()
 
-        # Send the client a message to let them know we're ready to go.
+        # 8. Notify the client we are ready
         await websocket.send_json(
-            {
-                "event": "ready",
-                "run_id": active_run.run_id,
-                "thread_id": thread_state.thread_id,
-                "agent_id": agent_id,
-            },
+            StreamingDeltaAgentReady(
+                run_id=active_run.run_id,
+                thread_id=thread_state.thread_id,
+                agent_id=agent_id,
+                timestamp=datetime.now(UTC),
+            ).model_dump(),
         )
 
-        # Schedule the CA's main entry function as a background task.
+        # 9. Schedule the runner's main entry function
         kernel = AgentServerKernel(user, thread_state, agent, active_run)
         ca_invoke_task = create_task(runner.invoke(kernel))
 
-        # This task listens for events from the CA and sends them to the client.
+        # 10. Task to forward CA events to client
         async def _send_ca_events():
             async for event in runner.get_event_stream():
-                # Check if the event signals that the CA is finished.
-                # This check could vary based on how your events are defined.
-                if isinstance(event, dict) and event.get("type") == "end":
-                    await websocket.send_json(event)
-                    break  # Exit the loop to trigger shutdown.
-                # Send normal events to the client.
-                await websocket.send_json({"event": event})
+                # If the event signals that the CA is finished, break.
+                if isinstance(event, StreamingDeltaAgentFinished):
+                    await websocket.send_json(event.model_dump())
+                    break
+                # Otherwise, forward the event.
+                await websocket.send_json(event.model_dump())
 
-        # This task listens for incoming WebSocket messages
-        # and dispatches them to the CA.
+        # 11. Task to receive client messages and dispatch to the runner
         async def _receive_ws_messages():
             while True:
                 message = await websocket.receive_json()
                 await runner.dispatch_event(message)
 
-        # Create both tasks.
+        # 12. Run both tasks concurrently
         send_task = create_task(_send_ca_events())
         recv_task = create_task(_receive_ws_messages())
 
-        # Wait until one of the tasks finishes (for example,
-        # send_ca_events() detects "end")
-        _, pending = await wait(
+        done, pending = await wait(
             [send_task, recv_task, ca_invoke_task],
             return_when=FIRST_COMPLETED,
         )
 
-        # Cancel any pending tasks since we're done.
+        # 13. Cancel any leftover tasks and wait
         for task in pending:
             task.cancel()
-
-        # Wait until all tasks are done.
         await wait(pending)
 
-        # Stop the CA
+        # 14. Stop the runner
         await runner.stop()
 
-        # Close the websocket
+        # 15. If everything finished without error, mark run as succeeded
+        #     (Assuming if the code reaches here, we consider it "succeeded".)
+        await _update_run_status(
+            storage,
+            active_run,
+            "completed",
+            "normal_completion",
+        )
+
+        # 16. Close the WebSocket
         await websocket.close()
+
     except WebSocketDisconnect:
         logger.info("WebSocket disconnected")
-        # Update the run status to cancelled
-        if active_run:
-            active_run.finished_at = datetime.now()
-            active_run.status = "cancelled"
-            active_run.metadata = {
-                **active_run.metadata,
-                "finish_reason": "websocket_disconnected",
-            }
-            await storage.upsert_run(active_run)
+        # If user disconnects, mark run as "cancelled"
+        await _update_run_status(
+            storage,
+            active_run,
+            "cancelled",
+            "websocket_disconnected",
+        )
+
     except WebSocketException as e:
         logger.error("WebSocket error", error=e)
         await websocket.close(code=e.code, reason=e.reason)
         # Update the run status to failed
-        if active_run:
-            active_run.finished_at = datetime.now()
-            active_run.status = "failed"
-            active_run.metadata = {
-                **active_run.metadata,
-                "error": str(e),
-                "finish_reason": "websocket_error",
-            }
-            await storage.upsert_run(active_run)
+        await _update_run_status(
+            storage,
+            active_run,
+            "failed",
+            "websocket_error",
+            error=str(e),
+        )
+
     except Exception as e:
-        logger.error(f"Unexpected error in websocket stream for agent {agent_id} : {e}")
-        # Log stack trace
+        logger.error(
+            f"Unexpected error in websocket stream for agent {agent_id}: {e}",
+        )
         logger.error(traceback.format_exc())
         await websocket.close(
             code=status.WS_1011_INTERNAL_ERROR,
             reason="Unexpected error in websocket stream",
         )
         # Update the run status to failed
-        if active_run:
-            active_run.finished_at = datetime.now()
-            active_run.status = "failed"
-            active_run.metadata = {
-                **active_run.metadata,
-                "error": str(e),
-                "finish_reason": "unexpected_error",
-            }
-            await storage.upsert_run(active_run)
+        await _update_run_status(
+            storage,
+            active_run,
+            "failed",
+            "unexpected_error",
+            error=str(e),
+        )

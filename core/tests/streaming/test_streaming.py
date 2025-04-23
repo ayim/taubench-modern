@@ -1,6 +1,6 @@
 # File: tests/test_streaming.py
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 import pytest
 
@@ -9,7 +9,7 @@ import pytest
 from agent_platform.core.delta import GenericDelta
 from agent_platform.core.streaming.compute_delta import compute_message_delta
 from agent_platform.core.streaming.delta import (
-    StreamingDelta,
+    StreamingDeltaMessage,
     StreamingDeltaMessageBegin,
     StreamingDeltaMessageContent,
     StreamingDeltaMessageEnd,
@@ -118,16 +118,16 @@ def test_compute_message_delta_with_old():
 
 
 def test_streaming_delta_base():
-    delta = StreamingDelta(
+    delta = StreamingDeltaMessage(
         sequence_number=1,
         message_id="msg-123",
-        timestamp=datetime(2025, 1, 24, 12, 0, 0),
+        timestamp=datetime(2025, 1, 24, 12, 0, 0, tzinfo=UTC),
         event_type="message_metadata",
     )
     d = delta.model_dump()
     assert d["sequence_number"] == 1
     assert d["message_id"] == "msg-123"
-    assert d["timestamp"] == "2025-01-24T12:00:00"
+    assert d["timestamp"] == "2025-01-24T12:00:00+00:00"
     assert d["event_type"] == "message_metadata"
 
 
@@ -136,13 +136,13 @@ def test_streaming_delta_message_content():
     msg_content = StreamingDeltaMessageContent(
         sequence_number=1,
         message_id="msg-123",
-        timestamp=datetime(2025, 1, 24, 13, 0, 0),
+        timestamp=datetime(2025, 1, 24, 13, 0, 0, tzinfo=UTC),
         delta=delta,
     )
     d = msg_content.model_dump()
     assert d["sequence_number"] == 1
     assert d["message_id"] == "msg-123"
-    assert d["timestamp"] == "2025-01-24T13:00:00"
+    assert d["timestamp"] == "2025-01-24T13:00:00+00:00"
     assert d["event_type"] == "message_content"
     assert d["delta"]["op"] == "replace"
     assert d["delta"]["path"] == "/somepath"
@@ -155,7 +155,7 @@ def test_streaming_delta_message_begin():
         message_id="msg-001",
         thread_id="thread-123",
         agent_id="agent-456",
-        timestamp=datetime(2025, 1, 24, 14, 0, 0),
+        timestamp=datetime(2025, 1, 24, 14, 0, 0, tzinfo=UTC),
         data={"initial": "data"},
     )
     d = begin_event.model_dump()
@@ -163,7 +163,7 @@ def test_streaming_delta_message_begin():
     assert d["message_id"] == "msg-001"
     assert d["thread_id"] == "thread-123"
     assert d["agent_id"] == "agent-456"
-    assert d["timestamp"] == "2025-01-24T14:00:00"
+    assert d["timestamp"] == "2025-01-24T14:00:00+00:00"
     assert d["event_type"] == "message_begin"
     assert d["data"] == {"initial": "data"}
     # channel is forced to "events", but not in the dictionary unless you add it.
@@ -177,7 +177,7 @@ def test_streaming_delta_message_end():
         message_id="msg-002",
         thread_id="thread-123",
         agent_id="agent-456",
-        timestamp=datetime(2025, 1, 24, 15, 0, 0),
+        timestamp=datetime(2025, 1, 24, 15, 0, 0, tzinfo=UTC),
         data={"final": "data"},
     )
     d = end_event.model_dump()
@@ -185,7 +185,7 @@ def test_streaming_delta_message_end():
     assert d["message_id"] == "msg-002"
     assert d["thread_id"] == "thread-123"
     assert d["agent_id"] == "agent-456"
-    assert d["timestamp"] == "2025-01-24T15:00:00"
+    assert d["timestamp"] == "2025-01-24T15:00:00+00:00"
     assert d["event_type"] == "message_end"
     assert d["data"] == {"final": "data"}
     assert end_event.channel == "events"
@@ -205,10 +205,10 @@ def test_streaming_error_no_delta():
 
 
 def test_streaming_error_with_delta():
-    some_delta = StreamingDelta(
+    some_delta = StreamingDeltaMessage(
         sequence_number=1,
         message_id="msg-xyz",
-        timestamp=datetime.now(),
+        timestamp=datetime.now(UTC),
         event_type="message_end",
     )
 

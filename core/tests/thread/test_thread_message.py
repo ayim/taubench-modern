@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import pytest
@@ -150,12 +150,12 @@ class TestThreadMessageBase:
         msg = ThreadMessage(
             role="user",
             content=[ThreadTextContent(text="User says hi!")],
-            created_at=datetime(2021, 1, 1),
-            updated_at=datetime(2021, 1, 1),
+            created_at=datetime(2021, 1, 1, tzinfo=UTC),
+            updated_at=datetime(2021, 1, 1, tzinfo=UTC),
         )
         assert msg.role == "user"
         assert msg.content[0].kind == "text"
-        assert msg.created_at == datetime(2021, 1, 1)
+        assert msg.created_at == datetime(2021, 1, 1, tzinfo=UTC)
 
     async def test_append_content_appends_existing_content(self):
         # Mock out the thread state

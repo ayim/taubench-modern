@@ -138,14 +138,11 @@ def _file_uploads_with_existing_thread(
 
     # Delete all files from thread
     agent_client.delete_all_files_from_thread(thread_id)
-    with pytest.raises(
-        requests.exceptions.HTTPError,
-        match=(
-            r"Error getting files from thread: 404 "
-            r"{\"detail\":\"No files found for thread [0-9a-f-]+\"}"
-        ),
-    ):
-        _ = agent_client.list_files(thread_id)
+    empty_thread_files = agent_client.list_files(thread_id)
+    assert empty_thread_files is not None, "Thread files not found"
+    assert (
+        len(empty_thread_files) == 0
+    ), f"Expected 0 files, got {len(empty_thread_files)}"
     print_success("Successfully deleted all files from thread")
 
     print_success("Successfully tested file uploads with existing thread")

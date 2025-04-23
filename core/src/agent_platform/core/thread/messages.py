@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 
 from agent_platform.core.thread.base import ThreadMessage, ThreadMessageRole
 from agent_platform.core.thread.content import ThreadThoughtContent
@@ -60,7 +60,7 @@ class ThreadAgentMessage(ThreadMessage):
         if self.commited:
             raise ValueError("Cannot add thought to a committed message")
 
-        self.updated_at = datetime.now()
+        self.updated_at = datetime.now(UTC)
 
         for i, content in reversed(list(enumerate(self.content))):
             if isinstance(content, ThreadThoughtContent):

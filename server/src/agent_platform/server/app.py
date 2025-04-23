@@ -1,11 +1,12 @@
 from typing import Any
 
 import structlog
-from fastapi import FastAPI
-from fastapi.responses import ORJSONResponse
+from fastapi import FastAPI, Request
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse, ORJSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.cors import CORSMiddleware
-from starlette.requests import Request
 
 from agent_platform.server import __version__
 from agent_platform.server.api import (
@@ -21,10 +22,44 @@ from agent_platform.server.lifespan import lifespan
 logger = structlog.get_logger(__name__)
 
 
+# Custom exception handler to log validation errors and request body
+async def validation_exception_handler(
+    request: Request,
+    exc: Exception,
+) -> JSONResponse:
+    # Ensure this handler only processes RequestValidationError
+    if isinstance(exc, RequestValidationError):
+        body = (await request.body()).decode()
+        logger.error(
+            "Request validation failed",
+            errors=exc.errors(),
+            body=body,
+        )
+        # Call the default handler specifically for RequestValidationError
+        return await request_validation_exception_handler(request, exc)
+    else:
+        # This case should technically not be reached if registered correctly,
+        # but added for type safety and robustness.
+        logger.error(
+            "Unexpected exception type caught in validation handler",
+            exc_info=exc,
+        )
+        return ORJSONResponse(
+            status_code=500,
+            content={"detail": "Internal Server Error"},
+        )
+
+
 # HTTPMiddleware to ensure that all requests are prefixed with /api/v1 or /api/public/v1
 class EnsureAPIPrefixMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        if not request.url.path.startswith((PUBLIC_V1_PREFIX, PRIVATE_V2_PREFIX)):
+        if not request.url.path.startswith(
+            (
+                PUBLIC_V1_PREFIX,
+                PRIVATE_V2_PREFIX,
+                "/api/v1",  # TODO: remove this once we're able (Backwards compat)
+            ),
+        ):
             return ORJSONResponse(status_code=404, content={"detail": "Not Found"})
         return await call_next(request)
 
@@ -64,11 +99,30 @@ def create_app() -> FastAPI:
         title="Sema4.ai Agent Server Private API Version 2",
     )
     app_private_v2.include_router(private_v2_router)
+    app_private_v2.add_exception_handler(
+        RequestValidationError,
+        validation_exception_handler,
+    )
 
     app_public_v1 = _CustomFastAPI(
         title="Sema4.ai Agent Server Public API Version 1",
     )
     app_public_v1.include_router(public_v1_router)
+    app_public_v1.add_exception_handler(
+        RequestValidationError,
+        validation_exception_handler,
+    )
+
+    @app_private_v2.get("/health")
+    async def health() -> dict:
+        return {"status": "ok"}
+
+    @app_private_v2.get("/metrics")
+    async def metrics(storage: StorageDependency) -> dict:
+        return {
+            "agentCount": await storage.count_agents(),
+            "threadCount": await storage.count_threads(),
+        }
 
     # Main FastAPI app to include both versions
     app = FastAPI(
@@ -94,16 +148,15 @@ def create_app() -> FastAPI:
     app.mount(PRIVATE_V2_PREFIX, app_private_v2)
     app.mount(PUBLIC_V1_PREFIX, app_public_v1)
 
-    # TODO: move these to the v2 router
-    @app.get("/api/v2/health")
-    async def health() -> dict:
-        return {"status": "ok"}
-
-    @app.get("/api/v2/metrics")
-    async def metrics(storage: StorageDependency) -> dict:
-        return {
-            "agentCount": await storage.count_agents(),
-            "threadCount": await storage.count_threads(),
-        }
+    # TODO: remove this once we're able
+    app_private_v1 = _CustomFastAPI(
+        title="Sema4.ai Agent Server Private API Version 1",
+    )
+    app_private_v1.include_router(private_v2_router)
+    app_private_v1.add_exception_handler(
+        RequestValidationError,
+        validation_exception_handler,
+    )
+    app.mount("/api/v1", app_private_v1)  # Backwards compatibility
 
     return app

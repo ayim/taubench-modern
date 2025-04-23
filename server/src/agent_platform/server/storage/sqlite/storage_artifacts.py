@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from aiosqlite import IntegrityError
 from structlog import get_logger
@@ -43,7 +43,7 @@ class SQLiteStorageArtifactsMixin(CommonMixin):
                         "name": artifact.name,
                         "mime_type": artifact.mime_type,
                         "content": artifact.content,
-                        "to_be_deleted_at": datetime.now() + timedelta(days=7),
+                        "to_be_deleted_at": datetime.now(UTC) + timedelta(days=7),
                         "trace_id": artifact.trace_id,
                         "correlated_user_id": artifact.correlated_user_id,
                         "correlated_agent_id": artifact.correlated_agent_id,
@@ -145,7 +145,7 @@ class SQLiteStorageArtifactsMixin(CommonMixin):
                 """
                 DELETE FROM v2_otel_artifact WHERE to_be_deleted_at < :current_date
                 """,
-                {"current_date": datetime.now()},
+                {"current_date": datetime.now(UTC)},
             )
             return cur.rowcount
 

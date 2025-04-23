@@ -1,13 +1,14 @@
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator
-from typing import Any
+
+from agent_platform.core.streaming.delta import StreamingDelta
 
 
 class EventsInterface(ABC):
     """Generic event bus for asynchronous CA communication and downstream updates."""
 
     @abstractmethod
-    async def dispatch(self, event: Any) -> None:
+    async def dispatch(self, event: StreamingDelta) -> None:
         """Dispatch an event to the event bus.
 
         Arguments:
@@ -16,7 +17,7 @@ class EventsInterface(ABC):
         pass
 
     @abstractmethod
-    def stream(self) -> AsyncGenerator[Any, None]:
+    def stream(self) -> AsyncGenerator[StreamingDelta, None]:
         """Stream events from the event bus.
 
         Returns:

@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from re import match as re_match
 from uuid import UUID
 
@@ -13,7 +13,7 @@ class User:
     sub: str = field(metadata={"description": "The user's sub (from a JWT token)."})
     """The user's sub (from a JWT token)."""
     created_at: datetime = field(
-        default_factory=datetime.now,
+        default_factory=lambda: datetime.now(UTC),
         metadata={"description": "The date and time the user was created."},
     )
     """The date and time the user was created."""

@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Self
 from uuid import uuid4
 
@@ -58,8 +58,8 @@ class AddThreadMessagePayload(ThreadMessage):
     ) -> ThreadMessage:
         return ThreadMessage(
             message_id=str(uuid4()),
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
             role=payload.role,
             content=payload.content,
             commited=payload.commited,

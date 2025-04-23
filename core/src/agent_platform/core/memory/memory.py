@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any, Literal
 from uuid import UUID
 
@@ -23,13 +23,13 @@ class Memory:
     """The contextualized text content of the memory"""
 
     created_at: datetime = field(
-        default_factory=datetime.now,
+        default_factory=lambda: datetime.now(UTC),
         metadata={"description": "The timestamp of when the memory was created"},
     )
     """The timestamp of when the memory was created"""
 
     updated_at: datetime = field(
-        default_factory=datetime.now,
+        default_factory=lambda: datetime.now(UTC),
         metadata={"description": "The timestamp of when the memory was last updated"},
     )
     """The timestamp of when the memory was last updated"""

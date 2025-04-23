@@ -9,7 +9,7 @@ PRAGMA foreign_keys = ON;
 CREATE TABLE v2_user (
     user_id TEXT PRIMARY KEY,
     sub     TEXT UNIQUE NOT NULL,
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
 CREATE INDEX idx_user_sub_v2 ON v2_user(sub);
@@ -22,15 +22,15 @@ CREATE INDEX idx_user_sub_v2 ON v2_user(sub);
 -- per user.
 ------------------------------------------------------------------------------
 CREATE TABLE v2_agent (
-    agent_id    TEXT PRIMARY KEY,
-    user_id     TEXT NOT NULL,
-    mode        TEXT NOT NULL,
-    name        TEXT NOT NULL,
-    description TEXT NOT NULL,
-    runbook     TEXT NOT NULL CHECK (json_valid(runbook)),
-    version     TEXT NOT NULL,
-    updated_at  TEXT NOT NULL DEFAULT (datetime('now')),
-    created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+    agent_id              TEXT PRIMARY KEY,
+    user_id               TEXT NOT NULL,
+    mode                  TEXT NOT NULL,
+    name                  TEXT NOT NULL,
+    description           TEXT NOT NULL,
+    runbook_structured    TEXT NOT NULL CHECK (json_valid(runbook_structured)),
+    version               TEXT NOT NULL,
+    updated_at            TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    created_at            TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     action_packages       TEXT NOT NULL CHECK (json_valid(action_packages)),
     mcp_servers           TEXT NOT NULL CHECK (json_valid(mcp_servers)),
     agent_architecture    TEXT NOT NULL CHECK (json_valid(agent_architecture)),
@@ -51,7 +51,7 @@ CREATE INDEX idx_agent_user_id_v2
 
 -- Ensure agent names are unique per user (case-insensitive)
 CREATE UNIQUE INDEX idx_agent_name_per_user_v2
-    ON v2_agent(user_id, lower(name));
+    ON v2_agent (name COLLATE NOCASE, user_id);
 
 ------------------------------------------------------------------------------
 -- THREADS
@@ -64,8 +64,8 @@ CREATE TABLE v2_thread (
     agent_id   TEXT NOT NULL,
     user_id    TEXT NOT NULL,
     name       TEXT NOT NULL,
-    created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     metadata   TEXT NOT NULL CHECK (json_valid(metadata)),
 
     CONSTRAINT fk_thread_agent_id
@@ -96,8 +96,8 @@ CREATE TABLE v2_thread_message (
     sequence_number INT NOT NULL,
     thread_id     TEXT NOT NULL,
     parent_run_id TEXT,
-    created_at    TEXT NOT NULL DEFAULT (datetime('now')),
-    updated_at    TEXT NOT NULL DEFAULT (datetime('now')),
+    created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    updated_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     role          TEXT NOT NULL,  -- e.g., 'agent', 'user', 'system'
     content       TEXT NOT NULL CHECK (json_valid(content)),
     agent_metadata   TEXT NOT NULL CHECK (json_valid(agent_metadata)),
@@ -127,7 +127,7 @@ CREATE TABLE v2_agent_runs (
     run_id TEXT PRIMARY KEY,
     agent_id TEXT NOT NULL,
     thread_id TEXT NOT NULL,
-    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     finished_at TEXT DEFAULT NULL,
     status TEXT NOT NULL, -- e.g., 'running', 'completed', 'failed'
     metadata TEXT NOT NULL CHECK (json_valid(metadata)),
@@ -172,7 +172,7 @@ CREATE TABLE v2_agent_run_steps (
     output_state_hash TEXT NOT NULL,
     output_state TEXT NOT NULL CHECK (json_valid(output_state)),
     metadata TEXT NOT NULL CHECK (json_valid(metadata)),
-    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     finished_at TEXT DEFAULT NULL,
     
     CONSTRAINT fk_agent_run_steps_run_id_v2
@@ -193,8 +193,8 @@ CREATE INDEX idx_agent_run_steps_run_id_v2
 ------------------------------------------------------------------------------
 CREATE TABLE v2_scoped_storage (
     storage_id           TEXT PRIMARY KEY,
-    created_at           TEXT NOT NULL DEFAULT (datetime('now')),
-    updated_at           TEXT NOT NULL DEFAULT (datetime('now')),
+    created_at           TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    updated_at           TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     created_by_user_id   TEXT NOT NULL,
     created_by_agent_id  TEXT NOT NULL,
     created_by_thread_id TEXT NOT NULL,
@@ -251,7 +251,7 @@ CREATE TABLE v2_file_owner
     agent_id TEXT,
     thread_id TEXT,
     file_path_expiration TEXT,
-    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
 
     CONSTRAINT fk_file_owner_agent_id
       FOREIGN KEY (agent_id)
@@ -292,8 +292,8 @@ CREATE TABLE v2_memory (
     memory_id                TEXT PRIMARY KEY,
     original_text            TEXT NOT NULL,
     contextualized_text      TEXT,
-    created_at               TEXT NOT NULL DEFAULT (datetime('now')),
-    updated_at               TEXT NOT NULL DEFAULT (datetime('now')),
+    created_at               TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    updated_at               TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     relevant_until_timestamp TEXT,
     relevant_after_timestamp TEXT,
     scope                    TEXT NOT NULL,  -- e.g. 'user', 'agent', 'thread', etc.
@@ -321,7 +321,7 @@ CREATE TABLE v2_otel_artifact (
     name TEXT NOT NULL,
     mime_type TEXT NOT NULL,
     content BLOB NOT NULL,
-    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     -- The trace ID to tie this artifact back to the original trace
     trace_id TEXT NOT NULL,
     -- An otel artifact could be associated with a user, an agent,

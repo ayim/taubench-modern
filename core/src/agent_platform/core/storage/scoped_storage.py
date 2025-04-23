@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any, ClassVar, Literal
 from uuid import UUID, uuid5
 
@@ -40,13 +40,13 @@ class ScopedStorage:
     """The scope type (e.g., 'user', 'agent', 'thread', 'global')"""
 
     created_at: datetime = field(
-        default_factory=datetime.now,
+        default_factory=lambda: datetime.now(UTC),
         metadata={"description": "The timestamp when the storage record was created"},
     )
     """The timestamp when the storage record was created"""
 
     updated_at: datetime = field(
-        default_factory=datetime.now,
+        default_factory=lambda: datetime.now(UTC),
         metadata={
             "description": "The timestamp when the storage record was last updated",
         },
@@ -130,6 +130,6 @@ class ScopedStorage:
             created_by_agent_id=created_by_agent_id,
             created_by_thread_id=created_by_thread_id,
             storage={},
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
         )

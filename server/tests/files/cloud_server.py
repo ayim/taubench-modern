@@ -2,7 +2,7 @@ import os
 import shutil
 import time
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 
 import jwt
 import uvicorn
@@ -12,7 +12,7 @@ from fastapi.responses import FileResponse
 
 def log(message: str) -> None:
     """Add timestamp to log messages"""
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+    timestamp = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
     print(f"[{timestamp}] {message}")
 
 
@@ -119,7 +119,7 @@ async def handle_upload(
         files_metadata[file_id] = {
             "original_name": file.filename,
             "content_type": file.content_type,
-            "upload_time": datetime.now().isoformat(),
+            "upload_time": datetime.now(UTC).isoformat(),
         }
 
         return {"status": "success"}

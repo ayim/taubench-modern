@@ -1,6 +1,7 @@
 from collections.abc import AsyncIterator
 
 from agent_platform.core.kernel import Kernel
+from agent_platform.core.streaming.delta import StreamingDelta
 from agent_platform.server.agent_architectures.base_runner import BaseAgentRunner
 
 
@@ -15,7 +16,7 @@ class OutOfProcessAgentRunner(BaseAgentRunner):
         """Invokes the out-of-process CA with the given kernel."""
         raise NotImplementedError("Out of process runner not implemented yet")
 
-    def get_event_stream(self) -> AsyncIterator[dict]:
+    def get_event_stream(self) -> AsyncIterator[StreamingDelta]:
         """Returns an async iterator of events from the out-of-process CA."""
         raise NotImplementedError("Out of process runner not implemented yet")
 

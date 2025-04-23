@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import uuid4
 
 from psycopg.errors import UniqueViolation
@@ -31,7 +31,7 @@ class PostgresStorageUsersMixin(CommonMixin):
 
         # Not found: create
         user_id = str(uuid4())
-        created_at = datetime.now()
+        created_at = datetime.now(UTC)
         try:
             async with self._cursor() as cur:
                 await cur.execute(

@@ -295,14 +295,17 @@ class DebugChatWidget(anywidget.AnyWidget):
                 pass
         self._ws = None
 
-    async def _ws_receive_loop(self):  # noqa: C901, PLR0912, PLR0915
+    async def _ws_receive_loop(self):  # noqa: C901, PLR0912
         try:
             while True and self._ws:
                 msg = await self._ws.recv()
                 message_dict = json.loads(msg)
 
                 # print(f"Received message: {message_dict}")
-                if "event" in message_dict and message_dict["event"] == "ready":
+                if (
+                    "event_type" in message_dict
+                    and message_dict["event_type"] == "agent_ready"
+                ):
                     self.active_thread_id = message_dict["thread_id"]
                     self.active_run_id = message_dict["run_id"]
                     if self.active_thread_id not in self.threads_to_runs:
@@ -315,16 +318,12 @@ class DebugChatWidget(anywidget.AnyWidget):
                         )
                     continue
 
-                # If it has 'event' key, unwrap it
-                if "event" in message_dict:
-                    message_dict = message_dict["event"]
-
-                if "type" not in message_dict:
+                if "event_type" not in message_dict:
                     print("Unknown WS message:", msg)
                     continue
 
-                msg_type = message_dict["type"]
-                if msg_type == "user_message_request":
+                msg_type = message_dict["event_type"]
+                if msg_type == "request_user_input":
                     # In a console example, we'd do input().
                     # Here, we rely on user input from the widget.
                     print(
@@ -333,34 +332,32 @@ class DebugChatWidget(anywidget.AnyWidget):
                     )
                     self.status_message = "Waiting for your input..."
                     self.is_loading = False
-                elif msg_type == "delta" and "delta" in message_dict:
-                    event_type = message_dict["delta"].get("event_type")
-                    if event_type == "message_begin":
-                        self.is_loading = True
-                        self.status_message = "Message streaming..."
-                        self.messages = [
-                            *self.messages.copy(),
-                            ThreadAgentMessage(content=[]),
-                        ]
-                    elif event_type == "message_content":
-                        delta = GenericDelta.model_validate(
-                            message_dict["delta"].get("delta", {}),
-                        )
-                        # Need to _assign_ to update in traitlets
-                        self.messages = [
-                            *self.messages[:-1].copy(),
-                            ThreadAgentMessage.model_validate(
-                                combine_generic_deltas(
-                                    [delta],
-                                    self.messages[-1].model_dump(),
-                                ),
+                elif msg_type == "message_begin":
+                    self.is_loading = True
+                    self.status_message = "Message streaming..."
+                    self.messages = [
+                        *self.messages.copy(),
+                        ThreadAgentMessage(content=[]),
+                    ]
+                elif msg_type == "message_content":
+                    delta = GenericDelta.model_validate(
+                        message_dict["delta"],
+                    )
+                    # Need to _assign_ to update in traitlets
+                    self.messages = [
+                        *self.messages[:-1].copy(),
+                        ThreadAgentMessage.model_validate(
+                            combine_generic_deltas(
+                                [delta],
+                                self.messages[-1].model_dump(),
                             ),
-                        ]
-                        self.messages_out = [m.model_dump() for m in self.messages]
-                    elif event_type == "message_end":
-                        # Refresh active thread artifacts
-                        self.refresh_active_thread_artifacts()
-                elif msg_type == "error":
+                        ),
+                    ]
+                    self.messages_out = [m.model_dump() for m in self.messages]
+                elif msg_type == "message_end":
+                    # Refresh active thread artifacts
+                    self.refresh_active_thread_artifacts()
+                elif msg_type == "agent_error":
                     print("[WS Error]", message_dict.get("message"))
                     print(message_dict.get("stack_trace"))
                     self.is_loading = False

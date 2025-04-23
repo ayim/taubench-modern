@@ -1,6 +1,6 @@
 import json
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import ClassVar, Self
 from uuid import uuid4
 
@@ -132,7 +132,7 @@ class ContentDelta:
     """The kind of the content delta."""
 
     timestamp: datetime = field(
-        default_factory=datetime.now,
+        default_factory=lambda: datetime.now(UTC),
         metadata={"description": "The timestamp of the delta."},
         init=False,
     )
@@ -186,7 +186,7 @@ class ContentDelta:
 
         parent_id = data.pop("parent_id", None)
         delta_id = data.pop("delta_id", str(uuid4()))
-        timestamp = data.pop("timestamp", datetime.now())
+        timestamp = data.pop("timestamp", datetime.now(UTC))
 
         delta_class = cls._content_kinds[kind]
         result = delta_class.model_validate(data)

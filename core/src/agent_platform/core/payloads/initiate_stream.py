@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -80,8 +80,8 @@ class InitiateStreamPayload(Thread):
             agent_id=payload.agent_id,
             name=payload.name or "New Thread",
             thread_id=payload.thread_id or str(uuid4()),
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
             messages=payload.messages,
             metadata={},
         )

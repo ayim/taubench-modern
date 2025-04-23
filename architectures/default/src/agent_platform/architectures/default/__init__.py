@@ -1,3 +1,12 @@
+"""
+Default architecture for running agents.
+"""
+
+__author__ = "Sema4.ai Engineering"
+__copyright__ = "Copyright 2025, Sema4.ai"
+__license__ = "Proprietary"
+__summary__ = "Default architecture for the Agent Platform"
+__version__ = "0.0.1"
 import logging
 
 from agent_platform.architectures.default.state import ArchState
@@ -70,12 +79,16 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
             state.sinks.step,
         )
 
-    # Execute any pending tool calls and update the message
-    async for result in kernel.tools.execute_pending_tool_calls(
-        state.pending_tool_calls,
-    ):
-        message.update_tool_result(result)
+    # Update the message to show that the tool calls are running in the chat
+    for _, tool_call in state.pending_tool_calls:
+        message.update_tool_running(tool_call.tool_call_id)
         await message.stream_delta()
+
+    # Execute any pending tool calls and update the message
+    async for _ in kernel.tools.execute_pending_tool_calls(
+        state.pending_tool_calls,
+        message,
+    ):
         state.called_tools = True
 
     # Commit the message to the thread and clear pending tool calls

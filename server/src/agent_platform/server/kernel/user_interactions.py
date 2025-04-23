@@ -1,6 +1,8 @@
 from asyncio import sleep, wait_for
+from datetime import UTC, datetime
 
 from agent_platform.core.kernel_interfaces import UserInteractionsInterface
+from agent_platform.core.streaming.delta import StreamingDeltaRequestUserInput
 from agent_platform.core.thread import ThreadTextContent, ThreadUserMessage
 from agent_platform.server.kernel.kernel_mixin import UsesKernelMixin
 
@@ -20,11 +22,11 @@ class AgentServerUserInteractionsInterface(UserInteractionsInterface, UsesKernel
 
         # Step 1: Notify downstream (e.g. a UI or user prompt handler)
         # that we are waiting for user input.
-        prompt_event = {
-            "type": "user_message_request",
-            "message": "Awaiting user input...",
-            "timeout": timeout_seconds,
-        }
+        prompt_event = StreamingDeltaRequestUserInput(
+            message="Awaiting user input...",
+            timeout=timeout_seconds,
+            timestamp=datetime.now(UTC),
+        )
         await self.kernel.outgoing_events.dispatch(prompt_event)
 
         # Step 2: Wait for the user's response by polling the incoming events stream.

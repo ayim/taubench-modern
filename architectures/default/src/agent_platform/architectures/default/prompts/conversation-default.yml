@@ -41,7 +41,7 @@ messages:
 
           You have the following instructions, called a Runbook, which you must carefully follow:
           <runbook>
-          {{ kernel.agent.runbook.raw_text }}
+          {{ kernel.agent.runbook_structured.raw_text }}
           </runbook>
 
           {%- if state.conversation_history_summary -%}

@@ -259,7 +259,7 @@ async def test_thread_listing_with_multiple_agents(
             user_id=sample_user_id,
             name=f"Agent {i}",
             description="Test",
-            runbook=Runbook(raw_text="test", content=[]),
+            runbook_structured=Runbook(raw_text="test", content=[]),
             version="1.0.0",
             created_at=datetime.now(UTC),
             updated_at=datetime.now(UTC),

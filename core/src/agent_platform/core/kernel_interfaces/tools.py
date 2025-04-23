@@ -2,6 +2,9 @@ from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator
 
 from agent_platform.core.actions import ActionPackage
+from agent_platform.core.kernel_interfaces.thread_state import (
+    ThreadMessageWithThreadState,
+)
 from agent_platform.core.mcp import MCPServer
 from agent_platform.core.responses import ResponseToolUseContent
 from agent_platform.core.tools import ToolDefinition, ToolExecutionResult
@@ -17,6 +20,7 @@ class ToolsInterface(ABC):
     def execute_pending_tool_calls(
         self,
         pending_tool_calls: list[PendingToolCall],
+        message_to_update: ThreadMessageWithThreadState | None = None,
     ) -> AsyncGenerator[ToolExecutionResult, None]:
         """Executes tool calls from a model response.
 

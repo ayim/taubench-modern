@@ -7,8 +7,8 @@ from agent_platform.core.agent import Agent
 from agent_platform.server.storage.errors import (
     AgentNotFoundError,
     AgentWithNameAlreadyExistsError,
-    RecordAlreadyExistsError,
     ReferenceIntegrityError,
+    StorageError,
     UserAccessDeniedError,
 )
 from agent_platform.server.storage.sqlite.common import CommonMixin
@@ -118,15 +118,16 @@ class SQLiteStorageAgentsMixin(CommonMixin):
         row_dict.pop("has_access", None)
         return Agent.model_validate(self._convert_agent_json_fields(row_dict))
 
-    async def upsert_agent(self, user_id: str, agent: Agent) -> None:
-        """Create or update an agent, enforcing user access similar to Postgres."""
+    async def upsert_agent(self, user_id: str, agent: Agent) -> None:  # noqa: C901, PLR0912
+        """Create or update an agent, avoiding false-positives on
+        the name-uniqueness index."""
         self._validate_uuid(user_id)
         self._validate_uuid(agent.agent_id)
 
         # Convert the agent to a dict; JSON-ify the complex fields
         agent_dict = agent.model_dump() | {"user_id": user_id}
         for field in [
-            "runbook",
+            "runbook_structured",
             "action_packages",
             "mcp_servers",
             "agent_architecture",
@@ -135,75 +136,169 @@ class SQLiteStorageAgentsMixin(CommonMixin):
             "platform_configs",
             "extra",
         ]:
-            agent_dict[field] = json.dumps(agent_dict[field])
+            agent_dict[field] = json.dumps(agent_dict.get(field))
 
         try:
             async with self._cursor() as cur:
+                # First attempt an INSERT with DO NOTHING to avoid errors
                 await cur.execute(
                     """
                     INSERT INTO v2_agent (
-                        agent_id, name, description, user_id, runbook, version,
-                        created_at, updated_at, action_packages, mcp_servers,
-                        agent_architecture, question_groups, observability_configs,
-                        platform_configs, extra, mode
+                        agent_id, name, description, user_id, runbook_structured,
+                        version, created_at, updated_at, action_packages,
+                        mcp_servers, agent_architecture, question_groups,
+                        observability_configs, platform_configs, extra, mode
                     )
                     VALUES (
-                        :agent_id, :name, :description, :user_id, :runbook, :version,
-                        :created_at, :updated_at, :action_packages, :mcp_servers,
-                        :agent_architecture, :question_groups, :observability_configs,
-                        :platform_configs, :extra, :mode
+                        :agent_id, :name, :description, :user_id, :runbook_structured,
+                        :version, :created_at, :updated_at, :action_packages,
+                        :mcp_servers, :agent_architecture, :question_groups,
+                        :observability_configs, :platform_configs, :extra, :mode
                     )
-                    ON CONFLICT(agent_id) DO UPDATE SET
-                        name = excluded.name,
-                        description = excluded.description,
-                        user_id = excluded.user_id,
-                        runbook = excluded.runbook,
-                        version = excluded.version,
-                        updated_at = excluded.updated_at,
-                        action_packages = excluded.action_packages,
-                        mcp_servers = excluded.mcp_servers,
-                        agent_architecture = excluded.agent_architecture,
-                        question_groups = excluded.question_groups,
-                        observability_configs = excluded.observability_configs,
-                        platform_configs = excluded.platform_configs,
-                        extra = excluded.extra,
-                        mode = excluded.mode
-                    WHERE v2_check_user_access(v2_agent.user_id, :user_id) = 1
+                    ON CONFLICT DO NOTHING
                     """,
                     agent_dict,
                 )
-                # If rowcount is 0 but the agent actually exists,
-                # that typically means the user lacks permission
-                if (
-                    cur.rowcount == 0
-                    and await self._agent_exists(agent.agent_id)
-                    and await self._user_can_access_agent(user_id, agent.agent_id)
-                    is False
-                ):
-                    raise UserAccessDeniedError(
-                        f"User {user_id} does not have permission "
-                        f"to update agent {agent.agent_id}",
+
+                # If we got here because of a conflict, try to update
+                if cur.rowcount == 0:  # No insert happened
+                    await cur.execute(
+                        """
+                        UPDATE v2_agent
+                        SET
+                            name = :name,
+                            description = :description,
+                            runbook_structured = :runbook_structured,
+                            version = :version,
+                            updated_at = :updated_at,
+                            action_packages = :action_packages,
+                            mcp_servers = :mcp_servers,
+                            agent_architecture = :agent_architecture,
+                            question_groups = :question_groups,
+                            observability_configs = :observability_configs,
+                            platform_configs = :platform_configs,
+                            extra = :extra,
+                            mode = :mode
+                        WHERE
+                            agent_id = :agent_id
+                            AND v2_check_user_access(user_id, :user_id) = 1
+                            -- Make sure no name collision exists with other agents
+                            AND (
+                                -- Either name didn't change
+                                LOWER(name) = LOWER(:name)
+                                -- Or no other agent has this name
+                                OR NOT EXISTS (
+                                    SELECT 1 FROM v2_agent
+                                    WHERE LOWER(name) = LOWER(:name)
+                                      AND user_id = :user_id
+                                      AND agent_id != :agent_id
+                                )
+                            )
+                        """,
+                        agent_dict,
                     )
 
+                    # If we still didn't update anything, determine why
+                    if cur.rowcount == 0:
+                        # Check if agent exists
+                        await cur.execute(
+                            "SELECT 1 FROM v2_agent WHERE agent_id = :agent_id",
+                            {"agent_id": agent.agent_id},
+                        )
+
+                        if not await cur.fetchone():
+                            # The agent doesn't exist - check if it was a name conflict
+                            await cur.execute(
+                                """
+                                SELECT 1 FROM v2_agent
+                                WHERE LOWER(name) = LOWER(:name) AND user_id = :user_id
+                                """,
+                                {"name": agent.name, "user_id": user_id},
+                            )
+                            if await cur.fetchone():
+                                raise AgentWithNameAlreadyExistsError(
+                                    f"Agent name '{agent.name}' is not "
+                                    f"unique for user {user_id}"
+                                )
+                            else:
+                                # This shouldn't happen - could be a race condition
+                                raise StorageError(
+                                    "Upsert failed unexpectedly for "
+                                    f"agent {agent.agent_id}"
+                                )
+                        else:
+                            # Agent exists, check user access
+                            await cur.execute(
+                                """
+                                SELECT
+                                  v2_check_user_access(user_id, :user_id) as has_access
+                                FROM v2_agent WHERE agent_id = :agent_id
+                                """,
+                                {"agent_id": agent.agent_id, "user_id": user_id},
+                            )
+                            row = await cur.fetchone()
+                            if not row or not row["has_access"]:
+                                raise UserAccessDeniedError(
+                                    f"User {user_id} does not have permission "
+                                    f"to update agent {agent.agent_id}"
+                                )
+
+                            # Must be a name collision with another agent
+                            await cur.execute(
+                                """
+                                SELECT 1 FROM v2_agent
+                                WHERE LOWER(name) = LOWER(:name)
+                                    AND user_id = :user_id
+                                    AND agent_id != :agent_id
+                                """,
+                                {
+                                    "name": agent.name,
+                                    "user_id": user_id,
+                                    "agent_id": agent.agent_id,
+                                },
+                            )
+                            if await cur.fetchone():
+                                raise AgentWithNameAlreadyExistsError(
+                                    f"Agent name '{agent.name}' is not "
+                                    f"unique for user {user_id}"
+                                )
+                            else:
+                                # Shouldn't happen - defensive coding
+                                raise StorageError(
+                                    "Upsert failed unexpectedly for "
+                                    f"agent {agent.agent_id}"
+                                )
+
         except aiosqlite.IntegrityError as e:
-            if "foreign key constraint" in str(e).lower():
+            # We should rarely hit this with our logic, but handle race conditions
+            if "UNIQUE constraint failed" in str(e) and (
+                "idx_agent_name_per_user_v2" in str(e) or ".name" in str(e)
+            ):
+                raise AgentWithNameAlreadyExistsError(
+                    f"Agent name {agent.name} is not unique for user {user_id}"
+                ) from e
+            elif "foreign key constraint" in str(e).lower():
                 raise ReferenceIntegrityError(
-                    "Invalid foreign key reference updating agent",
+                    "Invalid foreign key reference updating/inserting agent"
                 ) from e
-            if "UNIQUE constraint failed: v2_agent.agent_id" in str(e):
-                raise RecordAlreadyExistsError(
-                    f"Agent ID {agent.agent_id} is not unique",
-                ) from e
-            # Possibly triggered by a unique constraint on name, etc.
+            else:
+                self._logger.error("Unexpected database integrity error", error=str(e))
+                raise StorageError(f"Database integrity error: {e}") from e
+        except (
+            UserAccessDeniedError,
+            AgentWithNameAlreadyExistsError,
+            AgentNotFoundError,
+            ReferenceIntegrityError,
+        ) as e:
+            # Re-raise specific errors
+            raise e
+        except Exception as e:
             self._logger.error(
-                "Error upserting agent",
+                "Unexpected error during agent upsert",
                 error=str(e),
-                agent_id=agent.agent_id,
-                user_id=user_id,
+                exc_info=e,
             )
-            raise AgentWithNameAlreadyExistsError(
-                f"Agent name {agent.name} is not unique",
-            ) from e
+            raise StorageError(f"An unexpected error occurred: {e}") from e
 
     async def delete_agent(self, user_id: str, agent_id: str) -> None:
         """Delete an agent, enforcing user access."""
@@ -267,7 +362,7 @@ class SQLiteStorageAgentsMixin(CommonMixin):
         """Convert JSON string fields in agent dict to
         Python objects (similar to Postgres mixin)."""
         for field in [
-            "runbook",
+            "runbook_structured",
             "action_packages",
             "mcp_servers",
             "agent_architecture",

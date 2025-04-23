@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from agent_platform.core.delta import compute_generic_deltas
 from agent_platform.core.streaming.delta import StreamingDeltaMessageContent
@@ -39,7 +39,7 @@ def compute_message_delta(
             StreamingDeltaMessageContent(
                 sequence_number=sequence_number + i,
                 message_id=new.message_id,
-                timestamp=datetime.now(),
+                timestamp=datetime.now(UTC),
                 delta=delta,
             ),
         )

@@ -27,17 +27,17 @@ CREATE INDEX idx_user_sub_v2 ON v2."user"(sub);
 -- per user.
 ------------------------------------------------------------------------------
 CREATE TABLE v2."agent" (
-    agent_id    UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id     UUID NOT NULL,
-    mode        VARCHAR(255) NOT NULL,
-    name        VARCHAR(255) NOT NULL,
-    description TEXT NOT NULL,
-    runbook     JSONB NOT NULL,
-    version     VARCHAR(255) NOT NULL,
-    updated_at  TIMESTAMP WITH TIME ZONE 
-                DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
-    created_at  TIMESTAMP WITH TIME ZONE 
-                DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
+    agent_id               UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id                UUID NOT NULL,
+    mode                   VARCHAR(255) NOT NULL,
+    name                   VARCHAR(255) NOT NULL,
+    description            TEXT NOT NULL,
+    runbook_structured     JSONB NOT NULL,
+    version                VARCHAR(255) NOT NULL,
+    updated_at             TIMESTAMP WITH TIME ZONE 
+                           DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
+    created_at             TIMESTAMP WITH TIME ZONE 
+                           DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
     action_packages        JSONB NOT NULL,
     mcp_servers            JSONB NOT NULL,
     agent_architecture     JSONB NOT NULL,

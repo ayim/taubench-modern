@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any, cast
 
 from agent_platform.core.kernel_interfaces.kernel_mixin import UsesKernelMixin
@@ -9,7 +9,7 @@ from agent_platform.core.responses.streaming import (
     XmlTagResponseStreamSink,
 )
 from agent_platform.core.streaming import (
-    StreamingDelta,
+    StreamingDeltaMessage,
     StreamingDeltaMessageBegin,
     StreamingDeltaMessageEnd,
     StreamingError,
@@ -145,7 +145,7 @@ class ThreadMessageWithThreadState:
         if self._message.commited:
             raise ValueError("Cannot add content to a committed message")
 
-        self.updated_at = datetime.now()
+        self.updated_at = datetime.now(UTC)
 
         # If string is passed, treat it as text content
         if isinstance(content, str):
@@ -218,7 +218,7 @@ class ThreadMessageWithThreadState:
             )
             match_as_tool_use.name = tool_use.tool_name
             match_as_tool_use.arguments_raw = tool_use.tool_input_raw
-            match_as_tool_use.pending_at = datetime.now() if completed else None
+            match_as_tool_use.pending_at = datetime.now(UTC) if completed else None
             break  # Only can match one tool use
 
         else:  # No matching tool use found, so we add a new one
@@ -228,10 +228,31 @@ class ThreadMessageWithThreadState:
                     arguments_raw=tool_use.tool_input_raw,
                     tool_call_id=tool_use.tool_call_id,
                     status="streaming",
-                    discovered_at=datetime.now(),
-                    pending_at=datetime.now() if completed else None,
+                    discovered_at=datetime.now(UTC),
+                    pending_at=datetime.now(UTC) if completed else None,
                 ),
             )
+
+    def update_tool_running(self, tool_call_id: str) -> None:
+        """Updates the tool to "running" for the message from a tool call ID."""
+        if self._message.commited:
+            raise ValueError("Cannot add content to a committed message")
+
+        # Find a matching tool use on ID
+        for idx, content in enumerate(self._message.content):
+            if not isinstance(content, ThreadToolUsageContent):
+                continue
+            if content.tool_call_id != tool_call_id:
+                continue
+
+            # If we're here, we have a matching tool use
+            match_as_tool_use = cast(
+                ThreadToolUsageContent,
+                self._message.content[idx],
+            )
+            match_as_tool_use.status = "running"
+            match_as_tool_use.started_at = datetime.now(UTC)
+            break
 
     def update_tool_result(
         self,
@@ -327,9 +348,9 @@ class ThreadStateInterface(ABC, UsesKernelMixin):
         self._active_message_id = new_message.message_id
         await self._send_delta_event(
             StreamingDeltaMessageBegin(
+                datetime.now(UTC),
                 0,
                 new_message.message_id,
-                datetime.now(),
                 self._thread_id,
                 self._agent_id,
             ),
@@ -351,9 +372,9 @@ class ThreadStateInterface(ABC, UsesKernelMixin):
         self._active_message_id = new_message.message_id
         await self._send_delta_event(
             StreamingDeltaMessageBegin(
+                datetime.now(UTC),
                 0,
                 new_message.message_id,
-                datetime.now(),
                 self._thread_id,
                 self._agent_id,
             ),
@@ -442,9 +463,9 @@ class ThreadStateInterface(ABC, UsesKernelMixin):
 
             await self._send_delta_event(
                 StreamingDeltaMessageEnd(
+                    datetime.now(UTC),
                     sequence_number,
                     unwrapped_message.message_id,
-                    datetime.now(),
                     self._thread_id,
                     self._agent_id,
                     # Send full message at end? (TBD)
@@ -469,7 +490,7 @@ class ThreadStateInterface(ABC, UsesKernelMixin):
             self._active_message_id = None
 
     @abstractmethod
-    async def _send_delta_event(self, delta_object: StreamingDelta) -> None:
+    async def _send_delta_event(self, delta_object: StreamingDeltaMessage) -> None:
         """Sends a delta event to the UI.
 
         Arguments:

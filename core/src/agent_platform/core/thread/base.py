@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from types import MappingProxyType
 from typing import Any, Literal, Self
 from uuid import UUID, uuid4
@@ -51,13 +51,13 @@ class ThreadMessage:
     (saved to backing storage)"""
 
     created_at: datetime = field(
-        default_factory=datetime.now,
+        default_factory=lambda: datetime.now(UTC),
         metadata={"description": "The time the message was created"},
     )
     """The time the message was created"""
 
     updated_at: datetime = field(
-        default_factory=datetime.now,
+        default_factory=lambda: datetime.now(UTC),
         metadata={"description": "The time the message was last updated"},
     )
     """The time the message was last updated"""

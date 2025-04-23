@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from agent_platform.core.thread.base import ThreadMessage
@@ -45,13 +45,13 @@ class Thread:
     """All messages in this thread."""
 
     created_at: datetime = field(
-        default_factory=datetime.now,
+        default_factory=lambda: datetime.now(UTC),
         metadata={"description": "When this thread was created."},
     )
     """When this thread was created."""
 
     updated_at: datetime = field(
-        default_factory=datetime.now,
+        default_factory=lambda: datetime.now(UTC),
         metadata={"description": "When this thread was last updated."},
     )
     """When this thread was last updated."""
@@ -67,7 +67,7 @@ class Thread:
         that the thread has changed.
         """
         self.messages.append(message)
-        self.updated_at = datetime.now()
+        self.updated_at = datetime.now(UTC)
 
     def find_message(self, message_id: str) -> ThreadMessage | None:
         """Helper to locate a message by its UID.  Returns None if not found."""

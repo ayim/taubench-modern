@@ -1,6 +1,6 @@
 import itertools
 import os
-from datetime import datetime
+from datetime import UTC, datetime
 from functools import partial
 from typing import Literal
 
@@ -18,7 +18,7 @@ def print_header(message):
     if DEBUG:
         global HEADER_INDEX  # noqa: PLW0603
         HEADER_INDEX += 1
-        timestamp = datetime.now().strftime("%H:%M:%S")
+        timestamp = datetime.now(UTC).strftime("%H:%M:%S")
         header = f"[{timestamp}] {HEADER_INDEX}. {message}"
         print(f"\n\033[94m{header}\033[0m")  # Blue color
         print("-" * len(header))
@@ -225,7 +225,7 @@ class AgentServerClient:
             "name": name,
             "version": "1.0.0",
             "description": description,
-            "runbook_raw_text": runbook,
+            "runbook": runbook,
             "action_packages": action_packages_raw,
             "agent_architecture": {
                 "name": "agent_platform.architectures.default",

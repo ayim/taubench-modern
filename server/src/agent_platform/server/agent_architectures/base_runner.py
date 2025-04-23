@@ -3,6 +3,7 @@ from collections.abc import AsyncIterator
 from typing import Any
 
 from agent_platform.core.kernel import Kernel
+from agent_platform.core.streaming.delta import StreamingDelta
 
 
 class BaseAgentRunner(ABC):
@@ -39,13 +40,11 @@ class BaseAgentRunner(ABC):
         pass
 
     @abstractmethod
-    def get_event_stream(self) -> AsyncIterator[Any]:
+    def get_event_stream(self) -> AsyncIterator[StreamingDelta]:
         """Returns an async iterator of events from the agent architecture.
 
         Returns:
-            An async iterator yielding dictionaries containing agent architecture
-            events. The specific structure of these event dictionaries should be
-            documented by the implementing class.
+            An async iterator yielding StreamingDelta objects.
         """
         pass
 

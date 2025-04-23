@@ -13,6 +13,7 @@ from agent_platform.server.api.dependencies import (
     StorageDependency,
 )
 from agent_platform.server.auth import AuthedUser
+from agent_platform.server.storage import ThreadFileNotFoundError
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -30,15 +31,26 @@ async def create_thread(
 
 
 @router.get("/", response_model=list[Thread])
-async def list_threads(
+async def list_threads(  # noqa: PLR0913
     user: AuthedUser,
     storage: StorageDependency,
     agent_id: str | None = None,
+    aid: str | None = None,  # Backwards compatibility
+    name: str | None = None,
+    limit: int | None = None,
 ) -> list[Thread]:
     if agent_id:
-        return await storage.list_threads_for_agent(user.user_id, agent_id)
+        candidates = await storage.list_threads_for_agent(user.user_id, agent_id)
+    elif aid:
+        candidates = await storage.list_threads_for_agent(user.user_id, aid)
     else:
-        return await storage.list_threads(user.user_id)
+        candidates = await storage.list_threads(user.user_id)
+    # TODO: name/limit should be pushed down to the storage layer
+    if name:
+        candidates = [t for t in candidates if name in t.name]
+    if limit:
+        candidates = candidates[:limit]
+    return candidates
 
 
 @router.get("/{tid}", response_model=Thread)
@@ -51,6 +63,39 @@ async def get_thread(
     if thread is None:
         raise HTTPException(status_code=404, detail="Thread not found")
     return thread
+
+
+# Backwards compatibility
+@router.get("/{tid}/state", response_model=Thread)
+async def get_thread_state(
+    user: AuthedUser,
+    tid: str,
+    storage: StorageDependency,
+) -> Thread:
+    thread = await storage.get_thread(user.user_id, tid)
+    if thread is None:
+        raise HTTPException(status_code=404, detail="Thread not found")
+    return thread
+
+
+# Backwards compatibility
+@router.get("/{tid}/context-stats", response_model=dict)
+async def get_thread_context_stats(
+    user: AuthedUser,
+    tid: str,
+    storage: StorageDependency,
+) -> dict:
+    thread = await storage.get_thread(user.user_id, tid)
+    if thread is None:
+        raise HTTPException(status_code=404, detail="Thread not found")
+    # TODO: this was a bad idea originally, context window size is NOT
+    # a property of the thread, token counts are NOT a property of the message
+    # This is all model/prompt dependent and we really just _shouldn't_ need
+    # to do this if we manage context appropriately.
+    return dict(
+        context_window_size=100000,
+        tokens_per_message={m.message_id: 0 for m in thread.messages},
+    )
 
 
 @router.delete("/{tid}", status_code=204)
@@ -90,7 +135,10 @@ async def get_thread_files(
     thread = await storage.get_thread(user.user_id, tid)
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
-    thread_files = await storage.get_thread_files(tid, user.user_id)
+    try:
+        thread_files = await storage.get_thread_files(tid, user.user_id)
+    except ThreadFileNotFoundError:
+        return []
     return thread_files
 
 

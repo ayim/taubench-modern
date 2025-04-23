@@ -1,94 +1,459 @@
 from dataclasses import dataclass, field
-from datetime import datetime
-from typing import Self, cast
+from datetime import UTC, datetime
+from typing import Any, Literal, Self, cast
 from uuid import uuid4
 
+from agent_platform.core.actions.action_package import ActionPackage
 from agent_platform.core.agent import Agent
+from agent_platform.core.agent.agent import AgentArchitecture
+from agent_platform.core.agent.observability_config import ObservabilityConfig
+from agent_platform.core.agent.question_group import QuestionGroup
+from agent_platform.core.mcp import MCPServer
 from agent_platform.core.platforms import AnyPlatformParameters
 from agent_platform.core.platforms.base import PlatformParameters
 from agent_platform.core.runbook import Runbook
+from agent_platform.core.utils import assert_literal_value_valid
 
 
 @dataclass(frozen=True)
-class UpsertAgentPayload(Agent):
+class UpsertAgentPayload:
     """Payload for upserting an agent."""
 
-    platform_configs: list[dict] = field(  # type: ignore
-        metadata={"description": "The platform configs for the agent."},
-    )
-    # Intentionally overriden with different type
-    """The platform configs for the agent."""
+    name: str = field(metadata={"description": "The name of the agent."})
+    """The name of the agent."""
 
-    runbook_raw_text: str = field(
-        default="",
+    description: str = field(
+        metadata={"description": "The description of the agent."},
+    )
+    """The description of the agent."""
+
+    version: str = field(metadata={"description": "The version of the agent."})
+    """The version of the agent."""
+
+    user_id: str | None = field(
+        default=None,
+        metadata={"description": "The id of the user that created the agent."},
+    )
+    """The id of the user that created the agent."""
+
+    platform_configs: list[dict] = field(
+        metadata={"description": "The platform configs this agent can use."},
+        default_factory=list,
+    )
+    """The platform configs this agent can use."""
+
+    agent_architecture: AgentArchitecture | None = field(
+        default=None,
+        metadata={"description": "The architecture details for the agent."},
+    )
+    """The architecture details for the agent."""
+
+    runbook: str | None = field(
+        default=None,
         metadata={"description": "The raw text of the runbook."},
     )
     """The raw text of the runbook."""
 
-    runbook: Runbook = field(
-        init=False,
-        repr=False,
-        metadata={"description": "The runbook of the agent."},
+    structured_runbook: Runbook | None = field(
+        default=None,
+        metadata={"description": "The structured runbook of the agent."},
     )
-    """The runbook of the agent."""
+    """The structured runbook of the agent."""
 
-    user_id: str = field(
-        init=False,
-        repr=False,
-        metadata={"description": "The ID of the user that owns the agent."},
+    action_packages: list[ActionPackage] = field(
+        metadata={"description": "The action packages this agent uses."},
+        default_factory=list,
     )
-    """The ID of the user that owns the agent."""
+    """The action packages this agent uses."""
 
-    agent_id: str = field(  # type: ignore
-        init=False,
-        repr=False,
+    mcp_servers: list[MCPServer] = field(
+        metadata={
+            "description": "The Model Context Protocol (MCP) servers this agent uses.",
+        },
+        default_factory=list,
+    )
+    """The Model Context Protocol (MCP) servers this agent uses."""
+
+    question_groups: list[QuestionGroup] = field(
+        metadata={"description": "The question groups of the agent."},
+        default_factory=list,
+    )
+    """The question groups of the agent."""
+
+    observability_configs: list[ObservabilityConfig] = field(
+        metadata={"description": "The observability configs of the agent."},
+        default_factory=list,
+    )
+    """The observability configs of the agent."""
+
+    mode: Literal["conversational", "worker"] = field(
+        metadata={"description": "The mode of the agent."},
+        default="conversational",
+    )
+    """The mode of the agent."""
+
+    extra: dict[str, Any] = field(
+        metadata={"description": "Extra fields for the agent."},
+        default_factory=dict,
+    )
+    """Extra fields for the agent."""
+
+    id: str | None = field(
+        default=None,
+        metadata={
+            "description": (
+                "The ID of the agent (alias of agent_id for backwards compatibility)."
+            ),
+        },
+    )
+    """The ID of the agent (alias of agent_id for backwards compatibility)."""
+
+    agent_id: str | None = field(
+        default=None,
         metadata={"description": "The ID of the agent."},
     )
-    # Intentionally overriden without a default value (to ensure it's set
-    # in the payload)
     """The ID of the agent."""
 
-    created_at: datetime = field(  # type: ignore
-        init=False,
-        repr=False,
+    created_at: datetime | None = field(
+        default=None,
         metadata={"description": "The time the agent was created."},
     )
-    # Intentionally overriden without a default value (to ensure it's set
-    # in the payload)
     """The time the agent was created."""
 
-    updated_at: datetime = field(  # type: ignore
-        init=False,
-        repr=False,
-        metadata={"description": "The last time the agent was updated."},
+    advanced_config: dict[str, Any] = field(
+        default_factory=dict,
+        metadata={
+            "description": (
+                "Advanced configuration for the agent (backward compatibility)."
+            ),
+        },
     )
-    # Intentionally overriden without a default value (to ensure it's set
-    # in the payload)
-    """The last time the agent was updated."""
+    """Advanced configuration for the agent (backward compatibility)."""
+
+    metadata: dict[str, Any] = field(
+        default_factory=dict,
+        metadata={
+            "description": ("Metadata for the agent (backward compatibility)."),
+        },
+    )
+    """Metadata for the agent (backward compatibility)."""
+
+    model: dict[str, Any] | None = field(
+        default=None,
+        metadata={
+            "description": ("Model for the agent (backward compatibility)."),
+        },
+    )
+    """Model for the agent (backward compatibility)."""
+
+    public: bool = field(
+        default=True,
+        metadata={"description": "Ignored. Backward compatibility only."},
+    )
+    """Ignored. Backward compatibility only."""
+
+    def _handle_legacy_architecture(self):
+        """Handle backward compatibility for 'architecture' in advanced_config."""
+        if "architecture" in self.advanced_config:
+            object.__setattr__(
+                self,
+                "agent_architecture",
+                AgentArchitecture.model_validate(
+                    {
+                        # It doesn't matter what _was_ in the payload, we only
+                        # have one architecture for now. So if we're converting
+                        # from a legacy payload, we'll just use the default.
+                        "name": "agent_platform.architectures.default",
+                        "version": "1.0.0",
+                    }
+                ),
+            )
+            del self.advanced_config["architecture"]
+
+    def _handle_legacy_langsmith(self):
+        """Handle backward compatibility for 'langsmith' in advanced_config."""
+        if "langsmith" in self.advanced_config:
+            ls_config = self.advanced_config["langsmith"]
+            if ls_config is not None and "api_key" in ls_config:
+                object.__setattr__(
+                    self,
+                    "observability_configs",
+                    [
+                        ObservabilityConfig.model_validate(
+                            {
+                                "type": "langsmith",
+                                "api_key": ls_config["api_key"],
+                                "api_url": ls_config["api_url"],
+                                "settings": {
+                                    "project_name": ls_config["project_name"],
+                                },
+                            }
+                        )
+                    ],
+                )
+            del self.advanced_config["langsmith"]
+
+    def _handle_legacy_mode(self):
+        """Handle backward compatibility for 'mode' in metadata."""
+        if "mode" in self.metadata:
+            object.__setattr__(self, "mode", self.metadata["mode"])
+            del self.metadata["mode"]
+
+    def _handle_legacy_welcome_message(self):
+        """Handle backward compatibility for 'welcome_message' in metadata."""
+        if "welcome_message" in self.metadata:
+            del self.metadata["welcome_message"]  # Ignored
+
+    def _handle_legacy_worker_config(self):
+        """Handle backward compatibility for 'worker_config' in metadata."""
+        if "worker_config" in self.metadata:
+            object.__setattr__(
+                self,
+                "extra",
+                {
+                    **self.extra,
+                    "worker_config": self.metadata["worker_config"],
+                },
+            )
+            del self.metadata["worker_config"]
+
+    def _handle_legacy_question_groups(self):
+        """Handle backward compatibility for 'question_groups' in metadata."""
+        if "question_groups" in self.metadata and isinstance(
+            self.metadata["question_groups"], list
+        ):
+            object.__setattr__(
+                self,
+                "question_groups",
+                [
+                    QuestionGroup.model_validate(group)
+                    for group in self.metadata["question_groups"]
+                ],
+            )
+            del self.metadata["question_groups"]
+
+    def _handle_legacy_model_openai(self):
+        """Handle backward compatibility for 'model' field with OpenAI."""
+        if not self.model or "provider" not in self.model:
+            return
+        if self.model["provider"] != "OpenAI":
+            return
+
+        params_to_keep = [
+            "openai_api_key",
+        ]
+        params = {}
+        if "config" in self.model:
+            for param in params_to_keep:
+                if param in self.model["config"]:
+                    params[param] = self.model["config"][param]
+
+        object.__setattr__(
+            self,
+            "platform_configs",
+            [
+                {
+                    "kind": "openai",
+                    **params,
+                },
+                *self.platform_configs,
+            ],
+        )
+        object.__setattr__(self, "model", None)
+
+    def _handle_legacy_model_azure(self):
+        """Handle backward compatibility for 'model' field with Azure."""
+        if not self.model or "provider" not in self.model:
+            return
+        if self.model["provider"] != "Azure":
+            return
+
+        params_to_keep = [
+            "azure_endpoint_url",
+            "azure_api_key",
+        ]
+        params = {}
+        if "config" in self.model:
+            for param in params_to_keep:
+                if param in self.model["config"]:
+                    params[param] = self.model["config"][param]
+
+        object.__setattr__(
+            self,
+            "platform_configs",
+            [
+                {
+                    "kind": "azure",
+                    **params,
+                },
+                *self.platform_configs,
+            ],
+        )
+        object.__setattr__(self, "model", None)
+
+    def _handle_legacy_model_ollama(self):
+        """Handle backward compatibility for 'model' field with Ollama."""
+        if not self.model or "provider" not in self.model:
+            return
+        if self.model["provider"] != "Ollama":
+            return
+
+        raise NotImplementedError("Ollama is not supported yet.")
+
+    def _handle_legacy_model_anthropic(self):
+        """Handle backward compatibility for 'model' field with Anthropic."""
+        if not self.model or "provider" not in self.model:
+            return
+        if self.model["provider"] != "Anthropic":
+            return
+
+        raise NotImplementedError("Anthropic is not supported yet.")
+
+    def _handle_legacy_model_bedrock(self):
+        """Handle backward compatibility for 'model' field with Bedrock."""
+        if not self.model or "provider" not in self.model:
+            return
+        if self.model["provider"] != "Amazon":
+            return
+
+        params_to_keep = [
+            "aws_access_key_id",
+            "aws_secret_access_key",
+            "aws_region",
+        ]
+        params = {}
+        if "config" in self.model:
+            for param in params_to_keep:
+                if param in self.model["config"]:
+                    params[param] = self.model["config"][param]
+
+        object.__setattr__(
+            self,
+            "platform_configs",
+            [
+                {
+                    "kind": "bedrock",
+                    **params,
+                },
+                *self.platform_configs,
+            ],
+        )
+        object.__setattr__(self, "model", None)
+
+    def _handle_legacy_model_snowflake(self):
+        """Handle backward compatibility for 'model' field with Snowflake Cortex AI."""
+        if not self.model or "provider" not in self.model:
+            return
+        if self.model["provider"] != "Snowflake Cortex AI":
+            return
+
+        params_to_keep = [
+            "snowflake_username",
+            "snowflake_password",
+            "snowflake_account",
+            "snowflake_warehouse",
+            "snowflake_database",
+            "snowflake_schema",
+            "snowflake_role",
+        ]
+        params = {}
+        if "config" in self.model:
+            for param in params_to_keep:
+                if param in self.model["config"]:
+                    params[param] = self.model["config"][param]
+
+        object.__setattr__(
+            self,
+            "platform_configs",
+            [
+                {
+                    "kind": "cortex",
+                    **params,
+                },
+                *self.platform_configs,
+            ],
+        )
+        object.__setattr__(self, "model", None)
+
+    def _handle_legacy_model(self):
+        """Handle backward compatibility for 'model' field."""
+        if self.model:
+            # No temperature from clients anymore (odd legacy choice)
+            if "config" in self.model and "temperature" in self.model["config"]:
+                del self.model["config"]["temperature"]
+
+            self._handle_legacy_model_openai()
+            self._handle_legacy_model_azure()
+            self._handle_legacy_model_ollama()
+            self._handle_legacy_model_anthropic()
+            self._handle_legacy_model_bedrock()
+            self._handle_legacy_model_snowflake()
 
     def __post_init__(self):
-        # Ensure runbook text is valid
-        if not self.runbook_raw_text:
-            raise ValueError("runbook_raw_text is required")
+        # Handle backward compatibility conversions first
+        self._handle_legacy_architecture()
+        self._handle_legacy_langsmith()
+        self._handle_legacy_mode()
+        self._handle_legacy_welcome_message()
+        self._handle_legacy_worker_config()
+        self._handle_legacy_question_groups()
+        self._handle_legacy_model()
 
-        # Ensure platform configs are valid
+        # --- Validations and final adjustments ---
+
+        # Make sure mode is valid
+        assert_literal_value_valid(self, "mode")
+
+        # Make sure agent_architecture is present after potential legacy conversion
+        if self.agent_architecture is None:
+            raise ValueError(
+                "agent_architecture is required but was not provided: "
+                "or derived from legacy fields.",
+            )
+
+        # Ensure runbook text is valid
+        if not self.runbook and not self.structured_runbook:
+            raise ValueError("A runbook or structured runbook is required")
+
+        # Null out runbook if structured runbook is present (prefer structured)
+        if self.structured_runbook:
+            object.__setattr__(self, "runbook", None)
+
+        # If agent_id is set, we take that over id for consistency
+        if self.agent_id:
+            object.__setattr__(self, "id", self.agent_id)
+        # If only id is set, ensure agent_id also gets this value
+        elif self.id and not self.agent_id:
+            object.__setattr__(self, "agent_id", self.id)
+
+        # Ensure platform configs are valid dictionaries
         for config in self.platform_configs:
             if not isinstance(config, dict):
                 raise ValueError("platform_configs must be a list of dictionaries")
 
-        object.__setattr__(
-            self,
-            "runbook",
-            Runbook(raw_text=self.runbook_raw_text, content=[]),
-        )
-
     @classmethod
-    def to_agent(cls, payload: Self, user_id: str) -> Agent:
+    def to_agent(
+        cls,
+        payload: Self,
+        user_id: str,
+        agent_id: str | None = None,
+    ) -> Agent:
+        # Make sure agent_architecture is present
+        if payload.agent_architecture is None:
+            raise ValueError("agent_architecture is required")
+
         return Agent(
             name=payload.name,
             version=payload.version,
             description=payload.description,
-            runbook=payload.runbook,
+            runbook_structured=(
+                Runbook(raw_text=payload.runbook, content=[])
+                if payload.runbook
+                else (
+                    payload.structured_runbook
+                    or Runbook(raw_text="You are a helpful assistant.", content=[])
+                )
+            ),
             observability_configs=payload.observability_configs,
             question_groups=payload.question_groups,
             action_packages=payload.action_packages,
@@ -100,7 +465,16 @@ class UpsertAgentPayload(Agent):
             ],
             extra=payload.extra,
             user_id=user_id,
-            agent_id=str(uuid4()),
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            agent_id=(
+                # We prefer an agent_id passed in
+                agent_id
+                # Otherwise, use the agent_id from the payload
+                or payload.agent_id
+                # Otherwise, use the id from the payload
+                or payload.id
+                # Otherwise, generate a new one
+                or str(uuid4())
+            ),
+            created_at=payload.created_at or datetime.now(UTC),
+            updated_at=datetime.now(UTC),
         )

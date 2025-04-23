@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from agent_platform.core.agent_architectures.architecture_info import ArchitectureInfo
 from agent_platform.server.agent_architectures.base_runner import BaseAgentRunner
 from agent_platform.server.agent_architectures.in_process_runner import (
     InProcessAgentRunner,
@@ -17,6 +18,11 @@ class AgentArchManager:
         self.in_process_allowlist = {
             ("agent_platform.architectures.default", "1.0.0"),
         }
+
+    def get_architectures(self) -> list[ArchitectureInfo]:
+        in_process_architectures = InProcessAgentRunner.get_architectures()
+        out_of_process_architectures = []  # TODO: someday
+        return in_process_architectures + out_of_process_architectures
 
     async def get_runner(
         self,

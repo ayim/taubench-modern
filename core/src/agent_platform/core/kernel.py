@@ -52,9 +52,9 @@ class Kernel(ABC):
     @property
     def current_datetime_str(self) -> str:
         """The current date and time as a string."""
-        from datetime import datetime
+        from datetime import UTC, datetime
 
-        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        return datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
 
     @property
     @abstractmethod

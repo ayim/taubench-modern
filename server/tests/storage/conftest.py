@@ -22,7 +22,7 @@ def sample_agent(sample_user_id: str) -> Agent:
         agent_id=str(uuid4()),
         name="Test Agent",
         description="Test Description",
-        runbook=Runbook(
+        runbook_structured=Runbook(
             raw_text="# Objective\nYou are a helpful assistant.",
             content=[],
         ),

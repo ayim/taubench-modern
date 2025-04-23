@@ -182,6 +182,12 @@ lint-fix:  ## Run ruff linting (fix violations)
 typecheck:  ## Run typechecking with pyright
 	uv run pyright
 
+format:  ## Run formatting with ruff
+	uv run ruff format
+
+check-format:  ## Run formatting check with ruff
+	uv run ruff format --check
+
 # --------------------------------------------------------------------
 # Environment Validation
 # --------------------------------------------------------------------

@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Self
 from uuid import uuid4
 
@@ -49,8 +49,8 @@ class UpsertThreadPayload(Thread):
         return Thread(
             user_id=user_id,
             thread_id=str(uuid4()),
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
             name=payload.name,
             agent_id=payload.agent_id,
             messages=payload.messages,

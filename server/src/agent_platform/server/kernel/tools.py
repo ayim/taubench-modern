@@ -1,8 +1,11 @@
 from collections.abc import AsyncGenerator
-from datetime import datetime
+from datetime import UTC, datetime
 
 from agent_platform.core.actions import ActionPackage
 from agent_platform.core.kernel import ToolsInterface
+from agent_platform.core.kernel_interfaces.thread_state import (
+    ThreadMessageWithThreadState,
+)
 from agent_platform.core.mcp import MCPServer
 from agent_platform.core.responses.content.tool_use import ResponseToolUseContent
 from agent_platform.core.tools import ToolDefinition, ToolExecutionResult
@@ -24,7 +27,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
         from uuid import uuid4
 
         execution_id = str(uuid4())
-        started_at = datetime.now()
+        started_at = datetime.now(UTC)
         try:
             args_from_json = loads(tool_use.tool_input_raw or "{}")
         except Exception as e:
@@ -36,7 +39,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                 output_raw=None,
                 error=str(e),
                 execution_started_at=started_at,
-                execution_ended_at=datetime.now(),
+                execution_ended_at=datetime.now(UTC),
                 execution_metadata={},
             )
 
@@ -51,7 +54,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                 output_raw=result,
                 error=None,
                 execution_started_at=started_at,
-                execution_ended_at=datetime.now(),
+                execution_ended_at=datetime.now(UTC),
                 execution_metadata={},
             )
         except Exception as e:
@@ -63,13 +66,14 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                 output_raw=None,
                 error=str(e),
                 execution_started_at=started_at,
-                execution_ended_at=datetime.now(),
+                execution_ended_at=datetime.now(UTC),
                 execution_metadata={},
             )
 
     async def execute_pending_tool_calls(
         self,
         pending_tool_calls: list[PendingToolCall],
+        message_to_update: ThreadMessageWithThreadState | None = None,
     ) -> AsyncGenerator[ToolExecutionResult, None]:
         """Executes pending tool calls.
 
@@ -87,6 +91,10 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
             # Pop as the caller should expect the list to end
             # up cleared after all tool calls have been executed
             tool_def, tool_use = pending_tool_calls.pop()
+            # Update the tool to running in the thread state (if provided)
+            if message_to_update:
+                message_to_update.update_tool_running(tool_use.tool_call_id)
+                await message_to_update.stream_delta()
             # Execute the tool in a separate task
             execution_tasks.append(
                 create_task(self._safe_execute_tool(tool_def, tool_use)),
@@ -96,6 +104,10 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
         for completed_task in as_completed(execution_tasks):
             result = await completed_task
             yield result
+            # Update the tool to completed in the thread state (if provided)
+            if message_to_update:
+                message_to_update.update_tool_result(result)
+                await message_to_update.stream_delta()
 
     async def from_action_packages(
         self,

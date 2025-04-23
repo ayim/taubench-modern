@@ -1,4 +1,4 @@
-from psycopg.errors import IntegrityError, UniqueViolation
+from psycopg.errors import IntegrityError
 from psycopg.types.json import Jsonb
 
 from agent_platform.core.agent import Agent
@@ -107,16 +107,16 @@ class PostgresStorageAgentsMixin(CommonMixin):
             return Agent.model_validate(row)
 
     async def upsert_agent(self, user_id: str, agent: Agent) -> None:
-        """Create or update an agent."""
-        # 1. Validate the uuid
+        """Create or update an agent, avoiding false-positives on
+        the name-uniqueness index."""
+        # 1. Validate uuids
         self._validate_uuid(user_id)
+        self._validate_uuid(agent.agent_id)
 
-        # 2. Convert the agent to a dictionary
+        # 2. Build a dict and wrap JSON fields in Jsonb
         agent_dict = agent.model_dump() | {"user_id": user_id}
-
-        # 3. Convert dict fields to Jsonb objects for proper PostgreSQL handling
         for field in [
-            "runbook",
+            "runbook_structured",
             "action_packages",
             "mcp_servers",
             "agent_architecture",
@@ -127,46 +127,107 @@ class PostgresStorageAgentsMixin(CommonMixin):
         ]:
             agent_dict[field] = Jsonb(agent_dict[field])
 
-        # 4. Insert the agent
+        # 3. Insert/update the agent
         try:
             async with self._cursor() as cur:
                 await cur.execute(
-                    """INSERT INTO v2.agent
-                    (agent_id, name, description, user_id, runbook, version,
-                        created_at, updated_at, action_packages, mcp_servers,
-                        agent_architecture, question_groups, observability_configs,
-                        platform_configs, extra, mode)
-                    VALUES (
-                        %(agent_id)s::uuid, %(name)s, %(description)s,
-                        %(user_id)s::uuid, %(runbook)s, %(version)s, %(created_at)s,
-                        %(updated_at)s, %(action_packages)s, %(mcp_servers)s,
-                        %(agent_architecture)s, %(question_groups)s,
-                        %(observability_configs)s, %(platform_configs)s,
-                        %(extra)s, %(mode)s
+                    """
+                    INSERT INTO v2.agent (
+                      agent_id, name, description, user_id, runbook_structured,
+                      version, created_at, updated_at, action_packages,
+                      mcp_servers, agent_architecture, question_groups,
+                      observability_configs, platform_configs, extra, mode
                     )
-                    ON CONFLICT (agent_id) DO UPDATE SET
-                        name = EXCLUDED.name,
-                        description = EXCLUDED.description,
-                        user_id = EXCLUDED.user_id,
-                        runbook = EXCLUDED.runbook,
-                        version = EXCLUDED.version,
-                        updated_at = EXCLUDED.updated_at,
-                        action_packages = EXCLUDED.action_packages,
-                        mcp_servers = EXCLUDED.mcp_servers,
-                        agent_architecture = EXCLUDED.agent_architecture,
-                        question_groups = EXCLUDED.question_groups,
-                        observability_configs = EXCLUDED.observability_configs,
-                        platform_configs = EXCLUDED.platform_configs,
-                        extra = EXCLUDED.extra,
-                        mode = EXCLUDED.mode
-                    WHERE v2.check_user_access(v2.agent.user_id, %(user_id)s::uuid)""",
+                    VALUES (
+                      %(agent_id)s::uuid, %(name)s, %(description)s,
+                      %(user_id)s::uuid, %(runbook_structured)s, %(version)s,
+                      %(created_at)s, %(updated_at)s, %(action_packages)s,
+                      %(mcp_servers)s, %(agent_architecture)s, %(question_groups)s,
+                      %(observability_configs)s, %(platform_configs)s,
+                      %(extra)s, %(mode)s
+                    )
+                    ON CONFLICT DO NOTHING
+                    RETURNING agent_id
+                    """,
                     agent_dict,
                 )
-        except UniqueViolation as e:
-            raise AgentWithNameAlreadyExistsError(
-                f"Agent name {agent.name} is not unique",
-            ) from e
+
+                # If we got here because of a name conflict,
+                # we need to check if it's our own agent or somebody else's
+                if cur.rowcount == 0:  # No insert happened because of a conflict
+                    await cur.execute(
+                        """
+                        UPDATE v2.agent
+                        SET
+                          name = %(name)s,
+                          description = %(description)s,
+                          user_id = %(user_id)s::uuid,
+                          runbook_structured = %(runbook_structured)s,
+                          version = %(version)s,
+                          updated_at = %(updated_at)s,
+                          action_packages = %(action_packages)s,
+                          mcp_servers = %(mcp_servers)s,
+                          agent_architecture = %(agent_architecture)s,
+                          question_groups = %(question_groups)s,
+                          observability_configs = %(observability_configs)s,
+                          platform_configs = %(platform_configs)s,
+                          extra = %(extra)s,
+                          mode = %(mode)s
+                        WHERE
+                          agent_id = %(agent_id)s::uuid
+                          AND v2.check_user_access(user_id, %(user_id)s::uuid)
+                          -- Make sure no name collision exists with other agents
+                          AND (
+                            -- Either name didn't change
+                            name = %(name)s
+                            -- Or no other agent has this name
+                            OR NOT EXISTS (
+                              SELECT 1 FROM v2.agent
+                              WHERE LOWER(name) = LOWER(%(name)s)
+                                AND user_id = %(user_id)s::uuid
+                                AND agent_id != %(agent_id)s::uuid
+                            )
+                          )
+                        RETURNING agent_id
+                        """,
+                        agent_dict,
+                    )
+
+                    # If we still didn't update anything, check if it's a name conflict
+                    if cur.rowcount == 0:
+                        # Check if it's a name conflict with another agent
+                        await cur.execute(
+                            """
+                            SELECT 1 FROM v2.agent
+                            WHERE LOWER(name) = LOWER(%(name)s)
+                              AND user_id = %(user_id)s::uuid
+                              AND agent_id != %(agent_id)s::uuid
+                            """,
+                            agent_dict,
+                        )
+                        if await cur.fetchone():
+                            raise AgentWithNameAlreadyExistsError(
+                                f"Agent name {agent.name!r} is not "
+                                f"unique for user {user_id}"
+                            )
+                        else:
+                            # Must be access denied or agent doesn't exist
+                            await cur.execute(
+                                "SELECT 1 FROM v2.agent "
+                                "WHERE agent_id = %(agent_id)s::uuid",
+                                {"agent_id": agent.agent_id},
+                            )
+                            if not await cur.fetchone():
+                                raise AgentNotFoundError(
+                                    f"Agent {agent.agent_id} not found"
+                                )
+                            else:
+                                raise UserAccessDeniedError(
+                                    f"User {user_id} does not have access to "
+                                    f"agent {agent.agent_id}"
+                                )
         except IntegrityError as e:
+            # Catch the agent_id unique-index violation
             if "UNIQUE constraint failed: v2.agent.agent_id" in str(e):
                 raise RecordAlreadyExistsError(
                     f"Agent {agent.agent_id} already exists",

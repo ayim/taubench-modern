@@ -1,5 +1,6 @@
-from dataclasses import dataclass, field
-from datetime import datetime
+from copy import deepcopy
+from dataclasses import dataclass, field, fields
+from datetime import UTC, datetime
 from typing import Any, Literal, cast
 from uuid import UUID, uuid4
 
@@ -31,8 +32,13 @@ class Agent:
     )
     """The id of the user that created the agent."""
 
-    runbook: Runbook = field(metadata={"description": "The runbook of the agent."})
-    """The runbook of the agent."""
+    # TODO: Revert this to `runbook` maybe in the future? This field was
+    # renamed throughout our code to allow using `runbook` (as a plain
+    # string) for clients.
+    runbook_structured: Runbook = field(
+        metadata={"description": "The structured runbook of the agent."},
+    )
+    """The structured runbook of the agent."""
 
     version: str = field(metadata={"description": "The version of the agent."})
     """The version of the agent."""
@@ -75,13 +81,13 @@ class Agent:
 
     created_at: datetime = field(
         metadata={"description": "The creation time of the agent."},
-        default_factory=datetime.now,
+        default_factory=lambda: datetime.now(UTC),
     )
     """The creation time of the agent."""
 
     updated_at: datetime = field(
         metadata={"description": "The last update time of the agent."},
-        default_factory=datetime.now,
+        default_factory=lambda: datetime.now(UTC),
     )
     """The last update time of the agent."""
 
@@ -107,33 +113,69 @@ class Agent:
         """Post-initialization checks."""
         assert_literal_value_valid(self, "mode")
 
-    def copy(self) -> "Agent":
-        """Returns a deep copy of the agent."""
-        from copy import deepcopy
+    def copy(self, **updates: Any) -> "Agent":  # noqa: C901, PLR0912
+        """
+        Returns a deep copy of the agent, optionally applying updates.
 
-        return Agent(
-            name=self.name,
-            description=self.description,
-            user_id=self.user_id,
-            runbook=self.runbook.copy(),
-            version=self.version,
-            action_packages=[pkg.copy() for pkg in self.action_packages],
-            mcp_servers=[server.copy() for server in self.mcp_servers],
-            agent_architecture=self.agent_architecture.copy(),
-            question_groups=[group.copy() for group in self.question_groups],
-            platform_configs=[
-                platform_config.model_copy()
-                for platform_config in self.platform_configs
-            ],
-            observability_configs=[
-                config.copy() for config in self.observability_configs
-            ],
-            created_at=self.created_at,
-            updated_at=self.updated_at,
-            mode=self.mode,
-            agent_id=self.agent_id,
-            extra=deepcopy(self.extra) if self.extra != {} else {},
-        )
+        Args:
+            **updates: Keyword arguments for fields to update in the copy.
+                       Values provided in updates will overwrite the corresponding
+                       fields from the original agent. Nested objects provided
+                       in updates should be complete objects of the expected type.
+
+        Returns:
+            A new Agent instance with the applied updates.
+
+        Raises:
+            TypeError: If `updates` contains keys that are not fields of the Agent.
+        """
+        # Validate update keys first
+        all_field_names = {f.name for f in fields(self)}
+        for key in updates:
+            if key not in all_field_names:
+                raise TypeError(f"'{key}' is an invalid keyword argument for copy()")
+
+        # Prepare arguments for the new Agent instance
+        constructor_args = {}
+        for field_info in fields(self):
+            field_name = field_info.name
+
+            if field_name in updates:
+                constructor_args[field_name] = deepcopy(updates[field_name])
+            else:
+                original_value = getattr(self, field_name)
+
+                if field_name == "runbook":
+                    constructor_args[field_name] = original_value.copy()
+                elif field_name == "action_packages":
+                    constructor_args[field_name] = [
+                        pkg.copy() for pkg in original_value
+                    ]
+                elif field_name == "mcp_servers":
+                    constructor_args[field_name] = [
+                        server.copy() for server in original_value
+                    ]
+                elif field_name == "agent_architecture":
+                    constructor_args[field_name] = original_value.copy()
+                elif field_name == "question_groups":
+                    constructor_args[field_name] = [
+                        group.copy() for group in original_value
+                    ]
+                elif field_name == "platform_configs":
+                    constructor_args[field_name] = [
+                        config.model_copy() for config in original_value
+                    ]
+                elif field_name == "observability_configs":
+                    constructor_args[field_name] = [
+                        config.copy() for config in original_value
+                    ]
+                elif field_name == "extra":
+                    constructor_args[field_name] = deepcopy(original_value)
+                else:
+                    constructor_args[field_name] = deepcopy(original_value)
+
+        new_agent = Agent(**constructor_args)
+        return new_agent
 
     def model_dump(self) -> dict:
         """Serializes the agent to a dictionary. Useful for JSON serialization."""
@@ -159,7 +201,7 @@ class Agent:
             "question_groups": [
                 question_group.model_dump() for question_group in self.question_groups
             ],
-            "runbook": self.runbook.model_dump(),
+            "runbook_structured": self.runbook_structured.model_dump(),
             "agent_id": self.agent_id,
             "updated_at": self.updated_at.isoformat(),
             "user_id": self.user_id,
@@ -198,7 +240,7 @@ class Agent:
             QuestionGroup.model_validate(question_group)
             for question_group in data.pop("question_groups", [])
         ]
-        runbook = Runbook.model_validate(data.pop("runbook", {}))
+        runbook_structured = Runbook.model_validate(data.pop("runbook_structured", {}))
         platform_configs = [
             PlatformParameters.model_validate(platform_config)
             for platform_config in data.pop("platform_configs", [])
@@ -216,7 +258,7 @@ class Agent:
             agent_architecture=agent_architecture,
             observability_configs=observability_configs,
             question_groups=question_groups,
-            runbook=runbook,
+            runbook_structured=runbook_structured,
             platform_configs=cast(list[AnyPlatformParameters], platform_configs),
             **data,
         )

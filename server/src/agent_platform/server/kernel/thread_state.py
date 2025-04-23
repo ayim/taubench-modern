@@ -1,8 +1,6 @@
 from agent_platform.core.agent import Agent
 from agent_platform.core.kernel import ThreadStateInterface
-from agent_platform.core.streaming import (
-    StreamingDelta,
-)
+from agent_platform.core.streaming import StreamingDelta
 from agent_platform.core.thread import Thread, ThreadMessage
 from agent_platform.server.kernel.kernel_mixin import UsesKernelMixin
 
@@ -25,12 +23,7 @@ class AgentServerThreadStateInterface(ThreadStateInterface, UsesKernelMixin):
         Raises:
             StreamingError: If the delta cannot be sent to the UI.
         """
-        await self.kernel.outgoing_events.dispatch(
-            {
-                "type": "delta",
-                "delta": delta_object.model_dump(),
-            },
-        )
+        await self.kernel.outgoing_events.dispatch(delta_object)
 
     async def _commit_message_to_storage(self, message: ThreadMessage) -> None:
         """Commits a message to the thread state storage.

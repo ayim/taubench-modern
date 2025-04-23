@@ -7,7 +7,7 @@ parsed and represented.
 
 import io
 from dataclasses import Field, dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any, ClassVar, cast
@@ -98,7 +98,7 @@ class ConfigWithDateTime(Configuration):
     """A configuration class with a datetime field."""
 
     datetime_value: datetime = field(
-        default=datetime.now(),
+        default=datetime.now(UTC),
         metadata={
             "env_vars": ["TEST_DATETIME_VALUE"],
             "parser": DatetimeParser(),
@@ -246,7 +246,7 @@ class TestConfigurationParsers:
         # Set environment variable
         import os
 
-        os.environ["TEST_DATETIME_VALUE"] = "2023-02-15T14:30:00"
+        os.environ["TEST_DATETIME_VALUE"] = "2023-02-15T14:30:00+00:00"
 
         try:
             # Initialize the configuration service
@@ -258,15 +258,25 @@ class TestConfigurationParsers:
             # Verify that the datetime value was parsed correctly using our parser
             field = ConfigWithDateTime.__dataclass_fields__["datetime_value"]
             parser = DatetimeParser(field)
-            parsed_date = parser.parse("2023-02-15T14:30:00")
-            assert parsed_date == datetime(2023, 2, 15, 14, 30, 0)
+            parsed_date = parser.parse("2023-02-15T14:30:00+00:00")
+            assert parsed_date == datetime(2023, 2, 15, 14, 30, 0, tzinfo=UTC)
 
             # Manually set instance with properly parsed datetime
-            config = ConfigWithDateTime(datetime_value=datetime(2023, 2, 15, 14, 30, 0))
+            config = ConfigWithDateTime(
+                datetime_value=datetime(2023, 2, 15, 14, 30, 0, tzinfo=UTC),
+            )
             ConfigWithDateTime.set_instance(config)
 
             # Test that the config value was parsed correctly
-            assert ConfigWithDateTime.datetime_value == datetime(2023, 2, 15, 14, 30, 0)
+            assert ConfigWithDateTime.datetime_value == datetime(
+                2023,
+                2,
+                15,
+                14,
+                30,
+                0,
+                tzinfo=UTC,
+            )
         finally:
             # Clean up environment variable
             if "TEST_DATETIME_VALUE" in os.environ:
@@ -306,13 +316,14 @@ class TestConfigurationParsers:
             ConfigWithDateTime.__dataclass_fields__["datetime_value"],
         )
         datetime_parser = field_with_datetime.metadata["parser"]
-        assert datetime_parser.parse("2023-02-15T14:30:00") == datetime(
+        assert datetime_parser.parse("2023-02-15T14:30:00+00:00") == datetime(
             2023,
             2,
             15,
             14,
             30,
             0,
+            tzinfo=UTC,
         )
 
     def test_represent_field_value(self) -> None:
@@ -346,7 +357,7 @@ class TestConfigurationParsers:
         result = represent_field_value(
             field_with_datetime,
             dumper,
-            datetime(2023, 2, 15, 14, 30, 0),
+            datetime(2023, 2, 15, 14, 30, 0, tzinfo=UTC),
         )
         assert result is not None
-        assert result.value == "2023-02-15T14:30:00"
+        assert result.value == "2023-02-15T14:30:00+00:00"

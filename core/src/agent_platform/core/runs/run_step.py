@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any, Literal
 from uuid import UUID
 
@@ -73,7 +73,7 @@ class RunStep:
     """Metadata associated with the run step"""
 
     created_at: datetime = field(
-        default_factory=datetime.now,
+        default_factory=lambda: datetime.now(UTC),
         metadata={"description": "The timestamp when the run step was created"},
     )
     """The timestamp when the run step was created"""

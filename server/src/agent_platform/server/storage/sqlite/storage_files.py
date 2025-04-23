@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+from datetime import UTC, datetime
 from sqlite3 import SQLITE_CONSTRAINT_UNIQUE, IntegrityError
 
 from structlog import get_logger
@@ -301,7 +301,7 @@ class SQLiteStorageFilesMixin(CommonMixin):
             "agent_id": agent_id,
             "thread_id": thread_id,
             "file_path_expiration": file_path_expiration,
-            "created_at": datetime.now().isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
         }
 
         async with self._cursor() as cur:

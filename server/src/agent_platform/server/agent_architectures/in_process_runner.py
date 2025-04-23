@@ -1,7 +1,9 @@
 from collections.abc import AsyncIterator
-from typing import Any
+from datetime import UTC, datetime
 
+from agent_platform.core.agent_architectures.architecture_info import ArchitectureInfo
 from agent_platform.core.kernel import Kernel
+from agent_platform.core.streaming.delta import StreamingDelta, StreamingDeltaAgentError
 from agent_platform.server.agent_architectures.base_runner import BaseAgentRunner
 
 
@@ -49,22 +51,78 @@ class InProcessAgentRunner(BaseAgentRunner):
             import traceback
 
             await kernel.outgoing_events.dispatch(
-                {
-                    "type": "error",
-                    "message": f"Error in agent architecture: {e}",
-                    "stack_trace": traceback.format_exc(),
-                },
+                StreamingDeltaAgentError(
+                    error_message=str(e),
+                    error_stack_trace=traceback.format_exc(),
+                    run_id=kernel.run.run_id,
+                    thread_id=kernel.run.thread_id,
+                    agent_id=kernel.run.agent_id,
+                    timestamp=datetime.now(UTC),
+                ),
             )
 
-    def get_event_stream(self) -> AsyncIterator[Any]:
+    def get_event_stream(self) -> AsyncIterator[StreamingDelta]:
         if not self._kernel:
             raise RuntimeError("Kernel not attached")
         return self._kernel.outgoing_events.stream()
 
-    async def dispatch_event(self, event: Any) -> None:
+    async def dispatch_event(self, event: StreamingDelta) -> None:
         if not self._kernel:
             raise RuntimeError("Kernel not attached")
         await self._kernel.incoming_events.dispatch(event)
 
     async def stop(self) -> None:
         pass
+
+    @staticmethod
+    def get_architectures() -> list[ArchitectureInfo]:
+        from importlib.metadata import entry_points, version
+        from inspect import getmodule
+        from logging import getLogger
+
+        logger = getLogger(__name__)
+
+        # Load from the agent_platform.architectures entrypoint
+        eps = entry_points(group="agent_platform.architectures")
+        architectures = []
+
+        for ep in eps:
+            # Default built-in for in-process architectures
+            arch_info = {"name": ep.name, "built_in": True}
+
+            try:
+                # Get version information
+                arch_info["version"] = version(
+                    ep.dist.name if ep.dist else ep.name,
+                )
+            except Exception:
+                arch_info["version"] = "0.0.1"
+
+            try:
+                # Load the entry point function
+                entry_func = ep.load()
+                # Get the module of the entry point function
+                module = getmodule(entry_func)
+                # Get module docstring
+                if module.__doc__:
+                    arch_info["description"] = module.__doc__.strip()
+                else:
+                    arch_info["description"] = "No description available."
+
+                # Extract other metadata from module if available
+                other_metadata_fields = (
+                    ArchitectureInfo.PACKAGE_ATTRIBUTES_TO_ARCHITECTURE_INFO.keys()
+                )
+                for meta_attr in other_metadata_fields:
+                    if hasattr(module, meta_attr):
+                        # Convert attribute name from "__attr__" to "attr"
+                        key = meta_attr.strip("_")
+                        arch_info[key] = getattr(module, meta_attr)
+            except Exception as e:
+                # If we can't extract metadata, still include what we have
+                logger.debug(f"Error extracting metadata for {ep.name}: {e}")
+                pass
+
+            architectures.append(arch_info)
+
+        return [ArchitectureInfo.model_validate(arch) for arch in architectures]

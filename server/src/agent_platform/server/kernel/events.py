@@ -1,8 +1,9 @@
 from asyncio import Event, Queue
 from collections.abc import AsyncGenerator
-from typing import Any
+from typing import cast
 
 from agent_platform.core.kernel import EventsInterface
+from agent_platform.core.streaming.delta import StreamingDelta
 from agent_platform.server.kernel.kernel_mixin import UsesKernelMixin
 
 
@@ -14,11 +15,11 @@ class AgentServerEventsInterface(EventsInterface, UsesKernelMixin):
     """
 
     def __init__(self) -> None:
-        self._queue: Queue[Any] = Queue()
+        self._queue: Queue[StreamingDelta | object] = Queue()
         self._stop_event: Event = Event()
         self._sentinel = object()  # Unique object used to signal stop
 
-    async def dispatch(self, event: Any) -> None:
+    async def dispatch(self, event: StreamingDelta) -> None:
         """Dispatch an event to the event bus.
 
         Args:
@@ -31,7 +32,7 @@ class AgentServerEventsInterface(EventsInterface, UsesKernelMixin):
             raise RuntimeError("Event bus has been stopped")
         await self._queue.put(event)
 
-    async def stream(self) -> AsyncGenerator[Any, None]:
+    async def stream(self) -> AsyncGenerator[StreamingDelta, None]:
         """Stream events from the event bus until a stop is signaled.
 
         Yields:
@@ -42,7 +43,7 @@ class AgentServerEventsInterface(EventsInterface, UsesKernelMixin):
             event = await self._queue.get()
             if event is self._sentinel:
                 break
-            yield event
+            yield cast(StreamingDelta, event)
 
     async def stop(self) -> None:
         """Stop the event stream.
