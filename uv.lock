@@ -107,6 +107,7 @@ platforms-all = [
     { name = "boto3" },
     { name = "google-genai" },
     { name = "google-generativeai" },
+    { name = "groq" },
     { name = "openai" },
     { name = "snowflake-snowpark-python" },
     { name = "types-boto3", extra = ["bedrock", "bedrock-runtime"] },
@@ -120,6 +121,9 @@ platforms-aws = [
 ]
 platforms-google = [
     { name = "google-genai" },
+]
+platforms-groq = [
+    { name = "groq" },
 ]
 platforms-openai = [
     { name = "openai" },
@@ -142,6 +146,8 @@ requires-dist = [
     { name = "google-genai", marker = "extra == 'platforms-all'", specifier = ">=1.11.0,<2.0.0" },
     { name = "google-genai", marker = "extra == 'platforms-google'", specifier = ">=1.11.0,<2.0.0" },
     { name = "google-generativeai", marker = "extra == 'platforms-all'", specifier = ">=0.8.3,<1.0.0" },
+    { name = "groq", marker = "extra == 'platforms-all'", specifier = ">=0.22.0,<1.0.0" },
+    { name = "groq", marker = "extra == 'platforms-groq'", specifier = ">=0.22.0,<1.0.0" },
     { name = "ipython", marker = "extra == 'image-support'", specifier = ">=8.31.0,<9.0.0" },
     { name = "jsonpatch", specifier = ">=1.33,<2.0.0" },
     { name = "mcp", specifier = ">=1.4.1,<2.0.0" },
@@ -155,7 +161,7 @@ requires-dist = [
     { name = "types-boto3", extras = ["bedrock", "bedrock-runtime"], marker = "extra == 'platforms-all'", specifier = ">=1.36.9,<2.0.0" },
     { name = "types-boto3", extras = ["bedrock", "bedrock-runtime"], marker = "extra == 'platforms-aws'", specifier = ">=1.36.9,<2.0.0" },
 ]
-provides-extras = ["image-support", "platforms-snowflake", "platforms-openai", "platforms-anthropic", "platforms-aws", "platforms-google", "platforms-all"]
+provides-extras = ["image-support", "platforms-snowflake", "platforms-openai", "platforms-anthropic", "platforms-aws", "platforms-google", "platforms-groq", "platforms-all"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "sema4ai-common", specifier = ">=0.0.9,<0.1.0" }]
@@ -905,6 +911,23 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/39/24/33db22342cf4a2ea27c9955e6713140fedd51e8b141b5ce5260897020f1a/googleapis_common_protos-1.70.0.tar.gz", hash = "sha256:0e1b44e0ea153e6594f9f394fef15193a68aaaea2d843f83e2742717ca753257", size = 145903 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/86/f1/62a193f0227cf15a920390abe675f386dec35f7ae3ffe6da582d3ade42c7/googleapis_common_protos-1.70.0-py3-none-any.whl", hash = "sha256:b8bfcca8c25a2bb253e0e0b0adaf8c00773e5e6af6fd92397576680b807e0fd8", size = 294530 },
+]
+
+[[package]]
+name = "groq"
+version = "0.22.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "anyio" },
+    { name = "distro" },
+    { name = "httpx" },
+    { name = "pydantic" },
+    { name = "sniffio" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/fd/59/7e03f5b12c097b7af48d5fe847a5bd00c90ccfc04b801c2ae68a043ddf1e/groq-0.22.0.tar.gz", hash = "sha256:9d090fbe4a051655faff649890d18aaacb3121393ad9d55399171fe081f1057b", size = 122956 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/70/77/e6b60636f648922cc53144c36e1e7b77c9670539aab9e8b84a5fd1a53880/groq-0.22.0-py3-none-any.whl", hash = "sha256:f53d3966dff713aaa635671c2d075ebb932b0d48e3c4031ede9b84a2a6694c79", size = 126685 },
 ]
 
 [[package]]

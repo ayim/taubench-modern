@@ -12,6 +12,10 @@ from agent_platform.core.platforms.cortex import (
     CortexPlatformParameters,
 )
 from agent_platform.core.platforms.google import GoogleClient, GooglePlatformParameters
+from agent_platform.core.platforms.groq import (
+    GroqClient,
+    GroqPlatformParameters,
+)
 from agent_platform.core.platforms.openai import (
     OpenAIClient,
     OpenAIPlatformParameters,
@@ -23,6 +27,7 @@ AnyPlatformParameters = (
     | OpenAIPlatformParameters
     | AzureOpenAIPlatformParameters
     | GooglePlatformParameters
+    | GroqPlatformParameters
 )
 
 __all__ = [
@@ -31,6 +36,7 @@ __all__ = [
     "BedrockClient",
     "CortexClient",
     "GoogleClient",
+    "GroqClient",
     "OpenAIClient",
     "PlatformClient",
 ]

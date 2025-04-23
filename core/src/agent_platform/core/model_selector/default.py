@@ -146,6 +146,15 @@ class ModelMappingConfig(Configuration):
                     },
                 },
             },
+            "groq": {
+                "groq": {
+                    "llm": {
+                        "best": "llama-3.3",
+                        "balanced": "llama-3.3",
+                        "fastest": "llama-3.3",
+                    },
+                }
+            },
         },
     )
 
@@ -226,6 +235,9 @@ class PlatformDefaultModelConfig(Configuration):
             "cortex": {
                 "llm": "claude-3-5-sonnet",
                 "embedding": "snowflake-arctic-embed-m",
+            },
+            "groq": {
+                "llm": "llama-3.3",
             },
         },
     )

@@ -286,7 +286,11 @@ check-env:  ## Check that all required environment variables are set in the .env
 			exit 1; \
 		fi; \
 		echo "  ✅ All Bedrock variables are set!"; \
-		\
+		echo "Checking variables for Groq Model Platform Client..."; \
+		if [ -z "$$GROQ_API_KEY" ]; then \
+			echo "❌ GROQ_API_KEY is not set"; \
+			exit 1; \
+		fi; \
 		echo "Checking for Snowflake configuration..."; \
 		if [ -f ~/.sema4ai/sf-auth.json ]; then \
 			echo "  ✅ Snowflake linking file exists, no environment variables needed!"; \
@@ -319,6 +323,7 @@ new-empty-env:  ## Create a new empty .env file if one doesn't exist
 		echo "Creating new empty .env file..."; \
 		touch .env; \
 		echo "OPENAI_API_KEY=" >> .env; \
+		echo "GROQ_API_KEY=" >> .env; \
 		echo "AWS_ACCESS_KEY_ID=" >> .env; \
 		echo "AWS_SECRET_ACCESS_KEY=" >> .env; \
 		echo "AWS_DEFAULT_REGION=" >> .env; \
