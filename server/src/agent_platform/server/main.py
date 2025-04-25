@@ -13,7 +13,7 @@ from agent_platform.server.cli import (
     set_no_logging,
 )
 from agent_platform.server.configuration_manager import (
-    init_configurations,
+    ConfigurationService,
 )
 from agent_platform.server.log_config import setup_logging
 
@@ -50,7 +50,7 @@ def main():
     # Step 1: Initialize only the essential configurations needed for startup
     # This allows us to import constants and set up paths before loading
     # the full application
-    init_configurations(
+    ConfigurationService.initialize(
         config_path,
         config_modules=["agent_platform.server.constants"],
         overrides=overrides,

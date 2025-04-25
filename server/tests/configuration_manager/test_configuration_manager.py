@@ -18,9 +18,6 @@ from agent_platform.core.configurations import Configuration
 from agent_platform.server.configuration_manager import (
     ConfigurationManager,
     ConfigurationService,
-    get_configuration_manager,
-    get_configuration_manager_dependency,
-    init_configurations,
 )
 
 
@@ -585,78 +582,3 @@ class TestConfigurationService:
 
         # Verify it's the mock
         assert manager is mock_manager
-
-
-class TestLegacyFunctions:
-    """Test suite for legacy configuration functions."""
-
-    def setup_method(self) -> None:
-        """Set up test fixtures."""
-        # Reset the ConfigurationService singleton
-        ConfigurationService.reset()
-        # Clear any existing instances
-        TestConfig._instances.clear()
-        TestPathConfig._instances.clear()
-        DependentConfig._instances.clear()
-
-    def test_init_configurations(self, tmp_path: Path) -> None:
-        """Test the init_configurations function."""
-        # Use tmp_path for the config path
-        config_path = tmp_path / "config.json"
-
-        # Mock the ConfigurationService.initialize method
-        with patch.object(ConfigurationService, "initialize") as mock_initialize:
-            # Call the function
-            init_configurations(
-                config_path=config_path,
-                packages_to_scan=["test.package"],
-                reinitialize=True,
-            )
-
-            # Verify the initialize method was called with keyword arguments
-            mock_initialize.assert_called_once()
-            # Check that the arguments match what we expect
-            call_args = mock_initialize.call_args
-            # The function might be called with positional args or keyword args
-            # Check both the args and kwargs
-            if call_args.args:
-                # If called with positional args, the first arg should be config_path
-                assert call_args.args[0] == config_path
-            else:
-                # If called with keyword args, check kwargs
-                assert call_args.kwargs.get("config_path") == config_path
-
-    def test_get_configuration_manager(self) -> None:
-        """Test the get_configuration_manager function."""
-        # Mock the ConfigurationService.get_instance method
-        with patch.object(ConfigurationService, "get_instance") as mock_get_instance:
-            # Set up the mock to return a mock manager
-            mock_manager = MagicMock(spec=ConfigurationManager)
-            mock_get_instance.return_value = mock_manager
-
-            # Call the function
-            manager = get_configuration_manager()
-
-            # Verify the get_instance method was called
-            mock_get_instance.assert_called_once()
-
-            # Verify the returned manager is the mock
-            assert manager is mock_manager
-
-    def test_get_configuration_manager_dependency(self) -> None:
-        """Test the get_configuration_manager_dependency function."""
-        # Need to patch the actual function that's imported in the dependency
-        with patch(
-            "agent_platform.server.configuration_manager.get_configuration_manager",
-        ) as mock_get_manager:
-            # Create the dependency function
-            dependency = get_configuration_manager_dependency()
-
-            # The dependency returned by this function is a ConfigurationManager
-            # instance We can't directly call it, but we can check that it exists
-            assert dependency is not None
-
-            # The mock wasn't called yet because FastAPI would call it during request
-            # processing We won't call it directly, as it's not meant to be called in
-            # tests
-            mock_get_manager.assert_not_called()

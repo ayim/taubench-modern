@@ -15,7 +15,9 @@ from agent_platform.core.configurations.representers import (
 )
 from agent_platform.server.agent_architectures import AgentArchManager
 from agent_platform.server.cli.args import ServerArgs
-from agent_platform.server.configuration_manager import get_configuration_manager
+from agent_platform.server.configuration_manager import (
+    ConfigurationService,
+)
 from agent_platform.server.constants import (
     DEFAULT_CONFIG_FILE_NAME,
     default_config_path,
@@ -72,7 +74,7 @@ def load_full_config(
         load_trusted_architectures: Whether to load trusted architectures.
         additional_packages: Additional packages to scan for configurations.
     """
-    manager = get_configuration_manager()
+    manager = ConfigurationService.get_instance()
     if additional_packages is None:
         additional_packages = []
     packages_to_scan = [
@@ -104,7 +106,7 @@ def print_config(
                     If a directory, the default filename will be used.
     """
     load_full_config()
-    manager = get_configuration_manager()
+    manager = ConfigurationService.get_instance()
     all_representers: list[type[Representer]] = [*BUILT_IN_REPRESENTERS]
     for cls in manager.config_classes.values():
         for field in cls.get_fields():

@@ -119,11 +119,10 @@ import pkgutil
 from collections.abc import Callable, Sequence
 from dataclasses import Field, fields
 from pathlib import Path
-from typing import Annotated, Any, ClassVar, TypeVar
+from typing import Any, ClassVar, TypeVar
 
 import structlog
 import yaml
-from fastapi import Depends
 
 from agent_platform.core.configurations import Configuration
 from agent_platform.core.configurations.parsers import parse_field_value
@@ -894,98 +893,3 @@ class ConfigurationService:
             manager: The configuration manager implementation to use.
         """
         cls._instance = manager
-
-
-# Legacy functions for backward compatibility
-# These are deprecated and might be removed in a future version
-# New code should use ConfigurationService directly
-
-
-def init_configurations(
-    config_path: Path | str | None = None,
-    packages_to_scan: Sequence[str] | None = None,
-    config_modules: Sequence[str] | None = None,
-    overrides: dict[str, dict[str, Any]] | None = None,
-    *,
-    reinitialize: bool = False,
-) -> None:
-    """Initialize the configuration system.
-
-    Deprecated: Use ConfigurationService.initialize() instead.
-
-    Args:
-        config_path: Path to the configuration file or directory.
-        packages_to_scan: List of package names to scan for Configuration classes.
-        config_modules: List of specific module paths to load configurations from.
-        overrides: Dictionary of overrides to apply to configurations.
-        reinitialize: If True, forces reinitialization even if already initialized.
-
-    Should be called during server startup.
-    """
-    logger.warning(
-        "The init_configurations function is deprecated. "
-        "Use ConfigurationService.initialize() instead.",
-    )
-    if reinitialize:
-        ConfigurationService.initialize(
-            config_path,
-            packages_to_scan,
-            config_modules,
-            overrides,
-        )
-    else:
-        ConfigurationService.get_instance(
-            config_path,
-            packages_to_scan,
-            config_modules,
-            overrides,
-        )
-
-
-def get_configuration_manager() -> ConfigurationManager:
-    """Get the global configuration manager instance.
-
-    Deprecated: Use ConfigurationService.get_instance() instead.
-
-    Returns:
-        The global configuration manager instance.
-
-    Raises:
-        RuntimeError: If the configuration manager has not been initialized.
-    """
-    logger.warning(
-        "The get_configuration_manager function is deprecated. "
-        "Use ConfigurationService.get_instance() instead.",
-    )
-    instance = ConfigurationService._instance
-
-    if instance is None:
-        # Instead of raising an error, initialize with defaults as a fallback
-        logger.warning(
-            "Configuration manager not initialized. Initializing with defaults. "
-            "This is unexpected and may indicate a problem with the startup sequence.",
-        )
-        instance = ConfigurationService.get_instance()
-
-    if instance is None:
-        # If initialization with defaults also failed, then raise an error
-        raise RuntimeError(
-            "Configuration manager initialization failed. This is a critical error.",
-        )
-
-    return instance
-
-
-def get_configuration_manager_dependency() -> ConfigurationManager:
-    """FastAPI dependency to provide the configuration manager.
-
-    Returns:
-        The configuration manager instance.
-    """
-    return ConfigurationService.get_instance()
-
-
-ConfigurationManagerDependency = Annotated[
-    ConfigurationManager,
-    Depends(get_configuration_manager_dependency),
-]

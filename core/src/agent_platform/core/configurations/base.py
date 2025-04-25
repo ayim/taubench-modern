@@ -213,7 +213,7 @@ class Configuration(metaclass=ConfigMeta):
     To update a configuration, use the ConfigurationManager to ensure
     the singleton is updated properly:
 
-        manager = get_configuration_manager()
+        manager = ConfigurationService.get_instance()
         new_config = MyConfig(name="new", count=20)
         manager.update_configuration(MyConfig, new_config)
 

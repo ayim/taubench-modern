@@ -69,10 +69,10 @@ default_paths = SystemPaths.default()
 ### Working with the Configuration Manager
 
 ```python
-from agent_platform.server.configuration_manager import get_configuration_manager
+from agent_platform.server.configuration_manager import ConfigurationService
 
 # Get the configuration manager
-manager = get_configuration_manager()
+manager = ConfigurationService.get_instance()
 
 # Update a configuration
 new_paths = SystemPaths(data_dir=Path("/custom/data"))
