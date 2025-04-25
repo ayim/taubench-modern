@@ -38,6 +38,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/agents/raw': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Agents Raw */
+    get: operations['list_agents_raw_agents_raw_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/agents/by-name': {
     parameters: {
       query?: never;
@@ -64,10 +81,63 @@ export interface paths {
     };
     /** Get Agent */
     get: operations['get_agent_agents__aid__get'];
-    put?: never;
+    /** Update Agent */
+    put: operations['update_agent_agents__aid__put'];
     post?: never;
     /** Delete Agent */
     delete: operations['delete_agent_agents__aid__delete'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/agents/{aid}/raw': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Agent Raw */
+    get: operations['get_agent_raw_agents__aid__raw_get'];
+    /** Update Agent Raw */
+    put: operations['update_agent_raw_agents__aid__raw_put'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/agents/{aid}/files': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Agent Files */
+    get: operations['get_agent_files_agents__aid__files_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/agents/{aid}/action-server-config': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Update Agent Action Server Config */
+    put: operations['update_agent_action_server_config_agents__aid__action_server_config_put'];
+    post?: never;
+    delete?: never;
     options?: never;
     head?: never;
     patch?: never;
@@ -121,6 +191,40 @@ export interface paths {
     post?: never;
     /** Delete Thread */
     delete: operations['delete_thread_threads__tid__delete'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/threads/{tid}/state': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Thread State */
+    get: operations['get_thread_state_threads__tid__state_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/threads/{tid}/context-stats': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Thread Context Stats */
+    get: operations['get_thread_context_stats_threads__tid__context_stats_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
     options?: never;
     head?: never;
     patch?: never;
@@ -263,6 +367,102 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/capabilities/architectures': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Architectures */
+    get: operations['get_architectures_capabilities_architectures_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/capabilities/providers': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Providers
+     * @description This endpoint returns detailed information about all supported model platforms
+     *     and their configuration parameters, including field descriptions, types,
+     *     and whether they are required or optional.
+     */
+    get: operations['get_providers_capabilities_providers_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/capabilities/providers/{kind}/test': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Test Model Platform Params
+     * @description This endpoint is used to test platform parameters by making a series
+     *     of basic requests to the platform.
+     *
+     *     The endpoint returns a dictionary with the results of the tests.
+     */
+    post: operations['test_model_platform_params_capabilities_providers__kind__test_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/health': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Health */
+    get: operations['health_health_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/metrics': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Metrics */
+    get: operations['metrics_metrics_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -296,6 +496,43 @@ export interface components {
        * @description Actions to enable in the action server that hosts the action package. An empty list implies all actions are enabled.
        */
       allowed_actions?: string[];
+    };
+    /** ActionPackageCompat */
+    ActionPackageCompat: {
+      /**
+       * Name
+       * @default
+       */
+      name: string;
+      /**
+       * Organization
+       * @default
+       */
+      organization: string;
+      /**
+       * Version
+       * @default
+       */
+      version: string;
+      /** Url */
+      url?: string | null;
+      /** Api Key */
+      api_key?: string | null;
+      /** Allowed Actions */
+      allowed_actions?: string[];
+    };
+    /** ActionServerConfigPayload */
+    ActionServerConfigPayload: {
+      /**
+       * Url
+       * @description The URL of the action server.
+       */
+      url: string;
+      /**
+       * Api Key
+       * @description The API key of the action server.
+       */
+      api_key: string | components['schemas']['SecretString'];
     };
     /** AddThreadMessagePayload */
     AddThreadMessagePayload: {
@@ -343,8 +580,21 @@ export interface components {
        */
       parent_run_id?: string | null;
     };
-    /** Agent */
-    Agent: {
+    /** AgentArchitecture */
+    AgentArchitecture: {
+      /**
+       * Name
+       * @description The name of the agent architecture.
+       */
+      name: string;
+      /**
+       * Version
+       * @description The version of the agent architecture.
+       */
+      version: string;
+    };
+    /** AgentCompat */
+    AgentCompat: {
       /**
        * Name
        * @description The name of the agent.
@@ -360,8 +610,8 @@ export interface components {
        * @description The id of the user that created the agent.
        */
       user_id: string;
-      /** @description The runbook of the agent. */
-      runbook: components['schemas']['Runbook'];
+      /** @description The structured runbook of the agent. */
+      runbook_structured: components['schemas']['Runbook'];
       /**
        * Version
        * @description The version of the agent.
@@ -376,14 +626,13 @@ export interface components {
         | components['schemas']['CortexPlatformParameters']
         | components['schemas']['OpenAIPlatformParameters']
         | components['schemas']['AzureOpenAIPlatformParameters']
+        | components['schemas']['GooglePlatformParameters']
+        | components['schemas']['GroqPlatformParameters']
       )[];
       /** @description The architecture details for the agent. */
       agent_architecture: components['schemas']['AgentArchitecture'];
-      /**
-       * Action Packages
-       * @description The action packages this agent uses.
-       */
-      action_packages?: components['schemas']['ActionPackage'][];
+      /** Action Packages */
+      action_packages?: components['schemas']['ActionPackageCompat'][];
       /**
        * Mcp Servers
        * @description The Model Context Protocol (MCP) servers this agent uses.
@@ -413,7 +662,6 @@ export interface components {
       updated_at?: string;
       /**
        * Mode
-       * @description The mode of the agent.
        * @default conversational
        * @enum {string}
        */
@@ -430,19 +678,30 @@ export interface components {
       extra?: {
         [key: string]: unknown;
       };
-    };
-    /** AgentArchitecture */
-    AgentArchitecture: {
       /**
-       * Name
-       * @description The name of the agent architecture.
+       * Runbook
+       * @default
        */
-      name: string;
+      runbook: string;
+      /** Id */
+      id?: string | null;
       /**
-       * Version
-       * @description The version of the agent architecture.
+       * Public
+       * @default true
        */
-      version: string;
+      public: boolean;
+      /** Metadata */
+      metadata?: {
+        [key: string]: unknown;
+      };
+      /** Advanced Config */
+      advanced_config?: {
+        [key: string]: unknown;
+      };
+      /** Model */
+      model?: {
+        [key: string]: unknown;
+      };
     };
     /** AzureOpenAIPlatformParameters */
     AzureOpenAIPlatformParameters: {
@@ -627,6 +886,30 @@ export interface components {
        * @description The Snowflake role. Optional.
        */
       snowflake_role?: string | null;
+    };
+    /** GooglePlatformParameters */
+    GooglePlatformParameters: {
+      /**
+       * Kind
+       * @description The kind of platform parameters.
+       * @default google
+       * @constant
+       */
+      kind: 'google';
+      /** @description The Google API key. If not provided, it will be attempted to be inferred from the environment. */
+      google_api_key?: components['schemas']['SecretString'] | null;
+    };
+    /** GroqPlatformParameters */
+    GroqPlatformParameters: {
+      /**
+       * Kind
+       * @description The kind of platform parameters.
+       * @default groq
+       * @constant
+       */
+      kind: 'groq';
+      /** @description The Groq API key. If not provided, it will be attempted to be inferred from the environment. */
+      groq_api_key?: components['schemas']['SecretString'] | null;
     };
     /** HTTPValidationError */
     HTTPValidationError: {
@@ -1246,14 +1529,26 @@ export interface components {
        */
       version: string;
       /**
-       * Platform Configs
-       * @description The platform configs for the agent.
+       * User Id
+       * @description The id of the user that created the agent.
        */
-      platform_configs: {
+      user_id?: string | null;
+      /**
+       * Platform Configs
+       * @description The platform configs this agent can use.
+       */
+      platform_configs?: {
         [key: string]: unknown;
       }[];
       /** @description The architecture details for the agent. */
-      agent_architecture: components['schemas']['AgentArchitecture'];
+      agent_architecture?: components['schemas']['AgentArchitecture'] | null;
+      /**
+       * Runbook
+       * @description The raw text of the runbook.
+       */
+      runbook?: string | null;
+      /** @description The structured runbook of the agent. */
+      structured_runbook?: components['schemas']['Runbook'] | null;
       /**
        * Action Packages
        * @description The action packages this agent uses.
@@ -1289,11 +1584,47 @@ export interface components {
         [key: string]: unknown;
       };
       /**
-       * Runbook Raw Text
-       * @description The raw text of the runbook.
-       * @default
+       * Id
+       * @description The ID of the agent (alias of agent_id for backwards compatibility).
        */
-      runbook_raw_text: string;
+      id?: string | null;
+      /**
+       * Agent Id
+       * @description The ID of the agent.
+       */
+      agent_id?: string | null;
+      /**
+       * Created At
+       * @description The time the agent was created.
+       */
+      created_at?: string | null;
+      /**
+       * Advanced Config
+       * @description Advanced configuration for the agent (backward compatibility).
+       */
+      advanced_config?: {
+        [key: string]: unknown;
+      };
+      /**
+       * Metadata
+       * @description Metadata for the agent (backward compatibility).
+       */
+      metadata?: {
+        [key: string]: unknown;
+      };
+      /**
+       * Model
+       * @description Model for the agent (backward compatibility).
+       */
+      model?: {
+        [key: string]: unknown;
+      } | null;
+      /**
+       * Public
+       * @description Ignored. Backward compatibility only.
+       * @default true
+       */
+      public: boolean;
     };
     /** UpsertThreadPayload */
     UpsertThreadPayload: {
@@ -1373,7 +1704,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['Agent'][];
+          'application/json': components['schemas']['AgentCompat'][];
         };
       };
     };
@@ -1397,7 +1728,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['Agent'];
+          'application/json': components['schemas']['AgentCompat'];
         };
       };
       /** @description Validation Error */
@@ -1407,6 +1738,26 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  list_agents_raw_agents_raw_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AgentCompat'][];
         };
       };
     };
@@ -1428,7 +1779,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['Agent'];
+          'application/json': components['schemas']['AgentCompat'];
         };
       };
       /** @description Validation Error */
@@ -1459,7 +1810,42 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['Agent'];
+          'application/json': components['schemas']['AgentCompat'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  update_agent_agents__aid__put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        aid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpsertAgentPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AgentCompat'];
         };
       };
       /** @description Validation Error */
@@ -1490,6 +1876,138 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  get_agent_raw_agents__aid__raw_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        aid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AgentCompat'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  update_agent_raw_agents__aid__raw_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        aid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpsertAgentPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AgentCompat'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  get_agent_files_agents__aid__files_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        aid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UploadedFile'][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  update_agent_action_server_config_agents__aid__action_server_config_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        aid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ActionServerConfigPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AgentCompat'];
+        };
       };
       /** @description Validation Error */
       422: {
@@ -1537,6 +2055,9 @@ export interface operations {
     parameters: {
       query?: {
         agent_id?: string | null;
+        aid?: string | null;
+        name?: string | null;
+        limit?: number | null;
       };
       header?: never;
       path?: never;
@@ -1645,6 +2166,70 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  get_thread_state_threads__tid__state_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        tid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Thread'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  get_thread_context_stats_threads__tid__context_stats_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        tid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            [key: string]: unknown;
+          };
+        };
       };
       /** @description Validation Error */
       422: {
@@ -1953,6 +2538,127 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  get_architectures_capabilities_architectures_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+    };
+  };
+  get_providers_capabilities_providers_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+    };
+  };
+  test_model_platform_params_capabilities_providers__kind__test_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        kind: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          [key: string]: unknown;
+        };
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  health_health_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            [key: string]: unknown;
+          };
+        };
+      };
+    };
+  };
+  metrics_metrics_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            [key: string]: unknown;
+          };
         };
       };
     };

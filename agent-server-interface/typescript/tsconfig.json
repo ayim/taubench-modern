@@ -8,6 +8,9 @@
     "skipLibCheck": true,
     "lib": ["es2022"],
     "outDir": "lib",
-    "declaration": true
-  }
+    "declaration": true,
+    "rootDir": "src"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "lib"]
 }

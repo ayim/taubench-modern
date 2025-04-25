@@ -37,7 +37,7 @@ export const spec = {
               'application/json': {
                 schema: {
                   items: {
-                    $ref: '#/components/schemas/Agent',
+                    $ref: '#/components/schemas/AgentCompat',
                   },
                   type: 'array',
                   title: 'Response List Agents Agents  Get',
@@ -67,7 +67,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/Agent',
+                  $ref: '#/components/schemas/AgentCompat',
                 },
               },
             },
@@ -78,6 +78,29 @@ export const spec = {
               'application/json': {
                 schema: {
                   $ref: '#/components/schemas/HTTPValidationError',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/agents/raw': {
+      get: {
+        tags: ['agents'],
+        summary: 'List Agents Raw',
+        operationId: 'list_agents_raw_agents_raw_get',
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  items: {
+                    $ref: '#/components/schemas/AgentCompat',
+                  },
+                  type: 'array',
+                  title: 'Response List Agents Raw Agents Raw Get',
                 },
               },
             },
@@ -107,7 +130,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/Agent',
+                  $ref: '#/components/schemas/AgentCompat',
                 },
               },
             },
@@ -126,6 +149,54 @@ export const spec = {
       },
     },
     '/api/v2/agents/{aid}': {
+      put: {
+        tags: ['agents'],
+        summary: 'Update Agent',
+        operationId: 'update_agent_agents__aid__put',
+        parameters: [
+          {
+            name: 'aid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Aid',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/UpsertAgentPayload',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/AgentCompat',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/HTTPValidationError',
+                },
+              },
+            },
+          },
+        },
+      },
       get: {
         tags: ['agents'],
         summary: 'Get Agent',
@@ -147,7 +218,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/Agent',
+                  $ref: '#/components/schemas/AgentCompat',
                 },
               },
             },
@@ -182,6 +253,189 @@ export const spec = {
         responses: {
           '204': {
             description: 'Successful Response',
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/HTTPValidationError',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/agents/{aid}/raw': {
+      put: {
+        tags: ['agents'],
+        summary: 'Update Agent Raw',
+        operationId: 'update_agent_raw_agents__aid__raw_put',
+        parameters: [
+          {
+            name: 'aid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Aid',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/UpsertAgentPayload',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/AgentCompat',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/HTTPValidationError',
+                },
+              },
+            },
+          },
+        },
+      },
+      get: {
+        tags: ['agents'],
+        summary: 'Get Agent Raw',
+        operationId: 'get_agent_raw_agents__aid__raw_get',
+        parameters: [
+          {
+            name: 'aid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Aid',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/AgentCompat',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/HTTPValidationError',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/agents/{aid}/files': {
+      get: {
+        tags: ['agents'],
+        summary: 'Get Agent Files',
+        operationId: 'get_agent_files_agents__aid__files_get',
+        parameters: [
+          {
+            name: 'aid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Aid',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: {
+                    $ref: '#/components/schemas/UploadedFile',
+                  },
+                  title: 'Response Get Agent Files Agents  Aid  Files Get',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/HTTPValidationError',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/agents/{aid}/action-server-config': {
+      put: {
+        tags: ['agents'],
+        summary: 'Update Agent Action Server Config',
+        operationId:
+          'update_agent_action_server_config_agents__aid__action_server_config_put',
+        parameters: [
+          {
+            name: 'aid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Aid',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ActionServerConfigPayload',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/AgentCompat',
+                },
+              },
+            },
           },
           '422': {
             description: 'Validation Error',
@@ -293,6 +547,54 @@ export const spec = {
               title: 'Agent Id',
             },
           },
+          {
+            name: 'aid',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              title: 'Aid',
+            },
+          },
+          {
+            name: 'name',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              title: 'Name',
+            },
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [
+                {
+                  type: 'integer',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              title: 'Limit',
+            },
+          },
         ],
         responses: {
           '200': {
@@ -379,6 +681,89 @@ export const spec = {
         responses: {
           '204': {
             description: 'Successful Response',
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/HTTPValidationError',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/threads/{tid}/state': {
+      get: {
+        tags: ['threads'],
+        summary: 'Get Thread State',
+        operationId: 'get_thread_state_threads__tid__state_get',
+        parameters: [
+          {
+            name: 'tid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Tid',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/Thread',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/HTTPValidationError',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/threads/{tid}/context-stats': {
+      get: {
+        tags: ['threads'],
+        summary: 'Get Thread Context Stats',
+        operationId: 'get_thread_context_stats_threads__tid__context_stats_get',
+        parameters: [
+          {
+            name: 'tid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Tid',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  additionalProperties: true,
+                  title:
+                    'Response Get Thread Context Stats Threads  Tid  Context Stats Get',
+                },
+              },
+            },
           },
           '422': {
             description: 'Validation Error',
@@ -879,6 +1264,135 @@ export const spec = {
         },
       },
     },
+    '/api/v2/capabilities/architectures': {
+      get: {
+        tags: ['capabilities'],
+        summary: 'Get Architectures',
+        operationId: 'get_architectures_capabilities_architectures_get',
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/capabilities/providers': {
+      get: {
+        tags: ['capabilities'],
+        summary: 'Get Providers',
+        description:
+          'This endpoint returns detailed information about all supported model platforms\nand their configuration parameters, including field descriptions, types,\nand whether they are required or optional.',
+        operationId: 'get_providers_capabilities_providers_get',
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/capabilities/providers/{kind}/test': {
+      post: {
+        tags: ['capabilities'],
+        summary: 'Test Model Platform Params',
+        description:
+          'This endpoint is used to test platform parameters by making a series\nof basic requests to the platform.\n\nThe endpoint returns a dictionary with the results of the tests.',
+        operationId:
+          'test_model_platform_params_capabilities_providers__kind__test_post',
+        parameters: [
+          {
+            name: 'kind',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Kind',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                additionalProperties: true,
+                title: 'Platform Params',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/HTTPValidationError',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/health': {
+      get: {
+        summary: 'Health',
+        operationId: 'health_health_get',
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  additionalProperties: true,
+                  type: 'object',
+                  title: 'Response Health Health Get',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/metrics': {
+      get: {
+        summary: 'Metrics',
+        operationId: 'metrics_metrics_get',
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  additionalProperties: true,
+                  type: 'object',
+                  title: 'Response Metrics Metrics Get',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   },
   components: {
     schemas: {
@@ -937,6 +1451,80 @@ export const spec = {
         type: 'object',
         required: ['name', 'organization', 'version'],
         title: 'ActionPackage',
+      },
+      ActionPackageCompat: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+            default: '',
+          },
+          organization: {
+            type: 'string',
+            title: 'Organization',
+            default: '',
+          },
+          version: {
+            type: 'string',
+            title: 'Version',
+            default: '',
+          },
+          url: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Url',
+          },
+          api_key: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Api Key',
+          },
+          allowed_actions: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Allowed Actions',
+          },
+        },
+        type: 'object',
+        title: 'ActionPackageCompat',
+      },
+      ActionServerConfigPayload: {
+        properties: {
+          url: {
+            type: 'string',
+            title: 'Url',
+            description: 'The URL of the action server.',
+          },
+          api_key: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                $ref: '#/components/schemas/SecretString',
+              },
+            ],
+            title: 'Api Key',
+            description: 'The API key of the action server.',
+          },
+        },
+        type: 'object',
+        required: ['url', 'api_key'],
+        title: 'ActionServerConfigPayload',
       },
       AddThreadMessagePayload: {
         properties: {
@@ -1012,7 +1600,24 @@ export const spec = {
         required: ['content', 'role'],
         title: 'AddThreadMessagePayload',
       },
-      Agent: {
+      AgentArchitecture: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+            description: 'The name of the agent architecture.',
+          },
+          version: {
+            type: 'string',
+            title: 'Version',
+            description: 'The version of the agent architecture.',
+          },
+        },
+        type: 'object',
+        required: ['name', 'version'],
+        title: 'AgentArchitecture',
+      },
+      AgentCompat: {
         properties: {
           name: {
             type: 'string',
@@ -1029,9 +1634,9 @@ export const spec = {
             title: 'User Id',
             description: 'The id of the user that created the agent.',
           },
-          runbook: {
+          runbook_structured: {
             $ref: '#/components/schemas/Runbook',
-            description: 'The runbook of the agent.',
+            description: 'The structured runbook of the agent.',
           },
           version: {
             type: 'string',
@@ -1053,6 +1658,12 @@ export const spec = {
                 {
                   $ref: '#/components/schemas/AzureOpenAIPlatformParameters',
                 },
+                {
+                  $ref: '#/components/schemas/GooglePlatformParameters',
+                },
+                {
+                  $ref: '#/components/schemas/GroqPlatformParameters',
+                },
               ],
             },
             type: 'array',
@@ -1065,11 +1676,10 @@ export const spec = {
           },
           action_packages: {
             items: {
-              $ref: '#/components/schemas/ActionPackage',
+              $ref: '#/components/schemas/ActionPackageCompat',
             },
             type: 'array',
             title: 'Action Packages',
-            description: 'The action packages this agent uses.',
           },
           mcp_servers: {
             items: {
@@ -1112,7 +1722,6 @@ export const spec = {
             type: 'string',
             enum: ['conversational', 'worker'],
             title: 'Mode',
-            description: 'The mode of the agent.',
             default: 'conversational',
           },
           agent_id: {
@@ -1126,35 +1735,54 @@ export const spec = {
             title: 'Extra',
             description: 'Extra fields for the agent.',
           },
+          runbook: {
+            type: 'string',
+            title: 'Runbook',
+            default: '',
+          },
+          id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Id',
+          },
+          public: {
+            type: 'boolean',
+            title: 'Public',
+            default: true,
+          },
+          metadata: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Metadata',
+          },
+          advanced_config: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Advanced Config',
+          },
+          model: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Model',
+          },
         },
         type: 'object',
         required: [
           'name',
           'description',
           'user_id',
-          'runbook',
+          'runbook_structured',
           'version',
           'platform_configs',
           'agent_architecture',
         ],
-        title: 'Agent',
-      },
-      AgentArchitecture: {
-        properties: {
-          name: {
-            type: 'string',
-            title: 'Name',
-            description: 'The name of the agent architecture.',
-          },
-          version: {
-            type: 'string',
-            title: 'Version',
-            description: 'The version of the agent architecture.',
-          },
-        },
-        type: 'object',
-        required: ['name', 'version'],
-        title: 'AgentArchitecture',
+        title: 'AgentCompat',
       },
       AzureOpenAIPlatformParameters: {
         properties: {
@@ -1543,6 +2171,56 @@ export const spec = {
         },
         type: 'object',
         title: 'CortexPlatformParameters',
+      },
+      GooglePlatformParameters: {
+        properties: {
+          kind: {
+            type: 'string',
+            const: 'google',
+            title: 'Kind',
+            description: 'The kind of platform parameters.',
+            default: 'google',
+          },
+          google_api_key: {
+            anyOf: [
+              {
+                $ref: '#/components/schemas/SecretString',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            description:
+              'The Google API key. If not provided, it will be attempted to be inferred from the environment.',
+          },
+        },
+        type: 'object',
+        title: 'GooglePlatformParameters',
+      },
+      GroqPlatformParameters: {
+        properties: {
+          kind: {
+            type: 'string',
+            const: 'groq',
+            title: 'Kind',
+            description: 'The kind of platform parameters.',
+            default: 'groq',
+          },
+          groq_api_key: {
+            anyOf: [
+              {
+                $ref: '#/components/schemas/SecretString',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            description:
+              'The Groq API key. If not provided, it will be attempted to be inferred from the environment.',
+          },
+        },
+        type: 'object',
+        title: 'GroqPlatformParameters',
       },
       HTTPValidationError: {
         properties: {
@@ -2505,6 +3183,18 @@ export const spec = {
             title: 'Version',
             description: 'The version of the agent.',
           },
+          user_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'User Id',
+            description: 'The id of the user that created the agent.',
+          },
           platform_configs: {
             items: {
               additionalProperties: true,
@@ -2512,11 +3202,41 @@ export const spec = {
             },
             type: 'array',
             title: 'Platform Configs',
-            description: 'The platform configs for the agent.',
+            description: 'The platform configs this agent can use.',
           },
           agent_architecture: {
-            $ref: '#/components/schemas/AgentArchitecture',
+            anyOf: [
+              {
+                $ref: '#/components/schemas/AgentArchitecture',
+              },
+              {
+                type: 'null',
+              },
+            ],
             description: 'The architecture details for the agent.',
+          },
+          runbook: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Runbook',
+            description: 'The raw text of the runbook.',
+          },
+          structured_runbook: {
+            anyOf: [
+              {
+                $ref: '#/components/schemas/Runbook',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            description: 'The structured runbook of the agent.',
           },
           action_packages: {
             items: {
@@ -2564,21 +3284,79 @@ export const spec = {
             title: 'Extra',
             description: 'Extra fields for the agent.',
           },
-          runbook_raw_text: {
-            type: 'string',
-            title: 'Runbook Raw Text',
-            description: 'The raw text of the runbook.',
-            default: '',
+          id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Id',
+            description:
+              'The ID of the agent (alias of agent_id for backwards compatibility).',
+          },
+          agent_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Agent Id',
+            description: 'The ID of the agent.',
+          },
+          created_at: {
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Created At',
+            description: 'The time the agent was created.',
+          },
+          advanced_config: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Advanced Config',
+            description:
+              'Advanced configuration for the agent (backward compatibility).',
+          },
+          metadata: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Metadata',
+            description: 'Metadata for the agent (backward compatibility).',
+          },
+          model: {
+            anyOf: [
+              {
+                additionalProperties: true,
+                type: 'object',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Model',
+            description: 'Model for the agent (backward compatibility).',
+          },
+          public: {
+            type: 'boolean',
+            title: 'Public',
+            description: 'Ignored. Backward compatibility only.',
+            default: true,
           },
         },
         type: 'object',
-        required: [
-          'name',
-          'description',
-          'version',
-          'platform_configs',
-          'agent_architecture',
-        ],
+        required: ['name', 'description', 'version'],
         title: 'UpsertAgentPayload',
       },
       UpsertThreadPayload: {
