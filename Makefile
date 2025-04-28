@@ -11,18 +11,49 @@ ONEFILE   ?= true
 EXE_NAME  ?= agent-server
 DIST_PATH ?= dist
 
+# Create exe path based on provided vars
+EXE_PATH := $(DIST_PATH)/$(EXE_NAME)
+
+# Detect if we're on a Mac (for signing/notarization)
+IS_MACOS         := $(shell test "$$(uname -s)" = "Darwin" && echo true || echo false)
+
+# Notarization retry settings
+MAX_RETRIES      ?= 5
+RETRY_DELAY      ?= 10
+
+
 # --------------------------------------------------------------------
-# Mac code signing variables
-# (Only needed if you actually do code signing on macOS)
+# OSX Signing/Notarization
 # --------------------------------------------------------------------
-CERT          ?=
-PASSWORD      ?=
-KEYCHAIN_NAME ?= build.keychain
+APPLE_ID         ?= 
+APPLE_APP_PASS   ?= 
+AC_TEAM_ID       ?= 
+CODESIGN_ID      ?= -
+
+
+# Certificate variables
+CERT_B64          ?= 
+KEYCHAIN_PASSWORD ?= 
+P12_PASSWORD      ?= 
+
 
 # --------------------------------------------------------------------
 # Tools/paths
 # --------------------------------------------------------------------
 PYINSTALLER_SPEC ?= server/agent-server.spec
+ENTITLEMENTS_FILE ?= server/entitlements.mac.plist
+# CI environment variables, should be set by GitHub Actions
+RUNNER_TEMP      ?= /tmp
+# Detect the keychain path if we're in CI
+ifeq ($(CI),true)
+	KEYCHAIN := $(RUNNER_TEMP)/build.keychain-db
+else
+	KEYCHAIN := $(HOME)/Library/Keychains/build.keychain-db
+endif
+# Notarization variables
+NOTARIZE_ZIP_PATH := $(RUNNER_TEMP)/$(EXE_NAME).zip
+
+
 
 # --------------------------------------------------------------------
 # Help
@@ -47,24 +78,26 @@ venv:  ## Create a new virtual environment with uv
 	fi
 
 sync:  ## Sync/install all packages in the monorepo
-	uv sync --all-extras --all-groups --all-packages
+	uv sync --all-extras --all-groups --all-packages $(if $(filter true,$(CI)),--locked,)
+
 
 # --------------------------------------------------------------------
 # Building: Wheels & PyInstaller
 # --------------------------------------------------------------------
-build-wheels:  sync ## Build Python wheels into dist/ via uv
+build-wheels: sync ## Build Python wheels into dist/ via uv
 	@echo "Building wheels..."
 	uv build --out-dir $(DIST_PATH) --package agent_platform_core
 	uv build --out-dir $(DIST_PATH) --package agent_platform_architectures_default
 	uv build --out-dir $(DIST_PATH) --package agent_platform_server
 
-build-exe: setup-keychain sync ## Build a PyInstaller executable
+build-exe: sync  ## Build a PyInstaller executable
 	@echo "Building PyInstaller executable..."
-	@# Construct PyInstaller flags based on DEBUG/CI/ONEFILE
+
+# -------- assemble flag strings ---------------------------------
 	$(eval PYI_FLAGS :=)
 	$(eval SPEC_FLAGS :=)
+
 ifneq ($(DEBUG),false)
-	@# Debug mode => set debug flags, no CI
 	$(eval PYI_FLAGS += --log-level=DEBUG)
 	$(eval SPEC_FLAGS += --debug)
 endif
@@ -74,97 +107,114 @@ endif
 ifneq ($(ONEFILE),false)
 	$(eval SPEC_FLAGS += --onefile)
 endif
+ifeq ($(IS_MACOS),true)
+	$(eval SPEC_FLAGS += --codesign-identity "$(CODESIGN_ID)" --osx-entitlements-file $(ENTITLEMENTS_FILE))
+endif
 	$(eval SPEC_FLAGS += --name=$(EXE_NAME))
 
-	@# Set LD_LIBRARY_PATH to the uv's venv lib location
-	@# This ensures PyInstaller can find the required libraries
-	LD_LIBRARY_PATH=.venv/lib uv run pyinstaller $(PYI_FLAGS) --distpath=$(DIST_PATH) $(PYINSTALLER_SPEC) -- $(SPEC_FLAGS)
-ifeq ($(shell uname -s),Darwin)
-	@# This should be happening anyway... but binary fails to run without it
-	@# for me on OSX using adhoc signing.
-	@if [ -z "$(MACOS_SIGNING_CERT_NAME)" ]; then \
-		echo "No signing certificate specified, using ad-hoc signing..."; \
-		codesign --force --deep --sign - ./$(DIST_PATH)/$(EXE_NAME); \
-	fi
+	LD_LIBRARY_PATH=.venv/lib \
+		uv run pyinstaller $(PYI_FLAGS) \
+		--distpath=$(DIST_PATH) $(PYINSTALLER_SPEC) -- $(SPEC_FLAGS)
+
+ifeq ($(IS_MACOS),true)
+build: clean build-wheels setup-keychain build-exe codesign notarize ## Build, sign and notarize on macOS
+	@echo "Build complete!"
+else
+build: clean build-wheels build-exe ## Build on non-Mac platforms
+	@echo "Build complete!"
 endif
 
-build: clean build-wheels build-exe  ## Build both wheels and PyInstaller executable
-
 # --------------------------------------------------------------------
-# Mac Code Signing Keychain Setup (Optional)
+# OSX Signing/Notarization
 # --------------------------------------------------------------------
-setup-keychain:  ## Setup macOS keychain for code signing (no-op on non-macOS)
-ifeq ($(shell uname -s),Darwin)
-	@if [ -z "$(CERT)" ] || [ -z "$(PASSWORD)" ]; then \
-	  echo "Skipping keychain setup: CERT or PASSWORD not provided."; \
-	else \
-	  echo "Creating macOS build keychain..." ; \
-	  security create-keychain -p $(PASSWORD) $(KEYCHAIN_NAME) ; \
-	  security default-keychain -s $(KEYCHAIN_NAME) ; \
-	  security unlock-keychain -p $(PASSWORD) $(KEYCHAIN_NAME) ; \
-	  echo "$(CERT)" | base64 --decode > cert.p12 ; \
-	  echo "Importing certificate..." ; \
-	  ( \
-	    security import cert.p12 -A -P $(PASSWORD) ; \
-	    security set-key-partition-list -S apple-tool:,apple: -s -k $(PASSWORD) $(KEYCHAIN_NAME) ; \
-	  ) ; \
-	  rm -f cert.p12 ; \
-	  echo "Keychain setup complete." ; \
-	fi
+ifeq ($(IS_MACOS),true)
+setup-keychain:  ## Setup macOS keychain for code signing
+# Check required environment variables
+ifndef CERT_B64
+	$(error CERT_B64 environment variable is not set)
+endif
+ifndef KEYCHAIN_PASSWORD
+	$(error KEYCHAIN_PASSWORD environment variable is not set)
+endif
+ifndef P12_PASSWORD
+	$(error P12_PASSWORD environment variable is not set)
+endif
+	@echo "Setting up macOS keychain for code signing..."
+	@echo "$(CERT_B64)" | base64 --decode > $(RUNNER_TEMP)/cert.p12
+	
+	@security create-keychain -p "$(KEYCHAIN_PASSWORD)" "$(KEYCHAIN)"
+	@security set-keychain-settings -lut 21600 "$(KEYCHAIN)"
+	@security unlock-keychain -p "$(KEYCHAIN_PASSWORD)" "$(KEYCHAIN)"
+	
+# Import the p12 and give codesign/non-interactive access
+	@security import $(RUNNER_TEMP)/cert.p12 -P "$(P12_PASSWORD)" -A -t cert -f pkcs12 -k "$(KEYCHAIN)"
+	@security set-key-partition-list -S apple-tool:,apple: -k "$(KEYCHAIN_PASSWORD)" "$(KEYCHAIN)"
+	
+# Make the temp keychain the default so `codesign` will find the identity
+	@security list-keychain -d user -s "$(KEYCHAIN)"
+	@echo "Keychain setup complete."
 else
-	@echo "Not macOS; skipping keychain setup."
+setup-keychain:
+	$(error setup-keychain target is only supported on macOS)
+endif
+
+ifeq ($(IS_MACOS),true)
+codesign:  ## Codesign the agent server executable (macOS only)
+ifeq ($(CI),true)
+ifeq ($(CODESIGN_ID),-)
+	$(error CODESIGN_ID cannot be "-" in CI environment)
+endif
+endif
+	@echo "Codesigning executable..."
+	codesign --force --deep --timestamp --options runtime \
+	         --entitlements $(ENTITLEMENTS_FILE) \
+	         --sign "$(CODESIGN_ID)" $(EXE_PATH)
+else
+codesign:
+# TODO: Add windows signing
+	$(error codesign target is only supported on macOS)
 endif
 
 notarize:  ## Notarize the agent server executable (macOS only)
-ifeq ($(shell uname -s),Darwin)
-	@if [ ! -f $(DIST_PATH)/$(EXE_NAME) ]; then \
-		echo "Error: Executable not found at $(DIST_PATH)/$(EXE_NAME)"; \
-		echo "Please build the executable first with 'make build-exe'"; \
-		exit 1; \
-	fi
-	@if [ -z "$(APPLEID)" ] || [ -z "$(APPLETEAMID)" ] || [ -z "$(APPLEIDPASS)" ]; then \
-		echo "Error: Apple ID credentials not provided."; \
-		echo "Usage: make notarize APPLEID=your.apple.id@example.com APPLETEAMID=YOUR_TEAM_ID APPLEIDPASS=your_app_specific_password"; \
-		exit 1; \
-	fi
-	@echo "Verifying code signature..."
-	codesign --verify --verbose=2 --deep $(DIST_PATH)/$(EXE_NAME)
-	@echo "Displaying signature information..."
-	codesign --verify --verbose=2 --display $(DIST_PATH)/$(EXE_NAME)
+ifndef APPLE_ID
+	$(error APPLE_ID environment variable is not set)
+endif
+ifndef APPLE_APP_PASS
+	$(error APPLE_APP_PASS environment variable is not set)
+endif
+ifndef AC_TEAM_ID
+	$(error AC_TEAM_ID environment variable is not set)
+endif
 	@echo "Submitting for notarization..."
-	@# Create a temporary directory for the zip file
-	@mkdir -p $(DIST_PATH)/notarize_temp
-	@# Zip the executable (notarization doesn't allow executable files directly)
-	cd $(DIST_PATH) && zip notarize_temp/$(EXE_NAME).zip $(EXE_NAME)
-	@# Submit for notarization with retry mechanism
-	@# Define retry parameters
-	@MAX_RETRIES=5; \
-	RETRY_COUNT=0; \
-	RETRY_DELAY=10; \
-	SUCCESS=false; \
-	while [ $$RETRY_COUNT -lt $$MAX_RETRIES ] && [ "$$SUCCESS" = "false" ]; do \
-		echo "Notarization attempt $$((RETRY_COUNT+1)) of $$MAX_RETRIES..."; \
-		if xcrun notarytool submit --apple-id $(APPLEID) --team-id $(APPLETEAMID) --password $(APPLEIDPASS) $(DIST_PATH)/notarize_temp/$(EXE_NAME).zip; then \
+	zip -qr $(NOTARIZE_ZIP_PATH) $(EXE_PATH)
+
+# Submit for notarization with retry mechanism
+	@RETRY_COUNT=0; SUCCESS=false; \
+	while [ $$RETRY_COUNT -lt $(MAX_RETRIES) ] && [ "$$SUCCESS" = "false" ]; do \
+		echo "Notarization attempt $$((RETRY_COUNT+1)) of $(MAX_RETRIES)..."; \
+		if xcrun notarytool submit $(NOTARIZE_ZIP_PATH) \
+			--apple-id "$(APPLE_ID)" \
+			--password "$(APPLE_APP_PASS)" \
+			--team-id "$(AC_TEAM_ID)" \
+			--wait; then \
 			SUCCESS=true; \
 			echo "Notarization submitted successfully!"; \
 		else \
 			RETRY_COUNT=$$((RETRY_COUNT+1)); \
-			if [ $$RETRY_COUNT -lt $$MAX_RETRIES ]; then \
-				echo "Notarization submission failed. Retrying in $$RETRY_DELAY seconds..."; \
-				sleep $$RETRY_DELAY; \
+			if [ $$RETRY_COUNT -lt $(MAX_RETRIES) ]; then \
+				echo "Notarization submission failed. Retrying in $(RETRY_DELAY) seconds..."; \
+				sleep $(RETRY_DELAY); \
 				RETRY_DELAY=$$((RETRY_DELAY*2)); \
 			else \
-				echo "Notarization submission failed after $$MAX_RETRIES attempts."; \
+				echo "Notarization submission failed after $(MAX_RETRIES) attempts."; \
 				exit 1; \
 			fi \
 		fi \
 	done
-	@# Clean up
-	@rm -rf $(DIST_PATH)/notarize_temp
+
+# Clean up
+	@rm -f $(RUNNER_TEMP)/$(EXE_NAME).zip
 	@echo "Notarization process completed."
-else
-	@echo "Notarization is only supported on macOS."
-endif
 
 # --------------------------------------------------------------------
 # Debug UX Widget
@@ -177,7 +227,7 @@ dev-widget:  ## Run pnpm run dev on server/examples/debug_widget
 	pnpm install && \
 	pnpm run dev; \
 	popd
-
+	
 # --------------------------------------------------------------------
 # Run & Test
 # --------------------------------------------------------------------

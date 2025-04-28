@@ -46,20 +46,7 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
   
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v5
-  
-      - name: Sync environment
-        run: make sync
-  
-      - name: Lint
-        run: make lint
-  
-      - name: Type check
-        run: make typecheck
-  
-      - name: Check formatting
-        run: make check-format
+      - uses: ./.github/actions/prep_environment
   
       - name: Run Unit tests
         run: make test-unit

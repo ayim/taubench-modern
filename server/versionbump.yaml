@@ -1,4 +1,4 @@
-version: "1.2.5"        # The current version of the project. This is the version source of truth.
+version: "1.2.5+kernel.9"        # The current version of the project. This is the version source of truth.
                          # Do not change this value manually. VersionBump will update it automatically.
 git-commit: true         # Whether to create a git commit for the version bump.
 git-tag: false            # Whether to create a git tag for the version bump.
@@ -20,10 +20,6 @@ files:                   # The files to update with the new version.
     replace:
       - "**Latest Release:** `{version}`"
 
-  - path: "agent-server-interface/package.json"
+  - path: "src/agent_platform/server/__init__.py"
     replace:
-      - "\"version\": \"{version}\""
-
-  - path: "agent_platform/server.py"
-    replace:
-      - "VERSION = \"{version}\""
+      - "__version__ = \"{version}\""

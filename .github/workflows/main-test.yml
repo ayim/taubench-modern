@@ -9,3 +9,12 @@ on:
 jobs:
   test:
     uses: ./.github/workflows/sub-test-unit.yml
+
+  lint:
+    uses: ./.github/workflows/sub-test-lint.yml
+
+  typecheck:
+    uses: ./.github/workflows/sub-test-typecheck.yml
+
+  format:
+    uses: ./.github/workflows/sub-test-format.yml

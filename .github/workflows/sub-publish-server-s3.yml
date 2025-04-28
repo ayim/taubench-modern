@@ -40,6 +40,10 @@ jobs:
       macos_arm64_binary_url: ${{ steps.set_urls.outputs.macos_arm64_binary_url }}
       linux_x64_binary_url: ${{ steps.set_urls.outputs.linux_x64_binary_url }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
       - uses: ./.github/actions/prep_environment
         with:
           ref: ${{ inputs.ref }}

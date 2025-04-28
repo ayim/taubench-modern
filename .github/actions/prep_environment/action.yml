@@ -1,14 +1,23 @@
-name: Checkout and Prepare Common CI Environment
+name: Prepare Common CI Environment
 description: |
   This action prepares the common CI environment for our actions. It will
-  checkout the repository, set up uv, install dependences, configure git, and
-  set up versionbump.
+  set up uv, install dependences, configure git, and set up versionbump.
+
+  IMPORTANT: This action requires actions/checkout to be run first in your workflow.
+  Make sure to pass the same ref to actions/checkout that you want to use for this action.
+  
+  Example usage:
+  ```yaml
+  - uses: actions/checkout@v4
+    with:
+      ref: your-ref-here  # e.g. github.sha, a branch name, or commit hash, 
+                          # should be the ref from after a versionbump or other
+                          # CI step that creates a commit
+  
+  - uses: ./.github/actions/prep_environment
+  ```
 
 inputs:
-  ref:
-    description: "The git ref to checkout, defaults to github.sha, which is the default for actions/checkout"
-    required: false
-    default: ${{ github.sha }}
   go_version:
     description: "The version of Go to use, defaults to stable"
     required: false
@@ -21,17 +30,14 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        ref: ${{ inputs.ref }}
-
     - name: Set up uv
       uses: astral-sh/setup-uv@v5
       with:
         enable-cache: true
         cache-dependency-glob: |
           **/pyproject.toml
+          **/uv.lock
+        cache-suffix: agent-platform
 
     - name: Sync environment (Installs dependencies)
       shell: bash

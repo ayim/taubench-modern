@@ -29,9 +29,9 @@ runs:
       id: versionbump-cache
       with:
         path: ~/go/bin/versionbump
-        key: ${{ runner.os }}-versionbump-${{ inputs.versionbump_version }}-${{ hashFiles('**/go.sum') }}
+        key: ${{ runner.os }}-${{ runner.arch }}-versionbump-${{ inputs.versionbump_version }}-${{ hashFiles('**/go.sum') }}
         restore-keys: |
-          ${{ runner.os }}-versionbump-${{ inputs.versionbump_version }}-
+          ${{ runner.os }}-${{ runner.arch }}-versionbump-${{ inputs.versionbump_version }}-
 
     - name: Install versionbump
       if: steps.versionbump-cache.outputs.cache-hit != 'true'

@@ -88,26 +88,32 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
 
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v5
-      
-      - name: Sync environment
-        run: make sync
+      - uses: ./.github/actions/prep_environment
 
       - name: Build
-        run: make build-exe CI=true ONEFILE=true CERT=${{ secrets.MACOS_SIGNING_CERT_SEMA4AI }} PASSWORD=${{ secrets.MACOS_SIGNING_CERT_PASSWORD_SEMA4AI }} KEYCHAIN_NAME=${{ secrets.MACOS_SIGNING_CERT_NAME_SEMA4AI }}
-
-      - name: Notarize (macOS only)
-        if: contains(matrix.os, 'macos')
-        run: make notarize APPLEID=${{ secrets.MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI }} APPLETEAMID=${{ secrets.MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI }} APPLEIDPASS=${{ secrets.MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI }}
-
-      # TODO: Add windows support (determine compatible make targets)
+        env:
+          CI: true
+          ONEFILE: true
+          EXE_NAME: agent-server
+          DIST_PATH: dist
+          APPLE_ID: ${{ secrets.MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI }}
+          APPLE_APP_PASS: ${{ secrets.MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI }}
+          AC_TEAM_ID: ${{ secrets.MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI }}
+          CODESIGN_ID: ${{ secrets.MACOS_SIGNING_CERT_NAME_SEMA4AI }}
+          CERT_B64: ${{ secrets.MACOS_SIGNING_CERT_SEMA4AI }}
+          KEYCHAIN_PASSWORD: ${{ github.run_id }}${{ github.run_number }}
+          P12_PASSWORD: ${{ secrets.MACOS_SIGNING_CERT_PASSWORD_SEMA4AI }}
+        run: make build
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: agent-server-build-${{ matrix.build-type }}-${{ matrix.arch }}
-          path: dist
+          # TODO: Add support for uploading and then publishing wheels.
+          path: |
+            dist
+            !dist/*.whl
+            !dist/*.tar.gz
       
           
           
