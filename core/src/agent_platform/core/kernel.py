@@ -12,6 +12,7 @@ from abc import ABC, abstractmethod
 from typing import Literal
 
 from agent_platform.core.agent import Agent
+from agent_platform.core.context import AgentServerContext
 from agent_platform.core.kernel_interfaces import (
     ConvertersInterface,
     EventsInterface,
@@ -269,6 +270,15 @@ class Kernel(ABC):
         """Interface for interacting with the OpenTelemetry (OTel) API.
 
         The OTel API is used to interact with the OpenTelemetry (OTel) API.
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def ctx(self) -> AgentServerContext:
+        """Interface for interacting with the agent-server context.
+
+        The agent-server context is used to interact with the agent-server.
         """
         pass
 

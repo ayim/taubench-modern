@@ -472,13 +472,15 @@ class PlatformClient(
         prompt: TPrompt,
         model: str,
     ) -> ResponseMessage:
-        """Generates a response to a prompt.
+        """Generate a response from the platform.
 
-        Arguments:
-            prompt: The prompt to generate a response for.
+        Args:
+            prompt: The prompt to send to the model.
+            model: The model to use for generation.
+            ctx: Optional context for telemetry.
 
         Returns:
-            The generated model response.
+            The model's response.
         """
         pass
 
@@ -488,13 +490,15 @@ class PlatformClient(
         prompt: TPrompt,
         model: str,
     ) -> AsyncGenerator[GenericDelta, None]:
-        """Streams a response to a prompt.
+        """Generate a streaming response from the platform.
 
-        Arguments:
-            prompt: The prompt to generate a stream of responses for.
+        Args:
+            prompt: The prompt to send to the model.
+            model: The model to use for generation.
+            ctx: Optional context for telemetry.
 
-        Returns:
-            A stream of responses from the model.
+        Yields:
+            GenericDelta objects that update the response.
         """
         pass
 
@@ -521,6 +525,7 @@ class PlatformClient(
         Args:
             texts: The texts to create embeddings for.
             model: The model to use to create embeddings.
+            ctx: Optional context for telemetry.
 
         Returns:
             A dictionary containing the embeddings and any additional

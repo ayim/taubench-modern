@@ -2,10 +2,11 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from structlog import get_logger
 
 from agent_platform.core.agent import Agent, AgentArchitecture
+from agent_platform.core.context import AgentServerContext
 from agent_platform.core.delta.combine_delta import combine_generic_deltas
 from agent_platform.core.model_selector import DefaultModelSelector
 from agent_platform.core.model_selector.selection_request import ModelSelectionRequest
@@ -28,7 +29,6 @@ from agent_platform.core.runbook import Runbook
 from agent_platform.core.runs import Run
 from agent_platform.core.thread import Thread
 from agent_platform.core.tools import ToolDefinition
-from agent_platform.core.user import User
 from agent_platform.server.agent_architectures import AgentArchManager
 from agent_platform.server.auth.handlers import AuthedUser
 from agent_platform.server.kernel import AgentServerKernel
@@ -46,7 +46,8 @@ class _Book:
     year: int = field(metadata={"description": "Year the book was published"})
 
 
-def _create_minimal_kernel(user: User) -> AgentServerKernel:
+def _create_minimal_kernel(ctx: AgentServerContext) -> AgentServerKernel:
+    user = ctx.user_context.user
     empty_agent = Agent(
         user_id=user.user_id,
         version="0.0.0",
@@ -68,7 +69,7 @@ def _create_minimal_kernel(user: User) -> AgentServerKernel:
         thread_id=empty_thread.thread_id,
     )
     return AgentServerKernel(
-        user=user,
+        ctx=ctx,
         thread=empty_thread,
         agent=empty_agent,
         run=empty_run,
@@ -339,6 +340,7 @@ async def test_model_platform_params(
     user: AuthedUser,
     kind: str,
     platform_params: dict,
+    request: Request,
 ):
     """
     This endpoint is used to test platform parameters by making a series
@@ -354,7 +356,15 @@ async def test_model_platform_params(
     try:
         parsed_params = PlatformParameters.model_validate(platform_params)
         try:
-            kernel = _create_minimal_kernel(user)
+            # Create a context from the mock request and user
+            ctx = AgentServerContext.from_request(
+                request=request,
+                user=user,
+                version=None,
+            )
+
+            # Pass the context to create_minimal_kernel
+            kernel = _create_minimal_kernel(ctx)
             platform_client = PlatformClient.from_platform_config(
                 kernel=kernel,
                 config=parsed_params,

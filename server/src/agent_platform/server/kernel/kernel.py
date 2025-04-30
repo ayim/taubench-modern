@@ -1,4 +1,5 @@
 from agent_platform.core.agent import Agent
+from agent_platform.core.context import AgentServerContext
 from agent_platform.core.kernel import Kernel
 from agent_platform.core.kernel_interfaces import (
     ConvertersInterface,
@@ -37,11 +38,14 @@ from agent_platform.server.kernel.user_interactions import (
 class AgentServerKernel(Kernel):
     def __init__(  # noqa: PLR0915
         self,
-        user: User,
+        ctx: AgentServerContext,
         thread: Thread,
         agent: Agent,
         run: Run,
     ):
+        # Store context
+        self._ctx = ctx
+
         # Start by setting up OTel interface
         try:
             from opentelemetry import trace
@@ -55,8 +59,8 @@ class AgentServerKernel(Kernel):
             self._otel.attach_kernel(self)
 
         with self._otel.span("initialize_kernel") as span:
-            self._user = user
-            span.add_event("attached user to kernel", user.model_dump())
+            self._user = ctx.user_context.user
+            span.add_event("attached user to kernel", self._user.model_dump())
             self._agent = agent
             span.add_event("attached agent to kernel", agent.model_dump())
             self._thread = thread
@@ -200,3 +204,7 @@ class AgentServerKernel(Kernel):
     @property
     def otel(self) -> OTelInterface:
         return self._otel
+
+    @property
+    def ctx(self) -> AgentServerContext:
+        return self._ctx

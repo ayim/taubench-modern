@@ -248,6 +248,14 @@ run-server-exe:  ## Run the agent server executable
 	@echo "Running server from dist/..."
 	./dist/$(EXE_NAME)
 
+otel-collector:  ## Run the OTEL collector for viewing telemetry data
+	@echo "Starting OTEL collector..."
+	uv run -m agent_platform.server.otel_collector
+
+langsmith-collector:  ## Run the LangSmith collector for viewing LangChain traces
+	@echo "Starting LangSmith collector..."
+	uv run -m agent_platform.server.langsmith_collector
+
 test:  check-env-or-no-env ## Run all tests with pytest (VCR playback only)
 	VCR_RECORD=none uv run pytest
 
@@ -295,6 +303,14 @@ coverage:  ## Run tests with pytest and generate coverage report
 	uv run coverage run -m pytest
 	uv run coverage report
 	uv run coverage html
+
+check-pr:  ## Run common PR checks (format, lint, typecheck, unit tests)
+	@echo "Running PR checks..."
+	$(MAKE) check-format
+	$(MAKE) lint
+	$(MAKE) typecheck
+	$(MAKE) test-unit
+	@echo "✅ All PR checks passed!"
 
 lint:  ## Run ruff linting (check only)
 	uv run ruff check
