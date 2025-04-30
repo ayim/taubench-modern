@@ -234,6 +234,49 @@ class PostgresStorageAgentsMixin(CommonMixin):
                 ) from e
             raise
 
+    async def patch_agent(
+        self, user_id: str, agent_id: str, name: str, description: str
+    ) -> None:
+        """Update agent name and description."""
+        try:
+            async with self._cursor() as cur:
+                await cur.execute(
+                    """
+                    UPDATE v2.agent
+                    SET
+                        name = %(name)s,
+                        description = %(description)s
+                    WHERE
+                        agent_id = %(agent_id)s::uuid
+                        AND v2.check_user_access(user_id, %(user_id)s::uuid)
+                        -- Make sure no name collision exists with other agents
+                        AND (
+                        -- Either name didn't change
+                        name = %(name)s
+                        -- Or no other agent has this name
+                        OR NOT EXISTS (
+                            SELECT 1 FROM v2.agent
+                            WHERE LOWER(name) = LOWER(%(name)s)
+                            AND user_id = %(user_id)s::uuid
+                            AND agent_id != %(agent_id)s::uuid
+                        )
+                        )
+                    RETURNING agent_id
+                    """,
+                    {
+                        "name": name,
+                        "description": description,
+                        "agent_id": agent_id,
+                        "user_id": user_id,
+                    },
+                )
+        except IntegrityError as e:
+            if "UNIQUE constraint failed: v2.agent.name" in str(e):
+                raise RecordAlreadyExistsError(
+                    f"Agent name {name} already exists",
+                ) from e
+            raise
+
     async def delete_agent(self, user_id: str, agent_id: str) -> None:
         """Delete an agent."""
         # 1. Validate the uuids

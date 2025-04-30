@@ -16,6 +16,18 @@ from agent_platform.core.utils import assert_literal_value_valid
 
 
 @dataclass(frozen=True)
+class PatchAgentPayload:
+    """Payload for patching an agent."""
+
+    name: str = field(metadata={"description": "The name of the agent."})
+    """The name of the agent."""
+
+    description: str = field(
+        metadata={"description": "The description of the agent."},
+    )
+
+
+@dataclass(frozen=True)
 class UpsertAgentPayload:
     """Payload for upserting an agent."""
 

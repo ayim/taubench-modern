@@ -300,6 +300,63 @@ class SQLiteStorageAgentsMixin(CommonMixin):
             )
             raise StorageError(f"An unexpected error occurred: {e}") from e
 
+    async def patch_agent(
+        self, user_id: str, agent_id: str, name: str, description: str
+    ) -> None:
+        """Update agent name and description."""
+        try:
+            async with self._cursor() as cur:
+                await cur.execute(
+                    """
+                    UPDATE v2_agent
+                    SET
+                        name = :name,
+                        description = :description
+                    WHERE
+                        agent_id = :agent_id
+                        AND v2_check_user_access(user_id, :user_id) = 1
+                        -- Make sure no name collision exists with other agents
+                        AND (
+                            -- Either name didn't change
+                            LOWER(name) = LOWER(:name)
+                            -- Or no other agent has this name
+                            OR NOT EXISTS (
+                                SELECT 1 FROM v2_agent
+                                WHERE LOWER(name) = LOWER(:name)
+                                    AND user_id = :user_id
+                                    AND agent_id != :agent_id
+                            )
+                        )
+                    """,
+                    {
+                        "name": name,
+                        "description": description,
+                        "agent_id": agent_id,
+                        "user_id": user_id,
+                    },
+                )
+        except aiosqlite.IntegrityError as e:
+            if "UNIQUE constraint failed" in str(e) and (
+                "idx_agent_name_per_user_v2" in str(e) or ".name" in str(e)
+            ):
+                raise AgentWithNameAlreadyExistsError(
+                    f"Agent name {name} is not unique for user {user_id}"
+                ) from e
+            elif "foreign key constraint" in str(e).lower():
+                raise ReferenceIntegrityError(
+                    "Invalid foreign key reference updating/inserting agent"
+                ) from e
+            else:
+                self._logger.error("Unexpected database integrity error", error=str(e))
+                raise StorageError(f"Database integrity error: {e}") from e
+        except Exception as e:
+            self._logger.error(
+                "Unexpected error during agent upsert",
+                error=str(e),
+                exc_info=e,
+            )
+            raise StorageError(f"An unexpected error occurred: {e}") from e
+
     async def delete_agent(self, user_id: str, agent_id: str) -> None:
         """Delete an agent, enforcing user access."""
         self._validate_uuid(user_id)

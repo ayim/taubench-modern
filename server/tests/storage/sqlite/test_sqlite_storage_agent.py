@@ -56,6 +56,20 @@ async def test_agent_crud_operations(
     )
     assert retrieved_updated.name == "Updated Agent Name"
 
+    # Patch
+    await storage.patch_agent(
+        sample_user_id,
+        sample_agent.agent_id,
+        "Updated Agent Name (Patch)",
+        "Updated Agent Description (Patch)",
+    )
+    retrieved_updated = await storage.get_agent(
+        sample_user_id,
+        sample_agent.agent_id,
+    )
+    assert retrieved_updated.name == "Updated Agent Name (Patch)"
+    assert retrieved_updated.description == "Updated Agent Description (Patch)"
+
     # Delete
     await storage.delete_agent(sample_user_id, sample_agent.agent_id)
     with pytest.raises(AgentNotFoundError):

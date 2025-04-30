@@ -4,6 +4,7 @@ from structlog import get_logger
 from agent_platform.core.actions.action_package import ActionPackage
 from agent_platform.core.files import UploadedFile
 from agent_platform.core.payloads import ActionServerConfigPayload, UpsertAgentPayload
+from agent_platform.core.payloads.upsert_agent import PatchAgentPayload
 from agent_platform.core.utils import SecretString
 from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.api.private_v2.compatibility.agent_compat import AgentCompat
@@ -62,6 +63,20 @@ async def update_agent(
     agent = UpsertAgentPayload.to_agent(payload, user_id=user.user_id, agent_id=aid)
     await storage.upsert_agent(user.user_id, agent)
     return AgentCompat.from_agent(agent)
+
+
+@router.patch("/{aid}", response_model=AgentCompat)
+async def patch_agent(
+    user: AuthedUser,
+    aid: str,
+    payload: PatchAgentPayload,
+    storage: StorageDependency,
+) -> AgentCompat:
+    agent = await storage.get_agent(user.user_id, aid)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    await storage.patch_agent(user.user_id, aid, payload.name, payload.description)
+    return AgentCompat.from_agent(await storage.get_agent(user.user_id, aid))
 
 
 # Backwards compatibility
