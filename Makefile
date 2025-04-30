@@ -1,6 +1,12 @@
 SHELL := /bin/bash
 
 # --------------------------------------------------------------------
+# OS Detection
+# --------------------------------------------------------------------
+IS_LINUX   := $(shell uname -s | grep -q "Linux" && echo true || echo false)
+IS_MACOS   := $(shell test "$$(uname -s)" = "Darwin" && echo true || echo false)
+
+# --------------------------------------------------------------------
 # Default variables for building
 # You can override on the command line, e.g.:
 #   make build-exe DEBUG=true CI=true
@@ -14,8 +20,6 @@ DIST_PATH ?= dist
 # Create exe path based on provided vars
 EXE_PATH := $(DIST_PATH)/$(EXE_NAME)
 
-# Detect if we're on a Mac (for signing/notarization)
-IS_MACOS         := $(shell test "$$(uname -s)" = "Darwin" && echo true || echo false)
 
 # Notarization retry settings
 MAX_RETRIES      ?= 5
@@ -248,10 +252,26 @@ test:  check-env-or-no-env ## Run all tests with pytest (VCR playback only)
 	VCR_RECORD=none uv run pytest
 
 test-unit:  ## Run only unit tests
+ifeq ($(CI),true)
+ifeq ($(IS_LINUX),true)
 	VCR_RECORD=none uv run pytest -v -m "not integration"
+else
+	VCR_RECORD=none uv run pytest -v -m "not integration and not postgresql"
+endif
+else
+	VCR_RECORD=none uv run pytest -v -m "not integration"
+endif
 
 test-integration:  check-env-or-no-env ## Run only integration tests
-	VCR_RECORD=none uv run pytest -v -m integration
+ifeq ($(CI),true)
+ifeq ($(IS_LINUX),true)
+	VCR_RECORD=none uv run pytest -v -m "integration"
+else
+	VCR_RECORD=none uv run pytest -v -m "integration and not postgresql"
+endif
+else
+	VCR_RECORD=none uv run pytest -v -m "integration"
+endif
 
 test-vcr-record-new:  check-env ## Run tests with pytest and record VCR cassettes for new requests
 	@NUM_EXISTING_CASSETTES=$$(find core/tests/fixtures/vcr_cassettes/ -type f | wc -l); \

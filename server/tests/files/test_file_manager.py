@@ -1,5 +1,4 @@
 import os
-import platform
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime, timedelta
 from io import BytesIO
@@ -104,51 +103,55 @@ def sample_file2(tmpdir):
         yield UploadFile(filename="test2.txt", file=file_stream)
 
 
-@pytest.fixture(scope="session")
-@pytest.mark.postgresql
+@pytest.fixture(
+    scope="session", params=[pytest.param("", marks=[pytest.mark.postgresql])]
+)
 async def postgres_test_db() -> AsyncGenerator[
     AsyncConnectionPool[AsyncConnection[TupleRow]],
     None,
 ]:
     """Creates a shared temporary Postgres instance for the entire test session."""
-    # Skip on macOS
-    if platform.system() == "Darwin":
-        pytest.skip(
-            "PostgreSQL tests are skipped on macOS as PostgreSQL is not pre-installed "
-            "and not used in any production context."
-        )
+    try:
+        # Lazy import testing.postgresql only when needed
+        import testing.postgresql
 
-    # Lazy import testing.postgresql only when needed
-    import testing.postgresql
-
-    with testing.postgresql.Postgresql() as postgresql:
-        dsn = postgresql.url()
-        pool = None
-        try:
-            pool = AsyncConnectionPool(
-                conninfo=dsn,
-                min_size=2,
-                max_size=50,
-                num_workers=2,
-                open=False,
-                timeout=5,
-                reconnect_timeout=5,
-                max_lifetime=3600,
-                max_idle=300,
-            )
-            await pool.open()
-            yield cast(AsyncConnectionPool[AsyncConnection[TupleRow]], pool)
-        finally:
-            if pool:
-                await pool.close()
-            postgresql.stop()
+        with testing.postgresql.Postgresql() as postgresql:
+            dsn = postgresql.url()
+            pool = None
+            try:
+                pool = AsyncConnectionPool(
+                    conninfo=dsn,
+                    min_size=2,
+                    max_size=50,
+                    num_workers=2,
+                    open=False,
+                    timeout=5,
+                    reconnect_timeout=5,
+                    max_lifetime=3600,
+                    max_idle=300,
+                )
+                await pool.open()
+                yield cast(AsyncConnectionPool[AsyncConnection[TupleRow]], pool)
+            finally:
+                if pool:
+                    await pool.close()
+                postgresql.stop()
+    except (ImportError, RuntimeError):
+        # If testing.postgresql is not available, this is expected when running
+        # with -m "not postgresql" - the fixture won't be used anyway
+        pytest.skip("testing.postgresql is not installed")
 
 
-@pytest.fixture(params=["sqlite", "postgres"])
+@pytest.fixture(
+    params=[
+        pytest.param("sqlite", marks=[]),
+        pytest.param("postgres", marks=[pytest.mark.postgresql]),
+    ]
+)
 async def storage(
     request,
     tmp_path: Path,
-    postgres_test_db: AsyncConnectionPool,
+    postgres_test_db: AsyncConnectionPool[AsyncConnection[TupleRow]],
 ) -> AsyncGenerator[SQLiteStorage | PostgresStorage, None]:
     """
     Parametrized fixture that provides both SQLite and Postgres storage implementations.
