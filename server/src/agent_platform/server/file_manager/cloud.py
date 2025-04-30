@@ -1,8 +1,11 @@
 import json
+from collections.abc import AsyncGenerator
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
+from urllib.parse import urlparse
 from uuid import uuid4
 
+import httpx
 import requests
 import structlog
 from fastapi import status
@@ -57,8 +60,6 @@ class CloudFileMgrConfig(Configuration):
         """Validate configuration after initialization."""
         # Validate that file_management_api_url is a valid URL
         try:
-            from urllib.parse import urlparse
-
             parsed_url = urlparse(self.file_management_api_url)
             if not all([parsed_url.scheme, parsed_url.netloc]):
                 raise ValueError(
@@ -254,6 +255,52 @@ class CloudFileManager(BaseFileManager):
         except requests.RequestException as e:
             logger.exception(f"Failed to download file {file_id}: {e!s}")
             raise e
+
+    async def stream_file_contents(
+        self,
+        file_id: str,
+        user_id: str,
+        chunk_size: int = 8 * 1024,  # 8KB chunks by default
+    ) -> AsyncGenerator[bytes, None]:
+        """Stream file contents in chunks using an async generator.
+
+        Args:
+            file_id: The ID of the file to stream
+            user_id: The ID of the user requesting the file
+            chunk_size: The size of each chunk in bytes
+
+        Yields:
+            Chunks of the file content as bytes
+
+        Raises:
+            Exception: If the file is not found or cannot be accessed
+        """
+        file = await self.storage.get_file_by_id(file_id, user_id)
+        if not file:
+            raise Exception(f"File not found: {file_id}")
+
+        file_path = file.file_path
+        if not file_path:
+            raise Exception(f"File path for file {file_id} not available")
+
+        if self._file_path_is_expired(file):
+            updated_files = await self.refresh_file_paths([file])
+            file_path = updated_files[0].file_path
+            if not file_path:
+                raise Exception(
+                    f"File path for file {file_id} not available after "
+                    "refreshing file paths",
+                )
+
+        try:
+            async with httpx.AsyncClient() as client:
+                async with client.stream("GET", file_path) as response:
+                    response.raise_for_status()
+                    async for chunk in response.aiter_bytes(chunk_size=chunk_size):
+                        yield chunk
+        except httpx.RequestError as e:
+            logger.exception(f"Failed to stream file {file_id}: {e!s}")
+            raise Exception(f"Failed to stream file: {e!s}") from e
 
     async def request_remote_file_upload(
         self,

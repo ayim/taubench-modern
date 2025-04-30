@@ -3,6 +3,7 @@ import os
 from datetime import UTC, datetime
 from functools import partial
 from typing import Literal
+from urllib.parse import urljoin
 
 import requests
 from fastapi import status
@@ -56,7 +57,7 @@ class AgentServerClient:
         """
 
         if not base_url.endswith("/api/v2"):
-            base_url = f"{base_url}/api/v2"
+            base_url = urljoin(base_url + "/", "api/v2")
         self.base_url = base_url
         self._created_agent_ids: list[str] = []
 
@@ -68,7 +69,7 @@ class AgentServerClient:
 
     def delete_agent(self, agent_id: str):
         """Delete an agent by ID."""
-        url = f"{self.base_url}/agents/{agent_id}"
+        url = urljoin(self.base_url + "/", f"agents/{agent_id}")
         response = requests.delete(url)
         if response.status_code == status.HTTP_204_NO_CONTENT:
             print_success(f"Successfully deleted agent with ID: {agent_id}")
@@ -90,7 +91,7 @@ class AgentServerClient:
         Returns: A dictionary of file IDs and their corresponding references.
         """
         base_url_api = f"{self.base_url}"
-        url = f"{base_url_api}/threads/{thread_id}/files"
+        url = urljoin(base_url_api + "/", f"threads/{thread_id}/files")
         headers = {
             "Content-Type": "application/json",
         }
@@ -116,7 +117,7 @@ class AgentServerClient:
         file_ref: str,
     ) -> dict | None:
         """Retrieves a file using the new get-file endpoint."""
-        url = f"{self.base_url}/threads/{thread_id}/file-by-ref"
+        url = urljoin(self.base_url + "/", f"threads/{thread_id}/file-by-ref")
         headers = {
             "Accept": "application/json",
             "Content-Type": "application/json",
@@ -165,10 +166,40 @@ class AgentServerClient:
             f"Unsupported file scheme: {parsed_url.scheme} (must implement)",
         )
 
+    def download_file_by_ref(self, thread_id: str, file_ref: str) -> bytes:
+        """
+        Downloads a file by its reference using the streaming endpoint.
+
+        Args:
+            thread_id: The ID of the thread containing the file.
+            file_ref: The reference of the file to download.
+
+        Returns:
+            The file content as bytes.
+
+        Raises:
+            HTTPError: If the file could not be downloaded.
+        """
+        url = urljoin(self.base_url + "/", f"threads/{thread_id}/files/download/")
+        params = {"file_ref": file_ref}
+
+        response = requests.get(url, params=params, stream=True)
+        try:
+            response.raise_for_status()
+            # Read all content in chunks
+            content = b""
+            for chunk in response.iter_content(chunk_size=8192):
+                content += chunk
+            return content
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                f"Error downloading file: {response.status_code} {response.text}",
+            ) from e
+
     _next_agent_id = partial(next, itertools.count())
 
     def delete_file_by_ref(self, thread_id: str, file_ref: str) -> None:
-        url = f"{self.base_url}/threads/{thread_id}/files/{file_ref}"
+        url = urljoin(self.base_url + "/", f"threads/{thread_id}/files/{file_ref}")
         response = requests.delete(url)
         if response.status_code == status.HTTP_204_NO_CONTENT:
             print_success(
@@ -184,7 +215,7 @@ class AgentServerClient:
                 ) from e
 
     def delete_all_files_from_thread(self, thread_id: str) -> None:
-        url = f"{self.base_url}/threads/{thread_id}/files"
+        url = urljoin(self.base_url + "/", f"threads/{thread_id}/files")
         response = requests.delete(url)
         if response.status_code == status.HTTP_204_NO_CONTENT:
             print_success(f"Successfully deleted all files from thread {thread_id}")
@@ -209,7 +240,7 @@ class AgentServerClient:
 
         from dataclasses import asdict
 
-        url = f"{self.base_url}/agents"
+        url = urljoin(self.base_url + "/", "agents")
         headers = {
             "Accept": "application/json",
             "Content-Type": "application/json",
@@ -257,7 +288,7 @@ class AgentServerClient:
         Creates a new thread for the given agent.
         """
         print_header("CREATING THREAD")
-        url = f"{self.base_url}/threads"
+        url = urljoin(self.base_url + "/", "threads")
         headers = {
             "Accept": "application/json",
             "Content-Type": "application/json",
@@ -293,7 +324,7 @@ class AgentServerClient:
         if embedded is not None:
             kwargs["data"] = {"embedded": embedded}
 
-        url = f"{self.base_url}/threads/{thread_id}/files"
+        url = urljoin(self.base_url + "/", f"threads/{thread_id}/files")
         if content is None:
             with open(file_path, "rb") as file:
                 files = {"files": (os.path.basename(file_path), file, "text/plain")}
@@ -313,7 +344,7 @@ class AgentServerClient:
         return response
 
     def upload_file_to_agent(self, agent_id: str, file_path: str):
-        url = f"{self.base_url}/agents/{agent_id}/files"
+        url = urljoin(self.base_url + "/", f"agents/{agent_id}/files")
         with open(file_path, "rb") as file:
             files = {"files": (os.path.basename(file_path), file, "text/plain")}
             response = requests.post(url, files=files)
@@ -326,7 +357,7 @@ class AgentServerClient:
         owner_id: str,
         file_paths: list[str],
     ):
-        url = f"{self.base_url}/{endpoint}/{owner_id}/files"
+        url = urljoin(self.base_url + "/", f"{endpoint}/{owner_id}/files")
         files = [
             (
                 "files",

@@ -1,4 +1,5 @@
 import os
+from collections.abc import AsyncGenerator
 from pathlib import Path
 from uuid import uuid4
 
@@ -123,6 +124,40 @@ class LocalFileManager(BaseFileManager):
             fs_path = url_to_fs_path(file.file_path)
             with open(fs_path, "rb") as f:
                 return f.read()
+        except FileNotFoundError:
+            logger.exception(f"File not found: {file.file_path}")
+            raise
+
+    async def stream_file_contents(
+        self,
+        file_id: str,
+        user_id: str,
+        chunk_size: int = 8 * 1024,  # 8KB chunks by default
+    ) -> AsyncGenerator[bytes, None]:
+        """Stream file contents in chunks using an async generator.
+
+        Args:
+            file_id: The ID of the file to stream
+            user_id: The ID of the user requesting the file
+            chunk_size: The size of each chunk in bytes
+
+        Yields:
+            Chunks of the file content as bytes
+
+        Raises:
+            Exception: If the file is not found or cannot be accessed
+        """
+        file = await self.storage.get_file_by_id(file_id, user_id)
+        if not file:
+            raise Exception(f"File not found: {file_id}")
+        if not file.file_path:
+            raise Exception(f"Unable to read file {file_id} (no file path).")
+
+        try:
+            fs_path = url_to_fs_path(file.file_path)
+            with open(fs_path, "rb") as f:
+                while chunk := f.read(chunk_size):
+                    yield chunk
         except FileNotFoundError:
             logger.exception(f"File not found: {file.file_path}")
             raise

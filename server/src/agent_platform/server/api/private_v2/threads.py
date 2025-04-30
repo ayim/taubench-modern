@@ -1,4 +1,7 @@
+from mimetypes import guess_type
+
 from fastapi import APIRouter, HTTPException, UploadFile
+from fastapi.responses import StreamingResponse
 from structlog import get_logger
 
 from agent_platform.core.files import UploadedFile
@@ -215,3 +218,30 @@ async def delete_thread_files(
     if thread is None:
         raise HTTPException(status_code=404, detail="Thread not found")
     await file_manager.delete_thread_files(tid, user.user_id)
+
+
+@router.get("/{tid}/files/download/")
+async def download_file_by_ref(
+    user: AuthedUser,
+    tid: str,
+    file_ref: str,
+    storage: StorageDependency,
+    file_manager: FileManagerDependency,
+):
+    file = await get_file_by_ref(user, tid, file_ref, storage)
+    if not file.file_path:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    media_type = guess_type(file.file_path)[0] or "application/octet-stream"
+
+    try:
+        return StreamingResponse(
+            file_manager.stream_file_contents(
+                file_id=file.file_id,
+                user_id=user.user_id,
+            ),
+            media_type=media_type,
+        )
+    except Exception as e:
+        logger.error(f"Error reading file: {e!s}")
+        raise HTTPException(status_code=500, detail="Failed to read file") from e

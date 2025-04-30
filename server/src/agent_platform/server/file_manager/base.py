@@ -1,6 +1,7 @@
 import hashlib
 import os
 from abc import ABC, abstractmethod
+from collections.abc import AsyncGenerator
 
 import structlog
 from fastapi import HTTPException
@@ -96,6 +97,28 @@ class BaseFileManager(ABC):
         file_id: str,
         user_id: str,
     ) -> bytes:
+        pass
+
+    @abstractmethod
+    def stream_file_contents(
+        self,
+        file_id: str,
+        user_id: str,
+        chunk_size: int = 8 * 1024,  # 8KB chunks by default
+    ) -> AsyncGenerator[bytes, None]:
+        """Stream file contents in chunks using an async generator.
+
+        Args:
+            file_id: The ID of the file to stream
+            user_id: The ID of the user requesting the file
+            chunk_size: The size of each chunk in bytes
+
+        Yields:
+            Chunks of the file content as bytes
+
+        Raises:
+            Exception: If the file is not found or cannot be accessed
+        """
         pass
 
     @abstractmethod

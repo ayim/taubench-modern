@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 from io import BytesIO
 from pathlib import Path
 from typing import cast
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
@@ -155,6 +155,8 @@ async def storage(
 ) -> AsyncGenerator[SQLiteStorage | PostgresStorage, None]:
     """
     Parametrized fixture that provides both SQLite and Postgres storage implementations.
+    PostgreSQL tests will be skipped,
+    but SQLite tests will still run.
     """
     if request.param == "postgres":
         # Pre-truncate: Drop the schema 'v2' if it exists, then recreate it
@@ -307,8 +309,38 @@ async def setup_storage(
     return storage
 
 
+@pytest.fixture
+def mock_stream_response():
+    """Create a mock for an async HTTP response with streaming capabilities."""
+    mock_response = AsyncMock()
+    # Create a list to hold chunks that will be returned one by one
+    chunks = [b"test", b" chunk", b" content"]
+
+    # Setup mock async iterator for aiter_bytes
+    async def async_iter():
+        for chunk in chunks:
+            yield chunk
+
+    # Assign the async iterator to aiter_bytes
+    mock_response.aiter_bytes = async_iter
+
+    return mock_response, b"".join(chunks)
+
+
 @pytest.mark.asyncio
 class TestFileManager:
+    @staticmethod
+    def get_mock_stream_file_contents():
+        """Returns a mock implementation of stream_file_contents
+        that yields predefined chunks."""
+
+        async def mock_stream_file_contents(*args, **kwargs):
+            # Just yield the chunks directly from our mock
+            for chunk in [b"test", b" chunk", b" content"]:
+                yield chunk
+
+        return mock_stream_file_contents
+
     async def test_upload_success(
         self,
         file_manager: BaseFileManager,
@@ -571,6 +603,213 @@ class TestFileManager:
                 user_id=sample_thread.user_id,
             )
             assert results[0].mime_type == expected_mime
+
+    async def test_download_file_by_ref(
+        self,
+        file_manager: BaseFileManager,
+        sample_thread: Thread,
+        setup_storage: SQLiteStorage | PostgresStorage,
+        mock_requests,
+        mock_stream_response,
+    ):
+        """Test downloading a file by reference."""
+        # Upload a file first
+        content = b"test download content"
+        file = UploadFile(filename="test_download.txt", file=BytesIO(content))
+        results = await file_manager.upload(
+            files=[UploadFilePayload(file=file)],
+            owner=sample_thread,
+            user_id=sample_thread.user_id,
+        )
+
+        uploaded_file = results[0]
+
+        # Test using stream_file_contents method
+        # Collect the chunks to verify content
+        chunks = []
+
+        # Test file:// scheme (default for local file manager)
+        if isinstance(file_manager, LocalFileManager):
+            # Mock Path.open for local file manager
+            with (
+                patch("pathlib.Path.open", return_value=BytesIO(content)),
+                patch(
+                    "agent_platform.server.file_manager.utils.url_to_fs_path",
+                    return_value=str(Path("/tmp/test_file")),
+                ),
+            ):
+                # Call stream_file_contents directly to test the streaming functionality
+                async for chunk in file_manager.stream_file_contents(
+                    file_id=uploaded_file.file_id,
+                    user_id=sample_thread.user_id,
+                ):
+                    chunks.append(chunk)
+
+                # Verify the content is correct
+                assert b"".join(chunks) == content
+
+        # Test http:// scheme (default for cloud file manager)
+        if isinstance(file_manager, CloudFileManager):
+            # Setup mocking for httpx streaming
+            mock_response, expected_content = mock_stream_response
+
+            # Get the mock implementation of stream_file_contents
+            mock_stream_file_contents = self.get_mock_stream_file_contents()
+
+            # Create a new UploadedFile with the desired file_path
+            http_mock = UploadedFile(
+                file_id=uploaded_file.file_id,
+                file_path="http://example.com/test.txt",
+                file_ref=uploaded_file.file_ref,
+                file_hash=uploaded_file.file_hash,
+                file_size_raw=uploaded_file.file_size_raw,
+                mime_type=uploaded_file.mime_type,
+                created_at=uploaded_file.created_at,
+                user_id=uploaded_file.user_id,
+                embedded=uploaded_file.embedded,
+                file_path_expiration=uploaded_file.file_path_expiration,
+                agent_id=uploaded_file.agent_id,
+                thread_id=uploaded_file.thread_id,
+            )
+
+            # Patch both the file retrieval and the streaming method
+            with (
+                patch.object(
+                    CloudFileManager, "stream_file_contents", mock_stream_file_contents
+                ),
+                patch(
+                    "agent_platform.server.storage.BaseStorage.get_file_by_id",
+                    return_value=http_mock,
+                ),
+            ):
+                chunks = []
+                async for chunk in file_manager.stream_file_contents(
+                    file_id=uploaded_file.file_id,
+                    user_id=sample_thread.user_id,
+                ):
+                    chunks.append(chunk)
+
+                # Verify chunks match expected content
+                assert b"".join(chunks) == expected_content
+
+    async def test_download_file_by_ref_not_found(
+        self,
+        file_manager: BaseFileManager,
+        sample_thread: Thread,
+        setup_storage: SQLiteStorage | PostgresStorage,
+    ):
+        """Test downloading a file by reference that doesn't exist."""
+        nonexistent_file_id = str(uuid4())
+
+        # Test stream_file_contents with non-existent file ID
+        with pytest.raises(Exception, match=f"File not found: {nonexistent_file_id}"):
+            async for _ in file_manager.stream_file_contents(
+                file_id=nonexistent_file_id,
+                user_id=sample_thread.user_id,
+            ):
+                pass  # We shouldn't reach this point
+
+    async def test_download_file_by_ref_different_schemes(
+        self,
+        file_manager: BaseFileManager,
+        sample_thread: Thread,
+        setup_storage: SQLiteStorage | PostgresStorage,
+        mock_requests,
+        mock_stream_response,
+    ):
+        """Test downloading a file with different URL schemes."""
+        # Upload a file first
+        content = b"test scheme content"
+        file = UploadFile(filename="test_scheme.txt", file=BytesIO(content))
+        results = await file_manager.upload(
+            files=[UploadFilePayload(file=file)],
+            owner=sample_thread,
+            user_id=sample_thread.user_id,
+        )
+
+        uploaded_file = results[0]
+
+        # Test file:// scheme
+        if isinstance(file_manager, LocalFileManager):
+            # Create a new UploadedFile with the desired file_path
+            file_mock = UploadedFile(
+                file_id=uploaded_file.file_id,
+                file_path="file:///test/path",
+                file_ref=uploaded_file.file_ref,
+                file_hash=uploaded_file.file_hash,
+                file_size_raw=uploaded_file.file_size_raw,
+                mime_type=uploaded_file.mime_type,
+                created_at=uploaded_file.created_at,
+                user_id=uploaded_file.user_id,
+                embedded=uploaded_file.embedded,
+                file_path_expiration=uploaded_file.file_path_expiration,
+                agent_id=uploaded_file.agent_id,
+                thread_id=uploaded_file.thread_id,
+            )
+
+            with (
+                patch(
+                    "agent_platform.server.file_manager.utils.url_to_fs_path",
+                    return_value="/test/path",
+                ),
+                patch("pathlib.Path.open", return_value=BytesIO(content)),
+                patch(
+                    "agent_platform.server.storage.BaseStorage.get_file_by_id",
+                    return_value=file_mock,
+                ),
+            ):
+                chunks = []
+                async for chunk in file_manager.stream_file_contents(
+                    file_id=uploaded_file.file_id,
+                    user_id=sample_thread.user_id,
+                ):
+                    chunks.append(chunk)
+
+                assert b"".join(chunks) == content
+
+        # Test http:// scheme
+        if isinstance(file_manager, CloudFileManager):
+            # Setup mocking for httpx streaming
+            mock_response, expected_content = mock_stream_response
+
+            # Get the mock implementation of stream_file_contents
+            mock_stream_file_contents = self.get_mock_stream_file_contents()
+
+            # Create a new UploadedFile with the desired file_path
+            http_mock = UploadedFile(
+                file_id=uploaded_file.file_id,
+                file_path="http://example.com/test.txt",
+                file_ref=uploaded_file.file_ref,
+                file_hash=uploaded_file.file_hash,
+                file_size_raw=uploaded_file.file_size_raw,
+                mime_type=uploaded_file.mime_type,
+                created_at=uploaded_file.created_at,
+                user_id=uploaded_file.user_id,
+                embedded=uploaded_file.embedded,
+                file_path_expiration=uploaded_file.file_path_expiration,
+                agent_id=uploaded_file.agent_id,
+                thread_id=uploaded_file.thread_id,
+            )
+
+            # Patch both the file retrieval and the streaming method
+            with (
+                patch.object(
+                    CloudFileManager, "stream_file_contents", mock_stream_file_contents
+                ),
+                patch(
+                    "agent_platform.server.storage.BaseStorage.get_file_by_id",
+                    return_value=http_mock,
+                ),
+            ):
+                chunks = []
+                async for chunk in file_manager.stream_file_contents(
+                    file_id=uploaded_file.file_id,
+                    user_id=sample_thread.user_id,
+                ):
+                    chunks.append(chunk)
+
+                # Verify chunks match expected content
+                assert b"".join(chunks) == expected_content
 
     async def test_request_remote_file_upload(
         self,

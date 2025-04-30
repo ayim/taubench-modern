@@ -66,6 +66,14 @@ def _file_uploads_with_existing_thread(
     )
     print_success(f"Successfully got file info for {file_id}")
 
+    # Download file by ref
+    file_content = agent_client.download_file_by_ref(thread_id, file_ref)
+    assert file_content is not None, "File content not found"
+    assert len(file_content) > 0, "File content is empty"
+    print_success(
+        f"Successfully downloaded file {file_id} with size {len(file_content)} bytes"
+    )
+
     # Delete file from thread
     agent_client.delete_file_by_ref(thread_id, file_id)
     thread_files = agent_client.list_files(thread_id)
@@ -148,6 +156,20 @@ def _file_uploads_with_non_existent_thread(
             non_existent_file_ref,
         )
     print_success("Successfully tested getting file by ref from non-existent thread")
+
+    # Test downloading file by ref from non-existent thread
+    with pytest.raises(
+        requests.exceptions.HTTPError,
+        match=(
+            r"Error downloading file: 404 {\"detail\":\"Thread [0-9a-f-]+ "
+            r"not found\"}"
+        ),
+    ):
+        _ = agent_client.download_file_by_ref(
+            non_existent_thread_id,
+            non_existent_file_ref,
+        )
+    print_success("Successfully tested downloading file from non-existent thread")
 
     # Test deleting all files from non-existent thread
     with pytest.raises(
