@@ -1,4 +1,4 @@
-version: "1.2.5+kernel.9"        # The current version of the project. This is the version source of truth.
+version: "1.2.5+bldwin.11"        # The current version of the project. This is the version source of truth.
                          # Do not change this value manually. VersionBump will update it automatically.
 git-commit: true         # Whether to create a git commit for the version bump.
 git-tag: false            # Whether to create a git tag for the version bump.
@@ -9,7 +9,7 @@ prerelease-labels:
   - "rc"
 
 # The build label. This is the label that will be used for build versions.
-build-label: "kernel"
+build-label: "bldwin"
 
 files:                   # The files to update with the new version.
   - path: "pyproject.toml"

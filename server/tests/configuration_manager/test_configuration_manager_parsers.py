@@ -347,7 +347,7 @@ class TestConfigurationParsers:
         )
         result = represent_field_value(field_with_path, dumper, Path("/test/path"))
         assert result is not None
-        assert result.value == "/test/path"
+        assert result.value in {"/test/path", "\\test\\path"}
 
         # Test with a datetime
         field_with_datetime = cast(

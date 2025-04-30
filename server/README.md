@@ -1,1 +1,1 @@
-**Latest Release:** `1.2.5+kernel.9`
+**Latest Release:** `1.2.5+bldwin.11`

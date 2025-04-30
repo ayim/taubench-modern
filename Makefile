@@ -3,6 +3,7 @@ SHELL := /bin/bash
 # --------------------------------------------------------------------
 # OS Detection
 # --------------------------------------------------------------------
+IS_WINDOWS := $(shell uname -s | grep -q "MINGW\|MSYS\|CYGWIN\|Windows" && echo true || echo false)
 IS_LINUX   := $(shell uname -s | grep -q "Linux" && echo true || echo false)
 IS_MACOS   := $(shell test "$$(uname -s)" = "Darwin" && echo true || echo false)
 
@@ -16,6 +17,16 @@ CI        ?= false
 ONEFILE   ?= true
 EXE_NAME  ?= agent-server
 DIST_PATH ?= dist
+
+# Update the EXE_NAME if we're on Windows
+ifeq ($(IS_WINDOWS),true)
+# Only add .exe suffix if it doesn't already end with .exe
+ifeq ($(suffix $(EXE_NAME)),.exe)
+# Already has .exe suffix, do nothing
+else
+EXE_NAME := $(EXE_NAME).exe
+endif
+endif
 
 # Create exe path based on provided vars
 EXE_PATH := $(DIST_PATH)/$(EXE_NAME)
@@ -40,6 +51,14 @@ CERT_B64          ?=
 KEYCHAIN_PASSWORD ?= 
 P12_PASSWORD      ?= 
 
+# --------------------------------------------------------------------
+# Windows Signing
+# --------------------------------------------------------------------
+VAULT_URL          ?= 
+CLIENT_ID          ?= 
+TENANT_ID          ?= 
+CLIENT_SECRET      ?= 
+CERTIFICATE_NAME   ?= 
 
 # --------------------------------------------------------------------
 # Tools/paths
@@ -47,12 +66,16 @@ P12_PASSWORD      ?=
 PYINSTALLER_SPEC ?= server/agent-server.spec
 ENTITLEMENTS_FILE ?= server/entitlements.mac.plist
 # CI environment variables, should be set by GitHub Actions
+ifeq ($(IS_WINDOWS),true)
+RUNNER_TEMP      ?= $(shell echo %TEMP%)
+else
 RUNNER_TEMP      ?= /tmp
+endif
 # Detect the keychain path if we're in CI
 ifeq ($(CI),true)
-	KEYCHAIN := $(RUNNER_TEMP)/build.keychain-db
+KEYCHAIN := $(RUNNER_TEMP)/build.keychain-db
 else
-	KEYCHAIN := $(HOME)/Library/Keychains/build.keychain-db
+KEYCHAIN := $(HOME)/Library/Keychains/build.keychain-db
 endif
 # Notarization variables
 NOTARIZE_ZIP_PATH := $(RUNNER_TEMP)/$(EXE_NAME).zip
@@ -123,6 +146,9 @@ endif
 ifeq ($(IS_MACOS),true)
 build: clean build-wheels setup-keychain build-exe codesign notarize ## Build, sign and notarize on macOS
 	@echo "Build complete!"
+else ifeq ($(IS_WINDOWS),true)
+build: clean build-wheels build-exe codesign ## Build and sign on Windows platforms
+	@echo "Build complete!"
 else
 build: clean build-wheels build-exe ## Build on non-Mac platforms
 	@echo "Build complete!"
@@ -173,10 +199,47 @@ endif
 	codesign --force --deep --timestamp --options runtime \
 	         --entitlements $(ENTITLEMENTS_FILE) \
 	         --sign "$(CODESIGN_ID)" $(EXE_PATH)
+else ifeq ($(IS_WINDOWS),true)
+codesign:
+ifeq ($(CI),true)
+ifndef VAULT_URL
+	$(error VAULT_URL environment variable is not set)
+endif
+ifndef CLIENT_ID
+	$(error CLIENT_ID environment variable is not set)
+endif
+ifndef TENANT_ID
+	$(error TENANT_ID environment variable is not set)
+endif
+ifndef CLIENT_SECRET
+	$(error CLIENT_SECRET environment variable is not set)
+endif
+ifndef CERTIFICATE_NAME
+	$(error CERTIFICATE_NAME environment variable is not set)
+endif
+endif
+	@echo "Codesigning Windows executable..."
+	@# Check if AzureSignTool is already installed
+	@if ! command -v azuresigntool >/dev/null 2>&1; then \
+		echo "Installing AzureSignTool..."; \
+		dotnet tool install --global AzureSignTool --version 3.0.0; \
+	fi
+	@# Sign the executable using Azure Key Vault
+	@azuresigntool sign \
+		--description-url "https://sema4.ai" \
+		--file-digest sha256 \
+		--azure-key-vault-url "$(VAULT_URL)" \
+		--azure-key-vault-client-id "$(CLIENT_ID)" \
+		--azure-key-vault-tenant-id "$(TENANT_ID)" \
+		--azure-key-vault-client-secret "$(CLIENT_SECRET)" \
+		--azure-key-vault-certificate "$(CERTIFICATE_NAME)" \
+		--timestamp-rfc3161 http://timestamp.digicert.com \
+		--timestamp-digest sha256 \
+		$(EXE_PATH)
+
 else
 codesign:
-# TODO: Add windows signing
-	$(error codesign target is only supported on macOS)
+	$(error codesign target is only supported on macOS and Windows)
 endif
 
 notarize:  ## Notarize the agent server executable (macOS only)

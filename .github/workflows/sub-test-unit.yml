@@ -38,8 +38,7 @@ jobs:
           - os: ${{ inputs.linux-runner }}
           - os: ${{ inputs.macos-arm64-runner }}
           - os: ${{ inputs.macos-x64-runner }}
-          # TODO: Add windows support (requires invoke over make)
-          # - os: ${{ inputs.windows-runner }}
+          - os: ${{ inputs.windows-runner }}
 
     steps:
       - uses: actions/checkout@v4

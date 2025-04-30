@@ -63,22 +63,21 @@ on:
       MACOS_SIGNING_CERT_NAME_SEMA4AI:
         description: "MacOS signing certificate name"
         required: true
-      # TODO: Add for windows signing in the future
-      # WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI:
-      #   description: "Windows sign Azure Key Vault URL"
-      #   required: true
-      # WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI:
-      #   description: "Windows sign Azure Key Vault client ID"
-      #   required: true
-      # WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI:
-      #   description: "Windows sign Azure Key Vault tenant ID"
-      #   required: true
-      # WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI:
-      #   description: "Windows sign Azure Key Vault client secret"
-      #   required: true
-      # WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI:
-      #   description: "Windows sign Azure Key Vault certificate name"
-      #   required: true
+      WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI:
+        description: "Windows sign Azure Key Vault URL"
+        required: true
+      WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI:
+        description: "Windows sign Azure Key Vault client ID"
+        required: true
+      WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI:
+        description: "Windows sign Azure Key Vault tenant ID"
+        required: true
+      WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI:
+        description: "Windows sign Azure Key Vault client secret"
+        required: true
+      WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI:
+        description: "Windows sign Azure Key Vault certificate name"
+        required: true
 
 
 jobs:
@@ -117,12 +116,11 @@ jobs:
       MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI: ${{ secrets.MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI }}
       MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI: ${{ secrets.MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI }}
       MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI: ${{ secrets.MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI }}
-      # TODO: Add for windows signing in the future
-      # WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI }}
-      # WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI }}
-      # WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI }}
-      # WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI }}
-      # WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI }}
+      WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI }}
+      WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI }}
+      WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI }}
+      WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI }}
+      WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI }}
 
 
   package-agent-server:
@@ -147,5 +145,9 @@ jobs:
       - publish-agent-server-s3
     with:
       ref: ${{ inputs.ref }}
+      windows_x64_binary_url: ${{ needs.publish-agent-server-s3.outputs.windows_x64_binary_url }}
+      macos_x64_binary_url: ${{ needs.publish-agent-server-s3.outputs.macos_x64_binary_url }}
+      macos_arm64_binary_url: ${{ needs.publish-agent-server-s3.outputs.macos_arm64_binary_url }}
+      linux_x64_binary_url: ${{ needs.publish-agent-server-s3.outputs.linux_x64_binary_url }}
 
           

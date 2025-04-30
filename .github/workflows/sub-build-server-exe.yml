@@ -47,22 +47,21 @@ on:
       MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI:
         description: "Apple Team ID for notarization"
         required: true
-      # TODO: Add for windows signing in the future
-      # WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI:
-      #   description: "Windows sign Azure Key Vault URL"
-      #   required: true
-      # WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI:
-      #   description: "Windows sign Azure Key Vault client ID"
-      #   required: true
-      # WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI:
-      #   description: "Windows sign Azure Key Vault tenant ID"
-      #   required: true
-      # WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI:
-      #   description: "Windows sign Azure Key Vault client secret"
-      #   required: true
-      # WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI:
-      #   description: "Windows sign Azure Key Vault certificate name"
-      #   required: true
+      WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI:
+        description: "Windows sign Azure Key Vault URL"
+        required: true
+      WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI:
+        description: "Windows sign Azure Key Vault client ID"
+        required: true
+      WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI:
+        description: "Windows sign Azure Key Vault tenant ID"
+        required: true
+      WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI:
+        description: "Windows sign Azure Key Vault client secret"
+        required: true
+      WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI:
+        description: "Windows sign Azure Key Vault certificate name"
+        required: true
 
 jobs:
   build-agent-server:
@@ -73,10 +72,9 @@ jobs:
           - os: ${{ inputs.linux-runner }}
             arch: x64
             build-type: ubuntu
-          # TODO: Add windows support (determine compatible make targets)
-          # - os: ${{ inputs.windows-runner }}
-          #   arch: x64
-          #   build-type: windows
+          - os: ${{ inputs.windows-runner }}
+            arch: x64
+            build-type: windows
           - os: ${{ inputs.macos-arm64-runner }}
             arch: arm64
             build-type: macos
@@ -103,6 +101,11 @@ jobs:
           CERT_B64: ${{ secrets.MACOS_SIGNING_CERT_SEMA4AI }}
           KEYCHAIN_PASSWORD: ${{ github.run_id }}${{ github.run_number }}
           P12_PASSWORD: ${{ secrets.MACOS_SIGNING_CERT_PASSWORD_SEMA4AI }}
+          VAULT_URL: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI }}
+          CLIENT_ID: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI }}
+          TENANT_ID: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI }}
+          CLIENT_SECRET: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI }}
+          CERTIFICATE_NAME: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI }}
         run: make build
 
       - name: Upload Build Artifacts
