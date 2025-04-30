@@ -2,9 +2,9 @@ from asyncio import Semaphore, create_task
 from collections import deque
 from collections.abc import Generator
 from contextlib import contextmanager
-from logging import getLogger
 from typing import Any
 
+import structlog
 from opentelemetry.trace import NoOpTracer, SpanContext, Tracer
 
 from agent_platform.core.kernel_interfaces.otel import (
@@ -13,6 +13,8 @@ from agent_platform.core.kernel_interfaces.otel import (
     WrappedSpan,
 )
 from agent_platform.server.kernel.kernel_mixin import UsesKernelMixin
+
+logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
 
 class AgentServerOTelInterface(OTelInterface, UsesKernelMixin):
@@ -25,7 +27,7 @@ class AgentServerOTelInterface(OTelInterface, UsesKernelMixin):
         self._artifact_queue = deque()
         self._artifact_semaphore = Semaphore(10)  # Limit concurrent uploads
         self._artifact_tasks = set()
-        self._logger = getLogger(__name__)
+        self._logger = logger
 
     @contextmanager
     def span(
