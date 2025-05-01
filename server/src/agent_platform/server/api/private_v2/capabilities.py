@@ -10,11 +10,11 @@ from agent_platform.core.context import AgentServerContext
 from agent_platform.core.delta.combine_delta import combine_generic_deltas
 from agent_platform.core.model_selector import DefaultModelSelector
 from agent_platform.core.model_selector.selection_request import ModelSelectionRequest
-from agent_platform.core.platforms.azure import AzureOpenAIPlatformParameters
-from agent_platform.core.platforms.base import PlatformClient, PlatformParameters
-from agent_platform.core.platforms.bedrock import BedrockPlatformParameters
-from agent_platform.core.platforms.cortex import CortexPlatformParameters
-from agent_platform.core.platforms.openai import OpenAIPlatformParameters
+from agent_platform.core.platforms import (
+    AnyPlatformParameters,
+    PlatformClient,
+)
+from agent_platform.core.platforms.base import PlatformParameters
 from agent_platform.core.prompts import (
     Prompt,
     PromptTextContent,
@@ -206,40 +206,18 @@ async def _run_test(
 
     results = {}
     results[name] = {
-        "non-streaming-succeeded": regular_valid,
-        "streaming-succeeded": streaming_valid,
-        "non-streaming-latency-ms": generation_latency,
-        "streaming-latency-ms": streaming_latency,
+        "ok": regular_valid and streaming_valid,
+        "generate": {
+            "ok": regular_valid,
+            "latencyMs": generation_latency,
+        },
+        "stream": {
+            "ok": streaming_valid,
+            "latencyMs": streaming_latency,
+        },
     }
 
     return results
-
-
-def _get_friendly_type_name(type_annotation):  # noqa: PLR0911
-    """Convert a type annotation to a friendly string representation."""
-    if type_annotation is str:
-        return "str"
-    elif type_annotation is int:
-        return "int"
-    elif type_annotation is bool:
-        return "bool"
-    elif type_annotation is float:
-        return "float"
-    elif type_annotation is dict:
-        return "dict"
-    elif type_annotation is list:
-        return "list"
-    elif hasattr(type_annotation, "__name__"):
-        return type_annotation.__name__
-    else:
-        # Fall back to the str representation but clean it up
-        type_str = str(type_annotation)
-        # Remove angle brackets and class prefix
-        type_str = type_str.replace("<class '", "").replace("'>", "")
-        # Keep just the class name without module path
-        if "." in type_str:
-            return type_str.split(".")[-1]
-        return type_str
 
 
 @router.get("/architectures")
@@ -257,82 +235,34 @@ async def get_architectures(
 @router.get("/providers")
 async def get_providers(
     user: AuthedUser,
+    response_model=dict,  # The response is a JSON schema dictionary
+    summary="Get OpenAPI Schema for Provider Parameters",
 ):
     """
     This endpoint returns detailed information about all supported model platforms
     and their configuration parameters, including field descriptions, types,
     and whether they are required or optional.
+
+    The schema returned represents a union of all possible platform parameter
+    types.
     """
-    from dataclasses import fields
-    from typing import get_args, get_origin, get_type_hints
+    from pydantic import TypeAdapter
 
-    # NOTE: This is the key place where we define what the platforms we support; if your
-    # platform is not in this list, it will not be shown in the UI!!
-    platform_parameters = [
-        AzureOpenAIPlatformParameters,
-        OpenAIPlatformParameters,
-        BedrockPlatformParameters,
-        CortexPlatformParameters,
-    ]
+    schema = {}
+    try:
+        # Create a TypeAdapter for the Union type
+        adapter = TypeAdapter(AnyPlatformParameters)
 
-    result = []
-    for param_class in platform_parameters:
-        param_info = {
-            "kind": param_class.__name__,
-            "description": param_class.__doc__.strip() if param_class.__doc__ else None,
-            "fields": [],
-        }
+        # Generate the single JSON schema for the Union type
+        schema = adapter.json_schema()
+    except Exception as ex:
+        logger.exception("Failed to generate platform parameters schema", error=ex)
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to generate platform parameters schema",
+        ) from ex
 
-        # Get type hints to handle complex types
-        type_hints = get_type_hints(param_class)
-
-        for field_obj in fields(param_class):
-            # Skip fields that aren't meant to be initialized directly
-            if not field_obj.init or field_obj.name.startswith("_"):
-                continue
-
-            # Determine field type information
-            field_type = type_hints.get(field_obj.name)
-
-            # Handle Union types (like str | None)
-            is_optional = False
-            if get_origin(field_type) is not None:
-                args = get_args(field_type)
-                # Check if None is one of the union options
-                if type(None) in args:
-                    is_optional = True
-                type_str = " | ".join(
-                    _get_friendly_type_name(arg)
-                    for arg in args
-                    if arg is not type(None)
-                )
-            else:
-                type_str = _get_friendly_type_name(field_type)
-
-            # A field is also optional if it has a default value
-            if field_obj.default is not None or field_obj.default_factory is not None:
-                is_optional = True
-
-            # Get field metadata
-            metadata = field_obj.metadata or {}
-            description = metadata.get("description", "")
-            example = metadata.get("example", None)
-
-            field_info = {
-                "name": field_obj.name,
-                "type": type_str,
-                "required": not is_optional,
-                "description": description,
-            }
-
-            if example is not None:
-                field_info["example"] = example
-
-            param_info["fields"].append(field_info)
-
-        result.append(param_info)
-
-    return result
+    return schema
 
 
 @router.post("/providers/{kind}/test")
@@ -385,8 +315,8 @@ async def test_model_platform_params(
 
             testing_tasks = []
             for name, (prompt, validate_response) in [
-                ("basic-test", _basic_test_prompt()),
-                ("basic-test-with-tool", _basic_test_prompt_with_tool()),
+                ("basic", _basic_test_prompt()),
+                ("simple_tool", _basic_test_prompt_with_tool()),
             ]:
                 testing_tasks.append(
                     create_task(
@@ -405,7 +335,7 @@ async def test_model_platform_params(
 
             # Combine the results into a single dictionary
             combined_results = {
-                "platform-kind": parsed_params.kind,
+                "kind": parsed_params.kind,
             }
             for result in results:
                 combined_results.update(result)

@@ -254,7 +254,9 @@ class UpsertAgentPayload:
         params_to_keep = [
             "openai_api_key",
         ]
-        params = {}
+        params = {
+            "openai_api_key": "UNSET",
+        }
         if "config" in self.model:
             for param in params_to_keep:
                 if param in self.model["config"]:
@@ -273,6 +275,37 @@ class UpsertAgentPayload:
         )
         object.__setattr__(self, "model", None)
 
+    def _split_azure_url(self, url: str) -> tuple[str, str, str]:
+        """Split an Azure URL into endpoint, deployment name, and api version."""
+        assert "/openai/deployments/" in url, (
+            f"Invalid azure url, must contain /openai/deployments/: {url}"
+        )
+        assert "chat/completions" in url or "embeddings" in url, (
+            f"Invalid azure url, must contain chat/completions or embeddings: {url}"
+        )
+        assert "?api-version=" in url, (
+            f"Invalid azure url, must contain ?api-version=: {url}"
+        )
+
+        parts = url.split("/openai/deployments/")
+        if len(parts) > 1:
+            endpoint, rest = parts
+            parts = rest.split("/chat/completions?api-version=")
+            if len(parts) > 1:
+                deployment_name, api_version = parts
+                return endpoint, deployment_name, api_version
+            else:
+                parts = rest.split("/embeddings?api-version=")
+                if len(parts) > 1:
+                    deployment_name, api_version = parts
+                    return endpoint, deployment_name, api_version
+
+                raise ValueError(
+                    "Invalid azure url: failed to get deployment name and api version"
+                )
+        else:
+            raise ValueError("Invalid azure url: failed to get endpoint from url")
+
     def _handle_legacy_model_azure(self):
         """Handle backward compatibility for 'model' field with Azure."""
         if not self.model or "provider" not in self.model:
@@ -281,14 +314,46 @@ class UpsertAgentPayload:
             return
 
         params_to_keep = [
-            "azure_endpoint_url",
-            "azure_api_key",
+            "chat_url",
+            "chat_openai_api_key",
+            "embeddings_url",
+            "embeddings_openai_api_key",
         ]
-        params = {}
+        params = {
+            "chat_url": "UNSET",
+            "chat_openai_api_key": "UNSET",
+            "embeddings_url": "UNSET",
+            "embeddings_openai_api_key": "UNSET",
+        }
         if "config" in self.model:
             for param in params_to_keep:
                 if param in self.model["config"]:
                     params[param] = self.model["config"][param]
+
+        # Legacy: chat_url -> azure_endpoint_url, azure_deployment_name
+        # and azure_api_version
+        if "chat_url" in params:
+            endpoint, deployment_name, api_version = self._split_azure_url(
+                params["chat_url"],
+            )
+            params["azure_endpoint_url"] = endpoint
+            params["azure_deployment_name"] = deployment_name
+            params["azure_api_version"] = api_version
+            del params["chat_url"]
+
+        # Now same for embeddings_url (just get the deployment name)
+        if "embeddings_url" in params:
+            _, deployment_name, _ = self._split_azure_url(params["embeddings_url"])
+            params["azure_deployment_name_embeddings"] = deployment_name
+            del params["embeddings_url"]
+
+        # Legacy: chat_openai_api_key -> azure_api_key
+        if "chat_openai_api_key" in params:
+            params["azure_api_key"] = params["chat_openai_api_key"]
+            del params["chat_openai_api_key"]
+
+        # Remove embeddings_openai_api_key if present
+        params.pop("embeddings_openai_api_key", None)
 
         object.__setattr__(
             self,
@@ -331,9 +396,13 @@ class UpsertAgentPayload:
         params_to_keep = [
             "aws_access_key_id",
             "aws_secret_access_key",
-            "aws_region",
+            "region_name",
         ]
-        params = {}
+        params = {
+            "aws_access_key_id": "UNSET",
+            "aws_secret_access_key": "UNSET",
+            "region_name": "UNSET",
+        }
         if "config" in self.model:
             for param in params_to_keep:
                 if param in self.model["config"]:

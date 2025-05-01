@@ -452,6 +452,8 @@ class PathParser(Parser):
         """Parse a value from a string."""
         if isinstance(value, str | bytes):
             return Path(str(value))
+        elif isinstance(value, Path):
+            return value
         else:
             raise ValueError(f"Value is not a path: {value}")
 

@@ -122,7 +122,10 @@ class SnowflakeAuthConfig(Configuration):
         ),
     )
     local_auth_file_path: Path = field(
-        default=SystemPaths.data_dir / "sf-auth.json",
+        # This is NOT BASED IN OUR DATA DIR. Important!
+        # We DO NOT CONTOL the default location of this file, do not
+        # change without talking to Studio team.
+        default=Path.home() / ".sema4ai" / "sf-auth.json",
         metadata=FieldMetadata(
             description="The path to the local authentication file.",
         ),

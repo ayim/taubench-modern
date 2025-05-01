@@ -1,7 +1,8 @@
 from dataclasses import dataclass, field
-from typing import Literal
+from typing import ClassVar, Literal
 
 from agent_platform.core.agent import Agent
+from agent_platform.core.platforms import AnyPlatformParameters
 
 
 # TODO: purely for backwards compatibility
@@ -18,6 +19,25 @@ class ActionPackageCompat:
 
 @dataclass(frozen=True)
 class AgentCompat(Agent):
+    KIND_TO_PROVIDER: ClassVar[dict[str, str]] = {
+        "openai": "OpenAI",
+        "azure": "Azure",
+        "cortex": "Snowflake Cortex AI",
+        "bedrock": "Amazon",
+        "groq": "Groq",
+        "google": "Google",
+        "anthropic": "Anthropic",
+    }
+    KIND_TO_LEGACY_MODEL: ClassVar[dict[str, str]] = {
+        "openai": "gpt-4o",
+        "azure": "gpt-4o",
+        "cortex": "claude-3-5-sonnet",
+        "bedrock": "anthropic.claude-3-5-sonnet-20240620-v1:0",
+        "groq": "unknown",
+        "google": "unknown",
+        "anthropic": "claude-3-5-sonnet",
+    }
+
     runbook: str = field(default="")
     id: str | None = field(default=None)
     public: bool = field(default=True)
@@ -30,55 +50,77 @@ class AgentCompat(Agent):
     )
 
     @classmethod
-    def from_agent(cls, agent: Agent) -> "AgentCompat":
-        # Fallback default to keep studio rendering happy
-        model = {
-            "provider": "OpenAI",
-            "model": "gpt-4o",
-            "config": {
-                "api_key": "UNSET",
-            },
-        }
-
+    def _convert_platform_config_to_legacy_model(  # noqa: C901
+        cls,
+        platform_configs: list[AnyPlatformParameters],
+    ) -> dict:
         # TODO: more backwards compat, this dance will go away
         # when we have some good time to focus on studio integration
         # For now, if we don't round trip the "allow model during POST"
         # back to "render first platform_config as model", studio chokes
-        if len(agent.platform_configs) > 0:
-            kind_to_provider = {
-                "openai": "OpenAI",
-                "azure": "Azure",
-                "cortex": "Snowflake Cortex AI",
-                "bedrock": "Amazon",
-                "groq": "Groq",
-                "google": "Google",
-                "anthropic": "Anthropic",
-            }
 
-            kind_to_legacy_model = {
-                "openai": "gpt-4o",
-                "azure": "gpt-4o",
-                "cortex": "claude-3-5-sonnet",
-                "bedrock": "claude-3-5-sonnet",
-                "groq": "unknown",
-                "google": "unknown",
-                "anthropic": "claude-3-5-sonnet",
-            }
+        # Fallback default to keep studio rendering happy
+        model = {
+            "provider": "OpenAI",
+            "model": "gpt-4o",
+            "config": {},
+        }
 
-            if agent.platform_configs[0].kind not in kind_to_provider:
-                raise ValueError(
-                    "Agent has invalid platform config kind: "
-                    f"{agent.platform_configs[0].kind}"
-                )
+        if len(platform_configs) <= 0:
+            return model
 
-            model_config = agent.platform_configs[0].model_dump()
-            del model_config["kind"]
-
-            model = dict(
-                provider=kind_to_provider[agent.platform_configs[0].kind],
-                model=kind_to_legacy_model[agent.platform_configs[0].kind],
-                config=model_config,
+        if platform_configs[0].kind not in cls.KIND_TO_PROVIDER:
+            raise ValueError(
+                f"Agent has invalid platform config kind: {platform_configs[0].kind}"
             )
+
+        model_config = platform_configs[0].model_dump()
+        del model_config["kind"]
+
+        # Handle legacy: chat_url and embeddings_url for Azure
+        if "azure_endpoint_url" in model_config:
+            del model_config["azure_endpoint_url"]
+        if "azure_deployment_name" in model_config:
+            del model_config["azure_deployment_name"]
+        if "azure_api_version" in model_config:
+            del model_config["azure_api_version"]
+        if "azure_deployment_name_embeddings" in model_config:
+            del model_config["azure_deployment_name_embeddings"]
+        if "azure_generated_endpoint_url" in model_config:
+            model_config["chat_url"] = model_config["azure_generated_endpoint_url"]
+            del model_config["azure_generated_endpoint_url"]
+        if "azure_generated_endpoint_url_embeddings" in model_config:
+            model_config["embeddings_url"] = model_config[
+                "azure_generated_endpoint_url_embeddings"
+            ]
+            del model_config["azure_generated_endpoint_url_embeddings"]
+
+        # Handle legacy: chat_openai_api_key -> azure_api_key
+        if "azure_api_key" in model_config:
+            model_config["chat_openai_api_key"] = model_config["azure_api_key"]
+            model_config["embeddings_openai_api_key"] = model_config["azure_api_key"]
+            del model_config["azure_api_key"]
+
+        # Handle legacy: Bedrock needs 'service-name'
+        if "region_name" in model_config:
+            model_config["service_name"] = "bedrock-runtime"
+
+        # Remove UNSET values from model_config (on agent import right now
+        # values are UNSET from legacy setup because a PUT comes in with
+        # actual config values from studio later... ugh)
+        model_config = {k: v for k, v in model_config.items() if v != "UNSET"}
+
+        return dict(
+            provider=cls.KIND_TO_PROVIDER[platform_configs[0].kind],
+            model=cls.KIND_TO_LEGACY_MODEL[platform_configs[0].kind],
+            config=model_config,
+        )
+
+    @classmethod
+    def from_agent(cls, agent: Agent) -> "AgentCompat":
+        model = cls._convert_platform_config_to_legacy_model(
+            agent.platform_configs,
+        )
 
         return cls(
             id=agent.agent_id,
@@ -96,7 +138,9 @@ class AgentCompat(Agent):
             ),
             model=model,
             advanced_config=dict(
-                architecture=agent.agent_architecture.name,
+                # Only legacy architecture corresponding to v2
+                # agents is "agent" (we can't have "plan_execute" here)
+                architecture="agent",
                 reasoning="disabled",
                 recursion_limit=100,
                 langsmith=(

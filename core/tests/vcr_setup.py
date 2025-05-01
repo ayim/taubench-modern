@@ -197,6 +197,10 @@ def _mask_sensitive_url_parts(request):
 our_vcr = vcr.VCR(
     cassette_library_dir="core/tests/fixtures/vcr_cassettes",
     record_mode=record_mode,
+    # TODO: locally, on OSX, some interaction between this
+    # and file-related integration tests? Easiest fix is to
+    # ignore localhost. Should investigate more.
+    ignore_localhost=True,
     filter_headers=[
         "authorization",
         "api-key",  # For Azure OpenAI

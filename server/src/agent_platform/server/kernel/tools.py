@@ -109,6 +109,50 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                 message_to_update.update_tool_result(result)
                 await message_to_update.stream_delta()
 
+    def _deduplicate_tool_names(
+        self,
+        tools: list[ToolDefinition],
+    ) -> tuple[list[ToolDefinition], list[str]]:
+        """Checks for duplicate tool names and renames them with a unique postfix.
+
+        Args:
+            tools: The list of tool definitions to check.
+
+        Returns:
+            A tuple containing:
+                - The list of tool definitions, potentially with renamed duplicates.
+                - A list of strings describing any renaming issues found.
+        """
+        issues = []
+        tool_names = [tool.name for tool in tools]
+        processed_tools = list(tools)  # Create a copy to modify
+
+        for idx, tool_name in enumerate(tool_names):
+            if tool_names.count(tool_name) <= 1:
+                continue
+
+            # Duplicate tool name!
+            unique_postfix = f"t{idx}"
+            new_name = f"{tool_name}_{unique_postfix}"
+            # Add an issue for the duplicate tool name
+            issues.append(
+                f"Tool with name {tool_name} is not unique across sources; "
+                f"it has been renamed to {new_name}."
+            )
+            # Rename the tool in the list
+            original_tool = processed_tools[idx]
+            processed_tools[idx] = ToolDefinition(
+                name=new_name,
+                description=original_tool.description,
+                input_schema=original_tool.input_schema,
+                function=original_tool.function,
+            )
+            # Update the tool_names list as well to correctly detect
+            # further duplicates
+            tool_names[idx] = new_name
+
+        return processed_tools, issues
+
     async def from_action_packages(
         self,
         action_packages: list[ActionPackage],
@@ -130,7 +174,18 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                 return [], detailed_issue
 
         build_tasks = []
+        seen_server_urls = set()
         for action_package in action_packages:
+            # For our action servers, they can host MULTIPLE action
+            # packages; then, when you ask the server for tools, it
+            # will return all the tools from all the action packages.
+            # So we need to _not_ request from the same server URL
+            # more than once.
+            if action_package.url in seen_server_urls:
+                continue
+            seen_server_urls.add(action_package.url)
+
+            # Unique server URL, so add it to the list of tasks
             build_tasks.append(
                 create_task(safe_get_tool_definitions(action_package)),
             )
@@ -140,6 +195,10 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
             if issue:
                 issues.append(issue)
             tools.extend(tools_list)
+
+        # Deduplicate tool names across all collected action package tools
+        tools, dedup_issues = self._deduplicate_tool_names(tools)
+        issues.extend(dedup_issues)
 
         return tools, issues
 
@@ -173,5 +232,9 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
             if issue:
                 issues.append(issue)
             tools.extend(tools_list)
+
+        # Deduplicate tool names across all collected MCP server tools
+        tools, dedup_issues = self._deduplicate_tool_names(tools)
+        issues.extend(dedup_issues)
 
         return tools, issues
