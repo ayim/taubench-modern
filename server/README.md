@@ -1,1 +1,1 @@
-**Latest Release:** `1.2.5+kernel.17`
+**Latest Release:** `2.0.0-alpha`

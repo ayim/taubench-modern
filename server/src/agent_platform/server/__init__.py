@@ -1,4 +1,4 @@
 from agent_platform.server.main import main
 
-__version__ = "1.2.5+kernel.17"
+__version__ = "2.0.0-alpha"
 __all__ = ["main"]
