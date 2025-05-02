@@ -90,7 +90,11 @@ jobs:
           # Function to set URL output if upload succeeds
           set_url_output() {
             local platform=$1
-            local encoded_url=$(echo "$CDN_BASE_URL/$platform/agent-server" | sed 's/+/%2B/g')
+            local file_extension=""
+            if [[ "$platform" == *"windows"* ]]; then
+              file_extension=".exe"
+            fi
+            local encoded_url=$(echo "$CDN_BASE_URL/$platform/agent-server$file_extension" | sed 's/+/%2B/g')
             echo "${platform}_binary_url=$encoded_url" >> $GITHUB_OUTPUT
           }
 
