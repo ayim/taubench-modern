@@ -1,3 +1,4 @@
+import re
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
@@ -130,37 +131,56 @@ class SQLiteStorage(
         def check_user_access(record_user_id: str, requesting_user_id: str) -> int:
             """
             Return 1 if requesting_user_id can access record_user_id's resource, else 0.
-            - If record_user_id == requesting_user_id, OK
+            - If record_user_id is 'system user', OK
             - If requesting_user_id is 'system user', OK
+            - If record_user_id <= requesting_user_id, OK
             - Else no access
             Because SQLite UDFs must be synchronous, we use the synchronous connection.
             """
-            # If either of the inputs is empty, return 0
-            if not record_user_id or not requesting_user_id:
-                return 0
-
-            # Quick check: if same user, yes
-            if record_user_id == requesting_user_id:
-                return 1
-
             if self._db is None:
                 raise RuntimeError("Database not initialized; call setup_v2() first.")
 
-            # Otherwise, see if requesting_user_id is a system user
-            # i.e. sub like 'tenant:%:system:system_user'
-            # Use the underlying sync connection from aiosqlite
-            cur = self._db._conn.execute(  # Access the synchronous sqlite3.Connection
+            cursor = self._db._conn.execute(
                 """
-                SELECT 1
+                SELECT sub
                 FROM v2_user
                 WHERE user_id = ?
-                  AND sub LIKE 'tenant:%:system:system_user'
+                """,
+                (record_user_id,),
+            )
+            record_user = cursor.fetchone()
+
+            cursor = self._db._conn.execute(
+                """
+                SELECT sub
+                FROM v2_user
+                WHERE user_id = ?
                 """,
                 (requesting_user_id,),
             )
-            result = cur.fetchone()
-            cur.close()  # Important to close the cursor
-            return 1 if result else 0
+            requesting_user = cursor.fetchone()
+            cursor.close()
+
+            if record_user is None or requesting_user is None:
+                return 0
+
+            # record user is a system user (worker agents)
+            # any resources created by this user are accessible to all users of Workroom
+            record_sub_value = record_user["sub"]
+            sys_user_pattern = r"^tenant:.*:system:system_user$"
+            if record_sub_value and bool(re.match(sys_user_pattern, record_sub_value)):
+                return 1
+
+            # system users can access all resources
+            req_sub_value = requesting_user["sub"]
+            if req_sub_value and bool(re.match(sys_user_pattern, req_sub_value)):
+                return 1
+
+            # an user can access resources whose owner's sub is a prefix of their sub
+            if record_sub_value in req_sub_value:
+                return 1
+
+            return 0
 
         # Create the function in the current DB connection
         await self._db.create_function("v2_check_user_access", 2, check_user_access)

@@ -181,9 +181,12 @@ async def test_agent_regular_user_access(
     sample_agent: Agent,
 ) -> None:
     """Test regular user's ability to access their own resources."""
-    await storage.upsert_agent(sample_user_id, sample_agent)
+    this_user, _ = await storage.get_or_create_user(
+        sub="tenant:testing:user:this_user",
+    )
+    await storage.upsert_agent(this_user.user_id, sample_agent)
     regular_accessed_agent = await storage.get_agent(
-        sample_user_id,
+        this_user.user_id,
         sample_agent.agent_id,
     )
     assert regular_accessed_agent is not None

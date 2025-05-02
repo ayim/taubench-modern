@@ -185,7 +185,7 @@ class SQLiteStorageFilesMixin(CommonMixin):
         """Get a file by ID."""
         self._validate_uuid(file_id)
         self._validate_uuid(user_id)
-        self._logger.debug("Getting file by ID", file_id=file_id)
+        self._logger.debug("Getting file by ID", file_id=file_id, user_id=user_id)
         async with self._cursor() as cur:
             await cur.execute(
                 """

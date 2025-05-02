@@ -39,35 +39,43 @@ async def test_user_access_function(
     Test the check_user_access function in Postgres.
     """
     system_user_id: str = await storage.get_system_user_id()
+    this_user, _ = await storage.get_or_create_user(
+        sub="tenant:testing:user:this_user",
+    )
     other_user, _ = await storage.get_or_create_user(
         sub="tenant:testing:user:other_user",
     )
-    random_user_id: str = str(uuid4())
+    tenant_user, _ = await storage.get_or_create_user(
+        sub="tenant:testing",
+    )
+    other_tenant_user, _ = await storage.get_or_create_user(
+        sub="tenant:other_testing:user:other_user",
+    )
 
     async with postgres_test_db.connection() as conn:
         # Don't have dict cursor here, so fetchone returns a tuple.
         async with conn.cursor() as cur:
             await cur.execute(
                 "SELECT v2.check_user_access(%s, %s) AS check_user_access",
-                (random_user_id, system_user_id),
+                (system_user_id, this_user.user_id),
             )
             result1 = await cur.fetchone()
-            # System user can access any user → expect 1.
+            # Any user can access system resources → expect 1.
             assert result1 is not None
             assert result1[0] == 1
 
             await cur.execute(
                 "SELECT v2.check_user_access(%s, %s) AS check_user_access",
-                (random_user_id, other_user.user_id),
+                (other_user.user_id, this_user.user_id),
             )
             result2 = await cur.fetchone()
-            # Other user cannot access random user → expect 0.
+            # This user cannot access other user → expect 0.
             assert result2 is not None
             assert result2[0] == 0
 
             await cur.execute(
                 "SELECT v2.check_user_access(%s, %s) AS check_user_access",
-                (random_user_id, random_user_id),
+                (this_user.user_id, this_user.user_id),
             )
             result3 = await cur.fetchone()
             # A user can access themselves → expect 1.
@@ -82,6 +90,24 @@ async def test_user_access_function(
             # System user can access themselves → expect 1.
             assert result4 is not None
             assert result4[0] == 1
+
+            await cur.execute(
+                "SELECT v2.check_user_access(%s, %s) AS check_user_access",
+                (tenant_user.user_id, this_user.user_id),
+            )
+            result3 = await cur.fetchone()
+            # A user can access tenant resources → expect 1.
+            assert result3 is not None
+            assert result3[0] == 1
+
+            await cur.execute(
+                "SELECT v2.check_user_access(%s, %s) AS check_user_access",
+                (other_tenant_user.user_id, this_user.user_id),
+            )
+            result3 = await cur.fetchone()
+            # A user can access another tenant resources → expect 0.
+            assert result3 is not None
+            assert result3[0] == 0
 
 
 @pytest.mark.asyncio
