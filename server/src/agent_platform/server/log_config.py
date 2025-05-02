@@ -96,8 +96,8 @@ def _setup_additional_loggers(
 
 
 def disable_logging() -> None:
-    """Disable logging across the server."""
-    logging.disable(logging.CRITICAL)
+    """Disable logging below ERROR across the server."""
+    logging.disable(logging.WARNING)
 
 
 def setup_logging(default_mode: bool = False, log_level: str | None = None):

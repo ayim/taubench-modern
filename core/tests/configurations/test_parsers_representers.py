@@ -2,7 +2,7 @@
 
 import enum
 import io
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from pathlib import Path
 from typing import Any, ClassVar, Literal
 
@@ -12,7 +12,9 @@ import yaml
 from agent_platform.core.configurations import (
     AstParserMixin,
     BoolParser,
+    Configuration,
     EnumParser,
+    FieldMetadata,
     FloatParser,
     IntParser,
     LiteralParser,
@@ -23,9 +25,11 @@ from agent_platform.core.configurations import (
     StrParser,
     get_parser_for_field,
     get_representer_for_field,
+    is_union_of_dataclasses_type,
     parse_field_value,
     represent_field_value,
 )
+from agent_platform.core.configurations.errors import ConfigurationDiscriminatorError
 from agent_platform.core.configurations.parsers import Parser
 
 
@@ -203,7 +207,9 @@ class TestComplexParsers:
         assert parser.parse("(1, 2, 3)") == (1, 2, 3)
 
         # Test with set
-        assert set(parser.parse("{1, 2, 3}")) == {1, 2, 3}
+        result = parser.parse("{1, 2, 3}")
+        assert result is not None
+        assert set(result) == {1, 2, 3}
 
         # Test with invalid string
         with pytest.raises(
@@ -412,3 +418,116 @@ class TestRepresenters:
         # Test the function
         result = represent_field_value(path_field, dumper, Path("/test/path"))
         assert result is not None
+
+
+class TestUnionTypeHandling:
+    """Tests for union type handling and related utilities."""
+
+    def test_is_union_of_dataclasses_type(self) -> None:
+        """Test the is_union_of_dataclasses_type function."""
+
+        @dataclass
+        class ConfigA:
+            type: Literal["a"] = "a"
+            value: str = ""
+
+        @dataclass
+        class ConfigB:
+            type: Literal["b"] = "b"
+            value: int = 0
+
+        # Test valid union types
+        assert is_union_of_dataclasses_type(ConfigA | ConfigB)
+        assert is_union_of_dataclasses_type(ConfigA | None)
+        assert is_union_of_dataclasses_type(ConfigA | ConfigB | None)
+
+        # Test invalid union types
+        assert not is_union_of_dataclasses_type(str | int)
+        assert not is_union_of_dataclasses_type(ConfigA | str)
+        assert not is_union_of_dataclasses_type(list[ConfigA])
+
+    def test_union_of_dataclass_parser(self) -> None:
+        """Test the UnionOfDataclassParser."""
+        from agent_platform.core.configurations.parsers import UnionOfDataclassParser
+
+        @dataclass
+        class ConfigA:
+            value: str = ""
+
+        @dataclass
+        class ConfigB:
+            value: int = 0
+
+        @dataclass(frozen=True)
+        class ParentConfig(Configuration):
+            type: Literal["a", "b"] = "a"
+            union_field: ConfigA | ConfigB = field(
+                default_factory=ConfigA,
+                metadata=FieldMetadata(
+                    description="A union field that can be either ConfigA or ConfigB",
+                    discriminator="type",
+                    discriminator_mapping={
+                        "a": ConfigA,
+                        "b": ConfigB,
+                    },
+                ),
+            )
+
+        # Test parsing ConfigA
+        config_a = {"value": "test"}
+        parser = UnionOfDataclassParser(
+            field=fields(ParentConfig)[1],  # union_field is the second field
+            parent_config=ParentConfig(),
+        )
+        result = parser.parse(config_a)
+        assert isinstance(result, ConfigA)
+        assert result.value == "test"
+
+        # Test parsing ConfigB
+        config_b = {"value": 42}
+        parent_config = ParentConfig(type="b")  # Create new instance with type="b"
+        parser = UnionOfDataclassParser(
+            field=fields(ParentConfig)[1],  # union_field is the second field
+            parent_config=parent_config,
+        )
+        result = parser.parse(config_b)
+        assert isinstance(result, ConfigB)
+        assert result.value == 42
+
+        # Test invalid discriminator value
+        invalid_parser = UnionOfDataclassParser(
+            field=fields(ParentConfig)[1],  # union_field is the second field
+            parent_config=ParentConfig(
+                type="b"
+            ),  # Valid literal but invalid for the test case
+        )
+        with pytest.raises(
+            ConfigurationDiscriminatorError,
+            match="Failed to create instance of ConfigB",
+        ):
+            invalid_parser.parse(
+                {"value": "test"}
+            )  # This will fail because ConfigB expects an int
+
+        # Test missing metadata
+        @dataclass(frozen=True)
+        class ParentConfigWithoutMetadata(Configuration):
+            type: Literal["a", "b"] = "a"
+            union_field: ConfigA | ConfigB = field(
+                default_factory=ConfigA,
+                metadata=FieldMetadata(
+                    description="A union field that can be either ConfigA or ConfigB",
+                ),
+            )
+
+        missing_metadata_parser = UnionOfDataclassParser(
+            field=fields(ParentConfigWithoutMetadata)[
+                1
+            ],  # union_field is the second field
+            parent_config=ParentConfigWithoutMetadata(),
+        )
+        with pytest.raises(
+            ConfigurationDiscriminatorError,
+            match="Discriminator mapping and discriminator field name are required",
+        ):
+            missing_metadata_parser.parse({"value": "test"})

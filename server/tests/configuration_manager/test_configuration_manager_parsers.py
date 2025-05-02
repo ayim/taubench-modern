@@ -10,11 +10,12 @@ from dataclasses import Field, dataclass, field
 from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, ClassVar, cast
+from typing import Any, ClassVar, Literal, cast
 
+import pytest
 import yaml
 
-from agent_platform.core.configurations import Configuration
+from agent_platform.core.configurations import Configuration, FieldMetadata
 from agent_platform.core.configurations.parsers import (
     DatetimeParser,
     Parser,
@@ -25,7 +26,10 @@ from agent_platform.core.configurations.representers import (
     Representer,
     represent_field_value,
 )
-from agent_platform.server.configuration_manager import ConfigurationService
+from agent_platform.server.configuration_manager import (
+    ConfigurationManager,
+    ConfigurationService,
+)
 
 
 class ConfigTestEnum(Enum):
@@ -65,7 +69,7 @@ class ConfigWithCustomParser(Configuration):
         default="default",
         metadata={
             "env_vars": ["TEST_CUSTOM_VALUE"],
-            "parser": CustomParser(),
+            "parser": CustomParser,
         },
     )
 
@@ -101,7 +105,7 @@ class ConfigWithDateTime(Configuration):
         default=datetime.now(UTC),
         metadata={
             "env_vars": ["TEST_DATETIME_VALUE"],
-            "parser": DatetimeParser(),
+            "parser": DatetimeParser,
             "representer": DatetimeRepresenter,
         },
     )
@@ -115,8 +119,49 @@ class ConfigWithPath(Configuration):
         default=Path("."),
         metadata={
             "env_vars": ["TEST_PATH_VALUE"],
-            "parser": PathParser(),
+            "parser": PathParser,
         },
+    )
+
+
+@dataclass(frozen=True)
+class UnionConfigA(Configuration):
+    """A configuration class for testing union types."""
+
+    value: str = field(
+        default="",
+        metadata={"env_vars": ["TEST_UNION_A_VALUE"]},
+    )
+
+
+@dataclass(frozen=True)
+class UnionConfigB(Configuration):
+    """A configuration class for testing union types."""
+
+    value: int = field(
+        default=0,
+        metadata={"env_vars": ["TEST_UNION_B_VALUE"]},
+    )
+
+
+@dataclass(frozen=True)
+class ConfigWithUnion(Configuration):
+    """A configuration class with a union type field."""
+
+    type: Literal["a", "b"] = field(
+        default="a",
+        metadata={"env_vars": ["TEST_UNION_TYPE"]},
+    )
+    union_field: UnionConfigA | UnionConfigB = field(
+        default_factory=UnionConfigA,
+        metadata=FieldMetadata(
+            description="A union field that can be either UnionConfigA or UnionConfigB",
+            discriminator="type",
+            discriminator_mapping={
+                "a": UnionConfigA,
+                "b": UnionConfigB,
+            },
+        ),
     )
 
 
@@ -289,8 +334,9 @@ class TestConfigurationParsers:
             Field[Any],
             ConfigWithCustomParser.__dataclass_fields__["custom_value"],
         )
-        parser = field_with_parser.metadata["parser"]
-        assert parser.parse("special") == "parsed_special"
+        parser_class = field_with_parser.metadata["parser"]
+        parser_instance = parser_class(field_with_parser)
+        assert parser_instance.parse("special") == "parsed_special"
 
         # Test with an enum
         field_with_enum = cast(
@@ -307,16 +353,18 @@ class TestConfigurationParsers:
             Field[Any],
             ConfigWithPath.__dataclass_fields__["path_value"],
         )
-        path_parser = field_with_path.metadata["parser"]
-        assert path_parser.parse("/test/path") == Path("/test/path")
+        path_parser_class = field_with_path.metadata["parser"]
+        path_parser_instance = path_parser_class(field_with_path)
+        assert path_parser_instance.parse("/test/path") == Path("/test/path")
 
         # Test with a datetime
         field_with_datetime = cast(
             Field[Any],
             ConfigWithDateTime.__dataclass_fields__["datetime_value"],
         )
-        datetime_parser = field_with_datetime.metadata["parser"]
-        assert datetime_parser.parse("2023-02-15T14:30:00+00:00") == datetime(
+        datetime_parser_class = field_with_datetime.metadata["parser"]
+        datetime_parser_instance = datetime_parser_class(field_with_datetime)
+        assert datetime_parser_instance.parse("2023-02-15T14:30:00+00:00") == datetime(
             2023,
             2,
             15,
@@ -361,3 +409,162 @@ class TestConfigurationParsers:
         )
         assert result is not None
         assert result.value == "2023-02-15T14:30:00+00:00"
+
+
+class TestUnionTypeConfiguration:
+    """Tests for union type handling in configuration manager."""
+
+    def setup_method(self) -> None:
+        """Set up the test environment."""
+        self.config_manager = ConfigurationManager()
+
+    def test_union_type_parsing(self) -> None:
+        """Test parsing of union type configurations."""
+        # Test parsing ConfigA
+        config_a = {
+            "type": "a",
+            "union_field": {
+                "value": "test_a",
+            },
+        }
+        overrides = {
+            ConfigWithUnion.__module__ + "." + ConfigWithUnion.__name__: config_a,
+        }
+        # Initialize the configuration service with overrides
+        ConfigurationService.initialize(
+            packages_to_scan=[],
+            config_modules=[__name__],
+            overrides=overrides,
+        )
+        # Get the manager and ensure our config is loaded
+        ConfigurationService.get_instance()
+        # Create a new instance with the overridden values
+        instance = ConfigWithUnion.from_dict(config_a)
+        ConfigWithUnion.set_instance(instance)
+        # Access the configuration through class-level attributes
+        assert isinstance(ConfigWithUnion.union_field, UnionConfigA)
+        assert ConfigWithUnion.union_field.value == "test_a"
+
+        # Test parsing ConfigB
+        config_b = {
+            "type": "b",
+            "union_field": {
+                "value": 42,
+            },
+        }
+        overrides = {
+            ConfigWithUnion.__module__ + "." + ConfigWithUnion.__name__: config_b,
+        }
+        # Initialize the configuration service with new overrides
+        ConfigurationService.initialize(
+            packages_to_scan=[],
+            config_modules=[__name__],
+            overrides=overrides,
+        )
+        # Get the manager and ensure our config is loaded
+        ConfigurationService.get_instance()
+        # Create a new instance with the overridden values
+        instance = ConfigWithUnion.from_dict(config_b)
+        ConfigWithUnion.set_instance(instance)
+        # Access the configuration through class-level attributes
+        assert isinstance(ConfigWithUnion.union_field, UnionConfigB)
+        assert ConfigWithUnion.union_field.value == 42
+
+        # Test invalid discriminator value
+        invalid_config = {
+            "type": "c",  # Invalid discriminator value
+            "union_field": {
+                "value": "test",
+            },
+        }
+        overrides = {
+            ConfigWithUnion.__module__ + "." + ConfigWithUnion.__name__: invalid_config,
+        }
+        # Initialize the configuration service with invalid overrides
+        ConfigurationService.initialize(
+            packages_to_scan=[],
+            config_modules=[__name__],
+            overrides=overrides,
+        )
+        # Ensure our config is loaded
+        ConfigurationService.get_instance()
+        # Try to create a new instance with the invalid config
+        with pytest.raises(
+            TypeError,
+            match=(
+                "Error processing field 'type' with value c: Failed to parse Literal "
+                "value 'c': Value 'c' is not one of the allowed options: \\('a', 'b'\\)"
+            ),
+        ):
+            ConfigWithUnion.from_dict(invalid_config)
+
+    def test_union_type_environment_variables(self) -> None:
+        """Test union type configuration with environment variables."""
+        import os
+
+        try:
+            # Test ConfigA
+            os.environ["TEST_UNION_FIELD"] = '{"value": "env_test_a"}'
+            os.environ["TEST_UNION_TYPE"] = "a"
+
+            # Reset the ConfigurationService singleton
+            ConfigurationService.reset()
+
+            # Initialize the configuration service
+            ConfigurationService.initialize(
+                packages_to_scan=[],
+                config_modules=[__name__],
+            )
+
+            # Get the manager and ensure our config is loaded
+            ConfigurationService.get_instance()
+
+            # Create a new instance with the environment variables
+            config_a = {
+                "type": "a",
+                "union_field": {
+                    "value": "env_test_a",
+                },
+            }
+            instance = ConfigWithUnion.from_dict(config_a)
+            ConfigWithUnion.set_instance(instance)
+
+            # Access the configuration through class-level attributes
+            assert isinstance(ConfigWithUnion.union_field, UnionConfigA)
+            assert ConfigWithUnion.union_field.value == "env_test_a"
+
+            # Test ConfigB
+            os.environ["TEST_UNION_FIELD"] = '{"value": 123}'
+            os.environ["TEST_UNION_TYPE"] = "b"
+
+            # Reset the ConfigurationService singleton
+            ConfigurationService.reset()
+
+            # Reinitialize the configuration service with new environment variables
+            ConfigurationService.initialize(
+                packages_to_scan=[],
+                config_modules=[__name__],
+            )
+
+            # Get the manager and ensure our config is loaded
+            ConfigurationService.get_instance()
+
+            # Create a new instance with the environment variables
+            config_b = {
+                "type": "b",
+                "union_field": {
+                    "value": 123,
+                },
+            }
+            instance = ConfigWithUnion.from_dict(config_b)
+            ConfigWithUnion.set_instance(instance)
+
+            # Access the configuration through class-level attributes
+            assert isinstance(ConfigWithUnion.union_field, UnionConfigB)
+            assert ConfigWithUnion.union_field.value == 123
+        finally:
+            # Clean up environment variables
+            if "TEST_UNION_FIELD" in os.environ:
+                del os.environ["TEST_UNION_FIELD"]
+            if "TEST_UNION_TYPE" in os.environ:
+                del os.environ["TEST_UNION_TYPE"]

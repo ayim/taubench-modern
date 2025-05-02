@@ -9,6 +9,7 @@ from enum import Enum
 from pathlib import Path
 from types import UnionType
 from typing import (
+    TYPE_CHECKING,
     Any,
     ClassVar,
     Literal,
@@ -17,6 +18,14 @@ from typing import (
 )
 
 import structlog
+
+from agent_platform.core.configurations.errors import ConfigurationDiscriminatorError
+from agent_platform.core.configurations.utils import (
+    is_union_of_dataclasses_type,
+)
+
+if TYPE_CHECKING:
+    from agent_platform.core.configurations.base import Configuration
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
@@ -52,7 +61,11 @@ class Parser(ABC):
            supported types
     """
 
-    def __init__(self, field: Field | None = None) -> None:
+    def __init__(
+        self,
+        field: Field | None = None,
+        parent_config: "type[Configuration] | Configuration | None" = None,
+    ) -> None:
         """Initialize the parser with an optional field.
 
         When a field is provided, the parser checks if it supports the field's type
@@ -64,10 +77,18 @@ class Parser(ABC):
         support, such as when you've already verified the type compatibility.
 
         Args:
-            field: Optional field to check for type compatibility. If None, the parser's
-                `is_supported` property will always return True.
+            field: Optional field to check for type compatibility or provide additional
+                context for the parser. Some parsers may require this to parse
+                values correctly, in which case the parser may fail at runtime if
+                the field is not provided.
+            parent_config: The parent configuration the field belongs to. This provides
+                context for the parser, which may be required for some parsers to
+                parse values correctly. If not provided, the parser will not have
+                any context and may fail at runtime if it requires parent config
+                information.
         """
         self._field = field
+        self._parent_config = parent_config
         self._supports_field = self.supports_type(field.type) if field else True
 
     @property
@@ -75,9 +96,29 @@ class Parser(ABC):
         """Check if the parser supports the field type."""
         return self._supports_field
 
+    @property
+    def parent_config(self) -> "type[Configuration] | Configuration | None":
+        """Get the parent configuration."""
+        return self._parent_config
+
+    @property
+    def field(self) -> Field | None:
+        """Get the field."""
+        return self._field
+
     @abstractmethod
     def parse(self, value: Any) -> Any:
-        """Parse a value."""
+        """Parse a value.
+
+        Note: Input values of None will always be returned as None to ensure
+        field defaults are honored.
+
+        Args:
+            value: The value to parse
+
+        Returns:
+            The parsed value
+        """
         ...
 
     @classmethod
@@ -123,6 +164,32 @@ class AstParserMixin(Parser):
             raise ValueError(f"Failed to parse value: {value}") from e
 
 
+class FieldRequiredMixin(Parser):
+    """A mixin for parsers that require a field to be initialized."""
+
+    @property
+    def field(self) -> Field:
+        """Get the field."""
+        if self._field is None:
+            raise ValueError(
+                f"{self.__class__.__name__} must be initialized with a Field"
+            )
+        return self._field
+
+
+class ParentConfigRequiredMixin(Parser):
+    """A mixin for parsers that require a parent config to be initialized."""
+
+    @property
+    def parent_config(self) -> "type[Configuration] | Configuration":
+        """Get the parent config."""
+        if self._parent_config is None:
+            raise ValueError(
+                f"{self.__class__.__name__} must be initialized with a parent config"
+            )
+        return self._parent_config
+
+
 class LiteralParser(AstParserMixin, Parser):
     """A parser for Literal types that validates values against allowed options."""
 
@@ -135,13 +202,17 @@ class LiteralParser(AstParserMixin, Parser):
     specified in the Literal type.
     """
 
-    def __init__(self, field: Field | None = None) -> None:
+    def __init__(
+        self,
+        field: Field | None = None,
+        parent_config: "type[Configuration] | Configuration | None" = None,
+    ) -> None:
         """Initialize the LiteralParser.
 
         Args:
             field: The field to check
         """
-        super().__init__(field)
+        super().__init__(field, parent_config)
         self._field_type = field.type if field else None
 
     def parse(self, value: Any) -> Any:
@@ -156,7 +227,7 @@ class LiteralParser(AstParserMixin, Parser):
         Raises:
             ValueError: If the value doesn't match any of the allowed options
         """
-        if self._field_type is None:
+        if value is None or self._field_type is None:
             return value
 
         literal_args = get_args(self._field_type)
@@ -217,8 +288,10 @@ class StrParser(Parser):
 
     _supported_types: ClassVar[set[Any]] = {str}
 
-    def parse(self, value: Any) -> str:
+    def parse(self, value: Any) -> str | None:
         """Parse a value from a string."""
+        if value is None:
+            return None
         return str(value)
 
 
@@ -227,8 +300,10 @@ class IntParser(Parser):
 
     _supported_types: ClassVar[set[Any]] = {int}
 
-    def parse(self, value: Any) -> int:
+    def parse(self, value: Any) -> int | None:
         """Parse a value from a string."""
+        if value is None:
+            return None
         return int(value)
 
 
@@ -237,8 +312,10 @@ class FloatParser(Parser):
 
     _supported_types: ClassVar[set[Any]] = {float}
 
-    def parse(self, value: Any) -> float:
+    def parse(self, value: Any) -> float | None:
         """Parse a value from a string."""
+        if value is None:
+            return None
         return float(value)
 
 
@@ -247,8 +324,10 @@ class BoolParser(Parser):
 
     _supported_types: ClassVar[set[Any]] = {bool}
 
-    def parse(self, value: Any) -> bool:
+    def parse(self, value: Any) -> bool | None:
         """Parse a value from a string."""
+        if value is None:
+            return None
         if isinstance(value, bool):
             return value
         elif isinstance(value, str):
@@ -259,7 +338,7 @@ class BoolParser(Parser):
             raise ValueError(f"Value is not a boolean: {value}")
 
 
-class EnumParser(Parser):
+class EnumParser(FieldRequiredMixin, Parser):
     """A parser for a field in a configuration class that parses enums.
 
     This parser needs to be initialized with the Field so the return type
@@ -268,7 +347,7 @@ class EnumParser(Parser):
 
     _supported_types: ClassVar[set[Any]] = {Enum}
 
-    def parse(self, value: Any) -> Enum:
+    def parse(self, value: Any) -> Enum | None:
         """Parse a value from a string.
 
         Args:
@@ -281,10 +360,10 @@ class EnumParser(Parser):
             ValueError: If the parser is not initialized with a Field or if the value
                 cannot be parsed into the enum.
         """
-        if self._field is None:
-            raise ValueError("EnumParser must be initialized with a Field")
+        if value is None:
+            return value
 
-        enum_type = self._field.type
+        enum_type = self.field.type
         if not isinstance(enum_type, type):
             raise ValueError(f"Field type {enum_type} is not a type")
 
@@ -299,25 +378,51 @@ class EnumParser(Parser):
             ) from e
 
 
-class NestedDataclassParser(Parser):
+class NestedDataclassParser(AstParserMixin, FieldRequiredMixin, Parser):
     """A parser for a field in a configuration class that parses nested
-    dataclass fields."""
+    dataclass types. This parser requires a field to be initialized or the
+    parse method will raise a ValueError.
+    """
 
     _supported_types: ClassVar[set[Any]] = set()
 
     def parse(self, value: Any) -> Any:
-        """Parse a dataclass"""
-        if not is_dataclass(value):
-            raise ValueError(f"Value is not a dataclass: {value}")
-        # load the dataclasses fields and parse them with the appropriate parser
-        nested_fields = fields(value)
-        for f in nested_fields:
-            field_value = getattr(value, f.name)
-            parser = get_parser_for_field(f)
-            if parser is None:
-                raise ValueError(f"No parser found for field {f.name}")
-            setattr(value, f.name, parser.parse(field_value))
-        return value
+        """Parse a value into a dataclass. If the value is a string, it will be
+        parsed using ast.literal_eval before being parsed into the dataclass.
+
+        Args:
+            value: The value to parse
+
+        Returns:
+            The parsed dataclass.
+
+        Raises:
+            ValueError: If the value is not a dataclass type or if the value
+                does not match any of the configured discriminators.
+        """
+        if value is None:
+            return value
+        if not is_dataclass(self.field.type):
+            raise ValueError(f"Field type {self.field.type} is not a dataclass type")
+        if isinstance(value, str):
+            value = self.literal_eval(value, (dict,))
+        if not isinstance(value, dict):
+            raise ValueError(
+                f"Field value must be a dictionary for "
+                f"Nested Dataclasses. Field: {self.field.name}"
+            )
+        for f in fields(self.field.type):
+            if not f.init:
+                value.pop(f.name, None)
+            elif f.name in value:
+                value[f.name] = parse_field_value(f, value[f.name], self.parent_config)
+
+        # Ensure we're working with a class, not an instance
+        dataclass_type = self.field.type
+        if not isinstance(dataclass_type, type):
+            dataclass_type = type(dataclass_type)
+
+        return dataclass_type(**value)
 
     @classmethod
     def supports_type(cls, field_type: Any) -> bool:
@@ -329,13 +434,165 @@ class NestedDataclassParser(Parser):
         return is_dataclass(field_type)
 
 
+class UnionOfDataclassParser(
+    AstParserMixin, FieldRequiredMixin, ParentConfigRequiredMixin, Parser
+):
+    """A parser for a field in a configuration class that parses a Union of
+    dataclass types. This parser requires a field and parent config to be
+    initialized or the parse method will raise a ValueError.
+
+    This parser will parse a value into the appropriate dataclass based on the
+    discriminators configured in the Union of dataclasses type.
+
+    Note: This parser does not support unions of dataclasses that are themselves
+    nested in dataclasses or other types
+    """
+
+    _supported_types: ClassVar[set[Any]] = set()
+
+    def _validate_discriminator_field(self) -> None:
+        """Validate the discriminator field."""
+        if not is_union_of_dataclasses_type(self.field.type):
+            raise ValueError(
+                f"Field type {self.field.type} is not a Union of dataclasses type",
+            )
+        if (
+            "discriminator_mapping" not in self.field.metadata
+            or "discriminator" not in self.field.metadata
+        ):
+            raise ConfigurationDiscriminatorError(
+                f"Discriminator mapping and discriminator field name are required for "
+                f"Unions of Dataclasses. Field: {self.field.name}"
+            )
+        discriminator_field = self.field.metadata["discriminator"]
+        if not isinstance(discriminator_field, str):
+            raise ConfigurationDiscriminatorError(
+                f"Discriminator field name must be a string for "
+                f"Unions of Dataclasses. Field: {self.field.name}"
+            )
+
+    def get_target_class(self) -> Any:
+        """Get the target class for the Union of dataclasses type based on
+        the discriminator value.
+
+        Returns:
+            The target class for the Union of dataclasses type.
+        """
+        self._validate_discriminator_field()
+        # Get the discriminator field name from the metadata
+        discriminator_field = self.field.metadata["discriminator"]
+        if not isinstance(discriminator_field, str):
+            raise ConfigurationDiscriminatorError(
+                f"Discriminator field name must be a string for "
+                f"Unions of Dataclasses. Field: {self.field.name}"
+            )
+
+        # Get the discriminator value from the parent config
+        for parent_field in fields(self.parent_config):
+            if parent_field.name == discriminator_field:
+                # Because of the ConfigMeta metaclass, the parent config is a
+                # singleton instance of the configuration class, so we can access
+                # the field directly and get the value even though we may be in the
+                # middle of parsing the config.
+                discriminator_value = getattr(self.parent_config, parent_field.name)
+                break
+        else:
+            raise ConfigurationDiscriminatorError(
+                f"Discriminator field {discriminator_field} not found in parent config"
+            )
+        if discriminator_value is None:
+            raise ConfigurationDiscriminatorError(
+                f"Discriminator value must be loaded before the Union type "
+                f"can be parsed. Discriminator field: {discriminator_field} "
+                f"Field: {self.field.name}"
+            )
+
+        # Get the discriminator mapping from the metadata
+        discriminator_mapping = self.field.metadata["discriminator_mapping"]
+        if not isinstance(discriminator_mapping, dict):
+            raise ConfigurationDiscriminatorError(
+                f"Discriminator mapping must be a dictionary for "
+                f"Unions of Dataclasses. Field: {self.field.name}"
+            )
+
+        # Get the class for this discriminator value
+        target_class = discriminator_mapping.get(discriminator_value)
+        if target_class is None and isinstance(discriminator_value, Enum):
+            # Try getting the class using the enum value
+            target_class = discriminator_mapping.get(discriminator_value.value)
+        if target_class is None:
+            raise ConfigurationDiscriminatorError(
+                f"No class found for discriminator value '{discriminator_value}' "
+                f"in field {self.field.name}"
+            )
+        if isinstance(target_class, type) and not is_dataclass(target_class):
+            raise ConfigurationDiscriminatorError(
+                f"Target class {target_class.__name__} is not a dataclass"
+            )
+        return target_class
+
+    def parse(self, value: Any) -> Any:
+        """Parse a value into the appropriate dataclass based on the
+        discriminators configured in the Union of dataclasses type. If the value
+        is a string, it will be parsed using ast.literal_eval before being parsed
+        into the dataclass.
+
+        Args:
+            value: The value to parse
+
+        Returns:
+            The parsed dataclass.
+
+        Raises:
+            ValueError: If the value is not a Union of dataclasses type or if the
+                value does not match any of the configured discriminators.
+        """
+        if value is None:
+            return None
+        self._validate_discriminator_field()
+        # Check input
+        if isinstance(value, str):
+            value = self.literal_eval(value, (dict,))
+        if not isinstance(value, dict):
+            raise ConfigurationDiscriminatorError(
+                f"Field value must be a dictionary for "
+                f"Unions of Dataclasses. Field: {self.field.name}"
+            )
+
+        # Create an instance of the target class, which is a dataclass
+        target_class = self.get_target_class()
+        try:
+            for f in fields(target_class):
+                if not f.init:
+                    value.pop(f.name, None)
+                elif f.name in value:
+                    value[f.name] = parse_field_value(
+                        f, value[f.name], self.parent_config
+                    )
+            return target_class(**value)
+        except Exception as e:
+            raise ConfigurationDiscriminatorError(
+                f"Failed to create instance of {target_class.__name__} "
+                f"for field {self.field.name}: {e}"
+            ) from e
+
+    @classmethod
+    def supports_type(cls, field_type: Any) -> bool:
+        """Check if this parser supports the given field type.
+
+        Args:
+            field_type: The type to check
+        """
+        return is_union_of_dataclasses_type(field_type)
+
+
 class NestedMappingParser(AstParserMixin, Parser):
     """A parser for a field in a configuration class that parses nested
     mapping fields."""
 
     _supported_types: ClassVar[set[Any]] = {dict, Mapping}
 
-    def parse(self, value: Any) -> Mapping:
+    def parse(self, value: Any) -> Mapping | None:
         """Parse a value from a string or recursively parse a mapping.
 
         For mapping types (dict, Mapping), this will recursively parse all values
@@ -348,6 +605,8 @@ class NestedMappingParser(AstParserMixin, Parser):
         Returns:
             The parsed mapping with all nested values processed
         """
+        if value is None:
+            return None
         # If value is not a mapping, try to convert it if it's a string
         if not isinstance(value, dict | Mapping):
             if isinstance(value, str):
@@ -388,7 +647,7 @@ class NestedListParser(AstParserMixin, Parser):
 
     _supported_types: ClassVar[set[Any]] = {list, tuple, set, Sequence}
 
-    def parse(self, value: Any) -> set | Sequence:
+    def parse(self, value: Any) -> set | Sequence | None:
         """Parse a value from a string or recursively parse a sequence.
 
         For sequence types (list, tuple, etc), this will recursively parse all values
@@ -401,23 +660,19 @@ class NestedListParser(AstParserMixin, Parser):
         Returns:
             The parsed sequence with all nested values processed
         """
+        if value is None:
+            return None
         # If value is not a sequence, try to convert it if it's a string
-        if not isinstance(value, list | tuple | set | Sequence) or isinstance(
-            value,
-            str,
-        ):
-            if isinstance(value, str):
-                try:
-                    parsed_value = self.literal_eval(value, (list, tuple, set))
-                    if isinstance(parsed_value, list | tuple | set):
-                        # If we parsed it to a sequence, continue processing
-                        value = parsed_value
-                    else:
-                        return parsed_value
-                except (ValueError, SyntaxError) as e:
-                    raise ValueError(f"Failed to parse sequence value: {value}") from e
-            else:
-                return value
+        if isinstance(value, str):
+            try:
+                parsed_value = self.literal_eval(value, (list, tuple, set))
+                if isinstance(parsed_value, list | tuple | set):
+                    # If we parsed it to a sequence, continue processing
+                    value = parsed_value
+                else:
+                    return parsed_value
+            except (ValueError, SyntaxError) as e:
+                raise ValueError(f"Failed to parse sequence value: {value}") from e
 
         # For sequence types, recursively parse each value
         result = []
@@ -448,8 +703,10 @@ class PathParser(Parser):
 
     _supported_types: ClassVar[set[Any]] = {Path}
 
-    def parse(self, value: Any) -> Path:
-        """Parse a value from a string."""
+    def parse(self, value: Any) -> Path | None:
+        """Parse a value as a path."""
+        if value is None:
+            return None
         if isinstance(value, str | bytes):
             return Path(str(value))
         elif isinstance(value, Path):
@@ -463,8 +720,10 @@ class DatetimeParser(Parser):
 
     _supported_types: ClassVar[set[Any]] = {datetime}
 
-    def parse(self, value: Any) -> datetime:
-        """Parse a datetime value from a string."""
+    def parse(self, value: Any) -> datetime | None:
+        """Parse a value as a datetime."""
+        if value is None:
+            return None
         if isinstance(value, str):
             return datetime.fromisoformat(value)
         return value
@@ -481,27 +740,44 @@ BUILT_IN_PARSERS = [
     NestedListParser,
     PathParser,
     DatetimeParser,
+    NestedDataclassParser,
+    UnionOfDataclassParser,
 ]
 
 
 # TODO: You could optimize this by determining the best parser for a field and saving
 # it in the field metadata when a configuration class is created.
-def initialize_parsers(field: Field) -> list[Parser]:
+def initialize_parsers(
+    field: Field, parent_config: "type[Configuration] | Configuration | None" = None
+) -> list[Parser]:
     """Initialize the parsers for a field."""
-    return [parser(field) for parser in BUILT_IN_PARSERS]
+    return [parser(field, parent_config) for parser in BUILT_IN_PARSERS]
 
 
-def get_parser_for_field(field: Field) -> Parser | None:
+def get_parser_for_field(
+    field: Field, parent_config: "type[Configuration] | Configuration | None" = None
+) -> Parser | None:
     """Get the appropriate parser for a field type from the list of
     built in parsers."""
-    parsers = initialize_parsers(field)
+    parsers = initialize_parsers(field, parent_config)
     return next((p for p in parsers if p.is_supported), None)
 
 
-def parse_field_value(field: Field, value: Any) -> Any:
+def parse_field_value(
+    field: Field,
+    value: Any,
+    parent_config: "type[Configuration] | Configuration | None" = None,
+) -> Any:
     """Parse a value for a field using the field's metadata or the
-    appropriate built-in parser for the field type."""
-    parser = field.metadata.get("parser", get_parser_for_field(field))
+    appropriate built-in parser for the field type.
+
+    Note: An input value of None will always be returned as None to ensure
+    field defaults are honored."""
+    if value is None:
+        return None
+    parser = field.metadata.get("parser", get_parser_for_field(field, parent_config))
     if parser is None:
         return value
+    if isinstance(parser, type) and issubclass(parser, Parser):
+        parser = parser(field, parent_config)
     return parser.parse(value)

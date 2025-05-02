@@ -125,6 +125,7 @@ from agent_platform.core.configurations.representers import (
     get_representer_for_field,
     represent_field_value,
 )
+from agent_platform.core.configurations.utils import is_union_of_dataclasses_type
 
 __all__ = [
     "BUILT_IN_REPRESENTERS",
@@ -144,6 +145,7 @@ __all__ = [
     "get_parser_for_field",
     "get_representer_for_field",
     "initialize_parsers",
+    "is_union_of_dataclasses_type",
     "parse_field_value",
     "represent_field_value",
 ]

@@ -73,6 +73,13 @@ class JWTSettingsOIDC(JWTSettingsBase):
     pass
 
 
+@dataclass
+class JWTSettingsNoop:
+    """A dummy class for the NOOP auth type."""
+
+    pass
+
+
 @dataclass(frozen=True)
 class AuthConfig(Configuration):
     """Configuration for the authentication of users to the server."""
@@ -85,9 +92,15 @@ class AuthConfig(Configuration):
             env_vars=["SEMA4AI_AGENT_SERVER_AUTH_TYPE", "AUTH_TYPE"],
         ),
     )
-    jwt_settings: JWTSettingsLocal | JWTSettingsOIDC | None = field(
-        default=None,
+    jwt_settings: JWTSettingsLocal | JWTSettingsOIDC | JWTSettingsNoop = field(
+        default_factory=JWTSettingsNoop,
         metadata=FieldMetadata(
             description="The settings for JWT authentication.",
+            discriminator="auth_type",
+            discriminator_mapping={
+                AuthType.NOOP.value: JWTSettingsNoop,
+                AuthType.JWT_LOCAL.value: JWTSettingsLocal,
+                AuthType.JWT_OIDC.value: JWTSettingsOIDC,
+            },
         ),
     )

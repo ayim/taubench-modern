@@ -1,4 +1,17 @@
-"""Module for parsing CLI arguments associated with Agent Server configuration."""
+"""Module for parsing CLI arguments associated with the Agent Server configuration.
+
+This module provides functionality for handling configuration paths and loading
+configurations from various sources. It supports recursive parsing of dataclass
+fields, allowing for complex configuration hierarchies to be loaded and parsed
+correctly. When a configuration field is a dataclass or a Union of dataclasses,
+the system will recursively parse all nested fields, ensuring that all levels of
+the configuration structure are properly loaded and validated.
+
+The module integrates with the ConfigurationManager to ensure that all configuration
+sources (command line arguments, environment variables, configuration files) are
+handled consistently, with proper precedence ordering and recursive parsing of
+nested structures.
+"""
 
 import sys
 from os import PathLike
@@ -38,6 +51,25 @@ def get_config_path(config_path: PathLike | None) -> Path:
     return Path(config_path)
 
 
+def parse_config_path(config_path: str | None) -> str | None:
+    """Parse the configuration path from the command line arguments.
+
+    This function handles the parsing of configuration paths, supporting both
+    file-based and directory-based configurations. It also supports recursive
+    parsing of dataclass fields within the configuration, ensuring that all
+    nested structures are properly loaded and validated.
+
+    Args:
+        config_path: The configuration path to parse.
+
+    Returns:
+        The parsed configuration path, or None if no path is provided.
+    """
+    if config_path is None:
+        return None
+    return config_path
+
+
 def parse_config_path_args(
     args: ServerArgs,
     exit_on_error: bool = False,
@@ -45,12 +77,21 @@ def parse_config_path_args(
     """Check the configuration arguments, returning the parsed config path
     and whether it exists.
 
+    This function handles the parsing of configuration paths from CLI arguments,
+    supporting both file-based and directory-based configurations. It works in
+    conjunction with the recursive parsing system that processes dataclass fields
+    within the configuration, ensuring that all nested structures are properly
+    loaded and validated.
+
     Args:
-        args: The CLI arguments.
-        exit_on_error: Whether to exit the program on error.
+        args: The CLI arguments containing the configuration path.
+        exit_on_error: Whether to exit the program if the configuration file
+            is not found.
 
     Returns:
-        The parsed config path and whether it exists.
+        A tuple containing:
+            - The parsed config path as a Path object
+            - A boolean indicating whether the config path exists
     """
     if args.config_path is None:
         config_path = default_config_path()

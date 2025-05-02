@@ -67,6 +67,32 @@ Manages general configuration settings:
 }
 ```
 
+## Nested Configuration Support
+
+The configuration system supports nested dataclass structures through recursive parsing.
+When a configuration field is a dataclass or a Union of dataclasses, the system will
+recursively parse all nested fields, allowing for complex configuration hierarchies.
+
+For example, if you have a configuration like:
+
+```python
+@dataclass
+class NestedConfig:
+    value: str = field(default="default")
+
+@dataclass
+class MainConfig:
+    nested: NestedConfig = field(default_factory=NestedConfig)
+```
+
+The system will properly handle the nested structure, parsing environment variables
+for both the `MainConfig` and its nested `NestedConfig` fields.
+
+> [!NOTE]
+> The system does not support nested unions of dataclasses that are themselves
+> nested in dataclasses or other types. This simplifies the code and makes it easier
+> to reason about, but we may need to revisit in the future.
+
 ## Usage Examples
 
 ### Initializing the configuration system:
@@ -117,7 +143,7 @@ import importlib
 import json
 import pkgutil
 from collections.abc import Callable, Sequence
-from dataclasses import Field, fields
+from dataclasses import Field, fields, is_dataclass
 from pathlib import Path
 from typing import Any, ClassVar, TypeVar
 
@@ -125,7 +151,12 @@ import structlog
 import yaml
 
 from agent_platform.core.configurations import Configuration
-from agent_platform.core.configurations.parsers import parse_field_value
+from agent_platform.core.configurations.errors import ConfigurationDiscriminatorError
+from agent_platform.core.configurations.parsers import (
+    UnionOfDataclassParser,
+    parse_field_value,
+)
+from agent_platform.core.configurations.utils import is_union_of_dataclasses_type
 from agent_platform.server.constants import default_config_path
 from agent_platform.server.env_vars import get_env_var
 
@@ -149,6 +180,12 @@ class ConfigurationManager:
     which can override configuration file values, which can override defaults.
     Each configuration source is applied in order, with higher priority sources
     taking precedence over lower priority ones.
+
+    The system supports nested configuration structures through recursive parsing
+    of dataclass fields. When a configuration field is a dataclass or a Union of
+    dataclasses, the system will recursively parse all nested fields, allowing for
+    complex configuration hierarchies. This recursive parsing applies to all
+    configuration sources (environment variables, command line overrides, etc.).
     """
 
     def __init__(
@@ -647,35 +684,178 @@ class ConfigurationManager:
             f"Updated configuration: {config_class.__name__} at {config_path}",
         )
 
-    def _parse_field_env_vars(self, field: Field) -> Any:
+    def _get_env_var_for_field(self, field: Field) -> tuple[Any, bool]:
+        """Get the value from environment variables for a field.
+
+        Args:
+            field: The field to get the environment variable for
+
+        Returns:
+            Tuple of (parsed_value, found_value) where:
+            - parsed_value is the parsed value from the environment variable (or None)
+            - found_value is True if an environment variable was found and parsed
+        """
+        # Get the list of environment variables from field metadata
+        env_vars = field.metadata.get("env_vars", [])
+        if not env_vars:
+            return None, False
+
+        # Try to get the value from environment variables
+        env_var_value = get_env_var(env_vars)
+        if env_var_value is None:
+            return None, False
+
+        # Parse the value using the appropriate parser
+        try:
+            parsed_value = parse_field_value(field, env_var_value)
+            return parsed_value, True
+        except Exception as e:
+            logger.error(
+                f"Failed to parse environment variable for field {field.name}: {e}",
+            )
+            # Return the raw value as fallback
+            return env_var_value, True
+
+    def _parse_field_env_vars(
+        self, field: Field, parent_config: type[Configuration] | Configuration | None
+    ) -> Any:
         """Parse environment variables for a field.
+
+        This method recursively parses environment variables for nested dataclass
+        fields, handling both regular dataclasses and unions of dataclasses. For
+        unions of dataclasses, it determines the target class based on the
+        discriminator value and then recursively parses the fields of that class.
 
         Args:
             field: The field to parse environment variables for
+            parent_dataclass: The parent configuration class or instance
+        Returns:
+            The parsed value of the field, which may be a dictionary for nested
+            dataclasses
+        """
+        # Note: The design decision has been made that our parsing system
+        # cannot support unions of dataclasses that are themselves nested in
+        # dataclasses or other types. This simplifies the code and makes it easier
+        # to reason about, but we may need to revisit in the future.
+        return_value = None
+        if is_union_of_dataclasses_type(field.type):
+            # Get the target class using our parsers
+            try:
+                parser = UnionOfDataclassParser(field, parent_config)
+                target_class = parser.get_target_class()
+
+                return_value = {}
+                # Recursively parse the fields of the target class for env vars
+                for nested_field in fields(target_class):
+                    parsed_value = self._parse_field_env_vars(
+                        nested_field, target_class
+                    )
+                    if parsed_value is not None:
+                        return_value[nested_field.name] = parsed_value
+            except ConfigurationDiscriminatorError:
+                # If we can't determine the target class due to missing discriminator
+                # metadata, skip this field. This allows tests and other code to run
+                # even if the configuration isn't fully set up yet.
+                logger.debug(
+                    f"Skipping environment variable processing for union field "
+                    f"{field.name} because discriminator metadata is missing or "
+                    f"invalid."
+                )
+                return None
+
+        elif is_dataclass(field.type):
+            # Recursively parse the fields of the dataclass for env vars
+            return_value = {}
+            for nested_field in fields(field.type):
+                parsed_value = self._parse_field_env_vars(nested_field, parent_config)
+                if parsed_value is not None:
+                    return_value[nested_field.name] = parsed_value
+
+        else:
+            # Use the common helper method for getting environment variables
+            parsed_value, found_value = self._get_env_var_for_field(field)
+            if found_value:
+                return_value = parsed_value
+
+        return return_value
+
+    # ruff: noqa: C901
+    def _apply_discriminator_env_vars(
+        self, changes_applied: dict[str, list[str]]
+    ) -> list[tuple[str, str]]:
+        """Process and apply environment variables for discriminator fields.
+
+        This is the first pass of environment variable processing, which specifically
+        targets discriminator fields to resolve circular dependencies for Union types.
+
+        Args:
+            changes_applied: Dictionary to track changes for logging
 
         Returns:
-            The parsed value of the field
+            List of processed discriminator fields as (config_path, field_name) tuples
         """
-        env_vars = field.metadata["env_vars"] if "env_vars" in field.metadata else []
-        if len(env_vars) > 0:
-            env_var_value = get_env_var(env_vars)
-            if env_var_value is not None:
-                # Parse using the appropriate parser for the field type
-                try:
-                    return parse_field_value(field, env_var_value)
-                except Exception as e:
-                    logger.error(
-                        f"Failed to parse environment variable for "
-                        f"field {field.name}: {e}",
-                    )
-                    # Fall back to using the raw value
-                    return env_var_value
+        # Identify all discriminator fields
+        discriminator_fields = self._identify_discriminator_fields()
+
+        if not discriminator_fields:
+            return discriminator_fields
+
+        logger.debug(
+            f"First pass: Processing {len(discriminator_fields)} discriminator fields"
+        )
+
+        # Group discriminator fields by config class for efficient processing
+        fields_by_config = {}
+        for config_path, field_name in discriminator_fields:
+            if config_path not in fields_by_config:
+                fields_by_config[config_path] = []
+            fields_by_config[config_path].append(field_name)
+
+        # Process each config class with discriminator fields
+        for config_path, field_names in fields_by_config.items():
+            if config_path not in self.config_classes:
+                continue
+
+            config_class = self.config_classes[config_path]
+
+            # Get or create the config data entry
+            if config_path not in self._config_data:
+                self._config_data[config_path] = {}
+
+            # Process each discriminator field
+            env_overrides = {}
+            for field_name in field_names:
+                # Find the field in the class
+                field = next(
+                    (f for f in fields(config_class) if f.name == field_name), None
+                )
+                if not field:
+                    continue
+
+                # Use the common helper method to get environment variable values
+                parsed_value, found_value = self._get_env_var_for_field(field)
+                if found_value:
+                    env_overrides[field_name] = parsed_value
+
+            # Apply the overrides if we have any
+            if env_overrides:
+                self._apply_config_overrides(
+                    config_path,
+                    config_class,
+                    env_overrides,
+                    changes_applied,
+                    "discriminator",
+                )
+
+        return discriminator_fields
 
     def _apply_environment_variables(self) -> None:
-        """Apply environment variables as overrides to configurations.
+        """Apply environment variables as overrides to configurations in two passes.
 
-        This method dynamically processes all registered configuration classes and
-        applies environment variables based on the metadata defined in each field.
+        This method processes environment variables in two distinct phases:
+        1. First Pass: Identify and apply all discriminator fields to resolve
+           the circular dependency for Union of dataclasses
+        2. Second Pass: Process all other environment variables
 
         Each configuration field can define an "env_vars" list in its metadata,
         which contains environment variable names in order of precedence. The first
@@ -699,6 +879,12 @@ class ConfigurationManager:
         # Track changes to configurations for logging
         changes_applied = {}
 
+        # ===== PASS 1: Process discriminator fields first =====
+        discriminator_fields = self._apply_discriminator_env_vars(changes_applied)
+
+        # ===== PASS 2: Process all other fields =====
+        logger.debug("Second pass: Processing all other fields")
+
         # Process each registered configuration class
         for config_path, config_class in self.config_classes.items():
             # Skip if no fields (unlikely but possible)
@@ -714,24 +900,22 @@ class ConfigurationManager:
 
             # Check each field for env_vars metadata
             for field in class_fields:
-                parsed_value = self._parse_field_env_vars(field)
+                # Skip discriminator fields that were already processed first
+                if any(
+                    config_path == d_path and field.name == d_field
+                    for d_path, d_field in discriminator_fields
+                ):
+                    continue
+
+                parsed_value = self._parse_field_env_vars(field, config_class)
                 if parsed_value is not None:
                     env_overrides[field.name] = parsed_value
 
             # Apply the overrides if we have any
             if env_overrides:
-                self._config_data[config_path].update(env_overrides)
-                changes_applied[config_class.__name__] = list(env_overrides.keys())
-
-                # Create a new instance with the updated values
-                try:
-                    instance = config_class.from_dict(self._config_data[config_path])
-                    config_class.set_instance(instance)
-                except Exception as e:
-                    logger.error(
-                        f"Failed to apply environment variable overrides to "
-                        f"{config_class.__name__}: {e}",
-                    )
+                self._apply_config_overrides(
+                    config_path, config_class, env_overrides, changes_applied
+                )
 
         # Log a summary of changes if any were applied
         if changes_applied:
@@ -741,6 +925,85 @@ class ConfigurationManager:
             logger.info(
                 f"Applied environment variable overrides to: {changes_applied_str}",
             )
+
+    def _apply_config_overrides(
+        self,
+        config_path: str,
+        config_class: type[Configuration],
+        overrides: dict[str, Any],
+        changes_applied: dict[str, list[str]],
+        field_type: str = "regular",
+    ) -> None:
+        """Apply configuration overrides to a configuration class.
+
+        Args:
+            config_path: The path of the configuration class
+            config_class: The configuration class
+            overrides: The overrides to apply
+            changes_applied: Dictionary to track changes for logging
+            field_type: The type of field being processed (for logging)
+        """
+        # Apply the overrides to the configuration data
+        self._deep_merge_configs(self._config_data[config_path], overrides)
+
+        # Update the changes_applied dictionary for logging
+        if config_class.__name__ in changes_applied:
+            changes_applied[config_class.__name__].extend(list(overrides.keys()))
+        else:
+            changes_applied[config_class.__name__] = list(overrides.keys())
+
+        # Create a new instance with the updated values
+        try:
+            instance = config_class.from_dict(self._config_data[config_path])
+            config_class.set_instance(instance)
+            if field_type == "discriminator":
+                logger.debug(
+                    f"Applied environment variable overrides for discriminator fields "
+                    f"to {config_class.__name__}: {list(overrides.keys())}"
+                )
+        except Exception as e:
+            logger.error(
+                f"Failed to apply {field_type} environment variable overrides to "
+                f"{config_class.__name__}: {e}",
+            )
+
+    def _identify_discriminator_fields(self) -> list[tuple[str, str]]:
+        """Identify all discriminator fields in the configuration classes.
+
+        A discriminator field is a field that is referenced in another field's
+        metadata as the 'discriminator' for a Union of dataclasses.
+
+        Returns:
+            A list of tuples (config_path, field_name) for all discriminator fields
+        """
+        discriminator_fields = []
+
+        # Scan all configuration classes and their fields
+        for config_path, config_class in self.config_classes.items():
+            for field in fields(config_class):
+                # Check if this field has a 'discriminator' in its metadata
+                if (
+                    is_union_of_dataclasses_type(field.type)
+                    and "discriminator" in field.metadata
+                ):
+                    # The discriminator field is identified by its name
+                    discriminator_name = field.metadata["discriminator"]
+
+                    # Find which class this discriminator belongs to
+                    # Usually it's in the same class, but could be in a parent class
+                    if any(f.name == discriminator_name for f in fields(config_class)):
+                        # Discriminator is in the same class
+                        discriminator_fields.append((config_path, discriminator_name))
+                    else:
+                        # Discriminator might be in a parent class or not found
+                        # Currently not handling parent class discriminators
+                        logger.warning(
+                            f"Discriminator field '{discriminator_name}' referenced in "
+                            f"{config_class.__name__}.{field.name} not found in the "
+                            f"same class"
+                        )
+
+        return discriminator_fields
 
 
 class ConfigurationService:

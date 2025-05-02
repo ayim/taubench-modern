@@ -34,7 +34,7 @@ class ServerArgs:
 
 
 def set_no_logging(args: ServerArgs) -> None:
-    """Disabled logging across the server when certain arguments are provided."""
+    """Disables logging across the server when certain arguments are provided."""
     # Config output is not included here because it may be useful to the user to see
     # how the config was loaded, but we could add it.
     no_logging_args = [

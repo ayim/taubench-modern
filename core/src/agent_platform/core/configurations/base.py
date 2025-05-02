@@ -16,9 +16,10 @@ import structlog
 from agent_platform.core.configurations.parsers import Parser, parse_field_value
 from agent_platform.core.configurations.representers import Representer
 
-T = TypeVar("T", bound="Configuration")
-
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
+
+# TypeVar for Configuration subclasses
+T = TypeVar("T", bound="Configuration")
 
 
 class FieldMetadata(TypedDict, total=False):
@@ -37,6 +38,15 @@ class FieldMetadata(TypedDict, total=False):
     representer: type[Representer]
     """The representer to use for the field, this is used to represent the field
     in a YAML-based configuration file."""
+    discriminator: str
+    """The associated discriminator field name for the field, this is used in
+    conjunction with the discriminator_mapping to determine which class to
+    use when the field is being parsed (e.g., when the field is a Union type).
+    """
+    discriminator_mapping: dict[str, type]
+    """A mapping of discriminator values to the classes that should be used
+    when the field is being parsed (e.g., when the field is a Union type).
+    """
 
 
 class ConfigMeta(type):
@@ -313,7 +323,7 @@ class Configuration(metaclass=ConfigMeta):
         return ConfigMeta.get_concrete_configs()
 
     @classmethod
-    def set_instance(cls: type[T], instance: T) -> None:
+    def set_instance(cls, instance: "Configuration") -> None:
         """Set the singleton instance for this class.
 
         Args:
@@ -357,7 +367,7 @@ class Configuration(metaclass=ConfigMeta):
 
             try:
                 # Parse the value using the appropriate parser
-                parsed_value = parse_field_value(field, value)
+                parsed_value = parse_field_value(field, value, cls)
                 validated_config[key] = parsed_value
             except Exception as e:
                 # Add more context to the error
