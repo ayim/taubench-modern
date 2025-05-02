@@ -49,7 +49,7 @@ class ActionPackage:
     )
     """API Key of the action server that hosts the action package."""
 
-    allowed_actions: list[str] = field(
+    whitelist: list[str] = field(
         metadata={
             "description": "Actions to enable in the action server that"
             " hosts the action package. An empty list"
@@ -78,7 +78,7 @@ class ActionPackage:
                 if self.api_key is not None
                 else None
             ),
-            allowed_actions=self.allowed_actions,
+            whitelist=self.whitelist,
         )
 
     def model_dump(self) -> dict:
@@ -92,7 +92,7 @@ class ActionPackage:
             "api_key": (
                 self.api_key.get_secret_value() if self.api_key is not None else None
             ),
-            "allowed_actions": self.allowed_actions,
+            "whitelist": self.whitelist,
         }
 
     async def to_tool_definitions(self) -> list[ToolDefinition]:
@@ -100,7 +100,7 @@ class ActionPackage:
         return await _get_spec_and_build_tool_definitions(
             self.url or "",
             self.api_key.get_secret_value() if self.api_key is not None else "",
-            self.allowed_actions,
+            self.whitelist,
         )
 
     @classmethod

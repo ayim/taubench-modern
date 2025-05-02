@@ -14,7 +14,7 @@ class ActionPackageCompat:
     version: str = field(default="")
     url: str | None = field(default=None)
     api_key: str | None = field(default=None)
-    allowed_actions: list[str] = field(default_factory=list)
+    whitelist: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -167,7 +167,7 @@ class AgentCompat(Agent):
                     version=ap.version,
                     url=ap.url,
                     api_key=ap.api_key.get_secret_value() if ap.api_key else None,
-                    allowed_actions=ap.allowed_actions,
+                    whitelist=ap.whitelist,
                 )
                 for ap in agent.action_packages
             ],

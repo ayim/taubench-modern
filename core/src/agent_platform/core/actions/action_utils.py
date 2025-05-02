@@ -107,7 +107,7 @@ def _openapi_spec_to_tool_definitions(
 async def _get_spec_and_build_tool_definitions(
     url: str,
     api_key: str,
-    allowed_actions: list[str],
+    whitelist: list[str],
 ) -> list[ToolDefinition]:
     from urllib.parse import urljoin
 
@@ -123,13 +123,11 @@ async def _get_spec_and_build_tool_definitions(
             spec = await response.json()
 
     definitions = _openapi_spec_to_tool_definitions(url, api_key, spec)
-    if len(allowed_actions) > 0:
+    if len(whitelist) > 0:
         # Only filter the definitions if we have allowed actions
         # (empty list means all actions are allowed)
         definitions = [
-            definition
-            for definition in definitions
-            if definition.name in allowed_actions
+            definition for definition in definitions if definition.name in whitelist
         ]
 
     return definitions
