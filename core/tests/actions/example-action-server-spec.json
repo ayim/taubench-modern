@@ -1,0 +1,925 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Sema4.ai Action Server",
+    "version": "1.1.1"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8083"
+    }
+  ],
+  "paths": {
+    "/api/actions/serp-api/serpapi-google-search-streamlined/run": {
+      "post": {
+        "summary": "Serpapi Google Search Streamlined",
+        "description": "Perform a streamlined Google search using SerpApi. Returns organic results and local map places only.\nExcludes sponsored listings, product ads, and other \"noise\".",
+        "operationId": "serpapi_google_search_streamlined",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "title": "Query",
+                    "description": "The main keyword or phrase to search."
+                  },
+                  "location": {
+                    "type": "string",
+                    "title": "Location",
+                    "description": "The geographic location to use for localized results.",
+                    "default": "Madison, Wisconsin, United States"
+                  },
+                  "num_results": {
+                    "type": "integer",
+                    "title": "Num Results",
+                    "description": "Max number of organic results to include (up to 100).",
+                    "default": 10
+                  }
+                },
+                "type": "object",
+                "required": ["query"]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "organic_results": {
+                      "items": {
+                        "properties": {
+                          "position": {
+                            "anyOf": [
+                              {
+                                "type": "integer"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "title": "Position",
+                            "description": "Result rank"
+                          },
+                          "title": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "title": "Title",
+                            "description": "Title of the result"
+                          },
+                          "link": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "title": "Link",
+                            "description": "URL link to the result"
+                          },
+                          "snippet": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "title": "Snippet",
+                            "description": "Brief snippet or summary"
+                          },
+                          "displayed_link": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "title": "Displayed Link",
+                            "description": "Displayed link"
+                          },
+                          "date": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "title": "Date",
+                            "description": "Date of the result"
+                          },
+                          "favicon": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "title": "Favicon",
+                            "description": "Favicon image URL"
+                          }
+                        },
+                        "type": "object",
+                        "title": "OrganicResult",
+                        "description": "Minimal organic (web) search result info."
+                      },
+                      "type": "array",
+                      "title": "Organic Results",
+                      "description": "List of organic (web) results"
+                    },
+                    "local_results": {
+                      "items": {
+                        "properties": {
+                          "position": {
+                            "anyOf": [
+                              {
+                                "type": "integer"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "title": "Position",
+                            "description": "Local map listing rank"
+                          },
+                          "title": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "title": "Title",
+                            "description": "Place name/title"
+                          },
+                          "rating": {
+                            "anyOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "title": "Rating",
+                            "description": "User rating out of 5.0"
+                          },
+                          "reviews": {
+                            "anyOf": [
+                              {
+                                "type": "integer"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "title": "Reviews",
+                            "description": "Number of reviews"
+                          },
+                          "address": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "title": "Address",
+                            "description": "Street address"
+                          },
+                          "phone": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "title": "Phone",
+                            "description": "Phone number"
+                          },
+                          "hours": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "title": "Hours",
+                            "description": "Hours of operation"
+                          },
+                          "thumbnail": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "title": "Thumbnail",
+                            "description": "Thumbnail image URL"
+                          },
+                          "num_reviews": {
+                            "anyOf": [
+                              {
+                                "type": "integer"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "title": "Num Reviews",
+                            "description": "Number of reviews"
+                          },
+                          "gps_coordinates": {
+                            "anyOf": [
+                              {
+                                "properties": {
+                                  "latitude": {
+                                    "anyOf": [
+                                      {
+                                        "type": "number"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ],
+                                    "title": "Latitude",
+                                    "description": "Latitude"
+                                  },
+                                  "longitude": {
+                                    "anyOf": [
+                                      {
+                                        "type": "number"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ],
+                                    "title": "Longitude",
+                                    "description": "Longitude"
+                                  }
+                                },
+                                "type": "object",
+                                "title": "GPSCoordinates",
+                                "description": "Latitude and longitude coordinates."
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "description": "GPS coordinates"
+                          }
+                        },
+                        "type": "object",
+                        "title": "LocalPlace",
+                        "description": "Minimal local (map) place info."
+                      },
+                      "type": "array",
+                      "title": "Local Results",
+                      "description": "List of local map results if any"
+                    }
+                  },
+                  "type": "object",
+                  "title": "Response for Serpapi Google Search Streamlined",
+                  "description": "A typed object containing organic results and local map places."
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-openai-isConsequential": false
+      }
+    },
+    "/api/actions/serp-api/serpapi-geocode-place-name/run": {
+      "post": {
+        "summary": "Serpapi Geocode Place Name",
+        "description": "Perform a geocoding search using SerpApi, returning GPS coordinates for a place name.",
+        "operationId": "serpapi_geocode_place_name",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "place_name": {
+                    "type": "string",
+                    "title": "Place Name",
+                    "description": "The place name or address to geocode."
+                  },
+                  "num_results": {
+                    "type": "integer",
+                    "title": "Num Results",
+                    "description": "Number of geocoding results to return (up to 5).",
+                    "default": 5
+                  }
+                },
+                "type": "object",
+                "required": ["place_name"]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "results": {
+                      "items": {
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "title": "Name",
+                            "description": "Place name/title"
+                          },
+                          "canonical_name": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "title": "Canonical Name",
+                            "description": "Canonical name"
+                          },
+                          "country_code": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "title": "Country Code",
+                            "description": "Country code"
+                          },
+                          "target_type": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "title": "Target Type",
+                            "description": "Target type"
+                          },
+                          "gps_coordinates": {
+                            "anyOf": [
+                              {
+                                "properties": {
+                                  "latitude": {
+                                    "anyOf": [
+                                      {
+                                        "type": "number"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ],
+                                    "title": "Latitude",
+                                    "description": "Latitude"
+                                  },
+                                  "longitude": {
+                                    "anyOf": [
+                                      {
+                                        "type": "number"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ],
+                                    "title": "Longitude",
+                                    "description": "Longitude"
+                                  }
+                                },
+                                "type": "object",
+                                "title": "GPSCoordinates",
+                                "description": "Latitude and longitude coordinates."
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "description": "GPS coordinates"
+                          }
+                        },
+                        "type": "object",
+                        "required": ["name"],
+                        "title": "GeocodingResult",
+                        "description": "A single geocoding result from SerpApi."
+                      },
+                      "type": "array",
+                      "title": "Results"
+                    }
+                  },
+                  "type": "object",
+                  "required": ["results"],
+                  "title": "Response for Serpapi Geocode Place Name",
+                  "description": "A list of GPS coordinates for the place name."
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-openai-isConsequential": false
+      }
+    },
+    "/api/actions/serp-api/serpapi-google-map-search/run": {
+      "post": {
+        "summary": "Serpapi Google Map Search",
+        "description": "Perform a Google Maps (local) search using SerpApi, returning typed local/map results.\nYou must give a latitude and longitude for the search location. If you are uncertain\nyou can FIRST use the GEOCODING API to get the coordinates for a place name.",
+        "operationId": "serpapi_google_map_search",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "title": "Query",
+                    "description": "The place or business type to search for (e.g., \"coffee shops\")."
+                  },
+                  "latitude": {
+                    "type": "string",
+                    "title": "Latitude",
+                    "description": ""
+                  },
+                  "longitude": {
+                    "type": "string",
+                    "title": "Longitude",
+                    "description": ""
+                  },
+                  "zoom_level": {
+                    "type": "integer",
+                    "title": "Zoom Level",
+                    "description": "",
+                    "default": 14
+                  }
+                },
+                "type": "object",
+                "required": ["query", "latitude", "longitude"]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "results": {
+                      "items": {
+                        "properties": {
+                          "title": {
+                            "type": "string",
+                            "title": "Title",
+                            "description": "Place name/title"
+                          },
+                          "rating": {
+                            "anyOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "title": "Rating",
+                            "description": "User rating out of 5.0"
+                          },
+                          "address": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "title": "Address",
+                            "description": "Street address"
+                          },
+                          "link": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "title": "Link",
+                            "description": "URL link to the result"
+                          },
+                          "gps_coordinates": {
+                            "anyOf": [
+                              {
+                                "properties": {
+                                  "latitude": {
+                                    "anyOf": [
+                                      {
+                                        "type": "number"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ],
+                                    "title": "Latitude",
+                                    "description": "Latitude"
+                                  },
+                                  "longitude": {
+                                    "anyOf": [
+                                      {
+                                        "type": "number"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ],
+                                    "title": "Longitude",
+                                    "description": "Longitude"
+                                  }
+                                },
+                                "type": "object",
+                                "title": "GPSCoordinates",
+                                "description": "Latitude and longitude coordinates."
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "description": "GPS coordinates"
+                          },
+                          "num_reviews": {
+                            "anyOf": [
+                              {
+                                "type": "integer"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "title": "Num Reviews",
+                            "description": "Number of reviews"
+                          },
+                          "thumbnail": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "title": "Thumbnail",
+                            "description": "Thumbnail image URL"
+                          },
+                          "phone": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "title": "Phone",
+                            "description": "Phone number"
+                          },
+                          "website": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "title": "Website",
+                            "description": "Website URL"
+                          },
+                          "description": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "title": "Description",
+                            "description": "Brief description or snippet"
+                          },
+                          "operating_hours": {
+                            "anyOf": [
+                              {
+                                "properties": {
+                                  "monday": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ],
+                                    "title": "Monday",
+                                    "description": "Hours for Monday"
+                                  },
+                                  "tuesday": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ],
+                                    "title": "Tuesday",
+                                    "description": "Hours for Tuesday"
+                                  },
+                                  "wednesday": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ],
+                                    "title": "Wednesday",
+                                    "description": "Hours for Wednesday"
+                                  },
+                                  "thursday": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ],
+                                    "title": "Thursday",
+                                    "description": "Hours for Thursday"
+                                  },
+                                  "friday": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ],
+                                    "title": "Friday",
+                                    "description": "Hours for Friday"
+                                  },
+                                  "saturday": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ],
+                                    "title": "Saturday",
+                                    "description": "Hours for Saturday"
+                                  },
+                                  "sunday": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ],
+                                    "title": "Sunday",
+                                    "description": "Hours for Sunday"
+                                  }
+                                },
+                                "type": "object",
+                                "title": "OperatingHours",
+                                "description": "Hours of operation for a local (Maps) search result."
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "description": "Hours of operation"
+                          },
+                          "open_state": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "title": "Open State",
+                            "description": "Open/closed status"
+                          },
+                          "type": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "title": "Type",
+                            "description": "Type of place"
+                          },
+                          "types": {
+                            "anyOf": [
+                              {
+                                "items": {
+                                  "type": "string"
+                                },
+                                "type": "array"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "title": "Types",
+                            "description": "List of relevance place types"
+                          },
+                          "dine_in": {
+                            "anyOf": [
+                              {
+                                "type": "boolean"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "title": "Dine In",
+                            "description": "Whether dine-in is available"
+                          },
+                          "takeout": {
+                            "anyOf": [
+                              {
+                                "type": "boolean"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "title": "Takeout",
+                            "description": "Whether takeout is available"
+                          },
+                          "delivery": {
+                            "anyOf": [
+                              {
+                                "type": "boolean"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "title": "Delivery",
+                            "description": "Whether delivery is available"
+                          }
+                        },
+                        "type": "object",
+                        "required": ["title"],
+                        "title": "LocalMapResult",
+                        "description": "A single local (Maps) search result."
+                      },
+                      "type": "array",
+                      "title": "Results"
+                    }
+                  },
+                  "type": "object",
+                  "required": ["results"],
+                  "title": "Response for Serpapi Google Map Search",
+                  "description": "A typed container with local (map) search results,\nincluding name, address, and rating if available."
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-openai-isConsequential": false
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HTTPValidationError": {
+        "properties": {
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Errors"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": ["loc", "msg", "type"],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

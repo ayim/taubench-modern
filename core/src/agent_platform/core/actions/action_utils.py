@@ -1,15 +1,90 @@
 from collections.abc import Callable, Coroutine
 from typing import Any
 
+from jsonpointer import JsonPointer, JsonPointerException
+from structlog import get_logger
+
 from agent_platform.core.tools.tool_definition import ToolDefinition
+
+logger = get_logger(__name__)
+
+
+def _dereference_refs_recursive(item: Any, full_schema: dict) -> Any:
+    """Recursively traverses a schema structure and
+    resolves all $refs using jsonpointer."""
+    if isinstance(item, dict):
+        if "$ref" in item:
+            # Found a reference, resolve it using jsonpointer
+            ref_value = item["$ref"]
+            pointer_path = ref_value
+            try:
+                # JSON Pointers in OpenAPI often omit the leading '#',
+                # but jsonpointer expects a path starting with '/' or empty.
+                # Assume internal reference if no scheme/authority present.
+                if ref_value.startswith("#/"):
+                    pointer_path = ref_value[1:]  # Remove '#'
+                elif "/" in ref_value and ":" not in ref_value:  # Check for path vs URI
+                    pointer_path = "/" + ref_value.lstrip("/")  # Ensure one leading '/'
+
+                pointer = JsonPointer(pointer_path)
+                resolved = pointer.resolve(full_schema)
+
+                # Recursively dereference the resolved part itself
+                return _dereference_refs_recursive(resolved, full_schema)
+            except (
+                JsonPointerException,
+                ValueError,
+                TypeError,
+                KeyError,
+                IndexError,
+            ) as e:
+                # Catch potential errors from jsonpointer or during path manipulation
+                logger.warning(
+                    f"Warning: Failed to resolve ref '{ref_value}' "
+                    f"(path='{pointer_path}'): {e}. Skipping."
+                )
+                # Return the original item (with $ref) if resolution fails
+                return item
+        else:
+            # No $ref, traverse deeper into dictionary values
+            # Return a new dictionary with resolved values
+            new_dict = {}
+            for key, value in item.items():
+                new_dict[key] = _dereference_refs_recursive(value, full_schema)
+            return new_dict
+    elif isinstance(item, list):
+        # Traverse deeper into list items
+        # Return a new list with resolved items
+        new_list = []
+        for value in item:
+            new_list.append(_dereference_refs_recursive(value, full_schema))
+        return new_list
+    else:
+        # Base case: non-dict, non-list items (string, number, boolean, null)
+        return item
 
 
 def _dereference_refs(spec: dict, full_schema: dict) -> dict:
-    for key, value in spec.items():
-        if isinstance(value, dict) and "$ref" in value:
-            ref = value["$ref"]
-            spec[key] = _dereference_refs(full_schema[ref], full_schema)
-    return spec
+    """
+    Dereferences JSON schema $refs within the given spec dictionary,
+    using the full_schema as the reference source.
+
+    Handles nested references and returns a new dictionary with all
+    references resolved. It assumes the input 'spec' should resolve
+    to a dictionary structure.
+    """
+    # Start the recursive dereferencing process
+    resolved_spec = _dereference_refs_recursive(spec, full_schema)
+
+    # Ensure the final result is a dictionary, as expected by the caller context
+    if not isinstance(resolved_spec, dict):
+        # This might happen if the top-level 'spec' was just a $ref pointing
+        # to a non-object schema (e.g., a string or array).
+        raise TypeError(
+            f"Dereferencing resulted in a non-dictionary type: {type(resolved_spec)}. "
+            f"Input spec: {spec}"
+        )
+    return resolved_spec
 
 
 def _build_post_async_function(
@@ -85,7 +160,7 @@ def _openapi_spec_to_tool_definitions(
             # Start building the schema
             tool_definition = ToolDefinition(
                 name=resolved_spec.get("operationId", ""),
-                description=resolved_spec.get("summary", ""),
+                description=resolved_spec.get("description", ""),
                 input_schema={
                     "type": "object",
                     "properties": args_schema,
@@ -104,10 +179,10 @@ def _openapi_spec_to_tool_definitions(
     return tool_definitions
 
 
-async def _get_spec_and_build_tool_definitions(
+async def get_spec_and_build_tool_definitions(
     url: str,
     api_key: str,
-    whitelist: list[str],
+    allowed_actions: list[str],
 ) -> list[ToolDefinition]:
     from urllib.parse import urljoin
 
@@ -123,11 +198,13 @@ async def _get_spec_and_build_tool_definitions(
             spec = await response.json()
 
     definitions = _openapi_spec_to_tool_definitions(url, api_key, spec)
-    if len(whitelist) > 0:
+    if len(allowed_actions) > 0:
         # Only filter the definitions if we have allowed actions
         # (empty list means all actions are allowed)
         definitions = [
-            definition for definition in definitions if definition.name in whitelist
+            definition
+            for definition in definitions
+            if definition.name in allowed_actions
         ]
 
     return definitions

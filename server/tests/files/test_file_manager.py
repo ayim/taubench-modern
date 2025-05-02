@@ -216,7 +216,7 @@ def sample_agent(sample_user_id: str) -> Agent:
                 version="1.0.0",
                 url="https://api.test.com",
                 api_key=SecretString("test"),
-                whitelist=["action_1", "action_2"],
+                allowed_actions=["action_1", "action_2"],
             ),
             ActionPackage(
                 name="test-action-package-2",
@@ -224,7 +224,7 @@ def sample_agent(sample_user_id: str) -> Agent:
                 version="1.0.0",
                 url="https://api.test-2.com",
                 api_key=SecretString("test-2"),
-                whitelist=[],
+                allowed_actions=[],
             ),
         ],
         agent_architecture=AgentArchitecture(

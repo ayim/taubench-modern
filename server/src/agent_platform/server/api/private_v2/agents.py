@@ -135,7 +135,7 @@ async def update_agent_action_server_config(
                     if isinstance(payload.api_key, str)
                     else payload.api_key
                 ),
-                whitelist=action_package.whitelist,
+                allowed_actions=action_package.allowed_actions,
             )
             for action_package in agent.action_packages
         ],
