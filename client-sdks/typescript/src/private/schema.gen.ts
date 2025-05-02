@@ -88,7 +88,8 @@ export interface paths {
     delete: operations['delete_agent_agents__aid__delete'];
     options?: never;
     head?: never;
-    patch?: never;
+    /** Patch Agent */
+    patch: operations['patch_agent_agents__aid__patch'];
     trace?: never;
   };
   '/api/v2/agents/{aid}/raw': {
@@ -136,6 +137,40 @@ export interface paths {
     get?: never;
     /** Update Agent Action Server Config */
     put: operations['update_agent_action_server_config_agents__aid__action_server_config_put'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/agents/package': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Create Agent From Package */
+    post: operations['create_agent_from_package_agents_package_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/agents/package/{aid}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Update Agent From Package */
+    put: operations['update_agent_from_package_agents_package__aid__put'];
     post?: never;
     delete?: never;
     options?: never;
@@ -315,6 +350,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/threads/{tid}/files/download/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Download File By Ref */
+    get: operations['download_file_by_ref_threads__tid__files_download__get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/debug/artifacts': {
     parameters: {
       query?: never;
@@ -396,6 +448,9 @@ export interface paths {
      * @description This endpoint returns detailed information about all supported model platforms
      *     and their configuration parameters, including field descriptions, types,
      *     and whether they are required or optional.
+     *
+     *     The schema returned represents a union of all possible platform parameter
+     *     types.
      */
     get: operations['get_providers_capabilities_providers_get'];
     put?: never;
@@ -492,10 +547,10 @@ export interface components {
       /** @description API Key of the action server that hosts the action package. */
       api_key?: components['schemas']['SecretString'] | null;
       /**
-       * Allowed Actions
+       * Whitelist
        * @description Actions to enable in the action server that hosts the action package. An empty list implies all actions are enabled.
        */
-      allowed_actions?: string[];
+      whitelist?: string[];
     };
     /** ActionPackageCompat */
     ActionPackageCompat: {
@@ -518,8 +573,8 @@ export interface components {
       url?: string | null;
       /** Api Key */
       api_key?: string | null;
-      /** Allowed Actions */
-      allowed_actions?: string[];
+      /** Whitelist */
+      whitelist?: string[];
     };
     /** ActionServerConfigPayload */
     ActionServerConfigPayload: {
@@ -702,6 +757,75 @@ export interface components {
       model?: {
         [key: string]: unknown;
       };
+    };
+    /** AgentPackagePayload */
+    AgentPackagePayload: {
+      /**
+       * Name
+       * @description The name of the agent.
+       */
+      name: string;
+      /**
+       * Public
+       * @description Whether the agent is public. (Legacy, ignored.)
+       * @default true
+       */
+      public: boolean;
+      /**
+       * Agent Package Url
+       * @description The URL of the agent package.
+       */
+      agent_package_url?: string | null;
+      /**
+       * Agent Package Base64
+       * @description The base64 encoded agent package.
+       */
+      agent_package_base64?: string | null;
+      /**
+       * Model
+       * @description The model configuration for the agent. (Legacy field.)
+       */
+      model?: {
+        [key: string]: unknown;
+      };
+      /**
+       * Action Servers
+       * @description The action servers for the agent.
+       */
+      action_servers?: components['schemas']['AgentPackagePayloadActionServer'][];
+      /** @description The Langsmith configuration for the agent. */
+      langsmith?: components['schemas']['AgentPackagePayloadLangsmith'] | null;
+    };
+    /** AgentPackagePayloadActionServer */
+    AgentPackagePayloadActionServer: {
+      /**
+       * Url
+       * @description The URL of the action server.
+       */
+      url: string;
+      /**
+       * Api Key
+       * @description The API key of the action server.
+       */
+      api_key: string | components['schemas']['SecretString'];
+    };
+    /** AgentPackagePayloadLangsmith */
+    AgentPackagePayloadLangsmith: {
+      /**
+       * Api Key
+       * @description The API key of the Langsmith.
+       */
+      api_key: string | components['schemas']['SecretString'];
+      /**
+       * Api Url
+       * @description The API URL of the Langsmith.
+       */
+      api_url: string;
+      /**
+       * Project Name
+       * @description The project name of the Langsmith.
+       */
+      project_name: string;
     };
     /** AzureOpenAIPlatformParameters */
     AzureOpenAIPlatformParameters: {
@@ -1020,6 +1144,19 @@ export interface components {
       kind: 'openai';
       /** @description The OpenAI API key. If not provided, it will be attempted to be inferred from the environment. */
       openai_api_key?: components['schemas']['SecretString'] | null;
+    };
+    /** PatchAgentPayload */
+    PatchAgentPayload: {
+      /**
+       * Name
+       * @description The name of the agent.
+       */
+      name: string;
+      /**
+       * Description
+       * @description The description of the agent.
+       */
+      description: string;
     };
     /** QuestionGroup */
     QuestionGroup: {
@@ -1888,6 +2025,41 @@ export interface operations {
       };
     };
   };
+  patch_agent_agents__aid__patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        aid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PatchAgentPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AgentCompat'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
   get_agent_raw_agents__aid__raw_get: {
     parameters: {
       query?: never;
@@ -1997,6 +2169,74 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': components['schemas']['ActionServerConfigPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AgentCompat'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  create_agent_from_package_agents_package_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AgentPackagePayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AgentCompat'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  update_agent_from_package_agents_package__aid__put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        aid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AgentPackagePayload'];
       };
     };
     responses: {
@@ -2435,6 +2675,39 @@ export interface operations {
       };
     };
   };
+  download_file_by_ref_threads__tid__files_download__get: {
+    parameters: {
+      query: {
+        file_ref: string;
+      };
+      header?: never;
+      path: {
+        tid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
   get_artifacts_debug_artifacts_get: {
     parameters: {
       query?: never;
@@ -2564,7 +2837,10 @@ export interface operations {
   };
   get_providers_capabilities_providers_get: {
     parameters: {
-      query?: never;
+      query?: {
+        response_model?: unknown;
+        summary?: unknown;
+      };
       header?: never;
       path?: never;
       cookie?: never;
@@ -2578,6 +2854,15 @@ export interface operations {
         };
         content: {
           'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
         };
       };
     };
