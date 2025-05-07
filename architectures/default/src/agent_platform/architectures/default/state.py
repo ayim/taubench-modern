@@ -13,7 +13,7 @@ class ArchState(aa.StateBase):
             A sink to write the current step to the state when
             <step>step</step> occurs in stream.
             """
-            return self.xml_tag_sink()
+            return self.xml_tag_sink(field_name="step")
 
     @property
     def sinks(self):

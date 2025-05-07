@@ -25,30 +25,6 @@ class StateBase:
         def __init__(self, state: "StateBase"):
             self.state = state
 
-        def _infer_field_name(self) -> str:
-            from inspect import currentframe, getouterframes
-
-            field_name = None
-            frame = currentframe()
-            try:
-                # Look at the calling frame (the caller of the caller,
-                # in this case, because we're used in xml_tag_sink and
-                # tool_use_sink)
-                caller = getouterframes(frame)[2]
-                # The property name will be the name of the function
-                if "self" in caller.frame.f_locals:
-                    field_name = caller.function
-            finally:
-                del frame  # Avoid reference cycles
-
-            if field_name is None:
-                raise ValueError(
-                    "Could not determine field name automatically. "
-                    "Please provide it explicitly.",
-                )
-
-            return field_name
-
         @property
         def pending_tool_calls(self) -> ToolUseResponseStreamSink:
             """
@@ -69,7 +45,7 @@ class StateBase:
 
         def tool_use_sink(
             self,
-            field_name: str | None = None,
+            field_name: str,
         ) -> ResponseStreamSinkBase:
             """
             Create a sink that will write update the value of the given
@@ -83,10 +59,6 @@ class StateBase:
                 A sink that will write update the value of the given
                 field when a tool call completes streaming.
             """
-            if field_name is None:
-                field_name = self._infer_field_name()
-
-            # We want to _append_ to the list, not overwrite it
             previous_value = getattr(self.state, field_name, [])
 
             async def _on_tool_complete(
@@ -106,7 +78,7 @@ class StateBase:
 
         def xml_tag_sink(
             self,
-            field_name: str | None = None,
+            field_name: str,
         ) -> ResponseStreamSinkBase:
             """
             Create a sink that will write update the value of the given
@@ -119,8 +91,6 @@ class StateBase:
                 A sink that will write update the value of the given
                 field when <field_name>value</field_name> occurs in stream.
             """
-            if field_name is None:
-                field_name = self._infer_field_name()
 
             async def _on_tag_complete(tag: str, content: str) -> None:
                 setattr(
