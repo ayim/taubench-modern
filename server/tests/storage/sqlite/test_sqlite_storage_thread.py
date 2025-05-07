@@ -333,3 +333,114 @@ async def test_thread_add_message_to_nonexistent(
             non_existent_thread_id,
             additional_message,
         )
+
+
+@pytest.mark.asyncio
+async def test_delete_threads_for_agent(
+    storage: SQLiteStorage,
+    sample_user_id: str,
+    sample_agent: Agent,
+) -> None:
+    """Test deleting all threads for an agent and deleting specific
+    threads by thread_ids."""
+    # Create a regular user for the main user
+    main_user, _ = await storage.get_or_create_user(
+        sub="tenant:testing:user:main_user",
+    )
+    main_user_id = main_user.user_id
+
+    # Create agent first
+    await storage.upsert_agent(main_user_id, sample_agent)
+
+    # Create multiple threads for the agent
+    threads = []
+    for i in range(3):
+        thread = Thread(
+            thread_id=str(uuid4()),
+            user_id=main_user_id,
+            agent_id=sample_agent.agent_id,
+            name=f"Thread {i}",
+            messages=[],
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
+            metadata={},
+        )
+        threads.append(thread)
+        await storage.upsert_thread(main_user_id, thread)
+
+    # Create threads for another user with the same agent
+    other_user, _ = await storage.get_or_create_user(
+        sub="tenant:testing:user:other_user",
+    )
+    other_user_id = other_user.user_id
+
+    other_user_threads = []
+    for i in range(2):
+        thread = Thread(
+            thread_id=str(uuid4()),
+            user_id=other_user_id,
+            agent_id=sample_agent.agent_id,
+            name=f"Other User Thread {i}",
+            messages=[],
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
+            metadata={},
+        )
+        other_user_threads.append(thread)
+        await storage.upsert_thread(other_user_id, thread)
+
+    # Verify threads were created
+    retrieved_threads = await storage.list_threads_for_agent(
+        main_user_id,
+        sample_agent.agent_id,
+    )
+    assert len(retrieved_threads) == 3
+
+    other_user_retrieved_threads = await storage.list_threads_for_agent(
+        other_user_id,
+        sample_agent.agent_id,
+    )
+    assert len(other_user_retrieved_threads) == 2
+
+    # Delete all threads for the agent
+    await storage.delete_threads_for_agent(
+        main_user_id,
+        sample_agent.agent_id,
+    )
+    retrieved_threads = await storage.list_threads_for_agent(
+        main_user_id,
+        sample_agent.agent_id,
+    )
+    assert len(retrieved_threads) == 0
+
+    # Verify other user's threads are unaffected
+    other_user_retrieved_threads = await storage.list_threads_for_agent(
+        other_user_id,
+        sample_agent.agent_id,
+    )
+    assert len(other_user_retrieved_threads) == 2
+
+    # Recreate threads
+    for thread in threads:
+        await storage.upsert_thread(main_user_id, thread)
+
+    # Delete specific threads by thread_ids
+    thread_ids_to_delete = [threads[0].thread_id, threads[2].thread_id]
+    await storage.delete_threads_for_agent(
+        main_user_id,
+        sample_agent.agent_id,
+        thread_ids_to_delete,
+    )
+    retrieved_threads = await storage.list_threads_for_agent(
+        main_user_id,
+        sample_agent.agent_id,
+    )
+    assert len(retrieved_threads) == 1
+    assert retrieved_threads[0].thread_id == threads[1].thread_id
+
+    # Verify other user's threads are still unaffected
+    other_user_retrieved_threads = await storage.list_threads_for_agent(
+        other_user_id,
+        sample_agent.agent_id,
+    )
+    assert len(other_user_retrieved_threads) == 2

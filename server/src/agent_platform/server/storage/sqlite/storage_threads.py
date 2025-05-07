@@ -201,6 +201,46 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
             row = await cur.fetchone()
         return row["cnt"] if row else 0
 
+    async def delete_threads_for_agent(
+        self,
+        user_id: str,
+        agent_id: str,
+        thread_ids: list[str] | None = None,
+    ) -> None:
+        """Delete all threads for a given agent and user, or delete only the
+        specified thread_ids if provided."""
+        self._validate_uuid(user_id)
+        self._validate_uuid(agent_id)
+        if thread_ids:
+            for tid in thread_ids:
+                self._validate_uuid(tid)
+        async with self._cursor() as cur:
+            if thread_ids:
+                await cur.execute(
+                    """
+                    DELETE FROM v2_thread
+                    WHERE agent_id = :agent_id
+                      AND v2_check_user_access(user_id, :user_id) = 1
+                      AND thread_id IN ({})
+                    """.format(
+                        ",".join([":tid" + str(i) for i in range(len(thread_ids))])
+                    ),
+                    {
+                        "agent_id": agent_id,
+                        "user_id": user_id,
+                        **{f"tid{i}": tid for i, tid in enumerate(thread_ids)},
+                    },
+                )
+            else:
+                await cur.execute(
+                    """
+                    DELETE FROM v2_thread
+                    WHERE agent_id = :agent_id
+                      AND v2_check_user_access(user_id, :user_id) = 1
+                    """,
+                    {"agent_id": agent_id, "user_id": user_id},
+                )
+
     # -------------------------------------------------------------------------
     # Helpers
     # -------------------------------------------------------------------------

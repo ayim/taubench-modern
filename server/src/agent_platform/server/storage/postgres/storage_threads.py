@@ -204,3 +204,43 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
             if row := await cur.fetchone():
                 return row["count"]
         return 0
+
+    async def delete_threads_for_agent(
+        self,
+        user_id: str,
+        agent_id: str,
+        thread_ids: list[str] | None = None,
+    ) -> None:
+        """Delete all threads for a given agent and user, or delete only the
+        specified thread_ids if provided."""
+        # 1. Validate the uuids
+        self._validate_uuid(user_id)
+        self._validate_uuid(agent_id)
+        if thread_ids:
+            for tid in thread_ids:
+                self._validate_uuid(tid)
+
+        async with self._cursor() as cur:
+            if thread_ids:
+                await cur.execute(
+                    """
+                    DELETE FROM v2.thread
+                    WHERE agent_id = %(agent_id)s::uuid
+                      AND v2.check_user_access(user_id, %(user_id)s::uuid)
+                      AND thread_id = ANY(%(thread_ids)s::uuid[])
+                    """,
+                    {
+                        "agent_id": agent_id,
+                        "user_id": user_id,
+                        "thread_ids": thread_ids,
+                    },
+                )
+            else:
+                await cur.execute(
+                    """
+                    DELETE FROM v2.thread
+                    WHERE agent_id = %(agent_id)s::uuid
+                      AND v2.check_user_access(user_id, %(user_id)s::uuid)
+                    """,
+                    {"agent_id": agent_id, "user_id": user_id},
+                )

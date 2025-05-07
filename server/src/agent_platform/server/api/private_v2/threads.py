@@ -56,6 +56,20 @@ async def list_threads(  # noqa: PLR0913
     return candidates
 
 
+@router.delete("/", status_code=204)
+async def delete_threads_for_agent(
+    user: AuthedUser,
+    storage: StorageDependency,
+    agent_id: str,
+    thread_ids: list[str] | None = None,
+):
+    agent = await storage.get_agent(user.user_id, agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    await storage.delete_threads_for_agent(user.user_id, agent_id, thread_ids)
+
+
 @router.get("/{tid}", response_model=Thread)
 async def get_thread(
     user: AuthedUser,

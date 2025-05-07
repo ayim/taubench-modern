@@ -145,6 +145,17 @@ class BaseStorage(ABC):
         """Count the number of threads."""
         pass
 
+    @abstractmethod
+    async def delete_threads_for_agent(
+        self,
+        user_id: str,
+        agent_id: str,
+        thread_ids: list[str] | None = None,
+    ) -> None:
+        """Delete specified threads, or all threads for a given agent
+        and user if none are specified."""
+        pass
+
     # -------------------------
     # Methods for users
     # -------------------------
