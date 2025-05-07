@@ -1,3 +1,5 @@
+import json
+import os
 from typing import Any
 
 import pytest
@@ -20,20 +22,14 @@ def json_patch_tests_data():
     Data for testing JSON Patch operations obtained from json-patch-tests
     (https://github.com/json-patch/json-patch-tests).
     """
-    urls = [
-        "https://raw.githubusercontent.com/json-patch/json-patch-tests/refs/heads/master/tests.json",
-        "https://raw.githubusercontent.com/json-patch/json-patch-tests/refs/heads/master/spec_tests.json",
-    ]
-
-    import json
-
-    import requests
+    path = os.path.join(
+        os.path.dirname(__file__),
+        "json-patch-tests.json",
+    )
 
     test_cases = []
-    for url in urls:
-        response = requests.get(url)
-        response.raise_for_status()
-        test_cases.extend(json.loads(response.text))
+    with open(path) as f:
+        test_cases.extend(json.load(f))
 
     # Filter out test cases that are marked as disabled or have error expectations
     # We're only interested in valid test cases for now
@@ -474,6 +470,26 @@ class TestComputeGenericDeltas:
                     GenericDelta(op="inc", path="/a", value=1),
                 ],  # since int changed from 1 -> 2
             ),
+            # 16) Boolean False to True => replace
+            (False, True, [GenericDelta(op="replace", path="", value=True)]),
+            # 17) Boolean True to False => replace
+            (True, False, [GenericDelta(op="replace", path="", value=False)]),
+            # 18) Boolean False to False => no delta
+            (False, False, []),
+            # 19) Boolean True to True => no delta
+            (True, True, []),
+            # 20) Boolean False to True (nested structure)
+            (
+                {"a": False},
+                {"a": True},
+                [GenericDelta(op="replace", path="/a", value=True)],
+            ),
+            # 21) Boolean True to False (nested structure)
+            (
+                {"a": True},
+                {"a": False},
+                [GenericDelta(op="replace", path="/a", value=False)],
+            ),
         ],
         ids=[
             "01_same_string",
@@ -491,6 +507,12 @@ class TestComputeGenericDeltas:
             "13_dict_remove_key",
             "14_dict_add_key",
             "15_dict_changed_key",
+            "16_bool_false_to_true",
+            "17_bool_true_to_false",
+            "18_bool_false_to_false",
+            "19_bool_true_to_true",
+            "20_bool_false_to_true_nested",
+            "21_bool_true_to_false_nested",
         ],
     )
     def test_compute_generic_delta(self, old_val, new_val, expected_ops):

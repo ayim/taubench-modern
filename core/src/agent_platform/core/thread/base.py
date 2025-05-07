@@ -40,6 +40,22 @@ class ThreadMessage:
     )
     """The role of the message sender."""
 
+    complete: bool = field(
+        default=False,
+        metadata={
+            "description": (
+                "True when the content has finished streaming, false otherwise. "
+                "Clients can use this to determine if the content item is 'complete' "
+                "or if further updates are expected."
+            )
+        },
+    )
+    """True when the content has finished streaming, false otherwise.
+
+    Clients can use this to determine if the content item is 'complete'
+    or if further updates are expected.
+    """
+
     commited: bool = field(
         default=False,
         metadata={
@@ -110,6 +126,15 @@ class ThreadMessage:
             },
         )
 
+    def mark_complete(self) -> None:
+        """Used to indicate that the message and all
+        its contents have finished streaming.
+
+        This will set complete to True for the message and all its contents."""
+        for content in self.content:
+            content.mark_complete()
+        self.complete = True
+
     def copy(self) -> Self:
         """Returns a deep copy of the message.
 
@@ -128,6 +153,7 @@ class ThreadMessage:
             agent_metadata=deepcopy(self.agent_metadata),
             server_metadata=deepcopy(self.server_metadata),
             parent_run_id=self.parent_run_id,
+            complete=self.complete,
         )
         new_message.message_id = self.message_id
         return new_message
@@ -143,6 +169,7 @@ class ThreadMessage:
             "agent_metadata": self.agent_metadata,
             "server_metadata": self.server_metadata,
             "parent_run_id": self.parent_run_id,
+            "complete": self.complete,
         }
 
     @classmethod
@@ -164,4 +191,6 @@ class ThreadMessage:
                 ThreadMessageContent.model_validate(content)
                 for content in data["content"]
             ]
+        if "complete" in data:
+            data["complete"] = bool(data["complete"])
         return cls(**data)

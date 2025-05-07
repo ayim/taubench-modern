@@ -122,8 +122,10 @@ class ThreadMessageWithThreadState:
 
     async def commit(self) -> None:
         """Commits the message to the thread state."""
-        await self._thread_state.commit_message(self._message)
         self._message.commited = True
+        self._message.mark_complete()
+        await self.stream_delta()  # Want to get these also into stream (flag updates)
+        await self._thread_state.commit_message(self._message)
 
     async def stream_delta(self) -> None:
         """Streams the delta to the UI."""

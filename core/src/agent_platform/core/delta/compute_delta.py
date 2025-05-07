@@ -10,7 +10,7 @@ from jsonpatch import JsonPatch
 from agent_platform.core.delta.base import NO_VALUE, GenericDelta
 
 
-def compute_generic_deltas(
+def compute_generic_deltas(  # noqa: PLR0911
     old_val: Any,
     new_val: Any,
     path: str = "",
@@ -37,6 +37,8 @@ def compute_generic_deltas(
     if type(old_val) is type(new_val):
         if isinstance(old_val, str):
             return _compute_delta_str(path, old_val, new_val)
+        elif isinstance(old_val, bool):
+            return _compute_delta_bool(path, old_val, new_val)
         elif isinstance(old_val, int):
             return _compute_delta_int(path, old_val, new_val)
         elif isinstance(old_val, list):
@@ -89,6 +91,23 @@ def _compute_delta_str(path: str, old: str, new: str) -> list[GenericDelta]:
         return [GenericDelta(op="concat_string", path=path, value=extra)]
     else:
         # completely changed
+        return [GenericDelta(op="replace", path=path, value=new)]
+
+
+def _compute_delta_bool(path: str, old: bool, new: bool) -> list[GenericDelta]:
+    """Computes deltas for boolean values.
+
+    Arguments:
+        path: The path to the boolean.
+        old: The old boolean value.
+        new: The new boolean value.
+
+    Returns:
+        The list of delta operations to apply.
+    """
+    if new == old:
+        return []
+    else:
         return [GenericDelta(op="replace", path=path, value=new)]
 
 

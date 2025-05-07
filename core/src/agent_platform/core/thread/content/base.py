@@ -27,11 +27,33 @@ class ThreadMessageContent:
     )
     """The kind of the thread message content"""
 
+    complete: bool = field(
+        default=False,
+        metadata={
+            "description": (
+                "True when the content has finished streaming, false otherwise. "
+                "Clients can use this to determine if the content item is 'complete' "
+                "or if further updates are expected."
+            )
+        },
+        init=False,
+    )
+    """True when the content has finished streaming, false otherwise.
+
+    Clients can use this to determine if the content item is 'complete'
+    or if further updates are expected.
+    """
+
+    def mark_complete(self) -> None:
+        """Used to indicate that the content has finished streaming."""
+        self.complete = True
+
     def model_dump(self) -> dict:
         """Serializes the content to a dictionary. Useful for JSON serialization."""
         return {
             "content_id": self.content_id,
             "kind": self.kind,
+            "complete": self.complete,
         }
 
     def model_dump_json(self) -> str:
@@ -44,8 +66,10 @@ class ThreadMessageContent:
         dict_no_content_id_kind = self.model_dump()
         dict_no_content_id_kind.pop("content_id")
         dict_no_content_id_kind.pop("kind")
+        dict_no_content_id_kind.pop("complete")
         new_content = cls(**dict_no_content_id_kind)
         new_content.content_id = self.content_id
+        new_content.complete = self.complete
         return new_content
 
     @classmethod
@@ -80,10 +104,12 @@ class ThreadMessageContent:
             raise ValueError(f"Unknown content kind: {kind}")
 
         content_id = data.pop("content_id", str(uuid4()))
+        complete = data.pop("complete", False)
 
         content_class = cls._content_kinds[kind]
         result = content_class.model_validate(data)
         result.content_id = content_id
+        result.complete = complete
         return result
 
 
