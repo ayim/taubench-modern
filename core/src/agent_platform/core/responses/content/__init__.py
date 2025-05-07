@@ -7,7 +7,16 @@ from agent_platform.core.responses.content.image import ResponseImageContent
 from agent_platform.core.responses.content.text import ResponseTextContent
 from agent_platform.core.responses.content.tool_use import ResponseToolUseContent
 
+AnyResponseMessageContent = (
+    ResponseAudioContent
+    | ResponseDocumentContent
+    | ResponseImageContent
+    | ResponseTextContent
+    | ResponseToolUseContent
+)
+
 __all__ = [
+    "AnyResponseMessageContent",
     "ResponseAudioContent",
     "ResponseDocumentContent",
     "ResponseImageContent",

@@ -5,6 +5,7 @@ from agent_platform.server.api.private_v2.capabilities import (
     router as capabilities_router,
 )
 from agent_platform.server.api.private_v2.debug import router as debug_router
+from agent_platform.server.api.private_v2.prompt import router as prompt_router
 from agent_platform.server.api.private_v2.runs import router as runs_router
 from agent_platform.server.api.private_v2.threads import router as threads_router
 
@@ -42,4 +43,9 @@ router.include_router(
     capabilities_router,
     prefix="/capabilities",
     tags=["capabilities"],
+)
+router.include_router(
+    prompt_router,
+    prefix="/prompts",
+    tags=["prompts"],
 )

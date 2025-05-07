@@ -5,7 +5,6 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Request
 from structlog import get_logger
 
-from agent_platform.core.agent import Agent, AgentArchitecture
 from agent_platform.core.context import AgentServerContext
 from agent_platform.core.delta.combine_delta import combine_generic_deltas
 from agent_platform.core.model_selector import DefaultModelSelector
@@ -25,13 +24,10 @@ from agent_platform.core.responses import (
     ResponseTextContent,
     ResponseToolUseContent,
 )
-from agent_platform.core.runbook import Runbook
-from agent_platform.core.runs import Run
-from agent_platform.core.thread import Thread
 from agent_platform.core.tools import ToolDefinition
 from agent_platform.server.agent_architectures import AgentArchManager
+from agent_platform.server.api.private_v2.utils import create_minimal_kernel
 from agent_platform.server.auth.handlers import AuthedUser
-from agent_platform.server.kernel import AgentServerKernel
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -44,36 +40,6 @@ class _Book:
     category: Annotated[str | None, "The category of the book"]
     # Showing example of using field(metadata={"description": ...})
     year: int = field(metadata={"description": "Year the book was published"})
-
-
-def _create_minimal_kernel(ctx: AgentServerContext) -> AgentServerKernel:
-    user = ctx.user_context.user
-    empty_agent = Agent(
-        user_id=user.user_id,
-        version="0.0.0",
-        name="empty-agent",
-        description="empty-agent",
-        agent_architecture=AgentArchitecture(name="", version=""),
-        platform_configs=[],
-        runbook_structured=Runbook(content=[], raw_text=""),
-    )
-    empty_thread = Thread(
-        user_id=user.user_id,
-        agent_id=empty_agent.agent_id,
-        name="empty-thread",
-        messages=[],
-    )
-    empty_run = Run(
-        run_id="00000000-0000-0000-0000-000000000000",
-        agent_id=empty_agent.agent_id,
-        thread_id=empty_thread.thread_id,
-    )
-    return AgentServerKernel(
-        ctx=ctx,
-        thread=empty_thread,
-        agent=empty_agent,
-        run=empty_run,
-    )
 
 
 def _basic_test_prompt() -> tuple[Prompt, Callable[[ResponseMessage], bool]]:
@@ -294,7 +260,7 @@ async def test_model_platform_params(
             )
 
             # Pass the context to create_minimal_kernel
-            kernel = _create_minimal_kernel(ctx)
+            kernel = create_minimal_kernel(ctx)
             platform_client = PlatformClient.from_platform_config(
                 kernel=kernel,
                 config=parsed_params,

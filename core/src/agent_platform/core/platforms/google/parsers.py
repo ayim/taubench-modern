@@ -14,8 +14,8 @@ from google.genai.types import (
 from agent_platform.core.delta import GenericDelta
 from agent_platform.core.delta.compute_delta import compute_generic_deltas
 from agent_platform.core.platforms.base import PlatformParsers
+from agent_platform.core.responses.content import AnyResponseMessageContent
 from agent_platform.core.responses.content.audio import ResponseAudioContent
-from agent_platform.core.responses.content.base import ResponseMessageContent
 from agent_platform.core.responses.content.image import ResponseImageContent
 from agent_platform.core.responses.content.text import ResponseTextContent
 from agent_platform.core.responses.content.tool_use import ResponseToolUseContent
@@ -114,7 +114,7 @@ class GoogleParsers(PlatformParsers):
         Raises:
             ValueError: If the response format is invalid or missing required fields.
         """
-        response_content: list[ResponseMessageContent] = []
+        response_content: list[AnyResponseMessageContent] = []
 
         # Extract the candidate (Google API returns candidates)
         if not response.candidates:

@@ -3,6 +3,7 @@ from copy import deepcopy
 from dataclasses import asdict, dataclass, field
 from typing import Any, Literal, TypeVar
 
+from agent_platform.core.responses.content import AnyResponseMessageContent
 from agent_platform.core.responses.content.base import ResponseMessageContent
 
 
@@ -49,7 +50,7 @@ class ResponseMessage:
     includes standardized fields for model metrics and usage data.
     """
 
-    content: list[ResponseMessageContent]
+    content: list[AnyResponseMessageContent]
     """The contents of the model's response."""
 
     role: Literal["agent"]
