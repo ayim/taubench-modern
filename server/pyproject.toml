@@ -1,6 +1,6 @@
 [project]
 name = "agent_platform_server"
-version = "2.0.0-alpha.3"
+version = "3.0.0-alpha"
 requires-python = ">=3.12"
 authors = [{ name = "Sema4.ai Engineering", email = "engineering@sema4.ai" }]
 dependencies = [
