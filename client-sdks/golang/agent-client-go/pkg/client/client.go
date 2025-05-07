@@ -13,7 +13,7 @@ import (
 	"strings"
 	"sync"
 
-	agentErr "github.com/Sema4AI/agent-platform/client-sdks/golang/agent-client-go/pkg/error"
+	agentErr "github.com/Sema4AI/agent-platform/agent-client-go/pkg/error"
 )
 
 // Client is the main entrypoint for interacting with the Sema4.ai Agent Server API.
