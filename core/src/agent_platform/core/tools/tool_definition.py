@@ -21,6 +21,7 @@ class ToolDefinition:
     """The schema of the tool input"""
 
     function: Callable[..., Any] = field(
+        default=lambda *a, **k: None,
         metadata={"description": "The function that implements the tool"},
     )
     """The function that implements the tool"""

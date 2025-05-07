@@ -200,3 +200,11 @@ class ResponseMessage:
 
         # Use the class method to validate and create a new instance
         return self.__class__.model_validate(data)
+
+    def excluding_raw_response(self) -> "ResponseMessage":
+        """Create a copy of the ResponseMessage with the raw response excluded.
+
+        Returns:
+            A new ResponseMessage instance with the raw response excluded.
+        """
+        return self.model_copy(raw_response=None)

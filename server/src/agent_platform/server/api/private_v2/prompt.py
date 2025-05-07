@@ -8,8 +8,7 @@ from structlog import get_logger
 from agent_platform.core.context import AgentServerContext
 from agent_platform.core.model_selector.default import DefaultModelSelector
 from agent_platform.core.model_selector.selection_request import ModelSelectionRequest
-from agent_platform.core.platforms import AnyPlatformParameters
-from agent_platform.core.platforms.base import PlatformClient
+from agent_platform.core.platforms.base import PlatformClient, PlatformParameters
 from agent_platform.core.prompts import Prompt
 from agent_platform.core.responses import ResponseMessage
 from agent_platform.server.api.private_v2.utils import create_minimal_kernel
@@ -26,10 +25,12 @@ ModelType = Literal[
 def _create_platform_client_and_get_model(
     request: Request,
     user: AuthedUser,
-    platform_config: AnyPlatformParameters,
+    platform_config_raw: dict,
     model: str | None = None,
     model_type: ModelType = "llm",
 ):
+    platform_config = PlatformParameters.model_validate(platform_config_raw)
+
     ctx = AgentServerContext.from_request(
         request=request,
         user=user,
@@ -62,7 +63,9 @@ def _create_platform_client_and_get_model(
 @router.post("/generate", response_model=ResponseMessage)
 async def prompt_generate(  # noqa: PLR0913
     prompt: Prompt,
-    platform_config: AnyPlatformParameters,
+    # Why no strong type? Discriminated union via our dataclasses + FastAPI
+    # was giving us some issues here; quick fix to keep moving for now.
+    platform_config_raw: dict,
     user: AuthedUser,
     request: Request,
     model: str | None = None,
@@ -73,7 +76,7 @@ async def prompt_generate(  # noqa: PLR0913
     platform_client, model = _create_platform_client_and_get_model(
         request=request,
         user=user,
-        platform_config=platform_config,
+        platform_config_raw=platform_config_raw,
         model=model,
         model_type=model_type,
     )
@@ -88,13 +91,13 @@ async def prompt_generate(  # noqa: PLR0913
         model=model,
     )
 
-    return response
+    return response.excluding_raw_response()
 
 
 @router.post("/stream")
 async def prompt_stream(  # noqa: PLR0913
     prompt: Prompt,
-    platform_config: AnyPlatformParameters,
+    platform_config_raw: dict,
     user: AuthedUser,
     request: Request,
     model: str | None = None,
@@ -105,7 +108,7 @@ async def prompt_stream(  # noqa: PLR0913
     platform_client, model = _create_platform_client_and_get_model(
         request=request,
         user=user,
-        platform_config=platform_config,
+        platform_config_raw=platform_config_raw,
         model=model,
         model_type=model_type,
     )
@@ -120,6 +123,11 @@ async def prompt_stream(  # noqa: PLR0913
             prompt=platform_specific_prompt,
             model=model,
         ):
+            # Ignore raw response, clients likely don't care and it varies
+            # by platform
+            if delta.path == "/raw_response":
+                continue
+
             yield {"data": json.dumps(delta.model_dump())}
 
     return EventSourceResponse(event_generator())
