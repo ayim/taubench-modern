@@ -251,3 +251,125 @@ Example Output:
   "additional_response_fields": {}
 }
 ```
+
+## Images
+
+**NOTE:** Not _all_ providers support images. Stick to Bedrock for now and support for more will come in time.
+
+In general, going forward, we'll be more in a world where different providers have unique capabilties. Some OpenAI models can take in audio. Some Gemini models can take in Video! Some models can take text and images and produce images. What _modalities_ a given model/provider support is something you need to think through when making direct Prompt requests.
+
+As for **images** we do currently support expressing image data in our generic Prompt type and thank's to Kylie's hard work on the original Bedrock Model Platform Client, we can accept for this provider image content in the following way. (As we add support for other providers, this input shape should remain largely the same.)
+
+Example input:
+
+```bash
+export IMAGE_CONTENT="$(base64 -b 0 -i whiteboard.jpg)" && \
+echo '{
+  "platform_config_raw": {
+    "kind": "bedrock",
+    "aws_access_key_id": "REDACTED",
+    "aws_secret_access_key": "REDACTED",
+    "region_name": "us-east-1"
+  },
+  "prompt": {
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "text": "Get me the text on this whiteboard."
+          },
+          {
+            "kind": "image",
+            "value": "'"${IMAGE_CONTENT}"'",
+            "mime_type": "image/jpeg",
+            "sub_type": "base64",
+            "detail": "high_res"
+          }
+        ]
+      }
+    ],
+    "tools": [],
+    "temperature": 0.0,
+    "max_output_tokens": 1024
+  }
+}' | \
+curl -X POST 'http://localhost:8000/api/v2/prompts/generate' \
+-H 'Content-Type: application/json' \
+--data @-
+```
+
+Example output:
+
+```json
+{
+  "content": [
+    {
+      "kind": "text",
+      "text": "The whiteboard shows various technical diagrams and text including:\n\nOn the left (in green):\n- \"CREATE AGENT (SAI)\"\n- \"Studio\"\n- \"Agent Server\"\n- \"Action Server\"\n- \"GET POST\"\n\nIn the middle:\n- A triangle labeled \"Damage API\"\n- \"Stable\" and \"Unstable\" curves\n- \"Sox System\"\n\nOn the right (in red and blue):\n- References to \"ASV2\"\n- \"Studio\"\n- \"DR\"\n- \"NCP\"\n- \"KB\"\n- Various interconnected shapes and arrows showing what appears to be a system architecture or workflow diagram\n\nThe diagram seems to be depicting some kind of software system architecture with various components and their interactions."
+    }
+  ],
+  "role": "agent",
+  "raw_response": null,
+  "stop_reason": "end_turn",
+  "usage": {
+    "input_tokens": 1583,
+    "output_tokens": 169,
+    "total_tokens": 1752
+  },
+  "metrics": {
+    "latencyMs": 9675
+  },
+  "metadata": {
+    "request_id": "482c3bc6-7876-4475-bb3b-c2fd809edfc4",
+    "http_status_code": 200,
+    "http_headers": {
+      "date": "Thu, 08 May 2025 15:34:27 GMT",
+      "content-type": "application/json",
+      "content-length": "945",
+      "connection": "keep-alive",
+      "x-amzn-requestid": "482c3bc6-7876-4475-bb3b-c2fd809edfc4"
+    },
+    "retry_attempts": 0,
+    "host_id": null
+  },
+  "additional_response_fields": {
+    "trace": null,
+    "performanceConfig": null
+  }
+}
+```
+
+Supported model/provider combos: `Bedrock` with default `claude-3-7-sonnet` model and older `claude-3-5-sonnet` model.
+
+## Picking a non-default model
+
+In the prompt endpoint, you can use `/api/v2/prompts/generate?model=model-name` to set the exact model. If you don't set the exact model as a query parameter, we'll give you the default model for that provider.
+
+Example request (note the `?model=o3-mini-high`):
+
+```bash
+curl -X POST 'http://localhost:8000/api/v2/prompts/stream?model=o3-mini-high' \
+-H 'Content-Type: application/json' \
+-d '{
+  "platform_config_raw": {
+    "kind": "openai",
+    "openai_api_key": "REDACTED"
+  },
+  "prompt": {
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "text": "Write me a short proof the the square root of 2 is irrational."
+          }
+        ]
+      }
+    ],
+    "tools": [],
+    "temperature": 0.0,
+    "max_output_tokens": 1024
+  }
+}'
+```
