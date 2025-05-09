@@ -7,6 +7,8 @@ from agent_platform.core.delta import GenericDelta
 from agent_platform.core.delta.compute_delta import compute_generic_deltas
 from agent_platform.core.platforms.base import (
     PlatformClient,
+    PlatformConfigs,
+    PlatformModelMap,
 )
 from agent_platform.core.platforms.openai.configs import (
     OpenAIModelMap,
@@ -32,13 +34,14 @@ class OpenAIClient(
         OpenAIConverters,
         OpenAIParsers,
         OpenAIPlatformParameters,
-        OpenAIPlatformConfigs,
         OpenAIPrompt,
     ],
 ):
     """A client for the OpenAI platform."""
 
     NAME: ClassVar[str] = "openai"
+    configs: ClassVar[type[PlatformConfigs]] = OpenAIPlatformConfigs
+    model_map: ClassVar[type[PlatformModelMap]] = OpenAIModelMap
 
     def __init__(
         self,
@@ -79,9 +82,6 @@ class OpenAIClient(
 
     def _init_parsers(self) -> OpenAIParsers:
         return OpenAIParsers()
-
-    def _init_configs(self) -> OpenAIPlatformConfigs:
-        return OpenAIPlatformConfigs()
 
     async def generate_response(
         self,

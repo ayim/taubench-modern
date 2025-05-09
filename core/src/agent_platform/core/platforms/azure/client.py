@@ -13,6 +13,8 @@ from agent_platform.core.platforms.azure.parsers import AzureOpenAIParsers
 from agent_platform.core.platforms.azure.prompts import AzureOpenAIPrompt
 from agent_platform.core.platforms.base import (
     PlatformClient,
+    PlatformConfigs,
+    PlatformModelMap,
 )
 from agent_platform.core.responses.response import ResponseMessage
 
@@ -29,13 +31,14 @@ class AzureOpenAIClient(
         AzureOpenAIConverters,
         AzureOpenAIParsers,
         AzureOpenAIPlatformParameters,
-        AzureOpenAIPlatformConfigs,
         AzureOpenAIPrompt,
     ],
 ):
     """A client for the AzureOpenAI platform."""
 
     NAME: ClassVar[str] = "azure"
+    configs: ClassVar[type[PlatformConfigs]] = AzureOpenAIPlatformConfigs
+    model_map: ClassVar[type[PlatformModelMap]] = AzureOpenAIModelMap
 
     def __init__(
         self,
@@ -122,9 +125,6 @@ class AzureOpenAIClient(
 
     def _init_parsers(self) -> AzureOpenAIParsers:
         return AzureOpenAIParsers()
-
-    def _init_configs(self) -> AzureOpenAIPlatformConfigs:
-        return AzureOpenAIPlatformConfigs()
 
     async def generate_response(
         self,

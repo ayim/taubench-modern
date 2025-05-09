@@ -11,6 +11,7 @@ from agent_platform.core.platforms.base import (
     PlatformClient,
     PlatformConfigs,
     PlatformConverters,
+    PlatformModelMap,
     PlatformParameters,
     PlatformParsers,
     PlatformPrompt,
@@ -185,10 +186,16 @@ class MockPlatformConfigs(PlatformConfigs):
     """Mock platform configs for testing."""
 
 
+class MockPlatformModelMap(PlatformModelMap):
+    """Mock platform model map for testing."""
+
+
 class MockPlatformClient(PlatformClient):
     """Mock platform client for testing."""
 
     NAME: ClassVar[str] = "mock_platform"
+    configs: ClassVar[type[PlatformConfigs]] = MockPlatformConfigs
+    model_map: ClassVar[type[PlatformModelMap]] = MockPlatformModelMap
 
     def _init_converters(
         self,
@@ -211,10 +218,6 @@ class MockPlatformClient(PlatformClient):
     ) -> MockPlatformParameters:
         """Initialize mock parameters."""
         return MockPlatformParameters()
-
-    def _init_configs(self) -> MockPlatformConfigs:
-        """Initialize mock configs."""
-        return MockPlatformConfigs()
 
     async def generate_response(
         self,
@@ -294,7 +297,6 @@ class TestPlatformBaseComponents:
         assert isinstance(client.converters, MockPlatformConverters)
         assert isinstance(client.parsers, MockPlatformParsers)
         assert isinstance(client.parameters, MockPlatformParameters)
-        assert isinstance(client.configs, MockPlatformConfigs)
 
     def test_platform_client_attach_kernel(
         self,

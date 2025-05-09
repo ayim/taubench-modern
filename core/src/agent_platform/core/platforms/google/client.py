@@ -14,6 +14,8 @@ from agent_platform.core.delta import GenericDelta
 from agent_platform.core.delta.compute_delta import compute_generic_deltas
 from agent_platform.core.platforms.base import (
     PlatformClient,
+    PlatformConfigs,
+    PlatformModelMap,
 )
 from agent_platform.core.platforms.google.configs import (
     GoogleModelMap,
@@ -36,13 +38,14 @@ class GoogleClient(
         GoogleConverters,
         GoogleParsers,
         GooglePlatformParameters,
-        GooglePlatformConfigs,
         GooglePrompt,
     ],
 ):
     """A client for the Google Gemini platform."""
 
     NAME: ClassVar[str] = "google"
+    configs: ClassVar[type[PlatformConfigs]] = GooglePlatformConfigs
+    model_map: ClassVar[type[PlatformModelMap]] = GoogleModelMap
 
     def __init__(
         self,
@@ -117,14 +120,6 @@ class GoogleClient(
             The initialized parsers.
         """
         return GoogleParsers()
-
-    def _init_configs(self) -> GooglePlatformConfigs:
-        """Initialize the Google platform configs.
-
-        Returns:
-            The initialized configs.
-        """
-        return GooglePlatformConfigs()
 
     async def generate_response(
         self,

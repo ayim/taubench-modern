@@ -9,6 +9,8 @@ from agent_platform.core.delta import GenericDelta
 from agent_platform.core.delta.compute_delta import compute_generic_deltas
 from agent_platform.core.platforms.base import (
     PlatformClient,
+    PlatformConfigs,
+    PlatformModelMap,
 )
 from agent_platform.core.platforms.cortex.configs import (
     CortexModelMap,
@@ -36,13 +38,14 @@ class CortexClient(
         CortexConverters,
         CortexParsers,
         CortexPlatformParameters,
-        CortexPlatformConfigs,
         CortexPrompt,
     ],
 ):
     """A client for the Cortex platform."""
 
     NAME: ClassVar[str] = "cortex"
+    configs: ClassVar[type[PlatformConfigs]] = CortexPlatformConfigs
+    model_map: ClassVar[type[PlatformModelMap]] = CortexModelMap
 
     def __init__(
         self,
@@ -77,9 +80,6 @@ class CortexClient(
 
     def _init_parsers(self) -> CortexParsers:
         return CortexParsers()
-
-    def _init_configs(self) -> CortexPlatformConfigs:
-        return CortexPlatformConfigs()
 
     def _init_session(
         self,

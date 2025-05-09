@@ -7,6 +7,8 @@ from agent_platform.core.delta import GenericDelta
 from agent_platform.core.delta.compute_delta import compute_generic_deltas
 from agent_platform.core.platforms.base import (
     PlatformClient,
+    PlatformConfigs,
+    PlatformModelMap,
 )
 from agent_platform.core.platforms.bedrock.configs import (
     BedrockModelMap,
@@ -31,13 +33,14 @@ class BedrockClient(
         BedrockConverters,
         BedrockParsers,
         BedrockPlatformParameters,
-        BedrockPlatformConfigs,
         BedrockPrompt,
     ],
 ):
     """A client for the Bedrock platform."""
 
     NAME: ClassVar[str] = "bedrock"
+    configs: ClassVar[type[PlatformConfigs]] = BedrockPlatformConfigs
+    model_map: ClassVar[type[PlatformModelMap]] = BedrockModelMap
 
     def __init__(
         self,
@@ -94,9 +97,6 @@ class BedrockClient(
 
     def _init_parsers(self) -> BedrockParsers:
         return BedrockParsers()
-
-    def _init_configs(self) -> BedrockPlatformConfigs:
-        return BedrockPlatformConfigs()
 
     def _init_clients(
         self,

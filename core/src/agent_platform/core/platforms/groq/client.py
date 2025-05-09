@@ -7,6 +7,8 @@ from agent_platform.core.delta import GenericDelta
 from agent_platform.core.delta.compute_delta import compute_generic_deltas
 from agent_platform.core.platforms.base import (
     PlatformClient,
+    PlatformConfigs,
+    PlatformModelMap,
 )
 from agent_platform.core.platforms.groq.configs import (
     GroqModelMap,
@@ -31,13 +33,14 @@ class GroqClient(
         GroqConverters,
         GroqParsers,
         GroqPlatformParameters,
-        GroqPlatformConfigs,
         GroqPrompt,
     ],
 ):
     """A client for the Groq platform."""
 
     NAME: ClassVar[str] = "groq"
+    configs: ClassVar[type[PlatformConfigs]] = GroqPlatformConfigs
+    model_map: ClassVar[type[PlatformModelMap]] = GroqModelMap
 
     def __init__(
         self,
@@ -74,9 +77,6 @@ class GroqClient(
 
     def _init_parsers(self) -> GroqParsers:
         return GroqParsers()
-
-    def _init_configs(self) -> GroqPlatformConfigs:
-        return GroqPlatformConfigs()
 
     async def generate_response(
         self,

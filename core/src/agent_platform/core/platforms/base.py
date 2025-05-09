@@ -369,18 +369,19 @@ class PlatformConfigs(Configuration):
 TConverters = TypeVar("TConverters", bound=PlatformConverters)
 TParsers = TypeVar("TParsers", bound=PlatformParsers)
 TParameters = TypeVar("TParameters", bound=PlatformParameters)
-TConfigs = TypeVar("TConfigs", bound=PlatformConfigs)
 TPrompt = TypeVar("TPrompt", bound=PlatformPrompt)
 
 
 class PlatformClient(
     ABC,
     UsesKernelMixin,
-    Generic[TConverters, TParsers, TParameters, TConfigs, TPrompt],
+    Generic[TConverters, TParsers, TParameters, TPrompt],
 ):
     """Provides a client to interact with a AI platform."""
 
     NAME: ClassVar[str] = ""
+    configs: ClassVar[type[PlatformConfigs]] = PlatformConfigs
+    model_map: ClassVar[type[PlatformModelMap]] = PlatformModelMap
 
     def __init__(
         self,
@@ -403,7 +404,6 @@ class PlatformClient(
         self._parameters: TParameters = self._init_parameters(parameters, **kwargs)
         self._converters: TConverters = self._init_converters(kernel)
         self._parsers: TParsers = self._init_parsers()
-        self._configs: TConfigs = self._init_configs()
 
     def attach_kernel(self, kernel: "Kernel") -> None:
         """Attach the kernel to the client."""
@@ -430,11 +430,6 @@ class PlatformClient(
         """The platform-specific parameters."""
         return self._parameters
 
-    @property
-    def configs(self) -> TConfigs:
-        """The platform-specific configs."""
-        return self._configs
-
     @abstractmethod
     def _init_converters(self, kernel: "Kernel | None" = None) -> TConverters:
         """Initializes the platform-specific converters."""
@@ -454,11 +449,6 @@ class PlatformClient(
             **kwargs: Additional keyword arguments will be passed to the parameters
                 constructor.
         """
-        pass
-
-    @abstractmethod
-    def _init_configs(self) -> TConfigs:
-        """Initializes the platform-specific configs."""
         pass
 
     @abstractmethod
