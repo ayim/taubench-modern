@@ -22,6 +22,7 @@ class ThreadUserMessage(ThreadMessage):
         Raises:
             ValueError: If the role field doesn't match the literal "user".
         """
+        super().__post_init__()
         assert_literal_value_valid(self, "role")
 
     def model_dump(self) -> dict:
@@ -47,6 +48,7 @@ class ThreadAgentMessage(ThreadMessage):
         Raises:
             ValueError: If the role field doesn't match the literal "agent".
         """
+        super().__post_init__()
         assert_literal_value_valid(self, "role")
 
     def append_thought(self, text_piece: str) -> None:

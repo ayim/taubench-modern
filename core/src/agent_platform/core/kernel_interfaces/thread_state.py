@@ -55,9 +55,14 @@ class ThreadMessageWithThreadState:
                 self._message.append_content(content)
                 await self._message.stream_delta()
 
+            async def _complete_content(tag: str, content: str) -> None:
+                self._message.mark_last_content_complete()
+                await self._message.stream_delta()
+
             return XmlTagResponseStreamSink(
                 tag=self._content_tag,
                 on_tag_partial=_append_content,
+                on_tag_complete=_complete_content,
             )
 
         @property
@@ -68,9 +73,14 @@ class ThreadMessageWithThreadState:
                 self._message.append_thought(content)
                 await self._message.stream_delta()
 
+            async def _complete_thought(tag: str, content: str) -> None:
+                self._message.mark_last_content_complete()
+                await self._message.stream_delta()
+
             return XmlTagResponseStreamSink(
                 tag=self._thoughts_tag,
                 on_tag_partial=_append_thought,
+                on_tag_complete=_complete_thought,
             )
 
         @property
@@ -119,6 +129,11 @@ class ThreadMessageWithThreadState:
     def agent_metadata(self) -> dict[str, Any]:
         """The metadata of the message."""
         return self._message.agent_metadata
+
+    def mark_last_content_complete(self) -> None:
+        """Marks the last content as complete (finished streaming)."""
+        if self._message.content:
+            self._message.content[-1].mark_complete()
 
     async def commit(self) -> None:
         """Commits the message to the thread state."""
@@ -221,6 +236,7 @@ class ThreadMessageWithThreadState:
             match_as_tool_use.name = tool_use.tool_name
             match_as_tool_use.arguments_raw = tool_use.tool_input_raw
             match_as_tool_use.pending_at = datetime.now(UTC) if completed else None
+            match_as_tool_use.complete = completed
             break  # Only can match one tool use
 
         else:  # No matching tool use found, so we add a new one

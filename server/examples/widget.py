@@ -505,6 +505,7 @@ class DebugChatWidget(anywidget.AnyWidget):
                     self.selected_thread_id,
                     ThreadUserMessage(
                         content=[ThreadTextContent(text=user_text)],
+                        complete=True,
                     ).model_dump(),
                 )
 

@@ -65,4 +65,7 @@ class AddThreadMessagePayload(ThreadMessage):
             commited=payload.commited,
             agent_metadata=payload.agent_metadata,
             server_metadata=payload.server_metadata,
+            # If ever we're adding a message to a thread via
+            # the API, it must be complete
+            complete=True,
         )

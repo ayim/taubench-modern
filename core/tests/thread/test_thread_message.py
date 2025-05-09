@@ -215,6 +215,16 @@ class TestThreadUserMessage:
         assert user_msg.role == "user"
         assert isinstance(user_msg.content[0], ThreadTextContent)
         assert user_msg.content[0].text == "Hi!"
+        # By default, freshly created messages are not complete
+        assert user_msg.complete is False
+
+    def test_create_message_explicitly_complete(self):
+        user_msg = ThreadUserMessage(
+            content=[ThreadTextContent(text="Hi!")],
+            complete=True,
+        )
+        assert user_msg.complete is True
+        assert all(c.complete for c in user_msg.content)
 
     def test_role_is_forced_literal(self):
         with pytest.raises(ValueError, match="Invalid value for 'role'"):
@@ -228,6 +238,15 @@ class TestThreadAgentMessage:
         assert agent_msg.role == "agent"
         assert isinstance(agent_msg.content[0], ThreadTextContent)
         assert agent_msg.content[0].text == "Hello user!"
+        assert agent_msg.complete is False
+
+    def test_create_message_explicitly_complete(self):
+        agent_msg = ThreadAgentMessage(
+            content=[ThreadTextContent(text="Hi!")],
+            complete=True,
+        )
+        assert agent_msg.complete is True
+        assert all(c.complete for c in agent_msg.content)
 
     async def test_append_thought_appends_by_default(self):
         mock_thread_state = AsyncMock()
@@ -263,6 +282,15 @@ class TestThreadAgentMessage:
         # The second is an entirely new text block
         assert isinstance(agent_msg.message.content[-1], ThreadThoughtContent)
         assert agent_msg.message.content[-1].thought == "Second thought separate"
+
+    async def test_complete_marked_when_committed(self):
+        agent_msg = ThreadMessageWithThreadState(
+            ThreadAgentMessage(content=[ThreadTextContent(text="Hello")]),
+            AsyncMock(),
+        )
+        await agent_msg.commit()
+        assert agent_msg.message.complete is True
+        assert all(c.complete for c in agent_msg.message.content)
 
     async def test_append_thought_raises_if_committed(self):
         agent_msg = ThreadMessageWithThreadState(

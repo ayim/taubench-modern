@@ -67,6 +67,11 @@ class InitiateStreamPayload(Thread):
             except ValueError as e:
                 raise ValueError("The thread_id must be a valid UUID.") from e
 
+        # Ensure all messages are complete (they must be provided in full,
+        # no "streaming" of input messages)
+        for message in self.messages:
+            message.mark_complete()
+
     @classmethod
     def to_thread(cls, payload: "InitiateStreamPayload", user_id: str) -> Thread:
         # Make sure the user_id is a valid UUID

@@ -126,6 +126,13 @@ class ThreadMessage:
             },
         )
 
+    def __post_init__(self) -> None:
+        """Post-initialization hook to ensure all content is complete."""
+        if self.complete:
+            # If the message is complete, we need to ensure all content is complete
+            # so there's no inconsistency between the message and its contents.
+            self.mark_complete()
+
     def mark_complete(self) -> None:
         """Used to indicate that the message and all
         its contents have finished streaming.
