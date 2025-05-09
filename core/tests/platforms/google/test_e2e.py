@@ -12,7 +12,7 @@ from agent_platform.core.responses.content.text import ResponseTextContent
 from agent_platform.core.responses.response import ResponseMessage
 from agent_platform.core.utils import SecretString
 from core.tests.platforms.conftest import compare_responses
-from core.tests.vcr_setup import our_vcr
+from core.tests.vcr_setup import patched_vcr
 
 # -------------------------------------------------------------------------
 # MODEL LISTS
@@ -151,7 +151,7 @@ async def test_google_generate_responses(request, google_client, case, model_id)
     )
 
     # Use VCR without patching
-    with our_vcr.use_cassette(cassette_path):
+    with patched_vcr(cassette_path):
         # Convert the prompt
         google_prompt = await google_client.converters.convert_prompt(
             prompt,
@@ -185,7 +185,7 @@ async def test_google_stream_responses(request, google_client, case, model_id):
     )
 
     # Use VCR without patching
-    with our_vcr.use_cassette(cassette_path):
+    with patched_vcr(cassette_path):
         # Convert the prompt
         google_prompt = await google_client.converters.convert_prompt(
             prompt,

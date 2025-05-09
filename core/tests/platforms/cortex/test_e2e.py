@@ -13,7 +13,7 @@ from agent_platform.core.responses.content import ResponseTextContent
 from agent_platform.core.responses.response import ResponseMessage
 from agent_platform.core.utils import SecretString
 from core.tests.platforms.conftest import compare_responses
-from core.tests.vcr_setup import our_vcr
+from core.tests.vcr_setup import patched_vcr
 
 # -------------------------------------------------------------------------
 # MODEL LISTS
@@ -78,7 +78,9 @@ def cortex_client(kernel: Kernel, monkeypatch):
     """Fixture for Cortex client with proper cleanup."""
     from pathlib import Path
 
-    from core.tests.vcr_setup import VCR_RECORD_MODE
+    from vcr.record_mode import RecordMode
+
+    from core.tests.vcr_setup import get_vcr_record_mode
 
     # If we don't have a linking file, we can still run tests, but
     # actually put a non-None value in here so the parameters are
@@ -100,7 +102,7 @@ def cortex_client(kernel: Kernel, monkeypatch):
     mock_session.connection.rest = MagicMock()
     mock_session.connection.rest.token = "DUMMY_TOKEN_VALUE"
 
-    if VCR_RECORD_MODE == "none":
+    if get_vcr_record_mode() == RecordMode.NONE:
         # When we are doing replays, mock to make sure we don't
         # try and connect to Snowflake
         monkeypatch.setattr(
@@ -188,7 +190,7 @@ async def test_cortex_generate_responses(request, cortex_client, case, model_id)
         f"test_response_{case['cassette_suffix']}__{model_id}.yaml"
     )
 
-    with our_vcr.use_cassette(cassette_path):
+    with patched_vcr(cassette_path):
         cortex_prompt = await cortex_client.converters.convert_prompt(
             prompt,
             model_id=model_id,
@@ -227,7 +229,7 @@ async def test_cortex_stream_responses(request, cortex_client, case, model_id):
         f"test_stream_response_{case['cassette_suffix']}__{model_id}.yaml"
     )
 
-    with our_vcr.use_cassette(cassette_path):
+    with patched_vcr(cassette_path):
         cortex_prompt = await cortex_client.converters.convert_prompt(
             prompt,
             model_id=model_id,

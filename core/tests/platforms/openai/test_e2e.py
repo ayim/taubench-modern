@@ -11,7 +11,7 @@ from agent_platform.core.platforms.openai.parameters import OpenAIPlatformParame
 from agent_platform.core.responses.response import ResponseMessage
 from agent_platform.core.utils import SecretString
 from core.tests.platforms.conftest import compare_responses
-from core.tests.vcr_setup import our_vcr
+from core.tests.vcr_setup import patched_vcr
 
 # -------------------------------------------------------------------------
 # MODEL LISTS
@@ -121,7 +121,7 @@ async def test_openai_generate_responses(request, openai_client, case, model_id)
         f"test_response_{case['cassette_suffix']}__{model_id}.yaml"
     )
 
-    with our_vcr.use_cassette(cassette_path):
+    with patched_vcr(cassette_path):
         openai_prompt = await openai_client.converters.convert_prompt(
             prompt,
             model_id=model_id,
@@ -152,7 +152,7 @@ async def test_openai_stream_responses(request, openai_client, case, model_id):
         f"test_stream_response_{case['cassette_suffix']}__{model_id}.yaml"
     )
 
-    with our_vcr.use_cassette(cassette_path):
+    with patched_vcr(cassette_path):
         openai_prompt = await openai_client.converters.convert_prompt(
             prompt,
             model_id=model_id,

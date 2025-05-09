@@ -11,7 +11,7 @@ from agent_platform.core.platforms.bedrock.parameters import BedrockPlatformPara
 from agent_platform.core.responses.content import ResponseTextContent
 from agent_platform.core.responses.response import ResponseMessage
 from core.tests.platforms.conftest import compare_responses
-from core.tests.vcr_setup import our_vcr
+from core.tests.vcr_setup import patched_vcr
 
 # -------------------------------------------------------------------------
 # MODEL LISTS
@@ -144,7 +144,7 @@ async def test_bedrock_generate_responses(request, bedrock_client, case, model_i
         f"test_response_{case['cassette_suffix']}__{model_id}.yaml"
     )
 
-    with our_vcr.use_cassette(cassette_path):
+    with patched_vcr(cassette_path):
         bedrock_prompt = await bedrock_client.converters.convert_prompt(
             prompt,
             model_id=model_id,
@@ -178,7 +178,7 @@ async def test_bedrock_stream_responses(request, bedrock_client, case, model_id)
         f"test_stream_response_{case['cassette_suffix']}__{model_id}.yaml"
     )
 
-    with our_vcr.use_cassette(cassette_path):
+    with patched_vcr(cassette_path):
         bedrock_prompt = await bedrock_client.converters.convert_prompt(
             prompt,
             model_id=model_id,
