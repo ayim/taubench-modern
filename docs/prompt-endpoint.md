@@ -254,7 +254,7 @@ Example Output:
 
 ## Images
 
-**NOTE:** Not _all_ providers support images. Stick to Bedrock for now and support for more will come in time.
+**NOTE:** Not _all_ providers support images. Currently we have support in the Bedrock and OpenAI (and therefore also Azure OpenAI) clients.
 
 In general, going forward, we'll be more in a world where different providers have unique capabilties. Some OpenAI models can take in audio. Some Gemini models can take in Video! Some models can take text and images and produce images. What _modalities_ a given model/provider support is something you need to think through when making direct Prompt requests.
 
@@ -340,7 +340,13 @@ Example output:
 }
 ```
 
-Supported model/provider combos: `Bedrock` with default `claude-3-7-sonnet` model and older `claude-3-5-sonnet` model.
+Supported model/provider combos: `Bedrock` with default `claude-3-7-sonnet` model and older `claude-3-5-sonnet` model. OpenAI with `o4-mini(-high|-low)`, `gpt-4o(-mini)`, `gpt-4.1(-mini|-nano)` (and a few other older models). See the [Example TypeScript Client](./prompt-endpoint-examples/README.md) for an in depth look at streaming a prompt with an image in it. (And streaming responses from the prompt endpoint, in general.)
+
+## Audio
+
+**NOTE:** Not _all_ providers support audio. Stick to OpenAI for now and support for more will come in time. For OpenAI, you can _only_ use the `gpt-4o-audio` model to stream audio.
+
+For an example of streaming a prompt with audio content, see the [Example TypeScript Client](./prompt-endpoint-examples/README.md).
 
 ## Picking a non-default model
 

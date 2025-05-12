@@ -31,6 +31,12 @@ class OpenAIModelMap(PlatformModelMap):
             "gpt-4-turbo": "gpt-4-turbo-2024-04-09",
             # 3.5-turbo series (legacy)
             "gpt-3.5-turbo": "gpt-3.5-turbo-0125",
+            # o4-mini series
+            "o4-mini-high": "o4-mini-2025-04-16",
+            "o4-mini-low": "o4-mini-2025-04-16",
+            # o3 series
+            "o3-high": "o3-2025-04-16",
+            "o3-low": "o3-2025-04-16",
             # o3-mini series
             "o3-mini-high": "o3-mini-2025-01-31",
             "o3-mini-low": "o3-mini-2025-01-31",
@@ -44,6 +50,8 @@ class OpenAIModelMap(PlatformModelMap):
             "text-embedding-3-small": "text-embedding-3-small",
             "text-embedding-3-large": "text-embedding-3-large",
             "text-embedding-ada-002": "text-embedding-ada-002",
+            # Image models
+            "gpt-image-1": "gpt-image-1",
         },
         metadata=FieldMetadata(
             description=("A mapping between our model names and OpenAI model IDs."),
@@ -69,6 +77,12 @@ class OpenAIModelMap(PlatformModelMap):
             "gpt-4-turbo": "llm",
             # 3.5-turbo series (legacy)
             "gpt-3.5-turbo": "llm",
+            # o4-mini series
+            "o4-mini-high": "llm",
+            "o4-mini-low": "llm",
+            # o3 series
+            "o3-high": "llm",
+            "o3-low": "llm",
             # o3-mini series
             "o3-mini-high": "llm",
             "o3-mini-low": "llm",
@@ -82,6 +96,8 @@ class OpenAIModelMap(PlatformModelMap):
             "text-embedding-3-small": "embedding",
             "text-embedding-3-large": "embedding",
             "text-embedding-ada-002": "embedding",
+            # Image models
+            "gpt-image-1": "image",
         },
         metadata=FieldMetadata(
             description=("A mapping between our model names and model types."),
@@ -107,6 +123,12 @@ class OpenAIModelMap(PlatformModelMap):
             "gpt-4-turbo": ["text", "tools"],
             # 3.5-turbo series (legacy)
             "gpt-3.5-turbo": ["text", "tools"],
+            # o4-mini series
+            "o4-mini-high": ["text", "tools"],
+            "o4-mini-low": ["text", "tools"],
+            # o3 series
+            "o3-high": ["text", "tools"],
+            "o3-low": ["text", "tools"],
             # o3-mini series
             "o3-mini-high": ["text", "tools"],
             "o3-mini-low": ["text", "tools"],
@@ -120,6 +142,8 @@ class OpenAIModelMap(PlatformModelMap):
             "text-embedding-3-small": ["text"],
             "text-embedding-3-large": ["text"],
             "text-embedding-ada-002": ["text"],
+            # Image models
+            "gpt-image-1": ["text", "image"],
         },
         metadata=FieldMetadata(
             description=("A mapping between our model names and input modalities."),
@@ -145,6 +169,12 @@ class OpenAIModelMap(PlatformModelMap):
             "gpt-4-turbo": ["text"],
             # 3.5-turbo series (legacy)
             "gpt-3.5-turbo": ["text"],
+            # o4-mini series
+            "o4-mini-high": ["text"],
+            "o4-mini-low": ["text"],
+            # o3 series
+            "o3-high": ["text"],
+            "o3-low": ["text"],
             # o3-mini series
             "o3-mini-high": ["text"],
             "o3-mini-low": ["text"],
@@ -158,6 +188,8 @@ class OpenAIModelMap(PlatformModelMap):
             "text-embedding-3-small": ["embedding"],
             "text-embedding-3-large": ["embedding"],
             "text-embedding-ada-002": ["embedding"],
+            # Image models
+            "gpt-image-1": ["image"],
         },
         metadata=FieldMetadata(
             description=("A mapping between our model names and output modalities."),
@@ -183,6 +215,12 @@ class OpenAIModelMap(PlatformModelMap):
             "gpt-4-turbo": "gpt",
             # 3.5-turbo series (legacy)
             "gpt-3.5-turbo": "gpt",
+            # o4-mini series
+            "o4-mini-high": "o",
+            "o4-mini-low": "o",
+            # o3 series
+            "o3-high": "o",
+            "o3-low": "o",
             # o3-mini series
             "o3-mini-high": "o",
             "o3-mini-low": "o",
@@ -196,6 +234,8 @@ class OpenAIModelMap(PlatformModelMap):
             "text-embedding-3-small": "embedding",
             "text-embedding-3-large": "embedding",
             "text-embedding-ada-002": "embedding",
+            # Image models
+            "gpt-image-1": "gpt-image",
         },
         metadata=FieldMetadata(
             description=("A mapping between our model names and model families."),
@@ -223,7 +263,7 @@ class OpenAIDefaultModel(Configuration):
     """The default model to use for the OpenAI platform."""
 
     default_model: str = field(
-        default="gpt-4o",
+        default="gpt-4.1",
         metadata=FieldMetadata(
             description="The default model to use for the OpenAI platform.",
         ),
@@ -238,6 +278,7 @@ class OpenAIPlatformConfigs(PlatformConfigs):
         default_factory=lambda: {
             "llm": "openai",
             "embedding": "openai",
+            "image": "openai",
         },
         metadata={
             "description": "The default platform provider by model type.",
@@ -255,6 +296,7 @@ class OpenAIPlatformConfigs(PlatformConfigs):
         default_factory=lambda: {
             "llm": "balanced",
             "embedding": "balanced",
+            "image": "balanced",
         },
         metadata={
             "description": "The default quality tier by model type.",

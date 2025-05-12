@@ -143,6 +143,12 @@ async def test_openai_stream_responses(request, openai_client, case, model_id):
     if model_id not in case["models"]:
         pytest.skip(f"Model {model_id} not applicable to case '{case['case_name']}'")
 
+    if "o3-" in model_id:
+        pytest.skip(
+            "o3-series models do not support streaming responses for our organization"
+            " yet; working on verifying with OpenAI..."
+        )
+
     prompt = request.getfixturevalue(case["prompt_fixture"])
     await prompt.finalize_messages()
     expected_response = request.getfixturevalue(case["response_fixture"])

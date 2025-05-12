@@ -3,7 +3,10 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from openai.types.chat import ChatCompletionMessageParam, ChatCompletionToolParam
+    from openai.types.chat import (
+        ChatCompletionMessageParam,
+        ChatCompletionToolParam,
+    )
 
 from agent_platform.core.platforms.base import PlatformPrompt
 from agent_platform.core.platforms.openai.configs import OpenAIModelMap

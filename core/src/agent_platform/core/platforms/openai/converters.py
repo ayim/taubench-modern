@@ -1,12 +1,17 @@
+import base64
 import json
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, Literal, cast
+from typing import TYPE_CHECKING, Literal, cast
+
+import httpx
 
 if TYPE_CHECKING:
     from openai.types.chat import (
+        ChatCompletionContentPartImageParam,
+        ChatCompletionContentPartInputAudioParam,
+        ChatCompletionContentPartParam,
         ChatCompletionContentPartTextParam,
         ChatCompletionMessageParam,
-        ChatCompletionMessageToolCall,
         ChatCompletionMessageToolCallParam,
         ChatCompletionToolMessageParam,
         ChatCompletionToolParam,
@@ -39,34 +44,94 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
         content: PromptTextContent,
     ) -> "ChatCompletionContentPartTextParam":
         """Converts text content to OpenAI format."""
-        return {
-            "type": "text",
-            "text": content.text,
-        }
+        from openai.types.chat import ChatCompletionContentPartTextParam
+
+        return ChatCompletionContentPartTextParam(
+            type="text",
+            text=content.text,
+        )
 
     async def convert_image_content(
         self,
         content: PromptImageContent,
-    ) -> dict[str, Any]:
+    ) -> "ChatCompletionContentPartImageParam":
         """Converts image content to OpenAI format."""
-        raise NotImplementedError("Image not supported yet")
+        from openai.types.chat import ChatCompletionContentPartImageParam
+        from openai.types.chat.chat_completion_content_part_image_param import ImageURL
+
+        detail = "low" if content.detail == "low_res" else "high"
+
+        if content.sub_type == "url" and isinstance(content.value, str):
+            return ChatCompletionContentPartImageParam(
+                type="image_url",
+                image_url=ImageURL(
+                    url=content.value,
+                    detail=detail,
+                ),
+            )
+        elif content.sub_type == "raw_bytes" and isinstance(content.value, bytes):
+            bytes_to_base64 = base64.b64encode(content.value).decode("utf-8")
+            as_data_url = f"data:{content.mime_type};base64,{bytes_to_base64}"
+            return ChatCompletionContentPartImageParam(
+                type="image_url",
+                image_url=ImageURL(
+                    url=as_data_url,
+                    detail=detail,
+                ),
+            )
+        elif content.sub_type == "base64" and isinstance(content.value, str):
+            as_data_url = f"data:{content.mime_type};base64,{content.value}"
+            return ChatCompletionContentPartImageParam(
+                type="image_url",
+                image_url=ImageURL(
+                    url=as_data_url,
+                    detail=detail,
+                ),
+            )
+        else:
+            raise ValueError(
+                f"Unsupported image content type/value: {content.sub_type} "
+                f"/ {type(content.value)}"
+            )
 
     async def convert_audio_content(
         self,
         content: PromptAudioContent,
-    ) -> dict[str, Any]:
+    ) -> "ChatCompletionContentPartInputAudioParam":
         """Converts audio content to OpenAI format."""
-        raise NotImplementedError("Audio not supported yet")
+        from openai.types.chat import ChatCompletionContentPartInputAudioParam
+        from openai.types.chat.chat_completion_content_part_input_audio_param import (
+            InputAudio,
+        )
+
+        audio_format = "wav" if content.mime_type == "audio/wav" else "mp3"
+        encoded_string = content.value
+
+        if content.sub_type == "url":
+            # Now we need to fetch the file and encode it
+            async with httpx.AsyncClient() as client:
+                response = await client.get(content.value)
+                encoded_string = base64.b64encode(response.content).decode("utf-8")
+
+        return ChatCompletionContentPartInputAudioParam(
+            type="input_audio",
+            input_audio=InputAudio(
+                data=encoded_string,
+                format=audio_format,
+            ),
+        )
 
     async def convert_tool_use_content(
         self,
         content: PromptToolUseContent,
-    ) -> "ChatCompletionMessageToolCall":
+    ) -> "ChatCompletionMessageToolCallParam":
         """Converts tool use content to OpenAI format."""
-        from openai.types.chat import ChatCompletionMessageToolCall
-        from openai.types.chat.chat_completion_message_tool_call import Function
+        from openai.types.chat import ChatCompletionMessageToolCallParam
+        from openai.types.chat.chat_completion_message_tool_call_param import (
+            Function,
+        )
 
-        return ChatCompletionMessageToolCall(
+        return ChatCompletionMessageToolCallParam(
             id=content.tool_call_id,
             type="function",
             function=Function(
@@ -113,7 +178,7 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
     async def convert_document_content(
         self,
         content: PromptDocumentContent,
-    ) -> dict[str, Any]:
+    ):
         """Converts document content to OpenAI format."""
         raise NotImplementedError("Document not supported yet")
 
@@ -137,7 +202,10 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
     async def _process_message_content(
         self,
         content_list: Sequence[PromptMessageContent],
-    ) -> dict[str, Any]:
+    ) -> tuple[
+        list["ChatCompletionContentPartParam"],
+        list["ChatCompletionMessageToolCallParam"],
+    ]:
         """Process prompt message content and organize into text and tool components.
 
         Args:
@@ -146,37 +214,52 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
         Returns:
             A dictionary containing text content and tool calls.
         """
-        from openai.types.chat import ChatCompletionMessageToolCall
+        from openai.types.chat import (
+            ChatCompletionContentPartTextParam,
+            ChatCompletionMessageToolCallParam,
+        )
 
-        text_content = ""
-        tool_calls: list[ChatCompletionMessageToolCall] = []
+        content_parts: list[ChatCompletionContentPartParam] = []
+        tool_calls: list[ChatCompletionMessageToolCallParam] = []
 
         for content in content_list:
-            if isinstance(content, PromptTextContent):
-                text_content += content.text + "\n"
-            elif isinstance(content, PromptToolUseContent):
-                tool_call = await self.convert_tool_use_content(content)
-                tool_calls.append(tool_call)
-            elif isinstance(content, PromptImageContent):
-                raise NotImplementedError("Image content not supported yet")
-            elif isinstance(content, PromptAudioContent):
-                raise NotImplementedError("Audio content not supported yet")
-            elif isinstance(content, PromptDocumentContent):
-                raise NotImplementedError("Document content not supported yet")
-            elif isinstance(content, PromptToolResultContent):
-                # Tool results should be separate messages,
-                # not part of an assistant message
-                continue
+            last_content_part = content_parts[-1] if len(content_parts) > 0 else None
 
-        return {
-            "text": text_content.strip(),
-            "tool_calls": tool_calls,
-        }
+            match content:
+                case PromptTextContent() as text_content:
+                    if last_content_part and last_content_part["type"] == "text":
+                        last_content_part["text"] += "\n" + text_content.text
+                    else:
+                        content_parts.append(
+                            ChatCompletionContentPartTextParam(
+                                type="text",
+                                text=text_content.text,
+                            )
+                        )
+                case PromptToolUseContent() as tool_use_content:
+                    tool_call = await self.convert_tool_use_content(tool_use_content)
+                    tool_calls.append(tool_call)
+                case PromptImageContent() as image_content:
+                    content_parts.append(
+                        await self.convert_image_content(image_content)
+                    )
+                case PromptAudioContent() as audio_content:
+                    content_parts.append(
+                        await self.convert_audio_content(audio_content)
+                    )
+                case PromptDocumentContent():
+                    raise NotImplementedError("Document content not supported yet")
+                case PromptToolResultContent():
+                    # Tool results should be separate messages,
+                    # not part of an assistant message
+                    continue
+
+        return content_parts, tool_calls
 
     def _create_openai_message_param(
         self,
         role: str,
-        content: str,
+        content: list["ChatCompletionContentPartParam"],
         tool_calls: list["ChatCompletionMessageToolCallParam"] | None = None,
     ) -> "ChatCompletionMessageParam":
         """Create an OpenAI message parameter based on role.
@@ -201,22 +284,27 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
             # "system" messages now (04/05/2025)
             return ChatCompletionDeveloperMessageParam(
                 role="developer",
-                content=content,
+                content=[
+                    part  # Dev prompt only takes text instructions
+                    for part in content
+                    if part["type"] == "text"
+                ],
             )
         elif role == "user":
             return ChatCompletionUserMessageParam(role=role, content=content)
         elif role == "assistant":
+            result = ChatCompletionAssistantMessageParam(
+                role=role,
+                content=[
+                    part  # Assitant only takes text (and refusals it looks like?)
+                    for part in content
+                    if part["type"] == "text"
+                ],
+            )
+            # If we have tools, add them to the TypedDict
             if tool_calls and len(tool_calls) > 0:
-                return ChatCompletionAssistantMessageParam(
-                    role=role,
-                    content=content,
-                    tool_calls=tool_calls,
-                )
-            else:
-                return ChatCompletionAssistantMessageParam(
-                    role=role,
-                    content=content,
-                )
+                result["tool_calls"] = tool_calls
+            return result
         else:
             raise ValueError(f"Unsupported role: {role}")
 
@@ -236,7 +324,9 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
 
         for message in messages:
             # Process the message content to get text and tool components
-            processed_content = await self._process_message_content(message.content)
+            processed_contents, tool_calls = await self._process_message_content(
+                message.content
+            )
 
             # Get the appropriate OpenAI role
             openai_role = await self._reverse_role_map(message.role)
@@ -244,8 +334,8 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
             # Convert to the proper message type
             formatted_message = self._create_openai_message_param(
                 role=openai_role,
-                content=processed_content["text"],
-                tool_calls=processed_content["tool_calls"],
+                content=processed_contents,
+                tool_calls=tool_calls,
             )
 
             # Can't have an empty user message (especially before tool messages, throws
@@ -277,6 +367,8 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
         Returns:
             The converted system instruction.
         """
+        from openai.types.chat import ChatCompletionContentPartTextParam
+
         if system_instruction is None:
             return []
 
@@ -284,12 +376,22 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
             # For o1-mini, the system message is always a user message
             system_message = self._create_openai_message_param(
                 role="user",
-                content=system_instruction,
+                content=[
+                    ChatCompletionContentPartTextParam(
+                        type="text",
+                        text=system_instruction,
+                    )
+                ],
             )
         else:
             system_message = self._create_openai_message_param(
                 role="system",
-                content=system_instruction,
+                content=[
+                    ChatCompletionContentPartTextParam(
+                        type="text",
+                        text=system_instruction,
+                    )
+                ],
             )
 
         return [system_message]
@@ -306,27 +408,21 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
         Returns:
             The list of OpenAI tool parameters.
         """
-        from openai.types import FunctionDefinition
+        from openai.types.chat import ChatCompletionToolParam
+        from openai.types.shared_params.function_definition import FunctionDefinition
 
         converted_tools: list[ChatCompletionToolParam] = []
         for tool in tools:
-            function_def = FunctionDefinition(
-                name=tool.name,
-                description=tool.description,
-                parameters=tool.input_schema,
+            converted_tools.append(
+                ChatCompletionToolParam(
+                    type="function",
+                    function=FunctionDefinition(
+                        name=tool.name,
+                        description=tool.description or "",
+                        parameters=tool.input_schema or {},
+                    ),
+                )
             )
-            tool_param = cast(
-                "ChatCompletionToolParam",
-                {
-                    "type": "function",
-                    "function": {
-                        "name": function_def.name,
-                        "description": function_def.description or "",
-                        "parameters": function_def.parameters or {},
-                    },
-                },
-            )
-            converted_tools.append(tool_param)
         return converted_tools
 
     async def convert_prompt(
