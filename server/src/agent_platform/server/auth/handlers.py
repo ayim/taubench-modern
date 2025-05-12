@@ -1,3 +1,4 @@
+import logging
 from abc import ABC, abstractmethod
 from functools import lru_cache
 from typing import Annotated, ClassVar
@@ -23,6 +24,8 @@ from agent_platform.server.auth.settings import (
     JWTSettingsOIDC,
 )
 from agent_platform.server.storage import BaseStorage
+
+logger = logging.getLogger(__name__)
 
 
 class AuthHandler(ABC):
@@ -151,11 +154,15 @@ class JWTAuthOIDC(JWTAuthBase):
 # TODO: @kylie-bee: I don't think we need to cache as FastAPI likely does caching.
 @lru_cache(maxsize=1)
 def get_auth_handler(storage: StorageDependency) -> AuthHandler:
-    if AuthConfig.auth_type == AuthType.JWT_LOCAL:
+    logger.debug(f"Using auth_type = {AuthConfig.auth_type}")
+    if AuthType(AuthConfig.auth_type) == AuthType.JWT_LOCAL:
         return JWTAuthLocal(storage)
-    elif AuthConfig.auth_type == AuthType.JWT_OIDC:
+    elif AuthType(AuthConfig.auth_type) == AuthType.JWT_OIDC:
         return JWTAuthOIDC(storage)
-    return NOOPAuth(storage)
+    elif AuthType(AuthConfig.auth_type) == AuthType.NOOP:
+        return NOOPAuth(storage)
+
+    raise ValueError(f"Unexpected auth_type = {AuthConfig.auth_type}")
 
 
 AuthHandlerDependency = Annotated[AuthHandler, Depends(get_auth_handler)]
