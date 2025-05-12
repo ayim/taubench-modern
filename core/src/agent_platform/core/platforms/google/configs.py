@@ -124,6 +124,24 @@ class GoogleModelMap(PlatformModelMap):
         ),
     )
 
+    model_families: dict[str, str] = field(
+        default_factory=lambda: {
+            # Gemini models (LLM)
+            "gemini-2.0-flash": "gemini",
+            "gemini-2.0-flash-lite": "gemini",
+            "gemini-1.5-pro": "gemini",
+            "gemini-2.5-flash-preview-04-17-high": "gemini",
+            "gemini-2.5-flash-preview-04-17-low": "gemini",
+            # Gemini models (embedding)
+            "gemini-embedding-exp-03-07": "embedding",
+            "models/text-embedding-004": "embedding",
+            "models/embedding-001": "embedding",
+        },
+        metadata=FieldMetadata(
+            description=("A mapping between our model names and model families."),
+        ),
+    )
+
 
 @dataclass(frozen=True)
 class GoogleRoleMap(Configuration):

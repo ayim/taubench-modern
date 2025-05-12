@@ -276,6 +276,13 @@ class PlatformModelMap(Configuration):
             ),
         ),
     )
+    model_families: dict[str, str] = field(
+        default_factory=dict,
+        metadata=FieldMetadata(
+            description="The model families by model type.",
+        ),
+    )
+    """The model families by model type."""
 
     @classmethod
     def supported_models(cls) -> list[str]:

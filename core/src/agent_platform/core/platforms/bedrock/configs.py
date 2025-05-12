@@ -137,6 +137,26 @@ class BedrockModelMap(PlatformModelMap):
         ),
     )
 
+    model_famlies: dict[str, str] = field(
+        default_factory=lambda: {
+            # Anthropic
+            "claude-3-7-sonnet": "claude",
+            "claude-3-5-sonnet": "claude",
+            "claude-3-5-haiku": "claude",
+            # Amazon
+            "titan-embed-text-v2": "embedding",
+            "titan-embed-text-v1": "embedding",
+            # Cohere (LLM)
+            "cohere-command-r-plus": "cohere",
+            # Cohere (Embedding)
+            "cohere-embed-english-v3": "embedding",
+            "cohere-embed-multilingual-v3": "embedding",
+        },
+        metadata=FieldMetadata(
+            description="A mapping between our model names and model families.",
+        ),
+    )
+
 
 @dataclass(frozen=True)
 class BedrockRoleMap(Configuration):

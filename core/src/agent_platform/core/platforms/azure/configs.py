@@ -40,6 +40,30 @@ class AzureOpenAIModelMap(PlatformModelMap):
     )
     # TODO: Add mappings for model types, input modalities, and output modalities
 
+    model_families: dict[str, str] = field(
+        default_factory=lambda: {
+            "gpt-4o": "gpt",
+            "gpt-4o-mini": "gpt",
+            "gpt-4-turbo": "gpt",
+            "gpt-3.5-turbo": "gpt",
+            "o3-mini-high": "o",
+            "o3-mini-low": "o",
+            "o1-mini-high": "o",
+            "o1-mini-low": "o",
+            "o1-pro-high": "o",
+            "o1-pro-low": "o",
+            "o1-high": "o",
+            "o1-low": "o",
+            # Embedding models
+            "text-embedding-3-small": "embedding",
+            "text-embedding-3-large": "embedding",
+            "text-embedding-ada-002": "embedding",
+        },
+        metadata=FieldMetadata(
+            description=("A mapping between our model names and model families."),
+        ),
+    )
+
 
 @dataclass(frozen=True)
 class AzureOpenAIRoleMap(Configuration):

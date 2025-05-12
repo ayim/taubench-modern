@@ -12,6 +12,7 @@ import logging
 from agent_platform.architectures.default.state import ArchState
 from agent_platform.core import Kernel
 from agent_platform.core import agent_architectures as aa
+from agent_platform.core.prompts import select_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -49,10 +50,22 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
     # Save any issues to state for introspection
     state.configuration_issues = [*action_issues, *mcp_issues]
 
-    # Load and format the prompt we'll be using
-    conversation_prompt = await kernel.prompts.load_and_format(
-        "prompts/conversation-default.yml",
-        package=__package__,  # Slightly annoying, but it saves so much pain
+    # Get a platform and it's default LLM
+    platform, model = await kernel.get_platform_and_model(model_type="llm")
+
+    # Get the family of the chosen model
+    model_family = platform.client.model_map.model_families[model]
+
+    # Select and load the prompt we'll be using
+    unformatted_conversation_prompt = select_prompt(
+        prompt_paths=["prompts"],
+        package=__package__,
+        model_family=model_family,
+    )
+
+    # Format the prompt
+    conversation_prompt = await kernel.prompts.format_prompt(
+        unformatted_conversation_prompt,
         state=state,
     )
 
@@ -61,9 +74,6 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
 
     # Let's create a new message in the thread
     message = await kernel.thread_state.new_agent_message()
-
-    # Get a platform and it's default LLM
-    platform, model = await kernel.get_platform_and_model(model_type="llm")
 
     # And use the formatted prompt, model, and message to receive a stream
     # of output from the model as it processes the conversation

@@ -11,22 +11,20 @@ class PromptsInterface(ABC):
     """Handles prompt building and management with opinionated formatting."""
 
     @abstractmethod
-    async def load_and_format(
+    async def format_prompt(
         self,
-        path: str,
+        prompt: Prompt,
         *,
-        package: str | None = None,
         state: "StateBase | None" = None,
     ) -> Prompt:
-        """Load a prompt from a YAML file and format it with values from the
-        kernel and the given architecture state.
+        """
+        Format a prompt using the kernel and state.
 
         Arguments:
-            path: The path to the YAML file containing the prompt (relative to
-                  the agent architecture's root directory).
-            state: The architecture's state to use in formatting. (Optional.)
+            prompt: The prompt to format.
+            state:   The agent architecture's state to use in formatting. (Optional.)
 
         Returns:
-            The fully formatted prompt.
+            A fully formatted Prompt.
         """
         pass

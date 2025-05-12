@@ -14,6 +14,7 @@ from agent_platform.core.prompts.messages import (
     PromptUserMessage,
 )
 from agent_platform.core.prompts.prompt import Prompt
+from agent_platform.core.prompts.selector import select_prompt
 from agent_platform.core.prompts.special import (
     ConversationHistorySpecialMessage,
     DocumentsSpecialMessage,
@@ -59,4 +60,5 @@ __all__ = [
     "PromptToolUseContent",
     "PromptUserMessage",
     "UserPromptMessageContent",
+    "select_prompt",
 ]

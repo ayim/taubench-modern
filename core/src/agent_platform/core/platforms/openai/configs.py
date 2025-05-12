@@ -164,6 +164,44 @@ class OpenAIModelMap(PlatformModelMap):
         ),
     )
 
+    model_familes: dict[str, str] = field(
+        default_factory=lambda: {
+            # 4.5 series
+            "gpt-4.5": "gpt",
+            # 4.1 series
+            "gpt-4.1": "gpt",
+            "gpt-4.1-mini": "gpt",
+            "gpt-4.1-nano": "gpt",
+            # 4o series
+            "chatgpt-4o-latest": "gpt",
+            "gpt-4o": "gpt",
+            "gpt-4o-audio": "gpt",
+            # 4o mini series
+            "gpt-4o-mini": "gpt",
+            "gpt-4o-audio-mini": "gpt",
+            # 4-turbo series
+            "gpt-4-turbo": "gpt",
+            # 3.5-turbo series (legacy)
+            "gpt-3.5-turbo": "gpt",
+            # o3-mini series
+            "o3-mini-high": "o",
+            "o3-mini-low": "o",
+            # o1-mini series
+            "o1-mini-high": "o",
+            "o1-mini-low": "o",
+            # o1 series
+            "o1-high": "o",
+            "o1-low": "o",
+            # Embedding models
+            "text-embedding-3-small": "embedding",
+            "text-embedding-3-large": "embedding",
+            "text-embedding-ada-002": "embedding",
+        },
+        metadata=FieldMetadata(
+            description=("A mapping between our model names and model families."),
+        ),
+    )
+
 
 @dataclass(frozen=True)
 class OpenAIRoleMap(Configuration):

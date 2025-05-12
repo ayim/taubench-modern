@@ -100,6 +100,25 @@ class CortexModelMap(PlatformModelMap):
         ),
     )
 
+    model_families: dict[str, str] = field(
+        default_factory=lambda: {
+            # Anthropic
+            "claude-3-5-sonnet": "claude",
+            # DeepSeek
+            "deepseek-r1": "deepseek",
+            # Meta
+            "llama-3-1-8b": "llama",
+            "llama-3-1-70b": "llama",
+            # Snowflake (LLM)
+            "snowflake-llama-3-3-70b": "llamma",
+            # Snowflake (Embedding)
+            "snowflake-arctic-embed-m": "embedding",
+            "snowflake-arctic-embed-l": "embedding",
+            # Voyage
+            "voyage-multilingual": "voyage",
+        },
+    )
+
 
 @dataclass(frozen=True)
 class CortexRoleMap(Configuration):

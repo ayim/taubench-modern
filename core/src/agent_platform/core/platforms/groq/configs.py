@@ -79,6 +79,23 @@ class GroqModelMap(PlatformModelMap):
         ),
     )
 
+    model_families: dict[str, str] = field(
+        default_factory=lambda: {
+            "gemma2": "gemma",
+            "llama-3.3": "llama",
+            "llama-3.1": "llama",
+            "llama-guard": "llama",
+            "llama3-70b": "llama",
+            "llama3-8b": "llama",
+            "whisper": "whisper",
+            "whisper-turbo": "whisper",
+            "distil-whisper": "whisper",
+        },
+        metadata=FieldMetadata(
+            description=("A mapping between our model names and model families."),
+        ),
+    )
+
 
 @dataclass(frozen=True)
 class GroqRoleMap(Configuration):
