@@ -137,7 +137,7 @@ class BedrockModelMap(PlatformModelMap):
         ),
     )
 
-    model_famlies: dict[str, str] = field(
+    model_families: dict[str, str] = field(
         default_factory=lambda: {
             # Anthropic
             "claude-3-7-sonnet": "claude",

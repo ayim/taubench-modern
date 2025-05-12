@@ -16,8 +16,9 @@ from agent_platform.server.api import (
     public_v1_router,
 )
 from agent_platform.server.api.dependencies import StorageDependency
+from agent_platform.server.api.mcp import mcp
 from agent_platform.server.constants import SystemConfig
-from agent_platform.server.lifespan import lifespan
+from agent_platform.server.lifespan import create_combined_lifespan
 
 logger = structlog.get_logger(__name__)
 
@@ -58,6 +59,7 @@ class EnsureAPIPrefixMiddleware(BaseHTTPMiddleware):
                 PUBLIC_V1_PREFIX,
                 PRIVATE_V2_PREFIX,
                 "/api/v1",  # TODO: remove this once we're able (Backwards compat)
+                "/api/v2/mcp",
             ),
         ):
             return ORJSONResponse(status_code=404, content={"detail": "Not Found"})
@@ -124,11 +126,15 @@ def create_app() -> FastAPI:
             "threadCount": await storage.count_threads(),
         }
 
+    mcp_app = mcp.streamable_http_app()
+
     # Main FastAPI app to include both versions
     app = FastAPI(
-        lifespan=lifespan,
+        lifespan=create_combined_lifespan(mcp_app),
         openapi_url=None,  # Disable the default /openapi.json path
     )
+
+    app.mount("/api/v2/public-mcp/", mcp_app)
 
     # CORS middleware (completely configurable via SystemConfig)
     if SystemConfig.cors_mode == "all":

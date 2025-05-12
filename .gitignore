@@ -12,6 +12,7 @@ agent-server.pid
 agent-server.lock
 agent-server-config.json
 agent-server-config.yaml
+agent-server.log.*
 agentserver.db
 
 # Byte-compiled / optimized / DLL files

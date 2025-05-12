@@ -11,8 +11,15 @@ class MCPServer:
     name: str = field(metadata={"description": "The name of the MCP server."})
     """The name of the MCP server."""
 
-    url: str = field(metadata={"description": "The URL of the MCP server."})
-    """The URL of the MCP server."""
+    url: str = field(
+        metadata={
+            "description": "The URL of the MCP server. Prefer to NOT "
+            "include the /mcp or /sse suffixes as the client will try "
+            "to negotiate the transport automatically."
+        }
+    )
+    """The URL of the MCP server. Prefer to NOT include the /mcp or /sse
+    suffixes as the client will try to negotiate the transport automatically."""
 
     # TODO: what all do we need here? Auth/transport/etc?
 
@@ -33,10 +40,8 @@ class MCPServer:
 
     async def to_tool_definitions(self) -> list[ToolDefinition]:
         """Converts the MCP server to a list of tool definitions."""
-        client = MCPClient(self)
-        await client.connect()
-        tools = await client.list_tools()
-        await client.close()
+        async with MCPClient(self) as client:
+            tools = await client.list_tools()
         return tools
 
     @classmethod

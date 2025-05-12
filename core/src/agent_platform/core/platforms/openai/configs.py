@@ -164,7 +164,7 @@ class OpenAIModelMap(PlatformModelMap):
         ),
     )
 
-    model_familes: dict[str, str] = field(
+    model_families: dict[str, str] = field(
         default_factory=lambda: {
             # 4.5 series
             "gpt-4.5": "gpt",

@@ -1,6 +1,7 @@
-from contextlib import asynccontextmanager
+from contextlib import AsyncExitStack, asynccontextmanager
 
 from fastapi import FastAPI
+from starlette.applications import Starlette
 
 from agent_platform.server.constants import SystemPaths
 from agent_platform.server.storage import StorageService
@@ -23,3 +24,14 @@ async def lifespan(app: FastAPI):
     # Cleanup
     await StorageService.get_instance().teardown()
     # No need to shutdown providers - they'll be garbage collected
+
+
+def create_combined_lifespan(mcp_app: Starlette):
+    @asynccontextmanager
+    async def _combined_lifespan(main_app: FastAPI):
+        async with AsyncExitStack() as stack:
+            await stack.enter_async_context(lifespan(main_app))
+            await stack.enter_async_context(mcp_app.router.lifespan_context(main_app))
+            yield
+
+    return _combined_lifespan
