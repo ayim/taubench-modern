@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from fastapi import Request, WebSocket
 from opentelemetry.metrics import Counter, Histogram, MeterProvider
+from opentelemetry.sdk.trace import TracerProvider as SdkTracerProvider
 from opentelemetry.trace import Span, TracerProvider
 from requests import Response
 
@@ -109,137 +110,163 @@ class TestLangSmithContext:
     def test_init_without_config(self) -> None:
         """Test LangSmithContext initialization without config."""
         context = LangSmithContext()
-        assert context.client is None
+        assert context.tracer is None
+        assert context.langsmith_exporter is None
 
     def test_init_with_config(self) -> None:
         """Test LangSmithContext initialization with config."""
+        # Create a config with langsmith settings
         config = ObservabilityConfig(
             type="langsmith",
             api_url="http://test",
             api_key="test_key",
         )
-        context = LangSmithContext(config)
-        assert context.client is not None
-        assert context.client.api_url == "http://test"
-        assert context.client.api_key == "test_key"
 
-    def test_create_run_with_client(self, mock_user: User) -> None:
-        """Test creating run with client."""
-        config = ObservabilityConfig(
-            type="langsmith",
-            api_url="http://test",
-            api_key="test_key",
-        )
-        context = LangSmithContext(config)
+        with (
+            patch("agent_platform.core.context.OTLPSpanExporter") as mock_exporter,
+            patch(
+                "agent_platform.core.context.trace.get_tracer_provider"
+            ) as mock_get_provider,
+            patch("agent_platform.core.context.trace.get_tracer") as mock_get_tracer,
+            patch("agent_platform.core.context.BatchSpanProcessor") as mock_processor,
+        ):
+            # Set up the mocks
+            mock_provider = MagicMock(spec=SdkTracerProvider)
+            mock_get_provider.return_value = mock_provider
+            mock_tracer = MagicMock()
+            mock_get_tracer.return_value = mock_tracer
 
-        # Mock the client itself instead of just the method
-        mock_client = MagicMock()
-        mock_client.create_run.return_value = {"run_id": "test_run"}
-        context.client = mock_client
-        user_context = UserContext(user=mock_user, profile={})
+            # Create the context
+            context = LangSmithContext(config)
 
-        run = context.create_run(
-            name="test",
-            run_type="chain",
-            inputs={},
-            user_context=user_context,
-        )
-        assert run == {"run_id": "test_run"}
+            # Verify the exporter was created correctly
+            mock_exporter.assert_called_once_with(
+                endpoint="http://test/otel/v1/traces",
+                headers={"x-api-key": "test_key", "Langsmith-Project": "default"},
+            )
 
-    def test_end_run_with_client(self) -> None:
-        """Test ending run with client."""
-        config = ObservabilityConfig(
-            type="langsmith",
-            api_url="http://test",
-            api_key="test_key",
-        )
-        context = LangSmithContext(config)
+            # Verify tracer was initialized
+            mock_get_tracer.assert_called_once_with("langsmith")
+            assert context.tracer is mock_tracer
 
-        # Mock the client itself instead of just the method
-        mock_client = MagicMock()
-        mock_client.update_run.return_value = {
-            "run_id": "test_run",
-            "status": "completed",
-        }
-        context.client = mock_client
-
-        context.end_run(
-            run_id="test_run_id",
-            outputs={"test": "value"},
-        )
+            # Verify span processor was added
+            mock_processor.assert_called_once()
+            mock_provider.add_span_processor.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_trace_llm_with_client(self, mock_user: User) -> None:
-        """Test tracing LLM operations with client."""
-        config = ObservabilityConfig(
-            type="langsmith",
-            api_url="http://test",
-            api_key="test_key",
+    async def test_trace_llm_without_tracer(self) -> None:
+        """Test trace_llm context manager when tracer is None."""
+        context = LangSmithContext()  # No config, so tracer is None
+
+        user_context = UserContext(
+            user=User(
+                user_id="test_user",
+                sub="test_sub",
+                created_at=datetime.now(UTC),
+            ),
+            profile={},
         )
-        context = LangSmithContext(config)
-
-        # Create a mock run object with an id attribute
-        mock_run = MagicMock()
-        mock_run.id = "test_run"
-
-        # Mock the client itself instead of just the methods
-        mock_client = MagicMock()
-        mock_client.create_run.return_value = mock_run
-        mock_client.update_run.return_value = mock_run
-        context.client = mock_client
-
-        user_context = UserContext(user=mock_user, profile={})
 
         async with context.trace_llm(
-            name="test",
-            inputs={},
+            name="test_trace",
+            inputs={"prompt": "test prompt"},
             user_context=user_context,
-        ) as run:
-            assert run is not None
-            assert run.id == "test_run"
+        ) as result:
+            assert result is None
 
     @pytest.mark.asyncio
-    async def test_trace_llm_without_client(self, mock_user: User) -> None:
-        """Test tracing LLM operations without client."""
+    async def test_trace_llm_with_tracer(self) -> None:
+        """Test trace_llm context manager with a tracer."""
         context = LangSmithContext()
-        user_context = UserContext(user=mock_user, profile={})
 
-        async with context.trace_llm(
-            name="test",
-            inputs={},
-            user_context=user_context,
-        ) as run:
-            assert run is None
+        # Manually create and set a tracer and mock span
+        mock_tracer = MagicMock()
+        mock_span = MagicMock()
+
+        # Create the context manager properly
+        with patch("agent_platform.core.context.trace.get_current_span"):
+            # Set up using the mock context manager
+            context_mgr = MagicMock()
+            context_mgr.__enter__.return_value = mock_span
+            context_mgr.__exit__.return_value = None
+            mock_tracer.start_as_current_span.return_value = context_mgr
+
+            # Set the tracer
+            context.tracer = mock_tracer
+
+            user_context = UserContext(
+                user=User(
+                    user_id="test_user",
+                    sub="test_sub",
+                    created_at=datetime.now(UTC),
+                ),
+                profile={},
+            )
+
+            inputs = {"messages": [{"role": "user", "content": "test message"}]}
+            metadata = {"provider": "test_provider", "model": "test_model"}
+
+            async with context.trace_llm(
+                name="test_trace",
+                inputs=inputs,
+                user_context=user_context,
+                metadata=metadata,
+            ) as span_data:
+                # Verify the span was created
+                mock_tracer.start_as_current_span.assert_called_once_with("test_trace")
+
+                # Verify important attributes were set on the span
+                mock_span.set_attribute.assert_any_call("langsmith.span.kind", "llm")
+
+                # Add test output
+                if span_data:
+                    span_data["output"] = {
+                        "role": "assistant",
+                        "content": "test response",
+                    }
+
+            # Verify span status was set
+            mock_span.set_status.assert_called()
 
     @pytest.mark.asyncio
-    async def test_trace_llm_with_error(self, mock_user: User) -> None:
-        """Test tracing LLM operations with error."""
-        config = ObservabilityConfig(
-            type="langsmith",
-            api_url="http://test",
-            api_key="test_key",
+    async def test_trace_llm_with_error(self) -> None:
+        """Test trace_llm context manager with an error."""
+        context = LangSmithContext()
+
+        # Manually set up tracer and span
+        mock_tracer = MagicMock()
+        mock_span = MagicMock()
+
+        # Set up the context manager
+        context_mgr = MagicMock()
+        context_mgr.__enter__.return_value = mock_span
+        context_mgr.__exit__.return_value = None
+        mock_tracer.start_as_current_span.return_value = context_mgr
+
+        # Set the tracer
+        context.tracer = mock_tracer
+
+        user_context = UserContext(
+            user=User(
+                user_id="test_user",
+                sub="test_sub",
+                created_at=datetime.now(UTC),
+            ),
+            profile={},
         )
-        context = LangSmithContext(config)
 
-        # Create a mock run object with an id attribute
-        mock_run = MagicMock()
-        mock_run.id = "test_run"
-
-        # Mock the client itself instead of just the methods
-        mock_client = MagicMock()
-        mock_client.create_run.return_value = mock_run
-        mock_client.update_run.return_value = mock_run
-        context.client = mock_client
-
-        user_context = UserContext(user=mock_user, profile={})
-
+        # Test with an exception
         with pytest.raises(ValueError, match="Test error"):
             async with context.trace_llm(
-                name="test",
+                name="test_trace",
                 inputs={},
                 user_context=user_context,
             ):
                 raise ValueError("Test error")
+
+        # Verify error handling
+        mock_span.set_status.assert_called()
+        mock_span.record_exception.assert_called_once()
 
 
 class TestAgentServerContext:

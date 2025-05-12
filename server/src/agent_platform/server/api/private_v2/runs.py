@@ -175,17 +175,37 @@ async def stream_run(  # noqa: C901, PLR0915
     await websocket.accept()
 
     active_run: Run | None = None
+    server_context = None
 
     try:
+        # 1. Receive and validate initial payload
+        initial_payload = await _get_initial_payload(websocket)
+
+        thread_state = await _upsert_thread_and_messages(
+            user,
+            initial_payload,
+            storage,
+        )
+
+        agent = await _fetch_agent(user, thread_state, storage)
+
+        # Fetch the first LangSmith observability config
+        observability_config = None
+        for config in agent.observability_configs:
+            if config.type == "langsmith":
+                observability_config = config
+                break
+
+        if observability_config is None:
+            logger.info("No LangSmith observability config found, using default")
+
         # Create agent server context
         server_context = AgentServerContext.from_request(
             request=websocket,
             user=user,
-            version="2.0.0",  # TODO: versionbump enable this. Pull from constant.
+            version="2.0.0",
+            observability_config=observability_config,
         )
-
-        # 1. Receive and validate initial payload
-        initial_payload = await _get_initial_payload(websocket)
 
         # Start a new trace for this stream
         with server_context.start_span("stream_run") as span:
@@ -197,11 +217,11 @@ async def stream_run(  # noqa: C901, PLR0915
             # 2. Upsert thread and messages
             with server_context.start_span("upsert_thread_and_messages") as upsert_span:
                 upsert_span.set_attribute("thread_id", str(initial_payload.thread_id))
-                thread_state = await _upsert_thread_and_messages(
-                    user,
-                    initial_payload,
-                    storage,
-                )
+                # thread_state = await _upsert_thread_and_messages(
+                #     user,
+                #     initial_payload,
+                #     storage,
+                # )
                 upsert_span.set_attribute(
                     "message_count", len(initial_payload.messages)
                 )
@@ -209,7 +229,7 @@ async def stream_run(  # noqa: C901, PLR0915
             # 3. Fetch the agent
             with server_context.start_span("fetch_agent") as fetch_span:
                 fetch_span.set_attribute("agent_id", str(agent_id))
-                agent = await _fetch_agent(user, thread_state, storage)
+                # We already fetched the agent above, so just add attributes
                 fetch_span.set_attribute("agent_name", agent.name)
 
             # 4. Validate the agent ID from the URL vs. the payload

@@ -1,5 +1,3 @@
-import os
-
 import structlog
 from opentelemetry import metrics, trace
 from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
@@ -9,6 +7,8 @@ from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
+from agent_platform.server.otel import OTELConfig
 
 logger = structlog.get_logger(__name__)
 
@@ -26,8 +26,8 @@ def setup_telemetry():
     that will be used by AgentServerContext.
     """
 
-    otel_enabled = os.environ.get("OTEL_V2_ENABLED", "").lower() == "true"
-    collector_url = os.environ.get("OTEL_V2_COLLECTOR_URL", "http://localhost:4318")
+    collector_url = OTELConfig.collector_url
+    otel_enabled = OTELConfig.is_enabled
 
     if not otel_enabled:
         logger.info("OTEL v2 is not enabled. Using no-op providers.")
@@ -37,7 +37,7 @@ def setup_telemetry():
         return _tracer_provider, _meter_provider
 
     logger.info("Setting up OTEL v2")
-
+    logger.info(f"Collector URL: {collector_url}")
     # Set up resource with service info
     # TODO: pull version from versionbump controlled constant
     resource = Resource(

@@ -5,9 +5,11 @@ from dataclasses import dataclass, field
 from typing import Any, Literal, Optional, cast
 
 from fastapi import Request, WebSocket
-from langsmith import Client
 from opentelemetry import context, metrics, trace
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.metrics import Counter, Histogram, MeterProvider
+from opentelemetry.sdk.trace import TracerProvider as SdkTracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.trace import (
     Span,
     SpanContext,
@@ -43,7 +45,7 @@ class UserContext:
 
 
 class LangSmithContext:
-    """LangSmith context information and operations."""
+    """LangSmith context information and operations using OpenTelemetry."""
 
     def __init__(self, config: ObservabilityConfig | None = None):
         """Initialize LangSmith context with optional configuration.
@@ -51,95 +53,58 @@ class LangSmithContext:
         Args:
             config: Optional observability configuration for LangSmith
         """
-        self.client: Client | None = None
-        if config and config.type == "langsmith":
-            self.client = Client(
-                api_url=config.api_url,
-                api_key=config.api_key,
-            )
+        self.tracer = None
+        self.langsmith_exporter = None
 
-    def create_run(
-        self,
-        name: str,
-        run_type: RunType,
-        inputs: dict[str, Any],
-        user_context: UserContext,
-        **kwargs: Any,
-    ) -> Any:
-        """Create a new run in LangSmith.
+        if config and config.type == "langsmith" and config.api_key:
+            # Create the headers dictionary
+            # Using .get() on settings to safely retrieve project value with default
+            project = config.settings.get("project_name", "default")
 
-        Args:
-            name: Name of the run
-            run_type: Type of run (chain, llm, tool, etc.)
-            inputs: Input values for the run
-            user_context: User context for adding user information
-            **kwargs: Additional arguments to pass to create_run
-
-        Returns:
-            The created run object
-
-        Raises:
-            ValueError: If LangSmith client is not initialized
-        """
-        if not self.client:
-            raise ValueError("LangSmith client not initialized")
-
-        run_inputs = inputs.copy()
-        run_inputs.update(
-            {
-                "user": user_context.user.user_id,
-                "organization": user_context.user.cr_tenant_id or "unknown",
+            # Create headers with explicit type
+            headers: dict[str, str] = {
+                "x-api-key": config.api_key,
+                "Langsmith-Project": str(project),
             }
-        )
 
-        return self.client.create_run(
-            name=name,
-            run_type=run_type,
-            inputs=run_inputs,
-            **kwargs,
-        )
+            # Create the OTLP exporter
+            # Note: If the OTEL_EXPORTER_OTLP_ENDPOINT environment variable is not set,
+            # we need to manually append the /otel/v1/traces endpoint to the api_url;
+            # otherwise, the export of traces will fail.
+            # This is because the OTLPSpanExporter class expects the endpoint to already
+            # have the /otel/v1/traces suffix.
+            endpoint = config.api_url
+            if not endpoint:
+                endpoint = "https://api.smith.langchain.com/otel/v1/traces"
+            elif not endpoint.endswith("/otel/v1/traces"):
+                endpoint = endpoint.rstrip("/") + "/otel/v1/traces"
 
-    def end_run(
-        self,
-        run_id: str,
-        outputs: dict[str, Any] | None = None,
-        error: str | None = None,
-    ) -> None:
-        """End a LangSmith run.
-
-        Args:
-            run_id: ID of the run to end
-            outputs: Output values from the run
-            error: Error message if the run failed
-
-        Raises:
-            ValueError: If LangSmith client is not initialized
-        """
-        if not self.client:
-            raise ValueError("LangSmith client not initialized")
-
-        if error:
-            self.client.update_run(
-                run_id,
-                end_time=None,  # Auto-set to now
-                error=error,
+            self.langsmith_exporter = OTLPSpanExporter(
+                endpoint=endpoint,
+                headers=headers,
             )
-        else:
-            self.client.update_run(
-                run_id,
-                end_time=None,  # Auto-set to now
-                outputs=outputs or {},
-            )
+
+            # Get the current tracer provider
+            provider = trace.get_tracer_provider()
+
+            # If it's the SDK TracerProvider, we can add our processor
+            if isinstance(provider, SdkTracerProvider):
+                # Add LangSmith exporter to the provider
+                processor = BatchSpanProcessor(self.langsmith_exporter)
+                provider.add_span_processor(processor)
+
+            # Create a tracer for LangSmith operations
+            self.tracer = trace.get_tracer("langsmith")
 
     @asynccontextmanager
-    async def trace_llm(
+    async def trace_llm(  # noqa: C901, PLR0912, PLR0915
         self,
         name: str,
         inputs: dict[str, Any],
         user_context: UserContext,
         metadata: dict[str, Any] | None = None,
     ) -> AsyncGenerator[Any | None, None]:
-        """Context manager to trace LLM operations with LangSmith.
+        """Context manager to trace LLM operations with LangSmith using OpenTelemetry.
 
         Args:
             name: Name of the operation
@@ -148,26 +113,109 @@ class LangSmithContext:
             metadata: Additional metadata for the trace
 
         Yields:
-            The LangSmith run object if LangSmith is enabled, None otherwise
+            None, as this only handles OpenTelemetry tracing
         """
-        run = None
-        try:
-            if self.client:
-                run = self.create_run(
-                    name=name,
-                    run_type="llm",
-                    inputs=inputs,
-                    user_context=user_context,
-                    metadata=metadata or {},
-                )
-            yield run
-        except Exception as e:
-            if run is not None:
-                self.end_run(run.id, error=str(e))
-            raise
-        else:
-            if run is not None:
-                self.end_run(run.id)
+        if not self.tracer:
+            yield None
+            return
+
+        # Create a dictionary to store span data that we'll need after yield
+        span_data = {}
+
+        with self.tracer.start_as_current_span(name) as span:
+            # Set LangSmith span kind attribute (specifies run type)
+            span.set_attribute("langsmith.span.kind", "llm")
+
+            # Set trace name if provided in metadata
+            if metadata and "trace_name" in metadata:
+                span.set_attribute("langsmith.trace.name", metadata["trace_name"])
+
+            # Add user information as metadata
+            span.set_attribute("langsmith.metadata.user_id", user_context.user.user_id)
+            span.set_attribute(
+                "langsmith.metadata.organization",
+                user_context.user.cr_tenant_id or "unknown",
+            )
+
+            # Process inputs - for LLM we need to check if it's a chat format
+            if "messages" in inputs:
+                # Handle chat format messages
+                messages = inputs["messages"]
+                for i, message in enumerate(messages):
+                    if (
+                        isinstance(message, dict)
+                        and "role" in message
+                        and "content" in message
+                    ):
+                        span.set_attribute(f"gen_ai.prompt.{i}.role", message["role"])
+                        span.set_attribute(
+                            f"gen_ai.prompt.{i}.content", str(message["content"])
+                        )
+            else:
+                # Handle regular input format
+                for key, value in inputs.items():
+                    if isinstance(value, str):
+                        span.set_attribute(
+                            f"input.{key}", value[:1000]
+                        )  # Truncate large inputs
+
+            # Add system information if available
+            if metadata and "provider" in metadata:
+                span.set_attribute("gen_ai.system", metadata["provider"])
+
+            # Add model information if available
+            if metadata and "model" in metadata:
+                span.set_attribute("gen_ai.request.model", metadata["model"])
+
+            # Add additional metadata
+            if metadata:
+                for key, value in metadata.items():
+                    if key not in ["trace_name", "provider", "model"]:
+                        span.set_attribute(f"langsmith.metadata.{key}", str(value))
+
+            try:
+                # The coroutine using trace_llm should update
+                # span_data with completion info
+                span_data["span"] = span
+                yield span_data
+                span.set_status(Status(StatusCode.OK))
+
+                # Add output information if it was added to span_data
+                if "output" in span_data:
+                    output = span_data["output"]
+                    if isinstance(output, dict) and "content" in output:
+                        span.set_attribute(
+                            "gen_ai.completion.0.content", str(output["content"])
+                        )
+                        if "role" in output:
+                            span.set_attribute(
+                                "gen_ai.completion.0.role", output["role"]
+                            )
+                    elif isinstance(output, str):
+                        span.set_attribute("gen_ai.completion.0.content", output)
+
+                # Add usage information if available
+                if metadata and "usage" in metadata:
+                    usage = metadata["usage"]
+                    if isinstance(usage, dict):
+                        if "input_tokens" in usage:
+                            span.set_attribute(
+                                "gen_ai.usage.input_tokens", usage["input_tokens"]
+                            )
+                        if "output_tokens" in usage:
+                            span.set_attribute(
+                                "gen_ai.usage.output_tokens", usage["output_tokens"]
+                            )
+                        if "total_tokens" in usage:
+                            span.set_attribute(
+                                "gen_ai.usage.total_tokens", usage["total_tokens"]
+                            )
+
+            except Exception as e:
+                span.set_status(Status(StatusCode.ERROR))
+                span.record_exception(e)
+                span.set_attribute("error", str(e))
+                raise
 
     async def _yield_none(self) -> AsyncGenerator[None, None]:
         """Helper method to yield None in an async context."""
