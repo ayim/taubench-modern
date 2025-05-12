@@ -251,5 +251,24 @@ class BedrockClient(
         else:
             raise ValueError(f"Model {model_id} is not a supported embedding model")
 
+    async def count_tokens(
+        self,
+        prompt: BedrockPrompt,
+        model: str,
+    ) -> int:
+        """Count the tokens in a prompt.
+
+        Args:
+            prompt: The prompt to count the tokens of.
+            model: The model to use to count the tokens.
+
+        Returns:
+            The number of tokens in the prompt.
+
+        Raises:
+            NotImplementedError: This method is not yet implemented.
+        """
+        raise NotImplementedError("count_tokens is not yet implemented for Bedrock")
+
 
 PlatformClient.register_platform_client("bedrock", BedrockClient)

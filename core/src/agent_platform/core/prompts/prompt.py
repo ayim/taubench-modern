@@ -349,6 +349,117 @@ class Prompt:
 
         return to_pretty_yaml(self, width)
 
+    def count_tokens_approx(self, model: str | None = None) -> int:
+        """Approximate the number of tokens in the prompt.
+
+        This method attempts to use tiktoken (the OpenAI tokenizer) if available.
+        Otherwise, it falls back to a heuristic calculation.
+
+        Heuristic formula:
+        - Takes the maximum of:
+          - character count / 4 (1 token ~= 4 chars in English)
+          - word count / 0.75 (1 token ~= 0.75 words)
+
+        Args:
+            model: Optional model name to use for tiktoken. Defaults to "gpt-3.5-turbo".
+                  Only used when tiktoken is available.
+
+        Returns:
+            int: Estimated token count
+        """
+        try:
+            import tiktoken
+
+            # Use tiktoken for more accurate counting
+            model_name = model or "gpt-3.5-turbo"
+            encoding = tiktoken.encoding_for_model(model_name)
+
+            # Format messages into a string representation
+            messages_str = ""
+
+            # Add system instruction if present
+            if self.system_instruction:
+                messages_str += f"system: {self.system_instruction}\n"
+
+            # Add messages
+            for msg in self.messages:
+                if isinstance(msg, PromptUserMessage | PromptAgentMessage):
+                    role = "user" if isinstance(msg, PromptUserMessage) else "assistant"
+                    content_str = ""
+                    for content in msg.content:
+                        if isinstance(content, PromptTextContent):
+                            content_str += content.text
+                    messages_str += f"{role}: {content_str}\n"
+                # Skip special messages for token counting
+
+            # Add tools if present
+            if self.tools:
+                tools_str = "tools:\n"
+                for tool in self.tools:
+                    tools_str += f"function: {tool.name}\n"
+                    tools_str += f"description: {tool.description}\n"
+                    if tool.input_schema:
+                        tools_str += f"parameters: {tool.input_schema}\n"
+                messages_str += tools_str
+
+            # Count tokens using tiktoken
+            tokens = len(encoding.encode(messages_str))
+            return tokens
+
+        except (ImportError, ModuleNotFoundError):
+            # Fall back to heuristic if tiktoken isn't available
+            return self._count_tokens_heuristic()
+
+    def _count_tokens_heuristic(self) -> int:
+        """Count tokens using a heuristic approach.
+
+        Uses a combination of character and word count based on OpenAI's guidance:
+        - 1 token ~= 4 chars in English
+        - 1 token ~= 0.75 words
+
+        Takes the maximum of the two estimates as a conservative approach.
+
+        Returns:
+            int: Estimated token count
+        """
+        # Initialize counters
+        total_chars = 0
+        total_words = 0
+
+        # Count system instruction
+        if self.system_instruction:
+            total_chars += len(self.system_instruction)
+            total_words += len(self.system_instruction.split())
+
+        # Count messages
+        for msg in self.messages:
+            if isinstance(msg, PromptUserMessage | PromptAgentMessage):
+                for content in msg.content:
+                    if isinstance(content, PromptTextContent):
+                        text = content.text
+                        total_chars += len(text)
+                        total_words += len(text.split())
+
+        # Count tools
+        tools_text = ""
+        for tool in self.tools:
+            tools_text += f"{tool.name} {tool.description} "
+            if tool.input_schema:
+                # Convert parameters to string and count
+                import json
+
+                tools_text += json.dumps(tool.input_schema)
+
+        total_chars += len(tools_text)
+        total_words += len(tools_text.split())
+
+        # Calculate token estimates
+        char_estimate = total_chars / 4
+        word_estimate = total_words / 0.75
+
+        # Return the maximum of the two estimates
+        return max(int(char_estimate), int(word_estimate))
+
     @classmethod
     def model_validate(cls, data: dict) -> "Prompt":
         """Validate and convert a dictionary into a Prompt instance."""

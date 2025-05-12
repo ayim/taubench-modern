@@ -113,3 +113,15 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
                     )
                 await stream_pipe.aclose()
                 span.add_event("stream closed")
+
+    async def count_tokens(self, prompt: Prompt, model: str) -> int:
+        """Count the tokens in a prompt.
+
+        Args:
+            prompt: The prompt to count the tokens of.
+            model: The model to use to count the tokens.
+
+        Returns:
+            The number of tokens in the prompt.
+        """
+        return await self._internal_client.count_tokens(prompt, model)

@@ -224,5 +224,26 @@ class AzureOpenAIClient(
             "usage": {"total_tokens": total_tokens},
         }
 
+    async def count_tokens(
+        self,
+        prompt: AzureOpenAIPrompt,
+        model: str,
+    ) -> int:
+        """Count the tokens in a prompt.
+
+        Args:
+            prompt: The prompt to count the tokens of.
+            model: The model to use to count the tokens.
+
+        Returns:
+            The number of tokens in the prompt.
+
+        Raises:
+            NotImplementedError: This method is not yet implemented.
+        """
+        raise NotImplementedError(
+            "count_tokens is not yet implemented for Azure OpenAI"
+        )
+
 
 PlatformClient.register_platform_client("azure", AzureOpenAIClient)

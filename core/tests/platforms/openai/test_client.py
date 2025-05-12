@@ -532,3 +532,130 @@ class TestOpenAIClient:
             assert "usage" in result
             assert "total_tokens" in result["usage"]
             assert result["usage"]["total_tokens"] == 0
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("prompt_data", "expected_tokens"),
+        [
+            # Test basic message
+            (
+                {
+                    "messages": [
+                        {"role": "user", "content": "Hello, world!"},
+                    ],
+                },
+                6,  # "user: Hello, world!" should be 6 tokens
+            ),
+            # Test system and user messages
+            (
+                {
+                    "messages": [
+                        {"role": "system", "content": "You are a helpful assistant."},
+                        {"role": "user", "content": "Hello, world!"},
+                    ],
+                },
+                14,  # "system: You are a helpful assistant." + "user: Hello, world!"
+            ),
+            # Test with tools
+            (
+                {
+                    "messages": [
+                        {"role": "user", "content": "What's the weather?"},
+                    ],
+                    "tools": [
+                        {
+                            "type": "function",
+                            "function": {
+                                "name": "get_weather",
+                                "description": "Get the current weather",
+                                "parameters": {
+                                    "type": "object",
+                                    "properties": {
+                                        "location": {
+                                            "type": "string",
+                                            "description": (
+                                                "The city to get weather for",
+                                            ),
+                                        },
+                                    },
+                                    "required": ["location"],
+                                },
+                            },
+                        },
+                    ],
+                },
+                59,  # Approximate token count for the message + tool definition
+            ),
+        ],
+    )
+    async def test_count_tokens(
+        self,
+        openai_client: OpenAIClient,
+        prompt_data: dict[str, Any],
+        expected_tokens: int,
+    ) -> None:
+        """Test counting tokens in different types of prompts.
+
+        Args:
+            openai_client: The OpenAI client to test.
+            prompt_data: The prompt data to test with.
+            expected_tokens: The expected number of tokens.
+        """
+        # Create a mock prompt that returns our test data
+        mock_prompt = MagicMock(spec=OpenAIPrompt)
+        mock_prompt.as_platform_request.return_value = prompt_data
+
+        # Add the model to the model maps
+        test_model_map = {
+            "gpt-4o": "gpt-4o-2024-08-06",
+        }
+        with patch.object(
+            OpenAIModelMap,
+            "model_aliases",
+            test_model_map,
+        ):
+            token_count = await openai_client.count_tokens(
+                prompt=mock_prompt,
+                model="gpt-4o",
+            )
+            assert token_count == expected_tokens
+
+    @pytest.mark.asyncio
+    async def test_count_tokens_with_empty_prompt(
+        self,
+        openai_client: OpenAIClient,
+    ) -> None:
+        """Test counting tokens with an empty prompt."""
+        mock_prompt = MagicMock(spec=OpenAIPrompt)
+        mock_prompt.as_platform_request.return_value = {"messages": []}
+
+        test_model_map = {
+            "gpt-3.5-turbo": "gpt-3.5-turbo-0125",
+        }
+        with patch.object(
+            OpenAIModelMap,
+            "model_aliases",
+            test_model_map,
+        ):
+            token_count = await openai_client.count_tokens(
+                prompt=mock_prompt,
+                model="gpt-3.5-turbo",
+            )
+            assert token_count == 0
+
+    @pytest.mark.asyncio
+    async def test_count_tokens_with_invalid_model(
+        self,
+        openai_client: OpenAIClient,
+    ) -> None:
+        """Test counting tokens with an invalid model."""
+        mock_prompt = MagicMock(spec=OpenAIPrompt)
+        mock_prompt.as_platform_request.return_value = {
+            "messages": [{"role": "user", "content": "Hello"}],
+        }
+
+        with pytest.raises(KeyError):
+            await openai_client.count_tokens(
+                prompt=mock_prompt,
+                model="invalid-model",
+            )

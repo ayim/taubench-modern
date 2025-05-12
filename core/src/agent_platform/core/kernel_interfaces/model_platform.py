@@ -59,3 +59,20 @@ class PlatformInterface(ABC):
             object managing the response stream.
         """
         pass
+
+    @abstractmethod
+    async def count_tokens(
+        self,
+        prompt: Prompt,
+        model: str,
+    ) -> int:
+        """Count the tokens in a prompt.
+
+        Arguments:
+            prompt: The prompt to count the tokens of.
+            model: The model to use to count the tokens.
+
+        Returns:
+            The number of tokens in the prompt.
+        """
+        pass

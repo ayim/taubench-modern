@@ -83,6 +83,59 @@ class OpenAIClient(
     def _init_parsers(self) -> OpenAIParsers:
         return OpenAIParsers()
 
+    async def count_tokens(
+        self,
+        prompt: OpenAIPrompt,
+        model: str,
+    ) -> int:
+        """Count the tokens in a prompt.
+
+        Args:
+            prompt: The prompt to count the tokens of.
+            model: The model to use to count the tokens.
+
+        Returns:
+            The number of tokens in the prompt.
+        """
+        # TODO: Should we import in a try block and use a fallback algorithm
+        # if it's not installed?
+        import tiktoken
+
+        model_id = OpenAIModelMap.model_aliases[model]
+        encoding = tiktoken.encoding_for_model(model_id)
+
+        # Get the request dictionary
+        request = prompt.as_platform_request(model)
+
+        # Format messages into a string representation
+        messages_str = ""
+        for msg in request.get("messages", []):
+            role = msg.get("role", "")
+            content = msg.get("content", "")
+            if isinstance(content, list):
+                # Handle multimodal content
+                content = " ".join(
+                    item.get("text", "") if isinstance(item, dict) else str(item)
+                    for item in content
+                )
+            messages_str += f"{role}: {content}\n"
+
+        # Add tools if present
+        if "tools" in request:
+            tools_str = "tools:\n"
+            for tool in request["tools"]:
+                if "function" in tool:
+                    func = tool["function"]
+                    tools_str += f"function: {func.get('name', '')}\n"
+                    tools_str += f"description: {func.get('description', '')}\n"
+                    if "parameters" in func:
+                        tools_str += f"parameters: {func['parameters']}\n"
+            messages_str += tools_str
+
+        # Encode the formatted string
+        encoded_prompt = encoding.encode(messages_str)
+        return len(encoded_prompt)
+
     async def generate_response(
         self,
         prompt: OpenAIPrompt,
