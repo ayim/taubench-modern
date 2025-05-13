@@ -16,12 +16,17 @@ const argv = yargs(hideBin(process.argv))
   .option('image', {
     alias: 'i',
     type: 'string',
-    description: 'The path to the image file (mutually exclusive with --audio).',
+    description: 'The path to the image file (mutually exclusive with --audio and --pdf).',
   })
   .option('audio', {
     alias: 'a',
     type: 'string',
-    description: 'The path to the audio file (mutually exclusive with --image).',
+    description: 'The path to the audio file (mutually exclusive with --image and --pdf).',
+  })
+  .option('pdf', {
+    alias: 'p',
+    type: 'string',
+    description: 'The path to the PDF file (mutually exclusive with --image and --audio).',
   })
   .option('url', {
     alias: 'u',
@@ -35,13 +40,14 @@ const argv = yargs(hideBin(process.argv))
     description: 'The model name to use.',
     default: 'o4-mini-high',
   })
-  .usage('Usage: $0 --text "<prompt>" (--image <path> | --audio <path>) [--url <url>] [--model <model>]')
+  .usage('Usage: $0 --text "<prompt>" (--image <path> | --audio <path> | --pdf <path>) [--url <url>] [--model <model>]')
   .check((argv) => {
-    if (argv.image && argv.audio) {
-      throw new Error('Arguments --image and --audio are mutually exclusive.');
+    const mediaArgs = [argv.image, argv.audio, argv.pdf].filter(Boolean);
+    if (mediaArgs.length > 1) {
+      throw new Error('Arguments --image, --audio, and --pdf are mutually exclusive.');
     }
-    if (!argv.image && !argv.audio) {
-      throw new Error('Either --image or --audio must be provided.');
+    if (mediaArgs.length === 0) {
+      throw new Error('Either --image, --audio, or --pdf must be provided.');
     }
     return true;
   })
@@ -53,6 +59,7 @@ const argv = yargs(hideBin(process.argv))
 const promptText = argv.text;
 const imagePath = argv.image;
 const audioPath = argv.audio;
+const pdfPath = argv.pdf;
 const baseUrl = argv.url;
 const modelName = argv.model;
 
@@ -84,10 +91,44 @@ if (imagePath) {
     sub_type: "base64"
   };
   console.log(`Using audio: ${audioPath}`);
+} else if (pdfPath) {
+  // Read and base64 encode the PDF
+  const pdfBase64 = fs.readFileSync(pdfPath).toString('base64');
+  mediaContent = {
+    kind: "document",
+    value: pdfBase64,
+    name: "document.pdf",
+    mime_type: "application/pdf",
+    sub_type: "base64"
+  };
+  console.log(`Using PDF: ${pdfPath}`);
 }
 
 // Create the request payload
-const payload = {
+const payload = pdfPath ? {
+  platform_config_raw: {
+    kind: "reducto",
+    reducto_api_key: process.env.REDUCTO_API_KEY,
+    reducto_api_url: "https://backend.sema4ai.dev/reducto"
+  },
+  prompt: {
+    // Reducto is our only platform handling documents, and
+    // it just wants system instructions and a user message
+    // with the document to process
+    system_instructions: promptText,
+    messages: [
+      {
+        role: "user",
+        content: [
+          mediaContent
+        ]
+      }
+    ],
+    tools: [],
+    temperature: 0.0,
+    max_output_tokens: 1024
+  }
+} : {
   platform_config_raw: {
     kind: "openai",
     openai_api_key: process.env.OPENAI_API_KEY

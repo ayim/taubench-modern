@@ -4,6 +4,7 @@ from typing import Literal
 from agent_platform.core.prompts.base import PromptMessage
 from agent_platform.core.prompts.content.audio import PromptAudioContent
 from agent_platform.core.prompts.content.base import PromptMessageContent
+from agent_platform.core.prompts.content.document import PromptDocumentContent
 from agent_platform.core.prompts.content.image import PromptImageContent
 from agent_platform.core.prompts.content.text import PromptTextContent
 from agent_platform.core.prompts.content.tool_result import PromptToolResultContent
@@ -19,6 +20,7 @@ class PromptUserMessage(PromptMessage):
         | PromptImageContent
         | PromptAudioContent
         | PromptToolResultContent
+        | PromptDocumentContent
     ] = field(metadata={"description": "The contents of the prompt message"})
     # Type ignore here as we have a refinement on the kinds of content
     # that can be in the list for a PromptUserMessage

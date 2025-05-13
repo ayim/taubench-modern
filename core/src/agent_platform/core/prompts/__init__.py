@@ -10,6 +10,7 @@ from agent_platform.core.prompts.content import (
 )
 from agent_platform.core.prompts.messages import (
     PromptAgentMessage,
+    PromptDocumentContent,
     PromptMessage,
     PromptUserMessage,
 )
@@ -42,6 +43,7 @@ UserPromptMessageContent = (
     | PromptImageContent
     | PromptAudioContent
     | PromptToolResultContent
+    | PromptDocumentContent
 )
 
 AgentPromptMessageContent = PromptTextContent | PromptToolUseContent

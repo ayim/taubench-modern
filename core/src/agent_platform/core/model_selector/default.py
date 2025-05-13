@@ -155,6 +155,15 @@ class ModelMappingConfig(Configuration):
                     },
                 }
             },
+            "reducto": {
+                "reducto": {
+                    "document-to-text": {
+                        "best": "reducto-standard-parse",
+                        "balanced": "reducto-standard-parse",
+                        "fastest": "reducto-standard-parse",
+                    },
+                },
+            },
         },
     )
 
@@ -238,6 +247,9 @@ class PlatformDefaultModelConfig(Configuration):
             },
             "groq": {
                 "llm": "llama-3.3",
+            },
+            "reducto": {
+                "document-to-text": "reducto-standard-parse",
             },
         },
     )

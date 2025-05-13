@@ -20,6 +20,10 @@ from agent_platform.core.platforms.openai import (
     OpenAIClient,
     OpenAIPlatformParameters,
 )
+from agent_platform.core.platforms.reducto import (
+    ReductoClient,
+    ReductoPlatformParameters,
+)
 
 AnyPlatformParameters = (
     BedrockPlatformParameters
@@ -28,6 +32,7 @@ AnyPlatformParameters = (
     | AzureOpenAIPlatformParameters
     | GooglePlatformParameters
     | GroqPlatformParameters
+    | ReductoPlatformParameters
 )
 
 __all__ = [
@@ -39,4 +44,5 @@ __all__ = [
     "GroqClient",
     "OpenAIClient",
     "PlatformClient",
+    "ReductoClient",
 ]
