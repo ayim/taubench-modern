@@ -159,51 +159,16 @@ class OpenAIClient(
             ctx = None
 
         if ctx:
-            # First create a standard span with AgentServerContext
+            # Create a standard span with AgentServerContext
             with ctx.start_span("openai_generate_response") as span:
                 span.set_attribute("model", model)
                 span.set_attribute("model_provider", "openai")
 
                 try:
-                    # Prepare inputs and metadata for LangSmith
-                    messages = request.get("messages", [])
-                    inputs = {"messages": messages}
-
-                    # Extract model and provider info for metadata
-                    metadata = {
-                        "model": model,
-                        "provider": "openai",
-                        "trace_name": "OpenAI Chat Completion",
-                    }
-
-                    # Use LangSmith tracing with a with block
-                    async with ctx.langsmith.trace_llm(
-                        name="llm_completion",
-                        inputs=inputs,
-                        user_context=ctx.user_context,
-                        metadata=metadata,
-                    ) as langsmith_span:
-                        # Make the API call
-                        response = await self._openai_client.chat.completions.create(
-                            **request
-                        )
-
-                        # Record the response in the LangSmith span if it's a dict
-                        if isinstance(langsmith_span, dict):
-                            content = response.choices[0].message.content
-
-                            langsmith_span["output"] = {
-                                "content": content,
-                                "role": "assistant",
-                            }
-
-                            # Add usage information
-                            if response.usage:
-                                langsmith_span["usage"] = {
-                                    "input_tokens": response.usage.prompt_tokens,
-                                    "output_tokens": response.usage.completion_tokens,
-                                    "total_tokens": response.usage.total_tokens,
-                                }
+                    # Make the API call
+                    response = await self._openai_client.chat.completions.create(
+                        **request
+                    )
 
                     # Add usage information to regular span if available
                     if hasattr(response, "usage") and response.usage:
@@ -224,7 +189,7 @@ class OpenAIClient(
             response = await self._openai_client.chat.completions.create(**request)
             return self._parsers.parse_response(response)
 
-    async def generate_stream_response(  # noqa: C901, PLR0912, PLR0915
+    async def generate_stream_response(  # noqa: C901, PLR0912
         self,
         prompt: OpenAIPrompt,
         model: str,
@@ -266,30 +231,12 @@ class OpenAIClient(
                     span.set_attribute("model_provider", "openai")
                     span.set_attribute("streaming", True)
 
-                    # Use LangSmith tracing if available
-                    langsmith_span = None
-
                     # Start streaming request
                     response = await self._openai_client.chat.completions.create(
                         **request
                     )
 
-                    # Process streaming chunks -
-                    # different approach based on whether LangSmith is available
-                    # Extract messages for LangSmith
-                    messages = request.get("messages", [])
-                    inputs = {"messages": messages}
-
-                    # Set up metadata
-                    metadata = {
-                        "model": model,
-                        "provider": "openai",
-                        "trace_name": "OpenAI Streaming Chat Completion",
-                        "streaming": True,
-                    }
-
-                    # Process the full stream with LangSmith tracing
-                    # First collect all the chunks and build the response
+                    # Process all chunks
                     all_chunks = []
                     assembled_content = ""
 
@@ -313,36 +260,6 @@ class OpenAIClient(
                         # Update last message state
                         last_message = deepcopy(message)
 
-                    # Now send both the inputs and full response to LangSmith in one go
-                    try:
-                        # Use the with block properly to trace the operation
-                        async with ctx.langsmith.trace_llm(
-                            name="llm_stream_completion",
-                            inputs=inputs,
-                            user_context=ctx.user_context,
-                            metadata=metadata,
-                        ) as langsmith_span:
-                            if isinstance(langsmith_span, dict):
-                                # Add the final response
-                                langsmith_span["output"] = {
-                                    "content": assembled_content,
-                                    "role": "assistant",
-                                }
-
-                                # Add usage information if available in the last event
-                                if (
-                                    hasattr(all_chunks[-1], "usage")
-                                    and all_chunks[-1].usage
-                                ):
-                                    usage = all_chunks[-1].usage
-                                    langsmith_span["usage"] = {
-                                        "input_tokens": usage.prompt_tokens,
-                                        "output_tokens": usage.completion_tokens,
-                                        "total_tokens": usage.total_tokens,
-                                    }
-                    except Exception as e:
-                        logger.warning(f"Failed to trace with LangSmith: {e}")
-
                     # Update last message state after processing each event
                     last_message = deepcopy(message)
 
@@ -365,32 +282,13 @@ class OpenAIClient(
                         "stream": None,
                     }
 
-                    # Add usage information to LangSmith span if available
-                    if langsmith_span and "usage" in message.get("metadata", {}):
-                        usage = message["metadata"]["usage"]
-                        if isinstance(usage, dict):
-                            # When langsmith_span is a dict,
-                            # we should update it directly
-                            if "usage" not in langsmith_span:
-                                langsmith_span["usage"] = {}
-
-                            langsmith_span["usage"]["input_tokens"] = usage.get(
-                                "prompt_tokens", 0
-                            )
-                            langsmith_span["usage"]["output_tokens"] = usage.get(
-                                "completion_tokens", 0
-                            )
-                            langsmith_span["usage"]["total_tokens"] = usage.get(
-                                "total_tokens", 0
-                            )
-
                     # Generate final deltas
                     for delta in compute_generic_deltas(last_message, message):
                         yield delta
             except Exception as e:
                 if span:
                     span.set_attribute("error", str(e))
-                    span.set_attribute("error_type", type(e).__name__)
+                    span.set_attribute("error.type", type(e).__name__)
                 raise
         else:
             # Fall back to non-traced execution
@@ -466,60 +364,19 @@ class OpenAIClient(
                 span.set_attribute("text_count", len(texts))
                 span.set_attribute("model_provider", "openai")
 
-                # Check if we should use LangSmith for embeddings
-                has_langsmith_tracer = (
-                    hasattr(ctx, "langsmith")
-                    and ctx.langsmith is not None
-                    and hasattr(ctx.langsmith, "trace_llm")
-                )
-
                 try:
                     embeddings = []
                     total_tokens = 0
 
-                    # Process embeddings with or without LangSmith tracing
-                    if has_langsmith_tracer:
-                        # Set up LangSmith tracing for embeddings
-                        inputs = {
-                            "texts": texts,
-                        }
-                        metadata = {
-                            "model": model_id,
-                            "provider": "openai",
-                            "trace_name": "OpenAI Embeddings",
-                            "count": len(texts),
-                        }
-
-                        # Use with block for tracing
-                        async with ctx.langsmith.trace_llm(
-                            name="embedding_operation",
-                            inputs=inputs,
-                            user_context=ctx.user_context,
-                            metadata=metadata,
-                        ) as langsmith_span:
-                            # Process each text and create embeddings
-                            for text in texts:
-                                response = await self._openai_client.embeddings.create(
-                                    model=model_id,
-                                    input=text,
-                                )
-                                embedding = response.data[0].embedding
-                                total_tokens += response.usage.total_tokens
-                                embeddings.append(embedding)
-
-                            # Add usage information to span dictionary
-                            if isinstance(langsmith_span, dict):
-                                langsmith_span["usage"] = {"total_tokens": total_tokens}
-                    else:
-                        # Process embeddings without LangSmith
-                        for text in texts:
-                            response = await self._openai_client.embeddings.create(
-                                model=model_id,
-                                input=text,
-                            )
-                            embedding = response.data[0].embedding
-                            total_tokens += response.usage.total_tokens
-                            embeddings.append(embedding)
+                    # Process each text and create embeddings
+                    for text in texts:
+                        response = await self._openai_client.embeddings.create(
+                            model=model_id,
+                            input=text,
+                        )
+                        embedding = response.data[0].embedding
+                        total_tokens += response.usage.total_tokens
+                        embeddings.append(embedding)
 
                     # Add total tokens to regular span
                     span.set_attribute("total_tokens", total_tokens)
@@ -531,7 +388,7 @@ class OpenAIClient(
                     }
                 except Exception as e:
                     span.set_attribute("error", str(e))
-                    span.set_attribute("error_type", type(e).__name__)
+                    span.set_attribute("error.type", type(e).__name__)
                     raise
         else:
             # Fall back to non-traced execution

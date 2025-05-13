@@ -135,3 +135,9 @@ class StateBase:
             ),
         },
     )
+
+    def serialize(self) -> str:
+        """
+        Serialize the state to a dictionary.
+        """
+        return str({k: str(v) for k, v in self.__dict__.items()})

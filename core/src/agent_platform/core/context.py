@@ -1,3 +1,4 @@
+import json
 import re
 from collections.abc import AsyncGenerator, Callable, Generator
 from contextlib import asynccontextmanager, contextmanager
@@ -96,6 +97,39 @@ class LangSmithContext:
             # Create a tracer for LangSmith operations
             self.tracer = trace.get_tracer("langsmith")
 
+    def format_response_for_langsmith(self, response) -> dict:
+        """Formats a response for LangSmith.
+
+        Args:
+            response: The response to format
+
+        Returns:
+            A dictionary formatted for LangSmith showing content and role
+        """
+        # Extract text content from all content items
+        formatted_text = ""
+
+        # Handle response with content attribute (ResponseMessage)
+        if response.content:
+            for content_item in response.content:
+                # Check the kind of content
+                if content_item.kind == "text":
+                    # It's a text content, we can safely access the text attribute
+                    if content_item.text:
+                        formatted_text += content_item.text
+                else:
+                    # For other content types, just use string representation
+                    formatted_text += str(content_item)
+        # Simple string response
+        elif isinstance(response, str):
+            formatted_text = response
+        # Any other response type
+        else:
+            formatted_text = str(response)
+
+        # Return a simple format that works with the existing LangSmith integration
+        return {"content": formatted_text, "role": "assistant"}
+
     @asynccontextmanager
     async def trace_llm(  # noqa: C901, PLR0912, PLR0915
         self,
@@ -113,8 +147,9 @@ class LangSmithContext:
             metadata: Additional metadata for the trace
 
         Yields:
-            None, as this only handles OpenTelemetry tracing
+            A dictionary to store span data, or None if tracing is disabled
         """
+        # If tracing is disabled, just yield None and return
         if not self.tracer:
             yield None
             return
@@ -141,23 +176,54 @@ class LangSmithContext:
             if "messages" in inputs:
                 # Handle chat format messages
                 messages = inputs["messages"]
-                for i, message in enumerate(messages):
-                    if (
-                        isinstance(message, dict)
-                        and "role" in message
-                        and "content" in message
-                    ):
-                        span.set_attribute(f"gen_ai.prompt.{i}.role", message["role"])
-                        span.set_attribute(
-                            f"gen_ai.prompt.{i}.content", str(message["content"])
-                        )
-            else:
-                # Handle regular input format
-                for key, value in inputs.items():
-                    if isinstance(value, str):
-                        span.set_attribute(
-                            f"input.{key}", value[:1000]
-                        )  # Truncate large inputs
+
+                # First, set the raw messages value on the span for LangSmith
+                span.set_attribute("input.messages", str(messages))
+
+                # If it's a JSON string, try to parse it
+                if isinstance(messages, str):
+                    try:
+                        parsed_messages = json.loads(messages)
+                        if isinstance(parsed_messages, list):
+                            messages = parsed_messages
+                    except json.JSONDecodeError:
+                        pass
+
+                # Process individual messages
+                if isinstance(messages, list):
+                    # Filter out empty user messages
+                    filtered_messages = []
+                    for msg in messages:
+                        if isinstance(msg, dict):
+                            # Skip empty user messages
+                            if msg.get("role") == "user" and not msg.get("content"):
+                                continue
+                            filtered_messages.append(msg)
+                        else:
+                            filtered_messages.append(msg)
+
+                    # Process the filtered messages
+                    for i, message in enumerate(filtered_messages):
+                        if isinstance(message, dict):
+                            # Set role attribute if available
+                            if "role" in message:
+                                span.set_attribute(
+                                    f"gen_ai.prompt.{i}.role", str(message["role"])
+                                )
+
+                            # Set content attribute if available
+                            if "content" in message:
+                                content_value = message["content"]
+                                span.set_attribute(
+                                    f"gen_ai.prompt.{i}.content", str(content_value)
+                                )
+
+                            # Handle tool calls if present
+                            if "tool_calls" in message:
+                                span.set_attribute(
+                                    f"gen_ai.prompt.{i}.tool_calls",
+                                    str(message["tool_calls"]),
+                                )
 
             # Add system information if available
             if metadata and "provider" in metadata:
@@ -174,8 +240,6 @@ class LangSmithContext:
                         span.set_attribute(f"langsmith.metadata.{key}", str(value))
 
             try:
-                # The coroutine using trace_llm should update
-                # span_data with completion info
                 span_data["span"] = span
                 yield span_data
                 span.set_status(Status(StatusCode.OK))
@@ -702,6 +766,7 @@ class AgentServerContext:
         Yields:
             None, as this only handles OpenTelemetry tracing
         """
+        # Use regular span tracing
         with self.start_span(name) as span:
             if metadata:
                 self.add_span_attributes(span, metadata)

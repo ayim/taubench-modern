@@ -1,5 +1,7 @@
 from functools import wraps
 
+from opentelemetry.trace import StatusCode
+
 from agent_platform.core.agent_architectures.utils import (
     extract_kernel_and_create_or_get_state,
     restore_state_fields,
@@ -28,22 +30,55 @@ def entrypoint(func):
         # Extract and validate kernel and state.
         kernel, state = extract_kernel_and_create_or_get_state(sig, *args, **kwargs)
 
-        # Grab the scoped storages for the state fields.
-        new_scoped_storage_ids = await restore_state_fields(kernel, state)
+        with kernel.ctx.start_span(
+            f"agent_execution_{func.__name__}",
+            attributes={
+                "langsmith.span.kind": "chain",  # For LangSmith compatibility
+                "langsmith.trace.name": f"Agent: {kernel.agent.name}",
+                "agent.id": kernel.agent.agent_id,
+                "thread.id": kernel.thread.thread_id,
+                "agent.name": kernel.agent.name,
+                "agent.architecture": kernel.agent.agent_architecture.name,
+                "agent.version": kernel.agent.agent_architecture.version,
+                "function": func.__name__,
+            },
+        ) as span:
+            # Capture initial state for tracing (only happens if span is not None)
+            try:
+                span.set_attribute("input.value", state.serialize())  # type: ignore
+            except Exception:
+                pass
 
-        # Execute the decorated async function.
-        try:
-            # Run our Agent Architecture.
-            result = await func(kernel, state)
+            # Grab the scoped storages for the state fields.
+            new_scoped_storage_ids = await restore_state_fields(kernel, state)
 
-            # Save the state fields.
-            await update_state_fields(kernel, state)
+            try:
+                # Run our Agent Architecture.
+                result = await func(kernel, state)
 
-            # Return the result.
-            return result
-        except Exception as e:
-            # If the function raises an exception, delete any new scoped storages.
-            await rollback_state_fields(kernel, new_scoped_storage_ids)
-            raise e
+                # Record final state and result if span exists
+                try:
+                    span.set_attribute("output.value", state.serialize())  # type: ignore
+
+                    # Add result info
+                    if result is not None:
+                        span.set_attribute("result", str(result))
+                except Exception:
+                    pass
+
+                # Save the state fields.
+                await update_state_fields(kernel, state)
+
+                # Return the result.
+                return result
+            except Exception as e:
+                # Record error if span exists
+                span.set_attribute("error", str(e))
+                span.set_attribute("error.type", type(e).__name__)
+                span.set_status(StatusCode.ERROR)
+
+                # If the function raises an exception, delete any new scoped storages.
+                await rollback_state_fields(kernel, new_scoped_storage_ids)
+                raise e
 
     return wrapper

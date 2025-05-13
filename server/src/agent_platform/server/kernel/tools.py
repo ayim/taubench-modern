@@ -1,5 +1,7 @@
+import json
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
+from uuid import uuid4
 
 from agent_platform.core.actions import ActionPackage
 from agent_platform.core.kernel import ToolsInterface
@@ -24,51 +26,90 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
         tool_use: ResponseToolUseContent,
     ) -> ToolExecutionResult:
         from json import loads
-        from uuid import uuid4
 
         execution_id = str(uuid4())
         started_at = datetime.now(UTC)
+        tool_result_args = {
+            "definition": tool_def,
+            "tool_call_id": tool_use.tool_call_id,
+            "execution_id": execution_id,
+            "input_raw": tool_use.tool_input_raw or "{}",
+            "execution_started_at": started_at,
+            "execution_metadata": {},
+        }
         try:
             args_from_json = loads(tool_use.tool_input_raw or "{}")
         except Exception as e:
             return ToolExecutionResult(
-                definition=tool_def,
-                tool_call_id=tool_use.tool_call_id,
-                execution_id=execution_id,
-                input_raw=tool_use.tool_input_raw or "{}",
+                **tool_result_args,
                 output_raw=None,
                 error=str(e),
-                execution_started_at=started_at,
                 execution_ended_at=datetime.now(UTC),
-                execution_metadata={},
             )
 
         try:
             result = await tool_def.function(**args_from_json)
             # TODO: handling of various result types...
             return ToolExecutionResult(
-                definition=tool_def,
-                tool_call_id=tool_use.tool_call_id,
-                execution_id=execution_id,
-                input_raw=tool_use.tool_input_raw or "{}",
+                **tool_result_args,
                 output_raw=result,
                 error=None,
-                execution_started_at=started_at,
                 execution_ended_at=datetime.now(UTC),
-                execution_metadata={},
             )
         except Exception as e:
             return ToolExecutionResult(
-                definition=tool_def,
-                tool_call_id=tool_use.tool_call_id,
-                execution_id=execution_id,
-                input_raw=tool_use.tool_input_raw or "{}",
+                **tool_result_args,
                 output_raw=None,
                 error=str(e),
-                execution_started_at=started_at,
                 execution_ended_at=datetime.now(UTC),
-                execution_metadata={},
             )
+
+    def _create_tool_call_inputs(self, pending_tool_calls):
+        """Create the formatted tool call inputs for telemetry.
+
+        Args:
+            pending_tool_calls: List of pending tool calls
+
+        Returns:
+            Formatted tool calls input list
+        """
+        tool_calls_input = []
+        for tool_def, tool_use in pending_tool_calls:
+            try:
+                args_dict = json.loads(tool_use.tool_input_raw or "{}")
+            except Exception:
+                args_dict = {}
+
+            tool_calls_input.append(
+                {
+                    "name": tool_def.name,
+                    "args": args_dict,
+                    "id": tool_use.tool_call_id,
+                    "type": "tool_call",
+                }
+            )
+
+        return tool_calls_input
+
+    @classmethod
+    def _format_tool_result_for_trace(cls, result: ToolExecutionResult):
+        """Format a tool execution result for tracing.
+
+        Args:
+            result: The tool execution result
+
+        Returns:
+            Formatted dictionary for tracing
+        """
+        return {
+            "content": str(result.output_raw) if result.error is None else result.error,
+            "additional_kwargs": {"name": result.definition.name},
+            "response_metadata": {},
+            "type": "tool",
+            "id": result.execution_id,
+            "tool_call_id": result.tool_call_id,
+            "status": "success" if result.error is None else "error",
+        }
 
     async def execute_pending_tool_calls(
         self,
@@ -79,35 +120,112 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
 
         Arguments:
             pending_tool_calls: A list of pending tool calls to execute.
+            message_to_update: Optional message to update with tool execution progress.
 
         Yields:
             Tool execution results as they complete.
         """
         from asyncio import as_completed, create_task
 
-        # Create tasks for each tool call
-        execution_tasks = []
-        while pending_tool_calls:
-            # Pop as the caller should expect the list to end
-            # up cleared after all tool calls have been executed
-            tool_def, tool_use = pending_tool_calls.pop()
-            # Update the tool to running in the thread state (if provided)
-            if message_to_update:
-                message_to_update.update_tool_running(tool_use.tool_call_id)
-                await message_to_update.stream_delta()
-            # Execute the tool in a separate task
-            execution_tasks.append(
-                create_task(self._safe_execute_tool(tool_def, tool_use)),
-            )
+        from opentelemetry.trace import StatusCode
 
-        # Yield results as they complete
-        for completed_task in as_completed(execution_tasks):
-            result = await completed_task
-            yield result
-            # Update the tool to completed in the thread state (if provided)
-            if message_to_update:
-                message_to_update.update_tool_result(result)
-                await message_to_update.stream_delta()
+        # Create a copy of the pending calls for telemetry
+        pending_calls_copy = list(pending_tool_calls)
+
+        # Set up the span for tracing the batch of tool calls
+        with self.kernel.ctx.start_span(
+            "execute_pending_tool_calls",
+            attributes={
+                "langsmith.span.kind": "chain",
+                "langsmith.trace.name": "execute_pending_tool_calls",
+                "tool_count": len(pending_calls_copy) if pending_calls_copy else 0,
+                "agent.id": self.kernel.agent.agent_id,
+                "thread.id": self.kernel.thread.thread_id,
+            },
+        ) as span:
+            # Format tool call inputs for telemetry
+            if pending_calls_copy:
+                tool_calls_input = self._create_tool_call_inputs(pending_calls_copy)
+                span.set_attribute("input.value", json.dumps(tool_calls_input))
+                span.add_event(f"Starting execution of {len(pending_calls_copy)} tools")
+
+            # Create tasks for each tool call
+            execution_tasks = []
+            while pending_tool_calls:
+                # Pop as the caller should expect the list to end up cleared
+                tool_def, tool_use = pending_tool_calls.pop()
+
+                # Update the tool to running in the thread state (if provided)
+                if message_to_update:
+                    message_to_update.update_tool_running(tool_use.tool_call_id)
+                    await message_to_update.stream_delta()
+
+                # Execute the tool in a separate task
+                execution_tasks.append(
+                    create_task(self._safe_execute_tool(tool_def, tool_use)),
+                )
+
+            # Yield results as they complete
+            all_results = []
+            for completed_task in as_completed(execution_tasks):
+                result = await completed_task
+                all_results.append(result)
+
+                # Create a span for this specific tool execution
+                with self.kernel.ctx.start_span(
+                    f"tool_execution_{result.definition.name}",
+                    attributes={
+                        "langsmith.span.kind": "tool",
+                        "langsmith.trace.name": f"Tool: {result.definition.name}",
+                        "tool.name": result.definition.name,
+                        "tool.call_id": result.tool_call_id,
+                        "tool.execution_id": result.execution_id,
+                        "tool.input": result.input_raw,
+                        "input.value": json.dumps(
+                            {
+                                "name": result.definition.name,
+                                "args": json.loads(result.input_raw)
+                                if result.input_raw
+                                else {},
+                                "id": result.tool_call_id,
+                                "type": "tool_call",
+                            }
+                        ),
+                        "agent.id": self.kernel.agent.agent_id,
+                        "thread.id": self.kernel.thread.thread_id,
+                    },
+                ) as tool_span:
+                    # Record success or failure
+                    tool_span.set_attribute("tool.success", result.error is None)
+
+                    # Format the result for tracing
+                    formatted_result = (
+                        AgentServerToolsInterface._format_tool_result_for_trace(result)
+                    )
+                    tool_span.set_attribute(
+                        "output.value", json.dumps(formatted_result)
+                    )
+
+                    # Set error info if applicable
+                    if result.error:
+                        tool_span.set_attribute("error", result.error)
+                        tool_span.set_status(StatusCode.ERROR)
+
+                # Log completion event in the parent span
+                span.add_event(
+                    f"Tool {result.definition.name} completed",
+                    {
+                        "success": result.error is None,
+                        "tool_call_id": result.tool_call_id,
+                    },
+                )
+
+                yield result
+
+                # Update the tool to completed in the thread state (if provided)
+                if message_to_update:
+                    message_to_update.update_tool_result(result)
+                    await message_to_update.stream_delta()
 
     def _deduplicate_tool_names(
         self,
