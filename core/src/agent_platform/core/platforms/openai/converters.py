@@ -340,10 +340,13 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
 
             # Can't have an empty user message (especially before tool messages, throws
             # off the API which expects tool messages to follow assistant messages)
-            if (
-                formatted_message["role"] != "user"
-                or formatted_message["content"] != ""
-            ):
+            not_user_message = formatted_message["role"] != "user"
+            user_message_with_content = formatted_message["role"] == "user" and (
+                # We only convert to content lists, not plain str
+                isinstance(formatted_message["content"], list)
+                and len(formatted_message["content"]) > 0
+            )
+            if not_user_message or user_message_with_content:
                 converted_messages.append(formatted_message)
 
             # Add tool result messages that follow a tool use
