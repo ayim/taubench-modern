@@ -83,16 +83,14 @@ logger.info("Collecting all for psycopg...")
 # TODO: consider how to make postgres generally optional for Server since we only
 # use it for ACE deployments.
 psycopg_datas, psycopg_binaries, psycopg_hiddenimports = collect_all("psycopg")
+psyco_binary_datas, psyco_binary_binaries, psyco_binary_hiddenimports = collect_all(
+    "psycopg_binary"
+)
 
 # Add explicit psycopg binary imports - these are the core components needed
 psycopg_hiddenimports.extend(
     [
-        "psycopg.binary",  # Binary package support
-        "psycopg._impl",  # Core implementation
-        "psycopg._impl.adapt",  # Type adaptation
-        "psycopg._impl.cursor",  # Cursor implementation
-        "psycopg._impl.connection",  # Connection handling
-        "psycopg.pool",  # Connection pooling support
+        "psycopg_binary",
     ]
 )
 
@@ -104,6 +102,7 @@ a = Analysis(
         # *chromadb_binaries,
         *tiktoken_binaries,
         *psycopg_binaries,
+        *psyco_binary_binaries,
     ],
     datas=[
         (
@@ -119,6 +118,7 @@ a = Analysis(
         # *chromadb_datas,
         # *tiktoken_datas,
         *psycopg_datas,
+        *psyco_binary_datas,
         ("LICENSE", "."),
     ],
     hiddenimports=[
@@ -137,6 +137,7 @@ a = Analysis(
         "tiktoken_ext",
         *tiktoken_ext_submodules,
         *psycopg_hiddenimports,
+        *psyco_binary_hiddenimports,
     ],
     hookspath=[],
     hooksconfig={},
