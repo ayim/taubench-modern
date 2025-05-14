@@ -358,8 +358,9 @@ def build_changelog(  # noqa: PLR0913 we need all the flags to build the changel
 
     draft_cmd = "--draft" if draft else ""
     config_to_use = _get_towncrier_config(release)
+    # Keep and yes are mutually exclusive.
     keep_cmd = "--keep" if not release else ""
-    yes_cmd = "--yes" if ci else ""
+    yes_cmd = "--yes" if ci and release else ""
 
     if not release:
         # Check if the pre-release changelog file only has a header
