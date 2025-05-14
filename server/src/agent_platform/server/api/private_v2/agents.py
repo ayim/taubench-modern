@@ -19,6 +19,7 @@ from agent_platform.core.utils import SecretString
 from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.api.private_v2.compatibility.agent_compat import AgentCompat
 from agent_platform.server.auth import AuthedUser
+from agent_platform.server.kernel.tools import AgentServerToolsInterface
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -63,6 +64,16 @@ async def get_agent_by_name(
     return AgentCompat.from_agent(await storage.get_agent_by_name(user.user_id, name))
 
 
+@router.post("/{aid}/refresh-tools", status_code=204)
+async def refresh_tools(
+    user: AuthedUser,
+    aid: str,
+    storage: StorageDependency,
+) -> None:
+    agent = await storage.get_agent(user.user_id, aid)
+    AgentServerToolsInterface.clear_tools_for_agent(agent)
+
+
 @router.put("/{aid}", response_model=AgentCompat)
 async def update_agent(
     user: AuthedUser,
@@ -72,6 +83,7 @@ async def update_agent(
 ) -> AgentCompat:
     agent = UpsertAgentPayload.to_agent(payload, user_id=user.user_id, agent_id=aid)
     await storage.upsert_agent(user.user_id, agent)
+    AgentServerToolsInterface.clear_tools_for_agent(agent)
     return AgentCompat.from_agent(agent)
 
 
@@ -86,6 +98,7 @@ async def patch_agent(
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     await storage.patch_agent(user.user_id, aid, payload.name, payload.description)
+    # Just updates name/description, so no need to clear tools
     return AgentCompat.from_agent(await storage.get_agent(user.user_id, aid))
 
 
@@ -99,6 +112,7 @@ async def update_agent_raw(
 ) -> AgentCompat:
     agent = UpsertAgentPayload.to_agent(payload, user_id=user.user_id, agent_id=aid)
     await storage.upsert_agent(user.user_id, agent)
+    AgentServerToolsInterface.clear_tools_for_agent(agent)
     return AgentCompat.from_agent(agent)
 
 
@@ -142,6 +156,7 @@ async def update_agent_action_server_config(
     )
 
     await storage.upsert_agent(user.user_id, new_agent)
+    AgentServerToolsInterface.clear_tools_for_agent(new_agent)
     return AgentCompat.from_agent(new_agent)
 
 
@@ -222,7 +237,7 @@ async def _create_or_update_agent_from_package(
                 url=action_server_url,
                 api_key=action_server_api_key,
             )
-            for action_package in agent0.get("action_packages", [])
+            for action_package in agent0.get("action-packages", [])
         ],
         runbook=agent_package.runbook_text,
         advanced_config=advanced_config,
@@ -243,6 +258,9 @@ async def _create_or_update_agent_from_package(
         user_id=user.user_id,
     )
     await storage.upsert_agent(user.user_id, as_agent)
+    # We might technically clear on a create here, which shouldn't be
+    # problem (even if it's not strictly necessary)
+    AgentServerToolsInterface.clear_tools_for_agent(as_agent)
     return AgentCompat.from_agent(as_agent)
 
 

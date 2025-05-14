@@ -1,6 +1,7 @@
 import asyncio
 from collections.abc import Callable, Coroutine
 from contextlib import AsyncExitStack
+from dataclasses import dataclass, field
 from datetime import timedelta
 from json import dumps
 from typing import TYPE_CHECKING, Any
@@ -10,10 +11,22 @@ from mcp import ClientSession
 from mcp.client.sse import sse_client
 from mcp.client.streamable_http import streamablehttp_client
 
+from agent_platform.core.configurations import Configuration, FieldMetadata
 from agent_platform.core.tools.tool_definition import ToolDefinition
 
 if TYPE_CHECKING:
     from agent_platform.core.mcp.mcp_server import MCPServer
+
+
+@dataclass(frozen=True)
+class MCPClientConfiguration(Configuration):
+    read_timeout_seconds: int = field(
+        default=30,
+        metadata=FieldMetadata(
+            description="The timeout for reading from the MCP server.",
+            env_vars=["SEMA4AI_AGENT_SERVER_MCP_READ_TIMEOUT_SECONDS"],
+        ),
+    )
 
 
 class MCPClient:
@@ -132,7 +145,9 @@ class MCPClient:
                         ClientSession(
                             read_stream,
                             write_stream,
-                            read_timeout_seconds=timedelta(seconds=10),
+                            read_timeout_seconds=timedelta(
+                                seconds=MCPClientConfiguration.read_timeout_seconds,
+                            ),
                         )
                     )
                     # TODO: In the case of timeouts... should we _not_ try again

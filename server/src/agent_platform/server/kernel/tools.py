@@ -1,9 +1,14 @@
 import json
+import time
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
+from typing import ClassVar
 from uuid import uuid4
 
+import structlog
+
 from agent_platform.core.actions import ActionPackage
+from agent_platform.core.agent.agent import Agent
 from agent_platform.core.kernel import ToolsInterface
 from agent_platform.core.kernel_interfaces.thread_state import (
     ThreadMessageWithThreadState,
@@ -16,9 +21,26 @@ from agent_platform.server.kernel.kernel_mixin import UsesKernelMixin
 PendingToolCall = tuple[ToolDefinition, ResponseToolUseContent]
 
 
+logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
+
+
 class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
     """Manages building and execution of agent actions,
     internal tools, and CA-defined tools."""
+
+    # Class-level caches
+    _action_packages_cache: ClassVar[
+        dict[
+            frozenset[str],
+            tuple[list[ToolDefinition], list[str]],
+        ]
+    ] = {}
+    _mcp_servers_cache: ClassVar[
+        dict[
+            frozenset[str],
+            tuple[list[ToolDefinition], list[str]],
+        ]
+    ] = {}
 
     async def _safe_execute_tool(
         self,
@@ -257,6 +279,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                 f"Tool with name {tool_name} is not unique across sources; "
                 f"it has been renamed to {new_name}."
             )
+            logger.info(f"Deduplicating tool name {tool_name} to {new_name}")
             # Rename the tool in the list
             original_tool = processed_tools[idx]
             processed_tools[idx] = ToolDefinition(
@@ -275,6 +298,19 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
         self,
         action_packages: list[ActionPackage],
     ) -> tuple[list[ToolDefinition], list[str]]:
+        # Generate a cache key from the unique URLs of the action packages
+        cache_key: frozenset[str] = frozenset(
+            ap.url for ap in action_packages if ap.url
+        )
+        if cache_key in self.__class__._action_packages_cache:
+            logger.info(f"Cache hit for action packages with key: {cache_key}")
+            return self.__class__._action_packages_cache[cache_key]
+
+        start_time = time.time()
+        logger.info(
+            f"Cache miss for action packages with key: {cache_key}. Fetching tools."
+        )
+
         from asyncio import create_task, gather
 
         tools = []
@@ -318,12 +354,27 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
         tools, dedup_issues = self._deduplicate_tool_names(tools)
         issues.extend(dedup_issues)
 
+        # Store the result in the class-level cache before returning
+        self.__class__._action_packages_cache[cache_key] = (tools, issues)
+        logger.info(f"Cached tools for action packages with key: {cache_key}")
+        logger.info(f"Time taken to fetch tools: {time.time() - start_time} seconds")
         return tools, issues
 
     async def from_mcp_servers(
         self,
         mcp_servers: list[MCPServer],
     ) -> tuple[list[ToolDefinition], list[str]]:
+        # Generate a cache key from the unique URLs of the MCP servers
+        cache_key: frozenset[str] = frozenset(s.url for s in mcp_servers if s.url)
+        if cache_key in self.__class__._mcp_servers_cache:
+            logger.info(f"Cache hit for MCP servers with key: {cache_key}")
+            return self.__class__._mcp_servers_cache[cache_key]
+
+        start_time = time.time()
+        logger.info(
+            f"Cache miss for MCP servers with key: {cache_key}. Fetching tools."
+        )
+
         from asyncio import create_task, gather
 
         tools = []
@@ -355,4 +406,52 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
         tools, dedup_issues = self._deduplicate_tool_names(tools)
         issues.extend(dedup_issues)
 
+        # Store the result in the class-level cache before returning
+        self.__class__._mcp_servers_cache[cache_key] = (tools, issues)
+        logger.info(f"Cached tools for MCP servers with key: {cache_key}")
+        logger.info(f"Time taken to fetch tools: {time.time() - start_time} seconds")
         return tools, issues
+
+    @classmethod
+    def clear_tool_cache(cls) -> None:
+        """Clears the class-level cache for tool definitions
+        from action packages and MCP servers."""
+        logger.info(
+            "Clearing all tool caches (_action_packages_cache and _mcp_servers_cache)."
+        )
+        cls._action_packages_cache.clear()
+        cls._mcp_servers_cache.clear()
+
+    @classmethod
+    def clear_tools_for_agent(cls, agent: Agent) -> None:
+        """Clears the cached tools associated with a specific agent.
+
+        Args:
+            agent: The agent to clear tool cache entries for.
+        """
+        actions_cache_key = frozenset(ap.url for ap in agent.action_packages if ap.url)
+        mcp_servers_cache_key = frozenset(s.url for s in agent.mcp_servers if s.url)
+
+        if actions_cache_key in cls._action_packages_cache:
+            cls._action_packages_cache.pop(actions_cache_key, None)
+            logger.info(
+                f"Cleared action packages cache for agent {agent.agent_id} "
+                f"with key: {actions_cache_key}"
+            )
+        else:
+            logger.info(
+                f"No action packages cache found for agent {agent.agent_id} "
+                f"with key: {actions_cache_key}"
+            )
+
+        if mcp_servers_cache_key in cls._mcp_servers_cache:
+            cls._mcp_servers_cache.pop(mcp_servers_cache_key, None)
+            logger.info(
+                f"Cleared MCP servers cache for agent {agent.agent_id} "
+                f"with key: {mcp_servers_cache_key}"
+            )
+        else:
+            logger.info(
+                f"No MCP servers cache found for agent {agent.agent_id} "
+                f"with key: {mcp_servers_cache_key}"
+            )
