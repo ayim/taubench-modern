@@ -155,11 +155,11 @@ class JWTAuthOIDC(JWTAuthBase):
 @lru_cache(maxsize=1)
 def get_auth_handler(storage: StorageDependency) -> AuthHandler:
     logger.debug(f"Using auth_type = {AuthConfig.auth_type}")
-    if AuthType(AuthConfig.auth_type) == AuthType.JWT_LOCAL:
+    if AuthConfig.auth_type == AuthType.JWT_LOCAL:
         return JWTAuthLocal(storage)
-    elif AuthType(AuthConfig.auth_type) == AuthType.JWT_OIDC:
+    elif AuthConfig.auth_type == AuthType.JWT_OIDC:
         return JWTAuthOIDC(storage)
-    elif AuthType(AuthConfig.auth_type) == AuthType.NOOP:
+    elif AuthConfig.auth_type == AuthType.NOOP:
         return NOOPAuth(storage)
 
     raise ValueError(f"Unexpected auth_type = {AuthConfig.auth_type}")

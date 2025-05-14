@@ -367,7 +367,7 @@ class Configuration(metaclass=ConfigMeta):
 
             try:
                 # Parse the value using the appropriate parser
-                parsed_value = parse_field_value(field, value, cls)
+                parsed_value = parse_field_value(field, value, cls, config_dict)
                 validated_config[key] = parsed_value
             except Exception as e:
                 # Add more context to the error

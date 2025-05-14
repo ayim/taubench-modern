@@ -27,6 +27,19 @@
             }
         },
         {
+            "name": "Debug Agent Server with env File",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "agent_platform.server",
+            "justMyCode": false,
+            "console": "integratedTerminal",
+            "envFile": "${workspaceFolder}/.env",
+            "env": {
+                "SEMA4AI_AGENT_SERVER_CORS_MODE": "all",
+                "SEMA4AI_AGENT_SERVER_LOG_LEVEL": "DEBUG",
+            }
+        },
+        {
             "name": "Debug pytest run",
             "type": "debugpy",
             "request": "launch",

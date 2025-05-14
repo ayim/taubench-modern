@@ -60,11 +60,16 @@ class Parser(ABC):
         2. Check if the origin of the field type (for generic types) is in the
            supported types
     """
+    _allow_subclasses: ClassVar[bool] = False
+    """If True, the parser will allow subclasses of the supported types to be
+    supported.
+    """
 
     def __init__(
         self,
         field: Field | None = None,
         parent_config: "type[Configuration] | Configuration | None" = None,
+        config_data: dict[str, Any] | None = None,
     ) -> None:
         """Initialize the parser with an optional field.
 
@@ -85,11 +90,21 @@ class Parser(ABC):
                 context for the parser, which may be required for some parsers to
                 parse values correctly. If not provided, the parser will not have
                 any context and may fail at runtime if it requires parent config
-                information.
+                information. This class may be partially or not initialized, so
+                be careful when accessing properties. It is recommended to use
+                the `config_data` parameter to provide the full unparsed config
+                data to the parser if required.
+            config_data: The data from the configuration file. This provides
+                context for the parser, which may be required for some parsers to
+                parse values correctly. If not provided, the parser will not have
+                any context and may fail at runtime if it requires config data.
+                This is useful when you may need to access raw unparsed config data
+                to parse a specific value (e.g., a nested dataclass).
         """
         self._field = field
         self._parent_config = parent_config
         self._supports_field = self.supports_type(field.type) if field else True
+        self._config_data = config_data
 
     @property
     def is_supported(self) -> bool:
@@ -105,6 +120,11 @@ class Parser(ABC):
     def field(self) -> Field | None:
         """Get the field."""
         return self._field
+
+    @property
+    def config_data(self) -> dict[str, Any] | None:
+        """Get the config data."""
+        return self._config_data
 
     @abstractmethod
     def parse(self, value: Any) -> Any:
@@ -140,6 +160,15 @@ class Parser(ABC):
         origin = get_origin(field_type)
         if origin is not None and origin in cls._supported_types:
             return True
+
+        # Check if the field_type is a subclass of any of the supported types
+        try:
+            if cls._allow_subclasses and issubclass(
+                field_type, tuple(cls._supported_types)
+            ):
+                return True
+        except TypeError:
+            pass
 
         return False
 
@@ -202,19 +231,6 @@ class LiteralParser(AstParserMixin, Parser):
     specified in the Literal type.
     """
 
-    def __init__(
-        self,
-        field: Field | None = None,
-        parent_config: "type[Configuration] | Configuration | None" = None,
-    ) -> None:
-        """Initialize the LiteralParser.
-
-        Args:
-            field: The field to check
-        """
-        super().__init__(field, parent_config)
-        self._field_type = field.type if field else None
-
     def parse(self, value: Any) -> Any:
         """Parse a value and ensure it's one of the allowed literal values.
 
@@ -227,10 +243,11 @@ class LiteralParser(AstParserMixin, Parser):
         Raises:
             ValueError: If the value doesn't match any of the allowed options
         """
-        if value is None or self._field_type is None:
+        field_type = self.field.type if self.field else None
+        if value is None or field_type is None:
             return value
 
-        literal_args = get_args(self._field_type)
+        literal_args = get_args(field_type)
         if not literal_args:
             return value
 
@@ -346,6 +363,7 @@ class EnumParser(FieldRequiredMixin, Parser):
     """
 
     _supported_types: ClassVar[set[Any]] = {Enum}
+    _allow_subclasses: ClassVar[bool] = True
 
     def parse(self, value: Any) -> Enum | None:
         """Parse a value from a string.
@@ -487,19 +505,26 @@ class UnionOfDataclassParser(
                 f"Unions of Dataclasses. Field: {self.field.name}"
             )
 
-        # Get the discriminator value from the parent config
-        for parent_field in fields(self.parent_config):
-            if parent_field.name == discriminator_field:
-                # Because of the ConfigMeta metaclass, the parent config is a
-                # singleton instance of the configuration class, so we can access
-                # the field directly and get the value even though we may be in the
-                # middle of parsing the config.
-                discriminator_value = getattr(self.parent_config, parent_field.name)
-                break
+        # Get the discriminator value from the parent config or config data. Config data
+        # takes precedence over the parent config if both are provided.
+        discriminator_value = None
+        if self.config_data is not None:
+            discriminator_value = self.config_data.get(discriminator_field)
         else:
-            raise ConfigurationDiscriminatorError(
-                f"Discriminator field {discriminator_field} not found in parent config"
-            )
+            for parent_field in fields(self.parent_config):
+                if parent_field.name == discriminator_field:
+                    # Because of the ConfigMeta metaclass, the parent config is a
+                    # singleton instance of the configuration class, so we can access
+                    # the field directly and get the value even though we may be in the
+                    # middle of parsing the config as long as we are not parsing for the
+                    # first time.
+                    discriminator_value = getattr(self.parent_config, parent_field.name)
+                break
+            else:
+                raise ConfigurationDiscriminatorError(
+                    f"Discriminator field {discriminator_field} not found "
+                    f"in parent config"
+                )
         if discriminator_value is None:
             raise ConfigurationDiscriminatorError(
                 f"Discriminator value must be loaded before the Union type "
@@ -748,18 +773,22 @@ BUILT_IN_PARSERS = [
 # TODO: You could optimize this by determining the best parser for a field and saving
 # it in the field metadata when a configuration class is created.
 def initialize_parsers(
-    field: Field, parent_config: "type[Configuration] | Configuration | None" = None
+    field: Field,
+    parent_config: "type[Configuration] | Configuration | None" = None,
+    config_data: dict[str, Any] | None = None,
 ) -> list[Parser]:
     """Initialize the parsers for a field."""
-    return [parser(field, parent_config) for parser in BUILT_IN_PARSERS]
+    return [parser(field, parent_config, config_data) for parser in BUILT_IN_PARSERS]
 
 
 def get_parser_for_field(
-    field: Field, parent_config: "type[Configuration] | Configuration | None" = None
+    field: Field,
+    parent_config: "type[Configuration] | Configuration | None" = None,
+    config_data: dict[str, Any] | None = None,
 ) -> Parser | None:
     """Get the appropriate parser for a field type from the list of
     built in parsers."""
-    parsers = initialize_parsers(field, parent_config)
+    parsers = initialize_parsers(field, parent_config, config_data)
     return next((p for p in parsers if p.is_supported), None)
 
 
@@ -767,6 +796,7 @@ def parse_field_value(
     field: Field,
     value: Any,
     parent_config: "type[Configuration] | Configuration | None" = None,
+    config_data: dict[str, Any] | None = None,
 ) -> Any:
     """Parse a value for a field using the field's metadata or the
     appropriate built-in parser for the field type.
@@ -775,9 +805,11 @@ def parse_field_value(
     field defaults are honored."""
     if value is None:
         return None
-    parser = field.metadata.get("parser", get_parser_for_field(field, parent_config))
+    parser = field.metadata.get(
+        "parser", get_parser_for_field(field, parent_config, config_data)
+    )
     if parser is None:
         return value
     if isinstance(parser, type) and issubclass(parser, Parser):
-        parser = parser(field, parent_config)
+        parser = parser(field, parent_config, config_data)
     return parser.parse(value)
