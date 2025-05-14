@@ -59,7 +59,7 @@ jobs:
             --windows-x64-url ${{ inputs.windows_x64_binary_url }} \
             --macos-x64-url ${{ inputs.macos_x64_binary_url }} \
             --macos-arm64-url ${{ inputs.macos_arm64_binary_url }} \
-            --linux-x64-url ${{ inputs.linux_x64_binary_url }}
+            --linux-x64-url ${{ inputs.linux_x64_binary_url }} \
             --since-date today
 
       - name: Create URL list
