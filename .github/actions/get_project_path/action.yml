@@ -1,0 +1,23 @@
+name: Get Project Path
+description: |
+  This action gets the path of a project by its name using the projects.py script.
+  It can be used to find the directory of a project relative to the repository root.
+
+inputs:
+  project-name:
+    description: "The name of the project to find the path for"
+    required: true
+
+outputs:
+  project-path:
+    description: "The path to the project directory relative to the repository root"
+    value: ${{ steps.get_project_path.outputs.path }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Get project path
+      id: get_project_path
+      shell: bash
+      run: |
+        echo "path=$(uv run python scripts/projects.py get --name "${{ inputs.project-name }}" --format json | jq -r .path)" >> $GITHUB_OUTPUT

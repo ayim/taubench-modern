@@ -25,7 +25,7 @@ jobs:
       - uses: ./.github/actions/get_version
         id: get-version
         with:
-          path: server
+          project-name: server
 
       - name: Download artifacts
         uses: actions/download-artifact@v4

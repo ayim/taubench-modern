@@ -43,29 +43,27 @@ jobs:
         id: get_vers
         uses: ./.github/actions/get_version
         with:
-          path: ./server
+          project-name: server
 
-      # - name: Set up uv
-      #   uses: astral-sh/setup-uv@v5
-  
-      # - name: Sync environment
-      #   run: make sync
-  
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
           name: agent-server-release-packages
           path: dist
 
-      # - name: Create release notes
-      #   run: |
-      #     invoke create-release-notes \
-      #       --windows-x64-url ${{ inputs.windows_x64_binary_url }} \
-      #       --macos-x64-url ${{ inputs.macos_x64_binary_url }} \
-      #       --macos-arm64-url ${{ inputs.macos_arm64_binary_url }} \
-      #       --linux-x64-url ${{ inputs.linux_x64_binary_url }}
+      - name: Create release notes
+        if: ${{ github.ref == 'refs/heads/development' || github.ref == 'refs/heads/release' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release-') }}
+        run: |
+          uv run scripts/changes.py create-release-notes \
+            --project server \
+            --windows-x64-url ${{ inputs.windows_x64_binary_url }} \
+            --macos-x64-url ${{ inputs.macos_x64_binary_url }} \
+            --macos-arm64-url ${{ inputs.macos_arm64_binary_url }} \
+            --linux-x64-url ${{ inputs.linux_x64_binary_url }}
+            --since-date today
 
       - name: Create URL list
+        if: ${{ github.ref != 'refs/heads/development' && github.ref != 'refs/heads/release' && github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/heads/release-') }}
         id: create_url_list
         run: |
           cat << EOF > url_list.md
@@ -82,5 +80,5 @@ jobs:
         with:
           package_name: agent-server
           release_version: ${{ steps.get_vers.outputs.version }}
-          body_path: url_list.md
+          body_path: ${{ github.ref == 'refs/heads/development' || github.ref == 'refs/heads/release' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release-') && 'server/tmp/RELEASE-NOTES.md' || 'url_list.md' }}
           generate_release_notes: false

@@ -1,0 +1,59 @@
+[tool.towncrier]
+package = "server"
+name = "Sema4.ai Agent Server"
+title_format = "# {name} {version} ({project_date})"
+version = "2.0.0-alpha.9"
+directory = "changes/prereleased"
+filename = "CHANGELOG.md"
+issue_format = "[{issue}](https://linear.app/sema4ai/issue/{issue})"
+ignore = ["api"]
+
+[[tool.towncrier.section]]
+name = "Agent Server"
+path = ""
+
+[[tool.towncrier.section]]
+name = "Public API"
+path = "api/public"
+
+[[tool.towncrier.section]]
+name = "Private API"
+path = "api/private"
+
+[[tool.towncrier.type]]
+directory = "feature"
+name = "Features"
+showcontent = true
+check = true
+
+[[tool.towncrier.type]]
+directory = "bugfix"
+name = "Bugfixes"
+showcontent = true
+check = true
+
+[[tool.towncrier.type]]
+directory = "doc"
+name = "Improved Documentation"
+showcontent = true
+check = true
+
+[[tool.towncrier.type]]
+directory = "removal"
+name = "Removals and Deprecations"
+showcontent = true
+check = true
+
+
+[[tool.towncrier.type]]
+directory = "misc"
+name = "Miscellaneous"
+showcontent = true
+check = true
+
+[[tool.towncrier.type]]
+directory = "hidden"
+name = "Additional Information Not Pertinent to Client Users"
+# TODO: Currently not being hidden from the changelog, need to fix.
+showcontent = false
+check = false

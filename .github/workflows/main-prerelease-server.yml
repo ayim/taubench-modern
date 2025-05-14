@@ -38,9 +38,9 @@ on:
 jobs:
   prerelease:
     if: github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/heads/release')
-    runs-on: ubuntu-24.04
+    runs-on: ${{ inputs.linux-runner }}
     outputs:
-      new_commit_sha: ${{ steps.bump_version.outputs.new_commit_sha }}
+      new-commit-sha: ${{ steps.prep.outputs.new-commit-sha }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -56,21 +56,21 @@ jobs:
           bump-type: ${{ inputs.bump-type }}
 
       # TODO: Consider bumping core and architecture at the same time?
-      - name: Bump version
-        id: bump_version
-        uses: ./.github/actions/bump_version
+      - name: Prep server for pre-release
+        id: prep
+        uses: ./.github/actions/prep_for_release
         with:
-          bump-type: ${{ inputs.bump-type }}
-          path: ./server
+          version-bump-type: ${{ inputs.bump-type }}
+          project-name: server
+          build-changes: true
           push-changes: true
 
-      # TODO: Add changelog generation
 
   build-prerelease:
     needs: prerelease
     uses: ./.github/workflows/sub-build-server.yml
     with:
-      ref: ${{ needs.prerelease.outputs.new_commit_sha }}
+      ref: ${{ needs.prerelease.outputs.new-commit-sha }}
       release_channel: beta # TODO: Consider making this an input
       windows-runner: ${{ inputs.windows-runner }}
       linux-runner: ${{ inputs.linux-runner }}

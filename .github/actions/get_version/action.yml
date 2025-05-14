@@ -8,8 +8,8 @@ description: |
   setup_versionbump action before calling this action.
 
 inputs:
-  path:
-    description: "The path to the package to get the version of"
+  project-name:
+    description: "The name of the project to get the version of"
     required: true
 
 outputs:
@@ -20,8 +20,14 @@ outputs:
 runs:
   using: "composite"
   steps:
+    - name: Get project path
+      uses: ./.github/actions/get_project_path
+      id: get_project_path
+      with:
+        project-name: ${{ inputs.project-name }}
+
     - name: Get version
       id: get_version
       shell: bash
-      working-directory: ${{ inputs.path }}
+      working-directory: ${{ steps.get_project_path.outputs.project-path }}
       run: echo "version=$(versionbump show-version)" >> $GITHUB_OUTPUT

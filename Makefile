@@ -373,6 +373,7 @@ check-pr:  ## Run common PR checks (format, lint, typecheck, unit tests)
 	$(MAKE) lint
 	$(MAKE) typecheck
 	$(MAKE) test-unit
+	$(MAKE) check-changes
 	@echo "✅ All PR checks passed!"
 
 lint:  ## Run ruff linting (check only)
@@ -389,6 +390,15 @@ format:  ## Run formatting with ruff
 
 check-format:  ## Run formatting check with ruff
 	uv run ruff format --check
+
+change:  ## Run the change script
+	uv run scripts/changes.py create-change
+
+check-changes:  ## Run the check-changes part of the change script
+	uv run scripts/changes.py check-changes --project ALL --error-on-missing
+
+draft-changes-server:  ## Run the build-changes part of the change script in draft mode for the server project
+	uv run scripts/changes.py build-changes --project server --draft
 
 # --------------------------------------------------------------------
 # Environment Validation

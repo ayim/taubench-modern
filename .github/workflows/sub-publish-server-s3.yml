@@ -52,7 +52,7 @@ jobs:
         id: get_vers
         uses: ./.github/actions/get_version
         with:
-          path: ./server
+          project-name: server
 
       - name: Download artifacts
         uses: actions/download-artifact@v4

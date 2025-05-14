@@ -60,6 +60,7 @@ package-lock.json
 *.bak
 *.tmp
 *.temp
+tmp/
 
 # Log files
 *.log*

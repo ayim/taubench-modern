@@ -47,6 +47,15 @@
             "justMyCode": false,
             "console": "integratedTerminal",
             "args": "${input:pytestArgs}"
+        },
+        {
+            "name": "Debug Changes Script",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/changes.py",
+            "justMyCode": false,
+            "console": "integratedTerminal",
+            "args": "${input:changesArgs}"
         }
     ],
     "inputs": [
@@ -60,6 +69,12 @@
             "type": "promptString",
             "id": "pytestArgs",
             "description": "Provide the arguments to pass to pytest",
+            "default": ""
+        },
+        {
+            "type": "promptString",
+            "id": "changesArgs",
+            "description": "Provide the arguments to pass to the changes script",
             "default": ""
         }
     ]

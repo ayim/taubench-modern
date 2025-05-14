@@ -1,3 +1,9 @@
+# Project configuration
+name: "server"
+title: "Sema4.ai Agent Server"
+descripton: "Agent server is a server that provides a REST API to create and interact with AI agents."
+
+# Original versionbump config
 version: "2.0.0-alpha.9"        # The current version of the project. This is the version source of truth.
                          # Do not change this value manually. VersionBump will update it automatically.
 git-commit: true         # Whether to create a git commit for the version bump.
@@ -23,3 +29,11 @@ files:                   # The files to update with the new version.
   - path: "src/agent_platform/server/__init__.py"
     replace:
       - "__version__ = \"{version}\""
+
+  - path: "towncrier.toml"
+    replace:
+      - "version = \"{version}\""
+
+  - path: "towncrier-for-release.toml"
+    replace:
+      - "version = \"{version}\""
