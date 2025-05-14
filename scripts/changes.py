@@ -500,12 +500,14 @@ def _check_single_project(project_root: Path) -> bool:
     """
     try:
         config_to_use = _get_towncrier_config(release=False)
+        # Use absolute path to the config file since we're running from workspace root
+        config_path = project_root / config_to_use
         branch_to_use = "origin/development"
         run_result = _run_command(
-            f"towncrier check --config {config_to_use} --compare-with {branch_to_use}",
+            f"towncrier check --config {config_path} --compare-with {branch_to_use}",
             hide=True,
             warn=True,
-            cwd=project_root,
+            cwd=WORKSPACE_ROOT,  # Always run from workspace root
         )
 
         # Print the output
