@@ -11,6 +11,12 @@ from agent_platform.core.responses import ResponseMessage, ResponseTextContent
 class ReductoParsers(PlatformParsers, UsesKernelMixin):
     """Converts Reducto responses to agent-server response types."""
 
+    def classify_response(self, response: "ResponseMessage") -> ResponseMessage:
+        # The LLM should have already classified the response.
+        # Do we need to validate that the LLM did what we asked
+        # it to do? (e.g. return a single word)
+        return response
+
     def parse_response(
         self, response: "ParseResponse | ExtractResponse"
     ) -> ResponseMessage:
@@ -51,7 +57,8 @@ class ReductoParsers(PlatformParsers, UsesKernelMixin):
                             "reducto_block_image_url": block.image_url,
                         }
                     )
-                    text_content.append(ResponseTextContent(text=block.content))
+                    if block.content:
+                        text_content.append(ResponseTextContent(text=block.content))
 
             return ResponseMessage(
                 role="agent",

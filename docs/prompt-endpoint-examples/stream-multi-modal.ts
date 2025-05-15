@@ -40,7 +40,13 @@ const argv = yargs(hideBin(process.argv))
     description: 'The model name to use.',
     default: 'o4-mini-high',
   })
-  .usage('Usage: $0 --text "<prompt>" (--image <path> | --audio <path> | --pdf <path>) [--url <url>] [--model <model>]')
+  .option('classify', {
+    alias: 'c',
+    type: 'boolean',
+    description: 'Flag to indicate if the request is for classification.',
+    default: false,
+  })
+  .usage('Usage: $0 --text "<prompt>" (--image <path> | --audio <path> | --pdf <path>) [--url <url>] [--model <model>] [--classify]')
   .check((argv) => {
     const mediaArgs = [argv.image, argv.audio, argv.pdf].filter(Boolean);
     if (mediaArgs.length > 1) {
@@ -62,6 +68,7 @@ const audioPath = argv.audio;
 const pdfPath = argv.pdf;
 const baseUrl = argv.url;
 const modelName = argv.model;
+const classify = argv.classify;
 
 // Construct the final URL with the model query parameter
 const serverUrl = new URL(baseUrl);
@@ -109,13 +116,15 @@ const payload = pdfPath ? {
   platform_config_raw: {
     kind: "reducto",
     reducto_api_key: process.env.REDUCTO_API_KEY,
-    reducto_api_url: "https://backend.sema4ai.dev/reducto"
+    reducto_api_url: "https://backend.sema4ai.dev/reducto",
+    delegate_kind: (classify ? "openai" : undefined),
+    delegate_api_key: (classify ? process.env.OPENAI_API_KEY : undefined)
   },
   prompt: {
     // Reducto is our only platform handling documents, and
     // it just wants system instructions and a user message
     // with the document to process
-    system_instructions: promptText,
+    system_instruction: promptText,
     messages: [
       {
         role: "user",
@@ -148,6 +157,8 @@ const payload = pdfPath ? {
     max_output_tokens: 1024
   }
 };
+
+console.log('Payload:', JSON.stringify(payload, null, 2));
 
 // Class to handle streaming response processing
 class ResponseStreamHandler {

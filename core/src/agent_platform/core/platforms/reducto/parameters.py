@@ -38,6 +38,23 @@ class ReductoPlatformParameters(PlatformParameters):
     """The Reducto API key. If not provided, it will be attempted to be inferred
     from the environment."""
 
+    delegate_kind: str | None = field(
+        default=None,
+        metadata={
+            "description": "The kind of the delegate platform client.",
+        },
+    )
+    """The kind of the delegate platform client."""
+
+    delegate_api_key: SecretString | None = field(
+        default=None,
+        metadata={
+            "description": "The API key for the delegate platform client. If not "
+            "provided, it will be attempted to be inferred from the environment.",
+        },
+    )
+    """The API key for the delegate platform client."""
+
     def __post_init__(self):
         from os import getenv
 
@@ -59,6 +76,15 @@ class ReductoPlatformParameters(PlatformParameters):
                 )
             else:
                 raise ValueError("REDUCTO_API_KEY environment variable is required")
+
+        if self.delegate_api_key and not isinstance(
+            self.delegate_api_key, SecretString
+        ):
+            object.__setattr__(
+                self,
+                "delegate_api_key",
+                SecretString(str(self.delegate_api_key)),
+            )
 
     def model_dump(
         self,
@@ -88,6 +114,14 @@ class ReductoPlatformParameters(PlatformParameters):
             "kind": self.kind,
             "reducto_api_key": api_key_value,
         }
+
+        if self.delegate_kind:
+            result["delegate_kind"] = self.delegate_kind
+        if self.delegate_api_key:
+            if isinstance(self.delegate_api_key, SecretString):
+                result["delegate_api_key"] = self.delegate_api_key.get_secret_value()
+            else:
+                result["delegate_api_key"] = str(self.delegate_api_key)
 
         if exclude_none:
             result = {k: v for k, v in result.items() if v is not None}

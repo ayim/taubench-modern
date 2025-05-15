@@ -8,6 +8,9 @@ from agent_platform.core.platforms.base import (
     PlatformConfigs,
     PlatformModelMap,
 )
+from agent_platform.core.platforms.openai.client import OpenAIClient
+from agent_platform.core.platforms.openai.parameters import OpenAIPlatformParameters
+from agent_platform.core.platforms.openai.prompts import OpenAIPrompt
 from agent_platform.core.platforms.reducto.configs import (
     ReductoModelMap,
     ReductoPlatformConfigs,
@@ -20,6 +23,7 @@ from agent_platform.core.responses.response import ResponseMessage
 
 if TYPE_CHECKING:
     from reducto import AsyncReducto
+    from reducto.types.shared import ExtractResponse, ParseResponse
 
     from agent_platform.core.context import AgentServerContext
     from agent_platform.core.kernel import Kernel
@@ -54,6 +58,24 @@ class ReductoClient(
             **kwargs,
         )
         self._reducto_client = self._init_client(self._parameters)
+
+        # Optionally initialize a delegate client
+        if self._parameters.delegate_kind:
+            match self._parameters.delegate_kind:
+                case "openai":
+                    self._delegate = OpenAIClient(
+                        kernel=kernel,
+                        parameters=OpenAIPlatformParameters(
+                            openai_api_key=self._parameters.delegate_api_key,
+                        ),
+                    )
+                case _:
+                    raise ValueError(
+                        "Only 'openai' is supported as a delegate " + "platform client"
+                    )
+        else:
+            logger.warning("No delegate configured for Reducto platform client")
+            self._delegate = None
 
     def _init_client(self, parameters: ReductoPlatformParameters) -> "AsyncReducto":
         from reducto import AsyncReducto
@@ -109,7 +131,6 @@ class ReductoClient(
         Returns:
             A ResponseMessage with the model's response.
         """
-        from reducto import NOT_GIVEN
 
         processed_prompt = prompt.as_platform_request(model)
 
@@ -126,66 +147,28 @@ class ReductoClient(
                     ),
                 )
 
-                if prompt.operation == "parse":
-                    parse_options = processed_prompt.parse_options
-                    if parse_options is None:
-                        raise ValueError(
-                            "Parse options are required for parse operation"
+                match prompt.operation:
+                    case "classify":
+                        return await self._classify(
+                            prompt=processed_prompt,
+                            uploaded_document=uploaded_document,
                         )
-                    parse_options["document_url"] = uploaded_document.file_id
-                    response = await self._reducto_client.parse.run(
-                        document_url=uploaded_document.file_id,
-                        options=(
-                            parse_options["options"]
-                            if parse_options and "options" in parse_options
-                            else NOT_GIVEN
-                        ),
-                        advanced_options=(
-                            parse_options["advanced_options"]
-                            if parse_options and "advanced_options" in parse_options
-                            else NOT_GIVEN
-                        ),
-                        experimental_options=(
-                            parse_options["experimental_options"]
-                            if parse_options and "experimental_options" in parse_options
-                            else NOT_GIVEN
-                        ),
-                    )
-
-                    return self.parsers.parse_response(response)
-                else:
-                    extract_options = processed_prompt.extract_options
-                    if extract_options is None:
-                        raise ValueError(
-                            "Extract options are required for extract operation"
+                        pass
+                    case "parse":
+                        parse_response = await self._parse(
+                            prompt=processed_prompt,
+                            uploaded_document=uploaded_document,
                         )
-                    extract_options["document_url"] = uploaded_document.file_id
-                    response = await self._reducto_client.extract.run(
-                        document_url=uploaded_document.file_id,
-                        schema=(
-                            extract_options["schema"]
-                            if extract_options and "schema" in extract_options
-                            else NOT_GIVEN
-                        ),
-                        options=(
-                            extract_options["options"]
-                            if extract_options and "options" in extract_options
-                            else NOT_GIVEN
-                        ),
-                        advanced_options=(
-                            extract_options["advanced_options"]
-                            if extract_options and "advanced_options" in extract_options
-                            else NOT_GIVEN
-                        ),
-                        experimental_options=(
-                            extract_options["experimental_options"]
-                            if extract_options
-                            and "experimental_options" in extract_options
-                            else NOT_GIVEN
-                        ),
-                    )
 
-                return self.parsers.parse_response(response)
+                        return self.parsers.parse_response(parse_response)
+                    case "extract":
+                        extract_response = await self._extract(
+                            prompt=processed_prompt,
+                            uploaded_document=uploaded_document,
+                        )
+                        return self.parsers.parse_response(extract_response)
+                    case _:
+                        raise ValueError(f"Unsupported operation: {prompt.operation}")
 
             except Exception as e:
                 span.set_attribute("error", str(e))
@@ -216,6 +199,142 @@ class ReductoClient(
 
     async def create_embeddings(self, texts: list[str], model: str) -> dict[str, Any]:
         raise NotImplementedError("Reducto does not support embeddings at this time")
+
+    async def _parse(
+        self,
+        prompt: ReductoPrompt,
+        uploaded_document,
+    ) -> "ParseResponse":
+        from reducto import NOT_GIVEN
+
+        parse_options = prompt.parse_options
+        if parse_options is None:
+            raise ValueError("Parse options are required for parse operation")
+        parse_options["document_url"] = uploaded_document.file_id
+        return await self._reducto_client.parse.run(
+            document_url=uploaded_document.file_id,
+            options=(
+                parse_options["options"]
+                if parse_options and "options" in parse_options
+                else NOT_GIVEN
+            ),
+            advanced_options=(
+                parse_options["advanced_options"]
+                if parse_options and "advanced_options" in parse_options
+                else NOT_GIVEN
+            ),
+            experimental_options=(
+                parse_options["experimental_options"]
+                if parse_options and "experimental_options" in parse_options
+                else NOT_GIVEN
+            ),
+        )
+
+    async def _extract(
+        self,
+        prompt: ReductoPrompt,
+        uploaded_document,
+    ) -> "ExtractResponse":
+        from reducto import NOT_GIVEN
+
+        extract_options = prompt.extract_options
+        if extract_options is None:
+            raise ValueError("Extract options are required for extract operation")
+        extract_options["document_url"] = uploaded_document.file_id
+        return await self._reducto_client.extract.run(
+            document_url=uploaded_document.file_id,
+            schema=(
+                extract_options["schema"]
+                if extract_options and "schema" in extract_options
+                else NOT_GIVEN
+            ),
+            options=(
+                extract_options["options"]
+                if extract_options and "options" in extract_options
+                else NOT_GIVEN
+            ),
+            advanced_options=(
+                extract_options["advanced_options"]
+                if extract_options and "advanced_options" in extract_options
+                else NOT_GIVEN
+            ),
+            experimental_options=(
+                extract_options["experimental_options"]
+                if extract_options and "experimental_options" in extract_options
+                else NOT_GIVEN
+            ),
+        )
+
+    async def _classify(
+        self,
+        prompt: ReductoPrompt,
+        uploaded_document,
+    ) -> ResponseMessage:
+        from openai.types.chat import (
+            ChatCompletionAssistantMessageParam,
+            ChatCompletionMessageParam,
+            ChatCompletionUserMessageParam,
+        )
+        from reducto.types.shared.parse_response import (
+            ResultURLResult,
+        )
+
+        if self._delegate is None:
+            raise ValueError("Delegate client is required for classify operation")
+        if prompt.system_prompt is None:
+            raise ValueError("System prompt is required for classify operation")
+
+        parse_resp = await self._parse(
+            prompt=prompt,
+            uploaded_document=uploaded_document,
+        )
+        if isinstance(parse_resp.result, ResultURLResult):
+            raise ValueError("Parse response is a URL result, cannot classify")
+
+        # Trim to first 5 chunks
+        chunks = parse_resp.result.chunks[:5]
+        parsed_prompt_input = "\n".join([chunk.model_dump_json() for chunk in chunks])
+
+        llm_messages: list[ChatCompletionMessageParam] = []
+        llm_messages.append(
+            ChatCompletionUserMessageParam(
+                role="user",
+                content=prompt.system_prompt,
+            )
+        )
+        llm_messages.append(
+            ChatCompletionAssistantMessageParam(
+                role="assistant",
+                content="Understood, I will assist the user with their request.",
+            )
+        )
+        llm_messages.append(
+            ChatCompletionUserMessageParam(
+                role="user",
+                content="Reply with the answer only, nothing else."
+                + parsed_prompt_input,
+            )
+        )
+
+        import pprint
+
+        logger.debug(
+            "Classifying with OpenAI LLM: system prompt: %s, prompt messages: %s",
+            prompt.system_prompt,
+            pprint.pformat(llm_messages),
+        )
+
+        # make an openai call
+        return await self._delegate.generate_response(
+            model="gpt-4.1",
+            ctx=self.kernel.ctx,
+            prompt=OpenAIPrompt(
+                messages=llm_messages,
+                tools=[],
+                temperature=0.0,
+                max_tokens=512,
+            ),
+        )
 
 
 PlatformClient.register_platform_client("reducto", ReductoClient)

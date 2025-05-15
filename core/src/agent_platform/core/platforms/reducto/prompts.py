@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class ReductoPrompt(PlatformPrompt):
     """A prompt for the Reducto platform."""
 
-    operation: Literal["extract", "parse"] = field(
+    operation: Literal["extract", "parse", "classify"] = field(
         metadata={
             "description": "The operation this prompt wishes to perform.",
         },
@@ -90,7 +90,7 @@ class ReductoPrompt(PlatformPrompt):
         )
 
         parse_options = self.parse_options
-        if self.operation == "parse" and parse_options is None:
+        if self.operation in {"parse", "classify"} and parse_options is None:
             parse_options = ParseRunParams(
                 document_url="unset",
                 options=BaseProcessingOptions(

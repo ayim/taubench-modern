@@ -112,8 +112,14 @@ class ReductoConverters(PlatformConverters, UsesKernelMixin):
         if prompt.tools:
             raise ValueError("Tools cannot be used with Reducto")
 
+        op = "extract"
+        if (model_id or "").endswith("-parse"):
+            op = "parse"
+        elif (model_id or "").endswith("-classify"):
+            op = "classify"
+
         return ReductoPrompt(
-            operation=("parse" if (model_id or "").endswith("-parse") else "extract"),
+            operation=op,
             system_prompt=prompt.system_instruction,
             document_name=document_name,
             document_bytes=document_bytes,

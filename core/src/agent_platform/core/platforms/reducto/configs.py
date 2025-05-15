@@ -109,6 +109,7 @@ class ReductoPlatformConfigs(PlatformConfigs):
             "reducto": [
                 "reducto-standard-parse",
                 "reducto-standard-extract",
+                "reducto-standard-classify",
             ],
         },
         metadata={"description": "The supported models by provider."},
