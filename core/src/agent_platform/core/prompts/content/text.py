@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 from agent_platform.core.prompts.content.base import PromptMessageContent
+from agent_platform.core.prompts.utils import count_tokens_approx
 from agent_platform.core.utils import assert_literal_value_valid
 
 
@@ -40,6 +41,18 @@ class PromptTextContent(PromptMessageContent):
             **super().model_dump(),
             "text": self.text,
         }
+
+    def count_tokens_approx(self) -> int:
+        """Counts the approximate number of tokens in the text content.
+
+        This method uses the shared token counting utility which attempts to use
+        tiktoken (the OpenAI tokenizer) if available, otherwise falls back to a
+        heuristic calculation.
+
+        Returns:
+            int: Estimated token count
+        """
+        return count_tokens_approx(self.text)
 
     @classmethod
     def model_validate(cls, data: dict) -> "PromptTextContent":

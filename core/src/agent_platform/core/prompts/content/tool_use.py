@@ -3,6 +3,10 @@ from dataclasses import dataclass, field
 from typing import Any, Literal
 
 from agent_platform.core.prompts.content.base import PromptMessageContent
+from agent_platform.core.prompts.utils import (
+    count_tokens_approx,
+    format_tool_use_for_token_counting,
+)
 from agent_platform.core.thread.content.tool_usage import ThreadToolUsageContent
 from agent_platform.core.utils import assert_literal_value_valid
 
@@ -89,6 +93,23 @@ class PromptToolUseContent(PromptMessageContent):
             "tool_name": self.tool_name,
             "tool_input_raw": self.tool_input_raw,
         }
+
+    def count_tokens_approx(self) -> int:
+        """Counts the approximate number of tokens in the tool use content.
+
+        This method uses the shared token counting utility which attempts to use
+        tiktoken (the OpenAI tokenizer) if available, otherwise falls back to a
+        heuristic calculation.
+
+        Returns:
+            int: Estimated token count
+        """
+        content_str = format_tool_use_for_token_counting(
+            self.tool_call_id,
+            self.tool_name,
+            self.tool_input,
+        )
+        return count_tokens_approx(content_str)
 
     @classmethod
     def model_validate(cls, data: dict) -> "PromptToolUseContent":

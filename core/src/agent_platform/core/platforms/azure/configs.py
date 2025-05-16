@@ -64,6 +64,30 @@ class AzureOpenAIModelMap(PlatformModelMap):
         ),
     )
 
+    model_context_windows: dict[str, int | None] = field(
+        default_factory=lambda: {
+            "gpt-4o": 128_000,
+            "gpt-4o-mini": 128_000,
+            "gpt-4-turbo": 128_000,
+            "gpt-3.5-turbo": 16_385,
+            "o3-mini-high": 128_000,
+            "o3-mini-low": 128_000,
+            "o1-mini-high": 128_000,
+            "o1-mini-low": 128_000,
+            "o1-pro-high": 128_000,
+            "o1-pro-low": 128_000,
+            "o1-high": 128_000,
+            "o1-low": 128_000,
+            # Embedding models
+            "text-embedding-3-small": 8_192,
+            "text-embedding-3-large": 8_192,
+            "text-embedding-ada-002": 8_192,
+        },
+        metadata=FieldMetadata(
+            description=("The maximum context window in tokens for each model."),
+        ),
+    )
+
 
 @dataclass(frozen=True)
 class AzureOpenAIRoleMap(Configuration):

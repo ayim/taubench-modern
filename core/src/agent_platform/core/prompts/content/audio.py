@@ -72,6 +72,11 @@ class PromptAudioContent(PromptMessageContent):
             "sub_type": self.sub_type,
         }
 
+    def count_tokens_approx(self) -> int:
+        """Counts the approximate number of tokens in the audio content."""
+        # TODO: Implement this, we do not currently count audio content
+        return 0
+
     @classmethod
     def model_validate(cls, data: dict) -> "PromptAudioContent":
         """Create an audio content from a dictionary."""

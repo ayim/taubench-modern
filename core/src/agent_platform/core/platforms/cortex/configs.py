@@ -119,6 +119,28 @@ class CortexModelMap(PlatformModelMap):
         },
     )
 
+    model_context_windows: dict[str, int | None] = field(
+        default_factory=lambda: {
+            # Anthropic
+            "claude-3-5-sonnet": 200_000,
+            # DeepSeek
+            "deepseek-r1": 128_000,
+            # Meta
+            "llama-3-1-8b": 128_000,
+            "llama-3-1-70b": 128_000,
+            # Snowflake (LLM)
+            "snowflake-llama-3-3-70b": 128_000,
+            # Snowflake (Embedding)
+            "snowflake-arctic-embed-m": 512,
+            "snowflake-arctic-embed-l": 2_048,
+            # Voyage
+            "voyage-multilingual": 32_000,
+        },
+        metadata=FieldMetadata(
+            description=("The context window size for each model."),
+        ),
+    )
+
 
 @dataclass(frozen=True)
 class CortexRoleMap(Configuration):

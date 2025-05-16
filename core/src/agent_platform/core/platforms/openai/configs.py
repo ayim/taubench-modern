@@ -242,6 +242,53 @@ class OpenAIModelMap(PlatformModelMap):
         ),
     )
 
+    # Information on specifics is sometime vague but most models are 128k.
+    model_context_windows: dict[str, int | None] = field(
+        default_factory=lambda: {
+            # 4.5/4.1 series generally limits the context window to 128k tokens but
+            # specific users may have access to the 1 million token context window.
+            "gpt-4.5": 128_000,
+            "gpt-4.1": 128_000,
+            "gpt-4.1-mini": 128_000,
+            "gpt-4.1-nano": 128_000,
+            # 4o series
+            "chatgpt-4o-latest": 128_000,
+            "gpt-4o": 128_000,
+            "gpt-4o-audio": 128_000,
+            # 4o mini series
+            "gpt-4o-mini": 128_000,
+            "gpt-4o-audio-mini": 128_000,
+            # 4-turbo series
+            "gpt-4-turbo": 128_000,
+            # 3.5-turbo series (legacy)
+            "gpt-3.5-turbo": 16_385,
+            # o4-mini series
+            "o4-mini-high": 200_000,
+            "o4-mini-low": 200_000,
+            # o3 series
+            "o3-high": 128_000,
+            "o3-low": 128_000,
+            # o3-mini series
+            "o3-mini-high": 128_000,
+            "o3-mini-low": 128_000,
+            # o1-mini series
+            "o1-mini-high": 128_000,
+            "o1-mini-low": 128_000,
+            # o1 series
+            "o1-high": 128_000,
+            "o1-low": 128_000,
+            # Embedding models
+            "text-embedding-3-small": 8_192,
+            "text-embedding-3-large": 8_192,
+            "text-embedding-ada-002": 8_192,
+            # Image models
+            "gpt-image-1": None,  # TODO: update when known
+        },
+        metadata=FieldMetadata(
+            description=("The maximum context window in tokens for each model."),
+        ),
+    )
+
 
 @dataclass(frozen=True)
 class OpenAIRoleMap(Configuration):

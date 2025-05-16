@@ -19,6 +19,13 @@ class PromptMessage(ABC):
     role: Literal["user", "agent"]
     """The role of the message sender."""
 
+    def count_tokens_approx(self) -> int:
+        """Counts the approximate number of tokens in the message.
+
+        This method sums the token counts of all content items in the message.
+        """
+        return sum(item.count_tokens_approx() for item in self.content)
+
     @classmethod
     def register_message_by_role(
         cls,

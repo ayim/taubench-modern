@@ -1,11 +1,21 @@
 import json
 from collections.abc import AsyncGenerator
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi import Request
 
+from agent_platform.core.prompts.content.tool_result import PromptToolResultContent
+from agent_platform.core.prompts.finalizers.truncation_finalizer import (
+    TruncationFinalizer,
+)
+from agent_platform.core.prompts.messages import (
+    PromptAgentMessage,
+    PromptTextContent,
+    PromptUserMessage,
+)
+from agent_platform.core.prompts.prompt import Prompt
 from agent_platform.core.user import User
 from agent_platform.server.api.private_v2.prompt import (
     _create_platform_client_and_get_model,
@@ -47,7 +57,7 @@ class _DummyPlatformClient:
                 self.model = model
 
             def excluding_raw_response(self) -> dict:
-                # Mirrors the example “generate” payload
+                # Mirrors the example "generate" payload
                 return {
                     "content": [{"kind": "text", "text": "Madison."}],
                     "role": "agent",
@@ -175,8 +185,20 @@ def test_create_platform_client_for_every_kind(raw_config):
 @pytest.mark.asyncio
 async def test_generate_endpoint_serialises(monkeypatch):
     """The /generate route should emit exactly what the dummy client returns."""
-    # Minimal “Prompt” stand-in where only .finalise_messages() is called.
-    fake_prompt = SimpleNamespace(finalize_messages=AsyncMock())
+
+    # Create a properly mocked finalize_messages method
+    async def mock_finalize(*args, **kwargs):
+        return None
+
+    fake_prompt = SimpleNamespace(
+        finalize_messages=AsyncMock(side_effect=mock_finalize)
+    )
+
+    # Mock _create_platform_client_and_get_model to help with the test
+    monkeypatch.setattr(
+        "agent_platform.server.api.private_v2.prompt._create_platform_client_and_get_model",
+        lambda **kwargs: (_DummyPlatformClient("openai"), "some-override-model"),
+    )
 
     response = await prompt_generate(
         prompt=fake_prompt,  # type: ignore
@@ -191,6 +213,9 @@ async def test_generate_endpoint_serialises(monkeypatch):
             }
         ),
     )
+
+    # Verify finalize_messages was called (with no arguments)
+    fake_prompt.finalize_messages.assert_called_once_with()
 
     expected = {
         "content": [{"kind": "text", "text": "Madison."}],
@@ -210,8 +235,20 @@ async def test_stream_endpoint_serialises(monkeypatch):
     """/stream should forward each delta as `data:` lines in SSE format."""
     sent_events: list[str] = []
 
+    # Create a properly mocked finalize_messages method
+    async def mock_finalize(*args, **kwargs):
+        return None
+
+    # Mock _create_platform_client_and_get_model to help with the test
+    monkeypatch.setattr(
+        "agent_platform.server.api.private_v2.prompt._create_platform_client_and_get_model",
+        lambda **kwargs: (_DummyPlatformClient("openai"), "dummy-model"),
+    )
+
     # Fire the endpoint ---------------------------------------------------------
-    fake_prompt = SimpleNamespace(finalize_messages=AsyncMock())
+    fake_prompt = SimpleNamespace(
+        finalize_messages=AsyncMock(side_effect=mock_finalize)
+    )
     resp = await prompt_stream(
         prompt=fake_prompt,  # type: ignore
         platform_config_raw={"kind": "openai", "openai_api_key": "testing"},
@@ -224,6 +261,9 @@ async def test_stream_endpoint_serialises(monkeypatch):
             }
         ),
     )
+
+    # Verify finalize_messages was called (with no arguments)
+    fake_prompt.finalize_messages.assert_called_once_with()
 
     # Consume the events the endpoint produced ----------------------------------
     async for event in resp.body_iterator:
@@ -239,3 +279,56 @@ async def test_stream_endpoint_serialises(monkeypatch):
         json.dumps({"op": "add", "path": "/content/0/text", "value": "is"}),
         json.dumps({"op": "add", "path": "/content/0/text", "value": "on."}),
     ]
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Test for TruncationFinalizer actual functionality with model platform
+# ──────────────────────────────────────────────────────────────────────────────
+@pytest.mark.asyncio
+async def test_truncation_finalizer_with_platform():
+    """Test that the TruncationFinalizer actually truncates tool results
+    when used with a platform."""
+    # Create a large tool result
+    large_result = "This is a very large tool result. " * 1000  # Lots of tokens
+
+    # Create a prompt with a tool result
+    prompt = Prompt(
+        messages=[  # type: ignore
+            PromptUserMessage([PromptTextContent(text="What's the weather?")]),
+            PromptAgentMessage(
+                [
+                    PromptToolResultContent(  # type: ignore
+                        tool_call_id="call_123",
+                        tool_name="get_weather",
+                        content=[PromptTextContent(text=large_result)],
+                    )
+                ]
+            ),
+        ],
+    )
+
+    # Create objects to test with
+    kernel = MagicMock()
+    platform = MagicMock()
+    platform.client.model_map.model_context_windows = {"gpt-3.5-turbo": 2000}
+
+    # Create the finalizer
+    finalizer = TruncationFinalizer()
+
+    # Get a reference to the original text for comparison
+    original_text = prompt.messages[1].content[0].content[0].text  # type: ignore
+
+    # Call finalizer - this is how it's used in generate_response in model_platform.py
+    await prompt.finalize_messages(
+        kernel=kernel,
+        prompt_finalizers=[
+            finalizer
+        ],  # Changed from prompt_finalizer to prompt_finalizers
+        platform=platform,
+        model="gpt-3.5-turbo",
+    )
+
+    # Verify truncation occurred
+    truncated_text = prompt.messages[1].content[0].content[0].text  # type: ignore
+    assert len(truncated_text) < len(original_text)
+    assert "[Tool result truncated due to length constraints]" in truncated_text

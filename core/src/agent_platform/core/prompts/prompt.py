@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field, fields
 from importlib.resources.abc import Traversable
 from pathlib import Path
-from typing import IO, TYPE_CHECKING, Any, Literal, TextIO
+from typing import IO, TYPE_CHECKING, Any, Literal, TextIO, cast
 
 from agent_platform.core.prompts.messages import (
     PromptAgentMessage,
@@ -15,10 +15,16 @@ from agent_platform.core.prompts.special import (
     MemoriesSpecialMessage,
     SpecialPromptMessage,
 )
+from agent_platform.core.prompts.utils import (
+    count_role_indicator_tokens,
+    count_tokens_approx,
+    count_tools_tokens,
+)
 from agent_platform.core.tools.tool_definition import ToolDefinition
 
 if TYPE_CHECKING:
     from agent_platform.core.kernel import Kernel
+    from agent_platform.core.prompts.finalizers import BaseFinalizer
 
 
 @dataclass(frozen=True)
@@ -216,36 +222,107 @@ class Prompt:
     async def finalize_messages(
         self,
         kernel: "Kernel | None" = None,
+        prompt_finalizers: list["BaseFinalizer"] | None = None,
+        finalizer_kwargs: dict["BaseFinalizer", dict[str, Any]] | None = None,
+        **kwargs: Any,
     ) -> "Prompt":
         """Finalizes messages from the prompt.
 
-        If the prompt contains special messages, they will be hydrated with the
-        provided kernel. The end result of this method is a Prompt that has
-        no special messages.
+        This method applies a chain of finalizers to the prompt's messages.
+        The default chain includes:
+        1. SpecialMessageFinalizer - hydrates special messages like
+            ConversationHistorySpecialMessage
+        2. TruncationFinalizer - ensures the prompt fits within model token limits
 
         Arguments:
             kernel: The kernel to use in hydrating special messages.
+            prompt_finalizers: A list of finalizer functions to apply in sequence.
+                Each finalizer takes a list of messages, the prompt, the kernel,
+                and returns a list of messages. This allows for a chain of
+                transformations like hydrating special messages followed by
+                truncation.
+            finalizer_kwargs: A dictionary mapping finalizer instances to their
+                specific kwargs. This allows providing different parameters to
+                different finalizers, e.g., {finalizer1: {"param1": value1}}.
+            **kwargs: Additional arguments to pass to all finalizers, such as
+                the platform and model information for token limit calculations.
 
         Returns:
-            A Prompt with all special messages hydrated.
+            A Prompt with all special messages hydrated and any transformations
+            applied by the finalizers.
+
+        Example:
+            ```python
+            from agent_platform.core.prompts.finalizers import (
+                SpecialMessageFinalizer,
+                TruncationFinalizer,
+            )
+
+            # Create finalizers
+            special_message_finalizer = SpecialMessageFinalizer()
+            truncation_finalizer = TruncationFinalizer()
+
+            # Use them in sequence when finalizing the prompt
+            await prompt.finalize_messages(
+                kernel=kernel,
+                prompt_finalizers=[special_message_finalizer, truncation_finalizer],
+                finalizer_kwargs={
+                    special_message_finalizer: {"memory_limit": 5},
+                    truncation_finalizer: {"token_budget_percentage": 0.7},
+                },
+                platform=platform,
+                model="gpt-4",
+            )
+            ```
         """
         if self._finalized:
             return self
 
-        new_messages = []
-        for message in self.messages:
-            if isinstance(message, SpecialPromptMessage):
-                if kernel is None:
-                    raise ValueError("Kernel is required to hydrate special messages")
-                new_messages.extend(await message.hydrate(kernel))
-            else:
-                new_messages.append(message)
+        # Process finalizers
+        finalizers = []
+        if prompt_finalizers is None:
+            # If no finalizers are provided, use the default chain
+            from agent_platform.core.prompts.finalizers import (
+                SpecialMessageFinalizer,
+                TruncationFinalizer,
+            )
+
+            finalizers = [
+                SpecialMessageFinalizer(),
+                TruncationFinalizer(),
+            ]
+        else:
+            finalizers = list(prompt_finalizers)
+
+        # Initialize finalizer_kwargs if not provided
+        finalizer_kwargs = finalizer_kwargs or {}
+
+        # Start with original messages
+        new_messages = list(self.messages)
+
+        # Apply the chain of finalizers
+        for finalizer in finalizers:
+            # Get finalizer-specific kwargs if available
+            specific_kwargs = finalizer_kwargs.get(finalizer, {})
+            # Merge with global kwargs (global kwargs take precedence)
+            merged_kwargs = {**specific_kwargs, **kwargs}
+
+            # Call the finalizer with current messages (the type-checker doesn't
+            # know that each finalizer handles its own message types).
+            new_messages = await finalizer(new_messages, self, kernel, **merged_kwargs)  # type: ignore
+
+        # Update the messages and finalized flag with properly typed messages
+        # At this point we expect all special messages to have been processed
+        # into regular message types
+        final_messages = cast(
+            list[PromptUserMessage | PromptAgentMessage], new_messages
+        )
 
         # Update the messages and finalized flag
         object.__setattr__(
             self,
             "messages",
-            new_messages,
+            final_messages,
         )
         object.__setattr__(
             self,
@@ -352,113 +429,51 @@ class Prompt:
     def count_tokens_approx(self, model: str | None = None) -> int:
         """Approximate the number of tokens in the prompt.
 
-        This method attempts to use tiktoken (the OpenAI tokenizer) if available.
-        Otherwise, it falls back to a heuristic calculation.
-
-        Heuristic formula:
-        - Takes the maximum of:
-          - character count / 4 (1 token ~= 4 chars in English)
-          - word count / 0.75 (1 token ~= 0.75 words)
+        This method uses each content type's own token counting method and adds
+        tokens for role indicators (system, user, assistant). It also counts
+        tokens for the tools provided to the model.
 
         Args:
             model: Optional model name to use for tiktoken. Defaults to "gpt-3.5-turbo".
-                  Only used when tiktoken is available.
 
         Returns:
             int: Estimated token count
         """
-        try:
-            import tiktoken
+        # Attempt to translate model name to an OpenAI model identifier
+        if model is not None:
+            from agent_platform.core.platforms.openai import OpenAIModelMap
 
-            # Use tiktoken for more accurate counting
-            model_name = model or "gpt-3.5-turbo"
-            encoding = tiktoken.encoding_for_model(model_name)
+            model = OpenAIModelMap.model_aliases.get(model, None)
 
-            # Format messages into a string representation
-            messages_str = ""
+        model_name = model or "gpt-3.5-turbo"
+        token_count = 0
 
-            # Add system instruction if present
-            if self.system_instruction:
-                messages_str += f"system: {self.system_instruction}\n"
-
-            # Add messages
-            for msg in self.messages:
-                if isinstance(msg, PromptUserMessage | PromptAgentMessage):
-                    role = "user" if isinstance(msg, PromptUserMessage) else "assistant"
-                    content_str = ""
-                    for content in msg.content:
-                        if isinstance(content, PromptTextContent):
-                            content_str += content.text
-                    messages_str += f"{role}: {content_str}\n"
-                # Skip special messages for token counting
-
-            # Add tools if present
-            if self.tools:
-                tools_str = "tools:\n"
-                for tool in self.tools:
-                    tools_str += f"function: {tool.name}\n"
-                    tools_str += f"description: {tool.description}\n"
-                    if tool.input_schema:
-                        tools_str += f"parameters: {tool.input_schema}\n"
-                messages_str += tools_str
-
-            # Count tokens using tiktoken
-            tokens = len(encoding.encode(messages_str))
-            return tokens
-
-        except (ImportError, ModuleNotFoundError):
-            # Fall back to heuristic if tiktoken isn't available
-            return self._count_tokens_heuristic()
-
-    def _count_tokens_heuristic(self) -> int:
-        """Count tokens using a heuristic approach.
-
-        Uses a combination of character and word count based on OpenAI's guidance:
-        - 1 token ~= 4 chars in English
-        - 1 token ~= 0.75 words
-
-        Takes the maximum of the two estimates as a conservative approach.
-
-        Returns:
-            int: Estimated token count
-        """
-        # Initialize counters
-        total_chars = 0
-        total_words = 0
-
-        # Count system instruction
+        # Count system instruction if present
         if self.system_instruction:
-            total_chars += len(self.system_instruction)
-            total_words += len(self.system_instruction.split())
+            # Count tokens for the system role indicator
+            token_count += count_role_indicator_tokens("system", model_name)
+            # Count tokens for the system instruction text
+            token_count += count_tokens_approx(self.system_instruction, model_name)
 
-        # Count messages
+        # Count messages (skipping special messages)
         for msg in self.messages:
             if isinstance(msg, PromptUserMessage | PromptAgentMessage):
+                # Add tokens for role indicator
+                role = "user" if isinstance(msg, PromptUserMessage) else "assistant"
+                token_count += count_role_indicator_tokens(role, model_name)
+
+                # Count tokens in each content item
                 for content in msg.content:
-                    if isinstance(content, PromptTextContent):
-                        text = content.text
-                        total_chars += len(text)
-                        total_words += len(text.split())
+                    # Use the content's own token counting method
+                    token_count += content.count_tokens_approx()
 
         # Count tools
-        tools_text = ""
-        for tool in self.tools:
-            tools_text += f"{tool.name} {tool.description} "
-            if tool.input_schema:
-                # Convert parameters to string and count
-                import json
+        if self.tools:
+            # Use the tools directly, the utility function can now handle
+            # ToolDefinition objects
+            token_count += count_tools_tokens(self.tools, model_name)
 
-                tools_text += json.dumps(tool.input_schema)
-
-        total_chars += len(tools_text)
-        total_words += len(tools_text.split())
-
-        # Calculate token estimates
-        char_estimate = total_chars / 4
-        word_estimate = total_words / 0.75
-
-        # Return the maximum of the two estimates
-        return max(int(char_estimate), int(word_estimate))
+        return token_count
 
     @classmethod
     def model_validate(cls, data: dict) -> "Prompt":

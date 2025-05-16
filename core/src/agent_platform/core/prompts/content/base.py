@@ -26,6 +26,11 @@ class PromptMessageContent:
         """Returns a JSON string representation of the content."""
         return dumps(self.model_dump())
 
+    def count_tokens_approx(self) -> int:
+        """Counts the approximate number of tokens in the content."""
+        # This is a placeholder for subclasses to implement
+        return 0
+
     @classmethod
     def register_content_kind(
         cls,

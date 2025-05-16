@@ -59,6 +59,16 @@ class ReductoModelMap(PlatformModelMap):
         },
     )
 
+    model_context_windows: dict[str, int | None] = field(
+        default_factory=lambda: {
+            "reducto-standard-parse": None,
+            "reducto-standard-extract": None,
+        },
+        metadata=FieldMetadata(
+            description=("The context window size for each model."),
+        ),
+    )
+
 
 @dataclass(frozen=True)
 class ReductoDefaultModel(Configuration):

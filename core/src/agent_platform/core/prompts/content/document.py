@@ -113,6 +113,11 @@ class PromptDocumentContent(PromptMessageContent):
             "sub_type": self.sub_type,
         }
 
+    def count_tokens_approx(self) -> int:
+        """Counts the approximate number of tokens in the document content."""
+        # TODO: Implement this, we do not currently count document content
+        return 0
+
     @classmethod
     def model_validate(cls, data: dict) -> "PromptDocumentContent":
         """Create a document content from a dictionary."""

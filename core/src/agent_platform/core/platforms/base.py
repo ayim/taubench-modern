@@ -283,6 +283,13 @@ class PlatformModelMap(Configuration):
         ),
     )
     """The model families by model type."""
+    model_context_windows: dict[str, int | None] = field(
+        default_factory=dict,
+        metadata=FieldMetadata(
+            description="The maximum context window in tokens for each model.",
+        ),
+    )
+    """The maximum context window in tokens for each model."""
 
     @classmethod
     def supported_models(cls) -> list[str]:

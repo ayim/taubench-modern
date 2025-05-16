@@ -157,6 +157,26 @@ class BedrockModelMap(PlatformModelMap):
         ),
     )
 
+    model_context_windows: dict[str, int | None] = field(
+        default_factory=lambda: {
+            # Anthropic
+            "claude-3-7-sonnet": 200_000,
+            "claude-3-5-sonnet": 200_000,
+            "claude-3-5-haiku": 200_000,
+            # Amazon
+            "titan-embed-text-v2": 8_192,
+            "titan-embed-text-v1": 8_192,
+            # Cohere (LLM)
+            "cohere-command-r-plus": 128_000,
+            # Cohere (Embedding)
+            "cohere-embed-english-v3": 512,
+            "cohere-embed-multilingual-v3": 512,
+        },
+        metadata=FieldMetadata(
+            description=("The maximum context window in tokens for each model."),
+        ),
+    )
+
 
 @dataclass(frozen=True)
 class BedrockRoleMap(Configuration):

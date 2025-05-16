@@ -77,6 +77,13 @@ class PromptToolResultContent(PromptMessageContent):
             "is_error": self.is_error,
         }
 
+    def count_tokens_approx(self) -> int:
+        """Counts the approximate number of tokens in the tool result content.
+
+        This method sums the token counts of all content items in the tool result.
+        """
+        return sum(item.count_tokens_approx() for item in self.content)
+
     @classmethod
     def model_validate(cls, data: dict) -> "PromptToolResultContent":
         """Create a tool result content from a dictionary."""

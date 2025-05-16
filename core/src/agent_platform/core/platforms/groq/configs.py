@@ -96,6 +96,23 @@ class GroqModelMap(PlatformModelMap):
         ),
     )
 
+    model_context_windows: dict[str, int | None] = field(
+        default_factory=lambda: {
+            "gemma2": 8_192,
+            "llama-3.3": 128_000,
+            "llama-3.1": 128_000,
+            "llama-guard": 131_072,
+            "llama3-70b": 8_192,
+            "llama3-8b": 8_192,
+            "whisper": None,  # TODO: update when known
+            "whisper-turbo": None,  # TODO: update when known
+            "distil-whisper": None,  # TODO: update when known
+        },
+        metadata=FieldMetadata(
+            description=("The maximum context window in tokens for each model."),
+        ),
+    )
+
 
 @dataclass(frozen=True)
 class GroqRoleMap(Configuration):

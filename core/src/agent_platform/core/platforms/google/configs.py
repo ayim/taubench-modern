@@ -15,6 +15,7 @@ class GoogleModelMap(PlatformModelMap):
     model_aliases: dict[str, str] = field(
         default_factory=lambda: {
             # Gemini models (LLM)
+            # "gemini-2.5-pro-preview": "gemini-2.5-pro-preview-05-06",
             "gemini-2.0-flash": "gemini-2.0-flash",
             "gemini-2.0-flash-lite": "gemini-2.0-flash-lite",
             "gemini-1.5-pro": "gemini-1.5-pro",
@@ -33,6 +34,7 @@ class GoogleModelMap(PlatformModelMap):
     models_to_type: dict[str, str] = field(
         default_factory=lambda: {
             # Gemini models (LLM)
+            "gemini-2.5-pro-preview": "llm",
             "gemini-2.5-flash-preview-04-17-high": "llm",
             "gemini-2.5-flash-preview-04-17-low": "llm",
             "gemini-2.0-flash": "llm",
@@ -57,6 +59,13 @@ class GoogleModelMap(PlatformModelMap):
     models_to_input_modalities: dict[str, list[str]] = field(
         default_factory=lambda: {
             # Gemini models (LLM)
+            # "gemini-2.5-pro-preview": [
+            #     "text",
+            #     "audio",
+            #     "images",
+            #     "video",
+            #     "tools",
+            # ],
             "gemini-2.5-flash-preview-04-17-high": [
                 "text",
                 "audio",
@@ -100,6 +109,7 @@ class GoogleModelMap(PlatformModelMap):
     models_to_output_modalities: dict[str, list[str]] = field(
         default_factory=lambda: {
             # Gemini models (LLM)
+            # "gemini-2.5-pro-preview": ["text"],
             "gemini-2.5-flash-preview-04-17-high": ["text"],
             "gemini-2.5-flash-preview-04-17-low": ["text"],
             # 2.0 Flash lists image output as experimental.
@@ -127,6 +137,7 @@ class GoogleModelMap(PlatformModelMap):
     model_families: dict[str, str] = field(
         default_factory=lambda: {
             # Gemini models (LLM)
+            # "gemini-2.5-pro-preview": "gemini",
             "gemini-2.0-flash": "gemini",
             "gemini-2.0-flash-lite": "gemini",
             "gemini-1.5-pro": "gemini",
@@ -139,6 +150,25 @@ class GoogleModelMap(PlatformModelMap):
         },
         metadata=FieldMetadata(
             description=("A mapping between our model names and model families."),
+        ),
+    )
+
+    model_context_windows: dict[str, int | None] = field(
+        default_factory=lambda: {
+            # Gemini models (LLM)
+            # "gemini-2.5-pro-preview": 1_048_576,
+            "gemini-2.0-flash": 1_048_576,
+            "gemini-2.0-flash-lite": 1_048_576,
+            "gemini-1.5-pro": 2_097_152,
+            "gemini-2.5-flash-preview-04-17-high": 1_048_576,
+            "gemini-2.5-flash-preview-04-17-low": 1_048_576,
+            # Gemini models (embedding)
+            "gemini-embedding-exp-03-07": 8_192,
+            "models/text-embedding-004": 2_048,
+            "models/embedding-001": 2_048,
+        },
+        metadata=FieldMetadata(
+            description=("The context window size for each model."),
         ),
     )
 

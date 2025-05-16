@@ -65,8 +65,13 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
                 "provider": self._internal_client.name,
             },
         ):
-            # Process prompt
-            finalized_prompt = await prompt.finalize_messages(self.kernel)
+            # Use the default finalizers chain defined in Prompt.finalize_messages
+            # (SpecialMessageFinalizer followed by TruncationFinalizer).
+            finalized_prompt = await prompt.finalize_messages(
+                self.kernel,
+                platform=self,
+                model=model,
+            )
 
             # Record tools in trace directly from the finalized_prompt
             if finalized_prompt.tools:
@@ -144,8 +149,13 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
                 "streaming": True,
             },
         ):
-            # Process the prompt
-            finalized_prompt = await prompt.finalize_messages(self.kernel)
+            # Use the default finalizers chain defined in Prompt.finalize_messages
+            # (SpecialMessageFinalizer followed by TruncationFinalizer).
+            finalized_prompt = await prompt.finalize_messages(
+                self.kernel,
+                platform=self,
+                model=model,
+            )
 
             # Record tools in trace directly from the finalized_prompt
             if finalized_prompt.tools:
