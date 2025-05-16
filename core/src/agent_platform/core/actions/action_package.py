@@ -124,12 +124,15 @@ class ActionPackage:
             "allowed_actions": self.allowed_actions,
         }
 
-    async def to_tool_definitions(self) -> list[ToolDefinition]:
+    async def to_tool_definitions(
+        self, additional_headers: dict | None = None
+    ) -> list[ToolDefinition]:
         """Converts the action package to a list of tool definitions."""
         return await get_spec_and_build_tool_definitions(
             self.url or "",
             self.api_key.get_secret_value() if self.api_key is not None else "",
             self.allowed_actions,  # Use allowed_actions instead of whitelist here
+            additional_headers,
         )
 
     @classmethod

@@ -295,8 +295,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
         return processed_tools, issues
 
     async def from_action_packages(
-        self,
-        action_packages: list[ActionPackage],
+        self, action_packages: list[ActionPackage], additional_headers: dict | None
     ) -> tuple[list[ToolDefinition], list[str]]:
         # Generate a cache key from the unique URLs of the action packages
         cache_key: frozenset[str] = frozenset(
@@ -316,9 +315,11 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
         tools = []
         issues = []
 
-        async def safe_get_tool_definitions(action_package):
+        async def safe_get_tool_definitions(action_package: ActionPackage):
             try:
-                return await action_package.to_tool_definitions(), None
+                return await action_package.to_tool_definitions(
+                    additional_headers=additional_headers
+                ), None
             except Exception as e:
                 detailed_issue = "Error aquiring tool definitions from action package:"
                 detailed_issue += f"\nAction package: {action_package.name}"

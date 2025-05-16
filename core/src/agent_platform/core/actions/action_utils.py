@@ -1,3 +1,5 @@
+import random
+import string
 from collections.abc import Callable, Coroutine
 from typing import Any
 
@@ -96,9 +98,12 @@ def _build_post_async_function(
     async def _post_async_function(**args: dict[str, Any]) -> Coroutine:
         from aiohttp import ClientSession
 
+        characters = string.ascii_letters + string.digits
+        action_invocation_id = "".join(random.choice(characters) for _ in range(10))
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
+            "x-action_invocation_id": action_invocation_id,
             **(additional_headers or {}),
         }
 
@@ -182,6 +187,7 @@ async def get_spec_and_build_tool_definitions(
     url: str,
     api_key: str,
     allowed_actions: list[str],
+    additional_headers: dict | None = None,
 ) -> list[ToolDefinition]:
     from aiohttp import ClientSession
 
@@ -194,7 +200,9 @@ async def get_spec_and_build_tool_definitions(
         async with session.get(spec_url) as response:
             spec = await response.json()
 
-    definitions = _openapi_spec_to_tool_definitions(url, api_key, spec)
+    definitions = _openapi_spec_to_tool_definitions(
+        url, api_key, spec, additional_headers
+    )
     if len(allowed_actions) > 0:
         # Only filter the definitions if we have allowed actions
         # (empty list means all actions are allowed)

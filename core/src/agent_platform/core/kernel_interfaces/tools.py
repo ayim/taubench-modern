@@ -35,8 +35,7 @@ class ToolsInterface(ABC):
 
     @abstractmethod
     async def from_action_packages(
-        self,
-        action_packages: list[ActionPackage],
+        self, action_packages: list[ActionPackage], additional_headers: dict | None
     ) -> tuple[list[ToolDefinition], list[str]]:
         """Converts a list of action packages into a list of tool definitions.
 

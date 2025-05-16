@@ -200,7 +200,7 @@ class TestActionPackage:
 
         # Verify the mock was called with correct arguments
         mock_get_spec.assert_called_once_with(
-            "http://example.com", "test-api-key", ["action1"]
+            "http://example.com", "test-api-key", ["action1"], None
         )
 
     @pytest.mark.asyncio
@@ -221,7 +221,7 @@ class TestActionPackage:
         tool_definitions = await package.to_tool_definitions()
 
         assert tool_definitions == []
-        mock_get_spec.assert_called_once_with("", "test-api-key", [])
+        mock_get_spec.assert_called_once_with("", "test-api-key", [], None)
 
     @pytest.mark.asyncio
     @patch(
@@ -241,4 +241,4 @@ class TestActionPackage:
         tool_definitions = await package.to_tool_definitions()
 
         assert tool_definitions == []
-        mock_get_spec.assert_called_once_with("http://example.com", "", [])
+        mock_get_spec.assert_called_once_with("http://example.com", "", [], None)

@@ -43,6 +43,11 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
     # our action packages and MCP servers
     action_tools, action_issues = await kernel.tools.from_action_packages(
         kernel.agent.action_packages,
+        additional_headers={
+            "x-invoked_by_assistant_id": kernel.agent.agent_id,
+            "x-invoked_on_behalf_of_user_id": kernel.user.user_id,
+            "x-invoked_for_thread_id": kernel.thread.thread_id,
+        },
     )
     mcp_tools, mcp_issues = await kernel.tools.from_mcp_servers(
         kernel.agent.mcp_servers,
