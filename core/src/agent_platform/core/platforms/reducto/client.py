@@ -19,12 +19,10 @@ from agent_platform.core.platforms.reducto.converters import ReductoConverters
 from agent_platform.core.platforms.reducto.parameters import ReductoPlatformParameters
 from agent_platform.core.platforms.reducto.parsers import ReductoParsers
 from agent_platform.core.platforms.reducto.prompts import ReductoPrompt
+from agent_platform.core.platforms.reducto.reducto import PollingReductoClient
 from agent_platform.core.responses.response import ResponseMessage
 
 if TYPE_CHECKING:
-    from reducto import AsyncReducto
-    from reducto.types.shared import ExtractResponse, ParseResponse
-
     from agent_platform.core.context import AgentServerContext
     from agent_platform.core.kernel import Kernel
 
@@ -57,7 +55,13 @@ class ReductoClient(
             parameters=parameters,
             **kwargs,
         )
-        self._reducto_client = self._init_client(self._parameters)
+        if parameters is None or self._parameters.reducto_api_key is None:
+            raise ValueError("Reducto API key is required")
+
+        self._reducto_client = PollingReductoClient(
+            self._parameters.reducto_api_url,
+            self._parameters.reducto_api_key.get_secret_value(),
+        )
 
         # Optionally initialize a delegate client
         if self._parameters.delegate_kind:
@@ -76,23 +80,6 @@ class ReductoClient(
         else:
             logger.warning("No delegate configured for Reducto platform client")
             self._delegate = None
-
-    def _init_client(self, parameters: ReductoPlatformParameters) -> "AsyncReducto":
-        from reducto import AsyncReducto
-
-        if parameters.reducto_api_key is None:
-            raise ValueError("Reducto API key is required")
-
-        client = AsyncReducto(
-            # We have to set one, but we put our key in the headers
-            api_key="unused",
-            base_url=parameters.reducto_api_url,
-        )
-        # Set the API key in the client headers directly
-        client._client.headers["X-API-Key"] = (
-            parameters.reducto_api_key.get_secret_value()
-        )
-        return client
 
     def _init_converters(self, kernel: "Kernel | None" = None) -> ReductoConverters:
         converters = ReductoConverters()
@@ -140,6 +127,7 @@ class ReductoClient(
             span.set_attribute("model_provider", "reducto")
 
             try:
+                # Upload the document to Reducto
                 uploaded_document = await self._reducto_client.upload(
                     file=(
                         processed_prompt.document_name,
@@ -147,6 +135,7 @@ class ReductoClient(
                     ),
                 )
 
+                # Then, do some processing over it.
                 match prompt.operation:
                     case "classify":
                         return await self._classify(
@@ -155,14 +144,14 @@ class ReductoClient(
                         )
                         pass
                     case "parse":
-                        parse_response = await self._parse(
+                        parse_response = await self._reducto_client.parse(
                             prompt=processed_prompt,
                             uploaded_document=uploaded_document,
                         )
 
                         return self.parsers.parse_response(parse_response)
                     case "extract":
-                        extract_response = await self._extract(
+                        extract_response = await self._reducto_client.extract(
                             prompt=processed_prompt,
                             uploaded_document=uploaded_document,
                         )
@@ -200,71 +189,6 @@ class ReductoClient(
     async def create_embeddings(self, texts: list[str], model: str) -> dict[str, Any]:
         raise NotImplementedError("Reducto does not support embeddings at this time")
 
-    async def _parse(
-        self,
-        prompt: ReductoPrompt,
-        uploaded_document,
-    ) -> "ParseResponse":
-        from reducto import NOT_GIVEN
-
-        parse_options = prompt.parse_options
-        if parse_options is None:
-            raise ValueError("Parse options are required for parse operation")
-        parse_options["document_url"] = uploaded_document.file_id
-        return await self._reducto_client.parse.run(
-            document_url=uploaded_document.file_id,
-            options=(
-                parse_options["options"]
-                if parse_options and "options" in parse_options
-                else NOT_GIVEN
-            ),
-            advanced_options=(
-                parse_options["advanced_options"]
-                if parse_options and "advanced_options" in parse_options
-                else NOT_GIVEN
-            ),
-            experimental_options=(
-                parse_options["experimental_options"]
-                if parse_options and "experimental_options" in parse_options
-                else NOT_GIVEN
-            ),
-        )
-
-    async def _extract(
-        self,
-        prompt: ReductoPrompt,
-        uploaded_document,
-    ) -> "ExtractResponse":
-        from reducto import NOT_GIVEN
-
-        extract_options = prompt.extract_options
-        if extract_options is None:
-            raise ValueError("Extract options are required for extract operation")
-        extract_options["document_url"] = uploaded_document.file_id
-        return await self._reducto_client.extract.run(
-            document_url=uploaded_document.file_id,
-            schema=(
-                extract_options["schema"]
-                if extract_options and "schema" in extract_options
-                else NOT_GIVEN
-            ),
-            options=(
-                extract_options["options"]
-                if extract_options and "options" in extract_options
-                else NOT_GIVEN
-            ),
-            advanced_options=(
-                extract_options["advanced_options"]
-                if extract_options and "advanced_options" in extract_options
-                else NOT_GIVEN
-            ),
-            experimental_options=(
-                extract_options["experimental_options"]
-                if extract_options and "experimental_options" in extract_options
-                else NOT_GIVEN
-            ),
-        )
-
     async def _classify(
         self,
         prompt: ReductoPrompt,
@@ -284,7 +208,7 @@ class ReductoClient(
         if prompt.system_prompt is None:
             raise ValueError("System prompt is required for classify operation")
 
-        parse_resp = await self._parse(
+        parse_resp = await self._reducto_client.parse(
             prompt=prompt,
             uploaded_document=uploaded_document,
         )
