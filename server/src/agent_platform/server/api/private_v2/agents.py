@@ -239,6 +239,7 @@ async def _create_or_update_agent_from_package(
             )
             for action_package in agent0.get("action-packages", [])
         ],
+        mcp_servers=payload.mcp_servers,
         runbook=agent_package.runbook_text,
         advanced_config=advanced_config,
         model=payload.model,

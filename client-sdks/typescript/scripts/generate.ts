@@ -10,6 +10,8 @@ if (args.length === 0) {
 
 const openapiSpecFilepath = args[0];
 
+const exclude_endpoints = ['/prompts/generate', '/prompts/stream'];
+
 // by default the automatically exported spec does not have agent server version prefix i.e. /api/v2
 const appendServerPrefixToPaths = (spec: OpenAPI3): OpenAPI3 => {
   const server = spec.servers?.[0];
@@ -24,6 +26,9 @@ const appendServerPrefixToPaths = (spec: OpenAPI3): OpenAPI3 => {
   }
 
   for (const [path, value] of Object.entries(spec.paths)) {
+    if (exclude_endpoints.includes(path)) {
+      continue;
+    }
     const newPath = `${prefix}${path}`;
     updatedPaths[newPath] = value;
   }

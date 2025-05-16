@@ -6,7 +6,7 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Private API Version 2',
-    version: '2.0.0-alpha',
+    version: '2.0.0-alpha.9+hackathon.7',
   },
   paths: {
     '/api/v2/ok': {
@@ -134,6 +134,39 @@ export const spec = {
                 },
               },
             },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/HTTPValidationError',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/agents/{aid}/refresh-tools': {
+      post: {
+        tags: ['agents'],
+        summary: 'Refresh Tools',
+        operationId: 'refresh_tools_agents__aid__refresh_tools_post',
+        parameters: [
+          {
+            name: 'aid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Aid',
+            },
+          },
+        ],
+        responses: {
+          '204': {
+            description: 'Successful Response',
           },
           '422': {
             description: 'Validation Error',
@@ -625,6 +658,62 @@ export const spec = {
         },
       },
     },
+    '/api/v2/runs/{agent_id}/sync': {
+      post: {
+        tags: ['runs'],
+        summary: 'Sync Run',
+        description:
+          'Synchronous endpoint to run a conversation with a given agent and return all events.',
+        operationId: 'sync_run_runs__agent_id__sync_post',
+        parameters: [
+          {
+            name: 'agent_id',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Agent Id',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/InitiateStreamPayload',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: {
+                    $ref: '#/components/schemas/ThreadAgentMessage',
+                  },
+                  title: 'Response Sync Run Runs  Agent Id  Sync Post',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/HTTPValidationError',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/v2/threads/': {
       post: {
         tags: ['threads'],
@@ -747,6 +836,57 @@ export const spec = {
                 },
               },
             },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/HTTPValidationError',
+                },
+              },
+            },
+          },
+        },
+      },
+      delete: {
+        tags: ['threads'],
+        summary: 'Delete Threads For Agent',
+        operationId: 'delete_threads_for_agent_threads__delete',
+        parameters: [
+          {
+            name: 'agent_id',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Agent Id',
+            },
+          },
+        ],
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                anyOf: [
+                  {
+                    type: 'array',
+                    items: {
+                      type: 'string',
+                    },
+                  },
+                  {
+                    type: 'null',
+                  },
+                ],
+                title: 'Thread Ids',
+              },
+            },
+          },
+        },
+        responses: {
+          '204': {
+            description: 'Successful Response',
           },
           '422': {
             description: 'Validation Error',
@@ -1651,14 +1791,21 @@ export const spec = {
             description:
               'API Key of the action server that hosts the action package.',
           },
-          whitelist: {
+          allowed_actions: {
             items: {
               type: 'string',
             },
             type: 'array',
-            title: 'Whitelist',
+            title: 'Allowed Actions',
             description:
               'Actions to enable in the action server that hosts the action package. An empty list implies all actions are enabled.',
+          },
+          whitelist: {
+            type: 'string',
+            title: 'Whitelist',
+            description:
+              'Comma separated list of actions to enable in the action server that hosts the action package. An empty string implies all actions are enabled. (LEGACY FIELD)',
+            default: '',
           },
         },
         type: 'object',
@@ -1705,11 +1852,9 @@ export const spec = {
             title: 'Api Key',
           },
           whitelist: {
-            items: {
-              type: 'string',
-            },
-            type: 'array',
+            type: 'string',
             title: 'Whitelist',
+            default: '',
           },
         },
         type: 'object',
@@ -1773,6 +1918,13 @@ export const spec = {
             enum: ['user', 'agent'],
             title: 'Role',
             description: 'The role of the message sender.',
+          },
+          complete: {
+            type: 'boolean',
+            title: 'Complete',
+            description:
+              "True when the content has finished streaming, false otherwise. Clients can use this to determine if the content item is 'complete' or if further updates are expected.",
+            default: false,
           },
           commited: {
             type: 'boolean',
@@ -1876,6 +2028,9 @@ export const spec = {
                 },
                 {
                   $ref: '#/components/schemas/GroqPlatformParameters',
+                },
+                {
+                  $ref: '#/components/schemas/ReductoPlatformParameters',
                 },
               ],
             },
@@ -2048,6 +2203,15 @@ export const spec = {
             type: 'array',
             title: 'Action Servers',
             description: 'The action servers for the agent.',
+          },
+          mcp_servers: {
+            items: {
+              $ref: '#/components/schemas/MCPServer',
+            },
+            type: 'array',
+            title: 'Mcp Servers',
+            description:
+              'The Model Context Protocol (MCP) servers this agent uses.',
           },
           langsmith: {
             anyOf: [
@@ -2394,6 +2558,41 @@ export const spec = {
         required: ['document_uri', 'start_char_index', 'end_char_index'],
         title: 'Citation',
       },
+      ConversationHistoryParams: {
+        properties: {
+          maximum_number_of_turns: {
+            type: 'integer',
+            title: 'Maximum Number Of Turns',
+            description:
+              'The maximum number of turns to include in the conversation history.',
+            default: 5,
+          },
+          token_budget_as_percentage: {
+            type: 'number',
+            title: 'Token Budget As Percentage',
+            description:
+              'The token budget as a percentage of the total token budget.',
+            default: 0.5,
+          },
+        },
+        type: 'object',
+        title: 'ConversationHistoryParams',
+      },
+      ConversationHistorySpecialMessage: {
+        properties: {
+          role: {
+            type: 'string',
+            enum: ['$conversation-history', '$documents', '$memories'],
+            title: 'Role',
+          },
+          params: {
+            $ref: '#/components/schemas/ConversationHistoryParams',
+          },
+        },
+        type: 'object',
+        required: ['role'],
+        title: 'ConversationHistorySpecialMessage',
+      },
       CortexPlatformParameters: {
         properties: {
           kind: {
@@ -2506,6 +2705,41 @@ export const spec = {
         type: 'object',
         title: 'CortexPlatformParameters',
       },
+      DocumentsParams: {
+        properties: {
+          maximum_number_of_documents: {
+            type: 'integer',
+            title: 'Maximum Number Of Documents',
+            description:
+              'The maximum number of documents to include in the prompt.',
+            default: 5,
+          },
+          token_budget_as_percentage: {
+            type: 'number',
+            title: 'Token Budget As Percentage',
+            description:
+              'The token budget as a percentage of the total token budget.',
+            default: 0.5,
+          },
+        },
+        type: 'object',
+        title: 'DocumentsParams',
+      },
+      DocumentsSpecialMessage: {
+        properties: {
+          role: {
+            type: 'string',
+            enum: ['$conversation-history', '$documents', '$memories'],
+            title: 'Role',
+          },
+          params: {
+            $ref: '#/components/schemas/DocumentsParams',
+          },
+        },
+        type: 'object',
+        required: ['role'],
+        title: 'DocumentsSpecialMessage',
+      },
       GooglePlatformParameters: {
         properties: {
           kind: {
@@ -2569,6 +2803,56 @@ export const spec = {
         type: 'object',
         title: 'HTTPValidationError',
       },
+      InitiateStreamPayload: {
+        properties: {
+          agent_id: {
+            type: 'string',
+            title: 'Agent Id',
+            description: 'The agent ID of the agent that created this thread.',
+          },
+          name: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Name',
+            description: 'The name of the thread to stream against.',
+          },
+          thread_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Thread Id',
+            description: 'The ID of the thread to stream against.',
+          },
+          messages: {
+            items: {
+              $ref: '#/components/schemas/ThreadMessage',
+            },
+            type: 'array',
+            title: 'Messages',
+            description: 'All messages in this thread.',
+          },
+          metadata: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Metadata',
+            description: 'Arbitrary thread-level metadata.',
+          },
+        },
+        type: 'object',
+        required: ['agent_id'],
+        title: 'InitiateStreamPayload',
+      },
       MCPServer: {
         properties: {
           name: {
@@ -2579,12 +2863,48 @@ export const spec = {
           url: {
             type: 'string',
             title: 'Url',
-            description: 'The URL of the MCP server.',
+            description:
+              'The URL of the MCP server. Prefer to NOT include the /mcp or /sse suffixes as the client will try to negotiate the transport automatically.',
           },
         },
         type: 'object',
         required: ['name', 'url'],
         title: 'MCPServer',
+      },
+      MemoriesParams: {
+        properties: {
+          maximum_number_of_memories: {
+            type: 'integer',
+            title: 'Maximum Number Of Memories',
+            description:
+              'The maximum number of memories to include in the prompt.',
+            default: 20,
+          },
+          token_budget_as_percentage: {
+            type: 'number',
+            title: 'Token Budget As Percentage',
+            description:
+              'The token budget as a percentage of the total token budget.',
+            default: 0.5,
+          },
+        },
+        type: 'object',
+        title: 'MemoriesParams',
+      },
+      MemoriesSpecialMessage: {
+        properties: {
+          role: {
+            type: 'string',
+            enum: ['$conversation-history', '$documents', '$memories'],
+            title: 'Role',
+          },
+          params: {
+            $ref: '#/components/schemas/MemoriesParams',
+          },
+        },
+        type: 'object',
+        required: ['role'],
+        title: 'MemoriesSpecialMessage',
       },
       OTelArtifact: {
         properties: {
@@ -2765,6 +3085,324 @@ export const spec = {
         required: ['name', 'description'],
         title: 'PatchAgentPayload',
       },
+      PromptAgentMessage: {
+        properties: {
+          content: {
+            items: {
+              anyOf: [
+                {
+                  $ref: '#/components/schemas/PromptTextContent',
+                },
+                {
+                  $ref: '#/components/schemas/PromptToolUseContent',
+                },
+              ],
+            },
+            type: 'array',
+            title: 'Content',
+            description: 'The contents of the prompt message',
+          },
+          role: {
+            type: 'string',
+            const: 'agent',
+            title: 'Role',
+            description: 'The role of the message sender',
+            default: 'agent',
+          },
+        },
+        type: 'object',
+        required: ['content'],
+        title: 'PromptAgentMessage',
+      },
+      PromptAudioContent: {
+        properties: {
+          kind: {
+            type: 'string',
+            const: 'audio',
+            title: 'Kind',
+            description: "Message kind identifier, always 'audio'",
+            default: 'audio',
+          },
+          mime_type: {
+            type: 'string',
+            enum: ['audio/wav', 'audio/mp3'],
+            title: 'Mime Type',
+            description: 'MIME type of the audio',
+          },
+          value: {
+            type: 'string',
+            title: 'Value',
+            description: 'The base64 encoded audio data',
+          },
+          sub_type: {
+            type: 'string',
+            enum: ['base64', 'url'],
+            title: 'Sub Type',
+            description:
+              'Format of the audio data - url-based or base64-encoded',
+            default: 'base64',
+          },
+        },
+        type: 'object',
+        required: ['mime_type', 'value'],
+        title: 'PromptAudioContent',
+      },
+      PromptDocumentContent: {
+        properties: {
+          kind: {
+            type: 'string',
+            const: 'document',
+            title: 'Kind',
+            description: "Message kind identifier, always 'document'",
+            default: 'document',
+          },
+          mime_type: {
+            type: 'string',
+            enum: [
+              'application/pdf',
+              'text/plain',
+              'text/csv',
+              'text/tab-separated-values',
+              'text/markdown',
+              'text/html',
+              'application/vnd.ms-excel',
+              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+              'application/msword',
+              'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            ],
+            title: 'Mime Type',
+            description: 'MIME type of the document',
+          },
+          value: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'string',
+                format: 'binary',
+              },
+              {},
+            ],
+            title: 'Value',
+            description:
+              'The document data - either an agent-server UploadedFile, base64 encoded string, or raw bytes',
+          },
+          name: {
+            type: 'string',
+            title: 'Name',
+            description: 'The name of the document',
+          },
+          sub_type: {
+            type: 'string',
+            enum: ['UploadedFile', 'base64', 'raw_bytes', 'url'],
+            title: 'Sub Type',
+            description:
+              'Format of the document data - either an agent-server UploadedFile, base64 encoded string, raw bytes, or URL',
+            default: 'UploadedFile',
+          },
+        },
+        type: 'object',
+        required: ['mime_type', 'value', 'name'],
+        title: 'PromptDocumentContent',
+      },
+      PromptImageContent: {
+        properties: {
+          kind: {
+            type: 'string',
+            const: 'image',
+            title: 'Kind',
+            description: "Message kind identifier, always 'image'",
+            default: 'image',
+          },
+          mime_type: {
+            type: 'string',
+            enum: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+            title: 'Mime Type',
+            description: 'MIME type of the image',
+          },
+          value: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'string',
+                format: 'binary',
+              },
+            ],
+            title: 'Value',
+            description:
+              'The image data - either a URL or base64 encoded string, or raw bytes',
+          },
+          sub_type: {
+            type: 'string',
+            enum: ['url', 'base64', 'raw_bytes'],
+            title: 'Sub Type',
+            description:
+              'Format of the image data - either a URL or base64encoded string, or raw bytes',
+            default: 'url',
+          },
+          detail: {
+            type: 'string',
+            enum: ['low_res', 'high_res'],
+            title: 'Detail',
+            description: 'Resolution quality of the image',
+            default: 'high_res',
+          },
+        },
+        type: 'object',
+        required: ['mime_type', 'value'],
+        title: 'PromptImageContent',
+      },
+      PromptTextContent: {
+        properties: {
+          kind: {
+            type: 'string',
+            const: 'text',
+            title: 'Kind',
+            description: "Message kind identifier, always 'text'",
+            default: 'text',
+          },
+          text: {
+            type: 'string',
+            title: 'Text',
+            description: 'The actual text content of the message',
+          },
+        },
+        type: 'object',
+        required: ['text'],
+        title: 'PromptTextContent',
+      },
+      PromptToolResultContent: {
+        properties: {
+          kind: {
+            type: 'string',
+            const: 'tool_result',
+            title: 'Kind',
+            description: "Message kind identifier, always 'tool_result'",
+            default: 'tool_result',
+          },
+          tool_name: {
+            type: 'string',
+            title: 'Tool Name',
+            description: 'Name of the tool that produced this result',
+          },
+          tool_call_id: {
+            type: 'string',
+            title: 'Tool Call Id',
+            description:
+              'Identifier linking this result to its original tool call',
+          },
+          content: {
+            items: {
+              anyOf: [
+                {
+                  $ref: '#/components/schemas/PromptTextContent',
+                },
+                {
+                  $ref: '#/components/schemas/PromptImageContent',
+                },
+                {
+                  $ref: '#/components/schemas/PromptAudioContent',
+                },
+                {
+                  $ref: '#/components/schemas/PromptDocumentContent',
+                },
+              ],
+            },
+            type: 'array',
+            title: 'Content',
+            description: 'List of content items produced by the tool execution',
+          },
+          is_error: {
+            type: 'boolean',
+            title: 'Is Error',
+            description:
+              'Indicates whether the tool execution resulted in an error',
+            default: false,
+          },
+        },
+        type: 'object',
+        required: ['tool_name', 'tool_call_id', 'content'],
+        title: 'PromptToolResultContent',
+      },
+      PromptToolUseContent: {
+        properties: {
+          kind: {
+            type: 'string',
+            const: 'tool_use',
+            title: 'Kind',
+            description: "Message kind identifier, always 'tool_use'",
+            default: 'tool_use',
+          },
+          tool_call_id: {
+            type: 'string',
+            title: 'Tool Call Id',
+            description: 'Unique identifier for this tool call',
+          },
+          tool_name: {
+            type: 'string',
+            title: 'Tool Name',
+            description: 'Name of the tool being requested',
+          },
+          tool_input_raw: {
+            anyOf: [
+              {
+                additionalProperties: true,
+                type: 'object',
+              },
+              {
+                type: 'string',
+              },
+            ],
+            title: 'Tool Input Raw',
+            description:
+              'Raw tool input, either JSON string (OpenAI) or dict (Claude)',
+          },
+        },
+        type: 'object',
+        required: ['tool_call_id', 'tool_name', 'tool_input_raw'],
+        title: 'PromptToolUseContent',
+      },
+      PromptUserMessage: {
+        properties: {
+          content: {
+            items: {
+              anyOf: [
+                {
+                  $ref: '#/components/schemas/PromptTextContent',
+                },
+                {
+                  $ref: '#/components/schemas/PromptImageContent',
+                },
+                {
+                  $ref: '#/components/schemas/PromptAudioContent',
+                },
+                {
+                  $ref: '#/components/schemas/PromptToolResultContent',
+                },
+                {
+                  $ref: '#/components/schemas/PromptDocumentContent',
+                },
+              ],
+            },
+            type: 'array',
+            title: 'Content',
+            description: 'The contents of the prompt message',
+          },
+          role: {
+            type: 'string',
+            const: 'user',
+            title: 'Role',
+            description: 'The role of the message sender',
+            default: 'user',
+          },
+        },
+        type: 'object',
+        required: ['content'],
+        title: 'PromptUserMessage',
+      },
       QuestionGroup: {
         properties: {
           title: {
@@ -2784,6 +3422,306 @@ export const spec = {
         type: 'object',
         required: ['title'],
         title: 'QuestionGroup',
+      },
+      ReductoPlatformParameters: {
+        properties: {
+          kind: {
+            type: 'string',
+            const: 'reducto',
+            title: 'Kind',
+            description: 'The kind of platform parameters.',
+            default: 'reducto',
+          },
+          reducto_api_url: {
+            type: 'string',
+            title: 'Reducto Api Url',
+            description: 'The Reducto API URL.',
+            default: 'https://backend.sema4ai.dev/reducto',
+          },
+          reducto_api_key: {
+            anyOf: [
+              {
+                $ref: '#/components/schemas/SecretString',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            description:
+              'The Reducto API key. If not provided, it will be attempted to be inferred from the environment.',
+          },
+        },
+        type: 'object',
+        title: 'ReductoPlatformParameters',
+      },
+      ResponseAudioContent: {
+        properties: {
+          kind: {
+            type: 'string',
+            const: 'audio',
+            title: 'Kind',
+            description: "Content kind identifier, always 'audio'",
+            default: 'audio',
+          },
+          mime_type: {
+            type: 'string',
+            enum: ['audio/wav', 'audio/mp3'],
+            title: 'Mime Type',
+            description: 'MIME type of the audio',
+          },
+          value: {
+            type: 'string',
+            title: 'Value',
+            description: 'The base64 encoded audio data',
+          },
+          sub_type: {
+            type: 'string',
+            enum: ['base64', 'url'],
+            title: 'Sub Type',
+            description:
+              'Format of the audio data - url-based or base64-encoded',
+            default: 'base64',
+          },
+        },
+        type: 'object',
+        required: ['mime_type', 'value'],
+        title: 'ResponseAudioContent',
+      },
+      ResponseDocumentContent: {
+        properties: {
+          kind: {
+            type: 'string',
+            const: 'document',
+            title: 'Kind',
+            description: "Content kind identifier, always 'document'",
+            default: 'document',
+          },
+          mime_type: {
+            type: 'string',
+            enum: [
+              'application/pdf',
+              'text/plain',
+              'text/csv',
+              'text/tab-separated-values',
+              'text/markdown',
+              'text/html',
+              'application/vnd.ms-excel',
+              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+              'application/msword',
+              'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            ],
+            title: 'Mime Type',
+            description: 'MIME type of the document',
+          },
+          value: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'string',
+                format: 'binary',
+              },
+            ],
+            title: 'Value',
+            description:
+              'The document data - either an agent-server UploadedFile, base64 encoded string, or raw bytes',
+          },
+          name: {
+            type: 'string',
+            title: 'Name',
+            description: 'The name of the document',
+          },
+          sub_type: {
+            type: 'string',
+            enum: ['UploadedFile', 'base64', 'raw_bytes', 'url'],
+            title: 'Sub Type',
+            description:
+              'Format of the document data - either an agent-server UploadedFile, base64 encoded string, raw bytes, or URL',
+            default: 'UploadedFile',
+          },
+        },
+        type: 'object',
+        required: ['mime_type', 'value', 'name'],
+        title: 'ResponseDocumentContent',
+      },
+      ResponseImageContent: {
+        properties: {
+          kind: {
+            type: 'string',
+            const: 'image',
+            title: 'Kind',
+            description: "Content kind identifier, always 'image'",
+            default: 'image',
+          },
+          mime_type: {
+            type: 'string',
+            enum: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+            title: 'Mime Type',
+            description: 'MIME type of the image',
+          },
+          value: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'string',
+                format: 'binary',
+              },
+            ],
+            title: 'Value',
+            description:
+              'The image data - either a URL or base64 encoded string, or raw bytes',
+          },
+          sub_type: {
+            type: 'string',
+            enum: ['url', 'base64', 'raw_bytes'],
+            title: 'Sub Type',
+            description:
+              'Format of the image data - either a URL or base64 encoded string, or raw bytes',
+            default: 'url',
+          },
+          detail: {
+            type: 'string',
+            enum: ['low_res', 'high_res'],
+            title: 'Detail',
+            description: 'Resolution quality of the image',
+            default: 'high_res',
+          },
+        },
+        type: 'object',
+        required: ['mime_type', 'value'],
+        title: 'ResponseImageContent',
+      },
+      ResponseMessage: {
+        properties: {
+          content: {
+            items: {
+              anyOf: [
+                {
+                  $ref: '#/components/schemas/ResponseAudioContent',
+                },
+                {
+                  $ref: '#/components/schemas/ResponseDocumentContent',
+                },
+                {
+                  $ref: '#/components/schemas/ResponseImageContent',
+                },
+                {
+                  $ref: '#/components/schemas/ResponseTextContent',
+                },
+                {
+                  $ref: '#/components/schemas/ResponseToolUseContent',
+                },
+              ],
+            },
+            type: 'array',
+            title: 'Content',
+          },
+          role: {
+            type: 'string',
+            const: 'agent',
+            title: 'Role',
+          },
+          raw_response: {
+            anyOf: [
+              {},
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Raw Response',
+            description: 'The raw response from the model',
+          },
+          stop_reason: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Stop Reason',
+            description:
+              'The reason why the response stopped (e.g., stop_sequence, max_tokens)',
+          },
+          usage: {
+            $ref: '#/components/schemas/TokenUsage',
+            description: 'Token usage statistics for the model interaction',
+          },
+          metrics: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Metrics',
+            description: 'Model performance metrics and timing information',
+          },
+          metadata: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Metadata',
+            description: 'Additional metadata about the response generation',
+          },
+          additional_response_fields: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Additional Response Fields',
+            description:
+              'Provider-specific response fields not covered by other attributes',
+          },
+        },
+        type: 'object',
+        required: ['content', 'role'],
+        title: 'ResponseMessage',
+      },
+      ResponseTextContent: {
+        properties: {
+          kind: {
+            type: 'string',
+            const: 'text',
+            title: 'Kind',
+            description: "Content kind identifier, always 'text'",
+            default: 'text',
+          },
+          text: {
+            type: 'string',
+            title: 'Text',
+            description: 'The actual text content from the model',
+          },
+        },
+        type: 'object',
+        required: ['text'],
+        title: 'ResponseTextContent',
+      },
+      ResponseToolUseContent: {
+        properties: {
+          kind: {
+            type: 'string',
+            const: 'tool_use',
+            title: 'Kind',
+            description: "Content kind identifier, always 'tool_use'",
+            default: 'tool_use',
+          },
+          tool_call_id: {
+            type: 'string',
+            title: 'Tool Call Id',
+            description: 'Unique identifier for this tool call',
+          },
+          tool_name: {
+            type: 'string',
+            title: 'Tool Name',
+            description: 'Name of the tool being requested',
+          },
+          tool_input_raw: {
+            type: 'string',
+            title: 'Tool Input Raw',
+            description: 'Raw tool input as a JSON string.',
+          },
+        },
+        type: 'object',
+        required: ['tool_call_id', 'tool_name', 'tool_input_raw'],
+        title: 'ResponseToolUseContent',
       },
       Runbook: {
         properties: {
@@ -2954,6 +3892,105 @@ export const spec = {
         required: ['user_id', 'agent_id', 'name'],
         title: 'Thread',
       },
+      ThreadAgentMessage: {
+        properties: {
+          content: {
+            items: {
+              anyOf: [
+                {
+                  $ref: '#/components/schemas/ThreadTextContent',
+                },
+                {
+                  $ref: '#/components/schemas/ThreadQuickActionsContent',
+                },
+                {
+                  $ref: '#/components/schemas/ThreadVegaChartContent',
+                },
+                {
+                  $ref: '#/components/schemas/ThreadToolUsageContent',
+                },
+                {
+                  $ref: '#/components/schemas/ThreadThoughtContent',
+                },
+                {
+                  $ref: '#/components/schemas/ThreadAttachmentContent',
+                },
+              ],
+            },
+            type: 'array',
+            title: 'Content',
+            description: 'The contents of the thread message',
+          },
+          role: {
+            type: 'string',
+            enum: ['user', 'agent'],
+            title: 'Role',
+            description: "The role of the message sender (always 'agent')",
+            default: 'agent',
+          },
+          complete: {
+            type: 'boolean',
+            title: 'Complete',
+            description:
+              "True when the content has finished streaming, false otherwise. Clients can use this to determine if the content item is 'complete' or if further updates are expected.",
+            default: false,
+          },
+          commited: {
+            type: 'boolean',
+            title: 'Commited',
+            description:
+              'Whether the message has been committed to the thread (saved to backing storage)',
+            default: false,
+          },
+          created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At',
+            description: 'The time the message was created',
+          },
+          updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At',
+            description: 'The time the message was last updated',
+          },
+          agent_metadata: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Agent Metadata',
+            description:
+              'The metadata associated with the message (for agent architecture use only)',
+          },
+          server_metadata: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Server Metadata',
+            description:
+              'The metadata associated with the message (for agent-server use only)',
+          },
+          parent_run_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Parent Run Id',
+            description:
+              'The unique identifier for the run that created this message or None if this message was not created by a run',
+          },
+          message_id: {
+            type: 'string',
+            title: 'Message Id',
+            description: 'The unique identifier for the message',
+          },
+        },
+        type: 'object',
+        required: ['content'],
+        title: 'ThreadAgentMessage',
+      },
       ThreadAttachmentContent: {
         properties: {
           content_id: {
@@ -2966,6 +4003,13 @@ export const spec = {
             title: 'Kind',
             description: "Content kind: always 'attachment'",
             default: 'attachment',
+          },
+          complete: {
+            type: 'boolean',
+            title: 'Complete',
+            description:
+              "True when the content has finished streaming, false otherwise. Clients can use this to determine if the content item is 'complete' or if further updates are expected.",
+            default: false,
           },
           name: {
             type: 'string',
@@ -3054,6 +4098,13 @@ export const spec = {
             enum: ['user', 'agent'],
             title: 'Role',
             description: 'The role of the message sender.',
+          },
+          complete: {
+            type: 'boolean',
+            title: 'Complete',
+            description:
+              "True when the content has finished streaming, false otherwise. Clients can use this to determine if the content item is 'complete' or if further updates are expected.",
+            default: false,
           },
           commited: {
             type: 'boolean',
@@ -3154,6 +4205,13 @@ export const spec = {
             description: "Content kind: always 'quick_actions'",
             default: 'quick_actions',
           },
+          complete: {
+            type: 'boolean',
+            title: 'Complete',
+            description:
+              "True when the content has finished streaming, false otherwise. Clients can use this to determine if the content item is 'complete' or if further updates are expected.",
+            default: false,
+          },
           actions: {
             items: {
               $ref: '#/components/schemas/ThreadQuickActionContent',
@@ -3186,6 +4244,13 @@ export const spec = {
             description: "Content kind: always 'text'",
             default: 'text',
           },
+          complete: {
+            type: 'boolean',
+            title: 'Complete',
+            description:
+              "True when the content has finished streaming, false otherwise. Clients can use this to determine if the content item is 'complete' or if further updates are expected.",
+            default: false,
+          },
           text: {
             type: 'string',
             title: 'Text',
@@ -3217,6 +4282,13 @@ export const spec = {
             description: "Content kind: always 'thought'",
             default: 'thought',
           },
+          complete: {
+            type: 'boolean',
+            title: 'Complete',
+            description:
+              "True when the content has finished streaming, false otherwise. Clients can use this to determine if the content item is 'complete' or if further updates are expected.",
+            default: false,
+          },
           thought: {
             type: 'string',
             title: 'Thought',
@@ -3239,6 +4311,13 @@ export const spec = {
             title: 'Kind',
             description: "Content kind: always 'tool_call'",
             default: 'tool_call',
+          },
+          complete: {
+            type: 'boolean',
+            title: 'Complete',
+            description:
+              "True when the content has finished streaming, false otherwise. Clients can use this to determine if the content item is 'complete' or if further updates are expected.",
+            default: false,
           },
           name: {
             type: 'string',
@@ -3380,6 +4459,13 @@ export const spec = {
             description: "Content kind: always 'vega_chart'",
             default: 'vega_chart',
           },
+          complete: {
+            type: 'boolean',
+            title: 'Complete',
+            description:
+              "True when the content has finished streaming, false otherwise. Clients can use this to determine if the content item is 'complete' or if further updates are expected.",
+            default: false,
+          },
           chart_spec_raw: {
             type: 'string',
             title: 'Chart Spec Raw',
@@ -3415,6 +4501,31 @@ export const spec = {
         type: 'object',
         required: ['chart_spec_raw'],
         title: 'ThreadVegaChartContent',
+      },
+      TokenUsage: {
+        properties: {
+          input_tokens: {
+            type: 'integer',
+            title: 'Input Tokens',
+            description: 'Number of input tokens processed by the model',
+            default: 0,
+          },
+          output_tokens: {
+            type: 'integer',
+            title: 'Output Tokens',
+            description: 'Number of output tokens generated by the model',
+            default: 0,
+          },
+          total_tokens: {
+            type: 'integer',
+            title: 'Total Tokens',
+            description:
+              'Total number of tokens (input + output) used in the interaction',
+            default: 0,
+          },
+        },
+        type: 'object',
+        title: 'TokenUsage',
       },
       UploadedFile: {
         properties: {

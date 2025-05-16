@@ -72,6 +72,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/agents/{aid}/refresh-tools': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Refresh Tools */
+    post: operations['refresh_tools_agents__aid__refresh_tools_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/agents/{aid}': {
     parameters: {
       query?: never;
@@ -195,6 +212,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/runs/{agent_id}/sync': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Sync Run
+     * @description Synchronous endpoint to run a conversation with a given agent and return all events.
+     */
+    post: operations['sync_run_runs__agent_id__sync_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/threads/': {
     parameters: {
       query?: never;
@@ -207,7 +244,8 @@ export interface paths {
     put?: never;
     /** Create Thread */
     post: operations['create_thread_threads__post'];
-    delete?: never;
+    /** Delete Threads For Agent */
+    delete: operations['delete_threads_for_agent_threads__delete'];
     options?: never;
     head?: never;
     patch?: never;
@@ -547,10 +585,16 @@ export interface components {
       /** @description API Key of the action server that hosts the action package. */
       api_key?: components['schemas']['SecretString'] | null;
       /**
-       * Whitelist
+       * Allowed Actions
        * @description Actions to enable in the action server that hosts the action package. An empty list implies all actions are enabled.
        */
-      whitelist?: string[];
+      allowed_actions?: string[];
+      /**
+       * Whitelist
+       * @description Comma separated list of actions to enable in the action server that hosts the action package. An empty string implies all actions are enabled. (LEGACY FIELD)
+       * @default
+       */
+      whitelist: string;
     };
     /** ActionPackageCompat */
     ActionPackageCompat: {
@@ -573,8 +617,11 @@ export interface components {
       url?: string | null;
       /** Api Key */
       api_key?: string | null;
-      /** Whitelist */
-      whitelist?: string[];
+      /**
+       * Whitelist
+       * @default
+       */
+      whitelist: string;
     };
     /** ActionServerConfigPayload */
     ActionServerConfigPayload: {
@@ -609,6 +656,12 @@ export interface components {
        * @enum {string}
        */
       role: 'user' | 'agent';
+      /**
+       * Complete
+       * @description True when the content has finished streaming, false otherwise. Clients can use this to determine if the content item is 'complete' or if further updates are expected.
+       * @default false
+       */
+      complete: boolean;
       /**
        * Commited
        * @description Whether the message has been committed to the thread (saved to backing storage)
@@ -683,6 +736,7 @@ export interface components {
         | components['schemas']['AzureOpenAIPlatformParameters']
         | components['schemas']['GooglePlatformParameters']
         | components['schemas']['GroqPlatformParameters']
+        | components['schemas']['ReductoPlatformParameters']
       )[];
       /** @description The architecture details for the agent. */
       agent_architecture: components['schemas']['AgentArchitecture'];
@@ -793,6 +847,11 @@ export interface components {
        * @description The action servers for the agent.
        */
       action_servers?: components['schemas']['AgentPackagePayloadActionServer'][];
+      /**
+       * Mcp Servers
+       * @description The Model Context Protocol (MCP) servers this agent uses.
+       */
+      mcp_servers?: components['schemas']['MCPServer'][];
       /** @description The Langsmith configuration for the agent. */
       langsmith?: components['schemas']['AgentPackagePayloadLangsmith'] | null;
     };
@@ -964,6 +1023,30 @@ export interface components {
        */
       cited_text?: string | null;
     };
+    /** ConversationHistoryParams */
+    ConversationHistoryParams: {
+      /**
+       * Maximum Number Of Turns
+       * @description The maximum number of turns to include in the conversation history.
+       * @default 5
+       */
+      maximum_number_of_turns: number;
+      /**
+       * Token Budget As Percentage
+       * @description The token budget as a percentage of the total token budget.
+       * @default 0.5
+       */
+      token_budget_as_percentage: number;
+    };
+    /** ConversationHistorySpecialMessage */
+    ConversationHistorySpecialMessage: {
+      /**
+       * Role
+       * @enum {string}
+       */
+      role: '$conversation-history' | '$documents' | '$memories';
+      params?: components['schemas']['ConversationHistoryParams'];
+    };
     /** CortexPlatformParameters */
     CortexPlatformParameters: {
       /**
@@ -1011,6 +1094,30 @@ export interface components {
        */
       snowflake_role?: string | null;
     };
+    /** DocumentsParams */
+    DocumentsParams: {
+      /**
+       * Maximum Number Of Documents
+       * @description The maximum number of documents to include in the prompt.
+       * @default 5
+       */
+      maximum_number_of_documents: number;
+      /**
+       * Token Budget As Percentage
+       * @description The token budget as a percentage of the total token budget.
+       * @default 0.5
+       */
+      token_budget_as_percentage: number;
+    };
+    /** DocumentsSpecialMessage */
+    DocumentsSpecialMessage: {
+      /**
+       * Role
+       * @enum {string}
+       */
+      role: '$conversation-history' | '$documents' | '$memories';
+      params?: components['schemas']['DocumentsParams'];
+    };
     /** GooglePlatformParameters */
     GooglePlatformParameters: {
       /**
@@ -1040,6 +1147,36 @@ export interface components {
       /** Detail */
       detail?: components['schemas']['ValidationError'][];
     };
+    /** InitiateStreamPayload */
+    InitiateStreamPayload: {
+      /**
+       * Agent Id
+       * @description The agent ID of the agent that created this thread.
+       */
+      agent_id: string;
+      /**
+       * Name
+       * @description The name of the thread to stream against.
+       */
+      name?: string | null;
+      /**
+       * Thread Id
+       * @description The ID of the thread to stream against.
+       */
+      thread_id?: string | null;
+      /**
+       * Messages
+       * @description All messages in this thread.
+       */
+      messages?: components['schemas']['ThreadMessage'][];
+      /**
+       * Metadata
+       * @description Arbitrary thread-level metadata.
+       */
+      metadata?: {
+        [key: string]: unknown;
+      };
+    };
     /** MCPServer */
     MCPServer: {
       /**
@@ -1049,9 +1186,33 @@ export interface components {
       name: string;
       /**
        * Url
-       * @description The URL of the MCP server.
+       * @description The URL of the MCP server. Prefer to NOT include the /mcp or /sse suffixes as the client will try to negotiate the transport automatically.
        */
       url: string;
+    };
+    /** MemoriesParams */
+    MemoriesParams: {
+      /**
+       * Maximum Number Of Memories
+       * @description The maximum number of memories to include in the prompt.
+       * @default 20
+       */
+      maximum_number_of_memories: number;
+      /**
+       * Token Budget As Percentage
+       * @description The token budget as a percentage of the total token budget.
+       * @default 0.5
+       */
+      token_budget_as_percentage: number;
+    };
+    /** MemoriesSpecialMessage */
+    MemoriesSpecialMessage: {
+      /**
+       * Role
+       * @enum {string}
+       */
+      role: '$conversation-history' | '$documents' | '$memories';
+      params?: components['schemas']['MemoriesParams'];
     };
     /** OTelArtifact */
     OTelArtifact: {
@@ -1158,6 +1319,231 @@ export interface components {
        */
       description: string;
     };
+    /** PromptAgentMessage */
+    PromptAgentMessage: {
+      /**
+       * Content
+       * @description The contents of the prompt message
+       */
+      content: (
+        | components['schemas']['PromptTextContent']
+        | components['schemas']['PromptToolUseContent']
+      )[];
+      /**
+       * Role
+       * @description The role of the message sender
+       * @default agent
+       * @constant
+       */
+      role: 'agent';
+    };
+    /** PromptAudioContent */
+    PromptAudioContent: {
+      /**
+       * Kind
+       * @description Message kind identifier, always 'audio'
+       * @default audio
+       * @constant
+       */
+      kind: 'audio';
+      /**
+       * Mime Type
+       * @description MIME type of the audio
+       * @enum {string}
+       */
+      mime_type: 'audio/wav' | 'audio/mp3';
+      /**
+       * Value
+       * @description The base64 encoded audio data
+       */
+      value: string;
+      /**
+       * Sub Type
+       * @description Format of the audio data - url-based or base64-encoded
+       * @default base64
+       * @enum {string}
+       */
+      sub_type: 'base64' | 'url';
+    };
+    /** PromptDocumentContent */
+    PromptDocumentContent: {
+      /**
+       * Kind
+       * @description Message kind identifier, always 'document'
+       * @default document
+       * @constant
+       */
+      kind: 'document';
+      /**
+       * Mime Type
+       * @description MIME type of the document
+       * @enum {string}
+       */
+      mime_type:
+        | 'application/pdf'
+        | 'text/plain'
+        | 'text/csv'
+        | 'text/tab-separated-values'
+        | 'text/markdown'
+        | 'text/html'
+        | 'application/vnd.ms-excel'
+        | 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        | 'application/msword'
+        | 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      /**
+       * Value
+       * @description The document data - either an agent-server UploadedFile, base64 encoded string, or raw bytes
+       */
+      value: string | unknown;
+      /**
+       * Name
+       * @description The name of the document
+       */
+      name: string;
+      /**
+       * Sub Type
+       * @description Format of the document data - either an agent-server UploadedFile, base64 encoded string, raw bytes, or URL
+       * @default UploadedFile
+       * @enum {string}
+       */
+      sub_type: 'UploadedFile' | 'base64' | 'raw_bytes' | 'url';
+    };
+    /** PromptImageContent */
+    PromptImageContent: {
+      /**
+       * Kind
+       * @description Message kind identifier, always 'image'
+       * @default image
+       * @constant
+       */
+      kind: 'image';
+      /**
+       * Mime Type
+       * @description MIME type of the image
+       * @enum {string}
+       */
+      mime_type: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+      /**
+       * Value
+       * @description The image data - either a URL or base64 encoded string, or raw bytes
+       */
+      value: string;
+      /**
+       * Sub Type
+       * @description Format of the image data - either a URL or base64encoded string, or raw bytes
+       * @default url
+       * @enum {string}
+       */
+      sub_type: 'url' | 'base64' | 'raw_bytes';
+      /**
+       * Detail
+       * @description Resolution quality of the image
+       * @default high_res
+       * @enum {string}
+       */
+      detail: 'low_res' | 'high_res';
+    };
+    /** PromptTextContent */
+    PromptTextContent: {
+      /**
+       * Kind
+       * @description Message kind identifier, always 'text'
+       * @default text
+       * @constant
+       */
+      kind: 'text';
+      /**
+       * Text
+       * @description The actual text content of the message
+       */
+      text: string;
+    };
+    /** PromptToolResultContent */
+    PromptToolResultContent: {
+      /**
+       * Kind
+       * @description Message kind identifier, always 'tool_result'
+       * @default tool_result
+       * @constant
+       */
+      kind: 'tool_result';
+      /**
+       * Tool Name
+       * @description Name of the tool that produced this result
+       */
+      tool_name: string;
+      /**
+       * Tool Call Id
+       * @description Identifier linking this result to its original tool call
+       */
+      tool_call_id: string;
+      /**
+       * Content
+       * @description List of content items produced by the tool execution
+       */
+      content: (
+        | components['schemas']['PromptTextContent']
+        | components['schemas']['PromptImageContent']
+        | components['schemas']['PromptAudioContent']
+        | components['schemas']['PromptDocumentContent']
+      )[];
+      /**
+       * Is Error
+       * @description Indicates whether the tool execution resulted in an error
+       * @default false
+       */
+      is_error: boolean;
+    };
+    /** PromptToolUseContent */
+    PromptToolUseContent: {
+      /**
+       * Kind
+       * @description Message kind identifier, always 'tool_use'
+       * @default tool_use
+       * @constant
+       */
+      kind: 'tool_use';
+      /**
+       * Tool Call Id
+       * @description Unique identifier for this tool call
+       */
+      tool_call_id: string;
+      /**
+       * Tool Name
+       * @description Name of the tool being requested
+       */
+      tool_name: string;
+      /**
+       * Tool Input Raw
+       * @description Raw tool input, either JSON string (OpenAI) or dict (Claude)
+       */
+      tool_input_raw:
+        | {
+            [key: string]: unknown;
+          }
+        | string;
+    };
+    /** PromptUserMessage */
+    PromptUserMessage: {
+      /**
+       * Content
+       * @description The contents of the prompt message
+       */
+      content: (
+        | components['schemas']['PromptTextContent']
+        | components['schemas']['PromptImageContent']
+        | components['schemas']['PromptAudioContent']
+        | components['schemas']['PromptToolResultContent']
+        | components['schemas']['PromptDocumentContent']
+      )[];
+      /**
+       * Role
+       * @description The role of the message sender
+       * @default user
+       * @constant
+       */
+      role: 'user';
+    };
     /** QuestionGroup */
     QuestionGroup: {
       /**
@@ -1170,6 +1556,219 @@ export interface components {
        * @description The questions in the question group.
        */
       questions?: string[];
+    };
+    /** ReductoPlatformParameters */
+    ReductoPlatformParameters: {
+      /**
+       * Kind
+       * @description The kind of platform parameters.
+       * @default reducto
+       * @constant
+       */
+      kind: 'reducto';
+      /**
+       * Reducto Api Url
+       * @description The Reducto API URL.
+       * @default https://backend.sema4ai.dev/reducto
+       */
+      reducto_api_url: string;
+      /** @description The Reducto API key. If not provided, it will be attempted to be inferred from the environment. */
+      reducto_api_key?: components['schemas']['SecretString'] | null;
+    };
+    /** ResponseAudioContent */
+    ResponseAudioContent: {
+      /**
+       * Kind
+       * @description Content kind identifier, always 'audio'
+       * @default audio
+       * @constant
+       */
+      kind: 'audio';
+      /**
+       * Mime Type
+       * @description MIME type of the audio
+       * @enum {string}
+       */
+      mime_type: 'audio/wav' | 'audio/mp3';
+      /**
+       * Value
+       * @description The base64 encoded audio data
+       */
+      value: string;
+      /**
+       * Sub Type
+       * @description Format of the audio data - url-based or base64-encoded
+       * @default base64
+       * @enum {string}
+       */
+      sub_type: 'base64' | 'url';
+    };
+    /** ResponseDocumentContent */
+    ResponseDocumentContent: {
+      /**
+       * Kind
+       * @description Content kind identifier, always 'document'
+       * @default document
+       * @constant
+       */
+      kind: 'document';
+      /**
+       * Mime Type
+       * @description MIME type of the document
+       * @enum {string}
+       */
+      mime_type:
+        | 'application/pdf'
+        | 'text/plain'
+        | 'text/csv'
+        | 'text/tab-separated-values'
+        | 'text/markdown'
+        | 'text/html'
+        | 'application/vnd.ms-excel'
+        | 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        | 'application/msword'
+        | 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      /**
+       * Value
+       * @description The document data - either an agent-server UploadedFile, base64 encoded string, or raw bytes
+       */
+      value: string;
+      /**
+       * Name
+       * @description The name of the document
+       */
+      name: string;
+      /**
+       * Sub Type
+       * @description Format of the document data - either an agent-server UploadedFile, base64 encoded string, raw bytes, or URL
+       * @default UploadedFile
+       * @enum {string}
+       */
+      sub_type: 'UploadedFile' | 'base64' | 'raw_bytes' | 'url';
+    };
+    /** ResponseImageContent */
+    ResponseImageContent: {
+      /**
+       * Kind
+       * @description Content kind identifier, always 'image'
+       * @default image
+       * @constant
+       */
+      kind: 'image';
+      /**
+       * Mime Type
+       * @description MIME type of the image
+       * @enum {string}
+       */
+      mime_type: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+      /**
+       * Value
+       * @description The image data - either a URL or base64 encoded string, or raw bytes
+       */
+      value: string;
+      /**
+       * Sub Type
+       * @description Format of the image data - either a URL or base64 encoded string, or raw bytes
+       * @default url
+       * @enum {string}
+       */
+      sub_type: 'url' | 'base64' | 'raw_bytes';
+      /**
+       * Detail
+       * @description Resolution quality of the image
+       * @default high_res
+       * @enum {string}
+       */
+      detail: 'low_res' | 'high_res';
+    };
+    /** ResponseMessage */
+    ResponseMessage: {
+      /** Content */
+      content: (
+        | components['schemas']['ResponseAudioContent']
+        | components['schemas']['ResponseDocumentContent']
+        | components['schemas']['ResponseImageContent']
+        | components['schemas']['ResponseTextContent']
+        | components['schemas']['ResponseToolUseContent']
+      )[];
+      /**
+       * Role
+       * @constant
+       */
+      role: 'agent';
+      /**
+       * Raw Response
+       * @description The raw response from the model
+       */
+      raw_response?: unknown | null;
+      /**
+       * Stop Reason
+       * @description The reason why the response stopped (e.g., stop_sequence, max_tokens)
+       */
+      stop_reason?: string | null;
+      /** @description Token usage statistics for the model interaction */
+      usage?: components['schemas']['TokenUsage'];
+      /**
+       * Metrics
+       * @description Model performance metrics and timing information
+       */
+      metrics?: {
+        [key: string]: unknown;
+      };
+      /**
+       * Metadata
+       * @description Additional metadata about the response generation
+       */
+      metadata?: {
+        [key: string]: unknown;
+      };
+      /**
+       * Additional Response Fields
+       * @description Provider-specific response fields not covered by other attributes
+       */
+      additional_response_fields?: {
+        [key: string]: unknown;
+      };
+    };
+    /** ResponseTextContent */
+    ResponseTextContent: {
+      /**
+       * Kind
+       * @description Content kind identifier, always 'text'
+       * @default text
+       * @constant
+       */
+      kind: 'text';
+      /**
+       * Text
+       * @description The actual text content from the model
+       */
+      text: string;
+    };
+    /** ResponseToolUseContent */
+    ResponseToolUseContent: {
+      /**
+       * Kind
+       * @description Content kind identifier, always 'tool_use'
+       * @default tool_use
+       * @constant
+       */
+      kind: 'tool_use';
+      /**
+       * Tool Call Id
+       * @description Unique identifier for this tool call
+       */
+      tool_call_id: string;
+      /**
+       * Tool Name
+       * @description Name of the tool being requested
+       */
+      tool_name: string;
+      /**
+       * Tool Input Raw
+       * @description Raw tool input as a JSON string.
+       */
+      tool_input_raw: string;
     };
     /** Runbook */
     Runbook: {
@@ -1304,6 +1903,76 @@ export interface components {
         [key: string]: unknown;
       };
     };
+    /** ThreadAgentMessage */
+    ThreadAgentMessage: {
+      /**
+       * Content
+       * @description The contents of the thread message
+       */
+      content: (
+        | components['schemas']['ThreadTextContent']
+        | components['schemas']['ThreadQuickActionsContent']
+        | components['schemas']['ThreadVegaChartContent']
+        | components['schemas']['ThreadToolUsageContent']
+        | components['schemas']['ThreadThoughtContent']
+        | components['schemas']['ThreadAttachmentContent']
+      )[];
+      /**
+       * Role
+       * @description The role of the message sender (always 'agent')
+       * @default agent
+       * @enum {string}
+       */
+      role: 'user' | 'agent';
+      /**
+       * Complete
+       * @description True when the content has finished streaming, false otherwise. Clients can use this to determine if the content item is 'complete' or if further updates are expected.
+       * @default false
+       */
+      complete: boolean;
+      /**
+       * Commited
+       * @description Whether the message has been committed to the thread (saved to backing storage)
+       * @default false
+       */
+      commited: boolean;
+      /**
+       * Created At
+       * Format: date-time
+       * @description The time the message was created
+       */
+      created_at?: string;
+      /**
+       * Updated At
+       * Format: date-time
+       * @description The time the message was last updated
+       */
+      updated_at?: string;
+      /**
+       * Agent Metadata
+       * @description The metadata associated with the message (for agent architecture use only)
+       */
+      agent_metadata?: {
+        [key: string]: unknown;
+      };
+      /**
+       * Server Metadata
+       * @description The metadata associated with the message (for agent-server use only)
+       */
+      server_metadata?: {
+        [key: string]: unknown;
+      };
+      /**
+       * Parent Run Id
+       * @description The unique identifier for the run that created this message or None if this message was not created by a run
+       */
+      parent_run_id?: string | null;
+      /**
+       * Message Id
+       * @description The unique identifier for the message
+       */
+      message_id?: string;
+    };
     /** ThreadAttachmentContent */
     ThreadAttachmentContent: {
       /**
@@ -1317,6 +1986,12 @@ export interface components {
        * @default attachment
        */
       kind: string;
+      /**
+       * Complete
+       * @description True when the content has finished streaming, false otherwise. Clients can use this to determine if the content item is 'complete' or if further updates are expected.
+       * @default false
+       */
+      complete: boolean;
       /**
        * Name
        * @description The name of the attachment
@@ -1363,6 +2038,12 @@ export interface components {
        * @enum {string}
        */
       role: 'user' | 'agent';
+      /**
+       * Complete
+       * @description True when the content has finished streaming, false otherwise. Clients can use this to determine if the content item is 'complete' or if further updates are expected.
+       * @default false
+       */
+      complete: boolean;
       /**
        * Commited
        * @description Whether the message has been committed to the thread (saved to backing storage)
@@ -1438,6 +2119,12 @@ export interface components {
        */
       kind: string;
       /**
+       * Complete
+       * @description True when the content has finished streaming, false otherwise. Clients can use this to determine if the content item is 'complete' or if further updates are expected.
+       * @default false
+       */
+      complete: boolean;
+      /**
        * Actions
        * @description The list of quick actions to display
        */
@@ -1463,6 +2150,12 @@ export interface components {
        */
       kind: string;
       /**
+       * Complete
+       * @description True when the content has finished streaming, false otherwise. Clients can use this to determine if the content item is 'complete' or if further updates are expected.
+       * @default false
+       */
+      complete: boolean;
+      /**
        * Text
        * @description The actual text content of the message
        */
@@ -1487,6 +2180,12 @@ export interface components {
        */
       kind: string;
       /**
+       * Complete
+       * @description True when the content has finished streaming, false otherwise. Clients can use this to determine if the content item is 'complete' or if further updates are expected.
+       * @default false
+       */
+      complete: boolean;
+      /**
        * Thought
        * @description The actual text content of the thought
        */
@@ -1505,6 +2204,12 @@ export interface components {
        * @default tool_call
        */
       kind: string;
+      /**
+       * Complete
+       * @description True when the content has finished streaming, false otherwise. Clients can use this to determine if the content item is 'complete' or if further updates are expected.
+       * @default false
+       */
+      complete: boolean;
       /**
        * Name
        * @description The name of the tool to call
@@ -1593,6 +2298,12 @@ export interface components {
        */
       kind: 'vega_chart';
       /**
+       * Complete
+       * @description True when the content has finished streaming, false otherwise. Clients can use this to determine if the content item is 'complete' or if further updates are expected.
+       * @default false
+       */
+      complete: boolean;
+      /**
        * Chart Spec Raw
        * @description The Vega or Vega-Lite chart spec JSON (as a string) to display
        */
@@ -1614,6 +2325,27 @@ export interface components {
       _chart_spec?: {
         [key: string]: unknown;
       } | null;
+    };
+    /** TokenUsage */
+    TokenUsage: {
+      /**
+       * Input Tokens
+       * @description Number of input tokens processed by the model
+       * @default 0
+       */
+      input_tokens: number;
+      /**
+       * Output Tokens
+       * @description Number of output tokens generated by the model
+       * @default 0
+       */
+      output_tokens: number;
+      /**
+       * Total Tokens
+       * @description Total number of tokens (input + output) used in the interaction
+       * @default 0
+       */
+      total_tokens: number;
     };
     /** UploadedFile */
     UploadedFile: {
@@ -1918,6 +2650,35 @@ export interface operations {
         content: {
           'application/json': components['schemas']['AgentCompat'];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  refresh_tools_agents__aid__refresh_tools_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        aid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Validation Error */
       422: {
@@ -2291,6 +3052,41 @@ export interface operations {
       };
     };
   };
+  sync_run_runs__agent_id__sync_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        agent_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['InitiateStreamPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ThreadAgentMessage'][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
   list_threads_threads__get: {
     parameters: {
       query?: {
@@ -2346,6 +3142,39 @@ export interface operations {
         content: {
           'application/json': components['schemas']['Thread'];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  delete_threads_for_agent_threads__delete: {
+    parameters: {
+      query: {
+        agent_id: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': string[] | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Validation Error */
       422: {

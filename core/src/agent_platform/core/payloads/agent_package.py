@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 
+from agent_platform.core.mcp.mcp_server import MCPServer
 from agent_platform.core.utils import SecretString
 
 
@@ -94,6 +95,14 @@ class AgentPackagePayload:
     )
     """The action servers for the agent."""
 
+    mcp_servers: list[MCPServer] = field(
+        metadata={
+            "description": "The Model Context Protocol (MCP) servers this agent uses.",
+        },
+        default_factory=list,
+    )
+    """The Model Context Protocol (MCP) servers this agent uses."""
+
     langsmith: AgentPackagePayloadLangsmith | None = field(
         default=None,
         metadata={
@@ -102,4 +111,4 @@ class AgentPackagePayload:
     )
     """The Langsmith configuration for the agent."""
 
-    # TODO: mcp and platform_configs for v2?
+    # TODO: platform_configs for v2?
