@@ -16,7 +16,6 @@ from agent_platform.core.delta.utils import validate_delta_path
 ########################################
 
 
-@pytest.fixture
 def json_patch_tests_data():
     """
     Data for testing JSON Patch operations obtained from json-patch-tests
@@ -41,6 +40,9 @@ def json_patch_tests_data():
 
     return valid_test_cases
 
+
+# Load test cases at module level
+JSON_PATCH_TEST_CASES = json_patch_tests_data()
 
 ########################################
 # Tests for GenericDelta
@@ -973,40 +975,6 @@ class TestCombineGenericDeltas:
 ########################################
 # Test data for JSON Patch compliance
 ########################################
-
-
-def load_json_patch_test_cases() -> list[dict]:
-    """
-    Load test cases from the official JSON Patch test suite.
-    """
-    urls = [
-        "https://raw.githubusercontent.com/json-patch/json-patch-tests/refs/heads/master/tests.json",
-        "https://raw.githubusercontent.com/json-patch/json-patch-tests/refs/heads/master/spec_tests.json",
-    ]
-
-    import json
-
-    import requests
-
-    test_cases = []
-    for url in urls:
-        response = requests.get(url)
-        response.raise_for_status()
-        test_cases.extend(json.loads(response.text))
-
-    # Filter out test cases that are marked as disabled or have error expectations
-    # We're only interested in valid test cases for now
-    valid_test_cases = [
-        case
-        for case in test_cases
-        if not case.get("disabled", False) and "error" not in case
-    ]
-
-    return valid_test_cases
-
-
-# Load test cases at module level
-JSON_PATCH_TEST_CASES = load_json_patch_test_cases()
 
 
 class TestStandardsTestSuiteCompliance:
