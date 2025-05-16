@@ -5,6 +5,7 @@ from jsonpointer import JsonPointer, JsonPointerException
 from structlog import get_logger
 
 from agent_platform.core.tools.tool_definition import ToolDefinition
+from agent_platform.core.utils.url import safe_urljoin
 
 logger = get_logger(__name__)
 
@@ -114,8 +115,6 @@ def _openapi_spec_to_tool_definitions(
     spec: dict,
     additional_headers: dict | None = None,
 ) -> list[ToolDefinition]:
-    from urllib.parse import urljoin
-
     tool_definitions: list[ToolDefinition] = []
 
     for path, methods in spec.get("paths", {}).items():
@@ -135,7 +134,7 @@ def _openapi_spec_to_tool_definitions(
             resolved_spec = _dereference_refs(spec_with_ref, full_schema=spec)
 
             # Get the action url
-            action_url = urljoin(url, path.lstrip("/"))
+            action_url = safe_urljoin(url, path.lstrip("/"))
 
             # Get the requestBody's schema (JSON schema)
             request_body_schema = (
@@ -184,14 +183,12 @@ async def get_spec_and_build_tool_definitions(
     api_key: str,
     allowed_actions: list[str],
 ) -> list[ToolDefinition]:
-    from urllib.parse import urljoin
-
     from aiohttp import ClientSession
 
     # Get the spec url
     if not url.startswith("http"):
         url = "http://" + url
-    spec_url = urljoin(url, "openapi.json")
+    spec_url = safe_urljoin(url, "openapi.json")
 
     async with ClientSession() as session:
         async with session.get(spec_url) as response:
