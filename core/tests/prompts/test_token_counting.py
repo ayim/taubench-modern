@@ -149,6 +149,10 @@ def test_count_tokens_approx_utility():
     gpt4_count = count_tokens_approx(text, model="gpt-4")
     assert gpt4_count == 4  # Same for gpt-4 in this case
 
+    # Test with invalid model name
+    invalid_model_count = count_tokens_approx(text, model="nonexistent-model")
+    assert invalid_model_count == 4  # Should fall back to gpt-3.5-turbo encoding
+
     # Test fallback to heuristic
     with patch(
         "builtins.__import__",
@@ -268,6 +272,7 @@ def test_tool_use_content_token_counting(tool_use_content):
     [
         ("gpt-3.5-turbo", 7),  # 4 for "Hello, world!" + 3 for "user: "
         ("gpt-4", 7),  # Same count for both models
+        ("nonexistent-model", 7),  # Should fall back to gpt-3.5-turbo
     ],
 )
 def test_count_tokens_approx_with_tiktoken(

@@ -3,6 +3,10 @@
 import json
 from typing import Any, Literal
 
+import structlog
+
+logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
+
 
 def count_tokens_approx(
     text: str,
@@ -20,7 +24,8 @@ def count_tokens_approx(
 
     Args:
         text: The text to count tokens for.
-        model: The model to use for tiktoken encoding. Defaults to "gpt-3.5-turbo".
+        model: The model to use for tiktoken encoding. Defaults to "gpt-3.5-turbo". If
+            the model name is invalid, it will use "gpt-3.5-turbo" as a fallback.
 
     Returns:
         int: Estimated token count
@@ -29,7 +34,11 @@ def count_tokens_approx(
         import tiktoken
 
         # Use tiktoken for more accurate counting
-        encoding = tiktoken.encoding_for_model(model)
+        try:
+            encoding = tiktoken.encoding_for_model(model)
+        except KeyError:
+            logger.warning(f"Invalid model name: {model}")
+            encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
         return len(encoding.encode(text))
 
     except (ImportError, ModuleNotFoundError):
