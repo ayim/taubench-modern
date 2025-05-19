@@ -103,14 +103,22 @@ class BedrockClient(
         parameters: BedrockPlatformParameters,
     ) -> "BedrockRuntimeClient":
         import boto3
+        from botocore.config import Config
 
-        # Remove the kind from the parameters before passing them to boto3
-        without_kind = parameters.model_dump(exclude_none=True)
-        without_kind.pop("kind")
+        # Remove the kind and config_params from the
+        # parameters before passing them to boto3
+        without_kind_and_config_params = parameters.model_dump(exclude_none=True)
+        without_kind_and_config_params.pop("kind")
+        without_kind_and_config_params.pop("config_params")
+
+        # Create a new Config object from the config_params
+        if parameters.config_params:
+            config = Config(**parameters.config_params)
+            without_kind_and_config_params["config"] = config
 
         return boto3.client(
             "bedrock-runtime",
-            **without_kind,
+            **without_kind_and_config_params,
         )
 
     async def generate_response(

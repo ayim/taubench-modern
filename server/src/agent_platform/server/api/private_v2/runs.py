@@ -1,9 +1,19 @@
 import traceback
-from asyncio import FIRST_COMPLETED, create_task, wait
+from asyncio import (
+    FIRST_COMPLETED,
+    CancelledError,
+    create_task,
+    ensure_future,
+    gather,
+    wait,
+    wait_for,
+)
 from datetime import UTC, datetime
+from json import JSONDecodeError
 from typing import Literal
 from uuid import uuid4
 
+import structlog
 from fastapi import (
     APIRouter,
     HTTPException,
@@ -13,7 +23,7 @@ from fastapi import (
     WebSocketException,
     status,
 )
-from structlog import get_logger
+from fastapi.websockets import WebSocketState
 
 from agent_platform.core.context import AgentServerContext
 from agent_platform.core.delta.base import GenericDelta
@@ -40,12 +50,27 @@ from agent_platform.server.storage import (
 )
 
 router = APIRouter()
-logger = get_logger(__name__)
+logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
 
-async def _get_initial_payload(websocket: WebSocket) -> InitiateStreamPayload:
+async def _get_initial_payload(
+    websocket: WebSocket,
+    timeout: float = 10.0,
+) -> InitiateStreamPayload:
     """Receive the initial JSON payload from the client and validate it."""
-    initial_data = await websocket.receive_json()
+    try:
+        initial_data = await wait_for(websocket.receive_json(), timeout)
+    except TimeoutError as e:
+        raise WebSocketException(
+            code=status.WS_1008_POLICY_VIOLATION,
+            reason="Initial payload not received in time",
+        ) from e
+    except JSONDecodeError as e:
+        raise WebSocketException(
+            code=status.WS_1003_UNSUPPORTED_DATA,
+            reason="Invalid initial payload: failed to parse JSON",
+        ) from e
+
     try:
         return InitiateStreamPayload.model_validate(initial_data)
     except (ValueError, TypeError) as e:
@@ -149,7 +174,7 @@ async def get_run_messages(
 
 
 @router.websocket("/{agent_id}/stream")
-async def stream_run(  # noqa: C901, PLR0915
+async def stream_run(  # noqa: C901, PLR0912, PLR0915
     websocket: WebSocket,
     user: AuthedUserWebsocket,
     agent_id: str,
@@ -158,6 +183,30 @@ async def stream_run(  # noqa: C901, PLR0915
     """
     WebSocket endpoint to stream a conversation (run) with a given agent.
     """
+
+    async def _safe_close_websocket(
+        websocket: WebSocket,
+        *,
+        code: int = status.WS_1000_NORMAL_CLOSURE,
+        reason: str | None = None,
+    ) -> None:
+        # If *either* side of the connection is already marked "disconnected"
+        # there's no point sending another close frame.
+        if WebSocketState.DISCONNECTED in {
+            websocket.application_state,
+            websocket.client_state,
+        }:
+            return
+
+        try:
+            await websocket.close(code=code, reason=reason)
+        except RuntimeError:
+            # Another coroutine won the race and closed it first.
+            pass
+        except Exception:
+            # Don't let a late close explode the main handler.
+            pass
+
     agent_arch_manager = AgentArchManager(
         wheels_path="./todo-for-out-of-process/wheels",
         websocket_addr="todo://think-about-out-of-process",
@@ -267,48 +316,96 @@ async def stream_run(  # noqa: C901, PLR0915
 
             # 10. Task to forward CA events to client
             async def _send_ca_events():
-                async for event in runner.get_event_stream():
-                    # If the event signals that the CA is finished, break.
-                    if isinstance(event, StreamingDeltaAgentFinished):
-                        await websocket.send_json(event.model_dump())
-                        break
-                    # Otherwise, forward the event.
-                    await websocket.send_json(event.model_dump())
+                try:
+                    async for event in runner.get_event_stream():
+                        try:
+                            # Forward the event.
+                            await websocket.send_json(event.model_dump())
+                            # If the event signals that the CA is finished, break.
+                            if isinstance(event, StreamingDeltaAgentFinished):
+                                break
+                        except (WebSocketDisconnect, RuntimeError):
+                            # Socket is already gone - swallow the error
+                            pass
+                except CancelledError:
+                    logger.info(
+                        "CA event sending task cancelled, likely client disconnected",
+                    )
 
             # 11. Task to receive client messages and dispatch to the runner
             async def _receive_ws_messages():
-                while True:
-                    message = await websocket.receive_json()
-                    await runner.dispatch_event(message)
+                try:
+                    while True:
+                        message = await websocket.receive_json()
+                        await runner.dispatch_event(message)
+                except CancelledError:
+                    logger.info(
+                        "Client message receiving task cancelled, "
+                        "likely client disconnected",
+                    )
 
-            # 12. Run both tasks concurrently
             send_task = create_task(_send_ca_events())
             recv_task = create_task(_receive_ws_messages())
 
-            done, pending = await wait(
-                [send_task, recv_task, ca_invoke_task],
-                return_when=FIRST_COMPLETED,
-            )
+            # Group agent's core invocation and its event sending
+            agent_processing_task = ensure_future(gather(ca_invoke_task, send_task))
 
-            # 13. Cancel any leftover tasks and wait
-            for task in pending:
-                task.cancel()
-            await wait(pending)
+            # All top-level tasks managed by stream_run
+            all_managed_tasks = {
+                ca_invoke_task,
+                send_task,
+                recv_task,
+            }
 
-            # 14. Stop the runner
-            await runner.stop()
+            exception_to_propagate = None
+            try:
+                # Wait for *either* client message handling (recv_task)
+                # or agent processing (agent_processing_and_sending_task) to complete
+                done_first, pending_after_first = await wait(
+                    {recv_task, agent_processing_task},
+                    return_when=FIRST_COMPLETED,
+                )
 
-            # 15. If everything finished without error, mark run as succeeded
-            #     (Assuming if the code reaches here, we consider it "succeeded".)
-            await _update_run_status(
-                storage,
-                active_run,
-                "completed",
-                "normal_completion",
-            )
+                for task in done_first:
+                    if exc := task.exception():
+                        exception_to_propagate = exc
+                        break  # Found primary error
 
-            # 16. Close the WebSocket
-            await websocket.close()
+                if not exception_to_propagate:
+                    # No error in first-completed tasks. This means normal completion
+                    # e.g., agent_processing_and_sending_task finished successfully
+                    # The tasks in pending_after_first still need explicit cancellation
+                    for pending_task_group in pending_after_first:
+                        # pending_task_group is either recv_task or
+                        # agent_processing_and_sending_task
+                        if pending_task_group is recv_task and not recv_task.done():
+                            recv_task.cancel()
+                        elif pending_task_group is agent_processing_task:
+                            agent_processing_task.cancel()
+
+                    # If we are here, stream_run considers this a normal completion path
+                    await _update_run_status(
+                        storage, active_run, "completed", "normal_completion"
+                    )
+                    await _safe_close_websocket(websocket)
+
+            except Exception as e:
+                exception_to_propagate = e
+
+            finally:
+                # This block ensures cleanup regardless of how the try block was exited.
+                # Cancel any tasks from our main set that aren't done.
+                for task_to_clean in all_managed_tasks:
+                    if not task_to_clean.done():
+                        task_to_clean.cancel()
+
+                # Await all of them to settle (collecting any
+                # CancelledErrors or other exceptions)
+                await gather(*all_managed_tasks, return_exceptions=True)
+                await runner.stop()
+
+            if exception_to_propagate:
+                raise exception_to_propagate
 
     except WebSocketDisconnect:
         logger.info("WebSocket disconnected")
@@ -320,9 +417,20 @@ async def stream_run(  # noqa: C901, PLR0915
             "websocket_disconnected",
         )
 
+    except AgentNotFoundError as e:
+        logger.error("Error getting agent", error=e)
+        await _update_run_status(
+            storage, active_run, "failed", "agent_not_found", error=str(e)
+        )
+        # Re-raise as WebSocketException as per original logic, or handle directly
+        raise WebSocketException(
+            code=status.WS_1008_POLICY_VIOLATION,
+            reason="Agent not found",
+        ) from e
+
     except WebSocketException as e:
         logger.error("WebSocket error", error=e)
-        await websocket.close(code=e.code, reason=e.reason)
+        await _safe_close_websocket(websocket, code=e.code, reason=e.reason)
         # Update the run status to failed
         await _update_run_status(
             storage,
@@ -332,19 +440,13 @@ async def stream_run(  # noqa: C901, PLR0915
             error=str(e),
         )
 
-    except AgentNotFoundError as e:
-        logger.error("Error getting agent", error=e)
-        raise WebSocketException(
-            code=status.WS_1008_POLICY_VIOLATION,
-            reason="Agent not found",
-        ) from e
-
     except Exception as e:
         logger.error(
             f"Unexpected error in websocket stream for agent {agent_id}: {e}",
         )
         logger.error(traceback.format_exc())
-        await websocket.close(
+        await _safe_close_websocket(
+            websocket,
             code=status.WS_1011_INTERNAL_ERROR,
             reason="Unexpected error in websocket stream",
         )

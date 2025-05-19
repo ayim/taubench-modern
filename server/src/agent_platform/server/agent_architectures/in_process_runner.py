@@ -1,10 +1,19 @@
+from asyncio import CancelledError
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 
+import structlog
+
 from agent_platform.core.agent_architectures.architecture_info import ArchitectureInfo
 from agent_platform.core.kernel import Kernel
-from agent_platform.core.streaming.delta import StreamingDelta, StreamingDeltaAgentError
+from agent_platform.core.streaming.delta import (
+    StreamingDelta,
+    StreamingDeltaAgentError,
+    StreamingDeltaAgentFinished,
+)
 from agent_platform.server.agent_architectures.base_runner import BaseAgentRunner
+
+logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
 
 class InProcessAgentRunner(BaseAgentRunner):
@@ -47,6 +56,10 @@ class InProcessAgentRunner(BaseAgentRunner):
             self._kernel = kernel
             if self.entry_func:
                 await self.entry_func(kernel)
+        except CancelledError:
+            logger.info(
+                "Agent architecture invocation cancelled, likely client disconnected",
+            )
         except Exception as e:
             import traceback
 
@@ -54,6 +67,15 @@ class InProcessAgentRunner(BaseAgentRunner):
                 StreamingDeltaAgentError(
                     error_message=str(e),
                     error_stack_trace=traceback.format_exc(),
+                    run_id=kernel.run.run_id,
+                    thread_id=kernel.run.thread_id,
+                    agent_id=kernel.run.agent_id,
+                    timestamp=datetime.now(UTC),
+                ),
+            )
+        finally:
+            await kernel.outgoing_events.dispatch(
+                StreamingDeltaAgentFinished(
                     run_id=kernel.run.run_id,
                     thread_id=kernel.run.thread_id,
                     agent_id=kernel.run.agent_id,

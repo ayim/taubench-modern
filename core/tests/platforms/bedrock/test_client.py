@@ -233,6 +233,18 @@ class TestBedrockClient:
             assert isinstance(client.parsers, BedrockParsers)
             assert isinstance(client.parameters, BedrockPlatformParameters)
 
+    def test_init_with_config_params(
+        self,
+        parameters: BedrockPlatformParameters,
+    ) -> None:
+        with patch("boto3.client") as mock_client:
+            parameters = parameters.model_copy(
+                update={"config_params": {"read_timeout": 60}},
+            )
+            client = BedrockClient(parameters=parameters)
+            assert client.parameters.config_params == {"read_timeout": 60}
+            assert mock_client.call_args[1]["config"].read_timeout == 60
+
     def test_init_clients(self, parameters: BedrockPlatformParameters) -> None:
         with patch("boto3.client") as mock_boto3_client:
             BedrockClient(parameters=parameters)

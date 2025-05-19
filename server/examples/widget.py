@@ -259,9 +259,6 @@ class DebugChatWidget(anywidget.AnyWidget):
     def _on_thread_change(self, change):
         if change["new"]:
             self.refresh_messages()
-            self._ws_connect_task = asyncio.ensure_future(
-                self._start_websocket(change["new"]),
-            )
 
     # ~~~~~ WebSocket logic ~~~~~
     async def _start_websocket(self, thread_id: str | None):
@@ -295,7 +292,7 @@ class DebugChatWidget(anywidget.AnyWidget):
                 pass
         self._ws = None
 
-    async def _ws_receive_loop(self):  # noqa: C901, PLR0912
+    async def _ws_receive_loop(self):  # noqa: C901, PLR0912, PLR0915
         try:
             while True and self._ws:
                 msg = await self._ws.recv()
@@ -365,6 +362,13 @@ class DebugChatWidget(anywidget.AnyWidget):
                         "message",
                         "Unknown error",
                     )
+                elif msg_type == "agent_finished":
+                    self.is_loading = False
+                    self.status_message = "Agent done"
+                    try:
+                        await self._ws.close()
+                    except Exception:
+                        pass
                 else:
                     # Possibly partial text or other event
                     pass
@@ -500,20 +504,16 @@ class DebugChatWidget(anywidget.AnyWidget):
                     print("No thread selected --- not sending user message")
                     return
 
-                # Update the thread with what the user typed
-                self.api.add_message_to_thread(
-                    self.selected_thread_id,
-                    ThreadUserMessage(
-                        content=[ThreadTextContent(text=user_text)],
-                        complete=True,
-                    ).model_dump(),
-                )
-
                 # Send initial handshake
                 init_payload = {
                     "agent_id": self.agent_id,
                     "thread_id": self.selected_thread_id,
-                    "messages": [],
+                    "messages": [
+                        ThreadUserMessage(
+                            content=[ThreadTextContent(text=user_text)],
+                            complete=True,
+                        ).model_dump(),
+                    ],
                 }
                 await self._ws.send(json.dumps(init_payload))
             except ConnectionClosed:
@@ -588,8 +588,5 @@ class DebugChatWidget(anywidget.AnyWidget):
             self.selected_thread_name = new_thread.name
             self.selected_thread_name_out = new_thread.name
             self.refresh_messages()
-            self._ws_connect_task = asyncio.ensure_future(
-                self._start_websocket(new_thread.thread_id),
-            )
         except Exception as e:
             print("Error creating thread:", e)

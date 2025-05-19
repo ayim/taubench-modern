@@ -1,10 +1,7 @@
 from dataclasses import dataclass, field, fields
-from typing import TYPE_CHECKING, Literal
+from typing import Literal
 
 from agent_platform.core.platforms.base import PlatformParameters
-
-if TYPE_CHECKING:
-    from botocore.config import Config
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -32,8 +29,8 @@ class BedrockPlatformParameters(PlatformParameters):
         aws_session_token: Temporary session token for STS credentials.
 
     Advanced Configuration:
-        config: A botocore.config.Config object for advanced settings. Common
-        options include:
+        config_params: Used to instantiate a botocore.config.Config object for
+        advanced settings. Common options include:
             - retries: Dict controlling retry behavior (e.g., {'max_attempts': 3})
             - connect_timeout: Connection timeout in seconds
             - read_timeout: Read timeout in seconds
@@ -66,8 +63,7 @@ class BedrockPlatformParameters(PlatformParameters):
         params = BedrockPlatformParameters(
             region_name='us-east-1',
             retries={'max_attempts': 3},
-            connect_timeout=5,
-            read_timeout=60
+            config_params={'connect_timeout': 5, 'read_timeout': 60}
         )
         ```
     """
@@ -165,52 +161,7 @@ class BedrockPlatformParameters(PlatformParameters):
         },
     )
 
-    _extra_config_params: dict | None = field(default=None, init=False, repr=False)
-    # _config: "Config | None"
-
-    @property
-    def config(self) -> "Config | None":
-        """The botocore Config object for advanced client configuration."""
-        return getattr(self, "_config", None)
-
-    def __post_init__(self) -> None:
-        """Process any extra kwargs as Config parameters after dataclass
-        initialization."""
-        object.__setattr__(self, "_config", None)
-
-        # Get all dataclass fields that are meant for initialization
-        all_fields = {f.name for f in fields(self) if f.init}
-
-        # Get any parameters that aren't part of our declared fields
-        extra_params = {}
-        to_delete = []
-        for k, v in vars(self).items():
-            if k not in all_fields and not k.startswith("_"):
-                extra_params[k] = v
-                to_delete.append(k)
-
-        # Pop kind from extra_params if it exists
-        extra_params.pop("kind", None)
-
-        # Delete the extra attributes after iteration
-        # (Can't do this in the above loop, or you'll get a RuntimeError)
-        for k in to_delete:
-            object.__delattr__(self, k)
-
-        if extra_params:
-            from botocore.config import Config
-
-            # Store for later use in model_copy
-            object.__setattr__(self, "_extra_config_params", extra_params)
-
-            # Create or update the Config object
-            new_config = Config(**extra_params)
-            if getattr(self, "_config", None) is None:
-                object.__setattr__(self, "_config", new_config)
-            else:
-                old_config = getattr(self, "_config", None)
-                if old_config is not None:
-                    object.__setattr__(self, "_config", old_config.merge(new_config))
+    config_params: dict = field(default_factory=dict, repr=False)
 
     def model_dump(
         self,
@@ -239,7 +190,7 @@ class BedrockPlatformParameters(PlatformParameters):
             "aws_access_key_id": self.aws_access_key_id,
             "aws_secret_access_key": self.aws_secret_access_key,
             "aws_session_token": self.aws_session_token,
-            "config": getattr(self, "_config", None),
+            "config_params": self.config_params,
         }
 
         if exclude_none:
@@ -257,37 +208,32 @@ class BedrockPlatformParameters(PlatformParameters):
         Returns:
             A new instance of BedrockParameters with updated values.
         """
-        # Start with current direct parameters
-        current_params = {f.name: getattr(self, f.name) for f in fields(self) if f.init}
-
-        # Add stored extra config params if they exist
-        if self._extra_config_params:
-            current_params.update(self._extra_config_params)
-
-        if not update:
-            current_params = {k: v for k, v in current_params.items() if v is not None}
-            return BedrockPlatformParameters(**current_params)
-
-        # Split updates into direct params and config params
-        direct_param_names = {f.name for f in fields(self) if f.init}
-        update_params = {}
-        config_updates = {}
-
-        for k, v in update.items():
-            if k in direct_param_names:
-                update_params[k] = v
-            else:
-                config_updates[k] = v
-
-        # Merge all parameters
-        final_params = {**current_params, **update_params, **config_updates}
-        final_params = {k: v for k, v in final_params.items() if v is not None}
-        return BedrockPlatformParameters(**final_params)
+        data = self.model_dump(exclude_none=False)
+        data.update(update or {})
+        data.pop("kind", None)
+        return BedrockPlatformParameters(**data)
 
     @classmethod
     def model_validate(cls, obj: dict) -> "BedrockPlatformParameters":
-        # Directly pass the dictionary to the constructor.
-        # The constructor and __post_init__ will handle extra parameters.
+        obj = dict(obj)  # don't mutate caller's dict
+
+        # Remove kind, it's force-set to "bedrock"
+        if "kind" in obj:
+            obj.pop("kind")
+
+        # 1.) Unify the various ways extra params might come in
+        legacy = obj.pop("_extra_config_params", None)
+        config_params = obj.pop("config_params", None) or {}
+        if legacy:
+            config_params |= legacy  # legacy wins if key repeats
+
+        # 2.) Lift any stray Config-style keys that are not dataclass fields
+        top_fields = {f.name for f in fields(cls)}
+        stray = {k: obj.pop(k) for k in list(obj) if k not in top_fields}
+        config_params |= stray
+
+        # 3.) Return the new instance
+        obj["config_params"] = config_params
         return cls(**obj)
 
 
