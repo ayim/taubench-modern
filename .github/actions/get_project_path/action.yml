@@ -5,16 +5,16 @@ description: |
 
 inputs:
   project-name:
-    description: "The name of the project to find the path for"
+    description: 'The name of the project to find the path for'
     required: true
 
 outputs:
   project-path:
-    description: "The path to the project directory relative to the repository root"
+    description: 'The path to the project directory relative to the repository root'
     value: ${{ steps.get_project_path.outputs.path }}
 
 runs:
-  using: "composite"
+  using: 'composite'
   steps:
     - name: Get project path
       id: get_project_path

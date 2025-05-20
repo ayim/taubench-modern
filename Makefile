@@ -385,11 +385,13 @@ lint-fix:  ## Run ruff linting (fix violations)
 typecheck:  ## Run typechecking with pyright
 	uv run pyright
 
-format:  ## Run formatting with ruff
+format:  ## Run formatting with ruff and prettier (node/npm must be in the path for npx to work).
 	uv run ruff format
+	npx prettier@3.5.3 . --write
 
 check-format:  ## Run formatting check with ruff
 	uv run ruff format --check
+	npx prettier@3.5.3 . --check
 
 change:  ## Run the change script
 	uv run scripts/changes.py create-change

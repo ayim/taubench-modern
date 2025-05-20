@@ -4,15 +4,15 @@ on:
   workflow_call:
     inputs:
       ref:
-        description: "The git ref to checkout (defaults to github.sha)"
+        description: 'The git ref to checkout (defaults to github.sha)'
         required: false
         type: string
         default: ${{ github.sha }}
       linux-runner:
-        description: "The linux runner to use"
+        description: 'The linux runner to use'
         required: false
         type: string
-        default: "ubuntu-24.04"
+        default: 'ubuntu-24.04'
 
 jobs:
   check-format:
@@ -22,9 +22,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
-  
+
       - uses: ./.github/actions/prep_environment
-  
+
       - name: Check formatting
         run: make check-format
-        

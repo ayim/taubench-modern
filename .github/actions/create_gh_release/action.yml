@@ -7,49 +7,49 @@ description: |
 
 inputs:
   package_name:
-    description: "The name of the package to release"
+    description: 'The name of the package to release'
     required: true
   release_version:
-    description: "The version of the release."
+    description: 'The version of the release.'
     required: true
   body:
-    description: "Text communicating notable changes in this release"
+    description: 'Text communicating notable changes in this release'
     required: false
   body_path:
-    description: "Path to load text communicating notable changes in this release"
+    description: 'Path to load text communicating notable changes in this release'
     required: false
   preserve_order:
-    description: "Indicator of whether order of files should be preserved when uploading assets"
+    description: 'Indicator of whether order of files should be preserved when uploading assets'
     required: false
   files:
-    description: "Newline-delimited globs of paths to assets to upload for release, defaults to ./dist/*"
+    description: 'Newline-delimited globs of paths to assets to upload for release, defaults to ./dist/*'
     required: false
-    default: "./dist/*"
+    default: './dist/*'
   fail_on_unmatched_files:
-    description: "Indicator of whether to fail if any of the files globs match nothing"
+    description: 'Indicator of whether to fail if any of the files globs match nothing'
     required: false
   repository:
-    description: "Name of a target repository in <owner>/<repo> format. Defaults to GITHUB_REPOSITORY env variable"
+    description: 'Name of a target repository in <owner>/<repo> format. Defaults to GITHUB_REPOSITORY env variable'
     required: false
   target_commitish:
-    description: "Commitish value that determines where the Git tag is created from. Can be any branch or commit SHA."
+    description: 'Commitish value that determines where the Git tag is created from. Can be any branch or commit SHA.'
     required: false
   discussion_category_name:
-    description: "If specified, a discussion of the specified category is created and linked to the release."
+    description: 'If specified, a discussion of the specified category is created and linked to the release.'
     required: false
   generate_release_notes:
-    description: "Whether to automatically generate the name and body for this release, defaults to true"
+    description: 'Whether to automatically generate the name and body for this release, defaults to true'
     required: false
     default: 'true'
   append_body:
-    description: "Append to existing body instead of overwriting it"
+    description: 'Append to existing body instead of overwriting it'
     required: false
   make_latest:
-    description: "Specifies whether this release should be set as the latest release for the repository."
+    description: 'Specifies whether this release should be set as the latest release for the repository.'
     required: false
 
 runs:
-  using: "composite"
+  using: 'composite'
   steps:
     - name: Format version string
       id: format_version

@@ -5,7 +5,7 @@ description: |
 
   IMPORTANT: This action requires actions/checkout to be run first in your workflow.
   Make sure to pass the same ref to actions/checkout that you want to use for this action.
-  
+
   Example usage:
   ```yaml
   - uses: actions/checkout@v4
@@ -13,22 +13,22 @@ description: |
       ref: your-ref-here  # e.g. github.sha, a branch name, or commit hash, 
                           # should be the ref from after a versionbump or other
                           # CI step that creates a commit
-  
+
   - uses: ./.github/actions/prep_environment
   ```
 
 inputs:
   go_version:
-    description: "The version of Go to use, defaults to stable"
+    description: 'The version of Go to use, defaults to stable'
     required: false
-    default: "stable"
+    default: 'stable'
   versionbump_version:
-    description: "The version of versionbump to install, defaults to latest"
+    description: 'The version of versionbump to install, defaults to latest'
     required: false
-    default: "latest"
+    default: 'latest'
 
 runs:
-  using: "composite"
+  using: 'composite'
   steps:
     - name: Set up uv
       uses: astral-sh/setup-uv@v5
@@ -54,5 +54,3 @@ runs:
       with:
         go_version: ${{ inputs.go_version }}
         versionbump_version: ${{ inputs.versionbump_version }}
-
-      

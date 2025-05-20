@@ -1,17 +1,14 @@
-import path from "path";
-import { defineConfig } from "vite";
-import { viteSingleFile } from "vite-plugin-singlefile";
-import anywidget from "@anywidget/vite";
+import path from 'path';
+import { defineConfig } from 'vite';
+import { viteSingleFile } from 'vite-plugin-singlefile';
+import anywidget from '@anywidget/vite';
 
 export default defineConfig({
   mode: 'development',
-  plugins: [
-    anywidget(),
-    viteSingleFile(),
-  ],
+  plugins: [anywidget(), viteSingleFile()],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "src"),
+      '@': path.resolve(__dirname, 'src'),
     },
   },
   server: {
@@ -19,14 +16,14 @@ export default defineConfig({
       origin: '*',
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization'],
-    }
+    },
   },
   build: {
-    outDir: "static",
+    outDir: 'static',
     lib: {
-      entry: ["src/index.tsx"],
-      formats: ["es"],
-      name: "widget",
+      entry: ['src/index.tsx'],
+      formats: ['es'],
+      name: 'widget',
     },
     rollupOptions: {
       output: {
@@ -35,6 +32,6 @@ export default defineConfig({
     },
   },
   define: {
-    "process.env": {},
+    'process.env': {},
   },
 });

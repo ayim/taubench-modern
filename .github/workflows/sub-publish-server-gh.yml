@@ -6,7 +6,7 @@ on:
   workflow_call:
     inputs:
       ref:
-        description: "The git ref to checkout (defaults to github.sha)"
+        description: 'The git ref to checkout (defaults to github.sha)'
         required: false
         type: string
         default: ${{ github.sha }}
@@ -38,7 +38,7 @@ jobs:
       - uses: ./.github/actions/prep_environment
         with:
           ref: ${{ inputs.ref }}
-      
+
       - name: Get version number
         id: get_vers
         uses: ./.github/actions/get_version

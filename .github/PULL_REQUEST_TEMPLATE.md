@@ -1,7 +1,5 @@
 ## What?
 
-
 ## Why?
-
 
 ## Validation

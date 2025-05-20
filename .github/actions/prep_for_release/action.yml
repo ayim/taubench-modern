@@ -14,33 +14,33 @@ description: |
 
 inputs:
   version-bump-type:
-    description: "The type of version bump to perform"
+    description: 'The type of version bump to perform'
     required: true
   project-name:
-    description: "The name of the project/package to bump and build changes for"
+    description: 'The name of the project/package to bump and build changes for'
     required: true
   build-changes:
-    description: "Whether to build the changes"
+    description: 'Whether to build the changes'
     required: false
-    default: "true"
+    default: 'true'
   push-changes:
-    description: "Whether to push the changes"
+    description: 'Whether to push the changes'
     required: false
-    default: "true"
+    default: 'true'
 
 outputs:
   new-version:
-    description: "The new version of the package"
+    description: 'The new version of the package'
     value: ${{ steps.new-version.outputs.new-version }}
   new-commit-sha:
-    description: "The new commit SHA"
+    description: 'The new commit SHA'
     value: ${{ steps.new-commit-sha.outputs.sha }}
   project-path:
-    description: "The path to the project directory"
+    description: 'The path to the project directory'
     value: ${{ steps.get-project-path.outputs.project-path }}
 
 runs:
-  using: "composite"
+  using: 'composite'
   steps:
     - name: Get project path
       id: get-project-path

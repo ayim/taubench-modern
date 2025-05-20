@@ -32,7 +32,6 @@ Example output:
     }
   }
 }
-
 ```
 
 Usage (audio):
@@ -156,7 +155,7 @@ Example output:
           "original_page": 1
         },
         "reducto_block_image_url": null
-      },
+      }
       // ...,
     ],
     "reducto_chunks": {

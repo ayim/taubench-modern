@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       bump-type:
-        description: "The type of bump to perform"
+        description: 'The type of bump to perform'
         required: true
         type: choice
         options:
@@ -15,26 +15,26 @@ on:
           - new-pre-minor
           - new-pre-patch
       windows-runner:
-        description: "The windows runner to use"
+        description: 'The windows runner to use'
         required: false
         type: string
-        default: "windows-2025"
+        default: 'windows-2025'
       linux-runner:
-        description: "The linux runner to use"
+        description: 'The linux runner to use'
         required: false
         type: string
-        default: "ubuntu-24.04"
+        default: 'ubuntu-24.04'
       macos-arm64-runner:
-        description: "The macos arm64 runner to use"
+        description: 'The macos arm64 runner to use'
         required: false
         type: string
-        default: "macos-15"
+        default: 'macos-15'
       macos-x64-runner:
-        description: "The macos x64 runner to use"
+        description: 'The macos x64 runner to use'
         required: false
         type: string
-        default: "macos-13"
-        
+        default: 'macos-13'
+
 jobs:
   prerelease:
     if: github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/heads/release')
@@ -65,7 +65,6 @@ jobs:
           build-changes: true
           push-changes: true
 
-
   build-prerelease:
     needs: prerelease
     uses: ./.github/workflows/sub-build-server.yml
@@ -88,7 +87,3 @@ jobs:
       WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI }}
       WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI }}
       WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI }}
-
-
-
-        

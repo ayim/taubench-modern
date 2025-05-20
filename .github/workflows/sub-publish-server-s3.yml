@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       ref:
-        description: "The git ref to checkout (defaults to github.sha)"
+        description: 'The git ref to checkout (defaults to github.sha)'
         required: false
         type: string
         default: ${{ github.sha }}
@@ -14,16 +14,16 @@ on:
         required: true
     outputs:
       windows_x64_binary_url:
-        description: "URL to the Windows x64 binary"
+        description: 'URL to the Windows x64 binary'
         value: ${{ jobs.publish-to-s3.outputs.windows_x64_binary_url }}
       macos_x64_binary_url:
-        description: "URL to the macOS x64 binary"
+        description: 'URL to the macOS x64 binary'
         value: ${{ jobs.publish-to-s3.outputs.macos_x64_binary_url }}
       macos_arm64_binary_url:
-        description: "URL to the macOS ARM64 binary"
+        description: 'URL to the macOS ARM64 binary'
         value: ${{ jobs.publish-to-s3.outputs.macos_arm64_binary_url }}
       linux_x64_binary_url:
-        description: "URL to the Linux x64 binary"
+        description: 'URL to the Linux x64 binary'
         value: ${{ jobs.publish-to-s3.outputs.linux_x64_binary_url }}
 
 jobs:

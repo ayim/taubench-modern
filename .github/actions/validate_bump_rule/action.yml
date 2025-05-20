@@ -4,11 +4,11 @@ description: |
 
 inputs:
   bump-type:
-    description: "The type of bump to perform"
+    description: 'The type of bump to perform'
     required: true
-  
+
 runs:
-  using: "composite"
+  using: 'composite'
   steps:
     - name: Validate bump rule
       shell: bash
@@ -23,7 +23,7 @@ runs:
       run: |
         # Get the current branch name
         BRANCH_NAME=$(git branch --show-current)
-        
+
         # Check if we're on main, release, or release-* branch
         if [[ "$BRANCH_NAME" == "main" || "$BRANCH_NAME" == "release" || "$BRANCH_NAME" =~ ^release- ]]; then
           if [[ "${{ inputs.bump-type }}" != "release" ]]; then
@@ -39,6 +39,5 @@ runs:
             exit 1
           fi
         fi
-        
-        echo "Bump type '${{ inputs.bump-type }}' is valid for branch '$BRANCH_NAME'"
 
+        echo "Bump type '${{ inputs.bump-type }}' is valid for branch '$BRANCH_NAME'"

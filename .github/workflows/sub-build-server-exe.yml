@@ -4,63 +4,63 @@ on:
   workflow_call:
     inputs:
       ref:
-        description: "The git ref to checkout (defaults to github.sha)"
+        description: 'The git ref to checkout (defaults to github.sha)'
         required: false
         type: string
         default: ${{ github.sha }}
       windows-runner:
-        description: "The windows runner to use"
+        description: 'The windows runner to use'
         required: false
         type: string
-        default: "windows-2025" # prefer windows-large-runner from the organization
+        default: 'windows-2025' # prefer windows-large-runner from the organization
       linux-runner:
-        description: "The linux runner to use"
+        description: 'The linux runner to use'
         required: false
         type: string
-        default: "ubuntu-24.04"
+        default: 'ubuntu-24.04'
       macos-arm64-runner:
-        description: "The macos arm64 runner to use"  
+        description: 'The macos arm64 runner to use'
         required: false
         type: string
-        default: "macos-15"
+        default: 'macos-15'
       macos-x64-runner:
-        description: "The macos x64 runner to use"
+        description: 'The macos x64 runner to use'
         required: false
         type: string
-        default: "macos-13"
+        default: 'macos-13'
     secrets:
       MACOS_SIGNING_CERT_SEMA4AI:
-        description: "Signing certificate for macOS"
+        description: 'Signing certificate for macOS'
         required: true
       MACOS_SIGNING_CERT_PASSWORD_SEMA4AI:
-        description: "Signing certificate password for macOS"
+        description: 'Signing certificate password for macOS'
         required: true
       MACOS_SIGNING_CERT_NAME_SEMA4AI:
-        description: "Signing certificate name for macOS"
+        description: 'Signing certificate name for macOS'
         required: true
       MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI:
-        description: "Apple ID for notarization"
+        description: 'Apple ID for notarization'
         required: true
       MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI:
-        description: "Apple ID password for notarization"
+        description: 'Apple ID password for notarization'
         required: true
       MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI:
-        description: "Apple Team ID for notarization"
+        description: 'Apple Team ID for notarization'
         required: true
       WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI:
-        description: "Windows sign Azure Key Vault URL"
+        description: 'Windows sign Azure Key Vault URL'
         required: true
       WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI:
-        description: "Windows sign Azure Key Vault client ID"
+        description: 'Windows sign Azure Key Vault client ID'
         required: true
       WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI:
-        description: "Windows sign Azure Key Vault tenant ID"
+        description: 'Windows sign Azure Key Vault tenant ID'
         required: true
       WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI:
-        description: "Windows sign Azure Key Vault client secret"
+        description: 'Windows sign Azure Key Vault client secret'
         required: true
       WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI:
-        description: "Windows sign Azure Key Vault certificate name"
+        description: 'Windows sign Azure Key Vault certificate name'
         required: true
 
 jobs:
@@ -117,6 +117,3 @@ jobs:
             dist
             !dist/*.whl
             !dist/*.tar.gz
-      
-          
-          

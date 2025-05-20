@@ -154,7 +154,7 @@ data: {"op": "add", "path": "/metadata/sema4ai_metadata", "value": {"platform_na
 
 Tools are a special way to have the models behind this endpoint use things operated by _the client_. Tools in this API are _not_ executed server-side. (Unlike building an agent where the agent runs, uses tools, and eventually finishes.) Here you, the caller, are responsible for executing tools!
 
-In the above example request, you can see that a tool is name/description/input_schema (loosely). When you execute a tool, you probably want to put the _tool results_ back in your prompt. You can do this by using
+In the above example request, you can see that a tool is name/description/input*schema (loosely). When you execute a tool, you probably want to put the \_tool results* back in your prompt. You can do this by using
 two kinds of content in your prompt: a `tool_use` content and a `tool_result` content.
 
 _Tool Use_: This content represents the model _choosing to call a tool you defined_. That's all! It'll have the input that you should parse and pass to your tool, and you're replaying it back into the prompt to preserve the history of what calls were made.

@@ -1,81 +1,87 @@
 {
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Debug Agent Server",
-            "type": "debugpy",
-            "request": "launch",
-            "module": "agent_platform.server",
-            "justMyCode": false,
-            "console": "integratedTerminal",
-            "env": {
-                "SEMA4AI_AGENT_SERVER_CORS_MODE": "all",
-                "SEMA4AI_AGENT_SERVER_LOG_LEVEL": "DEBUG",
-            }
-        },
-        {
-            "name": "Debug Agent Server with Args",
-            "type": "debugpy",
-            "request": "launch",
-            "module": "agent_platform.server",
-            "justMyCode": false,
-            "console": "integratedTerminal",
-            "args": "${input:serverArgs}",
-            "env": {
-                "SEMA4AI_AGENT_SERVER_CORS_MODE": "all",
-                "SEMA4AI_AGENT_SERVER_LOG_LEVEL": "DEBUG",
-            }
-        },
-        {
-            "name": "Debug Agent Server with env File",
-            "type": "debugpy",
-            "request": "launch",
-            "module": "agent_platform.server",
-            "justMyCode": false,
-            "console": "integratedTerminal",
-            "envFile": "${workspaceFolder}/.env",
-            "env": {
-                "SEMA4AI_AGENT_SERVER_CORS_MODE": "all",
-                "SEMA4AI_AGENT_SERVER_LOG_LEVEL": "DEBUG",
-            }
-        },
-        {
-            "name": "Debug pytest run",
-            "type": "debugpy",
-            "request": "launch",
-            "module": "pytest",
-            "justMyCode": false,
-            "console": "integratedTerminal",
-            "args": "${input:pytestArgs}"
-        },
-        {
-            "name": "Debug Changes Script",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/scripts/changes.py",
-            "justMyCode": false,
-            "console": "integratedTerminal",
-            "args": "${input:changesArgs}"
-        }
-    ],
-    "inputs": [
-        {
-            "type": "promptString",
-            "id": "serverArgs",
-            "description": "Provide the arguments to pass to the agent server",
-            "default": ""
-        },
-        {
-            "type": "promptString",
-            "id": "pytestArgs",
-            "description": "Provide the arguments to pass to pytest",
-            "default": ""
-        },
-        {
-            "type": "promptString",
-            "id": "changesArgs",
-            "description": "Provide the arguments to pass to the changes script",
-            "default": ""
-        }
-    ]
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Agent Server",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "agent_platform.server",
+      "justMyCode": false,
+      "console": "integratedTerminal",
+      "env": {
+        "SEMA4AI_AGENT_SERVER_CORS_MODE": "all",
+        "SEMA4AI_AGENT_SERVER_LOG_LEVEL": "DEBUG"
+      }
+    },
+    {
+      "name": "Debug Agent Server with Args",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "agent_platform.server",
+      "justMyCode": false,
+      "console": "integratedTerminal",
+      "args": "${input:serverArgs}",
+      "env": {
+        "SEMA4AI_AGENT_SERVER_CORS_MODE": "all",
+        "SEMA4AI_AGENT_SERVER_LOG_LEVEL": "DEBUG"
+      }
+    },
+    {
+      "name": "Debug Agent Server with env File",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "agent_platform.server",
+      "justMyCode": false,
+      "console": "integratedTerminal",
+      "envFile": "${workspaceFolder}/.env",
+      "env": {
+        "SEMA4AI_AGENT_SERVER_CORS_MODE": "all",
+        "SEMA4AI_AGENT_SERVER_LOG_LEVEL": "DEBUG"
+      }
+    },
+    {
+      "name": "Debug pytest run",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "justMyCode": false,
+      "console": "integratedTerminal",
+      "args": "${input:pytestArgs}"
+    },
+    {
+      "name": "Debug Changes Script",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/changes.py",
+      "justMyCode": false,
+      "console": "integratedTerminal",
+      "args": "${input:changesArgs}"
+    },
+    {
+      "type": "pydevd",
+      "name": "PyDev Test Template",
+      "request": "test-template",
+      "args": ["--capture=no"]
+    }
+  ],
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "serverArgs",
+      "description": "Provide the arguments to pass to the agent server",
+      "default": ""
+    },
+    {
+      "type": "promptString",
+      "id": "pytestArgs",
+      "description": "Provide the arguments to pass to pytest",
+      "default": ""
+    },
+    {
+      "type": "promptString",
+      "id": "changesArgs",
+      "description": "Provide the arguments to pass to the changes script",
+      "default": ""
+    }
+  ]
 }

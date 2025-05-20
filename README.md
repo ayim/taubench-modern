@@ -50,4 +50,12 @@ Blissfully simple.
 
 (To run notebook, you need a terminal in `./server/examples/debug_widget` and to have `pnpm` installed; then `pnpm i` and `pnpm run dev` in that terminal to build the widget UX.)
 
+## Dependencies
+
+The following dependencies need to be installed manually:
+
+- `uv` (which is used to manage the Python environment), see: https://docs.astral.sh/uv/getting-started/installation/
+- `node / npm` (for `prettier` to work with `npx`)
+- `make` (note: on `Windows` you can install it using `Chocolatey` with `choco install make`)
+
 **Note/TODO:** we have some dep that doesn't like python > 3.12 (at least on OSX).

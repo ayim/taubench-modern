@@ -4,15 +4,15 @@ on:
   workflow_call:
     inputs:
       dev_branch_name:
-        description: "The name of the development branch."
+        description: 'The name of the development branch.'
         required: false
         type: string
-        default: "development"
+        default: 'development'
       main_branch_name:
-        description: "The name of the main branch."
+        description: 'The name of the main branch.'
         required: false
         type: string
-        default: "main"
+        default: 'main'
     secrets:
       GIT_TOKEN:
         # Must be a PAT with repo and workflow scopes

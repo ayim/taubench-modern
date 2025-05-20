@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 import ChatIcon from '@mui/icons-material/Chat';
 import DeleteIcon from '@mui/icons-material/Delete';
 
@@ -41,15 +41,13 @@ export const ThreadsPanel: React.FC<ThreadsPanelProps> = ({
             key={thread.thread_id}
             className={`
               px-3 py-2.5 cursor-pointer hover:bg-blue-50 
-              ${selectedThreadId === thread.thread_id ? "bg-blue-100" : ""}
+              ${selectedThreadId === thread.thread_id ? 'bg-blue-100' : ''}
               flex justify-between items-center
             `}
             onClick={() => onSelectThread(thread.thread_id)}
           >
-            <div 
-              className="text-sm font-medium text-gray-800 truncate flex-grow"
-            >
-              {thread.name || "Unnamed Thread"}
+            <div className="text-sm font-medium text-gray-800 truncate flex-grow">
+              {thread.name || 'Unnamed Thread'}
             </div>
             <button
               onClick={(e) => {
