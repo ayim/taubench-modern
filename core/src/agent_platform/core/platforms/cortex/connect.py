@@ -1,21 +1,23 @@
-# TODO: this is a copy of https://github.com/Sema4AI/cookbook/blob/feature/snowflake-actions/actions/snowflake-actions/utils.py
-# Someday we should use this as a shared dependency. (Not today, no time.)
-
 import json
 import threading
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import ClassVar, Literal
+from typing import Literal
+
+import structlog
 
 from agent_platform.core.configurations import Configuration
 from agent_platform.core.configurations.base import FieldMetadata
-from agent_platform.server.constants import SystemPaths
+
+logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
 
 @dataclass(frozen=True)
 class SPCSConnnectionConfig(Configuration):
     """Configuration for a Snowflake connection in SPCS."""
 
+    # We can never have the SEMA4AI_AGENT_SERVER_ variants... because it's defined
+    # by the container. Not going to remove today
     host: str = field(
         default="https://snowflake.com",
         metadata=FieldMetadata(
@@ -28,19 +30,6 @@ class SPCSConnnectionConfig(Configuration):
         metadata=FieldMetadata(
             description="The Snowflake account to use.",
             env_vars=["SEMA4AI_AGENT_SERVER_SNOWFLAKE_ACCOUNT", "SNOWFLAKE_ACCOUNT"],
-        ),
-    )
-    token: str | None = field(
-        default=None,
-        metadata=FieldMetadata(
-            description="The SPCS token to use. If not provided, the token will be "
-            "read from the token_file_path.",
-        ),
-    )
-    token_file_path: Path = field(
-        default=Path("/snowflake/session/token"),
-        metadata=FieldMetadata(
-            description="The path to the SPCS token file.",
         ),
     )
     role: str | None = field(
@@ -87,58 +76,6 @@ class SPCSConnnectionConfig(Configuration):
     protocol: Literal["https"] = field(default="https", init=False)
     client_session_keep_alive: bool = field(default=True, init=False)
 
-    def __post_init__(self) -> None:
-        if self.token is None and self.token_file_path.exists():
-            object.__setattr__(
-                self,
-                "token",
-                self.token_file_path.read_text().strip(),
-            )
-
-
-@dataclass(frozen=True)
-class SnowflakeAuthConfig(Configuration):
-    """Configuration for Snowflake authentication.
-
-    Used to set the server to expect a specific authentication method and
-    where to load it from if it's not provided directly.
-    """
-
-    depends_on: ClassVar[list[type[Configuration]]] = [
-        SystemPaths,
-        SPCSConnnectionConfig,
-    ]
-
-    mode: Literal["SPCS", "LOCAL", "CREDENTIALS"] = field(
-        default="CREDENTIALS",
-        metadata=FieldMetadata(
-            description="The mode to use for authentication.\n"
-            "- SPCS: Expect SPCS configuration to be set or related environment "
-            "variables.\n"
-            "- LOCAL: Expect a local authentication file at the provided path.\n"
-            "- CREDENTIALS: The default fallback mode, this allows for username and "
-            "password to be provided directly.",
-            env_vars=["SEMA4AI_AGENT_SERVER_SNOWFLAKE_AUTH_MODE"],
-        ),
-    )
-    local_auth_file_path: Path = field(
-        # This is NOT BASED IN OUR DATA DIR. Important!
-        # We DO NOT CONTOL the default location of this file, do not
-        # change without talking to Studio team.
-        default=Path.home() / ".sema4ai" / "sf-auth.json",
-        metadata=FieldMetadata(
-            description="The path to the local authentication file.",
-        ),
-    )
-
-    def __post_init__(self) -> None:
-        # Try to guess the mode
-        if self.mode == "CREDENTIALS":
-            if SPCSConnnectionConfig.token is not None:
-                object.__setattr__(self, "mode", "SPCS")
-            elif self.local_auth_file_path.exists():
-                object.__setattr__(self, "mode", "LOCAL")
-
 
 @dataclass
 class LinkingDetails:
@@ -149,11 +86,25 @@ class LinkingDetails:
     private_key_path: str
     private_key_passphrase: str | None = None
 
+    def model_dump(self) -> dict:
+        return {
+            "account": self.account,
+            "user": self.user,
+            "role": self.role,
+            "application_url": self.application_url,
+        }
+
 
 @dataclass
 class AuthDetails:
     authenticator: Literal["ID_TOKEN", "OAUTH", "SNOWFLAKE_JWT"] = "SNOWFLAKE_JWT"
     token: str | None = None
+
+    def model_dump(self) -> dict:
+        return {
+            "authenticator": self.authenticator,
+            "token": self.token,
+        }
 
 
 @dataclass
@@ -169,10 +120,12 @@ class SnowflakeAuth:
             or data["linkingDetails"] is None
             or not isinstance(data["linkingDetails"], dict)
         ):
+            logger.error(f"Invalid linkingDetails: {json.dumps(data, indent=2)}")
             raise ValueError("linkingDetails is required to be present and a dict")
 
         authenticator = data["linkingDetails"].get("authenticator", "SNOWFLAKE_JWT")
         if authenticator not in ["ID_TOKEN", "OAUTH", "SNOWFLAKE_JWT"]:
+            logger.error(f"Invalid authenticator: {authenticator}")
             raise ValueError(f"Invalid authenticator: {authenticator}")
 
         # Remove the authenticator from the linkingDetails dict
@@ -192,6 +145,12 @@ class SnowflakeAuth:
             ),
         )
 
+        ld_as_dict = linking_details.model_dump()
+        if ld_as_dict.get("private_key_passphrase"):
+            ld_as_dict["private_key_passphrase"] = "REDACTED"
+        ld_as_json = json.dumps(ld_as_dict, indent=2)
+        logger.info(f"Parsed SnowflakeAuth LinkingDetails: {ld_as_json}")
+
         auth_details = AuthDetails(
             authenticator=authenticator,
             token=(
@@ -200,6 +159,17 @@ class SnowflakeAuth:
                 else None
             ),
         )
+
+        ad_as_dict = auth_details.model_dump()
+        if (
+            "token" in ad_as_dict
+            # Careful, still want to know in log if it's empty or none
+            and ad_as_dict["token"] is not None
+            and ad_as_dict["token"] != ""
+        ):
+            ad_as_dict["token"] = "REDACTED"
+        ad_as_json = json.dumps(ad_as_dict, indent=2)
+        logger.info(f"Parsed SnowflakeAuth AuthDetails: {ad_as_json}")
 
         return cls(
             version=data["version"] if "version" in data else "1.0.0",
@@ -222,7 +192,9 @@ def safe_get_or_create_session(session_builder):
     Takes a Snowpark SessionBuilder, returns the session inside
     our own lock so that only one thread at a time can call builder.getOrCreate().
     """
+    logger.info("Getting or creating Snowpark session, entering lock")
     with _snowpark_create_lock:
+        logger.info("Creating Snowpark session")
         return session_builder.getOrCreate()
 
 
@@ -276,7 +248,9 @@ def get_connection_details(  # noqa: PLR0913
     """
     has_user_password = username is not None and password is not None
     has_account = account is not None
+    logger.info("Checking for user/password auth")
     if has_user_password and has_account:
+        logger.info("User/password auth found")
         return {
             "account": account,
             "user": username,
@@ -284,9 +258,16 @@ def get_connection_details(  # noqa: PLR0913
             "role": role,
         }
 
+    logger.info("Checking for SPCS environment")
     # Check for SPCS environment first
-    if SnowflakeAuthConfig.mode == "SPCS":
+    token_file_path = Path("/snowflake/session/token")
+    if token_file_path.exists():
+        logger.info("We're running in SPCS")
         if not SPCSConnnectionConfig.host or not SPCSConnnectionConfig.account:
+            logger.error(
+                "Required environment variables "
+                "SNOWFLAKE_HOST and SNOWFLAKE_ACCOUNT must be set",
+            )
             raise SnowflakeAuthenticationError(
                 "Required environment variables SNOWFLAKE_HOST and "
                 "SNOWFLAKE_ACCOUNT must be set",
@@ -296,7 +277,7 @@ def get_connection_details(  # noqa: PLR0913
             "host": SPCSConnnectionConfig.host,
             "account": SPCSConnnectionConfig.account,
             "authenticator": "OAUTH",
-            "token": SPCSConnnectionConfig.token,
+            "token": token_file_path.read_text(),
             "role": role or SPCSConnnectionConfig.role,
             "warehouse": warehouse or SPCSConnnectionConfig.warehouse,
             "database": database or SPCSConnnectionConfig.database,
@@ -307,55 +288,54 @@ def get_connection_details(  # noqa: PLR0913
         }
 
     # Fall back to local config-based authentication
-    if SnowflakeAuthConfig.mode == "LOCAL":
-        try:
-            auth_data = json.loads(SnowflakeAuthConfig.local_auth_file_path.read_text())
-            sf_auth = SnowflakeAuth.from_dict(auth_data)
-        except Exception as e:
-            raise SnowflakeAuthenticationError(
-                f"Failed to read authentication config: {e!s}",
-            ) from e
-
-        config = {
-            "account": account or sf_auth.linking_details.account,
-            "user": username or sf_auth.linking_details.user,
-            "role": role or sf_auth.linking_details.role,
-            "authenticator": sf_auth.auth_details.authenticator,
-            "warehouse": warehouse,
-            "database": database,
-            "schema": schema,
-            "client_session_keep_alive": True,
-        }
-
-        if sf_auth.auth_details.authenticator == "SNOWFLAKE_JWT":
-            config["private_key_file"] = sf_auth.linking_details.private_key_path
-            if (
-                sf_auth.linking_details.private_key_passphrase is not None
-                and sf_auth.linking_details.private_key_passphrase != ""
-            ):
-                config["private_key_file_pwd"] = (
-                    sf_auth.linking_details.private_key_passphrase
-                )
-        else:
-            raise SnowflakeAuthenticationError(
-                f"Unsupported authenticator: {sf_auth.auth_details.authenticator}",
-            )
-
-        return config
-
-    # Fall back to username/password auth (provided directly)
-    if not has_user_password or not has_account:
-        raise SnowflakeAuthenticationError(
-            "Not linked to SPCS, and no local account/username/password provided",
+    try:
+        logger.info("Reading local auth file")
+        auth_data = json.loads(
+            # DO NOT TOUCH THIS PATH. It's not configurable, it's a contract
+            # between us, Studio, space-client, ACE, etc. And it's baked into
+            # each of those as Path.home() / ".sema4ai" / "sf-auth.json". If it
+            # ever _were_ to change, it'd be a big discussion.
+            (Path.home() / ".sema4ai" / "sf-auth.json").read_text()
         )
+        logger.info("Parsing local auth file")
+        sf_auth = SnowflakeAuth.from_dict(auth_data)
+    except Exception as e:
+        logger.error(
+            f"Failed to read authentication config: {e!s}",
+        )
+        raise SnowflakeAuthenticationError(
+            f"Failed to read authentication config: {e!s}",
+        ) from e
 
-    return {
-        "account": account,
-        "user": username,
-        "password": password,
-        "role": role,
+    config = {
+        "account": account or sf_auth.linking_details.account,
+        "user": username or sf_auth.linking_details.user,
+        "role": role or sf_auth.linking_details.role,
+        "authenticator": sf_auth.auth_details.authenticator,
         "warehouse": warehouse,
         "database": database,
         "schema": schema,
         "client_session_keep_alive": True,
     }
+
+    if sf_auth.auth_details.authenticator == "SNOWFLAKE_JWT":
+        logger.info("SNOWFLAKE_JWT mode set")
+        config["private_key_file"] = sf_auth.linking_details.private_key_path
+        if (
+            sf_auth.linking_details.private_key_passphrase is not None
+            and sf_auth.linking_details.private_key_passphrase != ""
+        ):
+            logger.info("Setting private key file passphrase")
+            config["private_key_file_pwd"] = (
+                sf_auth.linking_details.private_key_passphrase
+            )
+    else:
+        logger.error(
+            f"Unsupported authenticator: {sf_auth.auth_details.authenticator}",
+        )
+        raise SnowflakeAuthenticationError(
+            f"Unsupported authenticator: {sf_auth.auth_details.authenticator}",
+        )
+
+    logger.info("Successfully built connection config")
+    return config
