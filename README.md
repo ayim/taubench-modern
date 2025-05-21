@@ -39,7 +39,7 @@ Good to know these for more advanced config or fixing issues.
 Initial setup with `uv`:
 
 1. You need `uv` installed
-2. `uv venv --python=python3.12` to create a Python 3.12 venv in the root directory
+2. `uv venv` to create a Python venv in the root directory
 3. `source .venv/bin/activate` to activate the venv
 4. `uv sync --all-extras --all-groups --all-packages` to install the whole monorepo
 5. `uv run -m agent_platform.server` to run the server
@@ -57,5 +57,4 @@ The following dependencies need to be installed manually:
 - `uv` (which is used to manage the Python environment), see: https://docs.astral.sh/uv/getting-started/installation/
 - `node / npm` (for `prettier` to work with `npx`)
 - `make` (note: on `Windows` you can install it using `Chocolatey` with `choco install make`)
-
-**Note/TODO:** we have some dep that doesn't like python > 3.12 (at least on OSX).
+- `go` (used to build the `go-wrapper`, version `1.23.6` or newer required)

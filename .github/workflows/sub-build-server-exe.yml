@@ -88,19 +88,16 @@ jobs:
 
       - uses: ./.github/actions/prep_environment
 
-      - name: Build
+      - name: Build and sign executable (All OSes)
         env:
-          CI: true
-          ONEFILE: true
-          EXE_NAME: agent-server
-          DIST_PATH: dist
-          APPLE_ID: ${{ secrets.MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI }}
-          APPLE_APP_PASS: ${{ secrets.MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI }}
-          AC_TEAM_ID: ${{ secrets.MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI }}
-          CODESIGN_ID: ${{ secrets.MACOS_SIGNING_CERT_NAME_SEMA4AI }}
-          CERT_B64: ${{ secrets.MACOS_SIGNING_CERT_SEMA4AI }}
-          KEYCHAIN_PASSWORD: ${{ github.run_id }}${{ github.run_number }}
-          P12_PASSWORD: ${{ secrets.MACOS_SIGNING_CERT_PASSWORD_SEMA4AI }}
+          MACOS_SIGNING_CERT: ${{ secrets.MACOS_SIGNING_CERT_SEMA4AI }}
+          MACOS_SIGNING_CERT_PASSWORD: ${{ secrets.MACOS_SIGNING_CERT_PASSWORD_SEMA4AI }}
+          MACOS_SIGNING_CERT_NAME: ${{ secrets.MACOS_SIGNING_CERT_NAME_SEMA4AI }}
+
+          APPLEID: ${{ secrets.MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI }}
+          APPLETEAMID: ${{ secrets.MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI }}
+          APPLEIDPASS: ${{ secrets.MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI }}
+
           VAULT_URL: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI }}
           CLIENT_ID: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI }}
           TENANT_ID: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI }}

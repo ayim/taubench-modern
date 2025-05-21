@@ -14,7 +14,6 @@ IS_MACOS   := $(shell test "$$(uname -s)" = "Darwin" && echo true || echo false)
 # --------------------------------------------------------------------
 DEBUG     ?= false
 CI        ?= false
-ONEFILE   ?= true
 EXE_NAME  ?= agent-server
 DIST_PATH ?= dist
 
@@ -31,55 +30,15 @@ endif
 # Create exe path based on provided vars
 EXE_PATH := $(DIST_PATH)/$(EXE_NAME)
 
-
-# Notarization retry settings
-MAX_RETRIES      ?= 5
-RETRY_DELAY      ?= 10
-
-
-# --------------------------------------------------------------------
-# OSX Signing/Notarization
-# --------------------------------------------------------------------
-APPLE_ID         ?= 
-APPLE_APP_PASS   ?= 
-AC_TEAM_ID       ?= 
-CODESIGN_ID      ?= -
-
-
-# Certificate variables
-CERT_B64          ?= 
-KEYCHAIN_PASSWORD ?= 
-P12_PASSWORD      ?= 
-
-# --------------------------------------------------------------------
-# Windows Signing
-# --------------------------------------------------------------------
-VAULT_URL          ?= 
-CLIENT_ID          ?= 
-TENANT_ID          ?= 
-CLIENT_SECRET      ?= 
-CERTIFICATE_NAME   ?= 
-
 # --------------------------------------------------------------------
 # Tools/paths
 # --------------------------------------------------------------------
-PYINSTALLER_SPEC ?= server/agent-server.spec
-ENTITLEMENTS_FILE ?= server/entitlements.mac.plist
 # CI environment variables, should be set by GitHub Actions
 ifeq ($(IS_WINDOWS),true)
 RUNNER_TEMP      ?= $(shell echo %TEMP%)
 else
 RUNNER_TEMP      ?= /tmp
 endif
-# Detect the keychain path if we're in CI
-ifeq ($(CI),true)
-KEYCHAIN := $(RUNNER_TEMP)/build.keychain-db
-else
-KEYCHAIN := $(HOME)/Library/Keychains/build.keychain-db
-endif
-# Notarization variables
-NOTARIZE_ZIP_PATH := $(RUNNER_TEMP)/$(EXE_NAME).zip
-
 
 
 # --------------------------------------------------------------------
@@ -118,170 +77,11 @@ build-wheels: sync ## Build Python wheels into dist/ via uv
 	uv build --out-dir $(DIST_PATH) --package agent_platform_server
 
 build-exe: sync  ## Build a PyInstaller executable
-	@echo "Building PyInstaller executable..."
+	@echo "Building PyInstaller/Go wrapper executable..."
+	uv run python scripts/build_exe.py build-executable --go-wrapper --ci
 
-# -------- assemble flag strings ---------------------------------
-	$(eval PYI_FLAGS :=)
-	$(eval SPEC_FLAGS :=)
-
-ifneq ($(DEBUG),false)
-	$(eval PYI_FLAGS += --log-level=DEBUG)
-	$(eval SPEC_FLAGS += --debug)
-endif
-ifneq ($(CI),false)
-	$(eval PYI_FLAGS += -y)
-endif
-ifneq ($(ONEFILE),false)
-	$(eval SPEC_FLAGS += --onefile)
-endif
-ifeq ($(IS_MACOS),true)
-	$(eval SPEC_FLAGS += --codesign-identity "$(CODESIGN_ID)" --osx-entitlements-file $(ENTITLEMENTS_FILE))
-endif
-	$(eval SPEC_FLAGS += --name=$(EXE_NAME))
-
-	LD_LIBRARY_PATH=.venv/lib \
-		uv run pyinstaller $(PYI_FLAGS) \
-		--distpath=$(DIST_PATH) $(PYINSTALLER_SPEC) -- $(SPEC_FLAGS)
-
-ifeq ($(IS_MACOS),true)
-build: clean build-wheels setup-keychain build-exe codesign notarize ## Build, sign and notarize on macOS
+build: clean build-wheels build-exe
 	@echo "Build complete!"
-else ifeq ($(IS_WINDOWS),true)
-build: clean build-wheels build-exe codesign ## Build and sign on Windows platforms
-	@echo "Build complete!"
-else
-build: clean build-wheels build-exe ## Build on non-Mac platforms
-	@echo "Build complete!"
-endif
-
-# --------------------------------------------------------------------
-# OSX Signing/Notarization
-# --------------------------------------------------------------------
-ifeq ($(IS_MACOS),true)
-setup-keychain:  ## Setup macOS keychain for code signing
-# Check required environment variables
-ifndef CERT_B64
-	$(error CERT_B64 environment variable is not set)
-endif
-ifndef KEYCHAIN_PASSWORD
-	$(error KEYCHAIN_PASSWORD environment variable is not set)
-endif
-ifndef P12_PASSWORD
-	$(error P12_PASSWORD environment variable is not set)
-endif
-	@echo "Setting up macOS keychain for code signing..."
-	@echo "$(CERT_B64)" | base64 --decode > $(RUNNER_TEMP)/cert.p12
-	
-	@security create-keychain -p "$(KEYCHAIN_PASSWORD)" "$(KEYCHAIN)"
-	@security set-keychain-settings -lut 21600 "$(KEYCHAIN)"
-	@security unlock-keychain -p "$(KEYCHAIN_PASSWORD)" "$(KEYCHAIN)"
-	
-# Import the p12 and give codesign/non-interactive access
-	@security import $(RUNNER_TEMP)/cert.p12 -P "$(P12_PASSWORD)" -A -t cert -f pkcs12 -k "$(KEYCHAIN)"
-	@security set-key-partition-list -S apple-tool:,apple: -k "$(KEYCHAIN_PASSWORD)" "$(KEYCHAIN)"
-	
-# Make the temp keychain the default so `codesign` will find the identity
-	@security list-keychain -d user -s "$(KEYCHAIN)"
-	@echo "Keychain setup complete."
-else
-setup-keychain:
-	$(error setup-keychain target is only supported on macOS)
-endif
-
-ifeq ($(IS_MACOS),true)
-codesign:  ## Codesign the agent server executable (macOS only)
-ifeq ($(CI),true)
-ifeq ($(CODESIGN_ID),-)
-	$(error CODESIGN_ID cannot be "-" in CI environment)
-endif
-endif
-	@echo "Codesigning executable..."
-	codesign --force --deep --timestamp --options runtime \
-	         --entitlements $(ENTITLEMENTS_FILE) \
-	         --sign "$(CODESIGN_ID)" $(EXE_PATH)
-else ifeq ($(IS_WINDOWS),true)
-codesign:
-ifeq ($(CI),true)
-ifndef VAULT_URL
-	$(error VAULT_URL environment variable is not set)
-endif
-ifndef CLIENT_ID
-	$(error CLIENT_ID environment variable is not set)
-endif
-ifndef TENANT_ID
-	$(error TENANT_ID environment variable is not set)
-endif
-ifndef CLIENT_SECRET
-	$(error CLIENT_SECRET environment variable is not set)
-endif
-ifndef CERTIFICATE_NAME
-	$(error CERTIFICATE_NAME environment variable is not set)
-endif
-endif
-	@echo "Codesigning Windows executable..."
-	@# Check if AzureSignTool is already installed
-	@if ! command -v azuresigntool >/dev/null 2>&1; then \
-		echo "Installing AzureSignTool..."; \
-		dotnet tool install --global AzureSignTool --version 3.0.0; \
-	fi
-	@# Sign the executable using Azure Key Vault
-	@azuresigntool sign \
-		--description-url "https://sema4.ai" \
-		--file-digest sha256 \
-		--azure-key-vault-url "$(VAULT_URL)" \
-		--azure-key-vault-client-id "$(CLIENT_ID)" \
-		--azure-key-vault-tenant-id "$(TENANT_ID)" \
-		--azure-key-vault-client-secret "$(CLIENT_SECRET)" \
-		--azure-key-vault-certificate "$(CERTIFICATE_NAME)" \
-		--timestamp-rfc3161 http://timestamp.digicert.com \
-		--timestamp-digest sha256 \
-		$(EXE_PATH)
-
-else
-codesign:
-	$(error codesign target is only supported on macOS and Windows)
-endif
-
-notarize:  ## Notarize the agent server executable (macOS only)
-ifndef APPLE_ID
-	$(error APPLE_ID environment variable is not set)
-endif
-ifndef APPLE_APP_PASS
-	$(error APPLE_APP_PASS environment variable is not set)
-endif
-ifndef AC_TEAM_ID
-	$(error AC_TEAM_ID environment variable is not set)
-endif
-	@echo "Submitting for notarization..."
-	zip -qr $(NOTARIZE_ZIP_PATH) $(EXE_PATH)
-
-# Submit for notarization with retry mechanism
-	@RETRY_COUNT=0; SUCCESS=false; \
-	while [ $$RETRY_COUNT -lt $(MAX_RETRIES) ] && [ "$$SUCCESS" = "false" ]; do \
-		echo "Notarization attempt $$((RETRY_COUNT+1)) of $(MAX_RETRIES)..."; \
-		if xcrun notarytool submit $(NOTARIZE_ZIP_PATH) \
-			--apple-id "$(APPLE_ID)" \
-			--password "$(APPLE_APP_PASS)" \
-			--team-id "$(AC_TEAM_ID)" \
-			--wait; then \
-			SUCCESS=true; \
-			echo "Notarization submitted successfully!"; \
-		else \
-			RETRY_COUNT=$$((RETRY_COUNT+1)); \
-			if [ $$RETRY_COUNT -lt $(MAX_RETRIES) ]; then \
-				echo "Notarization submission failed. Retrying in $(RETRY_DELAY) seconds..."; \
-				sleep $(RETRY_DELAY); \
-				RETRY_DELAY=$$((RETRY_DELAY*2)); \
-			else \
-				echo "Notarization submission failed after $(MAX_RETRIES) attempts."; \
-				exit 1; \
-			fi \
-		fi \
-	done
-
-# Clean up
-	@rm -f $(RUNNER_TEMP)/$(EXE_NAME).zip
-	@echo "Notarization process completed."
 
 # --------------------------------------------------------------------
 # Debug UX Widget
@@ -503,6 +303,10 @@ new-empty-env:  ## Create a new empty .env file if one doesn't exist
 # --------------------------------------------------------------------
 clean:  ## Remove build/dist artifacts
 	@echo "Cleaning build/dist..."
+	@rm -rf server/build
+	@rm -rf server/dist
+	@rm -rf server/go-wrapper/agent-server
+	@rm -rf server/go-wrapper/agent-server.exe
 	@rm -rf build
 	@rm -rf dist
 	@rm -rf *.egg-info

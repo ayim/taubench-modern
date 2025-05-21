@@ -5,8 +5,11 @@ from agent_platform.core.thread.thread import Thread
 
 class TestThread:
     def test_add_message_updates_updated_at(self):
+        import time
+
         thread = Thread(user_id="dummy", agent_id="dummy", name="test-thread")
         old_updated_at = thread.updated_at
+        time.sleep(0.3)  # Make sure that the updated_at is different
         msg = ThreadMessage(
             content=[ThreadTextContent(text="Hello")],
             role="user",

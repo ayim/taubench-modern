@@ -21,10 +21,6 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--debug", action="store_true")
 parser.add_argument("--onefile", action="store_true")
 parser.add_argument("--name", type=str, default="agent-server")
-parser.add_argument("--codesign-identity", type=str, help="macOS codesign identity")
-parser.add_argument(
-    "--osx-entitlements-file", type=str, help="Path to macOS entitlements file"
-)
 options = parser.parse_args()
 
 # Log arguments using PyInstaller's logging system
@@ -162,6 +158,11 @@ if options.debug:
 else:
     exe_args.append([])
 
+is_in_github_actions = os.environ.get("GITHUB_ACTIONS") == "true"
+if is_in_github_actions and sys.platform == "darwin":
+    assert os.environ.get("MACOS_SIGNING_CERT_NAME") is not None
+    assert os.path.exists("./entitlements.mac.plist")
+
 # Executable kwargs
 # Note: upx is disabled as we do not intsall it in the CI pipeline but we could
 # consider adding it to further compress the executable
@@ -174,20 +175,10 @@ exe_kwargs = {
     "disable_windowed_traceback": False,
     "argv_emulation": False,
     "target_arch": None,
-    "codesign_identity": (
-        options.codesign_identity
-        if (hasattr(options, "codesign_identity") and options.codesign_identity)
-        else "-"
-    ),
-    "entitlements_file": (
-        options.osx_entitlements_file
-        if (hasattr(options, "osx_entitlements_file") and options.osx_entitlements_file)
-        else (
-            "./entitlements.mac.plist"
-            if os.path.exists("./entitlements.mac.plist")
-            else None
-        )
-    ),
+    "codesign_identity": os.environ.get("MACOS_SIGNING_CERT_NAME"),
+    "entitlements_file": "./entitlements.mac.plist"
+    if os.path.exists("./entitlements.mac.plist")
+    else None,
 }
 if options.debug:
     exe_kwargs["debug"] = True
