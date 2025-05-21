@@ -2,7 +2,7 @@
 package = "server"
 name = "Sema4.ai Agent Server"
 title_format = "# {name} Pre-Release {version} ({project_date})"
-version = "2.0.0-beta"
+version = "2.0.0-beta.1"
 directory = "changes/new"
 filename = "CHANGELOG-PRE-RELEASE.md"
 issue_format = "[{issue}](https://linear.app/sema4ai/issue/{issue})"
