@@ -72,12 +72,32 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
         try:
             result = await tool_def.function(**args_from_json)
             # TODO: handling of various result types...
-            return ToolExecutionResult(
-                **tool_result_args,
-                output_raw=result,
-                error=None,
-                execution_ended_at=datetime.now(UTC),
-            )
+            if isinstance(result, dict):
+                if "error_code" in result and result["error_code"] != "":
+                    error_code = result["error_code"]
+                    error_message = result.get("message", "Unknown error")
+                    full_error_message = f"{error_code}: {error_message}"
+                    return ToolExecutionResult(
+                        **tool_result_args,
+                        output_raw=result,
+                        error=full_error_message,
+                        execution_ended_at=datetime.now(UTC),
+                    )
+                else:
+                    return ToolExecutionResult(
+                        **tool_result_args,
+                        output_raw=result,
+                        error=None,
+                        execution_ended_at=datetime.now(UTC),
+                    )
+            else:
+                # We received a malformed result from the tool
+                return ToolExecutionResult(
+                    **tool_result_args,
+                    output_raw=result,
+                    error="Received a malformed result from the tool",
+                    execution_ended_at=datetime.now(UTC),
+                )
         except Exception as e:
             return ToolExecutionResult(
                 **tool_result_args,
