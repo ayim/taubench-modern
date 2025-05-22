@@ -33,6 +33,27 @@ async def create_thread(
     return thread
 
 
+@router.put("/{tid}", response_model=Thread)
+async def update_thread(
+    user: AuthedUser,
+    tid: str,
+    payload: UpsertThreadPayload,
+    storage: StorageDependency,
+) -> Thread:
+    """Update an existing thread with the provided fields."""
+    thread = await storage.get_thread(user.user_id, tid)
+    if thread is None:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    # Start with existing thread data and update with payload fields
+    updated_thread = UpsertThreadPayload.to_thread(payload, user.user_id)
+    # Preserve the original thread ID
+    updated_thread.thread_id = tid
+
+    await storage.upsert_thread(user.user_id, updated_thread)
+    return updated_thread
+
+
 @router.get("/", response_model=list[Thread])
 async def list_threads(  # noqa: PLR0913
     user: AuthedUser,
