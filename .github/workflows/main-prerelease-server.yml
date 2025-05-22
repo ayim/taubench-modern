@@ -10,7 +10,6 @@ on:
         options:
           - pre
           - pre-major
-          - pre-build
           - new-pre-major
           - new-pre-minor
           - new-pre-patch

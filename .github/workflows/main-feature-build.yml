@@ -1,0 +1,234 @@
+name: Build Feature Branch
+
+on:
+  workflow_dispatch:
+    inputs:
+      run-tests:
+        description: 'Whether to run unit tests'
+        required: true
+        type: boolean
+        default: true
+      build-os:
+        description: 'Which operating systems to build for'
+        required: true
+        type: choice
+        options:
+          - all
+          - windows-only
+          - macos-only
+          - linux-only
+      windows-runner:
+        description: 'The windows runner to use'
+        required: false
+        type: string
+        default: 'windows-2025'
+      linux-runner:
+        description: 'The linux runner to use'
+        required: false
+        type: string
+        default: 'ubuntu-24.04'
+      macos-arm64-runner:
+        description: 'The macos arm64 runner to use'
+        required: false
+        type: string
+        default: 'macos-15'
+      macos-x64-runner:
+        description: 'The macos x64 runner to use'
+        required: false
+        type: string
+        default: 'macos-13'
+
+jobs:
+  prepare:
+    runs-on: ${{ inputs.linux-runner }}
+    outputs:
+      version: ${{ steps.set-version.outputs.version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set outputs
+        id: set-version
+        run: |
+          echo "ref=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+          # Create version string from branch name and short commit hash
+          BRANCH_NAME=${GITHUB_REF_NAME}
+          SHORT_COMMIT=$(git rev-parse --short HEAD)
+          echo "version=${BRANCH_NAME}-${SHORT_COMMIT}" >> $GITHUB_OUTPUT
+          echo "Using branch: ${BRANCH_NAME}, commit: ${SHORT_COMMIT}"
+          echo "Version for build: ${BRANCH_NAME}-${SHORT_COMMIT}"
+
+  unit-tests:
+    needs: prepare
+    if: ${{ inputs.run-tests == true }}
+    uses: ./.github/workflows/sub-test-unit.yml
+    with:
+      windows-runner: ${{ inputs.windows-runner }}
+      linux-runner: ${{ inputs.linux-runner }}
+      macos-arm64-runner: ${{ inputs.macos-arm64-runner }}
+      macos-x64-runner: ${{ inputs.macos-x64-runner }}
+    secrets:
+      MACOS_SIGNING_CERT_SEMA4AI: ${{ secrets.MACOS_SIGNING_CERT_SEMA4AI }}
+      MACOS_SIGNING_CERT_PASSWORD_SEMA4AI: ${{ secrets.MACOS_SIGNING_CERT_PASSWORD_SEMA4AI }}
+      MACOS_SIGNING_CERT_NAME_SEMA4AI: ${{ secrets.MACOS_SIGNING_CERT_NAME_SEMA4AI }}
+      MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI: ${{ secrets.MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI }}
+      MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI: ${{ secrets.MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI }}
+      MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI: ${{ secrets.MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI }}
+      WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI }}
+      WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI }}
+      WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI }}
+      WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI }}
+      WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI }}
+
+  build-agent-server:
+    needs: [prepare, unit-tests]
+    if: ${{ always() && needs.prepare.result == 'success' && (needs.unit-tests.result == 'success' || needs.unit-tests.result == 'skipped') }}
+    uses: ./.github/workflows/sub-build-server-exe.yml
+    with:
+      version: ${{ needs.prepare.outputs.version }}
+      windows-runner: ${{ inputs.windows-runner }}
+      linux-runner: ${{ inputs.linux-runner }}
+      macos-arm64-runner: ${{ inputs.macos-arm64-runner }}
+      macos-x64-runner: ${{ inputs.macos-x64-runner }}
+    secrets:
+      MACOS_SIGNING_CERT_SEMA4AI: ${{ secrets.MACOS_SIGNING_CERT_SEMA4AI }}
+      MACOS_SIGNING_CERT_PASSWORD_SEMA4AI: ${{ secrets.MACOS_SIGNING_CERT_PASSWORD_SEMA4AI }}
+      MACOS_SIGNING_CERT_NAME_SEMA4AI: ${{ secrets.MACOS_SIGNING_CERT_NAME_SEMA4AI }}
+      MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI: ${{ secrets.MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI }}
+      MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI: ${{ secrets.MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI }}
+      MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI: ${{ secrets.MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI }}
+      WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI }}
+      WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI }}
+      WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI }}
+      WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI }}
+      WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI }}
+
+  modify-build-matrix:
+    needs: [prepare]
+    runs-on: ${{ inputs.linux-runner }}
+    outputs:
+      include: ${{ steps.set-matrix.outputs.include }}
+    steps:
+      - id: set-matrix
+        run: |
+          case "${{ inputs.build-os }}" in
+            "all")
+              echo 'include=[{"os":"${{ inputs.linux-runner }}","arch":"x64","build-type":"ubuntu"},{"os":"${{ inputs.windows-runner }}","arch":"x64","build-type":"windows"},{"os":"${{ inputs.macos-arm64-runner }}","arch":"arm64","build-type":"macos"},{"os":"${{ inputs.macos-x64-runner }}","arch":"x64","build-type":"macos"}]' >> $GITHUB_OUTPUT
+              ;;
+            "windows-only")
+              echo 'include=[{"os":"${{ inputs.windows-runner }}","arch":"x64","build-type":"windows"}]' >> $GITHUB_OUTPUT
+              ;;
+            "macos-only")
+              echo 'include=[{"os":"${{ inputs.macos-arm64-runner }}","arch":"arm64","build-type":"macos"},{"os":"${{ inputs.macos-x64-runner }}","arch":"x64","build-type":"macos"}]' >> $GITHUB_OUTPUT
+              ;;
+            "linux-only")
+              echo 'include=[{"os":"${{ inputs.linux-runner }}","arch":"x64","build-type":"ubuntu"}]' >> $GITHUB_OUTPUT
+              ;;
+            *)
+              echo 'include=[{"os":"${{ inputs.linux-runner }}","arch":"x64","build-type":"ubuntu"},{"os":"${{ inputs.windows-runner }}","arch":"x64","build-type":"windows"},{"os":"${{ inputs.macos-arm64-runner }}","arch":"arm64","build-type":"macos"},{"os":"${{ inputs.macos-x64-runner }}","arch":"x64","build-type":"macos"}]' >> $GITHUB_OUTPUT
+              ;;
+          esac
+
+  custom-build-agent-server:
+    needs: [prepare, unit-tests, modify-build-matrix]
+    if: ${{ always() && needs.prepare.result == 'success' && (needs.unit-tests.result == 'success' || needs.unit-tests.result == 'skipped') }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include: ${{ fromJson(needs.modify-build-matrix.outputs.include) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/prep_environment
+
+      - name: Build and sign executable (All OSes)
+        env:
+          MACOS_SIGNING_CERT: ${{ secrets.MACOS_SIGNING_CERT_SEMA4AI }}
+          MACOS_SIGNING_CERT_PASSWORD: ${{ secrets.MACOS_SIGNING_CERT_PASSWORD_SEMA4AI }}
+          MACOS_SIGNING_CERT_NAME: ${{ secrets.MACOS_SIGNING_CERT_NAME_SEMA4AI }}
+
+          APPLEID: ${{ secrets.MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI }}
+          APPLETEAMID: ${{ secrets.MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI }}
+          APPLEIDPASS: ${{ secrets.MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI }}
+
+          VAULT_URL: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI }}
+          CLIENT_ID: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI }}
+          TENANT_ID: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI }}
+          CLIENT_SECRET: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI }}
+          CERTIFICATE_NAME: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI }}
+
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: make build
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-server-build-${{ matrix.build-type }}-${{ matrix.arch }}
+          path: |
+            dist
+            !dist/*.whl
+            !dist/*.tar.gz
+
+  package-agent-server:
+    needs: [custom-build-agent-server]
+    uses: ./.github/workflows/sub-publish-server-packager.yml
+
+  publish-agent-server-s3:
+    needs: [package-agent-server]
+    uses: ./.github/workflows/sub-publish-server-s3.yml
+    with:
+      release_channel: alpha
+
+  notify-slack:
+    needs: [prepare, publish-agent-server-s3]
+    runs-on: ${{ inputs.linux-runner }}
+    steps:
+      - name: Send Slack notification
+        uses: slackapi/slack-github-action@v2.1.0
+        with:
+          payload: |
+            {
+              "text": "New feature build available!",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "🚀 New feature build available!"
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Branch:* `${{ github.ref_name }}`\n*Version:* `${{ needs.prepare.outputs.version }}`"
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Download URLs:*"
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "• *Windows:* ${{ needs.publish-agent-server-s3.outputs.windows_x64_binary_url || 'Not built' }}\n• *macOS (Intel):* ${{ needs.publish-agent-server-s3.outputs.macos_x64_binary_url || 'Not built' }}\n• *macOS (Apple Silicon):* ${{ needs.publish-agent-server-s3.outputs.macos_arm64_binary_url || 'Not built' }}\n• *Linux:* ${{ needs.publish-agent-server-s3.outputs.linux_x64_binary_url || 'Not built' }}"
+                  }
+                },
+                {
+                  "type": "context",
+                  "elements": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "Triggered by: ${{ github.actor }} | <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Workflow Run>"
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK

@@ -1,5 +1,4 @@
 import os
-import re
 from pathlib import Path
 
 import click
@@ -78,18 +77,14 @@ def build_executable(  # noqa: PLR0913
     os.chdir(server_dir)
 
     if is_in_github_actions():
-        if version:
-            raise ValueError(
-                "'--version' flag can't be used when running in Github Actions"
-            )
-        version = get_pyproject_version()
-
+        # Allow version to be specified even in GitHub Actions
+        if not version:
+            version = get_pyproject_version()
     elif not version:
         version = get_pyproject_version()
         version += "-local"
-
-    elif len(version) < 1 or not re.match(r".*-local$", version):
-        raise ValueError("Version must be non-empty and end with '-local'")
+    elif len(version) < 1:
+        raise ValueError("Version must be non-empty")
 
     print(f"Building executable with version: {version}")
 

@@ -16,6 +16,7 @@ DEBUG     ?= false
 CI        ?= false
 EXE_NAME  ?= agent-server
 DIST_PATH ?= dist
+VERSION   ?= 
 
 # Update the EXE_NAME if we're on Windows
 ifeq ($(IS_WINDOWS),true)
@@ -78,7 +79,11 @@ build-wheels: sync ## Build Python wheels into dist/ via uv
 
 build-exe: sync  ## Build a PyInstaller executable
 	@echo "Building PyInstaller/Go wrapper executable..."
+ifdef VERSION
+	uv run python scripts/build_exe.py build-executable --go-wrapper --ci --version $(VERSION)
+else
 	uv run python scripts/build_exe.py build-executable --go-wrapper --ci
+endif
 
 build: clean build-wheels build-exe
 	@echo "Build complete!"

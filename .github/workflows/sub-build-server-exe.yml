@@ -8,6 +8,11 @@ on:
         required: false
         type: string
         default: ${{ github.sha }}
+      version:
+        description: 'The version to use for the build (defaults to version from pyproject.toml)'
+        required: false
+        type: string
+        default: ''
       windows-runner:
         description: 'The windows runner to use'
         required: false
@@ -103,6 +108,7 @@ jobs:
           TENANT_ID: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI }}
           CLIENT_SECRET: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI }}
           CERTIFICATE_NAME: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI }}
+          VERSION: ${{ inputs.version }}
         run: make build
 
       - name: Upload Build Artifacts
