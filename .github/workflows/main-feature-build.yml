@@ -53,10 +53,12 @@ jobs:
           echo "ref=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
           # Create version string from branch name and short commit hash
           BRANCH_NAME=${GITHUB_REF_NAME}
+          # Replace slashes with dashes to make it URL-safe
+          SAFE_BRANCH_NAME=${BRANCH_NAME//\//-}
           SHORT_COMMIT=$(git rev-parse --short HEAD)
-          echo "version=${BRANCH_NAME}-${SHORT_COMMIT}" >> $GITHUB_OUTPUT
+          echo "version=-${SAFE_BRANCH_NAME}-${SHORT_COMMIT}" >> $GITHUB_OUTPUT
           echo "Using branch: ${BRANCH_NAME}, commit: ${SHORT_COMMIT}"
-          echo "Version for build: ${BRANCH_NAME}-${SHORT_COMMIT}"
+          echo "Version for build: ${SAFE_BRANCH_NAME}-${SHORT_COMMIT}"
 
   unit-tests:
     needs: prepare
@@ -82,7 +84,7 @@ jobs:
 
   build-agent-server:
     needs: [prepare, unit-tests]
-    if: ${{ always() && needs.prepare.result == 'success' && (needs.unit-tests.result == 'success' || needs.unit-tests.result == 'skipped') }}
+    if: ${{ always() && needs.prepare.result == 'success' && (needs.unit-tests.result == 'success' || needs.unit-tests.result == 'skipped') && inputs.build-os == 'all' }}
     uses: ./.github/workflows/sub-build-server-exe.yml
     with:
       version: ${{ needs.prepare.outputs.version }}
@@ -131,7 +133,7 @@ jobs:
 
   custom-build-agent-server:
     needs: [prepare, unit-tests, modify-build-matrix]
-    if: ${{ always() && needs.prepare.result == 'success' && (needs.unit-tests.result == 'success' || needs.unit-tests.result == 'skipped') }}
+    if: ${{ always() && needs.prepare.result == 'success' && (needs.unit-tests.result == 'success' || needs.unit-tests.result == 'skipped') && inputs.build-os != 'all' }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -170,22 +172,30 @@ jobs:
             !dist/*.tar.gz
 
   package-agent-server:
-    needs: [custom-build-agent-server]
+    needs: [prepare, build-agent-server, custom-build-agent-server]
+    if: ${{ always() && (needs.build-agent-server.result == 'success' || needs.custom-build-agent-server.result == 'success') }}
     uses: ./.github/workflows/sub-publish-server-packager.yml
+    with:
+      version: ${{ needs.prepare.outputs.version }}
 
   publish-agent-server-s3:
-    needs: [package-agent-server]
+    needs: [prepare, package-agent-server]
+    if: ${{ always() && needs.prepare.result == 'success' && needs.package-agent-server.result == 'success' }}
     uses: ./.github/workflows/sub-publish-server-s3.yml
     with:
       release_channel: alpha
+      version: ${{ needs.prepare.outputs.version }}
 
   notify-slack:
     needs: [prepare, publish-agent-server-s3]
+    if: ${{ always() && needs.prepare.result == 'success' && (needs.publish-agent-server-s3.result == 'success') }}
     runs-on: ${{ inputs.linux-runner }}
     steps:
       - name: Send Slack notification
-        uses: slackapi/slack-github-action@v2.1.0
+        uses: slackapi/slack-github-action@v2
         with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
           payload: |
             {
               "text": "New feature build available!",
@@ -229,6 +239,3 @@ jobs:
                 }
               ]
             }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
