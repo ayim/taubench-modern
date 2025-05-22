@@ -93,9 +93,16 @@ def _dereference_refs(spec: dict, full_schema: dict) -> dict:
 def _build_post_async_function(
     action_url: str,
     api_key: str,
+    # Extra headers to be added to the request at
+    # tool definition time
     additional_headers: dict | None = None,
 ) -> Callable[..., Coroutine]:
-    async def _post_async_function(**args: dict[str, Any]) -> Coroutine:
+    async def _post_async_function(
+        # Extra headers to be added to the request at
+        # tool invocation time
+        extra_headers: dict | None = None,
+        **args: dict[str, Any],
+    ) -> Coroutine:
         from aiohttp import ClientSession
 
         characters = string.ascii_letters + string.digits
@@ -105,6 +112,7 @@ def _build_post_async_function(
             "Content-Type": "application/json",
             "x-action_invocation_id": action_invocation_id,
             **(additional_headers or {}),
+            **(extra_headers or {}),
         }
 
         async with ClientSession() as session:

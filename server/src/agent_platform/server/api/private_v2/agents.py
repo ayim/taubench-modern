@@ -19,7 +19,7 @@ from agent_platform.core.utils import SecretString
 from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.api.private_v2.compatibility.agent_compat import AgentCompat
 from agent_platform.server.auth import AuthedUser
-from agent_platform.server.kernel.tools import AgentServerToolsInterface
+from agent_platform.server.kernel.tools_caching import ToolDefinitionCache
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -71,7 +71,7 @@ async def refresh_tools(
     storage: StorageDependency,
 ) -> None:
     agent = await storage.get_agent(user.user_id, aid)
-    AgentServerToolsInterface.clear_tools_for_agent(agent)
+    ToolDefinitionCache().clear_for_agent(agent)
 
 
 @router.put("/{aid}", response_model=AgentCompat)
@@ -83,7 +83,7 @@ async def update_agent(
 ) -> AgentCompat:
     agent = UpsertAgentPayload.to_agent(payload, user_id=user.user_id, agent_id=aid)
     await storage.upsert_agent(user.user_id, agent)
-    AgentServerToolsInterface.clear_tools_for_agent(agent)
+    ToolDefinitionCache().clear_for_agent(agent)
     return AgentCompat.from_agent(agent)
 
 
@@ -112,7 +112,7 @@ async def update_agent_raw(
 ) -> AgentCompat:
     agent = UpsertAgentPayload.to_agent(payload, user_id=user.user_id, agent_id=aid)
     await storage.upsert_agent(user.user_id, agent)
-    AgentServerToolsInterface.clear_tools_for_agent(agent)
+    ToolDefinitionCache().clear_for_agent(agent)
     return AgentCompat.from_agent(agent)
 
 
@@ -156,7 +156,7 @@ async def update_agent_action_server_config(
     )
 
     await storage.upsert_agent(user.user_id, new_agent)
-    AgentServerToolsInterface.clear_tools_for_agent(new_agent)
+    ToolDefinitionCache().clear_for_agent(new_agent)
     return AgentCompat.from_agent(new_agent)
 
 
@@ -261,7 +261,7 @@ async def _create_or_update_agent_from_package(
     await storage.upsert_agent(user.user_id, as_agent)
     # We might technically clear on a create here, which shouldn't be
     # problem (even if it's not strictly necessary)
-    AgentServerToolsInterface.clear_tools_for_agent(as_agent)
+    ToolDefinitionCache().clear_for_agent(as_agent)
     return AgentCompat.from_agent(as_agent)
 
 

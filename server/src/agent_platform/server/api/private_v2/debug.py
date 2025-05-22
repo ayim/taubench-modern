@@ -6,6 +6,10 @@ from structlog import get_logger
 from agent_platform.core.kernel_interfaces.otel import OTelArtifact
 from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.auth import AuthedUser
+from agent_platform.server.kernel.tools_caching import (
+    CachedToolDefinitionsReport,
+    ToolDefinitionCache,
+)
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -64,3 +68,19 @@ async def get_artifact(aid: str, storage: StorageDependency) -> OTelArtifact:
 @router.delete("/artifacts")
 async def delete_artifacts(_: AuthedUser, storage: StorageDependency) -> int:
     return await storage.delete_all_otel_artifacts()
+
+
+@router.get("/tools/report-cache-stats")
+async def report_cache_stats(
+    _: AuthedUser,
+) -> CachedToolDefinitionsReport:
+    """Report some stats on the tool cache (misses, hits, entries, etc)."""
+    return ToolDefinitionCache().report()
+
+
+@router.get("/tools/invalidate-cache")
+async def invalidate_cache(
+    _: AuthedUser,
+) -> None:
+    """Invalidate the tool cache, actions and MCP, for all agents."""
+    ToolDefinitionCache().clear_all()

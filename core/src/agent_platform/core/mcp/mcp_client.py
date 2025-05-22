@@ -20,13 +20,35 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class MCPClientConfiguration(Configuration):
-    read_timeout_seconds: int = field(
-        default=30,
+    default_read_timeout_seconds: int = field(
+        default=10,
         metadata=FieldMetadata(
-            description="The timeout for reading from the MCP server.",
-            env_vars=["SEMA4AI_AGENT_SERVER_MCP_READ_TIMEOUT_SECONDS"],
+            description=(
+                "The _default_ timeout for reading from the MCP servers. "
+                "Tool calls get a different timeout."
+            ),
+            env_vars=["SEMA4AI_AGENT_SERVER_MCP_DEFAULT_READ_TIMEOUT_SECONDS"],
         ),
     )
+    """
+    The _default_ timeout for reading from the MCP servers.
+    Tool calls get a different timeout.
+    """
+
+    tool_call_read_timeout_seconds: int = field(
+        default=300,
+        metadata=FieldMetadata(
+            description=(
+                "The timeout for reading from the MCP servers during tool calls. "
+                "This is different from the default read timeout above."
+            ),
+            env_vars=["SEMA4AI_AGENT_SERVER_MCP_TOOL_CALL_READ_TIMEOUT_SECONDS"],
+        ),
+    )
+    """
+    The timeout for reading from the MCP servers during tool calls.
+    This is different from the default read timeout above.
+    """
 
 
 class MCPClient:
@@ -145,8 +167,10 @@ class MCPClient:
                         ClientSession(
                             read_stream,
                             write_stream,
+                            # This is the _default timeout_ but we can override
+                            # it when calling tools... so let's keep this tighter
                             read_timeout_seconds=timedelta(
-                                seconds=MCPClientConfiguration.read_timeout_seconds,
+                                seconds=MCPClientConfiguration.default_read_timeout_seconds,
                             ),
                         )
                     )
@@ -189,7 +213,13 @@ class MCPClient:
     # --------------------------------------------------------------------- #
     # Tool helpers                                                          #
     # --------------------------------------------------------------------- #
-    async def list_tools(self) -> list[ToolDefinition]:
+    async def list_tools(
+        self,
+        # Additional headers to be added to the request at
+        # tool definition time
+        # NOTE: MCP doesn't really seem to support this at the moment...
+        additional_headers: dict | None = None,
+    ) -> list[ToolDefinition]:
         """
         Fetch the tool catalogue and return a list of ``ToolDefinition`` objects
         whose ``function`` attribute is *already bound* to ``call_tool``.
@@ -202,7 +232,15 @@ class MCPClient:
         def _get_tool_function(
             tool_name: str,
         ) -> Callable[..., Coroutine[Any, Any, Any]]:
-            async def _call_tool(**args: dict[str, Any]) -> Any:
+            async def _call_tool(
+                # Extra headers to be added to the request at
+                # tool invocation time
+                extra_headers: dict | None = None,
+                **args: dict[str, Any],
+            ) -> Any:
+                # TODO: I don't think we can really leverage any of the "headers"
+                # we may want to include here... maybe that'll change in MCPs future.
+
                 try:
                     # Lazy reconnect if the underlying transport was dropped.
                     if not self.is_connected:
@@ -211,7 +249,13 @@ class MCPClient:
                     # Use the call lock to ensure only one call is processed at a time
                     async with self._call_lock:
                         # Execute the tool call
-                        response = await self.session.call_tool(tool_name, args)
+                        response = await self.session.call_tool(
+                            tool_name,
+                            args,
+                            read_timeout_seconds=timedelta(
+                                seconds=MCPClientConfiguration.tool_call_read_timeout_seconds,
+                            ),
+                        )
                         return response.model_dump_json()
                 except Exception as e:
                     # Could enhance error handling with more specific error types

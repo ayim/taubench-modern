@@ -38,10 +38,16 @@ class MCPServer:
             "url": self.url,
         }
 
-    async def to_tool_definitions(self) -> list[ToolDefinition]:
+    async def to_tool_definitions(
+        self,
+        # Additional headers to be added to the request at
+        # tool definition time
+        # NOTE: MCP doesn't really seem to support this at the moment...
+        additional_headers: dict | None = None,
+    ) -> list[ToolDefinition]:
         """Converts the MCP server to a list of tool definitions."""
         async with MCPClient(self) as client:
-            tools = await client.list_tools()
+            tools = await client.list_tools(additional_headers)
         return tools
 
     @classmethod
