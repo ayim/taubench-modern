@@ -1,4 +1,4 @@
-name: Build and Sign Agent Server Executable
+name: Integration Tests
 
 on:
   workflow_call:
@@ -8,16 +8,11 @@ on:
         required: false
         type: string
         default: ${{ github.sha }}
-      version:
-        description: 'The version to use for the build (defaults to version from pyproject.toml)'
-        required: false
-        type: string
-        default: ''
       windows-runner:
         description: 'The windows runner to use'
         required: false
         type: string
-        default: 'windows-2025' # prefer windows-large-runner from the organization
+        default: 'windows-2025'
       linux-runner:
         description: 'The linux runner to use'
         required: false
@@ -34,23 +29,23 @@ on:
         type: string
         default: 'macos-13'
     secrets:
-      MACOS_SIGNING_CERT_SEMA4AI:
-        description: 'Signing certificate for macOS'
-        required: true
-      MACOS_SIGNING_CERT_PASSWORD_SEMA4AI:
-        description: 'Signing certificate password for macOS'
-        required: true
-      MACOS_SIGNING_CERT_NAME_SEMA4AI:
-        description: 'Signing certificate name for macOS'
-        required: true
       MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI:
-        description: 'Apple ID for notarization'
+        description: 'MacOS App ID for notarization'
         required: true
       MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI:
-        description: 'Apple ID password for notarization'
+        description: 'MacOS App ID password for notarization'
         required: true
       MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI:
-        description: 'Apple Team ID for notarization'
+        description: 'MacOS Team ID for notarization'
+        required: true
+      MACOS_SIGNING_CERT_SEMA4AI:
+        description: 'MacOS signing certificate'
+        required: true
+      MACOS_SIGNING_CERT_PASSWORD_SEMA4AI:
+        description: 'MacOS signing certificate password'
+        required: true
+      MACOS_SIGNING_CERT_NAME_SEMA4AI:
+        description: 'MacOS signing certificate name'
         required: true
       WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI:
         description: 'Windows sign Azure Key Vault URL'
@@ -73,29 +68,27 @@ on:
       GIT_USERNAME:
         description: 'GitHub username'
         required: true
+      OPENAI_API_KEY:
+        description: 'OpenAI API key'
+        required: true
 
 jobs:
-  build-agent-server:
+  unit-tests:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
           - os: ${{ inputs.linux-runner }}
-            arch: x64
-            build-type: ubuntu
-          - os: ${{ inputs.windows-runner }}
-            arch: x64
-            build-type: windows
           - os: ${{ inputs.macos-arm64-runner }}
-            arch: arm64
-            build-type: macos
           - os: ${{ inputs.macos-x64-runner }}
-            arch: x64
-            build-type: macos
+          - os: ${{ inputs.windows-runner }}
+
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
+          fetch-depth: 0
+          fetch-tags: true
 
       - uses: ./.github/actions/prep_environment
         with:
@@ -117,15 +110,26 @@ jobs:
           TENANT_ID: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI }}
           CLIENT_SECRET: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI }}
           CERTIFICATE_NAME: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI }}
-          VERSION: ${{ inputs.version }}
         run: make build
 
-      - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: agent-server-build-${{ matrix.build-type }}-${{ matrix.arch }}
-          # TODO: Add support for uploading and then publishing wheels.
-          path: |
-            dist
-            !dist/*.whl
-            !dist/*.tar.gz
+      - name: Run Integration tests
+        run: make test-integration
+        env:
+          CI: true
+          SEMA4AI_TEST_AGENT_SERVER_EXECUTABLE: ./dist/agent-server
+
+          MACOS_SIGNING_CERT: ${{ secrets.MACOS_SIGNING_CERT_SEMA4AI }}
+          MACOS_SIGNING_CERT_PASSWORD: ${{ secrets.MACOS_SIGNING_CERT_PASSWORD_SEMA4AI }}
+          MACOS_SIGNING_CERT_NAME: ${{ secrets.MACOS_SIGNING_CERT_NAME_SEMA4AI }}
+
+          APPLEID: ${{ secrets.MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI }}
+          APPLETEAMID: ${{ secrets.MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI }}
+          APPLEIDPASS: ${{ secrets.MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI }}
+
+          VAULT_URL: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI }}
+          CLIENT_ID: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI }}
+          TENANT_ID: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI }}
+          CLIENT_SECRET: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI }}
+          CERTIFICATE_NAME: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI }}
+
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

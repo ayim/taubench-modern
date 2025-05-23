@@ -26,6 +26,13 @@ on:
         description: The URL to the Linux x64 binary
         type: string
         required: true
+    secrets:
+      GIT_TOKEN:
+        description: 'GitHub token'
+        required: true
+      GIT_USERNAME:
+        description: 'GitHub username'
+        required: true
 
 jobs:
   publish-to-gh:
@@ -38,6 +45,8 @@ jobs:
       - uses: ./.github/actions/prep_environment
         with:
           ref: ${{ inputs.ref }}
+          GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+          GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
 
       - name: Get version number
         id: get_vers

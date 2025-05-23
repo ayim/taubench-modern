@@ -187,6 +187,9 @@ lint:  ## Run ruff linting (check only)
 lint-fix:  ## Run ruff linting (fix violations)
 	uv run ruff check --fix
 
+lint-fix-unsafe:  ## Run ruff linting (fix violations)
+	uv run ruff check --fix --unsafe-fixes
+
 typecheck:  ## Run typechecking with pyright
 	uv run pyright
 

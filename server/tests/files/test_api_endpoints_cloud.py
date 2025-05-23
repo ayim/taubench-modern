@@ -10,13 +10,12 @@ from pathlib import Path
 
 import pytest
 import requests
-from fastapi import status
-
-from server.tests.agent_client import (
+from agent_server_orchestrator.agent_server_client import (
     AgentServerClient,
     print_header,
     print_success,
 )
+from fastapi import status
 
 # Path to the cloud server script
 CLOUD_SERVER_PATH = Path(__file__).parent / "cloud_server.py"

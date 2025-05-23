@@ -52,5 +52,5 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
-    "sema4ai-common>=0.0.9,<0.1.0",
+    "sema4ai-common==0.1.0",
 ]

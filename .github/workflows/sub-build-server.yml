@@ -37,10 +37,9 @@ on:
         type: string
         default: 'macos-13'
     secrets:
-      # TODO: Add for integration tests
-      # OPENAI_API_KEY:
-      #   description: "OpenAI API key"
-      #   required: true
+      OPENAI_API_KEY:
+        description: 'OpenAI API key'
+        required: true
       # TODO: Add for sdk builds in the future
       # NPM_AUTH_TOKEN:
       #   description: "Node authentication token"
@@ -78,6 +77,12 @@ on:
       WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI:
         description: 'Windows sign Azure Key Vault certificate name'
         required: true
+      GIT_TOKEN:
+        description: 'GitHub token'
+        required: true
+      GIT_USERNAME:
+        description: 'GitHub username'
+        required: true
 
 jobs:
   unit-tests:
@@ -88,50 +93,30 @@ jobs:
       linux-runner: ${{ inputs.linux-runner }}
       macos-arm64-runner: ${{ inputs.macos-arm64-runner }}
       macos-x64-runner: ${{ inputs.macos-x64-runner }}
-    secrets:
-      MACOS_SIGNING_CERT_SEMA4AI: ${{ secrets.MACOS_SIGNING_CERT_SEMA4AI }}
-      MACOS_SIGNING_CERT_PASSWORD_SEMA4AI: ${{ secrets.MACOS_SIGNING_CERT_PASSWORD_SEMA4AI }}
-      MACOS_SIGNING_CERT_NAME_SEMA4AI: ${{ secrets.MACOS_SIGNING_CERT_NAME_SEMA4AI }}
-      MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI: ${{ secrets.MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI }}
-      MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI: ${{ secrets.MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI }}
-      MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI: ${{ secrets.MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI }}
-      WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI }}
-      WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI }}
-      WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI }}
-      WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI }}
-      WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI }}
+    secrets: inherit
 
-  # TODO: Add integration tests
-  # integration-tests:
-  #   uses: ./.github/workflows/sub-test-integration.yml
-  #   with:
-  #     windows-runner: ${{ inputs.windows-runner }}
-  #     linux-runner: ${{ inputs.linux-runner }}
-  #     macos-runner: ${{ inputs.macos-runner }}
-
-  build-agent-server:
-    uses: ./.github/workflows/sub-build-server-exe.yml
-    needs:
-      - unit-tests
-      # - integration-tests
+  integration-tests:
+    uses: ./.github/workflows/sub-test-integration.yml
+    secrets: inherit
     with:
       ref: ${{ inputs.ref }}
       windows-runner: ${{ inputs.windows-runner }}
       linux-runner: ${{ inputs.linux-runner }}
       macos-arm64-runner: ${{ inputs.macos-arm64-runner }}
       macos-x64-runner: ${{ inputs.macos-x64-runner }}
-    secrets:
-      MACOS_SIGNING_CERT_SEMA4AI: ${{ secrets.MACOS_SIGNING_CERT_SEMA4AI }}
-      MACOS_SIGNING_CERT_PASSWORD_SEMA4AI: ${{ secrets.MACOS_SIGNING_CERT_PASSWORD_SEMA4AI }}
-      MACOS_SIGNING_CERT_NAME_SEMA4AI: ${{ secrets.MACOS_SIGNING_CERT_NAME_SEMA4AI }}
-      MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI: ${{ secrets.MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI }}
-      MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI: ${{ secrets.MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI }}
-      MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI: ${{ secrets.MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI }}
-      WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI }}
-      WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI }}
-      WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI }}
-      WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI }}
-      WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI }}
+
+  build-agent-server:
+    uses: ./.github/workflows/sub-build-server-exe.yml
+    needs:
+      - unit-tests
+      - integration-tests
+    with:
+      ref: ${{ inputs.ref }}
+      windows-runner: ${{ inputs.windows-runner }}
+      linux-runner: ${{ inputs.linux-runner }}
+      macos-arm64-runner: ${{ inputs.macos-arm64-runner }}
+      macos-x64-runner: ${{ inputs.macos-x64-runner }}
+    secrets: inherit
 
   package-agent-server:
     uses: ./.github/workflows/sub-publish-server-packager.yml

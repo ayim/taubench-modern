@@ -2,9 +2,8 @@
 
 import json
 import os
-import platform
 import signal
-from typing import Any
+import socket
 
 import structlog
 import uvicorn
@@ -101,114 +100,12 @@ class ServerLifecycleManager:
         logger.debug("Successfully obtained app mutex lock")
         return True
 
-    def _check_connection_for_port(self, conn: Any, port: int) -> bool:
-        """Check if a single connection uses the specified port."""
-        try:
-            if isinstance(conn.laddr, tuple):
-                if len(conn.laddr) > 1 and conn.laddr[1] == port:
-                    return True
-            else:
-                try:
-                    laddr: Any = conn.laddr
-                    if laddr.port == port:
-                        return True
-                except AttributeError:
-                    pass
-            return False
-        except (PermissionError, OSError) as e:
-            error_details = {
-                "error_type": type(e).__name__,
-                "errno": getattr(e, "errno", None),
-                "strerror": getattr(e, "strerror", None),
-                "filename": getattr(e, "filename", None),
-                "filename2": getattr(e, "filename2", None),
-                "winerror": getattr(e, "winerror", None),
-            }
-
-            # Map errno to human-readable descriptions for common errors
-            if hasattr(e, "errno") and e.errno is not None:
-                import errno
-
-                error_codes = {
-                    errno.EACCES: "Permission denied",
-                    errno.EPERM: "Operation not permitted",
-                    errno.ECONNREFUSED: "Connection refused",
-                    errno.EADDRINUSE: "Address already in use",
-                }
-                error_details["error_code_name"] = errno.errorcode.get(
-                    e.errno,
-                    "UNKNOWN",
-                )
-                error_details["error_description"] = error_codes.get(
-                    e.errno,
-                    "",
-                )
-
-            logger.warning(
-                f"Could not use psutil to check port {port}: {e}",
-                error_details=error_details,
-            )
-            logger.warning("Port availability checks may be less reliable")
-            return False
-
-    def is_port_in_use(self, port: int) -> bool:
-        """Check if a port is already in use without binding to it."""
-        try:
-            import psutil
-
-            for conn in psutil.net_connections():
-                if self._check_connection_for_port(conn, port):
-                    return True
-        except Exception as e:
-            error_details = {
-                "error_type": type(e).__name__,
-                "error_message": str(e),
-            }
-
-            # Extract OS-specific error details if available
-            if isinstance(e, OSError):
-                error_details = error_details | {
-                    "errno": getattr(e, "errno", None),
-                    "strerror": getattr(e, "strerror", None),
-                    "filename": getattr(e, "filename", None),
-                    "winerror": getattr(e, "winerror", None),
-                }
-
-                # Add symbolic name for errno if available
-                if hasattr(e, "errno") and e.errno is not None:
-                    import errno
-
-                    error_details["error_code_name"] = errno.errorcode.get(
-                        e.errno,
-                        "UNKNOWN",
-                    )
-
-            logger.warning(
-                f"Could not use psutil to check ports, port checks "
-                f"may be unreliable: {e}",
-                **error_details,
-            )
-            return False
-
-        return False
-
     def bind_socket(self) -> bool:
         """Bind to socket and handle port conflicts.
 
         Returns:
             bool: True if socket binding was successful, False otherwise
         """
-        # On Windows, explicitly check port availability first
-        if self.port != 0 and platform.system() == "Windows":
-            logger.debug(f"Checking if port {self.port} is already in use")
-            if self.is_port_in_use(self.port):
-                logger.error(
-                    f"Port {self.port} is already in use. "
-                    f"Please choose a different port.",
-                )
-                return False
-            logger.debug(f"Port {self.port} is available")
-
         # Create Uvicorn config and bind socket
         try:
             from agent_platform.server.app import create_app
@@ -225,7 +122,7 @@ class ServerLifecycleManager:
             logger.debug(f"Uvicorn config created: {config_kwargs}")
 
             logger.debug(f"Attempting to bind to {self.host}:{self.port}")
-            self.socket = config.bind_socket()
+            self.socket = _custom_bind_socket(config)
 
             # Get the actual port and host from the socket
             actual_socket_info = self.socket.getsockname()
@@ -254,7 +151,7 @@ class ServerLifecycleManager:
             else:
                 logger.error(f"Failed to bind socket: {e_msg}")
 
-            logger.error("Cannot continue without binding to a socket.")
+            logger.error("Cannot continue without binding to a socket. Exiting.")
             return False
 
     def _handle_host_binding(self, actual_host: str) -> None:
@@ -380,3 +277,77 @@ class ServerLifecycleManager:
             return 1
         finally:
             self.cleanup()
+
+
+def _custom_bind_socket(config: uvicorn.Config) -> socket.socket:
+    """
+    This is a copy of config.bind_socket() with the sole intent of
+    allowing us to set the socket options to SO_REUSEADDR or SOCK_STREAM
+    depending on the platform (on windows SO_REUSEADDR would allow one
+    process to bind to a port used by another process if SO_REUSEADDR is set).
+    """
+    import sys
+
+    import click
+
+    logger_args: list[str | int]
+    if config.uds:  # pragma: py-win32
+        path = config.uds
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        try:
+            sock.bind(path)
+            uds_perms = 0o666
+            os.chmod(config.uds, uds_perms)
+        except OSError as exc:  # pragma: full coverage
+            logger.error(str(exc))
+            sys.exit(1)
+
+        message = "Uvicorn running on unix socket %s (Press CTRL+C to quit)"
+        sock_name_format = "%s"
+        color_message = (
+            "Uvicorn running on "
+            + click.style(sock_name_format, bold=True)
+            + " (Press CTRL+C to quit)"
+        )
+        logger_args = [config.uds]
+    elif config.fd:  # pragma: py-win32
+        sock = socket.fromfd(config.fd, socket.AF_UNIX, socket.SOCK_STREAM)
+        message = "Uvicorn running on socket %s (Press CTRL+C to quit)"
+        fd_name_format = "%s"
+        color_message = (
+            "Uvicorn running on "
+            + click.style(fd_name_format, bold=True)
+            + " (Press CTRL+C to quit)"
+        )
+        logger_args = [sock.getsockname()]
+    else:
+        family = socket.AF_INET
+        addr_format = "%s://%s:%d"
+
+        if config.host and ":" in config.host:  # pragma: full coverage
+            # It's an IPv6 address.
+            family = socket.AF_INET6
+            addr_format = "%s://[%s]:%d"
+
+        sock = socket.socket(family=family)
+        if sys.platform == "win32":
+            sock.setsockopt(socket.SOL_SOCKET, socket.SOCK_STREAM, 1)
+        else:
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            sock.bind((config.host, config.port))
+        except OSError as exc:  # pragma: full coverage
+            logger.error(str(exc))
+            sys.exit(1)
+
+        message = f"Uvicorn running on {addr_format} (Press CTRL+C to quit)"
+        color_message = (
+            "Uvicorn running on "
+            + click.style(addr_format, bold=True)
+            + " (Press CTRL+C to quit)"
+        )
+        protocol_name = "https" if config.is_ssl else "http"
+        logger_args = [protocol_name, config.host, sock.getsockname()[1]]
+    logger.info(message, *logger_args, extra={"color_message": color_message})
+    sock.set_inheritable(True)
+    return sock

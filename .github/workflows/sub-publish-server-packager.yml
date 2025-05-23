@@ -14,6 +14,13 @@ on:
         description: 'Optional version number to use (overrides internal version check)'
         required: false
         type: string
+    secrets:
+      GIT_TOKEN:
+        description: 'GitHub token'
+        required: true
+      GIT_USERNAME:
+        description: 'GitHub username'
+        required: true
 
 jobs:
   package-agent-server:
@@ -24,6 +31,9 @@ jobs:
           ref: ${{ inputs.ref }}
 
       - uses: ./.github/actions/prep_environment
+        with:
+          GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+          GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
 
       - uses: ./.github/actions/get_version
         id: get-version

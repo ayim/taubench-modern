@@ -15,6 +15,9 @@ description: |
                           # CI step that creates a commit
 
   - uses: ./.github/actions/prep_environment
+    with:
+      GIT_TOKEN: ... var that contains the secret token ...
+      GIT_USERNAME: ... var that contains the secret username ...
   ```
 
 inputs:
@@ -26,6 +29,12 @@ inputs:
     description: 'The version of versionbump to install, defaults to latest'
     required: false
     default: 'latest'
+  GIT_TOKEN:
+    description: 'GitHub token'
+    required: true
+  GIT_USERNAME:
+    description: 'GitHub username'
+    required: true
 
 runs:
   using: 'composite'
@@ -39,15 +48,15 @@ runs:
           **/uv.lock
         cache-suffix: agent-platform
 
-    - name: Sync environment (Installs dependencies)
-      shell: bash
-      run: make sync
-
     - name: Configure git
       shell: bash
       run: |
         git config --global user.email "agent-team@no-reply.sema4.ai"
         git config --global user.name "Sema4.ai Agent Team"
+        git config --global url."https://${{ inputs.GIT_USERNAME }}:${{ inputs.GIT_TOKEN }}@github.com/".insteadOf "https://github.com/"
+    - name: Sync environment (Installs dependencies)
+      shell: bash
+      run: make sync
 
     - name: Set up Versionbump
       uses: ./.github/actions/setup_versionbump

@@ -13,6 +13,13 @@ on:
         required: false
         type: string
         default: 'ubuntu-24.04'
+    secrets:
+      GIT_TOKEN:
+        description: 'GitHub token'
+        required: true
+      GIT_USERNAME:
+        description: 'GitHub username'
+        required: true
 
 jobs:
   check-changes:
@@ -26,6 +33,9 @@ jobs:
           fetch-tags: true
 
       - uses: ./.github/actions/prep_environment
+        with:
+          GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+          GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
 
       - name: Run check-changes
         run: make check-changes

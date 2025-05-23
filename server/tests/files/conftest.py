@@ -2,8 +2,7 @@ import os
 from pathlib import Path
 
 import pytest
-
-from server.tests.bootstrap_agent_server import AgentServerProcess
+from agent_server_orchestrator.bootstrap_agent_server import AgentServerProcess
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -15,16 +14,6 @@ def _load_env():
         load_dotenv()
     except ImportError:
         pass
-
-
-@pytest.fixture
-def logs_dir(request) -> Path:
-    directory = (
-        Path(os.path.normpath(os.path.abspath(os.path.dirname(__file__))))
-        / f"logs/{request.node.name}-{os.getpid()}"
-    )
-    directory.mkdir(parents=True, exist_ok=True)
-    return directory
 
 
 @pytest.fixture
@@ -69,7 +58,11 @@ def _get_base_url(tmpdir, logs_dir, files_location, env_vars):
     for key, value in env_vars.items():
         os.environ[key] = str(value)
 
-    start_server = os.getenv("INTEGRATION_TEST_START_SERVER", "false")
+    # Set INTEGRATION_TEST_START_SERVER to true by default (it should be
+    # possible to anyone to get the project and run "make test-integration"
+    # and have tests pass -- INTEGRATION_TEST_START_SERVER can be set to
+    # False when developing locally to connect to a running instance if needed).
+    start_server = os.getenv("INTEGRATION_TEST_START_SERVER", "true")
     if start_server == "true":
         print("Starting agent server")
         agent_server_data_dir = Path(tmpdir) / "agent_server_data"
@@ -79,8 +72,10 @@ def _get_base_url(tmpdir, logs_dir, files_location, env_vars):
             logs_dir=logs_dir,
             env=env_vars,
         )
-        yield f"http://{agent_server_process.host}:{agent_server_process.port}"
-        agent_server_process.stop()
+        try:
+            yield f"http://{agent_server_process.host}:{agent_server_process.port}"
+        finally:
+            agent_server_process.stop()
     else:
         host = os.getenv("API_HOST", "localhost")
         port = os.getenv("API_PORT", "8000")

@@ -13,6 +13,13 @@ on:
         required: false
         type: string
         default: 'ubuntu-24.04'
+    secrets:
+      GIT_TOKEN:
+        description: 'GitHub token'
+        required: true
+      GIT_USERNAME:
+        description: 'GitHub username'
+        required: true
 
 jobs:
   check-format:
@@ -24,6 +31,9 @@ jobs:
           ref: ${{ inputs.ref }}
 
       - uses: ./.github/actions/prep_environment
+        with:
+          GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+          GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
 
       - name: Check formatting
         run: make check-format

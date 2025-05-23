@@ -9,27 +9,24 @@ on:
 jobs:
   check-changes:
     uses: ./.github/workflows/sub-test-changes.yml
+    secrets: inherit
 
   test:
     uses: ./.github/workflows/sub-test-unit.yml
-    secrets:
-      MACOS_SIGNING_CERT_SEMA4AI: ${{ secrets.MACOS_SIGNING_CERT_SEMA4AI }}
-      MACOS_SIGNING_CERT_PASSWORD_SEMA4AI: ${{ secrets.MACOS_SIGNING_CERT_PASSWORD_SEMA4AI }}
-      MACOS_SIGNING_CERT_NAME_SEMA4AI: ${{ secrets.MACOS_SIGNING_CERT_NAME_SEMA4AI }}
-      MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI: ${{ secrets.MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI }}
-      MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI: ${{ secrets.MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI }}
-      MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI: ${{ secrets.MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI }}
-      WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI }}
-      WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI }}
-      WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI }}
-      WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI }}
-      WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI }}
+    secrets: inherit
 
   lint:
     uses: ./.github/workflows/sub-test-lint.yml
+    secrets: inherit
 
   typecheck:
     uses: ./.github/workflows/sub-test-typecheck.yml
+    secrets: inherit
 
   format:
     uses: ./.github/workflows/sub-test-format.yml
+    secrets: inherit
+
+  integration-tests:
+    uses: ./.github/workflows/sub-test-integration.yml
+    secrets: inherit

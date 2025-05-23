@@ -29,6 +29,12 @@ on:
         type: string
         default: 'macos-13'
     secrets:
+      GIT_TOKEN:
+        description: 'GitHub token'
+        required: true
+      GIT_USERNAME:
+        description: 'GitHub username'
+        required: true
       MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI:
         description: 'MacOS App ID for notarization'
         required: true
@@ -80,6 +86,9 @@ jobs:
           ref: ${{ inputs.ref }}
 
       - uses: ./.github/actions/prep_environment
+        with:
+          GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+          GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
 
       - name: Run Unit tests
         run: make test-unit

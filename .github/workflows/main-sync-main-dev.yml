@@ -15,7 +15,10 @@ on:
         default: 'main'
     secrets:
       GIT_TOKEN:
-        # Must be a PAT with repo and workflow scopes
+        description: 'GitHub token'
+        required: true
+      GIT_USERNAME:
+        description: 'GitHub username'
         required: true
 
 jobs:
@@ -31,6 +34,10 @@ jobs:
           ref: ${{ inputs.dev_branch_name }}
           fetch-depth: 0
           token: ${{ secrets.GIT_TOKEN }}
+
+      - name: Setup git credentials
+        run: |
+          git config --global url."https://${{ secrets.GIT_USERNAME }}:${{ secrets.GIT_TOKEN }}@github.com/".insteadOf "https://github.com/"
 
       - name: Merge main into development
         run: |

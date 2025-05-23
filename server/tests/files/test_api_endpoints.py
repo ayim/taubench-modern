@@ -3,13 +3,12 @@ from collections.abc import Callable
 
 import pytest
 import requests
-from fastapi import status
-
-from server.tests.agent_client import (
+from agent_server_orchestrator.agent_server_client import (
     AgentServerClient,
     print_header,
     print_success,
 )
+from fastapi import status
 
 
 def _file_uploads_with_existing_thread(
