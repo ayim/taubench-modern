@@ -15,7 +15,7 @@ prerelease-labels:
   - "rc"
 
 # The build label. This is the label that will be used for build versions.
-build-label: 'gowrapper2'
+build-label: 'llmmodelname'
 
 files:                   # The files to update with the new version.
   - path: "pyproject.toml"

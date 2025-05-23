@@ -62,7 +62,7 @@ class AgentCompat(Agent):
         # Fallback default to keep studio rendering happy
         model = {
             "provider": "OpenAI",
-            "model": "gpt-4o",
+            "name": "gpt-4o",
             "config": {},
         }
 
@@ -112,7 +112,7 @@ class AgentCompat(Agent):
 
         return dict(
             provider=cls.KIND_TO_PROVIDER[platform_configs[0].kind],
-            model=cls.KIND_TO_LEGACY_MODEL[platform_configs[0].kind],
+            name=cls.KIND_TO_LEGACY_MODEL[platform_configs[0].kind],
             config=model_config,
         )
 
