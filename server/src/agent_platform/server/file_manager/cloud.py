@@ -102,10 +102,11 @@ class CloudFileManager(BaseFileManager):
             data=payload,
             files={"file": file_data.content},
         )
-        if response.status_code != status.HTTP_200_OK:
+
+        if response.status_code not in (status.HTTP_200_OK, status.HTTP_204_NO_CONTENT):
             logger.error(
-                "Failed to upload file",
-                status_code=response.status_code,
+                "Failed to upload file. Received status_code=%s, expected=200 or 204.",
+                response.status_code,
             )
             raise Exception("Failed to upload file")
 
