@@ -124,6 +124,9 @@ jobs:
       - build-agent-server
     with:
       ref: ${{ inputs.ref }}
+    secrets:
+      GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+      GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
 
   publish-agent-server-s3:
     uses: ./.github/workflows/sub-publish-server-s3.yml
@@ -132,6 +135,9 @@ jobs:
     with:
       ref: ${{ inputs.ref }}
       release_channel: ${{ inputs.release_channel }}
+    secrets:
+      GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+      GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
 
   publish-agent-server-gh:
     uses: ./.github/workflows/sub-publish-server-gh.yml
@@ -144,3 +150,6 @@ jobs:
       macos_x64_binary_url: ${{ needs.publish-agent-server-s3.outputs.macos_x64_binary_url }}
       macos_arm64_binary_url: ${{ needs.publish-agent-server-s3.outputs.macos_arm64_binary_url }}
       linux_x64_binary_url: ${{ needs.publish-agent-server-s3.outputs.linux_x64_binary_url }}
+    secrets:
+      GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+      GIT_USERNAME: ${{ secrets.GIT_USERNAME }}

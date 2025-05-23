@@ -47,10 +47,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup git credentials
-        run: |
-          git config --global url."https://${{ secrets.GIT_USERNAME }}:${{ secrets.GIT_TOKEN }}@github.com/".insteadOf "https://github.com/"
-
       - name: Set outputs
         id: set-version
         run: |
