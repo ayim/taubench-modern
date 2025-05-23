@@ -1,3 +1,41 @@
+# Sema4.ai Agent Server Pre-Release 2.0.0-beta.2 (2025-05-23)
+
+## Agent Server
+
+### Bugfixes
+
+- Increase tool definition caching sophistication (for MCP and Action servers); allow clients to disable tool caching using the SEMA4AI_AGENT_SERVER_TOOL_CACHE_ENABLED=false environment variable. ([GPT-858](https://linear.app/sema4ai/issue/GPT-858))
+- Made tool error handling more reliable with clearer error messages when tools encounter problems during execution ([GPT-860](https://linear.app/sema4ai/issue/GPT-860))
+- Use env variables to setup langsmith for back compat ([GPT-865](https://linear.app/sema4ai/issue/GPT-865))
+- Fixed issue where Agent Server wouldn't start because it presumed a port was being used while it was actually free. ([GPT-870](https://linear.app/sema4ai/issue/GPT-870))
+
+### Improved Documentation
+
+- Added vscode launch profile for testing jwt local and postgres config
+
+### Additional Information Not Pertinent to Client Users
+
+- [GPT-866](https://linear.app/sema4ai/issue/GPT-866), [GPT-866](https://linear.app/sema4ai/issue/GPT-866)
+
+
+## Public API
+
+No significant changes.
+
+
+## Private API
+
+### Features
+
+- Add PUT /threads api ([GPT-861](https://linear.app/sema4ai/issue/GPT-861))
+- Patch openapi spec with an endpoint for websocket streaming
+
+### Bugfixes
+
+- Fix missing model name for legacy api ([GPT-864](https://linear.app/sema4ai/issue/GPT-864))
+- Fixed file upload errors that could occur when files were successfully uploaded but the system incorrectly reported them as failed ([GPT-868](https://linear.app/sema4ai/issue/GPT-868))
+
+
 # Sema4.ai Agent Server Pre-Release 2.0.0-beta.1 (2025-05-21)
 
 ## Agent Server
