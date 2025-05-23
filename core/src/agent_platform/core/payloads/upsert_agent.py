@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any, Literal, Self, cast
@@ -204,6 +205,30 @@ class UpsertAgentPayload:
                     ],
                 )
             del self.advanced_config["langsmith"]
+
+        # if langchain is provided via environment variables
+        # we override any definition in advanced_config.langsmith
+        api_key = os.getenv("LANGCHAIN_API_KEY")
+        api_url = os.getenv("LANGCHAIN_ENDPOINT")
+        project_name = os.getenv("LANGCHAIN_PROJECT")
+
+        if api_key and api_url and project_name:
+            object.__setattr__(
+                self,
+                "observability_configs",
+                [
+                    ObservabilityConfig.model_validate(
+                        {
+                            "type": "langsmith",
+                            "api_key": api_key,
+                            "api_url": api_url,
+                            "settings": {
+                                "project_name": project_name,
+                            },
+                        }
+                    )
+                ],
+            )
 
     def _handle_legacy_mode(self):
         """Handle backward compatibility for 'mode' in metadata."""
