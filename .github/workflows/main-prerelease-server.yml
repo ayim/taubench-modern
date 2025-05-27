@@ -64,7 +64,7 @@ jobs:
         with:
           version-bump-type: ${{ inputs.bump-type }}
           project-name: server
-          build-changes: true
+          build-changes: ${{ github.ref == 'refs/heads/development' }}
           push-changes: true
 
   build-prerelease:
