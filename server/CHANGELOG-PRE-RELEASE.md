@@ -1,3 +1,32 @@
+# Sema4.ai Agent Server Pre-Release 2.0.0-beta.3 (2025-05-27)
+
+## Agent Server
+
+### Bugfixes
+
+- Fixed an issue where results from tools could be reports as malformed when they are not. ([GPT-875](https://linear.app/sema4ai/issue/GPT-875))
+- Increased the default maximum content limit when truncation is triggered on long tool results to approximately 10,000 tokens. ([GPT-882](https://linear.app/sema4ai/issue/GPT-882))
+
+### Miscellaneous
+
+- Fixes some dev related settings and a broken integration tests. Nothing user facing.
+- If the agent server binary does not exist, the built Docker image is broken because curl does not fail and we don't know in advance that no actual file was downloaded. We change the Dockerfile in order to fail early and not ship broken images.
+
+
+## Public API
+
+No significant changes.
+
+
+## Private API
+
+### Bugfixes
+
+- agents are wrongly created with conversational mode even if worker mode is specified ([GPT-872](https://linear.app/sema4ai/issue/GPT-872))
+- Action invocation user id should be control room `user_id` and not the database `id`.
+- Expires for presigned urls are controlled by Ace. Agent Platorm side we should always refresh the url otherwise we may found out that a cached url is already expired.
+
+
 # Sema4.ai Agent Server Pre-Release 2.0.0-beta.2 (2025-05-23)
 
 ## Agent Server

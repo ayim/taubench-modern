@@ -184,7 +184,7 @@ dev = [{ name = "sema4ai-common", specifier = "==0.1.0" }]
 
 [[package]]
 name = "agent-platform-server"
-version = "2.0.0b2"
+version = "2.0.0b3"
 source = { editable = "server" }
 dependencies = [
     { name = "agent-platform-architectures-default" },
