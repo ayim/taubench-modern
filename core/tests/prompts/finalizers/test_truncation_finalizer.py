@@ -82,7 +82,7 @@ async def test_truncation_not_needed(finalizer, mock_kernel, mock_platform):
 async def test_truncation_with_large_result(finalizer, mock_kernel, mock_platform):
     """Test truncation with a large tool result."""
     # Create a large tool result
-    large_result = "This is a very large tool result. " * 1000  # Lots of tokens
+    large_result = "This is a very large tool result. " * 10000  # Lots of tokens
 
     # Create a prompt with a tool result
     prompt = Prompt(
@@ -126,8 +126,8 @@ async def test_truncation_multiple_results(finalizer, mock_kernel, mock_platform
     """Test truncation with multiple tool results."""
     # Create multiple tool results of different sizes
     small_result = "This is a small tool result."
-    medium_result = "This is a medium tool result. " * 20
-    large_result = "This is a large tool result. " * 500
+    medium_result = "This is a medium tool result. " * 200
+    large_result = "This is a large tool result. " * 5000
 
     # Create a prompt with multiple tool results
     prompt = Prompt(

@@ -289,7 +289,7 @@ async def test_truncation_finalizer_with_platform():
     """Test that the TruncationFinalizer actually truncates tool results
     when used with a platform."""
     # Create a large tool result
-    large_result = "This is a very large tool result. " * 1000  # Lots of tokens
+    large_result = "This is a very large tool result. " * 10000  # Lots of tokens
 
     # Create a prompt with a tool result
     prompt = Prompt(

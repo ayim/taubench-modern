@@ -43,7 +43,7 @@ class TruncationConfig(Configuration):
 
     # TODO: Maybe this should be some percantage of what's available?
     max_content_length: int = field(
-        default=10_000,
+        default=40_000,
         metadata=FieldMetadata(
             description="Maximum length to truncate text content to in characters.",
         ),

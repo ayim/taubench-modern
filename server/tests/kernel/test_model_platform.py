@@ -72,7 +72,7 @@ async def test_generate_response_truncates_tool_results(
     platform_interface.attach_kernel(mock_kernel)
 
     # Create a large tool result (enough to trigger truncation)
-    large_result = "This is a very large tool result. " * 1000  # Lots of tokens
+    large_result = "This is a very large tool result. " * 10000  # Lots of tokens
 
     # Create a prompt with the large tool result
     prompt = Prompt(
@@ -129,7 +129,7 @@ async def test_stream_response_truncates_tool_results(
     )
 
     # Create a large tool result (enough to trigger truncation)
-    large_result = "This is a very large tool result. " * 1000  # Lots of tokens
+    large_result = "This is a very large tool result. " * 10000  # Lots of tokens
 
     # Create a prompt with the large tool result
     prompt = Prompt(
