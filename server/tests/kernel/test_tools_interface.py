@@ -287,3 +287,326 @@ async def test_tool_exception_handling():
     # Verify the exception is properly handled
     assert result.error == "Unexpected error during execution"
     assert result.output_raw is None
+
+
+@pytest.mark.asyncio
+async def test_none_result_handling():
+    """Test that None results from tools are properly handled."""
+
+    # Create a tool that returns None
+    async def none_tool(**kwargs):
+        return None
+
+    tool_def = ToolDefinition(
+        name="none_tool",
+        description="A tool that returns None",
+        input_schema={"type": "object", "properties": {}},
+        function=none_tool,
+    )
+
+    # Create the tools interface
+    interface = AgentServerToolsInterface()
+    mock_kernel = MagicMock()
+    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
+    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
+    interface.attach_kernel(mock_kernel)
+
+    # Create a tool use request
+    tool_use = ResponseToolUseContent(
+        tool_call_id="call_none",
+        tool_name="none_tool",
+        tool_input_raw="{}",
+    )
+
+    # Execute the tool
+    result = await interface._safe_execute_tool(tool_def, tool_use)
+
+    # Verify None is properly handled
+    assert result.error is None
+    assert result.output_raw is None
+    assert result.definition == tool_def
+    assert result.tool_call_id == "call_none"
+
+
+@pytest.mark.asyncio
+async def test_string_result_handling():
+    """Test that string results from tools are properly handled."""
+
+    # Create a tool that returns a string
+    async def string_tool(**kwargs):
+        return "Hello, world!"
+
+    tool_def = ToolDefinition(
+        name="string_tool",
+        description="A tool that returns a string",
+        input_schema={"type": "object", "properties": {}},
+        function=string_tool,
+    )
+
+    # Create the tools interface
+    interface = AgentServerToolsInterface()
+    mock_kernel = MagicMock()
+    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
+    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
+    interface.attach_kernel(mock_kernel)
+
+    # Create a tool use request
+    tool_use = ResponseToolUseContent(
+        tool_call_id="call_string",
+        tool_name="string_tool",
+        tool_input_raw="{}",
+    )
+
+    # Execute the tool
+    result = await interface._safe_execute_tool(tool_def, tool_use)
+
+    # Verify string is properly handled
+    assert result.error is None
+    assert result.output_raw == "Hello, world!"
+    assert result.definition == tool_def
+    assert result.tool_call_id == "call_string"
+
+
+@pytest.mark.asyncio
+async def test_integer_result_handling():
+    """Test that integer results from tools are properly handled."""
+
+    # Create a tool that returns an integer
+    async def integer_tool(**kwargs):
+        return 42
+
+    tool_def = ToolDefinition(
+        name="integer_tool",
+        description="A tool that returns an integer",
+        input_schema={"type": "object", "properties": {}},
+        function=integer_tool,
+    )
+
+    # Create the tools interface
+    interface = AgentServerToolsInterface()
+    mock_kernel = MagicMock()
+    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
+    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
+    interface.attach_kernel(mock_kernel)
+
+    # Create a tool use request
+    tool_use = ResponseToolUseContent(
+        tool_call_id="call_integer",
+        tool_name="integer_tool",
+        tool_input_raw="{}",
+    )
+
+    # Execute the tool
+    result = await interface._safe_execute_tool(tool_def, tool_use)
+
+    # Verify integer is properly handled
+    assert result.error is None
+    assert result.output_raw == 42
+    assert result.definition == tool_def
+    assert result.tool_call_id == "call_integer"
+
+
+@pytest.mark.asyncio
+async def test_float_result_handling():
+    """Test that float results from tools are properly handled."""
+
+    # Create a tool that returns a float
+    async def float_tool(**kwargs):
+        return 3.14159
+
+    tool_def = ToolDefinition(
+        name="float_tool",
+        description="A tool that returns a float",
+        input_schema={"type": "object", "properties": {}},
+        function=float_tool,
+    )
+
+    # Create the tools interface
+    interface = AgentServerToolsInterface()
+    mock_kernel = MagicMock()
+    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
+    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
+    interface.attach_kernel(mock_kernel)
+
+    # Create a tool use request
+    tool_use = ResponseToolUseContent(
+        tool_call_id="call_float",
+        tool_name="float_tool",
+        tool_input_raw="{}",
+    )
+
+    # Execute the tool
+    result = await interface._safe_execute_tool(tool_def, tool_use)
+
+    # Verify float is properly handled
+    assert result.error is None
+    assert result.output_raw == 3.14159
+    assert result.definition == tool_def
+    assert result.tool_call_id == "call_float"
+
+
+@pytest.mark.asyncio
+async def test_boolean_result_handling():
+    """Test that boolean results from tools are properly handled."""
+
+    # Test both True and False values
+    test_cases = [
+        ("true_tool", True),
+        ("false_tool", False),
+    ]
+
+    for tool_name, bool_value in test_cases:
+        # Create a tool that returns a boolean
+        async def boolean_tool(value=bool_value, **kwargs):
+            return value
+
+        tool_def = ToolDefinition(
+            name=tool_name,
+            description=f"A tool that returns {bool_value}",
+            input_schema={"type": "object", "properties": {}},
+            function=boolean_tool,
+        )
+
+        # Create the tools interface
+        interface = AgentServerToolsInterface()
+        mock_kernel = MagicMock()
+        mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
+        mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
+        interface.attach_kernel(mock_kernel)
+
+        # Create a tool use request
+        tool_use = ResponseToolUseContent(
+            tool_call_id=f"call_{tool_name}",
+            tool_name=tool_name,
+            tool_input_raw="{}",
+        )
+
+        # Execute the tool
+        result = await interface._safe_execute_tool(tool_def, tool_use)
+
+        # Verify boolean is properly handled
+        assert result.error is None
+        assert result.output_raw == bool_value
+        assert result.definition == tool_def
+        assert result.tool_call_id == f"call_{tool_name}"
+
+
+@pytest.mark.asyncio
+async def test_malformed_result_handling():
+    """Test that malformed (non-primitive, non-dict) results are properly handled."""
+
+    # Create a tool that returns a malformed result (e.g., a list)
+    async def malformed_tool(**kwargs):
+        return ["this", "is", "a", "list"]
+
+    tool_def = ToolDefinition(
+        name="malformed_tool",
+        description="A tool that returns a malformed result",
+        input_schema={"type": "object", "properties": {}},
+        function=malformed_tool,
+    )
+
+    # Create the tools interface
+    interface = AgentServerToolsInterface()
+    mock_kernel = MagicMock()
+    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
+    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
+    interface.attach_kernel(mock_kernel)
+
+    # Create a tool use request
+    tool_use = ResponseToolUseContent(
+        tool_call_id="call_malformed",
+        tool_name="malformed_tool",
+        tool_input_raw="{}",
+    )
+
+    # Execute the tool
+    result = await interface._safe_execute_tool(tool_def, tool_use)
+
+    # Verify malformed result is properly handled
+    assert result.error == "Received a malformed result from the tool"
+    assert result.output_raw == ["this", "is", "a", "list"]
+    assert result.definition == tool_def
+    assert result.tool_call_id == "call_malformed"
+
+
+@pytest.mark.asyncio
+async def test_dict_with_empty_error_code_handling():
+    """Test that dict results with empty error_code are treated as successful."""
+
+    # Create a tool that returns a dict with empty error_code
+    async def success_dict_tool(**kwargs):
+        return {"error_code": "", "data": "success", "count": 5}
+
+    tool_def = ToolDefinition(
+        name="success_dict_tool",
+        description="A tool that returns a dict with empty error_code",
+        input_schema={"type": "object", "properties": {}},
+        function=success_dict_tool,
+    )
+
+    # Create the tools interface
+    interface = AgentServerToolsInterface()
+    mock_kernel = MagicMock()
+    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
+    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
+    interface.attach_kernel(mock_kernel)
+
+    # Create a tool use request
+    tool_use = ResponseToolUseContent(
+        tool_call_id="call_success_dict",
+        tool_name="success_dict_tool",
+        tool_input_raw="{}",
+    )
+
+    # Execute the tool
+    result = await interface._safe_execute_tool(tool_def, tool_use)
+
+    # Verify dict with empty error_code is treated as successful
+    assert result.error is None
+    assert result.output_raw == {"error_code": "", "data": "success", "count": 5}
+    assert result.definition == tool_def
+    assert result.tool_call_id == "call_success_dict"
+
+
+@pytest.mark.asyncio
+async def test_dict_without_error_code_handling():
+    """Test that dict results without error_code are treated as successful."""
+
+    # Create a tool that returns a dict without error_code
+    async def normal_dict_tool(**kwargs):
+        return {"result": "success", "data": {"key": "value"}, "status": "ok"}
+
+    tool_def = ToolDefinition(
+        name="normal_dict_tool",
+        description="A tool that returns a normal dict",
+        input_schema={"type": "object", "properties": {}},
+        function=normal_dict_tool,
+    )
+
+    # Create the tools interface
+    interface = AgentServerToolsInterface()
+    mock_kernel = MagicMock()
+    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
+    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
+    interface.attach_kernel(mock_kernel)
+
+    # Create a tool use request
+    tool_use = ResponseToolUseContent(
+        tool_call_id="call_normal_dict",
+        tool_name="normal_dict_tool",
+        tool_input_raw="{}",
+    )
+
+    # Execute the tool
+    result = await interface._safe_execute_tool(tool_def, tool_use)
+
+    # Verify dict without error_code is treated as successful
+    assert result.error is None
+    assert result.output_raw == {
+        "result": "success",
+        "data": {"key": "value"},
+        "status": "ok",
+    }
+    assert result.definition == tool_def
+    assert result.tool_call_id == "call_normal_dict"

@@ -86,6 +86,14 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                         error=None,
                         execution_ended_at=datetime.now(UTC),
                     )
+            # Handles all primitive types that action servers can return
+            elif result is None or isinstance(result, str | int | float | bool):
+                return ToolExecutionResult(
+                    **tool_result_args,
+                    output_raw=result,  # This will be stringified later in the run
+                    error=None,
+                    execution_ended_at=datetime.now(UTC),
+                )
             else:
                 # We received a malformed result from the tool
                 return ToolExecutionResult(
