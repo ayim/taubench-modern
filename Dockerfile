@@ -29,9 +29,8 @@ RUN curl -L ${AGENT_CLI_URL} -o /usr/local/bin/agent-cli && \
 WORKDIR /app
 
 # Download the agent-server binary
-RUN curl -L "https://cdn.sema4.ai/agent-server/${AGENT_RELEASE_CHANNEL}/${AGENT_SERVER_VERSION}/linux_x64/agent-server" \
-    -o /usr/local/bin/agent-server && \
-    chmod +x /usr/local/bin/agent-server
+ADD --chmod=755 "https://cdn.sema4.ai/agent-server/${AGENT_RELEASE_CHANNEL}/${AGENT_SERVER_VERSION}/linux_x64/agent-server" \
+    /usr/local/bin/agent-server
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --start-interval=1s --retries=3 \
