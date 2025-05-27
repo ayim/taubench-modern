@@ -115,8 +115,15 @@ def _build_post_async_function(
             **(extra_headers or {}),
         }
 
+        # We can't have any headers that map to None, so filter them out
+        safe_headers = {k: v for k, v in headers.items() if v is not None}
+
         async with ClientSession() as session:
-            async with session.post(action_url, headers=headers, json=args) as response:
+            async with session.post(
+                action_url,
+                headers=safe_headers,
+                json=args,
+            ) as response:
                 return await response.json()
 
     return _post_async_function
