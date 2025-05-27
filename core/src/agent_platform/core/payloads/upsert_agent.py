@@ -550,6 +550,7 @@ class UpsertAgentPayload:
 
         return Agent(
             name=payload.name,
+            mode=payload.mode,
             version=payload.version,
             description=payload.description,
             runbook_structured=(
