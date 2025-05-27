@@ -189,7 +189,7 @@ class PostgresStorageFilesMixin(CommonMixin):
                 """SELECT f.*,
                    v2.check_user_access(f.user_id, %(user_id)s::uuid) AS has_access
                    FROM v2.file_owner f
-                   WHERE file_id = %(file_id)s::text
+                   WHERE file_id = %(file_id)s
                 """,
                 {
                     "file_id": file_id,
@@ -220,7 +220,7 @@ class PostgresStorageFilesMixin(CommonMixin):
                 """SELECT f.file_path,
                    v2.check_user_access(f.user_id, %(user_id)s::uuid) AS has_access
                    FROM v2.file_owner f
-                   WHERE file_id = %(file_id)s::text
+                   WHERE file_id = %(file_id)s
                    AND (
                      agent_id = %(agent_id)s::uuid OR
                      thread_id = %(thread_id)s::uuid
@@ -246,7 +246,7 @@ class PostgresStorageFilesMixin(CommonMixin):
 
             await cur.execute(
                 """
-                DELETE FROM v2.file_owner WHERE file_id = %(file_id)s::text
+                DELETE FROM v2.file_owner WHERE file_id = %(file_id)s
                 """,
                 {"file_id": file_id},
             )
@@ -317,7 +317,7 @@ class PostgresStorageFilesMixin(CommonMixin):
                         created_at
                     )
                     VALUES (
-                        %(file_id)s::uuid, %(file_path)s, %(file_ref)s, %(file_hash)s,
+                        %(file_id)s, %(file_path)s, %(file_ref)s, %(file_hash)s,
                         %(file_size_raw)s, %(mime_type)s, %(user_id)s::uuid,
                         %(embedded)s, %(agent_id)s::uuid, %(thread_id)s::uuid,
                         %(file_path_expiration)s, %(created_at)s
@@ -380,11 +380,12 @@ class PostgresStorageFilesMixin(CommonMixin):
 
         async with self._cursor() as cur:
             # First check access
+            # Nb. file_id contains a uuid4 value, but is a TEXT column in the database.
             await cur.execute(
                 """
                 SELECT v2.check_user_access(f.user_id, %(user_id)s::uuid) AS has_access
                 FROM v2.file_owner f
-                WHERE file_id = %(file_id)s::uuid
+                WHERE file_id = %(file_id)s
                 """,
                 {"file_id": file_id, "user_id": user_id},
             )
@@ -401,7 +402,7 @@ class PostgresStorageFilesMixin(CommonMixin):
                 UPDATE v2.file_owner
                 SET file_path = %(file_path)s,
                     file_path_expiration = %(file_path_expiration)s
-                WHERE file_id = %(file_id)s::uuid
+                WHERE file_id = %(file_id)s
                 RETURNING *
                 """,
                 {

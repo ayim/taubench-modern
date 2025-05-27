@@ -192,14 +192,6 @@ class CloudFileManager(BaseFileManager):
             seconds=CloudFileMgrConfig.file_path_expiration,
         )
 
-    def _file_path_is_expired(self, file: UploadedFile) -> bool:
-        expiration = file.file_path_expiration
-        if not expiration:
-            return False
-        return expiration < datetime.now(UTC) + timedelta(
-            seconds=CloudFileMgrConfig.file_path_expiration_buffer,
-        )
-
     async def delete(self, thread_id: str, user_id: str, file_id: str) -> None:
         await self._delete_stored_file(file_id)
         owner = await self.storage.get_thread(user_id, thread_id)
@@ -215,20 +207,18 @@ class CloudFileManager(BaseFileManager):
     async def refresh_file_paths(self, files: list[UploadedFile]) -> list[UploadedFile]:
         ret = []
         for file in files:
-            if self._file_path_is_expired(file):
-                refreshed_file_path = self._get_presigned_url(
-                    file_id=file.file_id,
-                    file_name=file.file_ref,
-                )
-                updated_file = await self.storage.update_file_retrieve_information(
-                    file_id=file.file_id,
-                    file_path=refreshed_file_path,
-                    file_path_expiration=self._get_file_path_expiration(),
-                    user_id=file.user_id or "",  # TODO: fix?
-                )
-                ret.append(updated_file)
-            else:
-                ret.append(file)
+            refreshed_file_path = self._get_presigned_url(
+                file_id=file.file_id,
+                file_name=file.file_ref,
+            )
+            updated_file = await self.storage.update_file_retrieve_information(
+                file_id=file.file_id,
+                file_path=refreshed_file_path,
+                file_path_expiration=self._get_file_path_expiration(),
+                user_id=file.user_id or "",  # TODO: fix?
+            )
+            ret.append(updated_file)
+
         return ret
 
     async def read_file_contents(self, file_id: str, user_id: str) -> bytes:
@@ -240,14 +230,13 @@ class CloudFileManager(BaseFileManager):
         if not file_path:
             raise Exception(f"File path for file {file_id} not available")
 
-        if self._file_path_is_expired(file):
-            updated_files = await self.refresh_file_paths([file])
-            file_path = updated_files[0].file_path
-            if not file_path:
-                raise Exception(
-                    f"File path for file {file_id} not available after "
-                    "refreshing file paths",
-                )
+        updated_files = await self.refresh_file_paths([file])
+        file_path = updated_files[0].file_path
+        if not file_path:
+            raise Exception(
+                f"File path for file {file_id} not available after "
+                "refreshing file paths",
+            )
 
         try:
             response = requests.get(file_path)
@@ -284,14 +273,13 @@ class CloudFileManager(BaseFileManager):
         if not file_path:
             raise Exception(f"File path for file {file_id} not available")
 
-        if self._file_path_is_expired(file):
-            updated_files = await self.refresh_file_paths([file])
-            file_path = updated_files[0].file_path
-            if not file_path:
-                raise Exception(
-                    f"File path for file {file_id} not available after "
-                    "refreshing file paths",
-                )
+        updated_files = await self.refresh_file_paths([file])
+        file_path = updated_files[0].file_path
+        if not file_path:
+            raise Exception(
+                f"File path for file {file_id} not available after "
+                "refreshing file paths",
+            )
 
         try:
             async with httpx.AsyncClient() as client:
