@@ -251,7 +251,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
 
             base_headers = (extra_headers or {}) | {
                 "x-invoked_by_assistant_id": self.kernel.agent.agent_id,
-                "x-invoked_on_behalf_of_user_id": self.kernel.user.user_id,
+                "x-invoked_on_behalf_of_user_id": self.kernel.user.cr_user_id,
                 "x-invoked_for_thread_id": self.kernel.thread.thread_id,
             }
 

@@ -53,7 +53,7 @@ class _DummyKernel:
         self.agent = types.SimpleNamespace(
             agent_id="agent-1", action_packages=[], mcp_servers=[]
         )
-        self.user = types.SimpleNamespace(user_id="user-1")
+        self.user = types.SimpleNamespace(user_id="user-1", cr_user_id="cr-user-1")
         self.thread = types.SimpleNamespace(thread_id="thread-1")
 
 
