@@ -1,0 +1,10 @@
+- message: 'Error: ''spec-version'' must be ''v2''. Found: 22'
+  range:
+    end:
+      character: 0
+      line: 2
+    start:
+      character: 16
+      line: 1
+  severity: 1
+  source: sema4ai

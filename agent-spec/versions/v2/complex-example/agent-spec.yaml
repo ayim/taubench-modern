@@ -1,0 +1,46 @@
+agent-package:
+  spec-version: v2
+  agents:
+  - name: Test Agent
+    description: Test Agent for tooling. Multiple actions, custom and Sema4.ai, multiple knowledge files, reasoning enabled
+    model:
+      provider: Azure
+      name: ""
+    version: 0.0.1
+    architecture: agent
+    reasoning: enabled
+    runbook: runbook.md
+    action-packages:
+    - name: Wayback Machine
+      organization: Sema4.ai
+      type: folder
+      version: 1.0.0
+      whitelist: get_wayback_changes,get_wayback_snapshots
+      path: Sema4.ai/wayback-machine
+    - name: Free Web Search
+      organization: Sema4.ai
+      type: folder
+      version: 1.0.0
+      whitelist: web_search_places,web_search_news,web_search_images,web_search_videos,web_search_text
+      path: Sema4.ai/free-web-search
+    - name: Simple Greeter
+      organization: MyActions
+      type: folder
+      version: 0.0.1
+      whitelist: greet
+      path: MyActions/simple-greeter
+    - name: Wikipedia Summary
+      organization: MyActions
+      type: folder
+      version: 0.0.1
+      whitelist: get_wikipedia_article_summary
+      path: MyActions/wikipedia-summary
+    knowledge:
+    - name: zzz-knowledge-file.pdf
+      embedded: true
+      digest: 54d1f96849d76467347d06fb1f008fb920408a643f3beaf4892c4a9688ffb74a
+    - name: zzz-knowledge-file.txt
+      embedded: true
+      digest: 9eb3e170fc7cb38f56cde637dce6c0d268caadf782563540ddb20e427949739c
+    metadata:
+      mode: conversational

@@ -1,0 +1,287 @@
+name: Agent CLI Build
+
+on:
+  workflow_dispatch:
+    # Enables manual triggering
+  workflow_call:
+    # Enables calling from other workflows
+    secrets:
+      GH_PAT_GHA_TO_ANOTHER_REPO:
+        required: true
+      WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI:
+        required: true
+      WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI:
+        required: true
+      WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI:
+        required: true
+      WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI:
+        required: true
+      WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI:
+        required: true
+      MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI:
+        required: true
+      MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI:
+        required: true
+      MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI:
+        required: true
+      MACOS_SIGNING_CERT_SEMA4AI:
+        required: true
+      MACOS_SIGNING_CERT_PASSWORD_SEMA4AI:
+        required: true
+      MACOS_SIGNING_CERT_NAME_SEMA4AI:
+        required: true
+    outputs:
+      appVersion:
+        description: "The version of the application"
+        value: ${{ jobs.build-info.outputs.appVersion }}
+      buildTime:
+        description: "The build timestamp"
+        value: ${{ jobs.build-info.outputs.buildTime }}
+      buildInfo:
+        description: "The complete build info string"
+        value: ${{ jobs.build-info.outputs.buildInfo }}
+  pull_request:
+    # Trigger a build on changes to files in cli directory
+    paths:
+      - "client-sdks/golang/agent-cli/**"
+    branches:
+      - development
+
+permissions:
+  contents: read # access to check out code and install dependencies
+
+jobs:
+  build-info:
+    name: Generate Agent CLI build info
+    runs-on: ubuntu-22.04
+    timeout-minutes: 1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+          cache: true
+          cache-dependency-path: cli/go.sum
+      - name: Go Get agent-client-go
+        working-directory: client-sdks/golang/agent-cli
+        env:
+          GH_PAT_GHA_TO_ANOTHER_REPO: ${{secrets.GH_PAT_GHA_TO_ANOTHER_REPO}}
+        run: |
+          git config --global url."https://$GH_PAT_GHA_TO_ANOTHER_REPO@github.com/".insteadOf "https://github.com/"
+          export GOPRIVATE=github.com/Sema4AI/agent-client-go
+          go get github.com/Sema4AI/agent-client-go
+      - name: Generate build info
+        id: build-info
+        working-directory: client-sdks/golang/agent-cli
+        run: |
+          buildTime=$(date +%Y%m%d_%H%M%S)
+          echo "buildTime=${buildTime}" >> $GITHUB_OUTPUT
+          appVersion=$(go run main.go -v)
+          echo "appVersion=${appVersion}" >> $GITHUB_OUTPUT
+          buildInfo=$(echo ${buildTime}-${appVersion}-${GITHUB_SHA} | xargs echo -n)
+          echo "buildInfo=${buildInfo}" >> $GITHUB_OUTPUT
+          echo ${buildInfo}
+    outputs:
+      appVersion: ${{ steps.build-info.outputs.appVersion }}
+      buildTime: ${{ steps.build-info.outputs.buildTime }}
+      buildInfo: ${{ steps.build-info.outputs.buildInfo }}
+
+  build-linux:
+    name: Build for Linux
+    runs-on: ubuntu-22.04
+    needs: build-info
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+          cache: true
+          cache-dependency-path: client-sdks/golang/agent-cli/go.sum
+      - name: Build
+        working-directory: client-sdks/golang/agent-cli
+        env:
+          GH_PAT_GHA_TO_ANOTHER_REPO: ${{secrets.GH_PAT_GHA_TO_ANOTHER_REPO}}
+        run: |
+          git config --global url."https://$GH_PAT_GHA_TO_ANOTHER_REPO@github.com/".insteadOf "https://github.com/"
+          export GOPRIVATE=github.com/Sema4AI/agent-client-go
+          go get github.com/Sema4AI/agent-client-go
+          GOOS=linux GOARCH=amd64 go build -o build/agent-cli
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-cli-linux
+          path: client-sdks/golang/agent-cli/build/agent-cli
+      - name: Get version
+        run: |
+          echo "${{ needs.build-info.outputs.appVersion }}" > client-sdks/golang/agent-cli/build/version.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: agent-cli-version
+          path: "client-sdks/golang/agent-cli/build/version.txt"
+
+  build-windows:
+    name: Build for Windows
+    runs-on: windows-2022
+    needs: build-info
+    env:
+      VAULT_URL: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI }}
+      CLIENT_ID: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI }}
+      TENANT_ID: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI }}
+      CLIENT_SECRET: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI }}
+      CERTIFICATE_NAME: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+          cache: true
+          cache-dependency-path: client-sdks/golang/agent-cli/go.sum
+      - name: Build
+        working-directory: client-sdks/golang/agent-cli
+        env:
+          GH_PAT_GHA_TO_ANOTHER_REPO: ${{secrets.GH_PAT_GHA_TO_ANOTHER_REPO}}
+        run: |
+          dotnet tool install --global AzureSignTool --version 3.0.0
+          set GOOS=windows
+          set GOARCH=amd64
+          git config --global url."https://${{ env.GH_PAT_GHA_TO_ANOTHER_REPO }}@github.com/".insteadOf "https://github.com/"
+          go env -w GOPRIVATE=github.com/Sema4AI/agent-client-go
+          go get github.com/Sema4AI/agent-client-go
+          go build -o build\agent-cli.exe
+          azuresigntool sign `
+            --description-url "https://sema4.ai" `
+            --file-digest sha256 `
+            --azure-key-vault-url $Env:VAULT_URL `
+            --azure-key-vault-client-id $Env:CLIENT_ID `
+            --azure-key-vault-tenant-id $Env:TENANT_ID `
+            --azure-key-vault-client-secret $Env:CLIENT_SECRET `
+            --azure-key-vault-certificate $Env:CERTIFICATE_NAME `
+            --timestamp-rfc3161 http://timestamp.digicert.com `
+            --timestamp-digest sha256 `
+            build\agent-cli.exe
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-cli-windows
+          path: client-sdks/golang/agent-cli/build/agent-cli.exe
+
+  build-macos-intel:
+    name: Build for MacOS Intel
+    runs-on: macos-13
+    needs: build-info
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+          cache: true
+          cache-dependency-path: client-sdks/golang/agent-cli/go.sum
+      - name: Build
+        working-directory: client-sdks/golang/agent-cli
+        env:
+          APPLEID: ${{ secrets.MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI }}
+          APPLEIDPASS: ${{ secrets.MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI }}
+          APPLETEAMID: ${{ secrets.MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI }}
+          MACOS_SIGNING_CERT: ${{ secrets.MACOS_SIGNING_CERT_SEMA4AI }}
+          MACOS_SIGNING_CERT_PASSWORD: ${{ secrets.MACOS_SIGNING_CERT_PASSWORD_SEMA4AI }}
+          MACOS_SIGNING_CERT_NAME: ${{ secrets.MACOS_SIGNING_CERT_NAME_SEMA4AI }}
+          GH_PAT_GHA_TO_ANOTHER_REPO: ${{secrets.GH_PAT_GHA_TO_ANOTHER_REPO}}
+        run: |
+          git config --global url."https://$GH_PAT_GHA_TO_ANOTHER_REPO@github.com/".insteadOf "https://github.com/"
+          export GOPRIVATE=github.com/Sema4AI/agent-client-go
+          go get github.com/Sema4AI/agent-client-go
+          chmod +x ./scripts/sign_and_notarize.sh
+
+          GOOS=darwin GOARCH=amd64 go build -o build/agent-cli-unsigned
+          ./scripts/sign_and_notarize.sh build/agent-cli-unsigned ./dist/ entitlements.mac.plist
+          mv dist/build/agent-cli-unsigned build/agent-cli
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-cli-macos64
+          path: client-sdks/golang/agent-cli/build/agent-cli
+
+  build-macos-arm:
+    name: Build for MacOS Apple Silicon
+    runs-on: macos-15
+    needs: build-info
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+          cache: true
+          cache-dependency-path: client-sdks/golang/agent-cli/go.sum
+      - name: Build
+        working-directory: client-sdks/golang/agent-cli
+        env:
+          APPLEID: ${{ secrets.MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI }}
+          APPLEIDPASS: ${{ secrets.MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI }}
+          APPLETEAMID: ${{ secrets.MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI }}
+          MACOS_SIGNING_CERT: ${{ secrets.MACOS_SIGNING_CERT_SEMA4AI }}
+          MACOS_SIGNING_CERT_PASSWORD: ${{ secrets.MACOS_SIGNING_CERT_PASSWORD_SEMA4AI }}
+          MACOS_SIGNING_CERT_NAME: ${{ secrets.MACOS_SIGNING_CERT_NAME_SEMA4AI }}
+          GH_PAT_GHA_TO_ANOTHER_REPO: ${{secrets.GH_PAT_GHA_TO_ANOTHER_REPO}}
+        run: |
+          git config --global url."https://$GH_PAT_GHA_TO_ANOTHER_REPO@github.com/".insteadOf "https://github.com/"
+          export GOPRIVATE=github.com/Sema4AI/agent-client-go
+          go get github.com/Sema4AI/agent-client-go
+          chmod +x ./scripts/sign_and_notarize.sh
+
+          GOOS=darwin GOARCH=arm64 go build -o build/agent-cli-unsigned
+          ./scripts/sign_and_notarize.sh build/agent-cli-unsigned ./dist/ entitlements.mac.plist
+          mv dist/build/agent-cli-unsigned build/agent-cli
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-cli-macos-arm64
+          path: client-sdks/golang/agent-cli/build/agent-cli
+
+  smoke-test:
+    needs: [build-linux, build-windows, build-macos-arm]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            artifact: agent-cli-linux
+            binary: ./build/agent-cli
+          - os: windows-2022
+            artifact: agent-cli-windows
+            binary: .\build\agent-cli.exe
+          - os: macos-15
+            artifact: agent-cli-macos-arm64
+            binary: ./build/agent-cli
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+          cache: true
+          cache-dependency-path: client-sdks/golang/agent-cli/go.sum
+      - name: Download binary
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: client-sdks/golang/agent-cli/build
+      - name: Set executable permissions
+        if: runner.os != 'Windows'
+        run: chmod +x client-sdks/golang/agent-cli/build/agent-cli
+      - name: Run smoke test
+        working-directory: client-sdks/golang/agent-cli
+        run: go test -v smoke_test.go -binary=${{ matrix.binary }}

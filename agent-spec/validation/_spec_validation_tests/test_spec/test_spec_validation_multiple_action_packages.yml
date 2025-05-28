@@ -1,0 +1,9 @@
+- 'Expected agent-package/agents/action-packages/name to match the name in the action
+  package being referenced (''It was not possible to load the agent-spec.yaml from
+  the referenced .zip file.''). Found in spec: ''Browsing'''
+- Expected agent-package/agents/action-packages/type to be one of ['zip', 'folder']
+  (found 'err').
+- 'Expected agent-package/agents/action-packages/version to match the version in the
+  action package being referenced (''It was not possible to load the agent-spec.yaml
+  from the referenced .zip file.''). Found in spec: ''1.0.1'''
+- Expected agent-package/agents/action-packages/whitelist to be a string (found int).

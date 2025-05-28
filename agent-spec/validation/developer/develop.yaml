@@ -1,0 +1,6 @@
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10.15
+  - uv=0.4.17
+  - poetry=2.1.1
