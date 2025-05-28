@@ -244,9 +244,12 @@ async def stream_run(  # noqa: C901, PLR0912, PLR0915
         # Start a new trace for this stream
         with server_context.start_span("stream_run") as span:
             # Add string attributes that are safe for OTEL
-            span.set_attribute("agent_id", str(agent_id))
-            span.set_attribute("thread_id", str(initial_payload.thread_id))
-            span.set_attribute("user_id", server_context.user_context.user.user_id)
+            span.set_attribute("langsmith.metadata.agent_id", str(agent_id))
+            span.set_attribute("langsmith.metadata.thread_id", str(initial_payload.thread_id))
+            span.set_attribute(
+                "langsmith.metadata.user_id", server_context.user_context.user.user_id
+            )
+            span.set_attribute("langsmith.metadata.agent_name", agent.name)
 
             # 2. Upsert thread and messages
             with server_context.start_span("upsert_thread_and_messages") as upsert_span:
@@ -256,7 +259,7 @@ async def stream_run(  # noqa: C901, PLR0912, PLR0915
                     initial_payload,
                     storage,
                 )
-                upsert_span.set_attribute("message_count", len(initial_payload.messages))
+            span.update_name(f"{thread_state.name}")
 
             # 3. Fetch the agent
             with server_context.start_span("fetch_agent") as fetch_span:
@@ -492,9 +495,12 @@ async def sync_run(  # noqa: C901, PLR0912, PLR0915
         # 1. Initial payload is already validated by FastAPI
         # as a request body parameter
         with server_context.start_span("sync_run") as span:
-            span.set_attribute("agent_id", str(agent_id))
-            span.set_attribute("thread_id", str(initial_payload.thread_id))
-            span.set_attribute("user_id", server_context.user_context.user.user_id)
+            span.set_attribute("langsmith.metadata.agent_id", str(agent_id))
+            span.set_attribute("langsmith.metadata.thread_id", str(initial_payload.thread_id))
+            span.set_attribute(
+                "langsmith.metadata.user_id", server_context.user_context.user.user_id
+            )
+            span.set_attribute("langsmith.metadata.agent_name", agent.name)
 
             # 2. Upsert thread and messages
             with server_context.start_span("upsert_thread_and_messages") as upsert_span:
@@ -504,7 +510,7 @@ async def sync_run(  # noqa: C901, PLR0912, PLR0915
                     initial_payload,
                     storage,
                 )
-                upsert_span.set_attribute("message_count", len(initial_payload.messages))
+            span.update_name(f"{thread_state.name}")
 
             # 3. Fetch the agent
             with server_context.start_span("fetch_agent") as fetch_span:
