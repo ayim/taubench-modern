@@ -3,21 +3,21 @@ name: Test Agent Server
 on:
   push:
     paths:
-      - "architectures"
-      - "client-sdks/typescript"
-      - "client-sdks/golang/agent-client-go"
-      - "core"
-      - "scripts"
-      - "server"
+      - "architectures/**"
+      - "client-sdks/typescript/**"
+      - "client-sdks/golang/agent-client-go/**"
+      - "core/**"
+      - "scripts/**"
+      - "server/**"
     branches: [main, development]
   pull_request:
     paths:
-      - "architectures"
-      - "client-sdks/typescript"
-      - "client-sdks/golang/agent-client-go"
-      - "core"
-      - "scripts"
-      - "server"
+      - "architectures/**"
+      - "client-sdks/typescript/**"
+      - "client-sdks/golang/agent-client-go/**"
+      - "core/**"
+      - "scripts/**"
+      - "server/**"
     branches:
       - '*'
 
