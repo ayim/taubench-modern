@@ -70,7 +70,7 @@ class BedrockPrompt(PlatformPrompt):
             "guardrailConfig": self.guardrail_config,
             "additionalModelRequestFields": self.additional_model_request_fields,
             "promptVariables": self.prompt_variables,
-            "additionalModelResponseFieldPaths": self.additional_model_response_field_paths,  # noqa: E501
+            "additionalModelResponseFieldPaths": self.additional_model_response_field_paths,
             "requestMetadata": self.request_metadata,
             "performanceConfig": self.performance_config,
         }

@@ -147,7 +147,7 @@ class AzureOpenAIPlatformParameters(PlatformParameters):
             "azure_deployment_name_embeddings": self.azure_deployment_name_embeddings,
             "azure_api_version": self.azure_api_version,
             "azure_generated_endpoint_url": self.azure_generated_endpoint_url,
-            "azure_generated_endpoint_url_embeddings": self.azure_generated_endpoint_url_embeddings,  # noqa: E501
+            "azure_generated_endpoint_url_embeddings": self.azure_generated_endpoint_url_embeddings,
         }
 
         if exclude_none:

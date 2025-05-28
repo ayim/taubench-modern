@@ -74,7 +74,7 @@ def mock_kernel():
                 "MockConverters",
                 (),
                 {
-                    "thread_messages_to_prompt_messages": lambda messages: hydrated_messages  # noqa: E501
+                    "thread_messages_to_prompt_messages": lambda messages: hydrated_messages
                 },
             ),
         },

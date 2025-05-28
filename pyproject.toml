@@ -73,7 +73,7 @@ filterwarnings = [
 
 
 [tool.ruff]
-line-length = 88
+line-length = 100
 show-fixes = true
 respect-gitignore = true
 
