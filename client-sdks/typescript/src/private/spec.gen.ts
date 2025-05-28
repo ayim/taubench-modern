@@ -6,7 +6,7 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Private API Version 2',
-    version: '2.0.0-alpha.9+hackathon.7',
+    version: '2.0.0-beta.3',
   },
   paths: {
     '/api/v2/ok': {
@@ -902,6 +902,55 @@ export const spec = {
       },
     },
     '/api/v2/threads/{tid}': {
+      put: {
+        tags: ['threads'],
+        summary: 'Update Thread',
+        description: 'Update an existing thread with the provided fields.',
+        operationId: 'update_thread_threads__tid__put',
+        parameters: [
+          {
+            name: 'tid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Tid',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/UpsertThreadPayload',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/Thread',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/HTTPValidationError',
+                },
+              },
+            },
+          },
+        },
+      },
       get: {
         tags: ['threads'],
         summary: 'Get Thread',
@@ -1582,6 +1631,46 @@ export const spec = {
                 schema: {
                   $ref: '#/components/schemas/HTTPValidationError',
                 },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/debug/tools/report-cache-stats': {
+      get: {
+        tags: ['debug'],
+        summary: 'Report Cache Stats',
+        description:
+          'Report some stats on the tool cache (misses, hits, entries, etc).',
+        operationId: 'report_cache_stats_debug_tools_report_cache_stats_get',
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/CachedToolDefinitionsReport',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/debug/tools/invalidate-cache': {
+      get: {
+        tags: ['debug'],
+        summary: 'Invalidate Cache',
+        description:
+          'Invalidate the tool cache, actions and MCP, for all agents.',
+        operationId: 'invalidate_cache_debug_tools_invalidate_cache_get',
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
               },
             },
           },
@@ -2490,17 +2579,10 @@ export const spec = {
             description:
               'Temporary session token for AWS STS (Security Token Service) credentials. Only required when using temporary credentials (e.g., from AssumeRole or federated access).',
           },
-          _extra_config_params: {
-            anyOf: [
-              {
-                additionalProperties: true,
-                type: 'object',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Extra Config Params',
+          config_params: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Config Params',
           },
         },
         type: 'object',
@@ -2520,6 +2602,82 @@ export const spec = {
         type: 'object',
         required: ['files'],
         title: 'Body_upload_thread_files_threads__tid__files_post',
+      },
+      CachedToolDefinitionsReport: {
+        properties: {
+          cached_action_packages: {
+            items: {
+              additionalProperties: true,
+              type: 'object',
+            },
+            type: 'array',
+            title: 'Cached Action Packages',
+          },
+          cached_mcp_servers: {
+            items: {
+              additionalProperties: true,
+              type: 'object',
+            },
+            type: 'array',
+            title: 'Cached Mcp Servers',
+          },
+          total_success_cache_hits: {
+            type: 'integer',
+            title: 'Total Success Cache Hits',
+          },
+          total_success_cache_misses: {
+            type: 'integer',
+            title: 'Total Success Cache Misses',
+          },
+          total_success_cache_entries: {
+            type: 'integer',
+            title: 'Total Success Cache Entries',
+          },
+          total_negative_cache_hits: {
+            type: 'integer',
+            title: 'Total Negative Cache Hits',
+          },
+          total_negative_cache_misses: {
+            type: 'integer',
+            title: 'Total Negative Cache Misses',
+          },
+          total_negative_cache_entries: {
+            type: 'integer',
+            title: 'Total Negative Cache Entries',
+          },
+          average_success_cache_hit_ratio: {
+            type: 'number',
+            title: 'Average Success Cache Hit Ratio',
+          },
+          average_negative_cache_hit_ratio: {
+            type: 'number',
+            title: 'Average Negative Cache Hit Ratio',
+          },
+          average_time_to_fetch_action_packages: {
+            type: 'number',
+            title: 'Average Time To Fetch Action Packages',
+          },
+          average_time_to_fetch_mcp_servers: {
+            type: 'number',
+            title: 'Average Time To Fetch Mcp Servers',
+          },
+        },
+        type: 'object',
+        required: [
+          'cached_action_packages',
+          'cached_mcp_servers',
+          'total_success_cache_hits',
+          'total_success_cache_misses',
+          'total_success_cache_entries',
+          'total_negative_cache_hits',
+          'total_negative_cache_misses',
+          'total_negative_cache_entries',
+          'average_success_cache_hit_ratio',
+          'average_negative_cache_hit_ratio',
+          'average_time_to_fetch_action_packages',
+          'average_time_to_fetch_mcp_servers',
+        ],
+        title: 'CachedToolDefinitionsReport',
       },
       Citation: {
         properties: {
@@ -3449,6 +3607,30 @@ export const spec = {
             ],
             description:
               'The Reducto API key. If not provided, it will be attempted to be inferred from the environment.',
+          },
+          delegate_kind: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Delegate Kind',
+            description: 'The kind of the delegate platform client.',
+          },
+          delegate_api_key: {
+            anyOf: [
+              {
+                $ref: '#/components/schemas/SecretString',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            description:
+              'The API key for the delegate platform client. If not provided, it will be attempted to be inferred from the environment.',
           },
         },
         type: 'object',

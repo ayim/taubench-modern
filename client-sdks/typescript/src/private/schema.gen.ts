@@ -260,7 +260,11 @@ export interface paths {
     };
     /** Get Thread */
     get: operations['get_thread_threads__tid__get'];
-    put?: never;
+    /**
+     * Update Thread
+     * @description Update an existing thread with the provided fields.
+     */
+    put: operations['update_thread_threads__tid__put'];
     post?: never;
     /** Delete Thread */
     delete: operations['delete_thread_threads__tid__delete'];
@@ -449,6 +453,46 @@ export interface paths {
     };
     /** Get Artifact */
     get: operations['get_artifact_debug_artifacts__aid__get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/debug/tools/report-cache-stats': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Report Cache Stats
+     * @description Report some stats on the tool cache (misses, hits, entries, etc).
+     */
+    get: operations['report_cache_stats_debug_tools_report_cache_stats_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/debug/tools/invalidate-cache': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Invalidate Cache
+     * @description Invalidate the tool cache, actions and MCP, for all agents.
+     */
+    get: operations['invalidate_cache_debug_tools_invalidate_cache_get'];
     put?: never;
     post?: never;
     delete?: never;
@@ -990,15 +1034,46 @@ export interface components {
        * @description Temporary session token for AWS STS (Security Token Service) credentials. Only required when using temporary credentials (e.g., from AssumeRole or federated access).
        */
       aws_session_token?: string | null;
-      /** Extra Config Params */
-      _extra_config_params?: {
+      /** Config Params */
+      config_params?: {
         [key: string]: unknown;
-      } | null;
+      };
     };
     /** Body_upload_thread_files_threads__tid__files_post */
     Body_upload_thread_files_threads__tid__files_post: {
       /** Files */
       files: string[];
+    };
+    /** CachedToolDefinitionsReport */
+    CachedToolDefinitionsReport: {
+      /** Cached Action Packages */
+      cached_action_packages: {
+        [key: string]: unknown;
+      }[];
+      /** Cached Mcp Servers */
+      cached_mcp_servers: {
+        [key: string]: unknown;
+      }[];
+      /** Total Success Cache Hits */
+      total_success_cache_hits: number;
+      /** Total Success Cache Misses */
+      total_success_cache_misses: number;
+      /** Total Success Cache Entries */
+      total_success_cache_entries: number;
+      /** Total Negative Cache Hits */
+      total_negative_cache_hits: number;
+      /** Total Negative Cache Misses */
+      total_negative_cache_misses: number;
+      /** Total Negative Cache Entries */
+      total_negative_cache_entries: number;
+      /** Average Success Cache Hit Ratio */
+      average_success_cache_hit_ratio: number;
+      /** Average Negative Cache Hit Ratio */
+      average_negative_cache_hit_ratio: number;
+      /** Average Time To Fetch Action Packages */
+      average_time_to_fetch_action_packages: number;
+      /** Average Time To Fetch Mcp Servers */
+      average_time_to_fetch_mcp_servers: number;
     };
     /** Citation */
     Citation: {
@@ -1574,6 +1649,13 @@ export interface components {
       reducto_api_url: string;
       /** @description The Reducto API key. If not provided, it will be attempted to be inferred from the environment. */
       reducto_api_key?: components['schemas']['SecretString'] | null;
+      /**
+       * Delegate Kind
+       * @description The kind of the delegate platform client.
+       */
+      delegate_kind?: string | null;
+      /** @description The API key for the delegate platform client. If not provided, it will be attempted to be inferred from the environment. */
+      delegate_api_key?: components['schemas']['SecretString'] | null;
     };
     /** ResponseAudioContent */
     ResponseAudioContent: {
@@ -3218,6 +3300,41 @@ export interface operations {
       };
     };
   };
+  update_thread_threads__tid__put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        tid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpsertThreadPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Thread'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
   delete_thread_threads__tid__delete: {
     parameters: {
       query?: never;
@@ -3640,6 +3757,46 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  report_cache_stats_debug_tools_report_cache_stats_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CachedToolDefinitionsReport'];
+        };
+      };
+    };
+  };
+  invalidate_cache_debug_tools_invalidate_cache_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
         };
       };
     };
