@@ -15,7 +15,7 @@ prerelease-labels:
   - "rc"
 
 # The build label. This is the label that will be used for build versions.
-build-label: 'langsmith-integration'
+build-label: 'langsmithintegration'
 
 
 files:                   # The files to update with the new version.

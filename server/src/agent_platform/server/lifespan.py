@@ -4,6 +4,9 @@ from fastapi import FastAPI
 from starlette.applications import Starlette
 
 from agent_platform.server.constants import SystemPaths
+
+# Import the data migration function
+from agent_platform.server.scripts.migration.auto_migrate import run_automatic_migration
 from agent_platform.server.storage import StorageService
 
 # Use our new telemetry module instead of the old otel module
@@ -18,6 +21,23 @@ async def lifespan(app: FastAPI):
     # Original code
     SystemPaths.upload_dir.mkdir(parents=True, exist_ok=True)
     await StorageService.get_instance().setup()
+
+    # IMPORTANT: Order of operations is critical here!
+    # Current sequence: DB Migrations (create v2 tables) -> Data migration (v1 to v2)
+    # This works for direct v1->v2 upgrades, but if we introduce additional migration
+    # files in the future, customers upgrading from version x->z (skipping y) may
+    # encounter issues if the data migration expects a specific DB schema state.
+
+    # Run data migration from v1 to v2 after database setup
+    # This is safe to run multiple times and will only migrate if needed
+    migration_success = await run_automatic_migration()
+    if not migration_success:
+        # Log the failure but don't crash the server - the migration module
+        # already logs detailed error information
+        import structlog
+
+        logger = structlog.get_logger(__name__)
+        logger.warning("Data migration from v1 to v2 failed, but server will continue")
 
     yield
 
