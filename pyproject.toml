@@ -39,6 +39,7 @@ build = ["pyinstaller==6.11.1"]
 
 [tool.uv]
 package = false
+python-preference = "only-managed"
 
 [tool.uv.sources]
 agent_platform_core = { workspace = true }

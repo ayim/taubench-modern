@@ -3,6 +3,10 @@ name: Test Agent Server
 on:
   push:
     paths:
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - 'Makefile'
+      - 'conftest.py'
       - 'architectures/**'
       - 'client-sdks/typescript/**'
       - 'client-sdks/golang/agent-client-go/**'
@@ -12,6 +16,10 @@ on:
     branches: [main, development]
   pull_request:
     paths:
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - 'Makefile'
+      - 'conftest.py'
       - 'architectures/**'
       - 'client-sdks/typescript/**'
       - 'client-sdks/golang/agent-client-go/**'
