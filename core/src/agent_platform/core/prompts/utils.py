@@ -1,11 +1,74 @@
 """Utility functions for prompt-related operations."""
 
 import json
+from dataclasses import dataclass, field
 from typing import Any, Literal
 
 import structlog
 
+from agent_platform.core.configurations import Configuration, FieldMetadata
+
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
+
+
+@dataclass(frozen=True)
+class TokenCountingConfig(Configuration):
+    """Configuration for token counting."""
+
+    enable_tiktoken: bool = field(
+        default=False,
+        metadata=FieldMetadata(
+            description="Whether to use tiktoken for token counting, defaults to False.",
+            env_vars=["SEMA4AI_AGENT_SERVER_TOKEN_COUNTING_ENABLE_TIKTOKEN"],
+        ),
+    )
+    """Whether to use tiktoken for token counting, defaults to False."""
+
+
+def count_tokens_with_heuristic(
+    text: str,
+) -> int:
+    """Counts the approximate number of tokens in the given text using a heuristic.
+
+    Args:
+        text: The text to count tokens for.
+
+    Returns:
+        int: Estimated token count
+    """
+    char_estimate = len(text) / 4
+    word_estimate = len(text.split()) / 0.75
+    return max(int(char_estimate), int(word_estimate))
+
+
+def count_tokens_with_tiktoken(
+    text: str,
+    model: str = "gpt-3.5-turbo",
+) -> int:
+    """Counts the approximate number of tokens in the given text using tiktoken.
+
+    Args:
+        text: The text to count tokens for.
+        model: The model to use for tiktoken encoding. Defaults to "gpt-3.5-turbo". If
+            the model name is invalid, it will use "gpt-3.5-turbo" as a fallback.
+
+    Returns:
+        int: Estimated token count
+    """
+    try:
+        import tiktoken
+
+        # Use tiktoken for more accurate counting
+        try:
+            encoding = tiktoken.encoding_for_model(model)
+        except KeyError:
+            logger.warning(f"Invalid model name: {model}")
+            encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
+        return len(encoding.encode(text))
+
+    except Exception as e:
+        logger.warning(f"Error counting tokens with tiktoken (will fall back to heuristic): {e}")
+        return count_tokens_with_heuristic(text)
 
 
 def count_tokens_approx(
@@ -30,24 +93,10 @@ def count_tokens_approx(
     Returns:
         int: Estimated token count
     """
-    try:
-        import tiktoken
-
-        # Use tiktoken for more accurate counting
-        try:
-            encoding = tiktoken.encoding_for_model(model)
-        except KeyError:
-            logger.warning(f"Invalid model name: {model}")
-            encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
-        return len(encoding.encode(text))
-
-    except (ImportError, ModuleNotFoundError):
-        # Fall back to heuristic if tiktoken isn't available
-        char_estimate = len(text) / 4
-        word_estimate = len(text.split()) / 0.75
-
-        # Return the maximum of the two estimates
-        return max(int(char_estimate), int(word_estimate))
+    if TokenCountingConfig.enable_tiktoken:
+        return count_tokens_with_tiktoken(text, model)
+    else:
+        return count_tokens_with_heuristic(text)
 
 
 def format_tool_use_for_token_counting(

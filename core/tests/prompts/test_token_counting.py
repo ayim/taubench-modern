@@ -12,8 +12,11 @@ from agent_platform.core.prompts.messages import (
 )
 from agent_platform.core.prompts.prompt import Prompt
 from agent_platform.core.prompts.utils import (
+    TokenCountingConfig,
     count_role_indicator_tokens,
     count_tokens_approx,
+    count_tokens_with_heuristic,
+    count_tokens_with_tiktoken,
     count_tools_tokens,
     format_tool_use_for_token_counting,
 )
@@ -131,35 +134,176 @@ def tool_use_content():
     )
 
 
+# Tests for individual token counting functions
+
+
+def test_count_tokens_with_heuristic():
+    """Test the count_tokens_with_heuristic function."""
+    # Test with simple text
+    text = "Hello, world!"
+    token_count = count_tokens_with_heuristic(text)
+
+    # Verify heuristic calculation
+    char_estimate = len(text) / 4  # 13/4 = 3.25
+    word_estimate = len(text.split()) / 0.75  # 2/0.75 = 2.67
+    expected = max(int(char_estimate), int(word_estimate))  # max(3, 2) = 3
+    assert token_count == expected
+
+    # Test with empty text
+    empty_count = count_tokens_with_heuristic("")
+    assert empty_count == 0
+
+    # Test with single word
+    single_word = count_tokens_with_heuristic("hello")
+    char_est = len("hello") / 4  # 5/4 = 1.25
+    word_est = 1 / 0.75  # 1.33
+    expected = max(int(char_est), int(word_est))  # max(1, 1) = 1
+    assert single_word == expected
+
+    # Test with longer text
+    long_text = "This is a longer sentence with more words and characters."
+    long_count = count_tokens_with_heuristic(long_text)
+    char_est = len(long_text) / 4
+    word_est = len(long_text.split()) / 0.75
+    expected = max(int(char_est), int(word_est))
+    assert long_count == expected
+    assert long_count > token_count  # Should be more than the simple text
+
+
+def test_count_tokens_with_tiktoken():
+    """Test the count_tokens_with_tiktoken function."""
+    text = "Hello, world!"
+
+    # Test with default model (gpt-3.5-turbo)
+    token_count = count_tokens_with_tiktoken(text)
+    assert token_count == 4  # Known value for this text
+
+    # Test with specific model
+    gpt4_count = count_tokens_with_tiktoken(text, model="gpt-4")
+    assert gpt4_count == 4  # Same value for gpt-4
+
+    # Test with invalid model (should fallback to gpt-3.5-turbo)
+    invalid_count = count_tokens_with_tiktoken(text, model="nonexistent-model")
+    assert invalid_count == 4  # Should use fallback
+
+    # Test with empty text
+    empty_count = count_tokens_with_tiktoken("")
+    assert empty_count == 0
+
+    # Test with longer text
+    long_text = "This is a longer sentence with multiple words to test tokenization."
+    long_count = count_tokens_with_tiktoken(long_text)
+    assert long_count > token_count  # Should be more tokens
+    assert long_count > 0
+
+
+def test_count_tokens_with_tiktoken_fallback():
+    """Test that count_tokens_with_tiktoken falls back to heuristic when tiktoken fails."""
+    text = "Hello, world!"
+
+    # Directly mock sys.modules to make tiktoken unavailable
+    import sys
+
+    tiktoken_module = sys.modules.get("tiktoken")
+    try:
+        # Remove tiktoken from sys.modules if it exists
+        if "tiktoken" in sys.modules:
+            del sys.modules["tiktoken"]
+
+        # Mock to raise ImportError when tiktoken is imported
+        with patch.dict("sys.modules", {"tiktoken": None}):
+            # Should fall back to heuristic
+            token_count = count_tokens_with_tiktoken(text)
+
+            # Should match heuristic calculation
+            expected_heuristic = count_tokens_with_heuristic(text)
+            assert token_count == expected_heuristic
+    finally:
+        # Restore tiktoken module if it was there
+        if tiktoken_module is not None:
+            sys.modules["tiktoken"] = tiktoken_module
+
+
+def test_count_tokens_with_tiktoken_encoding_error():
+    """Test tiktoken error handling when encoding fails."""
+    text = "Hello, world!"
+
+    # Mock tiktoken to raise an exception during encoding
+    with patch("tiktoken.encoding_for_model") as mock_encoding:
+        mock_encoding.side_effect = Exception("Encoding error")
+
+        # Should fall back to heuristic
+        token_count = count_tokens_with_tiktoken(text)
+        expected_heuristic = count_tokens_with_heuristic(text)
+        assert token_count == expected_heuristic
+
+
 # Tests for utility functions
+
+
+def test_count_tokens_approx_with_config():
+    """Test that count_tokens_approx respects the TokenCountingConfig."""
+    text = "Hello, world!"
+
+    # Save the original instance
+    original_instance = TokenCountingConfig._instances.get(TokenCountingConfig)
+
+    try:
+        # Test with tiktoken enabled
+        tiktoken_config = TokenCountingConfig(enable_tiktoken=True)
+        TokenCountingConfig.set_instance(tiktoken_config)
+
+        tiktoken_count = count_tokens_approx(text)
+        expected_tiktoken = count_tokens_with_tiktoken(text)
+        assert tiktoken_count == expected_tiktoken
+
+        # Test with tiktoken disabled
+        heuristic_config = TokenCountingConfig(enable_tiktoken=False)
+        TokenCountingConfig.set_instance(heuristic_config)
+
+        heuristic_count = count_tokens_approx(text)
+        expected_heuristic = count_tokens_with_heuristic(text)
+        assert heuristic_count == expected_heuristic
+
+    finally:
+        # Restore original instance
+        if original_instance is not None:
+            TokenCountingConfig.set_instance(original_instance)
+        else:
+            # Remove from instances if there was no original
+            TokenCountingConfig._instances.pop(TokenCountingConfig, None)
 
 
 def test_count_tokens_approx_utility():
     """Test the count_tokens_approx utility function."""
     text = "Hello, world!"
 
-    # Test with tiktoken
-    tiktoken_count = count_tokens_approx(text)
-    assert tiktoken_count == 4  # Actual value for this text with tiktoken
+    # Test with current config (heuristic by default)
+    current_count = count_tokens_approx(text)
+    assert current_count == 3  # Heuristic value for this text
 
-    # Test with different model
+    # Test with different model (should still use heuristic by default)
     gpt4_count = count_tokens_approx(text, model="gpt-4")
-    assert gpt4_count == 4  # Same for gpt-4 in this case
+    assert gpt4_count == 3  # Still heuristic since config is disabled
 
-    # Test with invalid model name
+    # Test with invalid model name (should still use heuristic)
     invalid_model_count = count_tokens_approx(text, model="nonexistent-model")
-    assert invalid_model_count == 4  # Should fall back to gpt-3.5-turbo encoding
+    assert invalid_model_count == 3  # Should use heuristic
 
-    # Test fallback to heuristic
-    with patch(
-        "builtins.__import__",
-        side_effect=lambda name, *args: __import__(name, *args)
-        if name != "tiktoken"
-        else exec("raise ImportError"),
-    ):
-        heuristic_count = count_tokens_approx(text)
-        # Should be close to actual count
-        assert 2 <= heuristic_count <= 6
+    # Test with tiktoken enabled via config
+    original_instance = TokenCountingConfig._instances.get(TokenCountingConfig)
+    try:
+        tiktoken_config = TokenCountingConfig(enable_tiktoken=True)
+        TokenCountingConfig.set_instance(tiktoken_config)
+
+        tiktoken_count = count_tokens_approx(text)
+        assert tiktoken_count == 4  # tiktoken value for this text
+    finally:
+        # Restore original instance
+        if original_instance is not None:
+            TokenCountingConfig.set_instance(original_instance)
+        else:
+            TokenCountingConfig._instances.pop(TokenCountingConfig, None)
 
 
 def test_format_tool_use_for_token_counting():
@@ -237,8 +381,8 @@ def test_text_content_token_counting():
     content = PromptTextContent(text="Hello, world!")
     token_count = content.count_tokens_approx()
 
-    # Actual token count for this text
-    assert token_count == 4
+    # Actual token count for this text with heuristic method (current default)
+    assert token_count == 3
 
 
 def test_tool_use_content_token_counting(tool_use_content):
@@ -265,13 +409,13 @@ def test_tool_use_content_token_counting(tool_use_content):
 @pytest.mark.parametrize(
     ("model", "expected_tokens"),
     [
-        ("gpt-3.5-turbo", 7),  # 4 for "Hello, world!" + 3 for "user: "
-        ("gpt-4", 7),  # Same count for both models
-        ("nonexistent-model", 7),  # Should fall back to gpt-3.5-turbo
+        ("gpt-3.5-turbo", 4),  # 3 for "Hello, world!" + 1 for role indicator (heuristic)
+        ("gpt-4", 4),  # Same count for both models
+        ("nonexistent-model", 4),  # Should use heuristic
     ],
 )
-def test_count_tokens_approx_with_tiktoken(simple_prompt: Prompt, model: str, expected_tokens: int):
-    """Test token counting using tiktoken."""
+def test_prompt_count_tokens_approx(simple_prompt: Prompt, model: str, expected_tokens: int):
+    """Test token counting using the current configuration (heuristic by default)."""
     token_count = simple_prompt.count_tokens_approx(model=model)
     assert token_count == expected_tokens
 
@@ -281,8 +425,9 @@ def test_count_tokens_approx_with_system_instruction(
 ):
     """Test token counting with system instruction."""
     token_count = prompt_with_system.count_tokens_approx()
-    # "system: You are a helpful assistant." + "user: Hello, world!"
-    assert token_count >= 14
+    # With heuristic method: "You are a helpful assistant." (7) + "Hello, world!" (3)
+    # + role indicators (2)
+    assert token_count >= 12
 
 
 def test_count_tokens_approx_conversation(prompt_with_conversation: Prompt):
@@ -297,23 +442,6 @@ def test_count_tokens_approx_with_tools(prompt_with_tools: Prompt):
     token_count = prompt_with_tools.count_tokens_approx()
     # Tool definitions add to token count
     assert token_count > 10
-
-
-def test_count_tokens_no_tiktoken(simple_prompt: Prompt):
-    """Test token counting fallback when tiktoken is not available."""
-    # Mock ImportError when importing tiktoken
-    with patch(
-        "builtins.__import__",
-        side_effect=lambda name, *args: __import__(name, *args)
-        if name != "tiktoken"
-        else exec("raise ImportError"),
-    ):
-        # This should use the heuristic method
-        token_count = simple_prompt.count_tokens_approx()
-
-        # Check that the token count is reasonable
-        # "user: Hello, world!" has ~15 chars and 3 words
-        assert token_count > 0
 
 
 def test_empty_prompt():

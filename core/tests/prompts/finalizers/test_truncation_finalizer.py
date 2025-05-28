@@ -425,7 +425,7 @@ def test_truncate_content_method(finalizer):
     original_tool_text_len = len(tool_result_text_content.text)
 
     # Call _truncate_content with a significant tokens_to_reduce
-    tokens_to_reduce = 500
+    tokens_to_reduce = 750
     _ = finalizer._truncate_content(truncatable_content, tokens_to_reduce)
 
     # Verify both text contents were truncated
