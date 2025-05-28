@@ -1,4 +1,4 @@
-- message: 'Error: ''spec-version'' must be ''v2''. Found: 22'
+- message: "Error: 'spec-version' must be 'v2'. Found: 22"
   range:
     end:
       character: 0

@@ -207,16 +207,12 @@ class LangSmithContext:
                         if isinstance(message, dict):
                             # Set role attribute if available
                             if "role" in message:
-                                span.set_attribute(
-                                    f"gen_ai.prompt.{i}.role", str(message["role"])
-                                )
+                                span.set_attribute(f"gen_ai.prompt.{i}.role", str(message["role"]))
 
                             # Set content attribute if available
                             if "content" in message:
                                 content_value = message["content"]
-                                span.set_attribute(
-                                    f"gen_ai.prompt.{i}.content", str(content_value)
-                                )
+                                span.set_attribute(f"gen_ai.prompt.{i}.content", str(content_value))
 
                             # Handle tool calls if present
                             if "tool_calls" in message:
@@ -248,13 +244,9 @@ class LangSmithContext:
                 if "output" in span_data:
                     output = span_data["output"]
                     if isinstance(output, dict) and "content" in output:
-                        span.set_attribute(
-                            "gen_ai.completion.0.content", str(output["content"])
-                        )
+                        span.set_attribute("gen_ai.completion.0.content", str(output["content"]))
                         if "role" in output:
-                            span.set_attribute(
-                                "gen_ai.completion.0.role", output["role"]
-                            )
+                            span.set_attribute("gen_ai.completion.0.role", output["role"])
                     elif isinstance(output, str):
                         span.set_attribute("gen_ai.completion.0.content", output)
 
@@ -263,17 +255,11 @@ class LangSmithContext:
                     usage = metadata["usage"]
                     if isinstance(usage, dict):
                         if "input_tokens" in usage:
-                            span.set_attribute(
-                                "gen_ai.usage.input_tokens", usage["input_tokens"]
-                            )
+                            span.set_attribute("gen_ai.usage.input_tokens", usage["input_tokens"])
                         if "output_tokens" in usage:
-                            span.set_attribute(
-                                "gen_ai.usage.output_tokens", usage["output_tokens"]
-                            )
+                            span.set_attribute("gen_ai.usage.output_tokens", usage["output_tokens"])
                         if "total_tokens" in usage:
-                            span.set_attribute(
-                                "gen_ai.usage.total_tokens", usage["total_tokens"]
-                            )
+                            span.set_attribute("gen_ai.usage.total_tokens", usage["total_tokens"])
 
             except Exception as e:
                 span.set_status(Status(StatusCode.ERROR))

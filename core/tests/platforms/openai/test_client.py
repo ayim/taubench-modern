@@ -573,9 +573,7 @@ class TestOpenAIClient:
                                     "properties": {
                                         "location": {
                                             "type": "string",
-                                            "description": (
-                                                "The city to get weather for",
-                                            ),
+                                            "description": ("The city to get weather for",),
                                         },
                                     },
                                     "required": ["location"],

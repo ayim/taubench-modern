@@ -129,8 +129,7 @@ class CortexClient(
         cortex_completion_path = "/api/v2/cortex/inference:complete"
 
         completions_url = (
-            f"https://{self._cortex_runtime_session.connection.host}"
-            f"{cortex_completion_path}"
+            f"https://{self._cortex_runtime_session.connection.host}{cortex_completion_path}"
         )
         if "_" in completions_url:
             # Shouldn't happen, but just in case
@@ -305,8 +304,7 @@ class CortexClient(
             span.add_event("checking if warehouse is specified")
             if self._parameters.snowflake_warehouse:
                 logger.debug(
-                    "Setting active warehouse to: "
-                    f"{self._parameters.snowflake_warehouse}",
+                    f"Setting active warehouse to: {self._parameters.snowflake_warehouse}",
                 )
                 span.add_event(
                     "setting active warehouse",
@@ -366,8 +364,7 @@ class CortexClient(
                     f"Error when trying to automatically select a warehouse: {e}",
                 )
                 logger.warning(
-                    "Cortex embeddings require a compute warehouse. "
-                    "Operations may fail.",
+                    "Cortex embeddings require a compute warehouse. Operations may fail.",
                 )
 
     async def create_embeddings(

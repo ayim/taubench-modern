@@ -13,9 +13,7 @@ def safe_urljoin(base_url: str, *path_segments: str) -> str:
     """
     from urllib.parse import urljoin
 
-    normalized_segments = [
-        segment.strip("/") for segment in path_segments if segment.strip("/")
-    ]
+    normalized_segments = [segment.strip("/") for segment in path_segments if segment.strip("/")]
 
     if not normalized_segments:
         return base_url

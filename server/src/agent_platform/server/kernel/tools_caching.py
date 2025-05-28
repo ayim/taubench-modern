@@ -104,11 +104,9 @@ class ToolDefinitionCache:
     # ------------------------------------------------------------------ init-once
 
     def _init_once(self) -> None:
-        self._success_cache: TTLCache[str, tuple[list[ToolDefinition], list[str]]] = (
-            TTLCache(
-                maxsize=ToolCacheConfig.max_cache_size,
-                ttl=ToolCacheConfig.ttl_seconds,
-            )
+        self._success_cache: TTLCache[str, tuple[list[ToolDefinition], list[str]]] = TTLCache(
+            maxsize=ToolCacheConfig.max_cache_size,
+            ttl=ToolCacheConfig.ttl_seconds,
         )
         self._negative_cache: TTLCache[str, list[str]] = TTLCache(
             maxsize=ToolCacheConfig.max_cache_size,
@@ -243,15 +241,12 @@ class ToolDefinitionCache:
                 "key": key,
                 "cache_type": "success" if in_success_cache else "negative",
                 "definitions": [
-                    definition.model_dump()
-                    for definition in self._success_cache[key][0]
+                    definition.model_dump() for definition in self._success_cache[key][0]
                 ]
                 if in_success_cache
                 else [],
                 "issues": (
-                    self._success_cache[key][1]
-                    if in_success_cache
-                    else self._negative_cache[key]
+                    self._success_cache[key][1] if in_success_cache else self._negative_cache[key]
                 ),
             }
 
@@ -261,17 +256,11 @@ class ToolDefinitionCache:
         cached_action_packages = [
             _get_cache_value(key) for key in self._keys_by_kind["action_packages"]
         ]
-        cached_mcp_servers = [
-            _get_cache_value(key) for key in self._keys_by_kind["mcp_servers"]
-        ]
+        cached_mcp_servers = [_get_cache_value(key) for key in self._keys_by_kind["mcp_servers"]]
 
         report = CachedToolDefinitionsReport(
-            cached_action_packages=[
-                value for value in cached_action_packages if value is not None
-            ],
-            cached_mcp_servers=[
-                value for value in cached_mcp_servers if value is not None
-            ],
+            cached_action_packages=[value for value in cached_action_packages if value is not None],
+            cached_mcp_servers=[value for value in cached_mcp_servers if value is not None],
             total_success_cache_hits=self._success_hits,
             total_success_cache_misses=self._success_misses,
             total_success_cache_entries=len(self._success_cache),

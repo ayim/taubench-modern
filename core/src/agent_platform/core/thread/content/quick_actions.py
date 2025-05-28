@@ -114,8 +114,7 @@ class ThreadQuickActionsContent(ThreadMessageContent):
         """Create a thread quick actions content from a dictionary."""
         data = data.copy()
         actions = [
-            ThreadQuickActionContent.model_validate(action)
-            for action in data.pop("actions")
+            ThreadQuickActionContent.model_validate(action) for action in data.pop("actions")
         ]
         return cls(**data, actions=actions)
 

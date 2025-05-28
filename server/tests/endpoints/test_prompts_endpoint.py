@@ -68,9 +68,7 @@ class _DummyPlatformClient:
 
         return _FakeResponse(kwargs["model"] if "model" in kwargs else "")
 
-    async def generate_stream_response(
-        self, *args, **kwargs
-    ) -> AsyncGenerator[_DummyDelta, None]:
+    async def generate_stream_response(self, *args, **kwargs) -> AsyncGenerator[_DummyDelta, None]:
         yield _DummyDelta("/role", "add", "agent")
         yield _DummyDelta("/content", "add", [])
         yield _DummyDelta("/content/0/text", "add", "Mad")
@@ -190,9 +188,7 @@ async def test_generate_endpoint_serialises(monkeypatch):
     async def mock_finalize(*args, **kwargs):
         return None
 
-    fake_prompt = SimpleNamespace(
-        finalize_messages=AsyncMock(side_effect=mock_finalize)
-    )
+    fake_prompt = SimpleNamespace(finalize_messages=AsyncMock(side_effect=mock_finalize))
 
     # Mock _create_platform_client_and_get_model to help with the test
     monkeypatch.setattr(
@@ -246,9 +242,7 @@ async def test_stream_endpoint_serialises(monkeypatch):
     )
 
     # Fire the endpoint ---------------------------------------------------------
-    fake_prompt = SimpleNamespace(
-        finalize_messages=AsyncMock(side_effect=mock_finalize)
-    )
+    fake_prompt = SimpleNamespace(finalize_messages=AsyncMock(side_effect=mock_finalize))
     resp = await prompt_stream(
         prompt=fake_prompt,  # type: ignore
         platform_config_raw={"kind": "openai", "openai_api_key": "testing"},
@@ -321,9 +315,7 @@ async def test_truncation_finalizer_with_platform():
     # Call finalizer - this is how it's used in generate_response in model_platform.py
     await prompt.finalize_messages(
         kernel=kernel,
-        prompt_finalizers=[
-            finalizer
-        ],  # Changed from prompt_finalizer to prompt_finalizers
+        prompt_finalizers=[finalizer],  # Changed from prompt_finalizer to prompt_finalizers
         platform=platform,
         model="gpt-3.5-turbo",
     )

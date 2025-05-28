@@ -380,6 +380,4 @@ async def test_concurrent_run_creation(
     runs = await storage.list_runs_for_agent(sample_agent.agent_id)
     listed_run_ids = {r.run_id for r in runs}
     for run_id in run_ids:
-        assert run_id in listed_run_ids, (
-            f"Run with ID {run_id} is not listed in agent runs"
-        )
+        assert run_id in listed_run_ids, f"Run with ID {run_id} is not listed in agent runs"

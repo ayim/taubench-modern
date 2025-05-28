@@ -47,11 +47,7 @@ else:
 
 # Similarly for CSS
 DEV_CSS = ""
-CSS = (
-    DEV_CSS
-    if DEV_CSS and is_url_accessible(DEV_CSS)
-    else "./debug_widget/static/style.css"
-)
+CSS = DEV_CSS if DEV_CSS and is_url_accessible(DEV_CSS) else "./debug_widget/static/style.css"
 
 
 class AgentApiClient:
@@ -193,9 +189,7 @@ class DebugChatWidget(anywidget.AnyWidget):
                 try:
                     artifact_name = f"{idx:03d}-{artifact.name}"
                     # Sanitize filename to remove any invalid characters
-                    safe_name = "".join(
-                        c for c in artifact_name if c.isalnum() or c in "._- "
-                    )
+                    safe_name = "".join(c for c in artifact_name if c.isalnum() or c in "._- ")
 
                     file_path = os.path.join(temp_dir, safe_name)
                     with open(file_path, "w", encoding="utf-8") as f:
@@ -217,8 +211,7 @@ class DebugChatWidget(anywidget.AnyWidget):
             self.active_thread_artifacts = new_thread_artifacts
         except Exception as e:
             print(
-                "Error fetching thread artifacts "
-                f"for thread_id={self.selected_thread_id}: {e}",
+                f"Error fetching thread artifacts for thread_id={self.selected_thread_id}: {e}",
             )
             self.active_thread_artifacts = []
 
@@ -299,10 +292,7 @@ class DebugChatWidget(anywidget.AnyWidget):
                 message_dict = json.loads(msg)
 
                 # print(f"Received message: {message_dict}")
-                if (
-                    "event_type" in message_dict
-                    and message_dict["event_type"] == "agent_ready"
-                ):
+                if "event_type" in message_dict and message_dict["event_type"] == "agent_ready":
                     self.active_thread_id = message_dict["thread_id"]
                     self.active_run_id = message_dict["run_id"]
                     if self.active_thread_id not in self.threads_to_runs:
@@ -552,8 +542,7 @@ class DebugChatWidget(anywidget.AnyWidget):
 
         try:
             print(
-                f"Deleting thread={thread_id}, "
-                f"selected_thread_id={self.selected_thread_id}",
+                f"Deleting thread={thread_id}, selected_thread_id={self.selected_thread_id}",
             )
             # Close the WebSocket connection if we're deleting the
             # currently selected thread

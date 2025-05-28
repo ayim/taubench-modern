@@ -122,9 +122,7 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
             # 4. Prepare the thread for upsert
             thread_dict = thread.model_dump() | {"user_id": user_id}
             thread_dict["metadata"] = Jsonb(thread_dict["metadata"])
-            messages = [
-                ThreadMessage.model_validate(m) for m in thread_dict.pop("messages", [])
-            ]
+            messages = [ThreadMessage.model_validate(m) for m in thread_dict.pop("messages", [])]
 
             # 5. Upsert the thread
             try:

@@ -358,14 +358,8 @@ class DefaultModelSelector(ModelSelector):
         if request.provider or request.model_type or request.quality_tier:
             # We need to handle partial specification. Let's define some defaults:
             model_type = request.model_type or platform.configs.default_model_type
-            provider = (
-                request.provider
-                or platform.configs.default_platform_provider[model_type]
-            )
-            tier = (
-                request.quality_tier
-                or platform.configs.default_quality_tier[model_type]
-            )
+            provider = request.provider or platform.configs.default_platform_provider[model_type]
+            tier = request.quality_tier or platform.configs.default_quality_tier[model_type]
 
             model_name = self.model_mapping_config.get_model_name(
                 platform=platform_name,
@@ -413,10 +407,7 @@ class DefaultModelSelector(ModelSelector):
 
         # 4) If we still don't have a model, check if the platform has a
         #    `supported_models` list and use the first one
-        if (
-            hasattr(platform.configs, "supported_models")
-            and platform.configs.supported_models
-        ):
+        if hasattr(platform.configs, "supported_models") and platform.configs.supported_models:
             return platform.configs.supported_models[0]
 
         # 5) If we get here, no suitable model was found

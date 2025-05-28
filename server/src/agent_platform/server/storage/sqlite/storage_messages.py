@@ -176,18 +176,12 @@ class SQLiteStorageMessagesMixin(CommonMixin):
         messages = []
         for row in rows:
             row_dict = dict(row)
-            row_dict["content"] = (
-                json.loads(row_dict["content"]) if row_dict["content"] else []
-            )
+            row_dict["content"] = json.loads(row_dict["content"]) if row_dict["content"] else []
             row_dict["agent_metadata"] = (
-                json.loads(row_dict["agent_metadata"])
-                if row_dict["agent_metadata"]
-                else {}
+                json.loads(row_dict["agent_metadata"]) if row_dict["agent_metadata"] else {}
             )
             row_dict["server_metadata"] = (
-                json.loads(row_dict["server_metadata"])
-                if row_dict["server_metadata"]
-                else {}
+                json.loads(row_dict["server_metadata"]) if row_dict["server_metadata"] else {}
             )
             messages.append(ThreadMessage.model_validate(row_dict))
 
@@ -227,18 +221,12 @@ class SQLiteStorageMessagesMixin(CommonMixin):
         messages = []
         for row in rows:
             row_dict = dict(row)
-            row_dict["content"] = (
-                json.loads(row_dict["content"]) if row_dict["content"] else []
-            )
+            row_dict["content"] = json.loads(row_dict["content"]) if row_dict["content"] else []
             row_dict["agent_metadata"] = (
-                json.loads(row_dict["agent_metadata"])
-                if row_dict["agent_metadata"]
-                else {}
+                json.loads(row_dict["agent_metadata"]) if row_dict["agent_metadata"] else {}
             )
             row_dict["server_metadata"] = (
-                json.loads(row_dict["server_metadata"])
-                if row_dict["server_metadata"]
-                else {}
+                json.loads(row_dict["server_metadata"]) if row_dict["server_metadata"] else {}
             )
             messages.append(ThreadMessage.model_validate(row_dict))
 

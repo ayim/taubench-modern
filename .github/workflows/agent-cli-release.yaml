@@ -6,7 +6,7 @@ on:
 
   push:
     tags:
-      - "sema4ai-agent_cli-*"
+      - 'sema4ai-agent_cli-*'
 
 jobs:
   build:

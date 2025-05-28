@@ -148,27 +148,19 @@ class Agent:
                 if field_name == "runbook":
                     constructor_args[field_name] = original_value.copy()
                 elif field_name == "action_packages":
-                    constructor_args[field_name] = [
-                        pkg.copy() for pkg in original_value
-                    ]
+                    constructor_args[field_name] = [pkg.copy() for pkg in original_value]
                 elif field_name == "mcp_servers":
-                    constructor_args[field_name] = [
-                        server.copy() for server in original_value
-                    ]
+                    constructor_args[field_name] = [server.copy() for server in original_value]
                 elif field_name == "agent_architecture":
                     constructor_args[field_name] = original_value.copy()
                 elif field_name == "question_groups":
-                    constructor_args[field_name] = [
-                        group.copy() for group in original_value
-                    ]
+                    constructor_args[field_name] = [group.copy() for group in original_value]
                 elif field_name == "platform_configs":
                     constructor_args[field_name] = [
                         config.model_copy() for config in original_value
                     ]
                 elif field_name == "observability_configs":
-                    constructor_args[field_name] = [
-                        config.copy() for config in original_value
-                    ]
+                    constructor_args[field_name] = [config.copy() for config in original_value]
                 elif field_name == "extra":
                     constructor_args[field_name] = deepcopy(original_value)
                 else:
@@ -190,8 +182,7 @@ class Agent:
             "extra": self.extra,
             "mode": self.mode,
             "platform_configs": [
-                platform_config.model_dump()
-                for platform_config in self.platform_configs
+                platform_config.model_dump() for platform_config in self.platform_configs
             ],
             "name": self.name,
             "observability_configs": [
@@ -226,8 +217,7 @@ class Agent:
             for action_package in data.pop("action_packages", [])
         ]
         mcp_servers = [
-            MCPServer.model_validate(mcp_server)
-            for mcp_server in data.pop("mcp_servers", [])
+            MCPServer.model_validate(mcp_server) for mcp_server in data.pop("mcp_servers", [])
         ]
         agent_architecture = AgentArchitecture.model_validate(
             data.pop("agent_architecture", {}),

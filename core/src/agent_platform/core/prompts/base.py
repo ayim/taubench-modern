@@ -9,9 +9,7 @@ from agent_platform.core.prompts.content.base import PromptMessageContent
 class PromptMessage(ABC):
     """Base class for all messages in a prompt."""
 
-    _message_by_role: ClassVar[
-        dict[Literal["user", "agent"], type["PromptMessage"]]
-    ] = {}
+    _message_by_role: ClassVar[dict[Literal["user", "agent"], type["PromptMessage"]]] = {}
 
     content: list[PromptMessageContent]
     """The contents of the message."""

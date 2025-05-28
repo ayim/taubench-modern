@@ -97,8 +97,6 @@ class InitiateStreamPayload(Thread):
             agent_id=data["agent_id"],
             name=data["name"] if "name" in data else None,
             thread_id=data["thread_id"] if "thread_id" in data else None,
-            messages=[
-                ThreadMessage.model_validate(message) for message in data["messages"]
-            ],
+            messages=[ThreadMessage.model_validate(message) for message in data["messages"]],
             metadata=data["metadata"] if "metadata" in data else {},
         )

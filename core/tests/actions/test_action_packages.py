@@ -167,9 +167,7 @@ class TestActionPackage:
         assert package.allowed_actions == ["action1", "action2"]
 
     @pytest.mark.asyncio
-    @patch(
-        "agent_platform.core.actions.action_package.get_spec_and_build_tool_definitions"
-    )
+    @patch("agent_platform.core.actions.action_package.get_spec_and_build_tool_definitions")
     async def test_to_tool_definitions(self, mock_get_spec):
         """Test conversion to tool definitions with mocked API response."""
         # Setup mock return value
@@ -204,9 +202,7 @@ class TestActionPackage:
         )
 
     @pytest.mark.asyncio
-    @patch(
-        "agent_platform.core.actions.action_package.get_spec_and_build_tool_definitions"
-    )
+    @patch("agent_platform.core.actions.action_package.get_spec_and_build_tool_definitions")
     async def test_to_tool_definitions_missing_url(self, mock_get_spec):
         """Test conversion with missing URL."""
         mock_get_spec.return_value = []
@@ -224,9 +220,7 @@ class TestActionPackage:
         mock_get_spec.assert_called_once_with("", "test-api-key", [], None)
 
     @pytest.mark.asyncio
-    @patch(
-        "agent_platform.core.actions.action_package.get_spec_and_build_tool_definitions"
-    )
+    @patch("agent_platform.core.actions.action_package.get_spec_and_build_tool_definitions")
     async def test_to_tool_definitions_missing_api_key(self, mock_get_spec):
         """Test conversion with missing API key."""
         mock_get_spec.return_value = []

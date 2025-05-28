@@ -30,9 +30,7 @@ class PollingReductoClient:
     async def upload(self, file: Path | tuple[str, bytes]) -> Upload:
         return await self.client.upload(file=file)
 
-    async def parse(
-        self, prompt: ReductoPrompt, uploaded_document: Upload
-    ) -> ParseResponse:
+    async def parse(self, prompt: ReductoPrompt, uploaded_document: Upload) -> ParseResponse:
         parse_options = prompt.parse_options
         if parse_options is None:
             raise ValueError("Parse options are required for parse operation")
@@ -61,9 +59,7 @@ class PollingReductoClient:
             raise ValueError(f"Expected ParseResponse but got {type(result)}")
         return result
 
-    async def extract(
-        self, prompt: ReductoPrompt, uploaded_document: Upload
-    ) -> ExtractResponse:
+    async def extract(self, prompt: ReductoPrompt, uploaded_document: Upload) -> ExtractResponse:
         extract_options = prompt.extract_options
         if extract_options is None:
             raise ValueError("Extract options are required for extract operation")

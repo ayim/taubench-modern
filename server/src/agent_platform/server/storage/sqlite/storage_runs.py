@@ -92,9 +92,7 @@ class SQLiteStorageRunsMixin(CommonMixin):
             rows = await cur.fetchall()
         if not rows:
             return []
-        return [
-            Run.model_validate(self._convert_run_json_fields(dict(r))) for r in rows
-        ]
+        return [Run.model_validate(self._convert_run_json_fields(dict(r))) for r in rows]
 
     async def list_runs_for_thread(self, thread_id: str) -> list[Run]:
         """List all runs associated with a given thread."""
@@ -112,9 +110,7 @@ class SQLiteStorageRunsMixin(CommonMixin):
             rows = await cur.fetchall()
         if not rows:
             return []
-        return [
-            Run.model_validate(self._convert_run_json_fields(dict(r))) for r in rows
-        ]
+        return [Run.model_validate(self._convert_run_json_fields(dict(r))) for r in rows]
 
     async def upsert_run(self, run: Run) -> None:
         """Insert or update a run record."""
@@ -232,10 +228,7 @@ class SQLiteStorageRunsMixin(CommonMixin):
             rows = await cur.fetchall()
         if not rows:
             return []
-        return [
-            RunStep.model_validate(self._convert_run_step_json_fields(dict(r)))
-            for r in rows
-        ]
+        return [RunStep.model_validate(self._convert_run_step_json_fields(dict(r))) for r in rows]
 
     async def get_run_step(self, step_id: str) -> RunStep:
         """Retrieve a run step record by its ID."""

@@ -82,8 +82,6 @@ class CortexPrompt(PlatformPrompt):
         }
 
         if self.tools:
-            results_dict["tools"] = [
-                {"tool_spec": tool.model_dump()} for tool in self.tools
-            ]
+            results_dict["tools"] = [{"tool_spec": tool.model_dump()} for tool in self.tools]
 
         return results_dict

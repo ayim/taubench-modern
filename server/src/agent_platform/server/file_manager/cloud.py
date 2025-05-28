@@ -31,8 +31,7 @@ class CloudFileMgrConfig(Configuration):
     file_management_api_url: str = field(
         default="http://localhost",
         metadata=FieldMetadata(
-            description="The URL of the file management API when using the "
-            "cloud file manager.",
+            description="The URL of the file management API when using the cloud file manager.",
             env_vars=[
                 "SEMA4AI_AGENT_SERVER_FILE_MANAGEMENT_API_URL",
                 "FILE_MANAGEMENT_API_URL",
@@ -42,16 +41,14 @@ class CloudFileMgrConfig(Configuration):
     file_path_expiration: int = field(
         default=43200,
         metadata=FieldMetadata(
-            description="The expiration time of the file path in seconds, "
-            "defaults to 12 hours.",
+            description="The expiration time of the file path in seconds, defaults to 12 hours.",
             env_vars=["SEMA4AI_AGENT_SERVER_FILE_PATH_EXPIRATION"],
         ),
     )
     file_path_expiration_buffer: int = field(
         default=300,
         metadata=FieldMetadata(
-            description="The buffer time of the file path in seconds, "
-            "defaults to 5 minutes.",
+            description="The buffer time of the file path in seconds, defaults to 5 minutes.",
             env_vars=["SEMA4AI_AGENT_SERVER_FILE_PATH_EXPIRATION_BUFFER"],
         ),
     )
@@ -68,8 +65,7 @@ class CloudFileMgrConfig(Configuration):
                 )
         except Exception as e:
             raise ValueError(
-                f"Invalid file_management_api_url: {self.file_management_api_url}. "
-                f"{e!s}",
+                f"Invalid file_management_api_url: {self.file_management_api_url}. {e!s}",
             ) from e
 
 
@@ -234,8 +230,7 @@ class CloudFileManager(BaseFileManager):
         file_path = updated_files[0].file_path
         if not file_path:
             raise Exception(
-                f"File path for file {file_id} not available after "
-                "refreshing file paths",
+                f"File path for file {file_id} not available after refreshing file paths",
             )
 
         try:
@@ -277,8 +272,7 @@ class CloudFileManager(BaseFileManager):
         file_path = updated_files[0].file_path
         if not file_path:
             raise Exception(
-                f"File path for file {file_id} not available after "
-                "refreshing file paths",
+                f"File path for file {file_id} not available after refreshing file paths",
             )
 
         try:

@@ -59,13 +59,9 @@ async def extract_and_validate_agent_package(
             knowledge: Mapping[str, bytes] | KnowledgeStreams | None
             if include_knowledge:
                 if knowledge_return == "bytes":
-                    knowledge = {
-                        Path(fn).name: zf.read(fn) for fn in _iter_knowledge_members(zf)
-                    }
+                    knowledge = {Path(fn).name: zf.read(fn) for fn in _iter_knowledge_members(zf)}
                 else:  # "stream"
-                    streams = {
-                        Path(fn).name: zf.open(fn) for fn in _iter_knowledge_members(zf)
-                    }
+                    streams = {Path(fn).name: zf.open(fn) for fn in _iter_knowledge_members(zf)}
                     knowledge = KnowledgeStreams(streams)
             else:
                 knowledge = None
@@ -120,10 +116,7 @@ async def _read_package_bytes(
                     max_size_mb = AgentSpecConfig.max_size_bytes / 1_000_000
                     raise HTTPException(
                         status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                        detail=(
-                            f"Package exceeds {max_size_mb:.1f}MB limit "
-                            f"({size_in_mb:.1f}MB)"
-                        ),
+                        detail=(f"Package exceeds {max_size_mb:.1f}MB limit ({size_in_mb:.1f}MB)"),
                     )
                 return resp.content
         except httpx.RequestError as exc:
@@ -161,9 +154,7 @@ def _read_file_from_zip(zf: zipfile.ZipFile, member: str) -> bytes:
 def _iter_knowledge_members(zf: zipfile.ZipFile) -> Iterable[str]:
     """Yield every file (not directory) under KNOWLEDGE_DIR/ inside the zip."""
     prefix = AgentSpecConfig.knowledge_dir.rstrip("/") + "/"
-    return (
-        fn for fn in zf.namelist() if fn.startswith(prefix) and not fn.endswith("/")
-    )
+    return (fn for fn in zf.namelist() if fn.startswith(prefix) and not fn.endswith("/"))
 
 
 def _validate_spec(

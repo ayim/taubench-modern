@@ -497,17 +497,13 @@ class TestUnionTypeHandling:
         # Test invalid discriminator value
         invalid_parser = UnionOfDataclassParser(
             field=fields(ParentConfig)[1],  # union_field is the second field
-            parent_config=ParentConfig(
-                type="b"
-            ),  # Valid literal but invalid for the test case
+            parent_config=ParentConfig(type="b"),  # Valid literal but invalid for the test case
         )
         with pytest.raises(
             ConfigurationDiscriminatorError,
             match="Failed to create instance of ConfigB",
         ):
-            invalid_parser.parse(
-                {"value": "test"}
-            )  # This will fail because ConfigB expects an int
+            invalid_parser.parse({"value": "test"})  # This will fail because ConfigB expects an int
 
         # Test missing metadata
         @dataclass(frozen=True)
@@ -521,9 +517,7 @@ class TestUnionTypeHandling:
             )
 
         missing_metadata_parser = UnionOfDataclassParser(
-            field=fields(ParentConfigWithoutMetadata)[
-                1
-            ],  # union_field is the second field
+            field=fields(ParentConfigWithoutMetadata)[1],  # union_field is the second field
             parent_config=ParentConfigWithoutMetadata(),
         )
         with pytest.raises(

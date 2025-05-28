@@ -216,9 +216,7 @@ async def test_concurrent_get_or_create_user(storage: PostgresStorage):
     )
 
     # Filter out any exceptions and valid results
-    valid_results: list[tuple[str, bool]] = [
-        r for r in results if not isinstance(r, BaseException)
-    ]
+    valid_results: list[tuple[str, bool]] = [r for r in results if not isinstance(r, BaseException)]
 
     if not valid_results:
         pytest.fail("All concurrent operations failed")

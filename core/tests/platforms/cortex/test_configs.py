@@ -86,18 +86,13 @@ class TestCortexModelMap:
         # actual field from the class definition, not our custom mapping
         assert model_map.model_aliases["claude-3-5-sonnet"] == "claude-3-5-sonnet"
         assert model_map.model_aliases["deepseek-r1"] == "deepseek-r1"
-        assert (
-            model_map.model_aliases["snowflake-llama-3-3-70b"]
-            == "snowflake-llama-3.3-70b"
-        )
+        assert model_map.model_aliases["snowflake-llama-3-3-70b"] == "snowflake-llama-3.3-70b"
         assert model_map.model_aliases["voyage-multilingual"] == "voyage-multilingual-2"
         assert (
-            model_map.model_aliases["snowflake-arctic-embed-m"]
-            == "snowflake-arctic-embed-m-v1.5"
+            model_map.model_aliases["snowflake-arctic-embed-m"] == "snowflake-arctic-embed-m-v1.5"
         )
         assert (
-            model_map.model_aliases["snowflake-arctic-embed-l"]
-            == "snowflake-arctic-embed-l-v2.0"
+            model_map.model_aliases["snowflake-arctic-embed-l"] == "snowflake-arctic-embed-l-v2.0"
         )
         assert model_map.model_aliases["llama-3-1-8b"] == "llama3.1-8b"
 

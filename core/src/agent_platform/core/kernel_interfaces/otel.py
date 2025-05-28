@@ -34,9 +34,7 @@ class OTelArtifact:
 
     trace_id: str = field(
         metadata={
-            "description": (
-                "The trace ID to tie this artifact back to the original trace"
-            ),
+            "description": ("The trace ID to tie this artifact back to the original trace"),
         },
     )
     """The trace ID to tie this artifact back to the original trace"""

@@ -114,8 +114,7 @@ async def test_scoped_storage_update_timestamp(
     # Pause briefly to ensure a later timestamp.
     await asyncio.sleep(0.01)
     updated_scoped_storage = ScopedStorage.model_validate(
-        fetched.model_dump()
-        | {"storage": {"key": "updated"}, "updated_at": datetime.now(UTC)},
+        fetched.model_dump() | {"storage": {"key": "updated"}, "updated_at": datetime.now(UTC)},
     )
     await storage.upsert_scoped_storage(updated_scoped_storage)
     fetched_after = await storage.get_scoped_storage(

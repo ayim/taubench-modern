@@ -67,8 +67,7 @@ class ThreadToolUsageContent(ThreadMessageContent):
     discovered_at: datetime | None = field(
         default=None,
         metadata={
-            "description": "The timestamp when the tool call was discovered in "
-            "stream or response",
+            "description": "The timestamp when the tool call was discovered in stream or response",
         },
     )
     """The timestamp when the tool call was discovered in stream or response"""
@@ -144,14 +143,10 @@ class ThreadToolUsageContent(ThreadMessageContent):
             # TODO: This is a hack to get around the fact that the started_at and
             # ended_at fields are sometimes not datetime objects. Need to fix this
             "started_at": (
-                self.started_at.isoformat()
-                if isinstance(self.started_at, datetime)
-                else None
+                self.started_at.isoformat() if isinstance(self.started_at, datetime) else None
             ),
             "ended_at": (
-                self.ended_at.isoformat()
-                if isinstance(self.ended_at, datetime)
-                else None
+                self.ended_at.isoformat() if isinstance(self.ended_at, datetime) else None
             ),
             "metadata": self.metadata,
         }

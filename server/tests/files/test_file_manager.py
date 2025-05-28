@@ -103,9 +103,7 @@ def sample_file2(tmpdir):
         yield UploadFile(filename="test2.txt", file=file_stream)
 
 
-@pytest.fixture(
-    scope="session", params=[pytest.param("", marks=[pytest.mark.postgresql])]
-)
+@pytest.fixture(scope="session", params=[pytest.param("", marks=[pytest.mark.postgresql])])
 async def postgres_test_db() -> AsyncGenerator[
     AsyncConnectionPool[AsyncConnection[TupleRow]],
     None,
@@ -674,9 +672,7 @@ class TestFileManager:
 
             # Patch both the file retrieval and the streaming method
             with (
-                patch.object(
-                    CloudFileManager, "stream_file_contents", mock_stream_file_contents
-                ),
+                patch.object(CloudFileManager, "stream_file_contents", mock_stream_file_contents),
                 patch(
                     "agent_platform.server.storage.BaseStorage.get_file_by_id",
                     return_value=http_mock,
@@ -793,9 +789,7 @@ class TestFileManager:
 
             # Patch both the file retrieval and the streaming method
             with (
-                patch.object(
-                    CloudFileManager, "stream_file_contents", mock_stream_file_contents
-                ),
+                patch.object(CloudFileManager, "stream_file_contents", mock_stream_file_contents),
                 patch(
                     "agent_platform.server.storage.BaseStorage.get_file_by_id",
                     return_value=http_mock,
@@ -855,15 +849,9 @@ class TestFileManager:
             pass  # Ignore errors if no files exist
 
         # Create a unique filename based on the storage and file manager type
-        storage_type = (
-            "postgres" if isinstance(setup_storage, PostgresStorage) else "sqlite"
-        )
-        manager_type = (
-            "cloud" if isinstance(file_manager, CloudFileManager) else "local"
-        )
-        unique_filename = (
-            f"test_remote_file_{storage_type}_{manager_type}_{uuid4()}.txt"
-        )
+        storage_type = "postgres" if isinstance(setup_storage, PostgresStorage) else "sqlite"
+        manager_type = "cloud" if isinstance(file_manager, CloudFileManager) else "local"
+        unique_filename = f"test_remote_file_{storage_type}_{manager_type}_{uuid4()}.txt"
 
         # First request the upload
         request_result = await file_manager.request_remote_file_upload(

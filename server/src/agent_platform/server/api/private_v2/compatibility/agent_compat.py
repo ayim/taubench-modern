@@ -70,9 +70,7 @@ class AgentCompat(Agent):
             return model
 
         if platform_configs[0].kind not in cls.KIND_TO_PROVIDER:
-            raise ValueError(
-                f"Agent has invalid platform config kind: {platform_configs[0].kind}"
-            )
+            raise ValueError(f"Agent has invalid platform config kind: {platform_configs[0].kind}")
 
         model_config = platform_configs[0].model_dump()
         del model_config["kind"]
@@ -90,9 +88,7 @@ class AgentCompat(Agent):
             model_config["chat_url"] = model_config["azure_generated_endpoint_url"]
             del model_config["azure_generated_endpoint_url"]
         if "azure_generated_endpoint_url_embeddings" in model_config:
-            model_config["embeddings_url"] = model_config[
-                "azure_generated_endpoint_url_embeddings"
-            ]
+            model_config["embeddings_url"] = model_config["azure_generated_endpoint_url_embeddings"]
             del model_config["azure_generated_endpoint_url_embeddings"]
 
         # Handle legacy: chat_openai_api_key -> azure_api_key
@@ -129,9 +125,7 @@ class AgentCompat(Agent):
             metadata=dict(
                 mode=agent.mode,
                 worker_config=(
-                    agent.extra["worker_config"]
-                    if "worker_config" in agent.extra
-                    else {}
+                    agent.extra["worker_config"] if "worker_config" in agent.extra else {}
                 ),
                 welcome_message="",
                 question_groups=agent.question_groups,
@@ -147,9 +141,7 @@ class AgentCompat(Agent):
                     dict(
                         api_key=agent.observability_configs[0].api_key,
                         api_url=agent.observability_configs[0].api_url,
-                        project_name=agent.observability_configs[0].settings[
-                            "project_name"
-                        ],
+                        project_name=agent.observability_configs[0].settings["project_name"],
                     )
                     if len(agent.observability_configs) > 0
                     else None

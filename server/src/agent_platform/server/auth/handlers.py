@@ -76,10 +76,7 @@ class JWTAuthLocal(JWTAuthBase):
     """Auth handler that uses a hardcoded decode key from env."""
 
     def decode_token(self, token: str, decode_key: str) -> dict:
-        if (
-            not isinstance(AuthConfig.jwt_settings, JWTSettingsLocal)
-            or not AuthConfig.jwt_settings
-        ):
+        if not isinstance(AuthConfig.jwt_settings, JWTSettingsLocal) or not AuthConfig.jwt_settings:
             raise HTTPException(status_code=401, detail="No local JWT settings")
         return jwt.decode(
             token,
@@ -91,10 +88,7 @@ class JWTAuthLocal(JWTAuthBase):
         )
 
     def get_decode_key(self, token: str) -> str:
-        if (
-            not isinstance(AuthConfig.jwt_settings, JWTSettingsLocal)
-            or not AuthConfig.jwt_settings
-        ):
+        if not isinstance(AuthConfig.jwt_settings, JWTSettingsLocal) or not AuthConfig.jwt_settings:
             raise HTTPException(status_code=401, detail="No local JWT settings")
         if not AuthConfig.jwt_settings.decode_key:
             raise HTTPException(status_code=401, detail="No local JWT decode key")
@@ -109,10 +103,7 @@ class JWTAuthOIDC(JWTAuthBase):
 
     def decode_token(self, token: str, decode_key: str) -> dict:
         alg = self._decode_complete_unverified(token)["header"]["alg"]
-        if (
-            not isinstance(AuthConfig.jwt_settings, JWTSettingsOIDC)
-            or not AuthConfig.jwt_settings
-        ):
+        if not isinstance(AuthConfig.jwt_settings, JWTSettingsOIDC) or not AuthConfig.jwt_settings:
             raise HTTPException(status_code=401, detail="No OIDC settings")
         return jwt.decode(
             token,
@@ -191,9 +182,7 @@ async def auth_user_websocket(
         "server": (str(websocket.url.hostname), websocket.url.port),
         "path": websocket.url.path,
         "query_string": websocket.url.query.encode(),
-        "headers": [
-            (k.lower().encode(), v.encode()) for k, v in websocket.headers.items()
-        ],
+        "headers": [(k.lower().encode(), v.encode()) for k, v in websocket.headers.items()],
     }
 
     # Make a "fake" request object so we can re-use the auth handler

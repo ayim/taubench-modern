@@ -89,11 +89,7 @@ class LocalFileManager(BaseFileManager):
                 await self._revert_uploads(
                     owner,
                     user_id,
-                    [
-                        (file.file_id, file.file_path)
-                        for file in uploaded_files
-                        if file.file_path
-                    ],
+                    [(file.file_id, file.file_path) for file in uploaded_files if file.file_path],
                 )
                 raise e
         return uploaded_files

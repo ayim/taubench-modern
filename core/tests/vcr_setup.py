@@ -106,9 +106,7 @@ def _install_patches():  # noqa: C901, PLR0915
             return response
 
         real_response = await real_send(*args, **kwargs)
-        return await _record_responses_async_patched(
-            cassette, vcr_request, real_response
-        )
+        return await _record_responses_async_patched(cassette, vcr_request, real_response)
 
     httpx_stubs._async_vcr_send = patched_async_vcr_send
 

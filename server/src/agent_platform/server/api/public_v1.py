@@ -217,9 +217,7 @@ async def get_conversations(
 @router.get(
     "/agents/{aid}/conversations/{cid}/messages",
     summary="Get conversation messages",
-    description=(
-        "Returns the conversation messages of the given chat_id for the given agent."
-    ),
+    description=("Returns the conversation messages of the given chat_id for the given agent."),
     response_description="Conversation",
     response_model=ConversationState,
     tags=["conversations"],
@@ -263,8 +261,7 @@ async def create_conversation(
     "/agents/{aid}/conversations/{cid}/messages",
     summary="Post a message (synchronous)",
     description=(
-        "Post a message to a conversation thread, and get the updated "
-        "conversation state."
+        "Post a message to a conversation thread, and get the updated conversation state."
     ),
     response_description="Conversation with messages",
     response_model=ConversationState,
@@ -311,10 +308,7 @@ async def post_public_api_messages_simple(
 @router.post(
     "/agents/{aid}/conversations/{cid}/messages/detailed",
     summary="Post messages (synchronous)",
-    description=(
-        "Post messages to a conversation thread, and get the updated "
-        "conversation state."
-    ),
+    description=("Post messages to a conversation thread, and get the updated conversation state."),
     response_description="Conversation with messages",
     response_model=ConversationState,
     tags=["conversations"],
@@ -360,9 +354,7 @@ async def post_public_api_messages_detailed(
 @router.delete(
     "/agents/{aid}/conversations/{cid}",
     summary="Delete conversation",
-    description=(
-        "Deletes the conversation with the given conversation ID for the given agent."
-    ),
+    description=("Deletes the conversation with the given conversation ID for the given agent."),
     response_description="Conversation",
     response_model=Conversation,
     tags=["conversations"],

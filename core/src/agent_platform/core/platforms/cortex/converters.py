@@ -174,9 +174,7 @@ class CortexConverters(PlatformConverters, UsesKernelMixin):
                 if block.type == "text" and block.text is not None:
                     text_contents.append(block.text)
 
-            filtered_content_blocks = [
-                block for block in content_blocks if block.type != "text"
-            ]
+            filtered_content_blocks = [block for block in content_blocks if block.type != "text"]
 
             converted_messages.append(
                 CortexPromptMessage(
@@ -205,8 +203,7 @@ class CortexConverters(PlatformConverters, UsesKernelMixin):
                         )
                     ).strip(),
                     content_list=(
-                        (collapsed_messages[-1].content_list or [])
-                        + (message.content_list or [])
+                        (collapsed_messages[-1].content_list or []) + (message.content_list or [])
                     ),
                 )
 

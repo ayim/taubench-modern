@@ -33,9 +33,7 @@ class AzureOpenAIModelMap(PlatformModelMap):
             "text-embedding-ada-002": "embedding-ada",
         },
         metadata=FieldMetadata(
-            description=(
-                "A mapping between our model names and Azure OpenAI deployment IDs."
-            ),
+            description=("A mapping between our model names and Azure OpenAI deployment IDs."),
         ),
     )
     # TODO: Add mappings for model types, input modalities, and output modalities

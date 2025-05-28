@@ -267,12 +267,8 @@ class OpenAIParsers(PlatformParsers):
             else:
                 matching_tool_idx = tool_indices[tool_call.index]
                 if tool_call.function:
-                    message["content"][matching_tool_idx]["tool_name"] += (
-                        tool_name or ""
-                    )
-                    message["content"][matching_tool_idx]["tool_input_raw"] += (
-                        tool_input_raw or ""
-                    )
+                    message["content"][matching_tool_idx]["tool_name"] += tool_name or ""
+                    message["content"][matching_tool_idx]["tool_input_raw"] += tool_input_raw or ""
 
     def _process_event_metadata(
         self,

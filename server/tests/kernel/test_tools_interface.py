@@ -242,10 +242,7 @@ async def test_malformed_json_handling():
 
         # Verify the error is properly handled
         assert result.error is not None
-        assert (
-            "Expecting property name" in result.error
-            or "Unterminated string" in result.error
-        )
+        assert "Expecting property name" in result.error or "Unterminated string" in result.error
         assert result.output_raw is None
 
         # Verify our mock was called

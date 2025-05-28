@@ -319,9 +319,7 @@ async def test_generate_stream_response_success(
         # We should have a delta with a path of /usage/total_tokens and a value 4
         assert any(d.path == "/usage/total_tokens" and d.value == 4 for d in deltas)
         # We should have a delta with a path of /metadata and a value {"final": "meta"}
-        assert any(
-            d.path == "/metadata" and d.value == {"final": "meta"} for d in deltas
-        )
+        assert any(d.path == "/metadata" and d.value == {"final": "meta"} for d in deltas)
 
 
 @pytest.mark.asyncio

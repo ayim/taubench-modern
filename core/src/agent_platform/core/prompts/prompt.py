@@ -41,9 +41,7 @@ class Prompt:
     system_instruction: str | None = field(
         default=None,
         metadata={
-            "description": (
-                "Initial instruction that defines the AI's behavior and context"
-            ),
+            "description": ("Initial instruction that defines the AI's behavior and context"),
         },
     )
     """Initial instruction that defines the AI's behavior and context"""
@@ -72,8 +70,7 @@ class Prompt:
         default_factory=list,
         metadata={
             "description": (
-                "Definitions of the tools provided to the model "
-                "for use when generating responses"
+                "Definitions of the tools provided to the model for use when generating responses"
             ),
         },
     )
@@ -116,8 +113,7 @@ class Prompt:
         default=None,
         metadata={
             "description": (
-                "Seed used in decoding. If not set, the request uses a randomly "
-                "generated seed."
+                "Seed used in decoding. If not set, the request uses a randomly generated seed."
             ),
         },
     )
@@ -126,9 +122,7 @@ class Prompt:
     max_output_tokens: int | None = field(
         default=None,
         metadata={
-            "description": (
-                "Maximum number of tokens to consider when sampling for this prompt."
-            ),
+            "description": ("Maximum number of tokens to consider when sampling for this prompt."),
         },
     )
     """Maximum number of tokens to consider when sampling for this prompt."""
@@ -143,8 +137,7 @@ class Prompt:
         default=None,
         metadata={
             "description": (
-                "The maximum cumulative probability of tokens to consider "
-                "when sampling. Optional."
+                "The maximum cumulative probability of tokens to consider when sampling. Optional."
             ),
         },
     )
@@ -196,9 +189,7 @@ class Prompt:
             raise ValueError(
                 f"Invalid tool choice: {self.tool_choice}. "
                 f"Must be 'auto', 'any', or the name of a provided "
-                f"tool.{
-                    ' Available tools: ' + ', '.join(tool.name for tool in self.tools)
-                }",
+                f"tool.{' Available tools: ' + ', '.join(tool.name for tool in self.tools)}",
             )
 
     def overwrite_last_content_with_text(self, text: str) -> None:
@@ -314,9 +305,7 @@ class Prompt:
         # Update the messages and finalized flag with properly typed messages
         # At this point we expect all special messages to have been processed
         # into regular message types
-        final_messages = cast(
-            list[PromptUserMessage | PromptAgentMessage], new_messages
-        )
+        final_messages = cast(list[PromptUserMessage | PromptAgentMessage], new_messages)
 
         # Update the messages and finalized flag
         object.__setattr__(
@@ -542,8 +531,6 @@ class Prompt:
         prompt_fields = {f.name for f in fields(cls)}
 
         # Filter the loaded YAML data to only include valid Prompt fields
-        filtered_data = {
-            key: value for key, value in data.items() if key in prompt_fields
-        }
+        filtered_data = {key: value for key, value in data.items() if key in prompt_fields}
 
         return cls.model_validate(filtered_data)

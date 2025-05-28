@@ -33,9 +33,7 @@ def json_patch_tests_data():
     # Filter out test cases that are marked as disabled or have error expectations
     # We're only interested in valid test cases for now
     valid_test_cases = [
-        case
-        for case in test_cases
-        if not case.get("disabled", False) and "error" not in case
+        case for case in test_cases if not case.get("disabled", False) and "error" not in case
     ]
 
     return valid_test_cases

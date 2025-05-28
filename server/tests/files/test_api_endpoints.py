@@ -28,8 +28,7 @@ def _file_uploads_with_existing_thread(
         embedded=True,
     )
     assert thread_response.status_code == status.HTTP_200_OK, (
-        f"File upload to thread: bad response: {thread_response.status_code} "
-        f"{thread_response.text}"
+        f"File upload to thread: bad response: {thread_response.status_code} {thread_response.text}"
     )
     print_success("Successfully uploaded file to thread")
     # Upload multiple files to thread
@@ -69,9 +68,7 @@ def _file_uploads_with_existing_thread(
     file_content = agent_client.download_file_by_ref(thread_id, file_ref)
     assert file_content is not None, "File content not found"
     assert len(file_content) > 0, "File content is empty"
-    print_success(
-        f"Successfully downloaded file {file_id} with size {len(file_content)} bytes"
-    )
+    print_success(f"Successfully downloaded file {file_id} with size {len(file_content)} bytes")
 
     # Delete file from thread
     agent_client.delete_file_by_ref(thread_id, file_id)
@@ -86,9 +83,7 @@ def _file_uploads_with_existing_thread(
     agent_client.delete_all_files_from_thread(thread_id)
     empty_thread_files = agent_client.list_files(thread_id)
     assert empty_thread_files is not None, "Thread files not found"
-    assert len(empty_thread_files) == 0, (
-        f"Expected 0 files, got {len(empty_thread_files)}"
-    )
+    assert len(empty_thread_files) == 0, f"Expected 0 files, got {len(empty_thread_files)}"
     print_success("Successfully deleted all files from thread")
 
     print_success("Successfully tested file uploads with existing thread")

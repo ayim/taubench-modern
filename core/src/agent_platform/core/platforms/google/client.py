@@ -156,9 +156,7 @@ class GoogleClient(
             else:
                 # Ensure both values are not None before adding
                 prompt_tokens = 0 if prompt_tokens is None else prompt_tokens
-                completion_tokens = (
-                    0 if completion_tokens is None else completion_tokens
-                )
+                completion_tokens = 0 if completion_tokens is None else completion_tokens
                 total_tokens = prompt_tokens + completion_tokens
 
             logger.info(
@@ -199,12 +197,10 @@ class GoogleClient(
 
         try:
             # Get stream response
-            stream_response = (
-                await self._google_client.aio.models.generate_content_stream(
-                    model=cast(str, request["model"]),
-                    contents=cast(ContentListUnion, request["contents"]),
-                    config=cast(GenerateContentConfig, request["config"]),
-                )
+            stream_response = await self._google_client.aio.models.generate_content_stream(
+                model=cast(str, request["model"]),
+                contents=cast(ContentListUnion, request["contents"]),
+                config=cast(GenerateContentConfig, request["config"]),
             )
 
             async for chunk in stream_response:  # type: ignore
@@ -286,9 +282,7 @@ class GoogleClient(
         else:
             # Ensure values are not None before adding
             chunk_prompt = 0 if chunk_prompt_tokens is None else chunk_prompt_tokens
-            chunk_completion = (
-                0 if chunk_completion_tokens is None else chunk_completion_tokens
-            )
+            chunk_completion = 0 if chunk_completion_tokens is None else chunk_completion_tokens
             chunk_total_tokens = chunk_prompt + chunk_completion
 
         chunk_thinking_tokens = usage_metadata.thoughts_token_count
@@ -406,9 +400,7 @@ class GoogleClient(
             if "token_metrics" not in message["metadata"]:
                 message["metadata"]["token_metrics"] = {}
 
-            message["metadata"]["token_metrics"]["thinking_tokens"] = token_counters[
-                "thinking"
-            ]
+            message["metadata"]["token_metrics"]["thinking_tokens"] = token_counters["thinking"]
 
     async def create_embeddings(
         self,
@@ -462,8 +454,7 @@ class GoogleClient(
                     embedding_values = embedding[0].values
                     if embedding_values:
                         logger.debug(
-                            f"Generated embedding with "
-                            f"{len(embedding_values)} dimensions",
+                            f"Generated embedding with {len(embedding_values)} dimensions",
                         )
                         embeddings.append(embedding_values)
                     else:

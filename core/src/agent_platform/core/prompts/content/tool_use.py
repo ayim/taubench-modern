@@ -37,8 +37,7 @@ class PromptToolUseContent(PromptMessageContent):
 
     tool_input_raw: dict[str, Any] | str = field(
         metadata={
-            "description": "Raw tool input, either JSON string "
-            "(OpenAI) or dict (Claude)",
+            "description": "Raw tool input, either JSON string (OpenAI) or dict (Claude)",
         },
     )
     """Raw tool input, either JSON string (OpenAI) or dict (Claude)"""

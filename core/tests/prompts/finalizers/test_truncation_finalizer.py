@@ -194,9 +194,7 @@ async def test_truncation_no_tool_results(finalizer, mock_kernel, mock_platform)
             PromptUserMessage([PromptTextContent(text="Hello, world!")]),
             PromptAgentMessage([PromptTextContent(text="Hello, how can I help you?")]),
             PromptUserMessage([PromptTextContent(text="What's the weather like?")]),
-            PromptAgentMessage(
-                [PromptTextContent(text="I don't know, I'm just an AI.")]
-            ),
+            PromptAgentMessage([PromptTextContent(text="I don't know, I'm just an AI.")]),
         ],
     )
 
@@ -234,9 +232,7 @@ async def test_truncation_with_missing_platform(finalizer, mock_kernel):
     messages = prompt.messages
 
     # Call the finalizer without platform
-    result_messages = await finalizer(
-        messages, prompt, mock_kernel, model="gpt-3.5-turbo"
-    )
+    result_messages = await finalizer(messages, prompt, mock_kernel, model="gpt-3.5-turbo")
 
     # Verify no truncation occurred and we got the original messages back
     assert result_messages == messages
@@ -330,21 +326,15 @@ async def test_truncation_with_custom_max_length(mock_kernel, mock_platform):
 
     # The truncated part should be close to the custom_max_length
     # Add some margin for the truncation marker
-    marker_length = (
-        len("[Tool result truncated due to length constraints]") + 4
-    )  # ... + space
-    assert (
-        len(truncated_text) < custom_max_length + marker_length + 50
-    )  # Allow some margin
+    marker_length = len("[Tool result truncated due to length constraints]") + 4  # ... + space
+    assert len(truncated_text) < custom_max_length + marker_length + 50  # Allow some margin
 
 
 def test_collect_truncatable_content(finalizer, mock_kernel, mock_platform):
     """Test the _collect_truncatable_content method extracts text content properly."""
     # Create multiple content types with sufficient length
     regular_text = "This is regular text content. " * 50  # Make this long enough
-    tool_result_text = (
-        "This is text content inside a tool result. " * 50
-    )  # Make this long enough
+    tool_result_text = "This is text content inside a tool result. " * 50  # Make this long enough
 
     # Set a lower minimum_length_to_truncate to ensure our texts are collected
     object.__setattr__(finalizer, "minimum_length_to_truncate", 10)
@@ -389,9 +379,7 @@ def test_collect_truncatable_content(finalizer, mock_kernel, mock_platform):
     assert text_items[0]["text_contents"][0].text == regular_text
 
     # Find the tool result content item
-    tool_items = [
-        item for item in truncatable_content if item.get("tool_name") == "test_tool"
-    ]
+    tool_items = [item for item in truncatable_content if item.get("tool_name") == "test_tool"]
     assert len(tool_items) == 1
     # Verify it found the text content inside the tool result
     assert len(tool_items[0]["text_contents"]) == 1
@@ -407,9 +395,7 @@ def test_truncate_content_method(finalizer):
     # Create a truncatable content list similar to what
     # _collect_truncatable_content would return
     regular_text_content = PromptTextContent(text="This is regular text. " * 100)
-    tool_result_text_content = PromptTextContent(
-        text="This is tool result text. " * 100
-    )
+    tool_result_text_content = PromptTextContent(text="This is tool result text. " * 100)
 
     # Set a very small max_content_length to force truncation
     object.__setattr__(finalizer, "max_content_length", 100)
@@ -447,23 +433,14 @@ def test_truncate_content_method(finalizer):
     assert len(tool_result_text_content.text) < original_tool_text_len
 
     # Verify truncation marker was added
-    assert (
-        "[Tool result truncated due to length constraints]" in regular_text_content.text
-    )
-    assert (
-        "[Tool result truncated due to length constraints]"
-        in tool_result_text_content.text
-    )
+    assert "[Tool result truncated due to length constraints]" in regular_text_content.text
+    assert "[Tool result truncated due to length constraints]" in tool_result_text_content.text
 
     # Verify the truncation respects max_content_length
-    marker_length = (
-        len("[Tool result truncated due to length constraints]") + 4
-    )  # ... + space
+    marker_length = len("[Tool result truncated due to length constraints]") + 4  # ... + space
     assert (
-        len(regular_text_content.text)
-        <= finalizer.max_content_length + marker_length + 50
+        len(regular_text_content.text) <= finalizer.max_content_length + marker_length + 50
     )  # Allow for marker
     assert (
-        len(tool_result_text_content.text)
-        <= finalizer.max_content_length + marker_length + 50
+        len(tool_result_text_content.text) <= finalizer.max_content_length + marker_length + 50
     )  # Allow for marker

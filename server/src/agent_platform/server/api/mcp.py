@@ -89,9 +89,7 @@ async def list_threads_for_agent(
     agent_id: Annotated[
         str,
         Field(
-            description=(
-                "The UUID of the agent to list threads for, this must be provided."
-            ),
+            description=("The UUID of the agent to list threads for, this must be provided."),
         ),
     ],
 ) -> list[Thread]:

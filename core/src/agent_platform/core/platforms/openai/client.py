@@ -166,15 +166,11 @@ class OpenAIClient(
 
                 try:
                     # Make the API call
-                    response = await self._openai_client.chat.completions.create(
-                        **request
-                    )
+                    response = await self._openai_client.chat.completions.create(**request)
 
                     # Add usage information to regular span if available
                     if hasattr(response, "usage") and response.usage:
-                        span.set_attribute(
-                            "completion_tokens", response.usage.completion_tokens
-                        )
+                        span.set_attribute("completion_tokens", response.usage.completion_tokens)
                         span.set_attribute("total_tokens", response.usage.total_tokens)
 
                     # Parse and return the response
@@ -232,9 +228,7 @@ class OpenAIClient(
                     span.set_attribute("streaming", True)
 
                     # Start streaming request
-                    response = await self._openai_client.chat.completions.create(
-                        **request
-                    )
+                    response = await self._openai_client.chat.completions.create(**request)
 
                     # Process all chunks
                     all_chunks = []
@@ -270,9 +264,7 @@ class OpenAIClient(
                     message["metadata"].update(final_event)
 
                     # Put request ID (if any) into raw_response
-                    request_id = message.get("additional_response_fields", {}).get(
-                        "id", "unknown"
-                    )
+                    request_id = message.get("additional_response_fields", {}).get("id", "unknown")
                     message["raw_response"] = {
                         "ResponseMetadata": {
                             "RequestId": request_id,
@@ -311,9 +303,7 @@ class OpenAIClient(
             message["metadata"].update(final_event)
 
             # Put request ID (if any) into raw_response
-            request_id = message.get("additional_response_fields", {}).get(
-                "id", "unknown"
-            )
+            request_id = message.get("additional_response_fields", {}).get("id", "unknown")
             message["raw_response"] = {
                 "ResponseMetadata": {
                     "RequestId": request_id,

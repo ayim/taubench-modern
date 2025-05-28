@@ -146,8 +146,7 @@ async def test_google_generate_responses(request, google_client, case, model_id)
 
     # Unique cassette per test
     cassette_path = (
-        f"platforms/google/test_e2e/"
-        f"test_response_{case['cassette_suffix']}__{model_id}.yaml"
+        f"platforms/google/test_e2e/test_response_{case['cassette_suffix']}__{model_id}.yaml"
     )
 
     # Use VCR without patching
@@ -180,8 +179,7 @@ async def test_google_stream_responses(request, google_client, case, model_id):
     expected_response = request.getfixturevalue(case["response_fixture"])
 
     cassette_path = (
-        f"platforms/google/test_e2e/"
-        f"test_stream_response_{case['cassette_suffix']}__{model_id}.yaml"
+        f"platforms/google/test_e2e/test_stream_response_{case['cassette_suffix']}__{model_id}.yaml"
     )
 
     # Use VCR without patching

@@ -124,9 +124,7 @@ class TestLangSmithContext:
 
         with (
             patch("agent_platform.core.context.OTLPSpanExporter") as mock_exporter,
-            patch(
-                "agent_platform.core.context.trace.get_tracer_provider"
-            ) as mock_get_provider,
+            patch("agent_platform.core.context.trace.get_tracer_provider") as mock_get_provider,
             patch("agent_platform.core.context.trace.get_tracer") as mock_get_tracer,
             patch("agent_platform.core.context.BatchSpanProcessor") as mock_processor,
         ):
@@ -330,12 +328,8 @@ class TestAgentServerContext:
         mock_meter_provider: MeterProvider,
     ) -> None:
         """Test creating context from HTTP request."""
-        with patch(
-            "agent_platform.core.context.trace.get_tracer_provider"
-        ) as mock_get_tracer:
-            with patch(
-                "agent_platform.core.context.metrics.get_meter_provider"
-            ) as mock_get_meter:
+        with patch("agent_platform.core.context.trace.get_tracer_provider") as mock_get_tracer:
+            with patch("agent_platform.core.context.metrics.get_meter_provider") as mock_get_meter:
                 mock_get_tracer.return_value = mock_tracer_provider
                 mock_get_meter.return_value = mock_meter_provider
 

@@ -156,8 +156,7 @@ class TestConfiguration:
 
         # Test getting a specific field description
         assert (
-            ConfigWithDescriptions.get_field_description("name")
-            == "The name of the configuration"
+            ConfigWithDescriptions.get_field_description("name") == "The name of the configuration"
         )
         assert ConfigWithDescriptions.get_field_description("count") == "Count value"
         assert ConfigWithDescriptions.get_field_description("nonexistent") is None

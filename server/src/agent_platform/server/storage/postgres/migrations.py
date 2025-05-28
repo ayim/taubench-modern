@@ -56,9 +56,7 @@ class PostgresMigrations(MigrationsProvider):
         self._logger = get_logger(__name__)
         self._timeout = timeout
         self._migrations_path = (
-            migrations_path
-            if migrations_path is not None
-            else self._get_migrations_path()
+            migrations_path if migrations_path is not None else self._get_migrations_path()
         )
 
     def _get_migrations_path(self) -> Path:
@@ -323,8 +321,7 @@ class PostgresMigrations(MigrationsProvider):
         match = re.match(pattern, filename)
         if not match:
             raise InvalidMigrationFilenameError(
-                f"Invalid migration filename: {filename}. "
-                "Expected '<version>_<desc>.up.sql'",
+                f"Invalid migration filename: {filename}. Expected '<version>_<desc>.up.sql'",
             )
 
         version = int(match.group(1))

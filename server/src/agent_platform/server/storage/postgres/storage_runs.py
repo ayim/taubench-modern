@@ -101,9 +101,7 @@ class PostgresStorageRunsMixin(CommonMixin):
                 {"agent_id": agent_id},
             )
             rows = await cur.fetchall()
-        return [
-            Run.model_validate(self._convert_run_json_fields(dict(row))) for row in rows
-        ]
+        return [Run.model_validate(self._convert_run_json_fields(dict(row))) for row in rows]
 
     async def list_runs_for_thread(self, thread_id: str) -> list[Run]:
         """List all runs associated with a given thread."""
@@ -119,9 +117,7 @@ class PostgresStorageRunsMixin(CommonMixin):
                 {"thread_id": thread_id},
             )
             rows = await cur.fetchall()
-        return [
-            Run.model_validate(self._convert_run_json_fields(dict(row))) for row in rows
-        ]
+        return [Run.model_validate(self._convert_run_json_fields(dict(row))) for row in rows]
 
     async def upsert_run(self, run: Run) -> None:
         """Insert or update a run record in the database."""
@@ -254,8 +250,7 @@ class PostgresStorageRunsMixin(CommonMixin):
             )
             rows = await cur.fetchall()
         return [
-            RunStep.model_validate(self._convert_run_step_json_fields(dict(row)))
-            for row in rows
+            RunStep.model_validate(self._convert_run_step_json_fields(dict(row))) for row in rows
         ]
 
     async def get_run_step(self, step_id: str) -> RunStep:

@@ -67,9 +67,7 @@ class AgentServerPromptsInterface(PromptsInterface, UsesKernelMixin):
 
         return final_prompt
 
-    def record_tools_in_trace(
-        self, prompt: Prompt, span_name: str = "prompt_tools"
-    ) -> None:
+    def record_tools_in_trace(self, prompt: Prompt, span_name: str = "prompt_tools") -> None:
         """Record tools from a prompt in a trace.
 
         This method should be called just before submission to a provider,
@@ -91,9 +89,7 @@ class AgentServerPromptsInterface(PromptsInterface, UsesKernelMixin):
             tool_names = [tool.name for tool in prompt.tools]
 
             # Log tools being recorded
-            logger.info(
-                f"Recording {len(tool_names)} tools in trace: {', '.join(tool_names)}"
-            )
+            logger.info(f"Recording {len(tool_names)} tools in trace: {', '.join(tool_names)}")
             span.set_attribute("tools", ", ".join(tool_names))
 
             tools_detail = []

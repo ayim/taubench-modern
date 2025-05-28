@@ -73,9 +73,7 @@ class ResponseStreamPipe:
             raise RuntimeError("Stream is already closed")
 
         # Ignore noop sinks
-        self.sinks = tuple(
-            sink for sink in sinks if type(sink) is not NoOpResponseStreamSink
-        )
+        self.sinks = tuple(sink for sink in sinks if type(sink) is not NoOpResponseStreamSink)
 
         async for chunk in self.stream:
             self.chunk_buffer.append(chunk)

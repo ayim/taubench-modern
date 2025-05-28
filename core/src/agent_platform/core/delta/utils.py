@@ -63,8 +63,7 @@ def _validate_array_index(index_str: str, array_len: int | None = None) -> int:
 
     if not _ARRAY_INDEX_PATTERN.match(index_str):
         raise ValueError(
-            f"Invalid array index: {index_str}. Must be '0' or a number "
-            f"without leading zeros.",
+            f"Invalid array index: {index_str}. Must be '0' or a number without leading zeros.",
         )
 
     try:
@@ -185,8 +184,7 @@ def _validate_array_element_property_op(
             raise InvalidPathError(
                 pointer.path,
                 path_attr=path_attr,
-                detailed_message="Cannot access/modify properties of "
-                "non-object array element",
+                detailed_message="Cannot access/modify properties of non-object array element",
             )
     except Exception as e:
         raise InvalidPathError(

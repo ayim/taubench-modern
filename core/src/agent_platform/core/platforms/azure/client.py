@@ -66,10 +66,7 @@ class AzureOpenAIClient(
         if parameters.azure_api_key is None:
             raise ValueError("AzureOpenAI API key is required")
 
-        if (
-            parameters.azure_endpoint_url is None
-            or parameters.azure_deployment_name is None
-        ):
+        if parameters.azure_endpoint_url is None or parameters.azure_deployment_name is None:
             raise ValueError(
                 "AzureOpenAI endpoint URL and/or deployment name are required",
             )
@@ -241,9 +238,7 @@ class AzureOpenAIClient(
         Raises:
             NotImplementedError: This method is not yet implemented.
         """
-        raise NotImplementedError(
-            "count_tokens is not yet implemented for Azure OpenAI"
-        )
+        raise NotImplementedError("count_tokens is not yet implemented for Azure OpenAI")
 
 
 PlatformClient.register_platform_client("azure", AzureOpenAIClient)

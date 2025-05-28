@@ -71,14 +71,10 @@ class _ExpectedType:
 
     def __post_init__(self) -> None:
         if self.expected_type == "file":
-            assert self.relative_to is not None, (
-                "relative_to must be provided for file type."
-            )
+            assert self.relative_to is not None, "relative_to must be provided for file type."
 
         if self.expected_type == "enum":
-            assert self.enum_values is not None, (
-                "enum_values must be provided for enum type."
-            )
+            assert self.enum_values is not None, "enum_values must be provided for enum type."
 
 
 @dataclass
@@ -155,8 +151,7 @@ def load_spec(json_spec: dict[str, Any]) -> dict[str, Entry]:
             )
         except Exception as exc:
             raise Exception(
-                f"Invalid spec: {path}. "
-                f"Expected type {expected_type} is not a valid expected type."
+                f"Invalid spec: {path}. Expected type {expected_type} is not a valid expected type."
             ) from exc
     return ret
 
@@ -446,13 +441,9 @@ class Validator:
         # have the correct info).
         self._yaml_info_loaded = _YamlTreeNode("root")
         self._yaml_cursor_node: _YamlTreeNode = self._yaml_info_loaded
-        self._action_packages_found_in_filesystem: dict[
-            Path, ActionPackageInFilesystem
-        ] = {}
+        self._action_packages_found_in_filesystem: dict[Path, ActionPackageInFilesystem] = {}
 
-    def _validate_key_pair(
-        self, key_node: "Node", value_node: Optional["Node"]
-    ) -> Iterator[Error]:
+    def _validate_key_pair(self, key_node: "Node", value_node: Optional["Node"]) -> Iterator[Error]:
         entry = self._spec_entries.get(self._current_stack_as_str)
         if not entry or not value_node:
             parent_as_str = "<unknown>"
@@ -580,8 +571,7 @@ class Validator:
             return
 
         assert spec_node.data is not None, (
-            f"Expected data to be loaded. Name: {spec_node.name}. "
-            f"Parent: {spec_node.parent}"
+            f"Expected data to be loaded. Name: {spec_node.name}. Parent: {spec_node.parent}"
         )
 
         if spec_node.data.required:
@@ -603,8 +593,7 @@ class Validator:
         # Ok, the node exists. Let's validate it.
         elif spec_node.data.deprecated:
             yield Error(
-                message=f"Deprecated: {spec_node.data.path!r}. "
-                f"{spec_node.data.description}.",
+                message=f"Deprecated: {spec_node.data.path!r}. {spec_node.data.description}.",
                 node=yaml_node.data.node,
             )
 
@@ -623,9 +612,7 @@ class Validator:
                 for list_item_node in yaml_node.children.values():
                     for spec_child in spec_node.children.values():
                         child_node = list_item_node.children.get(spec_child.name)
-                        yield from self._verify_yaml_matches_spec(
-                            spec_child, child_node, yaml_node
-                        )
+                        yield from self._verify_yaml_matches_spec(spec_child, child_node, yaml_node)
         elif spec_node.data.expected_type.expected_type == _ExpectedTypeEnum.string:
             if yaml_node.data.kind != _YamlNodeKind.string:
                 yield Error(
@@ -720,9 +707,7 @@ class Validator:
                 )
             else:
                 yaml_node_text = (
-                    value_node.text.decode("utf8")
-                    if value_node.text is not None
-                    else ""
+                    value_node.text.decode("utf8") if value_node.text is not None else ""
                 )
                 enum_values = spec_node.data.expected_type.enum_values or [
                     "No enum values specified"
@@ -741,9 +726,7 @@ class Validator:
                 ):
                     # Additional validation based on the path
                     # (to see if zip/folder matches what's in the spec).
-                    package_info_in_filesystem = self._get_action_package_info(
-                        spec_node, yaml_node
-                    )
+                    package_info_in_filesystem = self._get_action_package_info(spec_node, yaml_node)
                     if package_info_in_filesystem is not None:
                         is_zip_package = package_info_in_filesystem.is_zip()
                         if is_zip_package:
@@ -772,9 +755,7 @@ class Validator:
                 )
             else:
                 relative_to: str | None = spec_node.data.expected_type.relative_to
-                assert relative_to, (
-                    f"Expected relative_to to be set in {spec_node.data.path}"
-                )
+                assert relative_to, f"Expected relative_to to be set in {spec_node.data.path}"
 
                 error_or_path = self._get_node_value_points_to_path(
                     spec_node.data.path, yaml_node, relative_to
@@ -784,8 +765,7 @@ class Validator:
 
         else:
             raise Exception(
-                f"Unexpected expected type: "
-                f"{spec_node.data.expected_type.expected_type}"
+                f"Unexpected expected type: {spec_node.data.expected_type.expected_type}"
             )
 
     def _get_action_package_info(
@@ -793,24 +773,18 @@ class Validator:
     ) -> Optional["ActionPackageInFilesystem"]:
         p = spec_node.data.path.split("/")[:-1] + ["path"]
         path_yaml_node = yaml_node.parent.children.get("path")
-        error_or_path = self._get_node_value_points_to_path(
-            p, path_yaml_node, "actions"
-        )
+        error_or_path = self._get_node_value_points_to_path(p, path_yaml_node, "actions")
         if not isinstance(error_or_path, Path):
             # i.e.: if not path we can just ignore it.
             return None
 
         if error_or_path.is_dir():
             found_in_filesystem: ActionPackageInFilesystem | None = (
-                self._action_packages_found_in_filesystem.get(
-                    error_or_path / "package.yaml"
-                )
+                self._action_packages_found_in_filesystem.get(error_or_path / "package.yaml")
             )
 
         elif error_or_path.is_file():
-            found_in_filesystem = self._action_packages_found_in_filesystem.get(
-                error_or_path
-            )
+            found_in_filesystem = self._action_packages_found_in_filesystem.get(error_or_path)
 
         else:
             return None
@@ -861,9 +835,7 @@ class Validator:
         if value_node is None:
             return None
         else:
-            yaml_node_text = (
-                value_node.text.decode("utf8") if value_node.text is not None else ""
-            )
+            yaml_node_text = value_node.text.decode("utf8") if value_node.text is not None else ""
             return yaml_node_text
 
     def _validate_yaml_from_spec(self) -> Iterator[Error]:
@@ -895,18 +867,14 @@ class Validator:
                     report_error_at_node = action_packages_node
                 break
 
-        for (
-            action_package_in_filesystem
-        ) in self._action_packages_found_in_filesystem.values():
+        for action_package_in_filesystem in self._action_packages_found_in_filesystem.values():
             if not action_package_in_filesystem.referenced_from_agent_spec:
                 yield Error(
                     message=f"Action Package path not referenced in the "
                     f"`agent-spec.yaml`: "
                     f"'{action_package_in_filesystem.relative_path}'.",
                     node=(
-                        report_error_at_node.data.node
-                        if report_error_at_node is not None
-                        else None
+                        report_error_at_node.data.node if report_error_at_node is not None else None
                     ),
                     code=ErrorCode.action_package_info_unsynchronized,
                     severity=Severity.warning,
@@ -915,9 +883,7 @@ class Validator:
     def validate(self, node: "Node") -> Iterator[Error]:
         from .list_actions_from_agent import list_actions_from_agent
 
-        self._action_packages_found_in_filesystem = list_actions_from_agent(
-            self._agent_root_dir
-        )
+        self._action_packages_found_in_filesystem = list_actions_from_agent(self._agent_root_dir)
 
         yield from self._validate_nodes_exist_and_build_yaml_info(node)
         yield from self._validate_yaml_from_spec()

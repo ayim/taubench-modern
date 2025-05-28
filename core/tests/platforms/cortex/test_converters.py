@@ -266,9 +266,7 @@ class TestCortexConverters:
         assert result.messages[2].content_list[0].type == "tool_results"
         assert result.messages[2].content_list[0].tool_results is not None
         assert result.messages[2].content_list[0].tool_results.tool_use_id == "call1"
-        assert result.messages[2].content_list[0].tool_results.content[0].text == (
-            '{"temp": 70}'
-        )
+        assert result.messages[2].content_list[0].tool_results.content[0].text == ('{"temp": 70}')
 
         assert result.tools is not None
         assert len(result.tools) == 1

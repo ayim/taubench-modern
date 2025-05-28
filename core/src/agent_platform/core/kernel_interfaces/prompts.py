@@ -30,9 +30,7 @@ class PromptsInterface(ABC):
         pass
 
     @abstractmethod
-    def record_tools_in_trace(
-        self, prompt: Prompt, span_name: str = "prompt_tools"
-    ) -> None:
+    def record_tools_in_trace(self, prompt: Prompt, span_name: str = "prompt_tools") -> None:
         """Record tools from a prompt in a trace.
 
         This method should be called just before submission to a provider,

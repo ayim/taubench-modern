@@ -77,9 +77,7 @@ def test_agent_server_port_reuse(start_agent_server, logs_dir):
 
     try:
         port = get_free_port()
-        with start_agent_server(
-            port=port, kill_lock_holder=False
-        ) as agent_server_process:
+        with start_agent_server(port=port, kill_lock_holder=False) as agent_server_process:
             assert agent_server_process.process.is_alive()
             thread = threading.Thread(target=my_func)
             thread.start()
@@ -87,9 +85,7 @@ def test_agent_server_port_reuse(start_agent_server, logs_dir):
             if not connected_once.wait(timeout=10):
                 raise AssertionError("Agent server did not connect to the port")
 
-        with start_agent_server(
-            port=port, kill_lock_holder=False
-        ) as agent_server_process:
+        with start_agent_server(port=port, kill_lock_holder=False) as agent_server_process:
             assert agent_server_process.process.is_alive()
     finally:
         finished.set()
@@ -178,9 +174,7 @@ def test_start_agent_server_with_lock_file(  # noqa: C901
             wait_for_condition(lambda: not is_process_alive(process.pid))
 
             try:
-                wait_for_condition(
-                    lambda: not agent_server_process.process.is_alive(), timeout=20
-                )
+                wait_for_condition(lambda: not agent_server_process.process.is_alive(), timeout=20)
             except Exception as e:
                 raise AssertionError(
                     f"Agent server process {agent_server_process.process.pid} did not "
@@ -255,8 +249,7 @@ def test_api_interaction_with_action_server(
         ).lower()
         if "john doe" not in result and "jane doe" not in result:
             raise AssertionError(
-                "Agent did not find contacts: 'john doe' or 'jane doe'. "
-                f"Found result: {result!r}"
+                f"Agent did not find contacts: 'john doe' or 'jane doe'. Found result: {result!r}"
             )
 
 
@@ -357,9 +350,7 @@ def test_agent_server_port_conflict(tmpdir, logs_dir):  # noqa: C901 PLR0915
             time.sleep(2)
 
             # The second server should fail to start
-            assert not second_server.process.is_alive(), (
-                "Second server should not be running"
-            )
+            assert not second_server.process.is_alive(), "Second server should not be running"
 
             # Check the error message
             error_log_content = ""
@@ -391,8 +382,7 @@ def test_agent_server_port_conflict(tmpdir, logs_dir):  # noqa: C901 PLR0915
             import re
 
             assert any(
-                re.search(r"Failed to bind socket", line)
-                for line in error_log_content.splitlines()
+                re.search(r"Failed to bind socket", line) for line in error_log_content.splitlines()
             ), (
                 "Error log should contain 'Failed to bind socket' in one of its lines, "
                 f"but was:\n{error_log_content}"
@@ -414,9 +404,7 @@ def test_agent_server_port_conflict(tmpdir, logs_dir):  # noqa: C901 PLR0915
 
             # Verify the error message about not being able to continue
             assert any(
-                re.search(
-                    r"Cannot continue without binding to a socket. Exiting.", line
-                )
+                re.search(r"Cannot continue without binding to a socket. Exiting.", line)
                 for line in error_log_content.splitlines()
             ), (
                 "Error log should contain 'Cannot continue without binding to a socket."

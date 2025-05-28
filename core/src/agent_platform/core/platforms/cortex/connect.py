@@ -154,9 +154,7 @@ class SnowflakeAuth:
         auth_details = AuthDetails(
             authenticator=authenticator,
             token=(
-                data["authDetails"]["token"]
-                if "token" in data.get("authDetails", {})
-                else None
+                data["authDetails"]["token"] if "token" in data.get("authDetails", {}) else None
             ),
         )
 
@@ -265,12 +263,10 @@ def get_connection_details(  # noqa: PLR0913
         logger.info("We're running in SPCS")
         if not SPCSConnnectionConfig.host or not SPCSConnnectionConfig.account:
             logger.error(
-                "Required environment variables "
-                "SNOWFLAKE_HOST and SNOWFLAKE_ACCOUNT must be set",
+                "Required environment variables SNOWFLAKE_HOST and SNOWFLAKE_ACCOUNT must be set",
             )
             raise SnowflakeAuthenticationError(
-                "Required environment variables SNOWFLAKE_HOST and "
-                "SNOWFLAKE_ACCOUNT must be set",
+                "Required environment variables SNOWFLAKE_HOST and SNOWFLAKE_ACCOUNT must be set",
             )
 
         return {
@@ -326,9 +322,7 @@ def get_connection_details(  # noqa: PLR0913
             and sf_auth.linking_details.private_key_passphrase != ""
         ):
             logger.info("Setting private key file passphrase")
-            config["private_key_file_pwd"] = (
-                sf_auth.linking_details.private_key_passphrase
-            )
+            config["private_key_file_pwd"] = sf_auth.linking_details.private_key_passphrase
     else:
         logger.error(
             f"Unsupported authenticator: {sf_auth.auth_details.authenticator}",

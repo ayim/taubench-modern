@@ -35,8 +35,7 @@ class ThreadAttachmentContent(ThreadMessageContent):
     base64_data: str | None = field(
         default=None,
         metadata={
-            "description": "The base64 encoded data of the attachment, if the "
-            "attachment is a file",
+            "description": "The base64 encoded data of the attachment, if the attachment is a file",
         },
     )
     """The base64 encoded data of the attachment, if the attachment is a file"""
@@ -88,9 +87,7 @@ class ThreadAttachmentContent(ThreadMessageContent):
     def as_text_content(self) -> str:
         """Converts the attachment content to a text content component."""
 
-        description_attr = (
-            f'description="{self.description}"' if self.description else ""
-        )
+        description_attr = f'description="{self.description}"' if self.description else ""
         uri_attr = f'uri="{self.uri}"' if self.uri else ""
 
         return (

@@ -279,9 +279,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                 # Execute the tool in a separate task
                 execution_tasks.append(
                     create_task(
-                        self._safe_execute_tool(
-                            tool_def, tool_use, extra_headers=run_headers
-                        ),
+                        self._safe_execute_tool(tool_def, tool_use, extra_headers=run_headers),
                     ),
                 )
 
@@ -302,9 +300,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                         "input.value": json.dumps(
                             {
                                 "name": result.definition.name,
-                                "args": json.loads(result.input_raw)
-                                if result.input_raw
-                                else {},
+                                "args": json.loads(result.input_raw) if result.input_raw else {},
                                 "id": result.tool_call_id,
                                 "type": "tool_call",
                             }
@@ -317,12 +313,10 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                     tool_span.set_attribute("tool.success", result.error is None)
 
                     # Format the result for tracing
-                    formatted_result = (
-                        AgentServerToolsInterface._format_tool_result_for_trace(result)
+                    formatted_result = AgentServerToolsInterface._format_tool_result_for_trace(
+                        result
                     )
-                    tool_span.set_attribute(
-                        "output.value", json.dumps(formatted_result)
-                    )
+                    tool_span.set_attribute("output.value", json.dumps(formatted_result))
 
                     # Set error info if applicable
                     if result.error:

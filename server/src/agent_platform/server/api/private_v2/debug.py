@@ -43,10 +43,7 @@ async def search_artifacts(  # noqa: PLR0913
         except ValueError as e:
             raise HTTPException(
                 status_code=400,
-                detail=(
-                    "Each correlation ID must be a valid UUID"
-                    f"({correlation_id} is invalid)"
-                ),
+                detail=(f"Each correlation ID must be a valid UUID({correlation_id} is invalid)"),
             ) from e
 
     # 2. Search for artifacts with the given correlation IDs

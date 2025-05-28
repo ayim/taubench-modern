@@ -140,8 +140,7 @@ async def test_bedrock_generate_responses(request, bedrock_client, case, model_i
 
     # Unique cassette per test
     cassette_path = (
-        f"platforms/bedrock/test_e2e/"
-        f"test_response_{case['cassette_suffix']}__{model_id}.yaml"
+        f"platforms/bedrock/test_e2e/test_response_{case['cassette_suffix']}__{model_id}.yaml"
     )
 
     with patched_vcr(cassette_path):
@@ -154,9 +153,7 @@ async def test_bedrock_generate_responses(request, bedrock_client, case, model_i
             model=model_id,
         )
 
-    final_response = (
-        _fixup_haiku_response(response) if "haiku" in model_id else response
-    )
+    final_response = _fixup_haiku_response(response) if "haiku" in model_id else response
     compare_responses(final_response, expected_response)
 
 
@@ -196,7 +193,5 @@ async def test_bedrock_stream_responses(request, bedrock_client, case, model_id)
             combine_generic_deltas(deltas),
         )
 
-    final_response = (
-        _fixup_haiku_response(response) if "haiku" in model_id else response
-    )
+    final_response = _fixup_haiku_response(response) if "haiku" in model_id else response
     compare_responses(final_response, expected_response)

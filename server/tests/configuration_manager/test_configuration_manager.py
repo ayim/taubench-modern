@@ -278,9 +278,7 @@ class TestConfigurationManager:
                 # Verify the expected imports were made
                 assert "test.package" in actual_calls, "Base package not imported"
                 assert "test.package.module1" in actual_calls, "Module not imported"
-                assert "test.package.subpackage" in actual_calls, (
-                    "Subpackage not imported"
-                )
+                assert "test.package.subpackage" in actual_calls, "Subpackage not imported"
 
     def test_load_registered_configurations(self, tmp_path: Path) -> None:
         """Test loading registered configuration classes."""
@@ -339,9 +337,7 @@ class TestConfigurationManager:
             manager._apply_overrides()
 
             # Verify the overrides were applied
-            assert manager._config_data[
-                f"{TestConfig.__module__}.{TestConfig.__name__}"
-            ] == {
+            assert manager._config_data[f"{TestConfig.__module__}.{TestConfig.__name__}"] == {
                 "name": "from_override",
                 "count": 99,
             }
@@ -376,9 +372,7 @@ class TestConfigurationManager:
                 manager._apply_environment_variables()
 
                 # Verify the environment variables were applied
-                assert manager._config_data[
-                    f"{TestConfig.__module__}.{TestConfig.__name__}"
-                ] == {
+                assert manager._config_data[f"{TestConfig.__module__}.{TestConfig.__name__}"] == {
                     "name": "from_env",
                     "count": 123,
                 }
@@ -409,9 +403,7 @@ class TestConfigurationManager:
 
             # Verify the complete config includes our test config
             assert f"{TestConfig.__module__}.{TestConfig.__name__}" in complete_config
-            assert complete_config[
-                f"{TestConfig.__module__}.{TestConfig.__name__}"
-            ] == {
+            assert complete_config[f"{TestConfig.__module__}.{TestConfig.__name__}"] == {
                 "name": "test",
                 "count": 42,
             }

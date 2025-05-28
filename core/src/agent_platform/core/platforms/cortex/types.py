@@ -241,7 +241,5 @@ class CortexPromptMessage:
             "content": self.content,
         }
         if self.content_list:
-            final_result["content_list"] = [
-                content.model_dump() for content in self.content_list
-            ]
+            final_result["content_list"] = [content.model_dump() for content in self.content_list]
         return final_result

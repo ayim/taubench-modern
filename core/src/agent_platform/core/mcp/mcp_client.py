@@ -193,8 +193,7 @@ class MCPClient:
 
             # All transports failed
             raise ConnectionError(
-                f"Failed to connect to MCP server {self.target_server.url}: "
-                f"{last_error}",
+                f"Failed to connect to MCP server {self.target_server.url}: {last_error}",
             ) from last_error
 
     async def close(self) -> None:

@@ -114,9 +114,7 @@ class UpsertAgentPayload:
     id: str | None = field(
         default=None,
         metadata={
-            "description": (
-                "The ID of the agent (alias of agent_id for backwards compatibility)."
-            ),
+            "description": ("The ID of the agent (alias of agent_id for backwards compatibility)."),
         },
     )
     """The ID of the agent (alias of agent_id for backwards compatibility)."""
@@ -136,9 +134,7 @@ class UpsertAgentPayload:
     advanced_config: dict[str, Any] = field(
         default_factory=dict,
         metadata={
-            "description": (
-                "Advanced configuration for the agent (backward compatibility)."
-            ),
+            "description": ("Advanced configuration for the agent (backward compatibility)."),
         },
     )
     """Advanced configuration for the agent (backward compatibility)."""
@@ -262,10 +258,7 @@ class UpsertAgentPayload:
             object.__setattr__(
                 self,
                 "question_groups",
-                [
-                    QuestionGroup.model_validate(group)
-                    for group in self.metadata["question_groups"]
-                ],
+                [QuestionGroup.model_validate(group) for group in self.metadata["question_groups"]],
             )
             del self.metadata["question_groups"]
 
@@ -308,9 +301,7 @@ class UpsertAgentPayload:
         assert "chat/completions" in url or "embeddings" in url, (
             f"Invalid azure url, must contain chat/completions or embeddings: {url}"
         )
-        assert "?api-version=" in url, (
-            f"Invalid azure url, must contain ?api-version=: {url}"
-        )
+        assert "?api-version=" in url, f"Invalid azure url, must contain ?api-version=: {url}"
 
         parts = url.split("/openai/deployments/")
         if len(parts) > 1:
@@ -325,9 +316,7 @@ class UpsertAgentPayload:
                     deployment_name, api_version = parts
                     return endpoint, deployment_name, api_version
 
-                raise ValueError(
-                    "Invalid azure url: failed to get deployment name and api version"
-                )
+                raise ValueError("Invalid azure url: failed to get deployment name and api version")
         else:
             raise ValueError("Invalid azure url: failed to get endpoint from url")
 

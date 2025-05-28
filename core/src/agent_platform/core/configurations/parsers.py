@@ -163,9 +163,7 @@ class Parser(ABC):
 
         # Check if the field_type is a subclass of any of the supported types
         try:
-            if cls._allow_subclasses and issubclass(
-                field_type, tuple(cls._supported_types)
-            ):
+            if cls._allow_subclasses and issubclass(field_type, tuple(cls._supported_types)):
                 return True
         except TypeError:
             pass
@@ -200,9 +198,7 @@ class FieldRequiredMixin(Parser):
     def field(self) -> Field:
         """Get the field."""
         if self._field is None:
-            raise ValueError(
-                f"{self.__class__.__name__} must be initialized with a Field"
-            )
+            raise ValueError(f"{self.__class__.__name__} must be initialized with a Field")
         return self._field
 
 
@@ -213,9 +209,7 @@ class ParentConfigRequiredMixin(Parser):
     def parent_config(self) -> "type[Configuration] | Configuration":
         """Get the parent config."""
         if self._parent_config is None:
-            raise ValueError(
-                f"{self.__class__.__name__} must be initialized with a parent config"
-            )
+            raise ValueError(f"{self.__class__.__name__} must be initialized with a parent config")
         return self._parent_config
 
 
@@ -426,8 +420,7 @@ class NestedDataclassParser(AstParserMixin, FieldRequiredMixin, Parser):
             value = self.literal_eval(value, (dict,))
         if not isinstance(value, dict):
             raise ValueError(
-                f"Field value must be a dictionary for "
-                f"Nested Dataclasses. Field: {self.field.name}"
+                f"Field value must be a dictionary for Nested Dataclasses. Field: {self.field.name}"
             )
         for f in fields(self.field.type):
             if not f.init:
@@ -452,9 +445,7 @@ class NestedDataclassParser(AstParserMixin, FieldRequiredMixin, Parser):
         return is_dataclass(field_type)
 
 
-class UnionOfDataclassParser(
-    AstParserMixin, FieldRequiredMixin, ParentConfigRequiredMixin, Parser
-):
+class UnionOfDataclassParser(AstParserMixin, FieldRequiredMixin, ParentConfigRequiredMixin, Parser):
     """A parser for a field in a configuration class that parses a Union of
     dataclass types. This parser requires a field and parent config to be
     initialized or the parse method will raise a ValueError.
@@ -522,8 +513,7 @@ class UnionOfDataclassParser(
                 break
             else:
                 raise ConfigurationDiscriminatorError(
-                    f"Discriminator field {discriminator_field} not found "
-                    f"in parent config"
+                    f"Discriminator field {discriminator_field} not found in parent config"
                 )
         if discriminator_value is None:
             raise ConfigurationDiscriminatorError(
@@ -591,9 +581,7 @@ class UnionOfDataclassParser(
                 if not f.init:
                     value.pop(f.name, None)
                 elif f.name in value:
-                    value[f.name] = parse_field_value(
-                        f, value[f.name], self.parent_config
-                    )
+                    value[f.name] = parse_field_value(f, value[f.name], self.parent_config)
             return target_class(**value)
         except Exception as e:
             raise ConfigurationDiscriminatorError(
@@ -805,9 +793,7 @@ def parse_field_value(
     field defaults are honored."""
     if value is None:
         return None
-    parser = field.metadata.get(
-        "parser", get_parser_for_field(field, parent_config, config_data)
-    )
+    parser = field.metadata.get("parser", get_parser_for_field(field, parent_config, config_data))
     if parser is None:
         return value
     if isinstance(parser, type) and issubclass(parser, Parser):

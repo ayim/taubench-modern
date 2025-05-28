@@ -131,8 +131,7 @@ async def test_azure_generate_responses(request, azure_client, case, model_id):
 
     # Unique cassette per test
     cassette_path = (
-        f"platforms/azure/test_e2e/"
-        f"test_response_{case['cassette_suffix']}__{model_id}.yaml"
+        f"platforms/azure/test_e2e/test_response_{case['cassette_suffix']}__{model_id}.yaml"
     )
 
     with patched_vcr(cassette_path):
@@ -162,8 +161,7 @@ async def test_azure_stream_responses(request, azure_client, case, model_id):
     expected_response = request.getfixturevalue(case["response_fixture"])
 
     cassette_path = (
-        f"platforms/azure/test_e2e/"
-        f"test_stream_response_{case['cassette_suffix']}__{model_id}.yaml"
+        f"platforms/azure/test_e2e/test_stream_response_{case['cassette_suffix']}__{model_id}.yaml"
     )
 
     with patched_vcr(cassette_path):

@@ -21,9 +21,7 @@ def _disable_logging() -> Generator[None, None, None]:
     getLogger("agent_platform.server.storage.postgres.postgres").setLevel(INFO)
 
 
-@pytest.fixture(
-    scope="session", params=[pytest.param("postgres", marks=[pytest.mark.postgresql])]
-)
+@pytest.fixture(scope="session", params=[pytest.param("postgres", marks=[pytest.mark.postgresql])])
 async def postgres_test_db() -> AsyncGenerator[
     AsyncConnectionPool[AsyncConnection[TupleRow]],
     None,

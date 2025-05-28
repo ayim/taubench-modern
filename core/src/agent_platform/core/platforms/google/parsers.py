@@ -157,9 +157,7 @@ class GoogleParsers(PlatformParsers):
         if thinking_tokens > 0:
             if "token_metrics" not in response_message.metadata:
                 response_message.metadata["token_metrics"] = {}
-            response_message.metadata["token_metrics"]["thinking_tokens"] = (
-                thinking_tokens
-            )
+            response_message.metadata["token_metrics"]["thinking_tokens"] = thinking_tokens
 
         return response_message
 
@@ -423,8 +421,7 @@ class GoogleParsers(PlatformParsers):
         function_args = function_call.args or {}
 
         logger.debug(
-            f"Processing function call: {function_name}, "
-            f"args type: {type(function_args)}",
+            f"Processing function call: {function_name}, args type: {type(function_args)}",
         )
 
         # Convert args to string if it's a dict
@@ -590,9 +587,7 @@ class GoogleParsers(PlatformParsers):
                 message["metadata"] = {}
             if "token_metrics" not in message["metadata"]:
                 message["metadata"]["token_metrics"] = {}
-            message["metadata"]["token_metrics"]["thinking_tokens"] = token_counts[
-                "thinking"
-            ]
+            message["metadata"]["token_metrics"]["thinking_tokens"] = token_counts["thinking"]
 
     def _process_token_details(
         self,

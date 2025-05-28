@@ -74,9 +74,7 @@ class MockStorage:
         else:
             # Delete all threads for agent
             self.threads = {
-                tid: thread
-                for tid, thread in self.threads.items()
-                if thread.agent_id != agent_id
+                tid: thread for tid, thread in self.threads.items() if thread.agent_id != agent_id
             }
 
     async def get_or_create_user(self, sub: str) -> tuple[User, bool]:

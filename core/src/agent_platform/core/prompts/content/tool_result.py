@@ -30,10 +30,7 @@ class PromptToolResultContent(PromptMessageContent):
     """Identifier linking this result to its original tool call"""
 
     content: list[
-        PromptTextContent
-        | PromptImageContent
-        | PromptAudioContent
-        | PromptDocumentContent
+        PromptTextContent | PromptImageContent | PromptAudioContent | PromptDocumentContent
     ] = field(
         metadata={
             "description": "List of content items produced by the tool execution",

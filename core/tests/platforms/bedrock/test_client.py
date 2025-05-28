@@ -117,9 +117,7 @@ class TestBedrockClient:
                 events = [
                     {
                         "chunk": {
-                            "bytes": (
-                                b'{"type":"message_start","message":{"role":"assistant"}}'
-                            ),
+                            "bytes": (b'{"type":"message_start","message":{"role":"assistant"}}'),
                         },
                     },
                     {

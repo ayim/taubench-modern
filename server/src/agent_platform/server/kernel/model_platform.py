@@ -103,18 +103,14 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
                     )
                     if langsmith_span:
                         langsmith_span["output"] = (
-                            self.kernel.ctx.langsmith.format_response_for_langsmith(
-                                response
-                            )
+                            self.kernel.ctx.langsmith.format_response_for_langsmith(response)
                         )
 
                         # Add usage information if available
                         if response.metadata:
                             usage = response.metadata.get("usage", {})
                             if usage and langsmith_span:
-                                langsmith_span["usage"] = self._generate_usage_metadata(
-                                    usage
-                                )
+                                langsmith_span["usage"] = self._generate_usage_metadata(usage)
 
                     return response
             except Exception:
@@ -214,13 +210,9 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
 
                             # Add usage information if available
                             if stream_pipe.reassembled_response.metadata:
-                                usage = stream_pipe.reassembled_response.metadata.get(
-                                    "usage", {}
-                                )
+                                usage = stream_pipe.reassembled_response.metadata.get("usage", {})
                                 if usage and langsmith_span:
-                                    langsmith_span["usage"] = (
-                                        self._generate_usage_metadata(usage)
-                                    )
+                                    langsmith_span["usage"] = self._generate_usage_metadata(usage)
             except Exception:
                 # If LangSmith setup fails or is not available, continue without tracing
                 try:
@@ -253,9 +245,7 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
             "agent_name": self.kernel.agent.name,
             "user_id": self.kernel.user.user_id,
             "organization": (
-                self.kernel.user.cr_tenant_id
-                if self.kernel.user.cr_tenant_id
-                else "unknown"
+                self.kernel.user.cr_tenant_id if self.kernel.user.cr_tenant_id else "unknown"
             ),
         }
         return metadata
@@ -268,9 +258,7 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
         }
         return usage_metadata
 
-    def _create_langsmith_inputs_from_prompt(
-        self, finalized_prompt: Prompt
-    ) -> dict[str, Any]:
+    def _create_langsmith_inputs_from_prompt(self, finalized_prompt: Prompt) -> dict[str, Any]:
         """Create standardized LangSmith inputs from a finalized prompt.
 
         Args:
@@ -284,9 +272,7 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
 
         if finalized_prompt.system_instruction:
             inputs["system"] = finalized_prompt.system_instruction
-            messages.append(
-                {"role": "system", "content": finalized_prompt.system_instruction}
-            )
+            messages.append({"role": "system", "content": finalized_prompt.system_instruction})
 
         messages = self._process_messages(finalized_prompt, messages)
 
@@ -317,10 +303,7 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
                     content_parts.append(content_item.text)
 
                 # Tool use content - capture tool calls
-                elif (
-                    isinstance(content_item, PromptToolUseContent)
-                    and content_item.tool_name
-                ):
+                elif isinstance(content_item, PromptToolUseContent) and content_item.tool_name:
                     tool_call = self._extract_tool_call(content_item)
                     if tool_call:
                         tool_calls.append(tool_call)
@@ -342,22 +325,16 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
 
             # Process tool results if this was an assistant message with tool calls
             if role == "assistant" and tool_call_ids:
-                messages = self._process_tool_results(
-                    finalized_prompt, messages, i, tool_call_ids
-                )
+                messages = self._process_tool_results(finalized_prompt, messages, i, tool_call_ids)
 
         return messages
 
-    def _extract_tool_call(
-        self, content_item: PromptToolUseContent
-    ) -> dict[str, Any] | None:
+    def _extract_tool_call(self, content_item: PromptToolUseContent) -> dict[str, Any] | None:
         """Extract tool call information from a PromptToolUseContent item."""
         try:
             # Create tool call entry
             tool_input_str = (
-                str(content_item.tool_input_raw)
-                if content_item.tool_input_raw
-                else "{}"
+                str(content_item.tool_input_raw) if content_item.tool_input_raw else "{}"
             )
 
             return {
@@ -381,9 +358,7 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
     ) -> list[dict[str, Any]]:
         """Process tool results that follow an assistant message with tool calls."""
         # Look ahead in the messages for tool results
-        for j in range(
-            assistant_msg_index + 1, len(finalized_prompt.finalized_messages)
-        ):
+        for j in range(assistant_msg_index + 1, len(finalized_prompt.finalized_messages)):
             next_msg = finalized_prompt.finalized_messages[j]
             # Only process user messages that might have tool results
             if not isinstance(next_msg, PromptUserMessage):
@@ -400,9 +375,7 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
 
         return messages
 
-    def _create_tool_result_message(
-        self, content_item: PromptToolResultContent
-    ) -> dict[str, Any]:
+    def _create_tool_result_message(self, content_item: PromptToolResultContent) -> dict[str, Any]:
         """Create a tool result message from a PromptToolResultContent item."""
         tool_result_content = []
         for result_item in content_item.content:

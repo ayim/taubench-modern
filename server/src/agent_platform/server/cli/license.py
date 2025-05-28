@@ -19,8 +19,7 @@ def print_license(should_exit: bool = True) -> None:
             sys.exit(0)
     except FileNotFoundError:
         print(
-            "License file not found. Please visit https://sema4.ai "
-            "for license information.",
+            "License file not found. Please visit https://sema4.ai for license information.",
         )
         if should_exit:
             sys.exit(1)

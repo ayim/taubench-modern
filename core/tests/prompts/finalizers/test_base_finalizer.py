@@ -121,6 +121,4 @@ async def test_base_finalizer_composition():
 
 def test_abstract_class_cannot_be_instantiated():
     """Test that BaseFinalizer cannot be instantiated directly."""
-    pytest.skip(
-        "Cannot instantiate abstract class BaseFinalizer due to linter enforcement."
-    )
+    pytest.skip("Cannot instantiate abstract class BaseFinalizer due to linter enforcement.")

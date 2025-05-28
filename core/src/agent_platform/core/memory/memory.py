@@ -118,14 +118,10 @@ class Memory:
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
             "relevant_until_timestamp": (
-                self.relevant_until_timestamp.isoformat()
-                if self.relevant_until_timestamp
-                else None
+                self.relevant_until_timestamp.isoformat() if self.relevant_until_timestamp else None
             ),
             "relevant_after_timestamp": (
-                self.relevant_after_timestamp.isoformat()
-                if self.relevant_after_timestamp
-                else None
+                self.relevant_after_timestamp.isoformat() if self.relevant_after_timestamp else None
             ),
             "scope": self.scope,
             "metadata": self.metadata,

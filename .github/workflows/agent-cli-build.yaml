@@ -32,18 +32,18 @@ on:
         required: true
     outputs:
       appVersion:
-        description: "The version of the application"
+        description: 'The version of the application'
         value: ${{ jobs.build-info.outputs.appVersion }}
       buildTime:
-        description: "The build timestamp"
+        description: 'The build timestamp'
         value: ${{ jobs.build-info.outputs.buildTime }}
       buildInfo:
-        description: "The complete build info string"
+        description: 'The complete build info string'
         value: ${{ jobs.build-info.outputs.buildInfo }}
   pull_request:
     # Trigger a build on changes to files in cli directory
     paths:
-      - "client-sdks/golang/agent-cli/**"
+      - 'client-sdks/golang/agent-cli/**'
     branches:
       - development
 
@@ -63,7 +63,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.23"
+          go-version: '1.23'
           cache: true
           cache-dependency-path: cli/go.sum
       - name: Go Get agent-client-go
@@ -100,7 +100,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.23"
+          go-version: '1.23'
           cache: true
           cache-dependency-path: client-sdks/golang/agent-cli/go.sum
       - name: Build
@@ -123,7 +123,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: agent-cli-version
-          path: "client-sdks/golang/agent-cli/build/version.txt"
+          path: 'client-sdks/golang/agent-cli/build/version.txt'
 
   build-windows:
     name: Build for Windows
@@ -141,7 +141,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.23"
+          go-version: '1.23'
           cache: true
           cache-dependency-path: client-sdks/golang/agent-cli/go.sum
       - name: Build
@@ -183,7 +183,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.23"
+          go-version: '1.23'
           cache: true
           cache-dependency-path: client-sdks/golang/agent-cli/go.sum
       - name: Build
@@ -221,7 +221,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.23"
+          go-version: '1.23'
           cache: true
           cache-dependency-path: client-sdks/golang/agent-cli/go.sum
       - name: Build
@@ -271,7 +271,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.23"
+          go-version: '1.23'
           cache: true
           cache-dependency-path: client-sdks/golang/agent-cli/go.sum
       - name: Download binary

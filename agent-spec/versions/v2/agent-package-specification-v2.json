@@ -39,14 +39,7 @@
     "required": true,
     "expected-type": {
       "type": "string",
-      "recommended-values": [
-        "OpenAI",
-        "Azure",
-        "Anthropic",
-        "Google",
-        "Amazon",
-        "Ollama"
-      ]
+      "recommended-values": ["OpenAI", "Azure", "Anthropic", "Google", "Amazon", "Ollama"]
     }
   },
   "agent-package/agents/model/name": {
@@ -54,13 +47,7 @@
     "required": true,
     "expected-type": {
       "type": "string",
-      "recommended-values": [
-        "gpt-3.5-turbo",
-        "gpt-4-turbo",
-        "gpt-4o",
-        "gpt-4",
-        "llama3"
-      ]
+      "recommended-values": ["gpt-3.5-turbo", "gpt-4-turbo", "gpt-4o", "gpt-4", "llama3"]
     }
   },
   "agent-package/agents/version": {
@@ -73,10 +60,7 @@
     "required": true,
     "expected-type": {
       "type": "enum",
-      "values": [
-        "agent",
-        "plan_execute"
-      ]
+      "values": ["agent", "plan_execute"]
     }
   },
   "agent-package/agents/reasoning": {
@@ -84,11 +68,7 @@
     "required": true,
     "expected-type": {
       "type": "enum",
-      "values": [
-        "disabled",
-        "enabled",
-        "verbose"
-      ]
+      "values": ["disabled", "enabled", "verbose"]
     }
   },
   "agent-package/agents/runbook": {
@@ -119,10 +99,7 @@
     "required": true,
     "expected-type": {
       "type": "zip_or_folder_based_on_path",
-      "values": [
-        "zip",
-        "folder"
-      ]
+      "values": ["zip", "folder"]
     }
   },
   "agent-package/agents/action-packages/version": {
@@ -176,10 +153,7 @@
     "required": true,
     "expected-type": {
       "type": "enum",
-      "values": [
-        "conversational",
-        "worker"
-      ]
+      "values": ["conversational", "worker"]
     }
   },
   "agent-package/agents/metadata/worker-config": {

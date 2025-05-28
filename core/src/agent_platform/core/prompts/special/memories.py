@@ -26,9 +26,7 @@ class MemoriesParams:
     token_budget_as_percentage: float = field(
         default=0.50,
         metadata={
-            "description": (
-                "The token budget as a percentage of the total token budget."
-            ),
+            "description": ("The token budget as a percentage of the total token budget."),
         },
     )
     """The token budget as a percentage of the total token budget."""

@@ -311,9 +311,7 @@ async def test_model_platform_params(
         except Exception as ex:
             raise HTTPException(
                 status_code=400,
-                detail=(
-                    "Failed to create a platform client with the provided parameters"
-                ),
+                detail=("Failed to create a platform client with the provided parameters"),
             ) from ex
     except Exception as ex:
         raise HTTPException(

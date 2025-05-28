@@ -207,24 +207,19 @@ class PostgresStorageAgentsMixin(CommonMixin):
                         )
                         if await cur.fetchone():
                             raise AgentWithNameAlreadyExistsError(
-                                f"Agent name {agent.name!r} is not "
-                                f"unique for user {user_id}"
+                                f"Agent name {agent.name!r} is not unique for user {user_id}"
                             )
                         else:
                             # Must be access denied or agent doesn't exist
                             await cur.execute(
-                                "SELECT 1 FROM v2.agent "
-                                "WHERE agent_id = %(agent_id)s::uuid",
+                                "SELECT 1 FROM v2.agent WHERE agent_id = %(agent_id)s::uuid",
                                 {"agent_id": agent.agent_id},
                             )
                             if not await cur.fetchone():
-                                raise AgentNotFoundError(
-                                    f"Agent {agent.agent_id} not found"
-                                )
+                                raise AgentNotFoundError(f"Agent {agent.agent_id} not found")
                             else:
                                 raise UserAccessDeniedError(
-                                    f"User {user_id} does not have access to "
-                                    f"agent {agent.agent_id}"
+                                    f"User {user_id} does not have access to agent {agent.agent_id}"
                                 )
         except IntegrityError as e:
             # Catch the agent_id unique-index violation
@@ -234,9 +229,7 @@ class PostgresStorageAgentsMixin(CommonMixin):
                 ) from e
             raise
 
-    async def patch_agent(
-        self, user_id: str, agent_id: str, name: str, description: str
-    ) -> None:
+    async def patch_agent(self, user_id: str, agent_id: str, name: str, description: str) -> None:
         """Update agent name and description."""
         try:
             async with self._cursor() as cur:

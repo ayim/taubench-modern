@@ -32,9 +32,7 @@ class PromptSelector(ABC):
     relative to a package.
     """
 
-    def __init__(
-        self, prompt_paths: list[str | Path] | None = None, package: str | None = None
-    ):
+    def __init__(self, prompt_paths: list[str | Path] | None = None, package: str | None = None):
         self.prompt_paths = prompt_paths
         self.package = package
         self._prompts: dict[str, Traversable] | None = None

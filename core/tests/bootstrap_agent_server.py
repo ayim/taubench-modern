@@ -56,9 +56,7 @@ class AgentServerProcess:
                 "The agent server was not properly started (no host available)",
             )
 
-        assert self._host, (
-            "The agent server was not properly started (no host available)"
-        )
+        assert self._host, "The agent server was not properly started (no host available)"
         return self._host
 
     @property
@@ -68,9 +66,7 @@ class AgentServerProcess:
                 "The agent server was not properly started (no port available)",
             )
 
-        assert self._port > 0, (
-            "The agent server was not properly started (no port available)"
-        )
+        assert self._port > 0, "The agent server was not properly started (no port available)"
         return self._port
 
     @property

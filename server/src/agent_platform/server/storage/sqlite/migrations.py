@@ -192,8 +192,7 @@ class SQLiteMigrations(MigrationsProvider):
                 current_locked_by = row[0]
                 if current_locked_by != locked_by:
                     raise MigrationLockError(
-                        "Could not acquire migration lock. "
-                        "Another migration might be in progress.",
+                        "Could not acquire migration lock. Another migration might be in progress.",
                     )
 
     async def _release_migration_lock(self, conn: Connection) -> None:
@@ -313,8 +312,7 @@ class SQLiteMigrations(MigrationsProvider):
         m = re_match(pattern, filename)
         if not m:
             raise InvalidMigrationFilenameError(
-                f"Invalid migration filename: {filename}. "
-                f"Expected '<version>_<desc>.up.sql'",
+                f"Invalid migration filename: {filename}. Expected '<version>_<desc>.up.sql'",
             )
         return int(m.group(1)), m.group(2)
 

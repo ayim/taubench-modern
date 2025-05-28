@@ -90,8 +90,7 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
             )
         else:
             raise ValueError(
-                f"Unsupported image content type/value: {content.sub_type} "
-                f"/ {type(content.value)}"
+                f"Unsupported image content type/value: {content.sub_type} / {type(content.value)}"
             )
 
     async def convert_audio_content(
@@ -240,13 +239,9 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
                     tool_call = await self.convert_tool_use_content(tool_use_content)
                     tool_calls.append(tool_call)
                 case PromptImageContent() as image_content:
-                    content_parts.append(
-                        await self.convert_image_content(image_content)
-                    )
+                    content_parts.append(await self.convert_image_content(image_content))
                 case PromptAudioContent() as audio_content:
-                    content_parts.append(
-                        await self.convert_audio_content(audio_content)
-                    )
+                    content_parts.append(await self.convert_audio_content(audio_content))
                 case PromptDocumentContent():
                     raise NotImplementedError("Document content not supported yet")
                 case PromptToolResultContent():
@@ -324,9 +319,7 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
 
         for message in messages:
             # Process the message content to get text and tool components
-            processed_contents, tool_calls = await self._process_message_content(
-                message.content
-            )
+            processed_contents, tool_calls = await self._process_message_content(message.content)
 
             # Get the appropriate OpenAI role
             openai_role = await self._reverse_role_map(message.role)

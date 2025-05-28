@@ -58,9 +58,7 @@ class BaseStorage(ABC):
         pass
 
     @abstractmethod
-    async def patch_agent(
-        self, user_id: str, agent_id: str, name: str, description: str
-    ) -> None:
+    async def patch_agent(self, user_id: str, agent_id: str, name: str, description: str) -> None:
         """Update agent name and description."""
         pass
 

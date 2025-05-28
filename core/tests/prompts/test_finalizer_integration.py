@@ -49,15 +49,11 @@ def mock_kernel():
     # Define hydrated messages that would result from the special message
     hydrated_messages = [
         PromptUserMessage([PromptTextContent(text="What's the weather?")]),
-        PromptAgentMessage(
-            content=[PromptTextContent(text="Here's the weather information:")]
-        ),
+        PromptAgentMessage(content=[PromptTextContent(text="Here's the weather information:")]),
         PromptUserMessage([PromptTextContent(text="Can you give me more details?")]),
         PromptAgentMessage(
             content=[
-                PromptTextContent(
-                    text="The weather is sunny with a high of 75°F. " + large_result
-                )
+                PromptTextContent(text="The weather is sunny with a high of 75°F. " + large_result)
             ]
         ),
     ]
@@ -67,15 +63,11 @@ def mock_kernel():
         "MockKernel",
         (),
         {
-            "thread": type(
-                "MockThread", (), {"get_last_n_message_turns": lambda n: []}
-            ),
+            "thread": type("MockThread", (), {"get_last_n_message_turns": lambda n: []}),
             "converters": type(
                 "MockConverters",
                 (),
-                {
-                    "thread_messages_to_prompt_messages": lambda messages: hydrated_messages
-                },
+                {"thread_messages_to_prompt_messages": lambda messages: hydrated_messages},
             ),
         },
     )()
@@ -114,9 +106,7 @@ async def test_prompt_finalize_with_truncation(mock_kernel, mock_platform):
             # Then add special messages for conversation history
             ConversationHistorySpecialMessage(role="$conversation-history"),
             # Add a user message after the history
-            PromptUserMessage(
-                [PromptTextContent(text="Tell me more about the weather")]
-            ),
+            PromptUserMessage([PromptTextContent(text="Tell me more about the weather")]),
         ],
     )
 
@@ -125,9 +115,7 @@ async def test_prompt_finalize_with_truncation(mock_kernel, mock_platform):
 
     # Create the finalizers in the correct order
     special_finalizer = SpecialMessageFinalizer()
-    truncation_finalizer = TruncationFinalizer(
-        token_budget_percentage=0.5, max_content_length=200
-    )
+    truncation_finalizer = TruncationFinalizer(token_budget_percentage=0.5, max_content_length=200)
 
     # Finalize the prompt with both finalizers in the right order
     finalized_prompt = await prompt.finalize_messages(
@@ -174,9 +162,7 @@ async def test_prompt_finalize_with_truncation(mock_kernel, mock_platform):
 
 
 @pytest.mark.asyncio
-async def test_prompt_finalize_with_custom_truncation_params(
-    mock_kernel, mock_platform
-):
+async def test_prompt_finalize_with_custom_truncation_params(mock_kernel, mock_platform):
     """Test TruncationFinalizer with custom parameters."""
     # Create tool results of different sizes
     small_result = "This is a small tool result."
@@ -230,9 +216,7 @@ async def test_prompt_finalize_with_custom_truncation_params(
     # Check the large tool result is properly set up
     assert isinstance(finalized_prompt.messages[2], PromptAgentMessage)
     assert isinstance(finalized_prompt.messages[2].content[0], PromptToolResultContent)
-    assert isinstance(
-        finalized_prompt.messages[2].content[0].content[0], PromptTextContent
-    )
+    assert isinstance(finalized_prompt.messages[2].content[0].content[0], PromptTextContent)
 
     # The large tool result should have been heavily truncated
     tool_result_text = finalized_prompt.messages[2].content[0].content[0].text
@@ -299,16 +283,11 @@ async def test_truncation_with_multiple_content_items(mock_kernel, mock_platform
     for i, content_item in enumerate(tool_result.content):
         if isinstance(content_item, PromptTextContent):
             # Verify truncation marker is present
-            assert (
-                "[Tool result truncated due to length constraints]" in content_item.text
-            )
+            assert "[Tool result truncated due to length constraints]" in content_item.text
 
             # Verify length is within limits (allowing for marker)
             marker_length = len("[Tool result truncated due to length constraints]") + 4
-            assert (
-                len(content_item.text)
-                <= finalizer.max_content_length + marker_length + 50
-            )
+            assert len(content_item.text) <= finalizer.max_content_length + marker_length + 50
 
             # Verify original text was much longer
             original_text = [text1, text2, text3][i]

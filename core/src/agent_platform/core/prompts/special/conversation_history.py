@@ -15,9 +15,7 @@ class ConversationHistoryParams:
     maximum_number_of_turns: int = field(
         default=5,
         metadata={
-            "description": (
-                "The maximum number of turns to include in the conversation history."
-            ),
+            "description": ("The maximum number of turns to include in the conversation history."),
         },
     )
     """The maximum number of turns to include in the conversation history."""
@@ -25,9 +23,7 @@ class ConversationHistoryParams:
     token_budget_as_percentage: float = field(
         default=0.50,
         metadata={
-            "description": (
-                "The token budget as a percentage of the total token budget."
-            ),
+            "description": ("The token budget as a percentage of the total token budget."),
         },
     )
     """The token budget as a percentage of the total token budget."""

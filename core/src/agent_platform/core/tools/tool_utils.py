@@ -231,9 +231,7 @@ def build_param_schema(
         # Decide string or integer type if all values are ints or all are strings
         # For a typical enum, they're often strings, but could be int
         # if it's an IntEnum
-        schema_type = (
-            "integer" if all(isinstance(v, int) for v in possible_values) else "string"
-        )
+        schema_type = "integer" if all(isinstance(v, int) for v in possible_values) else "string"
         schema_type = [schema_type, "null"] if is_nullable else schema_type
 
         schema = {

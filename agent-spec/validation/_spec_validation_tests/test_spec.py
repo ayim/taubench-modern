@@ -90,9 +90,7 @@ agent-package:
     validate_from_spec(load_spec(v2_spec), valid_yaml, datadir)
 
 
-def test_spec_validation_missing_required(
-    datadir: Path, v2_spec: dict, data_regression
-):
+def test_spec_validation_missing_required(datadir: Path, v2_spec: dict, data_regression):
     from _spec_validation_tests._spec_validation import load_spec
 
     bad_yaml = """
@@ -104,9 +102,7 @@ agent-package:
         mode: conversational
     """
 
-    errors = validate_from_spec(
-        load_spec(v2_spec), bad_yaml, datadir, raise_on_error=False
-    )
+    errors = validate_from_spec(load_spec(v2_spec), bad_yaml, datadir, raise_on_error=False)
     assert errors, "Expected errors"
     errors_str = [e.message for e in errors]
     assert "Missing required entry: agent-package/agents/name." in errors_str
@@ -163,9 +159,7 @@ agent-package:
     description: This is not a list, just an attribute in an object...
     """
 
-    errors = validate_from_spec(
-        load_spec(v2_spec), bad_yaml, datadir, raise_on_error=False
-    )
+    errors = validate_from_spec(load_spec(v2_spec), bad_yaml, datadir, raise_on_error=False)
     assert errors, "Expected errors"
     errors_str = [e.message for e in errors]
     assert ["Expected agent-package/agents to be a list."] == errors_str
@@ -194,9 +188,7 @@ agent-package: # Root element
         mode: conversational
     """
 
-    errors = validate_from_spec(
-        load_spec(v2_spec), bad_yaml, datadir, raise_on_error=False
-    )
+    errors = validate_from_spec(load_spec(v2_spec), bad_yaml, datadir, raise_on_error=False)
     assert errors, "Expected errors"
     errors_str = [e.message for e in errors]
     data_regression.check(errors_str)
@@ -225,9 +217,7 @@ agent-package: # Root element
         mode: conversational
     """
 
-    errors = validate_from_spec(
-        load_spec(v2_spec), bad_yaml, datadir, raise_on_error=False
-    )
+    errors = validate_from_spec(load_spec(v2_spec), bad_yaml, datadir, raise_on_error=False)
     assert errors, "Expected errors"
     errors_str = [e.message for e in errors]
     data_regression.check(errors_str)
@@ -257,9 +247,7 @@ agent-package: # Root element
         mode: conversational
     """
 
-    errors = validate_from_spec(
-        load_spec(v2_spec), bad_yaml, datadir, raise_on_error=False
-    )
+    errors = validate_from_spec(load_spec(v2_spec), bad_yaml, datadir, raise_on_error=False)
     assert errors, "Expected errors"
     errors_str = [e.message for e in errors]
     data_regression.check(errors_str)
@@ -268,9 +256,7 @@ agent-package: # Root element
     (datadir / "knowledge").mkdir()
     (datadir / "knowledge" / "knowledge-file.txt").write_text("")
 
-    errors = validate_from_spec(
-        load_spec(v2_spec), bad_yaml, datadir, raise_on_error=True
-    )
+    errors = validate_from_spec(load_spec(v2_spec), bad_yaml, datadir, raise_on_error=True)
 
 
 @pytest.mark.usefixtures("_gen_action_package_files", "_gen_runbook")
@@ -311,9 +297,7 @@ agent-package: # Root element
           path: MyActions/another/my-action
       # Note: no knowledge node (should be ok as it's not marked as required)
     """
-    errors = validate_from_spec(
-        load_spec(v2_spec), bad_yaml, datadir, raise_on_error=False
-    )
+    errors = validate_from_spec(load_spec(v2_spec), bad_yaml, datadir, raise_on_error=False)
     assert errors, "Expected errors"
     errors_str = [e.message for e in errors]
     data_regression.check(errors_str)
@@ -347,9 +331,7 @@ agent-package:
       resources: [] # deprecated
       reasoningLevel: 1 # deprecated
     """
-    errors = validate_from_spec(
-        load_spec(v2_spec), bad_yaml, datadir, raise_on_error=False
-    )
+    errors = validate_from_spec(load_spec(v2_spec), bad_yaml, datadir, raise_on_error=False)
 
     assert errors, "Expected errors"
     errors_str = [e.message for e in errors]

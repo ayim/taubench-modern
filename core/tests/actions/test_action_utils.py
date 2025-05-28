@@ -80,12 +80,9 @@ async def test_get_spec_and_build_definitions(mock_client_session, sample_openap
 
     assert tool_definitions[1].name == "serpapi_geocode_place_name"
     assert tool_definitions[1].description == (
-        "Perform a geocoding search using SerpApi, returning GPS coordinates "
-        "for a place name."
+        "Perform a geocoding search using SerpApi, returning GPS coordinates for a place name."
     )
-    assert (
-        tool_definitions[1].input_schema["properties"]["place_name"]["type"] == "string"
-    )
+    assert tool_definitions[1].input_schema["properties"]["place_name"]["type"] == "string"
     assert tool_definitions[1].input_schema["required"] == ["place_name"]
 
     assert tool_definitions[2].name == "serpapi_google_map_search"
@@ -105,9 +102,7 @@ async def test_get_spec_and_build_definitions(mock_client_session, sample_openap
 
 @pytest.mark.asyncio
 @patch("aiohttp.ClientSession")
-async def test_get_spec_with_allowed_actions_filter(
-    mock_client_session, sample_openapi_spec
-):
+async def test_get_spec_with_allowed_actions_filter(mock_client_session, sample_openapi_spec):
     """Test filtering actions by allowed_actions."""
     # Setup mock
     mock_session = MockClientSession(sample_openapi_spec)
@@ -185,9 +180,7 @@ def test_dereference_nested_refs():
                 "NestedObject": {"type": "string", "description": "A nested string"},
                 "ParentObject": {
                     "type": "object",
-                    "properties": {
-                        "nested": {"$ref": "#/components/schemas/NestedObject"}
-                    },
+                    "properties": {"nested": {"$ref": "#/components/schemas/NestedObject"}},
                 },
             }
         }
@@ -199,18 +192,12 @@ def test_dereference_nested_refs():
     assert result["topLevel"]["type"] == "object"
     assert "$ref" not in result["topLevel"]["properties"]["nested"]
     assert result["topLevel"]["properties"]["nested"]["type"] == "string"
-    assert (
-        result["topLevel"]["properties"]["nested"]["description"] == "A nested string"
-    )
+    assert result["topLevel"]["properties"]["nested"]["description"] == "A nested string"
 
 
 def test_dereference_ref_in_list():
     """Test dereferencing a reference within a list."""
-    schema = {
-        "components": {
-            "schemas": {"SimpleString": {"type": "string", "example": "hello"}}
-        }
-    }
+    schema = {"components": {"schemas": {"SimpleString": {"type": "string", "example": "hello"}}}}
     spec = {"listOfStrings": [{"$ref": "#/components/schemas/SimpleString"}]}
     result = _dereference_refs(spec, schema)
 

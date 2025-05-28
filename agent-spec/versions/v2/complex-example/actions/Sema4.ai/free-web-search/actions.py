@@ -123,9 +123,7 @@ def web_search_images(
     """
     try:
         type_image = type_image if type_image != "" else None
-        results = DDGS().images(
-            keywords=keywords, type_image=type_image, max_results=max_results
-        )
+        results = DDGS().images(keywords=keywords, type_image=type_image, max_results=max_results)
         items = []
         for r in results:
             print(r)
@@ -147,9 +145,7 @@ def web_search_videos(keywords: str, max_results: int = 10) -> GenericSearchResu
         Video search results.
     """
     try:
-        results = DDGS().videos(
-            keywords=keywords, timelimit="y", max_results=max_results
-        )
+        results = DDGS().videos(keywords=keywords, timelimit="y", max_results=max_results)
         items = []
         for r in results:
             print(r)

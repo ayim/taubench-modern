@@ -30,8 +30,7 @@ def assert_literal_value_valid(class_instance: Any, value_name: str) -> None:
         value = getattr(class_instance, value_name)
     except AttributeError as e:
         raise ValueError(
-            f"Attribute '{value_name}' not found in "
-            f"dataclass {type(class_instance).__name__}",
+            f"Attribute '{value_name}' not found in dataclass {type(class_instance).__name__}",
         ) from e
 
     # Get the type annotation
@@ -46,8 +45,7 @@ def assert_literal_value_valid(class_instance: Any, value_name: str) -> None:
     # Verify it's a Literal type
     if get_origin(type_annotation) is not Literal:
         raise ValueError(
-            f"Attribute '{value_name}' must have a Literal type annotation, "
-            f"got {type_annotation}",
+            f"Attribute '{value_name}' must have a Literal type annotation, got {type_annotation}",
         )
 
     # Get the valid values from the Literal

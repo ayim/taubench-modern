@@ -49,9 +49,6 @@ class Runbook:
         data = data.copy()
         content = cast(
             list[AnyRunbookContent],
-            [
-                RunbookContent.model_validate(content)
-                for content in data.pop("content", [])
-            ],
+            [RunbookContent.model_validate(content) for content in data.pop("content", [])],
         )
         return cls(**data, content=content)

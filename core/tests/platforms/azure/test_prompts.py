@@ -198,9 +198,7 @@ class TestAzureOpenAIPrompt:
         assert prompt.temperature == 0.0
         assert prompt.top_p == 1.0
         assert prompt.max_tokens == 4096
-        assert (
-            prompt.tools is None
-        )  # Note: Azure actually uses None as default, not empty list
+        assert prompt.tools is None  # Note: Azure actually uses None as default, not empty list
 
         # Test with custom values
         tools = [

@@ -27,8 +27,7 @@ def get_pyproject_version() -> str:
     version = toml_data["project"]["version"]
     if not version:
         raise ValueError(
-            "Can't detect version for building executable from "
-            f"pyproject.toml ({pyproject_path})"
+            f"Can't detect version for building executable from pyproject.toml ({pyproject_path})"
         )
     return version
 
@@ -48,15 +47,9 @@ def app():
     default=False,
     help="Build in CI mode, disabling interactive prompts",
 )
-@click.option(
-    "--dist-path", type=click.Path(), default="dist", help="Path to the dist directory"
-)
-@click.option(
-    "--sign", is_flag=True, help="Sign the executable", default=is_in_github_actions()
-)
-@click.option(
-    "--go-wrapper", is_flag=True, help="Build the Go wrapper too", default=False
-)
+@click.option("--dist-path", type=click.Path(), default="dist", help="Path to the dist directory")
+@click.option("--sign", is_flag=True, help="Sign the executable", default=is_in_github_actions())
+@click.option("--go-wrapper", is_flag=True, help="Build the Go wrapper too", default=False)
 @click.option(
     "--version",
     type=str,

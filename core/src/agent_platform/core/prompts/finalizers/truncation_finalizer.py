@@ -35,8 +35,7 @@ class TruncationConfig(Configuration):
     minimum_length_to_truncate: int = field(
         default=100,
         metadata=FieldMetadata(
-            description="Minimum length to consider a message for "
-            "truncation in tokens.",
+            description="Minimum length to consider a message for truncation in tokens.",
         ),
     )
     """Minimum length to consider a message for truncation in tokens."""
@@ -143,9 +142,7 @@ class TruncationFinalizer(BaseFinalizer):
 
         max_tokens = platform.client.model_map.model_context_windows.get(model_name, 0)
         if not max_tokens:
-            logger.warning(
-                f"Unknown context window for model {model_name}, skipping truncation"
-            )
+            logger.warning(f"Unknown context window for model {model_name}, skipping truncation")
             return messages
 
         max_token_budget = int(max_tokens * self.token_budget_percentage)
@@ -177,9 +174,7 @@ class TruncationFinalizer(BaseFinalizer):
         # Collect both tool results and large text content
         truncatable_content = self._collect_truncatable_content(messages)
         if not truncatable_content:
-            logger.warning(
-                "No content found to truncate. Prompt will exceed token budget."
-            )
+            logger.warning("No content found to truncate. Prompt will exceed token budget.")
             return messages
 
         # Sort by token count, with largest first
@@ -203,9 +198,7 @@ class TruncationFinalizer(BaseFinalizer):
 
         return messages
 
-    def _truncate_content(
-        self, truncatable_content: list[dict], tokens_to_reduce: int
-    ) -> int:
+    def _truncate_content(self, truncatable_content: list[dict], tokens_to_reduce: int) -> int:
         """Truncate the largest content items until the token budget is met."""
         for item in truncatable_content:
             if tokens_to_reduce <= 0:
@@ -227,9 +220,7 @@ class TruncationFinalizer(BaseFinalizer):
                     tokens_to_reduce -= tokens_saved
 
                     # Log the truncation
-                    item_type = (
-                        "tool result" if item.get("tool_name") else "text content"
-                    )
+                    item_type = "tool result" if item.get("tool_name") else "text content"
                     name = item.get("tool_name", "text")
                     logger.info(
                         f"Truncated {item_type} {name} from "
@@ -240,9 +231,7 @@ class TruncationFinalizer(BaseFinalizer):
                         break
         return tokens_to_reduce
 
-    def _collect_truncatable_content(
-        self, messages: list["MessageType"]
-    ) -> list[dict[str, Any]]:
+    def _collect_truncatable_content(self, messages: list["MessageType"]) -> list[dict[str, Any]]:
         """Collect all potentially truncatable content from messages with
         their token counts.
 
@@ -281,9 +270,7 @@ class TruncationFinalizer(BaseFinalizer):
                     if tool_token_count > self.minimum_length_to_truncate:
                         # Extract any text content items from the tool result
                         text_contents = [
-                            item
-                            for item in content.content
-                            if isinstance(item, PromptTextContent)
+                            item for item in content.content if isinstance(item, PromptTextContent)
                         ]
                         truncatable_content.append(
                             {

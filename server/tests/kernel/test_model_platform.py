@@ -25,9 +25,7 @@ def mock_platform_client():
     client.generate_response = AsyncMock()
 
     # Mock the converters for prompt conversion
-    client.converters.convert_prompt = AsyncMock(
-        side_effect=lambda prompt, model_id=None: prompt
-    )
+    client.converters.convert_prompt = AsyncMock(side_effect=lambda prompt, model_id=None: prompt)
 
     return client
 
@@ -62,9 +60,7 @@ def mock_kernel():
 
 
 @pytest.mark.asyncio
-async def test_generate_response_truncates_tool_results(
-    mock_platform_client, mock_kernel
-):
+async def test_generate_response_truncates_tool_results(mock_platform_client, mock_kernel):
     """Test that generate_response truncates large tool results using
     TruncationFinalizer."""
     # Create the platform interface
@@ -112,9 +108,7 @@ async def test_generate_response_truncates_tool_results(
 
 
 @pytest.mark.asyncio
-async def test_stream_response_truncates_tool_results(
-    mock_platform_client, mock_kernel
-):
+async def test_stream_response_truncates_tool_results(mock_platform_client, mock_kernel):
     """Test that stream_response truncates large tool results using
     TruncationFinalizer."""
     # Create the platform interface
@@ -123,9 +117,7 @@ async def test_stream_response_truncates_tool_results(
 
     # Set up the generate_stream_response to return an empty stream
     mock_platform_client.generate_stream_response = MagicMock(
-        return_value=AsyncMock(
-            __aiter__=AsyncMock(return_value=iter([])), __anext__=AsyncMock()
-        )
+        return_value=AsyncMock(__aiter__=AsyncMock(return_value=iter([])), __anext__=AsyncMock())
     )
 
     # Create a large tool result (enough to trigger truncation)

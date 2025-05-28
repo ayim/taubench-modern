@@ -25,10 +25,7 @@ class TestGoogleModelMap:
 
         # Check that model IDs map correctly
         assert default_map.model_aliases["gemini-1.5-pro"] == "gemini-1.5-pro"
-        assert (
-            default_map.model_aliases["models/text-embedding-004"]
-            == "models/text-embedding-004"
-        )
+        assert default_map.model_aliases["models/text-embedding-004"] == "models/text-embedding-004"
 
     def test_class_getitem(self) -> None:
         """Test that the class can be used as a mapping."""

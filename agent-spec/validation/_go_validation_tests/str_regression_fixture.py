@@ -38,12 +38,9 @@ class StrRegression:
         def dump(f):
             # Change the binary chars for its repr.
             new_obtained = "".join(
-                (x if (x.isprintable() or x in ("\r", "\n")) else repr(x))
-                for x in obtained
+                (x if (x.isprintable() or x in ("\r", "\n")) else repr(x)) for x in obtained
             )
-            f.write_bytes(
-                "\n".join(new_obtained.splitlines(keepends=False)).encode("utf-8")
-            )
+            f.write_bytes("\n".join(new_obtained.splitlines(keepends=False)).encode("utf-8"))
 
         def check_fn(obtained_path, expected_path):
             from io import StringIO
@@ -55,9 +52,7 @@ class StrRegression:
             lines1 = obtained.strip().splitlines(keepends=False)
             lines2 = expected.strip().splitlines(keepends=False)
             if lines1 != lines2:
-                max_line_length = max(
-                    len(line) for line in lines1 + lines2 + ["=== Obtained ==="]
-                )
+                max_line_length = max(len(line) for line in lines1 + lines2 + ["=== Obtained ==="])
                 stream = StringIO()
 
                 status = "   "
@@ -75,9 +70,7 @@ class StrRegression:
                         status = "   "
                     print(
                         status
-                        + "{:<{width}}\t{:<{width}}".format(
-                            line1, line2, width=max_line_length
-                        ),
+                        + "{:<{width}}\t{:<{width}}".format(line1, line2, width=max_line_length),
                         file=stream,
                     )
                 raise AssertionError(

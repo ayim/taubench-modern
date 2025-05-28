@@ -17,9 +17,7 @@ from agent_platform.server.auth import AuthedUser
 router = APIRouter()
 logger = get_logger(__name__)
 
-ModelType = Literal[
-    "llm", "embedding", "text-to-image", "text-to-audio", "audio-to-text"
-]
+ModelType = Literal["llm", "embedding", "text-to-image", "text-to-audio", "audio-to-text"]
 
 
 def _create_platform_client_and_get_model(

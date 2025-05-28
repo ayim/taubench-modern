@@ -12,8 +12,7 @@ class BedrockContentLimits(Configuration):
     max_image_count: int = field(
         default=20,
         metadata=FieldMetadata(
-            description="The maximum number of images that can be included "
-            "in a request.",
+            description="The maximum number of images that can be included in a request.",
         ),
     )
     max_image_size: int = field(
@@ -37,8 +36,7 @@ class BedrockContentLimits(Configuration):
     max_document_count: int = field(
         default=5,
         metadata=FieldMetadata(
-            description="The maximum number of documents that can be included "
-            "in a request.",
+            description="The maximum number of documents that can be included in a request.",
         ),
     )
     max_document_size: int = field(
@@ -220,13 +218,10 @@ class BedrockMimeTypeMap(Configuration):
             "xls": "application/vnd.ms-excel",
             "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             "doc": "application/msword",
-            "docx": "application/"
-            "vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         },
         metadata=FieldMetadata(
-            description=(
-                "A map of Bedrock format types to MIME types supported by the platform."
-            ),
+            description=("A map of Bedrock format types to MIME types supported by the platform."),
         ),
     )
 

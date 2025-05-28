@@ -421,8 +421,7 @@ class ConfigurationManager:
             config_files = [
                 f
                 for f in self._main_config_file.iterdir()
-                if f.is_file()
-                and f.suffix.lower() in yaml_extensions.union(json_extensions)
+                if f.is_file() and f.suffix.lower() in yaml_extensions.union(json_extensions)
             ]
 
             for config_file in config_files:
@@ -476,11 +475,7 @@ class ConfigurationManager:
             source: Source dictionary to merge from
         """
         for key, value in source.items():
-            if (
-                key in target
-                and isinstance(target[key], dict)
-                and isinstance(value, dict)
-            ):
+            if key in target and isinstance(target[key], dict) and isinstance(value, dict):
                 # If both target and source have a dict at this key, recurse
                 self._deep_merge_configs(target[key], value)
             else:
@@ -514,8 +509,7 @@ class ConfigurationManager:
                     changes_applied[config_class.__name__] = list(attrs.keys())
                 except Exception as e:
                     logger.error(
-                        f"Failed to apply command line overrides to "
-                        f"{config_class.__name__}: {e}",
+                        f"Failed to apply command line overrides to {config_class.__name__}: {e}",
                     )
 
         # Log a summary of changes if any were applied
@@ -604,8 +598,7 @@ class ConfigurationManager:
                 # Set the instance as the singleton
                 config_class.set_instance(instance)
                 logger.debug(
-                    f"Loaded configuration from file: {config_class.__name__} "
-                    f"at {config_path}",
+                    f"Loaded configuration from file: {config_class.__name__} at {config_path}",
                 )
             else:
                 # Create default config
@@ -618,8 +611,7 @@ class ConfigurationManager:
                 )
         except Exception as e:
             logger.error(
-                f"Failed to load configuration: {config_class.__name__} "
-                f"at {config_path}: {e!s}",
+                f"Failed to load configuration: {config_class.__name__} at {config_path}: {e!s}",
             )
             # Still create a default instance
             instance = config_class.get_default_instance()
@@ -747,9 +739,7 @@ class ConfigurationManager:
                 return_value = {}
                 # Recursively parse the fields of the target class for env vars
                 for nested_field in fields(target_class):
-                    parsed_value = self._parse_field_env_vars(
-                        nested_field, target_class
-                    )
+                    parsed_value = self._parse_field_env_vars(nested_field, target_class)
                     if parsed_value is not None:
                         return_value[nested_field.name] = parsed_value
             except ConfigurationDiscriminatorError:
@@ -800,9 +790,7 @@ class ConfigurationManager:
         if not discriminator_fields:
             return discriminator_fields
 
-        logger.debug(
-            f"First pass: Processing {len(discriminator_fields)} discriminator fields"
-        )
+        logger.debug(f"First pass: Processing {len(discriminator_fields)} discriminator fields")
 
         # Group discriminator fields by config class for efficient processing
         fields_by_config = {}
@@ -826,9 +814,7 @@ class ConfigurationManager:
             env_overrides = {}
             for field_name in field_names:
                 # Find the field in the class
-                field = next(
-                    (f for f in fields(config_class) if f.name == field_name), None
-                )
+                field = next((f for f in fields(config_class) if f.name == field_name), None)
                 if not field:
                     continue
 
@@ -982,10 +968,7 @@ class ConfigurationManager:
         for config_path, config_class in self.config_classes.items():
             for field in fields(config_class):
                 # Check if this field has a 'discriminator' in its metadata
-                if (
-                    is_union_of_dataclasses_type(field.type)
-                    and "discriminator" in field.metadata
-                ):
+                if is_union_of_dataclasses_type(field.type) and "discriminator" in field.metadata:
                     # The discriminator field is identified by its name
                     discriminator_name = field.metadata["discriminator"]
 

@@ -1,4 +1,4 @@
-- message: 'Error: ''spec-version'' should be a string.'
+- message: "Error: 'spec-version' should be a string."
   range:
     end:
       character: 0

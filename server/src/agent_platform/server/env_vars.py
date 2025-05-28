@@ -88,8 +88,7 @@ def get_env_var(
         value = os.getenv(var_name)
         if value is not None:
             warnings.warn(
-                f"Using deprecated environment variable {var_name}. "
-                f"Please use {primary} instead.",
+                f"Using deprecated environment variable {var_name}. Please use {primary} instead.",
                 DeprecationWarning,
                 stacklevel=2,
             )

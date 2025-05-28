@@ -77,9 +77,7 @@ class ReductoPlatformParameters(PlatformParameters):
             else:
                 raise ValueError("REDUCTO_API_KEY environment variable is required")
 
-        if self.delegate_api_key and not isinstance(
-            self.delegate_api_key, SecretString
-        ):
+        if self.delegate_api_key and not isinstance(self.delegate_api_key, SecretString):
             object.__setattr__(
                 self,
                 "delegate_api_key",

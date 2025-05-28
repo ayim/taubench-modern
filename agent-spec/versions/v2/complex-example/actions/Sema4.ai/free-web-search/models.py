@@ -10,9 +10,7 @@ class SearchResult(BaseModel):
 
 
 class SearchResultList(BaseModel):
-    results: Annotated[
-        list[SearchResult], Field(description="A list of google search results")
-    ]
+    results: Annotated[list[SearchResult], Field(description="A list of google search results")]
 
 
 class PlaceSearchResult(BaseModel):
@@ -29,9 +27,7 @@ class PlaceSearchResult(BaseModel):
 
 
 class PlaceSearchResultList(BaseModel):
-    results: Annotated[
-        list[PlaceSearchResult], Field(description="A list of place search results")
-    ]
+    results: Annotated[list[PlaceSearchResult], Field(description="A list of place search results")]
 
 
 class GenericSearchResultList(BaseModel):

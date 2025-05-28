@@ -14,9 +14,7 @@ if TYPE_CHECKING:
 
     PromptMessageType = PromptUserMessage | PromptAgentMessage
     SpecialMessageType = (
-        ConversationHistorySpecialMessage
-        | DocumentsSpecialMessage
-        | MemoriesSpecialMessage
+        ConversationHistorySpecialMessage | DocumentsSpecialMessage | MemoriesSpecialMessage
     )
     MessageType = PromptMessageType | SpecialMessageType
 

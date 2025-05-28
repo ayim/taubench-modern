@@ -419,9 +419,7 @@ class ThreadStateInterface(ABC, UsesKernelMixin):
                 consumers.
         """
         unwrapped_message = (
-            message._message
-            if isinstance(message, ThreadMessageWithThreadState)
-            else message
+            message._message if isinstance(message, ThreadMessageWithThreadState) else message
         )
 
         # First, if we haven't seen this message before, we'll set
@@ -437,9 +435,7 @@ class ThreadStateInterface(ABC, UsesKernelMixin):
         delta_objects = compute_message_delta(
             old=self._previous_message_states[unwrapped_message.message_id],
             new=unwrapped_message,
-            sequence_number=self._previous_message_sequence_numbers[
-                unwrapped_message.message_id
-            ],
+            sequence_number=self._previous_message_sequence_numbers[unwrapped_message.message_id],
         )
 
         # Finally, we'll send the delta over to the UI or whatever
@@ -449,11 +445,9 @@ class ThreadStateInterface(ABC, UsesKernelMixin):
                 await self._send_delta_event(delta_object)
 
             # And, finally, we'll update our state to the current message.
-            self._previous_message_states[unwrapped_message.message_id] = (
-                unwrapped_message.copy()
-            )
-            self._previous_message_sequence_numbers[unwrapped_message.message_id] += (
-                len(delta_objects)
+            self._previous_message_states[unwrapped_message.message_id] = unwrapped_message.copy()
+            self._previous_message_sequence_numbers[unwrapped_message.message_id] += len(
+                delta_objects
             )
         except Exception as e:
             # If we failed to send the delta, we'll raise an error.
@@ -467,9 +461,7 @@ class ThreadStateInterface(ABC, UsesKernelMixin):
     ) -> None:
         """Commits a message to the thread state."""
         unwrapped_message = (
-            message._message
-            if isinstance(message, ThreadMessageWithThreadState)
-            else message
+            message._message if isinstance(message, ThreadMessageWithThreadState) else message
         )
 
         try:
@@ -496,9 +488,7 @@ class ThreadStateInterface(ABC, UsesKernelMixin):
             if unwrapped_message.message_id in self._previous_message_states:
                 del self._previous_message_states[unwrapped_message.message_id]
             if unwrapped_message.message_id in self._previous_message_sequence_numbers:
-                del self._previous_message_sequence_numbers[
-                    unwrapped_message.message_id
-                ]
+                del self._previous_message_sequence_numbers[unwrapped_message.message_id]
         except Exception as e:
             # TODO: unique error type here?
             raise Exception(

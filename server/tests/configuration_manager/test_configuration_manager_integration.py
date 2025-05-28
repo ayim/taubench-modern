@@ -235,12 +235,8 @@ class TestConfigurationManagerIntegration:
         config_path = f"{MockSystemPaths.__module__}.{MockSystemPaths.__name__}"
         assert config_path in manager._config_data
         # Use Path objects to compare paths to handle Windows/Unix differences
-        assert Path(manager._config_data[config_path]["data_dir"]) == Path(
-            "/updated/data"
-        )
-        assert Path(manager._config_data[config_path]["log_dir"]) == Path(
-            "/updated/logs"
-        )
+        assert Path(manager._config_data[config_path]["data_dir"]) == Path("/updated/data")
+        assert Path(manager._config_data[config_path]["log_dir"]) == Path("/updated/logs")
 
     def test_configuration_dependencies(self) -> None:
         """Test that configuration dependencies are loaded in the correct order."""

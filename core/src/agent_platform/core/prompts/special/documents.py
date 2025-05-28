@@ -18,9 +18,7 @@ class DocumentsParams:
     maximum_number_of_documents: int = field(
         default=5,
         metadata={
-            "description": (
-                "The maximum number of documents to include in the prompt."
-            ),
+            "description": ("The maximum number of documents to include in the prompt."),
         },
     )
     """The maximum number of documents to include in the prompt."""
@@ -28,9 +26,7 @@ class DocumentsParams:
     token_budget_as_percentage: float = field(
         default=0.50,
         metadata={
-            "description": (
-                "The token budget as a percentage of the total token budget."
-            ),
+            "description": ("The token budget as a percentage of the total token budget."),
         },
     )
     """The token budget as a percentage of the total token budget."""

@@ -30,8 +30,7 @@ class TokenUsage:
     total_tokens: int = field(
         default=0,
         metadata={
-            "description": "Total number of tokens (input + output) used in the "
-            "interaction",
+            "description": "Total number of tokens (input + output) used in the interaction",
         },
     )
     """Total number of tokens (input + output) used in the interaction"""
@@ -65,8 +64,7 @@ class ResponseMessage:
     stop_reason: str | None = field(
         default=None,
         metadata={
-            "description": "The reason why the response stopped "
-            "(e.g., stop_sequence, max_tokens)",
+            "description": "The reason why the response stopped (e.g., stop_sequence, max_tokens)",
         },
     )
     """The reason why the response stopped (e.g., stop_sequence, max_tokens)"""
@@ -92,8 +90,7 @@ class ResponseMessage:
     additional_response_fields: dict[str, Any] = field(
         default_factory=dict,
         metadata={
-            "description": "Provider-specific response fields not "
-            "covered by other attributes",
+            "description": "Provider-specific response fields not covered by other attributes",
         },
     )
     """Provider-specific response fields not covered by other attributes"""

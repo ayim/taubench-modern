@@ -99,10 +99,7 @@ def get_contact_details(contact_id: str) -> str:
     """
     if contact_id in contact_details:
         contact = contact_details[contact_id]
-        details = (
-            f"Contact {contact_id}: {contact['name']}, {contact['email']}, "
-            f"{contact['phone']}"
-        )
+        details = f"Contact {contact_id}: {contact['name']}, {contact['email']}, {contact['phone']}"
         print(details)
         return details
     else:

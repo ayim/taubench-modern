@@ -23,8 +23,7 @@ class CortexPlatformParameters(PlatformParameters):
     snowflake_username: str | None = field(
         default=None,
         metadata={
-            "description": "The Snowflake username. Optional, as token-based auth "
-            "is preferred.",
+            "description": "The Snowflake username. Optional, as token-based auth is preferred.",
         },
     )
     """The Snowflake username. Optional, as token-based auth is preferred."""
@@ -32,8 +31,7 @@ class CortexPlatformParameters(PlatformParameters):
     snowflake_password: SecretString | None = field(
         default=None,
         metadata={
-            "description": "The Snowflake password. Optional, as token-based auth "
-            "is preferred.",
+            "description": "The Snowflake password. Optional, as token-based auth is preferred.",
         },
     )
     """The Snowflake password. Optional, as token-based auth is preferred."""
@@ -145,9 +143,7 @@ class CortexPlatformParameters(PlatformParameters):
             "kind": self.kind,
             "snowflake_username": self.snowflake_username,
             "snowflake_password": (
-                self.snowflake_password.get_secret_value()
-                if self.snowflake_password
-                else None
+                self.snowflake_password.get_secret_value() if self.snowflake_password else None
             ),
             "snowflake_account": self.snowflake_account,
             "snowflake_host": self.snowflake_host,

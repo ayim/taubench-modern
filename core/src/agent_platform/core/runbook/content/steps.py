@@ -61,9 +61,7 @@ class RunbookStepsContent(RunbookContent):
     def model_validate(cls, data: dict) -> "RunbookStepsContent":
         """Create a runbook steps content from a dictionary."""
         data = data.copy()
-        steps = [
-            RunbookStepContent.model_validate(step) for step in data.pop("steps", [])
-        ]
+        steps = [RunbookStepContent.model_validate(step) for step in data.pop("steps", [])]
         return cls(**data, steps=steps)
 
 

@@ -53,8 +53,7 @@ def prompt_with_conversation():
             PromptAgentMessage(
                 [
                     PromptTextContent(
-                        text="I'm doing well, thank you for asking. "
-                        "How can I help you today?"
+                        text="I'm doing well, thank you for asking. How can I help you today?"
                     )
                 ]
             ),
@@ -77,9 +76,7 @@ def prompt_with_tools():
 
     return Prompt(
         messages=[
-            PromptUserMessage(
-                [PromptTextContent(text="What's the weather in Seattle?")]
-            ),
+            PromptUserMessage([PromptTextContent(text="What's the weather in Seattle?")]),
         ],
         tools=[weather_tool],
     )
@@ -180,9 +177,7 @@ def test_format_tool_use_for_token_counting():
     assert "celsius" in formatted
 
     # Check that it's formatted with the expected structure
-    expected_structure = (
-        f"tool_call_id: {tool_call_id}\ntool_name: {tool_name}\ntool_input:"
-    )
+    expected_structure = f"tool_call_id: {tool_call_id}\ntool_name: {tool_name}\ntool_input:"
     assert expected_structure in formatted
 
 
@@ -275,9 +270,7 @@ def test_tool_use_content_token_counting(tool_use_content):
         ("nonexistent-model", 7),  # Should fall back to gpt-3.5-turbo
     ],
 )
-def test_count_tokens_approx_with_tiktoken(
-    simple_prompt: Prompt, model: str, expected_tokens: int
-):
+def test_count_tokens_approx_with_tiktoken(simple_prompt: Prompt, model: str, expected_tokens: int):
     """Test token counting using tiktoken."""
     token_count = simple_prompt.count_tokens_approx(model=model)
     assert token_count == expected_tokens

@@ -16,8 +16,7 @@ class ThreadVegaChartContent(ThreadMessageContent):
 
     chart_spec_raw: str = field(
         metadata={
-            "description": "The Vega or Vega-Lite chart spec JSON "
-            "(as a string) to display",
+            "description": "The Vega or Vega-Lite chart spec JSON (as a string) to display",
         },
     )
     """The Vega or Vega-Lite chart spec JSON (as a string) to display"""
@@ -76,9 +75,7 @@ class ThreadVegaChartContent(ThreadMessageContent):
         # Validate schema (if it's missing, we can add it based on sub_type)
         if "$schema" not in parsed_spec:
             # https://vega.github.io/schema/vega(-lite)/v5.json
-            parsed_spec["$schema"] = (
-                f"https://vega.github.io/schema/{self.sub_type}/v5.json"
-            )
+            parsed_spec["$schema"] = f"https://vega.github.io/schema/{self.sub_type}/v5.json"
 
         schema = parsed_spec["$schema"]
         if not isinstance(schema, str):

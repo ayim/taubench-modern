@@ -21,8 +21,7 @@ class ActionPackageInFilesystem:
     def __post_init__(self) -> None:
         if self.zip_path is None:
             assert self.package_yaml_path is not None, (
-                "When the zip path is not provided, "
-                "package_yaml_path is expected to be provided."
+                "When the zip path is not provided, package_yaml_path is expected to be provided."
             )
         else:
             assert self.package_yaml_path is None, (
@@ -44,8 +43,7 @@ class ActionPackageInFilesystem:
         try:
             if self.is_zip() and self.package_yaml_contents is None:
                 raise RuntimeError(
-                    "It was not possible to load the agent-spec.yaml "
-                    "from the referenced .zip file."
+                    "It was not possible to load the agent-spec.yaml from the referenced .zip file."
                 )
             if self.package_yaml_contents is not None:
                 contents = yaml.safe_load(self.package_yaml_contents)
@@ -65,9 +63,7 @@ class ActionPackageInFilesystem:
             return self._loaded_yaml
         except Exception as e:
             if self.is_zip():
-                log.error(
-                    f"Error getting agent-spec.yaml from {self.zip_path} as yaml."
-                )
+                log.error(f"Error getting agent-spec.yaml from {self.zip_path} as yaml.")
             else:
                 log.error(f"Error getting {self.package_yaml_path} as yaml.")
 

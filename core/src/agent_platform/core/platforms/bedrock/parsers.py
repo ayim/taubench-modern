@@ -382,9 +382,7 @@ class BedrockParsers(PlatformParsers):
             # we concatenate to build the complete JSON string
             tool_delta = delta["delta"]["toolUse"]
             if "input" in tool_delta:
-                message["content"][content_block_index]["tool_input_raw"] += tool_delta[
-                    "input"
-                ]
+                message["content"][content_block_index]["tool_input_raw"] += tool_delta["input"]
 
     def _handle_message_stop(self, event: dict, message: dict) -> None:
         """Handle a message stop event.

@@ -249,10 +249,7 @@ class GroqConverters(PlatformConverters, UsesKernelMixin):
 
             # Can't have an empty user message (especially before tool messages, throws
             # off the API which expects tool messages to follow assistant messages)
-            if (
-                formatted_message["role"] != "user"
-                or formatted_message["content"] != ""
-            ):
+            if formatted_message["role"] != "user" or formatted_message["content"] != "":
                 converted_messages.append(formatted_message)
 
             # Add tool result messages that follow a tool use

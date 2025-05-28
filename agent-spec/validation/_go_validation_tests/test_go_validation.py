@@ -59,9 +59,7 @@ agent-package:
 
 
 @pytest.mark.parametrize("scenario", ["nested", "flat"])
-def test_go_print_spec(
-    agent_cli: Path, datadir, data_regression, scenario, str_regression
-):
+def test_go_print_spec(agent_cli: Path, datadir, data_regression, scenario, str_regression):
     import json
 
     agent_dir = datadir / "agent2"
@@ -77,9 +75,7 @@ def test_go_print_spec(
         try:
             found = json.loads(run_result.stdout)
         except Exception as exc:
-            raise Exception(
-                f"Failed to parse stdout as JSON: {run_result.stdout!r}"
-            ) from exc
+            raise Exception(f"Failed to parse stdout as JSON: {run_result.stdout!r}") from exc
         data_regression.check(found)
 
 
@@ -136,12 +132,7 @@ def v2_bad_type(agent_path):
 
 def v2_bad_action_package_version(agent_path):
     package_yaml = (
-        agent_path
-        / "actions"
-        / "MyActions"
-        / "control-room-test"
-        / "0.0.1"
-        / "package.yaml"
+        agent_path / "actions" / "MyActions" / "control-room-test" / "0.0.1" / "package.yaml"
     )
     txt = package_yaml.read_text()
     package_yaml.write_text(txt.replace("version: 0.0.1", "version: 1.1.1"))
@@ -181,21 +172,9 @@ def v2_no_knowledge(agent_path):
 def v2_unreferenced_action_package(agent_path):
     import shutil
 
-    zip_path = (
-        agent_path
-        / "actions"
-        / "MyActions"
-        / "control-room-test"
-        / "0.0.1"
-        / "0.0.1.zip"
-    )
+    zip_path = agent_path / "actions" / "MyActions" / "control-room-test" / "0.0.1" / "0.0.1.zip"
     new_zip_path = (
-        agent_path
-        / "actions"
-        / "MyActions"
-        / "control-room-test"
-        / "0.0.1"
-        / "new-path.zip"
+        agent_path / "actions" / "MyActions" / "control-room-test" / "0.0.1" / "new-path.zip"
     )
     shutil.move(zip_path, new_zip_path)
 
@@ -238,9 +217,7 @@ def check(  # noqa: PLR0913
             ) from exc
         data_regression.check(data)
 
-        run_result_txt = run_agent_cli(
-            agent_cli, ["validate", str(agent_path)], cwd=agent_path
-        )
+        run_result_txt = run_agent_cli(agent_cli, ["validate", str(agent_path)], cwd=agent_path)
 
         assert run_result_txt.returncode == returncode, (
             f"Expected returncode {returncode}. Found:\n{run_result_txt}"
@@ -290,13 +267,10 @@ def check(  # noqa: PLR0913
     zip_path = agent_path.parent / "built-agent.zip"
     assert os.path.exists(zip_path)
 
-    run_result = run_agent_cli(
-        agent_cli, ["validate", str(zip_path), "--json"], cwd=agent_path
-    )
+    run_result = run_agent_cli(agent_cli, ["validate", str(zip_path), "--json"], cwd=agent_path)
 
     assert run_result.returncode == returncode, (
-        f"Expected returncode {returncode}, "
-        f"but got {run_result.returncode}\n{run_result}"
+        f"Expected returncode {returncode}, but got {run_result.returncode}\n{run_result}"
     )
     try:
         data_zip = json.loads(run_result.stdout)

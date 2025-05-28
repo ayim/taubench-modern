@@ -107,8 +107,7 @@ class SystemConfig(Configuration):
     db_type: Literal["sqlite", "postgres"] = field(
         default="sqlite",
         metadata=FieldMetadata(
-            description="The type of database to use. "
-            "Must be one of: 'sqlite', 'postgres'.",
+            description="The type of database to use. Must be one of: 'sqlite', 'postgres'.",
             env_vars=["SEMA4AI_AGENT_SERVER_DB_TYPE", "DB_TYPE"],
         ),
     )

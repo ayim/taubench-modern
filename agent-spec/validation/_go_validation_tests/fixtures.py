@@ -69,9 +69,7 @@ def get_release_artifact_relative_path(sys_platform: str, executable_name: str) 
         return f"linux32/{executable_name}"
 
 
-def run(
-    args: list[str], cwd: Path | None = None, env: dict[str, str] | None = None
-) -> RunResult:
+def run(args: list[str], cwd: Path | None = None, env: dict[str, str] | None = None) -> RunResult:
     """
     Returns the stdout and stderr of the command
     """
@@ -147,9 +145,7 @@ def verify_action_server_downloaded_ok(
         time.sleep(timeout / times)
 
     if raise_on_error:
-        raise Exception(
-            f"Action server {location} failed to execute. Details: {version_result}"
-        )
+        raise Exception(f"Action server {location} failed to execute. Details: {version_result}")
 
     return False
 
@@ -181,9 +177,7 @@ def _download_action_server_if_needed() -> None:
     ):
         from sema4ai_http import download_with_resume  # type: ignore
 
-        relative_path = get_release_artifact_relative_path(
-            sys.platform, "action-server"
-        )
+        relative_path = get_release_artifact_relative_path(sys.platform, "action-server")
 
         base_url = "https://cdn.sema4.ai/action-server/releases"
         url = f"{base_url}/{ACTION_SERVER_VERSION}/{relative_path}"
@@ -214,9 +208,7 @@ def _get_agent_cli_relative_path() -> str:
 def _get_agent_cli_path() -> Path:
     import os
 
-    assert os.path.exists(CLI_DIR), (
-        f"Expected cli directory to exist, but it does not: {CLI_DIR}"
-    )
+    assert os.path.exists(CLI_DIR), f"Expected cli directory to exist, but it does not: {CLI_DIR}"
 
     path = _get_agent_cli_relative_path()
 
@@ -244,9 +236,7 @@ def _build_agent_cli():
     contents = run(cmd, cwd=CLI_DIR)
     if contents.returncode != 0:
         raise Exception(
-            f"Failed to build agent-cli. "
-            f"stdout:\n{contents.stdout}\n"
-            f"stderr:\n{contents.stderr}"
+            f"Failed to build agent-cli. stdout:\n{contents.stdout}\nstderr:\n{contents.stderr}"
         )
 
 

@@ -50,9 +50,7 @@ class _DummyKernel:
 
     def __init__(self) -> None:
         self.ctx = _DummyCtx()
-        self.agent = types.SimpleNamespace(
-            agent_id="agent-1", action_packages=[], mcp_servers=[]
-        )
+        self.agent = types.SimpleNamespace(agent_id="agent-1", action_packages=[], mcp_servers=[])
         self.user = types.SimpleNamespace(user_id="user-1", cr_user_id="cr-user-1")
         self.thread = types.SimpleNamespace(thread_id="thread-1")
 
@@ -166,15 +164,9 @@ def _reset_config_service():
 
 
 def test_deduplicate_tool_names() -> None:
-    t1 = ToolDefinition(
-        name="Echo", description="d1", input_schema={}, function=lambda **_: None
-    )
-    t2 = ToolDefinition(
-        name="Echo", description="d2", input_schema={}, function=lambda **_: None
-    )
-    t3 = ToolDefinition(
-        name="Add", description="d3", input_schema={}, function=lambda **_: None
-    )
+    t1 = ToolDefinition(name="Echo", description="d1", input_schema={}, function=lambda **_: None)
+    t2 = ToolDefinition(name="Echo", description="d2", input_schema={}, function=lambda **_: None)
+    t3 = ToolDefinition(name="Add", description="d3", input_schema={}, function=lambda **_: None)
 
     renamed, issues = AgentServerToolsInterface._deduplicate_tool_names([t1, t2, t3])
     names = [t.name for t in renamed]
@@ -218,9 +210,7 @@ async def test_safe_execute_tool_runtime_error(
     async def boom(*_, **__) -> None:
         raise RuntimeError("💥 kaboom")
 
-    tool_def = ToolDefinition(
-        name="Boom", description="", input_schema={}, function=boom
-    )
+    tool_def = ToolDefinition(name="Boom", description="", input_schema={}, function=boom)
     tool_use = _stub_tool_use("call-boom", "{}")
 
     result = await iface._safe_execute_tool(tool_def, tool_use)
@@ -246,9 +236,7 @@ async def test_execute_pending_tool_calls_runs_everything(
         return text.upper()
 
     add_def = ToolDefinition(name="Add", description="", input_schema={}, function=plus)
-    up_def = ToolDefinition(
-        name="Upper", description="", input_schema={}, function=upper
-    )
+    up_def = ToolDefinition(name="Upper", description="", input_schema={}, function=upper)
 
     pending: list[tuple[ToolDefinition, ResponseToolUseContent]] = [
         (add_def, _stub_tool_use("tc-add", json.dumps({"a": 2, "b": 3}))),

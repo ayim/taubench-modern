@@ -7,17 +7,13 @@ from agent_platform.core.configurations import Configuration, FieldMetadata
 class AgentSpecConfig(Configuration):
     max_size_bytes: int = field(
         default=50_000_000,
-        metadata=FieldMetadata(
-            description="The maximum size of the agent package in bytes."
-        ),
+        metadata=FieldMetadata(description="The maximum size of the agent package in bytes."),
     )
     """The maximum size of the agent package in bytes."""
 
     agent_spec_filename: str = field(
         default="agent-spec.yaml",
-        metadata=FieldMetadata(
-            description="The filename of the agent package specification."
-        ),
+        metadata=FieldMetadata(description="The filename of the agent package specification."),
     )
     """The filename of the agent package specification."""
 

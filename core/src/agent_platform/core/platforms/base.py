@@ -247,9 +247,7 @@ class PlatformModelMap(Configuration):
     model_aliases: dict[str, str] = field(
         default_factory=dict,
         metadata=FieldMetadata(
-            description=(
-                "A mapping between platform model names and agent server model names."
-            ),
+            description=("A mapping between platform model names and agent server model names."),
         ),
     )
     models_to_type: dict[str, str] = field(
@@ -300,11 +298,7 @@ class PlatformModelMap(Configuration):
     def distinct_llm_model_ids(cls) -> list[str]:
         """Get list of distinct Large Language Model names."""
         return list(
-            set(
-                model
-                for model in cls.supported_models()
-                if cls.models_to_type[model] == "llm"
-            ),
+            set(model for model in cls.supported_models() if cls.models_to_type[model] == "llm"),
         )
 
     @classmethod
@@ -313,10 +307,7 @@ class PlatformModelMap(Configuration):
         return [
             model
             for model in cls.distinct_llm_model_ids()
-            if all(
-                modality in cls.models_to_input_modalities[model]
-                for modality in modalities
-            )
+            if all(modality in cls.models_to_input_modalities[model] for modality in modalities)
         ]
 
     @classmethod

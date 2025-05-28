@@ -54,9 +54,7 @@ def _patch_token_file(
     real_read_text = Path.read_text
 
     def fake_exists(self: Path) -> bool:
-        return (
-            self.as_posix() == "/snowflake/session/token" and exists
-        ) or real_exists(self)
+        return (self.as_posix() == "/snowflake/session/token" and exists) or real_exists(self)
 
     def fake_read_text(self: Path, *a, **kw):
         if self.as_posix() == "/snowflake/session/token":

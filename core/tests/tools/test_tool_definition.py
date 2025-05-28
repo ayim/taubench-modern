@@ -274,10 +274,7 @@ def test_dataclass_complex_with_list_and_nested_person():
 
     async def create_complex_data(data: ComplexDataWithListAndNestedPerson):
         """Testing"""
-        return (
-            f"Created {data.person.name} age={data.person.age}"
-            f" with values={data.values}"
-        )
+        return f"Created {data.person.name} age={data.person.age} with values={data.values}"
 
     tool = ToolDefinition.from_callable(create_complex_data, strict=False)
     schema = tool.input_schema

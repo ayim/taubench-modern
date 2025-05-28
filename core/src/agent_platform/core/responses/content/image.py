@@ -40,8 +40,7 @@ class ResponseImageContent(ResponseMessageContent):
 
     value: str | bytes = field(
         metadata={
-            "description": "The image data - either a URL or base64 encoded string, "
-            "or raw bytes",
+            "description": "The image data - either a URL or base64 encoded string, or raw bytes",
         },
     )
     """The image data - either a URL or base64 encoded string, or raw bytes"""
@@ -218,9 +217,7 @@ class ResponseImageContent(ResponseMessageContent):
         # If no valid file but we have data, use that directly
         if image.data:
             # IPython images store their format in the format attribute
-            mime_type = (
-                f"image/{image.format.lower()}" if image.format else fallback_mime_type
-            )
+            mime_type = f"image/{image.format.lower()}" if image.format else fallback_mime_type
 
             # If the format doesn't start with "image/", add it
             if not mime_type.startswith("image/"):

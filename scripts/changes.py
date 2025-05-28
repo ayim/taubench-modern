@@ -196,9 +196,7 @@ def create_news_fragment(
     content_cmd = f'--content "{content}"' if content else ""
     file_name = f"{issue}.{kind}.md"
 
-    _run_command(
-        f"towncrier create {section_cmd} {content_cmd} {file_name}", cwd=project_root
-    )
+    _run_command(f"towncrier create {section_cmd} {content_cmd} {file_name}", cwd=project_root)
 
 
 def _get_news_kind(kind: str | None) -> str:
@@ -212,9 +210,7 @@ def _get_news_kind(kind: str | None) -> str:
             print(f"{i}. {valid_type}")
 
         while True:
-            type_input = input(
-                f"Select news fragment type (1-{len(valid_types)} or type name): "
-            )
+            type_input = input(f"Select news fragment type (1-{len(valid_types)} or type name): ")
             if type_input.isdigit() and 1 <= int(type_input) <= len(valid_types):
                 kind = valid_types[int(type_input) - 1]
                 break
@@ -226,9 +222,7 @@ def _get_news_kind(kind: str | None) -> str:
 
     # Validate type
     if kind not in valid_types:
-        raise ValueError(
-            f"Invalid news fragment type. Must be one of: {', '.join(valid_types)}"
-        )
+        raise ValueError(f"Invalid news fragment type. Must be one of: {', '.join(valid_types)}")
 
     return kind
 
@@ -263,18 +257,12 @@ def _get_news_section(section: str | None) -> str:
     if section is None:
         print("Available sections:")
         for i, valid_section in enumerate(valid_sections, 1):
-            section_display = (
-                valid_section if valid_section else "(Default - Core server changes)"
-            )
+            section_display = valid_section if valid_section else "(Default - Core server changes)"
             print(f"{i}. {section_display}")
 
         while True:
-            section_input = input(
-                f"Select section (1-{len(valid_sections)} or section name): "
-            )
-            if section_input.isdigit() and 1 <= int(section_input) <= len(
-                valid_sections
-            ):
+            section_input = input(f"Select section (1-{len(valid_sections)} or section name): ")
+            if section_input.isdigit() and 1 <= int(section_input) <= len(valid_sections):
                 section = valid_sections[int(section_input) - 1]
                 break
             elif section_input in valid_sections:
@@ -307,9 +295,7 @@ def _get_news_content(content: str | None) -> str:
 
 
 @cli.command(name="build-changes")
-@click.option(
-    "--release", is_flag=True, help="Whether to build the changelog for a release"
-)
+@click.option("--release", is_flag=True, help="Whether to build the changelog for a release")
 @click.option(
     "--draft",
     is_flag=True,
@@ -365,23 +351,16 @@ def build_changelog(  # noqa: PLR0913 we need all the flags to build the changel
     if not release:
         # Check if the pre-release changelog file only has a header
         pre_release_path = project_root / _get_changelog_path(False)
-        if (
-            pre_release_path.exists()
-            and pre_release_path.read_text() == "# Unreleased\n"
-        ):
+        if pre_release_path.exists() and pre_release_path.read_text() == "# Unreleased\n":
             pre_release_path.unlink()
 
     try:
         _run_command(
-            f"towncrier build --config {config_to_use} "
-            f"{draft_cmd} {keep_cmd} {yes_cmd}",
+            f"towncrier build --config {config_to_use} {draft_cmd} {keep_cmd} {yes_cmd}",
             cwd=project_root,
         )
     except subprocess.CalledProcessError as e:
-        print(
-            f"\nError: Failed to build changelog for "
-            f"project '{project or 'current directory'}'"
-        )
+        print(f"\nError: Failed to build changelog for project '{project or 'current directory'}'")
         print("This could be because:")
         print("  1. No changes have been made since the last release")
         print("  2. The project directory structure is incorrect")
@@ -420,9 +399,7 @@ def build_changelog(  # noqa: PLR0913 we need all the flags to build the changel
             for fragment in dir_path.glob("*.md"):
                 target_file = target_dir / fragment.name
                 # Use git mv instead of shutil.move to properly track history
-                _run_command(
-                    f"git mv {fragment} {target_file}", warn=True, cwd=project_root
-                )
+                _run_command(f"git mv {fragment} {target_file}", warn=True, cwd=project_root)
 
     if commit:
         _commit_changes(commit_message)
@@ -530,8 +507,7 @@ def _check_single_project(project_root: Path) -> bool:
 @click.option("--project", help="The project to create release notes for")
 @click.option(
     "--since-date",
-    help="Only include changelog entries on or after this date (format: YYYY-MM-DD "
-    "or 'today')",
+    help="Only include changelog entries on or after this date (format: YYYY-MM-DD or 'today')",
 )
 def create_release_notes(  # noqa: PLR0913 we need all the flags to generate release notes
     windows_x64_url: str,
@@ -573,10 +549,7 @@ def create_release_notes(  # noqa: PLR0913 we need all the flags to generate rel
         # In semantic versioning, pre-releases have identifiers like
         # "-alpha", "-beta", "-rc"
         release = "-" not in current_version
-        print(
-            f"Detected version: {current_version} "
-            f"({'release' if release else 'pre-release'})"
-        )
+        print(f"Detected version: {current_version} ({'release' if release else 'pre-release'})")
 
     # Determine which changelog to use
     changelog_path = project_root / _get_changelog_path(release)
@@ -601,8 +574,7 @@ def create_release_notes(  # noqa: PLR0913 we need all the flags to generate rel
         except ValueError as e:
             if "time data" in str(e):
                 raise ValueError(
-                    f"Invalid date format: {since_date}. Please use YYYY-MM-DD "
-                    f"format or 'today'."
+                    f"Invalid date format: {since_date}. Please use YYYY-MM-DD format or 'today'."
                 ) from e
             else:
                 raise
@@ -667,8 +639,7 @@ def _parse_date(date_string: str) -> tuple[int, int, int]:
         return (date_obj.year, date_obj.month, date_obj.day)
     except ValueError as e:
         raise ValueError(
-            f"Invalid date format: {date_string}. Please use "
-            f"YYYY-MM-DD format or 'today'."
+            f"Invalid date format: {date_string}. Please use YYYY-MM-DD format or 'today'."
         ) from e
 
 

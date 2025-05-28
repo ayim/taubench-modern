@@ -235,8 +235,7 @@ class ReductoClient(
         llm_messages.append(
             ChatCompletionUserMessageParam(
                 role="user",
-                content="Reply with the answer only, nothing else."
-                + parsed_prompt_input,
+                content="Reply with the answer only, nothing else." + parsed_prompt_input,
             )
         )
 

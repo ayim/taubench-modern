@@ -131,10 +131,7 @@ class TestGroqConverters:
         else:
             # If it's an object type
             assert getattr(tool_obj, "type", None) == "function"
-            assert (
-                getattr(getattr(tool_obj, "function", None), "name", None)
-                == "test-tool"
-            )
+            assert getattr(getattr(tool_obj, "function", None), "name", None) == "test-tool"
 
     @pytest.mark.asyncio
     async def test_convert_tool_result_content(

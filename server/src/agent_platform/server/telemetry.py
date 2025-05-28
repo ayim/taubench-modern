@@ -40,9 +40,7 @@ def setup_telemetry():
     logger.info(f"Collector URL: {collector_url}")
     # Set up resource with service info
     # TODO: pull version from versionbump controlled constant
-    resource = Resource(
-        attributes={"service.name": "agent-server-v2", "service.version": "2.0.0"}
-    )
+    resource = Resource(attributes={"service.name": "agent-server-v2", "service.version": "2.0.0"})
 
     # Create and configure trace provider
     _tracer_provider = TracerProvider(resource=resource)

@@ -24,9 +24,7 @@ def is_union_of_dataclasses_type(t: type | Any) -> bool:
 
     args = _get_union_args(t)
     # Check if the Union type is of dataclasses and None
-    return all(
-        is_dataclass(arg) for arg in args if arg is not NoneType and arg is not None
-    )
+    return all(is_dataclass(arg) for arg in args if arg is not NoneType and arg is not None)
 
 
 def is_optional_type(t: type | Any) -> bool:

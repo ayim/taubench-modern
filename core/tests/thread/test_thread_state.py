@@ -48,9 +48,7 @@ class TestThreadState:
         msg.content[0] = ThreadTextContent(text="hello updated")
         with patch.object(ts, "_send_delta_event", new_callable=AsyncMock) as mock_send:
             await ts.stream_message_delta(msg)
-            assert (
-                mock_send.await_count >= 1
-            )  # at least one delta event for updated message
+            assert mock_send.await_count >= 1  # at least one delta event for updated message
 
     async def test_stream_message_delta_raises_streamingerror_on_exception(self):
         ts = ThreadStateTestImpl()

@@ -256,9 +256,7 @@ async def stream_run(  # noqa: C901, PLR0912, PLR0915
                     initial_payload,
                     storage,
                 )
-                upsert_span.set_attribute(
-                    "message_count", len(initial_payload.messages)
-                )
+                upsert_span.set_attribute("message_count", len(initial_payload.messages))
 
             # 3. Fetch the agent
             with server_context.start_span("fetch_agent") as fetch_span:
@@ -284,12 +282,8 @@ async def stream_run(  # noqa: C901, PLR0912, PLR0915
 
             # 6. Get the agent runner
             with server_context.start_span("get_agent_runner") as runner_span:
-                runner_span.set_attribute(
-                    "agent_architecture", agent.agent_architecture.name
-                )
-                runner_span.set_attribute(
-                    "agent_version", agent.agent_architecture.version
-                )
+                runner_span.set_attribute("agent_architecture", agent.agent_architecture.name)
+                runner_span.set_attribute("agent_version", agent.agent_architecture.version)
                 runner = await agent_arch_manager.get_runner(
                     agent.agent_architecture.name,
                     agent.agent_architecture.version,
@@ -340,8 +334,7 @@ async def stream_run(  # noqa: C901, PLR0912, PLR0915
                         await runner.dispatch_event(message)
                 except CancelledError:
                     logger.info(
-                        "Client message receiving task cancelled, "
-                        "likely client disconnected",
+                        "Client message receiving task cancelled, likely client disconnected",
                     )
 
             send_task = create_task(_send_ca_events())
@@ -384,9 +377,7 @@ async def stream_run(  # noqa: C901, PLR0912, PLR0915
                             agent_processing_task.cancel()
 
                     # If we are here, stream_run considers this a normal completion path
-                    await _update_run_status(
-                        storage, active_run, "completed", "normal_completion"
-                    )
+                    await _update_run_status(storage, active_run, "completed", "normal_completion")
                     await _safe_close_websocket(websocket)
 
             except Exception as e:
@@ -419,9 +410,7 @@ async def stream_run(  # noqa: C901, PLR0912, PLR0915
 
     except AgentNotFoundError as e:
         logger.error("Error getting agent", error=e)
-        await _update_run_status(
-            storage, active_run, "failed", "agent_not_found", error=str(e)
-        )
+        await _update_run_status(storage, active_run, "failed", "agent_not_found", error=str(e))
         # Re-raise as WebSocketException as per original logic, or handle directly
         raise WebSocketException(
             code=status.WS_1008_POLICY_VIOLATION,
@@ -515,9 +504,7 @@ async def sync_run(  # noqa: C901, PLR0912, PLR0915
                     initial_payload,
                     storage,
                 )
-                upsert_span.set_attribute(
-                    "message_count", len(initial_payload.messages)
-                )
+                upsert_span.set_attribute("message_count", len(initial_payload.messages))
 
             # 3. Fetch the agent
             with server_context.start_span("fetch_agent") as fetch_span:
@@ -543,12 +530,8 @@ async def sync_run(  # noqa: C901, PLR0912, PLR0915
 
             # 6. Get the agent runner
             with server_context.start_span("get_agent_runner") as runner_span:
-                runner_span.set_attribute(
-                    "agent_architecture", agent.agent_architecture.name
-                )
-                runner_span.set_attribute(
-                    "agent_version", agent.agent_architecture.version
-                )
+                runner_span.set_attribute("agent_architecture", agent.agent_architecture.name)
+                runner_span.set_attribute("agent_version", agent.agent_architecture.version)
                 runner = await agent_arch_manager.get_runner(
                     agent.agent_architecture.name,
                     agent.agent_architecture.version,

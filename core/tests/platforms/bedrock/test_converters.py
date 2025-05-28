@@ -146,10 +146,7 @@ class TestBedrockConverters:
         assert len(result.messages) == 1
         assert result.messages[0]["role"] == "user"
         assert "text" in result.messages[0]["content"][0]
-        assert (
-            result.messages[0]["content"][0]["text"]
-            == "What's the weather in New York?"
-        )
+        assert result.messages[0]["content"][0]["text"] == "What's the weather in New York?"
 
         # Check that the tool config is present
         assert result.tool_config is not None

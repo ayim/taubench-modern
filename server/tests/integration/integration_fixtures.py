@@ -17,9 +17,7 @@ def resources_dir() -> Path:
 
 
 @contextmanager
-def start_agent_server(
-    tmpdir, logs_dir, env: dict[str, str] | None = None
-) -> Iterator[str]:
+def start_agent_server(tmpdir, logs_dir, env: dict[str, str] | None = None) -> Iterator[str]:
     import logging
 
     from agent_server_orchestrator.bootstrap_agent_server import AgentServerProcess

@@ -41,10 +41,7 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
 
         if not rows:
             return []
-        return [
-            Thread.model_validate(self._convert_thread_json_fields(dict(r)))
-            for r in rows
-        ]
+        return [Thread.model_validate(self._convert_thread_json_fields(dict(r))) for r in rows]
 
     async def list_threads_for_agent(
         self,
@@ -68,10 +65,7 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
 
         if not rows:
             return []
-        return [
-            Thread.model_validate(self._convert_thread_json_fields(dict(r)))
-            for r in rows
-        ]
+        return [Thread.model_validate(self._convert_thread_json_fields(dict(r))) for r in rows]
 
     async def get_thread(self, user_id: str, thread_id: str) -> Thread:
         """
@@ -117,9 +111,7 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
 
         # Convert to JSON for DB
         thread_dict = thread.model_dump() | {"user_id": user_id}
-        messages = [
-            ThreadMessage.model_validate(m) for m in thread_dict.pop("messages", [])
-        ]
+        messages = [ThreadMessage.model_validate(m) for m in thread_dict.pop("messages", [])]
         thread_dict["metadata"] = json.dumps(thread_dict["metadata"])
 
         try:
@@ -222,9 +214,7 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
                     WHERE agent_id = :agent_id
                       AND v2_check_user_access(user_id, :user_id) = 1
                       AND thread_id IN ({})
-                    """.format(
-                        ",".join([":tid" + str(i) for i in range(len(thread_ids))])
-                    ),
+                    """.format(",".join([":tid" + str(i) for i in range(len(thread_ids))])),
                     {
                         "agent_id": agent_id,
                         "user_id": user_id,

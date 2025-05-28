@@ -90,8 +90,7 @@ class ThreadMessage:
     server_metadata: dict[str, Any] = field(
         default_factory=dict,
         metadata={
-            "description": "The metadata associated with the message "
-            "(for agent-server use only)",
+            "description": "The metadata associated with the message (for agent-server use only)",
         },
     )
     """The metadata associated with the message (for agent-server use only)"""
@@ -195,8 +194,7 @@ class ThreadMessage:
             data["updated_at"] = datetime.fromisoformat(data["updated_at"])
         if "content" in data:
             data["content"] = [
-                ThreadMessageContent.model_validate(content)
-                for content in data["content"]
+                ThreadMessageContent.model_validate(content) for content in data["content"]
             ]
         if "complete" in data:
             data["complete"] = bool(data["complete"])

@@ -31,10 +31,7 @@ class SQLiteStorageAgentsMixin(CommonMixin):
             rows = await cur.fetchall()
         if not rows:
             return []
-        return [
-            Agent.model_validate(self._convert_agent_json_fields(dict(row)))
-            for row in rows
-        ]
+        return [Agent.model_validate(self._convert_agent_json_fields(dict(row))) for row in rows]
 
     async def list_agents(self, user_id: str) -> list[Agent]:
         """List all agents for the given user."""
@@ -52,10 +49,7 @@ class SQLiteStorageAgentsMixin(CommonMixin):
             rows = await cur.fetchall()
         if not rows:
             return []
-        return [
-            Agent.model_validate(self._convert_agent_json_fields(dict(row)))
-            for row in rows
-        ]
+        return [Agent.model_validate(self._convert_agent_json_fields(dict(row))) for row in rows]
 
     async def get_agent(self, user_id: str, agent_id: str) -> Agent:
         """Get an agent by ID, raising errors if not found or no access."""
@@ -217,14 +211,12 @@ class SQLiteStorageAgentsMixin(CommonMixin):
                             )
                             if await cur.fetchone():
                                 raise AgentWithNameAlreadyExistsError(
-                                    f"Agent name '{agent.name}' is not "
-                                    f"unique for user {user_id}"
+                                    f"Agent name '{agent.name}' is not unique for user {user_id}"
                                 )
                             else:
                                 # This shouldn't happen - could be a race condition
                                 raise StorageError(
-                                    "Upsert failed unexpectedly for "
-                                    f"agent {agent.agent_id}"
+                                    f"Upsert failed unexpectedly for agent {agent.agent_id}"
                                 )
                         else:
                             # Agent exists, check user access
@@ -259,14 +251,12 @@ class SQLiteStorageAgentsMixin(CommonMixin):
                             )
                             if await cur.fetchone():
                                 raise AgentWithNameAlreadyExistsError(
-                                    f"Agent name '{agent.name}' is not "
-                                    f"unique for user {user_id}"
+                                    f"Agent name '{agent.name}' is not unique for user {user_id}"
                                 )
                             else:
                                 # Shouldn't happen - defensive coding
                                 raise StorageError(
-                                    "Upsert failed unexpectedly for "
-                                    f"agent {agent.agent_id}"
+                                    f"Upsert failed unexpectedly for agent {agent.agent_id}"
                                 )
 
         except aiosqlite.IntegrityError as e:
@@ -300,9 +290,7 @@ class SQLiteStorageAgentsMixin(CommonMixin):
             )
             raise StorageError(f"An unexpected error occurred: {e}") from e
 
-    async def patch_agent(
-        self, user_id: str, agent_id: str, name: str, description: str
-    ) -> None:
+    async def patch_agent(self, user_id: str, agent_id: str, name: str, description: str) -> None:
         """Update agent name and description."""
         try:
             async with self._cursor() as cur:

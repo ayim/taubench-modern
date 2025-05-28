@@ -129,10 +129,7 @@ class SQLiteStorageFilesMixin(CommonMixin):
                     "User does not have access to one or more files",
                 )
             # remove has_access from the rows
-            rows = [
-                {k: v for k, v in dict(row).items() if k != "has_access"}
-                for row in rows
-            ]
+            rows = [{k: v for k, v in dict(row).items() if k != "has_access"} for row in rows]
             if not rows:
                 raise ThreadFileNotFoundError(f"No files found for thread {thread_id}")
 
@@ -340,9 +337,7 @@ class SQLiteStorageFilesMixin(CommonMixin):
                     self._logger.exception("File already exists", file_ref=file_ref)
                     raise UniqueFileRefError(
                         file_ref,
-                        detail=(
-                            f"A file with the given file_ref {file_ref} already exists"
-                        ),
+                        detail=(f"A file with the given file_ref {file_ref} already exists"),
                     ) from e
                 else:
                     self._logger.exception(

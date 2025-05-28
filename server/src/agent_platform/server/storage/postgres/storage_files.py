@@ -127,10 +127,7 @@ class PostgresStorageFilesMixin(CommonMixin):
                     "User does not have access to one or more files",
                 )
             # remove has_access from the rows
-            rows = [
-                {k: v for k, v in dict(row).items() if k != "has_access"}
-                for row in rows
-            ]
+            rows = [{k: v for k, v in dict(row).items() if k != "has_access"} for row in rows]
             if not rows:
                 raise ThreadFileNotFoundError(f"No files found for thread {thread_id}")
             return [UploadedFile.model_validate(row_dict) for row_dict in rows]

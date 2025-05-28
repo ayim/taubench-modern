@@ -114,9 +114,7 @@ def cortex_client(kernel: Kernel, monkeypatch):
         parameters=CortexPlatformParameters(
             snowflake_username=snowflake_username,
             snowflake_password=(
-                SecretString(snowflake_password)
-                if snowflake_password is not None
-                else None
+                SecretString(snowflake_password) if snowflake_password is not None else None
             ),
             snowflake_account=snowflake_account,
             snowflake_role=snowflake_role,
@@ -186,8 +184,7 @@ async def test_cortex_generate_responses(request, cortex_client, case, model_id)
 
     # Unique cassette per test
     cassette_path = (
-        f"platforms/cortex/test_e2e/"
-        f"test_response_{case['cassette_suffix']}__{model_id}.yaml"
+        f"platforms/cortex/test_e2e/test_response_{case['cassette_suffix']}__{model_id}.yaml"
     )
 
     with patched_vcr(cassette_path):
@@ -203,9 +200,7 @@ async def test_cortex_generate_responses(request, cortex_client, case, model_id)
     # For deepseek-r1, we get <think>...</think> inline; strip this
     # to test comparison
     final_response = (
-        _strip_deepseek_r1_think_tags(response)
-        if model_id == "deepseek-r1"
-        else response
+        _strip_deepseek_r1_think_tags(response) if model_id == "deepseek-r1" else response
     )
 
     compare_responses(final_response, expected_response)
@@ -225,8 +220,7 @@ async def test_cortex_stream_responses(request, cortex_client, case, model_id):
     expected_response = request.getfixturevalue(case["response_fixture"])
 
     cassette_path = (
-        f"platforms/cortex/test_e2e/"
-        f"test_stream_response_{case['cassette_suffix']}__{model_id}.yaml"
+        f"platforms/cortex/test_e2e/test_stream_response_{case['cassette_suffix']}__{model_id}.yaml"
     )
 
     with patched_vcr(cassette_path):
@@ -250,9 +244,7 @@ async def test_cortex_stream_responses(request, cortex_client, case, model_id):
     # For deepseek-r1, we get <think>...</think> inline; strip this
     # to test comparison
     final_response = (
-        _strip_deepseek_r1_think_tags(response)
-        if model_id == "deepseek-r1"
-        else response
+        _strip_deepseek_r1_think_tags(response) if model_id == "deepseek-r1" else response
     )
 
     compare_responses(final_response, expected_response)

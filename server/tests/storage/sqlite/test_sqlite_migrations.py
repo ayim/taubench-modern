@@ -350,9 +350,7 @@ async def test_sqlite_rollback_on_failure(sqlite_db_path, tmp_path):
         """) as cur:
             row = await cur.fetchone()
 
-    assert row is None, (
-        "Table 'rollback_test' should not exist after a migration failure."
-    )
+    assert row is None, "Table 'rollback_test' should not exist after a migration failure."
 
 
 @pytest.mark.asyncio

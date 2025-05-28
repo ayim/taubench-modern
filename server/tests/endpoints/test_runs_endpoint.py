@@ -83,9 +83,7 @@ class StubStorage:
         self.call_counts["upsert_thread"] += 1
         self.threads[thread.thread_id] = thread
 
-    async def add_message_to_thread(
-        self, user_id: str, thread_id: str, message: Any
-    ) -> None:
+    async def add_message_to_thread(self, user_id: str, thread_id: str, message: Any) -> None:
         self.call_counts["add_message_to_thread"] += 1
 
     # ---- run CRUD --------------------------------------------------
@@ -332,9 +330,7 @@ def test_stream_initial_payload_timeout(monkeypatch, client: TestClient):
     async def fast_timeout_get_initial_payload(websocket, timeout: float = 10.0):
         return await original_get_initial_payload(websocket, timeout=0.01)
 
-    monkeypatch.setattr(
-        runs_mod, "_get_initial_payload", fast_timeout_get_initial_payload
-    )
+    monkeypatch.setattr(runs_mod, "_get_initial_payload", fast_timeout_get_initial_payload)
 
     # 2. Make the actual websocket.receive_json hang longer than our new short timeout
     #    This ensures that the wait_for inside the (now fast-timed-out)
@@ -342,9 +338,7 @@ def test_stream_initial_payload_timeout(monkeypatch, client: TestClient):
     async def _hang_forever_receive_json(*args, **kwargs):
         await asyncio.sleep(0.1)  # Sleep for 0.1s, which is > patched 0.01s timeout
 
-    monkeypatch.setattr(
-        "starlette.websockets.WebSocket.receive_json", _hang_forever_receive_json
-    )
+    monkeypatch.setattr("starlette.websockets.WebSocket.receive_json", _hang_forever_receive_json)
 
     aid = str(uuid.uuid4())
     with client.websocket_connect(f"/runs/{aid}/stream") as ws:

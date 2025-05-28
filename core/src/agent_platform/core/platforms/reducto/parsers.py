@@ -17,9 +17,7 @@ class ReductoParsers(PlatformParsers, UsesKernelMixin):
         # it to do? (e.g. return a single word)
         return response
 
-    def parse_response(
-        self, response: "ParseResponse | ExtractResponse"
-    ) -> ResponseMessage:
+    def parse_response(self, response: "ParseResponse | ExtractResponse") -> ResponseMessage:
         """Parses a Reducto response to an agent-server model response."""
         from reducto.types import ExtractResponse, ParseResponse
 

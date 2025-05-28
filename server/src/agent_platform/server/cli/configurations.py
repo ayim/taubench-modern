@@ -164,8 +164,7 @@ def print_config(
     config_header = [
         "# Agent Server Configuration File",
         "#",
-        "# This YAML file contains configuration settings for the "
-        "Sema4.ai Agent Server.",
+        "# This YAML file contains configuration settings for the Sema4.ai Agent Server.",
         "#",
         "# Configuration file lookup order:",
         "# 1. Path specified by SEMA4AI_AGENT_SERVER_CONFIG_PATH environment variable",
@@ -177,8 +176,7 @@ def print_config(
         "# - You only need to specify the settings you want to override",
         "# - Default values will be used for any unspecified settings",
         "# - Configuration changes require restarting the server",
-        "# - For development/testing, use the --config-path argument "
-        "for custom locations",
+        "# - For development/testing, use the --config-path argument for custom locations",
         "#",
         f"# Configuration file expected at: {manager.config_path}",
         "",

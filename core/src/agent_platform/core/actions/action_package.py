@@ -42,8 +42,7 @@ class ActionPackage:
 
     api_key: SecretString | None = field(
         metadata={
-            "description": "API Key of the action server that"
-            " hosts the action package.",
+            "description": "API Key of the action server that hosts the action package.",
         },
         default=None,
     )
@@ -99,9 +98,7 @@ class ActionPackage:
             version=self.version,
             url=self.url,
             api_key=(
-                SecretString(self.api_key.get_secret_value())
-                if self.api_key is not None
-                else None
+                SecretString(self.api_key.get_secret_value()) if self.api_key is not None else None
             ),
             # DO NOT copy legacy whitelist field, on post init
             # it was upgraded to allowed_actions
@@ -116,9 +113,7 @@ class ActionPackage:
             "organization": self.organization,
             "version": self.version,
             "url": self.url,
-            "api_key": (
-                self.api_key.get_secret_value() if self.api_key is not None else None
-            ),
+            "api_key": (self.api_key.get_secret_value() if self.api_key is not None else None),
             # DO NOT copy legacy whitelist field, on post init
             # it was upgraded to allowed_actions
             "allowed_actions": self.allowed_actions,

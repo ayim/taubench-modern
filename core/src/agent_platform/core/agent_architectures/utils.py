@@ -19,8 +19,7 @@ def validate_2param_async(func, param_names=("kernel", "state")):
     parameters = list(sig.parameters.values())
     if len(parameters) != len(param_names):
         raise ValueError(
-            f"Function must have exactly {len(param_names)} parameters: "
-            f"{', '.join(param_names)}",
+            f"Function must have exactly {len(param_names)} parameters: {', '.join(param_names)}",
         )
     if not iscoroutinefunction(func):
         raise ValueError("Function must be an async function.")
@@ -77,8 +76,7 @@ def extract_kernel_and_create_or_get_state(sig, *args, **kwargs):
             state = bound.arguments[state_param]
             if not isinstance(state, state_annotation):
                 raise TypeError(
-                    "Provided state must be an "
-                    f"instance of {state_annotation.__name__}",
+                    f"Provided state must be an instance of {state_annotation.__name__}",
                 )
             return kernel, state
 

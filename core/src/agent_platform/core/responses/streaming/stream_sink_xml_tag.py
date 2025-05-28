@@ -165,7 +165,5 @@ class XmlTagResponseStreamSink(NoOpResponseStreamSink):
                     self.tag_content = ""
 
                     # Discard everything up to and including the closing tag
-                    self.parse_buffer = self.parse_buffer[
-                        close_idx + len(self.as_closing_tag) :
-                    ]
+                    self.parse_buffer = self.parse_buffer[close_idx + len(self.as_closing_tag) :]
                     # Loop again to see if there's another <tag> afterwards

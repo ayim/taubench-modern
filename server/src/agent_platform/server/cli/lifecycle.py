@@ -137,8 +137,7 @@ class ServerLifecycleManager:
             # Create server instance
             self.server = uvicorn.Server(config)
             logger.info(
-                f"{self.name.title()} will listen on "
-                f"{self.bound_host}:{self.actual_port}",
+                f"{self.name.title()} will listen on {self.bound_host}:{self.actual_port}",
             )
             return True
 
@@ -170,8 +169,7 @@ class ServerLifecycleManager:
             self.bound_host = self.host
         elif actual_host != self.host and self.host not in ["localhost", "127.0.0.1"]:
             logger.warning(
-                f"Requested host {self.host} differs from actual "
-                f"bound host {actual_host}",
+                f"Requested host {self.host} differs from actual bound host {actual_host}",
             )
             self.bound_host = actual_host
         else:
@@ -342,9 +340,7 @@ def _custom_bind_socket(config: uvicorn.Config) -> socket.socket:
 
         message = f"Uvicorn running on {addr_format} (Press CTRL+C to quit)"
         color_message = (
-            "Uvicorn running on "
-            + click.style(addr_format, bold=True)
-            + " (Press CTRL+C to quit)"
+            "Uvicorn running on " + click.style(addr_format, bold=True) + " (Press CTRL+C to quit)"
         )
         protocol_name = "https" if config.is_ssl else "http"
         logger_args = [protocol_name, config.host, sock.getsockname()[1]]

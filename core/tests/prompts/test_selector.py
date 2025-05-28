@@ -86,9 +86,7 @@ class MockPromptSelector(PromptSelector):
         """Override the prompts property to return our mock prompts."""
         return self._mock_prompts
 
-    def select_prompt(
-        self, request: PromptSelectionRequest, **kwargs
-    ) -> tuple[str, Traversable]:
+    def select_prompt(self, request: PromptSelectionRequest, **kwargs) -> tuple[str, Traversable]:
         """Mock implementation of select_prompt."""
         return "mock-prompt.yml", MagicMock(spec=Traversable)
 
@@ -108,9 +106,7 @@ class TestPromptSelector:
         assert isinstance(selector.prompts, dict)
 
     @patch("importlib.resources.files")
-    def test_get_resource_root(
-        self, mock_files: MagicMock, selector: PromptSelector
-    ) -> None:
+    def test_get_resource_root(self, mock_files: MagicMock, selector: PromptSelector) -> None:
         """Test getting the resource root."""
         mock_resource_root = MagicMock()
         mock_files.return_value = mock_resource_root
@@ -121,9 +117,7 @@ class TestPromptSelector:
         assert resource_root == mock_resource_root
 
     @patch("importlib.resources.files")
-    def test_get_resource_root_error(
-        self, mock_files: MagicMock, selector: PromptSelector
-    ) -> None:
+    def test_get_resource_root_error(self, mock_files: MagicMock, selector: PromptSelector) -> None:
         """Test getting the resource root with an error."""
         mock_files.side_effect = AttributeError("Test error")
 
@@ -186,13 +180,9 @@ class TestDefaultPromptSelector:
         }
 
     @pytest.fixture
-    def selector(
-        self, mock_prompts: Mapping[str, Traversable]
-    ) -> DefaultPromptSelector:
+    def selector(self, mock_prompts: Mapping[str, Traversable]) -> DefaultPromptSelector:
         """Create a DefaultPromptSelector for testing."""
-        selector = DefaultPromptSelector(
-            prompt_paths=["test-path"], package="test-package"
-        )
+        selector = DefaultPromptSelector(prompt_paths=["test-path"], package="test-package")
         selector._prompts = cast(dict[str, Traversable], dict(mock_prompts))
         return selector
 
@@ -204,9 +194,7 @@ class TestDefaultPromptSelector:
         assert prompt_name == "custom-prompt.gpt.yml"
         assert prompt_content == selector.prompts["custom-prompt.gpt.yml"]
 
-    def test_select_prompt_by_model_family(
-        self, selector: DefaultPromptSelector
-    ) -> None:
+    def test_select_prompt_by_model_family(self, selector: DefaultPromptSelector) -> None:
         """Test selecting a prompt by model family."""
         request = PromptSelectionRequest(model_family="gpt")
         prompt_name, prompt_content = selector.select_prompt(request)
@@ -237,9 +225,7 @@ class TestDefaultPromptSelector:
         mock_traversable = MagicMock(spec=Traversable)
         mock_prompts = {"some-other-prompt.yml": mock_traversable}
 
-        selector = DefaultPromptSelector(
-            prompt_paths=["test-path"], package="test-package"
-        )
+        selector = DefaultPromptSelector(prompt_paths=["test-path"], package="test-package")
         selector._prompts = cast(dict[str, Traversable], mock_prompts)
 
         # Request with a non-matching model family
@@ -264,9 +250,7 @@ class TestSelectPromptFunction:
 
     @patch("agent_platform.core.prompts.selector.default.DefaultPromptSelector")
     @patch("agent_platform.core.prompts.prompt.Prompt.load_yaml")
-    def test_select_prompt(
-        self, mock_load_yaml: MagicMock, mock_selector_class: MagicMock
-    ) -> None:
+    def test_select_prompt(self, mock_load_yaml: MagicMock, mock_selector_class: MagicMock) -> None:
         """Test the select_prompt function."""
         # Create mock instances
         mock_selector = MagicMock(spec=DefaultPromptSelector)
@@ -323,9 +307,7 @@ class TestIntegrationPromptSelector:
 
     @patch.object(DefaultPromptConfig, "default_prompt", "test-default.yml")
     @patch.object(DefaultPromptSelector, "_get_resource_root")
-    def test_prompt_loading(
-        self, mock_get_resource_root: MagicMock, prompt_dir: Path
-    ) -> None:
+    def test_prompt_loading(self, mock_get_resource_root: MagicMock, prompt_dir: Path) -> None:
         """Test that prompt files are properly loaded."""
         # Set up a fake resource root that will return our test files
         mock_resource_root = MagicMock(spec=Traversable)
@@ -460,9 +442,7 @@ class TestIntegrationPromptSelector:
 
         # Create the selector and test it
         selector = DefaultPromptSelector(prompt_paths=[str(prompt_dir)])
-        selector._prompts = cast(
-            dict[str, Traversable], mock_collect_files.return_value
-        )
+        selector._prompts = cast(dict[str, Traversable], mock_collect_files.return_value)
         request = PromptSelectionRequest(direct_prompt_name="test-prompt.yml")
 
         prompt_name, prompt_content = selector.select_prompt(request)
@@ -554,9 +534,7 @@ class TestIntegrationPromptSelector:
 
         # Create the selector and test it
         selector = DefaultPromptSelector(prompt_paths=[str(prompt_dir)])
-        selector._prompts = cast(
-            dict[str, Traversable], mock_collect_files.return_value
-        )
+        selector._prompts = cast(dict[str, Traversable], mock_collect_files.return_value)
         request = PromptSelectionRequest(model_family="gpt")
 
         prompt_name, prompt_content = selector.select_prompt(request)
@@ -659,9 +637,7 @@ class TestIntegrationPromptSelector:
 
         # Create a selector with mocked prompts
         selector = DefaultPromptSelector(prompt_paths=[str(prompt_dir)])
-        selector._prompts = cast(
-            dict[str, Traversable], mock_collect_files.return_value
-        )
+        selector._prompts = cast(dict[str, Traversable], mock_collect_files.return_value)
 
         # Test with model family
         prompt = select_prompt(

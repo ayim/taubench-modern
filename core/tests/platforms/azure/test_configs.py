@@ -65,10 +65,7 @@ class TestAzureOpenAIPlatformConfigs:
         first_provider = next(
             iter(AzureOpenAIPlatformConfigs.supported_models_by_provider.keys()),
         )
-        assert (
-            len(AzureOpenAIPlatformConfigs.supported_models_by_provider[first_provider])
-            > 0
-        )
+        assert len(AzureOpenAIPlatformConfigs.supported_models_by_provider[first_provider]) > 0
 
         # Check that default_platform_provider is dict and has at least the
         # llm and embedding keys

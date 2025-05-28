@@ -247,8 +247,7 @@ class GoogleConverters(PlatformConverters, UsesKernelMixin):
 
         if "additionalProperties" in schema:
             logger.debug(
-                f"Removing 'additionalProperties' from schema: "
-                f"{schema['additionalProperties']}",
+                f"Removing 'additionalProperties' from schema: {schema['additionalProperties']}",
             )
             del schema["additionalProperties"]
 
@@ -338,16 +337,14 @@ class GoogleConverters(PlatformConverters, UsesKernelMixin):
             # Add nullable flag if not already present
             prop_schema["nullable"] = True
             logger.debug(
-                f"Converted union with null to {primary_type} "
-                f"with nullable=True for {prop_name}",
+                f"Converted union with null to {primary_type} with nullable=True for {prop_name}",
             )
         else:
             # If only null is present, default to string
             prop_schema["type"] = "string"
             prop_schema["nullable"] = True
             logger.debug(
-                f"Converted null-only type to string with "
-                f"nullable=True for {prop_name}",
+                f"Converted null-only type to string with nullable=True for {prop_name}",
             )
 
     def _handle_multi_type_union(
@@ -373,13 +370,9 @@ class GoogleConverters(PlatformConverters, UsesKernelMixin):
 
         # Add a note in the description about alternative types
         if "description" in prop_schema:
-            prop_schema["description"] += (
-                f" (Possible types: {', '.join(original_types)})"
-            )
+            prop_schema["description"] += f" (Possible types: {', '.join(original_types)})"
         else:
-            prop_schema["description"] = (
-                f"Accepts multiple types: {', '.join(original_types)}"
-            )
+            prop_schema["description"] = f"Accepts multiple types: {', '.join(original_types)}"
 
     def _fix_items_field(self, prop_name: str, prop_schema: dict[str, Any]) -> None:
         """Fix items field in schema.
@@ -433,9 +426,7 @@ class GoogleConverters(PlatformConverters, UsesKernelMixin):
             prop_schema: The property schema to modify.
         """
         logger.debug(f"Ensuring enum values are strings in {prop_name}")
-        prop_schema["enum"] = [
-            str(e) if not isinstance(e, str) else e for e in prop_schema["enum"]
-        ]
+        prop_schema["enum"] = [str(e) if not isinstance(e, str) else e for e in prop_schema["enum"]]
 
     async def _convert_tools(
         self,

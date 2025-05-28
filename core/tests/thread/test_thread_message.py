@@ -260,10 +260,7 @@ class TestThreadAgentMessage:
         await agent_msg.stream_delta()
         assert len(agent_msg.message.content) == 2
         assert isinstance(agent_msg.message.content[-1], ThreadThoughtContent)
-        assert (
-            agent_msg.message.content[-1].thought
-            == "Initial thought. Appended more stuff"
-        )
+        assert agent_msg.message.content[-1].thought == "Initial thought. Appended more stuff"
         mock_thread_state.stream_message_delta.assert_awaited_once_with(
             agent_msg.message,
         )
