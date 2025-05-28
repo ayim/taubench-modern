@@ -89,6 +89,48 @@ async def test_internal_error_handling():
 
 
 @pytest.mark.asyncio
+async def test_result_with_error_handling():
+    """Test that errors in the result/error format are properly handled."""
+
+    # Create a tool that returns {"result": None, "error": "error-message"} format
+    async def result_error_tool(**kwargs):
+        return {"result": None, "error": "Something went wrong with the API"}
+
+    tool_def = ToolDefinition(
+        name="result_error_tool",
+        description="A tool that returns result/error format",
+        input_schema={"type": "object", "properties": {}},
+        function=result_error_tool,
+    )
+
+    # Create the tools interface
+    interface = AgentServerToolsInterface()
+    mock_kernel = MagicMock()
+    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
+    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
+    interface.attach_kernel(mock_kernel)
+
+    # Create a tool use request
+    tool_use = ResponseToolUseContent(
+        tool_call_id="call_789",
+        tool_name="result_error_tool",
+        tool_input_raw="{}",
+    )
+
+    # Execute the tool
+    result = await interface._safe_execute_tool(tool_def, tool_use)
+
+    # Verify the error is properly handled
+    assert result.error == "Something went wrong with the API"
+    assert result.output_raw == {
+        "result": None,
+        "error": "Something went wrong with the API",
+    }
+    assert result.definition == tool_def
+    assert result.tool_call_id == "call_789"
+
+
+@pytest.mark.asyncio
 async def test_validation_error_handling():
     """Test that validation errors from tools are properly handled."""
 

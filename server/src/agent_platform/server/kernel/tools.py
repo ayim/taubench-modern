@@ -52,63 +52,52 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
             "execution_started_at": started_at,
             "execution_metadata": {},
         }
+        result_output = None
+        error_message = None
         try:
             args_from_json = loads(tool_use.tool_input_raw or "{}")
         except Exception as e:
-            return ToolExecutionResult(
-                **tool_result_args,
-                output_raw=None,
-                error=str(e),
-                execution_ended_at=datetime.now(UTC),
-            )
-
-        try:
-            result = await tool_def.function(
-                **args_from_json,
-                extra_headers=extra_headers,
-            )
-            # TODO: handling of various result types...
-            if isinstance(result, dict):
-                if "error_code" in result and result["error_code"] != "":
-                    error_code = result["error_code"]
-                    error_message = result.get("message", "Unknown error")
-                    full_error_message = f"{error_code}: {error_message}"
-                    return ToolExecutionResult(
-                        **tool_result_args,
-                        output_raw=result,
-                        error=full_error_message,
-                        execution_ended_at=datetime.now(UTC),
-                    )
+            error_message = str(e)
+        else:
+            try:
+                result = await tool_def.function(
+                    **args_from_json,
+                    extra_headers=extra_headers,
+                )
+                # TODO: handling of various result types...
+                if isinstance(result, dict):
+                    # Check for error_code format
+                    if "error_code" in result and result["error_code"] != "":
+                        error_code = result["error_code"]
+                        error_message = result.get("message", "Unknown error")
+                        error_message = f"{error_code}: {error_message}"
+                        result_output = result
+                    # Check for {"result": None, "error": "error-message"} format
+                    elif (
+                        "result" in result
+                        and result["result"] is None
+                        and "error" in result
+                        and result["error"]
+                    ):
+                        error_message = result["error"]
+                        result_output = result
+                    else:
+                        result_output = result
+                # Handles all primitive types that action servers can return
+                elif result is None or isinstance(result, str | int | float | bool):
+                    result_output = result  # This will be stringified later in the run
                 else:
-                    return ToolExecutionResult(
-                        **tool_result_args,
-                        output_raw=result,
-                        error=None,
-                        execution_ended_at=datetime.now(UTC),
-                    )
-            # Handles all primitive types that action servers can return
-            elif result is None or isinstance(result, str | int | float | bool):
-                return ToolExecutionResult(
-                    **tool_result_args,
-                    output_raw=result,  # This will be stringified later in the run
-                    error=None,
-                    execution_ended_at=datetime.now(UTC),
-                )
-            else:
-                # We received a malformed result from the tool
-                return ToolExecutionResult(
-                    **tool_result_args,
-                    output_raw=result,
-                    error="Received a malformed result from the tool",
-                    execution_ended_at=datetime.now(UTC),
-                )
-        except Exception as e:
-            return ToolExecutionResult(
-                **tool_result_args,
-                output_raw=None,
-                error=str(e),
-                execution_ended_at=datetime.now(UTC),
-            )
+                    # We received a malformed result from the tool
+                    error_message = "Received a malformed result from the tool"
+                    result_output = result
+            except Exception as e:
+                error_message = str(e)
+        return ToolExecutionResult(
+            **tool_result_args,
+            output_raw=result_output,
+            error=error_message,
+            execution_ended_at=datetime.now(UTC),
+        )
 
     @classmethod
     def _create_tool_call_inputs(cls, pending_tool_calls):
