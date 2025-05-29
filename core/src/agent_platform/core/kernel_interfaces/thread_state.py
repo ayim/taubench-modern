@@ -1,3 +1,4 @@
+import json
 from abc import ABC, abstractmethod
 from datetime import UTC, datetime
 from typing import Any, cast
@@ -315,8 +316,28 @@ class ThreadMessageWithThreadState:
         # Update the tool use with the result
         match_as_tool_use.started_at = result.execution_started_at
         match_as_tool_use.ended_at = result.execution_ended_at
-        # TODO: handle non-string results
-        match_as_tool_use.result = str(result.output_raw)
+
+        # Process the tool result based on its type and structure
+        if result.output_raw is None:
+            match_as_tool_use.result = None
+        elif isinstance(result.output_raw, str):
+            # MCP responses are JSON strings - use as-is
+            match_as_tool_use.result = result.output_raw
+        elif isinstance(result.output_raw, dict) and "result" in result.output_raw:
+            # Action responses have a 'result' field that may be a JSON string
+            try:
+                result.output_raw["result"] = json.loads(result.output_raw["result"])
+            except (json.JSONDecodeError, TypeError):
+                # Keeping the original value
+                pass
+            match_as_tool_use.result = json.dumps(result.output_raw)
+        elif isinstance(result.output_raw, dict | list):
+            # Other structured data - serialize as JSON
+            match_as_tool_use.result = json.dumps(result.output_raw)
+        else:
+            # Fallback for other types
+            match_as_tool_use.result = str(result.output_raw)
+
         match_as_tool_use.error = result.error
         match_as_tool_use.metadata["execution"] = result.execution_metadata
         match_as_tool_use.status = "failed" if result.error else "finished"
