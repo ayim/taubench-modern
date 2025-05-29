@@ -4,7 +4,7 @@ from typing import Literal
 
 import pytest
 
-from _go_validation_tests.fixtures import RunResult
+from _go_validation_tests.conftest import RunResult
 
 log = logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ def run_agent_cli(
 ) -> RunResult:
     import os
 
-    from _go_validation_tests.fixtures import DEBUG_GO, run
+    from _go_validation_tests.conftest import DEBUG_GO, run
 
     if DEBUG_GO:
         full_args = [

@@ -20,7 +20,7 @@ def resources_dir() -> Path:
 def start_agent_server(tmpdir, logs_dir, env: dict[str, str] | None = None) -> Iterator[str]:
     import logging
 
-    from agent_server_orchestrator.bootstrap_agent_server import AgentServerProcess
+    from agent_platform.orchestrator.bootstrap_agent_server import AgentServerProcess
 
     logger = logging.getLogger("start_agent_server")
 

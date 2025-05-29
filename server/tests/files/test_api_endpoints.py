@@ -3,7 +3,7 @@ from collections.abc import Callable
 
 import pytest
 import requests
-from agent_server_orchestrator.agent_server_client import (
+from agent_platform.orchestrator.agent_server_client import (
     AgentServerClient,
     print_header,
     print_success,
@@ -180,6 +180,7 @@ def _file_uploads_with_non_existent_thread(
 
 
 @pytest.mark.integration
+@pytest.mark.usefixtures("copy_tmpdir_on_failure")
 def test_file_uploads(
     base_url_agent_server_sqlite,
     base_url_agent_server_postgres,

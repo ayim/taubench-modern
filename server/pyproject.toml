@@ -25,19 +25,11 @@ dependencies = [
     "cachetools>=5.5.2,<6.0.0",
 ]
 
-[dependency-groups]
-dev = ["sema4ai-agent-server-orchestrator"]
-
 [project.scripts]
 agent-server = "agent_platform.server.main:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/agent_platform"]
-
-[tool.uv.sources]
-sema4ai-agent-server-orchestrator = { git = "https://github.com/Sema4AI/agent-server-orchestrator.git", tag = "v0.0.2-alpha4" }
-# Uncomment below if you want to use a local agent-server-orchestrator (cloned right next to this repo)
-# sema4ai-agent-server-orchestrator = { path = "../../agent-server-orchestrator", editable = true }
 
 [build-system]
 requires = ["hatchling"]

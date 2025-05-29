@@ -28,7 +28,7 @@ def start_agent_server(logs_dir, agent_server_data_dir):
 
     @contextmanager
     def start(parent_pid: int = 0, port: int = 0, kill_lock_holder: bool = True):
-        from agent_server_orchestrator.bootstrap_agent_server import AgentServerProcess
+        from agent_platform.orchestrator.bootstrap_agent_server import AgentServerProcess
 
         additional_args = [
             "--use-data-dir-lock",
@@ -55,6 +55,7 @@ def start_agent_server(logs_dir, agent_server_data_dir):
 
 
 @pytest.mark.integration
+@pytest.mark.usefixtures("copy_tmpdir_on_failure")
 def test_agent_server_port_reuse(start_agent_server, logs_dir):
     import threading
 
@@ -92,6 +93,7 @@ def test_agent_server_port_reuse(start_agent_server, logs_dir):
 
 
 @pytest.mark.integration
+@pytest.mark.usefixtures("copy_tmpdir_on_failure")
 def test_start_agent_server_with_lock_file(  # noqa: C901
     agent_server_data_dir, start_agent_server
 ) -> None:
@@ -185,6 +187,7 @@ def test_start_agent_server_with_lock_file(  # noqa: C901
 
 
 @pytest.mark.integration
+@pytest.mark.usefixtures("copy_tmpdir_on_failure")
 def test_api_interaction_with_action_server(
     base_url_agent_server,
     openai_api_key,
@@ -192,7 +195,7 @@ def test_api_interaction_with_action_server(
     logs_dir,
     resources_dir,
 ):
-    from agent_server_orchestrator.agent_server_client import (
+    from agent_platform.orchestrator.agent_server_client import (
         ActionPackage,
         AgentServerClient,
         SecretKey,
@@ -254,6 +257,7 @@ def test_api_interaction_with_action_server(
 
 
 @pytest.mark.integration
+@pytest.mark.usefixtures("copy_tmpdir_on_failure")
 def test_agent_server_port_conflict(tmpdir, logs_dir):  # noqa: C901 PLR0915
     """Test that trying to start a server on a port that's already in use
     fails with the expected error message.
@@ -261,8 +265,8 @@ def test_agent_server_port_conflict(tmpdir, logs_dir):  # noqa: C901 PLR0915
     import time
     from contextlib import contextmanager
 
-    from agent_server_orchestrator.agent_server_client import print_info
-    from agent_server_orchestrator.bootstrap_agent_server import AgentServerProcess
+    from agent_platform.orchestrator.agent_server_client import print_info
+    from agent_platform.orchestrator.bootstrap_agent_server import AgentServerProcess
 
     from sema4ai.common.wait_for import wait_for_condition
 

@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 
 import pytest
-from agent_server_orchestrator.bootstrap_agent_server import AgentServerProcess
+from agent_platform.orchestrator.bootstrap_agent_server import AgentServerProcess
 
 
 @pytest.fixture(scope="session", autouse=True)
