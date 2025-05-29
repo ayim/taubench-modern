@@ -47,7 +47,9 @@ else:
 
 # Similarly for CSS
 DEV_CSS = ""
-CSS = DEV_CSS if DEV_CSS and is_url_accessible(DEV_CSS) else "./debug_widget/static/style.css"
+CSS = (
+    DEV_CSS if DEV_CSS and is_url_accessible(DEV_CSS) else "./debug_widget/static/debug-widget.css"
+)
 
 
 class AgentApiClient:

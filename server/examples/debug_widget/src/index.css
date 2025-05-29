@@ -1,9 +1,11 @@
+@reference "tailwindcss";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 .chat-container {
-  @apply flex flex-row border border-gray-200 
+  @apply flex flex-row border border-gray-300 
     rounded-lg shadow-lg w-[800px] h-[500px]
     font-sans text-sm bg-white overflow-hidden;
 }
