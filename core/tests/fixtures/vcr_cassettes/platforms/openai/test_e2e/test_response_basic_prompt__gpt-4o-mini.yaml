@@ -1,32 +1,33 @@
 interactions:
 - request:
-    body: '{"messages":[{"role":"user","content":"This is an end-to-end test, please
-      respond with a\n                message containing only the word ''sunflower''"}],"model":"gpt-4o-mini-2024-07-18"}'
+    body: '{"messages":[{"role":"user","content":[{"type":"text","text":"\n                This
+      is an end-to-end test, please respond with a\n                message containing
+      only the word ''sunflower''\n                "}]}],"model":"gpt-4o-mini-2024-07-18"}'
     headers:
       accept:
       - application/json
       accept-encoding:
-      - gzip, deflate
+      - gzip, deflate, zstd
       connection:
       - keep-alive
       content-length:
-      - '187'
+      - '248'
       content-type:
       - application/json
       host:
       - api.openai.com
       user-agent:
-      - OpenAI/Python 1.70.0
+      - AsyncOpenAI/Python 1.75.0
       x-stainless-arch:
       - arm64
       x-stainless-async:
-      - 'false'
+      - async:asyncio
       x-stainless-lang:
       - python
       x-stainless-os:
       - MacOS
       x-stainless-package-version:
-      - 1.70.0
+      - 1.75.0
       x-stainless-read-timeout:
       - '600'
       x-stainless-retry-count:
@@ -38,17 +39,17 @@ interactions:
     method: POST
     uri: https://api.openai.com/v1/chat/completions
   response:
-    content: "{\n  \"id\": \"chatcmpl-BJ4vfd0ZOoABz9IqMjr2fNzqpD82f\",\n  \"object\":
-      \"chat.completion\",\n  \"created\": 1743886879,\n  \"model\": \"gpt-4o-mini-2024-07-18\",\n
+    content: "{\n  \"id\": \"chatcmpl-BcbgT5WnHybuxqyhzL4hsHhcs4ADU\",\n  \"object\":
+      \"chat.completion\",\n  \"created\": 1748541021,\n  \"model\": \"gpt-4o-mini-2024-07-18\",\n
       \ \"choices\": [\n    {\n      \"index\": 0,\n      \"message\": {\n        \"role\":
       \"assistant\",\n        \"content\": \"sunflower\",\n        \"refusal\": null,\n
       \       \"annotations\": []\n      },\n      \"logprobs\": null,\n      \"finish_reason\":
-      \"stop\"\n    }\n  ],\n  \"usage\": {\n    \"prompt_tokens\": 30,\n    \"completion_tokens\":
-      3,\n    \"total_tokens\": 33,\n    \"prompt_tokens_details\": {\n      \"cached_tokens\":
+      \"stop\"\n    }\n  ],\n  \"usage\": {\n    \"prompt_tokens\": 33,\n    \"completion_tokens\":
+      2,\n    \"total_tokens\": 35,\n    \"prompt_tokens_details\": {\n      \"cached_tokens\":
       0,\n      \"audio_tokens\": 0\n    },\n    \"completion_tokens_details\": {\n
       \     \"reasoning_tokens\": 0,\n      \"audio_tokens\": 0,\n      \"accepted_prediction_tokens\":
       0,\n      \"rejected_prediction_tokens\": 0\n    }\n  },\n  \"service_tier\":
-      \"default\",\n  \"system_fingerprint\": \"fp_b376dfbbd5\"\n}\n"
+      \"default\",\n  \"system_fingerprint\": \"fp_54eb4bd693\"\n}\n"
     headers:
       Connection:
       - keep-alive
@@ -57,7 +58,7 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Sat, 05 Apr 2025 21:01:19 GMT
+      - Thu, 29 May 2025 17:50:22 GMT
       Server:
       - cloudflare
       Transfer-Encoding:
@@ -73,11 +74,13 @@ interactions:
       openai-organization:
       - robocorp-1
       openai-processing-ms:
-      - '179'
+      - '920'
       openai-version:
       - '2020-10-01'
       strict-transport-security:
       - max-age=31536000; includeSubDomains; preload
+      x-envoy-upstream-service-time:
+      - '1507'
       x-ratelimit-limit-requests:
       - '30000'
       x-ratelimit-limit-tokens:
@@ -85,13 +88,13 @@ interactions:
       x-ratelimit-remaining-requests:
       - '29999'
       x-ratelimit-remaining-tokens:
-      - '149999970'
+      - '149999962'
       x-ratelimit-reset-requests:
       - 2ms
       x-ratelimit-reset-tokens:
       - 0s
       x-request-id:
-      - req_c7264e2284bdb44d5b30c9785c27f7e5
+      - req_76abc32ad7394bb7b5136371e28dadba
     http_version: HTTP/1.1
     status_code: 200
 version: 1

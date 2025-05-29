@@ -185,7 +185,7 @@ class OpenAIClient(
             response = await self._openai_client.chat.completions.create(**request)
             return self._parsers.parse_response(response)
 
-    async def generate_stream_response(  # noqa: C901, PLR0912
+    async def generate_stream_response(  # noqa: C901, PLR0912, PLR0915
         self,
         prompt: OpenAIPrompt,
         model: str,
@@ -238,7 +238,8 @@ class OpenAIClient(
                         all_chunks.append(event)
                         # Process chunk for content
                         if (
-                            hasattr(event.choices[0].delta, "content")
+                            len(event.choices) > 0
+                            and hasattr(event.choices[0].delta, "content")
                             and event.choices[0].delta.content
                         ):
                             assembled_content += event.choices[0].delta.content
@@ -256,6 +257,10 @@ class OpenAIClient(
 
                     # Update last message state after processing each event
                     last_message = deepcopy(message)
+                    logger.info(f"Token usage: {message['usage']}")
+                    span.set_attribute("completion_tokens", message["usage"]["output_tokens"])
+                    span.set_attribute("prompt_tokens", message["usage"]["input_tokens"])
+                    span.set_attribute("total_tokens", message["usage"]["total_tokens"])
 
                     # Add final metadata and platform info
                     final_event = self._generate_platform_metadata()
@@ -301,6 +306,7 @@ class OpenAIClient(
             if "metadata" not in message:
                 message["metadata"] = {}
             message["metadata"].update(final_event)
+            logger.info(f"Token usage: {message['usage']}")
 
             # Put request ID (if any) into raw_response
             request_id = message.get("additional_response_fields", {}).get("id", "unknown")

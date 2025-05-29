@@ -27,13 +27,13 @@ interactions:
       user-agent:
       - AsyncOpenAI/Python 1.75.0
       x-stainless-arch:
-      - x64
+      - arm64
       x-stainless-async:
       - async:asyncio
       x-stainless-lang:
       - python
       x-stainless-os:
-      - Linux
+      - MacOS
       x-stainless-package-version:
       - 1.75.0
       x-stainless-read-timeout:
@@ -43,17 +43,17 @@ interactions:
       x-stainless-runtime:
       - CPython
       x-stainless-runtime-version:
-      - 3.12.3
+      - 3.12.9
     method: POST
     uri: https://api.openai.com/v1/chat/completions
   response:
-    content: "{\n  \"id\": \"chatcmpl-BWUsWOFLM95VtbQqSgHldd9ybDHpg\",\n  \"object\":
-      \"chat.completion\",\n  \"created\": 1747084892,\n  \"model\": \"o4-mini-2025-04-16\",\n
+    content: "{\n  \"id\": \"chatcmpl-BcbkR26xLQBeY6gq98XwTjbS3faOH\",\n  \"object\":
+      \"chat.completion\",\n  \"created\": 1748541267,\n  \"model\": \"o4-mini-2025-04-16\",\n
       \ \"choices\": [\n    {\n      \"index\": 0,\n      \"message\": {\n        \"role\":
       \"assistant\",\n        \"content\": \"Madison.\",\n        \"refusal\": null,\n
       \       \"annotations\": []\n      },\n      \"finish_reason\": \"stop\"\n    }\n
       \ ],\n  \"usage\": {\n    \"prompt_tokens\": 154,\n    \"completion_tokens\":
-      150,\n    \"total_tokens\": 304,\n    \"prompt_tokens_details\": {\n      \"cached_tokens\":
+      149,\n    \"total_tokens\": 303,\n    \"prompt_tokens_details\": {\n      \"cached_tokens\":
       0,\n      \"audio_tokens\": 0\n    },\n    \"completion_tokens_details\": {\n
       \     \"reasoning_tokens\": 128,\n      \"audio_tokens\": 0,\n      \"accepted_prediction_tokens\":
       0,\n      \"rejected_prediction_tokens\": 0\n    }\n  },\n  \"service_tier\":
@@ -66,7 +66,7 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Mon, 12 May 2025 21:21:35 GMT
+      - Thu, 29 May 2025 17:54:31 GMT
       Server:
       - cloudflare
       Transfer-Encoding:
@@ -82,13 +82,13 @@ interactions:
       openai-organization:
       - robocorp-1
       openai-processing-ms:
-      - '2786'
+      - '3907'
       openai-version:
       - '2020-10-01'
       strict-transport-security:
       - max-age=31536000; includeSubDomains; preload
       x-envoy-upstream-service-time:
-      - '2791'
+      - '3915'
       x-ratelimit-limit-requests:
       - '30000'
       x-ratelimit-limit-tokens:
@@ -102,7 +102,7 @@ interactions:
       x-ratelimit-reset-tokens:
       - 0s
       x-request-id:
-      - req_dbb1491cf1784ba4650373d771c891a8
+      - req_04a55231651f5a5111b468cf07a90aa1
     http_version: HTTP/1.1
     status_code: 200
 version: 1

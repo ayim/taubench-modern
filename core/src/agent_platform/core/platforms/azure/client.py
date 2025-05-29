@@ -170,6 +170,7 @@ class AzureOpenAIClient(
         if "metadata" not in message:
             message["metadata"] = {}
         message["metadata"].update(final_event)
+        logger.info(f"Token usage: {message['usage']}")
 
         # Put request ID (if any) into raw_response
         request_id = message.get("additional_response_fields", {}).get("id", "unknown")

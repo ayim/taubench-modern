@@ -55,6 +55,7 @@ class AzureOpenAIPrompt(OpenAIPrompt):
 
         if stream:
             results_dict["stream"] = True
+            results_dict["stream_options"] = {"include_usage": True}
             logger.info("Streaming enabled for this request")
 
         return results_dict

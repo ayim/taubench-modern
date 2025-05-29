@@ -30,13 +30,13 @@ interactions:
       user-agent:
       - AsyncOpenAI/Python 1.75.0
       x-stainless-arch:
-      - x64
+      - arm64
       x-stainless-async:
       - async:asyncio
       x-stainless-lang:
       - python
       x-stainless-os:
-      - Linux
+      - MacOS
       x-stainless-package-version:
       - 1.75.0
       x-stainless-read-timeout:
@@ -46,23 +46,23 @@ interactions:
       x-stainless-runtime:
       - CPython
       x-stainless-runtime-version:
-      - 3.12.3
+      - 3.12.9
     method: POST
     uri: https://api.openai.com/v1/chat/completions
   response:
-    content: "{\n  \"id\": \"chatcmpl-BWUsZjV3I6oXNkZeTKjS0EcElaJ9J\",\n  \"object\":
-      \"chat.completion\",\n  \"created\": 1747084895,\n  \"model\": \"o4-mini-2025-04-16\",\n
+    content: "{\n  \"id\": \"chatcmpl-BcbkVx1qWNmqXFW0QyQKjcd7MUq8p\",\n  \"object\":
+      \"chat.completion\",\n  \"created\": 1748541271,\n  \"model\": \"o4-mini-2025-04-16\",\n
       \ \"choices\": [\n    {\n      \"index\": 0,\n      \"message\": {\n        \"role\":
       \"assistant\",\n        \"content\": null,\n        \"tool_calls\": [\n          {\n
-      \           \"id\": \"call_o7wLj63FCamReHf3kjJ4TRxx\",\n            \"type\":
+      \           \"id\": \"call_I5TlSQkZt73iuWWvPKF6uKy5\",\n            \"type\":
       \"function\",\n            \"function\": {\n              \"name\": \"_add_book\",\n
       \             \"arguments\": \"{\\\"book\\\":{\\\"title\\\":\\\"Foundation\\\",\\\"author\\\":\\\"Isaac
       Asimov\\\",\\\"year\\\":1951}}\"\n            }\n          }\n        ],\n        \"refusal\":
       null,\n        \"annotations\": []\n      },\n      \"finish_reason\": \"tool_calls\"\n
       \   }\n  ],\n  \"usage\": {\n    \"prompt_tokens\": 237,\n    \"completion_tokens\":
-      1064,\n    \"total_tokens\": 1301,\n    \"prompt_tokens_details\": {\n      \"cached_tokens\":
+      423,\n    \"total_tokens\": 660,\n    \"prompt_tokens_details\": {\n      \"cached_tokens\":
       0,\n      \"audio_tokens\": 0\n    },\n    \"completion_tokens_details\": {\n
-      \     \"reasoning_tokens\": 1024,\n      \"audio_tokens\": 0,\n      \"accepted_prediction_tokens\":
+      \     \"reasoning_tokens\": 384,\n      \"audio_tokens\": 0,\n      \"accepted_prediction_tokens\":
       0,\n      \"rejected_prediction_tokens\": 0\n    }\n  },\n  \"service_tier\":
       \"default\",\n  \"system_fingerprint\": null\n}\n"
     headers:
@@ -73,7 +73,7 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Mon, 12 May 2025 21:21:43 GMT
+      - Thu, 29 May 2025 17:54:39 GMT
       Server:
       - cloudflare
       Transfer-Encoding:
@@ -89,13 +89,13 @@ interactions:
       openai-organization:
       - robocorp-1
       openai-processing-ms:
-      - '7835'
+      - '7693'
       openai-version:
       - '2020-10-01'
       strict-transport-security:
       - max-age=31536000; includeSubDomains; preload
       x-envoy-upstream-service-time:
-      - '7838'
+      - '7698'
       x-ratelimit-limit-requests:
       - '30000'
       x-ratelimit-limit-tokens:
@@ -109,7 +109,7 @@ interactions:
       x-ratelimit-reset-tokens:
       - 0s
       x-request-id:
-      - req_1b05f6183429d9ec24da3b7a0d4cb05d
+      - req_2a7b87d95f77335d1903f0018efd4467
     http_version: HTTP/1.1
     status_code: 200
 version: 1

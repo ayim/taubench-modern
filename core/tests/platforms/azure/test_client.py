@@ -164,6 +164,18 @@ class TestAzureOpenAIClient:
                             ),
                         ],
                     ),
+                    ChatCompletionChunk(
+                        id="chunk4",
+                        object="chat.completion.chunk",
+                        created=1234567893,
+                        model=kwargs.get("model", "default-model"),
+                        choices=[],
+                        usage=CompletionUsage(
+                            prompt_tokens=10,
+                            completion_tokens=20,
+                            total_tokens=30,
+                        ),
+                    ),
                 ]
                 return MockStreamResponse(chunks)
             else:
@@ -255,26 +267,6 @@ class TestAzureOpenAIClient:
                 role="agent",
             )
             client._parsers.parse_response = MagicMock(return_value=mock_response)
-
-            # Mock the stream event parser to return an AsyncGenerator
-            deltas = [
-                GenericDelta(
-                    op="add",
-                    path="/content/0/text",
-                    value="Hello, ",
-                ),
-                GenericDelta(
-                    op="add",
-                    path="/content/0/text",
-                    value="world!",
-                ),
-            ]
-
-            # Create a factory function that returns our mock async generator
-            def mock_parse_stream(*args, **kwargs):
-                return mock_async_generator(deltas)
-
-            client._parsers.parse_stream_event = mock_parse_stream
 
             return client
 
@@ -381,6 +373,7 @@ class TestAzureOpenAIClient:
                 {"role": "user", "content": "Hello, world!"},
             ],
             "stream": True,
+            "stream_options": {"include_usage": True},
         },
     )
     async def test_generate_stream_response(

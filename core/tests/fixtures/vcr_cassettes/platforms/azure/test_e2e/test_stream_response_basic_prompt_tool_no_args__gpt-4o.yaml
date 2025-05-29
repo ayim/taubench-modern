@@ -1,10 +1,11 @@
 interactions:
 - request:
-    body: '{"messages":[{"role":"user","content":"You are a helpful assistant. You
-      are acting\n                as an agent named ''Test Agent''. You will do\n                your
-      best to assist the user with their request."},{"role":"assistant","content":"Understood,
-      I will assist the user with their request."},{"role":"user","content":"Please
-      confirm the request using the provided\n                tool."}],"model":"gpt-4o","stream":true,"tools":[{"type":"function","function":{"name":"_add_book","description":"Store
+    body: '{"messages":[{"role":"user","content":[{"type":"text","text":"\n                You
+      are a helpful assistant. You are acting\n                as an agent named ''Test
+      Agent''. You will do\n                your best to assist the user with their
+      request.\n                "}]},{"role":"assistant","content":[{"type":"text","text":"\n                Understood,
+      I will assist the user with their request.\n                "}]},{"role":"user","content":[{"type":"text","text":"\n                Please
+      confirm the request using the provided\n                tool.\n                "}]}],"model":"gpt-4o","stream":true,"stream_options":{"include_usage":true},"tools":[{"type":"function","function":{"name":"_add_book","description":"Store
       a new book in the database.","parameters":{"type":"object","properties":{"book":{"type":"object","properties":{"title":{"type":"string","description":"The
       title of the book"},"author":{"type":"string","description":"The author''s name"},"category":{"type":["string","null"],"description":"The
       category of the book"},"year":{"type":"integer"}},"required":["title","author","category","year"],"description":"The
@@ -14,17 +15,17 @@ interactions:
       accept:
       - application/json
       accept-encoding:
-      - gzip, deflate
+      - gzip, deflate, zstd
       connection:
       - keep-alive
       content-length:
-      - '1236'
+      - '1459'
       content-type:
       - application/json
       host:
       - sema4ai-internal-testing.openai.azure.com
       user-agent:
-      - AsyncAzureOpenAI/Python 1.70.0
+      - AsyncAzureOpenAI/Python 1.75.0
       x-stainless-arch:
       - arm64
       x-stainless-async:
@@ -34,7 +35,7 @@ interactions:
       x-stainless-os:
       - MacOS
       x-stainless-package-version:
-      - 1.70.0
+      - 1.75.0
       x-stainless-read-timeout:
       - '600'
       x-stainless-retry-count:
@@ -46,13 +47,16 @@ interactions:
     method: POST
     uri: https://azure-openai-endpoint.example.com/openai/deployments/example-deployment-name/chat/completions?api-version=2023-03-15-preview
   response:
-    content: 'data: {"choices":[{"delta":{"refusal":null,"role":"assistant","tool_calls":[{"function":{"arguments":"","name":"_confirm_request"},"id":"call_5fLruVMVDxWpdDpSSNEOp2xL","index":0,"type":"function"}]},"finish_reason":null,"index":0}],"created":1744403455,"id":"chatcmpl-BLFJXziS03sOfrGa7IgpIp9RxzMHn","model":"gpt-4o-mini-2024-07-18","object":"chat.completion.chunk","system_fingerprint":"fp_b705f0c291"}
+    content: 'data: {"choices":[{"delta":{"refusal":null,"role":"assistant","tool_calls":[{"function":{"arguments":"","name":"_confirm_request"},"id":"call_MlPlf65yROIWXIU304vSiOEU","index":0,"type":"function"}]},"finish_reason":null,"index":0}],"created":1748540972,"id":"chatcmpl-BcbfgmO2LOBfJYO6oBuFCh0rdjyxQ","model":"gpt-4o-mini-2024-07-18","object":"chat.completion.chunk","system_fingerprint":"fp_7a53abb7a2","usage":null}
 
 
-      data: {"choices":[{"delta":{"tool_calls":[{"function":{"arguments":"{}"},"index":0}]},"finish_reason":null,"index":0}],"created":1744403455,"id":"chatcmpl-BLFJXziS03sOfrGa7IgpIp9RxzMHn","model":"gpt-4o-mini-2024-07-18","object":"chat.completion.chunk","system_fingerprint":"fp_b705f0c291"}
+      data: {"choices":[{"delta":{"tool_calls":[{"function":{"arguments":"{}"},"index":0}]},"finish_reason":null,"index":0}],"created":1748540972,"id":"chatcmpl-BcbfgmO2LOBfJYO6oBuFCh0rdjyxQ","model":"gpt-4o-mini-2024-07-18","object":"chat.completion.chunk","system_fingerprint":"fp_7a53abb7a2","usage":null}
 
 
-      data: {"choices":[{"delta":{},"finish_reason":"tool_calls","index":0}],"created":1744403455,"id":"chatcmpl-BLFJXziS03sOfrGa7IgpIp9RxzMHn","model":"gpt-4o-mini-2024-07-18","object":"chat.completion.chunk","system_fingerprint":"fp_b705f0c291"}
+      data: {"choices":[{"delta":{},"finish_reason":"tool_calls","index":0}],"created":1748540972,"id":"chatcmpl-BcbfgmO2LOBfJYO6oBuFCh0rdjyxQ","model":"gpt-4o-mini-2024-07-18","object":"chat.completion.chunk","system_fingerprint":"fp_7a53abb7a2","usage":null}
+
+
+      data: {"choices":[],"created":1748540972,"id":"chatcmpl-BcbfgmO2LOBfJYO6oBuFCh0rdjyxQ","model":"gpt-4o-mini-2024-07-18","object":"chat.completion.chunk","system_fingerprint":"fp_7a53abb7a2","usage":{"completion_tokens":12,"completion_tokens_details":{"accepted_prediction_tokens":0,"audio_tokens":0,"reasoning_tokens":0,"rejected_prediction_tokens":0},"prompt_tokens":196,"prompt_tokens_details":{"audio_tokens":0,"cached_tokens":0},"total_tokens":208}}
 
 
       data: [DONE]
@@ -63,33 +67,23 @@ interactions:
       Content-Type:
       - text/event-stream; charset=utf-8
       Date:
-      - Fri, 11 Apr 2025 20:30:55 GMT
+      - Thu, 29 May 2025 17:49:32 GMT
       Strict-Transport-Security:
       - max-age=31536000; includeSubDomains; preload
       Transfer-Encoding:
       - chunked
       apim-request-id:
-      - 9da0b605-d03a-4ebd-ad08-7d442b9d86f7
+      - 6d8e29ea-6a8a-4f04-b371-cafbc5da1622
       azureml-model-session:
-      - v20250319-1-test-2
+      - d061-20250514003953
       cmp-upstream-response-duration:
-      - '538'
-      ms-azureml-model-time:
-      - '484'
+      - '378'
       x-accel-buffering:
       - 'no'
-      x-aml-cluster:
-      - hyena-westus3-01
       x-content-type-options:
       - nosniff
-      x-envoy-upstream-service-time:
-      - '486'
-      x-ms-client-request-id:
-      - 9da0b605-d03a-4ebd-ad08-7d442b9d86f7
       x-ms-deployment-name:
       - internal-testing-gpt-4o-mini
-      x-ms-rai-invoked:
-      - 'true'
       x-ms-region:
       - East US
       x-ratelimit-limit-requests:
@@ -99,9 +93,9 @@ interactions:
       x-ratelimit-remaining-requests:
       - '7565'
       x-ratelimit-remaining-tokens:
-      - '746891'
+      - '746654'
       x-request-id:
-      - 4b5c1d94-8bc8-4728-9635-66b5c901c9ec
+      - dc71302b-ae9d-4a4b-96fc-e4f008bef854
     http_version: HTTP/1.1
     status_code: 200
 version: 1

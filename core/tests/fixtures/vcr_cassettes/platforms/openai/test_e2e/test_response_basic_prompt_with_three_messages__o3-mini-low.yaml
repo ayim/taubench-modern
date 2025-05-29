@@ -1,38 +1,41 @@
 interactions:
 - request:
-    body: '{"messages":[{"role":"user","content":"You are acting as an agent named
-      ''Test Agent''. You\n                are to assist the user with their request."},{"role":"assistant","content":"Understood,
-      I will assist the user with their request."},{"role":"user","content":"Reply
+    body: '{"messages":[{"role":"user","content":[{"type":"text","text":"\n                You
+      are acting as an agent named ''Test Agent''. You\n                are to assist
+      the user with their request.\n                "}]},{"role":"assistant","content":[{"type":"text","text":"\n                Understood,
+      I will assist the user with their request.\n                "}]},{"role":"user","content":[{"type":"text","text":"\n                Reply
       with the answer only, nothing else. What is the\n                capital of
       the state of Wisconsin, USA?\n\n                The answer must be one word.
       Starting with a capital\n                letter, and ending with a period. Emit
       nothing else\n                aside from the capital of Wisconsin with a period\n                at
-      the end and starting with a capital letter."}],"model":"o3-mini-2025-01-31","reasoning_effort":"low"}'
+      the end and starting with a capital letter.\n\n                NOTE: We are
+      not looking for ALL CAPS. Just regular\n                capitalization with
+      a period at the end.\n                "}]}],"model":"o3-mini-2025-01-31","reasoning_effort":"low"}'
     headers:
       accept:
       - application/json
       accept-encoding:
-      - gzip, deflate
+      - gzip, deflate, zstd
       connection:
       - keep-alive
       content-length:
-      - '706'
+      - '1018'
       content-type:
       - application/json
       host:
       - api.openai.com
       user-agent:
-      - OpenAI/Python 1.70.0
+      - AsyncOpenAI/Python 1.75.0
       x-stainless-arch:
       - arm64
       x-stainless-async:
-      - 'false'
+      - async:asyncio
       x-stainless-lang:
       - python
       x-stainless-os:
       - MacOS
       x-stainless-package-version:
-      - 1.70.0
+      - 1.75.0
       x-stainless-read-timeout:
       - '600'
       x-stainless-retry-count:
@@ -44,17 +47,17 @@ interactions:
     method: POST
     uri: https://api.openai.com/v1/chat/completions
   response:
-    content: "{\n  \"id\": \"chatcmpl-BJ4xZyYqs6QbWfc2SEEUTlIGaQxvq\",\n  \"object\":
-      \"chat.completion\",\n  \"created\": 1743886997,\n  \"model\": \"o3-mini-2025-01-31\",\n
+    content: "{\n  \"id\": \"chatcmpl-BcbjulbdPrfkggXx1SMJIbCP1C9uh\",\n  \"object\":
+      \"chat.completion\",\n  \"created\": 1748541234,\n  \"model\": \"o3-mini-2025-01-31\",\n
       \ \"choices\": [\n    {\n      \"index\": 0,\n      \"message\": {\n        \"role\":
       \"assistant\",\n        \"content\": \"Madison.\",\n        \"refusal\": null,\n
       \       \"annotations\": []\n      },\n      \"finish_reason\": \"stop\"\n    }\n
-      \ ],\n  \"usage\": {\n    \"prompt_tokens\": 120,\n    \"completion_tokens\":
-      14,\n    \"total_tokens\": 134,\n    \"prompt_tokens_details\": {\n      \"cached_tokens\":
+      \ ],\n  \"usage\": {\n    \"prompt_tokens\": 152,\n    \"completion_tokens\":
+      19,\n    \"total_tokens\": 171,\n    \"prompt_tokens_details\": {\n      \"cached_tokens\":
       0,\n      \"audio_tokens\": 0\n    },\n    \"completion_tokens_details\": {\n
       \     \"reasoning_tokens\": 0,\n      \"audio_tokens\": 0,\n      \"accepted_prediction_tokens\":
       0,\n      \"rejected_prediction_tokens\": 0\n    }\n  },\n  \"service_tier\":
-      \"default\",\n  \"system_fingerprint\": \"fp_617f206dd9\"\n}\n"
+      \"default\",\n  \"system_fingerprint\": \"fp_e20469f047\"\n}\n"
     headers:
       Connection:
       - keep-alive
@@ -63,7 +66,7 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Sat, 05 Apr 2025 21:03:18 GMT
+      - Thu, 29 May 2025 17:53:56 GMT
       Server:
       - cloudflare
       Transfer-Encoding:
@@ -79,11 +82,13 @@ interactions:
       openai-organization:
       - robocorp-1
       openai-processing-ms:
-      - '855'
+      - '1385'
       openai-version:
       - '2020-10-01'
       strict-transport-security:
       - max-age=31536000; includeSubDomains; preload
+      x-envoy-upstream-service-time:
+      - '1412'
       x-ratelimit-limit-requests:
       - '30000'
       x-ratelimit-limit-tokens:
@@ -91,13 +96,13 @@ interactions:
       x-ratelimit-remaining-requests:
       - '29999'
       x-ratelimit-remaining-tokens:
-      - '149999860'
+      - '149999804'
       x-ratelimit-reset-requests:
       - 2ms
       x-ratelimit-reset-tokens:
       - 0s
       x-request-id:
-      - req_d80a0d9b16ffd471105832943a5c781d
+      - req_ea26df9dfa3036da231d00e329dc26d9
     http_version: HTTP/1.1
     status_code: 200
 version: 1

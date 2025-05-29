@@ -1,15 +1,15 @@
 interactions:
 - request:
-    body: '{"messages":[{"role":"developer","content":"\n            You are an expert
-      librarian. You are given a book\n            and you need to add it to the database.
-      If any\n            information is missing/optional, you should leave\n            it
-      out instead of trying to guess it!! Do NOT even\n            include an empty
-      string/null for optional fields, completely\n            omit them.\n            "},{"role":"user","content":"This
+    body: '{"messages":[{"role":"developer","content":[{"type":"text","text":"\n            You
+      are an expert librarian. You are given a book\n            and you need to add
+      it to the database. If any\n            information is missing/optional, you
+      should leave\n            it out instead of trying to guess it!! Do NOT even\n            include
+      an empty string/null for optional fields, completely\n            omit them.\n            "}]},{"role":"user","content":[{"type":"text","text":"\n                This
       is an end-to-end test, please call the tool\n                called add_book
       with the following book:\n\n                Title: \"Foundation\"\n                Author:
       \"Isaac Asimov\"\n                Year: 1951\n\n                Emit nothing
       else but the tool call with the\n                book information _exactly_
-      as shown above. Completely\n                omit any optional fields."}],"model":"gpt-4.1-nano-2025-04-14","tools":[{"type":"function","function":{"name":"_add_book","description":"Store
+      as shown above. Completely\n                omit any optional fields.\n                "}]}],"model":"gpt-4.1-nano-2025-04-14","tools":[{"type":"function","function":{"name":"_add_book","description":"Store
       a new book in the database.","parameters":{"type":"object","properties":{"book":{"type":"object","properties":{"title":{"type":"string","description":"The
       title of the book"},"author":{"type":"string","description":"The author''s name"},"category":{"type":["string","null"],"description":"The
       category of the book"},"year":{"type":"integer"}},"required":["title","author","category","year"],"description":"The
@@ -18,17 +18,17 @@ interactions:
       accept:
       - application/json
       accept-encoding:
-      - gzip, deflate
+      - gzip, deflate, zstd
       connection:
       - keep-alive
       content-length:
-      - '1455'
+      - '1541'
       content-type:
       - application/json
       host:
       - api.openai.com
       user-agent:
-      - AsyncOpenAI/Python 1.70.0
+      - AsyncOpenAI/Python 1.75.0
       x-stainless-arch:
       - arm64
       x-stainless-async:
@@ -38,7 +38,7 @@ interactions:
       x-stainless-os:
       - MacOS
       x-stainless-package-version:
-      - 1.70.0
+      - 1.75.0
       x-stainless-read-timeout:
       - '600'
       x-stainless-retry-count:
@@ -50,21 +50,21 @@ interactions:
     method: POST
     uri: https://api.openai.com/v1/chat/completions
   response:
-    content: "{\n  \"id\": \"chatcmpl-BMJGv4ymOh1muESjuwNk70vcdYAH5\",\n  \"object\":
-      \"chat.completion\",\n  \"created\": 1744656997,\n  \"model\": \"gpt-4.1-nano-2025-04-14\",\n
+    content: "{\n  \"id\": \"chatcmpl-BcbgHYdtnqGk8wI8htQtQgZeHMJ3d\",\n  \"object\":
+      \"chat.completion\",\n  \"created\": 1748541009,\n  \"model\": \"gpt-4.1-nano-2025-04-14\",\n
       \ \"choices\": [\n    {\n      \"index\": 0,\n      \"message\": {\n        \"role\":
       \"assistant\",\n        \"content\": null,\n        \"tool_calls\": [\n          {\n
-      \           \"id\": \"call_5EAIlKIIcBDnp1Y1JHoP7gN1\",\n            \"type\":
+      \           \"id\": \"call_myM41RzroJHYO70z9droFEdU\",\n            \"type\":
       \"function\",\n            \"function\": {\n              \"name\": \"_add_book\",\n
       \             \"arguments\": \"{\\\"book\\\":{\\\"title\\\":\\\"Foundation\\\",\\\"author\\\":\\\"Isaac
       Asimov\\\",\\\"year\\\":1951}}\"\n            }\n          }\n        ],\n        \"refusal\":
       null,\n        \"annotations\": []\n      },\n      \"logprobs\": null,\n      \"finish_reason\":
-      \"tool_calls\"\n    }\n  ],\n  \"usage\": {\n    \"prompt_tokens\": 250,\n    \"completion_tokens\":
-      31,\n    \"total_tokens\": 281,\n    \"prompt_tokens_details\": {\n      \"cached_tokens\":
+      \"tool_calls\"\n    }\n  ],\n  \"usage\": {\n    \"prompt_tokens\": 253,\n    \"completion_tokens\":
+      30,\n    \"total_tokens\": 283,\n    \"prompt_tokens_details\": {\n      \"cached_tokens\":
       0,\n      \"audio_tokens\": 0\n    },\n    \"completion_tokens_details\": {\n
       \     \"reasoning_tokens\": 0,\n      \"audio_tokens\": 0,\n      \"accepted_prediction_tokens\":
       0,\n      \"rejected_prediction_tokens\": 0\n    }\n  },\n  \"service_tier\":
-      \"default\",\n  \"system_fingerprint\": \"fp_c1fb89028d\"\n}\n"
+      \"default\",\n  \"system_fingerprint\": \"fp_38343a2f8f\"\n}\n"
     headers:
       Connection:
       - keep-alive
@@ -73,7 +73,7 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Mon, 14 Apr 2025 18:56:38 GMT
+      - Thu, 29 May 2025 17:50:10 GMT
       Server:
       - cloudflare
       Transfer-Encoding:
@@ -89,11 +89,13 @@ interactions:
       openai-organization:
       - robocorp-1
       openai-processing-ms:
-      - '346'
+      - '734'
       openai-version:
       - '2020-10-01'
       strict-transport-security:
       - max-age=31536000; includeSubDomains; preload
+      x-envoy-upstream-service-time:
+      - '738'
       x-ratelimit-limit-requests:
       - '30000'
       x-ratelimit-limit-tokens:
@@ -101,13 +103,13 @@ interactions:
       x-ratelimit-remaining-requests:
       - '29999'
       x-ratelimit-remaining-tokens:
-      - '149999812'
+      - '149999804'
       x-ratelimit-reset-requests:
       - 2ms
       x-ratelimit-reset-tokens:
       - 0s
       x-request-id:
-      - req_2044041b888512061e0f5a332f3be355
+      - req_010841b831c8db83e7fb09cac51e4b12
     http_version: HTTP/1.1
     status_code: 200
 version: 1

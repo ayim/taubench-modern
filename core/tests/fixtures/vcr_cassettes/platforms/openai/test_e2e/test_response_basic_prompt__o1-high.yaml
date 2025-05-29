@@ -1,32 +1,33 @@
 interactions:
 - request:
-    body: '{"messages":[{"role":"user","content":"This is an end-to-end test, please
-      respond with a\n                message containing only the word ''sunflower''"}],"model":"o1-2024-12-17","reasoning_effort":"high"}'
+    body: '{"messages":[{"role":"user","content":[{"type":"text","text":"\n                This
+      is an end-to-end test, please respond with a\n                message containing
+      only the word ''sunflower''\n                "}]}],"model":"o1-2024-12-17","reasoning_effort":"high"}'
     headers:
       accept:
       - application/json
       accept-encoding:
-      - gzip, deflate
+      - gzip, deflate, zstd
       connection:
       - keep-alive
       content-length:
-      - '204'
+      - '265'
       content-type:
       - application/json
       host:
       - api.openai.com
       user-agent:
-      - OpenAI/Python 1.70.0
+      - AsyncOpenAI/Python 1.75.0
       x-stainless-arch:
       - arm64
       x-stainless-async:
-      - 'false'
+      - async:asyncio
       x-stainless-lang:
       - python
       x-stainless-os:
       - MacOS
       x-stainless-package-version:
-      - 1.70.0
+      - 1.75.0
       x-stainless-read-timeout:
       - '600'
       x-stainless-retry-count:
@@ -38,17 +39,17 @@ interactions:
     method: POST
     uri: https://api.openai.com/v1/chat/completions
   response:
-    content: "{\n  \"id\": \"chatcmpl-BJ4vhDEayasM2GklVUTCSd16rg4dQ\",\n  \"object\":
-      \"chat.completion\",\n  \"created\": 1743886881,\n  \"model\": \"o1-2024-12-17\",\n
+    content: "{\n  \"id\": \"chatcmpl-BcbgYoNUVv2WOxKPO0D28KaAcKa56\",\n  \"object\":
+      \"chat.completion\",\n  \"created\": 1748541026,\n  \"model\": \"o1-2024-12-17\",\n
       \ \"choices\": [\n    {\n      \"index\": 0,\n      \"message\": {\n        \"role\":
       \"assistant\",\n        \"content\": \"sunflower\",\n        \"refusal\": null,\n
       \       \"annotations\": []\n      },\n      \"logprobs\": null,\n      \"finish_reason\":
-      \"stop\"\n    }\n  ],\n  \"usage\": {\n    \"prompt_tokens\": 29,\n    \"completion_tokens\":
-      269,\n    \"total_tokens\": 298,\n    \"prompt_tokens_details\": {\n      \"cached_tokens\":
+      \"stop\"\n    }\n  ],\n  \"usage\": {\n    \"prompt_tokens\": 32,\n    \"completion_tokens\":
+      79,\n    \"total_tokens\": 111,\n    \"prompt_tokens_details\": {\n      \"cached_tokens\":
       0,\n      \"audio_tokens\": 0\n    },\n    \"completion_tokens_details\": {\n
-      \     \"reasoning_tokens\": 256,\n      \"audio_tokens\": 0,\n      \"accepted_prediction_tokens\":
+      \     \"reasoning_tokens\": 64,\n      \"audio_tokens\": 0,\n      \"accepted_prediction_tokens\":
       0,\n      \"rejected_prediction_tokens\": 0\n    }\n  },\n  \"service_tier\":
-      \"default\",\n  \"system_fingerprint\": \"fp_688960522e\"\n}\n"
+      \"default\",\n  \"system_fingerprint\": \"fp_03be0c45cc\"\n}\n"
     headers:
       Connection:
       - keep-alive
@@ -57,7 +58,7 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Sat, 05 Apr 2025 21:01:27 GMT
+      - Thu, 29 May 2025 17:50:30 GMT
       Server:
       - cloudflare
       Transfer-Encoding:
@@ -73,11 +74,13 @@ interactions:
       openai-organization:
       - robocorp-1
       openai-processing-ms:
-      - '5397'
+      - '3273'
       openai-version:
       - '2020-10-01'
       strict-transport-security:
       - max-age=31536000; includeSubDomains; preload
+      x-envoy-upstream-service-time:
+      - '3365'
       x-ratelimit-limit-requests:
       - '10000'
       x-ratelimit-limit-tokens:
@@ -85,13 +88,13 @@ interactions:
       x-ratelimit-remaining-requests:
       - '9999'
       x-ratelimit-remaining-tokens:
-      - '29999969'
+      - '29999962'
       x-ratelimit-reset-requests:
       - 6ms
       x-ratelimit-reset-tokens:
       - 0s
       x-request-id:
-      - req_f2e8f36e849f90ddc27ea070f484f92f
+      - req_e34b6138e9c8c7774d1cd1ffe8d60877
     http_version: HTTP/1.1
     status_code: 200
 version: 1

@@ -1,10 +1,11 @@
 interactions:
 - request:
-    body: '{"messages":[{"role":"user","content":"You are a helpful assistant. You
-      are acting\n                as an agent named ''Test Agent''. You will do\n                your
-      best to assist the user with their request."},{"role":"assistant","content":"Understood,
-      I will assist the user with their request."},{"role":"user","content":"Please
-      confirm the request using the provided\n                tool."}],"model":"o1-2024-12-17","reasoning_effort":"high","stream":true,"tools":[{"type":"function","function":{"name":"_add_book","description":"Store
+    body: '{"messages":[{"role":"user","content":[{"type":"text","text":"\n                You
+      are a helpful assistant. You are acting\n                as an agent named ''Test
+      Agent''. You will do\n                your best to assist the user with their
+      request.\n                "}]},{"role":"assistant","content":[{"type":"text","text":"\n                Understood,
+      I will assist the user with their request.\n                "}]},{"role":"user","content":[{"type":"text","text":"\n                Please
+      confirm the request using the provided\n                tool.\n                "}]}],"model":"o1-2024-12-17","reasoning_effort":"high","stream":true,"stream_options":{"include_usage":true},"tools":[{"type":"function","function":{"name":"_add_book","description":"Store
       a new book in the database.","parameters":{"type":"object","properties":{"book":{"type":"object","properties":{"title":{"type":"string","description":"The
       title of the book"},"author":{"type":"string","description":"The author''s name"},"category":{"type":["string","null"],"description":"The
       category of the book"},"year":{"type":"integer"}},"required":["title","author","category","year"],"description":"The
@@ -14,27 +15,27 @@ interactions:
       accept:
       - application/json
       accept-encoding:
-      - gzip, deflate
+      - gzip, deflate, zstd
       connection:
       - keep-alive
       content-length:
-      - '1269'
+      - '1492'
       content-type:
       - application/json
       host:
       - api.openai.com
       user-agent:
-      - OpenAI/Python 1.70.0
+      - AsyncOpenAI/Python 1.75.0
       x-stainless-arch:
       - arm64
       x-stainless-async:
-      - 'false'
+      - async:asyncio
       x-stainless-lang:
       - python
       x-stainless-os:
       - MacOS
       x-stainless-package-version:
-      - 1.70.0
+      - 1.75.0
       x-stainless-read-timeout:
       - '600'
       x-stainless-retry-count:
@@ -46,13 +47,16 @@ interactions:
     method: POST
     uri: https://api.openai.com/v1/chat/completions
   response:
-    content: 'data: {"id":"chatcmpl-BJ4ykLUTUOn934VyRBgAdXwRaBrYA","object":"chat.completion.chunk","created":1743887070,"model":"o1-2024-12-17","service_tier":"default","system_fingerprint":"fp_688960522e","choices":[{"index":0,"delta":{"role":"assistant","content":null,"tool_calls":[{"index":0,"id":"call_3HIMm739PrhRO4cYnl0AQIul","type":"function","function":{"name":"_confirm_request","arguments":""}}],"refusal":null},"logprobs":null,"finish_reason":null}]}
+    content: 'data: {"id":"chatcmpl-BcbmGOQIO74C3j032mTJUyyQ027YF","object":"chat.completion.chunk","created":1748541380,"model":"o1-2024-12-17","service_tier":"default","system_fingerprint":"fp_03be0c45cc","choices":[{"index":0,"delta":{"role":"assistant","content":null,"tool_calls":[{"index":0,"id":"call_kBJ2mkxIPF5qUPmMwHA9HpAo","type":"function","function":{"name":"_confirm_request","arguments":""}}],"refusal":null},"logprobs":null,"finish_reason":null}],"usage":null}
 
 
-      data: {"id":"chatcmpl-BJ4ykLUTUOn934VyRBgAdXwRaBrYA","object":"chat.completion.chunk","created":1743887070,"model":"o1-2024-12-17","service_tier":"default","system_fingerprint":"fp_688960522e","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{}"}}]},"logprobs":null,"finish_reason":null}]}
+      data: {"id":"chatcmpl-BcbmGOQIO74C3j032mTJUyyQ027YF","object":"chat.completion.chunk","created":1748541380,"model":"o1-2024-12-17","service_tier":"default","system_fingerprint":"fp_03be0c45cc","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{}"}}]},"logprobs":null,"finish_reason":null}],"usage":null}
 
 
-      data: {"id":"chatcmpl-BJ4ykLUTUOn934VyRBgAdXwRaBrYA","object":"chat.completion.chunk","created":1743887070,"model":"o1-2024-12-17","service_tier":"default","system_fingerprint":"fp_688960522e","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"tool_calls"}]}
+      data: {"id":"chatcmpl-BcbmGOQIO74C3j032mTJUyyQ027YF","object":"chat.completion.chunk","created":1748541380,"model":"o1-2024-12-17","service_tier":"default","system_fingerprint":"fp_03be0c45cc","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"tool_calls"}],"usage":null}
+
+
+      data: {"id":"chatcmpl-BcbmGOQIO74C3j032mTJUyyQ027YF","object":"chat.completion.chunk","created":1748541380,"model":"o1-2024-12-17","service_tier":"default","system_fingerprint":"fp_03be0c45cc","choices":[],"usage":{"prompt_tokens":178,"completion_tokens":155,"total_tokens":333,"prompt_tokens_details":{"cached_tokens":0,"audio_tokens":0},"completion_tokens_details":{"reasoning_tokens":128,"audio_tokens":0,"accepted_prediction_tokens":0,"rejected_prediction_tokens":0}}}
 
 
       data: [DONE]
@@ -65,7 +69,7 @@ interactions:
       Content-Type:
       - text/event-stream; charset=utf-8
       Date:
-      - Sat, 05 Apr 2025 21:04:34 GMT
+      - Thu, 29 May 2025 17:56:22 GMT
       Server:
       - cloudflare
       Transfer-Encoding:
@@ -81,11 +85,13 @@ interactions:
       openai-organization:
       - robocorp-1
       openai-processing-ms:
-      - '3504'
+      - '2627'
       openai-version:
       - '2020-10-01'
       strict-transport-security:
       - max-age=31536000; includeSubDomains; preload
+      x-envoy-upstream-service-time:
+      - '2632'
       x-ratelimit-limit-requests:
       - '10000'
       x-ratelimit-limit-tokens:
@@ -93,13 +99,13 @@ interactions:
       x-ratelimit-remaining-requests:
       - '9999'
       x-ratelimit-remaining-tokens:
-      - '29999922'
+      - '29999898'
       x-ratelimit-reset-requests:
       - 6ms
       x-ratelimit-reset-tokens:
       - 0s
       x-request-id:
-      - req_805ee4d832741566b7a7593d20c32d68
+      - req_aaf5bc694af69b7f2d84a656c3a2c2b8
     http_version: HTTP/1.1
     status_code: 200
 version: 1

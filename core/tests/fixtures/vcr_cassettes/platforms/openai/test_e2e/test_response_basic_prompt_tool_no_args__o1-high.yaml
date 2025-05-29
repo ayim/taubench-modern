@@ -1,10 +1,11 @@
 interactions:
 - request:
-    body: '{"messages":[{"role":"user","content":"You are a helpful assistant. You
-      are acting\n                as an agent named ''Test Agent''. You will do\n                your
-      best to assist the user with their request."},{"role":"assistant","content":"Understood,
-      I will assist the user with their request."},{"role":"user","content":"Please
-      confirm the request using the provided\n                tool."}],"model":"o1-2024-12-17","reasoning_effort":"high","tools":[{"type":"function","function":{"name":"_add_book","description":"Store
+    body: '{"messages":[{"role":"user","content":[{"type":"text","text":"\n                You
+      are a helpful assistant. You are acting\n                as an agent named ''Test
+      Agent''. You will do\n                your best to assist the user with their
+      request.\n                "}]},{"role":"assistant","content":[{"type":"text","text":"\n                Understood,
+      I will assist the user with their request.\n                "}]},{"role":"user","content":[{"type":"text","text":"\n                Please
+      confirm the request using the provided\n                tool.\n                "}]}],"model":"o1-2024-12-17","reasoning_effort":"high","tools":[{"type":"function","function":{"name":"_add_book","description":"Store
       a new book in the database.","parameters":{"type":"object","properties":{"book":{"type":"object","properties":{"title":{"type":"string","description":"The
       title of the book"},"author":{"type":"string","description":"The author''s name"},"category":{"type":["string","null"],"description":"The
       category of the book"},"year":{"type":"integer"}},"required":["title","author","category","year"],"description":"The
@@ -14,27 +15,27 @@ interactions:
       accept:
       - application/json
       accept-encoding:
-      - gzip, deflate
+      - gzip, deflate, zstd
       connection:
       - keep-alive
       content-length:
-      - '1255'
+      - '1438'
       content-type:
       - application/json
       host:
       - api.openai.com
       user-agent:
-      - OpenAI/Python 1.70.0
+      - AsyncOpenAI/Python 1.75.0
       x-stainless-arch:
       - arm64
       x-stainless-async:
-      - 'false'
+      - async:asyncio
       x-stainless-lang:
       - python
       x-stainless-os:
       - MacOS
       x-stainless-package-version:
-      - 1.70.0
+      - 1.75.0
       x-stainless-read-timeout:
       - '600'
       x-stainless-retry-count:
@@ -46,21 +47,21 @@ interactions:
     method: POST
     uri: https://api.openai.com/v1/chat/completions
   response:
-    content: "{\n  \"id\": \"chatcmpl-BJ4wL6Gf74d2xno1zn5McqvQlvmLL\",\n  \"object\":
-      \"chat.completion\",\n  \"created\": 1743886921,\n  \"model\": \"o1-2024-12-17\",\n
+    content: "{\n  \"id\": \"chatcmpl-BcbhBvJoljWOOt69uIzSnU0pAKIPo\",\n  \"object\":
+      \"chat.completion\",\n  \"created\": 1748541065,\n  \"model\": \"o1-2024-12-17\",\n
       \ \"choices\": [\n    {\n      \"index\": 0,\n      \"message\": {\n        \"role\":
       \"assistant\",\n        \"content\": null,\n        \"tool_calls\": [\n          {\n
-      \           \"id\": \"call_cljbKfy9U7ST336GGy1RHsCK\",\n            \"type\":
+      \           \"id\": \"call_wpn40HfrN1axVkXZoc2Bq52X\",\n            \"type\":
       \"function\",\n            \"function\": {\n              \"name\": \"_confirm_request\",\n
       \             \"arguments\": \"{}\"\n            }\n          }\n        ],\n
       \       \"refusal\": null,\n        \"annotations\": []\n      },\n      \"logprobs\":
       null,\n      \"finish_reason\": \"tool_calls\"\n    }\n  ],\n  \"usage\": {\n
-      \   \"prompt_tokens\": 169,\n    \"completion_tokens\": 151,\n    \"total_tokens\":
-      320,\n    \"prompt_tokens_details\": {\n      \"cached_tokens\": 0,\n      \"audio_tokens\":
+      \   \"prompt_tokens\": 178,\n    \"completion_tokens\": 218,\n    \"total_tokens\":
+      396,\n    \"prompt_tokens_details\": {\n      \"cached_tokens\": 0,\n      \"audio_tokens\":
       0\n    },\n    \"completion_tokens_details\": {\n      \"reasoning_tokens\":
-      128,\n      \"audio_tokens\": 0,\n      \"accepted_prediction_tokens\": 0,\n
+      192,\n      \"audio_tokens\": 0,\n      \"accepted_prediction_tokens\": 0,\n
       \     \"rejected_prediction_tokens\": 0\n    }\n  },\n  \"service_tier\": \"default\",\n
-      \ \"system_fingerprint\": \"fp_688960522e\"\n}\n"
+      \ \"system_fingerprint\": \"fp_03be0c45cc\"\n}\n"
     headers:
       Connection:
       - keep-alive
@@ -69,7 +70,7 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Sat, 05 Apr 2025 21:02:04 GMT
+      - Thu, 29 May 2025 17:51:09 GMT
       Server:
       - cloudflare
       Transfer-Encoding:
@@ -85,11 +86,13 @@ interactions:
       openai-organization:
       - robocorp-1
       openai-processing-ms:
-      - '2989'
+      - '3994'
       openai-version:
       - '2020-10-01'
       strict-transport-security:
       - max-age=31536000; includeSubDomains; preload
+      x-envoy-upstream-service-time:
+      - '4089'
       x-ratelimit-limit-requests:
       - '10000'
       x-ratelimit-limit-tokens:
@@ -97,13 +100,13 @@ interactions:
       x-ratelimit-remaining-requests:
       - '9999'
       x-ratelimit-remaining-tokens:
-      - '29999922'
+      - '29999897'
       x-ratelimit-reset-requests:
       - 6ms
       x-ratelimit-reset-tokens:
       - 0s
       x-request-id:
-      - req_247d6012a8b6c0bd98c0fd47d86d7741
+      - req_d68f1e64069bc5dc46bf6a22a748d27b
     http_version: HTTP/1.1
     status_code: 200
 version: 1

@@ -1,10 +1,11 @@
 interactions:
 - request:
-    body: '{"messages":[{"role":"user","content":"You are a helpful assistant. You
-      are acting\n                as an agent named ''Test Agent''. You will do\n                your
-      best to assist the user with their request."},{"role":"assistant","content":"Understood,
-      I will assist the user with their request."},{"role":"user","content":"Please
-      confirm the request using the provided\n                tool."}],"model":"gpt-4o-mini-2024-07-18","stream":true,"tools":[{"type":"function","function":{"name":"_add_book","description":"Store
+    body: '{"messages":[{"role":"user","content":[{"type":"text","text":"\n                You
+      are a helpful assistant. You are acting\n                as an agent named ''Test
+      Agent''. You will do\n                your best to assist the user with their
+      request.\n                "}]},{"role":"assistant","content":[{"type":"text","text":"\n                Understood,
+      I will assist the user with their request.\n                "}]},{"role":"user","content":[{"type":"text","text":"\n                Please
+      confirm the request using the provided\n                tool.\n                "}]}],"model":"gpt-4o-mini-2024-07-18","stream":true,"stream_options":{"include_usage":true},"tools":[{"type":"function","function":{"name":"_add_book","description":"Store
       a new book in the database.","parameters":{"type":"object","properties":{"book":{"type":"object","properties":{"title":{"type":"string","description":"The
       title of the book"},"author":{"type":"string","description":"The author''s name"},"category":{"type":["string","null"],"description":"The
       category of the book"},"year":{"type":"integer"}},"required":["title","author","category","year"],"description":"The
@@ -14,27 +15,27 @@ interactions:
       accept:
       - application/json
       accept-encoding:
-      - gzip, deflate
+      - gzip, deflate, zstd
       connection:
       - keep-alive
       content-length:
-      - '1252'
+      - '1475'
       content-type:
       - application/json
       host:
       - api.openai.com
       user-agent:
-      - OpenAI/Python 1.70.0
+      - AsyncOpenAI/Python 1.75.0
       x-stainless-arch:
       - arm64
       x-stainless-async:
-      - 'false'
+      - async:asyncio
       x-stainless-lang:
       - python
       x-stainless-os:
       - MacOS
       x-stainless-package-version:
-      - 1.70.0
+      - 1.75.0
       x-stainless-read-timeout:
       - '600'
       x-stainless-retry-count:
@@ -46,13 +47,16 @@ interactions:
     method: POST
     uri: https://api.openai.com/v1/chat/completions
   response:
-    content: 'data: {"id":"chatcmpl-BJ4y3ZqFtkkfCw5JcmyMUUiLEMun2","object":"chat.completion.chunk","created":1743887027,"model":"gpt-4o-mini-2024-07-18","service_tier":"default","system_fingerprint":"fp_b376dfbbd5","choices":[{"index":0,"delta":{"role":"assistant","content":null,"tool_calls":[{"index":0,"id":"call_XXlyV6YVfA7VzJb3iabW0T51","type":"function","function":{"name":"_confirm_request","arguments":""}}],"refusal":null},"logprobs":null,"finish_reason":null}]}
+    content: 'data: {"id":"chatcmpl-BcblTo8osIaIc5lUue5UVH8fLB7fH","object":"chat.completion.chunk","created":1748541331,"model":"gpt-4o-mini-2024-07-18","service_tier":"default","system_fingerprint":"fp_54eb4bd693","choices":[{"index":0,"delta":{"role":"assistant","content":null,"tool_calls":[{"index":0,"id":"call_05xD5ihHSaR6yvBbaytJyRyw","type":"function","function":{"name":"_confirm_request","arguments":""}}],"refusal":null},"logprobs":null,"finish_reason":null}],"usage":null}
 
 
-      data: {"id":"chatcmpl-BJ4y3ZqFtkkfCw5JcmyMUUiLEMun2","object":"chat.completion.chunk","created":1743887027,"model":"gpt-4o-mini-2024-07-18","service_tier":"default","system_fingerprint":"fp_b376dfbbd5","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{}"}}]},"logprobs":null,"finish_reason":null}]}
+      data: {"id":"chatcmpl-BcblTo8osIaIc5lUue5UVH8fLB7fH","object":"chat.completion.chunk","created":1748541331,"model":"gpt-4o-mini-2024-07-18","service_tier":"default","system_fingerprint":"fp_54eb4bd693","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{}"}}]},"logprobs":null,"finish_reason":null}],"usage":null}
 
 
-      data: {"id":"chatcmpl-BJ4y3ZqFtkkfCw5JcmyMUUiLEMun2","object":"chat.completion.chunk","created":1743887027,"model":"gpt-4o-mini-2024-07-18","service_tier":"default","system_fingerprint":"fp_b376dfbbd5","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"tool_calls"}]}
+      data: {"id":"chatcmpl-BcblTo8osIaIc5lUue5UVH8fLB7fH","object":"chat.completion.chunk","created":1748541331,"model":"gpt-4o-mini-2024-07-18","service_tier":"default","system_fingerprint":"fp_54eb4bd693","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"tool_calls"}],"usage":null}
+
+
+      data: {"id":"chatcmpl-BcblTo8osIaIc5lUue5UVH8fLB7fH","object":"chat.completion.chunk","created":1748541331,"model":"gpt-4o-mini-2024-07-18","service_tier":"default","system_fingerprint":"fp_54eb4bd693","choices":[],"usage":{"prompt_tokens":196,"completion_tokens":11,"total_tokens":207,"prompt_tokens_details":{"cached_tokens":0,"audio_tokens":0},"completion_tokens_details":{"reasoning_tokens":0,"audio_tokens":0,"accepted_prediction_tokens":0,"rejected_prediction_tokens":0}}}
 
 
       data: [DONE]
@@ -65,7 +69,7 @@ interactions:
       Content-Type:
       - text/event-stream; charset=utf-8
       Date:
-      - Sat, 05 Apr 2025 21:03:48 GMT
+      - Thu, 29 May 2025 17:55:32 GMT
       Server:
       - cloudflare
       Transfer-Encoding:
@@ -81,11 +85,13 @@ interactions:
       openai-organization:
       - robocorp-1
       openai-processing-ms:
-      - '265'
+      - '437'
       openai-version:
       - '2020-10-01'
       strict-transport-security:
       - max-age=31536000; includeSubDomains; preload
+      x-envoy-upstream-service-time:
+      - '440'
       x-ratelimit-limit-requests:
       - '30000'
       x-ratelimit-limit-tokens:
@@ -93,13 +99,13 @@ interactions:
       x-ratelimit-remaining-requests:
       - '29999'
       x-ratelimit-remaining-tokens:
-      - '149999923'
+      - '149999898'
       x-ratelimit-reset-requests:
       - 2ms
       x-ratelimit-reset-tokens:
       - 0s
       x-request-id:
-      - req_8e6cfce545d0aff57beea200bef4c82b
+      - req_95f9d961a110689dc6f088d4510a7742
     http_version: HTTP/1.1
     status_code: 200
 version: 1

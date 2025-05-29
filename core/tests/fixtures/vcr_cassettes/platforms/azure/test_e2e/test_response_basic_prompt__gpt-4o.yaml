@@ -1,22 +1,23 @@
 interactions:
 - request:
-    body: '{"messages":[{"role":"user","content":"This is an end-to-end test, please
-      respond with a\n                message containing only the word ''sunflower''"}],"model":"gpt-4o"}'
+    body: '{"messages":[{"role":"user","content":[{"type":"text","text":"\n                This
+      is an end-to-end test, please respond with a\n                message containing
+      only the word ''sunflower''\n                "}]}],"model":"gpt-4o"}'
     headers:
       accept:
       - application/json
       accept-encoding:
-      - gzip, deflate
+      - gzip, deflate, zstd
       connection:
       - keep-alive
       content-length:
-      - '171'
+      - '232'
       content-type:
       - application/json
       host:
       - sema4ai-internal-testing.openai.azure.com
       user-agent:
-      - AsyncAzureOpenAI/Python 1.70.0
+      - AsyncAzureOpenAI/Python 1.75.0
       x-stainless-arch:
       - arm64
       x-stainless-async:
@@ -26,7 +27,7 @@ interactions:
       x-stainless-os:
       - MacOS
       x-stainless-package-version:
-      - 1.70.0
+      - 1.75.0
       x-stainless-read-timeout:
       - '600'
       x-stainless-retry-count:
@@ -38,40 +39,30 @@ interactions:
     method: POST
     uri: https://azure-openai-endpoint.example.com/openai/deployments/example-deployment-name/chat/completions?api-version=2023-03-15-preview
   response:
-    content: '{"choices":[{"finish_reason":"stop","index":0,"message":{"content":"sunflower","refusal":null,"role":"assistant"}}],"created":1744403445,"id":"chatcmpl-BLFJN2f2aVullferEXgj0Mhgd5q5d","model":"gpt-4o-mini-2024-07-18","object":"chat.completion","system_fingerprint":"fp_ded0d14823","usage":{"completion_tokens":3,"completion_tokens_details":{"accepted_prediction_tokens":0,"audio_tokens":0,"reasoning_tokens":0,"rejected_prediction_tokens":0},"prompt_tokens":30,"prompt_tokens_details":{"audio_tokens":0,"cached_tokens":0},"total_tokens":33}}
+    content: '{"choices":[{"finish_reason":"stop","index":0,"message":{"annotations":[],"content":"sunflower","refusal":null,"role":"assistant"}}],"created":1748540959,"id":"chatcmpl-BcbfTEICum6oUgikGe1tdSDpNYULq","model":"gpt-4o-mini-2024-07-18","object":"chat.completion","system_fingerprint":"fp_7a53abb7a2","usage":{"completion_tokens":3,"completion_tokens_details":{"accepted_prediction_tokens":0,"audio_tokens":0,"reasoning_tokens":0,"rejected_prediction_tokens":0},"prompt_tokens":33,"prompt_tokens_details":{"audio_tokens":0,"cached_tokens":0},"total_tokens":36}}
 
       '
     headers:
       Content-Length:
-      - '541'
+      - '558'
       Content-Type:
       - application/json
       Date:
-      - Fri, 11 Apr 2025 20:30:45 GMT
+      - Thu, 29 May 2025 17:49:19 GMT
       Strict-Transport-Security:
       - max-age=31536000; includeSubDomains; preload
       apim-request-id:
-      - 642f157b-1ffe-49e4-a292-7041263b5ca0
+      - 1f3d5dfe-febf-465f-956f-b1bbb826cbd8
       azureml-model-session:
-      - v20250319-1-test-4
+      - d050-20250522072153
       cmp-upstream-response-duration:
-      - '301'
-      ms-azureml-model-time:
-      - '290'
+      - '327'
       x-accel-buffering:
       - 'no'
-      x-aml-cluster:
-      - hyena-westus3-02
       x-content-type-options:
       - nosniff
-      x-envoy-upstream-service-time:
-      - '296'
-      x-ms-client-request-id:
-      - 642f157b-1ffe-49e4-a292-7041263b5ca0
       x-ms-deployment-name:
       - internal-testing-gpt-4o-mini
-      x-ms-rai-invoked:
-      - 'true'
       x-ms-region:
       - East US
       x-ratelimit-limit-requests:
@@ -81,9 +72,9 @@ interactions:
       x-ratelimit-remaining-requests:
       - '7579'
       x-ratelimit-remaining-tokens:
-      - '757332'
+      - '757323'
       x-request-id:
-      - 458399bc-116a-4d28-8ee5-892a3c50d421
+      - 9f3dae99-0aa7-452a-92da-68f2835f3b57
     http_version: HTTP/1.1
     status_code: 200
 version: 1

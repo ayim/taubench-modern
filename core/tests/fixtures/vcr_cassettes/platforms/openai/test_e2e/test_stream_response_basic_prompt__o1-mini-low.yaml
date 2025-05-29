@@ -1,32 +1,33 @@
 interactions:
 - request:
-    body: '{"messages":[{"role":"user","content":"This is an end-to-end test, please
-      respond with a\n                message containing only the word ''sunflower''"}],"model":"o1-mini-2024-09-12","stream":true}'
+    body: '{"messages":[{"role":"user","content":[{"type":"text","text":"\n                This
+      is an end-to-end test, please respond with a\n                message containing
+      only the word ''sunflower''\n                "}]}],"model":"o1-mini-2024-09-12","stream":true,"stream_options":{"include_usage":true}}'
     headers:
       accept:
       - application/json
       accept-encoding:
-      - gzip, deflate
+      - gzip, deflate, zstd
       connection:
       - keep-alive
       content-length:
-      - '197'
+      - '298'
       content-type:
       - application/json
       host:
       - api.openai.com
       user-agent:
-      - OpenAI/Python 1.70.0
+      - AsyncOpenAI/Python 1.75.0
       x-stainless-arch:
       - arm64
       x-stainless-async:
-      - 'false'
+      - async:asyncio
       x-stainless-lang:
       - python
       x-stainless-os:
       - MacOS
       x-stainless-package-version:
-      - 1.70.0
+      - 1.75.0
       x-stainless-read-timeout:
       - '600'
       x-stainless-retry-count:
@@ -38,16 +39,19 @@ interactions:
     method: POST
     uri: https://api.openai.com/v1/chat/completions
   response:
-    content: 'data: {"id":"chatcmpl-BJ4zKNwnSgzZogW2RJYwPrGBLHW1o","object":"chat.completion.chunk","created":1743887106,"model":"o1-mini-2024-09-12","service_tier":"default","system_fingerprint":"fp_e8044cf94c","choices":[{"index":0,"delta":{"role":"assistant","content":"","refusal":null},"finish_reason":null}]}
+    content: 'data: {"id":"chatcmpl-BcbmpjCUoulFNdF5f44j4NBDMuVAF","object":"chat.completion.chunk","created":1748541415,"model":"o1-mini-2024-09-12","service_tier":"default","system_fingerprint":"fp_7989eaacf6","choices":[{"index":0,"delta":{"role":"assistant","content":"","refusal":null},"finish_reason":null}],"usage":null}
 
 
-      data: {"id":"chatcmpl-BJ4zKNwnSgzZogW2RJYwPrGBLHW1o","object":"chat.completion.chunk","created":1743887106,"model":"o1-mini-2024-09-12","service_tier":"default","system_fingerprint":"fp_e8044cf94c","choices":[{"index":0,"delta":{"content":"sun"},"finish_reason":null}]}
+      data: {"id":"chatcmpl-BcbmpjCUoulFNdF5f44j4NBDMuVAF","object":"chat.completion.chunk","created":1748541415,"model":"o1-mini-2024-09-12","service_tier":"default","system_fingerprint":"fp_7989eaacf6","choices":[{"index":0,"delta":{"content":"sun"},"finish_reason":null}],"usage":null}
 
 
-      data: {"id":"chatcmpl-BJ4zKNwnSgzZogW2RJYwPrGBLHW1o","object":"chat.completion.chunk","created":1743887106,"model":"o1-mini-2024-09-12","service_tier":"default","system_fingerprint":"fp_e8044cf94c","choices":[{"index":0,"delta":{"content":"flower"},"finish_reason":null}]}
+      data: {"id":"chatcmpl-BcbmpjCUoulFNdF5f44j4NBDMuVAF","object":"chat.completion.chunk","created":1748541415,"model":"o1-mini-2024-09-12","service_tier":"default","system_fingerprint":"fp_7989eaacf6","choices":[{"index":0,"delta":{"content":"flower"},"finish_reason":null}],"usage":null}
 
 
-      data: {"id":"chatcmpl-BJ4zKNwnSgzZogW2RJYwPrGBLHW1o","object":"chat.completion.chunk","created":1743887106,"model":"o1-mini-2024-09-12","service_tier":"default","system_fingerprint":"fp_e8044cf94c","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}
+      data: {"id":"chatcmpl-BcbmpjCUoulFNdF5f44j4NBDMuVAF","object":"chat.completion.chunk","created":1748541415,"model":"o1-mini-2024-09-12","service_tier":"default","system_fingerprint":"fp_7989eaacf6","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":null}
+
+
+      data: {"id":"chatcmpl-BcbmpjCUoulFNdF5f44j4NBDMuVAF","object":"chat.completion.chunk","created":1748541415,"model":"o1-mini-2024-09-12","service_tier":"default","system_fingerprint":"fp_7989eaacf6","choices":[],"usage":{"prompt_tokens":33,"completion_tokens":206,"total_tokens":239,"prompt_tokens_details":{"cached_tokens":0,"audio_tokens":0},"completion_tokens_details":{"reasoning_tokens":192,"audio_tokens":0,"accepted_prediction_tokens":0,"rejected_prediction_tokens":0}}}
 
 
       data: [DONE]
@@ -60,7 +64,7 @@ interactions:
       Content-Type:
       - text/event-stream; charset=utf-8
       Date:
-      - Sat, 05 Apr 2025 21:05:06 GMT
+      - Thu, 29 May 2025 17:56:56 GMT
       Server:
       - cloudflare
       Transfer-Encoding:
@@ -76,11 +80,13 @@ interactions:
       openai-organization:
       - robocorp-1
       openai-processing-ms:
-      - '427'
+      - '819'
       openai-version:
       - '2020-10-01'
       strict-transport-security:
       - max-age=31536000; includeSubDomains; preload
+      x-envoy-upstream-service-time:
+      - '826'
       x-ratelimit-limit-requests:
       - '30000'
       x-ratelimit-limit-tokens:
@@ -88,13 +94,13 @@ interactions:
       x-ratelimit-remaining-requests:
       - '29999'
       x-ratelimit-remaining-tokens:
-      - '149999970'
+      - '149999962'
       x-ratelimit-reset-requests:
       - 2ms
       x-ratelimit-reset-tokens:
       - 0s
       x-request-id:
-      - req_d32e8695416e5b154f1c37eb83e883f4
+      - req_204e25659b7d22a8772767264a952b80
     http_version: HTTP/1.1
     status_code: 200
 version: 1
