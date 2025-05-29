@@ -251,8 +251,8 @@ class LangSmithContext:
                         span.set_attribute("gen_ai.completion.0.content", output)
 
                 # Add usage information if available
-                if metadata and "usage" in metadata:
-                    usage = metadata["usage"]
+                if "usage" in span_data:
+                    usage = span_data["usage"]
                     if isinstance(usage, dict):
                         if "input_tokens" in usage:
                             span.set_attribute("gen_ai.usage.input_tokens", usage["input_tokens"])

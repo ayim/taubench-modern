@@ -14,7 +14,7 @@ from agent_platform.core.prompts.content import (
     PromptToolUseContent,
 )
 from agent_platform.core.prompts.messages import PromptUserMessage
-from agent_platform.core.responses import ResponseMessage
+from agent_platform.core.responses import ResponseMessage, TokenUsage
 from agent_platform.core.responses.streaming import ResponseStreamPipe
 from agent_platform.server.kernel.kernel_mixin import UsesKernelMixin
 
@@ -209,8 +209,8 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
                                 langsmith_span["output"] = formatted_response
 
                             # Add usage information if available
-                            if stream_pipe.reassembled_response.metadata:
-                                usage = stream_pipe.reassembled_response.metadata.get("usage", {})
+                            if stream_pipe.reassembled_response.usage:
+                                usage = stream_pipe.reassembled_response.usage
                                 if usage and langsmith_span:
                                     langsmith_span["usage"] = self._generate_usage_metadata(usage)
             except Exception:
@@ -250,11 +250,11 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
         }
         return metadata
 
-    def _generate_usage_metadata(self, usage: dict[str, Any]) -> dict[str, Any]:
+    def _generate_usage_metadata(self, usage: TokenUsage) -> dict[str, Any]:
         usage_metadata = {
-            "input_tokens": usage.get("prompt_tokens", 0),
-            "output_tokens": usage.get("completion_tokens", 0),
-            "total_tokens": usage.get("total_tokens", 0),
+            "input_tokens": usage.input_tokens,
+            "output_tokens": usage.output_tokens,
+            "total_tokens": usage.total_tokens,
         }
         return usage_metadata
 
