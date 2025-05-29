@@ -7,6 +7,7 @@ from json import dumps
 from typing import TYPE_CHECKING, Any
 
 import httpx
+from anyio import ClosedResourceError
 from mcp import ClientSession
 from mcp.client.sse import sse_client
 from mcp.client.streamable_http import streamablehttp_client
@@ -256,6 +257,21 @@ class MCPClient:
                             ),
                         )
                         return response.model_dump_json()
+                except ClosedResourceError:
+                    # If the transport is closed, we need to reconnect
+                    try:
+                        await self.connect()
+                        async with self._call_lock:
+                            response = await self.session.call_tool(
+                                tool_name,
+                                args,
+                                read_timeout_seconds=timedelta(
+                                    seconds=MCPClientConfiguration.tool_call_read_timeout_seconds,
+                                ),
+                            )
+                            return response.model_dump_json()
+                    except Exception as e:
+                        return dumps({"internal-error": str(e)})
                 except Exception as e:
                     # Could enhance error handling with more specific error types
                     return dumps({"internal-error": str(e)})

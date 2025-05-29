@@ -42,10 +42,12 @@ class ThreadMessageWithThreadState:
             message: "ThreadMessageWithThreadState",
             content_tag: str = "response",
             thoughts_tag: str = "thinking",
+            tag_expected_past_response: str | None = "step",
         ):
             self._message = message
             self._content_tag = content_tag
             self._thoughts_tag = thoughts_tag
+            self._tag_expected_past_response = tag_expected_past_response
 
         @property
         def content(self) -> XmlTagResponseStreamSink:
@@ -61,6 +63,8 @@ class ThreadMessageWithThreadState:
 
             return XmlTagResponseStreamSink(
                 tag=self._content_tag,
+                expected_next_tag=self._tag_expected_past_response,
+                expected_preceding_tag=self._thoughts_tag,
                 on_tag_partial=_append_content,
                 on_tag_complete=_complete_content,
             )
@@ -79,6 +83,7 @@ class ThreadMessageWithThreadState:
 
             return XmlTagResponseStreamSink(
                 tag=self._thoughts_tag,
+                expected_next_tag=self._content_tag,
                 on_tag_partial=_append_thought,
                 on_tag_complete=_complete_thought,
             )

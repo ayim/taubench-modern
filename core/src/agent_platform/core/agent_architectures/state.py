@@ -79,6 +79,8 @@ class StateBase:
         def xml_tag_sink(
             self,
             field_name: str,
+            expected_preceding_tag: str | None = None,
+            expected_next_tag: str | None = None,
         ) -> ResponseStreamSinkBase:
             """
             Create a sink that will write update the value of the given
@@ -101,6 +103,8 @@ class StateBase:
 
             return XmlTagResponseStreamSink(
                 tag=field_name,
+                expected_preceding_tag=expected_preceding_tag,
+                expected_next_tag=expected_next_tag,
                 on_tag_complete=_on_tag_complete,
             )
 
