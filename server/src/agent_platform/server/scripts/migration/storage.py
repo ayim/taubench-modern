@@ -258,7 +258,7 @@ class SQLiteStorage(StorageInterface):
         if not self.connection:
             raise RuntimeError("Not connected to database")
 
-        cursor = await self.connection.execute("SELECT * FROM public.user")
+        cursor = await self.connection.execute("SELECT * FROM user")
         rows = await cursor.fetchall()
         column_names = [description[0] for description in cursor.description]
 
