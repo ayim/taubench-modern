@@ -71,7 +71,7 @@ async def list_threads(  # noqa: PLR0913
         candidates = await storage.list_threads(user.user_id)
     # TODO: name/limit should be pushed down to the storage layer
     if name:
-        candidates = [t for t in candidates if name in t.name]
+        candidates = [t for t in candidates if name.lower() in t.name.lower()]
     if limit:
         candidates = candidates[:limit]
     return candidates

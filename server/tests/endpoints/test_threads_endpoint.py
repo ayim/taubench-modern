@@ -348,3 +348,83 @@ def test_add_message_to_thread(client: TestClient, mock_storage: MockStorage):
 
     # Verify that add_message_to_thread was called
     assert mock_storage.call_count["add_message_to_thread"] == 1
+
+
+def test_list_threads_with_case_insensitive_name_filter(
+    client: TestClient, mock_storage: MockStorage
+):
+    """Test listing threads with case-insensitive name filtering."""
+    agent_id = str(uuid.uuid4())
+
+    # Create test threads with different case variations
+    threads = [
+        Thread(
+            thread_id=str(uuid.uuid4()),
+            name="Test Thread",
+            agent_id=agent_id,
+            user_id="test_user",
+            messages=[],
+        ),
+        Thread(
+            thread_id=str(uuid.uuid4()),
+            name="ANOTHER TEST",
+            agent_id=agent_id,
+            user_id="test_user",
+            messages=[],
+        ),
+        Thread(
+            thread_id=str(uuid.uuid4()),
+            name="production thread",
+            agent_id=agent_id,
+            user_id="test_user",
+            messages=[],
+        ),
+        Thread(
+            thread_id=str(uuid.uuid4()),
+            name="Development Setup",
+            agent_id=agent_id,
+            user_id="test_user",
+            messages=[],
+        ),
+    ]
+
+    # Add threads to storage
+    for thread in threads:
+        mock_storage.threads[thread.thread_id] = thread
+
+    # Test case-insensitive filtering with lowercase search term
+    response = client.get("/threads/?name=test")
+    assert response.status_code == status.HTTP_200_OK
+    filtered_threads = response.json()
+
+    # Should match "Test Thread" and "ANOTHER TEST"
+    assert len(filtered_threads) == 2
+    thread_names = [t["name"] for t in filtered_threads]
+    assert "Test Thread" in thread_names
+    assert "ANOTHER TEST" in thread_names
+
+    # Test case-insensitive filtering with uppercase search term
+    response = client.get("/threads/?name=THREAD")
+    assert response.status_code == status.HTTP_200_OK
+    filtered_threads = response.json()
+
+    # Should match "Test Thread" and "production thread"
+    assert len(filtered_threads) == 2
+    thread_names = [t["name"] for t in filtered_threads]
+    assert "Test Thread" in thread_names
+    assert "production thread" in thread_names
+
+    # Test case-insensitive filtering with mixed case search term
+    response = client.get("/threads/?name=Dev")
+    assert response.status_code == status.HTTP_200_OK
+    filtered_threads = response.json()
+
+    # Should match "Development Setup"
+    assert len(filtered_threads) == 1
+    assert filtered_threads[0]["name"] == "Development Setup"
+
+    # Test no matches
+    response = client.get("/threads/?name=nonexistent")
+    assert response.status_code == status.HTTP_200_OK
+    filtered_threads = response.json()
+    assert len(filtered_threads) == 0
