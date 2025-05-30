@@ -1,3 +1,36 @@
+# Sema4.ai Agent Server Pre-Release 2.0.0-beta.5 (2025-05-30)
+
+## Agent Server
+
+### Features
+
+- Improved conversation management with smart content truncation: When conversations become too long for the AI model, the system now intelligently manages content by selectively truncating tool outputs rather than cutting all content equally. Larger tool outputs are reduced more than smaller ones, ensuring important conversation context is preserved while maintaining readability. This results in better conversation quality and more predictable behavior when dealing with long threads containing extensive tool results. ([GPT-849](https://linear.app/sema4ai/issue/GPT-849))
+- Added token usage information for OpenAI and Azure OpenAI Platform Clients ([GPT-909](https://linear.app/sema4ai/issue/GPT-909))
+
+### Bugfixes
+
+- Update json parsing for action-server response and check for MCP result. ([GPT-869](https://linear.app/sema4ai/issue/GPT-869))
+- Enable propagation of token usage information to LangSmith ([GPT-877](https://linear.app/sema4ai/issue/GPT-877))
+- Fix to get parallel tool calls operational for Cortex platform client, parsing was sligtly off. New test and fresh VCR fixtures to verify fix. ([GPT-910](https://linear.app/sema4ai/issue/GPT-910))
+
+### Miscellaneous
+
+- Updated debug widget used for quick internal testing to have fresh build of widget UX and more recent deps. ([GPT-898](https://linear.app/sema4ai/issue/GPT-898))
+- Move orchestrator repo for our integration tests in. Misc, should have no downstream effects, purely for ease of testing and to unblock Codex setup. ([GPT-904](https://linear.app/sema4ai/issue/GPT-904))
+
+
+## Public API
+
+No significant changes.
+
+
+## Private API
+
+### Bugfixes
+
+- Make threads name filter case insensitive ([GPT-893](https://linear.app/sema4ai/issue/GPT-893))
+
+
 # Sema4.ai Agent Server Pre-Release 2.0.0-beta.4 (2025-05-29)
 
 ## Agent Server
