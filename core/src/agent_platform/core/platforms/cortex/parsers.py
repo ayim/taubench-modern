@@ -227,7 +227,7 @@ class CortexParsers(PlatformParsers):
             return
 
         last_item_type = None
-        if "content" in message:
+        if "content" in message and len(message["content"]) > 0:
             last_item_type = message["content"][-1]["kind"]
 
         for content_item in delta["content_list"]:
@@ -247,11 +247,25 @@ class CortexParsers(PlatformParsers):
                     message["content"] = []
                 message["content"].append({"kind": item_type})
 
+            if item_type == "tool_use" and last_item_type == "tool_use":
+                if "tool_call_id" in message["content"][-1]:
+                    if (
+                        "tool_use_id" in content_item
+                        and message["content"][-1]["tool_call_id"] != content_item["tool_use_id"]
+                    ):
+                        # This is a new tool use! (Parallel tool calls)
+                        # Do NOT append to the last item, start a new one
+                        message["content"].append({"kind": item_type})
+
             # Now, we can parse the item
             if item_type == "text":
                 if "text" not in message["content"][-1]:
                     message["content"][-1]["text"] = ""
                 message["content"][-1]["text"] += content_item["text"]
+                # They now send us an empty text block with usage, so if we just
+                # added empty text, pop this item off the list
+                if message["content"][-1]["text"] == "":
+                    message["content"].pop()
             elif item_type == "tool_use":
                 if "tool_use_id" in content_item:
                     message["content"][-1]["tool_call_id"] = content_item["tool_use_id"]

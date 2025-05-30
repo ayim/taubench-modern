@@ -7,7 +7,7 @@ interactions:
       accept:
       - application/json, text/event-stream
       accept-encoding:
-      - gzip, deflate
+      - gzip, deflate, zstd
       connection:
       - keep-alive
       content-length:
@@ -21,13 +21,13 @@ interactions:
     method: POST
     uri: https://zvzwmyo-hp00956.snowflakecomputing.com/api/v2/cortex/inference:complete
   response:
-    content: 'data: {"id":"c67e70d8-8337-4480-8a19-6641e6c20cd7","model":"claude-3-5-sonnet","choices":[{"delta":{"content":"sun","content_list":[{"type":"text","text":"sun"}]}}],"usage":{}}
+    content: 'data: {"id":"a2a5ab45-6808-4018-b0e8-0d49add80c3b","model":"claude-3-5-sonnet","choices":[{"delta":{"type":"text","content":"sun","content_list":[{"type":"text","text":"sun"}],"text":"sun"}}],"usage":{}}
 
 
-      data: {"id":"c67e70d8-8337-4480-8a19-6641e6c20cd7","model":"claude-3-5-sonnet","choices":[{"delta":{"content":"flower","content_list":[{"type":"text","text":"flower"}]}}],"usage":{}}
+      data: {"id":"a2a5ab45-6808-4018-b0e8-0d49add80c3b","model":"claude-3-5-sonnet","choices":[{"delta":{"type":"text","content":"flower","content_list":[{"type":"text","text":"flower"}],"text":"flower"}}],"usage":{}}
 
 
-      data: {"id":"c67e70d8-8337-4480-8a19-6641e6c20cd7","model":"claude-3-5-sonnet","choices":[{"delta":{}}],"usage":{"prompt_tokens":39,"completion_tokens":6,"total_tokens":45}}
+      data: {"id":"a2a5ab45-6808-4018-b0e8-0d49add80c3b","model":"claude-3-5-sonnet","choices":[{"delta":{"type":"text","content_list":[{"type":"text","text":""}],"text":""}}],"usage":{"prompt_tokens":39,"completion_tokens":6,"total_tokens":45}}
 
 
       '
@@ -37,7 +37,7 @@ interactions:
       Content-Type:
       - text/event-stream
       Date:
-      - Sun, 06 Apr 2025 20:03:37 GMT,Sun, 06 Apr 2025 20:03:39 GMT
+      - Thu, 29 May 2025 20:56:44 GMT,Thu, 29 May 2025 20:56:45 GMT
       Expect-Ct:
       - enforce, max-age=3600
       Server:
@@ -55,15 +55,15 @@ interactions:
       X-Envoy-Attempt-Count:
       - '1'
       X-Envoy-Upstream-Service-Time:
-      - '2560'
+      - '1012'
       X-Frame-Options:
       - deny
       X-Snowflake-Fe-Config:
-      - ef89176a_1742962852_8fede9a5_1743969787512_0_0_1743969802174
+      - 281964bf_1747960657_awsuseast2_1748551893121_0_0_0
       X-Snowflake-Fe-Instance:
-      - envoy-ingress-awsuseast2-4br74
+      - envoy-ingress-awsuseast2-v4ls8
       X-Snowflake-Request-Id:
-      - c67e70d8-8337-4480-8a19-6641e6c20cd7
+      - a2a5ab45-6808-4018-b0e8-0d49add80c3b
       X-Xss-Protection:
       - 1; mode=block
     http_version: HTTP/1.1

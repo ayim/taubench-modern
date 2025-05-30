@@ -67,6 +67,11 @@ class ResponseToolUseContent(ResponseMessageContent):
         except json.JSONDecodeError as exc:
             raise ValueError("tool_input_raw is not valid JSON") from exc
 
+        # If for some reason tool_input_raw was null, then we would now
+        # have a tool_input_parsed of None. We should handle this gracefully.
+        if tool_input_parsed is None:
+            tool_input_parsed = {}
+
         # Remove any empty keys
         new_tool_input_parsed = {}
         for key, value in tool_input_parsed.items():

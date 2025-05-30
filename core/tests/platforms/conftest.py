@@ -396,6 +396,95 @@ def response_to_basic_prompt_tool_no_args():
 
 
 @pytest.fixture
+def prompt_to_elicit_parallel_tool_calls():
+    """
+    A prompt to elicit parallel tool calls.
+    """
+    return Prompt(
+        messages=[
+            PromptUserMessage(
+                content=[
+                    PromptTextContent(
+                        text=(
+                            """
+                        Use the provided add_book tool to add the following
+                        the following two books to the database:
+
+                        Title: "Foundation"
+                        Author: "Isaac Asimov"
+                        Year: 1951
+                        Category: "Science Fiction"
+
+                        Title: "The Hitchhiker's Guide to the Galaxy"
+                        Author: "Douglas Adams"
+                        Year: 1979
+                        Category: "Science Fiction"
+
+                        Emit nothing else but the tool calls with the
+                        book information _exactly_ as shown above. Completely
+                        omit any optional fields. You CAN and you MUST make
+                        both tool calls concurrently, if you don't the user
+                        will experience a great delay in your response! Be hasty
+                        and make _two_ tool calls at once!
+                        """
+                        )
+                    ),
+                ],
+            ),
+        ],
+        tools=[
+            ToolDefinition.from_callable(_add_book),
+            ToolDefinition.from_callable(_confirm_request),
+        ],
+        temperature=0.0,
+        max_output_tokens=512,
+    )
+
+
+@pytest.fixture
+def response_to_prompt_to_elicit_parallel_tool_calls():
+    """
+    A response to the prompt to elicit parallel tool calls.
+    """
+    from json import dumps
+
+    expected_tool_input_1 = {
+        "book": {
+            "title": "Foundation",
+            "author": "Isaac Asimov",
+            "year": 1951,
+            "category": "Science Fiction",
+        },
+    }
+
+    expected_tool_input_2 = {
+        "book": {
+            "title": "The Hitchhiker's Guide to the Galaxy",
+            "author": "Douglas Adams",
+            "year": 1979,
+            "category": "Science Fiction",
+        },
+    }
+
+    return ResponseMessage(
+        role="agent",
+        content=[
+            ResponseTextContent(text="*"),
+            ResponseToolUseContent(
+                tool_call_id="DO-NOT-COMPARE",
+                tool_name="_add_book",
+                tool_input_raw=dumps(expected_tool_input_1),
+            ),
+            ResponseToolUseContent(
+                tool_call_id="DO-NOT-COMPARE",
+                tool_name="_add_book",
+                tool_input_raw=dumps(expected_tool_input_2),
+            ),
+        ],
+    )
+
+
+@pytest.fixture
 def b64_image_prompt_content():
     return PromptImageContent(
         mime_type="image/png",

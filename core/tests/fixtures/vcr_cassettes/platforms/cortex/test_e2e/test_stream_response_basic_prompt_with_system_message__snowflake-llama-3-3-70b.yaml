@@ -8,7 +8,7 @@ interactions:
       accept:
       - application/json, text/event-stream
       accept-encoding:
-      - gzip, deflate
+      - gzip, deflate, zstd
       connection:
       - keep-alive
       content-length:
@@ -22,16 +22,16 @@ interactions:
     method: POST
     uri: https://zvzwmyo-hp00956.snowflakecomputing.com/api/v2/cortex/inference:complete
   response:
-    content: 'data: {"id":"ad1a36f2-bafa-444e-82f3-82b65d2b56dd","created":1743969847,"model":"snowflake-llama-3.3-70b","choices":[{"delta":{}}],"usage":{"prompt_tokens":49,"completion_tokens":1,"total_tokens":50}}
+    content: 'data: {"id":"12c17e7e-f76b-493a-8b48-5eb8a301ca00","created":1748552230,"model":"snowflake-llama-3.3-70b","choices":[{"delta":{"type":"text","content_list":[{"type":"text","text":""}],"text":""}}],"usage":{"prompt_tokens":49,"completion_tokens":1,"total_tokens":50}}
 
 
-      data: {"id":"ad1a36f2-bafa-444e-82f3-82b65d2b56dd","created":1743969847,"model":"snowflake-llama-3.3-70b","choices":[{"delta":{"content":"\u003crespo","content_list":[{"type":"text","text":"\u003crespo"}]}}],"usage":{"prompt_tokens":49,"completion_tokens":4,"total_tokens":53}}
+      data: {"id":"12c17e7e-f76b-493a-8b48-5eb8a301ca00","created":1748552230,"model":"snowflake-llama-3.3-70b","choices":[{"delta":{"type":"text","content":"\u003crespo","content_list":[{"type":"text","text":"\u003crespo"}],"text":"\u003crespo"}}],"usage":{"prompt_tokens":49,"completion_tokens":4,"total_tokens":53}}
 
 
-      data: {"id":"ad1a36f2-bafa-444e-82f3-82b65d2b56dd","created":1743969847,"model":"snowflake-llama-3.3-70b","choices":[{"delta":{"content":"nse\u003eapple\u003c","content_list":[{"type":"text","text":"nse\u003eapple\u003c"}]}}],"usage":{"prompt_tokens":49,"completion_tokens":6,"total_tokens":55}}
+      data: {"id":"12c17e7e-f76b-493a-8b48-5eb8a301ca00","created":1748552230,"model":"snowflake-llama-3.3-70b","choices":[{"delta":{"type":"text","content":"nse\u003eapple\u003c","content_list":[{"type":"text","text":"nse\u003eapple\u003c"}],"text":"nse\u003eapple\u003c"}}],"usage":{"prompt_tokens":49,"completion_tokens":6,"total_tokens":55}}
 
 
-      data: {"id":"ad1a36f2-bafa-444e-82f3-82b65d2b56dd","created":1743969847,"model":"snowflake-llama-3.3-70b","choices":[{"delta":{"content":"/response\u003e","content_list":[{"type":"text","text":"/response\u003e"}]},"finish_reason":"stop"}],"usage":{"prompt_tokens":49,"completion_tokens":8,"total_tokens":57}}
+      data: {"id":"12c17e7e-f76b-493a-8b48-5eb8a301ca00","created":1748552230,"model":"snowflake-llama-3.3-70b","choices":[{"delta":{"type":"text","content":"/response\u003e","content_list":[{"type":"text","text":"/response\u003e"}],"text":"/response\u003e"},"finish_reason":"stop"}],"usage":{"prompt_tokens":49,"completion_tokens":8,"total_tokens":57}}
 
 
       '
@@ -41,7 +41,7 @@ interactions:
       Content-Type:
       - text/event-stream
       Date:
-      - Sun, 06 Apr 2025 20:04:07 GMT,Sun, 06 Apr 2025 20:04:07 GMT
+      - Thu, 29 May 2025 20:57:09 GMT,Thu, 29 May 2025 20:57:10 GMT
       Expect-Ct:
       - enforce, max-age=3600
       Server:
@@ -59,15 +59,15 @@ interactions:
       X-Envoy-Attempt-Count:
       - '1'
       X-Envoy-Upstream-Service-Time:
-      - '145'
+      - '487'
       X-Frame-Options:
       - deny
       X-Snowflake-Fe-Config:
-      - ef89176a_1742962852_8fede9a5_1743969787512_0_0_1743969802174
+      - 281964bf_1747960657_awsuseast2_1748551893121_0_0_0
       X-Snowflake-Fe-Instance:
-      - envoy-ingress-awsuseast2-9cn5b
+      - envoy-ingress-awsuseast2-n66g7
       X-Snowflake-Request-Id:
-      - ad1a36f2-bafa-444e-82f3-82b65d2b56dd
+      - 12c17e7e-f76b-493a-8b48-5eb8a301ca00
       X-Xss-Protection:
       - 1; mode=block
     http_version: HTTP/1.1

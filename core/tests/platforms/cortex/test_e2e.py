@@ -61,6 +61,13 @@ TEST_CASES = [
         "models": MODELS_WITH_TOOL_INPUT,
         "cassette_suffix": "basic_prompt_tool_no_args",
     },
+    {
+        "case_name": "parallel_tool_calls",
+        "prompt_fixture": "prompt_to_elicit_parallel_tool_calls",
+        "response_fixture": "response_to_prompt_to_elicit_parallel_tool_calls",
+        "models": MODELS_WITH_TOOL_INPUT,
+        "cassette_suffix": "parallel_tool_calls",
+    },
 ]
 
 
@@ -173,9 +180,8 @@ async def test_cortex_generate_responses(request, cortex_client, case, model_id)
     # If model_id not relevant to this case, skip
     if model_id not in case["models"]:
         pytest.skip(f"Model {model_id} not applicable to case '{case['case_name']}'")
-    # TODO: remove after support case is resolved
-    if "tool" in case["case_name"]:
-        pytest.skip("Snowflake Cortex tool calling is broken in non-streaming mode!")
+    if "parallel" in case["case_name"]:
+        pytest.skip("Parallel tool calls are not supported for generate... ANOTHER Cortex bug")
 
     # Get the prompt + expected response from fixtures
     prompt = request.getfixturevalue(case["prompt_fixture"])

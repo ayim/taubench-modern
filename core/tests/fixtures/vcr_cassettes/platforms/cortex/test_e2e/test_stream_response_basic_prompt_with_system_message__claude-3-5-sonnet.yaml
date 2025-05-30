@@ -8,7 +8,7 @@ interactions:
       accept:
       - application/json, text/event-stream
       accept-encoding:
-      - gzip, deflate
+      - gzip, deflate, zstd
       connection:
       - keep-alive
       content-length:
@@ -22,13 +22,13 @@ interactions:
     method: POST
     uri: https://zvzwmyo-hp00956.snowflakecomputing.com/api/v2/cortex/inference:complete
   response:
-    content: 'data: {"id":"93f8f27d-a0a7-479a-8789-63c198776f96","model":"claude-3-5-sonnet","choices":[{"delta":{"content":"\u003cresponse\u003eapple","content_list":[{"type":"text","text":"\u003cresponse\u003eapple"}]}}],"usage":{}}
+    content: 'data: {"id":"cd71e456-a07c-4910-914c-e71117e7a05b","model":"claude-3-5-sonnet","choices":[{"delta":{"type":"text","content":"\u003cresponse\u003eapple","content_list":[{"type":"text","text":"\u003cresponse\u003eapple"}],"text":"\u003cresponse\u003eapple"}}],"usage":{}}
 
 
-      data: {"id":"93f8f27d-a0a7-479a-8789-63c198776f96","model":"claude-3-5-sonnet","choices":[{"delta":{"content":"\u003c/response\u003e","content_list":[{"type":"text","text":"\u003c/response\u003e"}]}}],"usage":{}}
+      data: {"id":"cd71e456-a07c-4910-914c-e71117e7a05b","model":"claude-3-5-sonnet","choices":[{"delta":{"type":"text","content":"\u003c/response\u003e","content_list":[{"type":"text","text":"\u003c/response\u003e"}],"text":"\u003c/response\u003e"}}],"usage":{}}
 
 
-      data: {"id":"93f8f27d-a0a7-479a-8789-63c198776f96","model":"claude-3-5-sonnet","choices":[{"delta":{}}],"usage":{"prompt_tokens":48,"completion_tokens":10,"total_tokens":58}}
+      data: {"id":"cd71e456-a07c-4910-914c-e71117e7a05b","model":"claude-3-5-sonnet","choices":[{"delta":{"type":"text","content_list":[{"type":"text","text":""}],"text":""}}],"usage":{"prompt_tokens":48,"completion_tokens":10,"total_tokens":58}}
 
 
       '
@@ -38,7 +38,7 @@ interactions:
       Content-Type:
       - text/event-stream
       Date:
-      - Sun, 06 Apr 2025 20:03:40 GMT,Sun, 06 Apr 2025 20:03:40 GMT
+      - Thu, 29 May 2025 20:56:45 GMT,Thu, 29 May 2025 20:56:45 GMT
       Expect-Ct:
       - enforce, max-age=3600
       Server:
@@ -56,15 +56,15 @@ interactions:
       X-Envoy-Attempt-Count:
       - '1'
       X-Envoy-Upstream-Service-Time:
-      - '497'
+      - '317'
       X-Frame-Options:
       - deny
       X-Snowflake-Fe-Config:
-      - ef89176a_1742962852_8fede9a5_1743969787512_0_0_1743969802174
+      - 281964bf_1747960657_awsuseast2_1748551893121_0_0_0
       X-Snowflake-Fe-Instance:
-      - envoy-ingress-awsuseast2-nxn2h
+      - envoy-ingress-awsuseast2-rkr4z
       X-Snowflake-Request-Id:
-      - 93f8f27d-a0a7-479a-8789-63c198776f96
+      - cd71e456-a07c-4910-914c-e71117e7a05b
       X-Xss-Protection:
       - 1; mode=block
     http_version: HTTP/1.1

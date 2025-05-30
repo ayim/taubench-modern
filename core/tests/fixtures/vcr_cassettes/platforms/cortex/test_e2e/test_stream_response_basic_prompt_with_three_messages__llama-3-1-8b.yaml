@@ -15,7 +15,7 @@ interactions:
       accept:
       - application/json, text/event-stream
       accept-encoding:
-      - gzip, deflate
+      - gzip, deflate, zstd
       connection:
       - keep-alive
       content-length:
@@ -29,16 +29,16 @@ interactions:
     method: POST
     uri: https://zvzwmyo-hp00956.snowflakecomputing.com/api/v2/cortex/inference:complete
   response:
-    content: 'data: {"id":"f010fb67-694e-4764-a57f-2372b9f75c59","created":1743969846,"model":"llama3.1-8b","choices":[{"delta":{}}],"usage":{"prompt_tokens":152,"completion_tokens":1,"total_tokens":153}}
+    content: 'data: {"id":"84a2554b-81a6-4519-bcce-13cd1fdbfdd6","created":1748552229,"model":"llama3.1-8b","choices":[{"delta":{"type":"text","content_list":[{"type":"text","text":""}],"text":""}}],"usage":{"prompt_tokens":152,"completion_tokens":1,"total_tokens":153}}
 
 
-      data: {"id":"f010fb67-694e-4764-a57f-2372b9f75c59","created":1743969846,"model":"llama3.1-8b","choices":[{"delta":{}}],"usage":{"prompt_tokens":152,"completion_tokens":2,"total_tokens":154}}
+      data: {"id":"84a2554b-81a6-4519-bcce-13cd1fdbfdd6","created":1748552229,"model":"llama3.1-8b","choices":[{"delta":{"type":"text","content_list":[{"type":"text","text":""}],"text":""}}],"usage":{"prompt_tokens":152,"completion_tokens":2,"total_tokens":154}}
 
 
-      data: {"id":"f010fb67-694e-4764-a57f-2372b9f75c59","created":1743969847,"model":"llama3.1-8b","choices":[{"delta":{}}],"usage":{"prompt_tokens":152,"completion_tokens":3,"total_tokens":155}}
+      data: {"id":"84a2554b-81a6-4519-bcce-13cd1fdbfdd6","created":1748552229,"model":"llama3.1-8b","choices":[{"delta":{"type":"text","content_list":[{"type":"text","text":""}],"text":""}}],"usage":{"prompt_tokens":152,"completion_tokens":3,"total_tokens":155}}
 
 
-      data: {"id":"f010fb67-694e-4764-a57f-2372b9f75c59","created":1743969847,"model":"llama3.1-8b","choices":[{"delta":{"content":"Madison.","content_list":[{"type":"text","text":"Madison."}]},"finish_reason":"stop"}],"usage":{"prompt_tokens":152,"completion_tokens":4,"total_tokens":156}}
+      data: {"id":"84a2554b-81a6-4519-bcce-13cd1fdbfdd6","created":1748552229,"model":"llama3.1-8b","choices":[{"delta":{"type":"text","content":"Madison.","content_list":[{"type":"text","text":"Madison."}],"text":"Madison."},"finish_reason":"stop"}],"usage":{"prompt_tokens":152,"completion_tokens":4,"total_tokens":156}}
 
 
       '
@@ -48,7 +48,7 @@ interactions:
       Content-Type:
       - text/event-stream
       Date:
-      - Sun, 06 Apr 2025 20:04:06 GMT,Sun, 06 Apr 2025 20:04:07 GMT
+      - Thu, 29 May 2025 20:57:08 GMT,Thu, 29 May 2025 20:57:09 GMT
       Expect-Ct:
       - enforce, max-age=3600
       Server:
@@ -66,15 +66,15 @@ interactions:
       X-Envoy-Attempt-Count:
       - '1'
       X-Envoy-Upstream-Service-Time:
-      - '162'
+      - '119'
       X-Frame-Options:
       - deny
       X-Snowflake-Fe-Config:
-      - ef89176a_1742962852_8fede9a5_1743969787512_0_0_1743969802174
+      - 281964bf_1747960657_awsuseast2_1748551893121_0_0_0
       X-Snowflake-Fe-Instance:
-      - envoy-ingress-awsuseast2-9cn5b
+      - envoy-ingress-awsuseast2-rkr4z
       X-Snowflake-Request-Id:
-      - f010fb67-694e-4764-a57f-2372b9f75c59
+      - 84a2554b-81a6-4519-bcce-13cd1fdbfdd6
       X-Xss-Protection:
       - 1; mode=block
     http_version: HTTP/1.1

@@ -15,7 +15,7 @@ interactions:
       accept:
       - application/json, text/event-stream
       accept-encoding:
-      - gzip, deflate
+      - gzip, deflate, zstd
       connection:
       - keep-alive
       content-length:
@@ -30,12 +30,20 @@ interactions:
     uri: https://zvzwmyo-hp00956.snowflakecomputing.com/api/v2/cortex/inference:complete
   response:
     content: '{"choices":[{"message":{"content":"\u003cthink\u003e\nOkay, the user
-      is asking for the capital of Wisconsin. Let me make sure I remember correctly.
-      I think it''s Madison. Wait, sometimes people confuse it with Milwaukee, which
-      is a bigger city, but the capital is definitely Madison. Let me double-check
-      that. Yes, Madison is the capital. The user wants just the one-word answer starting
-      with a capital letter and ending with a period. So the response should be \"Madison.\"
-      without any extra text. Got it.\n\u003c/think\u003e\n\nMadison."}}],"usage":{"prompt_tokens":147,"completion_tokens":106,"total_tokens":253}}
+      is asking for the capital of Wisconsin, USA. They want a one-word answer starting
+      with a capital letter and ending with a period. Let me make sure I remember
+      correctly. I think the capital isn''t Milwaukee, which is a bigger city. Wait,
+      isn''t it Madison? Yes, Madison is the capital. Let me double-check that. Yes,
+      Wisconsin''s capital is Madison. So the answer should be \"Madison.\" with the
+      period. No extra words, just the city name properly capitalized and a period
+      at the end. Got it.\n\u003c/think\u003e\n\nMadison.","content_list":[{"type":"text","text":"\u003cthink\u003e\nOkay,
+      the user is asking for the capital of Wisconsin, USA. They want a one-word answer
+      starting with a capital letter and ending with a period. Let me make sure I
+      remember correctly. I think the capital isn''t Milwaukee, which is a bigger
+      city. Wait, isn''t it Madison? Yes, Madison is the capital. Let me double-check
+      that. Yes, Wisconsin''s capital is Madison. So the answer should be \"Madison.\"
+      with the period. No extra words, just the city name properly capitalized and
+      a period at the end. Got it.\n\u003c/think\u003e\n\nMadison."}]}}],"usage":{"prompt_tokens":147,"completion_tokens":123,"total_tokens":270}}
 
       '
     headers:
@@ -46,7 +54,7 @@ interactions:
       Content-Type:
       - application/json;charset=utf-8
       Date:
-      - Sun, 06 Apr 2025 20:03:28 GMT,Sun, 06 Apr 2025 20:03:31 GMT
+      - Thu, 29 May 2025 20:56:32 GMT,Thu, 29 May 2025 20:56:35 GMT
       Expect-Ct:
       - enforce, max-age=3600
       Server:
@@ -64,15 +72,15 @@ interactions:
       X-Envoy-Attempt-Count:
       - '1'
       X-Envoy-Upstream-Service-Time:
-      - '3318'
+      - '2972'
       X-Frame-Options:
       - deny
       X-Snowflake-Fe-Config:
-      - ef89176a_1742962852_8fede9a5_1743969708556_0_0_1743969724174
+      - 281964bf_1747960657_awsuseast2_1748551893121_0_0_0
       X-Snowflake-Fe-Instance:
-      - envoy-ingress-awsuseast2-9cn5b
+      - envoy-ingress-awsuseast2-f2slz
       X-Snowflake-Request-Id:
-      - 4be542d3-0833-4b58-b37d-63a261b3ebf3
+      - c45f27ff-7661-4cbd-bc17-2e97af3d1dbb
       X-Xss-Protection:
       - 1; mode=block
     http_version: HTTP/1.1

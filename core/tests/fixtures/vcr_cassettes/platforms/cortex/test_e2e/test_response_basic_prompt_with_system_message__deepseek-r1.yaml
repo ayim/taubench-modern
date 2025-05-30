@@ -8,7 +8,7 @@ interactions:
       accept:
       - application/json, text/event-stream
       accept-encoding:
-      - gzip, deflate
+      - gzip, deflate, zstd
       connection:
       - keep-alive
       content-length:
@@ -25,9 +25,14 @@ interactions:
     content: '{"choices":[{"message":{"content":"\u003cthink\u003e\nOkay, the user
       wants me to respond with just the word ''apple'' wrapped in \u003cresponse\u003e
       tags. Let me make sure I follow the instructions correctly. They mentioned an
-      end-to-end test, so probably checking if the system works. I need to ensure
-      there''s no extra text, just ''apple'' inside the response tags. Let me double-check
-      the formatting. Yep, that''s all. Ready to go.\n\u003c/think\u003e\n\n\u003cresponse\u003e\napple\n\u003c/response\u003e"}}],"usage":{"prompt_tokens":40,"completion_tokens":99,"total_tokens":139}}
+      end-to-end test, so probably checking if the system works as expected. I need
+      to ensure there''s no extra text, just ''apple'' inside the response tags. Let
+      me double-check the formatting to avoid any mistakes. Alright, here goes.\n\u003c/think\u003e\n\n\u003cresponse\u003eapple\u003c/response\u003e","content_list":[{"type":"text","text":"\u003cthink\u003e\nOkay,
+      the user wants me to respond with just the word ''apple'' wrapped in \u003cresponse\u003e
+      tags. Let me make sure I follow the instructions correctly. They mentioned an
+      end-to-end test, so probably checking if the system works as expected. I need
+      to ensure there''s no extra text, just ''apple'' inside the response tags. Let
+      me double-check the formatting to avoid any mistakes. Alright, here goes.\n\u003c/think\u003e\n\n\u003cresponse\u003eapple\u003c/response\u003e"}]}}],"usage":{"prompt_tokens":40,"completion_tokens":99,"total_tokens":139}}
 
       '
     headers:
@@ -38,7 +43,7 @@ interactions:
       Content-Type:
       - application/json;charset=utf-8
       Date:
-      - Sun, 06 Apr 2025 20:03:25 GMT,Sun, 06 Apr 2025 20:03:28 GMT
+      - Thu, 29 May 2025 20:56:29 GMT,Thu, 29 May 2025 20:56:32 GMT
       Expect-Ct:
       - enforce, max-age=3600
       Server:
@@ -56,15 +61,15 @@ interactions:
       X-Envoy-Attempt-Count:
       - '1'
       X-Envoy-Upstream-Service-Time:
-      - '3036'
+      - '2348'
       X-Frame-Options:
       - deny
       X-Snowflake-Fe-Config:
-      - ef89176a_1742962852_8fede9a5_1743969708556_0_0_1743969724174
+      - 281964bf_1747960657_awsuseast2_1748551893121_0_0_0
       X-Snowflake-Fe-Instance:
-      - envoy-ingress-awsuseast2-4br74
+      - envoy-ingress-awsuseast2-f2slz
       X-Snowflake-Request-Id:
-      - 5a5d1242-0389-4cea-a332-73f169a1981f
+      - 9ddce4cc-31a3-4544-98c9-abd4e07039ed
       X-Xss-Protection:
       - 1; mode=block
     http_version: HTTP/1.1

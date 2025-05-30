@@ -8,7 +8,7 @@ interactions:
       accept:
       - application/json, text/event-stream
       accept-encoding:
-      - gzip, deflate
+      - gzip, deflate, zstd
       connection:
       - keep-alive
       content-length:
@@ -22,7 +22,7 @@ interactions:
     method: POST
     uri: https://zvzwmyo-hp00956.snowflakecomputing.com/api/v2/cortex/inference:complete
   response:
-    content: '{"choices":[{"message":{"content":"\u003cresponse\u003eapple\u003c/response\u003e"}}],"usage":{"prompt_tokens":48,"completion_tokens":10,"total_tokens":58}}
+    content: '{"choices":[{"message":{"content":"\u003cresponse\u003eapple\u003c/response\u003e","content_list":[{"type":"text","text":"\u003cresponse\u003eapple\u003c/response\u003e"}]}}],"usage":{"prompt_tokens":48,"completion_tokens":10,"total_tokens":58}}
 
       '
     headers:
@@ -33,7 +33,7 @@ interactions:
       Content-Type:
       - application/json;charset=utf-8
       Date:
-      - Sun, 06 Apr 2025 20:03:15 GMT,Sun, 06 Apr 2025 20:03:17 GMT
+      - Thu, 29 May 2025 20:56:17 GMT,Thu, 29 May 2025 20:56:17 GMT
       Expect-Ct:
       - enforce, max-age=3600
       Server:
@@ -51,15 +51,15 @@ interactions:
       X-Envoy-Attempt-Count:
       - '1'
       X-Envoy-Upstream-Service-Time:
-      - '2727'
+      - '581'
       X-Frame-Options:
       - deny
       X-Snowflake-Fe-Config:
-      - ef89176a_1742962852_8fede9a5_1743969708556_0_0_1743969724174
+      - 281964bf_1747960657_awsuseast2_1748551893121_0_0_0
       X-Snowflake-Fe-Instance:
-      - envoy-ingress-awsuseast2-d22cb
+      - envoy-ingress-awsuseast2-v4ls8
       X-Snowflake-Request-Id:
-      - 21317b9a-18d6-43b3-907f-e75bf8b75709
+      - ec07a4a1-8147-4785-8d91-4ef906afde8d
       X-Xss-Protection:
       - 1; mode=block
     http_version: HTTP/1.1
