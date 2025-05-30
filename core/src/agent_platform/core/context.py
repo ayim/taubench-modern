@@ -1,4 +1,5 @@
 import json
+import logging
 import re
 from collections.abc import AsyncGenerator, Callable, Generator
 from contextlib import asynccontextmanager, contextmanager
@@ -24,6 +25,8 @@ from requests.models import Response
 
 from agent_platform.core.agent.observability_config import ObservabilityConfig
 from agent_platform.core.user import User
+
+logger = logging.getLogger(__name__)
 
 # Define valid run types for LangSmith
 RunType = Literal["chain", "llm", "tool", "retriever", "embedding", "prompt", "parser"]
@@ -202,24 +205,52 @@ class LangSmithContext:
                         else:
                             filtered_messages.append(msg)
 
-                    # Process the filtered messages
-                    for i, message in enumerate(filtered_messages):
+                    # Process the filtered messages and expand tool calls
+                    attr_index = 0
+                    for message in filtered_messages:
                         if isinstance(message, dict):
                             # Set role attribute if available
                             if "role" in message:
-                                span.set_attribute(f"gen_ai.prompt.{i}.role", str(message["role"]))
+                                span.set_attribute(
+                                    f"gen_ai.prompt.{attr_index}.role", str(message["role"])
+                                )
 
                             # Set content attribute if available
                             if "content" in message:
                                 content_value = message["content"]
-                                span.set_attribute(f"gen_ai.prompt.{i}.content", str(content_value))
-
-                            # Handle tool calls if present
-                            if "tool_calls" in message:
                                 span.set_attribute(
-                                    f"gen_ai.prompt.{i}.tool_calls",
-                                    str(message["tool_calls"]),
+                                    f"gen_ai.prompt.{attr_index}.content", str(content_value)
                                 )
+
+                            # Handle tool calls - create separate messages for each tool call
+                            if "tool_calls" in message and message["role"] == "assistant":
+                                # Parse tool calls and create separate messages
+                                tool_calls_str = message["tool_calls"]
+                                if isinstance(tool_calls_str, str):
+                                    tool_calls = json.loads(tool_calls_str)
+                                else:
+                                    tool_calls = tool_calls_str
+
+                                # Create a separate message for each individual tool call
+                                if isinstance(tool_calls, list) and tool_calls:
+                                    for tool_call in tool_calls:
+                                        # Increment message index for each tool call message
+                                        attr_index += 1
+
+                                        # Set role as tool for each tool call message
+                                        span.set_attribute(
+                                            f"gen_ai.prompt.{attr_index}.role", "tool"
+                                        )
+
+                                        # Format the tool call using the extracted function
+                                        tool_call_content = self._format_tool_call(tool_call)
+                                        span.set_attribute(
+                                            f"gen_ai.prompt.{attr_index}.content",
+                                            tool_call_content,
+                                        )
+
+                            # Increment message index for the next message
+                            attr_index += 1
 
             # Add system information if available
             if metadata and "provider" in metadata:
@@ -270,6 +301,47 @@ class LangSmithContext:
     async def _yield_none(self) -> AsyncGenerator[None, None]:
         """Helper method to yield None in an async context."""
         yield None
+
+    def _format_tool_call(self, tool_call: dict[str, Any]) -> str:
+        """Format a tool call for LangSmith tracing.
+
+        Args:
+            tool_call: The tool call dictionary in OpenAI format
+
+        Returns:
+            JSON string representation of the formatted tool call.
+            If arguments contain invalid JSON, they are kept as-is and logged.
+        """
+        formatted_tool_call = {
+            "id": tool_call.get("id"),
+            "type": tool_call.get("type"),
+        }
+
+        # Handle function details with parsed arguments
+        if "function" in tool_call:
+            function_data = tool_call["function"]
+            formatted_function = {"name": function_data.get("name")}
+
+            # Parse arguments from JSON string to object
+            if "arguments" in function_data:
+                args_str = function_data["arguments"]
+                if isinstance(args_str, str):
+                    try:
+                        formatted_function["arguments"] = json.loads(args_str)
+                    except json.JSONDecodeError as e:
+                        logger.warning(
+                            "Failed to parse tool call arguments as JSON for tool %s: %s. "
+                            "Keeping arguments as string.",
+                            function_data.get("name", "unknown"),
+                            str(e),
+                        )
+                        formatted_function["arguments"] = args_str
+                else:
+                    formatted_function["arguments"] = args_str
+
+            formatted_tool_call["function"] = formatted_function
+
+        return json.dumps(formatted_tool_call)
 
 
 @dataclass

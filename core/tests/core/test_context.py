@@ -1,3 +1,4 @@
+import json
 from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
@@ -150,6 +151,117 @@ class TestLangSmithContext:
             # Verify span processor was added
             mock_processor.assert_called_once()
             mock_provider.add_span_processor.assert_called_once()
+
+    def test_format_tool_call_basic(self) -> None:
+        """Test basic tool call formatting."""
+        context = LangSmithContext()
+
+        tool_call = {
+            "id": "call_123",
+            "type": "function",
+            "function": {
+                "name": "test_function",
+                "arguments": '{"param1": "value1", "param2": 42}',
+            },
+        }
+
+        result = context._format_tool_call(tool_call)
+
+        # Parse the result to verify structure
+
+        parsed_result = json.loads(result)
+
+        assert parsed_result["id"] == "call_123"
+        assert parsed_result["type"] == "function"
+        assert parsed_result["function"]["name"] == "test_function"
+        assert parsed_result["function"]["arguments"] == {"param1": "value1", "param2": 42}
+
+    def test_format_tool_call_with_object_arguments(self) -> None:
+        """Test tool call formatting when arguments are already an object."""
+        context = LangSmithContext()
+
+        tool_call = {
+            "id": "call_123",
+            "type": "function",
+            "function": {
+                "name": "another_function",
+                "arguments": {"param1": "value1", "param2": 42},
+            },
+        }
+
+        result = context._format_tool_call(tool_call)
+
+        parsed_result = json.loads(result)
+
+        assert parsed_result["id"] == "call_123"
+        assert parsed_result["type"] == "function"
+        assert parsed_result["function"]["name"] == "another_function"
+        assert parsed_result["function"]["arguments"] == {"param1": "value1", "param2": 42}
+
+    def test_format_tool_call_without_function(self) -> None:
+        """Test tool call formatting when function data is missing."""
+        context = LangSmithContext()
+
+        tool_call = {"id": "call_123", "type": "function"}
+
+        result = context._format_tool_call(tool_call)
+
+        parsed_result = json.loads(result)
+
+        assert parsed_result["id"] == "call_123"
+        assert parsed_result["type"] == "function"
+        assert "function" not in parsed_result
+
+    def test_format_tool_call_without_arguments(self) -> None:
+        """Test tool call formatting when arguments are missing."""
+        context = LangSmithContext()
+
+        tool_call = {"id": "call_123", "type": "function", "function": {"name": "no_args_function"}}
+
+        result = context._format_tool_call(tool_call)
+
+        parsed_result = json.loads(result)
+
+        assert parsed_result["id"] == "call_123"
+        assert parsed_result["type"] == "function"
+        assert parsed_result["function"]["name"] == "no_args_function"
+        assert "arguments" not in parsed_result["function"]
+
+    def test_format_tool_call_with_malformed_json(self) -> None:
+        """Test tool call formatting with malformed JSON arguments."""
+        context = LangSmithContext()
+
+        tool_call = {
+            "id": "call_123",
+            "type": "function",
+            "function": {
+                "name": "bad_function",
+                "arguments": '{"param1": value1, "param2": 42}',  # Invalid JSON
+            },
+        }
+        result = context._format_tool_call(tool_call)
+
+        parsed_result = json.loads(result)
+
+        assert parsed_result["id"] == "call_123"
+        assert parsed_result["type"] == "function"
+        assert parsed_result["function"]["name"] == "bad_function"
+        assert parsed_result["function"]["arguments"] == '{"param1": value1, "param2": 42}'
+
+    def test_format_tool_call_missing_optional_fields(self) -> None:
+        """Test tool call formatting when optional fields are missing."""
+        context = LangSmithContext()
+
+        tool_call = {"function": {"name": "minimal_function", "arguments": "{}"}}
+
+        result = context._format_tool_call(tool_call)
+
+        parsed_result = json.loads(result)
+
+        assert parsed_result["id"] is None
+        assert parsed_result["type"] is None
+        assert parsed_result["function"]["name"] == "minimal_function"
+        assert parsed_result["function"]["arguments"] == {}
 
     @pytest.mark.asyncio
     async def test_trace_llm_without_tracer(self) -> None:
