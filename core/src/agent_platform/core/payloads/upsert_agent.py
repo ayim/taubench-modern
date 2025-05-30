@@ -537,9 +537,35 @@ class UpsertAgentPayload:
         if payload.agent_architecture is None:
             raise ValueError("agent_architecture is required")
 
+        def get_mode(payload: Self) -> Literal["conversational", "worker"] | None:
+            try:
+                mode = getattr(payload, "mode", None)
+                if mode in ("conversational", "worker"):
+                    return mode
+                metadata = getattr(payload, "metadata", {})
+                if isinstance(metadata, dict):
+                    mode = metadata.get("mode")
+                    if mode in ("conversational", "worker"):
+                        return mode
+            except Exception:
+                pass
+
+            return None
+
+        maybe_mode = get_mode(payload=payload)
+
+        metadata = getattr(payload, "metadata", None)
+        if not isinstance(metadata, dict):
+            metadata = {}
+        metadata_without_mode = {k: v for k, v in payload.metadata.items() if k != "mode"}
+
+        extra = getattr(payload, "extra", None)
+        if not isinstance(extra, dict):
+            extra = {}
+
         return Agent(
             name=payload.name,
-            mode=payload.mode,
+            mode=maybe_mode if maybe_mode is not None else "conversational",
             version=payload.version,
             description=payload.description,
             runbook_structured=(
@@ -559,7 +585,7 @@ class UpsertAgentPayload:
                 cast(AnyPlatformParameters, PlatformParameters.model_validate(config))
                 for config in payload.platform_configs
             ],
-            extra=payload.extra,
+            extra={**extra, **metadata_without_mode},
             user_id=user_id,
             agent_id=(
                 # We prefer an agent_id passed in

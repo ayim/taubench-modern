@@ -125,7 +125,7 @@ class AgentCompat(Agent):
             metadata=dict(
                 mode=agent.mode,
                 worker_config=(
-                    agent.extra["worker_config"] if "worker_config" in agent.extra else {}
+                    agent.extra["worker-config"] if "worker-config" in agent.extra else {}
                 ),
                 welcome_message="",
                 question_groups=agent.question_groups,

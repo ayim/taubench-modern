@@ -249,6 +249,7 @@ async def _create_or_update_agent_from_package(
             name="agent_platform.architectures.default",
             version="1.0.0",
         ),
+        metadata=agent0["metadata"],
     )
 
     # Now, for the third and final step, we have essentially a normal
