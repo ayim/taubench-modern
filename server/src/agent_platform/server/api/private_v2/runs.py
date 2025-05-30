@@ -42,6 +42,7 @@ from agent_platform.core.thread.messages import ThreadAgentMessage
 from agent_platform.core.user import User
 from agent_platform.server.agent_architectures import AgentArchManager
 from agent_platform.server.api.dependencies import StorageDependency
+from agent_platform.server.api.private_v2.compatibility.agent_compat import AgentCompat
 from agent_platform.server.auth import AuthedUser, AuthedUserWebsocket
 from agent_platform.server.kernel import AgentServerKernel
 from agent_platform.server.storage import (
@@ -276,6 +277,20 @@ async def stream_run(  # noqa: C901, PLR0912, PLR0915
 
             # 5. Create a new streaming run
             with server_context.start_span("create_run") as create_span:
+                legacy_agent = AgentCompat.from_agent(agent)
+                server_context.increment_counter(
+                    "sema4ai.agent_server.runs",
+                    1,
+                    {
+                        "agent_id": legacy_agent.agent_id,
+                        "thread_id": thread_state.thread_id,
+                        "llm.provider": legacy_agent.model["provider"],
+                        "llm.model": legacy_agent.model["name"],
+                        "user_id": user.cr_user_id if user.cr_user_id else "None",
+                        "system_id": user.cr_system_id if user.cr_system_id else "None",
+                        "type": "stream",
+                    },
+                )
                 active_run = await _create_run(
                     agent_id, thread_state.thread_id, storage, run_type="stream"
                 )
@@ -527,6 +542,20 @@ async def sync_run(  # noqa: C901, PLR0912, PLR0915
 
             # 5. Create a new synchronous run
             with server_context.start_span("create_run") as create_span:
+                legacy_agent = AgentCompat.from_agent(agent)
+                server_context.increment_counter(
+                    "sema4ai.agent_server.runs",
+                    1,
+                    {
+                        "agent_id": legacy_agent.agent_id,
+                        "thread_id": thread_state.thread_id,
+                        "llm.provider": legacy_agent.model["provider"],
+                        "llm.model": legacy_agent.model["name"],
+                        "user_id": user.cr_user_id if user.cr_user_id else "None",
+                        "system_id": user.cr_system_id if user.cr_system_id else "None",
+                        "type": "invoke",
+                    },
+                )
                 active_run = await _create_run(
                     agent_id, thread_state.thread_id, storage, run_type="sync"
                 )

@@ -1,9 +1,10 @@
 from mimetypes import guess_type
 
-from fastapi import APIRouter, HTTPException, UploadFile
+from fastapi import APIRouter, HTTPException, Request, UploadFile
 from fastapi.responses import StreamingResponse
 from structlog import get_logger
 
+from agent_platform.core.context import AgentServerContext
 from agent_platform.core.files import UploadedFile
 from agent_platform.core.payloads import (
     AddThreadMessagePayload,
@@ -24,11 +25,27 @@ logger = get_logger(__name__)
 
 @router.post("/", response_model=Thread)
 async def create_thread(
-    user: AuthedUser,
-    payload: UpsertThreadPayload,
-    storage: StorageDependency,
+    user: AuthedUser, payload: UpsertThreadPayload, storage: StorageDependency, request: Request
 ) -> Thread:
     thread = UpsertThreadPayload.to_thread(payload, user.user_id)
+
+    server_context = AgentServerContext.from_request(
+        request=request,
+        user=user,
+        version="2.0.0",
+    )
+
+    server_context.increment_counter(
+        "sema4ai.agent_server.threads",
+        1,
+        {
+            "agent_id": thread.agent_id,
+            "thread_id": thread.thread_id,
+            "user_id": user.cr_user_id if user.cr_user_id else "None",
+            "system_id": user.cr_system_id if user.cr_system_id else "None",
+        },
+    )
+
     await storage.upsert_thread(user.user_id, thread)
     return thread
 
@@ -105,14 +122,11 @@ async def get_thread(
 
 # Backwards compatibility
 @router.get("/{tid}/state", response_model=Thread)
-async def get_thread_state(
-    user: AuthedUser,
-    tid: str,
-    storage: StorageDependency,
-) -> Thread:
+async def get_thread_state(user: AuthedUser, tid: str, storage: StorageDependency) -> Thread:
     thread = await storage.get_thread(user.user_id, tid)
     if thread is None:
         raise HTTPException(status_code=404, detail="Thread not found")
+
     return thread
 
 
