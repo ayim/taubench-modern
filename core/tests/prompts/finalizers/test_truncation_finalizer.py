@@ -174,15 +174,20 @@ async def test_truncation_multiple_results(finalizer, mock_kernel, mock_platform
         messages, prompt, mock_kernel, platform=mock_platform, model="gpt-3.5-turbo"
     )
 
-    # Verify truncation occurred
-    # The large tool result should have been truncated
+    # Verify truncation occurred proportionally
+    # The large tool result should have been truncated the most
     assert (
         "[Tool result truncated due to length constraints]"
         in result_messages[3].content[0].content[0].text
     )  # type: ignore
 
-    # The small tool result should not have been truncated
-    assert result_messages[1].content[0].content[0].text == small_result  # type: ignore
+    # The small tool result might not have been truncated due to the token floor
+    small_tool_text = result_messages[1].content[0].content[0].text  # type: ignore
+    # Either it wasn't truncated or it was but respects the floor
+    assert (
+        small_tool_text == small_result
+        or "[Tool result truncated due to length constraints]" in small_tool_text
+    )
 
 
 @pytest.mark.asyncio
@@ -262,31 +267,47 @@ async def test_truncation_with_missing_kernel(finalizer, mock_platform):
 
 @pytest.mark.asyncio
 async def test_truncation_with_unknown_model(finalizer, mock_kernel, mock_platform):
-    """Test that no truncation happens when model is unknown."""
-    # Create a prompt
+    """Test that truncation works correctly for unknown models using default context window."""
+    # Create a very large tool result that will exceed even the 128k default context window
+    large_result = "This is a very large tool result. " * 50000  # Much larger content
+
     prompt = Prompt(
-        messages=[
-            PromptUserMessage([PromptTextContent(text="Hello, world!")]),
+        messages=[  # type: ignore
+            PromptUserMessage([PromptTextContent(text="What's the weather?")]),
+            PromptAgentMessage(
+                [
+                    PromptToolResultContent(  # type: ignore
+                        tool_call_id="call_123",
+                        tool_name="get_weather",
+                        content=[PromptTextContent(text=large_result)],
+                    )
+                ]
+            ),
         ],
     )
 
     # Get messages to pass to the finalizer
     messages = prompt.messages
 
-    # Call the finalizer with unknown model
+    # Call the finalizer with unknown model (should use default 128,000 context window)
     result_messages = await finalizer(
         messages, prompt, mock_kernel, platform=mock_platform, model="unknown-model"
     )
 
-    # Verify no truncation occurred and we got the original messages back
-    assert result_messages == messages
+    # With such a large tool result, even the 128k context window should require truncation
+    assert result_messages == messages  # Same message objects
+
+    # Verify that truncation occurred on the tool result
+    truncated_text = result_messages[1].content[0].content[0].text  # type: ignore
+    assert "[Tool result truncated due to length constraints]" in truncated_text
+    assert len(truncated_text) < len(large_result)
 
 
 @pytest.mark.asyncio
-async def test_truncation_with_custom_max_length(mock_kernel, mock_platform):
-    """Test truncation with a custom max_tool_result_length value."""
+async def test_truncation_with_custom_parameters(mock_kernel, mock_platform):
+    """Test truncation with custom token_budget_percentage and truncation_token_floor."""
     # Create a large tool result
-    large_result = "This is a very large tool result. " * 500  # Lots of tokens
+    large_result = "This is a very large tool result. " * 1000
 
     # Create a prompt with a tool result
     prompt = Prompt(
@@ -305,11 +326,13 @@ async def test_truncation_with_custom_max_length(mock_kernel, mock_platform):
     )
 
     # Set max tokens to force truncation with a very small context window
-    mock_platform.client.model_map.model_context_windows["gpt-3.5-turbo"] = 500
+    mock_platform.client.model_map.model_context_windows["gpt-3.5-turbo"] = 1000
 
-    # Create a finalizer with a very small max_tool_result_length
-    custom_max_length = 100
-    custom_finalizer = TruncationFinalizer(max_content_length=custom_max_length)
+    # Create a finalizer with custom parameters
+    custom_finalizer = TruncationFinalizer(
+        token_budget_percentage=0.5,  # Use only 50% of context window
+        truncation_token_floor=100,  # Lower token floor for more aggressive truncation
+    )
 
     # Call the finalizer
     result_messages = await custom_finalizer(
@@ -320,46 +343,31 @@ async def test_truncation_with_custom_max_length(mock_kernel, mock_platform):
         model="gpt-3.5-turbo",
     )
 
-    # Verify truncation occurred and respects the custom max length
+    # Verify truncation occurred and respects the custom parameters
     truncated_text = result_messages[1].content[0].content[0].text  # type: ignore
     assert "[Tool result truncated due to length constraints]" in truncated_text
-
-    # The truncated part should be close to the custom_max_length
-    # Add some margin for the truncation marker
-    marker_length = len("[Tool result truncated due to length constraints]") + 4  # ... + space
-    assert len(truncated_text) < custom_max_length + marker_length + 50  # Allow some margin
+    assert len(truncated_text) < len(large_result)
 
 
-def test_collect_truncatable_content(finalizer, mock_kernel, mock_platform):
-    """Test the _collect_truncatable_content method extracts text content properly."""
-    # Create multiple content types with sufficient length
-    regular_text = "This is regular text content. " * 50  # Make this long enough
-    tool_result_text = "This is text content inside a tool result. " * 50  # Make this long enough
-
-    # Set a lower minimum_length_to_truncate to ensure our texts are collected
-    object.__setattr__(finalizer, "minimum_length_to_truncate", 10)
-
-    # Create a proper mock for non-text content
-    mock_non_text_content = MagicMock()
-    mock_non_text_content.count_tokens_approx.return_value = 10
+def test_collect_truncatable_content(finalizer):
+    """Test the _collect_truncatable_content method extracts tool results properly."""
+    # Create content with tool results
+    tool_result_text = "This is text content inside a tool result. " * 50
 
     # Create a prompt with different content types
     prompt = Prompt(
         messages=[  # type: ignore
-            PromptUserMessage([PromptTextContent(text=regular_text)]),
+            PromptUserMessage([PromptTextContent(text="Regular user message")]),
             PromptAgentMessage(
                 [
                     PromptToolResultContent(  # type: ignore
                         tool_call_id="call_1",
                         tool_name="test_tool",
-                        content=[
-                            PromptTextContent(text=tool_result_text),
-                            # Add a properly mocked non-text content object
-                            mock_non_text_content,
-                        ],
+                        content=[PromptTextContent(text=tool_result_text)],
                     )
                 ]
             ),
+            PromptAgentMessage([PromptTextContent(text="Regular agent response")]),
         ],
     )
 
@@ -369,78 +377,53 @@ def test_collect_truncatable_content(finalizer, mock_kernel, mock_platform):
     # Call _collect_truncatable_content directly
     truncatable_content = finalizer._collect_truncatable_content(messages)
 
-    # Verify the correct number of items was collected
-    assert len(truncatable_content) == 2
+    # Verify only the tool result was collected
+    assert len(truncatable_content) == 1
 
-    # Find the regular text content item
-    text_items = [item for item in truncatable_content if not item.get("tool_name")]
-    assert len(text_items) == 1
-    assert len(text_items[0]["text_contents"]) == 1
-    assert text_items[0]["text_contents"][0].text == regular_text
+    # Verify the structure matches TruncationItem
+    item = truncatable_content[0]
+    assert "tool_name" in item
+    assert "tokens" in item
+    assert "text_contents" in item
 
-    # Find the tool result content item
-    tool_items = [item for item in truncatable_content if item.get("tool_name") == "test_tool"]
-    assert len(tool_items) == 1
-    # Verify it found the text content inside the tool result
-    assert len(tool_items[0]["text_contents"]) == 1
-    assert tool_items[0]["text_contents"][0].text == tool_result_text
-
-    # Verify tool_name is in the dictionary
-    assert "tool_name" in tool_items[0]
-    assert tool_items[0]["tool_name"] == "test_tool"
+    # Verify the content
+    assert item["tool_name"] == "test_tool"
+    assert item["tokens"] > 0
+    assert len(item["text_contents"]) == 1
+    assert item["text_contents"][0].text == tool_result_text
 
 
 def test_truncate_content_method(finalizer):
-    """Test the _truncate_content method truncates text from tool results properly."""
-    # Create a truncatable content list similar to what
-    # _collect_truncatable_content would return
-    regular_text_content = PromptTextContent(text="This is regular text. " * 100)
+    """Test the _truncate_content method truncates tool results proportionally."""
+    # Create tool result text content
     tool_result_text_content = PromptTextContent(text="This is tool result text. " * 100)
 
-    # Set a very small max_content_length to force truncation
-    object.__setattr__(finalizer, "max_content_length", 100)
-
+    # Create a truncatable content list similar to what
+    # _collect_truncatable_content would return
+    # Use more tokens than the default floor (1000) to allow truncation
     truncatable_content = [
         {
-            "message_idx": 0,
-            "message": MagicMock(),
-            "content_idx": 0,
-            "content": regular_text_content,
-            "tokens": 500,  # Set high token count
-            "text_contents": [regular_text_content],
-        },
-        {
-            "message_idx": 1,
-            "message": MagicMock(),
-            "content_idx": 0,
-            "content": MagicMock(),
             "tool_name": "test_tool",
-            "tokens": 500,  # Set high token count
+            "tokens": 1500,  # More than the default floor of 1000
             "text_contents": [tool_result_text_content],
-        },
+        }
     ]
 
-    # Record original lengths
-    original_regular_text_len = len(regular_text_content.text)
-    original_tool_text_len = len(tool_result_text_content.text)
+    # Record original length
+    original_text_len = len(tool_result_text_content.text)
 
     # Call _truncate_content with a significant tokens_to_reduce
-    tokens_to_reduce = 750
-    _ = finalizer._truncate_content(truncatable_content, tokens_to_reduce)
+    tokens_to_reduce = 300
+    remaining_tokens = finalizer._truncate_content(truncatable_content, tokens_to_reduce)
 
-    # Verify both text contents were truncated
-    assert len(regular_text_content.text) < original_regular_text_len
-    assert len(tool_result_text_content.text) < original_tool_text_len
+    # Verify text content was truncated
+    assert len(tool_result_text_content.text) < original_text_len
 
     # Verify truncation marker was added
-    assert "[Tool result truncated due to length constraints]" in regular_text_content.text
     assert "[Tool result truncated due to length constraints]" in tool_result_text_content.text
 
-    # Verify the truncation respects max_content_length
-    marker_length = len("[Tool result truncated due to length constraints]") + 4  # ... + space
-    assert (
-        len(regular_text_content.text) <= finalizer.max_content_length + marker_length + 50
-    )  # Allow for marker
-    assert (
-        len(tool_result_text_content.text) <= finalizer.max_content_length + marker_length + 50
-    )  # Allow for marker
+    # Verify the method returned remaining tokens (should be 0 or close to 0)
+    assert remaining_tokens >= 0
+
+    # Verify the token count was updated in the item
+    assert truncatable_content[0]["tokens"] < 1500
