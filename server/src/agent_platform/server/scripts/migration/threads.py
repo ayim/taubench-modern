@@ -138,6 +138,23 @@ async def migrate_threads(storage):  # noqa: PLR0915, PLR0912, C901
                                         "status": "finished",
                                     }
                                 )
+                        elif (
+                            "kwargs" in message
+                            and "tool_calls" in message["kwargs"]
+                            and len(message["kwargs"]["tool_calls"]) > 0
+                        ):
+                            for each_tool_call in message["kwargs"]["tool_calls"]:
+                                v2_thread_message_content.append(
+                                    {
+                                        "content_id": str(uuid.uuid4()),
+                                        "kind": "tool_call",
+                                        "complete": True,
+                                        "name": each_tool_call["name"],
+                                        "tool_call_id": each_tool_call["id"],
+                                        "arguments_raw": json.dumps(each_tool_call["args"]),
+                                        "status": "finished",
+                                    }
+                                )
 
                     v2_thread_message_data = {
                         "message_id": message_id,

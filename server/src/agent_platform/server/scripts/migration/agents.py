@@ -100,6 +100,12 @@ def parse_platform_configs(model: str) -> list:
             )
         elif provider == "azure" and config.get("chat_url") and config.get("chat_openai_api_key"):
             platform_configs.append(parse_azure_config(config))
+        elif provider == "snowflake cortex ai":
+            platform_configs.append(
+                {
+                    "kind": "cortex",
+                }
+            )
 
     except (json.JSONDecodeError, KeyError) as e:
         raise Exception(f"Failed to parse model configuration: {e}") from e
