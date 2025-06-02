@@ -731,6 +731,7 @@ class AgentServerContext:
         labels = labels or {}
         labels.update(
             {
+                "user_id": self.user_context.user.user_id,
                 "organization": self.user_context.user.cr_tenant_id or "unknown",
             },
         )

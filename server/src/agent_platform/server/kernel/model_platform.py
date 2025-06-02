@@ -17,6 +17,11 @@ from agent_platform.core.prompts.messages import PromptUserMessage
 from agent_platform.core.responses import ResponseMessage, TokenUsage
 from agent_platform.core.responses.streaming import ResponseStreamPipe
 from agent_platform.server.kernel.kernel_mixin import UsesKernelMixin
+from agent_platform.server.telemetry import (
+    COMPLETION_TOKEN_COUNTER_NAME,
+    PROMPT_TOKEN_COUNTER_NAME,
+    TOTAL_TOKEN_COUNTER_NAME,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -211,6 +216,29 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
                             # Add usage information if available
                             if stream_pipe.reassembled_response.usage:
                                 usage = stream_pipe.reassembled_response.usage
+                                labels = {
+                                    "model": model,
+                                    "provider": self._internal_client.name,
+                                    "agent_id": self.kernel.agent.agent_id,
+                                    "thread_id": self.kernel.thread.thread_id,
+                                    "agent_name": self.kernel.agent.name,
+                                    "thread_name": self.kernel.thread.name,
+                                }
+                                self.kernel.ctx.increment_counter(
+                                    name=PROMPT_TOKEN_COUNTER_NAME,
+                                    increment=usage.input_tokens,
+                                    labels=labels,
+                                )
+                                self.kernel.ctx.increment_counter(
+                                    name=COMPLETION_TOKEN_COUNTER_NAME,
+                                    increment=usage.output_tokens,
+                                    labels=labels,
+                                )
+                                self.kernel.ctx.increment_counter(
+                                    name=TOTAL_TOKEN_COUNTER_NAME,
+                                    increment=usage.total_tokens,
+                                    labels=labels,
+                                )
                                 if usage and langsmith_span:
                                     langsmith_span["usage"] = self._generate_usage_metadata(usage)
             except Exception:

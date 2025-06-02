@@ -1,3 +1,5 @@
+from dataclasses import dataclass, field
+
 import structlog
 from opentelemetry import metrics, trace
 from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
@@ -8,13 +10,40 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
-from agent_platform.server.otel import OTELConfig
+from agent_platform.core.configurations import Configuration, FieldMetadata
 
 logger = structlog.get_logger(__name__)
 
 # Global variables to store providers
 _tracer_provider = None
 _meter_provider = None
+
+
+@dataclass(frozen=True)
+class OTELConfig(Configuration):
+    """Configuration for OpenTelemetry."""
+
+    collector_url: str = field(
+        default="",
+        metadata=FieldMetadata(
+            description="The URL of the OpenTelemetry collector.",
+            env_vars=["SEMA4AI_AGENT_SERVER_OTEL_COLLECTOR_URL", "OTEL_COLLECTOR_URL"],
+        ),
+    )
+    is_enabled: bool = field(
+        default=False,
+        metadata=FieldMetadata(
+            description="Whether to enable OpenTelemetry.",
+            env_vars=["SEMA4AI_AGENT_SERVER_OTEL_ENABLED", "OTEL_ENABLED"],
+        ),
+    )
+
+
+# Constants
+SERVICE_NAME = "sema4ai.agent_server"
+PROMPT_TOKEN_COUNTER_NAME = SERVICE_NAME + ".prompt_tokens"
+COMPLETION_TOKEN_COUNTER_NAME = SERVICE_NAME + ".completion_tokens"
+TOTAL_TOKEN_COUNTER_NAME = SERVICE_NAME + ".total_tokens"
 
 
 # TODO: Make this more configurable (export interval, etc.). Make sure we're using the
@@ -40,7 +69,7 @@ def setup_telemetry():
     logger.info(f"Collector URL: {collector_url}")
     # Set up resource with service info
     # TODO: pull version from versionbump controlled constant
-    resource = Resource(attributes={"service.name": "agent-server-v2", "service.version": "2.0.0"})
+    resource = Resource(attributes={"service.name": SERVICE_NAME, "service.version": "2.0.0"})
 
     # Create and configure trace provider
     _tracer_provider = TracerProvider(resource=resource)
