@@ -1,3 +1,33 @@
+# Sema4.ai Agent Server Pre-Release 2.0.0-beta.6 (2025-06-02)
+
+## Agent Server
+
+### Features
+
+- Add sema4ai otel metrics.
+
+### Bugfixes
+
+- Fix tool call rendering in LangSmith input history. ([GPT-876](https://linear.app/sema4ai/issue/GPT-876))
+- Migrations for Cortex agents and threads may be missing a few small things; fixed migrations for these niche cases. ([GPT-917](https://linear.app/sema4ai/issue/GPT-917))
+
+### Additional Information Not Pertinent to Client Users
+
+- [GPT-920](https://linear.app/sema4ai/issue/GPT-920)
+
+
+## Public API
+
+No significant changes.
+
+
+## Private API
+
+### Bugfixes
+
+- When agent is created via package endpoint, mode is always conversational and worker agent metadata are lost.
+
+
 # Sema4.ai Agent Server Pre-Release 2.0.0-beta.5 (2025-05-30)
 
 ## Agent Server
