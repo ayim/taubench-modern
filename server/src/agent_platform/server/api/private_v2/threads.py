@@ -41,8 +41,6 @@ async def create_thread(
         {
             "agent_id": thread.agent_id,
             "thread_id": thread.thread_id,
-            "user_id": user.cr_user_id if user.cr_user_id else "None",
-            "system_id": user.cr_system_id if user.cr_system_id else "None",
         },
     )
 

@@ -620,7 +620,10 @@ class AgentServerContext:
                     span.set_attribute(key, value)
 
             # Add common attributes
-            span.set_attribute("user", self.user_context.user.user_id)
+            if self.user_context.user.cr_user_id:
+                span.set_attribute("user_id", self.user_context.user.cr_user_id)
+            if self.user_context.user.cr_system_id:
+                span.set_attribute("system_id", self.user_context.user.cr_system_id)
             span.set_attribute(
                 "organization",
                 self.user_context.user.cr_tenant_id or "unknown",
@@ -661,9 +664,12 @@ class AgentServerContext:
         ctx = {
             "trace_id": current_span.get_span_context().trace_id,
             "span_id": current_span.get_span_context().span_id,
-            "user": self.user_context.user.user_id,
             "organization": self.user_context.user.cr_tenant_id or "unknown",
         }
+        if self.user_context.user.cr_user_id:
+            ctx["user_id"] = self.user_context.user.cr_user_id
+        if self.user_context.user.cr_system_id:
+            ctx["system_id"] = self.user_context.user.cr_system_id
         if extra_context:
             ctx.update(extra_context)
 
@@ -686,10 +692,13 @@ class AgentServerContext:
         labels = labels or {}
         labels.update(
             {
-                "user": self.user_context.user.user_id,
                 "organization": self.user_context.user.cr_tenant_id or "unknown",
             },
         )
+        if self.user_context.user.cr_user_id:
+            labels.update({"user_id": self.user_context.user.cr_user_id})
+        if self.user_context.user.cr_system_id:
+            labels.update({"system_id": self.user_context.user.cr_system_id})
 
         # Get or create the metric
         if name not in self._metric_cache:
@@ -722,10 +731,13 @@ class AgentServerContext:
         labels = labels or {}
         labels.update(
             {
-                "user": self.user_context.user.user_id,
                 "organization": self.user_context.user.cr_tenant_id or "unknown",
             },
         )
+        if self.user_context.user.cr_user_id:
+            labels.update({"user_id": self.user_context.user.cr_user_id})
+        if self.user_context.user.cr_system_id:
+            labels.update({"system_id": self.user_context.user.cr_system_id})
 
         # Get or create the counter
         if name not in self._metric_cache:
