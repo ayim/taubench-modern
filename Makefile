@@ -99,6 +99,31 @@ dev-widget:  ## Run pnpm run dev on server/examples/debug_widget
 	pnpm install && \
 	pnpm run dev; \
 	popd
+
+# --------------------------------------------------------------------
+# Observability
+# --------------------------------------------------------------------
+
+observability-up:
+	@echo "Starting observability stack..."
+	docker compose -f observability/docker-compose.observability.yml up -d
+
+observability-down:
+	@echo "Stopping observability stack..."
+	docker compose -f observability/docker-compose.observability.yml down
+
+observability-logs:
+	@echo "Showing observability stack logs..."
+	docker compose -f observability/docker-compose.observability.yml logs -f
+
+observability-ps:
+	@echo "Checking observability stack status..."
+	docker compose -f observability/docker-compose.observability.yml ps
+
+observability-clean:
+	@echo "Cleaning observability stack and volumes..."
+	docker compose -f observability/docker-compose.observability.yml down -v
+	docker volume rm agent-platform_prometheus_data 2>/dev/null || true
 	
 # --------------------------------------------------------------------
 # Run & Test
@@ -115,14 +140,6 @@ run-server-exe:  ## Run the agent server executable
 	fi
 	@echo "Running server from dist/..."
 	./dist/$(EXE_NAME)
-
-otel-collector:  ## Run the OTEL collector for viewing telemetry data
-	@echo "Starting OTEL collector..."
-	uv run -m agent_platform.server.otel_collector
-
-langsmith-collector:  ## Run the LangSmith collector for viewing LangChain traces
-	@echo "Starting LangSmith collector..."
-	uv run -m agent_platform.server.langsmith_collector
 
 test:  check-env-or-no-env ## Run all tests with pytest (VCR playback only)
 	VCR_RECORD=none uv run pytest
