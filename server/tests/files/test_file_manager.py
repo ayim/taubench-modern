@@ -360,6 +360,40 @@ class TestFileManager:
         assert results[0].thread_id == sample_uploaded_file.thread_id
         assert results[0].agent_id == sample_uploaded_file.agent_id
 
+    async def test_same_file_across_threads(
+        self,
+        file_manager: BaseFileManager,
+        sample_file: UploadFile,
+        sample_thread: Thread,
+        setup_storage: SQLiteStorage | PostgresStorage,
+        sample_uploaded_file: UploadedFile,
+    ):
+        """Verifies that a file with the same name can be uploaded to multiple threads in the
+        same agent.
+        """
+        # Create a second thread with the same agent.
+        thread2 = sample_thread.copy()
+        thread2.thread_id = str(uuid4())
+        # generate new message IDs in the copied thread
+        for msg in thread2.messages:
+            msg.message_id = str(uuid4())
+        await setup_storage.upsert_thread(sample_thread.user_id, thread2)
+
+        # Upload the same file to both threads.
+        for thread in [sample_thread, thread2]:
+            results = await file_manager.upload(
+                files=[UploadFilePayload(file=sample_file)],
+                owner=thread,
+                user_id=thread.user_id,
+            )
+
+            assert len(results) == 1
+            assert results[0].file_ref == sample_uploaded_file.file_ref
+            assert results[0].mime_type == sample_uploaded_file.mime_type
+            assert results[0].user_id == sample_uploaded_file.user_id
+            assert results[0].thread_id == thread.thread_id
+            assert results[0].agent_id == sample_uploaded_file.agent_id
+
     async def test_upload_duplicate_file_names(
         self,
         file_manager: BaseFileManager,

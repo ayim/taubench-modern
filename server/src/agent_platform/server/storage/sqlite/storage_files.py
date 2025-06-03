@@ -304,6 +304,15 @@ class SQLiteStorageFilesMixin(CommonMixin):
         async with self._cursor() as cur:
             try:
                 # Try to insert/update the file
+                # We want files to be unique per name (file_ref), agent and thread.
+                # If a user uploads the same file to the same agent+thread, we should update
+                #   the existing file.
+                # If a user uploads the same file to a different thread in the same agent, we
+                #   should create a new file.
+                # Nb: the underlying table does not have a single unique constraint over both
+                # file_ref, agent_id and thread_id. If in the future, we want to support agent
+                # files, we will have to alter the constraints on this table. For now, we
+                # know that thread_id's are globally unique, so we ignore the agent_id.
                 await cur.execute(
                     """
                     INSERT INTO v2_file_owner (
@@ -318,14 +327,13 @@ class SQLiteStorageFilesMixin(CommonMixin):
                         :agent_id, :thread_id, :file_path_expiration,
                         :created_at
                     )
-                    ON CONFLICT(file_id) DO UPDATE SET
+                    ON CONFLICT(file_ref, thread_id) DO UPDATE SET
                         file_path = excluded.file_path,
                         file_hash = excluded.file_hash,
                         file_size_raw = excluded.file_size_raw,
                         mime_type = excluded.mime_type,
                         embedded = excluded.embedded,
                         agent_id = excluded.agent_id,
-                        thread_id = excluded.thread_id,
                         file_path_expiration = excluded.file_path_expiration,
                         created_at = excluded.created_at
                     """,

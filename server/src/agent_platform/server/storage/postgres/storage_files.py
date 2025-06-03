@@ -319,14 +319,13 @@ class PostgresStorageFilesMixin(CommonMixin):
                         %(embedded)s, %(agent_id)s::uuid, %(thread_id)s::uuid,
                         %(file_path_expiration)s, %(created_at)s
                     )
-                    ON CONFLICT(file_id) DO UPDATE SET
+                    ON CONFLICT(file_ref, thread_id) DO UPDATE SET
                         file_path = EXCLUDED.file_path,
                         file_hash = EXCLUDED.file_hash,
                         file_size_raw = EXCLUDED.file_size_raw,
                         mime_type = EXCLUDED.mime_type,
                         embedded = EXCLUDED.embedded,
                         agent_id = EXCLUDED.agent_id,
-                        thread_id = EXCLUDED.thread_id,
                         file_path_expiration = EXCLUDED.file_path_expiration,
                         created_at = EXCLUDED.created_at
                     """,
