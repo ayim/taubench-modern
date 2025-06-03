@@ -46,6 +46,7 @@ from agent_platform.server.auth import AuthedUser, AuthedUserWebsocket
 from agent_platform.server.kernel import AgentServerKernel
 from agent_platform.server.storage import (
     AgentNotFoundError,
+    RunNotFoundError,
     ThreadNotFoundError,
 )
 
@@ -171,6 +172,30 @@ async def get_run_messages(
         run_id,
     )
     return messages
+
+
+@router.get("/{run_id}/status")
+async def get_run_status(
+    run_id: str,
+    user: AuthedUser,
+    storage: StorageDependency,
+):
+    """
+    Get the status of a run by its ID.
+    Returns the run's current status.
+    """
+    try:
+        run = await storage.get_run(run_id)
+        return {
+            "run_id": run.run_id,
+            "status": run.status,
+        }
+    except Exception as e:
+        # If run not found or any other error, return 404
+
+        if isinstance(e, RunNotFoundError):
+            raise e
+        raise HTTPException(status_code=404, detail="Run not found") from None
 
 
 @router.websocket("/{agent_id}/stream")

@@ -23,8 +23,7 @@ from agent_platform.core.streaming.delta import (
 from agent_platform.core.thread.thread import Thread
 from agent_platform.core.user import User
 from agent_platform.server.api.private_v2 import runs as runs_mod
-from agent_platform.server.storage import ThreadNotFoundError
-from agent_platform.server.storage.errors import AgentNotFoundError
+from agent_platform.server.storage import AgentNotFoundError, RunNotFoundError, ThreadNotFoundError
 
 
 class StubStorage:
@@ -44,6 +43,7 @@ class StubStorage:
             "add_message_to_thread": 0,
             "create_run": 0,
             "upsert_run": 0,
+            "get_run": 0,
         }
 
     # ---- agent CRUD ------------------------------------------------
@@ -94,6 +94,13 @@ class StubStorage:
     async def upsert_run(self, run) -> None:
         self.call_counts["upsert_run"] += 1
         self.runs[run.run_id] = run
+
+    async def get_run(self, run_id: str):
+        """Get a run by its ID."""
+        self.call_counts["get_run"] = self.call_counts.get("get_run", 0) + 1
+        if run_id not in self.runs:
+            raise RunNotFoundError(f"Run {run_id} not found")
+        return self.runs[run_id]
 
     # Helpers for assertions
     def last_run(self):
@@ -592,3 +599,40 @@ def test_add_message_called_on_existing_thread(
     assert stub_storage.call_counts["add_message_to_thread"] >= 0
     # upsert should NOT be called for an existing thread
     assert stub_storage.call_counts["upsert_thread"] == 0
+
+
+def test_get_run_status_happy_path(client: TestClient, stub_storage: StubStorage):
+    """
+    Test getting the status of an existing run.
+    """
+    test_agent_uuid = str(uuid.uuid4())
+    test_thread_id = str(uuid.uuid4())
+    StubRunner.override_agent_id = test_agent_uuid
+
+    # First create a run
+    response = client.post(
+        f"/runs/{test_agent_uuid}/async_invoke",
+        json=make_initial_payload(test_agent_uuid, test_thread_id),
+    )
+    assert response.status_code == 200
+    run_data = response.json()
+    run_id = run_data["run_id"]
+
+    # Now get the status
+    status_response = client.get(f"/runs/{run_id}/status")
+    assert status_response.status_code == 200
+
+    status_data = status_response.json()
+    assert status_data["run_id"] == run_id
+    assert status_data["status"] == "running"
+
+
+def test_get_run_status_not_found(client: TestClient, stub_storage: StubStorage):
+    """
+    Test getting the status of a non-existent run returns 404.
+    """
+    non_existent_run_id = str(uuid.uuid4())
+
+    response = client.get(f"/runs/{non_existent_run_id}/status")
+    assert response.status_code == 404
+    assert "not found" in response.json()["detail"].lower()
