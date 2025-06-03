@@ -11,9 +11,9 @@ from starlette.middleware.cors import CORSMiddleware
 from agent_platform.server import __version__
 from agent_platform.server.api import (
     PRIVATE_V2_PREFIX,
-    PUBLIC_V1_PREFIX,
+    PUBLIC_V2_PREFIX,
     private_v2_router,
-    public_v1_router,
+    public_v2_router,
 )
 from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.api.mcp import mcp
@@ -56,7 +56,7 @@ class EnsureAPIPrefixMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         if not request.url.path.startswith(
             (
-                PUBLIC_V1_PREFIX,
+                PUBLIC_V2_PREFIX,
                 PRIVATE_V2_PREFIX,
                 "/api/v1",  # TODO: remove this once we're able (Backwards compat)
                 "/api/v2/mcp",
@@ -106,11 +106,11 @@ def create_app() -> FastAPI:
         validation_exception_handler,
     )
 
-    app_public_v1 = _CustomFastAPI(
-        title="Sema4.ai Agent Server Public API Version 1",
+    app_public_v2 = _CustomFastAPI(
+        title="Sema4.ai Agent Server Public API Version 2",
     )
-    app_public_v1.include_router(public_v1_router)
-    app_public_v1.add_exception_handler(
+    app_public_v2.include_router(public_v2_router)
+    app_public_v2.add_exception_handler(
         RequestValidationError,
         validation_exception_handler,
     )
@@ -149,10 +149,10 @@ def create_app() -> FastAPI:
 
     app.add_middleware(EnsureAPIPrefixMiddleware)
     app.include_router(private_v2_router)
-    app.include_router(public_v1_router)
+    app.include_router(public_v2_router)
     # Mount the API versions under their respective prefixes
     app.mount(PRIVATE_V2_PREFIX, app_private_v2)
-    app.mount(PUBLIC_V1_PREFIX, app_public_v1)
+    app.mount(PUBLIC_V2_PREFIX, app_public_v2)
 
     # TODO: remove this once we're able
     app_private_v1 = _CustomFastAPI(

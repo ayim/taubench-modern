@@ -1,16 +1,18 @@
 # Standard library imports
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Annotated, Any
+from uuid import uuid4
 
-# Third-party imports
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 from fastapi.params import Body
 from sse_starlette import EventSourceResponse
 
+from agent_platform.core.thread import Thread
+from agent_platform.server.api.dependencies import FileManagerDependency, StorageDependency
+from agent_platform.server.api.public_v2.compat import AgentCompat, ConversationCompat
 from agent_platform.server.auth.handlers import AuthedUser
-
-PUBLIC_V1_PREFIX = "/api/public/v1"
 
 router = APIRouter()
 
@@ -148,7 +150,7 @@ class ConversationState(Conversation):
 
 
 @router.get(
-    "/agents",
+    "/",
     summary="List agents",
     description=(
         "Returns a list of all agents for the authenticated user. You can "
@@ -164,17 +166,21 @@ class ConversationState(Conversation):
 )
 async def get_agents(
     user: AuthedUser,
+    storage: StorageDependency,
     limit: int | None = None,
     name: str | None = Query(
         None,
         description="Filter agents by name (starts with, case insensitive).",
     ),
 ) -> PaginatedResponse:
-    raise NotImplementedError("Not implemented")
+    agents = [AgentCompat.from_agent(a) for a in await storage.list_agents(user.user_id)]
+    if name:
+        agents = [agent for agent in agents if agent.name.lower().startswith(name.lower())]
+    return PaginatedResponse(next=None, has_more=False, data=agents)
 
 
 @router.get(
-    "/agents/{aid}",
+    "/{aid}",
     summary="Get agent",
     description="Returns the agent with the given name.",
     response_description="Agent",
@@ -188,13 +194,19 @@ async def get_agents(
 )
 async def get_agent_by_name(
     user: AuthedUser,
+    storage: StorageDependency,
     aid: str,
-) -> Agent:
-    raise NotImplementedError("Not implemented")
+) -> AgentCompat:
+    # TODO api v1 don't search by name despite the name of this endpoint
+    agent = await storage.get_agent(user.user_id, aid)
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    return AgentCompat.from_agent(agent)
 
 
 @router.get(
-    "/agents/{aid}/conversations",
+    "/{aid}/conversations",
     summary="List conversations",
     description="Returns a list of all conversations for the given agent.",
     response_description="List of conversations",
@@ -209,13 +221,20 @@ async def get_agent_by_name(
 async def get_conversations(
     user: AuthedUser,
     aid: str,
+    storage: StorageDependency,
     limit: int | None = None,
 ) -> PaginatedResponse:
-    raise NotImplementedError("Not implemented")
+    agent = await storage.get_agent(user.user_id, aid)
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    threads = await storage.list_threads_for_agent(user.user_id, agent.agent_id)
+    data = [ConversationCompat.from_thread(thread) for thread in threads[:limit]]
+    return PaginatedResponse(next=None, has_more=False, data=data)
 
 
 @router.get(
-    "/agents/{aid}/conversations/{cid}/messages",
+    "/{aid}/conversations/{cid}/messages",
     summary="Get conversation messages",
     description=("Returns the conversation messages of the given chat_id for the given agent."),
     response_description="Conversation",
@@ -229,14 +248,23 @@ async def get_conversations(
 )
 async def get_chat_messages(
     user: AuthedUser,
+    storage: StorageDependency,
     aid: str,
     cid: str,
-) -> ConversationState:
-    raise NotImplementedError("Not implemented")
+) -> ConversationCompat | None:
+    agent = await storage.get_agent(user.user_id, aid)
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    thread = await storage.get_thread(user.user_id, cid)
+    if thread is None:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    return ConversationCompat.from_thread_with_messages(thread) if thread else None
 
 
 @router.post(
-    "/agents/{aid}/conversations",
+    "/{aid}/conversations",
     summary="Create new conversation",
     description="Creates a new conversation for the given agent.",
     response_description="Conversation",
@@ -251,14 +279,29 @@ async def get_chat_messages(
 )
 async def create_conversation(
     user: AuthedUser,
+    storage: StorageDependency,
     aid: str,
     body: Annotated[CreateChatRequest, Body()],
-) -> Conversation:
-    raise NotImplementedError("Not implemented")
+) -> ConversationCompat:
+    agent = await storage.get_agent(user.user_id, aid)
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    new_thread = Thread(
+        user_id=user.user_id,
+        thread_id=str(uuid4()),
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
+        name=body.name,
+        agent_id=agent.agent_id,
+        messages=[],
+        metadata={},
+    )
+    await storage.upsert_thread(user.user_id, thread=new_thread)
+    return ConversationCompat.from_thread(new_thread)
 
 
 @router.post(
-    "/agents/{aid}/conversations/{cid}/messages",
+    "/{aid}/conversations/{cid}/messages",
     summary="Post a message (synchronous)",
     description=(
         "Post a message to a conversation thread, and get the updated conversation state."
@@ -275,15 +318,16 @@ async def create_conversation(
 )
 async def post_messages_simple(
     user: AuthedUser,
+    storage: StorageDependency,
     aid: str,
     cid: str,
     body: Annotated[ChatMessageRequest, Body()],
-) -> ConversationState:
+) -> ConversationCompat | None:
     raise NotImplementedError("Not implemented")
 
 
 @router.post(
-    "/agents/{aid}/conversations/{cid}/stream",
+    "/{aid}/conversations/{cid}/stream",
     summary="Post a message to a conversation and stream the response",
     description="Post a message to a conversation and stream the response",
     response_description="SSE Stream of messages",
@@ -306,7 +350,7 @@ async def post_public_api_messages_simple(
 
 
 @router.post(
-    "/agents/{aid}/conversations/{cid}/messages/detailed",
+    "/{aid}/conversations/{cid}/messages/detailed",
     summary="Post messages (synchronous)",
     description=("Post messages to a conversation thread, and get the updated conversation state."),
     response_description="Conversation with messages",
@@ -329,7 +373,7 @@ async def post_messages_detailed(
 
 
 @router.post(
-    "/agents/{aid}/conversations/{cid}/stream/detailed",
+    "/{aid}/conversations/{cid}/stream/detailed",
     summary="Post messages to a conversation and stream the response",
     description="Post messages to a conversation and stream the response",
     response_description="SSE Stream of messages",
@@ -352,7 +396,7 @@ async def post_public_api_messages_detailed(
 
 
 @router.delete(
-    "/agents/{aid}/conversations/{cid}",
+    "/{aid}/conversations/{cid}",
     summary="Delete conversation",
     description=("Deletes the conversation with the given conversation ID for the given agent."),
     response_description="Conversation",
@@ -366,7 +410,20 @@ async def post_public_api_messages_detailed(
 )
 async def delete_chat(
     user: AuthedUser,
+    storage: StorageDependency,
+    file_manager: FileManagerDependency,
     aid: str,
     cid: str,
-):
-    raise NotImplementedError("Not implemented")
+) -> ConversationCompat:
+    thread = await storage.get_thread(user.user_id, cid)
+    if not thread:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    files = await storage.get_thread_files(thread_id=cid, user_id=user.user_id)
+    for file in files:
+        await file_manager.delete(
+            user_id=user.user_id, thread_id=thread.thread_id, file_id=file.file_id
+        )
+
+    await storage.delete_thread(user.user_id, cid)
+    return ConversationCompat.from_thread(thread)
