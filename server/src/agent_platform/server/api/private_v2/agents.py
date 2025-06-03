@@ -179,7 +179,10 @@ async def get_agent_raw(
     aid: str,
     storage: StorageDependency,
 ) -> AgentCompat:
-    return AgentCompat.from_agent(await storage.get_agent(user.user_id, aid))
+    return AgentCompat.from_agent(
+        await storage.get_agent(user.user_id, aid),
+        reveal_sensitive=True,
+    )
 
 
 @router.delete("/{aid}", status_code=204)
