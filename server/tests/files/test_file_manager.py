@@ -394,6 +394,54 @@ class TestFileManager:
             assert results[0].thread_id == thread.thread_id
             assert results[0].agent_id == sample_uploaded_file.agent_id
 
+    async def test_thread_delete_cleans_up_files(
+        self,
+        file_manager: BaseFileManager,
+        sample_file: UploadFile,
+        sample_thread: Thread,
+        setup_storage: SQLiteStorage | PostgresStorage,
+        sample_uploaded_file: UploadedFile,
+    ):
+        """Verifies that a file with the same name can be uploaded to multiple threads in the
+        same agent.
+        """
+
+        # Upload the file to the thread
+        results = await file_manager.upload(
+            files=[UploadFilePayload(file=sample_file)],
+            owner=sample_thread,
+            user_id=sample_thread.user_id,
+        )
+
+        assert len(results) == 1
+        assert results[0].file_ref == sample_uploaded_file.file_ref
+        assert results[0].mime_type == sample_uploaded_file.mime_type
+        assert results[0].user_id == sample_uploaded_file.user_id
+        assert results[0].thread_id == sample_thread.thread_id
+        assert results[0].agent_id == sample_uploaded_file.agent_id
+
+        # Make sure the file is in the thread
+        files = await setup_storage.get_thread_files(
+            sample_thread.thread_id,
+            sample_thread.user_id,
+        )
+        assert len(files) == 1
+        assert files[0].file_ref == sample_uploaded_file.file_ref
+        assert files[0].mime_type == sample_uploaded_file.mime_type
+        assert files[0].user_id == sample_uploaded_file.user_id
+
+        # Delete the thread
+        await setup_storage.delete_thread(
+            sample_thread.user_id,
+            sample_thread.thread_id,
+        )
+
+        # Make sure the file is deleted
+        actual_file = await setup_storage.get_file_by_id(files[0].file_id, sample_thread.user_id)
+        assert actual_file is None, (
+            "Files should be automatically deleted when the thread is deleted"
+        )
+
     async def test_upload_duplicate_file_names(
         self,
         file_manager: BaseFileManager,

@@ -56,6 +56,8 @@ class UploadedFile:
         data = data.copy()
         if "file_id" in data and isinstance(data["file_id"], UUID):
             data["file_id"] = str(data["file_id"])
+        if "user_id" in data and isinstance(data["user_id"], UUID):
+            data["user_id"] = str(data["user_id"])
         if "agent_id" in data and isinstance(data["agent_id"], UUID):
             data["agent_id"] = str(data["agent_id"])
         if "thread_id" in data and isinstance(data["thread_id"], UUID):
