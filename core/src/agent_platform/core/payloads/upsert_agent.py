@@ -239,16 +239,23 @@ class UpsertAgentPayload:
 
     def _handle_legacy_worker_config(self):
         """Handle backward compatibility for 'worker_config' in metadata."""
+        key = None
         if "worker_config" in self.metadata:
+            key = "worker_config"
+        elif "worker-config" in self.metadata:
+            key = "worker-config"
+
+        if key is not None:
+            worker_cfg = self.metadata[key]
             object.__setattr__(
                 self,
                 "extra",
                 {
                     **self.extra,
-                    "worker_config": self.metadata["worker_config"],
+                    "worker_config": worker_cfg,
                 },
             )
-            del self.metadata["worker_config"]
+            del self.metadata[key]
 
     def _handle_legacy_question_groups(self):
         """Handle backward compatibility for 'question_groups' in metadata."""
