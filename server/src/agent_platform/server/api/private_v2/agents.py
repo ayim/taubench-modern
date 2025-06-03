@@ -50,7 +50,10 @@ async def list_agents_raw(
     user: AuthedUser,
     storage: StorageDependency,
 ) -> list[AgentCompat]:
-    return [AgentCompat.from_agent(a) for a in await storage.list_agents(user.user_id)]
+    return [
+        AgentCompat.from_agent(a, reveal_sensitive=True)
+        for a in await storage.list_agents(user.user_id)
+    ]
 
 
 @router.get("/by-name", response_model=AgentCompat)
@@ -113,7 +116,7 @@ async def update_agent_raw(
     agent = UpsertAgentPayload.to_agent(payload, user_id=user.user_id, agent_id=aid)
     await storage.upsert_agent(user.user_id, agent)
     ToolDefinitionCache().clear_for_agent(agent)
-    return AgentCompat.from_agent(agent)
+    return AgentCompat.from_agent(agent, reveal_sensitive=True)
 
 
 # Backwards compatibility

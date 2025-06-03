@@ -37,6 +37,18 @@ class AgentCompat(Agent):
         "google": "unknown",
         "anthropic": "claude-3-5-sonnet",
     }
+    SENSITIVE_KEYS: ClassVar[list[str]] = [
+        "openai_api_key",
+        "azure_api_key",
+        "google_api_key",
+        "groq_api_key",
+        "anthropic_api_key",
+        "chat_openai_api_key",
+        "embeddings_openai_api_key",
+        "aws_access_key_id",
+        "aws_secret_access_key",
+        "snowflake_password",
+    ]
 
     runbook: str = field(default="")
     id: str | None = field(default=None)
@@ -53,6 +65,7 @@ class AgentCompat(Agent):
     def _convert_platform_config_to_legacy_model(  # noqa: C901
         cls,
         platform_configs: list[AnyPlatformParameters],
+        reveal_sensitive: bool = False,
     ) -> dict:
         # TODO: more backwards compat, this dance will go away
         # when we have some good time to focus on studio integration
@@ -106,6 +119,12 @@ class AgentCompat(Agent):
         # actual config values from studio later... ugh)
         model_config = {k: v for k, v in model_config.items() if v != "UNSET"}
 
+        # Mask sensitive API keys if requested
+        if not reveal_sensitive:
+            model_config = {
+                k: "**********" if k in cls.SENSITIVE_KEYS else v for k, v in model_config.items()
+            }
+
         return dict(
             provider=cls.KIND_TO_PROVIDER[platform_configs[0].kind],
             name=cls.KIND_TO_LEGACY_MODEL[platform_configs[0].kind],
@@ -113,14 +132,53 @@ class AgentCompat(Agent):
         )
 
     @classmethod
-    def from_agent(cls, agent: Agent) -> "AgentCompat":
+    def from_agent(cls, agent: Agent, reveal_sensitive: bool = False) -> "AgentCompat":
         model = cls._convert_platform_config_to_legacy_model(
             agent.platform_configs,
+            reveal_sensitive=reveal_sensitive,
         )
+
+        # Mask runbook if reveal_sensitive is False
+        runbook_text = agent.runbook_structured.raw_text
+        if not reveal_sensitive and runbook_text:
+            runbook_text = "**********"
+
+        # Create masked runbook_structured if reveal_sensitive is False
+        masked_runbook_structured = agent.runbook_structured
+        if not reveal_sensitive:
+            from agent_platform.core.runbook import Runbook
+
+            masked_runbook_structured = Runbook(
+                raw_text="**********" if agent.runbook_structured.raw_text else "",
+                content=[],
+            )
+
+        langsmith_config = None
+        if len(agent.observability_configs) > 0:
+            obs_config = agent.observability_configs[0]
+            langsmith_config = dict(
+                api_key="**********" if not reveal_sensitive else obs_config.api_key,
+                api_url=obs_config.api_url,
+                project_name=obs_config.settings["project_name"],
+            )
+
+        masked_platform_configs = agent.platform_configs
+        if not reveal_sensitive:
+            masked_platform_configs = []
+            for config in agent.platform_configs:
+                config_dict = config.model_dump()
+                # Remove kind field as it's init=False in the dataclass
+                config_dict.pop("kind", None)
+                # Mask sensitive keys in platform config
+                for key in cls.SENSITIVE_KEYS:
+                    if key in config_dict:
+                        config_dict[key] = "**********"
+                # Create a new config object with masked data
+                masked_platform_configs.append(type(config).model_validate(config_dict))
 
         return cls(
             id=agent.agent_id,
-            runbook=agent.runbook_structured.raw_text,
+            runbook=runbook_text,
             public=True,
             metadata=dict(
                 mode=agent.mode,
@@ -137,28 +195,22 @@ class AgentCompat(Agent):
                 architecture="agent",
                 reasoning="disabled",
                 recursion_limit=100,
-                langsmith=(
-                    dict(
-                        api_key=agent.observability_configs[0].api_key,
-                        api_url=agent.observability_configs[0].api_url,
-                        project_name=agent.observability_configs[0].settings["project_name"],
-                    )
-                    if len(agent.observability_configs) > 0
-                    else None
-                ),
+                langsmith=langsmith_config,
             ),
             name=agent.name,
             description=agent.description,
             user_id=agent.user_id,
             version=agent.version,
-            runbook_structured=agent.runbook_structured,
+            runbook_structured=masked_runbook_structured,
             action_packages=[
                 ActionPackageCompat(
                     name=ap.name,
                     organization=ap.organization,
                     version=ap.version,
                     url=ap.url,
-                    api_key=ap.api_key.get_secret_value() if ap.api_key else None,
+                    api_key="**********"
+                    if not reveal_sensitive and ap.api_key
+                    else (ap.api_key.get_secret_value() if ap.api_key else None),
                     whitelist=",".join(ap.allowed_actions),
                 )
                 for ap in agent.action_packages
@@ -166,7 +218,7 @@ class AgentCompat(Agent):
             mcp_servers=agent.mcp_servers,
             agent_architecture=agent.agent_architecture,
             question_groups=agent.question_groups,
-            platform_configs=agent.platform_configs,
+            platform_configs=masked_platform_configs,
             observability_configs=agent.observability_configs,
             created_at=agent.created_at,
             updated_at=agent.updated_at,
