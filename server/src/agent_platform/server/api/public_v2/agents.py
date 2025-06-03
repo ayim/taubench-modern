@@ -1,8 +1,6 @@
 # Standard library imports
-from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from enum import Enum
-from typing import Annotated, Any
+from typing import Annotated
 from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Query
@@ -10,143 +8,22 @@ from fastapi.params import Body
 from sse_starlette import EventSourceResponse
 
 from agent_platform.core.thread import Thread
+from agent_platform.core.thread.base import ThreadMessage
+from agent_platform.core.thread.content.text import ThreadTextContent
 from agent_platform.server.api.dependencies import FileManagerDependency, StorageDependency
-from agent_platform.server.api.public_v2.compat import AgentCompat, ConversationCompat
+from agent_platform.server.api.public_v2.compat import (
+    AgentCompat,
+    ChatMessageRequest,
+    Conversation,
+    ConversationCompat,
+    ConversationState,
+    CreateChatRequest,
+    Message,
+    PaginatedResponse,
+)
 from agent_platform.server.auth.handlers import AuthedUser
 
 router = APIRouter()
-
-
-class Mode(str, Enum):
-    CONVERSATIONAL = "conversational"
-    WORKER = "worker"
-
-
-class Architecture(str, Enum):
-    AGENT = "agent"
-    PLAN_EXECUTE = "plan_execute"
-
-
-class Provider(str, Enum):
-    OPENAI = "OpenAI"
-    AZURE = "Azure"
-    AMAZON = "Amazon"
-    SNOWFLAKE_CORTEX = "Snowflake Cortex AI"
-
-
-@dataclass
-class ActionPackage:
-    name: str
-    organization: str
-    version: str
-    actions: str
-
-
-@dataclass
-class LanguageModel:
-    provider: Provider
-    model: str
-
-
-@dataclass
-class Agent:
-    id: str
-    name: str
-    description: str
-    llm: LanguageModel
-    architecture: Architecture
-    mode: Mode
-
-
-class Role(str, Enum):
-    AGENT = "agent"
-    HUMAN = "human"
-
-
-class MessageType(str, Enum):
-    MESSAGE = "message"
-    TOKEN = "token"
-    TOOL_REQUEST = "action_request"
-    TOOL_RESPONSE = "action_response"
-    START_STREAM = "start_stream"
-    END_STREAM = "end_stream"
-
-
-@dataclass
-class Message:
-    id: str | None
-    type: MessageType
-    role: Role
-    content: str
-    channel: str = field(default="chat")
-
-
-@dataclass
-class TokenMessage:
-    id: str | None
-    type: MessageType
-    role: Role
-    token: str
-    token_sequence: int
-    channel: str = field(default="chat")
-
-
-@dataclass
-class ToolCall:
-    id: str
-    name: str
-    args: dict
-
-
-@dataclass
-class ToolRequest:
-    action_calls: list[ToolCall]
-    id: str | None
-    type: MessageType
-    role: Role
-    content: str
-    channel: str = field(default="chat")
-
-
-@dataclass
-class ToolResponse:
-    action_call_id: str
-    status: str
-    result: dict
-    id: str | None
-    type: MessageType
-    role: Role
-    content: str
-    channel: str = field(default="chat")
-
-
-@dataclass
-class CreateChatRequest:
-    name: str
-
-
-@dataclass
-class ChatMessageRequest:
-    content: str
-
-
-@dataclass
-class PaginatedResponse:
-    next: str | None
-    has_more: bool
-    data: list[Any]
-
-
-@dataclass
-class Conversation:
-    id: str | None
-    name: str
-    agent_id: str
-
-
-@dataclass
-class ConversationState(Conversation):
-    messages: list[Message | ToolRequest | ToolResponse] | None
 
 
 @router.get(
@@ -184,7 +61,7 @@ async def get_agents(
     summary="Get agent",
     description="Returns the agent with the given name.",
     response_description="Agent",
-    response_model=Agent,
+    response_model=AgentCompat,
     tags=["agents"],
     responses={
         200: {"description": "Success"},
@@ -323,7 +200,21 @@ async def post_messages_simple(
     cid: str,
     body: Annotated[ChatMessageRequest, Body()],
 ) -> ConversationCompat | None:
-    raise NotImplementedError("Not implemented")
+    thread = await storage.get_thread(user_id=user.user_id, thread_id=cid)
+    message = ThreadMessage(
+        message_id=str(uuid4()),
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
+        role="user",
+        content=[ThreadTextContent(text=body.content)],
+        # TODO not sure about this value
+        commited=False,
+        complete=True,
+    )
+
+    await storage.add_message_to_thread(user_id=user.user_id, thread_id=cid, message=message)
+
+    return ConversationCompat.from_thread_with_messages(thread) if thread else None
 
 
 @router.post(
@@ -342,6 +233,7 @@ async def post_messages_simple(
 )
 async def post_public_api_messages_simple(
     user: AuthedUser,
+    storage: StorageDependency,
     aid: str,
     cid: str,
     body: Annotated[ChatMessageRequest, Body()],
@@ -365,11 +257,29 @@ async def post_public_api_messages_simple(
 )
 async def post_messages_detailed(
     user: AuthedUser,
+    storage: StorageDependency,
     aid: str,
     cid: str,
     messages: list[Message],
-) -> ConversationState:
-    raise NotImplementedError("Not implemented")
+) -> ConversationCompat | None:
+    thread = await storage.get_thread(user_id=user.user_id, thread_id=cid)
+
+    for message in messages:
+        thread_message = ThreadMessage(
+            message_id=str(uuid4()),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
+            role="user",
+            content=[ThreadTextContent(text=message.content)],
+            # TODO not sure about this value
+            commited=False,
+            complete=True,
+        )
+        await storage.add_message_to_thread(
+            user_id=user.user_id, thread_id=cid, message=thread_message
+        )
+
+    return ConversationCompat.from_thread_with_messages(thread) if thread else None
 
 
 @router.post(
