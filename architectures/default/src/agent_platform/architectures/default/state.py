@@ -50,6 +50,16 @@ class ArchState(aa.StateBase):
     This is used to track the agent's progress and to determine
     if we need to stop execution."""
 
+    agent_last_response_text: str = field(
+        default="",
+    )
+    """The last response from the agent."""
+
+    agent_last_response_tools_str: str = field(
+        default="",
+    )
+    """The tools used in the last response from the agent."""
+
     processing_start_time: str = field(
         default="unknown",
     )

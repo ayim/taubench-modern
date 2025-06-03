@@ -59,7 +59,7 @@ class ThreadMessageWithThreadState:
                 await self._message.stream_delta()
 
             async def _complete_content(tag: str, content: str) -> None:
-                self._message.mark_last_content_complete()
+                self._message.append_content("", complete=True)
                 await self._message.stream_delta()
 
             return XmlTagResponseStreamSink(
@@ -79,7 +79,7 @@ class ThreadMessageWithThreadState:
                 await self._message.stream_delta()
 
             async def _complete_thought(tag: str, content: str) -> None:
-                self._message.mark_last_content_complete()
+                self._message.append_thought("", complete=True)
                 await self._message.stream_delta()
 
             return XmlTagResponseStreamSink(
@@ -168,7 +168,27 @@ class ThreadMessageWithThreadState:
             raise ValueError("Cannot add content to a committed message")
         self._message.content.append(ThreadThoughtContent(thought=thought))
 
-    def append_content(self, content: AnyThreadMessageContent | str) -> None:
+    def clear_thoughts(self) -> None:
+        """Clears the thoughts from the message."""
+        if self._message.commited:
+            raise ValueError("Cannot add content to a committed message")
+        for content in self._message.content:
+            if isinstance(content, ThreadThoughtContent):
+                content.thought = ""
+
+    def clear_content(self) -> None:
+        """Clears the content from the message."""
+        if self._message.commited:
+            raise ValueError("Cannot add content to a committed message")
+        for content in self._message.content:
+            if isinstance(content, ThreadTextContent):
+                content.text = ""
+
+    def append_content(
+        self,
+        content: AnyThreadMessageContent | str,
+        complete: bool = False,
+    ) -> None:
         """Appends content to this message.
 
         Args:
@@ -196,15 +216,17 @@ class ThreadMessageWithThreadState:
                 self._message.content.append(ThreadTextContent(text=text_piece))
             else:
                 # Directly mutate the text content instead of creating a new object
-                cast(
+                as_text_content = cast(
                     ThreadTextContent,
                     self._message.content[index_of_last_text_content],
-                ).text += text_piece
+                )
+                as_text_content.text += text_piece
+                as_text_content.complete = complete
         else:
             # For other content types, just append directly
             self._message.content.append(content)
 
-    def append_thought(self, thought: str) -> None:
+    def append_thought(self, thought: str, complete: bool = False) -> None:
         """Appends a text to the most recent thought content."""
         if self._message.commited:
             raise ValueError("Cannot add content to a committed message")
@@ -222,10 +244,12 @@ class ThreadMessageWithThreadState:
             self._message.content.append(ThreadThoughtContent(thought=thought))
         else:
             # Directly mutate the thought content instead of creating a new object
-            cast(
+            as_thought_content = cast(
                 ThreadThoughtContent,
                 self._message.content[index_of_last_thought_content],
-            ).thought += thought
+            )
+            as_thought_content.thought += thought
+            as_thought_content.complete = complete
 
     def update_tool_use(
         self,
@@ -256,6 +280,26 @@ class ThreadMessageWithThreadState:
             break  # Only can match one tool use
 
         else:  # No matching tool use found, so we add a new one
+            # Our UX contract is thoughts -> content -> tool calls
+            # So if we don't yet have thoughts or text (which can
+            # happen with some models) add it now
+            any_thought = any(
+                isinstance(content, ThreadThoughtContent) for content in self._message.content
+            )
+            any_text = any(
+                isinstance(content, ThreadTextContent) for content in self._message.content
+            )
+            if not any_thought:
+                self._message.content.append(ThreadThoughtContent(thought=""))
+            if not any_text:
+                self._message.content.append(ThreadTextContent(text=""))
+                # A little odd, but when complete = False (which is the default)
+                # we're going to immediately see a spinner in workroom; here, we
+                # know we're going to get more content... but not right away.
+                # So, we'll set complete = True to avoid the spinner.
+                self._message.content[-1].complete = True
+
+            # Add the tool use
             self._message.content.append(
                 ThreadToolUsageContent(
                     name=tool_use.tool_name,

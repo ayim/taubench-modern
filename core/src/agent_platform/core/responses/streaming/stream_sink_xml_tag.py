@@ -196,6 +196,11 @@ class XmlTagResponseStreamSink(NoOpResponseStreamSink):
     def finished(self) -> bool:
         return self._finished and not self._allow_multiple_instances
 
+    async def force_close(self) -> None:
+        self._finished = True
+        if self._inside:
+            await self._flush_remaining_content()
+
     # ------------------------------------------------------------------
     # ResponseStreamSink interface (called by the platform)
     # ------------------------------------------------------------------

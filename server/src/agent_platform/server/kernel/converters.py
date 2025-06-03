@@ -49,25 +49,24 @@ class AgentServerConvertersInterface(ConvertersInterface, UsesKernelMixin):
     async def agent_thread_contents_to_prompt_contents(
         self,
         contents: list[AnyThreadMessageContent],
+        step: str,
     ) -> tuple[list[AgentPromptMessageContent], list[UserPromptMessageContent]]:
         """Converts a thread content to a prompt content."""
         prompt_agent_contents: list[AgentPromptMessageContent] = []
         prompt_user_contents: list[UserPromptMessageContent] = []
 
+        # NOTE: here, much more than elsewhere, we must be very careful of "context
+        # poisoning" --- it's all too easy to slightly format something wrong and
+        # have a prompt that's confusing to the LLM.
+
+        thought_text = ""
+        response_text = ""
         for content in contents:
             match content:
                 case ThreadThoughtContent() as thought_content:
-                    prompt_agent_contents.append(
-                        PromptTextContent(
-                            text=f"<thinking>\n{thought_content.thought.strip()}\n</thinking>\n",
-                        ),
-                    )
+                    thought_text += f"{thought_content.thought.strip()}\n"
                 case ThreadTextContent() as text_content:
-                    prompt_agent_contents.append(
-                        PromptTextContent(
-                            text=f"<response>\n{text_content.text.strip()}\n</response>\n",
-                        ),
-                    )
+                    response_text += f"{text_content.text.strip()}\n"
                 case ThreadToolUsageContent() as tool_usage_content:
                     prompt_agent_contents.append(
                         PromptToolUseContent(
@@ -92,6 +91,23 @@ class AgentServerConvertersInterface(ConvertersInterface, UsesKernelMixin):
                 case _:
                     raise ValueError(f"Unsupported thread content kind: {content.kind}")
 
+        # Now we need to take a run of prompt text <thinking>...</thinking>
+        # and a run of prompt text <response>...</response> and combine them
+        # into a single <formatting>...</formatting> tag.
+        collapsed_text = "<formatting>\n<thinking>\n"
+        collapsed_text += thought_text
+        collapsed_text += "\n</thinking>\n<response>\n"
+        collapsed_text += response_text
+        collapsed_text += f"\n</response>\n<step>{step}</step>\n</formatting>"
+
+        prompt_agent_contents = [
+            # Prepend the collapsed text
+            PromptTextContent(
+                text=collapsed_text.strip(),
+            ),
+            *prompt_agent_contents,
+        ]
+
         return prompt_agent_contents, prompt_user_contents
 
     async def thread_messages_to_prompt_messages(
@@ -100,7 +116,7 @@ class AgentServerConvertersInterface(ConvertersInterface, UsesKernelMixin):
     ) -> list[AnyPromptMessage]:
         """Converts a list of thread messages to a list of prompt messages."""
         prompt_messages: list[AnyPromptMessage] = []
-        for message in thread_messages:
+        for idx, message in enumerate(thread_messages):
             match message.role:
                 case "user":
                     prompt_messages.append(
@@ -111,6 +127,12 @@ class AgentServerConvertersInterface(ConvertersInterface, UsesKernelMixin):
                         ),
                     )
                 case "agent":
+                    # If the next message was a user message, this agent
+                    # message should have been marked <step>done</step>
+                    step = "processing"
+                    if idx + 1 < len(thread_messages) and thread_messages[idx + 1].role == "user":
+                        step = "done"
+
                     # There's a split here for things like tool calling: agent decides
                     # to call a tool, and then the user provides the result.
                     (
@@ -118,6 +140,7 @@ class AgentServerConvertersInterface(ConvertersInterface, UsesKernelMixin):
                         user_contents,
                     ) = await self.agent_thread_contents_to_prompt_contents(
                         message.content,
+                        step,
                     )
 
                     prompt_messages.append(

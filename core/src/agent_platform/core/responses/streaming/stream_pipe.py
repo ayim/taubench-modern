@@ -1,4 +1,5 @@
 import asyncio
+import re
 from collections.abc import AsyncGenerator
 from typing import cast
 
@@ -55,6 +56,42 @@ class ResponseStreamPipe:
         The reassembled response message, if available.
         """
         return self.last_message
+
+    def raw_response_matches(self, regex: re.Pattern) -> bool:
+        """
+        Check if the raw response matches the given regex.
+        """
+        if not self.last_message:
+            return False
+
+        all_text_content = "\n".join(
+            [
+                content.text
+                for content in self.last_message.content
+                if isinstance(content, ResponseTextContent)
+            ]
+        )
+        return regex.match(all_text_content) is not None
+
+    def raw_response_matches_with_postfix(
+        self,
+        regex: re.Pattern,
+        postfix: str,
+    ) -> bool:
+        """
+        Check if the raw response matches the given regex.
+        """
+        if not self.last_message:
+            return False
+
+        all_text_content = "\n".join(
+            [
+                content.text
+                for content in self.last_message.content
+                if isinstance(content, ResponseTextContent)
+            ]
+        )
+        return regex.match(all_text_content + postfix) is not None
 
     async def __aenter__(self) -> "ResponseStreamPipe":
         """Allow this class to be used as an async context manager."""

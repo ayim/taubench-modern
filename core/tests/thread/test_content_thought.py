@@ -1,5 +1,3 @@
-import pytest
-
 from agent_platform.core.thread.content.thought import ThreadThoughtContent
 
 
@@ -8,10 +6,6 @@ class TestThreadThoughtContent:
         thought = ThreadThoughtContent(thought="I am thinking about something.")
         assert thought.kind == "thought"
         assert thought.thought == "I am thinking about something."
-
-    def test_empty_thought_raises(self):
-        with pytest.raises(ValueError, match="Thought value cannot be empty"):
-            ThreadThoughtContent(thought="")
 
     def test_thought_as_text_content(self):
         thought = ThreadThoughtContent(thought="Secret internal note.")

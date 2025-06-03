@@ -26,10 +26,6 @@ class TestThreadTextContent:
         # as_text_content should return self
         assert content.as_text_content() == content.text
 
-    def test_empty_text_raises_value_error(self):
-        with pytest.raises(ValueError, match="Text value cannot be empty"):
-            ThreadTextContent(text="")
-
 
 class TestThreadQuickActionsContent:
     def test_create_valid_quick_actions(self):

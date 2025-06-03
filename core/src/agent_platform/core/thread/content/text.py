@@ -88,12 +88,12 @@ class ThreadTextContent(ThreadMessageContent):
 
         Raises:
             AssertionError: If the type field doesn't match the literal "text".
-            ValueError: If the text field is empty.
         """
         assert self.kind == "text"
 
-        if not self.text:
-            raise ValueError("Text value cannot be empty")
+        # We used to check for empty text, but there's a few valid use
+        # cases for empty text... like when we're streaming and we just
+        # started and know text is coming, but we don't have any yet
 
     def as_text_content(self) -> str:
         """Converts the text content to a text content component."""

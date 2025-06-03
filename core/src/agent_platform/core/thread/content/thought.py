@@ -29,12 +29,12 @@ class ThreadThoughtContent(ThreadMessageContent):
 
         Raises:
             AssertionError: If the type field doesn't match the literal "thought".
-            ValueError: If the text field is empty.
         """
         assert self.kind == "thought"
 
-        if not self.thought:
-            raise ValueError("Thought value cannot be empty")
+        # We used to check for empty thoughts, but there's a few valid use
+        # cases for empty thoughts... like when we're streaming and we just
+        # started and know thoughts are coming, but we don't have any yet
 
     def as_text_content(self) -> str:
         """Converts the text content to a text content component."""

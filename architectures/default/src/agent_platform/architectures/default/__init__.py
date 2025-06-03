@@ -7,18 +7,25 @@ __copyright__ = "Copyright 2025, Sema4.ai"
 __license__ = "Proprietary"
 __summary__ = "Default architecture for the Agent Platform"
 __version__ = "0.0.1"
+
 import logging
+import re
 from datetime import UTC, datetime
 
 from agent_platform.architectures.default.state import ArchState
 from agent_platform.core import Kernel
 from agent_platform.core import agent_architectures as aa
+from agent_platform.core.kernel_interfaces.thread_state import ThreadMessageWithThreadState
 from agent_platform.core.prompts import select_prompt
 
 logger = logging.getLogger(__name__)
 
 MAX_STATE_PARSE_FAILURE_COUNT = 3
 MAX_ITERATIONS = 25
+OUTPUT_FORMAT_REGEX = re.compile(
+    r"^\s*<formatting>\s*<thinking>.*</thinking>\s*<response>.*</response>\s*<step>.*</step>\s*</formatting>\s*$",
+    re.DOTALL,
+)
 
 
 @aa.entrypoint
@@ -129,7 +136,7 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
 
     # Select and load the prompt we'll be using
     unformatted_conversation_prompt = select_prompt(
-        prompt_paths=["prompts"],
+        prompt_paths=["prompts/default"],
         package=__package__,
         model_family=model_family,
     )
@@ -149,16 +156,48 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
     # And use the formatted prompt, model, and message to receive a stream
     # of output from the model as it processes the conversation
     async with platform.stream_response(conversation_prompt, model) as stream:
+        content_sink = message.sinks.content
+
+        # Pipe the stream to the message
         await stream.pipe_to(
             # Sink thoughts / content / tool calls to message
             message.sinks.thoughts,
-            message.sinks.content,
             message.sinks.tool_calls,
+            content_sink,
             # Sink pending tool calls and step
             # to state (so we can execute tools later)
             state.sinks.pending_tool_calls,
             state.sinks.step,
         )
+
+        if stream.raw_response_matches(OUTPUT_FORMAT_REGEX):
+            logger.info("Raw response matches output format regex")
+        elif stream.raw_response_matches_with_postfix(
+            OUTPUT_FORMAT_REGEX, "</response><step>processing</step></formatting>"
+        ):
+            # Okay, a model didn't close out the response, fine
+            # we can force close the content sink and set the step
+            # to processing
+            await content_sink.force_close()
+            state.step = "processing"
+        elif stream.raw_response_matches_with_postfix(OUTPUT_FORMAT_REGEX, "</step></formatting>"):
+            # Okay, we just left off the step and close formatting tag,
+            # we can live with that with no issues
+            pass
+        elif stream.reassembled_response:
+            # We have a response, it doesn't match the output format,
+            # so we need to try and fix it
+            state.agent_last_response_text = "\n".join(
+                [text.text for text in stream.reassembled_response.content if text.kind == "text"]
+            )
+            state.agent_last_response_tools_str = "\n".join(
+                [
+                    f"{tool.tool_name}: {tool.tool_input_raw}"
+                    for tool in stream.reassembled_response.content
+                    if tool.kind == "tool_use"
+                ]
+            )
+            state, message = await _backup_prompt_for_invalid_format(kernel, state, message)
 
     # Update the message to show that the tool calls are running in the chat
     for _, tool_call in state.pending_tool_calls:
@@ -176,3 +215,37 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
     await message.commit()
 
     return state
+
+
+async def _backup_prompt_for_invalid_format(
+    kernel: Kernel, state: ArchState, message: ThreadMessageWithThreadState
+) -> tuple[ArchState, ThreadMessageWithThreadState]:
+    # If we're here, we failed to follow the output format, but we _may_
+    # have produced tool calls. Claude like to tool call and just trail off
+    # not finishing the format
+    unformatted_backup_prompt = select_prompt(
+        prompt_paths=["prompts/fix-output"],
+        package=__package__,
+    )
+
+    formatted_backup_prompt = await kernel.prompts.format_prompt(
+        unformatted_backup_prompt,
+        state=state,
+    )
+
+    # Get a platform and it's default LLM
+    platform, model = await kernel.get_platform_and_model(model_type="llm")
+
+    async with platform.stream_response(formatted_backup_prompt, model) as stream:
+        # Reset message thoughts and content
+        message.clear_thoughts()
+        message.clear_content()
+        await message.stream_delta()
+
+        await stream.pipe_to(
+            message.sinks.thoughts,
+            message.sinks.content,
+            state.sinks.step,
+        )
+
+    return state, message
