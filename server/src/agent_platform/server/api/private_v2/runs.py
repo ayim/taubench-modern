@@ -123,7 +123,7 @@ async def _create_run(
     agent_id: str,
     thread_id: str,
     storage: StorageDependency,
-    run_type: Literal["stream", "sync"] = "stream",
+    run_type: Literal["stream", "sync", "async"] = "stream",
 ) -> Run:
     """Create a new Run record in 'running' state."""
     run = Run(
@@ -681,4 +681,173 @@ async def sync_run(  # noqa: C901, PLR0912, PLR0915
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An unexpected error occurred during the synchronous run.",
+        ) from e
+
+
+@router.post("/{agent_id}/async_invoke")
+async def async_run(  # noqa: C901, PLR0915
+    agent_id: str,
+    initial_payload: InitiateStreamPayload,
+    user: AuthedUser,
+    storage: StorageDependency,
+    request: Request,
+):
+    """
+    Asynchronous endpoint to start a run with a given agent and return an acknowledgment.
+    The client doesn't need to wait for the run to complete.
+    """
+    agent_arch_manager = AgentArchManager(
+        wheels_path="./todo-for-out-of-process/wheels",
+        websocket_addr="todo://think-about-out-of-process",
+    )
+
+    try:
+        agent = await storage.get_agent(user.user_id, agent_id)
+
+        # Fetch the first LangSmith observability config
+        observability_config = None
+        for config in agent.observability_configs:
+            if config.type == "langsmith":
+                observability_config = config
+                break
+
+        if observability_config is None:
+            logger.info("No LangSmith observability config found, using default")
+
+        # Create agent server context for HTTP request
+        server_context = AgentServerContext.from_request(
+            request=request,
+            user=user,
+            version="2.0.0",
+            observability_config=observability_config,
+        )
+
+        # Start a new trace for this async run
+        with server_context.start_span("async_run") as span:
+            # Add string attributes that are safe for OTEL
+            span.set_attribute("langsmith.metadata.agent_id", str(agent_id))
+            span.set_attribute("langsmith.metadata.thread_id", str(initial_payload.thread_id))
+            span.set_attribute(
+                "langsmith.metadata.user_id", server_context.user_context.user.user_id
+            )
+            span.set_attribute("langsmith.metadata.agent_name", agent.name)
+
+            # 1. Validate the agent ID from the URL vs. the payload
+            if initial_payload.agent_id != agent_id:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Agent ID mismatch in URL and payload.",
+                )
+
+            # 2. Upsert thread and messages
+            with server_context.start_span("upsert_thread_and_messages") as upsert_span:
+                upsert_span.set_attribute("thread_id", str(initial_payload.thread_id))
+                thread_state = await _upsert_thread_and_messages(
+                    user,
+                    initial_payload,
+                    storage,
+                )
+            span.update_name(f"{thread_state.name}")
+
+            # 3. Create a new asynchronous run
+            with server_context.start_span("create_run") as create_span:
+                server_context.increment_counter(
+                    "sema4ai.agent_server.runs",
+                    1,
+                    {
+                        "agent_id": agent.agent_id,
+                        "thread_id": thread_state.thread_id,
+                    },
+                )
+                active_run = await _create_run(
+                    agent_id, thread_state.thread_id, storage, run_type="async"
+                )
+                create_span.set_attribute("run_id", active_run.run_id)
+                create_span.set_attribute("run_type", active_run.run_type)
+                span.set_attribute("run_id", active_run.run_id)
+
+            # 4. Start the background task to run the agent
+            async def _background_agent_run():
+                """Background task to execute the agent run."""
+                try:
+                    # Get the agent runner
+                    runner = await agent_arch_manager.get_runner(
+                        agent.agent_architecture.name,
+                        agent.agent_architecture.version,
+                        thread_state.thread_id,
+                    )
+
+                    # Start the runner
+                    await runner.start()
+
+                    # Create kernel and invoke the agent
+                    kernel = AgentServerKernel(server_context, thread_state, agent, active_run)
+                    await runner.invoke(kernel)
+
+                    # Stop the runner
+                    await runner.stop()
+
+                    # Mark run as completed
+                    await _update_run_status(
+                        storage,
+                        active_run,
+                        "completed",
+                        "normal_completion_async",
+                    )
+
+                except Exception as e:
+                    logger.error(
+                        f"Error in background async run for agent {agent_id}: {e}",
+                    )
+                    logger.error(traceback.format_exc())
+                    await _update_run_status(
+                        storage,
+                        active_run,
+                        "failed",
+                        "background_error_async",
+                        error=str(e),
+                    )
+
+            # Start the background task
+            background_task = create_task(_background_agent_run())
+
+            # Don't await the background task - let it run independently
+            # Add a callback to handle any exceptions that might occur
+            def _handle_background_task_done(task):
+                if task.exception():
+                    logger.error(
+                        f"Background task for run {active_run.run_id} failed: {task.exception()}"
+                    )
+
+            background_task.add_done_callback(_handle_background_task_done)
+
+            # 5. Return acknowledgment immediately
+            return {
+                "run_id": active_run.run_id,
+                "status": "running",
+            }
+
+    except AgentNotFoundError as e:
+        logger.error("Error getting agent", error=e)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Agent not found",
+        ) from e
+
+    except HTTPException as e:
+        # Log and re-raise HTTPExceptions
+        logger.error(
+            f"HTTPException in async run for agent {agent_id}: {e.detail}",
+            exc_info=e,
+        )
+        raise e
+
+    except Exception as e:
+        logger.error(
+            f"Unexpected error in async run for agent {agent_id}: {e}",
+        )
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred during the asynchronous run.",
         ) from e

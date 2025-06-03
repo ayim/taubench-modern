@@ -191,6 +191,11 @@ def fastapi_app(
 
     app.dependency_overrides[auth_user_websocket] = lambda: stub_user
 
+    # 3. current HTTP user (for async_invoke endpoint)
+    from agent_platform.server.auth.handlers import auth_user
+
+    app.dependency_overrides[auth_user] = lambda: stub_user
+
     return app
 
 
@@ -229,6 +234,59 @@ def make_initial_payload(agent_id: str, thread_id: str) -> dict[str, Any]:
 # -----------------------------------------------------------------
 # Tests
 # -----------------------------------------------------------------
+
+
+def test_async_run_happy_path(client: TestClient, stub_storage: StubStorage):
+    """
+    The client sends a POST request to async_invoke and receives
+    an immediate response with run_id and status.
+    """
+    test_agent_uuid = str(uuid.uuid4())
+    test_thread_id = str(uuid.uuid4())
+    StubRunner.override_agent_id = test_agent_uuid
+
+    # Make HTTP POST request to async_invoke endpoint
+    response = client.post(
+        f"/runs/{test_agent_uuid}/async_invoke",
+        json=make_initial_payload(test_agent_uuid, test_thread_id),
+    )
+
+    # Should get immediate response with 200 status
+    assert response.status_code == 200
+
+    # Response should contain run_id and status
+    response_data = response.json()
+    assert "run_id" in response_data
+    assert "status" in response_data
+    assert response_data["status"] == "running"
+
+    # Verify a run was created in storage
+    saved_run = stub_storage.last_run()
+    assert saved_run is not None
+    assert saved_run.run_id == response_data["run_id"]
+    assert saved_run.status == "running"
+    assert saved_run.run_type == "async"
+
+
+def test_async_run_agent_id_mismatch(client: TestClient, stub_storage: StubStorage):
+    """
+    If the URL path and the JSON payload contain different agent_ids,
+    the server must close the connection with 1008 (policy violation).
+    """
+    test_agent_uuid = str(uuid.uuid4())
+    mismatched_agent_id = str(uuid.uuid4())
+    if mismatched_agent_id == test_agent_uuid:
+        mismatched_agent_id = str(uuid.uuid4())
+    test_thread_id = str(uuid.uuid4())
+    StubRunner.override_agent_id = test_agent_uuid
+    response = client.post(
+        f"/runs/{test_agent_uuid}/async_invoke",
+        json=make_initial_payload(mismatched_agent_id, test_thread_id),
+    )
+
+    # Should get immediate response with 400 status
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Agent ID mismatch in URL and payload."
 
 
 def test_stream_run_happy_path(client: TestClient, stub_storage: StubStorage):
