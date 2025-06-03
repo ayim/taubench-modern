@@ -142,17 +142,22 @@ def test_create_thread(client: TestClient, mock_storage: MockStorage):
 
 
 def test_list_threads(client: TestClient, mock_storage: MockStorage):
-    """Test listing threads."""
+    """Test listing threads without messages."""
     thread_id = str(uuid.uuid4())
     agent_id = str(uuid.uuid4())
 
-    # Create a test thread
+    # Create a test thread with a message
+    message = ThreadMessage(
+        message_id=str(uuid.uuid4()),
+        role="user",
+        content=[ThreadTextContent(text="Hello")],
+    )
     thread = Thread(
         thread_id=thread_id,
         name="Test Thread",
         agent_id=agent_id,
         user_id="test_user",
-        messages=[],
+        messages=[message],
     )
 
     # Add thread to storage
@@ -167,23 +172,31 @@ def test_list_threads(client: TestClient, mock_storage: MockStorage):
     assert threads[0]["thread_id"] == thread_id
     assert threads[0]["name"] == "Test Thread"
     assert threads[0]["agent_id"] == agent_id
+    # Verify that messages are not included in the response
+    assert "messages" in threads[0]
+    assert threads[0]["messages"] == []
 
     # Verify that list_threads was called
     assert mock_storage.call_count["list_threads"] == 1
 
 
 def test_get_thread(client: TestClient, mock_storage: MockStorage):
-    """Test getting a thread."""
+    """Test getting a thread without messages."""
     thread_id = str(uuid.uuid4())
     agent_id = str(uuid.uuid4())
 
-    # Create a test thread
+    # Create a test thread with a message
+    message = ThreadMessage(
+        message_id=str(uuid.uuid4()),
+        role="user",
+        content=[ThreadTextContent(text="Hello")],
+    )
     thread = Thread(
         thread_id=thread_id,
         name="Test Thread",
         agent_id=agent_id,
         user_id="test_user",
-        messages=[],
+        messages=[message],
     )
 
     # Add thread to storage
@@ -197,6 +210,49 @@ def test_get_thread(client: TestClient, mock_storage: MockStorage):
     assert thread_data["thread_id"] == thread_id
     assert thread_data["name"] == "Test Thread"
     assert thread_data["agent_id"] == agent_id
+    # Verify that messages are not included in the response
+    assert "messages" in thread_data
+    assert thread_data["messages"] == []
+
+    # Verify that get_thread was called
+    assert mock_storage.call_count["get_thread"] == 1
+
+
+def test_get_thread_state(client: TestClient, mock_storage: MockStorage):
+    """Test getting a thread with its messages."""
+    thread_id = str(uuid.uuid4())
+    agent_id = str(uuid.uuid4())
+
+    # Create a test thread with a message
+    message = ThreadMessage(
+        message_id=str(uuid.uuid4()),
+        role="user",
+        content=[ThreadTextContent(text="Hello")],
+    )
+    thread = Thread(
+        thread_id=thread_id,
+        name="Test Thread",
+        agent_id=agent_id,
+        user_id="test_user",
+        messages=[message],
+    )
+
+    # Add thread to storage
+    mock_storage.threads[thread_id] = thread
+
+    # Get thread state
+    response = client.get(f"/threads/{thread_id}/state")
+
+    assert response.status_code == status.HTTP_200_OK
+    thread_data = response.json()
+    assert thread_data["thread_id"] == thread_id
+    assert thread_data["name"] == "Test Thread"
+    assert thread_data["agent_id"] == agent_id
+    # Verify that messages are included in the response
+    assert "messages" in thread_data
+    assert len(thread_data["messages"]) == 1
+    assert thread_data["messages"][0]["role"] == "user"
+    assert thread_data["messages"][0]["content"][0]["text"] == "Hello"
 
     # Verify that get_thread was called
     assert mock_storage.call_count["get_thread"] == 1

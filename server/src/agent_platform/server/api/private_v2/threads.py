@@ -106,6 +106,9 @@ async def list_threads(  # noqa: PLR0913
         candidates = [t for t in candidates if name.lower() in t.name.lower()]
     if limit:
         candidates = candidates[:limit]
+
+    for thread in candidates:
+        thread.messages = []
     return candidates
 
 
@@ -132,6 +135,10 @@ async def get_thread(
     thread = await storage.get_thread(user.user_id, tid)
     if thread is None:
         raise HTTPException(status_code=404, detail="Thread not found")
+
+    # Return thread without messages to improve network performance and use /{tid}/state
+    # to get messages
+    thread.messages = []
     return thread
 
 
