@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/robocorp/rcc/common"
-	"github.com/robocorp/rcc/pathlib"
+	"github.com/Sema4AI/rcc/common"
+	"github.com/Sema4AI/rcc/pathlib"
 )
 
 // If destination file exists, a unique name is generated for the file.

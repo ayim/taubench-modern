@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/robocorp/rcc/pathlib"
+	"github.com/Sema4AI/rcc/pathlib"
 	"github.com/spf13/cobra"
 
 	"os"

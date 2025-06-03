@@ -7,7 +7,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/robocorp/rcc/pathlib"
+	"github.com/Sema4AI/rcc/pathlib"
 	"gopkg.in/yaml.v3"
 )
 

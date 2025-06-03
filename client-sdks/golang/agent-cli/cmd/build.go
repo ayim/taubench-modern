@@ -14,7 +14,7 @@ import (
 	"github.com/Sema4AI/agents-spec/cli/common/glob"
 
 	"github.com/Sema4AI/agents-spec/cli/common"
-	"github.com/robocorp/rcc/pathlib"
+	"github.com/Sema4AI/rcc/pathlib"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )

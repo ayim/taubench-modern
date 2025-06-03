@@ -6,7 +6,7 @@ import (
 
 	AgentServer "github.com/Sema4AI/agent-client-go/pkg/client"
 	"github.com/Sema4AI/agents-spec/cli/common"
-	rccCommon "github.com/robocorp/rcc/common"
+	rccCommon "github.com/Sema4AI/rcc/common"
 	"github.com/spf13/cobra"
 )
 

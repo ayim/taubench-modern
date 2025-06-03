@@ -11,7 +11,7 @@ import (
 
 	AgentServer "github.com/Sema4AI/agent-client-go/pkg/client"
 	"github.com/Sema4AI/agents-spec/cli/common"
-	"github.com/robocorp/rcc/pathlib"
+	"github.com/Sema4AI/rcc/pathlib"
 	"github.com/spf13/cobra"
 	"golang.org/x/mod/semver"
 	"gopkg.in/yaml.v2"
