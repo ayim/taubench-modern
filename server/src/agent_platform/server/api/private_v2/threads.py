@@ -43,6 +43,11 @@ async def create_thread(
             "thread_id": thread.thread_id,
         },
     )
+    server_context.increment_counter(
+        "sema4ai.agent_server.messages",
+        len(payload.messages),
+        {"agent_id": thread.agent_id, "thread_id": thread.thread_id},
+    )
 
     await storage.upsert_thread(user.user_id, thread)
     return thread
@@ -54,11 +59,23 @@ async def update_thread(
     tid: str,
     payload: UpsertThreadPayload,
     storage: StorageDependency,
+    request: Request,
 ) -> Thread:
     """Update an existing thread with the provided fields."""
     thread = await storage.get_thread(user.user_id, tid)
     if thread is None:
         raise HTTPException(status_code=404, detail="Thread not found")
+
+    server_context = AgentServerContext.from_request(
+        request=request,
+        user=user,
+        version="2.0.0",
+    )
+    server_context.increment_counter(
+        "sema4ai.agent_server.messages",
+        len(payload.messages),
+        {"agent_id": thread.agent_id, "thread_id": thread.thread_id},
+    )
 
     # Start with existing thread data and update with payload fields
     updated_thread = UpsertThreadPayload.to_thread(payload, user.user_id)

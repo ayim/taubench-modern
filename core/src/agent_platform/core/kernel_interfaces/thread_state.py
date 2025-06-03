@@ -148,6 +148,16 @@ class ThreadMessageWithThreadState:
         await self.stream_delta()  # Want to get these also into stream (flag updates)
         await self._thread_state.commit_message(self._message)
 
+        kernel = self._thread_state.kernel
+        kernel.ctx.increment_counter(
+            "sema4ai.agent_server.messages",
+            1,
+            {
+                "agent_id": kernel.agent.agent_id,
+                "thread_id": kernel.thread.thread_id,
+            },
+        )
+
     async def stream_delta(self) -> None:
         """Streams the delta to the UI."""
         await self._thread_state.stream_message_delta(self._message)

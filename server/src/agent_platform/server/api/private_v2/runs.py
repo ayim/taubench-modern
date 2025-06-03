@@ -266,6 +266,16 @@ async def stream_run(  # noqa: C901, PLR0912, PLR0915
             observability_config=observability_config,
         )
 
+        attributes = {
+            "agent_id": agent.agent_id,
+        }
+        if initial_payload.thread_id is not None:
+            attributes["thread_id"] = initial_payload.thread_id
+
+        server_context.increment_counter(
+            "sema4ai.agent_server.messages", len(initial_payload.messages), attributes
+        )
+
         # Start a new trace for this stream
         with server_context.start_span("stream_run") as span:
             # Add string attributes that are safe for OTEL
