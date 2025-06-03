@@ -1,3 +1,54 @@
+# Sema4.ai Agent Server Pre-Release 2.0.0-beta.7 (2025-06-03)
+
+## Agent Server
+
+### Features
+
+- Added OTEL counters for token usage with attributes for filtering. ([GPT-901](https://linear.app/sema4ai/issue/GPT-901))
+- Implemented a comprehensive metrics observability stack using Prometheus and Jaeger for our OTEL setup. ([GPT-930](https://linear.app/sema4ai/issue/GPT-930))
+
+### Bugfixes
+
+- Prompt scaffold and step parsing upgrades for robustness in default agent arch ([GPT-918](https://linear.app/sema4ai/issue/GPT-918))
+- Correct uniqueness constraint over file uploads to allow the same filename to be uploaded across threads in an agent. ([GPT-938](https://linear.app/sema4ai/issue/GPT-938))
+- Second round of prompt scaffold updates; Gemini still shaky, other platforms should have improved behavior in less looping and more consistent correct use of tools. ([GPT-940](https://linear.app/sema4ai/issue/GPT-940))
+
+### Improved Documentation
+
+- Added developer guide and updated the readme for recent changes
+
+### Miscellaneous
+
+- Improving otel with message counter ([GPT-915](https://linear.app/sema4ai/issue/GPT-915))
+- OTEL: Remove 'user' field from OTEL logs implementation ([GPT-915](https://linear.app/sema4ai/issue/GPT-915))
+- Remove old collector files and create new make targets for observability purporses ([GPT-930](https://linear.app/sema4ai/issue/GPT-930))
+- Updates to the Makefile and README to list all make targets. ([GPT-937](https://linear.app/sema4ai/issue/GPT-937))
+- More tests for files fixes ([GPT-941](https://linear.app/sema4ai/issue/GPT-941))
+
+
+## Public API
+
+### Features
+
+- Porting public API to v2. ([GPT-913](https://linear.app/sema4ai/issue/GPT-913), [GPT-913](https://linear.app/sema4ai/issue/GPT-913))
+
+
+## Private API
+
+### Features
+
+- Implement async invoke endpoint in runs ([GPT-928](https://linear.app/sema4ai/issue/GPT-928))
+- Implement GET run status endpoint ([GPT-928](https://linear.app/sema4ai/issue/GPT-928))
+
+### Bugfixes
+
+- Ignore thread messages from all GET thread endpoints ([GPT-885](https://linear.app/sema4ai/issue/GPT-885))
+- Hide sensitive variables from get agents api and post agents api ([GPT-886](https://linear.app/sema4ai/issue/GPT-886))
+- Roundtripping of legacy worker config was broken, fix and tests introduced ([GPT-934](https://linear.app/sema4ai/issue/GPT-934))
+- Fix masking: /agents/{aid}/raw needs to _not_ mask sensitive info ([GPT-935](https://linear.app/sema4ai/issue/GPT-935))
+- Hotfix to include in UploadedFile structure so that the GET file-by-ref endpoint works. ([GPT-939](https://linear.app/sema4ai/issue/GPT-939))
+
+
 # Sema4.ai Agent Server Pre-Release 2.0.0-beta.6 (2025-06-02)
 
 ## Agent Server
