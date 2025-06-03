@@ -13,10 +13,9 @@ Usage: make [target]
 
 Available targets:
   all                       Perform a clean build of everything
-  build                     Build both wheels and PyInstaller executable
   build-exe                 Build a PyInstaller executable
   build-wheels              Build Python wheels into dist/ via uv
-  change                    Run the change script to generate a changelog fragment
+  change                    Run the change script
   check-changes             Run the check-changes part of the change script
   check-env                 Check that all required environment variables are set in the .env file
   check-format              Run formatting check with ruff
@@ -25,13 +24,17 @@ Available targets:
   coverage                  Run tests with pytest and generate coverage report
   dev-widget                Run pnpm run dev on server/examples/debug_widget
   draft-changes-server      Run the build-changes part of the change script in draft mode for the server project
-  format                    Run formatting with ruff and prettier (node/npm must be in the path for npx to work)
+  format                    Run formatting with ruff and prettier (node/npm must be in the path for npx to work).
   help                      Show this help
-  langsmith-collector       Run the LangSmith collector for viewing LangChain traces
+  lint-fix-unsafe           Run ruff linting (fix violations)
   lint-fix                  Run ruff linting (fix violations)
   lint                      Run ruff linting (check only)
   new-empty-env             Create a new empty .env file if one doesn't exist
-  otel-collector            Run the OTEL collector for viewing telemetry data
+  observability-clean       Clean the observability stack and volumes.
+  observability-down        Stop the observability stack.
+  observability-logs        Show the logs of the observability stack.
+  observability-ps          Show the status of the observability stack.
+  observability-up          Start the observability stack.
   run-server-exe            Run the agent server executable
   run-server                Run the agent server
   sync                      Sync/install all packages in the monorepo
@@ -50,7 +53,7 @@ Good to know these for more advanced config or fixing issues.
 
 Working with `uv`:
 
-1. You need `uv` installed - see: https://docs.astral.sh/uv/getting-started/installation/
+1. You need `uv` installed - see: <https://docs.astral.sh/uv/getting-started/installation/>
 2. Running `uv run` commands will automatically create and use a virtual environment as needed
 3. `uv sync --all-extras --all-groups --all-packages` to install the whole monorepo
 4. `uv run agent-server` to run the server
@@ -127,7 +130,7 @@ To run the example notebooks:
 
 The following dependencies need to be installed manually:
 
-- `uv` (which is used to manage the Python environment), see: https://docs.astral.sh/uv/getting-started/installation/
+- `uv` (which is used to manage the Python environment), see: <https://docs.astral.sh/uv/getting-started/installation/>
 - `node / npm` (for `prettier` to work with `npx`)
 - `make` (note: on `Windows` you can install it using `Chocolatey` with `choco install make`)
 - `go` (used to build the `go-wrapper`, version `1.23.6` or newer required)

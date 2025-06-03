@@ -104,23 +104,23 @@ dev-widget:  ## Run pnpm run dev on server/examples/debug_widget
 # Observability
 # --------------------------------------------------------------------
 
-observability-up:
+observability-up: ## Start the observability stack.
 	@echo "Starting observability stack..."
 	docker compose -f observability/docker-compose.observability.yml up -d
 
-observability-down:
+observability-down: ## Stop the observability stack.
 	@echo "Stopping observability stack..."
 	docker compose -f observability/docker-compose.observability.yml down
 
-observability-logs:
+observability-logs: ## Show the logs of the observability stack.
 	@echo "Showing observability stack logs..."
 	docker compose -f observability/docker-compose.observability.yml logs -f
 
-observability-ps:
+observability-ps: ## Show the status of the observability stack.
 	@echo "Checking observability stack status..."
 	docker compose -f observability/docker-compose.observability.yml ps
 
-observability-clean:
+observability-clean: ## Clean the observability stack and volumes.
 	@echo "Cleaning observability stack and volumes..."
 	docker compose -f observability/docker-compose.observability.yml down -v
 	docker volume rm agent-platform_prometheus_data 2>/dev/null || true
