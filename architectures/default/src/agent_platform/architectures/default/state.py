@@ -42,6 +42,37 @@ class ArchState(aa.StateBase):
     listing is intended to allow the agent to introspect on these
     issues and communicate them to the user, if necessary."""
 
+    current_iteration: int = field(
+        default=0,
+    )
+    """The current iteration of the agent.
+
+    This is used to track the agent's progress and to determine
+    if we need to stop execution."""
+
+    processing_start_time: str = field(
+        default="unknown",
+    )
+    """The time the agent started processing the user's request."""
+
+    processing_elapsed_time: str = field(
+        default="unknown",
+    )
+    """The elapsed time since the agent started processing the user's request."""
+
+    state_parse_failure_count: int = field(
+        default=0,
+    )
+    """The number of times we have failed to parse the state from the output format."""
+
+    last_step_issues: list[str] = field(
+        default_factory=list,
+    )
+    """The issues for the last step of the agent.
+
+    This can hold a variety of issues, including but not limited
+    to failure to parse the step from the output format."""
+
     called_tools: bool = field(
         default=False,
     )

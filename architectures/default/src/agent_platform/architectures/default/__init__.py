@@ -8,6 +8,7 @@ __license__ = "Proprietary"
 __summary__ = "Default architecture for the Agent Platform"
 __version__ = "0.0.1"
 import logging
+from datetime import UTC, datetime
 
 from agent_platform.architectures.default.state import ArchState
 from agent_platform.core import Kernel
@@ -16,10 +17,23 @@ from agent_platform.core.prompts import select_prompt
 
 logger = logging.getLogger(__name__)
 
+MAX_STATE_PARSE_FAILURE_COUNT = 3
+MAX_ITERATIONS = 25
+
 
 @aa.entrypoint
 async def entrypoint(kernel: Kernel, state: ArchState) -> ArchState:
+    state.current_iteration = 0
+    state.processing_start_time = datetime.now(UTC).isoformat(
+        timespec="milliseconds",
+    )
     while True:
+        state.current_iteration += 1
+        if state.current_iteration > MAX_ITERATIONS:
+            state = await _handle_max_iterations(kernel, state)
+            break
+
+        # Process the conversation step
         if state.step in ("processing", "initial"):
             try:
                 state = await _process_conversation_step(kernel, state)
@@ -32,13 +46,70 @@ async def entrypoint(kernel: Kernel, state: ArchState) -> ArchState:
         elif state.step == "done":
             break
         else:
-            raise ValueError(f"Unknown step: {state.step}")
+            state = await _handle_state_parse_failure(kernel, state)
+
+    return state
+
+
+async def _handle_max_iterations(kernel: Kernel, state: ArchState) -> ArchState:
+    message = await kernel.thread_state.new_agent_message()
+    message.append_thought(
+        "I've reached my limit of iterations. By default, I'm limited to 25 "
+        "autonomous iterations before requiring input from the user. I should "
+        "let the user know that I've reached this limit and that, if they'd like "
+        "to continue, they should just respond with 'continue'."
+    )
+    await message.stream_delta()
+    message.append_content(
+        "I've reached my iteration limit. By default, I'm limited to 25 "
+        "autonomous iterations before requiring human input.\n\n```sema4-json\n"
+        '{ "type": "quick-options", "data": [{"message": "continue", '
+        '"title": "Continue", "iconName": "IconContinueIcon" }]}\n```'
+    )
+    await message.stream_delta()
+    await message.commit()
+
+    return state
+
+
+async def _handle_state_parse_failure(kernel: Kernel, state: ArchState) -> ArchState:
+    # Update our state to reflect the failure
+    state.state_parse_failure_count += 1
+    state.last_step_issues = [
+        "We failed to parse the step from the output format. "
+        "Remember, you must always include a <step>...</step> tag "
+        "in your output so we know what to do next. The valid "
+        "values are 'processing' and 'done'."
+    ]
+
+    # If we're continuing to fail, let the user know we're having some issues
+    if state.state_parse_failure_count > MAX_STATE_PARSE_FAILURE_COUNT:
+        message = await kernel.thread_state.new_agent_message()
+        message.append_thought(
+            "I've reached my limit of attempts to parse the output format. I should "
+            "let the user know that I'm having some trouble following the correct "
+            "output format and ask them to create a new thread if the issue persists."
+        )
+        await message.stream_delta()
+        message.append_content(
+            "I'm sorry, I'm having some trouble following the correct output format.\n"
+            "Please try again and, if the issue persists, create a new thread."
+        )
+        await message.stream_delta()
+        await message.commit()
+        state.step = "done"  # We're done now, too many failures
 
     return state
 
 
 @aa.step
 async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchState:
+    # Update the elapsed time
+    elapsed_seconds = (
+        datetime.now(UTC) - datetime.fromisoformat(state.processing_start_time)
+    ).total_seconds()
+    state.processing_elapsed_time = f"{elapsed_seconds:.2f} seconds"
+
     # First, let's attempt to get any relevant tools from
     # our action packages and MCP servers
     action_tools, action_issues = await kernel.tools.from_action_packages(
