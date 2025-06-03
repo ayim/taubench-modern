@@ -62,6 +62,12 @@ def _file_uploads_with_existing_thread(
     assert file_info["file_id"] == file_id, (
         f"Expected file ID {file_id}, got {file_info['file_id']}"
     )
+    # Checking if file_url is present in file_info
+    assert "file_url" in file_info.keys(), "Expected file URL to be present in file data"
+    assert file_info["file_url"] == file_info["file_path"], (
+        "Expected file URL to be the same as file path"
+    )
+
     print_success(f"Successfully got file info for {file_id}")
 
     # Download file by ref

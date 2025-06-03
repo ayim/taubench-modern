@@ -47,6 +47,9 @@ class UploadedFile:
     user_id: str | None = None
     """The ID of the user that uploaded the file."""
 
+    file_url: str | None = None
+    """The URL of the file."""
+
     @classmethod
     def model_validate(cls, data: dict) -> "UploadedFile":
         """Create an UploadedFile from a dictionary."""
@@ -68,6 +71,9 @@ class UploadedFile:
             data["created_at"] = datetime.fromisoformat(data["created_at"])
 
         return cls(**data)
+
+    def __post_init__(self):
+        object.__setattr__(self, "file_url", self.file_path)
 
 
 @dataclass(frozen=True)

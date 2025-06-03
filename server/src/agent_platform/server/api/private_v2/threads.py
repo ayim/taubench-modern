@@ -1,3 +1,4 @@
+import dataclasses
 from mimetypes import guess_type
 
 from fastapi import APIRouter, HTTPException, Request, UploadFile
@@ -239,7 +240,7 @@ async def get_file_by_ref(
     file = await storage.get_file_by_ref(thread, file_ref, user.user_id)
     if not file:
         raise HTTPException(status_code=404, detail="File not found")
-    return file
+    return dataclasses.asdict(file)
 
 
 @router.post("/{tid}/files", response_model=list[UploadedFile])
@@ -300,15 +301,15 @@ async def download_file_by_ref(
     file_manager: FileManagerDependency,
 ):
     file = await get_file_by_ref(user, tid, file_ref, storage)
-    if not file.file_path:
+    if not file["file_path"]:
         raise HTTPException(status_code=404, detail="File not found")
 
-    media_type = guess_type(file.file_path)[0] or "application/octet-stream"
+    media_type = guess_type(file["file_path"])[0] or "application/octet-stream"
 
     try:
         return StreamingResponse(
             file_manager.stream_file_contents(
-                file_id=file.file_id,
+                file_id=file["file_id"],
                 user_id=user.user_id,
             ),
             media_type=media_type,

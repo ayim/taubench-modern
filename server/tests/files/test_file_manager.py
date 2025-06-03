@@ -951,6 +951,13 @@ class TestFileManager:
                     file_name=invalid_filename,
                 )
 
+    async def test_uploaded_file_contains_file_url(
+        self,
+        sample_uploaded_file: UploadedFile,
+    ):
+        """Test that UploadedFile includes file_url as an alias for file_path."""
+        assert sample_uploaded_file.file_url == sample_uploaded_file.file_path
+
 
 if __name__ == "__main__":
     pytest.main()
