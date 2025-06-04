@@ -91,7 +91,7 @@ async def update_thread(
 
 
 @router.get("/", response_model=list[Thread])
-async def list_threads(  # noqa: PLR0913
+async def list_threads(
     user: AuthedUser,
     storage: StorageDependency,
     agent_id: str | None = None,
@@ -333,6 +333,7 @@ class ConfirmRemoteFileUploadPayload:
     file_id: str
 
 
+# ruff: noqa: PLR0913
 @router.post("/{tid}/files/confirm-upload")
 async def confirm_remote_file_upload(
     payload: ConfirmRemoteFileUploadPayload,
@@ -340,6 +341,7 @@ async def confirm_remote_file_upload(
     tid: str,
     storage: StorageDependency,
     file_manager: FileManagerDependency,
+    request: Request,
 ):
     thread = await storage.get_thread(user.user_id, tid)
     if not thread:
@@ -370,6 +372,19 @@ async def confirm_remote_file_upload(
     messages: list[ThreadMessage] = [to_thread_message(file) for file in files]
     for message in messages:
         thread.add_message(message=message)
+
+    await storage.upsert_thread(user_id=user.user_id, thread=thread)
+
+    server_context = AgentServerContext.from_request(
+        request=request,
+        user=user,
+        version="2.0.0",
+    )
+    server_context.increment_counter(
+        "sema4ai.agent_server.messages",
+        len(messages),
+        {"agent_id": thread.agent_id, "thread_id": thread.thread_id},
+    )
 
     return files[0]
 
