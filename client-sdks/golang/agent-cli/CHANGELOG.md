@@ -4,6 +4,7 @@
 
 ## 1.3.2 - 2025-06-03
 - Improved change detection for Action Packages - changes now follow exclusion rules from Action Package `package.yaml` instead of ones from `agent-spec.yaml`
+- Add new flag '--ignore-actions' for the validation command to skip validating the action packages
 
 ## 1.3.1 - 2025-05-23
 - Fixed and simplified `agent delete` command

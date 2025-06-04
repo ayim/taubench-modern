@@ -544,8 +544,11 @@ func (v *Validator) validateUnreferencedActionPackages(errors chan Error) {
 /**
  * Entry point for validation
  */
-func (v *Validator) Validate(rootNode *yaml.Node, errors chan Error) {
-	v.actionPackagesFoundInFS = ListActionPackagesFromAgent(v.agentRootDirOrZip)
+func (v *Validator) Validate(rootNode *yaml.Node, errors chan Error, ignoreActions bool) {
+	v.actionPackagesFoundInFS = make(map[string]*ActionPackageInFilesystem)
+	if !ignoreActions {
+		v.actionPackagesFoundInFS = ListActionPackagesFromAgent(v.agentRootDirOrZip)
+	}
 
 	v.ValidateNodesExistAndBuildYamlInfo(rootNode, errors)
 	root := ConvertFlattenedToNested(v.specEntries)

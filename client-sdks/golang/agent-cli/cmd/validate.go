@@ -21,9 +21,10 @@ var validateCmd = &cobra.Command{
 }
 
 var (
-	showSpecFlag bool
-	nestedFlag   bool
-	jsonSpecFlag bool
+	showSpecFlag      bool
+	nestedFlag        bool
+	jsonSpecFlag      bool
+	ignoreActionsFlag bool
 )
 
 // (use 0-based coordinates -- remember that yaml.Node.Line/Column is 1-based)
@@ -170,7 +171,7 @@ func runValidateCmd(cmd *cobra.Command, args []string) {
 
 	validator := NewValidator(specEntries, agentRootDirOrZip)
 	errors := make(chan Error)
-	go validator.Validate(&rootNode, errors)
+	go validator.Validate(&rootNode, errors, ignoreActionsFlag)
 
 	diagnostics := []map[string]interface{}{}
 	for error := range errors {
@@ -215,6 +216,7 @@ func runValidateCmd(cmd *cobra.Command, args []string) {
 func init() {
 	rootCmd.AddCommand(validateCmd)
 	validateCmd.Flags().BoolVarP(&jsonSpecFlag, "json", "j", false, "Output as Json.")
+	validateCmd.Flags().BoolVar(&ignoreActionsFlag, "ignore-actions", false, "Ignore actions in the validation.")
 
 	validateCmd.Flags().BoolVarP(&showSpecFlag, "show-spec", "s", false, "Show the spec and exit.")
 	validateCmd.Flags().BoolVarP(&nestedFlag, "nested", "n", false, "Show the spec in nested format (only valid with --show-spec).")
