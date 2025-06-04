@@ -1,3 +1,26 @@
+# Sema4.ai Agent Server Pre-Release 2.0.0-beta.9 (2025-06-04)
+
+## Agent Server
+
+No significant changes.
+
+
+## Public API
+
+No significant changes.
+
+
+## Private API
+
+### Bugfixes
+
+- Bug fix in the route name ([GPT-928](https://linear.app/sema4ai/issue/GPT-928))
+
+### Miscellaneous
+
+- improve type tests for v1 compatibility in Typescript SDK
+
+
 # Sema4.ai Agent Server Pre-Release 2.0.0-beta.8 (2025-06-04)
 
 ## Agent Server
