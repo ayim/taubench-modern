@@ -1,3 +1,22 @@
+# Sema4.ai Agent Server Pre-Release 2.0.0-rc (2025-06-04)
+
+## Agent Server
+
+No significant changes.
+
+
+## Public API
+
+No significant changes.
+
+
+## Private API
+
+### Bugfixes
+
+- Missing endpoints for file uploading; porting from v1 to v2.
+
+
 # Sema4.ai Agent Server Pre-Release 2.0.0-beta.9 (2025-06-04)
 
 ## Agent Server
