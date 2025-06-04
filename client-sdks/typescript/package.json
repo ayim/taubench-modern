@@ -1,6 +1,6 @@
 {
   "name": "@sema4ai/agent-server-interface",
-  "version": "2.0.0-marco.9",
+  "version": "2.0.0-marco.10",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "files": [
@@ -10,9 +10,10 @@
     "build": "tsc && npm run copy-legacy-types",
     "format": "prettier --write \"**/*.{ts,json}\"",
     "generate:private": "ts-node ./scripts/generate.ts ./private.openapi.json",
-    "generate": "npm run generate:private && npm run format && npm run check:types",
+    "generate": "npm run generate:private && npm run format && npm run check:types && npm run test:types",
     "check:types": "tsc --noEmit",
-    "copy-legacy-types": "cpx 'src/**/*.d.ts' lib"
+    "copy-legacy-types": "cp src/private/v1/schema.d.ts lib/private/v1/schema.d.ts && cp src/private/v1/spec.gen.d.ts lib/private/v1/spec.gen.d.ts",
+    "test:types": "tsd"
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
@@ -23,7 +24,6 @@
   "description": "Agent Server Interface for Typescript",
   "devDependencies": {
     "@types/node": "^22.14.1",
-    "cpx": "^1.5.0",
     "openapi-typescript": "^7.6.1",
     "prettier": "^3.5.3",
     "ts-node": "^10.9.2",

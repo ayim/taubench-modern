@@ -1,7 +1,6 @@
 /**
  * overrides type for back compatibilty with v1
  */
-import { expectAssignable } from 'tsd';
 import { components } from './schema.gen';
 import type { components as v1 } from './v1/schema.d.ts';
 
@@ -13,8 +12,6 @@ export type Thread = components['schemas']['Thread'] & {
   metadata?: Record<string, never> & { langsmith_urls?: string[] };
   messages: ThreadMessage[];
 };
-declare const thread: Thread;
-expectAssignable<v1['schemas']['Thread']>(thread);
 
 export type ThreadTextContent = components['schemas']['ThreadTextContent'] & {
   kind: 'text';
@@ -78,8 +75,6 @@ export type ActionPackage = components['schemas']['ActionPackageCompat'] & {
   url: string;
   api_key: string;
 };
-declare const actionPackage: ActionPackage;
-expectAssignable<v1['schemas']['ActionPackage']>(actionPackage);
 
 export type Agent = components['schemas']['AgentCompat'] & {
   created_at: string;
@@ -97,8 +92,6 @@ export type Agent = components['schemas']['AgentCompat'] & {
   action_packages: ActionPackage[];
   metadata: v1['schemas']['AgentMetadata'];
 };
-declare const agent: Agent;
-expectAssignable<v1['schemas']['Agent']>(agent);
 
 export type ContextStats = {
   context_window_size: number;
