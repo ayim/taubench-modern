@@ -17,6 +17,7 @@ from agent_platform.core import Kernel
 from agent_platform.core import agent_architectures as aa
 from agent_platform.core.kernel_interfaces.thread_state import ThreadMessageWithThreadState
 from agent_platform.core.prompts import select_prompt
+from agent_platform.core.tools.tool_definition import ToolDefinition
 
 logger = logging.getLogger(__name__)
 
@@ -197,7 +198,12 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
                     if tool.kind == "tool_use"
                 ]
             )
-            state, message = await _backup_prompt_for_invalid_format(kernel, state, message)
+            state, message = await _backup_prompt_for_invalid_format(
+                kernel,
+                state,
+                message,
+                [*action_tools, *mcp_tools],
+            )
 
     # Update the message to show that the tool calls are running in the chat
     for _, tool_call in state.pending_tool_calls:
@@ -218,7 +224,10 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
 
 
 async def _backup_prompt_for_invalid_format(
-    kernel: Kernel, state: ArchState, message: ThreadMessageWithThreadState
+    kernel: Kernel,
+    state: ArchState,
+    message: ThreadMessageWithThreadState,
+    tools: list[ToolDefinition],
 ) -> tuple[ArchState, ThreadMessageWithThreadState]:
     # If we're here, we failed to follow the output format, but we _may_
     # have produced tool calls. Claude like to tool call and just trail off
@@ -232,6 +241,10 @@ async def _backup_prompt_for_invalid_format(
         unformatted_backup_prompt,
         state=state,
     )
+
+    # Some platforms (Cortex) require the tools to be added to the prompt
+    # lest we get a 400 error
+    formatted_backup_prompt = formatted_backup_prompt.with_tools(*tools)
 
     # Get a platform and it's default LLM
     platform, model = await kernel.get_platform_and_model(model_type="llm")
