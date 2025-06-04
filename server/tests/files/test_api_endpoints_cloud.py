@@ -125,6 +125,23 @@ def _file_uploads_with_existing_thread(
     )
     print_success(f"Successfully got file info for {file_id}")
 
+    # Verify that the file_path is a presigned URL from the cloud server
+    assert "file_url" in file_info, "File URL not found in file info"
+    assert file_info["file_url"] is not None, "File URL is None"
+    assert file_info["file_url"] == file_info["file_path"], (
+        f"Expected file URL to be the same as file path: "
+        f"{file_info['file_url']} != {file_info['file_path']}"
+    )
+    file_path = file_info.get("file_path")
+    assert file_path is not None, "File path not found in file info"
+    assert file_path.startswith("http://localhost:8001/download/"), (
+        f"Expected file path to be a presigned URL starting with "
+        f"'http://localhost:8001/download/', got '{file_path}'"
+    )
+    assert "token=" in file_path, "File path should contain a token parameter for presigned URL"
+    assert file_id in file_path, f"File path should contain the file_id '{file_id}'"
+    print_success("Successfully verified that file_path is a presigned URL from cloud server")
+
     # Download file by ref
     file_content = agent_client.download_file_by_ref(thread_id, file_ref)
     assert file_content is not None, "File content not found"

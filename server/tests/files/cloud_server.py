@@ -29,8 +29,8 @@ files_metadata: dict[str, dict] = {}
 
 @dataclass
 class PresignedPostRequest:
-    file_id: str
-    expires_in: int
+    fileId: str  # noqa: N815
+    expiresIn: int  # noqa: N815
 
 
 @app.post("/")
@@ -39,40 +39,40 @@ async def handle_presigned_post(request: PresignedPostRequest):
     Endpoint for getting presigned POST URL
     Called by CFM's _get_presigned_post method
     """
-    log(f"Generating presigned POST URL for file ID: {request.file_id}")
+    log(f"Generating presigned POST URL for file ID: {request.fileId}")
     token = jwt.encode(
-        {"file_id": request.file_id, "exp": int(time.time()) + request.expires_in},
+        {"fileId": request.fileId, "exp": int(time.time()) + request.expiresIn},
         SECRET_KEY,
         algorithm="HS256",
     )
 
     return {
         "url": "http://localhost:8001/upload",
-        "form_data": {"token": token, "file_id": request.file_id},
+        "form_data": {"token": token, "fileId": request.fileId},
     }
 
 
 @app.get("/")
-async def handle_presigned_url(file_id: str, file_name: str, expires_in: int):
+async def handle_presigned_url(fileId: str, fileName: str, expiresIn: int):  # noqa: N803
     """
     Endpoint for getting presigned download URL
     Called by CFM's _get_presigned_url method
     """
-    log(f"Generating presigned URL for file: {file_name} (ID: {file_id})")
-    if not os.path.exists(os.path.join(UPLOAD_DIR, file_id)):
+    log(f"Generating presigned URL for file: {fileName} (ID: {fileId})")
+    if not os.path.exists(os.path.join(UPLOAD_DIR, fileId)):
         raise HTTPException(status_code=404, detail="File not found")
 
     token = jwt.encode(
         {
-            "file_id": file_id,
-            "file_name": file_name,
-            "exp": int(time.time()) + expires_in,
+            "fileId": fileId,
+            "fileName": fileName,
+            "exp": int(time.time()) + expiresIn,
         },
         SECRET_KEY,
         algorithm="HS256",
     )
 
-    return {"url": f"http://localhost:8001/download/{file_id}?token={token}"}
+    return {"url": f"http://localhost:8001/download/{fileId}?token={token}"}
 
 
 @app.delete("/")
@@ -101,7 +101,7 @@ async def handle_delete(request: Request):
 async def handle_upload(
     file: UploadFile,
     token: str = Form(...),
-    file_id: str = Form(...),
+    fileId: str = Form(...),  # noqa: N803
 ):
     """
     Endpoint for actual file upload
@@ -110,13 +110,13 @@ async def handle_upload(
     try:
         # Verify token
         jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-        log(f"Handling file upload for ID: {file_id}")
+        log(f"Handling file upload for ID: {fileId}")
 
-        file_path = os.path.join(UPLOAD_DIR, file_id)
+        file_path = os.path.join(UPLOAD_DIR, fileId)
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
-        files_metadata[file_id] = {
+        files_metadata[fileId] = {
             "original_name": file.filename,
             "content_type": file.content_type,
             "upload_time": datetime.now(UTC).isoformat(),
@@ -127,8 +127,8 @@ async def handle_upload(
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@app.get("/download/{file_id}")
-async def handle_download(file_id: str, token: str):
+@app.get("/download/{fileId}")
+async def handle_download(fileId: str, token: str):  # noqa: N803
     """
     Endpoint for file download
     Called using presigned URL
@@ -136,15 +136,15 @@ async def handle_download(file_id: str, token: str):
     try:
         # Verify token
         jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-        log(f"Handling file download for ID: {file_id}")
+        log(f"Handling file download for ID: {fileId}")
 
-        file_path = os.path.join(UPLOAD_DIR, file_id)
+        file_path = os.path.join(UPLOAD_DIR, fileId)
         if not os.path.exists(file_path):
             raise HTTPException(status_code=404, detail="File not found")
 
         return FileResponse(
             file_path,
-            media_type=files_metadata.get(file_id, {}).get(
+            media_type=files_metadata.get(fileId, {}).get(
                 "content_type",
                 "application/octet-stream",
             ),
