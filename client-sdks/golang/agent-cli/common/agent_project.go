@@ -23,6 +23,16 @@ type AgentProject struct {
 
 var PATTERNS_EXCLUDED_FROM_SYNCHRONIZATION = []string{"**/__action_server_metadata__.json", "**/devdata/**", "**/__pycache__/**"}
 
+func excludeByHardcodedPatters(path string) bool {
+	for _, pattern := range PATTERNS_EXCLUDED_FROM_SYNCHRONIZATION {
+		if glob.IsMatch(pattern, path) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (ap *AgentProject) GetUnbundledActionPackageForFile(filePath string) *AgentActionPackage {
 	for _, actionPackage := range ap.Agent.ActionPackages {
 		packagePath := filepath.Join(AgentProjectActionsLocation(ap.Path), actionPackage.Path)
@@ -37,63 +47,67 @@ func (ap *AgentProject) GetUnbundledActionPackageForFile(filePath string) *Agent
 }
 
 func (ap *AgentProject) GetActionPackagesFilesForSynchronization() ([]string, error) {
-	// First, we want to get the files that are not excluded by the Agent configuration itself.
-	includedPathsMap, err := glob.Exclude(ap.Path, ap.Exclude)
-	if err != nil {
-		return nil, err
+	includedPaths := &ConcurrentSlice[string]{
+		items: []string{},
 	}
 
-	includedPaths := []string{}
+	var getFilesErrors []error
 
-	for path, isDir := range includedPathsMap {
-		if !isDir {
-			includedPaths = append(includedPaths, path)
+	wg := sync.WaitGroup{}
+
+	var myActionsPackages []AgentActionPackage
+
+	for _, actionPackage := range ap.Agent.ActionPackages {
+		if actionPackage.Organization == AGENT_PROJECT_UNBUNDLED_ACTIONS_DIR {
+			myActionsPackages = append(myActionsPackages, actionPackage)
 		}
 	}
 
-	// For synchronization, we only care about MyActions organization.
-	actionsPath := AgentProjectUnbundledActionsLocation(ap.Path)
-	actionsPathPattern := actionsPath + "/**"
+	for _, actionPackage := range myActionsPackages {
+		wg.Add(1)
 
-	pathsToCheckForSync := []string{}
+		go func() {
+			defer wg.Done()
 
-	// For every included path, we check if it matches the pattern for MyActions.
-	// If it does, we also check whether it should be included based on the hardcoded exclusion patterns.
-	for _, path := range includedPaths {
-		if !glob.IsMatch(actionsPathPattern, path) {
-			continue
-		}
+			packagePath := filepath.Join(AgentProjectActionsLocation(ap.Path), actionPackage.Path)
 
-		exclude := false
-
-		for _, pattern := range PATTERNS_EXCLUDED_FROM_SYNCHRONIZATION {
-			if glob.IsMatch(pattern, path) {
-				exclude = true
-				break
+			packageYaml, err := GetActionPackageYaml(filepath.Join(packagePath, ACTION_PACKAGE_SPEC_FILE))
+			if err != nil {
+				getFilesErrors = append(getFilesErrors, err)
+				return
 			}
-		}
 
-		if !exclude {
-			pathsToCheckForSync = append(pathsToCheckForSync, path)
-		}
+			exclusionRules := packageYaml.Packaging.Exclude
+
+			includedPathsMap, err := glob.Exclude(packagePath, exclusionRules)
+			if err != nil {
+				getFilesErrors = append(getFilesErrors, err)
+				return
+			}
+
+			for path, isDir := range includedPathsMap {
+				// For every included path, we want to filter out directory items and files that follow hardcoded
+				// exclusion patterns.
+				if !isDir && !excludeByHardcodedPatters(path) {
+					includedPaths.AddIfNotExists(path)
+				}
+			}
+		}()
 	}
 
-	return pathsToCheckForSync, nil
+	wg.Wait()
+
+	if len(getFilesErrors) > 0 {
+		return nil, ConcatErrors(getFilesErrors)
+	}
+
+	return includedPaths.items, nil
 }
 
 func (ap *AgentProject) GetNotSynchronizedActionPackages(deployedAgent *AgentServer.Agent) ([]string, error) {
 	actionPackagesPathsToCheck, err := ap.GetActionPackagesFilesForSynchronization()
 	if err != nil {
 		return nil, err
-	}
-
-	actionPackagesToCheck := []*AgentActionPackage{}
-
-	for _, actionPackage := range ap.Agent.ActionPackages {
-		// Only getting MyActions packages.
-		if actionPackage.Organization == AGENT_PROJECT_UNBUNDLED_ACTIONS_DIR {
-			actionPackagesToCheck = append(actionPackagesToCheck, &actionPackage)
-		}
 	}
 
 	notSynchronizedActionPackages := &ConcurrentSlice[string]{

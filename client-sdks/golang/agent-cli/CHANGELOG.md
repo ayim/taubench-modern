@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+## 1.3.2 - 2025-06-03
+- Improved change detection for Action Packages - changes now follow exclusion rules from Action Package `package.yaml` instead of ones from `agent-spec.yaml`
+
 ## 1.3.1 - 2025-05-23
 - Fixed and simplified `agent delete` command
 - Added `mcp_servers` null payload handling
