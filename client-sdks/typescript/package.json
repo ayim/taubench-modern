@@ -1,6 +1,6 @@
 {
   "name": "@sema4ai/agent-server-interface",
-  "version": "2.0.0-marco.12",
+  "version": "2.0.0-marco.14",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "files": [
@@ -9,8 +9,10 @@
   "scripts": {
     "build": "tsc && npm run copy-legacy-types",
     "format": "prettier --write \"**/*.{ts,json}\"",
-    "generate:private": "ts-node ./scripts/generate.ts ./private.openapi.json",
-    "generate": "npm run generate:private && npm run format && npm run check:types",
+    "generate:private": "ts-node ./scripts/generate.ts ./private.openapi.json \"private\"",
+    "generate:public": "ts-node ./scripts/generate.ts ./public.openapi.json \"public\"",
+    "generate:all": "npm run generate:private && npm run generate:public",
+    "generate": "npm run generate:all && npm run format && npm run check:types",
     "check:types": "tsc --noEmit",
     "copy-legacy-types": "mkdir -p lib/private/v1 && cp src/private/v1/schema.d.ts lib/private/v1/schema.d.ts && cp src/private/v1/spec.gen.d.ts lib/private/v1/spec.gen.d.ts",
     "test:types": "tsd"

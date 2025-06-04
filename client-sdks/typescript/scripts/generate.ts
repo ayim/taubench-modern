@@ -3,12 +3,23 @@ import generateTSTypes, { OpenAPI3, astToString } from 'openapi-typescript';
 
 const args = process.argv.slice(2);
 
-if (args.length === 0) {
-  console.log('Usage: ts-node scripts/generate.ts <openapi-spec.json>');
+if (args.length !== 2) {
+  console.log(
+    'Usage: ts-node scripts/generate.ts <openapi-spec.json> <public or private>'
+  );
   process.exit(1);
 }
 
 const openapiSpecFilepath = args[0];
+const kind = args[1]; // public or private
+
+if (!['private', 'public'].includes(kind)) {
+  console.log(
+    `Only "public" or "private" allowed, found ${kind}`,
+    'Usage: ts-node scripts/generate.ts <openapi-spec.json> <public or private>'
+  );
+  process.exit(1);
+}
 
 const exclude_endpoints = ['/prompts/generate', '/prompts/stream'];
 
@@ -60,25 +71,14 @@ const generateSchemaFile = async (spec: OpenAPI3, outputFile: string) => {
   );
 };
 
-const updatePackageJSON = (spec: OpenAPI3) => {
-  const packageFile = fs.readFileSync('./package.json', 'utf-8');
-  const packageJson = JSON.parse(packageFile);
-  packageJson.version = spec.info.version;
-  fs.writeFileSync(
-    './package.json',
-    JSON.stringify(packageJson, null, 2) + '\n'
-  );
-};
-
 const main = async () => {
-  console.log(`Generating schema for spec ${openapiSpecFilepath}...`);
+  console.log(`Generating schema ${kind} for spec ${openapiSpecFilepath}...`);
   const spec = JSON.parse(
     fs.readFileSync(openapiSpecFilepath, 'utf-8')
   ) as OpenAPI3;
   const specWithPrefix = appendServerPrefixToPaths(spec);
-  generateSpecFile(specWithPrefix, './src/private/spec.gen.ts');
-  await generateSchemaFile(specWithPrefix, './src/private/schema.gen.ts');
-  updatePackageJSON(specWithPrefix);
+  generateSpecFile(specWithPrefix, `./src/${kind}/spec.gen.ts`);
+  await generateSchemaFile(specWithPrefix, `./src/${kind}/schema.gen.ts`);
   console.log(`Schema generated successfully!`);
 };
 
