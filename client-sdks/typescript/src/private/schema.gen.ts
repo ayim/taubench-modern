@@ -212,6 +212,27 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/runs/{run_id}/status': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Run Status
+     * @description Get the status of a run by its ID.
+     *     Returns the run's current status.
+     */
+    get: operations['get_run_status_runs__run_id__status_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/runs/{agent_id}/sync': {
     parameters: {
       query?: never;
@@ -226,6 +247,27 @@ export interface paths {
      * @description Synchronous endpoint to run a conversation with a given agent and return all events.
      */
     post: operations['sync_run_runs__agent_id__sync_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/runs/{agent_id}/async': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Async Run
+     * @description Asynchronous endpoint to start a run with a given agent and return an acknowledgment.
+     *     The client doesn't need to wait for the run to complete.
+     */
+    post: operations['async_run_runs__agent_id__async_post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -403,6 +445,40 @@ export interface paths {
     get: operations['download_file_by_ref_threads__tid__files_download__get'];
     put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/threads/{tid}/files/confirm-upload': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Confirm Remote File Upload */
+    post: operations['confirm_remote_file_upload_threads__tid__files_confirm_upload_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/threads/{tid}/files/request-upload': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Request Remote File Upload */
+    post: operations['request_remote_file_upload_threads__tid__files_request_upload_post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -1098,6 +1174,13 @@ export interface components {
        */
       cited_text?: string | null;
     };
+    /** ConfirmRemoteFileUploadPayload */
+    ConfirmRemoteFileUploadPayload: {
+      /** File Ref */
+      file_ref: string;
+      /** File Id */
+      file_id: string;
+    };
     /** ConversationHistoryParams */
     ConversationHistoryParams: {
       /**
@@ -1656,6 +1739,11 @@ export interface components {
       delegate_kind?: string | null;
       /** @description The API key for the delegate platform client. If not provided, it will be attempted to be inferred from the environment. */
       delegate_api_key?: components['schemas']['SecretString'] | null;
+    };
+    /** RequestRemoteFileUploadPayload */
+    RequestRemoteFileUploadPayload: {
+      /** File Name */
+      file_name: string;
     };
     /** ResponseAudioContent */
     ResponseAudioContent: {
@@ -2461,6 +2549,8 @@ export interface components {
       thread_id?: string | null;
       /** User Id */
       user_id?: string | null;
+      /** File Url */
+      file_url?: string | null;
     };
     /** UpsertAgentPayload */
     UpsertAgentPayload: {
@@ -3134,6 +3224,37 @@ export interface operations {
       };
     };
   };
+  get_run_status_runs__run_id__status_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        run_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
   sync_run_runs__agent_id__sync_post: {
     parameters: {
       query?: never;
@@ -3156,6 +3277,41 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ThreadAgentMessage'][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  async_run_runs__agent_id__async_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        agent_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['InitiateStreamPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
         };
       };
       /** @description Validation Error */
@@ -3633,6 +3789,76 @@ export interface operations {
       cookie?: never;
     };
     requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  confirm_remote_file_upload_threads__tid__files_confirm_upload_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        tid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ConfirmRemoteFileUploadPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  request_remote_file_upload_threads__tid__files_request_upload_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        tid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RequestRemoteFileUploadPayload'];
+      };
+    };
     responses: {
       /** @description Successful Response */
       200: {

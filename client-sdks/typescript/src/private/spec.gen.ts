@@ -6,7 +6,7 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Private API Version 2',
-    version: '2.0.0-beta.3',
+    version: '2.0.0-beta.8',
   },
   paths: {
     '/api/v2/ok': {
@@ -658,6 +658,46 @@ export const spec = {
         },
       },
     },
+    '/api/v2/runs/{run_id}/status': {
+      get: {
+        tags: ['runs'],
+        summary: 'Get Run Status',
+        description:
+          "Get the status of a run by its ID.\nReturns the run's current status.",
+        operationId: 'get_run_status_runs__run_id__status_get',
+        parameters: [
+          {
+            name: 'run_id',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Run Id',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/HTTPValidationError',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/v2/runs/{agent_id}/sync': {
       post: {
         tags: ['runs'],
@@ -698,6 +738,56 @@ export const spec = {
                   },
                   title: 'Response Sync Run Runs  Agent Id  Sync Post',
                 },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/HTTPValidationError',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/runs/{agent_id}/async': {
+      post: {
+        tags: ['runs'],
+        summary: 'Async Run',
+        description:
+          "Asynchronous endpoint to start a run with a given agent and return an acknowledgment.\nThe client doesn't need to wait for the run to complete.",
+        operationId: 'async_run_runs__agent_id__async_post',
+        parameters: [
+          {
+            name: 'agent_id',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Agent Id',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/InitiateStreamPayload',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
               },
             },
           },
@@ -1403,6 +1493,104 @@ export const spec = {
             },
           },
         ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/HTTPValidationError',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/threads/{tid}/files/confirm-upload': {
+      post: {
+        tags: ['threads'],
+        summary: 'Confirm Remote File Upload',
+        operationId:
+          'confirm_remote_file_upload_threads__tid__files_confirm_upload_post',
+        parameters: [
+          {
+            name: 'tid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Tid',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ConfirmRemoteFileUploadPayload',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/HTTPValidationError',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/threads/{tid}/files/request-upload': {
+      post: {
+        tags: ['threads'],
+        summary: 'Request Remote File Upload',
+        operationId:
+          'request_remote_file_upload_threads__tid__files_request_upload_post',
+        parameters: [
+          {
+            name: 'tid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Tid',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/RequestRemoteFileUploadPayload',
+              },
+            },
+          },
+        },
         responses: {
           '200': {
             description: 'Successful Response',
@@ -2716,6 +2904,21 @@ export const spec = {
         required: ['document_uri', 'start_char_index', 'end_char_index'],
         title: 'Citation',
       },
+      ConfirmRemoteFileUploadPayload: {
+        properties: {
+          file_ref: {
+            type: 'string',
+            title: 'File Ref',
+          },
+          file_id: {
+            type: 'string',
+            title: 'File Id',
+          },
+        },
+        type: 'object',
+        required: ['file_ref', 'file_id'],
+        title: 'ConfirmRemoteFileUploadPayload',
+      },
       ConversationHistoryParams: {
         properties: {
           maximum_number_of_turns: {
@@ -3635,6 +3838,17 @@ export const spec = {
         },
         type: 'object',
         title: 'ReductoPlatformParameters',
+      },
+      RequestRemoteFileUploadPayload: {
+        properties: {
+          file_name: {
+            type: 'string',
+            title: 'File Name',
+          },
+        },
+        type: 'object',
+        required: ['file_name'],
+        title: 'RequestRemoteFileUploadPayload',
       },
       ResponseAudioContent: {
         properties: {
@@ -4796,6 +5010,17 @@ export const spec = {
               },
             ],
             title: 'User Id',
+          },
+          file_url: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'File Url',
           },
         },
         type: 'object',

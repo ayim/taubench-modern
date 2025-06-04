@@ -1,4 +1,5 @@
 import dataclasses
+import hashlib
 from mimetypes import guess_type
 
 from fastapi import APIRouter, HTTPException, Request, UploadFile
@@ -13,6 +14,8 @@ from agent_platform.core.payloads import (
     UpsertThreadPayload,
 )
 from agent_platform.core.thread import Thread
+from agent_platform.core.thread.base import ThreadMessage
+from agent_platform.core.thread.content.tool_usage import ThreadToolUsageContent
 from agent_platform.server.api.dependencies import (
     FileManagerDependency,
     StorageDependency,
@@ -317,3 +320,73 @@ async def download_file_by_ref(
     except Exception as e:
         logger.error(f"Error reading file: {e!s}")
         raise HTTPException(status_code=500, detail="Failed to read file") from e
+
+
+@dataclasses.dataclass
+class RequestRemoteFileUploadPayload:
+    file_name: str
+
+
+@dataclasses.dataclass
+class ConfirmRemoteFileUploadPayload:
+    file_ref: str
+    file_id: str
+
+
+@router.post("/{tid}/files/confirm-upload")
+async def confirm_remote_file_upload(
+    payload: ConfirmRemoteFileUploadPayload,
+    user: AuthedUser,
+    tid: str,
+    storage: StorageDependency,
+    file_manager: FileManagerDependency,
+):
+    thread = await storage.get_thread(user.user_id, tid)
+    if not thread:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    file = await file_manager.confirm_remote_file_upload(
+        thread=thread, file_ref=payload.file_ref, file_id=payload.file_id
+    )
+    files = await file_manager.refresh_file_paths([file])
+
+    def to_thread_message(file: UploadedFile) -> ThreadMessage:
+        short_id = hashlib.md5(file.file_id.encode()).hexdigest()[:8]
+        tool_call_id = f"upload-{short_id}"
+
+        return ThreadMessage(
+            role="agent",
+            content=[
+                ThreadToolUsageContent(
+                    name="upload_file",
+                    tool_call_id=tool_call_id,
+                    status="finished",
+                    result=f'File uploaded: "{file.file_ref}"',
+                    arguments_raw="",
+                )
+            ],
+        )
+
+    messages: list[ThreadMessage] = [to_thread_message(file) for file in files]
+    for message in messages:
+        thread.add_message(message=message)
+
+    return files[0]
+
+
+@router.post("/{tid}/files/request-upload")
+async def request_remote_file_upload(
+    payload: RequestRemoteFileUploadPayload,
+    user: AuthedUser,
+    tid: str,
+    storage: StorageDependency,
+    file_manager: FileManagerDependency,
+):
+    thread = await storage.get_thread(user.user_id, tid)
+    if not thread:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    response = await file_manager.request_remote_file_upload(
+        thread=thread, file_name=payload.file_name
+    )
+    return response
