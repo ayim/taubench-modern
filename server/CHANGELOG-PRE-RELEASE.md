@@ -1,3 +1,22 @@
+# Sema4.ai Agent Server Pre-Release 2.0.0-beta.8 (2025-06-04)
+
+## Agent Server
+
+### Bugfixes
+
+- Backup prompt to ensure output format adherance updated to also pass tools (shouldn't be necessary, but Cortex seems to need it) ([GPT-942](https://linear.app/sema4ai/issue/GPT-942))
+
+
+## Public API
+
+No significant changes.
+
+
+## Private API
+
+No significant changes.
+
+
 # Sema4.ai Agent Server Pre-Release 2.0.0-beta.7 (2025-06-03)
 
 ## Agent Server
