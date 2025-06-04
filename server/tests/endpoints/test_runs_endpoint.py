@@ -198,7 +198,7 @@ def fastapi_app(
 
     app.dependency_overrides[auth_user_websocket] = lambda: stub_user
 
-    # 3. current HTTP user (for async_invoke endpoint)
+    # 3. current HTTP user (for async endpoint)
     from agent_platform.server.auth.handlers import auth_user
 
     app.dependency_overrides[auth_user] = lambda: stub_user
@@ -245,16 +245,16 @@ def make_initial_payload(agent_id: str, thread_id: str) -> dict[str, Any]:
 
 def test_async_run_happy_path(client: TestClient, stub_storage: StubStorage):
     """
-    The client sends a POST request to async_invoke and receives
+    The client sends a POST request to async and receives
     an immediate response with run_id and status.
     """
     test_agent_uuid = str(uuid.uuid4())
     test_thread_id = str(uuid.uuid4())
     StubRunner.override_agent_id = test_agent_uuid
 
-    # Make HTTP POST request to async_invoke endpoint
+    # Make HTTP POST request to async endpoint
     response = client.post(
-        f"/runs/{test_agent_uuid}/async_invoke",
+        f"/runs/{test_agent_uuid}/async",
         json=make_initial_payload(test_agent_uuid, test_thread_id),
     )
 
@@ -287,7 +287,7 @@ def test_async_run_agent_id_mismatch(client: TestClient, stub_storage: StubStora
     test_thread_id = str(uuid.uuid4())
     StubRunner.override_agent_id = test_agent_uuid
     response = client.post(
-        f"/runs/{test_agent_uuid}/async_invoke",
+        f"/runs/{test_agent_uuid}/async",
         json=make_initial_payload(mismatched_agent_id, test_thread_id),
     )
 
@@ -611,7 +611,7 @@ def test_get_run_status_happy_path(client: TestClient, stub_storage: StubStorage
 
     # First create a run
     response = client.post(
-        f"/runs/{test_agent_uuid}/async_invoke",
+        f"/runs/{test_agent_uuid}/async",
         json=make_initial_payload(test_agent_uuid, test_thread_id),
     )
     assert response.status_code == 200

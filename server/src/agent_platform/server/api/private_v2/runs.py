@@ -719,7 +719,7 @@ async def sync_run(  # noqa: C901, PLR0912, PLR0915
         ) from e
 
 
-@router.post("/{agent_id}/async_invoke")
+@router.post("/{agent_id}/async")
 async def async_run(  # noqa: C901, PLR0915
     agent_id: str,
     initial_payload: InitiateStreamPayload,
