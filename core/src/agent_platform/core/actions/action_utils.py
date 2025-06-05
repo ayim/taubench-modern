@@ -167,22 +167,15 @@ def _openapi_spec_to_tool_definitions(
             request_body_args = request_body_schema.get("properties", {})
             request_body_required = request_body_schema.get("required", [])
 
-            # Build args schema
-            args_schema = {}
-            for arg_name, arg_schema in request_body_args.items():
-                args_schema[arg_name] = {
-                    "type": arg_schema.get("type", "string"),
-                    "description": arg_schema.get("description", ""),
-                    "items": arg_schema.get("items", {}),
-                }
-
             # Start building the schema
             tool_definition = ToolDefinition(
                 name=resolved_spec.get("operationId", ""),
                 description=resolved_spec.get("description", ""),
                 input_schema={
                     "type": "object",
-                    "properties": args_schema,
+                    # Instead of only extracting specific fields, preserve the entire schema
+                    # This ensures we don't lose nested properties, anyOf, default, etc.
+                    "properties": request_body_args,
                     "required": request_body_required,
                 },
                 function=_build_post_async_function(

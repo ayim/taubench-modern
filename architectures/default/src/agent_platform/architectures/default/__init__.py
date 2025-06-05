@@ -23,8 +23,10 @@ logger = logging.getLogger(__name__)
 
 MAX_STATE_PARSE_FAILURE_COUNT = 3
 MAX_ITERATIONS = 25
+# Odd behavior seen in the wild: empty responses.
+# Let's make this regex a tad more strict.
 OUTPUT_FORMAT_REGEX = re.compile(
-    r"^\s*<formatting>\s*<thinking>.*</thinking>\s*<response>.*</response>\s*<step>.*</step>\s*</formatting>\s*$",
+    r"^\s*<formatting>\s*<thinking>.*\S.*</thinking>\s*<response>.*\S.*</response>\s*<step>.*\S.*</step>\s*</formatting>\s*$",
     re.DOTALL,
 )
 
