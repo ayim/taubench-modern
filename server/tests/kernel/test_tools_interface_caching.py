@@ -5,6 +5,7 @@ from typing import Any
 
 import pytest
 
+from agent_platform.core.actions import ActionPackage
 from agent_platform.core.responses.content.tool_use import ResponseToolUseContent
 from agent_platform.core.tools import ToolDefinition
 from agent_platform.server.configuration_manager import ConfigurationService
@@ -75,22 +76,34 @@ class _MessageRecorder:
 
 
 class _StubActionPackage:
-    """Just enough API surface so _fetch_action_tools()
-    can call .to_tool_definitions()."""
+    """Just enough API surface so _fetch_action_tools() can call
+    `.to_tool_definitions()` and our interface can access `.allowed_actions`."""
 
-    def __init__(self, url: str, tool_defs: list[ToolDefinition] | None = None):
+    def __init__(
+        self,
+        url: str,
+        tool_defs: list[ToolDefinition] | None = None,
+        allowed_actions: list[str] | None = None,
+    ):
         self.name = "pkg"
+        self.organization = "org"
         self.version = "1.0"
         self.url = url
+        self.api_key = "api-key"
+        self.allowed_actions = allowed_actions or []
         self._tool_defs = tool_defs or [_dummy_tool(name=f"T{url[-1]}")]
 
-    async def to_tool_definitions(self, _headers=None):
-        async def _get_tool_def_async(td):
-            await asyncio.sleep(0.01)
-            return td
+    def copy(self) -> "_StubActionPackage":
+        return _StubActionPackage(
+            self.url,
+            tool_defs=list(self._tool_defs),
+            allowed_actions=list(self.allowed_actions),
+        )
 
+    async def to_tool_definitions(self, _headers=None):
         for td in self._tool_defs:
-            yield await _get_tool_def_async(td)
+            await asyncio.sleep(0.01)  # Simulate async work
+            yield td
 
 
 # ---------------------------------------------------------------------------
@@ -282,8 +295,7 @@ async def test_cache_hit_after_first_fetch(
         fetch_counter["n"] += 1
         collected_tools = []
         for pkg in pkgs:
-            async for tool_def in pkg.to_tool_definitions(additional_headers):
-                collected_tools.append(tool_def)
+            collected_tools.append(_dummy_tool(name=f"T{pkg.url[-1]}"))
 
         # one tool per package
         return (collected_tools, [])
@@ -458,8 +470,7 @@ async def test_cache_disabled_via_env_var(
         fetch_counter["n"] += 1
         collected_tools = []
         for pkg in pkgs:
-            async for tool_def in pkg.to_tool_definitions(additional_headers):
-                collected_tools.append(tool_def)
+            collected_tools.append(_dummy_tool(name=f"T{pkg.url[-1]}"))
         return (collected_tools, [])
 
     monkeypatch.setattr(iface, "_fetch_action_tools", fake_fetch)
@@ -473,3 +484,129 @@ async def test_cache_disabled_via_env_var(
     assert [t.name for t in tools1] == [t.name for t in tools2]
     assert tools1[0].name == "Td"
     assert tools2[0].name == "Td"
+
+
+# ---------------------------------------------------------------------------
+# scenario F: packages with the same URL merge allowed actions
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_merge_allowed_actions_same_url(
+    iface: AgentServerToolsInterface,
+    monkeypatch,
+):
+    captured: dict[str, list[ActionPackage]] = {}
+    fetch_counter = {"n": 0}
+
+    async def fake_fetch(pkgs, additional_headers=None):
+        fetch_counter["n"] += 1
+        captured["pkgs"] = pkgs
+        return (
+            [
+                ToolDefinition(
+                    name="foo",
+                    description="",
+                    input_schema={},
+                    function=lambda **_: None,
+                ),
+                ToolDefinition(
+                    name="bar",
+                    description="",
+                    input_schema={},
+                    function=lambda **_: None,
+                ),
+            ],
+            [],
+        )
+
+    monkeypatch.setattr(iface, "_fetch_action_tools", fake_fetch)
+
+    pkg1 = ActionPackage(
+        name="pkg1",
+        organization="org",
+        version="1.0",
+        url="https://merged",
+        allowed_actions=["foo"],
+    )
+    pkg2 = ActionPackage(
+        name="pkg2",
+        organization="org",
+        version="1.0",
+        url="https://merged",
+        allowed_actions=[],
+    )
+
+    tools, _ = await iface.from_action_packages([pkg1, pkg2])
+
+    assert fetch_counter["n"] == 1
+    assert len(captured.get("pkgs", [])) == 1
+    merged_pkg = captured["pkgs"][0]
+    assert merged_pkg.allowed_actions == []
+    assert {t.name for t in tools} == {"foo", "bar"}
+
+    # Second call with only the restricted package should use the cached
+    # full list but filter down to the allowed actions.
+    tools2, _ = await iface.from_action_packages([pkg1])
+    assert fetch_counter["n"] == 1  # cache hit
+    assert [t.name for t in tools2] == ["foo"]
+
+
+@pytest.mark.asyncio
+async def test_merge_allowed_actions_same_url_union(
+    iface: AgentServerToolsInterface,
+    monkeypatch,
+):
+    captured: dict[str, list[ActionPackage]] = {}
+    fetch_counter = {"n": 0}
+
+    async def fake_fetch(pkgs, additional_headers=None):
+        fetch_counter["n"] += 1
+        captured["pkgs"] = pkgs
+        return (
+            [
+                ToolDefinition(
+                    name="foo",
+                    description="",
+                    input_schema={},
+                    function=lambda **_: None,
+                ),
+                ToolDefinition(
+                    name="bar",
+                    description="",
+                    input_schema={},
+                    function=lambda **_: None,
+                ),
+            ],
+            [],
+        )
+
+    monkeypatch.setattr(iface, "_fetch_action_tools", fake_fetch)
+
+    pkg1 = ActionPackage(
+        name="pkg1",
+        organization="org",
+        version="1.0",
+        url="https://merged-union",
+        allowed_actions=["foo"],
+    )
+    pkg2 = ActionPackage(
+        name="pkg2",
+        organization="org",
+        version="1.0",
+        url="https://merged-union",
+        allowed_actions=["bar"],
+    )
+
+    tools, _ = await iface.from_action_packages([pkg1, pkg2])
+
+    assert fetch_counter["n"] == 1
+    assert len(captured.get("pkgs", [])) == 1
+    merged_pkg = captured["pkgs"][0]
+    assert merged_pkg.allowed_actions == []  # full fetch
+    assert {t.name for t in tools} == {"foo", "bar"}
+
+    # Subsequent call with only one package should filter down.
+    tools2, _ = await iface.from_action_packages([pkg1])
+    assert fetch_counter["n"] == 1
+    assert [t.name for t in tools2] == ["foo"]

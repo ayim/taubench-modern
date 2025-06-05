@@ -409,32 +409,51 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
         # tool invocation time using extra_headers)
         additional_headers: dict | None = None,
     ) -> tuple[list[ToolDefinition], list[str]]:
-        all_tools = []
-        all_issues = []
-        seen_urls = set()
+        all_tools: list[ToolDefinition] = []
+        all_issues: list[str] = []
+
+        # Group packages by URL so we only fetch from each server once but still
+        # respect differing allowed_actions across packages that share a URL.
+        packages_by_url: dict[str, list[ActionPackage]] = {}
+        for pkg in action_packages:
+            if not pkg.url:
+                continue
+            packages_by_url.setdefault(pkg.url, []).append(pkg)
 
         async def _fetch(ap: ActionPackage, additional_headers: dict | None = None):
-            return await self._fetch_action_tools(
-                [ap],
-                additional_headers=additional_headers,
+            return await self._fetch_action_tools([ap], additional_headers=additional_headers)
+
+        for url, pkgs in packages_by_url.items():
+            # Always fetch the **full** tool set once per URL and cache it.  We
+            # then filter locally based on the union of allowed actions across
+            # all packages referencing that URL.  This avoids dropping tools if
+            # a later call has more permissive allowed_actions than whatever was
+            # first cached for the same URL.
+
+            # Template package is just for URL/API key; allowed_actions=[] means
+            # "fetch everything".
+            template = pkgs[0].copy()
+            template = ActionPackage(
+                name=template.name,
+                organization=template.organization,
+                version=template.version,
+                url=template.url,
+                api_key=template.api_key,
+                allowed_actions=[],
             )
 
-        for ap in action_packages:
-            if not ap.url:
-                continue  # skip any package missing a URL
-
-            if ap.url in seen_urls:
-                continue  # skip any duplicate URLs (this happens the way we
-                # build the action packages list from studio I think...)
-
-            seen_urls.add(ap.url)
-
-            # Call the cache/fetch for just that package
             subtools, subissues = await self._cache.get_or_fetch(
                 kind="action_packages",
-                key=ap.url,
-                fetch_coro=_fetch(ap, additional_headers=additional_headers),
+                key=url,
+                fetch_coro=_fetch(template, additional_headers=additional_headers),
             )
+
+            # Compute the merged list of allowed actions for *this call*.
+            allow_all = any(len(p.allowed_actions) == 0 for p in pkgs)
+            if not allow_all:
+                allowed = {action for p in pkgs for action in p.allowed_actions}
+                subtools = [td for td in subtools if td.name in allowed]
+
             all_tools.extend(subtools)
             all_issues.extend(subissues)
 
