@@ -24,9 +24,7 @@ from agent_platform.server.api.dependencies import FileManagerDependency, Storag
 from agent_platform.server.api.public_v2.compat import (
     AgentCompat,
     ChatMessageRequest,
-    Conversation,
     ConversationCompat,
-    ConversationState,
     CreateChatRequest,
     Message,
     PaginatedResponse,
@@ -88,6 +86,7 @@ async def get_agent_by_name(
     aid: str,
 ) -> AgentCompat:
     # TODO api v1 don't search by name despite the name of this endpoint
+    # the agent connector does not call this endpoint but it filters agent by name from the list
     agent = await storage.get_agent(user.user_id, aid)
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
@@ -128,7 +127,6 @@ async def get_conversations(
     summary="Get conversation messages",
     description=("Returns the conversation messages of the given chat_id for the given agent."),
     response_description="Conversation",
-    response_model=ConversationState,
     tags=["conversations"],
     responses={
         200: {"description": "Success"},
@@ -158,7 +156,7 @@ async def get_chat_messages(
     summary="Create new conversation",
     description="Creates a new conversation for the given agent.",
     response_description="Conversation",
-    response_model=Conversation,
+    response_model=ConversationCompat,
     tags=["conversations"],
     responses={
         200: {"description": "Success"},
@@ -197,7 +195,6 @@ async def create_conversation(
         "Post a message to a conversation thread, and get the updated conversation state."
     ),
     response_description="Conversation with messages",
-    response_model=ConversationState,
     tags=["conversations"],
     responses={
         200: {"description": "Success"},
@@ -218,6 +215,9 @@ async def post_messages_simple(
         message_id=str(uuid4()),
         created_at=datetime.now(UTC),
         updated_at=datetime.now(UTC),
+        # TODO in v1 here we have HUMAN
+        # but the agent connector filter these messages by AGENT and if none found returns the first
+        # WHY?
         role="user",
         content=[ThreadTextContent(text=body.content)],
         # TODO not sure about this value
@@ -226,6 +226,8 @@ async def post_messages_simple(
     )
 
     await storage.add_message_to_thread(user_id=user.user_id, thread_id=cid, message=message)
+
+    thread = await storage.get_thread(user_id=user.user_id, thread_id=cid)
 
     return ConversationCompat.from_thread_with_messages(thread) if thread else None
 
@@ -333,7 +335,6 @@ async def post_public_api_messages_simple(
     summary="Post messages (synchronous)",
     description=("Post messages to a conversation thread, and get the updated conversation state."),
     response_description="Conversation with messages",
-    response_model=ConversationState,
     tags=["conversations"],
     responses={
         200: {"description": "Success"},
@@ -374,7 +375,7 @@ async def post_messages_detailed(
     summary="Delete conversation",
     description=("Deletes the conversation with the given conversation ID for the given agent."),
     response_description="Conversation",
-    response_model=Conversation,
+    response_model=ConversationCompat,
     tags=["conversations"],
     responses={
         200: {"description": "Success"},

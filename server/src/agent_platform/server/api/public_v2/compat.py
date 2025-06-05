@@ -120,18 +120,6 @@ class PaginatedResponse:
     data: list[Any]
 
 
-@dataclass
-class Conversation:
-    id: str | None
-    name: str
-    agent_id: str
-
-
-@dataclass
-class ConversationState(Conversation):
-    messages: list[Message | ToolRequest | ToolResponse] | None
-
-
 @dataclass(frozen=True)
 class AgentCompat:
     id: str = field()
