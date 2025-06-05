@@ -23,6 +23,10 @@ inputs:
     description: 'Whether to build the changes'
     required: false
     default: 'true'
+  changelog-type:
+    description: 'The type of changelog to build, either "prerelease" or "release", defaults to "prerelease"'
+    required: false
+    default: 'prerelease'
   push-changes:
     description: 'Whether to push the changes'
     required: false
@@ -72,7 +76,12 @@ runs:
     - name: Generate changelog
       shell: bash
       if: ${{ inputs.build-changes }} == 'true'
-      run: uv run python scripts/changes.py build-changes --project ${{ inputs.project-name }} --commit --ci
+      run: |
+        uv run python scripts/changes.py build-changes \
+          --project ${{ inputs.project-name }} \
+          --commit \
+          --ci \
+          ${{ inputs.changelog-type == 'release' && '--release' || '' }}
 
     - name: Push changes
       shell: bash
