@@ -229,6 +229,7 @@ async def get_file_by_ref(
     tid: str,
     file_ref: str,
     storage: StorageDependency,
+    file_manager: FileManagerDependency,
 ):
     """Get a file by its reference."""
     logger.info(
@@ -242,8 +243,13 @@ async def get_file_by_ref(
         raise HTTPException(status_code=404, detail="Thread not found")
     file = await storage.get_file_by_ref(thread, file_ref, user.user_id)
     if not file:
-        raise HTTPException(status_code=404, detail="File not found")
-    return dataclasses.asdict(file)
+        raise HTTPException(status_code=404, detail="File not found (storage)")
+    updated_files = await file_manager.refresh_file_paths([file])
+    if not updated_files:
+        raise HTTPException(status_code=404, detail="File not found (refresh)")
+
+    # This may or may not have been updated with the corresponding presigned URL for this file.
+    return dataclasses.asdict(updated_files[0])
 
 
 @router.post("/{tid}/files", response_model=list[UploadedFile])
@@ -303,7 +309,7 @@ async def download_file_by_ref(
     storage: StorageDependency,
     file_manager: FileManagerDependency,
 ):
-    file = await get_file_by_ref(user, tid, file_ref, storage)
+    file = await get_file_by_ref(user, tid, file_ref, storage, file_manager)
     if not file["file_path"]:
         raise HTTPException(status_code=404, detail="File not found")
 

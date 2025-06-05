@@ -106,9 +106,7 @@ class LocalFileManager(BaseFileManager):
 
     async def refresh_file_paths(self, files: list[UploadedFile]) -> list[UploadedFile]:
         """Paths are not presigned in local storage"""
-        raise NotImplementedError(
-            "Local file manager does not support refreshing file paths",
-        )
+        return files
 
     async def read_file_contents(self, file_id: str, user_id: str) -> bytes:
         file = await self.storage.get_file_by_id(file_id, user_id)

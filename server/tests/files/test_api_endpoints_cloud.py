@@ -123,6 +123,9 @@ def _file_uploads_with_existing_thread(
     assert file_info["file_id"] == file_id, (
         f"Expected file ID {file_id}, got {file_info['file_id']}"
     )
+    assert file_info["file_path"] is not None, "File path not found"
+    assert file_info["file_url"] is not None, "File URL not found"
+    assert file_info["file_path"] == file_info["file_url"], "File path and URL should be the same"
     print_success(f"Successfully got file info for {file_id}")
 
     # Verify that the file_path is a presigned URL from the cloud server

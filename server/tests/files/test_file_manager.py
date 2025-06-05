@@ -393,13 +393,14 @@ class TestFileManager:
         assert first_file_id != second_file_id, "We should use the new file_id after re-upload"
         assert results[0].file_ref == sample_uploaded_file.file_ref
         assert results[0].file_path != sample_uploaded_file.file_path
+        assert results[0].file_url == results[0].file_path
         assert results[0].user_id == sample_uploaded_file.user_id
         assert results[0].thread_id == sample_uploaded_file.thread_id
         assert results[0].agent_id == sample_uploaded_file.agent_id
 
         files = await setup_storage.get_thread_files(sample_thread.thread_id, sample_thread.user_id)
         assert len(files) == 1
-        assert files[0].file_id == second_file_id, "The resulting file should the second file"
+        assert files[0].file_id == second_file_id, "Should have fetched the second file"
         assert files[0].file_ref == sample_uploaded_file.file_ref
 
     async def test_same_file_across_threads(
@@ -1173,6 +1174,7 @@ class TestFileManager:
         # Verify that the file_id, file_ref, file_path are updated
         assert upload2.file_id == new_file_id
         assert upload2.file_path == new_path
+        assert upload2.file_url == upload2.file_path
         assert upload2.file_ref == sample_file.filename
         assert upload2.file_hash == new_file_hash
         assert upload2.file_size_raw == 0
