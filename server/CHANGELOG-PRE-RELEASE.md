@@ -1,3 +1,38 @@
+# Sema4.ai Agent Server Pre-Release 2.0.0-rc.1 (2025-06-05)
+
+## Agent Server
+
+### Bugfixes
+
+- Restore INSERT .. ON CONFLICT logic to match agentserver v1 to try to mitigate a files issue in ACE ([GPT-938](https://linear.app/sema4ai/issue/GPT-938))
+- Fix handling of whitelist for separate action packages on same server ([GPT-950](https://linear.app/sema4ai/issue/GPT-950))
+- A faulty env variable was changed to make cloud file manager tests work again. Also, the cloud server file had its request parameters changed. ([GPT-951](https://linear.app/sema4ai/issue/GPT-951))
+
+### Additional Information Not Pertinent to Client Users
+
+- [GPT-939](https://linear.app/sema4ai/issue/GPT-939)
+
+
+## Public API
+
+### Features
+
+- Porting public API to v2: sse streaming for agent conversations. ([GPT-913](https://linear.app/sema4ai/issue/GPT-913))
+- Typescript SDK for public API
+
+
+## Private API
+
+### Features
+
+- Update Typescript SDK to 2.0.0-rc.
+
+### Bugfixes
+
+- Missing thread rename support; current UX uses GET and PUT but after we stopped sending thread message contents, this pattern leads to deleting thread messages on rename! ([GPT-952](https://linear.app/sema4ai/issue/GPT-952))
+- Messages are not persisted when a file is created
+
+
 # Sema4.ai Agent Server Pre-Release 2.0.0-rc (2025-06-04)
 
 ## Agent Server
