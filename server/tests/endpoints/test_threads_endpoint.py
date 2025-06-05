@@ -1,4 +1,5 @@
 import uuid
+from unittest.mock import Mock, patch
 
 import pytest
 from fastapi import FastAPI, status
@@ -484,3 +485,473 @@ def test_list_threads_with_case_insensitive_name_filter(
     assert response.status_code == status.HTTP_200_OK
     filtered_threads = response.json()
     assert len(filtered_threads) == 0
+
+
+def test_patch_thread_name_only(client: TestClient, mock_storage: MockStorage):
+    """Test patching only the thread name."""
+    thread_id = str(uuid.uuid4())
+    agent_id = str(uuid.uuid4())
+
+    # Create an existing thread with messages
+    message = ThreadMessage(
+        message_id=str(uuid.uuid4()),
+        role="user",
+        content=[ThreadTextContent(text="Hello")],
+    )
+    existing_thread = Thread(
+        thread_id=thread_id,
+        name="Original Name",
+        agent_id=agent_id,
+        user_id="test_user",
+        messages=[message],
+        metadata={"key": "value"},
+    )
+
+    # Add thread to storage
+    mock_storage.threads[thread_id] = existing_thread
+
+    # Patch only the name
+    response = client.patch(
+        f"/threads/{thread_id}",
+        json={"name": "Updated Name"},
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    thread_data = response.json()
+    assert thread_data["thread_id"] == thread_id
+    assert thread_data["name"] == "Updated Name"
+    # Verify other fields are preserved
+    assert thread_data["agent_id"] == agent_id
+    assert len(thread_data["messages"]) == 1
+    assert thread_data["metadata"]["key"] == "value"
+
+    # Verify storage was updated
+    updated_thread = mock_storage.threads[thread_id]
+    assert updated_thread.name == "Updated Name"
+    assert updated_thread.agent_id == agent_id  # Unchanged
+    assert len(updated_thread.messages) == 1  # Unchanged
+
+
+def test_patch_thread_agent_id_only(client: TestClient, mock_storage: MockStorage):
+    """Test patching only the agent_id."""
+    thread_id = str(uuid.uuid4())
+    original_agent_id = str(uuid.uuid4())
+    new_agent_id = str(uuid.uuid4())
+
+    existing_thread = Thread(
+        thread_id=thread_id,
+        name="Test Thread",
+        agent_id=original_agent_id,
+        user_id="test_user",
+        messages=[],
+    )
+
+    mock_storage.threads[thread_id] = existing_thread
+
+    # Patch only the agent_id
+    response = client.patch(
+        f"/threads/{thread_id}",
+        json={"agent_id": new_agent_id},
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    thread_data = response.json()
+    assert thread_data["agent_id"] == new_agent_id
+    assert thread_data["name"] == "Test Thread"  # Unchanged
+
+
+def test_patch_thread_multiple_fields(client: TestClient, mock_storage: MockStorage):
+    """Test patching multiple fields at once."""
+    thread_id = str(uuid.uuid4())
+    original_agent_id = str(uuid.uuid4())
+    new_agent_id = str(uuid.uuid4())
+
+    existing_thread = Thread(
+        thread_id=thread_id,
+        name="Original Name",
+        agent_id=original_agent_id,
+        user_id="test_user",
+        messages=[],
+        metadata={"old": "data"},
+    )
+
+    mock_storage.threads[thread_id] = existing_thread
+
+    # Patch multiple fields
+    response = client.patch(
+        f"/threads/{thread_id}",
+        json={
+            "name": "New Name",
+            "agent_id": new_agent_id,
+            "metadata": {"new": "data", "extra": "field"},
+        },
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    thread_data = response.json()
+    assert thread_data["name"] == "New Name"
+    assert thread_data["agent_id"] == new_agent_id
+    assert thread_data["metadata"]["new"] == "data"
+    assert thread_data["metadata"]["extra"] == "field"
+
+
+def test_patch_thread_messages_replacement(client: TestClient, mock_storage: MockStorage):
+    """Test patching messages (full replacement)."""
+    thread_id = str(uuid.uuid4())
+    agent_id = str(uuid.uuid4())
+
+    # Create thread with existing messages
+    original_message = ThreadMessage(
+        message_id=str(uuid.uuid4()),
+        role="user",
+        content=[ThreadTextContent(text="Original message")],
+    )
+    existing_thread = Thread(
+        thread_id=thread_id,
+        name="Test Thread",
+        agent_id=agent_id,
+        user_id="test_user",
+        messages=[original_message],
+    )
+
+    mock_storage.threads[thread_id] = existing_thread
+
+    # Create new messages for replacement
+    new_message1 = ThreadMessage(
+        message_id=str(uuid.uuid4()),
+        role="user",
+        content=[ThreadTextContent(text="New message 1")],
+    )
+    new_message2 = ThreadMessage(
+        message_id=str(uuid.uuid4()),
+        role="agent",
+        content=[ThreadTextContent(text="New message 2")],
+    )
+
+    # Patch with new messages
+    with patch("agent_platform.core.context.AgentServerContext.from_request") as mock_context:
+        mock_server_context = Mock()
+        mock_context.return_value = mock_server_context
+
+        response = client.patch(
+            f"/threads/{thread_id}",
+            json={
+                "messages": [
+                    {
+                        "message_id": new_message1.message_id,
+                        "role": "user",
+                        "content": [{"kind": "text", "text": "New message 1"}],
+                        "commited": True,
+                        "complete": True,
+                        "agent_metadata": {},
+                        "server_metadata": {},
+                    },
+                    {
+                        "message_id": new_message2.message_id,
+                        "role": "agent",
+                        "content": [{"kind": "text", "text": "New message 2"}],
+                        "commited": True,
+                        "complete": True,
+                        "agent_metadata": {},
+                        "server_metadata": {},
+                    },
+                ]
+            },
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        thread_data = response.json()
+        assert len(thread_data["messages"]) == 2
+
+        # Verify OTEL counter was called for messages
+        mock_server_context.increment_counter.assert_called_with(
+            "sema4ai.agent_server.messages",
+            2,  # Should count all new messages
+            {"agent_id": agent_id, "thread_id": thread_id},
+        )
+
+
+def test_patch_thread_not_found(client: TestClient, mock_storage: MockStorage):
+    """Test patching a thread that doesn't exist."""
+    thread_id = str(uuid.uuid4())
+
+    response = client.patch(
+        f"/threads/{thread_id}",
+        json={"name": "New Name"},
+    )
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+@patch("agent_platform.core.context.AgentServerContext.from_request")
+def test_put_thread_message_counting(mock_context, client: TestClient, mock_storage: MockStorage):
+    """Test that PUT endpoint only counts new messages, not existing ones."""
+    thread_id = str(uuid.uuid4())
+    agent_id = str(uuid.uuid4())
+    mock_server_context = Mock()
+    mock_context.return_value = mock_server_context
+
+    # Create thread with 2 existing messages
+    existing_messages = [
+        ThreadMessage(
+            message_id=str(uuid.uuid4()),
+            role="user",
+            content=[ThreadTextContent(text="Message 1")],
+        ),
+        ThreadMessage(
+            message_id=str(uuid.uuid4()),
+            role="agent",
+            content=[ThreadTextContent(text="Message 2")],
+        ),
+    ]
+    existing_thread = Thread(
+        thread_id=thread_id,
+        name="Test Thread",
+        agent_id=agent_id,
+        user_id="test_user",
+        messages=existing_messages,
+    )
+
+    mock_storage.threads[thread_id] = existing_thread
+
+    # Update with same 2 messages + 1 new message (total 3)
+    all_messages = [
+        {
+            "message_id": existing_messages[0].message_id,
+            "role": "user",
+            "content": [{"kind": "text", "text": "Message 1"}],
+            "commited": True,
+            "complete": True,
+            "agent_metadata": {},
+            "server_metadata": {},
+        },
+        {
+            "message_id": existing_messages[1].message_id,
+            "role": "agent",
+            "content": [{"kind": "text", "text": "Message 2"}],
+            "commited": True,
+            "complete": True,
+            "agent_metadata": {},
+            "server_metadata": {},
+        },
+        {
+            "message_id": str(uuid.uuid4()),
+            "role": "user",
+            "content": [{"kind": "text", "text": "New message"}],
+            "commited": True,
+            "complete": True,
+            "agent_metadata": {},
+            "server_metadata": {},
+        },
+    ]
+
+    response = client.put(
+        f"/threads/{thread_id}",
+        json={
+            "name": "Updated Thread",
+            "agent_id": agent_id,
+            "messages": all_messages,
+        },
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+
+    # Verify OTEL counter was called only for the 1 new message
+    mock_server_context.increment_counter.assert_called_with(
+        "sema4ai.agent_server.messages",
+        1,  # Only the new message should be counted
+        {"agent_id": agent_id, "thread_id": thread_id},
+    )
+
+
+@patch("agent_platform.core.context.AgentServerContext.from_request")
+def test_put_thread_no_new_messages(mock_context, client: TestClient, mock_storage: MockStorage):
+    """Test that PUT endpoint doesn't count messages when none are new."""
+    thread_id = str(uuid.uuid4())
+    agent_id = str(uuid.uuid4())
+    mock_server_context = Mock()
+    mock_context.return_value = mock_server_context
+
+    # Create thread with 2 existing messages
+    existing_messages = [
+        ThreadMessage(
+            message_id=str(uuid.uuid4()),
+            role="user",
+            content=[ThreadTextContent(text="Message 1")],
+        ),
+        ThreadMessage(
+            message_id=str(uuid.uuid4()),
+            role="agent",
+            content=[ThreadTextContent(text="Message 2")],
+        ),
+    ]
+    existing_thread = Thread(
+        thread_id=thread_id,
+        name="Test Thread",
+        agent_id=agent_id,
+        user_id="test_user",
+        messages=existing_messages,
+    )
+
+    mock_storage.threads[thread_id] = existing_thread
+
+    # Update with only the same 2 existing messages (no new ones)
+    same_messages = [
+        {
+            "message_id": existing_messages[0].message_id,
+            "role": "user",
+            "content": [{"kind": "text", "text": "Message 1"}],
+            "commited": True,
+            "complete": True,
+            "agent_metadata": {},
+            "server_metadata": {},
+        },
+        {
+            "message_id": existing_messages[1].message_id,
+            "role": "agent",
+            "content": [{"kind": "text", "text": "Message 2"}],
+            "commited": True,
+            "complete": True,
+            "agent_metadata": {},
+            "server_metadata": {},
+        },
+    ]
+
+    response = client.put(
+        f"/threads/{thread_id}",
+        json={
+            "name": "Updated Thread Name Only",
+            "agent_id": agent_id,
+            "messages": same_messages,
+        },
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+
+    # Verify OTEL counter was NOT called for messages (since new_message_count = 0)
+    # Only check that increment_counter wasn't called with messages metric
+    for call in mock_server_context.increment_counter.call_args_list:
+        args, kwargs = call
+        if args[0] == "sema4ai.agent_server.messages":
+            pytest.fail("increment_counter should not be called for messages when no new messages")
+
+
+@patch("agent_platform.core.context.AgentServerContext.from_request")
+def test_put_thread_fewer_messages(mock_context, client: TestClient, mock_storage: MockStorage):
+    """Test PUT endpoint when payload has fewer messages than existing thread."""
+    thread_id = str(uuid.uuid4())
+    agent_id = str(uuid.uuid4())
+    mock_server_context = Mock()
+    mock_context.return_value = mock_server_context
+
+    # Create thread with 3 existing messages
+    existing_messages = [
+        ThreadMessage(
+            message_id=str(uuid.uuid4()), role="user", content=[ThreadTextContent(text="Msg 1")]
+        ),
+        ThreadMessage(
+            message_id=str(uuid.uuid4()), role="agent", content=[ThreadTextContent(text="Msg 2")]
+        ),
+        ThreadMessage(
+            message_id=str(uuid.uuid4()), role="user", content=[ThreadTextContent(text="Msg 3")]
+        ),
+    ]
+    existing_thread = Thread(
+        thread_id=thread_id,
+        name="Test Thread",
+        agent_id=agent_id,
+        user_id="test_user",
+        messages=existing_messages,
+    )
+
+    mock_storage.threads[thread_id] = existing_thread
+
+    # Update with only 1 message (fewer than existing)
+    fewer_messages = [
+        {
+            "message_id": existing_messages[0].message_id,
+            "role": "user",
+            "content": [{"kind": "text", "text": "Msg 1"}],
+            "commited": True,
+            "complete": True,
+            "agent_metadata": {},
+            "server_metadata": {},
+        }
+    ]
+
+    response = client.put(
+        f"/threads/{thread_id}",
+        json={
+            "name": "Updated Thread",
+            "agent_id": agent_id,
+            "messages": fewer_messages,
+        },
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+
+    # Should not count any new messages since max(0, 1 - 3) = 0
+    for call in mock_server_context.increment_counter.call_args_list:
+        args, kwargs = call
+        if args[0] == "sema4ai.agent_server.messages":
+            pytest.fail(
+                "increment_counter should not be called for messages when reducing message count"
+            )
+
+
+def test_patch_thread_empty_payload(client: TestClient, mock_storage: MockStorage):
+    """Test patching with empty payload (no changes)."""
+    thread_id = str(uuid.uuid4())
+    agent_id = str(uuid.uuid4())
+
+    existing_thread = Thread(
+        thread_id=thread_id,
+        name="Original Name",
+        agent_id=agent_id,
+        user_id="test_user",
+        messages=[],
+    )
+
+    mock_storage.threads[thread_id] = existing_thread
+
+    # Patch with empty payload
+    response = client.patch(f"/threads/{thread_id}", json={})
+
+    assert response.status_code == status.HTTP_200_OK
+    thread_data = response.json()
+    # Nothing should change
+    assert thread_data["name"] == "Original Name"
+    assert thread_data["agent_id"] == agent_id
+
+
+def test_patch_thread_null_values(client: TestClient, mock_storage: MockStorage):
+    """Test patching with explicit null values (should not update those fields)."""
+    thread_id = str(uuid.uuid4())
+    agent_id = str(uuid.uuid4())
+
+    existing_thread = Thread(
+        thread_id=thread_id,
+        name="Original Name",
+        agent_id=agent_id,
+        user_id="test_user",
+        messages=[],
+        metadata={"key": "value"},
+    )
+
+    mock_storage.threads[thread_id] = existing_thread
+
+    # Patch with explicit None values - these fields should not be updated
+    response = client.patch(
+        f"/threads/{thread_id}",
+        json={
+            "name": "New Name",  # This should update
+            "agent_id": None,  # This should not update (stays original)
+            "metadata": None,  # This should not update (stays original)
+        },
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    thread_data = response.json()
+    assert thread_data["name"] == "New Name"  # Updated
+    assert thread_data["agent_id"] == agent_id  # Unchanged
+    assert thread_data["metadata"]["key"] == "value"  # Unchanged

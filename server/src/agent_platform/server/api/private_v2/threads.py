@@ -13,6 +13,7 @@ from agent_platform.core.payloads import (
     UploadFilePayload,
     UpsertThreadPayload,
 )
+from agent_platform.core.payloads.patch_thread import PatchThreadPayload
 from agent_platform.core.thread import Thread
 from agent_platform.core.thread.base import ThreadMessage
 from agent_platform.core.thread.content.tool_usage import ThreadToolUsageContent
@@ -75,11 +76,16 @@ async def update_thread(
         user=user,
         version="2.0.0",
     )
-    server_context.increment_counter(
-        "sema4ai.agent_server.messages",
-        len(payload.messages),
-        {"agent_id": thread.agent_id, "thread_id": thread.thread_id},
-    )
+    # Only count new messages, not existing ones being resent
+    existing_message_count = len(thread.messages)
+    new_message_count = max(0, len(payload.messages) - existing_message_count)
+
+    if new_message_count > 0:
+        server_context.increment_counter(
+            "sema4ai.agent_server.messages",
+            new_message_count,
+            {"agent_id": thread.agent_id, "thread_id": thread.thread_id},
+        )
 
     # Start with existing thread data and update with payload fields
     updated_thread = UpsertThreadPayload.to_thread(payload, user.user_id)
@@ -88,6 +94,44 @@ async def update_thread(
 
     await storage.upsert_thread(user.user_id, updated_thread)
     return updated_thread
+
+
+@router.patch("/{tid}", response_model=Thread)
+async def patch_thread(
+    user: AuthedUser,
+    tid: str,
+    payload: PatchThreadPayload,
+    storage: StorageDependency,
+    request: Request,
+) -> Thread:
+    """Partially update a thread with only the provided fields."""
+    thread = await storage.get_thread(user.user_id, tid)
+    if thread is None:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    # Only update fields that were provided
+    if payload.name is not None:
+        thread.name = payload.name
+    if payload.agent_id is not None:
+        thread.agent_id = payload.agent_id
+    if payload.metadata is not None:
+        thread.metadata = payload.metadata
+    if payload.messages is not None:
+        # Convert and replace messages only if explicitly provided
+        thread.messages = payload.messages
+        server_context = AgentServerContext.from_request(
+            request=request,
+            user=user,
+            version="2.0.0",
+        )
+        server_context.increment_counter(
+            "sema4ai.agent_server.messages",
+            len(payload.messages),
+            {"agent_id": thread.agent_id, "thread_id": thread.thread_id},
+        )
+
+    await storage.upsert_thread(user.user_id, thread)
+    return thread
 
 
 @router.get("/", response_model=list[Thread])
