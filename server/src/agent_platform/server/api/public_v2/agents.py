@@ -1,15 +1,25 @@
 # Standard library imports
+import json
+import logging
+from asyncio import CancelledError, create_task
 from datetime import UTC, datetime
 from typing import Annotated
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.params import Body
 from sse_starlette import EventSourceResponse
 
+from agent_platform.core.context import AgentServerContext
+from agent_platform.core.runs.run import Run
+from agent_platform.core.streaming.delta import (
+    StreamingDeltaAgentFinished,
+    StreamingDeltaAgentReady,
+)
 from agent_platform.core.thread import Thread
 from agent_platform.core.thread.base import ThreadMessage
 from agent_platform.core.thread.content.text import ThreadTextContent
+from agent_platform.server.agent_architectures.arch_manager import AgentArchManager
 from agent_platform.server.api.dependencies import FileManagerDependency, StorageDependency
 from agent_platform.server.api.public_v2.compat import (
     AgentCompat,
@@ -22,6 +32,9 @@ from agent_platform.server.api.public_v2.compat import (
     PaginatedResponse,
 )
 from agent_platform.server.auth.handlers import AuthedUser
+from agent_platform.server.kernel.kernel import AgentServerKernel
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -217,15 +230,15 @@ async def post_messages_simple(
     return ConversationCompat.from_thread_with_messages(thread) if thread else None
 
 
+# ruff: noqa: PLR0913
 @router.post(
     "/{aid}/conversations/{cid}/stream",
     summary="Post a message to a conversation and stream the response",
     description="Post a message to a conversation and stream the response",
     response_description="SSE Stream of messages",
-    response_model=None,  # EventSourceResponse is not a Pydantic model
     tags=["conversations"],
     responses={
-        200: {"description": "Success"},
+        200: {"description": "SSE stream of Delta messages", "content": {"text/event-stream": {}}},
         400: {"description": "Bad Request"},
         422: {"description": "Validation Error"},
         500: {"description": "Internal Server Error"},
@@ -237,8 +250,82 @@ async def post_public_api_messages_simple(
     aid: str,
     cid: str,
     body: Annotated[ChatMessageRequest, Body()],
+    request: Request,
 ) -> EventSourceResponse:
-    raise NotImplementedError("Not implemented")
+    agent = await storage.get_agent(agent_id=aid, user_id=user.user_id)
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    thread = await storage.get_thread(user_id=user.user_id, thread_id=cid)
+    if thread is None:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    thread_message = ThreadMessage(
+        message_id=str(uuid4()),
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
+        role="user",
+        content=[ThreadTextContent(text=body.content)],
+    )
+    await storage.add_message_to_thread(
+        user_id=user.user_id, thread_id=thread.thread_id, message=thread_message
+    )
+
+    active_run = Run(
+        run_id=str(uuid4()),
+        agent_id=aid,
+        thread_id=cid,
+        status="running",
+        run_type="stream",
+    )
+    await storage.create_run(active_run)
+
+    agent_arch_manager = AgentArchManager(
+        wheels_path="./todo-for-out-of-process/wheels",
+        websocket_addr="todo://think-about-out-of-process",
+    )
+
+    runner = await agent_arch_manager.get_runner(
+        agent.agent_architecture.name,
+        agent.agent_architecture.version,
+        thread.thread_id,
+    )
+
+    await runner.start()
+
+    server_context = AgentServerContext.from_request(
+        request=request,
+        user=user,
+        version="2.0.0",
+    )
+    kernel = AgentServerKernel(server_context, thread, agent, active_run)
+    await runner.invoke(kernel)
+
+    ca_invoke_task = create_task(runner.invoke(kernel))
+
+    async def event_generator():
+        try:
+            ready_event = StreamingDeltaAgentReady(
+                run_id=active_run.run_id,
+                thread_id=thread.thread_id,
+                agent_id=agent.agent_id,
+                timestamp=datetime.now(UTC),
+            )
+            yield {"event": "agent_ready", "data": json.dumps(ready_event.model_dump())}
+
+            async for event in runner.get_event_stream():
+                try:
+                    yield {"event": "agent_event", "data": json.dumps(event.model_dump())}
+                    if isinstance(event, StreamingDeltaAgentFinished):
+                        break
+                except RuntimeError:
+                    break
+        except CancelledError:
+            logger.info("SSE stream cancelled (likely client disconnected)")
+        finally:
+            ca_invoke_task.cancel()
+
+    return EventSourceResponse(event_generator())
 
 
 @router.post(
@@ -280,29 +367,6 @@ async def post_messages_detailed(
         )
 
     return ConversationCompat.from_thread_with_messages(thread) if thread else None
-
-
-@router.post(
-    "/{aid}/conversations/{cid}/stream/detailed",
-    summary="Post messages to a conversation and stream the response",
-    description="Post messages to a conversation and stream the response",
-    response_description="SSE Stream of messages",
-    response_model=None,  # EventSourceResponse is not a Pydantic model
-    tags=["conversations"],
-    responses={
-        200: {"description": "Success"},
-        400: {"description": "Bad Request"},
-        422: {"description": "Validation Error"},
-        500: {"description": "Internal Server Error"},
-    },
-)
-async def post_public_api_messages_detailed(
-    user: AuthedUser,
-    aid: str,
-    cid: str,
-    messages: list[Message],
-) -> EventSourceResponse:
-    raise NotImplementedError("Not implemented")
 
 
 @router.delete(
