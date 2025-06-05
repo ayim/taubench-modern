@@ -146,22 +146,20 @@ class SQLiteStorageFilesMixin(CommonMixin):
         self._logger.debug(
             "Getting file by ref",
             file_ref=file_ref,
-            agent_id=agent_id,
             thread_id=thread_id,
         )
+        if not thread_id:
+            raise ValueError("Thread ID is required to fetch a file")
         async with self._cursor() as cur:
             await cur.execute(
                 """
                 SELECT f.*,
                     v2_check_user_access(f.user_id, :user_id) AS has_access
                 FROM v2_file_owner f
-                WHERE file_ref = :file_ref AND (
-                  agent_id = :agent_id OR thread_id = :thread_id
-                )
+                WHERE file_ref = :file_ref AND thread_id = :thread_id
                 """,
                 {
                     "file_ref": file_ref,
-                    "agent_id": agent_id,
                     "thread_id": thread_id,
                     "user_id": user_id,
                 },
@@ -212,19 +210,18 @@ class SQLiteStorageFilesMixin(CommonMixin):
         agent_id, thread_id = await self._validate_owner_type(owner)
         self._validate_uuid(user_id)
         self._logger.debug("Deleting file by ID", file_id=file_id)
+        if not thread_id:
+            raise ValueError("Thread ID is required to delete a file")
         async with self._cursor() as cur:
             await cur.execute(
                 """
                 SELECT f.file_path,
                     v2_check_user_access(f.user_id, :user_id) AS has_access
                 FROM v2_file_owner f
-                WHERE file_id = :file_id AND (
-                  agent_id = :agent_id OR thread_id = :thread_id
-                )
+                WHERE file_id = :file_id AND thread_id = :thread_id
                 """,
                 {
                     "file_id": file_id,
-                    "agent_id": agent_id,
                     "thread_id": thread_id,
                     "user_id": user_id,
                 },
@@ -312,7 +309,7 @@ class SQLiteStorageFilesMixin(CommonMixin):
                 # Nb: the underlying table does not have a single unique constraint over both
                 # file_ref, agent_id and thread_id. If in the future, we want to support agent
                 # files, we will have to alter the constraints on this table. For now, we
-                # know that thread_id's are globally unique, so we ignore the agent_id.
+                # know that thread_id's are globally unique, so we ignore the agent_ide
                 await cur.execute(
                     """
                     INSERT INTO v2_file_owner (
@@ -327,13 +324,15 @@ class SQLiteStorageFilesMixin(CommonMixin):
                         :agent_id, :thread_id, :file_path_expiration,
                         :created_at
                     )
-                    ON CONFLICT(file_ref, thread_id) DO UPDATE SET
+                    ON CONFLICT(file_id) DO UPDATE SET
                         file_path = excluded.file_path,
                         file_hash = excluded.file_hash,
+                        file_ref = excluded.file_ref,
                         file_size_raw = excluded.file_size_raw,
                         mime_type = excluded.mime_type,
                         embedded = excluded.embedded,
                         agent_id = excluded.agent_id,
+                        thread_id = excluded.thread_id,
                         file_path_expiration = excluded.file_path_expiration,
                         created_at = excluded.created_at
                     """,
@@ -341,7 +340,29 @@ class SQLiteStorageFilesMixin(CommonMixin):
                 )
 
             except IntegrityError as e:
-                if e.sqlite_errorcode == SQLITE_CONSTRAINT_UNIQUE:
+                # check if the error is about the file_ref unique constraint
+                is_thread_unique_constraint = (
+                    e.sqlite_errorcode == SQLITE_CONSTRAINT_UNIQUE
+                    and "v2_file_owner.file_ref" in str(e)
+                )
+
+                if is_thread_unique_constraint:
+                    await cur.execute(
+                        """
+                        UPDATE v2_file_owner SET
+                        file_id = :file_id,
+                        file_path = :file_path,
+                        file_hash = :file_hash,
+                        file_size_raw = :file_size_raw,
+                        mime_type = :mime_type,
+                        embedded = :embedded,
+                        agent_id = :agent_id,
+                        file_path_expiration = :file_path_expiration
+                        WHERE file_ref = :file_ref and thread_id = :thread_id
+                    """,
+                        file_dict,
+                    )
+                elif e.sqlite_errorcode == SQLITE_CONSTRAINT_UNIQUE:
                     self._logger.exception("File already exists", file_ref=file_ref)
                     raise UniqueFileRefError(
                         file_ref,

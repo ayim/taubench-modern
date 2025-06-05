@@ -12,7 +12,6 @@ from agent_platform.server.storage.errors import (
     AgentNotFoundError,
     ThreadFileNotFoundError,
     ThreadNotFoundError,
-    UniqueFileRefError,
     UserPermissionError,
 )
 from agent_platform.server.storage.postgres.common import CommonMixin
@@ -146,20 +145,17 @@ class PostgresStorageFilesMixin(CommonMixin):
             agent_id=agent_id,
             thread_id=thread_id,
         )
+        if not thread_id:
+            raise ValueError("Thread ID is required to fetch a file")
         async with self._cursor() as cur:
             await cur.execute(
                 """SELECT f.*,
                    v2.check_user_access(f.user_id, %(user_id)s::uuid) AS has_access
                    FROM v2.file_owner f
-                   WHERE file_ref = %(file_ref)s
-                   AND (
-                     agent_id = %(agent_id)s::uuid OR
-                     thread_id = %(thread_id)s::uuid
-                   )
+                   WHERE file_ref = %(file_ref)s AND thread_id = %(thread_id)s::uuid
                 """,
                 {
                     "file_ref": file_ref,
-                    "agent_id": agent_id,
                     "thread_id": thread_id,
                     "user_id": user_id,
                 },
@@ -212,20 +208,17 @@ class PostgresStorageFilesMixin(CommonMixin):
         agent_id, thread_id = await self._validate_owner_type(owner)
         self._validate_uuid(user_id)
         self._logger.debug("Deleting file by ID", file_id=file_id)
+        if not thread_id:
+            raise ValueError("Thread ID is required to delete a file")
         async with self._cursor() as cur:
             await cur.execute(
                 """SELECT f.file_path,
                    v2.check_user_access(f.user_id, %(user_id)s::uuid) AS has_access
                    FROM v2.file_owner f
-                   WHERE file_id = %(file_id)s
-                   AND (
-                     agent_id = %(agent_id)s::uuid OR
-                     thread_id = %(thread_id)s::uuid
-                   )
+                   WHERE file_id = %(file_id)s AND thread_id = %(thread_id)s::uuid
                 """,
                 {
                     "file_id": file_id,
-                    "agent_id": agent_id,
                     "thread_id": thread_id,
                     "user_id": user_id,
                 },
@@ -304,6 +297,7 @@ class PostgresStorageFilesMixin(CommonMixin):
 
         async with self._cursor() as cur:
             try:
+                await cur.execute("SAVEPOINT savepoint1")
                 # Try to insert/update the file
                 await cur.execute(
                     """
@@ -319,24 +313,49 @@ class PostgresStorageFilesMixin(CommonMixin):
                         %(embedded)s, %(agent_id)s::uuid, %(thread_id)s::uuid,
                         %(file_path_expiration)s, %(created_at)s
                     )
-                    ON CONFLICT(file_ref, thread_id) DO UPDATE SET
+                    ON CONFLICT(file_id) DO UPDATE SET
                         file_path = EXCLUDED.file_path,
+                        file_ref = EXCLUDED.file_ref,
                         file_hash = EXCLUDED.file_hash,
                         file_size_raw = EXCLUDED.file_size_raw,
                         mime_type = EXCLUDED.mime_type,
                         embedded = EXCLUDED.embedded,
                         agent_id = EXCLUDED.agent_id,
+                        thread_id = EXCLUDED.thread_id,
                         file_path_expiration = EXCLUDED.file_path_expiration,
                         created_at = EXCLUDED.created_at
                     """,
                     file_dict,
                 )
             except UniqueViolation as e:
-                self._logger.exception("File already exists", file_ref=file_ref)
-                raise UniqueFileRefError(
-                    file_ref,
-                    detail=f"A file with the given file_ref {file_ref} already exists",
-                ) from e
+                self._logger.warning(
+                    "Insert failed due to unique constraint violation", file_ref=file_ref
+                )
+
+                # Rollback to the savepoint so we can continue using this transaction
+                await cur.execute("ROLLBACK TO SAVEPOINT savepoint1")
+
+                # Check if the unique file_ref per thread constraint failed
+                if "unique_file_ref_thread_v2" not in str(e):
+                    raise e
+
+                await cur.execute(
+                    """
+                    UPDATE v2.file_owner SET
+                    file_id = %(file_id)s,
+                    file_path = %(file_path)s,
+                    file_hash = %(file_hash)s,
+                    file_size_raw = %(file_size_raw)s,
+                    mime_type = %(mime_type)s,
+                    embedded = %(embedded)s,
+                    agent_id = %(agent_id)s::uuid,
+                    user_id = %(user_id)s::uuid,
+                    file_path_expiration = %(file_path_expiration)s
+                    WHERE file_ref = %(file_ref)s and thread_id = %(thread_id)s::uuid
+                """,
+                    file_dict,
+                )
+                # Fall through to outer return statement
             except IntegrityError as e:
                 self._logger.exception(
                     "Database integrity error",

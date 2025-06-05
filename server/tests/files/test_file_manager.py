@@ -1,6 +1,7 @@
 import os
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime, timedelta
+from hashlib import md5
 from io import BytesIO
 from pathlib import Path
 from typing import cast
@@ -359,6 +360,47 @@ class TestFileManager:
         assert results[0].user_id == sample_uploaded_file.user_id
         assert results[0].thread_id == sample_uploaded_file.thread_id
         assert results[0].agent_id == sample_uploaded_file.agent_id
+
+    async def test_reupload_file(
+        self,
+        file_manager: BaseFileManager,
+        sample_file: UploadFile,
+        sample_thread: Thread,
+        setup_storage: SQLiteStorage | PostgresStorage,
+        sample_uploaded_file: UploadedFile,
+    ):
+        results = await file_manager.upload(
+            files=[UploadFilePayload(file=sample_file)],
+            owner=sample_thread,
+            user_id=sample_thread.user_id,
+        )
+
+        assert len(results) == 1
+        first_file_id = results[0].file_id
+        assert results[0].file_ref == sample_uploaded_file.file_ref
+        assert results[0].mime_type == sample_uploaded_file.mime_type
+        assert results[0].user_id == sample_uploaded_file.user_id
+        assert results[0].thread_id == sample_uploaded_file.thread_id
+        assert results[0].agent_id == sample_uploaded_file.agent_id
+
+        results = await file_manager.upload(
+            files=[UploadFilePayload(file=sample_file)],
+            owner=sample_thread,
+            user_id=sample_thread.user_id,
+        )
+        assert len(results) == 1
+        second_file_id = results[0].file_id
+        assert first_file_id != second_file_id, "We should use the new file_id after re-upload"
+        assert results[0].file_ref == sample_uploaded_file.file_ref
+        assert results[0].file_path != sample_uploaded_file.file_path
+        assert results[0].user_id == sample_uploaded_file.user_id
+        assert results[0].thread_id == sample_uploaded_file.thread_id
+        assert results[0].agent_id == sample_uploaded_file.agent_id
+
+        files = await setup_storage.get_thread_files(sample_thread.thread_id, sample_thread.user_id)
+        assert len(files) == 1
+        assert files[0].file_id == second_file_id, "The resulting file should the second file"
+        assert files[0].file_ref == sample_uploaded_file.file_ref
 
     async def test_same_file_across_threads(
         self,
@@ -1005,6 +1047,269 @@ class TestFileManager:
     ):
         """Test that UploadedFile includes file_url as an alias for file_path."""
         assert sample_uploaded_file.file_url == sample_uploaded_file.file_path
+
+    async def test_storage_upload_file_same_id(
+        self,
+        file_manager: BaseFileManager,
+        sample_file: UploadFile,
+        sample_thread: Thread,
+        setup_storage: SQLiteStorage | PostgresStorage,
+        sample_agent: Agent,
+    ):
+        assert sample_file.filename
+
+        file_id = str(uuid4())
+        orig_path = "path1"
+        file_hash = md5(sample_file.filename.encode()).hexdigest()
+
+        # Upload the file with one ID
+        upload1 = await setup_storage.put_file_owner(
+            file_id=file_id,
+            owner=sample_thread,
+            user_id=sample_thread.user_id,
+            file_path=orig_path,
+            file_ref=sample_file.filename,
+            file_hash=file_hash,
+            file_size_raw=0,
+            mime_type="text/plain",
+            embedded=False,
+            embedding_status=None,
+            file_path_expiration=None,
+        )
+
+        assert upload1.file_id == file_id
+        assert upload1.file_path == orig_path
+        assert upload1.file_ref == sample_file.filename
+        assert upload1.file_hash == md5(sample_file.filename.encode()).hexdigest()
+        assert upload1.file_size_raw == 0
+        assert upload1.mime_type == "text/plain"
+        assert upload1.user_id == sample_thread.user_id
+        assert upload1.thread_id == sample_thread.thread_id
+        assert upload1.agent_id == sample_agent.agent_id
+
+        # Upload the file with the same ID but different details
+        new_path = "path2"
+        new_file_hash = md5(sample_file.filename.encode()).hexdigest()
+        upload2 = await setup_storage.put_file_owner(
+            file_id=file_id,
+            owner=sample_thread,
+            user_id=sample_thread.user_id,
+            file_path=new_path,
+            file_ref=sample_file.filename,
+            file_hash=new_file_hash,
+            file_size_raw=0,
+            mime_type="text/plain",
+            embedded=False,
+            embedding_status=None,
+            file_path_expiration=None,
+        )
+
+        # Verify that file_id has not changed but the other details have changed.
+        assert upload2.file_id == file_id
+        assert upload2.file_path == new_path
+        assert upload2.file_ref == sample_file.filename
+        assert upload2.file_hash == new_file_hash
+        assert upload2.file_size_raw == 0
+        assert upload2.mime_type == "text/plain"
+        assert upload2.user_id == sample_thread.user_id
+
+    async def test_storage_upload_file_same_ref(
+        self,
+        file_manager: BaseFileManager,
+        sample_file: UploadFile,
+        sample_thread: Thread,
+        setup_storage: SQLiteStorage | PostgresStorage,
+        sample_agent: Agent,
+    ):
+        assert sample_file.filename
+
+        file_id = str(uuid4())
+        orig_path = "path1"
+        file_hash = md5(sample_file.filename.encode()).hexdigest()
+
+        # Upload the file with one ID
+        upload1 = await setup_storage.put_file_owner(
+            file_id=file_id,
+            owner=sample_thread,
+            user_id=sample_thread.user_id,
+            file_path=orig_path,
+            file_ref=sample_file.filename,
+            file_hash=file_hash,
+            file_size_raw=0,
+            mime_type="text/plain",
+            embedded=False,
+            embedding_status=None,
+            file_path_expiration=None,
+        )
+
+        assert upload1.file_id == file_id
+        assert upload1.file_path == orig_path
+        assert upload1.file_ref == sample_file.filename
+        assert upload1.file_hash == md5(sample_file.filename.encode()).hexdigest()
+        assert upload1.file_size_raw == 0
+        assert upload1.mime_type == "text/plain"
+        assert upload1.user_id == sample_thread.user_id
+        assert upload1.thread_id == sample_thread.thread_id
+        assert upload1.agent_id == sample_agent.agent_id
+
+        # Upload the file with the same file_ref (name)
+        new_file_id = str(uuid4())
+        new_path = "path2"
+        new_file_hash = md5(sample_file.filename.encode()).hexdigest()
+        upload2 = await setup_storage.put_file_owner(
+            file_id=new_file_id,
+            owner=sample_thread,
+            user_id=sample_thread.user_id,
+            file_path=new_path,
+            file_ref=sample_file.filename,
+            file_hash=new_file_hash,
+            file_size_raw=0,
+            mime_type="text/plain",
+            embedded=False,
+            embedding_status=None,
+            file_path_expiration=None,
+        )
+
+        # Verify that the file_id, file_ref, file_path are updated
+        assert upload2.file_id == new_file_id
+        assert upload2.file_path == new_path
+        assert upload2.file_ref == sample_file.filename
+        assert upload2.file_hash == new_file_hash
+        assert upload2.file_size_raw == 0
+        assert upload2.mime_type == "text/plain"
+        assert upload2.user_id == sample_thread.user_id
+
+    async def test_retrieve_thread_file(
+        self,
+        sample_file: UploadFile,
+        sample_thread: Thread,
+        setup_storage: SQLiteStorage | PostgresStorage,
+    ):
+        """Verifies that threads which have files of the same name are uniquely returned."""
+        assert sample_file.filename
+
+        # Create two threads
+        thread1 = sample_thread
+        thread2 = thread1.copy()
+        thread2.thread_id = str(uuid4())
+        thread2.name = "thread2"
+        # Copy the messages and update the message_id
+        thread2.messages = [msg.copy() for msg in sample_thread.messages]
+        for msg in thread2.messages:
+            msg.message_id = str(uuid4())
+
+        await setup_storage.upsert_thread(sample_thread.user_id, thread2)
+
+        # Upload file to thread1 with a common name
+        file_name = "common.txt"
+        file1_id = str(uuid4())
+        upload1 = await setup_storage.put_file_owner(
+            file_id=file1_id,
+            owner=thread1,
+            user_id=thread1.user_id,
+            file_path=None,
+            file_ref=file_name,
+            file_hash=md5(file_name.encode()).hexdigest(),
+            file_size_raw=0,
+            mime_type="text/plain",
+            embedded=False,
+            embedding_status=None,
+            file_path_expiration=None,
+        )
+        assert upload1
+
+        # Upload the file with the same ID but different details
+        file2_id = str(uuid4())
+        upload2 = await setup_storage.put_file_owner(
+            file_id=file2_id,
+            owner=thread2,
+            user_id=thread2.user_id,
+            file_path=None,
+            file_ref=file_name,
+            file_hash=md5(file_name.encode()).hexdigest(),
+            file_size_raw=0,
+            mime_type="text/plain",
+            embedded=False,
+            embedding_status=None,
+            file_path_expiration=None,
+        )
+        assert upload2
+
+        # Run a loop multiple times to ensure that we always get the correct file per thread.
+        for _ in range(10):
+            ref = await setup_storage.get_file_by_ref(thread1, file_name, sample_thread.user_id)
+            assert ref
+            assert ref.file_id == file1_id
+
+            ref = await setup_storage.get_file_by_ref(thread2, file_name, sample_thread.user_id)
+            assert ref
+            assert ref.file_id == file2_id
+
+    async def test_delete_thread_file(
+        self,
+        sample_file: UploadFile,
+        sample_thread: Thread,
+        setup_storage: SQLiteStorage | PostgresStorage,
+    ):
+        """Verifies that threads which have files of the same name are uniquely returned."""
+        assert sample_file.filename
+
+        # Create two threads
+        thread1 = sample_thread
+        thread2 = thread1.copy()
+        thread2.thread_id = str(uuid4())
+        thread2.name = "thread2"
+        # Copy the messages and update the message_id
+        thread2.messages = [msg.copy() for msg in sample_thread.messages]
+        for msg in thread2.messages:
+            msg.message_id = str(uuid4())
+
+        await setup_storage.upsert_thread(sample_thread.user_id, thread2)
+
+        # Upload file to thread1 with a common name
+        file_name = "common.txt"
+        file1_id = str(uuid4())
+        upload1 = await setup_storage.put_file_owner(
+            file_id=file1_id,
+            owner=thread1,
+            user_id=thread1.user_id,
+            file_path=None,
+            file_ref=file_name,
+            file_hash=md5(file_name.encode()).hexdigest(),
+            file_size_raw=0,
+            mime_type="text/plain",
+            embedded=False,
+            embedding_status=None,
+            file_path_expiration=None,
+        )
+        assert upload1
+
+        # Upload the file with the same ID but different details
+        file2_id = str(uuid4())
+        upload2 = await setup_storage.put_file_owner(
+            file_id=file2_id,
+            owner=thread2,
+            user_id=thread2.user_id,
+            file_path=None,
+            file_ref=file_name,
+            file_hash=md5(file_name.encode()).hexdigest(),
+            file_size_raw=0,
+            mime_type="text/plain",
+            embedded=False,
+            embedding_status=None,
+            file_path_expiration=None,
+        )
+        assert upload2
+
+        # Delete the file from the first thread
+        await setup_storage.delete_file(thread1, file1_id, thread1.user_id)
+
+        thread1_file = await setup_storage.get_file_by_ref(thread1, file_name, thread1.user_id)
+        assert thread1_file is None, "The first thread should no longer have a file"
+
+        thread2_file = await setup_storage.get_file_by_ref(thread2, file_name, thread2.user_id)
+        assert thread2_file, "The second thread should still have a file"
+        assert thread2_file.file_id == file2_id, "The second thread should still have the same file"
 
 
 if __name__ == "__main__":
