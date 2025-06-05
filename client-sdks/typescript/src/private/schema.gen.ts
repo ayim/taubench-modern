@@ -312,7 +312,11 @@ export interface paths {
     delete: operations['delete_thread_threads__tid__delete'];
     options?: never;
     head?: never;
-    patch?: never;
+    /**
+     * Patch Thread
+     * @description Partially update a thread with only the provided fields.
+     */
+    patch: operations['patch_thread_threads__tid__patch'];
     trace?: never;
   };
   '/api/v2/threads/{tid}/state': {
@@ -1476,6 +1480,31 @@ export interface components {
        * @description The description of the agent.
        */
       description: string;
+    };
+    /** PatchThreadPayload */
+    PatchThreadPayload: {
+      /**
+       * Name
+       * @description The new name of the thread.
+       */
+      name?: string | null;
+      /**
+       * Agent Id
+       * @description The new agent ID for this thread.
+       */
+      agent_id?: string | null;
+      /**
+       * Messages
+       * @description The new messages for this thread.
+       */
+      messages?: components['schemas']['ThreadMessage'][] | null;
+      /**
+       * Metadata
+       * @description The new metadata for this thread.
+       */
+      metadata?: {
+        [key: string]: unknown;
+      } | null;
     };
     /** PromptAgentMessage */
     PromptAgentMessage: {
@@ -3508,6 +3537,41 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  patch_thread_threads__tid__patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        tid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PatchThreadPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Thread'];
+        };
       };
       /** @description Validation Error */
       422: {

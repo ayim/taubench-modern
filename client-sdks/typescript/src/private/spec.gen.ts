@@ -6,7 +6,7 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Private API Version 2',
-    version: '2.0.0-beta.8',
+    version: '2.0.0-rc',
   },
   paths: {
     '/api/v2/ok': {
@@ -1014,6 +1014,55 @@ export const spec = {
             'application/json': {
               schema: {
                 $ref: '#/components/schemas/UpsertThreadPayload',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/Thread',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/HTTPValidationError',
+                },
+              },
+            },
+          },
+        },
+      },
+      patch: {
+        tags: ['threads'],
+        summary: 'Patch Thread',
+        description: 'Partially update a thread with only the provided fields.',
+        operationId: 'patch_thread_threads__tid__patch',
+        parameters: [
+          {
+            name: 'tid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Tid',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/PatchThreadPayload',
               },
             },
           },
@@ -3445,6 +3494,64 @@ export const spec = {
         type: 'object',
         required: ['name', 'description'],
         title: 'PatchAgentPayload',
+      },
+      PatchThreadPayload: {
+        properties: {
+          name: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Name',
+            description: 'The new name of the thread.',
+          },
+          agent_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Agent Id',
+            description: 'The new agent ID for this thread.',
+          },
+          messages: {
+            anyOf: [
+              {
+                items: {
+                  $ref: '#/components/schemas/ThreadMessage',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Messages',
+            description: 'The new messages for this thread.',
+          },
+          metadata: {
+            anyOf: [
+              {
+                additionalProperties: true,
+                type: 'object',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Metadata',
+            description: 'The new metadata for this thread.',
+          },
+        },
+        type: 'object',
+        title: 'PatchThreadPayload',
       },
       PromptAgentMessage: {
         properties: {
