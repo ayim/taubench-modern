@@ -32,6 +32,7 @@ jobs:
           OLD_VERSION="${{ steps.get_version.outputs.version }}"
           # Remove pre-release labels (everything after the first dash)
           NEW_VERSION=$(echo "$OLD_VERSION" | sed 's/-.*$//')
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
           BRANCH_NAME="bump-release-$NEW_VERSION"
           git checkout -b $BRANCH_NAME
           echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_OUTPUT
