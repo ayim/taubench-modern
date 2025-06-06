@@ -1,1 +1,1 @@
-**Latest Release:** `2.0.1-alpha`
+**Latest Release:** `2.0.1`
