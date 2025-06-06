@@ -63,7 +63,7 @@ class SQLiteMigrations(MigrationsProvider):
         current_dir = path.dirname(path.abspath(__file__))
         return Path(current_dir).parent.parent / "migrations" / "sqlite"
 
-    async def run_migrations(self) -> None:  # noqa: C901
+    async def run_migrations(self) -> None:
         """
         Main entrypoint for running migrations:
           1) Acquire migration lock
@@ -140,11 +140,11 @@ class SQLiteMigrations(MigrationsProvider):
                             f"No migrations will be applied. "
                             f"Please fix it manually.",
                         )
-                    if old["checksum"] != new_checksum:
-                        raise MigrationError(
-                            f"Checksum drift detected for migration {version}. "
-                            f"Existing: {old['checksum']}, New: {new_checksum}.",
-                        )
+                    # TODO we previously had a check to detect if a migration is already
+                    # applied but the migration we have _now_ is different. This points out
+                    # a developer doing something wrong, but removes our ability to change
+                    # broken migrations.
+
                     # otherwise skip since it's already applied
                     continue
                 else:

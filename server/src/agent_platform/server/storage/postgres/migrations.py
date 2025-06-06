@@ -135,11 +135,11 @@ class PostgresMigrations(MigrationsProvider):
                                 "No migrations will be applied. "
                                 "Please fix it manually.",
                             )
-                        if old["checksum"] != new_checksum:
-                            raise MigrationError(
-                                f"Checksum drift detected for migration {version}. "
-                                f"Existing: {old['checksum']}, New: {new_checksum}.",
-                            )
+                        # TODO we previously had a check to detect if a migration is already
+                        # applied but the migration we have _now_ is different. This points out
+                        # a developer doing something wrong, but removes our ability to change
+                        # broken migrations.
+
                         # Otherwise it's already applied => skip
                         continue
                     else:
