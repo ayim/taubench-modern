@@ -47,6 +47,8 @@ jobs:
           push-changes: true
 
       - name: Create PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh pr create \
             --base main \
