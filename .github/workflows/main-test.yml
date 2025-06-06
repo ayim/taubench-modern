@@ -1,0 +1,55 @@
+name: Test Agent Server
+
+on:
+  push:
+    paths:
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - 'Makefile'
+      - 'conftest.py'
+      - 'architectures/**'
+      - 'client-sdks/typescript/**'
+      - 'client-sdks/golang/agent-client-go/**'
+      - 'core/**'
+      - 'scripts/**'
+      - 'server/**'
+    branches: [main, development]
+  pull_request:
+    paths:
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - 'Makefile'
+      - 'conftest.py'
+      - 'architectures/**'
+      - 'client-sdks/typescript/**'
+      - 'client-sdks/golang/agent-client-go/**'
+      - 'core/**'
+      - 'scripts/**'
+      - 'server/**'
+    branches:
+      - '*'
+
+jobs:
+  check-changes:
+    uses: ./.github/workflows/sub-test-changes.yml
+    secrets: inherit
+
+  test:
+    uses: ./.github/workflows/sub-test-unit.yml
+    secrets: inherit
+
+  lint:
+    uses: ./.github/workflows/sub-test-lint.yml
+    secrets: inherit
+
+  typecheck:
+    uses: ./.github/workflows/sub-test-typecheck.yml
+    secrets: inherit
+
+  format:
+    uses: ./.github/workflows/sub-test-format.yml
+    secrets: inherit
+
+  integration-tests:
+    uses: ./.github/workflows/sub-test-integration.yml
+    secrets: inherit

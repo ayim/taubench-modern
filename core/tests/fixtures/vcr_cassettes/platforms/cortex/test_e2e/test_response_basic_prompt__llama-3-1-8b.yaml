@@ -1,0 +1,66 @@
+interactions:
+- request:
+    body: '{"model":"llama3.1-8b","messages":[{"role":"user","content":"\n                This
+      is an end-to-end test, please respond with a\n                message containing
+      only the word ''sunflower''\n                "}],"max_tokens":512,"top_p":1.0,"temperature":0.0,"stream":false}'
+    headers:
+      accept:
+      - application/json, text/event-stream
+      accept-encoding:
+      - gzip, deflate, zstd
+      connection:
+      - keep-alive
+      content-length:
+      - '274'
+      content-type:
+      - application/json
+      host:
+      - zvzwmyo-hp00956.snowflakecomputing.com
+      user-agent:
+      - python-httpx/0.28.1
+    method: POST
+    uri: https://zvzwmyo-hp00956.snowflakecomputing.com/api/v2/cortex/inference:complete
+  response:
+    content: '{"choices":[{"message":{"content":"sunflower","content_list":[{"type":"text","text":"sunflower"}]}}],"usage":{"prompt_tokens":34,"completion_tokens":3,"total_tokens":37}}
+
+      '
+    headers:
+      Cache-Control:
+      - no-cache
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json;charset=utf-8
+      Date:
+      - Thu, 29 May 2025 20:56:37 GMT,Thu, 29 May 2025 20:56:37 GMT
+      Expect-Ct:
+      - enforce, max-age=3600
+      Server:
+      - SF-LB
+      Strict-Transport-Security:
+      - max-age=31536000
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Accept-Encoding, User-Agent
+      X-Accel-Buffering:
+      - 'no'
+      X-Content-Type-Options:
+      - nosniff
+      X-Envoy-Attempt-Count:
+      - '1'
+      X-Envoy-Upstream-Service-Time:
+      - '168'
+      X-Frame-Options:
+      - deny
+      X-Snowflake-Fe-Config:
+      - 281964bf_1747960657_awsuseast2_1748551893121_0_0_0
+      X-Snowflake-Fe-Instance:
+      - envoy-ingress-awsuseast2-kdqnj
+      X-Snowflake-Request-Id:
+      - 13a0891e-6483-409d-8cad-28c7e8cfe0d5
+      X-Xss-Protection:
+      - 1; mode=block
+    http_version: HTTP/1.1
+    status_code: 200
+version: 1

@@ -1,0 +1,62 @@
+interactions:
+- request:
+    body: '{"contents": [{"parts": [{"text": "\n                This is an end-to-end
+      test, please respond with a\n                message containing only the word
+      ''sunflower''\n                "}], "role": "user"}], "generationConfig": {"temperature":
+      0.0, "topP": 1.0, "maxOutputTokens": 512}}'
+    headers:
+      accept:
+      - '*/*'
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      content-length:
+      - '283'
+      content-type:
+      - application/json
+      host:
+      - generativelanguage.googleapis.com
+      user-agent:
+      - google-genai-sdk/1.11.0 gl-python/3.12.9
+      x-goog-api-client:
+      - google-genai-sdk/1.11.0 gl-python/3.12.9
+    method: POST
+    uri: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:streamGenerateContent?alt=sse
+  response:
+    content: "data: {\"candidates\": [{\"content\": {\"parts\": [{\"text\": \"sun\"}],\"role\":
+      \"model\"}}],\"usageMetadata\": {\"promptTokenCount\": 30,\"totalTokenCount\":
+      30,\"promptTokensDetails\": [{\"modality\": \"TEXT\",\"tokenCount\": 30}]},\"modelVersion\":
+      \"gemini-2.0-flash-lite\"}\r\n\r\ndata: {\"candidates\": [{\"content\": {\"parts\":
+      [{\"text\": \"flower\\n\"}],\"role\": \"model\"},\"finishReason\": \"STOP\"}],\"usageMetadata\":
+      {\"promptTokenCount\": 28,\"candidatesTokenCount\": 3,\"totalTokenCount\": 31,\"promptTokensDetails\":
+      [{\"modality\": \"TEXT\",\"tokenCount\": 28}],\"candidatesTokensDetails\": [{\"modality\":
+      \"TEXT\",\"tokenCount\": 3}]},\"modelVersion\": \"gemini-2.0-flash-lite\"}\r\n\r\n"
+    headers:
+      Alt-Svc:
+      - h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+      Content-Disposition:
+      - attachment
+      Content-Type:
+      - text/event-stream
+      Date:
+      - Mon, 21 Apr 2025 15:17:00 GMT
+      Server:
+      - scaffolding on HTTPServer2
+      Server-Timing:
+      - gfet4t7; dur=324
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Origin
+      - X-Origin
+      - Referer
+      X-Content-Type-Options:
+      - nosniff
+      X-Frame-Options:
+      - SAMEORIGIN
+      X-XSS-Protection:
+      - '0'
+    http_version: HTTP/1.1
+    status_code: 200
+version: 1

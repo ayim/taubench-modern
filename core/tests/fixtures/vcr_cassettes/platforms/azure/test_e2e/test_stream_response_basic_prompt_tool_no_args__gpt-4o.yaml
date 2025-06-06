@@ -1,0 +1,101 @@
+interactions:
+- request:
+    body: '{"messages":[{"role":"user","content":[{"type":"text","text":"\n                You
+      are a helpful assistant. You are acting\n                as an agent named ''Test
+      Agent''. You will do\n                your best to assist the user with their
+      request.\n                "}]},{"role":"assistant","content":[{"type":"text","text":"\n                Understood,
+      I will assist the user with their request.\n                "}]},{"role":"user","content":[{"type":"text","text":"\n                Please
+      confirm the request using the provided\n                tool.\n                "}]}],"model":"gpt-4o","stream":true,"stream_options":{"include_usage":true},"tools":[{"type":"function","function":{"name":"_add_book","description":"Store
+      a new book in the database.","parameters":{"type":"object","properties":{"book":{"type":"object","properties":{"title":{"type":"string","description":"The
+      title of the book"},"author":{"type":"string","description":"The author''s name"},"category":{"type":["string","null"],"description":"The
+      category of the book"},"year":{"type":"integer"}},"required":["title","author","category","year"],"description":"The
+      book to add to the database"}},"required":["book"],"strict":true,"additionalProperties":false}}},{"type":"function","function":{"name":"_confirm_request","description":"Confirm
+      the request, takes no arguments.","parameters":{"type":"object","properties":{},"required":[],"strict":true,"additionalProperties":false}}}]}'
+    headers:
+      accept:
+      - application/json
+      accept-encoding:
+      - gzip, deflate, zstd
+      connection:
+      - keep-alive
+      content-length:
+      - '1459'
+      content-type:
+      - application/json
+      host:
+      - sema4ai-internal-testing.openai.azure.com
+      user-agent:
+      - AsyncAzureOpenAI/Python 1.75.0
+      x-stainless-arch:
+      - arm64
+      x-stainless-async:
+      - async:asyncio
+      x-stainless-lang:
+      - python
+      x-stainless-os:
+      - MacOS
+      x-stainless-package-version:
+      - 1.75.0
+      x-stainless-read-timeout:
+      - '600'
+      x-stainless-retry-count:
+      - '0'
+      x-stainless-runtime:
+      - CPython
+      x-stainless-runtime-version:
+      - 3.12.9
+    method: POST
+    uri: https://azure-openai-endpoint.example.com/openai/deployments/example-deployment-name/chat/completions?api-version=2023-03-15-preview
+  response:
+    content: 'data: {"choices":[{"delta":{"refusal":null,"role":"assistant","tool_calls":[{"function":{"arguments":"","name":"_confirm_request"},"id":"call_MlPlf65yROIWXIU304vSiOEU","index":0,"type":"function"}]},"finish_reason":null,"index":0}],"created":1748540972,"id":"chatcmpl-BcbfgmO2LOBfJYO6oBuFCh0rdjyxQ","model":"gpt-4o-mini-2024-07-18","object":"chat.completion.chunk","system_fingerprint":"fp_7a53abb7a2","usage":null}
+
+
+      data: {"choices":[{"delta":{"tool_calls":[{"function":{"arguments":"{}"},"index":0}]},"finish_reason":null,"index":0}],"created":1748540972,"id":"chatcmpl-BcbfgmO2LOBfJYO6oBuFCh0rdjyxQ","model":"gpt-4o-mini-2024-07-18","object":"chat.completion.chunk","system_fingerprint":"fp_7a53abb7a2","usage":null}
+
+
+      data: {"choices":[{"delta":{},"finish_reason":"tool_calls","index":0}],"created":1748540972,"id":"chatcmpl-BcbfgmO2LOBfJYO6oBuFCh0rdjyxQ","model":"gpt-4o-mini-2024-07-18","object":"chat.completion.chunk","system_fingerprint":"fp_7a53abb7a2","usage":null}
+
+
+      data: {"choices":[],"created":1748540972,"id":"chatcmpl-BcbfgmO2LOBfJYO6oBuFCh0rdjyxQ","model":"gpt-4o-mini-2024-07-18","object":"chat.completion.chunk","system_fingerprint":"fp_7a53abb7a2","usage":{"completion_tokens":12,"completion_tokens_details":{"accepted_prediction_tokens":0,"audio_tokens":0,"reasoning_tokens":0,"rejected_prediction_tokens":0},"prompt_tokens":196,"prompt_tokens_details":{"audio_tokens":0,"cached_tokens":0},"total_tokens":208}}
+
+
+      data: [DONE]
+
+
+      '
+    headers:
+      Content-Type:
+      - text/event-stream; charset=utf-8
+      Date:
+      - Thu, 29 May 2025 17:49:32 GMT
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubDomains; preload
+      Transfer-Encoding:
+      - chunked
+      apim-request-id:
+      - 6d8e29ea-6a8a-4f04-b371-cafbc5da1622
+      azureml-model-session:
+      - d061-20250514003953
+      cmp-upstream-response-duration:
+      - '378'
+      x-accel-buffering:
+      - 'no'
+      x-content-type-options:
+      - nosniff
+      x-ms-deployment-name:
+      - internal-testing-gpt-4o-mini
+      x-ms-region:
+      - East US
+      x-ratelimit-limit-requests:
+      - '7580'
+      x-ratelimit-limit-tokens:
+      - '758000'
+      x-ratelimit-remaining-requests:
+      - '7565'
+      x-ratelimit-remaining-tokens:
+      - '746654'
+      x-request-id:
+      - dc71302b-ae9d-4a4b-96fc-e4f008bef854
+    http_version: HTTP/1.1
+    status_code: 200
+version: 1

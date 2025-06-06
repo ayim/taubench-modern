@@ -1,0 +1,13 @@
+version: "0.1.2"        # The current version of the project. This is the version source of truth.
+                         # Do not change this value manually. VersionBump will update it automatically.
+git-commit: true         # Whether to create a git commit for the version bump.
+git-tag: true            # Whether to create a git tag for the version bump.
+git-tag-template: agent-client-go/v{new}
+git-tag-message-template: Release version agent-client-go/v{new}
+git-commit-template: Bump agent-client-goversion {old} --> {new}
+
+
+files:                   # The files to update with the new version.
+  - path: "pkg/client/version.go"
+    replace:
+      - "Version = `v{version}`" # The search string to replace in the file.

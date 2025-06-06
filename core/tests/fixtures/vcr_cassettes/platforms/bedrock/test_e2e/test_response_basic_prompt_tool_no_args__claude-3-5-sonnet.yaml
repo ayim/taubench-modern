@@ -1,0 +1,62 @@
+interactions:
+- request:
+    body: '{"messages": [{"role": "user", "content": [{"text": "\n                You
+      are a helpful assistant. You are acting\n                as an agent named ''Test
+      Agent''. You will do\n                your best to assist the user with their
+      request.\n                "}]}, {"role": "assistant", "content": [{"text": "\n                Understood,
+      I will assist the user with their request.\n                "}]}, {"role": "user",
+      "content": [{"text": "\n                Please confirm the request using the
+      provided\n                tool.\n                "}]}], "system": [], "inferenceConfig":
+      {"temperature": 0.0, "maxTokens": 512}, "toolConfig": {"tools": [{"toolSpec":
+      {"name": "_add_book", "description": "Store a new book in the database.", "inputSchema":
+      {"json": {"type": "object", "properties": {"book": {"type": "object", "properties":
+      {"title": {"type": "string", "description": "The title of the book"}, "author":
+      {"type": "string", "description": "The author''s name"}, "category": {"type":
+      ["string", "null"], "description": "The category of the book"}, "year": {"type":
+      "integer"}}, "required": ["title", "author", "category", "year"], "description":
+      "The book to add to the database"}}, "required": ["book"], "strict": true, "additionalProperties":
+      false}}}}, {"toolSpec": {"name": "_confirm_request", "description": "Confirm
+      the request, takes no arguments.", "inputSchema": {"json": {"type": "object",
+      "properties": {}, "required": [], "strict": true, "additionalProperties": false}}}}],
+      "toolChoice": {"auto": {}}}}'
+    headers:
+      Content-Length:
+      - '1526'
+      Content-Type:
+      - !!binary |
+        YXBwbGljYXRpb24vanNvbg==
+      User-Agent:
+      - !!binary |
+        Qm90bzMvMS4zNy4yNCBtZC9Cb3RvY29yZSMxLjM3LjI0IHVhLzIuMSBvcy9tYWNvcyMyNC4zLjAg
+        bWQvYXJjaCNhcm02NCBsYW5nL3B5dGhvbiMzLjEyLjkgbWQvcHlpbXBsI0NQeXRob24gY2ZnL3Jl
+        dHJ5LW1vZGUjbGVnYWN5IEJvdG9jb3JlLzEuMzcuMjQ=
+      X-Amz-Date:
+      - !!binary |
+        MjAyNTA0MDdUMDI1NzA4Wg==
+      amz-sdk-invocation-id:
+      - !!binary |
+        NjY3YjMwYjctNTdiNi00NmJkLWFlOGUtZDM2OGEwMTVhNTZm
+      amz-sdk-request:
+      - !!binary |
+        YXR0ZW1wdD0x
+    method: POST
+    uri: https://bedrock-runtime.us-east-1.amazonaws.com/model/us.anthropic.claude-3-5-sonnet-20241022-v2%3A0/converse
+  response:
+    body:
+      string: '{"metrics":{"latencyMs":1703},"output":{"message":{"content":[{"text":"I''ll
+        confirm the request using the `_confirm_request` tool."},{"toolUse":{"input":{},"name":"_confirm_request","toolUseId":"tooluse_708Azh9sQjOJwrMmtZQPLg"}}],"role":"assistant"}},"stopReason":"tool_use","usage":{"inputTokens":626,"outputTokens":52,"totalTokens":678}}'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '339'
+      Content-Type:
+      - application/json
+      Date:
+      - Mon, 07 Apr 2025 02:57:10 GMT
+      x-amzn-RequestId:
+      - 36d63748-a710-4564-8102-b1cfb5b202b0
+    status:
+      code: 200
+      message: OK
+version: 1

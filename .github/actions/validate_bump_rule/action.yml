@@ -1,0 +1,43 @@
+name: Validate Bump Rule
+description: |
+  This action validates that the bump rule is valid for the branch being bumped.
+
+inputs:
+  bump-type:
+    description: 'The type of bump to perform'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Validate bump rule
+      shell: bash
+      run: |
+        if ! versionbump ${{ inputs.bump-type }} --help > /dev/null 2>&1; then
+          echo "Error: Invalid bump rule '${{ inputs.bump-type }}'"
+          exit 1
+        fi
+
+    - name: Validate that the bump type is valid for the branch
+      shell: bash
+      run: |
+        # Get the current branch name
+        BRANCH_NAME=$(git branch --show-current)
+
+        # Check if we're on main, release, or release-* branch
+        if [[ "$BRANCH_NAME" == "main" || "$BRANCH_NAME" == "release" || "$BRANCH_NAME" =~ ^release- ]]; then
+          if [[ "${{ inputs.bump-type }}" != "release" ]]; then
+            echo "Error: On branch '$BRANCH_NAME', only 'release' bump type is allowed."
+            echo "You specified: '${{ inputs.bump-type }}'"
+            exit 1
+          fi
+        # Check if we're on any branch other than development
+        elif [[ "$BRANCH_NAME" != "development" ]]; then
+          if [[ "${{ inputs.bump-type }}" != "pre-build" ]]; then
+            echo "Error: On branch '$BRANCH_NAME', only 'pre-build' bump type is allowed."
+            echo "You specified: '${{ inputs.bump-type }}'"
+            exit 1
+          fi
+        fi
+
+        echo "Bump type '${{ inputs.bump-type }}' is valid for branch '$BRANCH_NAME'"

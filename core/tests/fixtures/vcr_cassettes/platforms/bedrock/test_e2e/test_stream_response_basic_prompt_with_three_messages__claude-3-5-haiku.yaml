@@ -1,0 +1,73 @@
+interactions:
+- request:
+    body: '{"messages": [{"role": "user", "content": [{"text": "\n                You
+      are acting as an agent named ''Test Agent''. You\n                are to assist
+      the user with their request.\n                "}]}, {"role": "assistant", "content":
+      [{"text": "\n                Understood, I will assist the user with their request.\n                "}]},
+      {"role": "user", "content": [{"text": "\n                Reply with the answer
+      only, nothing else. What is the\n                capital of the state of Wisconsin,
+      USA?\n\n                The answer must be one word. Starting with a capital\n                letter,
+      and ending with a period. Emit nothing else\n                aside from the
+      capital of Wisconsin with a period\n                at the end and starting
+      with a capital letter.\n\n                NOTE: We are not looking for ALL CAPS.
+      Just regular\n                capitalization with a period at the end.\n                "}]}],
+      "system": [], "inferenceConfig": {"temperature": 0.0, "maxTokens": 512}}'
+    headers:
+      Content-Length:
+      - '1010'
+      Content-Type:
+      - !!binary |
+        YXBwbGljYXRpb24vanNvbg==
+      User-Agent:
+      - !!binary |
+        Qm90bzMvMS4zNy4yNCBtZC9Cb3RvY29yZSMxLjM3LjI0IHVhLzIuMSBvcy9tYWNvcyMyNC4zLjAg
+        bWQvYXJjaCNhcm02NCBsYW5nL3B5dGhvbiMzLjEyLjkgbWQvcHlpbXBsI0NQeXRob24gY2ZnL3Jl
+        dHJ5LW1vZGUjbGVnYWN5IEJvdG9jb3JlLzEuMzcuMjQ=
+      X-Amz-Date:
+      - !!binary |
+        MjAyNTA0MDdUMDI1NzExWg==
+      amz-sdk-invocation-id:
+      - !!binary |
+        OGE3OTM1OGQtM2U2Yi00NGEwLTg4M2QtMDBmYWVhYWQxMWQ4
+      amz-sdk-request:
+      - !!binary |
+        YXR0ZW1wdD0x
+    method: POST
+    uri: https://bedrock-runtime.us-east-1.amazonaws.com/model/us.anthropic.claude-3-haiku-20240307-v1%3A0/converse-stream
+  response:
+    body:
+      string: !!binary |
+        AAAAgQAAAFJswXaTCzpldmVudC10eXBlBwAMbWVzc2FnZVN0YXJ0DTpjb250ZW50LXR5cGUHABBh
+        cHBsaWNhdGlvbi9qc29uDTptZXNzYWdlLXR5cGUHAAVldmVudHsicCI6ImFiY2QiLCJyb2xlIjoi
+        YXNzaXN0YW50In31EqAFAAAA2QAAAFcUyAYWCzpldmVudC10eXBlBwARY29udGVudEJsb2NrRGVs
+        dGENOmNvbnRlbnQtdHlwZQcAEGFwcGxpY2F0aW9uL2pzb24NOm1lc3NhZ2UtdHlwZQcABWV2ZW50
+        eyJjb250ZW50QmxvY2tJbmRleCI6MCwiZGVsdGEiOnsidGV4dCI6Ik1hZGlzb24ifSwicCI6ImFi
+        Y2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6QUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVowMTIzNCJ9
+        hbYNMAAAANIAAABXYxg3Bws6ZXZlbnQtdHlwZQcAEWNvbnRlbnRCbG9ja0RlbHRhDTpjb250ZW50
+        LXR5cGUHABBhcHBsaWNhdGlvbi9qc29uDTptZXNzYWdlLXR5cGUHAAVldmVudHsiY29udGVudEJs
+        b2NrSW5kZXgiOjAsImRlbHRhIjp7InRleHQiOiIuIn0sInAiOiJhYmNkZWZnaGlqa2xtbm9wcXJz
+        dHV2d3h5ekFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaMDEyMyJ9rDaGuQAAAJwAAABW89zhuQs6
+        ZXZlbnQtdHlwZQcAEGNvbnRlbnRCbG9ja1N0b3ANOmNvbnRlbnQtdHlwZQcAEGFwcGxpY2F0aW9u
+        L2pzb24NOm1lc3NhZ2UtdHlwZQcABWV2ZW50eyJjb250ZW50QmxvY2tJbmRleCI6MCwicCI6ImFi
+        Y2RlZmdoaWprbG1ub3BxcnN0dXZ3eCJ9Y5HNRQAAAI0AAABRMDjKKAs6ZXZlbnQtdHlwZQcAC21l
+        c3NhZ2VTdG9wDTpjb250ZW50LXR5cGUHABBhcHBsaWNhdGlvbi9qc29uDTptZXNzYWdlLXR5cGUH
+        AAVldmVudHsicCI6ImFiY2RlZmdoaWprbCIsInN0b3BSZWFzb24iOiJlbmRfdHVybiJ9LttU3QAA
+        AOYAAABOU9KBgQs6ZXZlbnQtdHlwZQcACG1ldGFkYXRhDTpjb250ZW50LXR5cGUHABBhcHBsaWNh
+        dGlvbi9qc29uDTptZXNzYWdlLXR5cGUHAAVldmVudHsibWV0cmljcyI6eyJsYXRlbmN5TXMiOjM0
+        OH0sInAiOiJhYmNkZWZnaGlqa2xtbm9wcXJzdHV2d3h5ekFCQ0RFRkdISUpLIiwidXNhZ2UiOnsi
+        aW5wdXRUb2tlbnMiOjE2Mywib3V0cHV0VG9rZW5zIjo1LCJ0b3RhbFRva2VucyI6MTY4fX1oj+QW
+    headers:
+      Connection:
+      - keep-alive
+      Content-Type:
+      - application/vnd.amazon.eventstream
+      Date:
+      - Mon, 07 Apr 2025 02:57:11 GMT
+      Transfer-Encoding:
+      - chunked
+      x-amzn-RequestId:
+      - aab53749-f9b4-48c8-ad74-bf81712c555a
+    status:
+      code: 200
+      message: OK
+version: 1

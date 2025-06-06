@@ -1,0 +1,87 @@
+interactions:
+- request:
+    body: '{"model":"llama3.1-8b","messages":[{"role":"system","content":"\n            Always
+      provide your response wrapped in <response> tags.\n            "},{"role":"user","content":"\n                This
+      is an end-to-end test, please respond with a\n                message containing
+      only the word ''apple''\n                "}],"max_tokens":512,"top_p":1.0,"temperature":0.0,"stream":true}'
+    headers:
+      accept:
+      - application/json, text/event-stream
+      accept-encoding:
+      - gzip, deflate, zstd
+      connection:
+      - keep-alive
+      content-length:
+      - '384'
+      content-type:
+      - application/json
+      host:
+      - zvzwmyo-hp00956.snowflakecomputing.com
+      user-agent:
+      - python-httpx/0.28.1
+    method: POST
+    uri: https://zvzwmyo-hp00956.snowflakecomputing.com/api/v2/cortex/inference:complete
+  response:
+    content: 'data: {"id":"64b4d0a7-5f7a-4976-82c0-8f9e2aabf48e","created":1748552228,"model":"llama3.1-8b","choices":[{"delta":{"type":"text","content_list":[{"type":"text","text":""}],"text":""}}],"usage":{"prompt_tokens":49,"completion_tokens":1,"total_tokens":50}}
+
+
+      data: {"id":"64b4d0a7-5f7a-4976-82c0-8f9e2aabf48e","created":1748552228,"model":"llama3.1-8b","choices":[{"delta":{"type":"text","content_list":[{"type":"text","text":""}],"text":""}}],"usage":{"prompt_tokens":49,"completion_tokens":2,"total_tokens":51}}
+
+
+      data: {"id":"64b4d0a7-5f7a-4976-82c0-8f9e2aabf48e","created":1748552228,"model":"llama3.1-8b","choices":[{"delta":{"type":"text","content":"\u003c","content_list":[{"type":"text","text":"\u003c"}],"text":"\u003c"}}],"usage":{"prompt_tokens":49,"completion_tokens":3,"total_tokens":52}}
+
+
+      data: {"id":"64b4d0a7-5f7a-4976-82c0-8f9e2aabf48e","created":1748552228,"model":"llama3.1-8b","choices":[{"delta":{"type":"text","content":"respo","content_list":[{"type":"text","text":"respo"}],"text":"respo"}}],"usage":{"prompt_tokens":49,"completion_tokens":4,"total_tokens":53}}
+
+
+      data: {"id":"64b4d0a7-5f7a-4976-82c0-8f9e2aabf48e","created":1748552228,"model":"llama3.1-8b","choices":[{"delta":{"type":"text","content":"ns","content_list":[{"type":"text","text":"ns"}],"text":"ns"}}],"usage":{"prompt_tokens":49,"completion_tokens":5,"total_tokens":54}}
+
+
+      data: {"id":"64b4d0a7-5f7a-4976-82c0-8f9e2aabf48e","created":1748552228,"model":"llama3.1-8b","choices":[{"delta":{"type":"text","content":"e\u003eapple\u003c","content_list":[{"type":"text","text":"e\u003eapple\u003c"}],"text":"e\u003eapple\u003c"}}],"usage":{"prompt_tokens":49,"completion_tokens":6,"total_tokens":55}}
+
+
+      data: {"id":"64b4d0a7-5f7a-4976-82c0-8f9e2aabf48e","created":1748552228,"model":"llama3.1-8b","choices":[{"delta":{"type":"text","content":"/","content_list":[{"type":"text","text":"/"}],"text":"/"}}],"usage":{"prompt_tokens":49,"completion_tokens":7,"total_tokens":56}}
+
+
+      data: {"id":"64b4d0a7-5f7a-4976-82c0-8f9e2aabf48e","created":1748552228,"model":"llama3.1-8b","choices":[{"delta":{"type":"text","content":"response\u003e","content_list":[{"type":"text","text":"response\u003e"}],"text":"response\u003e"},"finish_reason":"stop"}],"usage":{"prompt_tokens":49,"completion_tokens":8,"total_tokens":57}}
+
+
+      '
+    headers:
+      Cache-Control:
+      - no-cache
+      Content-Type:
+      - text/event-stream
+      Date:
+      - Thu, 29 May 2025 20:57:07 GMT,Thu, 29 May 2025 20:57:08 GMT
+      Expect-Ct:
+      - enforce, max-age=3600
+      Server:
+      - SF-LB
+      Strict-Transport-Security:
+      - max-age=31536000
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Accept-Encoding, User-Agent
+      X-Accel-Buffering:
+      - 'no'
+      X-Content-Type-Options:
+      - nosniff
+      X-Envoy-Attempt-Count:
+      - '1'
+      X-Envoy-Upstream-Service-Time:
+      - '1476'
+      X-Frame-Options:
+      - deny
+      X-Snowflake-Fe-Config:
+      - 281964bf_1747960657_awsuseast2_1748551893121_0_0_0
+      X-Snowflake-Fe-Instance:
+      - envoy-ingress-awsuseast2-r5b7r
+      X-Snowflake-Request-Id:
+      - 64b4d0a7-5f7a-4976-82c0-8f9e2aabf48e
+      X-Xss-Protection:
+      - 1; mode=block
+    http_version: HTTP/1.1
+    status_code: 200
+version: 1

@@ -1,0 +1,67 @@
+name: Release - Prepare main for release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  prepare-for-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Prepare the environment
+        uses: ./.github/actions/prep_environment
+        with:
+          GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+          GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
+
+      - name: Get current version
+        id: get_version
+        uses: ./.github/actions/get_version
+        with:
+          project-name: server
+
+      # TODO: I would prefer this step be included in the prep_for_release action but that makes
+      # that action feel overloaded. This should be fixed with the full CICD script utility.
+      - name: Create release branch
+        id: branch
+        run: |
+          OLD_VERSION="${{ steps.get_version.outputs.version }}"
+          # Remove pre-release labels (everything after the first dash)
+          NEW_VERSION=$(echo "$OLD_VERSION" | sed 's/-.*$//')
+          BRANCH_NAME="bump-release-$NEW_VERSION"
+          git checkout -b $BRANCH_NAME
+          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_OUTPUT
+
+      - name: Prep server for release
+        id: prep
+        uses: ./.github/actions/prep_for_release
+        with:
+          project-name: server
+          version-bump-type: release
+          build-changes: true
+          changelog-type: release
+          push-changes: true
+
+      - name: Create PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr create \
+            --base main \
+            --head ${{ steps.branch.outputs.BRANCH_NAME }} \
+            --title "Release - Bump to ${{ steps.prep.outputs.new-version }}" \
+            --body "This PR prepares the main branch for release ${{ steps.prep.outputs.new-version }}.
+
+          ## Changes
+
+          - Server version bumped to ${{ steps.prep.outputs.new-version }}
+          - Dependencies re-locked
+          - Changelogs updated
+
+          ## Release Process
+
+          Merge this PR to initiate the build and release process."

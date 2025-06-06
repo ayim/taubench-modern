@@ -1,0 +1,123 @@
+[project]
+name = "agent_platform"
+version = "2.0.0"
+requires-python = ">=3.12.9,<3.13"
+authors = [{ name = "Sema4.ai Engineering", email = "engineering@sema4.ai" }]
+description = "Platform for building and running agents."
+readme = "README.md"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.3,<9.0.0",
+    "pytest-asyncio>=0.25.2,<0.26.0",
+    "pillow>=11.1.0,<12.0.0",
+    "IPython>=8.31.0,<9.0.0",
+    "requests>=2.31.0,<3.0.0",
+    "testing-postgresql>=1.3.0,<2.0.0",
+    "pyright>=1.1.400,<1.2.0",
+    "vcrpy>=4.1.1,<5.0.0",
+    "coverage>=7.6.7,<8.0.0",
+    "towncrier>=24.8.0,<25.0.0",
+    "click>=8.1.8,<9.0.0",
+    "sema4ai-build-common>=0.0.3",
+    "mu-repo>=1.9.0",
+    "pytest-regressions==2.7.0",
+]
+lint = ["ruff>=0.7.2,<0.12.0"]
+notebooks = [
+    "IPython>=8.31.0,<9.0.0",
+    "ipykernel>=6.29.5,<7.0.0",
+    "ipywidgets>=8.1.5,<9.0.0",
+    "requests>=2.31.0,<3.0.0",
+    "python-dotenv>=1.0.1,<2.0.0",
+    "anywidget>=0.9.15,<1.0.0",
+    "numpy>=2.2.5,<3.0.0",
+    "websockets>=13.0.0,<14.0.0",
+]
+build = ["pyinstaller==6.11.1"]
+
+[tool.uv]
+package = false
+python-preference = "only-managed"
+
+[tool.uv.sources]
+agent_platform_core = { workspace = true }
+agent_platform_architectures_default = { workspace = true }
+agent_platform_server = { workspace = true }
+
+[tool.uv.workspace]
+members = ["architectures/default/", "core/", "server/"]
+
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["core/tests", "server/tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+markers = [
+    "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+    "unit: marks tests as unit tests (deselect with '-m \"not unit\"')",
+    "postgresql: marks tests that require PostgreSQL (deselect with '-m \"not postgresql\"')",
+]
+filterwarnings = [
+    # Ignore pkg_resources/declare_namespace deprecation warnings from snowflake-snowpark-python
+    # Annoying, but reduces log noise
+    "ignore:pkg_resources is deprecated as an API:DeprecationWarning:snowflake\\.snowpark\\.session.*",
+    "ignore:Deprecated call to `pkg_resources.declare_namespace.*`:DeprecationWarning:pkg_resources.*",
+    # Ignore datetime boto3 warnings
+    "ignore:datetime.datetime.utcnow\\(\\) is deprecated and scheduled for removal in a future version.:DeprecationWarning:botocore.*",
+]
+
+
+[tool.ruff]
+line-length = 100
+show-fixes = true
+respect-gitignore = true
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "F",
+    "I",
+    "PL",
+    "N",
+    "UP",
+    "B",
+    "A",
+    "COM",
+    "PT",
+    "RUF",
+    "W",
+    "C90",
+]
+fixable = ["ALL"]
+unfixable = []
+ignore = ["COM812"]
+
+[tool.ruff.lint.per-file-ignores]
+"core/examples/**/*.ipynb" = ["PLE1142"]
+"core/tests/**/*.py" = ["PLR2004"]
+"architectures/*/examples/**/*.ipynb" = ["PLE1142"]
+"architectures/*/tests/**/*.py" = ["PLR2004"]
+"server/examples/**/*.ipynb" = ["PLE1142"]
+"server/tests/**/*.py" = ["PLR2004"]
+
+[tool.ruff.lint.isort]
+known-first-party = [
+    "agent_platform.core",
+    "agent_platform.architectures.default",
+    "agent_platform.server",
+    "sema4ai.common",
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"

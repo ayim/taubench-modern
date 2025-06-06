@@ -1,0 +1,160 @@
+name: Package Agent Server for Release
+
+# This job should generally after the build jobs have run.
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: 'The git ref to checkout (defaults to github.sha)'
+        required: false
+        type: string
+        default: ${{ github.sha }}
+      version:
+        description: 'Optional version number to use (overrides internal version check)'
+        required: false
+        type: string
+    secrets:
+      GIT_TOKEN:
+        description: 'GitHub token'
+        required: true
+      GIT_USERNAME:
+        description: 'GitHub username'
+        required: true
+
+jobs:
+  package-agent-server:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - uses: ./.github/actions/prep_environment
+        with:
+          GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+          GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
+
+      - uses: ./.github/actions/get_version
+        id: get-version
+        if: ${{ inputs.version == '' }}
+        with:
+          project-name: server
+
+      - name: Set provided version
+        id: set-version
+        if: ${{ inputs.version != '' }}
+        run: echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: agent-server-build-*
+          path: download
+
+      - name: Move wheels and source distribution to dist
+        run: |
+          mkdir -p dist
+          # Find ubuntu build folder
+          ubuntu_folder=$(find download -type d -name "agent-server-build-ubuntu*")
+          echo "Found ubuntu folder for wheels: $ubuntu_folder"
+          if [ -n "$ubuntu_folder" ] && [ -d "$ubuntu_folder" ]; then
+            # Check if wheels exist
+            if compgen -G "$ubuntu_folder/agent_platform_server-*.whl" > /dev/null; then
+              mv "$ubuntu_folder"/agent_platform_server-*.whl dist/
+              echo "Successfully moved wheel files to dist"
+            else
+              echo "Warning: No wheel files found in $ubuntu_folder"
+            fi
+            # Check if source distribution exists
+            if compgen -G "$ubuntu_folder/agent_platform_server-*.tar.gz" > /dev/null; then
+              mv "$ubuntu_folder"/agent_platform_server-*.tar.gz dist/
+              echo "Successfully moved source distribution to dist"
+            else
+              echo "Warning: No source distribution found in $ubuntu_folder"
+            fi
+          else
+            echo "Warning: Ubuntu build folder not found for wheels and source distribution"
+          fi
+
+      - name: Package Binaries into Archives
+        run: |
+          mkdir -p dist
+          # Use version from input or fallback to get_version output
+          VERSION="${{ inputs.version != '' && inputs.version || steps.get-version.outputs.version }}"
+          # Create version.txt
+          echo "$VERSION" > dist/version.txt
+          echo "Created version.txt with version: $VERSION"
+
+          # Find windows x64 signed folder
+          windows_folder=$(find download -type d -name "agent-server-build-windows-x64")
+          echo "Found windows folder: $windows_folder"
+          if [ -n "$windows_folder" ] && [ -d "$windows_folder" ]; then
+            cd "$windows_folder"
+            zip -r agent-server-$VERSION-windows-x64.zip agent-server.exe
+            echo "Successfully created zip of agent server: $(ls agent-server-$VERSION-windows-x64.zip)"
+            mv agent-server-$VERSION-windows-x64.zip ../../dist/
+            echo "Successfully moved zip of agent server to dist: $(ls ../../dist/agent-server-$VERSION-windows-x64.zip)"
+            cd ../../
+          else
+            echo "Warning: Windows binary folder not found or invalid"
+          fi
+
+          # Find macos arm64 signed folder
+          macos_folder=$(find download -type d -name "agent-server-build-macos-arm64")
+          echo "Found macos arm64 folder: $macos_folder"
+          if [ -n "$macos_folder" ] && [ -d "$macos_folder" ]; then
+            cd "$macos_folder"
+            tar -czf agent-server-$VERSION-macos-arm64.tar.gz agent-server
+            echo "Successfully created tar of agent server: $(ls agent-server-$VERSION-macos-arm64.tar.gz)"
+            mv agent-server-$VERSION-macos-arm64.tar.gz ../../dist/
+            echo "Successfully moved tar of agent server to dist: $(ls ../../dist/agent-server-$VERSION-macos-arm64.tar.gz)"
+            cd ../../
+          else
+            echo "Warning: macOS ARM64 binary folder not found or invalid"
+          fi
+
+          # Find macos x64 signed folder
+          macos_x64_folder=$(find download -type d -name "agent-server-build-macos-x64")
+          echo "Found macos x64 folder: $macos_x64_folder"
+          if [ -n "$macos_x64_folder" ] && [ -d "$macos_x64_folder" ]; then
+            cd "$macos_x64_folder"
+            tar -czf agent-server-$VERSION-macos-x64.tar.gz agent-server
+            echo "Successfully created tar of agent server: $(ls agent-server-$VERSION-macos-x64.tar.gz)"
+            mv agent-server-$VERSION-macos-x64.tar.gz ../../dist/
+            echo "Successfully moved tar of agent server to dist: $(ls ../../dist/agent-server-$VERSION-macos-x64.tar.gz)"
+            cd ../../
+          else
+            echo "Warning: macOS x64 binary folder not found or invalid"
+          fi
+
+          # Find ubuntu x64 build folder
+          ubuntu_folder=$(find download -type d -name "agent-server-build-ubuntu-x64")
+          echo "Found ubuntu folder: $ubuntu_folder"
+          if [ -n "$ubuntu_folder" ] && [ -d "$ubuntu_folder" ]; then
+            cd "$ubuntu_folder"
+            if [ -f "agent-server" ]; then
+              tar -czf agent-server-$VERSION-ubuntu-x64.tar.gz agent-server
+              echo "Successfully created tar of agent server: $(ls agent-server-$VERSION-ubuntu-x64.tar.gz)"
+              mv agent-server-$VERSION-ubuntu-x64.tar.gz ../../dist/
+              echo "Successfully moved tar of agent server to dist: $(ls ../../dist/agent-server-$VERSION-ubuntu-x64.tar.gz)"
+            elif [ -f "dist/agent-server" ]; then
+              cd dist
+              tar -czf agent-server-$VERSION-ubuntu-x64.tar.gz agent-server
+              echo "Successfully created tar of agent server: $(ls agent-server-$VERSION-ubuntu-x64.tar.gz)"
+              mv agent-server-$VERSION-ubuntu-x64.tar.gz ../../dist/
+              echo "Successfully moved tar of agent server to dist: $(ls ../../dist/agent-server-$VERSION-ubuntu-x64.tar.gz)"
+            else
+              echo "Warning: Could not find agent-server binary in Ubuntu build folder"
+              ls -R
+            fi
+            cd ../../
+          else
+            echo "Warning: Ubuntu binary folder not found or invalid"
+          fi
+
+      - name: Upload Packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-server-release-packages
+          path: dist

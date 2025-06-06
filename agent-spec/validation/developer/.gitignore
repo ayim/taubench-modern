@@ -1,0 +1,11 @@
+output/
+venv/
+temp/
+.idea/
+.vscode
+.DS_Store
+*.zip
+rcc.exe
+rcc
+activate.bat
+activate.sh

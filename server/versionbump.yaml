@@ -1,0 +1,40 @@
+# Project configuration
+name: "server"
+title: "Sema4.ai Agent Server"
+descripton: "Agent server is a server that provides a REST API to create and interact with AI agents."
+
+# Original versionbump config
+version: "2.0.0-rc.4"        # The current version of the project. This is the version source of truth.
+                         # Do not change this value manually. VersionBump will update it automatically.
+git-commit: true         # Whether to create a git commit for the version bump.
+git-tag: false            # Whether to create a git tag for the version bump.
+
+prerelease-labels:
+  - "alpha"
+  - "beta"
+  - "rc"
+
+# The build label. This is the label that will be used for build versions.
+build-label: 'langsmithintegration'
+
+
+files:                   # The files to update with the new version.
+  - path: "pyproject.toml"
+    replace:
+      - "version = \"{version}\"" # The search string to replace in the file.
+
+  - path: "README.md"
+    replace:
+      - "**Latest Release:** `{version}`"
+
+  - path: "src/agent_platform/server/__init__.py"
+    replace:
+      - "__version__ = \"{version}\""
+
+  - path: "towncrier.toml"
+    replace:
+      - "version = \"{version}\""
+
+  - path: "towncrier-for-release.toml"
+    replace:
+      - "version = \"{version}\""

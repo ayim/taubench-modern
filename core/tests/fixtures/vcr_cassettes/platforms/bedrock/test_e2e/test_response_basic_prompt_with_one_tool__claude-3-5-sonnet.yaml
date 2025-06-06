@@ -1,0 +1,63 @@
+interactions:
+- request:
+    body: '{"messages": [{"role": "user", "content": [{"text": "\n                This
+      is an end-to-end test, please call the tool\n                called add_book
+      with the following book:\n\n                Title: \"Foundation\"\n                Author:
+      \"Isaac Asimov\"\n                Year: 1951\n\n                Emit nothing
+      else but the tool call with the\n                book information _exactly_
+      as shown above. Completely\n                omit any optional fields.\n                "}]}],
+      "system": [{"text": "\n            You are an expert librarian. You are given
+      a book\n            and you need to add it to the database. If any\n            information
+      is missing/optional, you should leave\n            it out instead of trying
+      to guess it!! Do NOT even\n            include an empty string/null for optional
+      fields, completely\n            omit them.\n            "}], "inferenceConfig":
+      {"temperature": 0.0, "maxTokens": 512}, "toolConfig": {"tools": [{"toolSpec":
+      {"name": "_add_book", "description": "Store a new book in the database.", "inputSchema":
+      {"json": {"type": "object", "properties": {"book": {"type": "object", "properties":
+      {"title": {"type": "string", "description": "The title of the book"}, "author":
+      {"type": "string", "description": "The author''s name"}, "category": {"type":
+      ["string", "null"], "description": "The category of the book"}, "year": {"type":
+      "integer"}}, "required": ["title", "author", "category", "year"], "description":
+      "The book to add to the database"}}, "required": ["book"], "strict": true, "additionalProperties":
+      false}}}}], "toolChoice": {"auto": {}}}}'
+    headers:
+      Content-Length:
+      - '1607'
+      Content-Type:
+      - !!binary |
+        YXBwbGljYXRpb24vanNvbg==
+      User-Agent:
+      - !!binary |
+        Qm90bzMvMS4zNy4yNCBtZC9Cb3RvY29yZSMxLjM3LjI0IHVhLzIuMSBvcy9tYWNvcyMyNC4zLjAg
+        bWQvYXJjaCNhcm02NCBsYW5nL3B5dGhvbiMzLjEyLjkgbWQvcHlpbXBsI0NQeXRob24gY2ZnL3Jl
+        dHJ5LW1vZGUjbGVnYWN5IEJvdG9jb3JlLzEuMzcuMjQ=
+      X-Amz-Date:
+      - !!binary |
+        MjAyNTA0MDdUMDI1NzA2Wg==
+      amz-sdk-invocation-id:
+      - !!binary |
+        MzY4YWQ2ZGMtNzYxOS00M2Q0LTlmMGUtZTVlMjk3MDkzZjRh
+      amz-sdk-request:
+      - !!binary |
+        YXR0ZW1wdD0x
+    method: POST
+    uri: https://bedrock-runtime.us-east-1.amazonaws.com/model/us.anthropic.claude-3-5-sonnet-20241022-v2%3A0/converse
+  response:
+    body:
+      string: '{"metrics":{"latencyMs":1881},"output":{"message":{"content":[{"toolUse":{"input":{"book":{"title":"Foundation","author":"Isaac
+        Asimov","year":1951}},"name":"_add_book","toolUseId":"tooluse_zV8z1uiBTdu9XD6b87kfLw"}}],"role":"assistant"}},"stopReason":"tool_use","usage":{"inputTokens":648,"outputTokens":74,"totalTokens":722}}'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '326'
+      Content-Type:
+      - application/json
+      Date:
+      - Mon, 07 Apr 2025 02:57:08 GMT
+      x-amzn-RequestId:
+      - 57ad2c84-a783-4394-80bb-09da441d9db5
+    status:
+      code: 200
+      message: OK
+version: 1

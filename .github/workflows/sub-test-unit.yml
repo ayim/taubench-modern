@@ -1,0 +1,109 @@
+name: Unit Tests
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: 'The git ref to checkout (defaults to github.sha)'
+        required: false
+        type: string
+        default: ${{ github.sha }}
+      windows-runner:
+        description: 'The windows runner to use'
+        required: false
+        type: string
+        default: 'windows-2025'
+      linux-runner:
+        description: 'The linux runner to use'
+        required: false
+        type: string
+        default: 'ubuntu-24.04'
+      macos-arm64-runner:
+        description: 'The macos arm64 runner to use'
+        required: false
+        type: string
+        default: 'macos-15'
+      macos-x64-runner:
+        description: 'The macos x64 runner to use'
+        required: false
+        type: string
+        default: 'macos-13'
+    secrets:
+      GIT_TOKEN:
+        description: 'GitHub token'
+        required: true
+      GIT_USERNAME:
+        description: 'GitHub username'
+        required: true
+      MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI:
+        description: 'MacOS App ID for notarization'
+        required: true
+      MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI:
+        description: 'MacOS App ID password for notarization'
+        required: true
+      MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI:
+        description: 'MacOS Team ID for notarization'
+        required: true
+      MACOS_SIGNING_CERT_SEMA4AI:
+        description: 'MacOS signing certificate'
+        required: true
+      MACOS_SIGNING_CERT_PASSWORD_SEMA4AI:
+        description: 'MacOS signing certificate password'
+        required: true
+      MACOS_SIGNING_CERT_NAME_SEMA4AI:
+        description: 'MacOS signing certificate name'
+        required: true
+      WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI:
+        description: 'Windows sign Azure Key Vault URL'
+        required: true
+      WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI:
+        description: 'Windows sign Azure Key Vault client ID'
+        required: true
+      WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI:
+        description: 'Windows sign Azure Key Vault tenant ID'
+        required: true
+      WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI:
+        description: 'Windows sign Azure Key Vault client secret'
+        required: true
+      WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI:
+        description: 'Windows sign Azure Key Vault certificate name'
+        required: true
+
+jobs:
+  unit-tests:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ${{ inputs.linux-runner }}
+          - os: ${{ inputs.macos-arm64-runner }}
+          - os: ${{ inputs.macos-x64-runner }}
+          - os: ${{ inputs.windows-runner }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - uses: ./.github/actions/prep_environment
+        with:
+          GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+          GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
+
+      - name: Run Unit tests
+        run: make test-unit
+        env:
+          CI: true
+          MACOS_SIGNING_CERT: ${{ secrets.MACOS_SIGNING_CERT_SEMA4AI }}
+          MACOS_SIGNING_CERT_PASSWORD: ${{ secrets.MACOS_SIGNING_CERT_PASSWORD_SEMA4AI }}
+          MACOS_SIGNING_CERT_NAME: ${{ secrets.MACOS_SIGNING_CERT_NAME_SEMA4AI }}
+
+          APPLEID: ${{ secrets.MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI }}
+          APPLETEAMID: ${{ secrets.MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI }}
+          APPLEIDPASS: ${{ secrets.MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI }}
+
+          VAULT_URL: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI }}
+          CLIENT_ID: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI }}
+          TENANT_ID: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI }}
+          CLIENT_SECRET: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI }}
+          CERTIFICATE_NAME: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI }}

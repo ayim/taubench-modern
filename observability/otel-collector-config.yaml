@@ -1,0 +1,70 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+
+  # Add resource attributes for better identification
+  resource:
+    attributes:
+      - key: service.name
+        value: 'agent-platform'
+        action: upsert
+
+  # Memory limiter to prevent OOM
+  memory_limiter:
+    limit_mib: 512
+    check_interval: 1s
+
+exporters:
+  # Jaeger via OTLP
+  otlp/jaeger:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+
+  # Prometheus for metrics
+  prometheus:
+    endpoint: '0.0.0.0:8889'
+    send_timestamps: true
+    metric_expiration: 180m
+    enable_open_metrics: true
+
+  # Debug exporter for troubleshooting
+  debug:
+    verbosity: normal
+
+service:
+  pipelines:
+    # Traces pipeline - send to Jaeger
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlp/jaeger, debug]
+
+    # Metrics pipeline - send to Prometheus
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [prometheus, debug]
+
+    # Logs pipeline - for debugging
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [debug]
+
+  extensions: []
+
+  telemetry:
+    logs:
+      level: 'info'
+    metrics:
+      address: 0.0.0.0:8888

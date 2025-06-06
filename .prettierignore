@@ -1,0 +1,8 @@
+core/tests/fixtures/vcr_cassettes/platforms
+docs/prompt-endpoint-examples/package-lock.json
+server/examples/debug_widget/pnpm-lock.yaml
+server/examples/debug_widget/static/index.js
+server/examples/debug_widget/static/style.css
+**/CHANGELOG-PRE-RELEASE.md
+**/CHANGELOG.md
+**/versionbump.yaml

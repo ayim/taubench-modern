@@ -1,0 +1,52 @@
+name: Agent CLI Spec verification
+
+on:
+  push:
+    paths:
+      - 'client-sdks/golang/agent-cli/**'
+  pull_request:
+    paths:
+      - 'client-sdks/golang/agent-cli/**'
+  # Manual trigger
+  workflow_dispatch:
+
+permissions:
+  contents: read # access to check out code and install dependencies
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    defaults:
+      run:
+        working-directory: ./agent-spec/validation
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+          cache-dependency-path: client-sdks/golang/agent-cli/go.sum
+      - name: Go Get agent-client-go
+        working-directory: client-sdks/golang/agent-cli
+        env:
+          GH_PAT_GHA_TO_ANOTHER_REPO: ${{secrets.GH_PAT_GHA_TO_ANOTHER_REPO}}
+        run: |
+          git config --global url."https://$GH_PAT_GHA_TO_ANOTHER_REPO@github.com/".insteadOf "https://github.com/"
+          export GOPRIVATE=github.com/Sema4AI/agent-client-go
+          go get github.com/Sema4AI/agent-client-go
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Upgrade pip/poetry
+        run: python -m pip install --upgrade pip poetry
+      - name: poetry install
+        run: poetry install --no-root
+      - name: Run pytest
+        run: |
+          poetry run python -m pytest -rfE -vv -n auto --confcutdir=. .

@@ -1,0 +1,65 @@
+name: Prepare Common CI Environment
+description: |
+  This action prepares the common CI environment for our actions. It will
+  set up uv, install dependences, configure git, and set up versionbump.
+
+  IMPORTANT: This action requires actions/checkout to be run first in your workflow.
+  Make sure to pass the same ref to actions/checkout that you want to use for this action.
+
+  Example usage:
+  ```yaml
+  - uses: actions/checkout@v4
+    with:
+      ref: your-ref-here  # e.g. github.sha, a branch name, or commit hash, 
+                          # should be the ref from after a versionbump or other
+                          # CI step that creates a commit
+
+  - uses: ./.github/actions/prep_environment
+    with:
+      GIT_TOKEN: ... var that contains the secret token ...
+      GIT_USERNAME: ... var that contains the secret username ...
+  ```
+
+inputs:
+  go_version:
+    description: 'The version of Go to use, defaults to stable'
+    required: false
+    default: 'stable'
+  versionbump_version:
+    description: 'The version of versionbump to install, defaults to latest'
+    required: false
+    default: 'latest'
+  GIT_TOKEN:
+    description: 'GitHub token'
+    required: true
+  GIT_USERNAME:
+    description: 'GitHub username'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
+        cache-dependency-glob: |
+          **/pyproject.toml
+          **/uv.lock
+        cache-suffix: agent-platform
+
+    - name: Configure git
+      shell: bash
+      run: |
+        git config --global user.email "agent-team@no-reply.sema4.ai"
+        git config --global user.name "Sema4.ai Agent Team"
+        git config --global url."https://${{ inputs.GIT_USERNAME }}:${{ inputs.GIT_TOKEN }}@github.com/".insteadOf "https://github.com/"
+    - name: Sync environment (Installs dependencies)
+      shell: bash
+      run: make sync
+
+    - name: Set up Versionbump
+      uses: ./.github/actions/setup_versionbump
+      with:
+        go_version: ${{ inputs.go_version }}
+        versionbump_version: ${{ inputs.versionbump_version }}

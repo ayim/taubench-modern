@@ -1,0 +1,107 @@
+interactions:
+- request:
+    body: '{"messages":[{"role":"user","content":[{"type":"text","text":"\n                You
+      are acting as an agent named ''Test Agent''. You\n                are to assist
+      the user with their request.\n                "}]},{"role":"assistant","content":[{"type":"text","text":"\n                Understood,
+      I will assist the user with their request.\n                "}]},{"role":"user","content":[{"type":"text","text":"\n                Reply
+      with the answer only, nothing else. What is the\n                capital of
+      the state of Wisconsin, USA?\n\n                The answer must be one word.
+      Starting with a capital\n                letter, and ending with a period. Emit
+      nothing else\n                aside from the capital of Wisconsin with a period\n                at
+      the end and starting with a capital letter.\n\n                NOTE: We are
+      not looking for ALL CAPS. Just regular\n                capitalization with
+      a period at the end.\n                "}]}],"model":"gpt-4o","stream":true,"stream_options":{"include_usage":true}}'
+    headers:
+      accept:
+      - application/json
+      accept-encoding:
+      - gzip, deflate, zstd
+      connection:
+      - keep-alive
+      content-length:
+      - '1035'
+      content-type:
+      - application/json
+      host:
+      - sema4ai-internal-testing.openai.azure.com
+      user-agent:
+      - AsyncAzureOpenAI/Python 1.75.0
+      x-stainless-arch:
+      - arm64
+      x-stainless-async:
+      - async:asyncio
+      x-stainless-lang:
+      - python
+      x-stainless-os:
+      - MacOS
+      x-stainless-package-version:
+      - 1.75.0
+      x-stainless-read-timeout:
+      - '600'
+      x-stainless-retry-count:
+      - '0'
+      x-stainless-runtime:
+      - CPython
+      x-stainless-runtime-version:
+      - 3.12.9
+    method: POST
+    uri: https://azure-openai-endpoint.example.com/openai/deployments/example-deployment-name/chat/completions?api-version=2023-03-15-preview
+  response:
+    content: 'data: {"choices":[{"delta":{"refusal":null,"role":"assistant"},"finish_reason":null,"index":0}],"created":1748540970,"id":"chatcmpl-BcbfeWm1CUg9TEZ1wx3gZQU7vKurT","model":"gpt-4o-mini-2024-07-18","object":"chat.completion.chunk","system_fingerprint":"fp_7a53abb7a2","usage":null}
+
+
+      data: {"choices":[{"delta":{"content":"Mad"},"finish_reason":null,"index":0}],"created":1748540970,"id":"chatcmpl-BcbfeWm1CUg9TEZ1wx3gZQU7vKurT","model":"gpt-4o-mini-2024-07-18","object":"chat.completion.chunk","system_fingerprint":"fp_7a53abb7a2","usage":null}
+
+
+      data: {"choices":[{"delta":{"content":"ison"},"finish_reason":null,"index":0}],"created":1748540970,"id":"chatcmpl-BcbfeWm1CUg9TEZ1wx3gZQU7vKurT","model":"gpt-4o-mini-2024-07-18","object":"chat.completion.chunk","system_fingerprint":"fp_7a53abb7a2","usage":null}
+
+
+      data: {"choices":[{"delta":{"content":"."},"finish_reason":null,"index":0}],"created":1748540970,"id":"chatcmpl-BcbfeWm1CUg9TEZ1wx3gZQU7vKurT","model":"gpt-4o-mini-2024-07-18","object":"chat.completion.chunk","system_fingerprint":"fp_7a53abb7a2","usage":null}
+
+
+      data: {"choices":[{"delta":{},"finish_reason":"stop","index":0}],"created":1748540970,"id":"chatcmpl-BcbfeWm1CUg9TEZ1wx3gZQU7vKurT","model":"gpt-4o-mini-2024-07-18","object":"chat.completion.chunk","system_fingerprint":"fp_7a53abb7a2","usage":null}
+
+
+      data: {"choices":[],"created":1748540970,"id":"chatcmpl-BcbfeWm1CUg9TEZ1wx3gZQU7vKurT","model":"gpt-4o-mini-2024-07-18","object":"chat.completion.chunk","system_fingerprint":"fp_7a53abb7a2","usage":{"completion_tokens":4,"completion_tokens_details":{"accepted_prediction_tokens":0,"audio_tokens":0,"reasoning_tokens":0,"rejected_prediction_tokens":0},"prompt_tokens":153,"prompt_tokens_details":{"audio_tokens":0,"cached_tokens":0},"total_tokens":157}}
+
+
+      data: [DONE]
+
+
+      '
+    headers:
+      Content-Type:
+      - text/event-stream; charset=utf-8
+      Date:
+      - Thu, 29 May 2025 17:49:31 GMT
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubDomains; preload
+      Transfer-Encoding:
+      - chunked
+      apim-request-id:
+      - 7360fe9f-69f3-401d-8d3a-586a08bb09c6
+      azureml-model-session:
+      - d017-20250421132938
+      cmp-upstream-response-duration:
+      - '293'
+      x-accel-buffering:
+      - 'no'
+      x-content-type-options:
+      - nosniff
+      x-ms-deployment-name:
+      - internal-testing-gpt-4o-mini
+      x-ms-region:
+      - East US
+      x-ratelimit-limit-requests:
+      - '7580'
+      x-ratelimit-limit-tokens:
+      - '758000'
+      x-ratelimit-remaining-requests:
+      - '7567'
+      x-ratelimit-remaining-tokens:
+      - '748228'
+      x-request-id:
+      - b3426fca-8f33-41a0-acfd-0aed44ff073e
+    http_version: HTTP/1.1
+    status_code: 200
+version: 1

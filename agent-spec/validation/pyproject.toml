@@ -1,0 +1,50 @@
+[tool.poetry]
+name = "sema4ai-agent-spec"
+version = "0.0.1"
+description = "Sema4.ai: Agent Spec"
+authors = [
+    "Sema4.ai <contact@sema4ai.com>",
+]
+readme = "README.md"
+repository = "https://github.com/Sema4AI/agents-spec/"
+license = "Proprietary"
+packages = [
+    {include = "_spec_validation_tests", from = "."},
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.13"
+pyyaml = "^6"
+tree-sitter = "^0.22.3"
+tree-sitter-yaml = "^0.6.0"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.1.14"
+mypy = "^1.1.1"
+pytest = "^8.3.3"
+pytest-xdist = "*"
+pytest-regressions = "^2.5.0"
+sema4ai-http-helper = "^1.0.1"
+
+[tool.mypy]
+mypy_path = "docs"
+
+[tool.isort]
+profile = "black"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

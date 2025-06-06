@@ -1,0 +1,134 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Agent Server",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "agent_platform.server",
+      "justMyCode": false,
+      "console": "integratedTerminal",
+      "env": {
+        "SEMA4AI_AGENT_SERVER_CORS_MODE": "all",
+        "SEMA4AI_AGENT_SERVER_LOG_LEVEL": "DEBUG"
+      }
+    },
+    /**
+        
+       You need JWT Tokens
+       For testing only, you can generate them with http://jwtbuilder.jamiekurtz.com/
+       
+       Fields
+       - iss: ace
+       - aud: agent_server
+       - jwt_alg: hs256
+       - secret key: very_secret_key
+
+       In Ace we set also sub field to
+       - /tenant/{tenant_id}
+       - /tenant/{tenant_id}/user/{user_id}
+       
+       Make http requests with this header
+
+       - Authorization: Bearer YOUR_TOKEN
+
+       Launch postgres as a docker container
+
+       docker run --name postgres -e POSTGRES_USER=admin -e POSTGRES_PASSWORD=password -e POSTGRES_DB=agent_server_db -p 5432:5432 -d postgres
+
+    **/
+    {
+      "name": "Debug Agent Server (JWT Local w/ Postgres)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "agent_platform.server",
+      "justMyCode": false,
+      "console": "integratedTerminal",
+      "env": {
+        "SEMA4AI_AGENT_SERVER_CORS_MODE": "all",
+        "SEMA4AI_AGENT_SERVER_LOG_LEVEL": "DEBUG",
+        "AUTH_TYPE": "jwt_local",
+        "JWT_ISS": "ace",
+        "JWT_AUD": "agent_server",
+        "JWT_ALG": "HS256",
+        "JWT_DECODE_KEY_B64": "dmVyeV9zZWNyZXRfa2V5", // base64("very_secret_key")
+        "POSTGRES_DB": "agent_server_db",
+        "POSTGRES_HOST": "localhost",
+        "POSTGRES_PORT": "5432",
+        "POSTGRES_USER": "admin",
+        "POSTGRES_PASSWORD": "password",
+        "SEMA4AI_AGENT_SERVER_DB_TYPE": "postgres"
+      }
+    },
+    {
+      "name": "Debug Agent Server with Args",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "agent_platform.server",
+      "justMyCode": false,
+      "console": "integratedTerminal",
+      "args": "${input:serverArgs}",
+      "env": {
+        "SEMA4AI_AGENT_SERVER_CORS_MODE": "all",
+        "SEMA4AI_AGENT_SERVER_LOG_LEVEL": "DEBUG"
+      }
+    },
+    {
+      "name": "Debug Agent Server with env File",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "agent_platform.server",
+      "justMyCode": false,
+      "console": "integratedTerminal",
+      "envFile": "${workspaceFolder}/.env",
+      "env": {
+        "SEMA4AI_AGENT_SERVER_CORS_MODE": "all",
+        "SEMA4AI_AGENT_SERVER_LOG_LEVEL": "DEBUG"
+      }
+    },
+    {
+      "name": "Debug pytest run",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "justMyCode": false,
+      "console": "integratedTerminal",
+      "args": "${input:pytestArgs}"
+    },
+    {
+      "name": "Debug Changes Script",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/changes.py",
+      "justMyCode": false,
+      "console": "integratedTerminal",
+      "args": "${input:changesArgs}"
+    },
+    {
+      "type": "pydevd",
+      "name": "PyDev Test Template",
+      "request": "test-template",
+      "args": ["--capture=no"]
+    }
+  ],
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "serverArgs",
+      "description": "Provide the arguments to pass to the agent server",
+      "default": ""
+    },
+    {
+      "type": "promptString",
+      "id": "pytestArgs",
+      "description": "Provide the arguments to pass to pytest",
+      "default": ""
+    },
+    {
+      "type": "promptString",
+      "id": "changesArgs",
+      "description": "Provide the arguments to pass to the changes script",
+      "default": ""
+    }
+  ]
+}

@@ -1,0 +1,104 @@
+interactions:
+- request:
+    body: '{"model":"deepseek-r1","messages":[{"role":"user","content":"\n                This
+      is an end-to-end test, please respond with a\n                message containing
+      only the word ''sunflower''\n                "}],"max_tokens":512,"top_p":1.0,"temperature":0.0,"stream":false}'
+    headers:
+      accept:
+      - application/json, text/event-stream
+      accept-encoding:
+      - gzip, deflate, zstd
+      connection:
+      - keep-alive
+      content-length:
+      - '274'
+      content-type:
+      - application/json
+      host:
+      - zvzwmyo-hp00956.snowflakecomputing.com
+      user-agent:
+      - python-httpx/0.28.1
+    method: POST
+    uri: https://zvzwmyo-hp00956.snowflakecomputing.com/api/v2/cortex/inference:complete
+  response:
+    content: '{"choices":[{"message":{"content":"\u003cthink\u003e\nOkay, the user
+      sent a message asking for a response containing only the word ''sunflower''.
+      Let me make sure I understand the instructions correctly. They mentioned it''s
+      an end-to-end test, so they probably want to check if the system can follow
+      specific directions accurately. The key here is to respond with just the single
+      word without any additional text or formatting.\n\nFirst, I need to confirm
+      that there are no other requirements hidden in the query. The user emphasized
+      \"only the word ''sunflower''\", so I shouldn''t add any punctuation, explanations,
+      or extra words. Sometimes, people might include markdown or other formatting,
+      but the user didn''t specify that here. Since they want only the word, I should
+      avoid any formatting as well.\n\nI should also check if there''s any possibility
+      of misunderstanding. For example, maybe they want the word in a different language
+      or some specific case. But the example given is in English and lowercase, so
+      sticking to that seems safe. \n\nAnother thing to consider is if there''s a
+      typo in the response. Let me double-check the spelling of ''sunflower'' to make
+      sure it''s correct. S-U-N-F-L-O-W-E-R. Yes, that''s right. \n\nAlso, ensuring
+      that there are no leading or trailing spaces. The response should be exactly
+      the word without any extra characters. \n\nI think that''s all. The main point
+      is to comply strictly with the instruction to avoid any additional content.
+      Let me just write ''sunflower'' as the response.\n\u003c/think\u003e\n\nsunflower","content_list":[{"type":"text","text":"\u003cthink\u003e\nOkay,
+      the user sent a message asking for a response containing only the word ''sunflower''.
+      Let me make sure I understand the instructions correctly. They mentioned it''s
+      an end-to-end test, so they probably want to check if the system can follow
+      specific directions accurately. The key here is to respond with just the single
+      word without any additional text or formatting.\n\nFirst, I need to confirm
+      that there are no other requirements hidden in the query. The user emphasized
+      \"only the word ''sunflower''\", so I shouldn''t add any punctuation, explanations,
+      or extra words. Sometimes, people might include markdown or other formatting,
+      but the user didn''t specify that here. Since they want only the word, I should
+      avoid any formatting as well.\n\nI should also check if there''s any possibility
+      of misunderstanding. For example, maybe they want the word in a different language
+      or some specific case. But the example given is in English and lowercase, so
+      sticking to that seems safe. \n\nAnother thing to consider is if there''s a
+      typo in the response. Let me double-check the spelling of ''sunflower'' to make
+      sure it''s correct. S-U-N-F-L-O-W-E-R. Yes, that''s right. \n\nAlso, ensuring
+      that there are no leading or trailing spaces. The response should be exactly
+      the word without any extra characters. \n\nI think that''s all. The main point
+      is to comply strictly with the instruction to avoid any additional content.
+      Let me just write ''sunflower'' as the response.\n\u003c/think\u003e\n\nsunflower"}]}}],"usage":{"prompt_tokens":30,"completion_tokens":314,"total_tokens":344}}
+
+      '
+    headers:
+      Cache-Control:
+      - no-cache
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json;charset=utf-8
+      Date:
+      - Thu, 29 May 2025 20:56:22 GMT,Thu, 29 May 2025 20:56:29 GMT
+      Expect-Ct:
+      - enforce, max-age=3600
+      Server:
+      - SF-LB
+      Strict-Transport-Security:
+      - max-age=31536000
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Accept-Encoding, User-Agent
+      X-Accel-Buffering:
+      - 'no'
+      X-Content-Type-Options:
+      - nosniff
+      X-Envoy-Attempt-Count:
+      - '1'
+      X-Envoy-Upstream-Service-Time:
+      - '6896'
+      X-Frame-Options:
+      - deny
+      X-Snowflake-Fe-Config:
+      - 281964bf_1747960657_awsuseast2_1748551893121_0_0_0
+      X-Snowflake-Fe-Instance:
+      - envoy-ingress-awsuseast2-r5b7r
+      X-Snowflake-Request-Id:
+      - c0d383b0-5d57-4b46-aa38-82a0e0d731aa
+      X-Xss-Protection:
+      - 1; mode=block
+    http_version: HTTP/1.1
+    status_code: 200
+version: 1

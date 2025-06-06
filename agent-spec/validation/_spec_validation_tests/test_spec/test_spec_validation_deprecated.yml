@@ -1,0 +1,6 @@
+- 'Unexpected entry: system (in agent-package/agents/runbooks).'
+- 'Unexpected entry: retrieval (in agent-package/agents/runbooks).'
+- "Deprecated: 'agent-package/agents/resources'. Please use 'knowledge' instead."
+- "Deprecated: 'agent-package/agents/type'. Please use 'architecture' instead."
+- "Deprecated: 'agent-package/agents/reasoningLevel'. Please use 'reasoning' instead."
+- "Deprecated: 'agent-package/agents/runbooks'. Please use 'runbook' instead."

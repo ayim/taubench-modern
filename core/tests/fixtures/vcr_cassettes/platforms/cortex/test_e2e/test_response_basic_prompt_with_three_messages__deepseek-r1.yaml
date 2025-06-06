@@ -1,0 +1,88 @@
+interactions:
+- request:
+    body: '{"model":"deepseek-r1","messages":[{"role":"user","content":"\n                You
+      are acting as an agent named ''Test Agent''. You\n                are to assist
+      the user with their request.\n                "},{"role":"assistant","content":"\n                Understood,
+      I will assist the user with their request.\n                "},{"role":"user","content":"\n                Reply
+      with the answer only, nothing else. What is the\n                capital of
+      the state of Wisconsin, USA?\n\n                The answer must be one word.
+      Starting with a capital\n                letter, and ending with a period. Emit
+      nothing else\n                aside from the capital of Wisconsin with a period\n                at
+      the end and starting with a capital letter.\n\n                NOTE: We are
+      not looking for ALL CAPS. Just regular\n                capitalization with
+      a period at the end.\n                "}],"max_tokens":512,"top_p":1.0,"temperature":0.0,"stream":false}'
+    headers:
+      accept:
+      - application/json, text/event-stream
+      accept-encoding:
+      - gzip, deflate, zstd
+      connection:
+      - keep-alive
+      content-length:
+      - '973'
+      content-type:
+      - application/json
+      host:
+      - zvzwmyo-hp00956.snowflakecomputing.com
+      user-agent:
+      - python-httpx/0.28.1
+    method: POST
+    uri: https://zvzwmyo-hp00956.snowflakecomputing.com/api/v2/cortex/inference:complete
+  response:
+    content: '{"choices":[{"message":{"content":"\u003cthink\u003e\nOkay, the user
+      is asking for the capital of Wisconsin, USA. They want a one-word answer starting
+      with a capital letter and ending with a period. Let me make sure I remember
+      correctly. I think the capital isn''t Milwaukee, which is a bigger city. Wait,
+      isn''t it Madison? Yes, Madison is the capital. Let me double-check that. Yes,
+      Wisconsin''s capital is Madison. So the answer should be \"Madison.\" with the
+      period. No extra words, just the city name properly capitalized and a period
+      at the end. Got it.\n\u003c/think\u003e\n\nMadison.","content_list":[{"type":"text","text":"\u003cthink\u003e\nOkay,
+      the user is asking for the capital of Wisconsin, USA. They want a one-word answer
+      starting with a capital letter and ending with a period. Let me make sure I
+      remember correctly. I think the capital isn''t Milwaukee, which is a bigger
+      city. Wait, isn''t it Madison? Yes, Madison is the capital. Let me double-check
+      that. Yes, Wisconsin''s capital is Madison. So the answer should be \"Madison.\"
+      with the period. No extra words, just the city name properly capitalized and
+      a period at the end. Got it.\n\u003c/think\u003e\n\nMadison."}]}}],"usage":{"prompt_tokens":147,"completion_tokens":123,"total_tokens":270}}
+
+      '
+    headers:
+      Cache-Control:
+      - no-cache
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json;charset=utf-8
+      Date:
+      - Thu, 29 May 2025 20:56:32 GMT,Thu, 29 May 2025 20:56:35 GMT
+      Expect-Ct:
+      - enforce, max-age=3600
+      Server:
+      - SF-LB
+      Strict-Transport-Security:
+      - max-age=31536000
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Accept-Encoding, User-Agent
+      X-Accel-Buffering:
+      - 'no'
+      X-Content-Type-Options:
+      - nosniff
+      X-Envoy-Attempt-Count:
+      - '1'
+      X-Envoy-Upstream-Service-Time:
+      - '2972'
+      X-Frame-Options:
+      - deny
+      X-Snowflake-Fe-Config:
+      - 281964bf_1747960657_awsuseast2_1748551893121_0_0_0
+      X-Snowflake-Fe-Instance:
+      - envoy-ingress-awsuseast2-f2slz
+      X-Snowflake-Request-Id:
+      - c45f27ff-7661-4cbd-bc17-2e97af3d1dbb
+      X-Xss-Protection:
+      - 1; mode=block
+    http_version: HTTP/1.1
+    status_code: 200
+version: 1
