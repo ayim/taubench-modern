@@ -1,3 +1,30 @@
+# Sema4.ai Agent Server Pre-Release 2.0.1-alpha (2025-06-06)
+
+## Agent Server
+
+### Bugfixes
+
+- Restore INSERT .. ON CONFLICT logic to match agentserver v1 to try to mitigate a files issue in ACE ([GPT-938](https://linear.app/sema4ai/issue/GPT-938))
+
+### Additional Information Not Pertinent to Client Users
+
+- [GPT-959](https://linear.app/sema4ai/issue/GPT-959)
+
+
+## Public API
+
+### Features
+
+- Porting public API to v2: sse streaming for agent conversations. ([GPT-913](https://linear.app/sema4ai/issue/GPT-913))
+
+
+## Private API
+
+### Bugfixes
+
+- Fix package import failing to handle UNSET legacy Azure fields correctly ([GPT-964](https://linear.app/sema4ai/issue/GPT-964))
+
+
 # Sema4.ai Agent Server Pre-Release 2.0.0-rc.4 (2025-06-06)
 
 ## Agent Server

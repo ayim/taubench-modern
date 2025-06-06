@@ -341,9 +341,9 @@ class UpsertAgentPayload:
             "embeddings_openai_api_key",
         ]
         params = {
-            "chat_url": "UNSET",
+            "chat_url": "https://UNSET.openai.azure.com/openai/deployments/UNSET/chat/completions?api-version=2025-01-01",
             "chat_openai_api_key": "UNSET",
-            "embeddings_url": "UNSET",
+            "embeddings_url": "https://UNSET.openai.azure.com/openai/deployments/UNSET/embeddings?api-version=2025-01-01",
             "embeddings_openai_api_key": "UNSET",
         }
         if "config" in self.model:
