@@ -1,3 +1,25 @@
+# Sema4.ai Agent Server Pre-Release 2.0.0-rc.3 (2025-06-06)
+
+## Agent Server
+
+### Bugfixes
+
+- Restore INSERT .. ON CONFLICT logic to match agentserver v1 to try to mitigate a files issue in ACE ([GPT-938](https://linear.app/sema4ai/issue/GPT-938))
+- Revert locking changes in LangSmithContext and updated collector url checking in telemtry. ([GPT-960](https://linear.app/sema4ai/issue/GPT-960))
+
+
+## Public API
+
+### Features
+
+- Porting public API to v2: sse streaming for agent conversations. ([GPT-913](https://linear.app/sema4ai/issue/GPT-913))
+
+
+## Private API
+
+No significant changes.
+
+
 # Sema4.ai Agent Server Pre-Release 2.0.0-rc.2 (2025-06-06)
 
 ## Agent Server
