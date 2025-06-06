@@ -44,6 +44,15 @@ class AgentPackagePayloadLangsmith:
     )
     """The project name of the Langsmith."""
 
+    def model_dump(self) -> dict:
+        return {
+            "api_key": (
+                self.api_key if isinstance(self.api_key, str) else self.api_key.get_secret_value()
+            ),
+            "api_url": self.api_url,
+            "project_name": self.project_name,
+        }
+
 
 @dataclass(frozen=True)
 class AgentPackagePayload:

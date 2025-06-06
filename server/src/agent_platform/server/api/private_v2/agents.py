@@ -218,7 +218,7 @@ async def _create_or_update_agent_from_package(
     # Bring over langsmith config from payload
     advanced_config = {}
     if payload.langsmith:
-        advanced_config["langsmith"] = payload.langsmith
+        advanced_config["langsmith"] = payload.langsmith.model_dump()
 
     # Bring over action server config from payload (if it's there)
     # NOTE: just as in v1 code, we only can take the first action server
