@@ -17,9 +17,6 @@ processors:
       - key: service.name
         value: 'agent-platform'
         action: upsert
-      - key: service.version
-        value: '2.0.0'
-        action: upsert
 
   # Memory limiter to prevent OOM
   memory_limiter:

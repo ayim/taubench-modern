@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 
 import structlog
+from agent_platform import server
 from opentelemetry import metrics, trace
 from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
@@ -39,13 +40,6 @@ class OTELConfig(Configuration):
     )
 
 
-# Constants
-SERVICE_NAME = "sema4ai.agent_server"
-PROMPT_TOKEN_COUNTER_NAME = SERVICE_NAME + ".prompt_tokens"
-COMPLETION_TOKEN_COUNTER_NAME = SERVICE_NAME + ".completion_tokens"
-TOTAL_TOKEN_COUNTER_NAME = SERVICE_NAME + ".total_tokens"
-
-
 # TODO: Make this more configurable (export interval, etc.). Make sure we're using the
 # appropriate OTEL implementation classes.
 def setup_telemetry():
@@ -79,8 +73,13 @@ def setup_telemetry():
     logger.info("Setting up OTEL v2")
     logger.info(f"Collector URL: {collector_url}")
     # Set up resource with service info
-    # TODO: pull version from versionbump controlled constant
-    resource = Resource(attributes={"service.name": SERVICE_NAME, "service.version": "2.0.0"})
+    logger.info(f"Service version: {server.__version__}")
+    resource = Resource(
+        attributes={
+            "service.name": "sema4ai.agent_server",
+            "service.version": server.__version__,
+        }
+    )
 
     # Create and configure trace provider
     _tracer_provider = TracerProvider(resource=resource)
