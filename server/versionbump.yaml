@@ -4,7 +4,7 @@ title: "Sema4.ai Agent Server"
 descripton: "Agent server is a server that provides a REST API to create and interact with AI agents."
 
 # Original versionbump config
-version: "2.0.0-rc.4"        # The current version of the project. This is the version source of truth.
+version: "2.0.0"        # The current version of the project. This is the version source of truth.
                          # Do not change this value manually. VersionBump will update it automatically.
 git-commit: true         # Whether to create a git commit for the version bump.
 git-tag: false            # Whether to create a git tag for the version bump.
