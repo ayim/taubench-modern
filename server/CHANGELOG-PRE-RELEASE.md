@@ -1,3 +1,34 @@
+# Sema4.ai Agent Server Pre-Release 2.0.0-rc.2 (2025-06-06)
+
+## Agent Server
+
+### Bugfixes
+
+- Restore INSERT .. ON CONFLICT logic to match agentserver v1 to try to mitigate a files issue in ACE ([GPT-938](https://linear.app/sema4ai/issue/GPT-938))
+- Clean up OTEL logs to remove logs related to 409 conflicts and warnings. ([GPT-956](https://linear.app/sema4ai/issue/GPT-956))
+- Fixed action metadata not coming through for more complex action definitions ([GPT-957](https://linear.app/sema4ai/issue/GPT-957))
+
+### Additional Information Not Pertinent to Client Users
+
+- [GPT-927](https://linear.app/sema4ai/issue/GPT-927)
+
+
+## Public API
+
+### Features
+
+- Porting public API to v2: sse streaming for agent conversations. ([GPT-913](https://linear.app/sema4ai/issue/GPT-913))
+
+### Miscellaneous
+
+- Public API v1 tweaks, cleanup, and some observations while testing agent connector.
+
+
+## Private API
+
+No significant changes.
+
+
 # Sema4.ai Agent Server Pre-Release 2.0.0-rc.1 (2025-06-05)
 
 ## Agent Server
