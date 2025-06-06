@@ -65,6 +65,18 @@ def setup_telemetry():
         _meter_provider = metrics.get_meter_provider()
         return _tracer_provider, _meter_provider
 
+    # Validate collector URL before proceeding
+    if not collector_url or not collector_url.strip():
+        logger.warning("OTEL is enabled but collector_url is empty. Using no-op providers.")
+        _tracer_provider = trace.get_tracer_provider()
+        _meter_provider = metrics.get_meter_provider()
+        return _tracer_provider, _meter_provider
+
+    # Ensure collector_url has proper scheme
+    if not collector_url.startswith(("http://", "https://")):
+        logger.warning(f"Collector URL '{collector_url}' missing scheme. Adding http://")
+        collector_url = f"http://{collector_url}"
+
     logger.info("Setting up OTEL v2")
     logger.info(f"Collector URL: {collector_url}")
     # Set up resource with service info
@@ -73,20 +85,30 @@ def setup_telemetry():
 
     # Create and configure trace provider
     _tracer_provider = TracerProvider(resource=resource)
-    otlp_trace_exporter = OTLPSpanExporter(endpoint=f"{collector_url}/v1/traces")
-    span_processor = BatchSpanProcessor(otlp_trace_exporter)
-    _tracer_provider.add_span_processor(span_processor)
 
+    try:
+        otlp_trace_exporter = OTLPSpanExporter(endpoint=f"{collector_url}/v1/traces")
+        span_processor = BatchSpanProcessor(otlp_trace_exporter)
+        _tracer_provider.add_span_processor(span_processor)
+        logger.info(f"Successfully configured trace exporter for {collector_url}/v1/traces")
+    except Exception as e:
+        logger.error(f"Failed to create trace exporter for {collector_url}/v1/traces: {e}")
     # Important: Set as the global tracer provider so AgentServerContext can use it
     trace.set_tracer_provider(_tracer_provider)
 
     # Create and configure meter provider
-    otlp_metric_exporter = OTLPMetricExporter(endpoint=f"{collector_url}/v1/metrics")
-    reader = PeriodicExportingMetricReader(
-        exporter=otlp_metric_exporter,
-        export_interval_millis=15000,
-    )
-    _meter_provider = MeterProvider(resource=resource, metric_readers=[reader])
+    try:
+        otlp_metric_exporter = OTLPMetricExporter(endpoint=f"{collector_url}/v1/metrics")
+        reader = PeriodicExportingMetricReader(
+            exporter=otlp_metric_exporter,
+            export_interval_millis=15000,
+        )
+        _meter_provider = MeterProvider(resource=resource, metric_readers=[reader])
+        logger.info(f"Successfully configured metric exporter for {collector_url}/v1/metrics")
+    except Exception as e:
+        logger.error(f"Failed to create metric exporter for {collector_url}/v1/metrics: {e}")
+        # Use basic meter provider without OTLP export if metrics export fails
+        _meter_provider = MeterProvider(resource=resource)
 
     # Important: Set as the global meter provider so AgentServerContext can use it
     metrics.set_meter_provider(_meter_provider)

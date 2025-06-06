@@ -60,13 +60,15 @@ class AgentServerKernel(Kernel):
 
         with self._otel.span("initialize_kernel") as span:
             self._user = ctx.user_context.user
-            span.add_event("attached user to kernel", self._user.model_dump())
+            span.add_event("attached user to kernel", {"user_id": self._user.user_id})
             self._agent = agent
-            span.add_event("attached agent to kernel", agent.model_dump())
+            span.add_event(
+                "attached agent to kernel", {"agent_id": agent.agent_id, "agent_name": agent.name}
+            )
             self._thread = thread
-            span.add_event("attached thread to kernel", thread.model_dump())
+            span.add_event("attached thread to kernel", {"thread_id": thread.thread_id})
             self._run = run
-            span.add_event("attached run to kernel", run.model_dump())
+            span.add_event("attached run to kernel", {"run_id": run.run_id})
 
         with self._otel.span("initialize_interfaces") as span:
             self._outgoing_events = AgentServerEventsInterface()
@@ -123,7 +125,7 @@ class AgentServerKernel(Kernel):
             for i, platform_config in enumerate(agent.platform_configs):
                 span.add_event(
                     f"initializing model platform #{i + 1}",
-                    platform_config.model_dump(),  # TODO: secrets?
+                    {"platform_class": platform_config.__class__.__name__},
                 )
                 self._model_platforms.append(
                     AgentServerPlatformInterface(
