@@ -1,3 +1,29 @@
+# Sema4.ai Agent Server Pre-Release 2.0.0-rc.4 (2025-06-06)
+
+## Agent Server
+
+### Bugfixes
+
+- Modify attributes emitted in OTEL spans so ACE does not block them. ([GPT-936](https://linear.app/sema4ai/issue/GPT-936))
+- Restore INSERT .. ON CONFLICT logic to match agentserver v1 to try to mitigate a files issue in ACE ([GPT-938](https://linear.app/sema4ai/issue/GPT-938))
+
+### Additional Information Not Pertinent to Client Users
+
+- [GPT-962](https://linear.app/sema4ai/issue/GPT-962)
+
+
+## Public API
+
+### Features
+
+- Porting public API to v2: sse streaming for agent conversations. ([GPT-913](https://linear.app/sema4ai/issue/GPT-913))
+
+
+## Private API
+
+No significant changes.
+
+
 # Sema4.ai Agent Server Pre-Release 2.0.0-rc.3 (2025-06-06)
 
 ## Agent Server

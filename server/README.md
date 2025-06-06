@@ -1,1 +1,1 @@
-**Latest Release:** `2.0.0-rc.3`
+**Latest Release:** `2.0.0-rc.4`
