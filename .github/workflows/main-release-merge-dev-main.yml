@@ -37,11 +37,14 @@ jobs:
 
       - name: Create PR from development to main
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ steps.get_version.outputs.version }}
         run: |
           # Replace {version} placeholder in title if provided
           TITLE="${{ inputs.pr-title }}"
-          TITLE="${TITLE//\{version\}/$VERSION}"
+          # Remove pre-release labels (everything after the first dash)
+          VERSION_CLEAN=$(echo "$VERSION" | sed 's/-.*$//')
+          TITLE="${TITLE//\{version\}/$VERSION_CLEAN}"
 
           # Create PR from development to main
           gh pr create \
@@ -49,4 +52,3 @@ jobs:
             --head development \
             --title "$TITLE" \
             --body "Automated PR to merge development into main for release of v${VERSION}" \
-            || echo "PR may already exist"
