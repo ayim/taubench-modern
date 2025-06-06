@@ -108,10 +108,6 @@ class TestUserContext:
 class TestLangSmithContext:
     """Tests for LangSmithContext class."""
 
-    def setup_method(self) -> None:
-        """Reset singleton state before each test."""
-        LangSmithContext.reset_instance()
-
     def test_init_without_config(self) -> None:
         """Test LangSmithContext initialization without config."""
         context = LangSmithContext()

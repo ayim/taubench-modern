@@ -1,11 +1,10 @@
 import json
 import logging
 import re
-import threading
 from collections.abc import AsyncGenerator, Callable, Generator
 from contextlib import asynccontextmanager, contextmanager
 from dataclasses import dataclass, field
-from typing import Any, ClassVar, Literal, Optional, cast
+from typing import Any, Literal, Optional, cast
 
 from fastapi import Request, WebSocket
 from opentelemetry import context, metrics, trace
@@ -52,20 +51,8 @@ class UserContext:
 class LangSmithContext:
     """LangSmith context information and operations using OpenTelemetry."""
 
-    # Singleton pattern implementation
-    _instance: ClassVar[Optional["LangSmithContext"]] = None
-    _initialized: ClassVar[bool] = False
-    _lock: ClassVar[threading.Lock] = threading.Lock()
-
     # Class-level tracking of whether we've initialized LangSmith processor
-    _processor_initialized: ClassVar[bool] = False
-
-    def __new__(cls, config: ObservabilityConfig | None = None):
-        """Ensure only one instance is created (singleton pattern)."""
-        with cls._lock:
-            if cls._instance is None:
-                cls._instance = super().__new__(cls)
-        return cls._instance
+    _processor_initialized = False
 
     def __init__(self, config: ObservabilityConfig | None = None):
         """Initialize LangSmith context with optional configuration.
@@ -73,76 +60,50 @@ class LangSmithContext:
         Args:
             config: Optional observability configuration for LangSmith
         """
-        # Skip initialization if already initialized
-        if LangSmithContext._initialized:
-            logger.info("LangSmith context already initialized, skipping")
-            return
-
         self.tracer = None
         self.langsmith_exporter = None
 
         if config and config.type == "langsmith" and config.api_key:
-            try:
-                # Create the headers dictionary
-                # Using .get() on settings to safely retrieve project value with default
-                project = config.settings.get("project_name", "default")
+            # Create the headers dictionary
+            # Using .get() on settings to safely retrieve project value with default
+            project = config.settings.get("project_name", "default")
 
-                # Create headers with explicit type
-                headers: dict[str, str] = {
-                    "x-api-key": config.api_key,
-                    "Langsmith-Project": str(project),
-                }
+            # Create headers with explicit type
+            headers: dict[str, str] = {
+                "x-api-key": config.api_key,
+                "Langsmith-Project": str(project),
+            }
 
-                # Create the OTLP exporter
-                # Note: If the OTEL_EXPORTER_OTLP_ENDPOINT environment variable is not set,
-                # we need to manually append the /otel/v1/traces endpoint to the api_url;
-                # otherwise, the export of traces will fail.
-                # This is because the OTLPSpanExporter class expects the endpoint to already
-                # have the /otel/v1/traces suffix.
-                endpoint = config.api_url
-                if not endpoint:
-                    endpoint = "https://api.smith.langchain.com/otel/v1/traces"
-                elif not endpoint.endswith("/otel/v1/traces"):
-                    endpoint = endpoint.rstrip("/") + "/otel/v1/traces"
+            # Create the OTLP exporter
+            # Note: If the OTEL_EXPORTER_OTLP_ENDPOINT environment variable is not set,
+            # we need to manually append the /otel/v1/traces endpoint to the api_url;
+            # otherwise, the export of traces will fail.
+            # This is because the OTLPSpanExporter class expects the endpoint to already
+            # have the /otel/v1/traces suffix.
+            endpoint = config.api_url
+            if not endpoint:
+                endpoint = "https://api.smith.langchain.com/otel/v1/traces"
+            elif not endpoint.endswith("/otel/v1/traces"):
+                endpoint = endpoint.rstrip("/") + "/otel/v1/traces"
 
-                self.langsmith_exporter = OTLPSpanExporter(
-                    endpoint=endpoint,
-                    headers=headers,
-                )
+            self.langsmith_exporter = OTLPSpanExporter(
+                endpoint=endpoint,
+                headers=headers,
+            )
 
-                # Get the current tracer provider
-                provider = trace.get_tracer_provider()
+            # Get the current tracer provider
+            provider = trace.get_tracer_provider()
 
-                # If it's the SDK TracerProvider, we can add our processor
-                if isinstance(provider, SdkTracerProvider):
-                    # Check if we've already initialized the LangSmith processor
-                    # Use the same lock to prevent race conditions
-                    with LangSmithContext._lock:
-                        if not LangSmithContext._processor_initialized:
-                            processor = BatchSpanProcessor(self.langsmith_exporter)
-                            provider.add_span_processor(processor)
-                            LangSmithContext._processor_initialized = True
+            # If it's the SDK TracerProvider, we can add our processor
+            if isinstance(provider, SdkTracerProvider):
+                # Check if we've already initialized the LangSmith processor
+                if not LangSmithContext._processor_initialized:
+                    processor = BatchSpanProcessor(self.langsmith_exporter)
+                    provider.add_span_processor(processor)
+                    LangSmithContext._processor_initialized = True
 
-                # Create a tracer for LangSmith operations
-                self.tracer = trace.get_tracer("langsmith")
-
-                logger.info("LangSmith context initialized successfully")
-
-            except Exception as e:
-                logger.warning(f"Failed to initialize LangSmith context: {e}")
-                self.tracer = None
-                self.langsmith_exporter = None
-
-        # Mark as initialized
-        LangSmithContext._initialized = True
-
-    @classmethod
-    def reset_instance(cls):
-        """Reset the singleton instance. Useful for testing."""
-        with cls._lock:
-            cls._instance = None
-            cls._initialized = False
-            cls._processor_initialized = False
+            # Create a tracer for LangSmith operations
+            self.tracer = trace.get_tracer("langsmith")
 
     def format_response_for_langsmith(self, response) -> dict:
         """Formats a response for LangSmith.

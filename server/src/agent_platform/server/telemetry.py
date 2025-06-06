@@ -57,6 +57,7 @@ def setup_telemetry():
 
     collector_url = OTELConfig.collector_url
     otel_enabled = OTELConfig.is_enabled
+    collector_url_set = True
 
     if not otel_enabled:
         logger.info("OTEL v2 is not enabled. Using no-op providers.")
@@ -67,13 +68,11 @@ def setup_telemetry():
 
     # Validate collector URL before proceeding
     if not collector_url or not collector_url.strip():
-        logger.warning("OTEL is enabled but collector_url is empty. Using no-op providers.")
-        _tracer_provider = trace.get_tracer_provider()
-        _meter_provider = metrics.get_meter_provider()
-        return _tracer_provider, _meter_provider
+        logger.warning("OTEL is enabled but collector_url is empty.")
+        collector_url_set = False
 
     # Ensure collector_url has proper scheme
-    if not collector_url.startswith(("http://", "https://")):
+    if collector_url_set and not collector_url.startswith(("http://", "https://")):
         logger.warning(f"Collector URL '{collector_url}' missing scheme. Adding http://")
         collector_url = f"http://{collector_url}"
 
@@ -87,10 +86,13 @@ def setup_telemetry():
     _tracer_provider = TracerProvider(resource=resource)
 
     try:
-        otlp_trace_exporter = OTLPSpanExporter(endpoint=f"{collector_url}/v1/traces")
-        span_processor = BatchSpanProcessor(otlp_trace_exporter)
-        _tracer_provider.add_span_processor(span_processor)
-        logger.info(f"Successfully configured trace exporter for {collector_url}/v1/traces")
+        if collector_url_set:
+            otlp_trace_exporter = OTLPSpanExporter(endpoint=f"{collector_url}/v1/traces")
+            span_processor = BatchSpanProcessor(otlp_trace_exporter)
+            _tracer_provider.add_span_processor(span_processor)
+            logger.info(f"Successfully configured trace exporter for {collector_url}/v1/traces")
+        else:
+            logger.warning("Collector URL is not set. Skipping trace exporter configuration.")
     except Exception as e:
         logger.error(f"Failed to create trace exporter for {collector_url}/v1/traces: {e}")
     # Important: Set as the global tracer provider so AgentServerContext can use it
@@ -98,13 +100,17 @@ def setup_telemetry():
 
     # Create and configure meter provider
     try:
-        otlp_metric_exporter = OTLPMetricExporter(endpoint=f"{collector_url}/v1/metrics")
-        reader = PeriodicExportingMetricReader(
-            exporter=otlp_metric_exporter,
-            export_interval_millis=15000,
-        )
-        _meter_provider = MeterProvider(resource=resource, metric_readers=[reader])
-        logger.info(f"Successfully configured metric exporter for {collector_url}/v1/metrics")
+        if collector_url_set:
+            otlp_metric_exporter = OTLPMetricExporter(endpoint=f"{collector_url}/v1/metrics")
+            reader = PeriodicExportingMetricReader(
+                exporter=otlp_metric_exporter,
+                export_interval_millis=15000,
+            )
+            _meter_provider = MeterProvider(resource=resource, metric_readers=[reader])
+            logger.info(f"Successfully configured metric exporter for {collector_url}/v1/metrics")
+        else:
+            logger.warning("Collector URL is not set. Skipping metric exporter configuration.")
+            _meter_provider = MeterProvider(resource=resource)
     except Exception as e:
         logger.error(f"Failed to create metric exporter for {collector_url}/v1/metrics: {e}")
         # Use basic meter provider without OTLP export if metrics export fails
