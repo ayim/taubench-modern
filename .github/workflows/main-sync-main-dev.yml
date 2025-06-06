@@ -25,7 +25,7 @@ jobs:
   merge_main_to_dev:
     if: >
       github.event.pull_request.merged == true &&
-      startsWith(github.event.pull_request.title, 'Release Version')
+      startsWith(github.event.pull_request.title, 'Release - Bump to ')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout development branch
