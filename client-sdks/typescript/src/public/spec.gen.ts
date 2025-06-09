@@ -6,10 +6,10 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Public API Version 2',
-    version: '2.0.0-rc',
+    version: '2.0.1',
   },
   paths: {
-    '/api/public/v2/agents/': {
+    '/api/public/v1/agents/': {
       get: {
         tags: ['agents', 'agents'],
         summary: 'List agents',
@@ -81,7 +81,7 @@ export const spec = {
         },
       },
     },
-    '/api/public/v2/agents/{aid}': {
+    '/api/public/v1/agents/{aid}': {
       get: {
         tags: ['agents', 'agents'],
         summary: 'Get agent',
@@ -128,7 +128,7 @@ export const spec = {
         },
       },
     },
-    '/api/public/v2/agents/{aid}/conversations': {
+    '/api/public/v1/agents/{aid}/conversations': {
       get: {
         tags: ['agents', 'conversations'],
         summary: 'List conversations',
@@ -222,7 +222,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/Conversation',
+                  $ref: '#/components/schemas/ConversationCompat',
                 },
               },
             },
@@ -239,7 +239,7 @@ export const spec = {
         },
       },
     },
-    '/api/public/v2/agents/{aid}/conversations/{cid}/messages': {
+    '/api/public/v1/agents/{aid}/conversations/{cid}/messages': {
       get: {
         tags: ['agents', 'conversations'],
         summary: 'Get conversation messages',
@@ -273,7 +273,16 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/ConversationState',
+                  anyOf: [
+                    {
+                      $ref: '#/components/schemas/ConversationCompat',
+                    },
+                    {
+                      type: 'null',
+                    },
+                  ],
+                  title:
+                    'Response Get Chat Messages Agents  Aid  Conversations  Cid  Messages Get',
                 },
               },
             },
@@ -339,7 +348,16 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/ConversationState',
+                  anyOf: [
+                    {
+                      $ref: '#/components/schemas/ConversationCompat',
+                    },
+                    {
+                      type: 'null',
+                    },
+                  ],
+                  title:
+                    'Response Post Messages Simple Agents  Aid  Conversations  Cid  Messages Post',
                 },
               },
             },
@@ -356,7 +374,7 @@ export const spec = {
         },
       },
     },
-    '/api/public/v2/agents/{aid}/conversations/{cid}/stream': {
+    '/api/public/v1/agents/{aid}/conversations/{cid}/stream': {
       post: {
         tags: ['agents', 'conversations'],
         summary: 'Post a message to a conversation and stream the response',
@@ -395,11 +413,12 @@ export const spec = {
         },
         responses: {
           '200': {
-            description: 'Success',
+            description: 'SSE stream of Delta messages',
             content: {
               'application/json': {
                 schema: {},
               },
+              'text/event-stream': {},
             },
           },
           '400': {
@@ -414,7 +433,7 @@ export const spec = {
         },
       },
     },
-    '/api/public/v2/agents/{aid}/conversations/{cid}/messages/detailed': {
+    '/api/public/v1/agents/{aid}/conversations/{cid}/messages/detailed': {
       post: {
         tags: ['agents', 'conversations'],
         summary: 'Post messages (synchronous)',
@@ -462,7 +481,16 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/ConversationState',
+                  anyOf: [
+                    {
+                      $ref: '#/components/schemas/ConversationCompat',
+                    },
+                    {
+                      type: 'null',
+                    },
+                  ],
+                  title:
+                    'Response Post Messages Detailed Agents  Aid  Conversations  Cid  Messages Detailed Post',
                 },
               },
             },
@@ -479,69 +507,7 @@ export const spec = {
         },
       },
     },
-    '/api/public/v2/agents/{aid}/conversations/{cid}/stream/detailed': {
-      post: {
-        tags: ['agents', 'conversations'],
-        summary: 'Post messages to a conversation and stream the response',
-        description: 'Post messages to a conversation and stream the response',
-        operationId:
-          'post_public_api_messages_detailed_agents__aid__conversations__cid__stream_detailed_post',
-        parameters: [
-          {
-            name: 'aid',
-            in: 'path',
-            required: true,
-            schema: {
-              type: 'string',
-              title: 'Aid',
-            },
-          },
-          {
-            name: 'cid',
-            in: 'path',
-            required: true,
-            schema: {
-              type: 'string',
-              title: 'Cid',
-            },
-          },
-        ],
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: {
-                type: 'array',
-                items: {
-                  $ref: '#/components/schemas/Message',
-                },
-                title: 'Messages',
-              },
-            },
-          },
-        },
-        responses: {
-          '200': {
-            description: 'Success',
-            content: {
-              'application/json': {
-                schema: {},
-              },
-            },
-          },
-          '400': {
-            description: 'Bad Request',
-          },
-          '422': {
-            description: 'Validation Error',
-          },
-          '500': {
-            description: 'Internal Server Error',
-          },
-        },
-      },
-    },
-    '/api/public/v2/agents/{aid}/conversations/{cid}': {
+    '/api/public/v1/agents/{aid}/conversations/{cid}': {
       delete: {
         tags: ['agents', 'conversations'],
         summary: 'Delete conversation',
@@ -574,7 +540,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/Conversation',
+                  $ref: '#/components/schemas/ConversationCompat',
                 },
               },
             },
@@ -598,7 +564,7 @@ export const spec = {
         },
       },
     },
-    '/api/public/v2/ok': {
+    '/api/public/v1/ok': {
       get: {
         summary: 'Ok',
         operationId: 'ok_ok_get',
@@ -651,43 +617,10 @@ export const spec = {
         required: ['content'],
         title: 'ChatMessageRequest',
       },
-      Conversation: {
+      ConversationCompat: {
         properties: {
           id: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Id',
-          },
-          name: {
             type: 'string',
-            title: 'Name',
-          },
-          agent_id: {
-            type: 'string',
-            title: 'Agent Id',
-          },
-        },
-        type: 'object',
-        required: ['id', 'name', 'agent_id'],
-        title: 'Conversation',
-      },
-      ConversationState: {
-        properties: {
-          id: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                type: 'null',
-              },
-            ],
             title: 'Id',
           },
           name: {
@@ -725,7 +658,7 @@ export const spec = {
         },
         type: 'object',
         required: ['id', 'name', 'agent_id', 'messages'],
-        title: 'ConversationState',
+        title: 'ConversationCompat',
       },
       CreateChatRequest: {
         properties: {

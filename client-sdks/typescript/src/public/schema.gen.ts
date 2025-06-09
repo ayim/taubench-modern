@@ -3,7 +3,7 @@
  * Do not make direct changes to the file.
  */
 export interface paths {
-  '/api/public/v2/agents/': {
+  '/api/public/v1/agents/': {
     parameters: {
       query?: never;
       header?: never;
@@ -23,7 +23,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/public/v2/agents/{aid}': {
+  '/api/public/v1/agents/{aid}': {
     parameters: {
       query?: never;
       header?: never;
@@ -43,7 +43,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/public/v2/agents/{aid}/conversations': {
+  '/api/public/v1/agents/{aid}/conversations': {
     parameters: {
       query?: never;
       header?: never;
@@ -67,7 +67,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/public/v2/agents/{aid}/conversations/{cid}/messages': {
+  '/api/public/v1/agents/{aid}/conversations/{cid}/messages': {
     parameters: {
       query?: never;
       header?: never;
@@ -91,7 +91,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/public/v2/agents/{aid}/conversations/{cid}/stream': {
+  '/api/public/v1/agents/{aid}/conversations/{cid}/stream': {
     parameters: {
       query?: never;
       header?: never;
@@ -111,7 +111,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/public/v2/agents/{aid}/conversations/{cid}/messages/detailed': {
+  '/api/public/v1/agents/{aid}/conversations/{cid}/messages/detailed': {
     parameters: {
       query?: never;
       header?: never;
@@ -131,27 +131,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/public/v2/agents/{aid}/conversations/{cid}/stream/detailed': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Post messages to a conversation and stream the response
-     * @description Post messages to a conversation and stream the response
-     */
-    post: operations['post_public_api_messages_detailed_agents__aid__conversations__cid__stream_detailed_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/public/v2/agents/{aid}/conversations/{cid}': {
+  '/api/public/v1/agents/{aid}/conversations/{cid}': {
     parameters: {
       query?: never;
       header?: never;
@@ -171,7 +151,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/public/v2/ok': {
+  '/api/public/v1/ok': {
     parameters: {
       query?: never;
       header?: never;
@@ -208,19 +188,10 @@ export interface components {
       /** Content */
       content: string;
     };
-    /** Conversation */
-    Conversation: {
+    /** ConversationCompat */
+    ConversationCompat: {
       /** Id */
-      id: string | null;
-      /** Name */
-      name: string;
-      /** Agent Id */
-      agent_id: string;
-    };
-    /** ConversationState */
-    ConversationState: {
-      /** Id */
-      id: string | null;
+      id: string;
       /** Name */
       name: string;
       /** Agent Id */
@@ -503,7 +474,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['Conversation'];
+          'application/json': components['schemas']['ConversationCompat'];
         };
       };
       /** @description Bad Request */
@@ -547,7 +518,9 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['ConversationState'];
+          'application/json':
+            | components['schemas']['ConversationCompat']
+            | null;
         };
       };
       /** @description Agent/Conversation not found */
@@ -597,7 +570,9 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['ConversationState'];
+          'application/json':
+            | components['schemas']['ConversationCompat']
+            | null;
         };
       };
       /** @description Bad Request */
@@ -639,13 +614,14 @@ export interface operations {
       };
     };
     responses: {
-      /** @description Success */
+      /** @description SSE stream of Delta messages */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
           'application/json': unknown;
+          'text/event-stream': unknown;
         };
       };
       /** @description Bad Request */
@@ -693,55 +669,9 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['ConversationState'];
-        };
-      };
-      /** @description Bad Request */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Internal Server Error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  post_public_api_messages_detailed_agents__aid__conversations__cid__stream_detailed_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        aid: string;
-        cid: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['Message'][];
-      };
-    };
-    responses: {
-      /** @description Success */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': unknown;
+          'application/json':
+            | components['schemas']['ConversationCompat']
+            | null;
         };
       };
       /** @description Bad Request */
@@ -785,7 +715,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['Conversation'];
+          'application/json': components['schemas']['ConversationCompat'];
         };
       };
       /** @description Conversation not found */

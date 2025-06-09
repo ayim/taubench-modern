@@ -2,11 +2,11 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Sema4.ai Agent Server Public API Version 2",
-    "version": "2.0.0-rc"
+    "version": "2.0.1"
   },
   "servers": [
     {
-      "url": "/api/public/v2"
+      "url": "/api/public/v1"
     }
   ],
   "paths": {
@@ -220,7 +220,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Conversation"
+                  "$ref": "#/components/schemas/ConversationCompat"
                 }
               }
             }
@@ -269,7 +269,15 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ConversationState"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/ConversationCompat"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Get Chat Messages Agents  Aid  Conversations  Cid  Messages Get"
                 }
               }
             }
@@ -333,7 +341,15 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ConversationState"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/ConversationCompat"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Post Messages Simple Agents  Aid  Conversations  Cid  Messages Post"
                 }
               }
             }
@@ -388,11 +404,12 @@
         },
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "SSE stream of Delta messages",
             "content": {
               "application/json": {
                 "schema": {}
-              }
+              },
+              "text/event-stream": {}
             }
           },
           "400": {
@@ -453,69 +470,16 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ConversationState"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/ConversationCompat"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Post Messages Detailed Agents  Aid  Conversations  Cid  Messages Detailed Post"
                 }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request"
-          },
-          "422": {
-            "description": "Validation Error"
-          },
-          "500": {
-            "description": "Internal Server Error"
-          }
-        }
-      }
-    },
-    "/agents/{aid}/conversations/{cid}/stream/detailed": {
-      "post": {
-        "tags": ["agents", "conversations"],
-        "summary": "Post messages to a conversation and stream the response",
-        "description": "Post messages to a conversation and stream the response",
-        "operationId": "post_public_api_messages_detailed_agents__aid__conversations__cid__stream_detailed_post",
-        "parameters": [
-          {
-            "name": "aid",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Aid"
-            }
-          },
-          {
-            "name": "cid",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Cid"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/Message"
-                },
-                "title": "Messages"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {}
               }
             }
           },
@@ -563,7 +527,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Conversation"
+                  "$ref": "#/components/schemas/ConversationCompat"
                 }
               }
             }
@@ -640,43 +604,10 @@
         "required": ["content"],
         "title": "ChatMessageRequest"
       },
-      "Conversation": {
+      "ConversationCompat": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Id"
-          },
-          "name": {
             "type": "string",
-            "title": "Name"
-          },
-          "agent_id": {
-            "type": "string",
-            "title": "Agent Id"
-          }
-        },
-        "type": "object",
-        "required": ["id", "name", "agent_id"],
-        "title": "Conversation"
-      },
-      "ConversationState": {
-        "properties": {
-          "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "title": "Id"
           },
           "name": {
@@ -714,7 +645,7 @@
         },
         "type": "object",
         "required": ["id", "name", "agent_id", "messages"],
-        "title": "ConversationState"
+        "title": "ConversationCompat"
       },
       "CreateChatRequest": {
         "properties": {
