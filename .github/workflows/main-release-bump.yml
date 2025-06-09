@@ -54,12 +54,12 @@ jobs:
           gh pr create \
             --base main \
             --head ${{ steps.branch.outputs.BRANCH_NAME }} \
-            --title "Release - Bump to ${{ steps.prep.outputs.new-version }}" \
-            --body "This PR prepares the main branch for release ${{ steps.prep.outputs.new-version }}.
+            --title "Release - Bump to ${{ steps.prep.outputs.NEW_VERSION }}" \
+            --body "This PR prepares the main branch for release ${{ steps.prep.outputs.NEW_VERSION }}.
 
           ## Changes
 
-          - Server version bumped to ${{ steps.prep.outputs.new-version }}
+          - Server version bumped to ${{ steps.prep.outputs.NEW_VERSION }}
           - Dependencies re-locked
           - Changelogs updated
 

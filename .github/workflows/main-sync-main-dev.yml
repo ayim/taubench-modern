@@ -1,25 +1,9 @@
 name: Sync main branch to development branch after release
 
 on:
-  workflow_call:
-    inputs:
-      dev_branch_name:
-        description: 'The name of the development branch.'
-        required: false
-        type: string
-        default: 'development'
-      main_branch_name:
-        description: 'The name of the main branch.'
-        required: false
-        type: string
-        default: 'main'
-    secrets:
-      GIT_TOKEN:
-        description: 'GitHub token'
-        required: true
-      GIT_USERNAME:
-        description: 'GitHub username'
-        required: true
+  pull_request:
+    types: [closed]
+    branches: [main]
 
 jobs:
   merge_main_to_dev:
@@ -31,7 +15,7 @@ jobs:
       - name: Checkout development branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.dev_branch_name }}
+          ref: development
           fetch-depth: 0
           token: ${{ secrets.GIT_TOKEN }}
 
@@ -39,5 +23,5 @@ jobs:
         run: |
           git config user.name "Sema4.ai Agent Team"
           git config user.email "agent-team@no-reply.sema4.ai"
-          git merge origin/${{ inputs.main_branch_name }} --no-ff
-          git push origin ${{ inputs.dev_branch_name }}
+          git merge origin/main --no-ff
+          git push origin development
