@@ -61,8 +61,6 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
             attributes={
                 "agent_id": self.kernel.agent.agent_id,
                 "thread_id": self.kernel.thread.thread_id,
-                "llm.model": model,
-                "llm.provider": self._internal_client.name,
             },
         ):
             # Use the default finalizers chain defined in Prompt.finalize_messages
@@ -140,8 +138,6 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
             attributes={
                 "agent_id": self.kernel.agent.agent_id,
                 "thread_id": self.kernel.thread.thread_id,
-                "llm.model": model,
-                "llm.provider": self._internal_client.name,
                 "streaming": True,
             },
         ):
@@ -212,8 +208,6 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
                             if stream_pipe.reassembled_response.usage:
                                 usage = stream_pipe.reassembled_response.usage
                                 labels = {
-                                    "llm.model": model,
-                                    "llm.provider": self._internal_client.name,
                                     "agent_id": self.kernel.agent.agent_id,
                                     "thread_id": self.kernel.thread.thread_id,
                                     "agent_name": self.kernel.agent.name,
