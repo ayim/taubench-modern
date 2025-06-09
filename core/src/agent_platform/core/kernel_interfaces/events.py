@@ -1,14 +1,15 @@
 from abc import ABC, abstractmethod
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Callable
+from typing import Generic, TypeVar
 
-from agent_platform.core.streaming.delta import StreamingDelta
+T = TypeVar("T")
 
 
-class EventsInterface(ABC):
+class EventsInterface(ABC, Generic[T]):
     """Generic event bus for asynchronous CA communication and downstream updates."""
 
     @abstractmethod
-    async def dispatch(self, event: StreamingDelta) -> None:
+    async def dispatch(self, event: T) -> None:
         """Dispatch an event to the event bus.
 
         Arguments:
@@ -17,10 +18,22 @@ class EventsInterface(ABC):
         pass
 
     @abstractmethod
-    def stream(self) -> AsyncGenerator[StreamingDelta, None]:
+    def stream(self) -> AsyncGenerator[T, None]:
         """Stream events from the event bus.
 
         Returns:
             An asynchronous iterator of events.
+        """
+        pass
+
+    @abstractmethod
+    async def wait_for_event(self, predicate: Callable[[T], bool]) -> T:
+        """Wait for an event matching the given predicate.
+
+        Arguments:
+            predicate: A function that returns True for the desired event.
+
+        Returns:
+            The first event for which predicate returns True.
         """
         pass

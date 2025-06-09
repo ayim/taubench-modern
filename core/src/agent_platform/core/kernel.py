@@ -33,7 +33,9 @@ from agent_platform.core.model_selector import (
     ModelSelector,
 )
 from agent_platform.core.runs import Run
+from agent_platform.core.streaming import IncomingDelta, StreamingDelta
 from agent_platform.core.thread import Thread
+from agent_platform.core.tools.tool_definition import ToolDefinition
 from agent_platform.core.user import User
 
 
@@ -105,7 +107,7 @@ class Kernel(ABC):
 
     @property
     @abstractmethod
-    def outgoing_events(self) -> EventsInterface:
+    def outgoing_events(self) -> EventsInterface[StreamingDelta]:
         """Generic event bus for CA to emit events to the agent-server.
 
         When invoking a Cognitive Architecture (CA) asynchronously, the CA will
@@ -121,7 +123,7 @@ class Kernel(ABC):
 
     @property
     @abstractmethod
-    def incoming_events(self) -> EventsInterface:
+    def incoming_events(self) -> EventsInterface[IncomingDelta]:
         """Generic event bus for receiving events from the agent-server.
 
         The agent-server will emit events to this (incoming) bus. The CA may choose to
@@ -235,6 +237,16 @@ class Kernel(ABC):
 
         Returns:
             ToolsInterface: Interface for tool operations.
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def client_tools(self) -> list[ToolDefinition]:
+        """Tools attached to the kernel from an external client.
+
+        Returns:
+            list[ToolDefinition]: List of tool definitions.
         """
         pass
 

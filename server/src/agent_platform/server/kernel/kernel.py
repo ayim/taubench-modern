@@ -1,3 +1,5 @@
+import json
+
 from agent_platform.core.agent import Agent
 from agent_platform.core.context import AgentServerContext
 from agent_platform.core.kernel import Kernel
@@ -17,7 +19,9 @@ from agent_platform.core.kernel_interfaces import (
 )
 from agent_platform.core.platforms.base import PlatformClient
 from agent_platform.core.runs import Run
+from agent_platform.core.streaming import IncomingDelta, StreamingDelta
 from agent_platform.core.thread import Thread
+from agent_platform.core.tools.tool_definition import ToolDefinition
 from agent_platform.core.user import User
 from agent_platform.server.kernel.converters import AgentServerConvertersInterface
 from agent_platform.server.kernel.events import AgentServerEventsInterface
@@ -42,6 +46,7 @@ class AgentServerKernel(Kernel):
         thread: Thread,
         agent: Agent,
         run: Run,
+        client_tools: list[ToolDefinition] | None = None,
     ):
         # Store context
         self._ctx = ctx
@@ -69,6 +74,16 @@ class AgentServerKernel(Kernel):
             span.add_event("attached thread to kernel", {"thread_id": thread.thread_id})
             self._run = run
             span.add_event("attached run to kernel", {"run_id": run.run_id})
+            self._client_tools = client_tools or []
+            if self._client_tools:
+                span.add_event(
+                    "attached client tools",
+                    {
+                        "count": len(self._client_tools),
+                        # Let's log the full client tool defs for future debugging
+                        "tools": [json.dumps(t.model_dump()) for t in self._client_tools],
+                    },
+                )
 
         with self._otel.span("initialize_interfaces") as span:
             self._outgoing_events = AgentServerEventsInterface()
@@ -156,15 +171,19 @@ class AgentServerKernel(Kernel):
         return self._run
 
     @property
+    def client_tools(self) -> list[ToolDefinition]:
+        return self._client_tools
+
+    @property
     def converters(self) -> ConvertersInterface:
         return self._converters
 
     @property
-    def outgoing_events(self) -> EventsInterface:
+    def outgoing_events(self) -> EventsInterface[StreamingDelta]:
         return self._outgoing_events
 
     @property
-    def incoming_events(self) -> EventsInterface:
+    def incoming_events(self) -> EventsInterface[IncomingDelta]:
         return self._incoming_events
 
     @property
