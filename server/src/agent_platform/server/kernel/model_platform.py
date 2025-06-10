@@ -196,13 +196,13 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
                         # Record the response in LangSmith if available
                         if stream_pipe.reassembled_response:
                             # Format the response for LangSmith
-                            formatted_response = (
+                            formatted_messages = (
                                 self.kernel.ctx.langsmith.format_response_for_langsmith(
                                     stream_pipe.reassembled_response
                                 )
                             )
                             if langsmith_span:
-                                langsmith_span["output"] = formatted_response
+                                langsmith_span["output"] = formatted_messages
 
                             # Add usage information if available
                             if stream_pipe.reassembled_response.usage:

@@ -105,38 +105,65 @@ class LangSmithContext:
             # Create a tracer for LangSmith operations
             self.tracer = trace.get_tracer("langsmith")
 
-    def format_response_for_langsmith(self, response) -> dict:
+    def format_response_for_langsmith(self, response) -> list[dict]:
         """Formats a response for LangSmith.
 
         Args:
             response: The response to format
 
         Returns:
-            A dictionary formatted for LangSmith showing content and role
+            A list of messages formatted for LangSmith showing content and role
         """
-        # Extract text content from all content items
-        formatted_text = ""
+        messages = []
+        current_text = ""
 
         # Handle response with content attribute (ResponseMessage)
-        if response.content:
+        if hasattr(response, "content") and response.content:
             for content_item in response.content:
-                # Check the kind of content
+                # Text content gets accumulated
                 if content_item.kind == "text":
-                    # It's a text content, we can safely access the text attribute
                     if content_item.text:
-                        formatted_text += content_item.text
-                else:
-                    # For other content types, just use string representation
-                    formatted_text += str(content_item)
-        # Simple string response
-        elif isinstance(response, str):
-            formatted_text = response
-        # Any other response type
-        else:
-            formatted_text = str(response)
+                        current_text += content_item.text
+                # Tool calls get their own message
+                elif content_item.kind == "tool_use":
+                    # First flush any accumulated text
+                    if current_text:
+                        messages.append({"content": current_text, "role": "assistant"})
+                        current_text = ""
 
-        # Return a simple format that works with the existing LangSmith integration
-        return {"content": formatted_text, "role": "assistant"}
+                    # Format the tool call
+                    tool_call = {
+                        "id": content_item.tool_call_id,
+                        "type": "function",
+                        "function": {
+                            "name": content_item.tool_name,
+                            "arguments": content_item.tool_input_raw or "{}",
+                        },
+                    }
+
+                    # Add the tool message
+                    messages.append(
+                        {
+                            "content": self._format_tool_call(tool_call),
+                            "role": "tool",
+                        }
+                    )
+
+            # Flush any remaining text
+            if current_text:
+                messages.append({"content": current_text, "role": "assistant"})
+
+        # Handle simple string response
+        elif isinstance(response, str):
+            messages.append({"content": response, "role": "assistant"})
+        # Handle any other response type
+        else:
+            messages.append({"content": str(response), "role": "assistant"})
+
+        # If no messages were created, return a default message
+        if not messages:
+            messages.append({"content": "", "role": "assistant"})
+        return messages
 
     @asynccontextmanager
     async def trace_llm(  # noqa: C901, PLR0912, PLR0915
@@ -281,12 +308,15 @@ class LangSmithContext:
                 # Add output information if it was added to span_data
                 if "output" in span_data:
                     output = span_data["output"]
-                    if isinstance(output, dict) and "content" in output:
-                        span.set_attribute("gen_ai.completion.0.content", str(output["content"]))
-                        if "role" in output:
-                            span.set_attribute("gen_ai.completion.0.role", output["role"])
-                    elif isinstance(output, str):
-                        span.set_attribute("gen_ai.completion.0.content", output)
+                    # We know that output is a list of messages
+                    for idx, message in enumerate(output):
+                        if isinstance(message, dict):
+                            if "content" in message:
+                                span.set_attribute(
+                                    f"gen_ai.completion.{idx}.content", str(message["content"])
+                                )
+                            if "role" in message:
+                                span.set_attribute(f"gen_ai.completion.{idx}.role", message["role"])
 
                 # Add usage information if available
                 if "usage" in span_data:
