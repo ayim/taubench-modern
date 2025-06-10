@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -65,16 +66,22 @@ def test_agent_server_port_reuse(start_agent_server, logs_dir):
     def my_func():
         import socket
 
+        loop_exception = None
+
         while not finished.is_set():
             try:
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 s.connect(("127.0.0.1", port))
                 connected_once.set()
                 s.recv(1024)
-            except Exception:
-                import traceback
+            except Exception as exc:
+                loop_exception = exc
+                time.sleep(1 / 20)
 
-                traceback.print_exc()
+        if loop_exception and not connected_once.is_set():
+            import traceback
+
+            traceback.print_exception(loop_exception)
 
     try:
         port = get_free_port()
