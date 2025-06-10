@@ -6,6 +6,9 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from fastapi import Request
 
+from agent_platform.core.agent import Agent
+from agent_platform.core.agent.agent_architecture import AgentArchitecture
+from agent_platform.core.platforms.openai.parameters import OpenAIPlatformParameters
 from agent_platform.core.prompts.content.tool_result import PromptToolResultContent
 from agent_platform.core.prompts.finalizers.truncation_finalizer import (
     TruncationFinalizer,
@@ -16,6 +19,8 @@ from agent_platform.core.prompts.messages import (
     PromptUserMessage,
 )
 from agent_platform.core.prompts.prompt import Prompt
+from agent_platform.core.runbook.runbook import Runbook
+from agent_platform.core.thread import Thread
 from agent_platform.core.user import User
 from agent_platform.server.api.private_v2.prompt import (
     _create_platform_client_and_get_model,
@@ -74,6 +79,22 @@ class _DummyPlatformClient:
         yield _DummyDelta("/content/0/text", "add", "Mad")
         yield _DummyDelta("/content/0/text", "add", "is")
         yield _DummyDelta("/content/0/text", "add", "on.")
+
+
+class _DummyStorage:
+    def __init__(self, agent=None, thread=None):
+        self._agent = agent
+        self._thread = thread
+
+    async def get_agent(self, user_id: str, agent_id: str):
+        assert self._agent is not None
+        assert agent_id == self._agent.agent_id
+        return self._agent
+
+    async def get_thread(self, user_id: str, thread_id: str):
+        assert self._thread is not None
+        assert thread_id == self._thread.thread_id
+        return self._thread
 
 
 _DUMMY_KERNEL = SimpleNamespace()
@@ -208,6 +229,7 @@ async def test_generate_endpoint_serialises(monkeypatch):
                 "path": "/api/v2/prompts/generate",
             }
         ),
+        storage=_DummyStorage(),  # type: ignore
     )
 
     # Verify finalize_messages was called (with no arguments)
@@ -254,6 +276,7 @@ async def test_stream_endpoint_serialises(monkeypatch):
                 "path": "/api/v2/prompts/stream",
             }
         ),
+        storage=_DummyStorage(),  # type: ignore
     )
 
     # Verify finalize_messages was called (with no arguments)
@@ -324,3 +347,90 @@ async def test_truncation_finalizer_with_platform():
     truncated_text = prompt.messages[1].content[0].content[0].text  # type: ignore
     assert len(truncated_text) < len(original_text)
     assert "[Tool result truncated due to length constraints]" in truncated_text
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# New tests: using agent_id and thread_id to fetch platform config
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_generate_endpoint_uses_agent_id(monkeypatch):
+    called: dict = {}
+
+    def spy(**kwargs):
+        called["cfg"] = kwargs["platform_config_raw"]
+        return _DummyPlatformClient("openai"), "dummy-model"
+
+    monkeypatch.setattr(
+        "agent_platform.server.api.private_v2.prompt._create_platform_client_and_get_model",
+        spy,
+    )
+
+    fake_prompt = SimpleNamespace(finalize_messages=AsyncMock(return_value=None))
+
+    agent = Agent(
+        name="Agent",
+        description="desc",
+        user_id="testing",
+        runbook_structured=Runbook(content=[], raw_text=""),
+        version="1.0",
+        platform_configs=[OpenAIPlatformParameters(openai_api_key="k")],  # type: ignore
+        agent_architecture=AgentArchitecture(name="arch", version="1"),
+    )
+
+    storage = _DummyStorage(agent)
+
+    await prompt_generate(
+        prompt=fake_prompt,  # type: ignore
+        user=User(user_id="testing", sub="testing"),
+        request=Request(scope={"type": "http", "method": "POST", "path": "/"}),
+        storage=storage,  # type: ignore
+        agent_id=agent.agent_id,
+    )
+
+    assert called["cfg"] == agent.platform_configs[0].model_dump()
+
+
+@pytest.mark.asyncio
+async def test_generate_endpoint_uses_thread_id(monkeypatch):
+    called: dict = {}
+
+    def spy(**kwargs):
+        called["cfg"] = kwargs["platform_config_raw"]
+        return _DummyPlatformClient("openai"), "dummy-model"
+
+    monkeypatch.setattr(
+        "agent_platform.server.api.private_v2.prompt._create_platform_client_and_get_model",
+        spy,
+    )
+
+    fake_prompt = SimpleNamespace(finalize_messages=AsyncMock(return_value=None))
+
+    agent = Agent(
+        name="Agent",
+        description="desc",
+        user_id="testing",
+        runbook_structured=Runbook(content=[], raw_text=""),
+        version="1.0",
+        platform_configs=[OpenAIPlatformParameters(openai_api_key="k")],  # type: ignore
+        agent_architecture=AgentArchitecture(name="arch", version="1"),
+    )
+
+    thread = Thread(
+        user_id="testing",
+        agent_id=agent.agent_id,
+        name="Thread",
+    )
+
+    storage = _DummyStorage(agent, thread)
+
+    await prompt_generate(
+        prompt=fake_prompt,  # type: ignore
+        user=User(user_id="testing", sub="testing"),
+        request=Request(scope={"type": "http", "method": "POST", "path": "/"}),
+        storage=storage,  # type: ignore
+        thread_id=thread.thread_id,
+    )
+
+    assert called["cfg"] == agent.platform_configs[0].model_dump()

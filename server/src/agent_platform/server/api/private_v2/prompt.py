@@ -1,7 +1,7 @@
 import json
 from typing import Literal
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 from sse_starlette.sse import EventSourceResponse
 from structlog import get_logger
 
@@ -11,6 +11,7 @@ from agent_platform.core.model_selector.selection_request import ModelSelectionR
 from agent_platform.core.platforms.base import PlatformClient, PlatformParameters
 from agent_platform.core.prompts import Prompt
 from agent_platform.core.responses import ResponseMessage
+from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.api.private_v2.utils import create_minimal_kernel
 from agent_platform.server.auth import AuthedUser
 
@@ -61,15 +62,30 @@ def _create_platform_client_and_get_model(
 @router.post("/generate", response_model=ResponseMessage)
 async def prompt_generate(  # noqa: PLR0913
     prompt: Prompt,
-    # Why no strong type? Discriminated union via our dataclasses + FastAPI
-    # was giving us some issues here; quick fix to keep moving for now.
-    platform_config_raw: dict,
     user: AuthedUser,
     request: Request,
+    storage: StorageDependency,
+    # Why no strong type? Discriminated union via our dataclasses + FastAPI
+    # was giving us some issues here; quick fix to keep moving for now.
+    platform_config_raw: dict | None = None,
     model: str | None = None,
     model_type: ModelType = "llm",
+    agent_id: str | None = None,
+    thread_id: str | None = None,
 ):
     await prompt.finalize_messages()
+
+    if platform_config_raw is None:
+        if thread_id:
+            thread = await storage.get_thread(user.user_id, thread_id)
+            agent_id = thread.agent_id
+        if agent_id is not None:
+            agent = await storage.get_agent(user.user_id, agent_id)
+            if not agent.platform_configs:
+                raise HTTPException(status_code=400, detail="Agent has no platform configs")
+            platform_config_raw = agent.platform_configs[0].model_dump()
+        else:
+            raise HTTPException(status_code=400, detail="platform_config or agent_id required")
 
     platform_client, model = _create_platform_client_and_get_model(
         request=request,
@@ -95,13 +111,28 @@ async def prompt_generate(  # noqa: PLR0913
 @router.post("/stream")
 async def prompt_stream(  # noqa: PLR0913
     prompt: Prompt,
-    platform_config_raw: dict,
     user: AuthedUser,
     request: Request,
+    storage: StorageDependency,
+    platform_config_raw: dict | None = None,
     model: str | None = None,
     model_type: ModelType = "llm",
+    agent_id: str | None = None,
+    thread_id: str | None = None,
 ) -> EventSourceResponse:
     await prompt.finalize_messages()
+
+    if platform_config_raw is None:
+        if thread_id:
+            thread = await storage.get_thread(user.user_id, thread_id)
+            agent_id = thread.agent_id
+        if agent_id is not None:
+            agent = await storage.get_agent(user.user_id, agent_id)
+            if not agent.platform_configs:
+                raise HTTPException(status_code=400, detail="Agent has no platform configs")
+            platform_config_raw = agent.platform_configs[0].model_dump()
+        else:
+            raise HTTPException(status_code=400, detail="platform_config or agent_id required")
 
     platform_client, model = _create_platform_client_and_get_model(
         request=request,
