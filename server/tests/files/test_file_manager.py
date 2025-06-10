@@ -36,7 +36,6 @@ from agent_platform.server.file_manager import (
 from agent_platform.server.storage import (
     PostgresStorage,
     SQLiteStorage,
-    ThreadFileNotFoundError,
     UserPermissionError,
 )
 
@@ -599,12 +598,11 @@ class TestFileManager:
             user_id=sample_thread.user_id,
         )
 
-        # Verify files are deleted
-        with pytest.raises(ThreadFileNotFoundError):
-            await setup_storage.get_thread_files(
-                sample_thread.user_id,
-                sample_thread.thread_id,
-            )
+        files = await setup_storage.get_thread_files(
+            sample_thread.user_id,
+            sample_thread.thread_id,
+        )
+        assert len(files) == 0
 
     async def test_read_file_contents(
         self,

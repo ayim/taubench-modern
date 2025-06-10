@@ -111,26 +111,6 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/public/v1/agents/{aid}/conversations/{cid}/messages/detailed': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Post messages (synchronous)
-     * @description Post messages to a conversation thread, and get the updated conversation state.
-     */
-    post: operations['post_messages_detailed_agents__aid__conversations__cid__messages_detailed_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/public/v1/agents/{aid}/conversations/{cid}': {
     parameters: {
       query?: never;
@@ -188,22 +168,14 @@ export interface components {
       /** Content */
       content: string;
     };
-    /** ConversationCompat */
-    ConversationCompat: {
+    /** Conversation */
+    Conversation: {
       /** Id */
       id: string;
       /** Name */
       name: string;
       /** Agent Id */
       agent_id: string;
-      /** Messages */
-      messages:
-        | (
-            | components['schemas']['Message']
-            | components['schemas']['ToolRequest']
-            | components['schemas']['ToolResponse']
-          )[]
-        | null;
     };
     /** CreateChatRequest */
     CreateChatRequest: {
@@ -215,31 +187,6 @@ export interface components {
       /** Detail */
       detail?: components['schemas']['ValidationError'][];
     };
-    /** Message */
-    Message: {
-      /** Id */
-      id: string | null;
-      type: components['schemas']['MessageType'];
-      role: components['schemas']['Role'];
-      /** Content */
-      content: string;
-      /**
-       * Channel
-       * @default chat
-       */
-      channel: string;
-    };
-    /**
-     * MessageType
-     * @enum {string}
-     */
-    MessageType:
-      | 'message'
-      | 'token'
-      | 'action_request'
-      | 'action_response'
-      | 'start_stream'
-      | 'end_stream';
     /** PaginatedResponse */
     PaginatedResponse: {
       /** Next */
@@ -248,60 +195,6 @@ export interface components {
       has_more: boolean;
       /** Data */
       data: unknown[];
-    };
-    /**
-     * Role
-     * @enum {string}
-     */
-    Role: 'agent' | 'human';
-    /** ToolCall */
-    ToolCall: {
-      /** Id */
-      id: string;
-      /** Name */
-      name: string;
-      /** Args */
-      args: {
-        [key: string]: unknown;
-      };
-    };
-    /** ToolRequest */
-    ToolRequest: {
-      /** Action Calls */
-      action_calls: components['schemas']['ToolCall'][];
-      /** Id */
-      id: string | null;
-      type: components['schemas']['MessageType'];
-      role: components['schemas']['Role'];
-      /** Content */
-      content: string;
-      /**
-       * Channel
-       * @default chat
-       */
-      channel: string;
-    };
-    /** ToolResponse */
-    ToolResponse: {
-      /** Action Call Id */
-      action_call_id: string;
-      /** Status */
-      status: string;
-      /** Result */
-      result: {
-        [key: string]: unknown;
-      };
-      /** Id */
-      id: string | null;
-      type: components['schemas']['MessageType'];
-      role: components['schemas']['Role'];
-      /** Content */
-      content: string;
-      /**
-       * Channel
-       * @default chat
-       */
-      channel: string;
     };
     /** ValidationError */
     ValidationError: {
@@ -474,7 +367,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['ConversationCompat'];
+          'application/json': components['schemas']['Conversation'];
         };
       };
       /** @description Bad Request */
@@ -518,9 +411,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json':
-            | components['schemas']['ConversationCompat']
-            | null;
+          'application/json': components['schemas']['PaginatedResponse'];
         };
       };
       /** @description Agent/Conversation not found */
@@ -570,9 +461,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json':
-            | components['schemas']['ConversationCompat']
-            | null;
+          'application/json': components['schemas']['PaginatedResponse'];
         };
       };
       /** @description Bad Request */
@@ -647,56 +536,6 @@ export interface operations {
       };
     };
   };
-  post_messages_detailed_agents__aid__conversations__cid__messages_detailed_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        aid: string;
-        cid: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['Message'][];
-      };
-    };
-    responses: {
-      /** @description Success */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json':
-            | components['schemas']['ConversationCompat']
-            | null;
-        };
-      };
-      /** @description Bad Request */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Internal Server Error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
   delete_chat_agents__aid__conversations__cid__delete: {
     parameters: {
       query?: never;
@@ -715,7 +554,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['ConversationCompat'];
+          'application/json': components['schemas']['Conversation'];
         };
       };
       /** @description Conversation not found */

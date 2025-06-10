@@ -11,6 +11,7 @@ from fastapi.params import Body
 from sse_starlette import EventSourceResponse
 
 from agent_platform.core.context import AgentServerContext
+from agent_platform.core.payloads.initiate_stream import InitiateStreamPayload
 from agent_platform.core.runs.run import Run
 from agent_platform.core.streaming.delta import (
     StreamingDeltaAgentFinished,
@@ -21,12 +22,12 @@ from agent_platform.core.thread.base import ThreadMessage
 from agent_platform.core.thread.content.text import ThreadTextContent
 from agent_platform.server.agent_architectures.arch_manager import AgentArchManager
 from agent_platform.server.api.dependencies import FileManagerDependency, StorageDependency
-from agent_platform.server.api.public_v2.compat import (
+from agent_platform.server.api.private_v2.runs import sync_run
+from agent_platform.server.api.public_v2.interface import (
     AgentCompat,
     ChatMessageRequest,
-    ConversationCompat,
+    Conversation,
     CreateChatRequest,
-    Message,
     PaginatedResponse,
 )
 from agent_platform.server.auth.handlers import AuthedUser
@@ -118,7 +119,7 @@ async def get_conversations(
         raise HTTPException(status_code=404, detail="Agent not found")
 
     threads = await storage.list_threads_for_agent(user.user_id, agent.agent_id)
-    data = [ConversationCompat.from_thread(thread) for thread in threads[:limit]]
+    data = [Conversation.from_thread(thread) for thread in threads[:limit]]
     return PaginatedResponse(next=None, has_more=False, data=data)
 
 
@@ -139,7 +140,7 @@ async def get_chat_messages(
     storage: StorageDependency,
     aid: str,
     cid: str,
-) -> ConversationCompat | None:
+) -> PaginatedResponse:
     agent = await storage.get_agent(user.user_id, aid)
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
@@ -148,7 +149,7 @@ async def get_chat_messages(
     if thread is None:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
-    return ConversationCompat.from_thread_with_messages(thread) if thread else None
+    return PaginatedResponse(next=None, has_more=False, data=thread.messages)
 
 
 @router.post(
@@ -156,7 +157,7 @@ async def get_chat_messages(
     summary="Create new conversation",
     description="Creates a new conversation for the given agent.",
     response_description="Conversation",
-    response_model=ConversationCompat,
+    response_model=Conversation,
     tags=["conversations"],
     responses={
         200: {"description": "Success"},
@@ -170,7 +171,7 @@ async def create_conversation(
     storage: StorageDependency,
     aid: str,
     body: Annotated[CreateChatRequest, Body()],
-) -> ConversationCompat:
+) -> Conversation:
     agent = await storage.get_agent(user.user_id, aid)
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
@@ -185,9 +186,10 @@ async def create_conversation(
         metadata={},
     )
     await storage.upsert_thread(user.user_id, thread=new_thread)
-    return ConversationCompat.from_thread(new_thread)
+    return Conversation.from_thread(new_thread)
 
 
+# ruff: noqa: PLR0913
 @router.post(
     "/{aid}/conversations/{cid}/messages",
     summary="Post a message (synchronous)",
@@ -209,27 +211,34 @@ async def post_messages_simple(
     aid: str,
     cid: str,
     body: Annotated[ChatMessageRequest, Body()],
-) -> ConversationCompat | None:
+    request: Request,
+) -> PaginatedResponse:
+    agent = await storage.get_agent(agent_id=aid, user_id=user.user_id)
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
     thread = await storage.get_thread(user_id=user.user_id, thread_id=cid)
     message = ThreadMessage(
         message_id=str(uuid4()),
         created_at=datetime.now(UTC),
         updated_at=datetime.now(UTC),
-        # TODO in v1 here we have HUMAN
-        # but the agent connector filter these messages by AGENT and if none found returns the first
-        # WHY?
         role="user",
         content=[ThreadTextContent(text=body.content)],
-        # TODO not sure about this value
-        commited=False,
-        complete=True,
+    )
+    initial_payload = InitiateStreamPayload(
+        thread_id=thread.thread_id, agent_id=agent.agent_id, messages=[message]
+    )
+    await sync_run(
+        agent_id=agent.agent_id,
+        initial_payload=initial_payload,
+        request=request,
+        storage=storage,
+        user=user,
     )
 
-    await storage.add_message_to_thread(user_id=user.user_id, thread_id=cid, message=message)
-
+    # refetch the thread to get the list of new messages
     thread = await storage.get_thread(user_id=user.user_id, thread_id=cid)
 
-    return ConversationCompat.from_thread_with_messages(thread) if thread else None
+    return PaginatedResponse(next=None, has_more=False, data=thread.messages)
 
 
 # ruff: noqa: PLR0913
@@ -330,52 +339,12 @@ async def post_public_api_messages_simple(
     return EventSourceResponse(event_generator())
 
 
-@router.post(
-    "/{aid}/conversations/{cid}/messages/detailed",
-    summary="Post messages (synchronous)",
-    description=("Post messages to a conversation thread, and get the updated conversation state."),
-    response_description="Conversation with messages",
-    tags=["conversations"],
-    responses={
-        200: {"description": "Success"},
-        400: {"description": "Bad Request"},
-        422: {"description": "Validation Error"},
-        500: {"description": "Internal Server Error"},
-    },
-)
-async def post_messages_detailed(
-    user: AuthedUser,
-    storage: StorageDependency,
-    aid: str,
-    cid: str,
-    messages: list[Message],
-) -> ConversationCompat | None:
-    thread = await storage.get_thread(user_id=user.user_id, thread_id=cid)
-
-    for message in messages:
-        thread_message = ThreadMessage(
-            message_id=str(uuid4()),
-            created_at=datetime.now(UTC),
-            updated_at=datetime.now(UTC),
-            role="user",
-            content=[ThreadTextContent(text=message.content)],
-            # TODO not sure about this value
-            commited=False,
-            complete=True,
-        )
-        await storage.add_message_to_thread(
-            user_id=user.user_id, thread_id=cid, message=thread_message
-        )
-
-    return ConversationCompat.from_thread_with_messages(thread) if thread else None
-
-
 @router.delete(
     "/{aid}/conversations/{cid}",
     summary="Delete conversation",
     description=("Deletes the conversation with the given conversation ID for the given agent."),
     response_description="Conversation",
-    response_model=ConversationCompat,
+    response_model=Conversation,
     tags=["conversations"],
     responses={
         200: {"description": "Success"},
@@ -389,7 +358,10 @@ async def delete_chat(
     file_manager: FileManagerDependency,
     aid: str,
     cid: str,
-) -> ConversationCompat:
+) -> Conversation:
+    agent = await storage.get_agent(agent_id=aid, user_id=user.user_id)
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
     thread = await storage.get_thread(user.user_id, cid)
     if not thread:
         raise HTTPException(status_code=404, detail="Conversation not found")
@@ -401,4 +373,4 @@ async def delete_chat(
         )
 
     await storage.delete_thread(user.user_id, cid)
-    return ConversationCompat.from_thread(thread)
+    return Conversation.from_thread(thread)

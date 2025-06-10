@@ -1,6 +1,6 @@
 {
   "name": "@sema4ai/agent-server-interface",
-  "version": "2.0.0-marco.17",
+  "version": "2.0.0-marco.18",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "files": [
