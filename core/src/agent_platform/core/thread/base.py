@@ -164,6 +164,16 @@ class ThreadMessage:
         new_message.message_id = self.message_id
         return new_message
 
+    def copy_with_new_ids(self) -> Self:
+        """Returns a copy of the message with a new message_id."""
+        new_message = self.copy()
+        new_message.message_id = str(uuid4())
+
+        for content in new_message.content:
+            content.content_id = str(uuid4())
+
+        return new_message
+
     def model_dump(self) -> dict:
         """Serializes the message to a dictionary. Useful for JSON serialization."""
         return {
