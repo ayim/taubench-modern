@@ -151,7 +151,11 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
     )
 
     # And let's add the tools to the prompt
-    conversation_prompt = conversation_prompt.with_tools(*action_tools, *mcp_tools)
+    conversation_prompt = conversation_prompt.with_tools(
+        *action_tools,
+        *mcp_tools,
+        *kernel.client_tools,
+    )
 
     # Let's create a new message in the thread
     message = await kernel.thread_state.new_agent_message()
@@ -204,7 +208,7 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
                 kernel,
                 state,
                 message,
-                [*action_tools, *mcp_tools],
+                [*action_tools, *mcp_tools, *kernel.client_tools],
             )
 
     # Update the message to show that the tool calls are running in the chat

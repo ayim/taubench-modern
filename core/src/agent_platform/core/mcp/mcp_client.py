@@ -290,6 +290,7 @@ class MCPClient:
                 name=tool.name,
                 description=tool.description or "",
                 input_schema=_clean_input_schema(tool.inputSchema),
+                category="mcp-tool",
                 function=_get_tool_function(tool.name),
             )
             for tool in response.tools

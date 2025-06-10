@@ -2,7 +2,15 @@
 
 from collections.abc import Callable, Coroutine
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Literal
+
+ToolCategory = Literal[
+    "unknown",
+    "action-tool",
+    "mcp-tool",
+    "client-exec-tool",
+    "client-info-tool",
+]
 
 
 @dataclass(frozen=True)
@@ -20,6 +28,12 @@ class ToolDefinition:
     )
     """The schema of the tool input"""
 
+    category: ToolCategory = field(
+        metadata={"description": "The category of the tool"},
+        default="unknown",
+    )
+    """The category of the tool"""
+
     function: Callable[..., Any] = field(
         default=lambda *a, **k: None,
         metadata={"description": "The function that implements the tool"},
@@ -33,6 +47,7 @@ class ToolDefinition:
             "name": self.name,
             "description": self.description,
             "input_schema": self.input_schema,
+            "category": self.category,
         }
 
     @classmethod
@@ -43,6 +58,7 @@ class ToolDefinition:
         name: str | None = None,
         description: str | None = None,
         strict: bool = True,
+        category: ToolCategory = "unknown",
     ) -> "ToolDefinition":
         """Creates a ToolDefinition from an async Python function.
 
@@ -119,10 +135,16 @@ class ToolDefinition:
             description=doc,
             input_schema=input_schema,
             function=func,
+            category=category,
         )
 
     @classmethod
     def model_validate(cls, data: dict) -> "ToolDefinition":
         """Validate and convert a dictionary into a ToolDefinition instance."""
-        # TODO: better impl?
-        return cls(**data)
+        return cls(
+            name=data["name"],
+            description=data["description"],
+            input_schema=data["input_schema"],
+            function=data.get("function", lambda *a, **k: None),
+            category=data.get("category", "unknown"),
+        )

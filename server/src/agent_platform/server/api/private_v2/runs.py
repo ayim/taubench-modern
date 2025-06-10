@@ -74,7 +74,7 @@ async def _get_initial_payload(
 
     try:
         return InitiateStreamPayload.model_validate(initial_data)
-    except (ValueError, TypeError) as e:
+    except (ValueError, TypeError, KeyError, AttributeError) as e:
         logger.error("Invalid initial payload", error=e)
         raise WebSocketException(
             code=status.WS_1003_UNSUPPORTED_DATA,
@@ -306,7 +306,7 @@ async def stream_run(  # noqa: C901, PLR0912, PLR0915
             if initial_payload.agent_id != agent_id:
                 raise WebSocketException(
                     code=status.WS_1008_POLICY_VIOLATION,
-                    reason="Agent id mismatch",
+                    reason="Agent ID mismatch in URL and payload.",
                 )
 
             # 5. Create a new streaming run
@@ -349,7 +349,14 @@ async def stream_run(  # noqa: C901, PLR0912, PLR0915
             )
 
             # 9. Schedule the runner's main entry function
-            kernel = AgentServerKernel(server_context, thread_state, agent, active_run)
+            kernel = AgentServerKernel(
+                server_context,
+                thread_state,
+                agent,
+                active_run,
+                # Include any client-provided tools in the kernel
+                client_tools=initial_payload.client_tools,
+            )
             ca_invoke_task = create_task(runner.invoke(kernel))
 
             # 10. Task to forward CA events to client

@@ -4,6 +4,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 from agent_platform.core.thread import Thread, ThreadMessage
+from agent_platform.core.tools.tool_definition import ToolDefinition
 
 
 @dataclass
@@ -48,6 +49,12 @@ class InitiateStreamPayload(Thread):
     )
     # Intentionally overriden to be optional in the payload
     """The name of the thread to stream against."""
+
+    client_tools: list[ToolDefinition] = field(
+        default_factory=list,
+        metadata={"description": "The tools attached to the payload from an external client."},
+    )
+    """The tools attached to the payload from an external client."""
 
     def __post_init__(self) -> None:
         # Either the thread_id or the name must be provided
@@ -99,4 +106,7 @@ class InitiateStreamPayload(Thread):
             thread_id=data["thread_id"] if "thread_id" in data else None,
             messages=[ThreadMessage.model_validate(message) for message in data["messages"]],
             metadata=data["metadata"] if "metadata" in data else {},
+            client_tools=[
+                ToolDefinition.model_validate(tool) for tool in data.get("client_tools", [])
+            ],
         )

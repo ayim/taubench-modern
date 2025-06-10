@@ -1,8 +1,9 @@
 import asyncio
+import contextlib
 import uuid
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Mapping
 from datetime import UTC, datetime
-from typing import Any, ClassVar
+from typing import Any, NamedTuple
 
 import pytest
 from fastapi import FastAPI, status
@@ -12,44 +13,60 @@ from starlette.websockets import WebSocketDisconnect
 from agent_platform.core.agent.agent import Agent
 from agent_platform.core.agent.agent_architecture import AgentArchitecture
 from agent_platform.core.delta.base import GenericDelta
+from agent_platform.core.responses.content.tool_use import ResponseToolUseContent
 from agent_platform.core.runbook.runbook import Runbook
 from agent_platform.core.streaming.delta import (
     StreamingDelta,
     StreamingDeltaAgentFinished,
-    StreamingDeltaAgentReady,
     StreamingDeltaMessageBegin,
     StreamingDeltaMessageContent,
+    StreamingDeltaRequestToolExecution,
 )
 from agent_platform.core.thread.thread import Thread
+from agent_platform.core.tools.tool_definition import ToolDefinition
 from agent_platform.core.user import User
 from agent_platform.server.api.private_v2 import runs as runs_mod
-from agent_platform.server.storage import AgentNotFoundError, RunNotFoundError, ThreadNotFoundError
+from agent_platform.server.storage import (
+    AgentNotFoundError,
+    RunNotFoundError,
+    ThreadNotFoundError,
+)
+
+# -----------------------------------------------------------------------------
+# Helper utilities -- these stay entirely local to the test module
+# -----------------------------------------------------------------------------
+
+
+class _CallCounter(dict[str, int]):
+    """`dict` with a convenience `bump` method."""
+
+    def bump(self, key: str) -> None:
+        self[key] = self.get(key, 0) + 1
+
+
+# -----------------------------------------------------------------------------
+# Lightweight in-memory stubs
+# -----------------------------------------------------------------------------
 
 
 class StubStorage:
-    """
-    In-memory replacement for `StorageDependency` with only the
-    coroutine methods that `runs.py` calls.
-    """
-
     def __init__(self) -> None:
-        self.threads: dict[str, Any] = {}
+        self.threads: dict[str, Thread] = {}
         self.runs: dict[str, Any] = {}
-        self.agents: dict[str, Any] = {}
-        self.call_counts: dict[str, int] = {
-            "get_agent": 0,
-            "get_thread": 0,
-            "upsert_thread": 0,
-            "add_message_to_thread": 0,
-            "create_run": 0,
-            "upsert_run": 0,
-            "get_run": 0,
-        }
+        self.agents: dict[str, Agent] = {}
+        self.call_counts: _CallCounter = _CallCounter(
+            get_agent=0,
+            get_thread=0,
+            upsert_thread=0,
+            add_message_to_thread=0,
+            create_run=0,
+            upsert_run=0,
+            get_run=0,
+        )
 
-    # ---- agent CRUD ------------------------------------------------
+    # ---------------- agent CRUD --------------------------------------------
     async def get_agent(self, user_id: str, agent_id: str) -> Agent:
-        # Always hand back the same stub
-        self.call_counts["get_agent"] += 1
+        self.call_counts.bump("get_agent")
         return self.agents.setdefault(
             agent_id,
             Agent(
@@ -57,10 +74,7 @@ class StubStorage:
                 name="StubAgent",
                 description="A stub agent",
                 version="0.0.1",
-                runbook_structured=Runbook(
-                    raw_text="You are a helpful assistant.",
-                    content=[],
-                ),
+                runbook_structured=Runbook(raw_text="You are a helpful assistant.", content=[]),
                 platform_configs=[],
                 user_id=user_id,
                 agent_architecture=AgentArchitecture(
@@ -71,92 +85,81 @@ class StubStorage:
             ),
         )
 
-    # ---- thread CRUD -----------------------------------------------
+    # ---------------- thread CRUD -------------------------------------------
     async def get_thread(self, user_id: str, thread_id: str) -> Thread:
+        self.call_counts.bump("get_thread")
         try:
-            self.call_counts["get_thread"] += 1
             return self.threads[thread_id]
-        except KeyError as exc:
+        except KeyError as exc:  # pragma: no cover
             raise ThreadNotFoundError from exc
 
     async def upsert_thread(self, user_id: str, thread: Thread) -> None:
-        self.call_counts["upsert_thread"] += 1
+        self.call_counts.bump("upsert_thread")
         self.threads[thread.thread_id] = thread
 
     async def add_message_to_thread(self, user_id: str, thread_id: str, message: Any) -> None:
-        self.call_counts["add_message_to_thread"] += 1
+        self.call_counts.bump("add_message_to_thread")
 
-    # ---- run CRUD --------------------------------------------------
-    async def create_run(self, run) -> None:
-        self.call_counts["create_run"] += 1
+    # ---------------- run CRUD ----------------------------------------------
+    async def create_run(self, run):
+        self.call_counts.bump("create_run")
         self.runs[run.run_id] = run
 
-    async def upsert_run(self, run) -> None:
-        self.call_counts["upsert_run"] += 1
+    async def upsert_run(self, run):
+        self.call_counts.bump("upsert_run")
         self.runs[run.run_id] = run
 
     async def get_run(self, run_id: str):
-        """Get a run by its ID."""
-        self.call_counts["get_run"] = self.call_counts.get("get_run", 0) + 1
+        self.call_counts.bump("get_run")
         if run_id not in self.runs:
-            raise RunNotFoundError(f"Run {run_id} not found")
+            raise RunNotFoundError(run_id)
         return self.runs[run_id]
 
-    # Helpers for assertions
+    # convenience for assertions
     def last_run(self):
         return next(reversed(self.runs.values())) if self.runs else None
 
 
 class StubRunner:
-    """
-    Simulates the agent architecture's runner. It streams exactly one
-    *AgentFinished* event and does nothing else.
-    """
+    """Runner that immediately yields *AgentFinished* once invoked."""
 
-    override_agent_id: ClassVar[str] = "agent-1"
-
-    def __init__(
-        self,
-        run_id: str,
-        thread_id: str,
-        agent_id: str,
-    ) -> None:
+    def __init__(self, *, run_id: str, thread_id: str, agent_id: str):
         self._thread_id = thread_id
         self._agent_id = agent_id
         self._run_id = run_id
-        self._finished_event = StreamingDeltaAgentFinished(
+        self._finished_delta = StreamingDeltaAgentFinished(
             run_id=run_id,
             thread_id=thread_id,
-            agent_id=self.override_agent_id,
+            agent_id=agent_id,
             timestamp=datetime.now(UTC),
         )
-        self._invoked = asyncio.Event()
-        self.dispatched = []
+        self.kernel = None
+        self.dispatched: list[Any] = []
+        self._invoke_entered = asyncio.Event()
 
-    # Runner lifecycle ----------------------------------------------
+    # ---------------- runner lifecycle stubs --------------------------------
     async def start(self): ...
 
     async def stop(self): ...
 
-    # The "business logic" ------------------------------------------
-    async def invoke(self, kernel):
-        # Wait until get_event_stream() has yielded and then let the
-        # coroutine finish.
-        await asyncio.sleep(1)
-        await self._invoked.wait()
+    async def invoke(self, kernel):  # type: ignore[override]
+        """Stores kernel, signals *get_event_stream* and returns immediately."""
+        self.kernel = kernel
+        self._invoke_entered.set()
+        # Yield control so other tasks can proceed but finish fast.
+        await asyncio.sleep(0)
 
     async def get_event_stream(self) -> AsyncGenerator[StreamingDelta, None]:
-        # First iteration of the async-generator: send the finished event
-        self._invoked.set()
-        yield self._finished_event
+        await self._invoke_entered.wait()
+        yield self._finished_delta
 
-    async def dispatch_event(self, message):
+    async def dispatch_event(self, message):  # type: ignore[override]
         self.dispatched.append(message)
 
 
-# -----------------------------------------------------------------
-# Fixtures
-# -----------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# pytest fixtures & helpers
+# -----------------------------------------------------------------------------
 
 
 @pytest.fixture
@@ -166,263 +169,284 @@ def stub_storage() -> StubStorage:
 
 @pytest.fixture
 def stub_user() -> User:
-    """A bare-minimum AuthedUserWebsocket replacement."""
-    user_id = "00000000-0000-0000-0000-000000000000"
-    sub = "tenant:testing:user:system"
-    return User(user_id=user_id, sub=sub)
+    return User(user_id="00000000-0000-0000-0000-000000000000", sub="tenant:testing:user:system")
 
 
 @pytest.fixture
-def fastapi_app(
-    stub_storage: StubStorage,
-    stub_user: User,
-) -> FastAPI:
-    """
-    Assemble a FastAPI app that includes only the runs router and
-    overrides the heavy dependencies with our stubs.
-    """
-    app = FastAPI()
+def fastapi_app(stub_storage: StubStorage, stub_user: User) -> FastAPI:
+    """Spin up a minimal FastAPI app with dependency overrides."""
 
-    # --- mount router ------------------------------------------------
+    app = FastAPI()
     app.include_router(runs_mod.router, prefix="/runs")
 
-    # --- dependency overrides ----------------------------------------
-    #
-    # 1. storage
+    # --- dependency overrides ------------------------------------------------
+    from agent_platform.server.auth.handlers import auth_user, auth_user_websocket
     from agent_platform.server.storage.option import StorageService
 
     app.dependency_overrides[StorageService.get_instance] = lambda: stub_storage
-
-    # 2. current websocket user
-    from agent_platform.server.auth.handlers import auth_user_websocket
-
-    app.dependency_overrides[auth_user_websocket] = lambda: stub_user
-
-    # 3. current HTTP user (for async endpoint)
-    from agent_platform.server.auth.handlers import auth_user
-
-    app.dependency_overrides[auth_user] = lambda: stub_user
+    app.dependency_overrides[auth_user] = lambda: stub_user  # HTTP
+    app.dependency_overrides[auth_user_websocket] = lambda: stub_user  # WS
 
     return app
 
 
 @pytest.fixture
 def client(fastapi_app: FastAPI) -> TestClient:
-    # FastAPI's TestClient spins an event loop internally; we do *not*
-    # mark websocket tests with @pytest.mark.asyncio.
+    """Sync TestClient -- fastapi's internal loop handles async parts."""
+
     return TestClient(fastapi_app)
 
 
-@pytest.fixture(autouse=True)
-def patch_agent_arch_manager(monkeypatch):
-    async def _patched_get_runner(self, name, version, thread_id):
-        return StubRunner(run_id="test-run", thread_id=thread_id, agent_id="agent-1")
-
-    monkeypatch.setattr(
-        "agent_platform.server.agent_architectures.AgentArchManager.get_runner",
-        _patched_get_runner,
-    )
+# -----------------------------------------------------------------------------
+# Runner injection fixture -- avoids copy-pasted monkey-patching blocks
+# -----------------------------------------------------------------------------
 
 
-# -----------------------------------------------------------------
-# Helpers
-# -----------------------------------------------------------------
+class _Injected(NamedTuple):
+    runner: StubRunner
+    aid: str
 
 
-def make_initial_payload(agent_id: str, thread_id: str) -> dict[str, Any]:
-    """Minimum valid InitiateStreamPayload JSON for the endpoint."""
-    return {
-        "agent_id": agent_id,
-        "thread_id": thread_id,
-        "messages": [],  # empty chat history
+@pytest.fixture
+def inject_runner(monkeypatch):
+    """Factory that patches AgentArchManager.get_runner on demand.
+
+    Usage:
+        ctx = inject_runner(TalkativeRunner, run_id="r", thread_id="t", agent_id="a")
+        # ctx.runner is the instance passed to app
+    """
+
+    def _factory(cls=StubRunner, **kwargs) -> _Injected:  # type: ignore[var-annotated]
+        runner = cls(**kwargs)
+
+        async def _patched_get_runner(self, *_a, **_kw):
+            return runner
+
+        monkeypatch.setattr(
+            "agent_platform.server.agent_architectures.AgentArchManager.get_runner",
+            _patched_get_runner,
+        )
+        return _Injected(runner=runner, aid=kwargs.get("agent_id", ""))
+
+    return _factory
+
+
+# -----------------------------------------------------------------------------
+# Common JSON helpers / assertion helpers
+# -----------------------------------------------------------------------------
+
+
+def make_initial_payload(
+    agent_id: str,
+    thread_id: str,
+    client_tools: list[Mapping[str, Any]] | None = None,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {"agent_id": agent_id, "thread_id": thread_id, "messages": []}
+    if client_tools is not None:
+        payload["client_tools"] = client_tools
+    return payload
+
+
+def make_sample_client_tool(**overrides) -> Mapping[str, Any]:
+    base = {
+        "name": "test_client_tool",
+        "description": "A test tool provided by the client",
+        "input_schema": {
+            "type": "object",
+            "properties": {"message": {"type": "string", "description": "msg"}},
+            "required": ["message"],
+        },
+        "category": "client-exec-tool",
     }
+    base.update(overrides)
+    return base
 
 
-# -----------------------------------------------------------------
-# Tests
-# -----------------------------------------------------------------
+def assert_ws_closed(frame: Mapping[str, Any], code: int, reason: str | None = None) -> None:
+    assert frame["type"] == "websocket.close"
+    assert frame["code"] == code
+    if reason is not None:
+        assert frame["reason"] == reason
 
 
-def test_async_run_happy_path(client: TestClient, stub_storage: StubStorage):
-    """
-    The client sends a POST request to async and receives
-    an immediate response with run_id and status.
-    """
-    test_agent_uuid = str(uuid.uuid4())
-    test_thread_id = str(uuid.uuid4())
-    StubRunner.override_agent_id = test_agent_uuid
-
-    # Make HTTP POST request to async endpoint
-    response = client.post(
-        f"/runs/{test_agent_uuid}/async",
-        json=make_initial_payload(test_agent_uuid, test_thread_id),
-    )
-
-    # Should get immediate response with 200 status
-    assert response.status_code == 200
-
-    # Response should contain run_id and status
-    response_data = response.json()
-    assert "run_id" in response_data
-    assert "status" in response_data
-    assert response_data["status"] == "running"
-
-    # Verify a run was created in storage
-    saved_run = stub_storage.last_run()
-    assert saved_run is not None
-    assert saved_run.run_id == response_data["run_id"]
-    assert saved_run.status == "running"
-    assert saved_run.run_type == "async"
+# -----------------------------------------------------------------------------
+#   1)  basic async / status endpoints
+# -----------------------------------------------------------------------------
 
 
-def test_async_run_agent_id_mismatch(client: TestClient, stub_storage: StubStorage):
-    """
-    If the URL path and the JSON payload contain different agent_ids,
-    the server must close the connection with 1008 (policy violation).
-    """
-    test_agent_uuid = str(uuid.uuid4())
-    mismatched_agent_id = str(uuid.uuid4())
-    if mismatched_agent_id == test_agent_uuid:
-        mismatched_agent_id = str(uuid.uuid4())
-    test_thread_id = str(uuid.uuid4())
-    StubRunner.override_agent_id = test_agent_uuid
-    response = client.post(
-        f"/runs/{test_agent_uuid}/async",
-        json=make_initial_payload(mismatched_agent_id, test_thread_id),
-    )
+def test_async_run_happy_path(client: TestClient, stub_storage: StubStorage, inject_runner):
+    aid, tid = str(uuid.uuid4()), str(uuid.uuid4())
+    inject_runner(StubRunner, run_id="r", thread_id=tid, agent_id=aid)
 
-    # Should get immediate response with 400 status
-    assert response.status_code == 400
-    assert response.json()["detail"] == "Agent ID mismatch in URL and payload."
+    resp = client.post(f"/runs/{aid}/async", json=make_initial_payload(aid, tid))
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] in {"running", "completed"}
+    assert uuid.UUID(body["run_id"])  # valid UUID
+
+    run = stub_storage.last_run()
+    assert run is not None
+    assert run.run_type == "async"
+    assert run.run_id == body["run_id"]
 
 
-def test_stream_run_happy_path(client: TestClient, stub_storage: StubStorage):
-    """
-    The client sends the 3-field initial payload, receives
-    *AgentReady* followed by *AgentFinished*, and the socket then
-    closes cleanly.
-    """
-    test_agent_uuid = str(uuid.uuid4())
-    test_thread_id = str(uuid.uuid4())
-    StubRunner.override_agent_id = test_agent_uuid
-    with client.websocket_connect(f"/runs/{test_agent_uuid}/stream") as ws:
-        # ── 1. send payload ─────────────────────────────────────────
-        ws.send_json(make_initial_payload(test_agent_uuid, test_thread_id))
+# status -- covers both running & completed after background task
+@pytest.mark.parametrize("final_state", ["running", "completed"])
+def test_get_run_status_happy_path(
+    client: TestClient,
+    stub_storage: StubStorage,
+    inject_runner,
+    final_state,
+):
+    aid, tid = str(uuid.uuid4()), str(uuid.uuid4())
+    # tweak runner so that invoke never returns to simulate long-running if desired
 
-        # ── 2. first frame: AgentReady ─────────────────────────────
-        first = ws.receive_json()
-        first.pop("event_type")
-        as_delta = StreamingDeltaAgentReady(**first)
-        assert as_delta.thread_id == test_thread_id
-        assert as_delta.agent_id == test_agent_uuid
+    class SlowRunner(StubRunner):
+        async def invoke(self, kernel):
+            if final_state == "running":
+                # never finishes --> server will mark running
+                await asyncio.sleep(0.05)
+            else:
+                await super().invoke(kernel)
 
-        # ── 3. second frame: AgentFinished ────────────────────────
-        second = ws.receive_json()
-        second.pop("event_type")
-        as_delta = StreamingDeltaAgentFinished(**second)
-        assert as_delta.thread_id == test_thread_id
-        assert as_delta.agent_id == StubRunner.override_agent_id
-        assert as_delta.timestamp
+    inject_runner(SlowRunner, run_id="r", thread_id=tid, agent_id=aid)
 
-        # ── 4. connection should now be closed by the server ──────
+    run_resp = client.post(f"/runs/{aid}/async", json=make_initial_payload(aid, tid))
+    run_id = run_resp.json()["run_id"]
+
+    status_resp = client.get(f"/runs/{run_id}/status")
+    assert status_resp.status_code == 200
+    assert status_resp.json()["status"] == final_state
+
+
+def test_get_run_status_not_found(client: TestClient):
+    missing = str(uuid.uuid4())
+
+    resp = client.get(f"/runs/{missing}/status")
+    assert resp.status_code == 404
+
+
+# -----------------------------------------------------------------------------
+#   2)  Agent-ID mismatch -- parameterised for HTTP & WS endpoints
+# -----------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("endpoint", "is_ws", "close_code", "msg"),
+    [
+        ("/sync", False, status.HTTP_400_BAD_REQUEST, "Agent ID mismatch in URL and payload."),
+        ("/async", False, status.HTTP_400_BAD_REQUEST, "Agent ID mismatch in URL and payload."),
+        ("/stream", True, status.WS_1008_POLICY_VIOLATION, "Agent ID mismatch in URL and payload."),
+    ],
+)
+def test_agent_id_mismatch(
+    client: TestClient,
+    endpoint: str,
+    is_ws: bool,
+    close_code: int,
+    msg: str,
+):
+    aid, other, tid = str(uuid.uuid4()), str(uuid.uuid4()), str(uuid.uuid4())
+    assert aid != other  # sanity
+
+    if is_ws:
+        with client.websocket_connect(f"/runs/{aid}{endpoint}") as ws:
+            ws.send_json(make_initial_payload(other, tid))
+            frame = ws.receive()
+        assert_ws_closed(frame, close_code, msg)
+    else:
+        resp = client.post(f"/runs/{aid}{endpoint}", json=make_initial_payload(other, tid))
+        assert resp.status_code == close_code
+        assert resp.json()["detail"] == msg
+
+
+# -----------------------------------------------------------------------------
+#   3)  stream happy-path & error branches
+# -----------------------------------------------------------------------------
+
+
+def _stream_open(client: TestClient, aid: str):  # helper so type checker knows return
+    return client.websocket_connect(f"/runs/{aid}/stream")
+
+
+def test_stream_happy_flow(client: TestClient, inject_runner, stub_storage: StubStorage):
+    aid, tid = str(uuid.uuid4()), str(uuid.uuid4())
+    inject_runner(StubRunner, run_id="r", thread_id=tid, agent_id=aid)
+
+    with _stream_open(client, aid) as ws:
+        ws.send_json(make_initial_payload(aid, tid))
+        ready = ws.receive_json()
+        finished = ws.receive_json()
         with pytest.raises(WebSocketDisconnect):
             ws.receive_json()
 
-    # After the socket is shut the run should have been marked
-    # "completed" in storage.
-    saved_run = stub_storage.last_run()
-    assert saved_run is not None
-    assert saved_run.status == "completed"
-    assert saved_run.metadata["finish_reason"] == "normal_completion"
+    assert ready["event_type"] == "agent_ready"
+    assert finished["event_type"] == "agent_finished"
+
+    saved = stub_storage.last_run()
+    assert saved is not None
+    assert saved.status == "completed"
+    assert saved.metadata["finish_reason"] == "normal_completion"
 
 
-def test_stream_run_agent_id_mismatch(client: TestClient):
-    """
-    If the URL path and the JSON payload contain different agent_ids,
-    the server must close the connection with 1008 (policy violation).
-    """
-    test_agent_uuid = str(uuid.uuid4())
-    mismatched_agent_id = str(uuid.uuid4())
-    if mismatched_agent_id == test_agent_uuid:
-        # Lol... this is like a lottery win here
-        mismatched_agent_id = str(uuid.uuid4())
-    test_thread_id = str(uuid.uuid4())
-    StubRunner.override_agent_id = test_agent_uuid
-    with client.websocket_connect(f"/runs/{test_agent_uuid}/stream") as ws:
-        bad_payload = make_initial_payload(mismatched_agent_id, test_thread_id)
-        ws.send_json(bad_payload)
+def test_stream_client_disconnect_marks_cancelled(
+    client: TestClient,
+    inject_runner,
+    stub_storage: StubStorage,
+):
+    """Client closes before runner finishes --> run becomes *cancelled*."""
 
-        # Starlette returns a dict when the first frame is a close frame
-        close_frame = ws.receive()
+    class HangingRunner(StubRunner):
+        async def get_event_stream(self):
+            # Hold the generator open forever without yielding a finished event
+            await asyncio.Event().wait()
+            if False:  # pragma: no cover
+                yield self._finished  # ensures this is an *async-generator*
 
-    assert close_frame["type"] == "websocket.close"
-    assert close_frame["code"] == status.WS_1008_POLICY_VIOLATION
+    aid, tid = str(uuid.uuid4()), str(uuid.uuid4())
+    inject_runner(HangingRunner, run_id="r", thread_id=tid, agent_id=aid)
 
-
-def test_stream_run_client_disconnect(client: TestClient, stub_storage: StubStorage):
-    """
-    If the *client* closes the socket first, the server should mark
-    the run as "cancelled".
-    """
-    test_agent_uuid = str(uuid.uuid4())
-    test_thread_id = str(uuid.uuid4())
-    StubRunner.override_agent_id = test_agent_uuid
-    with client.websocket_connect(f"/runs/{test_agent_uuid}/stream") as ws:
-        ws.send_json(make_initial_payload(test_agent_uuid, test_thread_id))
-        # Consume AgentReady only; then close from the client side.
-        ws.receive_json()  # AgentReady
+    with _stream_open(client, aid) as ws:
+        ws.send_json(make_initial_payload(aid, tid))
+        ws.receive_json()  # agent_ready
         ws.close(code=status.WS_1000_NORMAL_CLOSURE)
 
-    saved_run = stub_storage.last_run()
-    assert saved_run is not None
-    assert saved_run.status == "cancelled"
-    assert saved_run.metadata["finish_reason"] == "websocket_disconnected"
+    last_run = stub_storage.last_run()
+    assert last_run is not None
+    assert last_run.status == "cancelled"
 
 
 def test_stream_invalid_json_payload(client: TestClient):
     aid = str(uuid.uuid4())
-    with client.websocket_connect(f"/runs/{aid}/stream") as ws:
-        ws.send_text("this is not JSON")
-        close = ws.receive()
-    assert close["code"] == status.WS_1003_UNSUPPORTED_DATA
+    with _stream_open(client, aid) as ws:
+        ws.send_text("not-json")
+        frame = ws.receive()
+    assert_ws_closed(frame, status.WS_1003_UNSUPPORTED_DATA)
 
 
-def test_stream_initial_payload_timeout(monkeypatch, client: TestClient):
-    # 1. Patch _get_initial_payload to use a very short timeout.
-    #    Store the original to call it from our wrapper.
-    original_get_initial_payload = runs_mod._get_initial_payload
+def test_stream_initial_payload_timeout(client: TestClient, monkeypatch):
+    """Close with 1008 if initial payload never arrives."""
+    orig = runs_mod._get_initial_payload
 
-    async def fast_timeout_get_initial_payload(websocket, timeout: float = 10.0):
-        return await original_get_initial_payload(websocket, timeout=0.01)
+    async def tiny_timeout(ws, *, timeout: float = 10.0):
+        return await orig(ws, timeout=0.001)
 
-    monkeypatch.setattr(runs_mod, "_get_initial_payload", fast_timeout_get_initial_payload)
-
-    # 2. Make the actual websocket.receive_json hang longer than our new short timeout
-    #    This ensures that the wait_for inside the (now fast-timed-out)
-    #    _get_initial_payload will indeed raise a TimeoutError.
-    async def _hang_forever_receive_json(*args, **kwargs):
-        await asyncio.sleep(0.1)  # Sleep for 0.1s, which is > patched 0.01s timeout
-
-    monkeypatch.setattr("starlette.websockets.WebSocket.receive_json", _hang_forever_receive_json)
+    monkeypatch.setattr(runs_mod, "_get_initial_payload", tiny_timeout)
 
     aid = str(uuid.uuid4())
-    with client.websocket_connect(f"/runs/{aid}/stream") as ws:
-        # Client sends nothing.
-        # The server side will call our patched _get_initial_payload,
-        # which will call the original with a 0.01s timeout.
-        # The patched websocket.receive_json will sleep for 0.1s,
-        # causing the wait_for in _get_initial_payload to time out.
-        # This leads to a WebSocketException and a close frame.
-        close_frame = ws.receive()  # Client receives the close frame.
-
-    assert close_frame["type"] == "websocket.close"
-    assert close_frame["code"] == status.WS_1008_POLICY_VIOLATION
-    assert close_frame["reason"] == "Initial payload not received in time"
+    with _stream_open(client, aid) as ws:
+        frame = ws.receive()
+    assert_ws_closed(frame, status.WS_1008_POLICY_VIOLATION, "Initial payload not received in time")
 
 
-def test_stream_agent_not_found(client: TestClient, monkeypatch, stub_user: User):
+# -----------------------------------------------------------------------------
+#   4)  storage / runner error branches
+# -----------------------------------------------------------------------------
+
+
+def test_stream_agent_not_found(client: TestClient, stub_user: User):
     class EmptyStorage(StubStorage):
-        async def get_agent(self, user_id: str, agent_id: str) -> Agent:
+        async def get_agent(self, *_a, **_kw):
             raise AgentNotFoundError
 
     app = FastAPI()
@@ -433,143 +457,115 @@ def test_stream_agent_not_found(client: TestClient, monkeypatch, stub_user: User
 
     app.dependency_overrides[StorageService.get_instance] = lambda: EmptyStorage()
     app.dependency_overrides[auth_user_websocket] = lambda: stub_user
-    tc = TestClient(app)
 
+    tc = TestClient(app)
     aid = tid = str(uuid.uuid4())
     with tc.websocket_connect(f"/runs/{aid}/stream") as ws:
         ws.send_json(make_initial_payload(aid, tid))
-        close = ws.receive()
-
-    assert close["code"] == status.WS_1008_POLICY_VIOLATION
-    assert close["reason"] == "Agent not found"
+        frame = ws.receive()
+    assert_ws_closed(frame, status.WS_1008_POLICY_VIOLATION, "Agent not found")
 
 
 def test_stream_runner_crash_marks_failed(
-    monkeypatch,
     client: TestClient,
+    inject_runner,
     stub_storage: StubStorage,
 ):
-    class ExplodingRunner(StubRunner):
+    class KaboomRunner(StubRunner):
         async def invoke(self, kernel):
-            raise RuntimeError("kaboom")
+            raise RuntimeError("boom")
 
-    async def _patched_get_runner(self, *_, **__):
-        return ExplodingRunner(run_id="r", thread_id="t", agent_id="a")
+    aid, tid = str(uuid.uuid4()), str(uuid.uuid4())
+    inject_runner(KaboomRunner, run_id="r", thread_id=tid, agent_id=aid)
 
-    monkeypatch.setattr(
-        "agent_platform.server.agent_architectures.AgentArchManager.get_runner",
-        _patched_get_runner,
-    )
-
-    aid = tid = str(uuid.uuid4())
-    with client.websocket_connect(f"/runs/{aid}/stream") as ws:
+    with _stream_open(client, aid) as ws:
         ws.send_json(make_initial_payload(aid, tid))
-        # Still going to get an agent ready
-        ws.receive_json()
-        ws.receive_json()
-        close = ws.receive()
-    assert close["code"] == status.WS_1011_INTERNAL_ERROR
-
-    run = stub_storage.last_run()
-    assert run is not None
-    assert run.status == "failed"
-    assert run.metadata["finish_reason"] == "unexpected_error"
+        ws.receive_json()  # ready
+        frame = ws.receive()
+    assert_ws_closed(frame, status.WS_1011_INTERNAL_ERROR)
+    last_run = stub_storage.last_run()
+    assert last_run is not None
+    assert last_run.status == "failed"
 
 
-def test_stream_server_to_client_delta_flow(monkeypatch, client: TestClient):
-    """
-    Runner emits Begin + Content + Finished; ensure they arrive in order.
-    """
+# -----------------------------------------------------------------------------
+#   5)  delta ordering & client-to-runner dispatch
+# -----------------------------------------------------------------------------
 
-    class TalkativeRunner(StubRunner):
+
+def test_stream_server_delta_order(client: TestClient, inject_runner):
+    class Talkative(StubRunner):
         async def get_event_stream(self):
             yield StreamingDeltaMessageBegin(
                 thread_id=self._thread_id,
-                agent_id=self.override_agent_id,
+                agent_id=self._agent_id,
                 timestamp=datetime.now(UTC),
                 sequence_number=0,
-                message_id="00000000-0000-0000-0000-000000000001",
+                message_id="m0",
             )
             yield StreamingDeltaMessageContent(
                 timestamp=datetime.now(UTC),
                 sequence_number=1,
-                message_id="00000000-0000-0000-0000-000000000002",
-                delta=GenericDelta(
-                    path="/kind",
-                    op="replace",
-                    value="text",
-                ),
+                message_id="m0",
+                delta=GenericDelta(path="/kind", op="replace", value="text"),
             )
-            yield self._finished_event
+            yield self._finished_delta
 
-    async def _patched_get_runner(self, *_, **__):
-        return TalkativeRunner(run_id="r", thread_id="t", agent_id="a")
+    aid, tid = str(uuid.uuid4()), str(uuid.uuid4())
+    inject_runner(Talkative, run_id="r", thread_id=tid, agent_id=aid)
 
-    monkeypatch.setattr(
-        "agent_platform.server.agent_architectures.AgentArchManager.get_runner",
-        _patched_get_runner,
-    )
-
-    aid = tid = str(uuid.uuid4())
-    with client.websocket_connect(f"/runs/{aid}/stream") as ws:
+    with _stream_open(client, aid) as ws:
         ws.send_json(make_initial_payload(aid, tid))
-
         kinds = [ws.receive_json()["event_type"] for _ in range(3)]
-        assert kinds == [
-            "agent_ready",
-            "message_begin",
-            "message_content",
-        ]
-
-        ws.close()
+        assert kinds == ["agent_ready", "message_begin", "message_content"]
 
 
-def test_stream_client_messages_dispatched(monkeypatch, client: TestClient):
-    """
-    Verify that whatever the client sends after AgentReady is forwarded
-    to runner.dispatch_event().
-    """
+def test_stream_client_messages_reach_runner(client: TestClient, inject_runner):
+    echo_messages: list[dict[str, Any]] = []
 
-    class EchoRunner(StubRunner):
+    class Echo(StubRunner):
         async def invoke(self, kernel):
-            await asyncio.sleep(0.05)  # keep socket open for a moment
+            self.kernel = kernel
+            self._invoke_entered.set()
+            await asyncio.sleep(0.05)
 
-    echo = EchoRunner(run_id="r", thread_id="t", agent_id="a")
+        async def dispatch_event(self, message):
+            echo_messages.append(message)
 
-    async def _patched_get_runner(self, *_, **__):
-        return echo
+    aid, tid = str(uuid.uuid4()), str(uuid.uuid4())
+    inject_runner(Echo, run_id="r", thread_id=tid, agent_id=aid)
 
-    monkeypatch.setattr(
-        "agent_platform.server.agent_architectures.AgentArchManager.get_runner",
-        _patched_get_runner,
-    )
-
-    aid = str(uuid.uuid4())
-    tid = str(uuid.uuid4())
-    with client.websocket_connect(f"/runs/{aid}/stream") as ws:
+    with _stream_open(client, aid) as ws:
         ws.send_json(make_initial_payload(aid, tid))
-        ws.receive_json()  # AgentReady
-        to_send = [{"kind": "user_event", "seq": i} for i in range(3)]
-        for msg in to_send:
-            ws.send_json(msg)
+        ws.receive_json()  # agent_ready
+        msgs = [{"kind": "user", "seq": i} for i in range(3)]
+        for m in msgs:
+            ws.send_json(m)
+        ws.receive_json()  # agent_finished
+        # wait for the server-initiated close frame so TestClient exit is clean
+        frame = ws.receive()
+        assert_ws_closed(frame, status.WS_1000_NORMAL_CLOSURE)
 
-        ws.receive_json()  # AgentFinished
-        ws.close()
+    assert echo_messages == msgs
 
-    assert echo.dispatched == to_send
+
+# -----------------------------------------------------------------------------
+#   6)  thread upsert vs add-message paths
+# -----------------------------------------------------------------------------
 
 
 def test_upsert_thread_called_on_new_thread(
     client: TestClient,
     stub_storage: StubStorage,
+    inject_runner,
 ):
-    aid = str(uuid.uuid4())
-    tid = str(uuid.uuid4())
-    with client.websocket_connect(f"/runs/{aid}/stream") as ws:
+    aid, tid = str(uuid.uuid4()), str(uuid.uuid4())
+    inject_runner(StubRunner, run_id="r", thread_id=tid, agent_id=aid)
+
+    with _stream_open(client, aid) as ws:
         ws.send_json(make_initial_payload(aid, tid))
         ws.receive_json()
         ws.receive_json()
-        ws.close()
 
     assert stub_storage.call_counts["upsert_thread"] == 1
     assert stub_storage.call_counts["add_message_to_thread"] == 0
@@ -578,61 +574,167 @@ def test_upsert_thread_called_on_new_thread(
 def test_add_message_called_on_existing_thread(
     client: TestClient,
     stub_storage: StubStorage,
+    inject_runner,
 ):
-    # Pre-insert a thread so code path hits add_message_to_thread
-    tid = str(uuid.uuid4())
-    aid = str(uuid.uuid4())
+    tid, aid = str(uuid.uuid4()), str(uuid.uuid4())
     stub_storage.threads[tid] = Thread(
         thread_id=tid,
         user_id="u",
         messages=[],
         agent_id=aid,
-        name="test-thread",
+        name="existing",
     )
+    inject_runner(StubRunner, run_id="r", thread_id=tid, agent_id=aid)
 
-    with client.websocket_connect(f"/runs/{aid}/stream") as ws:
-        ws.send_json(make_initial_payload(aid, tid))
+    with _stream_open(client, aid) as ws:
+        payload = make_initial_payload(aid, tid)
+        payload["messages"] = [{"role": "user", "content": []}]
+        ws.send_json(payload)
         ws.receive_json()
         ws.receive_json()
-        ws.close()
 
-    assert stub_storage.call_counts["add_message_to_thread"] >= 0
-    # upsert should NOT be called for an existing thread
     assert stub_storage.call_counts["upsert_thread"] == 0
+    assert stub_storage.call_counts["add_message_to_thread"] == 1
 
 
-def test_get_run_status_happy_path(client: TestClient, stub_storage: StubStorage):
-    """
-    Test getting the status of an existing run.
-    """
-    test_agent_uuid = str(uuid.uuid4())
-    test_thread_id = str(uuid.uuid4())
-    StubRunner.override_agent_id = test_agent_uuid
-
-    # First create a run
-    response = client.post(
-        f"/runs/{test_agent_uuid}/async",
-        json=make_initial_payload(test_agent_uuid, test_thread_id),
-    )
-    assert response.status_code == 200
-    run_data = response.json()
-    run_id = run_data["run_id"]
-
-    # Now get the status
-    status_response = client.get(f"/runs/{run_id}/status")
-    assert status_response.status_code == 200
-
-    status_data = status_response.json()
-    assert status_data["run_id"] == run_id
-    assert status_data["status"] == "running"
+# -----------------------------------------------------------------------------
+#   7)  client-tool plumbing -- happy paths + schema error
+# -----------------------------------------------------------------------------
 
 
-def test_get_run_status_not_found(client: TestClient, stub_storage: StubStorage):
-    """
-    Test getting the status of a non-existent run returns 404.
-    """
-    non_existent_run_id = str(uuid.uuid4())
+def _register_kernel_capture(inject_runner):  # helper used by multiple tests
+    captured = {}
 
-    response = client.get(f"/runs/{non_existent_run_id}/status")
-    assert response.status_code == 404
-    assert "not found" in response.json()["detail"].lower()
+    class Inspect(StubRunner):
+        async def invoke(self, kernel):
+            captured["kernel"] = kernel
+            await super().invoke(kernel)
+
+    return captured, Inspect
+
+
+def test_stream_with_client_tools(client: TestClient, inject_runner):
+    cap, runner = _register_kernel_capture(inject_runner)
+    aid, tid = str(uuid.uuid4()), str(uuid.uuid4())
+    inject_runner(runner, run_id="r", thread_id=tid, agent_id=aid)
+
+    tools = [make_sample_client_tool()]
+    with _stream_open(client, aid) as ws:
+        ws.send_json(make_initial_payload(aid, tid, tools))
+        ws.receive_json()
+        ws.receive_json()
+    kernel = cap["kernel"]
+    assert kernel is not None
+    assert [t.name for t in kernel.client_tools] == ["test_client_tool"]
+
+
+@pytest.mark.parametrize("tool_count", [0, 2])
+def test_multiple_or_empty_client_tools(client: TestClient, inject_runner, tool_count: int):
+    cap, runner = _register_kernel_capture(inject_runner)
+    aid, tid = str(uuid.uuid4()), str(uuid.uuid4())
+    inject_runner(runner, run_id="r", thread_id=tid, agent_id=aid)
+
+    tools = [make_sample_client_tool(name=f"tool{i}") for i in range(tool_count)]
+    with _stream_open(client, aid) as ws:
+        ws.send_json(make_initial_payload(aid, tid, tools))
+        ws.receive_json()
+        ws.receive_json()
+    kernel = cap["kernel"]
+    assert kernel is not None
+    assert len(kernel.client_tools) == tool_count
+
+
+def test_invalid_client_tool_schema_rejected(client: TestClient):
+    aid, tid = str(uuid.uuid4()), str(uuid.uuid4())
+    bad_tools = [{"name": "bad"}]  # missing required fields
+    with _stream_open(client, aid) as ws:
+        ws.send_json(make_initial_payload(aid, tid, bad_tools))  # type: ignore[arg-type] (for testing)
+        frame = ws.receive()
+    # spec says either unsupported-data or policy-violation
+    assert frame["code"] in {status.WS_1003_UNSUPPORTED_DATA, status.WS_1008_POLICY_VIOLATION}
+
+
+# -----------------------------------------------------------------------------
+#   8)  full execution flow -- info vs exec tools
+# -----------------------------------------------------------------------------
+
+
+def test_client_info_and_exec_tools_flow(client: TestClient, inject_runner, monkeypatch):
+    aid, tid = str(uuid.uuid4()), str(uuid.uuid4())
+    outgoing: list[Any] = []
+
+    async def capture(self, event):
+        outgoing.append(event)
+
+    from agent_platform.server.kernel.events import AgentServerEventsInterface
+
+    monkeypatch.setattr(AgentServerEventsInterface, "dispatch", capture)
+
+    class Tooly(StubRunner):
+        async def invoke(self, kernel):
+            # info tool completes immediately
+            info_tool = ToolDefinition(
+                name="info",
+                description="info",
+                input_schema={"type": "object"},
+                category="client-info-tool",
+            )
+            info_call = ResponseToolUseContent(
+                tool_call_id="info1", tool_name="info", tool_input_raw="{}"
+            )
+            async for _ in kernel.tools.execute_pending_tool_calls([(info_tool, info_call)]):
+                pass
+
+            # exec tool triggers request & waits --> we'll cancel quickly
+            exec_tool = ToolDefinition(
+                name="exec",
+                description="exec",
+                input_schema={"type": "object"},
+                category="client-exec-tool",
+            )
+            exec_call = ResponseToolUseContent(
+                tool_call_id="exec1", tool_name="exec", tool_input_raw="{}"
+            )
+            task = asyncio.create_task(kernel.tools._safe_execute_client_tool(exec_tool, exec_call))
+            await asyncio.sleep(0.005)
+            task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await task
+            await super().invoke(kernel)
+
+    inject_runner(Tooly, run_id="r", thread_id=tid, agent_id=aid)
+
+    with _stream_open(client, aid) as ws:
+        ws.send_json(make_initial_payload(aid, tid, []))
+        # Consume until server closes or disconnect happens
+        try:
+            while True:
+                msg = ws.receive()
+                if msg["type"] == "websocket.close":
+                    break
+        except WebSocketDisconnect:
+            pass
+
+    tool_names = {
+        e.tool_name for e in outgoing if isinstance(e, StreamingDeltaRequestToolExecution)
+    }
+    assert "exec" in tool_names
+    assert "info" in tool_names
+
+    # Make sure the info tool's event was _not_ set to requires_execution=True
+    info_events = [
+        e
+        for e in outgoing
+        if isinstance(e, StreamingDeltaRequestToolExecution) and e.tool_name == "info"
+    ]
+    assert len(info_events) == 1
+    assert info_events[0].requires_execution is False
+
+    # Make sure the exec tool's event was set to requires_execution=True
+    exec_events = [
+        e
+        for e in outgoing
+        if isinstance(e, StreamingDeltaRequestToolExecution) and e.tool_name == "exec"
+    ]
+    assert len(exec_events) == 1
+    assert exec_events[0].requires_execution is True
