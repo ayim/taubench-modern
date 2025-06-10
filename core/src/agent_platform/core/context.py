@@ -174,10 +174,12 @@ class LangSmithContext:
                 span.set_attribute("langsmith.trace.name", metadata["trace_name"])
 
             # Add user information as metadata
-            span.set_attribute("langsmith.metadata.user_id", user_context.user.user_id)
             span.set_attribute(
-                "langsmith.metadata.organization",
-                user_context.user.cr_tenant_id or "unknown",
+                "langsmith.metadata.user_id",
+                user_context.user.cr_user_id
+                if user_context.user.cr_user_id
+                # Fallback to internal sub if cr_user_id is not set
+                else user_context.user.sub,
             )
 
             # Process inputs - for LLM we need to check if it's a chat format
@@ -625,13 +627,11 @@ class AgentServerContext:
                     span.set_attribute(key, value)
 
             # Add common attributes
-            if self.user_context.user.cr_user_id:
-                span.set_attribute("user_id", self.user_context.user.cr_user_id)
-            if self.user_context.user.cr_system_id:
-                span.set_attribute("system_id", self.user_context.user.cr_system_id)
             span.set_attribute(
-                "organization",
-                self.user_context.user.cr_tenant_id or "unknown",
+                "user_id",
+                self.user_context.user.cr_user_id
+                if self.user_context.user.cr_user_id
+                else self.user_context.user.sub,
             )
 
             try:
@@ -666,15 +666,12 @@ class AgentServerContext:
             extra_context: Additional context to include in the log
         """
         current_span = trace.get_current_span()
-        ctx = {
+        ctx: dict[str, Any] = {
             "trace_id": current_span.get_span_context().trace_id,
             "span_id": current_span.get_span_context().span_id,
-            "organization": self.user_context.user.cr_tenant_id or "unknown",
         }
-        if self.user_context.user.cr_user_id:
-            ctx["user_id"] = self.user_context.user.cr_user_id
-        if self.user_context.user.cr_system_id:
-            ctx["system_id"] = self.user_context.user.cr_system_id
+        ctx["user_id"] = self.user_context.user.cr_user_id or self.user_context.user.sub
+
         if extra_context:
             ctx.update(extra_context)
 
@@ -695,15 +692,7 @@ class AgentServerContext:
             labels: Optional dictionary of label key-value pairs
         """
         labels = labels or {}
-        labels.update(
-            {
-                "organization": self.user_context.user.cr_tenant_id or "unknown",
-            },
-        )
-        if self.user_context.user.cr_user_id:
-            labels.update({"user_id": self.user_context.user.cr_user_id})
-        if self.user_context.user.cr_system_id:
-            labels.update({"system_id": self.user_context.user.cr_system_id})
+        labels.update({"user_id": self.user_context.user.cr_user_id or self.user_context.user.sub})
 
         # Get or create the metric
         if name not in self._metric_cache:
@@ -736,14 +725,11 @@ class AgentServerContext:
         labels = labels or {}
         labels.update(
             {
-                "user_id": self.user_context.user.user_id,
-                "organization": self.user_context.user.cr_tenant_id or "unknown",
-            },
+                "user_id": self.user_context.user.cr_user_id
+                if self.user_context.user.cr_user_id
+                else self.user_context.user.sub,
+            }
         )
-        if self.user_context.user.cr_user_id:
-            labels.update({"user_id": self.user_context.user.cr_user_id})
-        if self.user_context.user.cr_system_id:
-            labels.update({"system_id": self.user_context.user.cr_system_id})
 
         # Get or create the counter
         if name not in self._metric_cache:

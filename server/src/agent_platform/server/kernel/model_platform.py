@@ -260,10 +260,9 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
             "agent_id": self.kernel.agent.agent_id,
             "thread_id": self.kernel.thread.thread_id,
             "agent_name": self.kernel.agent.name,
-            "user_id": self.kernel.user.user_id,
-            "organization": (
-                self.kernel.user.cr_tenant_id if self.kernel.user.cr_tenant_id else "unknown"
-            ),
+            "user_id": self.kernel.user.cr_user_id
+            if self.kernel.user.cr_user_id
+            else self.kernel.user.sub,
         }
         return metadata
 

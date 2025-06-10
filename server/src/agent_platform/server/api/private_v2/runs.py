@@ -282,7 +282,10 @@ async def stream_run(  # noqa: C901, PLR0912, PLR0915
             span.set_attribute("langsmith.metadata.agent_id", str(agent_id))
             span.set_attribute("langsmith.metadata.thread_id", str(initial_payload.thread_id))
             span.set_attribute(
-                "langsmith.metadata.user_id", server_context.user_context.user.user_id
+                "langsmith.metadata.user_id",
+                server_context.user_context.user.cr_user_id
+                if server_context.user_context.user.cr_user_id
+                else server_context.user_context.user.sub,
             )
             span.set_attribute("langsmith.metadata.agent_name", agent.name)
 
@@ -326,8 +329,13 @@ async def stream_run(  # noqa: C901, PLR0912, PLR0915
 
             # 6. Get the agent runner
             with server_context.start_span("get_agent_runner") as runner_span:
-                runner_span.set_attribute("agent_architecture", agent.agent_architecture.name)
-                runner_span.set_attribute("agent_version", agent.agent_architecture.version)
+                runner_span.set_attribute(
+                    "langsmith.metadata.agent_architecture", agent.agent_architecture.name
+                )
+                runner_span.set_attribute(
+                    "langsmith.metadata.agent_architecture_version",
+                    agent.agent_architecture.version,
+                )
                 runner = await agent_arch_manager.get_runner(
                     agent.agent_architecture.name,
                     agent.agent_architecture.version,
@@ -546,7 +554,10 @@ async def sync_run(  # noqa: C901, PLR0912, PLR0915
             span.set_attribute("langsmith.metadata.agent_id", str(agent_id))
             span.set_attribute("langsmith.metadata.thread_id", str(initial_payload.thread_id))
             span.set_attribute(
-                "langsmith.metadata.user_id", server_context.user_context.user.user_id
+                "langsmith.metadata.user_id",
+                server_context.user_context.user.cr_user_id
+                if server_context.user_context.user.cr_user_id
+                else server_context.user_context.user.sub,
             )
             span.set_attribute("langsmith.metadata.agent_name", agent.name)
 
@@ -592,8 +603,13 @@ async def sync_run(  # noqa: C901, PLR0912, PLR0915
 
             # 6. Get the agent runner
             with server_context.start_span("get_agent_runner") as runner_span:
-                runner_span.set_attribute("agent_architecture", agent.agent_architecture.name)
-                runner_span.set_attribute("agent_version", agent.agent_architecture.version)
+                runner_span.set_attribute(
+                    "langsmith.metadata.agent_architecture", agent.agent_architecture.name
+                )
+                runner_span.set_attribute(
+                    "langsmith.metadata.agent_architecture_version",
+                    agent.agent_architecture.version,
+                )
                 runner = await agent_arch_manager.get_runner(
                     agent.agent_architecture.name,
                     agent.agent_architecture.version,
@@ -770,7 +786,10 @@ async def async_run(  # noqa: C901, PLR0915
             span.set_attribute("langsmith.metadata.agent_id", str(agent_id))
             span.set_attribute("langsmith.metadata.thread_id", str(initial_payload.thread_id))
             span.set_attribute(
-                "langsmith.metadata.user_id", server_context.user_context.user.user_id
+                "langsmith.metadata.user_id",
+                server_context.user_context.user.cr_user_id
+                if server_context.user_context.user.cr_user_id
+                else server_context.user_context.user.sub,
             )
             span.set_attribute("langsmith.metadata.agent_name", agent.name)
 
