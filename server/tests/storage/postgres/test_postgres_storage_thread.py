@@ -10,6 +10,7 @@ from agent_platform.core.thread import Thread, ThreadMessage, ThreadTextContent
 from agent_platform.server.storage.errors import (
     InvalidUUIDError,
     ThreadNotFoundError,
+    UserPermissionError,
 )
 from agent_platform.server.storage.postgres import PostgresStorage
 
@@ -334,6 +335,114 @@ async def test_thread_add_message_to_nonexistent(
             non_existent_thread_id,
             additional_message,
         )
+
+
+@pytest.mark.asyncio
+async def test_trim_messages_from_sequence_with_invalid_message_id(
+    storage: PostgresStorage,
+    sample_user_id: str,
+    sample_agent: Agent,
+) -> None:
+    """Test trimming messages from a sequence with invalid message ID (agent role)."""
+    thread = Thread(
+        thread_id=str(uuid4()),
+        user_id=sample_user_id,
+        agent_id=sample_agent.agent_id,
+        name="Edit Message Test",
+        messages=[],
+    )
+    await storage.upsert_agent(sample_user_id, sample_agent)
+    await storage.upsert_thread(sample_user_id, thread)
+
+    # Add multiple messages to the thread
+    message1 = ThreadMessage(role="user", content=[ThreadTextContent(text="Hello")])
+    message2 = ThreadMessage(role="agent", content=[ThreadTextContent(text="Hi there!")])
+    message3 = ThreadMessage(role="user", content=[ThreadTextContent(text="How are you?")])
+    message4 = ThreadMessage(role="agent", content=[ThreadTextContent(text="I'm good, thanks!")])
+    message5 = ThreadMessage(role="user", content=[ThreadTextContent(text="What's your name?")])
+    message6 = ThreadMessage(role="agent", content=[ThreadTextContent(text="My name is John Doe")])
+
+    await storage.add_message_to_thread(sample_user_id, thread.thread_id, message1)
+    await storage.add_message_to_thread(sample_user_id, thread.thread_id, message2)
+    await storage.add_message_to_thread(sample_user_id, thread.thread_id, message3)
+    await storage.add_message_to_thread(sample_user_id, thread.thread_id, message4)
+    await storage.add_message_to_thread(sample_user_id, thread.thread_id, message5)
+    await storage.add_message_to_thread(sample_user_id, thread.thread_id, message6)
+
+    # Get the thread to access message IDs
+    thread_before_trim = await storage.get_thread(sample_user_id, thread.thread_id)
+    assert thread_before_trim is not None
+    assert len(thread_before_trim.messages) == 6
+
+    # Try to trim from an agent message (message2) - this should fail
+    agent_message_id = thread_before_trim.messages[1].message_id  # This is an agent message
+    with pytest.raises(UserPermissionError):
+        await storage.trim_messages_from_sequence(
+            sample_user_id,
+            thread.thread_id,
+            agent_message_id,
+        )
+
+    # Check that messages before the trim point remain (message1 and message2)
+    retrieved_thread = await storage.get_thread(sample_user_id, thread.thread_id)
+    assert retrieved_thread is not None
+    assert len(retrieved_thread.messages) == 6
+
+
+@pytest.mark.asyncio
+async def test_trim_messages_from_sequence(
+    storage: PostgresStorage,
+    sample_user_id: str,
+    sample_agent: Agent,
+) -> None:
+    """Test trimming messages from a sequence."""
+    thread = Thread(
+        thread_id=str(uuid4()),
+        user_id=sample_user_id,
+        agent_id=sample_agent.agent_id,
+        name="Edit Message Test",
+        messages=[],
+    )
+    await storage.upsert_agent(sample_user_id, sample_agent)
+    await storage.upsert_thread(sample_user_id, thread)
+
+    # Add multiple messages to the thread
+    message1 = ThreadMessage(role="user", content=[ThreadTextContent(text="Hello")])
+    message2 = ThreadMessage(role="agent", content=[ThreadTextContent(text="Hi there!")])
+    message3 = ThreadMessage(role="user", content=[ThreadTextContent(text="How are you?")])
+    message4 = ThreadMessage(role="agent", content=[ThreadTextContent(text="I'm good, thanks!")])
+    message5 = ThreadMessage(role="user", content=[ThreadTextContent(text="What's your name?")])
+    message6 = ThreadMessage(role="agent", content=[ThreadTextContent(text="My name is John Doe")])
+
+    await storage.add_message_to_thread(sample_user_id, thread.thread_id, message1)
+    await storage.add_message_to_thread(sample_user_id, thread.thread_id, message2)
+    await storage.add_message_to_thread(sample_user_id, thread.thread_id, message3)
+    await storage.add_message_to_thread(sample_user_id, thread.thread_id, message4)
+    await storage.add_message_to_thread(sample_user_id, thread.thread_id, message5)
+    await storage.add_message_to_thread(sample_user_id, thread.thread_id, message6)
+
+    # Get the thread to access message IDs
+    thread_before_trim = await storage.get_thread(sample_user_id, thread.thread_id)
+    assert thread_before_trim is not None
+    assert len(thread_before_trim.messages) == 6
+
+    # Trim from the second message (should remove message2, message3, message4,
+    # and message5, keeping only message1)
+    third_message_id = thread_before_trim.messages[2].message_id
+    await storage.trim_messages_from_sequence(
+        sample_user_id,
+        thread.thread_id,
+        third_message_id,
+    )
+
+    # Check that only the first and second message remain
+    retrieved_thread = await storage.get_thread(sample_user_id, thread.thread_id)
+    assert retrieved_thread is not None
+    assert len(retrieved_thread.messages) == 2
+    assert isinstance(retrieved_thread.messages[0].content[0], ThreadTextContent)
+    assert retrieved_thread.messages[0].content[0].text == "Hello"
+    assert isinstance(retrieved_thread.messages[1].content[0], ThreadTextContent)
+    assert retrieved_thread.messages[1].content[0].text == "Hi there!"
 
 
 @pytest.mark.asyncio

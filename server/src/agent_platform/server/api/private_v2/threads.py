@@ -23,7 +23,11 @@ from agent_platform.server.api.dependencies import (
     StorageDependency,
 )
 from agent_platform.server.auth import AuthedUser
-from agent_platform.server.storage import ThreadFileNotFoundError
+from agent_platform.server.storage import (
+    AgentNotFoundError,
+    ThreadFileNotFoundError,
+    UserPermissionError,
+)
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -354,6 +358,61 @@ async def add_message_to_thread(
         AddThreadMessagePayload.to_thread_message(payload),
     )
     return await storage.get_thread(user.user_id, tid)
+
+
+@router.post("/{tid}/messages/{message_id}/edit")
+async def edit_message(
+    user: AuthedUser,
+    tid: str,
+    message_id: str,
+    agent_id: str,
+    storage: StorageDependency,
+):
+    """
+    Edit a message. Trims the messages from and after the given message_id.
+    """
+    try:
+        # Verify the agent exists and user has access
+        await storage.get_agent(user.user_id, agent_id)
+
+        # Verify the thread exists and user has access
+        thread = await storage.get_thread(user.user_id, tid)
+        if thread is None:
+            raise HTTPException(status_code=404, detail="Thread not found")
+
+        # Trim the messages from and after the given message_id
+        await storage.trim_messages_from_sequence(
+            user.user_id,
+            tid,
+            message_id,
+        )
+
+        return {"success": True, "message": "Messages trimmed successfully"}
+
+    except AgentNotFoundError as e:
+        logger.error("Error getting agent", error=e)
+        raise HTTPException(
+            status_code=404,
+            detail="Agent not found",
+        ) from e
+
+    except UserPermissionError as e:
+        logger.error(
+            "User permission error in edit_message, cannot edit agent role messages",
+            error=e,
+            thread_id=tid,
+            message_id=message_id,
+        )
+        raise HTTPException(
+            status_code=403,
+            detail="You cannot edit agent role messages.",
+        ) from e
+    except Exception as e:
+        logger.error(f"Unexpected error in edit_message for thread {tid}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="An unexpected error occurred while editing the message.",
+        ) from e
 
 
 # File operations
