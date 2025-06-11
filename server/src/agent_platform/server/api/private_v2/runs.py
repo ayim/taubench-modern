@@ -264,6 +264,7 @@ async def stream_run(  # noqa: C901, PLR0912, PLR0915
             user=user,
             version="2.0.0",
             observability_config=observability_config,
+            agent_id=agent_id,
         )
 
         attributes = {
@@ -277,7 +278,9 @@ async def stream_run(  # noqa: C901, PLR0912, PLR0915
         )
 
         # Start a new trace for this stream
-        with server_context.start_span("stream_run") as span:
+        with server_context.start_span(
+            "stream_run",
+        ) as span:
             # Add string attributes that are safe for OTEL
             span.set_attribute("langsmith.metadata.agent_id", str(agent_id))
             span.set_attribute("langsmith.metadata.thread_id", str(initial_payload.thread_id))
@@ -546,11 +549,14 @@ async def sync_run(  # noqa: C901, PLR0912, PLR0915
             user=user,
             version="2.0.0",  # TODO: versionbump enable this. Pull from constant.
             observability_config=observability_config,
+            agent_id=agent_id,
         )
 
         # 1. Initial payload is already validated by FastAPI
         # as a request body parameter
-        with server_context.start_span("sync_run") as span:
+        with server_context.start_span(
+            "sync_run",
+        ) as span:
             span.set_attribute("langsmith.metadata.agent_id", str(agent_id))
             span.set_attribute("langsmith.metadata.thread_id", str(initial_payload.thread_id))
             span.set_attribute(
@@ -778,10 +784,13 @@ async def async_run(  # noqa: C901, PLR0915
             user=user,
             version="2.0.0",
             observability_config=observability_config,
+            agent_id=agent_id,
         )
 
         # Start a new trace for this async run
-        with server_context.start_span("async_run") as span:
+        with server_context.start_span(
+            "async_run",
+        ) as span:
             # Add string attributes that are safe for OTEL
             span.set_attribute("langsmith.metadata.agent_id", str(agent_id))
             span.set_attribute("langsmith.metadata.thread_id", str(initial_payload.thread_id))

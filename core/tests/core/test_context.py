@@ -5,7 +5,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 from fastapi import Request, WebSocket
 from opentelemetry.metrics import Counter, Histogram, MeterProvider
-from opentelemetry.sdk.trace import TracerProvider as SdkTracerProvider
 from opentelemetry.trace import Span, TracerProvider
 from requests import Response
 
@@ -108,53 +107,48 @@ class TestUserContext:
 class TestLangSmithContext:
     """Tests for LangSmithContext class."""
 
-    def test_init_without_config(self) -> None:
-        """Test LangSmithContext initialization without config."""
-        context = LangSmithContext()
-        assert context.tracer is None
-        assert context.langsmith_exporter is None
+    @pytest.fixture
+    def mock_server_context(self) -> MagicMock:
+        """Create a mock server context for testing."""
+        mock_context = MagicMock()
+        mock_span = MagicMock()
+        mock_context_manager = MagicMock()
+        mock_context_manager.__enter__ = MagicMock(return_value=mock_span)
+        mock_context_manager.__exit__ = MagicMock(return_value=None)
+        mock_context.start_span.return_value = mock_context_manager
+        return mock_context
 
-    def test_init_with_config(self) -> None:
+    def test_init_without_config(self, mock_server_context: MagicMock) -> None:
+        """Test LangSmithContext initialization without config."""
+        context = LangSmithContext(mock_server_context)
+        assert context.config is None
+        assert context.server_context == mock_server_context
+
+    def test_init_with_config(self, mock_server_context: MagicMock) -> None:
         """Test LangSmithContext initialization with config."""
         # Create a config with langsmith settings
         config = ObservabilityConfig(
             type="langsmith",
             api_url="http://test",
             api_key="test_key",
+            settings={"project_name": "test_project"},
         )
 
-        with (
-            patch("agent_platform.core.context.OTLPSpanExporter") as mock_exporter,
-            patch("agent_platform.core.context.trace.get_tracer_provider") as mock_get_provider,
-            patch("agent_platform.core.context.trace.get_tracer") as mock_get_tracer,
-            patch("agent_platform.core.context.BatchSpanProcessor") as mock_processor,
-        ):
-            # Set up the mocks
-            mock_provider = MagicMock(spec=SdkTracerProvider)
-            mock_get_provider.return_value = mock_provider
-            mock_tracer = MagicMock()
-            mock_get_tracer.return_value = mock_tracer
+        # Create the context
+        context = LangSmithContext(mock_server_context, config)
 
-            # Create the context
-            context = LangSmithContext(config)
+        # Verify the config was stored
+        assert context.config == config
+        assert context.server_context == mock_server_context
 
-            # Verify the exporter was created correctly
-            mock_exporter.assert_called_once_with(
-                endpoint="http://test/otel/v1/traces",
-                headers={"x-api-key": "test_key", "Langsmith-Project": "default"},
-            )
+    def test_init_requires_server_context(self) -> None:
+        """Test that LangSmithContext requires a server_context."""
+        with pytest.raises(TypeError, match="missing 1 required positional argument"):
+            LangSmithContext()  # type: ignore
 
-            # Verify tracer was initialized
-            mock_get_tracer.assert_called_once_with("langsmith")
-            assert context.tracer is mock_tracer
-
-            # Verify span processor was added
-            mock_processor.assert_called_once()
-            mock_provider.add_span_processor.assert_called_once()
-
-    def test_format_tool_call_basic(self) -> None:
+    def test_format_tool_call_basic(self, mock_server_context: MagicMock) -> None:
         """Test basic tool call formatting."""
-        context = LangSmithContext()
+        context = LangSmithContext(mock_server_context)
 
         tool_call = {
             "id": "call_123",
@@ -176,9 +170,9 @@ class TestLangSmithContext:
         assert parsed_result["function"]["name"] == "test_function"
         assert parsed_result["function"]["arguments"] == {"param1": "value1", "param2": 42}
 
-    def test_format_tool_call_with_object_arguments(self) -> None:
+    def test_format_tool_call_with_object_arguments(self, mock_server_context: MagicMock) -> None:
         """Test tool call formatting when arguments are already an object."""
-        context = LangSmithContext()
+        context = LangSmithContext(mock_server_context)
 
         tool_call = {
             "id": "call_123",
@@ -198,9 +192,9 @@ class TestLangSmithContext:
         assert parsed_result["function"]["name"] == "another_function"
         assert parsed_result["function"]["arguments"] == {"param1": "value1", "param2": 42}
 
-    def test_format_tool_call_without_function(self) -> None:
+    def test_format_tool_call_without_function(self, mock_server_context: MagicMock) -> None:
         """Test tool call formatting when function data is missing."""
-        context = LangSmithContext()
+        context = LangSmithContext(mock_server_context)
 
         tool_call = {"id": "call_123", "type": "function"}
 
@@ -212,9 +206,9 @@ class TestLangSmithContext:
         assert parsed_result["type"] == "function"
         assert "function" not in parsed_result
 
-    def test_format_tool_call_without_arguments(self) -> None:
+    def test_format_tool_call_without_arguments(self, mock_server_context: MagicMock) -> None:
         """Test tool call formatting when arguments are missing."""
-        context = LangSmithContext()
+        context = LangSmithContext(mock_server_context)
 
         tool_call = {"id": "call_123", "type": "function", "function": {"name": "no_args_function"}}
 
@@ -227,9 +221,9 @@ class TestLangSmithContext:
         assert parsed_result["function"]["name"] == "no_args_function"
         assert "arguments" not in parsed_result["function"]
 
-    def test_format_tool_call_with_malformed_json(self) -> None:
+    def test_format_tool_call_with_malformed_json(self, mock_server_context: MagicMock) -> None:
         """Test tool call formatting with malformed JSON arguments."""
-        context = LangSmithContext()
+        context = LangSmithContext(mock_server_context)
 
         tool_call = {
             "id": "call_123",
@@ -248,9 +242,9 @@ class TestLangSmithContext:
         assert parsed_result["function"]["name"] == "bad_function"
         assert parsed_result["function"]["arguments"] == '{"param1": value1, "param2": 42}'
 
-    def test_format_tool_call_missing_optional_fields(self) -> None:
+    def test_format_tool_call_missing_optional_fields(self, mock_server_context: MagicMock) -> None:
         """Test tool call formatting when optional fields are missing."""
-        context = LangSmithContext()
+        context = LangSmithContext(mock_server_context)
 
         tool_call = {"function": {"name": "minimal_function", "arguments": "{}"}}
 
@@ -264,9 +258,45 @@ class TestLangSmithContext:
         assert parsed_result["function"]["arguments"] == {}
 
     @pytest.mark.asyncio
-    async def test_trace_llm_without_tracer(self) -> None:
-        """Test trace_llm context manager when tracer is None."""
-        context = LangSmithContext()  # No config, so tracer is None
+    async def test_trace_llm_calls_server_context_start_span(
+        self, mock_server_context: MagicMock
+    ) -> None:
+        """Test that LangSmithContext.trace_llm() calls server_context.start_span()."""
+        context = LangSmithContext(mock_server_context)
+
+        user_context = UserContext(
+            user=User(
+                user_id="test_user",
+                sub="test_sub",
+                created_at=datetime.now(UTC),
+            ),
+            profile={},
+        )
+
+        metadata = {"trace_name": "test_trace_name", "provider": "test_provider"}
+
+        async with context.trace_llm(
+            name="test_operation",
+            inputs={"messages": [{"role": "user", "content": "test"}]},
+            user_context=user_context,
+            metadata=metadata,
+        ) as span_data:
+            assert span_data is not None
+            assert "span" in span_data
+
+        # Verify server_context.start_span was called with correct attributes
+        mock_server_context.start_span.assert_called_once_with(
+            "test_operation",
+            attributes={
+                "langsmith.span.kind": "llm",
+                "langsmith.trace.name": "test_trace_name",
+            },
+        )
+
+    @pytest.mark.asyncio
+    async def test_trace_llm_without_langsmith_config(self, mock_server_context: MagicMock) -> None:
+        """Test trace_llm context manager when no LangSmith config is provided."""
+        context = LangSmithContext(mock_server_context)  # No config provided
 
         user_context = UserContext(
             user=User(
@@ -282,79 +312,17 @@ class TestLangSmithContext:
             inputs={"prompt": "test prompt"},
             user_context=user_context,
         ) as result:
-            assert result is None
+            # Should still yield span data for OpenTelemetry tracing, even without LangSmith
+            assert result is not None
+            assert "span" in result
+            assert result["span"] is not None
+
+        mock_server_context.start_span.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_trace_llm_with_tracer(self) -> None:
-        """Test trace_llm context manager with a tracer."""
-        context = LangSmithContext()
-
-        # Manually create and set a tracer and mock span
-        mock_tracer = MagicMock()
-        mock_span = MagicMock()
-
-        # Create the context manager properly
-        with patch("agent_platform.core.context.trace.get_current_span"):
-            # Set up using the mock context manager
-            context_mgr = MagicMock()
-            context_mgr.__enter__.return_value = mock_span
-            context_mgr.__exit__.return_value = None
-            mock_tracer.start_as_current_span.return_value = context_mgr
-
-            # Set the tracer
-            context.tracer = mock_tracer
-
-            user_context = UserContext(
-                user=User(
-                    user_id="test_user",
-                    sub="test_sub",
-                    created_at=datetime.now(UTC),
-                ),
-                profile={},
-            )
-
-            inputs = {"messages": [{"role": "user", "content": "test message"}]}
-            metadata = {"provider": "test_provider", "model": "test_model"}
-
-            async with context.trace_llm(
-                name="test_trace",
-                inputs=inputs,
-                user_context=user_context,
-                metadata=metadata,
-            ) as span_data:
-                # Verify the span was created
-                mock_tracer.start_as_current_span.assert_called_once_with("test_trace")
-
-                # Verify important attributes were set on the span
-                mock_span.set_attribute.assert_any_call("langsmith.span.kind", "llm")
-
-                # Add test output
-                if span_data:
-                    span_data["output"] = {
-                        "role": "assistant",
-                        "content": "test response",
-                    }
-
-            # Verify span status was set
-            mock_span.set_status.assert_called()
-
-    @pytest.mark.asyncio
-    async def test_trace_llm_with_error(self) -> None:
-        """Test trace_llm context manager with an error."""
-        context = LangSmithContext()
-
-        # Manually set up tracer and span
-        mock_tracer = MagicMock()
-        mock_span = MagicMock()
-
-        # Set up the context manager
-        context_mgr = MagicMock()
-        context_mgr.__enter__.return_value = mock_span
-        context_mgr.__exit__.return_value = None
-        mock_tracer.start_as_current_span.return_value = context_mgr
-
-        # Set the tracer
-        context.tracer = mock_tracer
+    async def test_trace_llm_with_metadata(self, mock_server_context: MagicMock) -> None:
+        """Test trace_llm context manager with metadata."""
+        context = LangSmithContext(mock_server_context)
 
         user_context = UserContext(
             user=User(
@@ -364,6 +332,46 @@ class TestLangSmithContext:
             ),
             profile={},
         )
+
+        inputs = {"messages": [{"role": "user", "content": "test message"}]}
+        metadata = {"provider": "test_provider", "model": "test_model"}
+
+        # Mock the span to verify attributes are set
+        mock_span = MagicMock()
+        mock_server_context.start_span.return_value.__enter__.return_value = mock_span
+
+        async with context.trace_llm(
+            name="test_trace",
+            inputs=inputs,
+            user_context=user_context,
+            metadata=metadata,
+        ) as span_data:
+            # Add test output
+            if span_data:
+                span_data["output"] = [{"role": "assistant", "content": "test response"}]
+
+        # Verify span attributes were set
+        mock_span.set_attribute.assert_any_call("langsmith.span.kind", "llm")
+        mock_span.set_attribute.assert_any_call("gen_ai.system", "test_provider")
+        mock_span.set_attribute.assert_any_call("gen_ai.request.model", "test_model")
+
+    @pytest.mark.asyncio
+    async def test_trace_llm_with_error(self, mock_server_context: MagicMock) -> None:
+        """Test trace_llm context manager with an error."""
+        context = LangSmithContext(mock_server_context)
+
+        user_context = UserContext(
+            user=User(
+                user_id="test_user",
+                sub="test_sub",
+                created_at=datetime.now(UTC),
+            ),
+            profile={},
+        )
+
+        # Mock the span to verify error handling
+        mock_span = MagicMock()
+        mock_server_context.start_span.return_value.__enter__.return_value = mock_span
 
         # Test with an exception
         with pytest.raises(ValueError, match="Test error"):
@@ -377,6 +385,7 @@ class TestLangSmithContext:
         # Verify error handling
         mock_span.set_status.assert_called()
         mock_span.record_exception.assert_called_once()
+        mock_span.set_attribute.assert_any_call("error", "Test error")
 
 
 class TestAgentServerContext:

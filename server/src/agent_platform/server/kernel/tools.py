@@ -292,8 +292,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                 "langsmith.span.kind": "chain",
                 "langsmith.trace.name": "execute_pending_tool_calls",
                 "tool_count": len(pending_calls_copy) if pending_calls_copy else 0,
-                "agent.id": self.kernel.agent.agent_id,
-                "thread.id": self.kernel.thread.thread_id,
+                "thread_id": self.kernel.thread.thread_id,
             },
         ) as span:
             # Format tool call inputs for telemetry
@@ -372,8 +371,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                                 "type": "tool_call",
                             }
                         ),
-                        "agent.id": self.kernel.agent.agent_id,
-                        "thread.id": self.kernel.thread.thread_id,
+                        "thread_id": self.kernel.thread.thread_id,
                     },
                 ) as tool_span:
                     # Record success or failure

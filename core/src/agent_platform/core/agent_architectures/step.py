@@ -39,8 +39,7 @@ def step(func):
                 "langsmith.span.kind": "chain",
                 "langsmith.trace.name": f"Agent Step: {step_name}",
                 "step.name": step_name,
-                "agent.id": kernel.agent.agent_id,
-                "thread.id": kernel.thread.thread_id,
+                "thread_id": kernel.thread.thread_id,
                 "agent.name": kernel.agent.name,
             },
         ) as span:

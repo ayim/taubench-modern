@@ -59,7 +59,6 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
         with self.kernel.ctx.start_span(
             "generate_response",
             attributes={
-                "agent_id": self.kernel.agent.agent_id,
                 "thread_id": self.kernel.thread.thread_id,
             },
         ):
@@ -136,7 +135,6 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
         with self.kernel.ctx.start_span(
             "stream_response",
             attributes={
-                "agent_id": self.kernel.agent.agent_id,
                 "thread_id": self.kernel.thread.thread_id,
                 "streaming": True,
             },
