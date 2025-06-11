@@ -233,7 +233,9 @@ async def _create_or_update_agent_from_package(
 
     as_upsert_payload = UpsertAgentPayload(
         name=payload.name,  # Want name from payload, not agent project
-        description=agent0.get("description", ""),
+        description=payload.description
+        if payload.description is not None
+        else agent0.get("description", ""),
         version=agent0.get("version", "1.0.0"),
         action_packages=[
             ActionPackage(

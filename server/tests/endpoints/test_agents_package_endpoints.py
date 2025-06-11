@@ -76,6 +76,7 @@ def sample_agent_package_payload():
     """Sample AgentPackagePayload for testing."""
     return AgentPackagePayload(
         name="Test Package Agent",
+        description="Test Package Agent Description",
         agent_package_url="https://example.com/agent-package.zip",
         model={"provider": "OpenAI", "name": "gpt-4"},
         action_servers=[
@@ -117,6 +118,7 @@ def sample_agent_package_payload_base64():
 
     return AgentPackagePayload(
         name="Base64 Package Agent",
+        description="Base64 Package Agent Description",
         agent_package_base64=encoded_content,
         model={"provider": "OpenAI", "name": "gpt-4"},
         action_servers=[],
@@ -143,6 +145,7 @@ class TestCreateAgentFromPackage:
 
         payload = AgentPackagePayload(
             name="Test OpenAI Agent",
+            description="Agent Description",
             agent_package_base64=package_base64,
         )
 
@@ -174,6 +177,7 @@ class TestCreateAgentFromPackage:
 
         payload = AgentPackagePayload(
             name="Test Azure Agent",
+            description="Agent Description",
             agent_package_base64=package_base64,
         )
 
@@ -205,6 +209,7 @@ class TestCreateAgentFromPackage:
 
         payload = AgentPackagePayload(
             name="Test Bedrock Agent",
+            description="Agent Description",
             agent_package_base64=package_base64,
         )
 
@@ -236,6 +241,7 @@ class TestCreateAgentFromPackage:
 
         payload = AgentPackagePayload(
             name="Test SF Agent",
+            description="Agent Description",
             agent_package_base64=package_base64,
         )
 
@@ -267,6 +273,7 @@ class TestCreateAgentFromPackage:
 
         payload = AgentPackagePayload(
             name="Call Center Planner",
+            description="Agent Description",
             agent_package_base64=package_base64,
         )
 
@@ -298,6 +305,7 @@ class TestCreateAgentFromPackage:
 
         payload = AgentPackagePayload(
             name="Test doc Agent",
+            description="Agent Description",
             agent_package_base64=package_base64,
         )
 
@@ -329,6 +337,7 @@ class TestCreateAgentFromPackage:
 
         payload = AgentPackagePayload(
             name="Document Extraction Agent",
+            description="Agent Description",
             agent_package_base64=package_base64,
             model={"provider": "OpenAI", "name": "gpt-4"},
             action_servers=[
@@ -450,6 +459,7 @@ class TestCreateAgentFromPackage:
         # Setup payload with action servers
         payload = AgentPackagePayload(
             name="Action Server Agent",
+            description="Agent Description",
             agent_package_url="https://example.com/agent.zip",
             model={"provider": "OpenAI", "name": "gpt-4"},
             action_servers=[
@@ -499,6 +509,7 @@ class TestCreateAgentFromPackage:
         """Test agent creation with Langsmith configuration."""
         payload = AgentPackagePayload(
             name="Langsmith Agent",
+            description="Agent Description",
             agent_package_url="https://example.com/agent.zip",
             model={"provider": "OpenAI", "name": "gpt-4"},
             langsmith=AgentPackagePayloadLangsmith(
@@ -596,6 +607,7 @@ class TestUpdateAgentFromPackage:
 
         payload = AgentPackagePayload(
             name="Updated SF Agent",
+            description="Agent Description",
             agent_package_base64=package_base64,
             model={"provider": "OpenAI", "name": "gpt-4"},
         )
@@ -729,6 +741,7 @@ class TestCreateOrUpdateAgentFromPackageHelper:
 
         payload = AgentPackagePayload(
             name="Override Complex Agent",  # Name should come from payload, not spec
+            description="Agent Description",
             agent_package_url="https://example.com/complex-agent.zip",
             model={"provider": "OpenAI", "name": "gpt-4"},
             action_servers=[
@@ -801,6 +814,7 @@ class TestEdgeCases:
         # Try to load a non-existent package
         payload = AgentPackagePayload(
             name="Invalid Package Agent",
+            description="Agent Description",
             agent_package_base64="invalid-base64-content",
             model={"provider": "OpenAI", "name": "gpt-4"},
         )
@@ -824,6 +838,7 @@ class TestEdgeCases:
 
         payload = AgentPackagePayload(
             name="String Key Agent",
+            description="Agent Description",
             agent_package_base64=package_base64,
             model={"provider": "OpenAI", "name": "gpt-4"},
             action_servers=[

@@ -233,47 +233,6 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v2/runs/{agent_id}/sync': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Sync Run
-     * @description Synchronous endpoint to run a conversation with a given agent and return all events.
-     */
-    post: operations['sync_run_runs__agent_id__sync_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v2/runs/{agent_id}/async': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Async Run
-     * @description Asynchronous endpoint to start a run with a given agent and return an acknowledgment.
-     *     The client doesn't need to wait for the run to complete.
-     */
-    post: operations['async_run_runs__agent_id__async_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/v2/threads/': {
     parameters: {
       query?: never;
@@ -347,6 +306,29 @@ export interface paths {
     get: operations['get_thread_context_stats_threads__tid__context_stats_get'];
     put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/threads/{tid}/fork': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Fork Thread
+     * @description Fork a thread at a specific message point.
+     *
+     *     Creates a new thread with all messages before the specified message.
+     *     The message_id must be for a human message.
+     */
+    post: operations['fork_thread_threads__tid__fork_post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -944,6 +926,11 @@ export interface components {
        */
       name: string;
       /**
+       * Description
+       * @description The description of the agent.
+       */
+      description: string;
+      /**
        * Public
        * @description Whether the agent is public. (Legacy, ignored.)
        * @default true
@@ -1280,6 +1267,19 @@ export interface components {
       role: '$conversation-history' | '$documents' | '$memories';
       params?: components['schemas']['DocumentsParams'];
     };
+    /** ForkThreadPayload */
+    ForkThreadPayload: {
+      /**
+       * Message Id
+       * @description The ID of the message to fork from (must be a human message).
+       */
+      message_id: string;
+      /**
+       * Name
+       * @description Optional custom name for the forked thread
+       */
+      name?: string | null;
+    };
     /** GooglePlatformParameters */
     GooglePlatformParameters: {
       /**
@@ -1308,36 +1308,6 @@ export interface components {
     HTTPValidationError: {
       /** Detail */
       detail?: components['schemas']['ValidationError'][];
-    };
-    /** InitiateStreamPayload */
-    InitiateStreamPayload: {
-      /**
-       * Agent Id
-       * @description The agent ID of the agent that created this thread.
-       */
-      agent_id: string;
-      /**
-       * Name
-       * @description The name of the thread to stream against.
-       */
-      name?: string | null;
-      /**
-       * Thread Id
-       * @description The ID of the thread to stream against.
-       */
-      thread_id?: string | null;
-      /**
-       * Messages
-       * @description All messages in this thread.
-       */
-      messages?: components['schemas']['ThreadMessage'][];
-      /**
-       * Metadata
-       * @description Arbitrary thread-level metadata.
-       */
-      metadata?: {
-        [key: string]: unknown;
-      };
     };
     /** MCPServer */
     MCPServer: {
@@ -3284,76 +3254,6 @@ export interface operations {
       };
     };
   };
-  sync_run_runs__agent_id__sync_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        agent_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['InitiateStreamPayload'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ThreadAgentMessage'][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  async_run_runs__agent_id__async_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        agent_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['InitiateStreamPayload'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': unknown;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
   list_threads_threads__get: {
     parameters: {
       query?: {
@@ -3635,6 +3535,41 @@ export interface operations {
           'application/json': {
             [key: string]: unknown;
           };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  fork_thread_threads__tid__fork_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        tid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ForkThreadPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Thread'];
         };
       };
       /** @description Validation Error */

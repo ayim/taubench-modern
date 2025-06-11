@@ -6,7 +6,7 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Private API Version 2',
-    version: '2.0.0-rc',
+    version: '2.0.1',
   },
   paths: {
     '/api/v2/ok': {
@@ -698,112 +698,6 @@ export const spec = {
         },
       },
     },
-    '/api/v2/runs/{agent_id}/sync': {
-      post: {
-        tags: ['runs'],
-        summary: 'Sync Run',
-        description:
-          'Synchronous endpoint to run a conversation with a given agent and return all events.',
-        operationId: 'sync_run_runs__agent_id__sync_post',
-        parameters: [
-          {
-            name: 'agent_id',
-            in: 'path',
-            required: true,
-            schema: {
-              type: 'string',
-              title: 'Agent Id',
-            },
-          },
-        ],
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: {
-                $ref: '#/components/schemas/InitiateStreamPayload',
-              },
-            },
-          },
-        },
-        responses: {
-          '200': {
-            description: 'Successful Response',
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'array',
-                  items: {
-                    $ref: '#/components/schemas/ThreadAgentMessage',
-                  },
-                  title: 'Response Sync Run Runs  Agent Id  Sync Post',
-                },
-              },
-            },
-          },
-          '422': {
-            description: 'Validation Error',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-    '/api/v2/runs/{agent_id}/async': {
-      post: {
-        tags: ['runs'],
-        summary: 'Async Run',
-        description:
-          "Asynchronous endpoint to start a run with a given agent and return an acknowledgment.\nThe client doesn't need to wait for the run to complete.",
-        operationId: 'async_run_runs__agent_id__async_post',
-        parameters: [
-          {
-            name: 'agent_id',
-            in: 'path',
-            required: true,
-            schema: {
-              type: 'string',
-              title: 'Agent Id',
-            },
-          },
-        ],
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: {
-                $ref: '#/components/schemas/InitiateStreamPayload',
-              },
-            },
-          },
-        },
-        responses: {
-          '200': {
-            description: 'Successful Response',
-            content: {
-              'application/json': {
-                schema: {},
-              },
-            },
-          },
-          '422': {
-            description: 'Validation Error',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
-                },
-              },
-            },
-          },
-        },
-      },
-    },
     '/api/v2/threads/': {
       post: {
         tags: ['threads'],
@@ -1226,6 +1120,58 @@ export const spec = {
                   additionalProperties: true,
                   title:
                     'Response Get Thread Context Stats Threads  Tid  Context Stats Get',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/HTTPValidationError',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/threads/{tid}/fork': {
+      post: {
+        tags: ['threads'],
+        summary: 'Fork Thread',
+        description:
+          'Fork a thread at a specific message point.\n\nCreates a new thread with all messages before the specified message.\nThe message_id must be for a human message.',
+        operationId: 'fork_thread_threads__tid__fork_post',
+        parameters: [
+          {
+            name: 'tid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Tid',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ForkThreadPayload',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/Thread',
                 },
               },
             },
@@ -2485,6 +2431,11 @@ export const spec = {
             title: 'Name',
             description: 'The name of the agent.',
           },
+          description: {
+            type: 'string',
+            title: 'Description',
+            description: 'The description of the agent.',
+          },
           public: {
             type: 'boolean',
             title: 'Public',
@@ -2552,7 +2503,7 @@ export const spec = {
           },
         },
         type: 'object',
-        required: ['name'],
+        required: ['name', 'description'],
         title: 'AgentPackagePayload',
       },
       AgentPackagePayloadActionServer: {
@@ -3150,6 +3101,31 @@ export const spec = {
         required: ['role'],
         title: 'DocumentsSpecialMessage',
       },
+      ForkThreadPayload: {
+        properties: {
+          message_id: {
+            type: 'string',
+            title: 'Message Id',
+            description:
+              'The ID of the message to fork from (must be a human message).',
+          },
+          name: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Name',
+            description: 'Optional custom name for the forked thread',
+          },
+        },
+        type: 'object',
+        required: ['message_id'],
+        title: 'ForkThreadPayload',
+      },
       GooglePlatformParameters: {
         properties: {
           kind: {
@@ -3212,56 +3188,6 @@ export const spec = {
         },
         type: 'object',
         title: 'HTTPValidationError',
-      },
-      InitiateStreamPayload: {
-        properties: {
-          agent_id: {
-            type: 'string',
-            title: 'Agent Id',
-            description: 'The agent ID of the agent that created this thread.',
-          },
-          name: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Name',
-            description: 'The name of the thread to stream against.',
-          },
-          thread_id: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Thread Id',
-            description: 'The ID of the thread to stream against.',
-          },
-          messages: {
-            items: {
-              $ref: '#/components/schemas/ThreadMessage',
-            },
-            type: 'array',
-            title: 'Messages',
-            description: 'All messages in this thread.',
-          },
-          metadata: {
-            additionalProperties: true,
-            type: 'object',
-            title: 'Metadata',
-            description: 'Arbitrary thread-level metadata.',
-          },
-        },
-        type: 'object',
-        required: ['agent_id'],
-        title: 'InitiateStreamPayload',
       },
       MCPServer: {
         properties: {

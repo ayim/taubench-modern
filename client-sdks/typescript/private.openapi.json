@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Sema4.ai Agent Server Private API Version 2",
-    "version": "2.0.0-rc"
+    "version": "2.0.1"
   },
   "servers": [
     {
@@ -719,7 +719,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/InitiateStreamPayload"
+                "$ref": "#/components/schemas/agent_platform__core__payloads__initiate_stream__InitiateStreamPayload-Input__1"
               }
             }
           }
@@ -774,7 +774,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/InitiateStreamPayload"
+                "$ref": "#/components/schemas/agent_platform__core__payloads__initiate_stream__InitiateStreamPayload-Input__1"
               }
             }
           }
@@ -1222,6 +1222,57 @@
                   "type": "object",
                   "additionalProperties": true,
                   "title": "Response Get Thread Context Stats Threads  Tid  Context Stats Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/threads/{tid}/fork": {
+      "post": {
+        "tags": ["threads"],
+        "summary": "Fork Thread",
+        "description": "Fork a thread at a specific message point.\n\nCreates a new thread with all messages before the specified message.\nThe message_id must be for a human message.",
+        "operationId": "fork_thread_threads__tid__fork_post",
+        "parameters": [
+          {
+            "name": "tid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Tid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForkThreadPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Thread"
                 }
               }
             }
@@ -2609,6 +2660,11 @@
             "title": "Name",
             "description": "The name of the agent."
           },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "The description of the agent."
+          },
           "public": {
             "type": "boolean",
             "title": "Public",
@@ -2674,7 +2730,7 @@
           }
         },
         "type": "object",
-        "required": ["name"],
+        "required": ["name", "description"],
         "title": "AgentPackagePayload"
       },
       "AgentPackagePayloadActionServer": {
@@ -3246,6 +3302,30 @@
         "required": ["role"],
         "title": "DocumentsSpecialMessage"
       },
+      "ForkThreadPayload": {
+        "properties": {
+          "message_id": {
+            "type": "string",
+            "title": "Message Id",
+            "description": "The ID of the message to fork from (must be a human message)."
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Optional custom name for the forked thread"
+          }
+        },
+        "type": "object",
+        "required": ["message_id"],
+        "title": "ForkThreadPayload"
+      },
       "GooglePlatformParameters": {
         "properties": {
           "kind": {
@@ -3306,56 +3386,6 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
-      },
-      "InitiateStreamPayload": {
-        "properties": {
-          "agent_id": {
-            "type": "string",
-            "title": "Agent Id",
-            "description": "The agent ID of the agent that created this thread."
-          },
-          "name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name",
-            "description": "The name of the thread to stream against."
-          },
-          "thread_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Thread Id",
-            "description": "The ID of the thread to stream against."
-          },
-          "messages": {
-            "items": {
-              "$ref": "#/components/schemas/ThreadMessage"
-            },
-            "type": "array",
-            "title": "Messages",
-            "description": "All messages in this thread."
-          },
-          "metadata": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Metadata",
-            "description": "Arbitrary thread-level metadata."
-          }
-        },
-        "type": "object",
-        "required": ["agent_id"],
-        "title": "InitiateStreamPayload"
       },
       "MCPServer": {
         "properties": {

@@ -63,6 +63,13 @@ class AgentPackagePayload:
     )
     """The name of the agent."""
 
+    description: str = field(
+        metadata={
+            "description": ("The description of the agent."),
+        },
+    )
+    """The description of the agent."""
+
     public: bool = field(
         default=True,
         metadata={
