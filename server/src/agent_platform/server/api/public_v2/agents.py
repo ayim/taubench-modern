@@ -39,7 +39,7 @@ router = APIRouter()
 
 
 @router.get(
-    "/",
+    "",
     summary="List agents",
     description=(
         "Returns a list of all agents for the authenticated user. You can "

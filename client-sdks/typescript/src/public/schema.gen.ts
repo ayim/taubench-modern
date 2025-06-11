@@ -3,7 +3,7 @@
  * Do not make direct changes to the file.
  */
 export interface paths {
-  '/api/public/v1/agents/': {
+  '/api/public/v1/agents': {
     parameters: {
       query?: never;
       header?: never;
@@ -14,7 +14,7 @@ export interface paths {
      * List agents
      * @description Returns a list of all agents for the authenticated user. You can filter by name using the 'name' query parameter.
      */
-    get: operations['get_agents_agents__get'];
+    get: operations['get_agents_agents_get'];
     put?: never;
     post?: never;
     delete?: never;
@@ -214,7 +214,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-  get_agents_agents__get: {
+  get_agents_agents_get: {
     parameters: {
       query?: {
         limit?: number | null;

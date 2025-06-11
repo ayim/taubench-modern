@@ -9,13 +9,13 @@ export const spec = {
     version: '2.0.1',
   },
   paths: {
-    '/api/public/v1/agents/': {
+    '/api/public/v1/agents': {
       get: {
         tags: ['agents', 'agents'],
         summary: 'List agents',
         description:
           "Returns a list of all agents for the authenticated user. You can filter by name using the 'name' query parameter.",
-        operationId: 'get_agents_agents__get',
+        operationId: 'get_agents_agents_get',
         parameters: [
           {
             name: 'limit',
