@@ -51,6 +51,13 @@ func safeAgentString(agent *AgentServer.Agent) string {
 }
 
 func (state *specState) specForAgent(assistant AgentServer.Agent) common.Agent {
+	metadata := assistant.Metadata
+
+	// Ensuring WorkerConfig is not included in the spec if the agent type is "conversational".
+	if metadata.Mode == "conversational" {
+		metadata.WorkerConfig = nil
+	}
+
 	return common.Agent{
 		Name:        assistant.Name,
 		Description: assistant.Description,
@@ -64,7 +71,7 @@ func (state *specState) specForAgent(assistant AgentServer.Agent) common.Agent {
 		Runbook:        state.assistantRunbooks[assistant.ID],
 		ActionPackages: state.assistantActionPackages[assistant.ID],
 		Knowledge:      state.assistantKnowledge[assistant.ID],
-		Metadata:       assistant.Metadata,
+		Metadata:       metadata,
 	}
 }
 
