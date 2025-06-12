@@ -14,6 +14,7 @@ export const App: React.FC = () => {
   const [selectedThreadName] = useModelState<any>('selected_thread_name_out');
   const [isLoading] = useModelState<any>('is_loading');
   const [statusMessage] = useModelState<any>('status_message');
+  const [errorHistory] = useModelState<any>('error_history');
 
   // You can also get "widget" from the context, so you can call .send(...)
   // to pass messages to the Python side.  Alternatively, you can rely on
@@ -34,6 +35,7 @@ export const App: React.FC = () => {
       is_loading={isLoading}
       status_message={statusMessage}
       active_thread_artifacts={activeThreadArtifacts || []}
+      error_history={errorHistory || []}
       sendMsgToPython={handleSendMsgToPython}
     />
   );

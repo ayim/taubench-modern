@@ -23,6 +23,7 @@ interface DebugWidgetProps {
   status_message: string;
   sendMsgToPython: (msg: any) => void; // a generic function that calls widget's send
   active_thread_artifacts: any[];
+  error_history: any[];
 }
 
 export const DebugWidget: React.FC<DebugWidgetProps> = ({
@@ -33,6 +34,7 @@ export const DebugWidget: React.FC<DebugWidgetProps> = ({
   is_loading,
   status_message,
   active_thread_artifacts,
+  error_history,
   sendMsgToPython,
 }) => {
   const handleSelectThread = (threadId: string) => {
@@ -80,7 +82,7 @@ export const DebugWidget: React.FC<DebugWidgetProps> = ({
 
       {/* Status bar */}
       <div className="w-full h-8 border-t border-gray-200 bg-gray-50">
-        <StatusBar isLoading={is_loading} statusMessage={status_message} />
+        <StatusBar isLoading={is_loading} statusMessage={status_message} errorHistory={error_history} />
       </div>
     </div>
   );
