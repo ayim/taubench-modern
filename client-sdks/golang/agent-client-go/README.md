@@ -1,12 +1,12 @@
 ![Sema4.ia Gphpher Agent](assets/images/agent-gopher-250.png)
 
-
 # Sema4.ai Golang Agent Client
 
-This is the Official Sema4.ai Golang Agent Server Client. It is a Golang library that provides an interface to interact with 
+This is the Official Sema4.ai Golang Agent Server Client. It is a Golang library that provides an interface to interact with
 the Sema4.ai Agent Server API.
 
 ## Installation
+
 **Install As A Library**
 
 Enable Go to download from a private repository by setting the `GOPRIVATE` environment variable.
@@ -18,8 +18,8 @@ Enable Go to download from a private repository by setting the `GOPRIVATE` envir
   - Just set env. variable: `GOPRIVATE=github.com/Sema4AI/*` and things will work in all of our go repos.
   - No git configs needed if you work on https
 
-
 Install the library using `go get`:
+
 ```shell
 go get github.com/Sema4AI/agent-platform/client-sdks/golang/agent-client-go
 ```
@@ -48,38 +48,49 @@ For more information on Golang project layout, see [golang-standards/project-lay
 ## Getting Started
 
 1. **Initialize the Project:**
+
    - Run `make init-project` to install all necessary Go tools and tidy up the dependencies.
 
 2. **Install Dependencies:**
+
    - Run `make deps` to install and update the project dependencies.
 
 3. **Format Code:**
+
    - Use `make format` to automatically format all Go source files according to Go standards.
 
 4. **Lint Code:**
+
    - Use `make lint` to check the code for any style issues or potential bugs. This requires `golangci-lint` to be installed, which is handled by `make init-project`.
 
 5. **Run the Application:**
+
    - Use `make run` to build and run the application.
 
 6. **Run Tests:**
+
    - Use `make test` to run the unit tests.
    - Use `make test-integration` to run the integration tests (requires integration tests to be set up).
    - Use `make test-all` to run all tests (unit and integration).
 
 7. **Build the Application:**
+
    - Use `make build` to compile the application into a binary for your current OS and architecture.
 
 8. **Create a Binary Distribution:**
+
    - Use `make dist` to create a `.tgz` and `.zip` archive of the application binary for your current OS and architecture. These archives will be placed in the `dist/` directory.
 
 9. **Create Distributions for Multiple Platforms:**
+
    - Use `make dist-all` to create `.tgz` and `.zip` archives for the most common OS and architecture combinations (Linux, macOS, and Windows on amd64 and arm64 architectures). These archives will be placed in the `dist/` directory.
 
 10. **Clean Up:**
+
     - Use `make clean` to remove previous build artifacts and test cache.
 
 11. **Tidy Dependencies:**
+
     - Use `make tidy` to clean up the `go.mod` and `go.sum` files by removing unused dependencies.
 
 12. **Serve Documentation:**
@@ -131,8 +142,8 @@ go test ./test/integration --tags=integration
 
 ```
 
-Both of the above commands will test a server running on the default port. If you are running the server on a different 
-port, you can specify the port using the `S4_AGENT_SERVER_BASE_URL` environment variable, or use the 
+Both of the above commands will test a server running on the default port. If you are running the server on a different
+port, you can specify the port using the `S4_AGENT_SERVER_BASE_URL` environment variable, or use the
 `-base-url` flag.
 
 **Use a command line flag:**
