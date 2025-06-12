@@ -1239,6 +1239,65 @@ export const spec = {
         },
       },
     },
+    '/api/v2/threads/{tid}/messages/{message_id}/edit': {
+      post: {
+        tags: ['threads'],
+        summary: 'Edit Message',
+        description:
+          'Edit a message. Trims the messages from and after the given message_id.',
+        operationId:
+          'edit_message_threads__tid__messages__message_id__edit_post',
+        parameters: [
+          {
+            name: 'tid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Tid',
+            },
+          },
+          {
+            name: 'message_id',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Message Id',
+            },
+          },
+          {
+            name: 'agent_id',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Agent Id',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/HTTPValidationError',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/v2/threads/{tid}/files': {
       get: {
         tags: ['threads'],

@@ -352,6 +352,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/threads/{tid}/messages/{message_id}/edit': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Edit Message
+     * @description Edit a message. Trims the messages from and after the given message_id.
+     */
+    post: operations['edit_message_threads__tid__messages__message_id__edit_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/threads/{tid}/files': {
     parameters: {
       query?: never;
@@ -3605,6 +3625,40 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['Thread'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  edit_message_threads__tid__messages__message_id__edit_post: {
+    parameters: {
+      query: {
+        agent_id: string;
+      };
+      header?: never;
+      path: {
+        tid: string;
+        message_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
         };
       };
       /** @description Validation Error */
