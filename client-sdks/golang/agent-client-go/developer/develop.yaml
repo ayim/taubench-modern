@@ -1,0 +1,7 @@
+channels:
+  - conda-forge
+dependencies:
+  - go=1.23.7
+  - gh=2.62.0
+  - git=2.46.0
+  - make=4.4.1

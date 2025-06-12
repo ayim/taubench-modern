@@ -107,6 +107,7 @@ type AsyncRunResponse struct {
 type CreateRunPayload struct {
 	ThreadID string        `json:"thread_id"`
 	Input    []ChatMessage `json:"input"`
+	AgentID  string        `json:"agent_id"`
 }
 
 // RunStatusResponse represents the response for the /{rid}/status route.

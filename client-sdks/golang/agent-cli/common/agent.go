@@ -2,7 +2,8 @@ package common
 
 import (
 	"fmt"
-	AgentServer "github.com/Sema4AI/agent-client-go/pkg/client"
+
+	AgentServer "github.com/Sema4AI/agent-platform/client-sdks/golang/agent-client-go/pkg/client"
 )
 
 type AgentKnowledge struct {

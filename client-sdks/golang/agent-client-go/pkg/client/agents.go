@@ -44,6 +44,11 @@ type AgentActionPackage struct {
 	AdditionalHeaders map[string]string `json:"additional_headers"`
 }
 
+type McpServer struct {
+	Name string `json:"name"`
+	URL  string `json:"url"`
+}
+
 const (
 	ConversationalMode AgentMode = "conversational"
 	WorkerMode         AgentMode = "worker"
@@ -73,6 +78,7 @@ type Agent struct {
 	Model          AgentModel           `json:"model"`
 	AdvancedConfig AgentAdvancedConfig  `json:"advanced_config"`
 	ActionPackages []AgentActionPackage `json:"action_packages"`
+	McpServers     []McpServer          `json:"mcp_servers"`
 	UpdatedAt      time.Time            `json:"updated_at"`
 	Metadata       AgentMetadata        `json:"metadata"`
 	Files          []AgentFile          `json:"files"`
@@ -106,6 +112,7 @@ type AgentCreatePayload struct {
 	Model          AgentModel           `json:"model"`
 	AdvancedConfig AgentAdvancedConfig  `json:"advanced_config"`
 	ActionPackages []AgentActionPackage `json:"action_packages"`
+	McpServers     []McpServer          `json:"mcp_servers"`
 	Metadata       AgentMetadata        `json:"metadata"`
 }
 

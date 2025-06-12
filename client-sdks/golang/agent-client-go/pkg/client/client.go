@@ -13,7 +13,7 @@ import (
 	"strings"
 	"sync"
 
-	agentErr "github.com/Sema4AI/agent-platform/agent-client-go/pkg/error"
+	agentErr "github.com/Sema4AI/agent-platform/client-sdks/golang/agent-client-go/pkg/error"
 )
 
 // Client is the main entrypoint for interacting with the Sema4.ai Agent Server API.
@@ -41,7 +41,7 @@ func (c *Client) CreateAgentViaPackage(req AgentPayloadPackage) (*Agent, error) 
 		return nil, agentErr.NewAgentError(fmt.Errorf("failed to marshal request: %w", err), http.StatusBadRequest)
 	}
 
-	resp, err := c.post("/api/v1/agents/package", bytes.NewBuffer(jsonData))
+	resp, err := c.post("/api/v2/agents/package", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, agentErr.NewAgentError(fmt.Errorf("failed to create agent: %w", err), http.StatusInternalServerError)
 	}
@@ -69,7 +69,7 @@ func (c *Client) UpdateAgentViaPackage(agentID string, req AgentPayloadPackage) 
 		return nil, agentErr.NewAgentError(fmt.Errorf("failed to marshal request: %w", err), http.StatusBadRequest)
 	}
 
-	resp, err := c.put(fmt.Sprintf("/api/v1/agents/package/%s", agentID), bytes.NewBuffer(jsonData))
+	resp, err := c.put(fmt.Sprintf("/api/v2/agents/package/%s", agentID), bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, agentErr.NewAgentError(fmt.Errorf("failed to update agent: %w", err), http.StatusInternalServerError)
 	}
@@ -98,7 +98,7 @@ func (c *Client) CreateAgent(req AgentCreatePayload) (*Agent, error) {
 		return nil, agentErr.NewAgentError(fmt.Errorf("failed to marshal request: %w", err), http.StatusBadRequest)
 	}
 
-	resp, err := c.post("/api/v1/agents", bytes.NewBuffer(jsonData))
+	resp, err := c.post("/api/v2/agents/", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, agentErr.NewAgentError(fmt.Errorf("failed to create agent: %w", err), http.StatusInternalServerError)
 	}
@@ -120,7 +120,7 @@ func (c *Client) CreateAgent(req AgentCreatePayload) (*Agent, error) {
 
 // DeleteAgent deletes an agent given an `agentID`.
 func (c *Client) DeleteAgent(agentID string) error {
-	resp, err := c.delete(fmt.Sprintf("/api/v1/agents/%s", agentID))
+	resp, err := c.delete(fmt.Sprintf("/api/v2/agents/%s", agentID))
 	if err != nil {
 		return agentErr.NewAgentError(fmt.Errorf("failed to delete agent: %w", err), http.StatusInternalServerError)
 	}
@@ -174,9 +174,9 @@ func (c *Client) GetAgentsWithFiles(agentIDs []string, raw bool) ([]Agent, error
 func (c *Client) GetAgent(agentID string, raw bool) (*Agent, error) {
 	var url string
 	if raw {
-		url = fmt.Sprintf("%s/api/v1/agents/%s/raw", c.BaseURL, agentID)
+		url = fmt.Sprintf("%s/api/v2/agents/%s/raw", c.BaseURL, agentID)
 	} else {
-		url = fmt.Sprintf("%s/api/v1/agents/%s", c.BaseURL, agentID)
+		url = fmt.Sprintf("%s/api/v2/agents/%s", c.BaseURL, agentID)
 	}
 
 	var agent Agent
@@ -191,9 +191,9 @@ func (c *Client) GetAgent(agentID string, raw bool) (*Agent, error) {
 func (c *Client) GetAgents(raw bool) (*[]Agent, error) {
 	var url string
 	if raw {
-		url = fmt.Sprintf("%s/api/v1/agents/raw", c.BaseURL)
+		url = fmt.Sprintf("%s/api/v2/agents/raw", c.BaseURL)
 	} else {
-		url = fmt.Sprintf("%s/api/v1/agents/", c.BaseURL)
+		url = fmt.Sprintf("%s/api/v2/agents/", c.BaseURL)
 	}
 	var agents []Agent
 	err := c.get(url, &agents)
@@ -210,7 +210,7 @@ func (c *Client) CreateThread(req ThreadRequest) (*Thread, error) {
 		return nil, agentErr.NewAgentError(fmt.Errorf("failed to marshal request: %w", err), http.StatusBadRequest)
 	}
 
-	resp, err := c.post("/api/v1/threads", bytes.NewBuffer(jsonData))
+	resp, err := c.post("/api/v2/threads/", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, agentErr.NewAgentError(fmt.Errorf("failed to create thread: %w", err), http.StatusInternalServerError)
 	}
@@ -235,7 +235,7 @@ func (c *Client) CreateThread(req ThreadRequest) (*Thread, error) {
 
 // DeleteThread deletes a thread given its ID.
 func (c *Client) DeleteThread(id string) error {
-	resp, err := c.delete(fmt.Sprintf("/api/v1/threads/%s", id))
+	resp, err := c.delete(fmt.Sprintf("/api/v2/threads/%s", id))
 	if err != nil {
 		return agentErr.NewAgentError(fmt.Errorf("failed to delete thread: %w", err), http.StatusInternalServerError)
 	}
@@ -249,7 +249,7 @@ func (c *Client) DeleteThread(id string) error {
 
 // GetThread gets the details of a given thread ID.
 func (c *Client) GetThread(threadID string) (*Thread, error) {
-	url := fmt.Sprintf("%s/api/v1/threads/%s", c.BaseURL, threadID)
+	url := fmt.Sprintf("%s/api/v2/threads/%s", c.BaseURL, threadID)
 	var thread Thread
 
 	err := c.get(url, &thread)
@@ -262,7 +262,7 @@ func (c *Client) GetThread(threadID string) (*Thread, error) {
 
 // GetThreads returns all known threads.
 func (c *Client) GetThreads() (*[]Thread, error) {
-	url := fmt.Sprintf("%s/api/v1/threads/", c.BaseURL)
+	url := fmt.Sprintf("%s/api/v2/threads/", c.BaseURL)
 	var threads []Thread
 
 	err := c.get(url, &threads)
@@ -275,7 +275,7 @@ func (c *Client) GetThreads() (*[]Thread, error) {
 
 // GetThreadState retrieves the state (history) of a given thread.
 func (c *Client) GetThreadState(threadID string) (*ThreadState, error) {
-	url := fmt.Sprintf("%s/api/v1/threads/%s/state", c.BaseURL, threadID)
+	url := fmt.Sprintf("%s/api/v2/threads/%s/state", c.BaseURL, threadID)
 	var state ThreadState
 
 	err := c.get(url, &state)
@@ -293,7 +293,7 @@ func (c *Client) Invoke(req StreamRequest) (*ThreadState, error) {
 		return nil, agentErr.NewAgentError(fmt.Errorf("failed to marshal request: %w", err), http.StatusBadRequest)
 	}
 
-	resp, err := c.post("/api/v1/runs/invoke", bytes.NewBuffer(jsonData))
+	resp, err := c.post("/api/v2/runs/invoke", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, agentErr.NewAgentError(fmt.Errorf("failed to invoke: %w", err), http.StatusInternalServerError)
 	}
@@ -316,6 +316,35 @@ func (c *Client) Invoke(req StreamRequest) (*ThreadState, error) {
 	return &state, nil
 }
 
+func (c *Client) InvokeAsyncV2(agentID string, payload CreateRunPayload) (*AsyncRunResponse, error) {
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		return nil, agentErr.NewAgentError(fmt.Errorf("failed to marshal payload: %w", err), http.StatusBadRequest)
+	}
+
+	resp, err := c.post(fmt.Sprintf("/api/v2/runs/%s/async", agentID), bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, agentErr.NewAgentError(fmt.Errorf("failed to invoke async: %w", err), http.StatusInternalServerError)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, agentErr.NewAgentError(fmt.Errorf("failed to read response: %w", err), resp.StatusCode)
+	}
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusAccepted {
+		return nil, agentErr.NewAgentError(fmt.Errorf("failed to invoke async: status code %d, body: %s", resp.StatusCode, string(body)), resp.StatusCode)
+	}
+
+	var asyncResp AsyncRunResponse
+	if err := json.Unmarshal(body, &asyncResp); err != nil {
+		return nil, agentErr.NewAgentError(fmt.Errorf("failed to decode response: %w", err), http.StatusInternalServerError)
+	}
+
+	return &asyncResp, nil
+}
+
 // InvokeAsync invokes the /async_invoke route to start an async run.
 func (c *Client) InvokeAsync(payload CreateRunPayload) (*AsyncRunResponse, error) {
 	jsonData, err := json.Marshal(payload)
@@ -323,7 +352,7 @@ func (c *Client) InvokeAsync(payload CreateRunPayload) (*AsyncRunResponse, error
 		return nil, agentErr.NewAgentError(fmt.Errorf("failed to marshal payload: %w", err), http.StatusBadRequest)
 	}
 
-	resp, err := c.post("/api/v1/runs/async_invoke", bytes.NewBuffer(jsonData))
+	resp, err := c.post("/api/v2/runs/async_invoke", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, agentErr.NewAgentError(fmt.Errorf("failed to invoke async: %w", err), http.StatusInternalServerError)
 	}
@@ -348,7 +377,7 @@ func (c *Client) InvokeAsync(payload CreateRunPayload) (*AsyncRunResponse, error
 
 // GetRunStatus fetches the status of a run by its ID.
 func (c *Client) GetRunStatus(rid string) (*RunStatusResponse, error) {
-	url := fmt.Sprintf("%s/api/v1/runs/%s/status", c.BaseURL, rid)
+	url := fmt.Sprintf("%s/api/v2/runs/%s/status", c.BaseURL, rid)
 
 	var statusResp RunStatusResponse
 	if err := c.get(url, &statusResp); err != nil {
@@ -366,7 +395,7 @@ func (c *Client) Stream(req StreamRequest, listener func(message string)) error 
 		return agentErr.NewAgentError(fmt.Errorf("failed to marshal request: %w", err), http.StatusBadRequest)
 	}
 
-	resp, err := c.post("/api/v1/runs/stream", bytes.NewBuffer(jsonData))
+	resp, err := c.post("/api/v2/runs/stream", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return agentErr.NewAgentError(fmt.Errorf("failed to initiate stream: %w", err), http.StatusInternalServerError)
 	}
@@ -397,7 +426,7 @@ func (c *Client) Stream(req StreamRequest, listener func(message string)) error 
 
 // fetchFiles retrieves files associated with a specific agent.
 func (c *Client) fetchFiles(agentID string) ([]AgentFile, error) {
-	url := fmt.Sprintf("%s/api/v1/agents/%s/files", c.BaseURL, agentID)
+	url := fmt.Sprintf("%s/api/v2/agents/%s/files", c.BaseURL, agentID)
 
 	var files []AgentFile
 	if err := c.get(url, &files); err != nil {
@@ -451,7 +480,7 @@ func (c *Client) UploadFile(agentID, filePath string) error {
 		return agentErr.NewAgentError(fmt.Errorf("failed to close multipart writer: %w", err), http.StatusInternalServerError)
 	}
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/api/v1/agents/%s/files", c.BaseURL, agentID), body)
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/api/v2/agents/%s/files", c.BaseURL, agentID), body)
 	if err != nil {
 		return agentErr.NewAgentError(fmt.Errorf("failed to create request: %w", err), http.StatusInternalServerError)
 	}
@@ -501,7 +530,7 @@ func (c *Client) UpdateAgentRunbooks(agentID, systemPromptPath, retrievalPromptP
 		return agentErr.NewAgentError(fmt.Errorf("failed to marshal update data: %w", err), http.StatusInternalServerError)
 	}
 
-	resp, err := c.put(fmt.Sprintf("/api/v1/agents/%s", agentID), bytes.NewBuffer(jsonData))
+	resp, err := c.put(fmt.Sprintf("/api/v2/agents/%s", agentID), bytes.NewBuffer(jsonData))
 	if err != nil {
 		return agentErr.NewAgentError(fmt.Errorf("failed to update agent runbooks: %w", err), http.StatusInternalServerError)
 	}

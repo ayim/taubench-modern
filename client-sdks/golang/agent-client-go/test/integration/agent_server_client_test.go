@@ -10,7 +10,7 @@ import (
 	"os"
 	"testing"
 
-	acg "github.com/Sema4AI/agent-platform/agent-client-go/pkg/client"
+	acg "github.com/Sema4AI/agent-platform/client-sdks/golang/agent-client-go/pkg/client"
 	"github.com/stretchr/testify/require"
 )
 
@@ -101,6 +101,7 @@ func createBasicAgent(t *testing.T) *acg.Agent {
 	agentCounter++
 	uniqueName := fmt.Sprintf("Integration Test Agent %d", agentCounter)
 	actionPackages := []acg.AgentActionPackage{}
+	mcpServers := []acg.McpServer{}
 	payload := acg.AgentCreatePayload{
 		Name:        uniqueName,
 		Description: "This is an agent created by an integration test.",
@@ -115,8 +116,8 @@ func createBasicAgent(t *testing.T) *acg.Agent {
 			Architecture: acg.AgentKind,
 			Reasoning:    acg.ReasoningDisabled,
 		},
-
 		ActionPackages: actionPackages,
+		McpServers:     mcpServers,
 		Metadata: acg.AgentMetadata{
 			Mode: acg.ConversationalMode,
 		},

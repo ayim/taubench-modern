@@ -2,11 +2,12 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/Sema4AI/agents-spec/cli/common"
-	"github.com/google/uuid"
-	"github.com/spf13/cobra"
 	"os"
 	"path/filepath"
+
+	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/common"
+	"github.com/google/uuid"
+	"github.com/spf13/cobra"
 )
 
 func deployProject(serverURL, projectPath string) error {

@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/Sema4AI/agents-spec/cli/common"
+	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/common"
 	"github.com/Sema4AI/rcc/pathlib"
 	"github.com/spf13/cobra"
 )
