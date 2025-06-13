@@ -6,6 +6,7 @@ authors = [{ name = "Sema4.ai Engineering", email = "engineering@sema4.ai" }]
 dependencies = [
     "agent_platform_core",
     "agent_platform_architectures_default",
+    "agent_platform_workitems",
     "structlog>=24.4.0,<25.0.0",
     "uvicorn>=0.34.0,<0.35.0",
     "httpx>=0.28.1,<0.29.0",

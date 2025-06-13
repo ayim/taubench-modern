@@ -48,10 +48,10 @@ agent_platform_core = { workspace = true }
 agent_platform_architectures_default = { workspace = true }
 agent_platform_server = { workspace = true }
 agent_platform_quality = { workspace = true }
+agent_platform_workitems = { workspace = true }
 
 [tool.uv.workspace]
-members = ["architectures/default/", "core/", "server/", "quality/"]
-
+members = ["architectures/default/", "core/", "server/", "quality/", "workitems/"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
@@ -114,6 +114,7 @@ ignore = ["COM812"]
 "server/examples/**/*.ipynb" = ["PLE1142"]
 "server/tests/**/*.py" = ["PLR2004"]
 "quality/tests/**/*.py" = ["PLR2004"]
+"workitems/alembic/**/*.py" = ["ALL"] # ignore ruff for autogen code
 
 [tool.ruff.lint.isort]
 known-first-party = [
@@ -121,6 +122,7 @@ known-first-party = [
     "agent_platform.quality",
     "agent_platform.architectures.default",
     "agent_platform.server",
+    "agent_platform.workitems",
     "sema4ai.common",
 ]
 
