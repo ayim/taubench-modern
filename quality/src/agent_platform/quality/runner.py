@@ -1,0 +1,628 @@
+import asyncio
+import base64
+import json
+import os
+import shutil
+import traceback
+from http import HTTPStatus
+from pathlib import Path
+
+import httpx
+import structlog
+
+from agent_platform.quality.agent_runner import AgentRunner
+from agent_platform.quality.evaluators import EvaluatorEngine
+from agent_platform.quality.models import (
+    ActionPackageSecret,
+    AgentPackage,
+    Platform,
+    SFAuthorizationOverride,
+    TestCase,
+    ThreadResult,
+)
+from agent_platform.quality.orchestrator import QualityOrchestrator
+from agent_platform.quality.results_manager import QualityResultsManager
+
+logger = structlog.get_logger(__name__)
+
+
+class QualityTestRunner:
+    """Orchestrates quality testing with automatic infrastructure management."""
+
+    def __init__(
+        self,
+        test_threads_dir: Path,
+        test_agents_dir: Path,
+        server_url: str = "http://localhost:8000",
+        datadir: Path | None = None,
+    ):
+        self.test_threads_dir = test_threads_dir
+        self.test_agents_dir = test_agents_dir
+        self.server_url = server_url
+
+        # Initialize components
+        self.orchestrator = QualityOrchestrator(server_url=server_url, data_dir=datadir)
+        self.agent_runner = AgentRunner(server_url=server_url)
+        self.evaluator = EvaluatorEngine(server_url=server_url)
+
+        # Discover agents early so we can expose them to the UI
+        discovered_agents = self.discover_agents()
+
+        # Initialize results manager with the same datadir as orchestrator and discovered agents
+        self.results_manager = QualityResultsManager(self.orchestrator.data_dir, discovered_agents)
+
+    def discover_agents(self) -> list[AgentPackage]:
+        """Discover available agent packages."""
+        logger.info(f"Discovering agents in {self.test_agents_dir}")
+
+        agents = []
+        for zip_path in self.test_agents_dir.glob("*.zip"):
+            name = zip_path.stem
+            agents.append(
+                AgentPackage(
+                    name=name,
+                    path=self.test_agents_dir / name,  # May not exist
+                    zip_path=zip_path,
+                )
+            )
+
+        logger.info(f"Found {len(agents)} agent packages")
+        return agents
+
+    def discover_test_cases(self, agent_name: str | None = None) -> list[TestCase]:
+        """Discover test cases, optionally filtered by agent name."""
+        logger.info(f"Discovering test cases in {self.test_threads_dir}")
+
+        test_cases = []
+
+        for test_dir in self.test_threads_dir.iterdir():
+            if test_dir.is_dir():
+                # If agent_name is specified, only look in directories that match the agent name
+                if agent_name and test_dir.name != agent_name:
+                    continue
+
+                for yml_path in test_dir.glob("*.yml"):
+                    try:
+                        test_case = TestCase.from_file(yml_path)
+                        test_cases.append(test_case)
+                    except Exception as e:
+                        logger.warning(f"Failed to load test case {yml_path}: {e}")
+
+        logger.info(f"Found {len(test_cases)} test cases")
+        return test_cases
+
+    async def update_agent_platform_config(self, agent_id: str, platform: Platform) -> None:
+        """Update an agent's platform configuration to use the specified platform."""
+        logger.info(f"Updating agent {agent_id} to use platform: {platform.name}")
+
+        # Get the current agent configuration
+        async with httpx.AsyncClient() as client:
+            response = await client.get(f"{self.server_url}/api/v2/agents/{agent_id}/raw")
+            response.raise_for_status()
+            agent_data = response.json()
+
+            # Create proper UpsertAgentPayload structure
+            platform_config = platform.as_platform_config()
+
+            # Fix action packages to ensure api_key is properly formatted
+            action_packages = []
+            for pkg in agent_data["action_packages"]:
+                fixed_pkg = pkg.copy()
+                # Convert api_key string to SecretString format if it's a string
+                if "api_key" in fixed_pkg and isinstance(fixed_pkg["api_key"], str):
+                    fixed_pkg["api_key"] = {"value": fixed_pkg["api_key"]}
+                action_packages.append(fixed_pkg)
+
+            update_payload = {
+                "name": agent_data["name"],
+                "description": agent_data["description"],
+                "version": agent_data["version"],
+                "user_id": agent_data["user_id"],
+                "platform_configs": [platform_config],
+                "agent_architecture": agent_data["agent_architecture"],
+                "structured_runbook": agent_data["runbook_structured"],  # Note: field name change
+                "action_packages": action_packages,
+                "mcp_servers": agent_data["mcp_servers"],
+                "question_groups": agent_data["question_groups"],
+                "observability_configs": agent_data["observability_configs"],
+                "mode": agent_data.get("mode", "conversational"),
+                "extra": agent_data.get("extra", {}),
+                "agent_id": agent_id,
+            }
+
+            # Update the agent
+            response = await client.put(
+                f"{self.server_url}/api/v2/agents/{agent_id}",
+                json=update_payload,
+            )
+
+            if response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY:
+                # Log the detailed validation error
+                error_detail = response.text
+                logger.error(f"Validation error (422) when updating agent: {error_detail}")
+
+            response.raise_for_status()
+
+        logger.info(f"Successfully updated agent {agent_id} platform configuration")
+
+    async def run_tests_for_all_agents_fully_parallel(  # noqa: C901 PLR0915
+        self, selected_agents: list[str], max_concurrent_agents: int = 2
+    ) -> dict[str, list[ThreadResult]]:
+        """Run tests for all agents with full parallelization (agents + platforms).
+
+        Args:
+            max_concurrent_agents: Maximum number of agents to run concurrently
+        """
+        agents = self.discover_agents()
+        if not agents:
+            logger.warning("No agent packages found")
+            self.results_manager.complete_run("No agent packages found")
+            return {}
+
+        if selected_agents:
+            agents = [agent for agent in agents if agent.name in selected_agents]
+        if not agents:
+            logger.warning("No agents found after filtering by selected_agents")
+            self.results_manager.complete_run("No agents found after filtering by selected_agents")
+            return {}
+
+        logger.info(
+            f"Starting fully parallel execution for {len(agents)} agents "
+            f"(max {max_concurrent_agents} concurrent)"
+        )
+
+        results = {}
+        overall_error = None
+        infrastructure_started = False
+        action_server_pool_started = False
+
+        try:
+            # Start shared infrastructure
+            logger.info("Starting shared infrastructure for all agents")
+            await self.orchestrator.start_infrastructure()
+            infrastructure_started = True
+
+            # Start action server pool for all agents in parallel
+            logger.info("Starting action server pool for all agents")
+            action_server_urls = await self.orchestrator.start_action_server_pool(agents)
+            action_server_pool_started = True
+
+            # Create semaphore to limit concurrent agents
+            semaphore = asyncio.Semaphore(max_concurrent_agents)
+
+            async def run_agent_with_semaphore(
+                agent: AgentPackage,
+            ) -> tuple[str, list[ThreadResult]]:
+                """Run a single agent with semaphore protection."""
+                async with semaphore:
+                    try:
+                        logger.info(f"Starting parallel execution for agent: {agent.name}")
+                        action_server_url = action_server_urls.get(agent.name, "")
+
+                        agent_results = await self._run_agent_fully_parallel(
+                            agent, action_server_url
+                        )
+                        logger.info(
+                            f"Completed agent: {agent.name} with {len(agent_results)} results"
+                        )
+                        return agent.name, agent_results
+
+                    except Exception as e:
+                        logger.error(f"Failed to run tests for agent {agent.name}: {e}")
+                        return agent.name, []
+
+            # Run all agents in parallel (with semaphore limiting concurrency)
+            tasks = [run_agent_with_semaphore(agent) for agent in agents]
+            agent_results = await asyncio.gather(*tasks, return_exceptions=True)
+
+            # Process results
+            for result in agent_results:
+                if isinstance(result, Exception):
+                    logger.error(f"Agent execution failed with exception: {result}")
+                    if overall_error is None:
+                        overall_error = f"Agent execution failed: {result}"
+                elif isinstance(result, tuple) and len(result) == 2:  # noqa: PLR2004
+                    agent_name, test_results = result
+                    results[agent_name] = test_results
+                else:
+                    logger.error(f"Unexpected result type: {type(result)}")
+
+            # Mark run as complete
+            self.results_manager.complete_run(overall_error)
+            return results
+
+        except Exception as e:
+            logger.error(f"Failed to run tests for all agents in parallel: {e}")
+            self.results_manager.complete_run(str(e))
+            raise
+
+        finally:
+            # Stop action server pool
+            if action_server_pool_started:
+                logger.info("Stopping action server pool")
+                await self.orchestrator.stop_action_server_pool()
+
+            # Stop shared infrastructure
+            if infrastructure_started:
+                logger.info("Stopping shared infrastructure")
+                await self.orchestrator.stop_infrastructure()
+
+    async def _run_agent_fully_parallel(  # noqa: C901 PLR0912
+        self, agent_package: AgentPackage, action_server_url: str
+    ) -> list[ThreadResult]:
+        """Run all tests for a single agent with full parallelization."""
+        logger.info(f"Running agent tests (fully parallel): {agent_package.name}")
+
+        try:
+            # Discover test cases for this agent
+            test_cases = self.discover_test_cases(agent_package.name)
+            if not test_cases:
+                logger.warning(f"No test cases found for agent {agent_package.name}")
+                return []
+
+            # Collect all unique platforms across all test cases
+            all_platforms = set()
+            for test_case in test_cases:
+                all_platforms.update(test_case.target_platforms)
+            all_platforms = list(all_platforms)
+
+            logger.info(f"Creating agent variants for platforms: {[p.name for p in all_platforms]}")
+
+            # Upload agent variants (one per platform)
+            platform_agent_ids = await self.orchestrator.upload_agent_with_platform_variants(
+                agent_package.zip_path, all_platforms, action_server_url
+            )
+
+            # Update the platform config for each agent
+            for platform_name, agent_id in platform_agent_ids.items():
+                platform = next((p for p in all_platforms if p.name == platform_name), None)
+                if platform:
+                    await self.update_agent_platform_config(agent_id, platform)
+
+            # Initialize agent testing in results manager
+            self.results_manager.start_agent_testing(agent_package, test_cases)
+
+            # Run each test case with all its platforms in parallel
+            # (But we are _sequential_ at the level of a test case!!)
+            all_results = []
+            for test_case in test_cases:
+                logger.info(
+                    f"Running test case: {test_case.thread.name} "
+                    f"across {len(test_case.target_platforms)} platforms in parallel"
+                )
+
+                # Update sf-auth.json if sf-auth-override is present (one time)
+                # There's some tricky concurrency stuff here... we probably need to LOCK
+                # so that only one agent can update sf-auth.json at a time. (Or find a way
+                # to pass this information scoped to the agent... but that might be essentially
+                # impossible given how our platform is architected.)
+                if test_case.sf_auth_override:
+                    self._update_sf_auth_json(test_case.sf_auth_override)
+
+                # Create tasks for all platforms for this test case
+                platform_tasks = []
+                for platform in test_case.target_platforms:
+                    agent_id = platform_agent_ids[platform.name]
+
+                    # Update the secrets on the action server for this agent and test case
+                    await self.update_action_secrets(
+                        agent_id,
+                        test_case.action_secrets,
+                        action_server_url,
+                    )
+
+                    # Start test tracking (sequential to avoid race conditions)
+                    self.results_manager.start_test(agent_package.name, test_case, platform)
+
+                    # Create the async task for this platform
+                    task = self._run_test_case_on_platform(agent_id, test_case, platform)
+                    platform_tasks.append(task)
+
+                # Run all platforms for this test case in parallel
+                try:
+                    test_results = await asyncio.gather(*platform_tasks, return_exceptions=True)
+
+                    # Process results and handle any exceptions
+                    for i, result in enumerate(test_results):
+                        if isinstance(result, Exception):
+                            # Handle exceptions from parallel execution
+                            platform = test_case.target_platforms[i]
+                            logger.error(
+                                f"Test case failed: {test_case.file_path} "
+                                f"on platform {platform.name}",
+                                error=str(result),
+                            )
+                            error_result = ThreadResult(
+                                test_case=test_case,
+                                platform=platform,
+                                agent_messages=[],
+                                evaluation_results=[],
+                                success=False,
+                                error=str(result),
+                            )
+                            all_results.append(error_result)
+                            self.results_manager.complete_test(agent_package.name, error_result)
+                        elif isinstance(result, ThreadResult):
+                            # result is confirmed ThreadResult here
+                            all_results.append(result)
+                            self.results_manager.complete_test(agent_package.name, result)
+
+                except Exception as e:
+                    logger.error(
+                        f"Failed to execute test case {test_case.thread.name} in parallel: {e}"
+                    )
+                    # Create error results for all platforms in this test case
+                    for platform in test_case.target_platforms:
+                        error_result = ThreadResult(
+                            test_case=test_case,
+                            platform=platform,
+                            agent_messages=[],
+                            evaluation_results=[],
+                            success=False,
+                            error=str(e),
+                        )
+                        all_results.append(error_result)
+                        self.results_manager.complete_test(agent_package.name, error_result)
+
+            # Mark agent testing as complete
+            self.results_manager.complete_agent_testing(agent_package.name)
+            return all_results
+
+        except Exception as e:
+            logger.error(f"Failed to run tests for agent {agent_package.name}: {e}")
+            # Mark agent testing as failed
+            self.results_manager.complete_agent_testing(agent_package.name, str(e))
+            raise
+        finally:
+            # Restore sf-auth.json
+            self._restore_sf_auth_json()
+
+    async def update_action_secrets(  # noqa: C901 PLR0912 PLR0915
+        self,
+        agent_id: str,
+        action_secrets_from_test_case: list[ActionPackageSecret],
+        action_server_base_url: str | None = None,
+    ) -> None:
+        """Update the action secrets for an agent."""
+        logger.info(f"Updating action secrets for agent {agent_id}")
+
+        if not action_secrets_from_test_case:
+            logger.debug("No action secrets defined in the test case to update.")
+            return
+
+        for package_secret_config in action_secrets_from_test_case:
+            package_name = package_secret_config.name
+            logger.info(f"Processing secrets for package: {package_name} on agent {agent_id}")
+
+            action_server_base_url = (
+                action_server_base_url
+                if action_server_base_url
+                else self.orchestrator.action_server_url
+            )
+
+            if not action_server_base_url:
+                logger.warning(
+                    f"No action server base URL found for agent {agent_id}. "
+                    "Skipping secrets update."
+                )
+                continue
+
+            secrets_endpoint = f"{action_server_base_url.rstrip('/')}/api/secrets"
+
+            secrets_to_set_for_package = {}
+            try:
+                for action_config in package_secret_config.actions:
+                    for secret_item in action_config.secrets:
+                        value = secret_item.value
+                        if isinstance(value, str) and value.startswith("$"):
+                            env_var_name = value[1:]
+                            env_value = os.getenv(env_var_name)
+                            if env_value is None:
+                                logger.error(
+                                    f"Environment variable '{env_var_name}' for secret "
+                                    f"'{secret_item.name}' in package '{package_name}' "
+                                    "is not set."
+                                )
+                                raise ValueError(
+                                    f"Environment variable '{env_var_name}' not set, "
+                                    f"required for secret '{secret_item.name}' "
+                                    f"in package '{package_name}'."
+                                )
+                            value = env_value
+                        secrets_to_set_for_package[secret_item.name] = value
+            except ValueError as e:  # Catches the missing env var error
+                logger.error(
+                    f"Failed to prepare secrets for package '{package_name}' on "
+                    f"agent {agent_id}: {e}"
+                )
+                continue  # to the next package_secret_config
+
+            if not secrets_to_set_for_package:
+                logger.info(
+                    f"No secrets to set for package '{package_name}' on "
+                    f"agent {agent_id} after processing."
+                )
+                continue
+
+            payload_data_dict = {
+                "secrets": secrets_to_set_for_package,
+                "scope": {"action-package": package_name},
+            }
+
+            payload_data_json_str = json.dumps(payload_data_dict)
+            ctx_info = base64.b64encode(payload_data_json_str.encode("utf-8")).decode("utf-8")
+
+            request_body = {"data": ctx_info}
+
+            try:
+                logger.debug(
+                    f"Setting secrets for Action Package: {package_name} at {secrets_endpoint}",
+                )
+                post_response = None
+                async with httpx.AsyncClient() as client:
+                    post_response = await client.post(
+                        secrets_endpoint,
+                        json=request_body,
+                        headers={"Content-Type": "application/json"},
+                    )
+
+                response_text = post_response.text
+                if not post_response or post_response.status_code != HTTPStatus.OK:
+                    logger.warning(
+                        f"POST to {secrets_endpoint} for package '{package_name}' failed: "
+                        f"{post_response.status_code} - {response_text}"
+                    )
+                    continue
+
+                try:
+                    # The expected response is the JSON string "ok"
+                    if json.loads(response_text) != "ok":
+                        logger.warning(
+                            f"POST to {secrets_endpoint} for package '{package_name}' "
+                            f"returned an unexpected body: {response_text}"
+                        )
+                        continue
+                except json.JSONDecodeError:
+                    logger.warning(
+                        f"POST to {secrets_endpoint} for package '{package_name}' "
+                        f"returned non-JSON body: {response_text}"
+                    )
+                    continue
+
+                logger.info(
+                    f"Successfully set secrets for Action Package: '{package_name}' "
+                    f"at {secrets_endpoint}"
+                )
+
+            except httpx.RequestError as e:
+                logger.error(
+                    f"Request error during POST to {secrets_endpoint} for package "
+                    f"'{package_name}': {e}",
+                    exc_info=True,
+                )
+                continue
+            except Exception as e:
+                logger.error(
+                    f"Unexpected error during POST to {secrets_endpoint} for package "
+                    f"'{package_name}': {e}",
+                    exc_info=True,
+                )
+                continue
+
+    async def _run_test_case_on_platform(
+        self,
+        agent_id: str,
+        test_case: TestCase,
+        platform: Platform,
+    ) -> ThreadResult:
+        """Run a single test case on a specific platform with all setup."""
+        try:
+            # Run the test
+            result = await self._run_single_test(agent_id, test_case, platform)
+            return result
+
+        except Exception as e:
+            logger.error(
+                f"Test case failed: {test_case.file_path} on platform {platform.name}",
+                error=str(e),
+            )
+            return ThreadResult(
+                test_case=test_case,
+                platform=platform,
+                agent_messages=[],
+                evaluation_results=[],
+                success=False,
+                error=str(e),
+            )
+
+    async def _run_single_test(
+        self, agent_id: str, test_case: TestCase, platform: Platform
+    ) -> ThreadResult:
+        """Run a single test case on a specific platform."""
+        logger.info(f"Running test: {test_case.thread.name} on platform: {platform.name}")
+
+        try:
+            # Run the conversation
+            agent_messages = await self.agent_runner.run_test_case(agent_id, test_case)
+
+            # Run evaluations
+            evaluation_results = []
+            for evaluation in test_case.evaluations:
+                try:
+                    result = await self.evaluator.evaluate(evaluation, agent_messages)
+                    evaluation_results.append(result)
+                except Exception as e:
+                    logger.error(f"Evaluation failed: {evaluation.kind}", error=str(e))
+                    # Continue with other evaluations
+
+            # Determine overall success
+            success = all(result.passed for result in evaluation_results)
+
+            return ThreadResult(
+                test_case=test_case,
+                platform=platform,
+                agent_messages=agent_messages,
+                evaluation_results=evaluation_results,
+                success=success,
+            )
+
+        except Exception as e:
+            logger.error(
+                f"Test execution failed: {test_case.thread.name} on platform: {platform.name}\n",
+                f"Error: {e!s}\n",
+                f"Traceback:\n{traceback.format_exc()}",
+            )
+
+            return ThreadResult(
+                test_case=test_case,
+                platform=platform,
+                agent_messages=[],
+                evaluation_results=[],
+                success=False,
+                error=str(e),
+            )
+
+    def _update_sf_auth_json(self, sf_auth_override: SFAuthorizationOverride) -> None:
+        """Update sf-auth.json with the given override."""
+        try:
+            # Create a backup of the current sf-auth.json
+            # (if an existing backup is NOT already present)
+            backup_path = Path.home() / ".sema4ai" / "sf-auth-backup.json"
+            if not backup_path.exists():
+                shutil.copy(Path.home() / ".sema4ai" / "sf-auth.json", backup_path)
+        except Exception as e:
+            logger.error(f"Failed to create sf-auth.json backup: {e!s}")
+            logger.warning("Will not override sf-auth.json")
+            return
+
+        # Create a new sf-auth.json with the override
+        try:
+            with open(Path.home() / ".sema4ai" / "sf-auth.json", "w") as f:
+                json.dump(
+                    {
+                        "linkingDetails": {
+                            "account": sf_auth_override.account,
+                            "privateKeyPath": sf_auth_override.private_key_path,
+                            "privateKeyPassphrase": sf_auth_override.private_key_passphrase,
+                            "user": sf_auth_override.user,
+                            "role": sf_auth_override.role,
+                            "authenticator": "SNOWFLAKE_JWT",
+                            "applicationUrl": "",
+                        }
+                    },
+                    f,
+                )
+        except Exception as e:
+            logger.error(f"Failed to override sf-auth.json: {e!s}")
+            return
+
+    def _restore_sf_auth_json(self) -> None:
+        """Restore sf-auth.json to the original state."""
+        # Look for a sf-auth-backup.json file in the ~/.sema4ai directory
+        # and if it's present, move it back to sf-auth.json
+        try:
+            backup_path = Path.home() / ".sema4ai" / "sf-auth-backup.json"
+            if backup_path.exists():
+                backup_path.rename(Path.home() / ".sema4ai" / "sf-auth.json")
+        except Exception as e:
+            logger.error(f"Failed to restore sf-auth.json: {e!s}")

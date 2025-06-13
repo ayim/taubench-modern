@@ -1,0 +1,334 @@
+# Quality Testing Framework
+
+A comprehensive testing framework for evaluating AI agent performance across multiple platforms and scenarios. This tool provides both a command-line interface and a web dashboard for running quality tests, analyzing results, and ensuring consistent agent behavior across different LLM providers.
+
+![Quality Testing Dashboard](docs/quality-ui-example.png)
+
+## 🎯 Overview
+
+The Quality Testing Framework enables you to:
+
+- **Test agents across multiple platforms** (OpenAI, Azure, Bedrock, Cortex, Groq, Google)
+- **Run automated evaluations** using LLM-based assessments, message counting, and tool call validation
+- **Monitor test progress** through a real-time web dashboard
+- **Generate comprehensive reports** with platform-specific analysis
+- **Validate agent consistency** across different LLM providers
+
+## 🚀 Quick Start
+
+### Installation
+
+From the root of the monorepo:
+
+```bash
+make sync
+```
+
+This installs the `quality-test` command globally.
+
+### Basic Usage
+
+1. **Start the agent server** (required for testing):
+
+   ```bash
+   # Hit F5 in Cursor or VSCode with the Debug Server
+   # target selected!
+   ```
+
+2. **Check server connectivity**:
+
+   ```bash
+   quality-test check-server
+   ```
+
+3. **Run all tests**:
+
+   ```bash
+   quality-test run
+   ```
+
+4. **Launch the web dashboard** (optional):
+   ```bash
+   cd quality/ui
+   npm i
+   npm run dev
+   ```
+
+## 📊 Web Dashboard
+
+The web dashboard provides a real-time view of test execution with:
+
+- **Live test progress** tracking across all agents
+- **Platform-specific results** showing how agents perform on different LLM providers
+- **Detailed evaluation reports** with pass/fail status and explanations
+- **Agent performance metrics** and success rates
+- **Interactive filtering** by agent or platform
+
+Access the dashboard at `http://localhost:5173` when running the UI locally.
+
+## 🏗️ Architecture
+
+### Directory Structure
+
+```
+quality/
+├── docs/                       # Documentation and images
+│   └── quality-ui-example.png
+├── src/                        # Python source code
+│   └── agent_platform/
+│       └── quality/
+│           ├── cli.py          # Command-line interface
+│           ├── runner.py       # Test execution engine
+│           ├── orchestrator.py # Multi-platform orchestration
+│           ├── evaluators.py   # Evaluation implementations
+│           ├── reporter.py     # Result reporting
+│           └── models.py       # Data models
+├── test-agents/                # Agent packages (.zip files)
+│   ├── 001-quality-basic-browsing.zip
+│   ├── 002-snowflake-cortex-analyst.zip
+│   └── 003-call-center-planner.zip
+├── test-threads/               # Test definitions
+│   ├── 001-quality-basic-browsing/
+│   ├── 002-snowflake-cortex-analyst/
+│   └── 003-call-center-planner/
+└── ui/                         # React web dashboard
+    ├── src/
+    ├── package.json
+    └── ...
+```
+
+### Core Components
+
+- **Runner**: Executes tests across multiple platforms concurrently
+- **Orchestrator**: Manages agent deployment and thread execution
+- **Evaluators**: Implements different evaluation strategies (LLM, counting, tool calls)
+- **Reporter**: Generates reports in multiple formats (CLI, JSON, web)
+- **Dashboard**: Real-time web interface for monitoring and analysis
+
+## 📝 Test Definition Format
+
+Tests are defined in YAML files with a specific structure:
+
+```yaml
+thread:
+  - name: example-test
+    description: 'Test description'
+    messages:
+      - role: user
+        content: |
+          Your test message content here
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: cortex
+  - name: groq
+  - name: google
+
+evaluations:
+  - kind: llm-eval-of-last-agent-turn
+    expected: |
+      The agent should respond professionally and helpfully.
+      The response should be accurate and well-formatted.
+    description: 'Evaluate response quality'
+
+  - kind: count-messages-in-last-agent-turn
+    expected: 2
+    description: 'Agent should send exactly 2 messages'
+
+  - kind: tool-call-evaluation
+    expected:
+      calls: BrowseTool
+      expected-args:
+        url: 'https://example.com'
+    description: 'Verify correct tool usage'
+```
+
+### Supported Platforms
+
+| Platform  | Description           | Environment Variables                                              |
+| --------- | --------------------- | ------------------------------------------------------------------ |
+| `openai`  | OpenAI GPT models     | `OPENAI_API_KEY`                                                   |
+| `azure`   | Azure OpenAI          | `AZURE_API_KEY`, `AZURE_ENDPOINT_URL`, `AZURE_DEPLOYMENT_NAME`     |
+| `bedrock` | Amazon Bedrock        | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION` |
+| `cortex`  | Snowflake Cortex      | (Uses Snowflake auth)                                              |
+| `groq`    | Groq (fast inference) | `GROQ_API_KEY`                                                     |
+| `google`  | Google Gemini         | `GOOGLE_API_KEY`                                                   |
+
+### Evaluation Types
+
+1. **`llm-eval-of-last-agent-turn`**: Uses GPT-4.1 to evaluate response quality against criteria
+2. **`count-messages-in-last-agent-turn`**: Counts messages in the agent's response
+3. **`tool-call-evaluation`**: Validates tool usage and parameters
+
+## 🔧 Command Reference
+
+### Core Commands
+
+```bash
+# Check server status
+quality-test check-server
+
+# List available agents
+quality-test list-agents
+
+# List test cases (all or for specific agent)
+quality-test list-tests [AGENT_NAME]
+
+# Run tests
+quality-test run [AGENT_NAME]
+```
+
+### Advanced Options
+
+```bash
+# Run with detailed output
+quality-test run --detailed
+
+# Generate platform-focused summary
+quality-test run --platform-summary
+
+# Save results to JSON
+quality-test run --output results.json
+
+# Custom server URL
+quality-test --server-url http://staging.example.com:8000 run
+
+# Verbose logging
+quality-test --verbose run
+
+# Limit concurrent agents
+quality-test run --max-agents 3
+```
+
+### Global Options
+
+- `--server-url`: Override agent server URL (default: `http://localhost:8000`)
+- `--test-threads-dir`: Directory containing test definitions (default: `quality/test-threads`)
+- `--test-agents-dir`: Directory containing agent packages (default: `quality/test-agents`)
+- `--verbose, -v`: Enable detailed logging
+
+## 📊 Reporting
+
+### CLI Reports
+
+The framework provides several reporting formats:
+
+```bash
+# Standard report (organized by agent)
+quality-test run
+
+# Platform-focused summary
+quality-test run --platform-summary
+
+# Detailed report with full responses
+quality-test run --detailed
+
+# JSON output for programmatic analysis
+quality-test run --output results.json
+```
+
+### Web Dashboard
+
+The React-based dashboard offers:
+
+- Real-time test execution monitoring (polls local files from `quality/.datadir`)
+- Interactive result filtering and exploration
+- Platform performance comparisons
+- Detailed evaluation breakdowns
+- Export capabilities
+
+## 🔧 Configuration
+
+### Environment Variables
+
+Make sure you have your `.env` in the monorepo
+root setup in accordance with our normal practices.
+
+### Advanced Configuration
+
+Tests support additional configuration options:
+
+```yaml
+# Snowflake authentication override
+sf-auth-override:
+  account: $SF_ACCOUNT
+  role: $SF_ROLE
+  private_key_path: $SF_PRIVATE_KEY_PATH
+  private_key_passphrase: $SF_PRIVATE_KEY_PASSPHRASE
+  user: $SF_USER
+
+# Action secrets for agent tools
+action-secrets:
+  - name: web-actions
+    actions:
+      - name: browser-action
+        secrets:
+          - name: api_key
+            value: $BROWSER_API_KEY
+```
+
+If you use `$VARIABLE` the harness will attempt to interpolate
+that variable from the environment.
+
+## 🎯 Best Practices
+
+### Test Design
+
+1. **Keep tests focused**: Each test should verify a specific behavior
+2. **Use descriptive names**: Make test purposes clear from names and descriptions
+3. **Test across platforms**: Include multiple platforms to ensure consistency
+4. **Write clear evaluation criteria**: LLM evaluations work best with specific, measurable criteria
+
+### Platform Testing
+
+1. **Start with OpenAI**: Use as a baseline for comparison
+2. **Test incrementally**: Add platforms one at a time to identify issues
+3. **Monitor performance**: Different platforms may have varying response times
+4. **Handle failures gracefully**: Some platforms may be temporarily unavailable
+
+## 🔍 Troubleshooting
+
+### Common Issues
+
+**Server Connection Errors:**
+
+```bash
+# Check if server is running
+quality-test check-server
+
+# Verify server URL
+quality-test --server-url http://localhost:8000 check-server
+```
+
+**Missing Platform Credentials:**
+
+```bash
+# Run with verbose logging to see missing variables
+quality-test --verbose run
+```
+
+**Test Failures:**
+
+```bash
+# Run with detailed output to see agent responses
+quality-test run --detailed
+
+# Focus on specific agent
+quality-test run specific-agent-name --detailed
+```
+
+### Debugging
+
+We have a handy `Debug Quality CLI` target for use
+with VSCode and Cursor.
+
+## 🚀 Development
+
+### Adding New Evaluators
+
+1. Implement the evaluator in `src/agent_platform/quality/evaluators.py`
+2. Add the evaluation kind to the `evaluate` method switch
+3. Update test YAML files to use the new evaluator
+4. Add documentation and examples

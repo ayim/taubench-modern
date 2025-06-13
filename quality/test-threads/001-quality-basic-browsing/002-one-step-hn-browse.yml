@@ -1,0 +1,29 @@
+thread:
+  - name: one-step-browse
+    description: 'One step browse'
+    messages:
+      - role: user
+        content: |
+          Could you get me the top stories on Hacker News today?
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: cortex
+  # - name: google
+
+evaluations:
+  - kind: llm-eval-of-last-agent-turn
+    expected: |
+      The agent should have succintly replied with confirmation that it'll browse hackernews.
+      That first agent message should have made the necessary tool call to browse hackernews.
+      The second agent message should have listed the top stories (ideally at least 5 of them).
+      The stories should be formatted nicely with titles (and perhaps links to the stories).
+
+  - kind: llm-eval-of-last-agent-turn
+    expected: |
+      The agent should have made at least one tool call to browse hackernews.
+      This tool call should have had a reasonable url and, if for some reason it failed,
+      the agent should've tried at least one more time.
+      The agent should not loop indefinitely if the tool call fails.

@@ -47,14 +47,15 @@ python-preference = "only-managed"
 agent_platform_core = { workspace = true }
 agent_platform_architectures_default = { workspace = true }
 agent_platform_server = { workspace = true }
+agent_platform_quality = { workspace = true }
 
 [tool.uv.workspace]
-members = ["architectures/default/", "core/", "server/"]
+members = ["architectures/default/", "core/", "server/", "quality/"]
 
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
-testpaths = ["core/tests", "server/tests"]
+testpaths = ["core/tests", "server/tests", "quality/tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -112,10 +113,12 @@ ignore = ["COM812"]
 "architectures/*/tests/**/*.py" = ["PLR2004"]
 "server/examples/**/*.ipynb" = ["PLE1142"]
 "server/tests/**/*.py" = ["PLR2004"]
+"quality/tests/**/*.py" = ["PLR2004"]
 
 [tool.ruff.lint.isort]
 known-first-party = [
     "agent_platform.core",
+    "agent_platform.quality",
     "agent_platform.architectures.default",
     "agent_platform.server",
     "sema4ai.common",

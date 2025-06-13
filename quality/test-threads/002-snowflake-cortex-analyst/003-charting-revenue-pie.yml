@@ -1,0 +1,53 @@
+thread:
+  - name: charting-revenue-pie
+    description: 'Charting Revenue Pie'
+    messages:
+      - role: user
+        content: |
+          Can you build me a pie chart of the revenue per product for the 5 highest revenue products?
+          Bin all the other products into an "Other" category.
+          For this request, no need to ask my permission to execute the SQL!! Go ahead and execute, I just
+          want to see the chart.
+
+# We need these to be set on the action server for actions
+# to actually run...
+action-secrets:
+  - name: Snowflake Cortex Analyst
+    actions:
+      - name: ask_cortex_analyst
+        secrets:
+          - name: semantic_model_file
+            value: '@CORTEX_ANALYST_DEMO.REVENUE_TIMESERIES.RAW_DATA/revenue_timeseries.yaml'
+      - name: snowflake_execute_query
+        secrets:
+          - name: warehouse
+            value: COMPUTE_WH
+          - name: database
+            value: CORTEX_ANALYST_DEMO
+          - name: schema
+            value: REVENUE_TIMESERIES
+
+# We need the ~/.sema4ai/sf-auth.json to be overridden with the following
+# for this test scenario to work.
+sf-auth-override:
+  account: ZVZWMYO-HP00956
+  role: ACCOUNTADMIN
+  private_key_path: $CORTEX_HP00956_PRIVATE_KEY_PATH
+  private_key_passphrase: $CORTEX_HP00956_PRIVATE_KEY_PASSPHRASE
+  user: $CORTEX_HP00956_USER
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: cortex
+  # - name: google
+
+evaluations:
+  - kind: llm-eval-of-last-agent-turn
+    expected: |
+      The agent should invoke the `ask_cortex_analyst` action to
+      help generate SQL. Then the agent should execute the SQL. Finally,
+      the agent should produce a vega or vega-lite chart with embedded
+      data to render the pie chart for the user. (The agent's environment
+      supports charting via vega-lite.)

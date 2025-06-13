@@ -32,7 +32,9 @@ class ActionServerProcess(BootstrapBase):
     def datadir(self) -> Path:
         return self._datadir
 
-    def import_action_package(self, action_package_path: Path, *, logs_dir: Path) -> None:
+    def import_action_package(
+        self, action_package_path: Path, *, logs_dir: Path, db_file: str = "db.sqlite"
+    ) -> None:
         import os
 
         from sema4ai.common.process import Process
@@ -48,6 +50,7 @@ class ActionServerProcess(BootstrapBase):
         args.append("import")
         args.append(f"--dir={action_package_path.as_posix()}")
         args.append(f"--datadir={self._datadir.as_posix()}")
+        args.append(f"--db-file={db_file}")
         process = Process(args)
 
         stdout_file = logs_dir / "action-server-import-stdout.log"

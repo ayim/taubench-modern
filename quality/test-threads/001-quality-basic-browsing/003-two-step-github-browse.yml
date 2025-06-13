@@ -1,0 +1,28 @@
+thread:
+  - name: two-step-github-browse
+    description: 'Navigate GitHub repo to find release information'
+    messages:
+      - role: user
+        content: |
+          I want to check the latest release of the Python programming language.
+          Could you go to the official Python GitHub repository and find the latest release notes?
+          If there aren't any releases, check latest tags.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: cortex
+  # - name: google
+
+evaluations:
+  - kind: llm-eval-of-last-agent-turn
+    expected: |
+      The agent should have navigated from the main Python repository page to the releases section
+      and provided information about the latest Python release (version number, ideally).
+
+  - kind: llm-eval-of-last-agent-turn
+    expected: |
+      The agent should have made at least one tool call to browse the releases page on GitHub
+      for the Python repository. It will likely find the releases page to _not_ have the necessary
+      information and should then do a tool call to browse the latest tags.
