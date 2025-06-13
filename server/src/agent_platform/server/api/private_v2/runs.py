@@ -366,7 +366,7 @@ async def stream_run(  # noqa: C901, PLR0912, PLR0915
                 agent,
                 active_run,
                 # Include any client-provided tools in the kernel
-                client_tools=initial_payload.client_tools,
+                client_tools=[tool.to_tool_definition() for tool in initial_payload.client_tools],
             )
             ca_invoke_task = create_task(runner.invoke(kernel))
 

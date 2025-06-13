@@ -698,6 +698,112 @@ export const spec = {
         },
       },
     },
+    '/api/v2/runs/{agent_id}/sync': {
+      post: {
+        tags: ['runs'],
+        summary: 'Sync Run',
+        description:
+          'Synchronous endpoint to run a conversation with a given agent and return all events.',
+        operationId: 'sync_run_runs__agent_id__sync_post',
+        parameters: [
+          {
+            name: 'agent_id',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Agent Id',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/InitiateStreamPayload',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: {
+                    $ref: '#/components/schemas/ThreadAgentMessage',
+                  },
+                  title: 'Response Sync Run Runs  Agent Id  Sync Post',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/HTTPValidationError',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/runs/{agent_id}/async': {
+      post: {
+        tags: ['runs'],
+        summary: 'Async Run',
+        description:
+          "Asynchronous endpoint to start a run with a given agent and return an acknowledgment.\nThe client doesn't need to wait for the run to complete.",
+        operationId: 'async_run_runs__agent_id__async_post',
+        parameters: [
+          {
+            name: 'agent_id',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Agent Id',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/InitiateStreamPayload',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/HTTPValidationError',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/v2/threads/': {
       post: {
         tags: ['threads'],
@@ -3248,6 +3354,65 @@ export const spec = {
         type: 'object',
         title: 'HTTPValidationError',
       },
+      InitiateStreamPayload: {
+        properties: {
+          agent_id: {
+            type: 'string',
+            title: 'Agent Id',
+            description: 'The agent ID of the agent that created this thread.',
+          },
+          thread_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Thread Id',
+            description: 'The ID of the thread to stream against.',
+          },
+          name: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Name',
+            description: 'The name of the thread to stream against.',
+          },
+          messages: {
+            items: {
+              $ref: '#/components/schemas/ThreadMessage',
+            },
+            type: 'array',
+            title: 'Messages',
+            description: 'All messages in this thread.',
+          },
+          metadata: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Metadata',
+            description: 'Arbitrary thread-level metadata.',
+          },
+          client_tools: {
+            items: {
+              $ref: '#/components/schemas/ToolDefinitionPayload',
+            },
+            type: 'array',
+            title: 'Client Tools',
+            description:
+              'The tools attached to the payload from an external client.',
+          },
+        },
+        type: 'object',
+        required: ['agent_id'],
+        title: 'InitiateStreamPayload',
+      },
       MCPServer: {
         properties: {
           name: {
@@ -5014,6 +5179,42 @@ export const spec = {
         },
         type: 'object',
         title: 'TokenUsage',
+      },
+      ToolDefinitionPayload: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+            description: 'The name of the tool',
+          },
+          description: {
+            type: 'string',
+            title: 'Description',
+            description: 'The description of the tool',
+          },
+          input_schema: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Input Schema',
+            description: 'The schema of the tool input',
+          },
+          category: {
+            type: 'string',
+            enum: [
+              'unknown',
+              'action-tool',
+              'mcp-tool',
+              'client-exec-tool',
+              'client-info-tool',
+            ],
+            title: 'Category',
+            description: 'The category of the tool',
+            default: 'unknown',
+          },
+        },
+        type: 'object',
+        required: ['name', 'description', 'input_schema'],
+        title: 'ToolDefinitionPayload',
       },
       UploadedFile: {
         properties: {

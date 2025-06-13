@@ -4,39 +4,62 @@ from typing import Any
 from uuid import UUID, uuid4
 
 from agent_platform.core.thread import Thread, ThreadMessage
-from agent_platform.core.tools.tool_definition import ToolDefinition
+from agent_platform.core.tools.tool_definition import ToolCategory, ToolDefinition
 
 
-@dataclass
-class InitiateStreamPayload(Thread):
+@dataclass(frozen=True)
+class ToolDefinitionPayload:
+    """Represents the definition of a tool."""
+
+    name: str = field(metadata={"description": "The name of the tool"})
+    """The name of the tool"""
+
+    description: str = field(metadata={"description": "The description of the tool"})
+    """The description of the tool"""
+
+    input_schema: dict[str, Any] = field(
+        metadata={"description": "The schema of the tool input"},
+    )
+    """The schema of the tool input"""
+
+    category: ToolCategory = field(
+        metadata={"description": "The category of the tool"},
+        default="unknown",
+    )
+    """The category of the tool"""
+
+    @classmethod
+    def model_validate(cls, data: dict) -> "ToolDefinitionPayload":
+        """Validate and convert a dictionary into a ToolDefinition instance."""
+        return cls(
+            name=data["name"],
+            description=data["description"],
+            input_schema=data["input_schema"],
+            category=data.get("category", "unknown"),
+        )
+
+    def to_tool_definition(
+        self,
+    ) -> ToolDefinition:
+        return ToolDefinition(
+            category=self.category,
+            description=self.description,
+            input_schema=self.input_schema,
+            name=self.name,
+            function=lambda *a, **k: None,
+        )
+
+
+@dataclass(frozen=True)
+class InitiateStreamPayload:
     """Payload for initiating a stream against a thread."""
 
-    user_id: str = field(
-        init=False,
-        repr=False,
-        metadata={"description": "The ID of the user that owns the thread."},
+    agent_id: str = field(
+        metadata={"description": "The agent ID of the agent that created this thread."},
     )
-    """The ID of the user that owns the thread."""
+    """The agent ID of the agent that created this thread."""
 
-    created_at: datetime = field(  # type: ignore
-        init=False,
-        repr=False,
-        metadata={"description": "The time the thread was created."},
-    )
-    # Intentionally overriden without a default value (to ensure it's set
-    # in the payload)
-    """The time the thread was created."""
-
-    updated_at: datetime = field(  # type: ignore
-        init=False,
-        repr=False,
-        metadata={"description": "The time the thread was last updated."},
-    )
-    # Intentionally overriden without a default value (to ensure it's set
-    # in the payload)
-    """The time the thread was last updated."""
-
-    thread_id: str | None = field(  # type: ignore
+    thread_id: str | None = field(
         default=None,
         metadata={"description": "The ID of the thread to stream against."},
     )
@@ -50,7 +73,19 @@ class InitiateStreamPayload(Thread):
     # Intentionally overriden to be optional in the payload
     """The name of the thread to stream against."""
 
-    client_tools: list[ToolDefinition] = field(
+    messages: list[ThreadMessage] = field(
+        default_factory=list,
+        metadata={"description": "All messages in this thread."},
+    )
+    """All messages in this thread."""
+
+    metadata: dict = field(
+        default_factory=dict,
+        metadata={"description": "Arbitrary thread-level metadata."},
+    )
+    """Arbitrary thread-level metadata."""
+
+    client_tools: list[ToolDefinitionPayload] = field(
         default_factory=list,
         metadata={"description": "The tools attached to the payload from an external client."},
     )
@@ -95,7 +130,7 @@ class InitiateStreamPayload(Thread):
             created_at=datetime.now(UTC),
             updated_at=datetime.now(UTC),
             messages=payload.messages,
-            metadata={},
+            metadata=payload.metadata,
         )
 
     @classmethod
@@ -107,6 +142,6 @@ class InitiateStreamPayload(Thread):
             messages=[ThreadMessage.model_validate(message) for message in data["messages"]],
             metadata=data["metadata"] if "metadata" in data else {},
             client_tools=[
-                ToolDefinition.model_validate(tool) for tool in data.get("client_tools", [])
+                ToolDefinitionPayload.model_validate(tool) for tool in data.get("client_tools", [])
             ],
         )

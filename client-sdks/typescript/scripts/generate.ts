@@ -21,12 +21,7 @@ if (!['private', 'public'].includes(kind)) {
   process.exit(1);
 }
 
-const exclude_endpoints = [
-  '/prompts/generate',
-  '/prompts/stream',
-  '/runs/{agent_id}/sync',
-  '/runs/{agent_id}/async',
-];
+const exclude_endpoints = ['/prompts/generate', '/prompts/stream'];
 
 // by default the automatically exported spec does not have agent server version prefix i.e. /api/v2
 const appendServerPrefixToPaths = (spec: OpenAPI3): OpenAPI3 => {

@@ -233,6 +233,47 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/runs/{agent_id}/sync': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Sync Run
+     * @description Synchronous endpoint to run a conversation with a given agent and return all events.
+     */
+    post: operations['sync_run_runs__agent_id__sync_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/runs/{agent_id}/async': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Async Run
+     * @description Asynchronous endpoint to start a run with a given agent and return an acknowledgment.
+     *     The client doesn't need to wait for the run to complete.
+     */
+    post: operations['async_run_runs__agent_id__async_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/threads/': {
     parameters: {
       query?: never;
@@ -1328,6 +1369,41 @@ export interface components {
     HTTPValidationError: {
       /** Detail */
       detail?: components['schemas']['ValidationError'][];
+    };
+    /** InitiateStreamPayload */
+    InitiateStreamPayload: {
+      /**
+       * Agent Id
+       * @description The agent ID of the agent that created this thread.
+       */
+      agent_id: string;
+      /**
+       * Thread Id
+       * @description The ID of the thread to stream against.
+       */
+      thread_id?: string | null;
+      /**
+       * Name
+       * @description The name of the thread to stream against.
+       */
+      name?: string | null;
+      /**
+       * Messages
+       * @description All messages in this thread.
+       */
+      messages?: components['schemas']['ThreadMessage'][];
+      /**
+       * Metadata
+       * @description Arbitrary thread-level metadata.
+       */
+      metadata?: {
+        [key: string]: unknown;
+      };
+      /**
+       * Client Tools
+       * @description The tools attached to the payload from an external client.
+       */
+      client_tools?: components['schemas']['ToolDefinitionPayload'][];
     };
     /** MCPServer */
     MCPServer: {
@@ -2536,6 +2612,38 @@ export interface components {
        */
       total_tokens: number;
     };
+    /** ToolDefinitionPayload */
+    ToolDefinitionPayload: {
+      /**
+       * Name
+       * @description The name of the tool
+       */
+      name: string;
+      /**
+       * Description
+       * @description The description of the tool
+       */
+      description: string;
+      /**
+       * Input Schema
+       * @description The schema of the tool input
+       */
+      input_schema: {
+        [key: string]: unknown;
+      };
+      /**
+       * Category
+       * @description The category of the tool
+       * @default unknown
+       * @enum {string}
+       */
+      category:
+        | 'unknown'
+        | 'action-tool'
+        | 'mcp-tool'
+        | 'client-exec-tool'
+        | 'client-info-tool';
+    };
     /** UploadedFile */
     UploadedFile: {
       /** File Id */
@@ -3253,6 +3361,76 @@ export interface operations {
       cookie?: never;
     };
     requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  sync_run_runs__agent_id__sync_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        agent_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['InitiateStreamPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ThreadAgentMessage'][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  async_run_runs__agent_id__async_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        agent_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['InitiateStreamPayload'];
+      };
+    };
     responses: {
       /** @description Successful Response */
       200: {

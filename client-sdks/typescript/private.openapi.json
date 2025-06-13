@@ -719,7 +719,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/agent_platform__core__payloads__initiate_stream__InitiateStreamPayload-Input__1"
+                "$ref": "#/components/schemas/InitiateStreamPayload"
               }
             }
           }
@@ -774,7 +774,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/agent_platform__core__payloads__initiate_stream__InitiateStreamPayload-Input__1"
+                "$ref": "#/components/schemas/InitiateStreamPayload"
               }
             }
           }
@@ -3508,6 +3508,64 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "InitiateStreamPayload": {
+        "properties": {
+          "agent_id": {
+            "type": "string",
+            "title": "Agent Id",
+            "description": "The agent ID of the agent that created this thread."
+          },
+          "thread_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thread Id",
+            "description": "The ID of the thread to stream against."
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "The name of the thread to stream against."
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/ThreadMessage"
+            },
+            "type": "array",
+            "title": "Messages",
+            "description": "All messages in this thread."
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "description": "Arbitrary thread-level metadata."
+          },
+          "client_tools": {
+            "items": {
+              "$ref": "#/components/schemas/ToolDefinitionPayload"
+            },
+            "type": "array",
+            "title": "Client Tools",
+            "description": "The tools attached to the payload from an external client."
+          }
+        },
+        "type": "object",
+        "required": ["agent_id"],
+        "title": "InitiateStreamPayload"
+      },
       "MCPServer": {
         "properties": {
           "name": {
@@ -5228,6 +5286,42 @@
         },
         "type": "object",
         "title": "TokenUsage"
+      },
+      "ToolDefinitionPayload": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "The name of the tool"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "The description of the tool"
+          },
+          "input_schema": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Input Schema",
+            "description": "The schema of the tool input"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "unknown",
+              "action-tool",
+              "mcp-tool",
+              "client-exec-tool",
+              "client-info-tool"
+            ],
+            "title": "Category",
+            "description": "The category of the tool",
+            "default": "unknown"
+          }
+        },
+        "type": "object",
+        "required": ["name", "description", "input_schema"],
+        "title": "ToolDefinitionPayload"
       },
       "UploadedFile": {
         "properties": {
