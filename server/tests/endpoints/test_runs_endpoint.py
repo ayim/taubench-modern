@@ -65,6 +65,14 @@ class StubStorage:
         )
 
     # ---------------- agent CRUD --------------------------------------------
+    async def upsert_agent(self, user_id: str, agent: Agent) -> None:
+        self.call_counts.bump("upsert_agent")
+        self.agents[agent.agent_id] = agent
+
+    async def delete_agent(self, user_id: str, agent_id: str) -> None:
+        self.call_counts.bump("delete_agent")
+        del self.agents[agent_id]
+
     async def get_agent(self, user_id: str, agent_id: str) -> Agent:
         self.call_counts.bump("get_agent")
         return self.agents.setdefault(
@@ -369,6 +377,10 @@ def _stream_open(client: TestClient, aid: str):  # helper so type checker knows 
     return client.websocket_connect(f"/runs/{aid}/stream")
 
 
+def _ephemeral_stream_open(client: TestClient):
+    return client.websocket_connect("/runs/ephemeral/stream")
+
+
 def test_stream_happy_flow(client: TestClient, inject_runner, stub_storage: StubStorage):
     aid, tid = str(uuid.uuid4()), str(uuid.uuid4())
     inject_runner(StubRunner, run_id="r", thread_id=tid, agent_id=aid)
@@ -387,6 +399,153 @@ def test_stream_happy_flow(client: TestClient, inject_runner, stub_storage: Stub
     assert saved is not None
     assert saved.status == "completed"
     assert saved.metadata["finish_reason"] == "normal_completion"
+
+
+def test_ephemeral_stream_happy_flow(client: TestClient, inject_runner):
+    inject_runner(StubRunner, run_id="r", thread_id="ephemeral", agent_id="ephemeral")
+
+    # Create a properly structured agent payload that matches UpsertAgentPayload
+    agent_payload = {
+        "name": "Tmp",
+        "description": "tmp",
+        "version": "1.0",
+        "runbook": "You are a helpful assistant.",
+        "agent_architecture": {
+            "name": "agent_platform.architectures.default",
+            "version": "1.0.0",
+        },
+        "platform_configs": [],
+        "action_packages": [],
+        "mcp_servers": [],
+        "question_groups": [],
+        "observability_configs": [],
+        "mode": "conversational",
+        "extra": {},
+        "advanced_config": {},
+        "metadata": {},
+        "public": True,
+        "id": None,
+        "agent_id": None,
+        "user_id": None,
+        "created_at": None,
+        "structured_runbook": None,
+        "model": None,
+    }
+
+    with _ephemeral_stream_open(client) as ws:
+        ws.send_json({"agent": agent_payload, "messages": []})
+        ready = ws.receive_json()
+        finished = ws.receive_json()
+        with pytest.raises(WebSocketDisconnect):
+            ws.receive_json()
+
+    assert ready["event_type"] == "agent_ready"
+    assert finished["event_type"] == "agent_finished"
+
+
+def test_ephemeral_stream_with_metadata_and_name(client: TestClient, inject_runner):
+    """Test ephemeral stream with additional metadata and custom name."""
+    inject_runner(StubRunner, run_id="r", thread_id="ephemeral", agent_id="ephemeral")
+
+    agent_payload = {
+        "name": "TestAgent",
+        "description": "A test agent for ephemeral runs",
+        "version": "2.0",
+        "runbook": "You are a test assistant.",
+        "agent_architecture": {
+            "name": "agent_platform.architectures.default",
+            "version": "1.0.0",
+        },
+        "platform_configs": [],
+        "action_packages": [],
+        "mcp_servers": [],
+        "question_groups": [],
+        "observability_configs": [],
+        "mode": "conversational",
+        "extra": {},
+        "advanced_config": {},
+        "metadata": {},
+        "public": True,
+    }
+
+    payload = {
+        "agent": agent_payload,
+        "name": "Test Thread",
+        "messages": [],
+        "metadata": {"test": "value"},
+        "client_tools": [],
+    }
+
+    with _ephemeral_stream_open(client) as ws:
+        ws.send_json(payload)
+        ready = ws.receive_json()
+        finished = ws.receive_json()
+        with pytest.raises(WebSocketDisconnect):
+            ws.receive_json()
+
+    assert ready["event_type"] == "agent_ready"
+    assert finished["event_type"] == "agent_finished"
+
+
+def test_ephemeral_stream_invalid_agent_payload(client: TestClient):
+    """Test that ephemeral stream rejects invalid agent payloads."""
+    # Missing required fields
+    bad_agent_payload = {
+        "name": "Tmp",
+        # Missing description, version, etc.
+    }
+
+    with _ephemeral_stream_open(client) as ws:
+        ws.send_json({"agent": bad_agent_payload, "messages": []})
+        frame = ws.receive()
+
+    # Should close with error due to invalid payload
+    assert frame["type"] == "websocket.close"
+    assert frame["code"] in {status.WS_1003_UNSUPPORTED_DATA, status.WS_1008_POLICY_VIOLATION}
+
+
+def test_ephemeral_stream_with_client_tools(client: TestClient, inject_runner):
+    """Test ephemeral stream with client tools."""
+    inject_runner(StubRunner, run_id="r", thread_id="ephemeral", agent_id="ephemeral")
+
+    agent_payload = {
+        "name": "TestAgent",
+        "description": "A test agent with client tools",
+        "version": "1.0",
+        "runbook": "You are a helpful assistant.",
+        "agent_architecture": {
+            "name": "agent_platform.architectures.default",
+            "version": "1.0.0",
+        },
+        "platform_configs": [],
+        "action_packages": [],
+        "mcp_servers": [],
+        "question_groups": [],
+        "observability_configs": [],
+        "mode": "conversational",
+        "extra": {},
+        "advanced_config": {},
+        "metadata": {},
+        "public": True,
+    }
+
+    client_tools = [make_sample_client_tool(name="ephemeral_tool")]
+
+    payload = {
+        "agent": agent_payload,
+        "messages": [],
+        "client_tools": client_tools,
+    }
+
+    with _ephemeral_stream_open(client) as ws:
+        ws.send_json(payload)
+        ready = ws.receive_json()
+        finished = ws.receive_json()
+        with pytest.raises(WebSocketDisconnect):
+            ws.receive_json()
+
+    assert ready["event_type"] == "agent_ready"
+    assert finished["event_type"] == "agent_finished"
 
 
 def test_stream_client_disconnect_marks_cancelled(

@@ -72,7 +72,7 @@ class AgentApiClient:
         return Thread.model_validate(resp.json())
 
     def get_thread(self, thread_id: str):
-        url = f"{self.base_url}/threads/{thread_id}"
+        url = f"{self.base_url}/threads/{thread_id}/state"  # FIX: need to use state
         resp = requests.get(url)
         resp.raise_for_status()
         return Thread.model_validate(resp.json())

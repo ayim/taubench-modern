@@ -25,10 +25,13 @@ from fastapi import (
 )
 from fastapi.websockets import WebSocketState
 
+from agent_platform.core.agent.agent import Agent
 from agent_platform.core.context import AgentServerContext
 from agent_platform.core.delta.base import GenericDelta
 from agent_platform.core.delta.combine_delta import combine_generic_deltas
 from agent_platform.core.payloads import InitiateStreamPayload
+from agent_platform.core.payloads.ephemeral_stream import EphemeralStreamPayload
+from agent_platform.core.payloads.upsert_agent import UpsertAgentPayload
 from agent_platform.core.runs import Run
 from agent_platform.core.streaming.delta import (
     StreamingDelta,
@@ -196,6 +199,172 @@ async def get_run_status(
         if isinstance(e, RunNotFoundError):
             raise e
         raise HTTPException(status_code=404, detail="Run not found") from None
+
+
+@router.websocket("/ephemeral/stream")
+async def ephemeral_stream_run(  # noqa: C901, PLR0915
+    websocket: WebSocket,
+    user: AuthedUserWebsocket,
+    storage: StorageDependency,
+):
+    """WebSocket endpoint for ephemeral agent runs."""
+
+    async def _safe_close_websocket(
+        websocket: WebSocket,
+        *,
+        code: int = status.WS_1000_NORMAL_CLOSURE,
+        reason: str | None = None,
+    ) -> None:
+        if WebSocketState.DISCONNECTED in {
+            websocket.application_state,
+            websocket.client_state,
+        }:
+            return
+        try:
+            await websocket.close(code=code, reason=reason)
+        except RuntimeError:
+            pass
+        except Exception:
+            pass
+
+    agent_arch_manager = AgentArchManager(
+        wheels_path="./todo-for-out-of-process/wheels",
+        websocket_addr="todo://think-about-out-of-process",
+    )
+
+    await websocket.accept()
+
+    agent: Agent | None = None
+    try:
+        initial_data = await websocket.receive_json()
+        try:
+            payload = EphemeralStreamPayload.model_validate(initial_data)
+        except (ValueError, TypeError, KeyError, AttributeError) as e:
+            logger.error("Invalid ephemeral payload", error=e)
+            raise WebSocketException(
+                code=status.WS_1003_UNSUPPORTED_DATA,
+                reason="Invalid ephemeral payload",
+            ) from e
+
+        agent = UpsertAgentPayload.to_agent(payload.agent, user_id=user.user_id)
+        await storage.upsert_agent(user.user_id, agent)
+
+        # Create thread without using InitiateStreamPayload constructor
+        # since we're in an ephemeral context
+        thread = Thread(
+            user_id=user.user_id,
+            agent_id=agent.agent_id,
+            name=payload.name or "Ephemeral Thread",
+            thread_id=str(uuid4()),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
+            messages=payload.messages,
+            metadata=payload.metadata,
+        )
+        await storage.upsert_thread(user.user_id, thread)
+
+        run = Run(
+            run_id=str(uuid4()),
+            agent_id=agent.agent_id,
+            thread_id=thread.thread_id,
+            status="running",
+            run_type="stream",
+        )
+        await storage.upsert_run(run)
+
+        server_context = AgentServerContext.from_request(
+            request=websocket,
+            user=user,
+            version="2.0.0",
+        )
+
+        runner = await agent_arch_manager.get_runner(
+            agent.agent_architecture.name,
+            agent.agent_architecture.version,
+            thread.thread_id,
+        )
+
+        await runner.start()
+
+        await websocket.send_json(
+            StreamingDeltaAgentReady(
+                run_id=run.run_id,
+                thread_id=thread.thread_id,
+                agent_id=agent.agent_id,
+                timestamp=datetime.now(UTC),
+            ).model_dump(),
+        )
+
+        kernel = AgentServerKernel(
+            server_context,
+            thread,
+            agent,
+            run,
+            client_tools=[tool.to_tool_definition() for tool in payload.client_tools],
+        )
+        ca_invoke_task = create_task(runner.invoke(kernel))
+
+        async def _send_events():
+            try:
+                async for event in runner.get_event_stream():
+                    try:
+                        await websocket.send_json(event.model_dump())
+                        if isinstance(event, StreamingDeltaAgentFinished):
+                            break
+                    except (WebSocketDisconnect, RuntimeError):
+                        pass
+            except CancelledError:
+                logger.info(
+                    "CA event sending task cancelled, likely client disconnected",
+                )
+
+        async def _receive_ws_messages():
+            try:
+                while True:
+                    message = await websocket.receive_json()
+                    await runner.dispatch_event(message)
+            except CancelledError:
+                logger.info(
+                    "Client message receiving task cancelled, likely client disconnected",
+                )
+
+        _send_task = create_task(_send_events())
+        recv_task = create_task(_receive_ws_messages())
+
+        done, pending = await wait(
+            {recv_task, ca_invoke_task, _send_task},
+            return_when=FIRST_COMPLETED,
+        )
+
+        for task in pending:
+            task.cancel()
+
+        await gather(*pending, return_exceptions=True)
+        await runner.stop()
+        await _safe_close_websocket(websocket)
+
+    except WebSocketDisconnect:
+        logger.info("WebSocket disconnected")
+        await _safe_close_websocket(websocket)
+    except WebSocketException as e:
+        logger.error("WebSocket error in ephemeral stream", error=e)
+        await _safe_close_websocket(websocket, code=e.code, reason=e.reason)
+    except Exception as e:
+        logger.error(f"Unexpected error in ephemeral stream: {e}")
+        logger.error(traceback.format_exc())
+        await _safe_close_websocket(
+            websocket,
+            code=status.WS_1011_INTERNAL_ERROR,
+            reason="Unexpected error in websocket stream",
+        )
+    finally:
+        # Try and delete, we may not have even got to create; this should cascade
+        # to delete the thread and run (and any scoped storage)
+        try:
+            if agent:
+                await storage.delete_agent(user.user_id, agent.agent_id)
+        except Exception:
+            pass
 
 
 @router.websocket("/{agent_id}/stream")
