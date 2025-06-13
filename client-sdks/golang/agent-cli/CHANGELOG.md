@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+## 1.3.4 - 2025-06-13
+- Fixed agent-cli moving remote Action Packages to MyActions & not keep them in the correct organization
+
 ## 1.3.3 - 2025-06-11
 - Fixed `WorkerConfig` being added to agent metadata when Agent mode is `conversational`
 

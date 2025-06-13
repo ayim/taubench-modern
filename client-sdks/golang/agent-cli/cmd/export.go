@@ -126,6 +126,8 @@ func processOrganization(orgPath string, availableActions map[ActionPackageCompo
 		return fmt.Errorf("[processOrganization] failed to read directory %s: %w", orgPath, err)
 	}
 
+	logVerbose("Processing Organization @: %s", orgPath)
+
 	for _, entry := range entries {
 		// Skip non-directory entries like .DS_Store
 		if !entry.IsDir() {
@@ -279,23 +281,27 @@ func copyActionPackagesFor(
 		}
 
 		packageFolderName := filepath.Base(filepath.Dir(source))
+		logVerbose("[copyActionPackagesFor] Processing source: %s", source)
+		logVerbose("[copyActionPackagesFor] Package folder: %s", packageFolderName)
 
-		var target string
+		var targetActionPackagePath string
 		var actionRelPath string
+		var actionPackageOrganization string = actionPackage.Organization
 
-		if actionPackage.Organization == common.S4S_BUNDLED_ACTIONS_DIR {
-			target = filepath.Join(
-				common.AgentProjectBundledActionsLocation(projectPath),
-				packageFolderName,
-			)
-			actionRelPath = common.AgentProjectBundledActionRelPath(packageFolderName)
-		} else {
-			target = filepath.Join(
-				common.AgentProjectUnbundledActionsLocation(projectPath),
-				packageFolderName,
-			)
-			actionRelPath = common.AgentProjectUnbundledActionRelPath(packageFolderName)
+		// Added a fail safe in case the organization is empty for some reason
+		if actionPackageOrganization == "" {
+			actionPackageOrganization = common.AGENT_PROJECT_UNBUNDLED_ACTIONS_DIR
 		}
+
+		targetActionPackagePath = filepath.Join(
+			common.AgentProjectActionsLocation(projectPath),
+			actionPackageOrganization,
+			packageFolderName,
+		)
+		actionRelPath = filepath.Join(actionPackage.Organization, packageFolderName)
+
+		logVerbose("[copyActionPackagesFor] Target Action Package Path: %s", targetActionPackagePath)
+		logVerbose("[copyActionPackagesFor] Relative Path: %s", actionRelPath)
 
 		actionPackages = append(actionPackages, common.AgentActionPackage{
 			Name:         actionPackage.Name,
@@ -306,9 +312,10 @@ func copyActionPackagesFor(
 			Whitelist:    actionPackage.Whitelist,
 		})
 
-		if err := common.CopyDir(source, target, true); err != nil {
-			return nil, fmt.Errorf("[copyActionPackagesFor] failed to copy directory %s to %s: %w", source, target, err)
+		if err := common.CopyDir(source, targetActionPackagePath, true); err != nil {
+			return nil, fmt.Errorf("[copyActionPackagesFor] failed to copy directory %s to %s: %w", source, targetActionPackagePath, err)
 		}
+		logVerbose("[copyActionPackagesFor] [DONE] Action Package was copied successfully!")
 	}
 
 	return actionPackages, nil
@@ -320,13 +327,14 @@ func (state *specState) createActionsDir(assistants []AgentServer.Agent, project
 	if err != nil {
 		return fmt.Errorf("[createActionsDir] failed to create bundled actions directory: %w", err)
 	}
-	logVerbose("Creating Actions directory @: %s", bundledActionsPath)
+	logVerbose("Created Sema4.ai Actions directory @: %s", bundledActionsPath)
 
 	unbundledActionsPath := common.AgentProjectUnbundledActionsLocation(projectPath)
 	err = os.MkdirAll(unbundledActionsPath, 0o755)
 	if err != nil {
 		return fmt.Errorf("[createActionsDir] failed to create unbundled actions directory: %w", err)
 	}
+	logVerbose("Created MyActions directory @: %s", unbundledActionsPath)
 
 	availableActions, err := createAvailableActionPackagesMap()
 	if err != nil {
