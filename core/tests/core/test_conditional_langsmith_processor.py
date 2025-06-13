@@ -1,3 +1,4 @@
+import os
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -43,6 +44,17 @@ def langsmith_config_b():
         api_url="https://api.smith.langchain.com",
         settings={"project_name": "project_b"},
     )
+
+
+@pytest.fixture(autouse=True)
+def reset_processor_and_env(monkeypatch):
+    # Unset global env vars before each test
+    monkeypatch.delenv("LANGCHAIN_API_KEY", raising=False)
+    monkeypatch.delenv("LANGCHAIN_ENDPOINT", raising=False)
+    monkeypatch.delenv("LANGCHAIN_PROJECT", raising=False)
+    ConditionalLangSmithProcessor.reset_instance()
+    yield
+    ConditionalLangSmithProcessor.reset_instance()
 
 
 class TestConditionalLangSmithProcessor:
@@ -292,3 +304,136 @@ class TestConditionalLangSmithProcessor:
             # Verify mappings were cleared
             assert len(processor._processors) == 0
             assert len(processor._signatures) == 0
+
+    @patch.dict(
+        os.environ,
+        {
+            "LANGCHAIN_API_KEY": "global_key",
+            "LANGCHAIN_ENDPOINT": "https://global-endpoint",
+            "LANGCHAIN_PROJECT": "global_project",
+        },
+    )
+    @patch("agent_platform.core.conditional_langsmith_processor.BatchSpanProcessor")
+    def test_global_mode_ignores_per_agent_registration(self, mock_batch_processor):
+        """Test that per-agent registration is ignored in global mode."""
+        processor = ConditionalLangSmithProcessor()
+        config = ObservabilityConfig(
+            type="langsmith",
+            api_key="agent_key",
+            api_url="https://api.smith.langchain.com",
+            settings={"project_name": "agent_project"},
+        )
+        result = processor.add_or_update_config("agent_123", config)
+        assert result is True
+        # Only the global processor should exist
+        assert processor._global_processor is not None
+        assert processor._processors == {}
+
+    @patch.dict(
+        os.environ,
+        {
+            "LANGCHAIN_API_KEY": "global_key",
+            "LANGCHAIN_ENDPOINT": "https://global-endpoint",
+            "LANGCHAIN_PROJECT": "global_project",
+        },
+    )
+    @patch("agent_platform.core.conditional_langsmith_processor.BatchSpanProcessor")
+    def test_global_processor_receives_spans(self, mock_batch_processor):
+        """Test that the global processor receives spans in global mode."""
+        mock_global_processor = MagicMock()
+        mock_batch_processor.return_value = mock_global_processor
+        processor = ConditionalLangSmithProcessor()
+        mock_span = MagicMock()
+        mock_span.name = "test_span"
+        processor.on_end(mock_span)
+        mock_global_processor.on_end.assert_called_once_with(mock_span)
+
+    @patch.dict(
+        os.environ,
+        {
+            "LANGCHAIN_API_KEY": "global_key",
+            "LANGCHAIN_ENDPOINT": "https://global-endpoint",
+            "LANGCHAIN_PROJECT": "global_project",
+        },
+    )
+    @patch("agent_platform.core.conditional_langsmith_processor.BatchSpanProcessor")
+    def test_global_processor_overrides_per_agent(self, mock_batch_processor):
+        """
+        Test that when both global and per-agent LangSmith configs exist,
+        only the global processor receives spans.
+        """
+        # Mock the global processor
+        mock_global_processor = MagicMock()
+        mock_batch_processor.return_value = mock_global_processor
+        processor = ConditionalLangSmithProcessor()
+
+        # Try to register a per-agent processor
+        config = ObservabilityConfig(
+            type="langsmith",
+            api_key="agent_key",
+            api_url="https://api.smith.langchain.com",
+            settings={"project_name": "agent_project"},
+        )
+        processor.add_or_update_config("agent_123", config)
+
+        # Create a span with the agent_id
+        mock_span = MagicMock()
+        mock_span.name = "test_span"
+        mock_span.attributes = {"agent_id": "agent_123"}
+
+        # Process the span
+        processor.on_end(mock_span)
+
+        # Verify only the global processor received the span
+        mock_global_processor.on_end.assert_called_once_with(mock_span)
+        # Verify no per-agent processors exist
+        assert processor._processors == {}
+
+    @patch.dict(
+        os.environ,
+        {
+            "LANGCHAIN_API_KEY": "global_key",
+            "LANGCHAIN_ENDPOINT": "https://global-endpoint",
+            "LANGCHAIN_PROJECT": "global_project",
+        },
+    )
+    @patch("agent_platform.core.conditional_langsmith_processor.BatchSpanProcessor")
+    def test_only_s4_and_global_langsmith_receive_on_end(self, mock_batch_processor):
+        """
+        Test that only the S4 observability processor and the global LangSmith processor
+        receive on_end for each span, and no other processors receive spans.
+        """
+        # Mock the global LangSmith processor
+        mock_global_processor = MagicMock()
+        mock_batch_processor.return_value = mock_global_processor
+        processor = ConditionalLangSmithProcessor()
+
+        # Mock the S4 processor
+        mock_otlp_processor = MagicMock()
+
+        # Create a mock per-agent processor that should NOT receive spans
+        mock_per_agent_processor = MagicMock()
+        processor._processors["some_agent"] = mock_per_agent_processor
+
+        # Simulate a tracer provider with all processors
+        class DummyTracerProvider:
+            def __init__(self):
+                self._span_processors = [mock_otlp_processor, processor]
+
+            def on_end(self, span):
+                for proc in self._span_processors:
+                    proc.on_end(span)
+
+        tracer_provider = DummyTracerProvider()
+        mock_span = MagicMock()
+        mock_span.name = "test_span"
+        mock_span.attributes = {"agent_id": "some_agent"}  # Add agent_id to test routing
+
+        # Call on_end on both processors
+        tracer_provider.on_end(mock_span)
+
+        # Assert only the global processor and S4 processor received the span
+        mock_otlp_processor.on_end.assert_called_once_with(mock_span)
+        mock_global_processor.on_end.assert_called_once_with(mock_span)
+        # Verify the per-agent processor did NOT receive the span
+        mock_per_agent_processor.on_end.assert_not_called()

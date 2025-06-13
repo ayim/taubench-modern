@@ -1,4 +1,5 @@
 import logging
+import os
 import threading
 from collections.abc import Hashable
 
@@ -13,9 +14,11 @@ logger = logging.getLogger(__name__)
 
 class ConditionalLangSmithProcessor(SpanProcessor):
     """
-    Processor that routes spans to LangSmith based on agent_id.
-    Each agent_id maps to one BatchSpanProcessor for its configured LangSmith project.
-
+    Processor that routes spans to LangSmith based on agent_id,
+    unless a global LangSmith config is set via env vars.
+    If all three env vars (LANGCHAIN_API_KEY, LANGCHAIN_ENDPOINT, LANGCHAIN_PROJECT) are set,
+    all spans are exported to a single global LangSmith processor,
+    and per-agent configs are ignored.
     """
 
     _instance: "ConditionalLangSmithProcessor | None" = None
@@ -57,7 +60,32 @@ class ConditionalLangSmithProcessor(SpanProcessor):
         self._processors: dict[str, BatchSpanProcessor] = {}
         self._signatures: dict[str, Hashable] = {}
         self._lock = threading.Lock()
+        self._global_processor: BatchSpanProcessor | None = None
+        # Check for global LangSmith config via env vars
+        cfg = self._env_cfg_from_vars()
+        if cfg:
+            self._global_processor = self._build_processor(cfg)
+            logger.info(
+                "Using Global LangSmith config from environment; per-agent configs will be ignored."
+            )
         logger.debug("ConditionalLangSmithProcessor initialized")
+
+    @staticmethod
+    def _env_cfg_from_vars() -> "ObservabilityConfig | None":
+        """
+        Check for required LangSmith env vars and return an ObservabilityConfig if all are present.
+        """
+        api_key = os.getenv("LANGCHAIN_API_KEY")
+        api_url = os.getenv("LANGCHAIN_ENDPOINT")
+        project = os.getenv("LANGCHAIN_PROJECT")
+        if all([api_key, api_url, project]):
+            return ObservabilityConfig(
+                type="langsmith",
+                api_key=api_key,
+                api_url=api_url,
+                settings={"project_name": project},
+            )
+        return None
 
     @staticmethod
     def _signature(cfg: ObservabilityConfig) -> tuple[str, str, str]:
@@ -108,14 +136,14 @@ class ConditionalLangSmithProcessor(SpanProcessor):
     def add_or_update_config(self, agent_id: str, cfg: ObservabilityConfig) -> bool:
         """
         Register or update LangSmith configuration for an agent.
-
-        Args:
-            agent_id: The agent ID to register
-            cfg: The observability configuration
-
-        Returns:
-            True if the configuration was added/updated, False if invalid or unchanged
+        In global mode (env vars set), this is a no-op and returns False.
         """
+        if self._global_processor:
+            logger.info(
+                f"Global LangSmith config is active; "
+                f"ignoring per-agent config for agent {agent_id}."
+            )
+            return True
         if not agent_id or not cfg or not cfg.api_key:
             logger.debug(f"Skipping LangSmith config for agent {agent_id}: missing required fields")
             return False
@@ -160,7 +188,15 @@ class ConditionalLangSmithProcessor(SpanProcessor):
                 return False
 
     def on_start(self, span, parent_context=None):
-        """Route span start to appropriate LangSmith processor based on agent_id."""
+        """
+        Route span start to appropriate LangSmith processor based on agent_id or global config.
+        """
+        if self._global_processor:
+            try:
+                self._global_processor.on_start(span, parent_context)
+            except Exception as e:
+                logger.error(f"Error in global LangSmith processor on_start: {e}")
+            return
         agent_id = self._get_agent_id(span)
         if not agent_id:
             return
@@ -175,7 +211,14 @@ class ConditionalLangSmithProcessor(SpanProcessor):
                 logger.error(f"Error in LangSmith processor on_start for agent {agent_id}: {e}")
 
     def on_end(self, span):
-        """Route span to appropriate LangSmith processor based on agent_id."""
+        """Route span to appropriate LangSmith processor based on agent_id or global config."""
+        if self._global_processor:
+            try:
+                self._global_processor.on_end(span)
+                logger.debug(f"Exported span '{span.name}' to Global LangSmith processor.")
+            except Exception as e:
+                logger.error(f"Error in global LangSmith processor on_end: {e}")
+            return
         agent_id = self._get_agent_id(span)
         if not agent_id:
             return
@@ -191,8 +234,15 @@ class ConditionalLangSmithProcessor(SpanProcessor):
                 logger.error(f"Error in LangSmith processor on_end for agent {agent_id}: {e}")
 
     def shutdown(self):
-        """Shutdown all processors."""
+        """Shutdown all processors (global or per-agent)."""
         logger.debug("Shutting down ConditionalLangSmithProcessor")
+        if self._global_processor:
+            try:
+                self._global_processor.shutdown()
+                logger.debug("Shutdown global LangSmith processor")
+            except Exception as e:
+                logger.error(f"Error shutting down global LangSmith processor: {e}")
+            return
         with self._lock:
             for agent_id, processor in self._processors.items():
                 try:
@@ -205,8 +255,16 @@ class ConditionalLangSmithProcessor(SpanProcessor):
             self._signatures.clear()
 
     def force_flush(self, timeout_millis: int = 30000) -> bool:
-        """Force flush all processors."""
+        """Force flush all processors (global or per-agent)."""
         logger.debug("Force flushing ConditionalLangSmithProcessor")
+        if self._global_processor:
+            try:
+                result = self._global_processor.force_flush(timeout_millis)
+                logger.debug(f"Force flush result for global LangSmith processor: {result}")
+                return result
+            except Exception as e:
+                logger.error(f"Error force flushing global LangSmith processor: {e}")
+                return False
         with self._lock:
             processors = list(self._processors.items())
 
