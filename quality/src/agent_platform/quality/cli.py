@@ -1,7 +1,12 @@
 import asyncio
+from dataclasses import dataclass
 import logging
 from http import HTTPStatus
 from pathlib import Path
+from typing import Dict
+from agent_platform.quality.oauth import OAuthRedirectServer
+import yaml
+from urllib.parse import urlencode, urlparse
 
 import click
 import httpx
@@ -29,6 +34,22 @@ structlog.configure(
     wrapper_class=structlog.stdlib.BoundLogger,
     cache_logger_on_first_use=True,
 )
+
+@dataclass
+class OAuthProviderConfig:
+    client_id: str
+    client_secret: str
+    auth_url: str
+    token_url: str
+    redirect_uri: str
+
+@dataclass
+class Context:
+    agent_server_url: str
+    agents_dir: Path
+    threads_dir: Path
+    oauth: Dict[str, OAuthProviderConfig]
+    verbose: bool
 
 
 def setup_logging(verbose: bool = False):
@@ -66,34 +87,19 @@ def setup_logging(verbose: bool = False):
         )
         logging.basicConfig(level=logging.INFO)
 
-
 @click.group()
 @click.option(
-    "--server-url",
-    default="http://localhost:8000",
-    envvar="AGENT_SERVER_URL",
-    help="Agent server URL",
-)
-@click.option(
-    "--test-threads-dir",
-    type=click.Path(exists=True, file_okay=False, path_type=Path),
-    default=Path("quality/test-threads"),
-    help="Directory containing test thread YAML files",
-)
-@click.option(
-    "--test-agents-dir",
-    type=click.Path(exists=True, file_okay=False, path_type=Path),
-    default=Path("quality/test-agents"),
-    help="Directory containing agent ZIP packages",
+    "--config-file",
+    type=click.Path(exists=True, file_okay=True, path_type=Path),
+    default=Path("quality/.quality_config.yaml"),
+    help="File containing quality config",
 )
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
 @click.option("--show-env", is_flag=True, help="Show loaded .env file location")
 @click.pass_context
-def cli(  # noqa: PLR0913
+def cli(
     ctx,
-    server_url: str,
-    test_threads_dir: Path,
-    test_agents_dir: Path,
+    config_file: Path,
     verbose: bool,
     show_env: bool,
 ):
@@ -106,18 +112,38 @@ def cli(  # noqa: PLR0913
     else:
         load_env_file(verbose=False)
 
-    ctx.ensure_object(dict)
-    ctx.obj["server_url"] = server_url
-    ctx.obj["test_threads_dir"] = test_threads_dir
-    ctx.obj["test_agents_dir"] = test_agents_dir
-    ctx.obj["verbose"] = verbose
+    def load_config(path):
+        with open(path, 'r') as f:
+            if str(path).endswith('.yaml') or str(path).endswith('.yml'):
+                return yaml.safe_load(f)
+            else:
+                raise ValueError("Unsupported config file format. Use .yaml or .yml.")
+
+    config = load_config(config_file)
+
+    ctx.obj = Context(
+        agent_server_url=config["agent_server_url"],
+        agents_dir=Path(config["threads_dir"]),
+        threads_dir=Path(config["agents_dir"]),
+        oauth={
+            provider: OAuthProviderConfig(
+                client_id=data["client_id"],
+                client_secret=data["client_secret"],
+                auth_url=data["auth_url"],
+                token_url=data["token_url"],
+                redirect_uri=data["redirect_uri"]
+            )
+            for provider, data in config["oauth"].items()
+        },
+        verbose=verbose
+    )
 
 
 @cli.command()
-@click.pass_context
-async def check_server(ctx):
+@click.pass_obj
+async def check_server(ctx: Context):
     """Check if the agent server is available."""
-    server_url = ctx.obj["server_url"]
+    server_url = ctx.agent_server_url
 
     try:
         async with httpx.AsyncClient() as client:
@@ -134,15 +160,14 @@ async def check_server(ctx):
 
 
 @cli.command()
-@click.pass_context
-def list_agents(ctx):
+@click.pass_obj
+def list_agents(ctx: Context):
     """List available agent packages."""
-    test_agents_dir = ctx.obj["test_agents_dir"]
 
     runner = QualityTestRunner(
-        test_threads_dir=ctx.obj["test_threads_dir"],
-        test_agents_dir=test_agents_dir,
-        server_url=ctx.obj["server_url"],
+        test_threads_dir=ctx.threads_dir,
+        test_agents_dir=ctx.agents_dir,
+        server_url=ctx.agent_server_url,
     )
 
     agents = runner.discover_agents()
@@ -158,13 +183,13 @@ def list_agents(ctx):
 
 @cli.command()
 @click.argument("agent_name", required=False)
-@click.pass_context
-def list_tests(ctx, agent_name: str | None):
+@click.pass_obj
+def list_tests(ctx: Context, agent_name: str | None):
     """List available test cases, optionally filtered by agent."""
     runner = QualityTestRunner(
-        test_threads_dir=ctx.obj["test_threads_dir"],
-        test_agents_dir=ctx.obj["test_agents_dir"],
-        server_url=ctx.obj["server_url"],
+        test_threads_dir=ctx.threads_dir,
+        test_agents_dir=ctx.agents_dir,
+        server_url=ctx.agent_server_url,
     )
 
     test_cases = runner.discover_test_cases(agent_name)
@@ -204,9 +229,9 @@ def list_tests(ctx, agent_name: str | None):
     type=list[str],
     help="List of agents to run tests for (if not provided, all agents will be run)",
 )
-@click.pass_context
+@click.pass_obj
 async def run(
-    ctx,
+    ctx: Context,
     detailed: bool,
     platform_summary: bool,
     max_agents: int,
@@ -220,9 +245,9 @@ async def run(
     datadir = temp_orchestrator.data_dir
 
     runner = QualityTestRunner(
-        test_threads_dir=ctx.obj["test_threads_dir"],
-        test_agents_dir=ctx.obj["test_agents_dir"],
-        server_url=ctx.obj["server_url"],
+        test_threads_dir=ctx.threads_dir,
+        test_agents_dir=ctx.agents_dir,
+        server_url=ctx.agent_server_url,
         datadir=datadir,
     )
 
@@ -251,12 +276,71 @@ async def run(
 
     except Exception as e:
         click.echo(f"Error running test suite: {e}")
-        if ctx.obj["verbose"]:
+        if ctx.verbose:
             import traceback
 
             traceback.print_exc()
         raise click.Abort() from None
 
+@cli.command()
+@click.argument('provider')
+@click.option('--scopes', required=True, help='Scopes for the oauth connection (space separated).')
+@click.pass_obj
+async def oauth(ctx: Context, provider, scopes):
+    """Obtain access token for a given provider and scopes."""
+
+    if provider not in ctx.oauth:
+        raise click.UsageError(f"Provider '{provider}' not found in config.")
+
+    cfg = ctx.oauth[provider]
+    auth_params = {
+        'response_type': 'code',
+        'client_id': cfg.client_id,
+        'redirect_uri': cfg.redirect_uri,
+        'scope': scopes,
+    }
+    auth_url = f"{cfg.auth_url}?{urlencode(auth_params)}"
+
+    click.echo(f"Open this URL in your browser to authorize:\n{auth_url}")
+
+    parsed_url = urlparse(cfg.redirect_uri)
+    redirect_host = parsed_url.hostname
+    redirect_port = parsed_url.port
+    if redirect_host is None or redirect_port is None:
+        raise click.UsageError(f"Cannot parse redirect uri {cfg.redirect_uri}.")
+    
+    server = OAuthRedirectServer(
+        host=redirect_host,
+        port=redirect_port
+    )
+    print("Waiting for OAuth authorization...")
+
+    auth_code = server.wait_for_code(timeout=180)
+
+    click.echo(f"Received authorization code: {auth_code}")
+
+    token_data = {
+        'grant_type': 'authorization_code',
+        'code': auth_code,
+        'redirect_uri': cfg.redirect_uri,
+        'client_id': cfg.client_id,
+        'client_secret': cfg.client_secret
+    }
+
+    try:
+        with httpx.Client() as client:
+            response = client.post(cfg.token_url, data=token_data)
+            response.raise_for_status()
+            token_info = response.json()
+    except httpx.HTTPStatusError as e:
+        click.echo(f"HTTP error: {e.response.status_code} - {e.response.text}", err=True)
+        return
+    except httpx.RequestError as e:
+        click.echo(f"Request failed: {e}", err=True)
+        return
+    
+    click.echo("Access token received:")
+    click.echo(token_info)
 
 # Async wrapper for Click commands
 def async_command(f):
@@ -271,7 +355,7 @@ def async_command(f):
 # Apply async wrapper to async commands
 check_server.callback = async_command(check_server.callback)
 run.callback = async_command(run.callback)
-
+oauth.callback = async_command(oauth.callback)
 
 def find_monorepo_root() -> Path:
     """Find the monorepo root by looking for markers like .git directory."""

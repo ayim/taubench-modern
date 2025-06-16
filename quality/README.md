@@ -28,6 +28,8 @@ This installs the `quality-test` command globally.
 
 ### Basic Usage
 
+0. **Create a file .quality_config.yml** from the example .quality_config.example.yml
+
 1. **Start the agent server** (required for testing):
 
    ```bash
