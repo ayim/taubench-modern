@@ -9,7 +9,7 @@ this interface, ensuring a consistent and controlled interaction model.
 """
 
 from abc import ABC, abstractmethod
-from typing import Literal
+from typing import Any, Literal
 
 from agent_platform.core.agent import Agent
 from agent_platform.core.context import AgentServerContext
@@ -339,3 +339,53 @@ class Kernel(ABC):
             f"provider: {provider}, "
             f"direct model name: {direct_model_name}",
         )
+
+    def get_standard_span_attributes(
+        self,
+        extra_attributes: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Get standard span attributes that should be added to every span.
+
+        This includes agent, thread, and run information.
+        Additional attributes can be passed via kwargs.
+
+        Args:
+            **kwargs: Additional attributes to include
+
+        Returns:
+            dict[str, str]: Dictionary of attributes ready for ctx.add_span_attributes
+        """
+        attributes = {}
+
+        # User information
+        if self.user.cr_user_id:
+            attributes["user_id"] = self.user.cr_user_id
+        else:
+            attributes["user_id"] = self.user.sub
+
+        # Agent information
+        if self.agent.agent_id:
+            attributes["agent_id"] = self.agent.agent_id
+        if self.agent.name:
+            attributes["agent_name"] = self.agent.name
+
+        # Thread information
+        if self.thread.thread_id:
+            attributes["thread_id"] = self.thread.thread_id
+        if self.thread.name:
+            attributes["thread_name"] = self.thread.name
+
+        # Run information
+        if self.run.run_id:
+            attributes["run_id"] = self.run.run_id
+
+        # Agent architecture information
+        if self.agent.agent_architecture.name:
+            attributes["agent_architecture_name"] = self.agent.agent_architecture.name
+        if self.agent.agent_architecture.version:
+            attributes["agent_architecture_version"] = self.agent.agent_architecture.version
+
+        if extra_attributes:
+            attributes.update(extra_attributes)
+
+        return attributes

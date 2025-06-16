@@ -39,9 +39,11 @@ class AgentServerPromptsInterface(PromptsInterface, UsesKernelMixin):
 
         with self.kernel.ctx.start_span(
             "format_prompt",
-            attributes={
-                "langsmith.span.kind": "prompt",
-            },
+            attributes=self.kernel.get_standard_span_attributes(
+                extra_attributes={
+                    "langsmith.span.kind": "prompt",
+                },
+            ),
         ) as span:
             # Set input info for the span
             span.set_attribute("input.value", json.dumps(input_metadata))
@@ -89,9 +91,11 @@ class AgentServerPromptsInterface(PromptsInterface, UsesKernelMixin):
         # Use this to record tools right before submitting to provider
         with self.kernel.ctx.start_span(
             span_name,
-            attributes={
-                "langsmith.span.kind": "prompt.tools",
-            },
+            attributes=self.kernel.get_standard_span_attributes(
+                extra_attributes={
+                    "langsmith.span.kind": "prompt.tools",
+                },
+            ),
         ) as span:
             # Extract tool names
             tool_names = [tool.name for tool in prompt.tools]

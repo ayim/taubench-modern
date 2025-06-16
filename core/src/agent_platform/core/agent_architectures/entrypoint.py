@@ -32,16 +32,13 @@ def entrypoint(func):
 
         with kernel.ctx.start_span(
             f"agent_execution_{func.__name__}",
-            attributes={
-                "langsmith.span.kind": "chain",  # For LangSmith compatibility
-                "langsmith.trace.name": f"Agent: {kernel.agent.name}",
-                "langsmith.metadata.agent_id": kernel.agent.agent_id,
-                "langsmith.metadata.thread_id": kernel.thread.thread_id,
-                "langsmith.metadata.agent_name": kernel.agent.name,
-                "langsmith.metadata.agent_architecture": kernel.agent.agent_architecture.name,
-                "langsmith.metadata.agent_architecture_version": kernel.agent.agent_architecture.version,  # noqa: E501
-                "langsmith.metadata.function": func.__name__,
-            },
+            attributes=kernel.get_standard_span_attributes(
+                extra_attributes={
+                    "langsmith.span.kind": "chain",
+                    "langsmith.trace.name": f"Agent: {kernel.agent.name}",
+                    "function": func.__name__,
+                },
+            ),
         ) as span:
             # Capture initial state for tracing (only happens if span is not None)
             try:

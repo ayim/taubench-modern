@@ -288,12 +288,13 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
         # Set up the span for tracing the batch of tool calls
         with self.kernel.ctx.start_span(
             "execute_pending_tool_calls",
-            attributes={
-                "langsmith.span.kind": "chain",
-                "langsmith.trace.name": "execute_pending_tool_calls",
-                "tool_count": len(pending_calls_copy) if pending_calls_copy else 0,
-                "thread_id": self.kernel.thread.thread_id,
-            },
+            attributes=self.kernel.get_standard_span_attributes(
+                extra_attributes={
+                    "langsmith.span.kind": "chain",
+                    "langsmith.trace.name": "execute_pending_tool_calls",
+                    "tool_count": len(pending_calls_copy) if pending_calls_copy else 0,
+                },
+            ),
         ) as span:
             # Format tool call inputs for telemetry
             if pending_calls_copy:
@@ -356,23 +357,26 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                 # Create a span for this specific tool execution
                 with self.kernel.ctx.start_span(
                     f"tool_execution_{result.definition.name}",
-                    attributes={
-                        "langsmith.span.kind": "tool",
-                        "langsmith.trace.name": f"Tool: {result.definition.name}",
-                        "tool.name": result.definition.name,
-                        "tool.call_id": result.tool_call_id,
-                        "tool.execution_id": result.execution_id,
-                        "tool.input": result.input_raw,
-                        "input.value": json.dumps(
-                            {
-                                "name": result.definition.name,
-                                "args": json.loads(result.input_raw) if result.input_raw else {},
-                                "id": result.tool_call_id,
-                                "type": "tool_call",
-                            }
-                        ),
-                        "thread_id": self.kernel.thread.thread_id,
-                    },
+                    attributes=self.kernel.get_standard_span_attributes(
+                        extra_attributes={
+                            "langsmith.span.kind": "tool",
+                            "langsmith.trace.name": f"Tool: {result.definition.name}",
+                            "tool.name": result.definition.name,
+                            "tool.call_id": result.tool_call_id,
+                            "tool.execution_id": result.execution_id,
+                            "tool.input": result.input_raw,
+                            "input.value": json.dumps(
+                                {
+                                    "name": result.definition.name,
+                                    "args": json.loads(result.input_raw)
+                                    if result.input_raw
+                                    else {},
+                                    "id": result.tool_call_id,
+                                    "type": "tool_call",
+                                }
+                            ),
+                        },
+                    ),
                 ) as tool_span:
                     # Record success or failure
                     tool_span.set_attribute("tool.success", result.error is None)

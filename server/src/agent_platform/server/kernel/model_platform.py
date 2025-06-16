@@ -58,9 +58,7 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
         """
         with self.kernel.ctx.start_span(
             "generate_response",
-            attributes={
-                "thread_id": self.kernel.thread.thread_id,
-            },
+            attributes=self.kernel.get_standard_span_attributes(),
         ):
             # Use the default finalizers chain defined in Prompt.finalize_messages
             # (SpecialMessageFinalizer followed by TruncationFinalizer).
@@ -134,10 +132,7 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
         """
         with self.kernel.ctx.start_span(
             "stream_response",
-            attributes={
-                "thread_id": self.kernel.thread.thread_id,
-                "streaming": True,
-            },
+            attributes=self.kernel.get_standard_span_attributes(),
         ):
             # Use the default finalizers chain defined in Prompt.finalize_messages
             # (SpecialMessageFinalizer followed by TruncationFinalizer).
@@ -205,12 +200,7 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
                             # Add usage information if available
                             if stream_pipe.reassembled_response.usage:
                                 usage = stream_pipe.reassembled_response.usage
-                                labels = {
-                                    "agent_id": self.kernel.agent.agent_id,
-                                    "thread_id": self.kernel.thread.thread_id,
-                                    "agent_name": self.kernel.agent.name,
-                                    "thread_name": self.kernel.thread.name,
-                                }
+                                labels = self.kernel.get_standard_span_attributes()
                                 self.kernel.ctx.increment_counter(
                                     name="sema4ai.agent_server.prompt_tokens",
                                     increment=usage.input_tokens,
@@ -250,18 +240,15 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
         return await self._internal_client.count_tokens(prompt, model)
 
     def _generate_metadata(self, model, streaming: bool = False) -> dict[str, Any]:
-        metadata = {
-            "model": model,
-            "provider": self._internal_client.name,
-            "trace_name": f"stream_response_{self._internal_client.name}",
-            "streaming": streaming,
-            "agent_id": self.kernel.agent.agent_id,
-            "thread_id": self.kernel.thread.thread_id,
-            "agent_name": self.kernel.agent.name,
-            "user_id": self.kernel.user.cr_user_id
-            if self.kernel.user.cr_user_id
-            else self.kernel.user.sub,
-        }
+        metadata = self.kernel.get_standard_span_attributes(
+            # Here, model and provider attributes are needed for LangSmith purposes.
+            extra_attributes={
+                "model": model,
+                "provider": self._internal_client.name,
+                "trace_name": f"stream_response_{self._internal_client.name}",
+                "streaming": streaming,
+            },
+        )
         return metadata
 
     def _generate_usage_metadata(self, usage: TokenUsage) -> dict[str, Any]:
