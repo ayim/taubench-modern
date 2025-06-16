@@ -1,18 +1,17 @@
 import asyncio
-from dataclasses import dataclass
 import logging
+from dataclasses import dataclass
 from http import HTTPStatus
 from pathlib import Path
-from typing import Dict
-from agent_platform.quality.oauth import OAuthRedirectServer
-import yaml
 from urllib.parse import urlencode, urlparse
 
 import click
 import httpx
 import structlog
+import yaml
 from dotenv import load_dotenv
 
+from agent_platform.quality.oauth import OAuthRedirectServer
 from agent_platform.quality.reporter import QualityReporter
 from agent_platform.quality.runner import QualityTestRunner
 
@@ -35,6 +34,7 @@ structlog.configure(
     cache_logger_on_first_use=True,
 )
 
+
 @dataclass
 class OAuthProviderConfig:
     client_id: str
@@ -43,12 +43,13 @@ class OAuthProviderConfig:
     token_url: str
     redirect_uri: str
 
+
 @dataclass
 class Context:
     agent_server_url: str
     agents_dir: Path
     threads_dir: Path
-    oauth: Dict[str, OAuthProviderConfig]
+    oauth: dict[str, OAuthProviderConfig]
     verbose: bool
 
 
@@ -87,6 +88,7 @@ def setup_logging(verbose: bool = False):
         )
         logging.basicConfig(level=logging.INFO)
 
+
 @click.group()
 @click.option(
     "--config-file",
@@ -113,8 +115,8 @@ def cli(
         load_env_file(verbose=False)
 
     def load_config(path):
-        with open(path, 'r') as f:
-            if str(path).endswith('.yaml') or str(path).endswith('.yml'):
+        with open(path) as f:
+            if str(path).endswith(".yaml") or str(path).endswith(".yml"):
                 return yaml.safe_load(f)
             else:
                 raise ValueError("Unsupported config file format. Use .yaml or .yml.")
@@ -131,11 +133,11 @@ def cli(
                 client_secret=data["client_secret"],
                 auth_url=data["auth_url"],
                 token_url=data["token_url"],
-                redirect_uri=data["redirect_uri"]
+                redirect_uri=data["redirect_uri"],
             )
             for provider, data in config["oauth"].items()
         },
-        verbose=verbose
+        verbose=verbose,
     )
 
 
@@ -282,9 +284,10 @@ async def run(
             traceback.print_exc()
         raise click.Abort() from None
 
+
 @cli.command()
-@click.argument('provider')
-@click.option('--scopes', required=True, help='Scopes for the oauth connection (space separated).')
+@click.argument("provider")
+@click.option("--scopes", required=True, help="Scopes for the oauth connection (space separated).")
 @click.pass_obj
 async def oauth(ctx: Context, provider, scopes):
     """Obtain access token for a given provider and scopes."""
@@ -294,10 +297,10 @@ async def oauth(ctx: Context, provider, scopes):
 
     cfg = ctx.oauth[provider]
     auth_params = {
-        'response_type': 'code',
-        'client_id': cfg.client_id,
-        'redirect_uri': cfg.redirect_uri,
-        'scope': scopes,
+        "response_type": "code",
+        "client_id": cfg.client_id,
+        "redirect_uri": cfg.redirect_uri,
+        "scope": scopes,
     }
     auth_url = f"{cfg.auth_url}?{urlencode(auth_params)}"
 
@@ -308,11 +311,8 @@ async def oauth(ctx: Context, provider, scopes):
     redirect_port = parsed_url.port
     if redirect_host is None or redirect_port is None:
         raise click.UsageError(f"Cannot parse redirect uri {cfg.redirect_uri}.")
-    
-    server = OAuthRedirectServer(
-        host=redirect_host,
-        port=redirect_port
-    )
+
+    server = OAuthRedirectServer(host=redirect_host, port=redirect_port)
     print("Waiting for OAuth authorization...")
 
     auth_code = server.wait_for_code(timeout=180)
@@ -320,11 +320,11 @@ async def oauth(ctx: Context, provider, scopes):
     click.echo(f"Received authorization code: {auth_code}")
 
     token_data = {
-        'grant_type': 'authorization_code',
-        'code': auth_code,
-        'redirect_uri': cfg.redirect_uri,
-        'client_id': cfg.client_id,
-        'client_secret': cfg.client_secret
+        "grant_type": "authorization_code",
+        "code": auth_code,
+        "redirect_uri": cfg.redirect_uri,
+        "client_id": cfg.client_id,
+        "client_secret": cfg.client_secret,
     }
 
     try:
@@ -338,9 +338,10 @@ async def oauth(ctx: Context, provider, scopes):
     except httpx.RequestError as e:
         click.echo(f"Request failed: {e}", err=True)
         return
-    
+
     click.echo("Access token received:")
     click.echo(token_info)
+
 
 # Async wrapper for Click commands
 def async_command(f):
@@ -356,6 +357,7 @@ def async_command(f):
 check_server.callback = async_command(check_server.callback)
 run.callback = async_command(run.callback)
 oauth.callback = async_command(oauth.callback)
+
 
 def find_monorepo_root() -> Path:
     """Find the monorepo root by looking for markers like .git directory."""

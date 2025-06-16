@@ -1,14 +1,15 @@
 import threading
-from typing import Optional
+
+import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import PlainTextResponse
-import uvicorn
+
 
 class OAuthRedirectServer:
     def __init__(self, host: str = "127.0.0.1", port: int = 8080):
         self.host = host
         self.port = port
-        self._code: Optional[str] = None
+        self._code: str | None = None
         self._server_thread = None
         self._app = FastAPI()
         self._shutdown_event = threading.Event()
@@ -25,7 +26,7 @@ class OAuthRedirectServer:
     def _run_uvicorn(self):
         uvicorn.run(self._app, host=self.host, port=self.port, log_level="error")
 
-    def wait_for_code(self, timeout: Optional[int] = 300) -> Optional[str]:
+    def wait_for_code(self, timeout: int | None = 300) -> str | None:
         self._server_thread = threading.Thread(target=self._run_uvicorn, daemon=True)
         self._server_thread.start()
 
