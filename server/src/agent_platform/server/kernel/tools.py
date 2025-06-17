@@ -562,18 +562,16 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
             )
 
         for srv in mcp_servers:
-            if not srv.url:
-                continue
-
-            if srv.url in seen_urls:
+            if srv.url and srv.url in seen_urls:
                 continue  # skip any duplicate URLs (this shouldn't really
                 # happen, but just in case...)
 
-            seen_urls.add(srv.url)
+            if srv.url:
+                seen_urls.add(srv.url)
 
             subtools, subissues = await self._cache.get_or_fetch(
                 kind="mcp_servers",
-                key=srv.url,
+                key=srv.cache_key,
                 fetch_coro=_fetch(srv, additional_headers=additional_headers),
             )
             all_tools.extend(subtools)

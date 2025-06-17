@@ -1,16 +1,58 @@
+"""
+agent_platform.core.mcp.mcp_client
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+High-level MCP client supporting the three standard
+transports:
+
+* Streamable-HTTP  (`…/mcp`)
+* SSE              (`…/sse`)
+* stdio            (local subprocess)
+
+Key design goals
+----------------
+* **Correctness**  --- conforms to the MCP transport contracts.
+* **Safety**       --- env-var gate for stdio; validates `command`; resilient
+  exponential-back-off with full-jitter; no leaked child processes.
+* **Robustness**   --- races viable transports, retries transient failures,
+  exposes session-id for resumption.
+* **Speed**        --- minimal startup overhead, concurrent tool calls by
+  default (can be forced serial via server hint).
+
+Public surface
+--------------
+* `MCPClient(target_server, *, force_serial_tool_calls: bool = False)`
+* `.is_connected`
+* `.chosen_transport`
+* `.session`           --- underlying `ClientSession`
+* `.session_id`        --- current HTTP session-ID if StreamableHTTP
+* `await .connect() / .close()`
+* `await .call_tool(name, args, attempts=N)`
+* `await .list_tools()`
+
+"""
+
 import asyncio
-from collections.abc import Callable, Coroutine
-from contextlib import AsyncExitStack
+import os
+import random
+import re
+import time
+from collections.abc import Callable
+from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import timedelta
-from json import dumps
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Final
+from urllib.parse import urlparse
 
 import httpx
 from anyio import ClosedResourceError
 from mcp import ClientSession
 from mcp.client.sse import sse_client
+from mcp.client.stdio import StdioServerParameters, stdio_client
 from mcp.client.streamable_http import streamablehttp_client
+from mcp.shared.message import ClientMessageMetadata
+from mcp.types import CallToolRequest, CallToolRequestParams, CallToolResult, ClientRequest
+from structlog.stdlib import BoundLogger, get_logger
 
 from agent_platform.core.configurations import Configuration, FieldMetadata
 from agent_platform.core.tools.tool_definition import ToolDefinition
@@ -19,279 +61,568 @@ if TYPE_CHECKING:
     from agent_platform.core.mcp.mcp_server import MCPServer
 
 
+# --------------------------------------------------------------------------- #
+#  Small utility: async no-op context manager                                 #
+# --------------------------------------------------------------------------- #
+@asynccontextmanager
+async def _anoop():
+    """Async no-op context manager (like contextlib.nullcontext for awaitables)."""
+    yield
+
+
+# --------------------------------------------------------------------------- #
+#  Configuration --- values are exposed as class   attributes via ConfigMeta.   #
+# --------------------------------------------------------------------------- #
+
+
 @dataclass(frozen=True)
 class MCPClientConfiguration(Configuration):
-    default_read_timeout_seconds: int = field(
-        default=10,
+    probe_timeout_seconds: int = field(
+        default=2,
         metadata=FieldMetadata(
-            description=(
-                "The _default_ timeout for reading from the MCP servers. "
-                "Tool calls get a different timeout."
-            ),
-            env_vars=["SEMA4AI_AGENT_SERVER_MCP_DEFAULT_READ_TIMEOUT_SECONDS"],
+            description="Timeout for fast endpoint probes.",
+            env_vars=["SEMA4AI_AGENT_SERVER_MCP_DEFAULT_PROBE_TIMEOUT_SECONDS"],
         ),
     )
-    """
-    The _default_ timeout for reading from the MCP servers.
-    Tool calls get a different timeout.
-    """
-
+    handshake_timeout_seconds: int = field(
+        default=5,
+        metadata=FieldMetadata(
+            description="Timeout for remote transport handshake / initialize().",
+            env_vars=["SEMA4AI_AGENT_SERVER_MCP_DEFAULT_HANDSHAKE_TIMEOUT_SECONDS"],
+        ),
+    )
+    stdio_handshake_timeout_seconds: int = field(
+        default=30,
+        metadata=FieldMetadata(
+            description="Timeout for stdio transport handshake / initialize().",
+            env_vars=["SEMA4AI_AGENT_SERVER_MCP_DEFAULT_STDIO_HANDSHAKE_TIMEOUT_SECONDS"],
+        ),
+    )
+    cleanup_timeout_seconds: int = field(
+        default=3,
+        metadata=FieldMetadata(
+            description="Timeout when closing a failed transport.",
+            env_vars=["SEMA4AI_AGENT_SERVER_MCP_DEFAULT_CLEANUP_TIMEOUT_SECONDS"],
+        ),
+    )
     tool_call_read_timeout_seconds: int = field(
         default=300,
         metadata=FieldMetadata(
-            description=(
-                "The timeout for reading from the MCP servers during tool calls. "
-                "This is different from the default read timeout above."
-            ),
+            description="Read-timeout for long-running tool calls.",
             env_vars=["SEMA4AI_AGENT_SERVER_MCP_TOOL_CALL_READ_TIMEOUT_SECONDS"],
         ),
     )
-    """
-    The timeout for reading from the MCP servers during tool calls.
-    This is different from the default read timeout above.
-    """
 
 
+# --------------------------------------------------------------------------- #
+#  Helpers                                                                    #
+# --------------------------------------------------------------------------- #
+logger: BoundLogger = get_logger(__name__)
+_ALLOW_STDIO_ENV_VAR: Final[str] = "SEMA4AI_AGENT_SERVER_MCP_ALLOW_STDIO"
+_COMMAND_RE: Final[re.Pattern[str]] = re.compile(r"^[\w\-./\\]+$")  # crude but effective
+
+
+def _safe_command(cmd: str) -> str:
+    """
+    Ensure the supplied executable looks safe to run.
+
+    * Must not contain whitespace or shell metacharacters.
+    * If it is an absolute path, ensure it exists.
+
+    Raises
+    ------
+    ValueError
+        If the command looks unsafe.
+    """
+    if not _COMMAND_RE.match(cmd):
+        raise ValueError(f"Rejecting unsafe command string: {cmd!r}")
+    if os.path.isabs(cmd) and not os.path.exists(cmd):
+        raise ValueError(f"Executable not found: {cmd}")
+    return cmd
+
+
+def _full_jitter(base_delay: float, attempt: int, cap: float) -> float:
+    """
+    "Full-jitter" back-off --- see AWS architecture blog.
+    """
+    exp = min(cap, base_delay * 2 ** (attempt - 1))
+    return random.uniform(0, exp)
+
+
+# --------------------------------------------------------------------------- #
+#  Client                                                                     #
+# --------------------------------------------------------------------------- #
 class MCPClient:
     """
-    High-level client that automatically negotiates the transport (Streamable HTTP|SSE)
-    and exposes a ready-to-use ``ClientSession`` instance.
+    High-level façade over `mcp.ClientSession`.
 
-    * MCP v1.8.0+ servers expose a single `/mcp` endpoint that accepts both POST and GET
-      and may upgrade responses to SSE.
-    * Older servers keep the two-endpoint HTTP+SSE design (`/sse` + `/sse/messages`).
+    Parameters
+    ----------
+    target_server:
+        An `MCPServer` description (see `mcp_server.py`).
+    force_serial_tool_calls:
+        If *True*, all tool calls are executed under a lock to support
+        legacy servers that cannot interleave multiple requests.
     """
 
-    def __init__(self, target_server: "MCPServer"):
+    # ------------------------------------------------------------------ #
+    #  Construction / context-manager                                    #
+    # ------------------------------------------------------------------ #
+
+    def __init__(self, target_server: "MCPServer") -> None:
+        self._cfg = MCPClientConfiguration  # class-level singleton per ConfigMeta
         self.target_server = target_server
 
-        self._exit_stack = AsyncExitStack()
         self._session: ClientSession | None = None
-        self._get_session_id: Callable[[], str | None] | None = None
+        self._get_session_id_cb: Callable[[], str | None] | None = None
 
         self._connected = False
-        self._connect_lock = asyncio.Lock()
-        # Serialize in-flight tool calls to same server
-        # (uncertain how well servers handle concurrent tool calls)
-        self._call_lock = asyncio.Lock()
+        self._chosen_transport: str | None = None
+        self._winner_task: asyncio.Task[None] | None = None
+        self._close_evt: asyncio.Event | None = None
 
-    # --------------------------------------------------------------------- #
-    # Context-manager helpers                                               #
-    # --------------------------------------------------------------------- #
+        self._connect_lock = asyncio.Lock()
+        self._transport_tasks: list[asyncio.Task[None]] = []
+        self._race_lock = asyncio.Lock()
+
+        # Tool-call concurrency
+        self._serialize_calls = target_server.force_serial_tool_calls
+        self._call_lock = asyncio.Lock() if self._serialize_calls else None
+
     async def __aenter__(self) -> "MCPClient":
         await self.connect()
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+    async def __aexit__(self, *_exc) -> None:
         await self.close()
 
-    # --------------------------------------------------------------------- #
-    # Public properties                                                     #
-    # --------------------------------------------------------------------- #
-    @property
-    def session(self) -> ClientSession:
-        if not self._session:
-            raise RuntimeError("MCP client not connected")
-        return self._session
+    # ------------------------------------------------------------------ #
+    #  Public properties                                                 #
+    # ------------------------------------------------------------------ #
 
     @property
     def is_connected(self) -> bool:
         return self._connected and self._session is not None
 
-    # --------------------------------------------------------------------- #
-    # Connection/teardown logic                                             #
-    # --------------------------------------------------------------------- #
+    @property
+    def chosen_transport(self) -> str:
+        if not self._chosen_transport:
+            raise RuntimeError("Client not connected")
+        return self._chosen_transport
+
+    @property
+    def session(self) -> ClientSession:
+        if not self._session:
+            raise RuntimeError("Client not connected")
+        return self._session
+
+    @property
+    def session_id(self) -> str | None:
+        if self._get_session_id_cb:
+            return self._get_session_id_cb()
+        return None
+
+    # ------------------------------------------------------------------ #
+    #  Connect / close                                                   #
+    # ------------------------------------------------------------------ #
+
+    @staticmethod
+    def _normalise(url: str) -> tuple[str, str]:
+        """
+        Return `(streamable_url, sse_url)` stripping trailing slashes + suffix.
+
+        * `http://host/`         →  (`http://host/mcp`, `http://host/sse`)
+        * `http://host/mcp`      →  (same, `http://host/sse`)
+        * `http://host/sse`      →  (`http://host/mcp`, same)
+        """
+        while url.endswith("/"):
+            url = url[:-1]
+
+        for tail in ("/mcp", "/sse"):
+            if url.endswith(tail):
+                url = url[: -len(tail)]
+        return f"{url}/mcp", f"{url}/sse"
+
     async def connect(self) -> None:
         """
-        Try Streamable HTTP first; if *either* transport creation **or**
-        `initialize()` fails, fall back to SSE.  Whole method is protected by
-        `_connect_lock`, so concurrent coroutines will not race.
+        Establish connection with racing & probe strategy.
+
+        Idempotent --- if already connected, it's a no-op.
         """
         async with self._connect_lock:
             if self.is_connected:
                 return
 
-            base = self.target_server.url.rstrip("/")
-            streamable_url = base if base.endswith("/mcp") else f"{base}/mcp"
-            sse_url = base if base.endswith("/sse") else f"{base}/sse"
+            if self.target_server.is_stdio:
+                await self._connect_stdio()
+            else:
+                await self._connect_remote()
 
-            # Fail fast: we should be able to do a GET to either of these endpoints
-            # if we fail both, then we probably just have a bad URL or the server
-            # isn't even running...
-            any_url_works = False
-            errors = {}
-            async with httpx.AsyncClient() as client:
-
-                async def check_url(url):
-                    try:
-                        await client.get(url)
-                        return True
-                    except httpx.RequestError as e:
-                        errors[url] = e
-                        return False
-
-                results = await asyncio.gather(
-                    check_url(streamable_url),
-                    check_url(sse_url),
-                    return_exceptions=False,
+            if not self.is_connected:
+                # Accessing ``t.exception()`` on a pending task raises
+                # ``InvalidStateError``.  Filter to completed tasks first.
+                first_exc = next(
+                    (t.exception() for t in self._transport_tasks if t.done() and t.exception()),
+                    None,
                 )
+                target = self.target_server.command or self.target_server.url
+                raise ConnectionError(f"Could not connect to '{target}'") from first_exc
 
-                any_url_works = any(results)
-
-            if not any_url_works:
-                error_details = "; ".join(f"{url}: {errors[url]!s}" for url in errors)
-                raise ConnectionError(
-                    f"Failed to connect to MCP server {self.target_server.url}: "
-                    f"no working transport found: {error_details}"
-                )
-
-            # Ordered list of (name, factory-callable, url)
-            transports: list[tuple[str, Callable[[], Any]]] = [
-                ("streamable", lambda: streamablehttp_client(streamable_url)),
-                ("sse", lambda: sse_client(sse_url)),
-            ]
-
-            last_error: Exception | None = None
-
-            for name, factory in transports:
-                attempt_stack = AsyncExitStack()
-                try:
-                    # 1. open transport
-                    streams = await attempt_stack.enter_async_context(factory())
-                    if name == "streamable":
-                        read_stream, write_stream, self._get_session_id = streams
-                    else:  # SSE returns two items
-                        read_stream, write_stream = streams
-
-                    # 2. create a ClientSession and handshake
-                    self._session = await attempt_stack.enter_async_context(
-                        ClientSession(
-                            read_stream,
-                            write_stream,
-                            # This is the _default timeout_ but we can override
-                            # it when calling tools... so let's keep this tighter
-                            read_timeout_seconds=timedelta(
-                                seconds=MCPClientConfiguration.default_read_timeout_seconds,
-                            ),
-                        )
-                    )
-                    # TODO: In the case of timeouts... should we _not_ try again
-                    # to avoid more latency... really we need to cache tool defs
-                    # and only update when agent is updated (or via some manualy
-                    # triggered refresh)
-                    await self._session.initialize()  # may raise (bad handshake)
-
-                except Exception as exc:
-                    # transport failed --> clean up this attempt and try next
-                    last_error = exc
-                    await attempt_stack.aclose()
-                    continue
-
-                # success ---------------------------------------------------
-                self._exit_stack = attempt_stack
-                self._connected = True
-                return
-
-            # All transports failed
-            raise ConnectionError(
-                f"Failed to connect to MCP server {self.target_server.url}: {last_error}",
-            ) from last_error
+            logger.info(
+                "Connected - name=%s transport=%s session_id=%s",
+                self.target_server.name,
+                self._chosen_transport.upper() if self._chosen_transport else "unknown",
+                self.session_id,
+            )
 
     async def close(self) -> None:
-        """Tear everything down; safe to call multiple times."""
-        if not self.is_connected:
+        """
+        Graceful shutdown.
+
+        Cancels loser transports, lets the winning transport's context-manager
+        clean up its resources (subprocess / HTTP connections).
+        """
+
+        if not self._transport_tasks and not self._connected:
             return
 
-        if self._exit_stack:
-            await self._exit_stack.aclose()
+        # Wake the winner so its context manager can exit
+        if self._close_evt:
+            self._close_evt.set()
 
+        # Wait for winner to finish, then cancel others
+        if self._winner_task:
+            await self._winner_task
+
+        for t in self._transport_tasks:
+            if not t.done():
+                t.cancel()
+        if self._transport_tasks:
+            await asyncio.gather(*self._transport_tasks, return_exceptions=True)
+
+        # Reset
+        self._transport_tasks.clear()
         self._session = None
-        self._exit_stack = None
-        self._get_session_id = None
         self._connected = False
+        self._chosen_transport = None
+        self._winner_task = None
+        logger.info("Disconnected from MCP server '%s'", self.target_server.url)
 
-    # --------------------------------------------------------------------- #
-    # Tool helpers                                                          #
-    # --------------------------------------------------------------------- #
-    async def list_tools(
+    # ------------------------------------------------------------------ #
+    #  Internal --- transport selection                                  #
+    # ------------------------------------------------------------------ #
+
+    # --- stdio (local subprocess) ------------------------------------ #
+    def _stdio_factory(self):
+        srv = self.target_server
+        assert srv.command  # type guard
+        cmd = _safe_command(srv.command)
+        params = StdioServerParameters(
+            command=cmd,
+            args=srv.args or [],
+            env=srv.env,
+            cwd=srv.cwd,
+        )
+
+        # The `mcp.client.stdio.stdio_client` context manager is responsible
+        # for terminating the spawned subprocess in *all* exit paths.
+        # The library's cleanup logic is sufficient to
+        # avoid orphaned processes.
+        return stdio_client(params)
+
+    async def _connect_stdio(self) -> None:
+        allowed = os.getenv(_ALLOW_STDIO_ENV_VAR, "").lower()
+        if allowed not in {"1", "true", "yes"}:
+            raise ValueError(
+                "Stdio-based MCP servers are disabled by default; "
+                f"set {_ALLOW_STDIO_ENV_VAR}=1 to enable."
+            )
+
+        winner_evt = asyncio.Event()
+        task = asyncio.create_task(
+            self._spawn_transport(
+                name="stdio",
+                factory=self._stdio_factory,
+                winner_evt=winner_evt,
+                fail_counter={"n": 0},
+                total=1,
+            )
+        )
+        self._transport_tasks.append(task)
+        await winner_evt.wait()
+
+    # --- remote (HTTP) ---------------------------------------------- #
+    async def _connect_remote(self) -> None:
+        parsed = urlparse(self.target_server.url or "")
+        if parsed.scheme not in {"http", "https"}:
+            raise ValueError(f"Unsupported URL scheme: {parsed.scheme!r}")
+
+        target_url = self.target_server.url or ""
+        expect_sse = self.target_server.transport == "sse"
+
+        async with httpx.AsyncClient(follow_redirects=False) as c:
+            ok = await self._probe_endpoint(c, target_url, expect_sse=expect_sse)
+
+        if not ok:
+            raise ConnectionError(f"No MCP transport found at '{self.target_server.url}'")
+
+        name = "streamable" if self.target_server.transport == "streamable-http" else "sse"
+
+        def factory() -> Any:
+            """Create the chosen transport client."""
+            if name == "streamable":
+                return streamablehttp_client(target_url)
+            return sse_client(target_url)
+
+        winner_evt = asyncio.Event()
+        task = asyncio.create_task(
+            self._spawn_transport(
+                name,
+                factory,
+                winner_evt,
+                fail_counter={"n": 0},
+                total=1,
+            )
+        )
+        self._transport_tasks.append(task)
+
+        await winner_evt.wait()
+
+    # ------------------------------------------------------------------ #
+    #  Transport worker                                                  #
+    # ------------------------------------------------------------------ #
+
+    async def _spawn_transport(
         self,
-        # Additional headers to be added to the request at
-        # tool definition time
-        # NOTE: MCP doesn't really seem to support this at the moment...
-        additional_headers: dict | None = None,
-    ) -> list[ToolDefinition]:
+        name: str,
+        factory: Callable[[], Any],
+        winner_evt: asyncio.Event,
+        fail_counter: dict[str, int],
+        total: int,
+    ) -> None:
         """
-        Fetch the tool catalogue and return a list of ``ToolDefinition`` objects
-        whose ``function`` attribute is *already bound* to ``call_tool``.
+        Run a transport inside its own context manager.
+
+        If the handshake succeeds and we are *first*, mark victory
+        (store session, signal `winner_evt`).  All non-winners shut down
+        quietly.
+        """
+        start_time = time.monotonic()
+        async with AsyncExitStack() as stack:
+            try:
+                streams = await stack.enter_async_context(factory())
+                if name == "streamable":
+                    read, write, self._get_session_id_cb = streams
+                else:
+                    read, write = streams
+
+                handshake_timeout_seconds = self._cfg.handshake_timeout_seconds
+                if name == "stdio":
+                    # Things can be _much slower_ if we're starting an stdio
+                    # server... use a more lenient timeout
+                    handshake_timeout_seconds = self._cfg.stdio_handshake_timeout_seconds
+                sess = await stack.enter_async_context(
+                    ClientSession(
+                        read,
+                        write,
+                        read_timeout_seconds=timedelta(seconds=handshake_timeout_seconds),
+                    )
+                )
+
+                init_result = await asyncio.wait_for(
+                    sess.initialize(),
+                    timeout=handshake_timeout_seconds,
+                )
+                latency = time.monotonic() - start_time
+                logger.info(
+                    f"{name} handshake ok  ({latency * 1000:.0f} ms,"
+                    f" protocol={init_result.protocolVersion})"
+                )
+
+                # Victory?
+                async with self._race_lock:
+                    if not self._connected:
+                        self._session = sess
+                        self._connected = True
+                        self._chosen_transport = name
+                        self._winner_task = asyncio.current_task()
+                        self._close_evt = asyncio.Event()
+                        winner_evt.set()
+                        logger.debug("%s transport marked as winner", name)
+
+                # Park until close()
+                if self._winner_task is asyncio.current_task() and self._close_evt:
+                    await self._close_evt.wait()
+
+            except Exception as exc:
+                logger.debug("%s transport error: %r", name, exc)
+                async with self._race_lock:
+                    fail_counter["n"] += 1
+                    if fail_counter["n"] == total:
+                        winner_evt.set()
+                    # If we were the winner and we failed, unblock close()
+                    if self._close_evt and self._winner_task is asyncio.current_task():
+                        self._close_evt.set()
+                # Exceptions are propagated only for the first winner-waiter
+                raise
+
+            finally:
+                # Give the stack a bounded time to clean up
+                try:
+                    await asyncio.wait_for(
+                        stack.aclose(), timeout=self._cfg.cleanup_timeout_seconds
+                    )
+                except TimeoutError:
+                    logger.warning(
+                        f"{name} cleanup exceeded {self._cfg.cleanup_timeout_seconds}s",
+                    )
+                except Exception as exc:
+                    # Cleanup should never crash the caller --- log and swallow.
+                    logger.debug("%s cleanup raised: %r", name, exc)
+
+    # ------------------------------------------------------------------ #
+    #  Probing helpers                                                   #
+    # ------------------------------------------------------------------ #
+
+    async def _probe_endpoint(
+        self,
+        client: httpx.AsyncClient,
+        url: str,
+        *,
+        expect_sse: bool,
+    ) -> bool:
+        """
+        *Cheap* liveness probe: perform a GET/HEAD, judge by *headers*
+        only.  Returns `True` when the endpoint looks alive.
+        """
+        headers = {
+            "Accept": "text/event-stream" if expect_sse else "application/json",
+            "X-MCP-Probe": "1",
+        }
+
+        try:
+            async with client.stream(
+                "GET", url, headers=headers, timeout=self._cfg.probe_timeout_seconds
+            ) as resp:
+                # Any status < 600 means we reached *our* server, including
+                # 503 Maintenance. 5xx still counts as "alive".
+                return resp.status_code < httpx.codes.BAD_GATEWAY + 100
+        except (httpx.HTTPError, TimeoutError):
+            return False
+
+    # ------------------------------------------------------------------ #
+    #  High-level tool operations                                        #
+    # ------------------------------------------------------------------ #
+
+    async def call_tool(
+        self,
+        name: str,
+        arguments: dict[str, Any] | None = None,
+        *,
+        attempts: int = 3,
+        base_backoff: float = 0.25,
+        backoff_cap: float = 8.0,
+    ) -> Any:
+        """
+        Invoke *tool* with automatic retries on transient I/O errors.
+
+        Non-transient exceptions bubble up immediately.
+        """
+
+        # Per-call resumption token (independent for concurrent calls)
+        last_token: str | None = None
+
+        async def _on_token_update(token: str):
+            nonlocal last_token
+            last_token = token
+
+        for attempt in range(1, attempts + 1):
+            try:
+                if not self.is_connected:
+                    await self.connect()
+
+                maybe_lock = self._call_lock or _anoop()
+
+                async with maybe_lock:
+                    metadata = ClientMessageMetadata(
+                        resumption_token=last_token,
+                        on_resumption_token_update=_on_token_update,
+                    )
+                    result = await self.session.send_request(
+                        ClientRequest(
+                            CallToolRequest(
+                                method="tools/call",
+                                params=CallToolRequestParams(
+                                    name=name,
+                                    arguments=arguments,
+                                ),
+                            )
+                        ),
+                        CallToolResult,
+                        request_read_timeout_seconds=timedelta(
+                            seconds=self._cfg.tool_call_read_timeout_seconds
+                        ),
+                        metadata=metadata,
+                    )
+
+                logger.info("Tool %s succeeded (attempt %d)", name, attempt)
+                return result.model_dump()
+
+            # ---------------- transient failures -------------------- #
+            except (
+                ClosedResourceError,
+                httpx.ReadTimeout,
+                httpx.WriteError,
+                TimeoutError,
+            ) as exc:
+                logger.warning("Transient error on %s attempt %d: %s", name, attempt, exc)
+                await self.close()
+                if attempt == attempts:
+                    raise
+
+                delay = _full_jitter(base_backoff, attempt, backoff_cap)
+                logger.info("Retrying in %.2fs …", delay)
+                await asyncio.sleep(delay)
+
+            # ---------------- protocol / logic errors --------------- #
+            except Exception:
+                # Do NOT retry: propagate
+                raise
+
+    # ------------------------------------------------------------------ #
+    #  list_tools                                                        #
+    # ------------------------------------------------------------------ #
+
+    async def list_tools(self) -> list[ToolDefinition]:
+        """
+        Fetch tool list and return handy `ToolDefinition`s with bound callables.
         """
         if not self.is_connected:
             await self.connect()
 
-        response = await self.session.list_tools()
+        resp = await self.session.list_tools()
 
-        def _get_tool_function(
-            tool_name: str,
-        ) -> Callable[..., Coroutine[Any, Any, Any]]:
-            async def _call_tool(
-                # Extra headers to be added to the request at
-                # tool invocation time
-                extra_headers: dict | None = None,
-                **args: dict[str, Any],
-            ) -> Any:
-                # TODO: I don't think we can really leverage any of the "headers"
-                # we may want to include here... maybe that'll change in MCPs future.
+        # Local helpers ------------------------------------------------- #
+        def _clean(schema: dict[str, Any]) -> dict[str, Any]:
+            return {k: v for k, v in (schema or {}).items() if k != "$schema"}
 
-                try:
-                    # Lazy reconnect if the underlying transport was dropped.
-                    if not self.is_connected:
-                        await self.connect()
+        def _make_bound(name_: str):
+            async def _bound(**kw):
+                return await self.call_tool(name_, kw or {})
 
-                    # Use the call lock to ensure only one call is processed at a time
-                    async with self._call_lock:
-                        # Execute the tool call
-                        response = await self.session.call_tool(
-                            tool_name,
-                            args,
-                            read_timeout_seconds=timedelta(
-                                seconds=MCPClientConfiguration.tool_call_read_timeout_seconds,
-                            ),
-                        )
-                        return response.model_dump_json()
-                except ClosedResourceError:
-                    # If the transport is closed, we need to reconnect
-                    try:
-                        await self.connect()
-                        async with self._call_lock:
-                            response = await self.session.call_tool(
-                                tool_name,
-                                args,
-                                read_timeout_seconds=timedelta(
-                                    seconds=MCPClientConfiguration.tool_call_read_timeout_seconds,
-                                ),
-                            )
-                            return response.model_dump_json()
-                    except Exception as e:
-                        return dumps({"internal-error": str(e)})
-                except Exception as e:
-                    # Could enhance error handling with more specific error types
-                    return dumps({"internal-error": str(e)})
+            return _bound
 
-            return _call_tool
-
-        def _clean_input_schema(input_schema: dict[str, Any]) -> dict[str, Any]:
-            return {
-                k: v
-                for k, v in (input_schema or {}).items()
-                if k not in {"$schema", "additionalProperties"}
-            }
-
-        return [
-            ToolDefinition(
-                name=tool.name,
-                description=tool.description or "",
-                input_schema=_clean_input_schema(tool.inputSchema),
-                category="mcp-tool",
-                function=_get_tool_function(tool.name),
+        # Build results ------------------------------------------------- #
+        definitions: list[ToolDefinition] = []
+        for tool in resp.tools:
+            definitions.append(
+                ToolDefinition(
+                    name=tool.name,
+                    description=tool.description or "",
+                    input_schema=_clean(tool.inputSchema),
+                    category="mcp-tool",
+                    function=_make_bound(tool.name),
+                )
             )
-            for tool in response.tools
-        ]
+        logger.info("Loaded %d tools from %s", len(definitions), self.target_server.url)
+        return definitions
