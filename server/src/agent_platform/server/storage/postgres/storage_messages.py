@@ -174,12 +174,12 @@ class PostgresStorageMessagesMixin(CommonMixin):
             if not (messages := await cur.fetchall()):
                 return []
 
-            # 4. Return the messages with committed=True and completed=True
+            # 4. Return the messages with commited=True and completed=True
             # since they are already persisted in the database
             result_messages = []
             for row in messages:
                 row_dict = dict(row)
-                # Set committed=True and completed=True for messages retrieved from database
+                # Set commited=True and completed=True for messages retrieved from database
                 row_dict["commited"] = True  # Note: using "commited" to match the field name
                 row_dict["complete"] = True
                 result_messages.append(ThreadMessage.model_validate(row_dict))
@@ -255,12 +255,12 @@ class PostgresStorageMessagesMixin(CommonMixin):
             if not (messages := await cur.fetchall()):
                 return []
 
-            # 4. Return the messages with committed=True and completed=True
+            # 4. Return the messages with commited=True and completed=True
             # since they are already persisted in the database
             result_messages = []
             for row in messages:
                 row_dict = dict(row)
-                # Set committed=True and completed=True for messages retrieved from database
+                # Set commited=True and completed=True for messages retrieved from database
                 row_dict["commited"] = True  # Note: using "commited" to match the field name
                 row_dict["complete"] = True
                 result_messages.append(ThreadMessage.model_validate(row_dict))

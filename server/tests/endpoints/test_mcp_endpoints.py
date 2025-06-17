@@ -4,6 +4,7 @@ import logging
 import multiprocessing
 import os
 import platform
+import socket
 import tempfile
 import time
 import uuid
@@ -19,7 +20,6 @@ import pytest
 import uvicorn
 from fastapi import Request
 from mcp import ClientSession as MCPClientSession
-from mcp import McpError
 from mcp.client.streamable_http import streamablehttp_client as mcp_streamablehttp_client
 from mcp.types import TextContent
 from starlette.applications import Starlette
@@ -189,19 +189,38 @@ local_mcp_proxy = Starlette(
 )
 
 
-def _run_proxy_server():
-    uvicorn.run(local_mcp_proxy, host="127.0.0.1", port=18000, loop="asyncio")
+def _wait_for_port(host: str, port: int, timeout: float = 10.0) -> None:
+    """Block until a TCP listener appears on *host:port* or *timeout* seconds elapse."""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            with socket.create_connection((host, port), timeout=0.2):
+                return
+        except OSError:
+            time.sleep(0.1)
+    raise RuntimeError(f"Server on {host}:{port} did not start within {timeout} seconds")
+
+
+def _run_proxy_server(port: int):
+    """Run the Starlette proxy on the given *port* inside a fresh uvicorn loop."""
+    uvicorn.run(local_mcp_proxy, host="127.0.0.1", port=port, loop="asyncio")
 
 
 @pytest.fixture(scope="session")
-def mock_mcp_proxy() -> Generator[None, None, None]:
-    """Create a FastAPI test app with MCP endpoints."""
+def mock_mcp_proxy() -> Generator[str, None, None]:
+    """Spin-up the Starlette proxy on a free TCP port and yield its base-URL."""
 
-    p = multiprocessing.Process(target=_run_proxy_server, daemon=True)
+    # Pick an ephemeral port that is guaranteed to be free for the child.
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("127.0.0.1", 0))
+        port: int = s.getsockname()[1]
+
+    p = multiprocessing.Process(target=_run_proxy_server, args=(port,))
     p.start()
-    time.sleep(5)
+
     try:
-        yield
+        _wait_for_port("127.0.0.1", port)
+        yield f"http://127.0.0.1:{port}"
     finally:
         p.terminate()
         p.join(timeout=5)
@@ -213,8 +232,9 @@ def mock_mcp_proxy() -> Generator[None, None, None]:
 async def test_mcp_endpoints(mock_mcp_proxy):
     """Test that the MCPAuthenticationMiddleware authenticates requests."""
 
+    base_url = mock_mcp_proxy
     async with mcp_streamablehttp_client(
-        f"http://127.0.0.1:18000/api/v2/public-mcp/mcp/?api_key={MOCK_USER_SUB}"
+        f"{base_url}/api/v2/public-mcp/mcp/?api_key={MOCK_USER_SUB}"
     ) as (
         read_stream,
         write_stream,
@@ -243,8 +263,9 @@ async def test_mcp_endpoints(mock_mcp_proxy):
 
 @pytest.mark.asyncio
 async def test_mcp_endpoints__random_auth(mock_mcp_proxy):
+    base_url = mock_mcp_proxy
     async with mcp_streamablehttp_client(
-        f"http://127.0.0.1:18000/api/v2/public-mcp/mcp/?api_key={uuid.uuid4()}"
+        f"{base_url}/api/v2/public-mcp/mcp/?api_key={uuid.uuid4()}"
     ) as (
         read_stream,
         write_stream,
@@ -277,9 +298,9 @@ async def test_mcp_agent_endpoints(mock_mcp_proxy):
 
     agent_1_id, _ = get_agent_ids()
 
+    base_url = mock_mcp_proxy
     async with mcp_streamablehttp_client(
-        # f"http://127.0.0.1:18000/api/v2/agent-mcp/{agent_1_id}/mcp/?api_key={MOCK_USER_SUB}"
-        f"http://127.0.0.1:18000/api/v2/agent-mcp/{agent_1_id}/mcp/?api_key={MOCK_USER_SUB}"
+        f"{base_url}/api/v2/agent-mcp/{agent_1_id}/mcp/?api_key={MOCK_USER_SUB}"
     ) as (
         read_stream,
         write_stream,
@@ -302,19 +323,31 @@ async def test_mcp_agent_endpoints_not_auth(mock_mcp_proxy):
 
     agent_1_id, _ = get_agent_ids()
 
-    async with mcp_streamablehttp_client(
-        # f"http://127.0.0.1:18000/api/v2/agent-mcp/{agent_1_id}/mcp/?api_key={MOCK_USER_SUB}"
-        f"http://127.0.0.1:18000/api/v2/agent-mcp/{agent_1_id}/mcp/?api_key=not_authed"
-    ) as (
-        read_stream,
-        write_stream,
-        _,
-    ):
-        # # Create a session using the client streams
-        async with MCPClientSession(
-            read_stream, write_stream, read_timeout_seconds=timedelta(seconds=1)
-        ) as session:
-            # The test is expected to fail
-            # since the agent ID is not associated with the authed user.
-            with pytest.raises(McpError):
+    async def attempt_unauthorized_connection():
+        base_url = mock_mcp_proxy
+        async with mcp_streamablehttp_client(
+            f"{base_url}/api/v2/agent-mcp/{agent_1_id}/mcp/?api_key=not_authed"
+        ) as (
+            read_stream,
+            write_stream,
+            _,
+        ):
+            # Create a session using the client streams
+            async with MCPClientSession(
+                read_stream, write_stream, read_timeout_seconds=timedelta(seconds=1)
+            ) as session:
+                # The server responds with HTTP 403 which is surfaced as an ExceptionGroup
+                # containing a single `httpx.HTTPStatusError`.  Catch the group and verify
+                # the wrapped exception.
                 await session.initialize()
+
+    # The server responds with HTTP 403 which is surfaced as an ExceptionGroup
+    # containing a single `httpx.HTTPStatusError`.  Catch the group and verify
+    # the wrapped exception.
+    with pytest.raises(ExceptionGroup) as exc_info:
+        await attempt_unauthorized_connection()
+
+    assert len(exc_info.value.exceptions) == 1
+    inner_exc = exc_info.value.exceptions[0]
+    assert isinstance(inner_exc, httpx.HTTPStatusError)
+    assert inner_exc.response.status_code == http.HTTPStatus.FORBIDDEN
