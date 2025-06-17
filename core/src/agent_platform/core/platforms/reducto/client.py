@@ -250,7 +250,6 @@ class ReductoClient(
         # make an openai call
         return await self._delegate.generate_response(
             model="gpt-4.1",
-            ctx=self.kernel.ctx,
             prompt=OpenAIPrompt(
                 messages=llm_messages,
                 tools=[],

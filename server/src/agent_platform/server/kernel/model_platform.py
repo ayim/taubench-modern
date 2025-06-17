@@ -69,10 +69,9 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
             )
 
             # Record tools in trace directly from the finalized_prompt
-            if finalized_prompt.tools:
-                self.kernel.prompts.record_tools_in_trace(
-                    finalized_prompt, span_name="generate_response_tools"
-                )
+            self.kernel.prompts.record_tools_in_trace(
+                finalized_prompt, span_name="generate_response_tools"
+            )
 
             # Convert prompt for the specific platform
             converted_prompt = await self._internal_client.converters.convert_prompt(
@@ -143,10 +142,9 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
             )
 
             # Record tools in trace directly from the finalized_prompt
-            if finalized_prompt.tools:
-                self.kernel.prompts.record_tools_in_trace(
-                    finalized_prompt, span_name="stream_response_tools"
-                )
+            self.kernel.prompts.record_tools_in_trace(
+                finalized_prompt, span_name="stream_response_tools"
+            )
 
             # Convert the prompt for the platform
             converted_prompt = await self._internal_client.converters.convert_prompt(

@@ -86,6 +86,7 @@ class AgentServerPromptsInterface(PromptsInterface, UsesKernelMixin):
         """
         # Skip if no tools
         if not prompt.tools:
+            logger.info("No tools found in prompt")
             return
 
         # Use this to record tools right before submitting to provider

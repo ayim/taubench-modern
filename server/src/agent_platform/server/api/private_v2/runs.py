@@ -1,3 +1,4 @@
+import json
 import traceback
 from asyncio import (
     FIRST_COMPLETED,
@@ -41,6 +42,7 @@ from agent_platform.core.streaming.delta import (
     StreamingDeltaMessageContent,
 )
 from agent_platform.core.thread import Thread
+from agent_platform.core.thread.content import ThreadTextContent
 from agent_platform.core.thread.messages import ThreadAgentMessage
 from agent_platform.core.user import User
 from agent_platform.server.agent_architectures import AgentArchManager
@@ -463,19 +465,42 @@ async def stream_run(  # noqa: C901, PLR0912, PLR0915
 
             # 2. Upsert thread and messages
             with server_context.start_span("upsert_thread_and_messages") as upsert_span:
-                upsert_span.set_attribute("thread_id", str(initial_payload.thread_id))
+                input_value = {
+                    "thread_id": str(initial_payload.thread_id),
+                    "message_count": len(initial_payload.messages),
+                }
+                upsert_span.set_attribute("input.value", json.dumps(input_value))
                 thread_state = await _upsert_thread_and_messages(
                     user,
                     initial_payload,
                     storage,
                 )
+                formatted_thread_state = thread_state.model_dump()
+                formatted_thread_state.pop("messages")
+                upsert_span.set_attribute("output.value", json.dumps(formatted_thread_state))
             span.update_name(f"{thread_state.name}")
-
+            try:
+                last_user_message = thread_state.messages[-1]
+                formatted_message = {
+                    "role": "user",
+                    "content": (
+                        last_user_message.content[0].text
+                        if isinstance(last_user_message.content[0], ThreadTextContent)
+                        else str(last_user_message.content[0])
+                    ),
+                }
+                span.set_attribute(
+                    "input.value",
+                    json.dumps(formatted_message),
+                )
+            except Exception as e:
+                logger.error(f"Could not prepare inputs for parent span: {e}")
             # 3. Fetch the agent
             with server_context.start_span("fetch_agent") as fetch_span:
                 fetch_span.set_attribute("agent_id", str(agent_id))
-                # We already fetched the agent above, so just add attributes
-                fetch_span.set_attribute("agent_name", agent.name)
+                # Mask sensitive data before logging
+                masked_agent_data = Agent.mask_sensitive_data(agent)
+                fetch_span.set_attribute("output.value", json.dumps(masked_agent_data))
 
             # 4. Validate the agent ID from the URL vs. the payload
             if initial_payload.agent_id != agent_id:
@@ -498,16 +523,16 @@ async def stream_run(  # noqa: C901, PLR0912, PLR0915
                 create_span.set_attribute("run_id", active_run.run_id)
                 create_span.set_attribute("run_type", active_run.run_type)
                 span.set_attribute("run_id", active_run.run_id)
+                create_span.set_attribute("output.value", json.dumps(active_run.model_dump()))
 
             # 6. Get the agent runner
             with server_context.start_span("get_agent_runner") as runner_span:
-                runner_span.set_attribute(
-                    "langsmith.metadata.agent_architecture", agent.agent_architecture.name
-                )
-                runner_span.set_attribute(
-                    "langsmith.metadata.agent_architecture_version",
-                    agent.agent_architecture.version,
-                )
+                input_value = {
+                    "agent_architecture": agent.agent_architecture.name,
+                    "agent_architecture_version": agent.agent_architecture.version,
+                    "thread_id": thread_state.thread_id,
+                }
+                runner_span.set_attribute("input.value", json.dumps(input_value))
                 runner = await agent_arch_manager.get_runner(
                     agent.agent_architecture.name,
                     agent.agent_architecture.version,
@@ -515,7 +540,12 @@ async def stream_run(  # noqa: C901, PLR0912, PLR0915
                 )
 
             # 7. Start the runner
-            with server_context.start_span("start_runner"):
+            with server_context.start_span("start_runner") as start_span:
+                input_value = {
+                    "thread_id": thread_state.thread_id,
+                    "run_id": active_run.run_id,
+                }
+                start_span.set_attribute("input.value", json.dumps(input_value))
                 await runner.start()
 
             # 8. Notify the client we are ready
@@ -540,11 +570,14 @@ async def stream_run(  # noqa: C901, PLR0912, PLR0915
             ca_invoke_task = create_task(runner.invoke(kernel))
 
             # 10. Task to forward CA events to client
+            event_array = []
+
             async def _send_ca_events():
                 try:
                     async for event in runner.get_event_stream():
                         try:
                             # Forward the event.
+                            event_array.append(event.model_dump())
                             await websocket.send_json(event.model_dump())
                             # If the event signals that the CA is finished, break.
                             if isinstance(event, StreamingDeltaAgentFinished):
@@ -556,6 +589,8 @@ async def stream_run(  # noqa: C901, PLR0912, PLR0915
                     logger.info(
                         "CA event sending task cancelled, likely client disconnected",
                     )
+                finally:
+                    span.set_attribute("output.value", str(event_array))
 
             # 11. Task to receive client messages and dispatch to the runner
             async def _receive_ws_messages():
@@ -738,19 +773,27 @@ async def sync_run(  # noqa: C901, PLR0912, PLR0915
 
             # 2. Upsert thread and messages
             with server_context.start_span("upsert_thread_and_messages") as upsert_span:
-                upsert_span.set_attribute("thread_id", str(initial_payload.thread_id))
+                input_value = {
+                    "thread_id": str(initial_payload.thread_id),
+                    "message_count": len(initial_payload.messages),
+                }
+                upsert_span.set_attribute("input.value", json.dumps(input_value))
                 thread_state = await _upsert_thread_and_messages(
                     user,
                     initial_payload,
                     storage,
                 )
+                output = thread_state.model_dump()
+                output.pop("messages", None)
+                upsert_span.set_attribute("output.value", json.dumps(output))
             span.update_name(f"{thread_state.name}")
 
             # 3. Fetch the agent
             with server_context.start_span("fetch_agent") as fetch_span:
                 fetch_span.set_attribute("agent_id", str(agent_id))
-                # We already fetched the agent above, so just add attributes
-                fetch_span.set_attribute("agent_name", agent.name)
+                # Mask sensitive data before logging
+                masked_agent_data = Agent.mask_sensitive_data(agent)
+                fetch_span.set_attribute("output.value", json.dumps(masked_agent_data))
 
             # 4. Validate the agent ID from the URL vs. the payload
             if initial_payload.agent_id != agent_id:
@@ -761,6 +804,12 @@ async def sync_run(  # noqa: C901, PLR0912, PLR0915
 
             # 5. Create a new synchronous run
             with server_context.start_span("create_run") as create_span:
+                input_value = {
+                    "agent_id": agent.agent_id,
+                    "thread_id": thread_state.thread_id,
+                    "run_type": "sync",
+                }
+                create_span.set_attribute("input.value", json.dumps(input_value))
                 server_context.increment_counter(
                     "sema4ai.agent_server.runs",
                     1,
@@ -774,17 +823,17 @@ async def sync_run(  # noqa: C901, PLR0912, PLR0915
                 )
                 create_span.set_attribute("run_id", active_run.run_id)
                 create_span.set_attribute("run_type", active_run.run_type)
+                create_span.set_attribute("output.value", json.dumps(active_run.model_dump()))
                 span.set_attribute("run_id", active_run.run_id)
 
             # 6. Get the agent runner
             with server_context.start_span("get_agent_runner") as runner_span:
-                runner_span.set_attribute(
-                    "langsmith.metadata.agent_architecture", agent.agent_architecture.name
-                )
-                runner_span.set_attribute(
-                    "langsmith.metadata.agent_architecture_version",
-                    agent.agent_architecture.version,
-                )
+                input_value = {
+                    "agent_architecture": agent.agent_architecture.name,
+                    "agent_architecture_version": agent.agent_architecture.version,
+                    "thread_id": thread_state.thread_id,
+                }
+                runner_span.set_attribute("input.value", json.dumps(input_value))
                 runner = await agent_arch_manager.get_runner(
                     agent.agent_architecture.name,
                     agent.agent_architecture.version,
@@ -792,7 +841,12 @@ async def sync_run(  # noqa: C901, PLR0912, PLR0915
                 )
 
             # 7. Start the runner
-            with server_context.start_span("start_runner"):
+            with server_context.start_span("start_runner") as start_span:
+                input_value = {
+                    "thread_id": thread_state.thread_id,
+                    "run_id": active_run.run_id,
+                }
+                start_span.set_attribute("input.value", json.dumps(input_value))
                 await runner.start()
 
             # 8. Collect the "AgentReady" event (instead of sending)
@@ -980,16 +1034,27 @@ async def async_run(  # noqa: C901, PLR0915
 
             # 2. Upsert thread and messages
             with server_context.start_span("upsert_thread_and_messages") as upsert_span:
-                upsert_span.set_attribute("thread_id", str(initial_payload.thread_id))
+                input_value = {
+                    "thread_id": str(initial_payload.thread_id),
+                    "message_count": len(initial_payload.messages),
+                }
+                upsert_span.set_attribute("input.value", json.dumps(input_value))
                 thread_state = await _upsert_thread_and_messages(
                     user,
                     initial_payload,
                     storage,
                 )
+                upsert_span.set_attribute("output.value", json.dumps(thread_state.model_dump()))
             span.update_name(f"{thread_state.name}")
 
             # 3. Create a new asynchronous run
             with server_context.start_span("create_run") as create_span:
+                input_value = {
+                    "agent_id": agent.agent_id,
+                    "thread_id": thread_state.thread_id,
+                    "run_type": "async",
+                }
+                create_span.set_attribute("input.value", json.dumps(input_value))
                 server_context.increment_counter(
                     "sema4ai.agent_server.runs",
                     1,
@@ -1003,6 +1068,7 @@ async def async_run(  # noqa: C901, PLR0915
                 )
                 create_span.set_attribute("run_id", active_run.run_id)
                 create_span.set_attribute("run_type", active_run.run_type)
+                create_span.set_attribute("output.value", json.dumps(active_run.model_dump()))
                 span.set_attribute("run_id", active_run.run_id)
 
             # 4. Start the background task to run the agent

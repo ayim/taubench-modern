@@ -252,3 +252,35 @@ class Agent:
             platform_configs=cast(list[AnyPlatformParameters], platform_configs),
             **data,
         )
+
+    @classmethod
+    def mask_sensitive_data(cls, agent: "Agent") -> dict:
+        """Mask sensitive information in agent data before logging.
+
+        Args:
+            agent_data: The agent data dictionary to mask
+
+        Returns:
+            Dict with sensitive data masked
+        """
+        masked_data = agent.model_dump()
+
+        # Mask sensitive info in platform configs
+        for config in masked_data["platform_configs"]:
+            for key, _ in config.items():
+                if any(sensitive in key.lower() for sensitive in ["password", "key"]):
+                    config[key] = "**********"
+
+        # Mask sensitive info in action packages
+        for package in masked_data.get("action_packages", []):
+            for key, _ in package.items():
+                if any(sensitive in key.lower() for sensitive in ["password", "key"]):
+                    package[key] = "**********"
+
+        # Mask sensitive info in observability configs
+        for config in masked_data.get("observability_configs", []):
+            for key, _ in config.items():
+                if any(sensitive in key.lower() for sensitive in ["password", "key"]):
+                    config[key] = "**********"
+
+        return masked_data
