@@ -204,6 +204,26 @@ class TestThreadMessageBase:
         await msg.commit()
         assert msg.message.commited is True
 
+    def test_model_dump_includes_commited_field(self):
+        """Test that model_dump includes the commited field."""
+        message = ThreadMessage(
+            role="user",
+            content=[ThreadTextContent(text="Test message")],
+            commited=True,
+        )
+
+        dumped = message.model_dump()
+
+        # Verify that commited field is present in the output
+        assert "commited" in dumped
+        assert dumped["commited"] is True
+
+        # Test with commited=False
+        message.commited = False
+        dumped = message.model_dump()
+        assert "commited" in dumped
+        assert dumped["commited"] is False
+
 
 class TestThreadUserMessage:
     def test_create_user_message(self):

@@ -26,7 +26,7 @@ class TestThreadState:
         msg = ThreadAgentMessage(content=[ThreadTextContent(text="hello")])
         with patch.object(ts, "_send_delta_event", new_callable=AsyncMock) as mock_send:
             await ts.stream_message_delta(msg)
-            # A new message will have 8 keys:
+            # A new message will have 9 keys:
             #    {
             #        'agent_metadata',
             #        'message_id',
@@ -36,9 +36,10 @@ class TestThreadState:
             #        'server_metadata',
             #        'parent_run_id',
             #        'complete',
+            #        'commited',
             #    }
             # Each of these will have a delta event.
-            assert mock_send.await_count == 8  # one delta event for each key
+            assert mock_send.await_count == 9  # one delta event for each key
 
     async def test_stream_message_delta_for_updated_message(self):
         ts = ThreadStateTestImpl()

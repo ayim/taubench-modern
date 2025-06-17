@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 
 from agent_platform.core.thread import Thread, ThreadMessage
 from agent_platform.core.thread.content.text import ThreadTextContent
+from agent_platform.core.thread.content.thought import ThreadThoughtContent
 from agent_platform.core.user import User
 from agent_platform.server.api.private_v2.threads import router as threads_router
 from agent_platform.server.auth.handlers import auth_user
@@ -32,7 +33,17 @@ class MockStorage:
 
     async def get_thread(self, user_id: str, thread_id: str) -> Thread | None:
         self.call_count["get_thread"] += 1
-        return self.threads.get(thread_id)
+        thread = self.threads.get(thread_id)
+        if thread:
+            # Simulate real storage behavior: set commited and complete to True
+            # for messages retrieved from storage
+            for message in thread.messages:
+                message.commited = True
+                message.complete = True
+                # Also mark content as complete
+                for content in message.content:
+                    content.complete = True
+        return thread
 
     async def list_threads(self, user_id: str) -> list[Thread]:
         self.call_count["list_threads"] += 1
@@ -257,6 +268,64 @@ def test_get_thread_state(client: TestClient, mock_storage: MockStorage):
 
     # Verify that get_thread was called
     assert mock_storage.call_count["get_thread"] == 1
+
+
+def test_get_thread_state_message_flags(client: TestClient, mock_storage: MockStorage):
+    """Test that thread messages have correct commited and complete flags."""
+    thread_id = str(uuid.uuid4())
+    user_id = str(uuid.uuid4())
+    agent_id = str(uuid.uuid4())
+
+    # Create a thread with messages
+    thread = Thread(
+        thread_id=thread_id,
+        user_id=user_id,
+        agent_id=agent_id,
+        name="Test Thread",
+        messages=[
+            ThreadMessage(
+                role="user",
+                content=[ThreadTextContent(text="Hello")],
+                commited=False,  # These will be set to True by storage
+                complete=False,
+            ),
+            ThreadMessage(
+                role="agent",
+                content=[
+                    ThreadThoughtContent(thought="Thinking..."),
+                    ThreadTextContent(text="Hi there!"),
+                ],
+                commited=False,
+                complete=False,
+            ),
+        ],
+    )
+    mock_storage.threads[thread_id] = thread
+
+    # Get thread state
+    response = client.get(f"/threads/{thread_id}/state")
+    assert response.status_code == 200
+
+    data = response.json()
+    assert "messages" in data
+    assert len(data["messages"]) == 2
+
+    # Check that all messages have commited=True and complete=True
+    for message in data["messages"]:
+        assert message["commited"] is True, "Messages from API should have commited=True"
+        assert message["complete"] is True, "Messages from API should have complete=True"
+
+        # Check that content items also have complete=True
+        for content in message["content"]:
+            assert content["complete"] is True, "Content items should have complete=True"
+
+    # Verify the message content is preserved
+    assert data["messages"][0]["role"] == "user"
+    assert data["messages"][0]["content"][0]["text"] == "Hello"
+
+    assert data["messages"][1]["role"] == "agent"
+    assert data["messages"][1]["content"][0]["thought"] == "Thinking..."
+    assert data["messages"][1]["content"][1]["text"] == "Hi there!"
 
 
 def test_get_thread_not_found(client: TestClient, mock_storage: MockStorage):

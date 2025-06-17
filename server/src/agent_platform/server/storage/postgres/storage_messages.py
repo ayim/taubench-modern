@@ -174,8 +174,16 @@ class PostgresStorageMessagesMixin(CommonMixin):
             if not (messages := await cur.fetchall()):
                 return []
 
-            # 4. Return the messages
-            return [ThreadMessage.model_validate(row) for row in messages]
+            # 4. Return the messages with committed=True and completed=True
+            # since they are already persisted in the database
+            result_messages = []
+            for row in messages:
+                row_dict = dict(row)
+                # Set committed=True and completed=True for messages retrieved from database
+                row_dict["commited"] = True  # Note: using "commited" to match the field name
+                row_dict["complete"] = True
+                result_messages.append(ThreadMessage.model_validate(row_dict))
+            return result_messages
 
     async def trim_messages_from_sequence(
         self,
@@ -247,5 +255,13 @@ class PostgresStorageMessagesMixin(CommonMixin):
             if not (messages := await cur.fetchall()):
                 return []
 
-            # 4. Return the messages
-            return [ThreadMessage.model_validate(row) for row in messages]
+            # 4. Return the messages with committed=True and completed=True
+            # since they are already persisted in the database
+            result_messages = []
+            for row in messages:
+                row_dict = dict(row)
+                # Set committed=True and completed=True for messages retrieved from database
+                row_dict["commited"] = True  # Note: using "commited" to match the field name
+                row_dict["complete"] = True
+                result_messages.append(ThreadMessage.model_validate(row_dict))
+            return result_messages

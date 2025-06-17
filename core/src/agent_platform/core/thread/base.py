@@ -160,6 +160,7 @@ class ThreadMessage:
             server_metadata=deepcopy(self.server_metadata),
             parent_run_id=self.parent_run_id,
             complete=self.complete,
+            commited=self.commited,
         )
         new_message.message_id = self.message_id
         return new_message
@@ -186,6 +187,7 @@ class ThreadMessage:
             "server_metadata": self.server_metadata,
             "parent_run_id": self.parent_run_id,
             "complete": self.complete,
+            "commited": self.commited,
         }
 
     @classmethod
@@ -208,4 +210,10 @@ class ThreadMessage:
             ]
         if "complete" in data:
             data["complete"] = bool(data["complete"])
+        else:
+            data["complete"] = True  # Default to True when loading from DB
+        if "commited" in data:
+            data["commited"] = bool(data["commited"])
+        else:
+            data["commited"] = True  # Default to True when loading from DB
         return cls(**data)

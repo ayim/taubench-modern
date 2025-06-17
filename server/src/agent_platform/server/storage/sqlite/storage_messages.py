@@ -184,6 +184,9 @@ class SQLiteStorageMessagesMixin(CommonMixin):
             row_dict["server_metadata"] = (
                 json.loads(row_dict["server_metadata"]) if row_dict["server_metadata"] else {}
             )
+            # Set committed=True and completed=True for messages retrieved from database
+            row_dict["commited"] = True  # Note: using "commited" to match the field name
+            row_dict["complete"] = True
             messages.append(ThreadMessage.model_validate(row_dict))
 
         return messages
@@ -262,6 +265,9 @@ class SQLiteStorageMessagesMixin(CommonMixin):
             row_dict["server_metadata"] = (
                 json.loads(row_dict["server_metadata"]) if row_dict["server_metadata"] else {}
             )
+            # Set committed=True and completed=True for messages retrieved from database
+            row_dict["commited"] = True  # Note: using "commited" to match the field name
+            row_dict["complete"] = True
             messages.append(ThreadMessage.model_validate(row_dict))
 
         return messages

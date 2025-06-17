@@ -554,3 +554,61 @@ async def test_delete_threads_for_agent(
         sample_agent.agent_id,
     )
     assert len(other_user_retrieved_threads) == 2
+
+
+@pytest.mark.asyncio
+async def test_thread_messages_commited_complete_flags(
+    storage: PostgresStorage,
+    sample_user_id: str,
+    sample_agent: Agent,
+) -> None:
+    """Test that thread messages retrieved from storage have commited=True and complete=True."""
+    # Create a thread with messages
+    thread = Thread(
+        thread_id=str(uuid4()),
+        user_id=sample_user_id,
+        agent_id=sample_agent.agent_id,
+        name="Test Commited/Complete Flags",
+        messages=[
+            ThreadMessage(
+                role="user",
+                content=[ThreadTextContent(text="User message")],
+                commited=False,  # Set to False initially
+                complete=False,  # Set to False initially
+            ),
+            ThreadMessage(
+                role="agent",
+                content=[ThreadTextContent(text="Agent response")],
+                commited=False,  # Set to False initially
+                complete=False,  # Set to False initially
+            ),
+        ],
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
+        metadata={},
+    )
+
+    # Store the thread
+    await storage.upsert_agent(sample_user_id, sample_agent)
+    await storage.upsert_thread(sample_user_id, thread)
+
+    # Retrieve the thread
+    retrieved = await storage.get_thread(sample_user_id, thread.thread_id)
+    assert retrieved is not None
+    assert len(retrieved.messages) == 2
+
+    # Check that both messages have commited=True and complete=True
+    for msg in retrieved.messages:
+        assert msg.commited is True, "Messages retrieved from database should have commited=True"
+        assert msg.complete is True, "Messages retrieved from database should have complete=True"
+        # Also check that content items are marked complete
+        for content in msg.content:
+            assert content.complete is True, "Content items should also be marked complete"
+
+    # Test model_dump includes commited field
+    for msg in retrieved.messages:
+        dumped = msg.model_dump()
+        assert "commited" in dumped, "model_dump should include commited field"
+        assert dumped["commited"] is True
+        assert "complete" in dumped, "model_dump should include complete field"
+        assert dumped["complete"] is True
