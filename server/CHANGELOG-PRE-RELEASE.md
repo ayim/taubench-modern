@@ -1,3 +1,23 @@
+# Sema4.ai Agent Server Pre-Release 2.0.2-alpha.2 (2025-06-17)
+
+## Agent Server
+
+### Miscellaneous
+
+- Added inputs/outputs to some LangSmith traces and removed old OTEL code from the OpenAI Platform Client. ([GPT-902](https://linear.app/sema4ai/issue/GPT-902))
+- Exclude dist from typecheck and uv run pyright ([GPT-992](https://linear.app/sema4ai/issue/GPT-992))
+
+
+## Public API
+
+No significant changes.
+
+
+## Private API
+
+No significant changes.
+
+
 # Sema4.ai Agent Server Pre-Release 2.0.2-alpha.1 (2025-06-17)
 
 ## Agent Server
