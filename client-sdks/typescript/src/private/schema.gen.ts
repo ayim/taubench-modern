@@ -990,7 +990,7 @@ export interface components {
        * Description
        * @description The description of the agent.
        */
-      description: string;
+      description?: string | null;
       /**
        * Public
        * @description Whether the agent is public. (Legacy, ignored.)

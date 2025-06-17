@@ -6,7 +6,7 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Private API Version 2',
-    version: '2.0.1',
+    version: '2.0.2-alpha',
   },
   paths: {
     '/api/v2/ok': {
@@ -2597,7 +2597,14 @@ export const spec = {
             description: 'The name of the agent.',
           },
           description: {
-            type: 'string',
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Description',
             description: 'The description of the agent.',
           },
@@ -2668,7 +2675,7 @@ export const spec = {
           },
         },
         type: 'object',
-        required: ['name', 'description'],
+        required: ['name'],
         title: 'AgentPackagePayload',
       },
       AgentPackagePayloadActionServer: {
