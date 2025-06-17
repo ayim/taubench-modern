@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Annotated
@@ -7,6 +8,7 @@ from structlog import get_logger
 
 from agent_platform.core.context import AgentServerContext
 from agent_platform.core.delta.combine_delta import combine_generic_deltas
+from agent_platform.core.mcp import MCPServer
 from agent_platform.core.model_selector import DefaultModelSelector
 from agent_platform.core.model_selector.selection_request import ModelSelectionRequest
 from agent_platform.core.platforms import (
@@ -28,6 +30,8 @@ from agent_platform.core.tools import ToolDefinition
 from agent_platform.server.agent_architectures import AgentArchManager
 from agent_platform.server.api.private_v2.utils import create_minimal_kernel
 from agent_platform.server.auth.handlers import AuthedUser
+from agent_platform.server.kernel.tools import AgentServerToolsInterface
+from agent_platform.server.kernel.tools_caching import ToolDefinitionCache
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -40,6 +44,15 @@ class _Book:
     category: Annotated[str | None, "The category of the book"]
     # Showing example of using field(metadata={"description": ...})
     year: int = field(metadata={"description": "Year the book was published"})
+
+
+@dataclass
+class ListMCPToolsRequest:
+    """Payload schema for listing tools from MCP servers."""
+
+    mcp_servers: list[MCPServer] = field(
+        metadata={"description": "The MCP servers to query for tools."}
+    )
 
 
 def _basic_test_prompt() -> tuple[Prompt, Callable[[ResponseMessage], bool]]:
@@ -318,3 +331,58 @@ async def test_model_platform_params(
             status_code=400,
             detail="Invalid platform parameters",
         ) from ex
+
+
+@router.post("/mcp/tools")
+async def list_mcp_tools(
+    user: AuthedUser,
+    payload: ListMCPToolsRequest,
+) -> dict:
+    """List tools available from the provided MCP servers.
+
+    Returns a mapping of each server to the tools discovered for that server.
+    """
+    iface = AgentServerToolsInterface()
+
+    async def _per_server(server: MCPServer):
+        # Create task first, then wait with timeout to avoid cancel scope issues
+        timeout = 30.0
+        task = asyncio.create_task(iface.from_mcp_servers([server]))
+
+        try:
+            tools, issues = await asyncio.wait_for(task, timeout=timeout)
+        except TimeoutError:
+            logger.warning(f"Timed out listing tools from MCP server {server.url}")
+            # Cancel the task gracefully
+            if not task.done():
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass  # Expected when we cancel
+                except Exception:
+                    pass  # Suppress any cleanup errors
+            return {
+                "server": server.model_dump(),
+                "tools": [],
+                "issues": [f"Failed to list tools: timeout after {timeout} seconds"],
+            }
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.exception(f"Failed to list tools from MCP server {server.url} ({exc!s})")
+            return {
+                "server": server.model_dump(),
+                "tools": [],
+                "issues": [f"Failed to list tools: {exc!s}"],
+            }
+
+        return {
+            "server": server.model_dump(),
+            "tools": [t.model_dump() for t in tools],
+            "issues": issues,
+        }
+
+    ToolDefinitionCache().clear_specific_urls_or_keys(
+        [server.cache_key for server in payload.mcp_servers if server.cache_key]
+    )
+    results = await asyncio.gather(*[_per_server(srv) for srv in payload.mcp_servers])
+    return {"results": results}

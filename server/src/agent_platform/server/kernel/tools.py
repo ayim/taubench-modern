@@ -3,6 +3,7 @@ import json
 from collections import Counter
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
+from typing import cast
 from uuid import uuid4
 
 import structlog
@@ -14,6 +15,8 @@ from agent_platform.core.kernel_interfaces.thread_state import (
 )
 from agent_platform.core.mcp import MCPServer
 from agent_platform.core.responses.content.tool_use import ResponseToolUseContent
+from agent_platform.core.streaming.delta import StreamingDeltaRequestToolExecution
+from agent_platform.core.streaming.incoming import IncomingDeltaClientToolResult
 from agent_platform.core.tools import ToolDefinition, ToolExecutionResult
 from agent_platform.server.kernel.kernel_mixin import UsesKernelMixin
 from agent_platform.server.kernel.tools_caching import (
@@ -97,6 +100,59 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
             output_raw=result_output,
             error=error_message,
             execution_ended_at=datetime.now(UTC),
+        )
+
+    async def _safe_execute_client_tool(
+        self,
+        tool_def: ToolDefinition,
+        tool_use: ResponseToolUseContent,
+    ) -> ToolExecutionResult:
+        """Request tool execution from the client and optionally await the result."""
+        execution_id = str(uuid4())
+        started_at = datetime.now(UTC)
+
+        await self.kernel.outgoing_events.dispatch(
+            StreamingDeltaRequestToolExecution(
+                tool_name=tool_def.name,
+                tool_call_id=tool_use.tool_call_id,
+                input_raw=tool_use.tool_input_raw or "{}",
+                timestamp=started_at,
+                # Only client-exec-tool requires execution (client-info-tool doesn't)
+                requires_execution=tool_def.category == "client-exec-tool",
+            ),
+        )
+        if tool_def.category == "client-exec-tool":
+            try:
+                # Use the new wait_for_event method with a predicate
+                reply = await self.kernel.incoming_events.wait_for_event(
+                    lambda event: (
+                        isinstance(event, IncomingDeltaClientToolResult)
+                        and event.tool_call_id == tool_use.tool_call_id
+                    )
+                )
+                # Cast to the specific type since we know from the predicate it's
+                # IncomingDeltaClientToolResult
+                reply = cast(IncomingDeltaClientToolResult, reply)
+                output_raw = reply.result.get("output")
+                error = reply.result.get("error")
+            except asyncio.CancelledError:
+                # Handle graceful cancellation (e.g., websocket disconnect)
+                output_raw = None
+                error = "Tool execution cancelled due to client disconnection"
+        else:
+            output_raw = {}
+            error = None
+
+        return ToolExecutionResult(
+            definition=tool_def,
+            tool_call_id=tool_use.tool_call_id,
+            execution_id=execution_id,
+            input_raw=tool_use.tool_input_raw or "{}",
+            output_raw=output_raw,
+            error=error,
+            execution_started_at=started_at,
+            execution_ended_at=datetime.now(UTC),
+            execution_metadata={},
         )
 
     @classmethod
@@ -232,13 +288,13 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
         # Set up the span for tracing the batch of tool calls
         with self.kernel.ctx.start_span(
             "execute_pending_tool_calls",
-            attributes={
-                "langsmith.span.kind": "chain",
-                "langsmith.trace.name": "execute_pending_tool_calls",
-                "tool_count": len(pending_calls_copy) if pending_calls_copy else 0,
-                "agent.id": self.kernel.agent.agent_id,
-                "thread.id": self.kernel.thread.thread_id,
-            },
+            attributes=self.kernel.get_standard_span_attributes(
+                extra_attributes={
+                    "langsmith.span.kind": "chain",
+                    "langsmith.trace.name": "execute_pending_tool_calls",
+                    "tool_count": len(pending_calls_copy) if pending_calls_copy else 0,
+                },
+            ),
         ) as span:
             # Format tool call inputs for telemetry
             if pending_calls_copy:
@@ -266,37 +322,61 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                     await message_to_update.stream_delta()
 
                 # Execute the tool in a separate task
-                execution_tasks.append(
-                    create_task(
-                        self._safe_execute_tool(tool_def, tool_use, extra_headers=run_headers),
-                    ),
-                )
+                if tool_def.category in {"client-exec-tool", "client-info-tool"}:
+                    # These are client-provided tools for which we either block
+                    # and wait for a result over the event bus, or just simply
+                    # signal the client with the tool input and immediately execute
+                    # with empty output.
+                    execution_tasks.append(
+                        create_task(
+                            self._safe_execute_client_tool(tool_def, tool_use),
+                        ),
+                    )
+                else:
+                    # These are the classic "action-tool" and "mcp-tool" types.
+                    execution_tasks.append(
+                        create_task(
+                            self._safe_execute_tool(
+                                tool_def,
+                                tool_use,
+                                extra_headers=run_headers,
+                            ),
+                        ),
+                    )
 
             # Yield results as they complete
             for completed_task in as_completed(execution_tasks):
-                result = await completed_task
+                try:
+                    result = await completed_task
+                except asyncio.CancelledError:
+                    # Task was cancelled (e.g., due to websocket disconnect)
+                    # We can't yield a result for this task, so just continue
+                    # The cancellation will be handled by the individual tool execution methods
+                    continue
 
                 # Create a span for this specific tool execution
                 with self.kernel.ctx.start_span(
                     f"tool_execution_{result.definition.name}",
-                    attributes={
-                        "langsmith.span.kind": "tool",
-                        "langsmith.trace.name": f"Tool: {result.definition.name}",
-                        "tool.name": result.definition.name,
-                        "tool.call_id": result.tool_call_id,
-                        "tool.execution_id": result.execution_id,
-                        "tool.input": result.input_raw,
-                        "input.value": json.dumps(
-                            {
-                                "name": result.definition.name,
-                                "args": json.loads(result.input_raw) if result.input_raw else {},
-                                "id": result.tool_call_id,
-                                "type": "tool_call",
-                            }
-                        ),
-                        "agent.id": self.kernel.agent.agent_id,
-                        "thread.id": self.kernel.thread.thread_id,
-                    },
+                    attributes=self.kernel.get_standard_span_attributes(
+                        extra_attributes={
+                            "langsmith.span.kind": "tool",
+                            "langsmith.trace.name": f"Tool: {result.definition.name}",
+                            "tool.name": result.definition.name,
+                            "tool.call_id": result.tool_call_id,
+                            "tool.execution_id": result.execution_id,
+                            "tool.input": result.input_raw,
+                            "input.value": json.dumps(
+                                {
+                                    "name": result.definition.name,
+                                    "args": json.loads(result.input_raw)
+                                    if result.input_raw
+                                    else {},
+                                    "id": result.tool_call_id,
+                                    "type": "tool_call",
+                                }
+                            ),
+                        },
+                    ),
                 ) as tool_span:
                     # Record success or failure
                     tool_span.set_attribute("tool.success", result.error is None)
@@ -482,18 +562,16 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
             )
 
         for srv in mcp_servers:
-            if not srv.url:
-                continue
-
-            if srv.url in seen_urls:
+            if srv.url and srv.url in seen_urls:
                 continue  # skip any duplicate URLs (this shouldn't really
                 # happen, but just in case...)
 
-            seen_urls.add(srv.url)
+            if srv.url:
+                seen_urls.add(srv.url)
 
             subtools, subissues = await self._cache.get_or_fetch(
                 kind="mcp_servers",
-                key=srv.url,
+                key=srv.cache_key,
                 fetch_coro=_fetch(srv, additional_headers=additional_headers),
             )
             all_tools.extend(subtools)

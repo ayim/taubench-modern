@@ -46,12 +46,13 @@ async def lifespan(app: FastAPI):
     # No need to shutdown providers - they'll be garbage collected
 
 
-def create_combined_lifespan(mcp_app: Starlette):
+def create_combined_lifespan(*mcp_apps: Starlette):
     @asynccontextmanager
     async def _combined_lifespan(main_app: FastAPI):
         async with AsyncExitStack() as stack:
             await stack.enter_async_context(lifespan(main_app))
-            await stack.enter_async_context(mcp_app.router.lifespan_context(main_app))
+            for app in mcp_apps:
+                await stack.enter_async_context(app.router.lifespan_context(main_app))
             yield
 
     return _combined_lifespan

@@ -8,10 +8,7 @@ from typing import Any, Literal, Optional, cast
 
 from fastapi import Request, WebSocket
 from opentelemetry import context, metrics, trace
-from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.metrics import Counter, Histogram, MeterProvider
-from opentelemetry.sdk.trace import TracerProvider as SdkTracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.trace import (
     Span,
     SpanContext,
@@ -24,10 +21,12 @@ from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapProp
 from requests.models import Response
 
 from agent_platform.core.agent.observability_config import ObservabilityConfig
+
+# Import for getting the LangSmith processor
+from agent_platform.core.conditional_langsmith_processor import ConditionalLangSmithProcessor
 from agent_platform.core.user import User
 
 logger = logging.getLogger(__name__)
-
 # Define valid run types for LangSmith
 RunType = Literal["chain", "llm", "tool", "retriever", "embedding", "prompt", "parser"]
 
@@ -51,92 +50,89 @@ class UserContext:
 class LangSmithContext:
     """LangSmith context information and operations using OpenTelemetry."""
 
-    # Class-level tracking of whether we've initialized LangSmith processor
-    _processor_initialized = False
-
-    def __init__(self, config: ObservabilityConfig | None = None):
-        """Initialize LangSmith context with optional configuration.
+    def __init__(
+        self,
+        server_context: "AgentServerContext",
+        config: ObservabilityConfig | None = None,
+    ):
+        """Initialize LangSmith context with server context and optional configuration.
 
         Args:
+            server_context: Server context for span creation (required)
             config: Optional observability configuration for LangSmith
         """
-        self.tracer = None
-        self.langsmith_exporter = None
+        self.config = config
+        self.server_context = server_context
 
-        if config and config.type == "langsmith" and config.api_key:
-            # Create the headers dictionary
-            # Using .get() on settings to safely retrieve project value with default
-            project = config.settings.get("project_name", "default")
+        # When new threads are created, an AgentServerContext object
+        # is initialized with no observability config.
+        # This object is used to update counters, and no LangSmith
+        # operations are performed.
+        # In this case, the LangSmithContext is initialized with
+        # no config and this debug statement will be printed.
+        logger.debug(
+            f"LangSmithContext initialized with config: {config.type if config else 'None'}"
+        )
 
-            # Create headers with explicit type
-            headers: dict[str, str] = {
-                "x-api-key": config.api_key,
-                "Langsmith-Project": str(project),
-            }
-
-            # Create the OTLP exporter
-            # Note: If the OTEL_EXPORTER_OTLP_ENDPOINT environment variable is not set,
-            # we need to manually append the /otel/v1/traces endpoint to the api_url;
-            # otherwise, the export of traces will fail.
-            # This is because the OTLPSpanExporter class expects the endpoint to already
-            # have the /otel/v1/traces suffix.
-            endpoint = config.api_url
-            if not endpoint:
-                endpoint = "https://api.smith.langchain.com/otel/v1/traces"
-            elif not endpoint.endswith("/otel/v1/traces"):
-                endpoint = endpoint.rstrip("/") + "/otel/v1/traces"
-
-            self.langsmith_exporter = OTLPSpanExporter(
-                endpoint=endpoint,
-                headers=headers,
-            )
-
-            # Get the current tracer provider
-            provider = trace.get_tracer_provider()
-
-            # If it's the SDK TracerProvider, we can add our processor
-            if isinstance(provider, SdkTracerProvider):
-                # Check if we've already initialized the LangSmith processor
-                if not LangSmithContext._processor_initialized:
-                    processor = BatchSpanProcessor(self.langsmith_exporter)
-                    provider.add_span_processor(processor)
-                    LangSmithContext._processor_initialized = True
-
-            # Create a tracer for LangSmith operations
-            self.tracer = trace.get_tracer("langsmith")
-
-    def format_response_for_langsmith(self, response) -> dict:
+    def format_response_for_langsmith(self, response) -> list[dict]:
         """Formats a response for LangSmith.
 
         Args:
             response: The response to format
 
         Returns:
-            A dictionary formatted for LangSmith showing content and role
+            A list of messages formatted for LangSmith showing content and role
         """
-        # Extract text content from all content items
-        formatted_text = ""
+        messages = []
+        current_text = ""
 
         # Handle response with content attribute (ResponseMessage)
-        if response.content:
+        if hasattr(response, "content") and response.content:
             for content_item in response.content:
-                # Check the kind of content
+                # Text content gets accumulated
                 if content_item.kind == "text":
-                    # It's a text content, we can safely access the text attribute
                     if content_item.text:
-                        formatted_text += content_item.text
-                else:
-                    # For other content types, just use string representation
-                    formatted_text += str(content_item)
-        # Simple string response
-        elif isinstance(response, str):
-            formatted_text = response
-        # Any other response type
-        else:
-            formatted_text = str(response)
+                        current_text += content_item.text
+                # Tool calls get their own message
+                elif content_item.kind == "tool_use":
+                    # First flush any accumulated text
+                    if current_text:
+                        messages.append({"content": current_text, "role": "assistant"})
+                        current_text = ""
 
-        # Return a simple format that works with the existing LangSmith integration
-        return {"content": formatted_text, "role": "assistant"}
+                    # Format the tool call
+                    tool_call = {
+                        "id": content_item.tool_call_id,
+                        "type": "function",
+                        "function": {
+                            "name": content_item.tool_name,
+                            "arguments": content_item.tool_input_raw or "{}",
+                        },
+                    }
+
+                    # Add the tool message
+                    messages.append(
+                        {
+                            "content": self._format_tool_call(tool_call),
+                            "role": "tool",
+                        }
+                    )
+
+            # Flush any remaining text
+            if current_text:
+                messages.append({"content": current_text, "role": "assistant"})
+
+        # Handle simple string response
+        elif isinstance(response, str):
+            messages.append({"content": response, "role": "assistant"})
+        # Handle any other response type
+        else:
+            messages.append({"content": str(response), "role": "assistant"})
+
+        # If no messages were created, return a default message
+        if not messages:
+            messages.append({"content": "", "role": "assistant"})
+        return messages
 
     @asynccontextmanager
     async def trace_llm(  # noqa: C901, PLR0912, PLR0915
@@ -157,16 +153,20 @@ class LangSmithContext:
         Yields:
             A dictionary to store span data, or None if tracing is disabled
         """
-        # If tracing is disabled, just yield None and return
-        if not self.tracer:
-            yield None
-            return
-
         # Create a dictionary to store span data that we'll need after yield
         span_data = {}
 
-        with self.tracer.start_as_current_span(name) as span:
-            # Set LangSmith span kind attribute (specifies run type)
+        logger.debug(f"Starting LLM trace '{name}'")
+        span_manager = self.server_context.start_span(
+            name,
+            attributes={
+                "langsmith.span.kind": "llm",
+                "langsmith.trace.name": metadata.get("trace_name") if metadata else None,
+            },
+        )
+
+        with span_manager as span:
+            # Set LangSmith span kind attribute
             span.set_attribute("langsmith.span.kind", "llm")
 
             # Set trace name if provided in metadata
@@ -174,10 +174,12 @@ class LangSmithContext:
                 span.set_attribute("langsmith.trace.name", metadata["trace_name"])
 
             # Add user information as metadata
-            span.set_attribute("langsmith.metadata.user_id", user_context.user.user_id)
             span.set_attribute(
-                "langsmith.metadata.organization",
-                user_context.user.cr_tenant_id or "unknown",
+                "langsmith.metadata.user_id",
+                user_context.user.cr_user_id
+                if user_context.user.cr_user_id
+                # Fallback to internal sub if cr_user_id is not set
+                else user_context.user.sub,
             )
 
             # Process inputs - for LLM we need to check if it's a chat format
@@ -279,12 +281,15 @@ class LangSmithContext:
                 # Add output information if it was added to span_data
                 if "output" in span_data:
                     output = span_data["output"]
-                    if isinstance(output, dict) and "content" in output:
-                        span.set_attribute("gen_ai.completion.0.content", str(output["content"]))
-                        if "role" in output:
-                            span.set_attribute("gen_ai.completion.0.role", output["role"])
-                    elif isinstance(output, str):
-                        span.set_attribute("gen_ai.completion.0.content", output)
+                    # We know that output is a list of messages
+                    for idx, message in enumerate(output):
+                        if isinstance(message, dict):
+                            if "content" in message:
+                                span.set_attribute(
+                                    f"gen_ai.completion.{idx}.content", str(message["content"])
+                                )
+                            if "role" in message:
+                                span.set_attribute(f"gen_ai.completion.{idx}.role", message["role"])
 
                 # Add usage information if available
                 if "usage" in span_data:
@@ -486,6 +491,7 @@ class AgentServerContext:
         meter_provider: MeterProvider,
         observability_config: ObservabilityConfig | None = None,
         version: str | None = None,
+        agent_id: str | None = None,
     ):
         """Initialize the context with necessary resources.
 
@@ -497,6 +503,7 @@ class AgentServerContext:
             observability_config: Optional configuration for observability
                 (e.g. LangSmith)
             version: Optional version string for instrumentation
+            agent_id: Optional agent ID for this context
         """
         if not all([user_context, http]):
             raise ValueError("All context resources must be provided")
@@ -504,6 +511,7 @@ class AgentServerContext:
         # Store the HTTP and user context
         self.http = http
         self.user_context = user_context
+        self.agent_id = agent_id
 
         # Initialize OpenTelemetry components
         self.tracer_provider = tracer_provider
@@ -542,16 +550,38 @@ class AgentServerContext:
         self._current_span = None
 
         # Initialize LangSmith context
-        self.langsmith = LangSmithContext(observability_config)
+        self.langsmith = LangSmithContext(self, observability_config)
+
+        # Register LangSmith configuration if provided and we have an agent_id
+        if not agent_id:
+            logger.debug("No agent_id provided, skipping LangSmith registration")
+            return
+
+        if not (observability_config and observability_config.api_key):
+            logger.debug(f"No LangSmith config provided for agent: {agent_id}")
+            return
+
+        # Since we already set up the processor in server/telemetry.py
+        # and added the processor to the global tracer provider,
+        # we can just get the instance here and add the config.
+        processor = ConditionalLangSmithProcessor.get_instance()
+        success = processor.add_or_update_config(agent_id, observability_config)
+        msg = (
+            f"Registered LangSmith config for agent: {agent_id}"
+            if success
+            else f"Failed to register LangSmith config for agent: {agent_id}"
+        )
+        logger.info(msg) if success else logger.warning(msg)
 
     @classmethod
-    def from_request(
+    def from_request(  # noqa: PLR0913
         cls,
         request: Request | WebSocket,
         user: User,
         profile: dict[str, Any] | None = None,
         observability_config: ObservabilityConfig | None = None,
         version: str | None = None,
+        agent_id: str | None = None,
     ) -> "AgentServerContext":
         """Create an AgentServerContext from common request inputs.
 
@@ -565,6 +595,7 @@ class AgentServerContext:
             profile: Optional user profile data
             observability_config: Optional observability configuration
             version: Optional version string for instrumentation
+            agent_id: Optional agent ID for this context
 
         Returns:
             Initialized AgentServerContext
@@ -592,6 +623,7 @@ class AgentServerContext:
             meter_provider=meter_provider,
             observability_config=observability_config,
             version=version,
+            agent_id=agent_id,
         )
 
     def __enter__(self) -> "AgentServerContext":
@@ -619,21 +651,22 @@ class AgentServerContext:
         Yields:
             The created span object
         """
-        with self.tracer.start_as_current_span(name) as span:
-            if attributes:
-                for key, value in attributes.items():
-                    span.set_attribute(key, value)
+        # Prepare all attributes before span creation
+        all_attributes = {}
 
-            # Add common attributes
-            if self.user_context.user.cr_user_id:
-                span.set_attribute("user_id", self.user_context.user.cr_user_id)
-            if self.user_context.user.cr_system_id:
-                span.set_attribute("system_id", self.user_context.user.cr_system_id)
-            span.set_attribute(
-                "organization",
-                self.user_context.user.cr_tenant_id or "unknown",
-            )
+        # Add provided attributes first
+        if attributes:
+            all_attributes.update(attributes)
 
+        # Automatically add agent_id if available
+        if self.agent_id:
+            all_attributes["agent_id"] = self.agent_id
+
+        # Add common attributes
+        all_attributes["user_id"] = self.user_context.user.cr_user_id or self.user_context.user.sub
+
+        # Create span with all attributes at once
+        with self.tracer.start_as_current_span(name, attributes=all_attributes) as span:
             try:
                 self._current_span = span
                 yield span
@@ -666,15 +699,12 @@ class AgentServerContext:
             extra_context: Additional context to include in the log
         """
         current_span = trace.get_current_span()
-        ctx = {
+        ctx: dict[str, Any] = {
             "trace_id": current_span.get_span_context().trace_id,
             "span_id": current_span.get_span_context().span_id,
-            "organization": self.user_context.user.cr_tenant_id or "unknown",
         }
-        if self.user_context.user.cr_user_id:
-            ctx["user_id"] = self.user_context.user.cr_user_id
-        if self.user_context.user.cr_system_id:
-            ctx["system_id"] = self.user_context.user.cr_system_id
+        ctx["user_id"] = self.user_context.user.cr_user_id or self.user_context.user.sub
+
         if extra_context:
             ctx.update(extra_context)
 
@@ -695,15 +725,7 @@ class AgentServerContext:
             labels: Optional dictionary of label key-value pairs
         """
         labels = labels or {}
-        labels.update(
-            {
-                "organization": self.user_context.user.cr_tenant_id or "unknown",
-            },
-        )
-        if self.user_context.user.cr_user_id:
-            labels.update({"user_id": self.user_context.user.cr_user_id})
-        if self.user_context.user.cr_system_id:
-            labels.update({"system_id": self.user_context.user.cr_system_id})
+        labels.update({"user_id": self.user_context.user.cr_user_id or self.user_context.user.sub})
 
         # Get or create the metric
         if name not in self._metric_cache:
@@ -736,14 +758,11 @@ class AgentServerContext:
         labels = labels or {}
         labels.update(
             {
-                "user_id": self.user_context.user.user_id,
-                "organization": self.user_context.user.cr_tenant_id or "unknown",
-            },
+                "user_id": self.user_context.user.cr_user_id
+                if self.user_context.user.cr_user_id
+                else self.user_context.user.sub,
+            }
         )
-        if self.user_context.user.cr_user_id:
-            labels.update({"user_id": self.user_context.user.cr_user_id})
-        if self.user_context.user.cr_system_id:
-            labels.update({"system_id": self.user_context.user.cr_system_id})
 
         # Get or create the counter
         if name not in self._metric_cache:

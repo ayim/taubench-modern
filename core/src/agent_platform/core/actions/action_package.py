@@ -132,6 +132,37 @@ class ActionPackage:
 
     @classmethod
     def model_validate(cls, data: dict) -> "ActionPackage":
-        """Deserializes the action package from a dictionary.
-        Useful for JSON deserialization."""
-        return cls(**data)
+        # 1. Work on a copy so we don't mutate the caller's object
+        d = dict(data)
+
+        # 2. Normalise api_key
+        api = d.pop("api_key", None)
+        if isinstance(api, str):
+            d["api_key"] = SecretString(api)
+        elif api is not None:
+            d["api_key"] = api
+
+        # 3. Handle legacy whitelist vs. allowed_actions
+        if "allowed_actions" not in d:
+            # keep whitelist if present; __post_init__ will upgrade it
+            d.setdefault("whitelist", "")
+        else:
+            # ensure a list even if null/empty
+            d["allowed_actions"] = d.get("allowed_actions") or []
+
+        # 4. Fill in optional keys with defaults instead of raising
+        d.setdefault("url", None)
+
+        # 5. Drop any keys our dataclass doesn't accept
+        valid_fields = {
+            "name",
+            "organization",
+            "version",
+            "url",
+            "api_key",
+            "allowed_actions",
+            "whitelist",
+        }
+        cleaned = {k: v for k, v in d.items() if k in valid_fields}
+
+        return cls(**cleaned)

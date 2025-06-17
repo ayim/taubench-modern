@@ -11,20 +11,17 @@ the Sema4.ai Agent Server API.
 
 Enable Go to download from a private repository by setting the `GOPRIVATE` environment variable.
 
-```shell
-export GOPRIVATE=github.com/Sema4AI/agent-client-go
-```
-
-Configure git to use SSH instead of HTTPS for private repositories.
-
-```shell
-git config --global url."git@github.com:".insteadOf "https://github.com/"
-```
+- Linux / macos
+  - Set env. var for the shell: `export GOPRIVATE=github.com/Sema4AI/agent-platform/client-sdks/golang/agent-client-go`
+  - Configure git to use SSH instead of HTTPS for private repositories: `git config --global url."git@github.com:".insteadOf "https://github.com/"`
+- Windows
+  - Just set env. variable: `GOPRIVATE=github.com/Sema4AI/*` and things will work in all of our go repos.
+  - No git configs needed if you work on https
 
 Install the library using `go get`:
 
 ```shell
-go get github.com/Sema4AI/agent-client-go
+go get github.com/Sema4AI/agent-platform/client-sdks/golang/agent-client-go
 ```
 
 ## API Documentation
@@ -108,7 +105,7 @@ package main
 
 import (
    "fmt"
-   ac "github.com/Sema4AI/agent-client-go/pkg/client"
+   ac "github.com/Sema4AI/agent-platform/client-sdks/golang/agent-client-go/pkg/client"
 )
 
 func main() {

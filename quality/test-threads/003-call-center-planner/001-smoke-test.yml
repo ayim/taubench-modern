@@ -1,0 +1,66 @@
+thread:
+  - name: smoke-test
+    description: 'Smoke Test'
+    messages:
+      - role: user
+        content: |
+          What tools do you have?
+
+# We need these to be set on the action server for actions
+# to actually run...
+action-secrets:
+  - name: Snowflake Cortex Analyst
+    actions:
+      - name: ask_cortex_analyst
+        secrets:
+          - name: semantic_model_file
+            value: '@CALL_CENTER_DATA.PUBLIC.FILES/calls_model.yaml'
+      - name: snowflake_execute_query
+        secrets:
+          - name: warehouse
+            value: COMPUTE_WH
+          - name: database
+            value: CALL_CENTER_DATA
+          - name: schema
+            value: PUBLIC
+  - name: Snowflake Cortex Search
+    actions:
+      - name: cortex_get_search_specification
+        secrets:
+          - name: database
+            value: CALL_CENTER_DATA
+          - name: schema
+            value: PUBLIC
+          - name: service
+            value: CALL_LOGS
+      - name: cortex_search
+        secrets:
+          - name: database
+            value: CALL_CENTER_DATA
+          - name: schema
+            value: PUBLIC
+          - name: service
+            value: CALL_LOGS
+
+# We need the ~/.sema4ai/sf-auth.json to be overridden with the following
+# for this test scenario to work.
+sf-auth-override:
+  account: ZVZWMYO-HP00956
+  role: ACCOUNTADMIN
+  private_key_path: $CORTEX_HP00956_PRIVATE_KEY_PATH
+  private_key_passphrase: $CORTEX_HP00956_PRIVATE_KEY_PASSPHRASE
+  user: $CORTEX_HP00956_USER
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: cortex
+  # - name: google
+
+evaluations:
+  - kind: llm-eval-of-last-agent-turn
+    expected: |
+      The agent should list the tools it has. It can optionally
+      run the `get_search_specification` action to get more
+      details about what it's capable of searching.

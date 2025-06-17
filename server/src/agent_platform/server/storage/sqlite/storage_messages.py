@@ -8,6 +8,7 @@ from agent_platform.server.storage.errors import (
     RecordAlreadyExistsError,
     ReferenceIntegrityError,
     ThreadNotFoundError,
+    UserPermissionError,
 )
 from agent_platform.server.storage.sqlite.common import CommonMixin
 
@@ -183,9 +184,45 @@ class SQLiteStorageMessagesMixin(CommonMixin):
             row_dict["server_metadata"] = (
                 json.loads(row_dict["server_metadata"]) if row_dict["server_metadata"] else {}
             )
+            # Set commited=True and completed=True for messages retrieved from database
+            row_dict["commited"] = True  # Note: using "commited" to match the field name
+            row_dict["complete"] = True
             messages.append(ThreadMessage.model_validate(row_dict))
 
         return messages
+
+    async def trim_messages_from_sequence(
+        self,
+        user_id: str,
+        thread_id: str,
+        message_id: str,
+    ) -> None:
+        """Trim the messages from and after the given message_id,
+        and return the trimmed messages. current sequence to max sequence number is deleted"""
+        self._validate_uuid(user_id)
+        self._validate_uuid(thread_id)
+        self._validate_uuid(message_id)
+
+        async with self._cursor() as cur:
+            await cur.execute(
+                """SELECT sequence_number, role FROM v2_thread_message
+                WHERE thread_id = :thread_id
+                AND message_id = :message_id""",
+                {"thread_id": thread_id, "message_id": message_id},
+            )
+            if not (message := await cur.fetchone()):
+                raise ThreadNotFoundError(f"Message {message_id} not found")
+
+            if message["role"] != "user":
+                raise UserPermissionError(
+                    f"User {user_id} does not have permission to edit message {message_id}",
+                )
+            await cur.execute(
+                """DELETE FROM v2_thread_message
+                WHERE thread_id = :thread_id
+                AND sequence_number >= :sequence_number""",
+                {"thread_id": thread_id, "sequence_number": message["sequence_number"]},
+            )
 
     async def get_messages_by_parent_run_id(
         self,
@@ -228,6 +265,9 @@ class SQLiteStorageMessagesMixin(CommonMixin):
             row_dict["server_metadata"] = (
                 json.loads(row_dict["server_metadata"]) if row_dict["server_metadata"] else {}
             )
+            # Set commited=True and completed=True for messages retrieved from database
+            row_dict["commited"] = True  # Note: using "commited" to match the field name
+            row_dict["complete"] = True
             messages.append(ThreadMessage.model_validate(row_dict))
 
         return messages

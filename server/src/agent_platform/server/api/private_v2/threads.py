@@ -10,6 +10,7 @@ from agent_platform.core.context import AgentServerContext
 from agent_platform.core.files import UploadedFile
 from agent_platform.core.payloads import (
     AddThreadMessagePayload,
+    ForkThreadPayload,
     UploadFilePayload,
     UpsertThreadPayload,
 )
@@ -22,7 +23,11 @@ from agent_platform.server.api.dependencies import (
     StorageDependency,
 )
 from agent_platform.server.auth import AuthedUser
-from agent_platform.server.storage import ThreadFileNotFoundError
+from agent_platform.server.storage import (
+    AgentNotFoundError,
+    ThreadFileNotFoundError,
+    UserPermissionError,
+)
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -229,6 +234,117 @@ async def delete_thread(
     await storage.delete_thread(user.user_id, tid)
 
 
+@router.post("/{tid}/fork", response_model=Thread)
+async def fork_thread(  # noqa: C901
+    user: AuthedUser,
+    tid: str,
+    payload: ForkThreadPayload,
+    storage: StorageDependency,
+    request: Request,
+) -> Thread:
+    """Fork a thread at a specific message point.
+
+    Creates a new thread with all messages before the specified message.
+    The message_id must be for a human message.
+    """
+    # Get the original thread
+    original_thread = await storage.get_thread(user.user_id, tid)
+    if original_thread is None:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    # Find the message and validate it's a human message
+    fork_message = None
+    fork_message_index = -1
+    for i, msg in enumerate(original_thread.messages):
+        if msg.message_id == payload.message_id:
+            if msg.role != "user":
+                raise HTTPException(status_code=400, detail="Fork point must be a human message")
+            fork_message = msg
+            fork_message_index = i
+            break
+
+    if fork_message is None:
+        raise HTTPException(status_code=404, detail="Message not found in thread")
+
+    # Check if there are any messages before the fork point
+    if fork_message_index == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot fork at the first message - no previous messages to include",
+        )
+
+    # Get all threads for this agent to check existing names
+    existing_threads = await storage.list_threads_for_agent(user.user_id, original_thread.agent_id)
+    existing_names = {thread.name for thread in existing_threads}
+
+    # Determine the thread name
+    if payload.name:
+        if payload.name in existing_names:
+            raise HTTPException(status_code=400, detail="Name already in use")
+        forked_thread_name = payload.name
+    else:
+        # Else, auto-generate name with numbered suffix
+        base_name = original_thread.name
+        fork_number = 1
+
+        while f"{base_name} ({fork_number})" in existing_names:
+            fork_number += 1
+
+        forked_thread_name = f"{base_name} ({fork_number})"
+
+    # Copy messages with new message IDs and content IDs
+    copied_messages = []
+    for msg in original_thread.messages[:fork_message_index]:
+        copied_messages.append(msg.copy_with_new_ids())
+
+    # Create new thread with messages before the fork point
+    forked_thread = Thread(
+        user_id=user.user_id,
+        agent_id=original_thread.agent_id,
+        name=forked_thread_name,
+        messages=copied_messages,
+        metadata={
+            **original_thread.metadata,
+            "forked_from_thread_id": original_thread.thread_id,
+            "forked_at_message_id": payload.message_id,
+        },
+    )
+
+    # Track metrics
+    server_context = AgentServerContext.from_request(
+        request=request,
+        user=user,
+        version="2.0.0",
+    )
+
+    server_context.increment_counter(
+        "sema4ai.agent_server.threads.forked",
+        1,
+        {
+            "agent_id": forked_thread.agent_id,
+            "original_thread_id": original_thread.thread_id,
+            "forked_thread_id": forked_thread.thread_id,
+        },
+    )
+
+    # Save the forked thread
+    await storage.upsert_thread(user.user_id, forked_thread)
+
+    # Return thread without messages (consistent with other endpoints)
+    # Create a copy to avoid modifying the stored thread
+    response_thread = Thread(
+        thread_id=forked_thread.thread_id,
+        user_id=forked_thread.user_id,
+        agent_id=forked_thread.agent_id,
+        name=forked_thread.name,
+        messages=[],
+        created_at=forked_thread.created_at,
+        updated_at=forked_thread.updated_at,
+        metadata=forked_thread.metadata,
+    )
+    return response_thread
+
+
 @router.post("/{tid}/messages", response_model=Thread)
 async def add_message_to_thread(
     user: AuthedUser,
@@ -242,6 +358,61 @@ async def add_message_to_thread(
         AddThreadMessagePayload.to_thread_message(payload),
     )
     return await storage.get_thread(user.user_id, tid)
+
+
+@router.post("/{tid}/messages/{message_id}/edit")
+async def edit_message(
+    user: AuthedUser,
+    tid: str,
+    message_id: str,
+    agent_id: str,
+    storage: StorageDependency,
+):
+    """
+    Edit a message. Trims the messages from and after the given message_id.
+    """
+    try:
+        # Verify the agent exists and user has access
+        await storage.get_agent(user.user_id, agent_id)
+
+        # Verify the thread exists and user has access
+        thread = await storage.get_thread(user.user_id, tid)
+        if thread is None:
+            raise HTTPException(status_code=404, detail="Thread not found")
+
+        # Trim the messages from and after the given message_id
+        await storage.trim_messages_from_sequence(
+            user.user_id,
+            tid,
+            message_id,
+        )
+
+        return {"success": True, "message": "Messages trimmed successfully"}
+
+    except AgentNotFoundError as e:
+        logger.error("Error getting agent", error=e)
+        raise HTTPException(
+            status_code=404,
+            detail="Agent not found",
+        ) from e
+
+    except UserPermissionError as e:
+        logger.error(
+            "User permission error in edit_message, cannot edit agent role messages",
+            error=e,
+            thread_id=tid,
+            message_id=message_id,
+        )
+        raise HTTPException(
+            status_code=403,
+            detail="You cannot edit agent role messages.",
+        ) from e
+    except Exception as e:
+        logger.error(f"Unexpected error in edit_message for thread {tid}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="An unexpected error occurred while editing the message.",
+        ) from e
 
 
 # File operations

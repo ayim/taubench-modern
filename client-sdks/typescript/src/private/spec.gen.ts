@@ -6,7 +6,7 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Private API Version 2',
-    version: '2.0.0-rc',
+    version: '2.0.2-alpha',
   },
   paths: {
     '/api/v2/ok': {
@@ -1243,6 +1243,58 @@ export const spec = {
         },
       },
     },
+    '/api/v2/threads/{tid}/fork': {
+      post: {
+        tags: ['threads'],
+        summary: 'Fork Thread',
+        description:
+          'Fork a thread at a specific message point.\n\nCreates a new thread with all messages before the specified message.\nThe message_id must be for a human message.',
+        operationId: 'fork_thread_threads__tid__fork_post',
+        parameters: [
+          {
+            name: 'tid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Tid',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ForkThreadPayload',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/Thread',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/HTTPValidationError',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/v2/threads/{tid}/messages': {
       post: {
         tags: ['threads'],
@@ -1277,6 +1329,65 @@ export const spec = {
                 schema: {
                   $ref: '#/components/schemas/Thread',
                 },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/HTTPValidationError',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/threads/{tid}/messages/{message_id}/edit': {
+      post: {
+        tags: ['threads'],
+        summary: 'Edit Message',
+        description:
+          'Edit a message. Trims the messages from and after the given message_id.',
+        operationId:
+          'edit_message_threads__tid__messages__message_id__edit_post',
+        parameters: [
+          {
+            name: 'tid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Tid',
+            },
+          },
+          {
+            name: 'message_id',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Message Id',
+            },
+          },
+          {
+            name: 'agent_id',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Agent Id',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
               },
             },
           },
@@ -2485,6 +2596,18 @@ export const spec = {
             title: 'Name',
             description: 'The name of the agent.',
           },
+          description: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Description',
+            description: 'The description of the agent.',
+          },
           public: {
             type: 'boolean',
             title: 'Public',
@@ -3150,6 +3273,31 @@ export const spec = {
         required: ['role'],
         title: 'DocumentsSpecialMessage',
       },
+      ForkThreadPayload: {
+        properties: {
+          message_id: {
+            type: 'string',
+            title: 'Message Id',
+            description:
+              'The ID of the message to fork from (must be a human message).',
+          },
+          name: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Name',
+            description: 'Optional custom name for the forked thread',
+          },
+        },
+        type: 'object',
+        required: ['message_id'],
+        title: 'ForkThreadPayload',
+      },
       GooglePlatformParameters: {
         properties: {
           kind: {
@@ -3220,18 +3368,6 @@ export const spec = {
             title: 'Agent Id',
             description: 'The agent ID of the agent that created this thread.',
           },
-          name: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Name',
-            description: 'The name of the thread to stream against.',
-          },
           thread_id: {
             anyOf: [
               {
@@ -3243,6 +3379,18 @@ export const spec = {
             ],
             title: 'Thread Id',
             description: 'The ID of the thread to stream against.',
+          },
+          name: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Name',
+            description: 'The name of the thread to stream against.',
           },
           messages: {
             items: {
@@ -3257,6 +3405,15 @@ export const spec = {
             type: 'object',
             title: 'Metadata',
             description: 'Arbitrary thread-level metadata.',
+          },
+          client_tools: {
+            items: {
+              $ref: '#/components/schemas/ToolDefinitionPayload',
+            },
+            type: 'array',
+            title: 'Client Tools',
+            description:
+              'The tools attached to the payload from an external client.',
           },
         },
         type: 'object',
@@ -5029,6 +5186,42 @@ export const spec = {
         },
         type: 'object',
         title: 'TokenUsage',
+      },
+      ToolDefinitionPayload: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+            description: 'The name of the tool',
+          },
+          description: {
+            type: 'string',
+            title: 'Description',
+            description: 'The description of the tool',
+          },
+          input_schema: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Input Schema',
+            description: 'The schema of the tool input',
+          },
+          category: {
+            type: 'string',
+            enum: [
+              'unknown',
+              'action-tool',
+              'mcp-tool',
+              'client-exec-tool',
+              'client-info-tool',
+            ],
+            title: 'Category',
+            description: 'The category of the tool',
+            default: 'unknown',
+          },
+        },
+        type: 'object',
+        required: ['name', 'description', 'input_schema'],
+        title: 'ToolDefinitionPayload',
       },
       UploadedFile: {
         properties: {

@@ -8,6 +8,7 @@ from agent_platform.server.storage.errors import (
     RecordAlreadyExistsError,
     ThreadNotFoundError,
     UserAccessDeniedError,
+    UserPermissionError,
 )
 from agent_platform.server.storage.postgres.common import CommonMixin
 
@@ -173,8 +174,56 @@ class PostgresStorageMessagesMixin(CommonMixin):
             if not (messages := await cur.fetchall()):
                 return []
 
-            # 4. Return the messages
-            return [ThreadMessage.model_validate(row) for row in messages]
+            # 4. Return the messages with commited=True and completed=True
+            # since they are already persisted in the database
+            result_messages = []
+            for row in messages:
+                row_dict = dict(row)
+                # Set commited=True and completed=True for messages retrieved from database
+                row_dict["commited"] = True  # Note: using "commited" to match the field name
+                row_dict["complete"] = True
+                result_messages.append(ThreadMessage.model_validate(row_dict))
+            return result_messages
+
+    async def trim_messages_from_sequence(
+        self,
+        user_id: str,
+        thread_id: str,
+        message_id: str,
+    ) -> None:
+        """Trim the messages from and after the given message_id,
+        and return the trimmed messages. current sequence to max sequence number is deleted"""
+        # 1. Validate the uuids
+        self._validate_uuid(user_id)
+        self._validate_uuid(thread_id)
+        self._validate_uuid(message_id)
+
+        async with self._cursor() as cur:
+            # 2. Get the messages
+            await cur.execute(
+                """SELECT sequence_number, role FROM v2.thread_message
+                WHERE thread_id = %(thread_id)s::uuid
+                AND message_id = %(message_id)s::uuid""",
+                {"thread_id": thread_id, "message_id": message_id},
+            )
+
+            if not (message := await cur.fetchone()):
+                raise ThreadNotFoundError(f"Message {message_id} not found")
+
+            if message["role"] != "user":
+                raise UserPermissionError(
+                    f"User {user_id} does not have permission to edit message {message_id}",
+                )
+
+            sequence_number = message["sequence_number"]
+
+            # 3. Delete the messages
+            await cur.execute(
+                """DELETE FROM v2.thread_message
+                WHERE thread_id = %(thread_id)s::uuid
+                AND sequence_number >= %(sequence_number)s""",
+                {"thread_id": thread_id, "sequence_number": sequence_number},
+            )
 
     async def get_messages_by_parent_run_id(
         self,
@@ -206,5 +255,13 @@ class PostgresStorageMessagesMixin(CommonMixin):
             if not (messages := await cur.fetchall()):
                 return []
 
-            # 4. Return the messages
-            return [ThreadMessage.model_validate(row) for row in messages]
+            # 4. Return the messages with commited=True and completed=True
+            # since they are already persisted in the database
+            result_messages = []
+            for row in messages:
+                row_dict = dict(row)
+                # Set commited=True and completed=True for messages retrieved from database
+                row_dict["commited"] = True  # Note: using "commited" to match the field name
+                row_dict["complete"] = True
+                result_messages.append(ThreadMessage.model_validate(row_dict))
+            return result_messages

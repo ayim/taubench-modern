@@ -154,6 +154,17 @@ class BaseStorage(ABC):
         and user if none are specified."""
         pass
 
+    @abstractmethod
+    async def trim_messages_from_sequence(
+        self,
+        user_id: str,
+        thread_id: str,
+        message_id: str,
+    ) -> None:
+        """Trim the messages from and after the given message_id,
+        and return the trimmed messages."""
+        pass
+
     # -------------------------
     # Methods for users
     # -------------------------

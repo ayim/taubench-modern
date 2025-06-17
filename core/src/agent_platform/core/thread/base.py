@@ -160,8 +160,19 @@ class ThreadMessage:
             server_metadata=deepcopy(self.server_metadata),
             parent_run_id=self.parent_run_id,
             complete=self.complete,
+            commited=self.commited,
         )
         new_message.message_id = self.message_id
+        return new_message
+
+    def copy_with_new_ids(self) -> Self:
+        """Returns a copy of the message with a new message_id."""
+        new_message = self.copy()
+        new_message.message_id = str(uuid4())
+
+        for content in new_message.content:
+            content.content_id = str(uuid4())
+
         return new_message
 
     def model_dump(self) -> dict:
@@ -176,6 +187,7 @@ class ThreadMessage:
             "server_metadata": self.server_metadata,
             "parent_run_id": self.parent_run_id,
             "complete": self.complete,
+            "commited": self.commited,
         }
 
     @classmethod
@@ -198,4 +210,10 @@ class ThreadMessage:
             ]
         if "complete" in data:
             data["complete"] = bool(data["complete"])
+        else:
+            data["complete"] = True  # Default to True when loading from DB
+        if "commited" in data:
+            data["commited"] = bool(data["commited"])
+        else:
+            data["commited"] = True  # Default to True when loading from DB
         return cls(**data)

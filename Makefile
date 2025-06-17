@@ -141,6 +141,7 @@ run-server-exe:  ## Run the agent server executable
 	@echo "Running server from dist/..."
 	./dist/$(EXE_NAME)
 
+
 test:  check-env-or-no-env ## Run all tests with pytest (VCR playback only)
 	VCR_RECORD=none uv run pytest
 
@@ -335,6 +336,12 @@ clean:  ## Remove build/dist artifacts
 	@rm -rf build
 	@rm -rf dist
 	@rm -rf *.egg-info
+
+# Workitem
+run-workitems:  ## Run standalone agent-platform.workitems server
+	@echo "Running workitems server..."
+	uv run -m agent_platform.workitems
+
 
 # --------------------------------------------------------------------
 # All

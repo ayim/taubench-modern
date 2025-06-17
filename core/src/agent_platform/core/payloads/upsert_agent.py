@@ -1,4 +1,3 @@
-import os
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any, Literal, Self, cast
@@ -201,30 +200,6 @@ class UpsertAgentPayload:
                     ],
                 )
             del self.advanced_config["langsmith"]
-
-        # if langchain is provided via environment variables
-        # we override any definition in advanced_config.langsmith
-        api_key = os.getenv("LANGCHAIN_API_KEY")
-        api_url = os.getenv("LANGCHAIN_ENDPOINT")
-        project_name = os.getenv("LANGCHAIN_PROJECT")
-
-        if api_key and api_url and project_name:
-            object.__setattr__(
-                self,
-                "observability_configs",
-                [
-                    ObservabilityConfig.model_validate(
-                        {
-                            "type": "langsmith",
-                            "api_key": api_key,
-                            "api_url": api_url,
-                            "settings": {
-                                "project_name": project_name,
-                            },
-                        }
-                    )
-                ],
-            )
 
     def _handle_legacy_mode(self):
         """Handle backward compatibility for 'mode' in metadata."""
@@ -533,6 +508,44 @@ class UpsertAgentPayload:
             if not isinstance(config, dict):
                 raise ValueError("platform_configs must be a list of dictionaries")
 
+    def model_dump(self, include_legacy: bool = False) -> dict:
+        as_dict = {
+            "name": self.name,
+            "description": self.description,
+            "version": self.version,
+            "user_id": self.user_id,
+            "platform_configs": self.platform_configs,
+            "agent_architecture": (
+                self.agent_architecture.model_dump() if self.agent_architecture else None
+            ),
+            "runbook": self.runbook,
+            "structured_runbook": (
+                self.structured_runbook.model_dump() if self.structured_runbook else None
+            ),
+            "action_packages": [pkg.model_dump() for pkg in self.action_packages],
+            "mcp_servers": [server.model_dump() for server in self.mcp_servers],
+            "question_groups": [group.model_dump() for group in self.question_groups],
+            "observability_configs": [config.model_dump() for config in self.observability_configs],
+            "mode": self.mode,
+            "extra": self.extra,
+            "id": self.id,
+            "agent_id": self.agent_id,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "advanced_config": self.advanced_config,
+            "metadata": self.metadata,
+            "model": self.model,
+            "public": self.public,
+        }
+
+        if not include_legacy:
+            as_dict.pop("advanced_config", None)
+            as_dict.pop("metadata", None)
+            as_dict.pop("model", None)
+            as_dict.pop("public", None)
+            as_dict.pop("id", None)  # agent_id is preferred
+
+        return as_dict
+
     @classmethod
     def to_agent(
         cls,
@@ -607,3 +620,61 @@ class UpsertAgentPayload:
             created_at=payload.created_at or datetime.now(UTC),
             updated_at=datetime.now(UTC),
         )
+
+    @classmethod
+    def model_validate(cls, data: Any) -> "UpsertAgentPayload":
+        """Validate and convert dictionary data to UpsertAgentPayload instance."""
+        # Make a copy to avoid modifying the original data
+        validated_data = data.copy() if isinstance(data, dict) else {}
+
+        # Convert agent_architecture from dict to AgentArchitecture object if needed
+        if "agent_architecture" in validated_data and isinstance(
+            validated_data["agent_architecture"], dict
+        ):
+            validated_data["agent_architecture"] = AgentArchitecture.model_validate(
+                validated_data["agent_architecture"]
+            )
+
+        # Convert structured_runbook from dict to Runbook object if needed
+        if "structured_runbook" in validated_data and isinstance(
+            validated_data["structured_runbook"], dict
+        ):
+            validated_data["structured_runbook"] = Runbook.model_validate(
+                validated_data["structured_runbook"]
+            )
+
+        # Convert action_packages from list of dicts to list of ActionPackage objects
+        if "action_packages" in validated_data and isinstance(
+            validated_data["action_packages"], list
+        ):
+            validated_data["action_packages"] = [
+                ActionPackage.model_validate(pkg) if isinstance(pkg, dict) else pkg
+                for pkg in validated_data["action_packages"]
+            ]
+
+        # Convert mcp_servers from list of dicts to list of MCPServer objects
+        if "mcp_servers" in validated_data and isinstance(validated_data["mcp_servers"], list):
+            validated_data["mcp_servers"] = [
+                MCPServer.model_validate(server) if isinstance(server, dict) else server
+                for server in validated_data["mcp_servers"]
+            ]
+
+        # Convert question_groups from list of dicts to list of QuestionGroup objects
+        if "question_groups" in validated_data and isinstance(
+            validated_data["question_groups"], list
+        ):
+            validated_data["question_groups"] = [
+                QuestionGroup.model_validate(group) if isinstance(group, dict) else group
+                for group in validated_data["question_groups"]
+            ]
+
+        # Convert observability_configs from list of dicts to list of ObservabilityConfig objects
+        if "observability_configs" in validated_data and isinstance(
+            validated_data["observability_configs"], list
+        ):
+            validated_data["observability_configs"] = [
+                ObservabilityConfig.model_validate(config) if isinstance(config, dict) else config
+                for config in validated_data["observability_configs"]
+            ]
+
+        return cls(**validated_data)

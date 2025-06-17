@@ -6,16 +6,16 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Public API Version 2',
-    version: '2.0.0-rc',
+    version: '2.0.1',
   },
   paths: {
-    '/api/public/v2/agents/': {
+    '/api/public/v1/agents': {
       get: {
         tags: ['agents', 'agents'],
         summary: 'List agents',
         description:
           "Returns a list of all agents for the authenticated user. You can filter by name using the 'name' query parameter.",
-        operationId: 'get_agents_agents__get',
+        operationId: 'get_agents_agents_get',
         parameters: [
           {
             name: 'limit',
@@ -81,7 +81,7 @@ export const spec = {
         },
       },
     },
-    '/api/public/v2/agents/{aid}': {
+    '/api/public/v1/agents/{aid}': {
       get: {
         tags: ['agents', 'agents'],
         summary: 'Get agent',
@@ -128,7 +128,7 @@ export const spec = {
         },
       },
     },
-    '/api/public/v2/agents/{aid}/conversations': {
+    '/api/public/v1/agents/{aid}/conversations': {
       get: {
         tags: ['agents', 'conversations'],
         summary: 'List conversations',
@@ -239,7 +239,7 @@ export const spec = {
         },
       },
     },
-    '/api/public/v2/agents/{aid}/conversations/{cid}/messages': {
+    '/api/public/v1/agents/{aid}/conversations/{cid}/messages': {
       get: {
         tags: ['agents', 'conversations'],
         summary: 'Get conversation messages',
@@ -273,7 +273,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/ConversationState',
+                  $ref: '#/components/schemas/PaginatedResponse',
                 },
               },
             },
@@ -339,7 +339,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/ConversationState',
+                  $ref: '#/components/schemas/PaginatedResponse',
                 },
               },
             },
@@ -356,7 +356,7 @@ export const spec = {
         },
       },
     },
-    '/api/public/v2/agents/{aid}/conversations/{cid}/stream': {
+    '/api/public/v1/agents/{aid}/conversations/{cid}/stream': {
       post: {
         tags: ['agents', 'conversations'],
         summary: 'Post a message to a conversation and stream the response',
@@ -395,11 +395,12 @@ export const spec = {
         },
         responses: {
           '200': {
-            description: 'Success',
+            description: 'SSE stream of Delta messages',
             content: {
               'application/json': {
                 schema: {},
               },
+              'text/event-stream': {},
             },
           },
           '400': {
@@ -414,134 +415,7 @@ export const spec = {
         },
       },
     },
-    '/api/public/v2/agents/{aid}/conversations/{cid}/messages/detailed': {
-      post: {
-        tags: ['agents', 'conversations'],
-        summary: 'Post messages (synchronous)',
-        description:
-          'Post messages to a conversation thread, and get the updated conversation state.',
-        operationId:
-          'post_messages_detailed_agents__aid__conversations__cid__messages_detailed_post',
-        parameters: [
-          {
-            name: 'aid',
-            in: 'path',
-            required: true,
-            schema: {
-              type: 'string',
-              title: 'Aid',
-            },
-          },
-          {
-            name: 'cid',
-            in: 'path',
-            required: true,
-            schema: {
-              type: 'string',
-              title: 'Cid',
-            },
-          },
-        ],
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: {
-                type: 'array',
-                items: {
-                  $ref: '#/components/schemas/Message',
-                },
-                title: 'Messages',
-              },
-            },
-          },
-        },
-        responses: {
-          '200': {
-            description: 'Success',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/ConversationState',
-                },
-              },
-            },
-          },
-          '400': {
-            description: 'Bad Request',
-          },
-          '422': {
-            description: 'Validation Error',
-          },
-          '500': {
-            description: 'Internal Server Error',
-          },
-        },
-      },
-    },
-    '/api/public/v2/agents/{aid}/conversations/{cid}/stream/detailed': {
-      post: {
-        tags: ['agents', 'conversations'],
-        summary: 'Post messages to a conversation and stream the response',
-        description: 'Post messages to a conversation and stream the response',
-        operationId:
-          'post_public_api_messages_detailed_agents__aid__conversations__cid__stream_detailed_post',
-        parameters: [
-          {
-            name: 'aid',
-            in: 'path',
-            required: true,
-            schema: {
-              type: 'string',
-              title: 'Aid',
-            },
-          },
-          {
-            name: 'cid',
-            in: 'path',
-            required: true,
-            schema: {
-              type: 'string',
-              title: 'Cid',
-            },
-          },
-        ],
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: {
-                type: 'array',
-                items: {
-                  $ref: '#/components/schemas/Message',
-                },
-                title: 'Messages',
-              },
-            },
-          },
-        },
-        responses: {
-          '200': {
-            description: 'Success',
-            content: {
-              'application/json': {
-                schema: {},
-              },
-            },
-          },
-          '400': {
-            description: 'Bad Request',
-          },
-          '422': {
-            description: 'Validation Error',
-          },
-          '500': {
-            description: 'Internal Server Error',
-          },
-        },
-      },
-    },
-    '/api/public/v2/agents/{aid}/conversations/{cid}': {
+    '/api/public/v1/agents/{aid}/conversations/{cid}': {
       delete: {
         tags: ['agents', 'conversations'],
         summary: 'Delete conversation',
@@ -598,7 +472,7 @@ export const spec = {
         },
       },
     },
-    '/api/public/v2/ok': {
+    '/api/public/v1/ok': {
       get: {
         summary: 'Ok',
         operationId: 'ok_ok_get',
@@ -654,14 +528,7 @@ export const spec = {
       Conversation: {
         properties: {
           id: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                type: 'null',
-              },
-            ],
+            type: 'string',
             title: 'Id',
           },
           name: {
@@ -676,56 +543,6 @@ export const spec = {
         type: 'object',
         required: ['id', 'name', 'agent_id'],
         title: 'Conversation',
-      },
-      ConversationState: {
-        properties: {
-          id: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Id',
-          },
-          name: {
-            type: 'string',
-            title: 'Name',
-          },
-          agent_id: {
-            type: 'string',
-            title: 'Agent Id',
-          },
-          messages: {
-            anyOf: [
-              {
-                items: {
-                  anyOf: [
-                    {
-                      $ref: '#/components/schemas/Message',
-                    },
-                    {
-                      $ref: '#/components/schemas/ToolRequest',
-                    },
-                    {
-                      $ref: '#/components/schemas/ToolResponse',
-                    },
-                  ],
-                },
-                type: 'array',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Messages',
-          },
-        },
-        type: 'object',
-        required: ['id', 'name', 'agent_id', 'messages'],
-        title: 'ConversationState',
       },
       CreateChatRequest: {
         properties: {
@@ -750,51 +567,6 @@ export const spec = {
         },
         type: 'object',
         title: 'HTTPValidationError',
-      },
-      Message: {
-        properties: {
-          id: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Id',
-          },
-          type: {
-            $ref: '#/components/schemas/MessageType',
-          },
-          role: {
-            $ref: '#/components/schemas/Role',
-          },
-          content: {
-            type: 'string',
-            title: 'Content',
-          },
-          channel: {
-            type: 'string',
-            title: 'Channel',
-            default: 'chat',
-          },
-        },
-        type: 'object',
-        required: ['id', 'type', 'role', 'content'],
-        title: 'Message',
-      },
-      MessageType: {
-        type: 'string',
-        enum: [
-          'message',
-          'token',
-          'action_request',
-          'action_response',
-          'start_stream',
-          'end_stream',
-        ],
-        title: 'MessageType',
       },
       PaginatedResponse: {
         properties: {
@@ -822,125 +594,6 @@ export const spec = {
         type: 'object',
         required: ['next', 'has_more', 'data'],
         title: 'PaginatedResponse',
-      },
-      Role: {
-        type: 'string',
-        enum: ['agent', 'human'],
-        title: 'Role',
-      },
-      ToolCall: {
-        properties: {
-          id: {
-            type: 'string',
-            title: 'Id',
-          },
-          name: {
-            type: 'string',
-            title: 'Name',
-          },
-          args: {
-            additionalProperties: true,
-            type: 'object',
-            title: 'Args',
-          },
-        },
-        type: 'object',
-        required: ['id', 'name', 'args'],
-        title: 'ToolCall',
-      },
-      ToolRequest: {
-        properties: {
-          action_calls: {
-            items: {
-              $ref: '#/components/schemas/ToolCall',
-            },
-            type: 'array',
-            title: 'Action Calls',
-          },
-          id: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Id',
-          },
-          type: {
-            $ref: '#/components/schemas/MessageType',
-          },
-          role: {
-            $ref: '#/components/schemas/Role',
-          },
-          content: {
-            type: 'string',
-            title: 'Content',
-          },
-          channel: {
-            type: 'string',
-            title: 'Channel',
-            default: 'chat',
-          },
-        },
-        type: 'object',
-        required: ['action_calls', 'id', 'type', 'role', 'content'],
-        title: 'ToolRequest',
-      },
-      ToolResponse: {
-        properties: {
-          action_call_id: {
-            type: 'string',
-            title: 'Action Call Id',
-          },
-          status: {
-            type: 'string',
-            title: 'Status',
-          },
-          result: {
-            additionalProperties: true,
-            type: 'object',
-            title: 'Result',
-          },
-          id: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Id',
-          },
-          type: {
-            $ref: '#/components/schemas/MessageType',
-          },
-          role: {
-            $ref: '#/components/schemas/Role',
-          },
-          content: {
-            type: 'string',
-            title: 'Content',
-          },
-          channel: {
-            type: 'string',
-            title: 'Channel',
-            default: 'chat',
-          },
-        },
-        type: 'object',
-        required: [
-          'action_call_id',
-          'status',
-          'result',
-          'id',
-          'type',
-          'role',
-          'content',
-        ],
-        title: 'ToolResponse',
       },
       ValidationError: {
         properties: {

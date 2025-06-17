@@ -13,6 +13,7 @@ StreamingDeltaType = Literal[
     "message_begin",
     "message_end",
     "request_user_input",
+    "request_tool_execution",
 ]
 
 
@@ -257,4 +258,41 @@ class StreamingDeltaMessageEnd(StreamingDeltaMessage):
             "thread_id": self.thread_id,
             "agent_id": self.agent_id,
             "data": self.data,
+        }
+
+
+@dataclass(frozen=True)
+class StreamingDeltaRequestToolExecution(StreamingDelta):
+    """Request that the client execute a tool.
+
+    Some client tools may _not_ need to block for the client to return a
+    result (these are "...").
+    """
+
+    tool_name: str = field(metadata={"description": "Name of the tool."})
+    tool_call_id: str = field(metadata={"description": "Tool call identifier."})
+    input_raw: str = field(metadata={"description": "Raw JSON string inputs."})
+    input_parsed: dict[str, Any] | None = field(
+        metadata={"description": "Parsed JSON inputs; may be None if the input_raw is not JSON."},
+        default=None,
+    )
+    """Parsed JSON inputs; may be None if the input_raw is not JSON."""
+    requires_execution: bool = field(
+        metadata={"description": "Whether the client must execute the tool and return a result."},
+        default=True,
+    )
+    """Whether the client must execute the tool and return a result."""
+
+    event_type: Literal["request_tool_execution"] = field(
+        metadata={"description": "The type of streaming event."},
+        default="request_tool_execution",
+        init=False,
+    )
+
+    def model_dump(self) -> dict[str, Any]:
+        return {
+            **super().model_dump(),
+            "tool_name": self.tool_name,
+            "tool_call_id": self.tool_call_id,
+            "input_raw": self.input_raw,
         }

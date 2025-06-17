@@ -55,6 +55,17 @@ class _DummyKernel:
         self.user = types.SimpleNamespace(user_id="user-1", cr_user_id="cr-user-1")
         self.thread = types.SimpleNamespace(thread_id="thread-1")
 
+    def get_standard_span_attributes(self, extra_attributes=None):
+        """Dummy implementation for testing."""
+        attributes = {
+            "agent_id": getattr(self.agent, "agent_id", ""),
+            "user_id": getattr(self.user, "user_id", ""),
+            "thread_id": getattr(self.thread, "thread_id", ""),
+        }
+        if extra_attributes:
+            attributes.update(extra_attributes)
+        return attributes
+
 
 class _MessageRecorder:
     """Captures calls that the interface makes while tools are running."""

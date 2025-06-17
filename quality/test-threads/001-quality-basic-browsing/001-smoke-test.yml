@@ -1,0 +1,21 @@
+thread:
+  - name: smoke-test
+    description: 'Smoke test'
+    messages:
+      - role: user
+        content: |
+          Testing.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: cortex
+  # - name: google
+
+evaluations:
+  - kind: llm-eval-of-last-agent-turn
+    expected: |
+      The agent should have sent a message in reply to the simple testing message.
+      The message should be succinct and say something to the effect of
+      "I'm ready to help you with your request."

@@ -502,7 +502,6 @@ def _check_single_project(project_root: Path) -> bool:
 @click.option("--macos-x64-url", required=True, help="URL to the macOS x64 binary")
 @click.option("--macos-arm64-url", required=True, help="URL to the macOS ARM64 binary")
 @click.option("--linux-x64-url", required=True, help="URL to the Linux x64 binary")
-@click.option("--release", is_flag=True, help="Whether to use the release changelog")
 @click.option("--output-path", help="Path where to save the release notes file")
 @click.option("--project", help="The project to create release notes for")
 @click.option(
@@ -514,7 +513,6 @@ def create_release_notes(  # noqa: PLR0913 we need all the flags to generate rel
     macos_x64_url: str,
     macos_arm64_url: str,
     linux_x64_url: str,
-    release: bool | None = None,
     output_path: str | None = None,
     project: str | None = None,
     since_date: str | None = None,
@@ -530,7 +528,6 @@ def create_release_notes(  # noqa: PLR0913 we need all the flags to generate rel
         macos_x64_url: URL to the macOS x64 binary
         macos_arm64_url: URL to the macOS ARM64 binary
         linux_x64_url: URL to the Linux x64 binary
-        release: Whether to use the release changelog, auto-detected if None
         output_path: Path where to save the release notes file
         project: The project to create release notes for. If not provided,
             uses the current directory.
@@ -543,13 +540,12 @@ def create_release_notes(  # noqa: PLR0913 we need all the flags to generate rel
     # Get project root
     project_root = _find_project_root(project)
 
-    # Auto-detect if this is a release if not specified
-    if release is None:
-        current_version = _get_version(project_root)
-        # In semantic versioning, pre-releases have identifiers like
-        # "-alpha", "-beta", "-rc"
-        release = "-" not in current_version
-        print(f"Detected version: {current_version} ({'release' if release else 'pre-release'})")
+    # Auto-detect if this is a release version or not
+    current_version = _get_version(project_root)
+    # In semantic versioning, pre-releases have identifiers like
+    # "-alpha", "-beta", "-rc"
+    release = "-" not in current_version
+    print(f"Detected version: {current_version} ({'release' if release else 'pre-release'})")
 
     # Determine which changelog to use
     changelog_path = project_root / _get_changelog_path(release)
@@ -684,25 +680,45 @@ def _build_date_pattern_from_format(title_format: str) -> str:
     Returns:
         Regex pattern string that will extract the date
     """
-    # Replace format variables with regex patterns
-    # The goal is to identify where the {project_date} is in the format
+    # Build the pattern by carefully replacing variables and escaping literals
 
-    # First, escape any regex special characters in the format
-    escaped_format = re.escape(title_format)
+    # Split the format into parts around the variables
+    # This approach avoids over-escaping by handling each part appropriately
 
-    # Replace the escaped {project_date} with a capturing group for the date
-    # Allow for dates with or without parentheses
-    pattern = escaped_format.replace(
-        re.escape("{project_date}"), r"(?:\()?(\d{4}-\d{2}-\d{2})(?:\))?"
-    )
+    # For the common case like "# {name} {version} ({project_date})"
+    # We'll build it step by step
 
-    # Replace other variables with non-capturing groups
-    pattern = pattern.replace(re.escape("{name}"), r"[^\n]+?")
-    pattern = pattern.replace(re.escape("{version}"), r"[^\n]+?")
-    pattern = pattern.replace(re.escape("{project}"), r"[^\n]+?")
+    pattern_parts = []
+    remaining = title_format
 
-    # Create the full pattern to match the heading
-    return r"^#+\s+" + pattern
+    # Process each variable in order
+    variables = [
+        ("{name}", r"[^\s]+(?:\s+[^\s]+)*"),  # Match multi-word names
+        ("{version}", r"[^\s]+"),  # Match version strings
+        ("{project_date}", r"(\d{4}-\d{2}-\d{2})"),  # Capture the date
+        ("{project}", r"[^\s]+(?:\s+[^\s]+)*"),  # Match multi-word project names
+    ]
+
+    for var_name, var_pattern in variables:
+        if var_name in remaining:
+            # Split on this variable
+            parts = remaining.split(var_name, 1)
+            if len(parts) == 2:  # noqa: PLR2004
+                # Add the literal part before the variable (escaped)
+                if parts[0]:
+                    pattern_parts.append(re.escape(parts[0]))
+                # Add the variable pattern
+                pattern_parts.append(var_pattern)
+                # Continue with the remaining part
+                remaining = parts[1]
+
+    # Add any remaining literal part (escaped)
+    if remaining:
+        pattern_parts.append(re.escape(remaining))
+
+    # Join all parts and add line anchors
+    pattern = "".join(pattern_parts)
+    return r"^" + pattern + r"$"
 
 
 def _filter_changelog_by_date(

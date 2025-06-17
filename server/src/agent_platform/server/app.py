@@ -15,10 +15,12 @@ from agent_platform.server.api import (
     private_v2_router,
     public_v2_router,
 )
+from agent_platform.server.api.agent_mcp import build_agent_mcp_app
 from agent_platform.server.api.dependencies import StorageDependency
-from agent_platform.server.api.mcp import mcp
+from agent_platform.server.api.mcp import MCPAuthenticationMiddleware, mcp
 from agent_platform.server.constants import SystemConfig
 from agent_platform.server.lifespan import create_combined_lifespan
+from agent_platform.workitems import make_app
 
 logger = structlog.get_logger(__name__)
 
@@ -60,8 +62,12 @@ class EnsureAPIPrefixMiddleware(BaseHTTPMiddleware):
                 PRIVATE_V2_PREFIX,
                 "/api/v1",  # TODO: remove this once we're able (Backwards compat)
                 "/api/v2/mcp",
+                "/docs",
+                "/openapi.json",
+                "/api/work-items",
             ),
         ):
+            logger.info("Rejecting unknown request", url=request.url)
             return ORJSONResponse(status_code=404, content={"detail": "Not Found"})
         return await call_next(request)
 
@@ -127,14 +133,18 @@ def create_app() -> FastAPI:
         }
 
     mcp_app = mcp.streamable_http_app()
+    agent_mcp = build_agent_mcp_app()
 
     # Main FastAPI app to include both versions
+
     app = FastAPI(
-        lifespan=create_combined_lifespan(mcp_app),
-        openapi_url=None,  # Disable the default /openapi.json path
+        lifespan=create_combined_lifespan(mcp_app, agent_mcp),
     )
 
+    # Add authentication middleware to the MCP app to enable user-based authentication
+    mcp_app.add_middleware(MCPAuthenticationMiddleware)
     app.mount("/api/v2/public-mcp/", mcp_app)
+    app.mount("/api/v2/agent-mcp/", agent_mcp)
 
     # CORS middleware (completely configurable via SystemConfig)
     if SystemConfig.cors_mode == "all":
@@ -165,4 +175,17 @@ def create_app() -> FastAPI:
     )
     app.mount("/api/v1", app_private_v1)  # Backwards compatibility
 
+    _add_workitems(app)
+
     return app
+
+
+def _add_workitems(parent: FastAPI) -> None:
+    """
+    Adds the work-items service in the given app.
+    """
+    # Embed the work-items app in the agent-server app.
+    # We have to use a fully-unique path here, else the previous mount on /api/v1 will
+    # "steal" everything.
+    workitems_app = make_app()
+    parent.mount("/api/work-items", workitems_app)

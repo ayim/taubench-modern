@@ -1,0 +1,162 @@
+event: agent_ready
+data: {"timestamp": "2025-06-05T15:40:49.732328+00:00", "event_type": "agent_ready", "run_id": "e2d50b76-0249-4e54-86cc-36ac773cc00a", "thread_id": "25ca6c93-f265-4d57-b2f8-70c144be1e34", "agent_id": "c1bb70de-5bd1-4922-9085-5adf2b963fbb"}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:48.143112+00:00", "event_type": "message_begin", "sequence_number": 0, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "thread_id": "25ca6c93-f265-4d57-b2f8-70c144be1e34", "agent_id": "c1bb70de-5bd1-4922-9085-5adf2b963fbb", "data": {}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.011844+00:00", "event_type": "message_content", "sequence_number": 1, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "add", "path": "/message_id", "value": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3"}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.011877+00:00", "event_type": "message_content", "sequence_number": 2, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "add", "path": "/role", "value": "agent"}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.011883+00:00", "event_type": "message_content", "sequence_number": 3, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "add", "path": "/content", "value": [{"content_id": "1ff243b3-45fc-443e-bab0-ca52ee0371af", "kind": "thought", "complete": false, "thought": "N"}]}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.011887+00:00", "event_type": "message_content", "sequence_number": 4, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "add", "path": "/created_at", "value": "2025-06-05T15:40:48.143068+00:00"}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.011891+00:00", "event_type": "message_content", "sequence_number": 5, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "add", "path": "/agent_metadata", "value": {}}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.011894+00:00", "event_type": "message_content", "sequence_number": 6, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "add", "path": "/server_metadata", "value": {}}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.011898+00:00", "event_type": "message_content", "sequence_number": 7, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "add", "path": "/parent_run_id", "value": "e2d50b76-0249-4e54-86cc-36ac773cc00a"}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.011902+00:00", "event_type": "message_content", "sequence_number": 8, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "add", "path": "/complete", "value": false}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.015317+00:00", "event_type": "message_content", "sequence_number": 9, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/0/thought", "value": "o spe"}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.036704+00:00", "event_type": "message_content", "sequence_number": 10, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/0/thought", "value": "cific us"}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.039613+00:00", "event_type": "message_content", "sequence_number": 11, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/0/thought", "value": "er r"}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.055567+00:00", "event_type": "message_content", "sequence_number": 12, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/0/thought", "value": "equest wa"}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.058503+00:00", "event_type": "message_content", "sequence_number": 13, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/0/thought", "value": "s"}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.138156+00:00", "event_type": "message_content", "sequence_number": 14, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/0/thought", "value": " p"}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.142091+00:00", "event_type": "message_content", "sequence_number": 15, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/0/thought", "value": "rovid"}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.150681+00:00", "event_type": "message_content", "sequence_number": 16, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/0/thought", "value": "ed. I will a"}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.156656+00:00", "event_type": "message_content", "sequence_number": 17, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/0/thought", "value": "cknowled"}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.161616+00:00", "event_type": "message_content", "sequence_number": 18, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/0/thought", "value": "ge r"}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.164625+00:00", "event_type": "message_content", "sequence_number": 19, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/0/thought", "value": "eceipt"}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.185682+00:00", "event_type": "message_content", "sequence_number": 20, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/0/thought", "value": " and state"}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.188652+00:00", "event_type": "message_content", "sequence_number": 21, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/0/thought", "value": " re"}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.214615+00:00", "event_type": "message_content", "sequence_number": 22, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/0/thought", "value": "adiness"}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.217714+00:00", "event_type": "message_content", "sequence_number": 23, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/0/thought", "value": " "}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.257160+00:00", "event_type": "message_content", "sequence_number": 24, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/0/thought", "value": "to "}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.258932+00:00", "event_type": "message_content", "sequence_number": 25, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/0/thought", "value": "assi"}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.308399+00:00", "event_type": "message_content", "sequence_number": 26, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/0/thought", "value": "st, "}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.311045+00:00", "event_type": "message_content", "sequence_number": 27, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/0/thought", "value": "as per th"}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.314071+00:00", "event_type": "message_content", "sequence_number": 28, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/0/thought", "value": "e g"}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.316038+00:00", "event_type": "message_content", "sequence_number": 29, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/0/thought", "value": "uidance."}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.381258+00:00", "event_type": "message_content", "sequence_number": 30, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "replace", "path": "/content/0/complete", "value": true}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.389657+00:00", "event_type": "message_content", "sequence_number": 31, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "add", "path": "/content/1", "value": {"content_id": "b95966fd-8715-4508-99a3-e8b1a4c6fa6f", "kind": "text", "complete": false, "text": "I haven'", "citations": []}}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.392626+00:00", "event_type": "message_content", "sequence_number": 32, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/1/text", "value": "t "}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.414098+00:00", "event_type": "message_content", "sequence_number": 33, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/1/text", "value": "received "}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.417423+00:00", "event_type": "message_content", "sequence_number": 34, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/1/text", "value": "a specif"}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.424111+00:00", "event_type": "message_content", "sequence_number": 35, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/1/text", "value": "ic r"}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.426541+00:00", "event_type": "message_content", "sequence_number": 36, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/1/text", "value": "e"}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.476765+00:00", "event_type": "message_content", "sequence_number": 37, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/1/text", "value": "quest y"}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.480906+00:00", "event_type": "message_content", "sequence_number": 38, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/1/text", "value": "et. "}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.499822+00:00", "event_type": "message_content", "sequence_number": 39, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/1/text", "value": "Ple"}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.503351+00:00", "event_type": "message_content", "sequence_number": 40, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/1/text", "value": "ase l"}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.535892+00:00", "event_type": "message_content", "sequence_number": 41, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/1/text", "value": "et m"}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.540853+00:00", "event_type": "message_content", "sequence_number": 42, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/1/text", "value": "e "}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.546265+00:00", "event_type": "message_content", "sequence_number": 43, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/1/text", "value": "know"}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.550161+00:00", "event_type": "message_content", "sequence_number": 44, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/1/text", "value": " how I "}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.593041+00:00", "event_type": "message_content", "sequence_number": 45, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/1/text", "value": "can "}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.596812+00:00", "event_type": "message_content", "sequence_number": 46, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/1/text", "value": "assist"}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.617600+00:00", "event_type": "message_content", "sequence_number": 47, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/1/text", "value": " yo"}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.621489+00:00", "event_type": "message_content", "sequence_number": 48, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "concat_string", "path": "/content/1/text", "value": "u today!"}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.660377+00:00", "event_type": "message_content", "sequence_number": 49, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "replace", "path": "/content/1/complete", "value": true}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.717592+00:00", "event_type": "message_content", "sequence_number": 50, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "delta": {"op": "replace", "path": "/complete", "value": true}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.717842+00:00", "event_type": "message_end", "sequence_number": 51, "message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "thread_id": "25ca6c93-f265-4d57-b2f8-70c144be1e34", "agent_id": "c1bb70de-5bd1-4922-9085-5adf2b963fbb", "data": {"message_id": "a0192f58-5f3e-40a0-b23e-57cba1bb6dd3", "role": "agent", "content": [{"content_id": "1ff243b3-45fc-443e-bab0-ca52ee0371af", "kind": "thought", "complete": true, "thought": "No specific user request was provided. I will acknowledge receipt and state readiness to assist, as per the guidance."}, {"content_id": "b95966fd-8715-4508-99a3-e8b1a4c6fa6f", "kind": "text", "complete": true, "text": "I haven't received a specific request yet. Please let me know how I can assist you today!", "citations": []}], "created_at": "2025-06-05T15:40:48.143068+00:00", "updated_at": "2025-06-05T15:40:48.143071+00:00", "agent_metadata": {}, "server_metadata": {}, "parent_run_id": "e2d50b76-0249-4e54-86cc-36ac773cc00a", "complete": true}}
+
+event: agent_event
+data: {"timestamp": "2025-06-05T15:40:49.731096+00:00", "event_type": "agent_finished", "run_id": "e2d50b76-0249-4e54-86cc-36ac773cc00a", "thread_id": "25ca6c93-f265-4d57-b2f8-70c144be1e34", "agent_id": "c1bb70de-5bd1-4922-9085-5adf2b963fbb"}
+

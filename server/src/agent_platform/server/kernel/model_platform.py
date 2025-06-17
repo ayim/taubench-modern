@@ -58,12 +58,7 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
         """
         with self.kernel.ctx.start_span(
             "generate_response",
-            attributes={
-                "agent_id": self.kernel.agent.agent_id,
-                "thread_id": self.kernel.thread.thread_id,
-                "llm.model": model,
-                "llm.provider": self._internal_client.name,
-            },
+            attributes=self.kernel.get_standard_span_attributes(),
         ):
             # Use the default finalizers chain defined in Prompt.finalize_messages
             # (SpecialMessageFinalizer followed by TruncationFinalizer).
@@ -74,10 +69,9 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
             )
 
             # Record tools in trace directly from the finalized_prompt
-            if finalized_prompt.tools:
-                self.kernel.prompts.record_tools_in_trace(
-                    finalized_prompt, span_name="generate_response_tools"
-                )
+            self.kernel.prompts.record_tools_in_trace(
+                finalized_prompt, span_name="generate_response_tools"
+            )
 
             # Convert prompt for the specific platform
             converted_prompt = await self._internal_client.converters.convert_prompt(
@@ -137,13 +131,7 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
         """
         with self.kernel.ctx.start_span(
             "stream_response",
-            attributes={
-                "agent_id": self.kernel.agent.agent_id,
-                "thread_id": self.kernel.thread.thread_id,
-                "llm.model": model,
-                "llm.provider": self._internal_client.name,
-                "streaming": True,
-            },
+            attributes=self.kernel.get_standard_span_attributes(),
         ):
             # Use the default finalizers chain defined in Prompt.finalize_messages
             # (SpecialMessageFinalizer followed by TruncationFinalizer).
@@ -154,10 +142,9 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
             )
 
             # Record tools in trace directly from the finalized_prompt
-            if finalized_prompt.tools:
-                self.kernel.prompts.record_tools_in_trace(
-                    finalized_prompt, span_name="stream_response_tools"
-                )
+            self.kernel.prompts.record_tools_in_trace(
+                finalized_prompt, span_name="stream_response_tools"
+            )
 
             # Convert the prompt for the platform
             converted_prompt = await self._internal_client.converters.convert_prompt(
@@ -200,25 +187,18 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
                         # Record the response in LangSmith if available
                         if stream_pipe.reassembled_response:
                             # Format the response for LangSmith
-                            formatted_response = (
+                            formatted_messages = (
                                 self.kernel.ctx.langsmith.format_response_for_langsmith(
                                     stream_pipe.reassembled_response
                                 )
                             )
                             if langsmith_span:
-                                langsmith_span["output"] = formatted_response
+                                langsmith_span["output"] = formatted_messages
 
                             # Add usage information if available
                             if stream_pipe.reassembled_response.usage:
                                 usage = stream_pipe.reassembled_response.usage
-                                labels = {
-                                    "llm.model": model,
-                                    "llm.provider": self._internal_client.name,
-                                    "agent_id": self.kernel.agent.agent_id,
-                                    "thread_id": self.kernel.thread.thread_id,
-                                    "agent_name": self.kernel.agent.name,
-                                    "thread_name": self.kernel.thread.name,
-                                }
+                                labels = self.kernel.get_standard_span_attributes()
                                 self.kernel.ctx.increment_counter(
                                     name="sema4ai.agent_server.prompt_tokens",
                                     increment=usage.input_tokens,
@@ -258,19 +238,15 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
         return await self._internal_client.count_tokens(prompt, model)
 
     def _generate_metadata(self, model, streaming: bool = False) -> dict[str, Any]:
-        metadata = {
-            "model": model,
-            "provider": self._internal_client.name,
-            "trace_name": f"stream_response_{self._internal_client.name}",
-            "streaming": streaming,
-            "agent_id": self.kernel.agent.agent_id,
-            "thread_id": self.kernel.thread.thread_id,
-            "agent_name": self.kernel.agent.name,
-            "user_id": self.kernel.user.user_id,
-            "organization": (
-                self.kernel.user.cr_tenant_id if self.kernel.user.cr_tenant_id else "unknown"
-            ),
-        }
+        metadata = self.kernel.get_standard_span_attributes(
+            # Here, model and provider attributes are needed for LangSmith purposes.
+            extra_attributes={
+                "model": model,
+                "provider": self._internal_client.name,
+                "trace_name": f"stream_response_{self._internal_client.name}",
+                "streaming": streaming,
+            },
+        )
         return metadata
 
     def _generate_usage_metadata(self, usage: TokenUsage) -> dict[str, Any]:

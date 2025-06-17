@@ -32,7 +32,7 @@ class AgentServerThreadStateInterface(ThreadStateInterface, UsesKernelMixin):
             message: The message to commit to storage.
 
         Raises:
-            Exception: If the message cannot be committed to storage.
+            Exception: If the message cannot be commited to storage.
         """
         await self.kernel.storage.put_message(message)
         # Make sure we also update the thread in memory

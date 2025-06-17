@@ -1,0 +1,25 @@
+name: Quality Lint
+
+on:
+  push:
+    paths:
+      - 'quality/**'
+    branches: [main, development]
+  pull_request:
+    paths:
+      - 'quality/**'
+    branches:
+      - '*'
+
+jobs:
+  lint:
+    uses: ./.github/workflows/sub-test-lint.yml
+    secrets: inherit
+
+  typecheck:
+    uses: ./.github/workflows/sub-test-typecheck.yml
+    secrets: inherit
+
+  format:
+    uses: ./.github/workflows/sub-test-format.yml
+    secrets: inherit

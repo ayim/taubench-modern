@@ -3,7 +3,7 @@ package cmd
 import (
 	"os"
 
-	"github.com/Sema4AI/agents-spec/cli/common"
+	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/common"
 	rccCommon "github.com/Sema4AI/rcc/common"
 
 	"github.com/spf13/cobra"

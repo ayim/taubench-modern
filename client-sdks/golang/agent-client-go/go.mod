@@ -1,13 +1,11 @@
-module github.com/Sema4AI/agent-platform/agent-client-go
+module github.com/Sema4AI/agent-platform/client-sdks/golang/agent-client-go
 
-go 1.22.2
-
-replace github.com/Sema4AI/agent-platform/agent-client-go => .
+go 1.23.9
 
 require (
 	github.com/google/uuid v1.6.0
 	github.com/spf13/cobra v1.9.1
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 )
 
 require (

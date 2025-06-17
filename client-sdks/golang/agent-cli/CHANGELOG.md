@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 1.3.4 - 2025-06-13
+- Fixed agent-cli moving remote Action Packages to MyActions & not keep them in the correct organization
+
+## 1.3.3 - 2025-06-11
+- Fixed `WorkerConfig` being added to agent metadata when Agent mode is `conversational`
+
 ## 1.3.2 - 2025-06-03
 - Improved change detection for Action Packages - changes now follow exclusion rules from Action Package `package.yaml` instead of ones from `agent-spec.yaml`
 - Add new flag '--ignore-actions' for the validation command to skip validating the action packages

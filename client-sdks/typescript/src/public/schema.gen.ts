@@ -3,7 +3,7 @@
  * Do not make direct changes to the file.
  */
 export interface paths {
-  '/api/public/v2/agents/': {
+  '/api/public/v1/agents': {
     parameters: {
       query?: never;
       header?: never;
@@ -14,7 +14,7 @@ export interface paths {
      * List agents
      * @description Returns a list of all agents for the authenticated user. You can filter by name using the 'name' query parameter.
      */
-    get: operations['get_agents_agents__get'];
+    get: operations['get_agents_agents_get'];
     put?: never;
     post?: never;
     delete?: never;
@@ -23,7 +23,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/public/v2/agents/{aid}': {
+  '/api/public/v1/agents/{aid}': {
     parameters: {
       query?: never;
       header?: never;
@@ -43,7 +43,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/public/v2/agents/{aid}/conversations': {
+  '/api/public/v1/agents/{aid}/conversations': {
     parameters: {
       query?: never;
       header?: never;
@@ -67,7 +67,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/public/v2/agents/{aid}/conversations/{cid}/messages': {
+  '/api/public/v1/agents/{aid}/conversations/{cid}/messages': {
     parameters: {
       query?: never;
       header?: never;
@@ -91,7 +91,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/public/v2/agents/{aid}/conversations/{cid}/stream': {
+  '/api/public/v1/agents/{aid}/conversations/{cid}/stream': {
     parameters: {
       query?: never;
       header?: never;
@@ -111,47 +111,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/public/v2/agents/{aid}/conversations/{cid}/messages/detailed': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Post messages (synchronous)
-     * @description Post messages to a conversation thread, and get the updated conversation state.
-     */
-    post: operations['post_messages_detailed_agents__aid__conversations__cid__messages_detailed_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/public/v2/agents/{aid}/conversations/{cid}/stream/detailed': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Post messages to a conversation and stream the response
-     * @description Post messages to a conversation and stream the response
-     */
-    post: operations['post_public_api_messages_detailed_agents__aid__conversations__cid__stream_detailed_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/public/v2/agents/{aid}/conversations/{cid}': {
+  '/api/public/v1/agents/{aid}/conversations/{cid}': {
     parameters: {
       query?: never;
       header?: never;
@@ -171,7 +131,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/public/v2/ok': {
+  '/api/public/v1/ok': {
     parameters: {
       query?: never;
       header?: never;
@@ -211,28 +171,11 @@ export interface components {
     /** Conversation */
     Conversation: {
       /** Id */
-      id: string | null;
+      id: string;
       /** Name */
       name: string;
       /** Agent Id */
       agent_id: string;
-    };
-    /** ConversationState */
-    ConversationState: {
-      /** Id */
-      id: string | null;
-      /** Name */
-      name: string;
-      /** Agent Id */
-      agent_id: string;
-      /** Messages */
-      messages:
-        | (
-            | components['schemas']['Message']
-            | components['schemas']['ToolRequest']
-            | components['schemas']['ToolResponse']
-          )[]
-        | null;
     };
     /** CreateChatRequest */
     CreateChatRequest: {
@@ -244,31 +187,6 @@ export interface components {
       /** Detail */
       detail?: components['schemas']['ValidationError'][];
     };
-    /** Message */
-    Message: {
-      /** Id */
-      id: string | null;
-      type: components['schemas']['MessageType'];
-      role: components['schemas']['Role'];
-      /** Content */
-      content: string;
-      /**
-       * Channel
-       * @default chat
-       */
-      channel: string;
-    };
-    /**
-     * MessageType
-     * @enum {string}
-     */
-    MessageType:
-      | 'message'
-      | 'token'
-      | 'action_request'
-      | 'action_response'
-      | 'start_stream'
-      | 'end_stream';
     /** PaginatedResponse */
     PaginatedResponse: {
       /** Next */
@@ -277,60 +195,6 @@ export interface components {
       has_more: boolean;
       /** Data */
       data: unknown[];
-    };
-    /**
-     * Role
-     * @enum {string}
-     */
-    Role: 'agent' | 'human';
-    /** ToolCall */
-    ToolCall: {
-      /** Id */
-      id: string;
-      /** Name */
-      name: string;
-      /** Args */
-      args: {
-        [key: string]: unknown;
-      };
-    };
-    /** ToolRequest */
-    ToolRequest: {
-      /** Action Calls */
-      action_calls: components['schemas']['ToolCall'][];
-      /** Id */
-      id: string | null;
-      type: components['schemas']['MessageType'];
-      role: components['schemas']['Role'];
-      /** Content */
-      content: string;
-      /**
-       * Channel
-       * @default chat
-       */
-      channel: string;
-    };
-    /** ToolResponse */
-    ToolResponse: {
-      /** Action Call Id */
-      action_call_id: string;
-      /** Status */
-      status: string;
-      /** Result */
-      result: {
-        [key: string]: unknown;
-      };
-      /** Id */
-      id: string | null;
-      type: components['schemas']['MessageType'];
-      role: components['schemas']['Role'];
-      /** Content */
-      content: string;
-      /**
-       * Channel
-       * @default chat
-       */
-      channel: string;
     };
     /** ValidationError */
     ValidationError: {
@@ -350,7 +214,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-  get_agents_agents__get: {
+  get_agents_agents_get: {
     parameters: {
       query?: {
         limit?: number | null;
@@ -547,7 +411,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['ConversationState'];
+          'application/json': components['schemas']['PaginatedResponse'];
         };
       };
       /** @description Agent/Conversation not found */
@@ -597,7 +461,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['ConversationState'];
+          'application/json': components['schemas']['PaginatedResponse'];
         };
       };
       /** @description Bad Request */
@@ -639,109 +503,14 @@ export interface operations {
       };
     };
     responses: {
-      /** @description Success */
+      /** @description SSE stream of Delta messages */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
           'application/json': unknown;
-        };
-      };
-      /** @description Bad Request */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Internal Server Error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  post_messages_detailed_agents__aid__conversations__cid__messages_detailed_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        aid: string;
-        cid: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['Message'][];
-      };
-    };
-    responses: {
-      /** @description Success */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ConversationState'];
-        };
-      };
-      /** @description Bad Request */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Internal Server Error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  post_public_api_messages_detailed_agents__aid__conversations__cid__stream_detailed_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        aid: string;
-        cid: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['Message'][];
-      };
-    };
-    responses: {
-      /** @description Success */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': unknown;
+          'text/event-stream': unknown;
         };
       };
       /** @description Bad Request */

@@ -1,0 +1,47 @@
+thread:
+  - name: smoke-test
+    description: 'Smoke test'
+    messages:
+      - role: user
+        content: |
+          What can you do? What tools do you have?
+
+# We need these to be set on the action server for actions
+# to actually run...
+action-secrets:
+  - name: Snowflake Cortex Analyst
+    actions:
+      - name: ask_cortex_analyst
+        secrets:
+          - name: semantic_model_file
+            value: '@CORTEX_ANALYST_DEMO.REVENUE_TIMESERIES.RAW_DATA/revenue_timeseries.yaml'
+      - name: snowflake_execute_query
+        secrets:
+          - name: warehouse
+            value: COMPUTE_WH
+          - name: database
+            value: CORTEX_ANALYST_DEMO
+          - name: schema
+            value: REVENUE_TIMESERIES
+
+# We need the ~/.sema4ai/sf-auth.json to be overridden with the following
+# for this test scenario to work.
+sf-auth-override:
+  account: ZVZWMYO-HP00956
+  role: ACCOUNTADMIN
+  private_key_path: $CORTEX_HP00956_PRIVATE_KEY_PATH
+  private_key_passphrase: $CORTEX_HP00956_PRIVATE_KEY_PASSPHRASE
+  user: $CORTEX_HP00956_USER
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: cortex
+  # - name: google
+
+evaluations:
+  - kind: llm-eval-of-last-agent-turn
+    expected: |
+      The agent should have sent a message in reply to the simple enumerating
+      the capabilities it has and any tools it has access to.

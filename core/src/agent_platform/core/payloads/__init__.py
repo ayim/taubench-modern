@@ -3,6 +3,8 @@
 from agent_platform.core.payloads.action_server_config import ActionServerConfigPayload
 from agent_platform.core.payloads.add_thread_message import AddThreadMessagePayload
 from agent_platform.core.payloads.agent_package import AgentPackagePayload
+from agent_platform.core.payloads.ephemeral_stream import EphemeralStreamPayload
+from agent_platform.core.payloads.fork_thread import ForkThreadPayload
 from agent_platform.core.payloads.initiate_stream import InitiateStreamPayload
 from agent_platform.core.payloads.upload_file import UploadFilePayload
 from agent_platform.core.payloads.upsert_agent import (
@@ -15,6 +17,8 @@ __all__ = [
     "ActionServerConfigPayload",
     "AddThreadMessagePayload",
     "AgentPackagePayload",
+    "EphemeralStreamPayload",
+    "ForkThreadPayload",
     "InitiateStreamPayload",
     "PatchAgentPayload",
     "UploadFilePayload",

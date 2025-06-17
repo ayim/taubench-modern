@@ -1,5 +1,6 @@
 """Tests for the AgentServerToolsInterface class."""
 
+import asyncio
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -649,3 +650,457 @@ async def test_dict_without_error_code_handling():
     }
     assert result.definition == tool_def
     assert result.tool_call_id == "call_normal_dict"
+
+
+@pytest.mark.asyncio
+async def test_client_exec_tool_success():
+    """Test that client-exec-tool properly waits for and processes client results."""
+    from datetime import UTC, datetime
+    from unittest.mock import AsyncMock
+
+    from agent_platform.core.streaming.delta import StreamingDeltaRequestToolExecution
+    from agent_platform.core.streaming.incoming import IncomingDeltaClientToolResult
+
+    # Create a client-exec-tool definition
+    tool_def = ToolDefinition(
+        name="client_exec_tool",
+        description="A tool that executes on the client side",
+        input_schema={"type": "object", "properties": {"command": {"type": "string"}}},
+        category="client-exec-tool",
+    )
+
+    # Create the tools interface with mocked kernel
+    interface = AgentServerToolsInterface()
+    mock_kernel = MagicMock()
+    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
+    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
+    mock_kernel.agent.agent_id = "test-agent"
+    mock_kernel.thread.thread_id = "test-thread"
+    mock_kernel.user.cr_user_id = "test-user"
+
+    # Mock the outgoing events dispatcher
+    mock_kernel.outgoing_events.dispatch = AsyncMock()
+
+    # Mock the incoming events to simulate client response
+    mock_client_result = IncomingDeltaClientToolResult(
+        timestamp=datetime.now(UTC),
+        tool_call_id="call_123",
+        result={"output": "Command executed successfully", "error": None},
+    )
+
+    mock_kernel.incoming_events.wait_for_event = AsyncMock(return_value=mock_client_result)
+
+    interface.attach_kernel(mock_kernel)
+
+    # Create a tool use request
+    tool_use = ResponseToolUseContent(
+        tool_call_id="call_123",
+        tool_name="client_exec_tool",
+        tool_input_raw='{"command": "ls -la"}',
+    )
+
+    # Execute the client tool
+    result = await interface._safe_execute_client_tool(tool_def, tool_use)
+
+    # Verify the outgoing event was dispatched correctly
+    mock_kernel.outgoing_events.dispatch.assert_called_once()
+    dispatched_event = mock_kernel.outgoing_events.dispatch.call_args[0][0]
+    assert isinstance(dispatched_event, StreamingDeltaRequestToolExecution)
+    assert dispatched_event.tool_name == "client_exec_tool"
+    assert dispatched_event.tool_call_id == "call_123"
+    assert dispatched_event.input_raw == '{"command": "ls -la"}'
+    assert dispatched_event.requires_execution is True
+
+    # Verify the incoming event was waited for correctly
+    mock_kernel.incoming_events.wait_for_event.assert_called_once()
+    wait_predicate = mock_kernel.incoming_events.wait_for_event.call_args[0][0]
+
+    # Test the predicate function
+    assert wait_predicate(mock_client_result) is True
+
+    # Test predicate with wrong tool_call_id
+    wrong_result = IncomingDeltaClientToolResult(
+        timestamp=datetime.now(UTC),
+        tool_call_id="wrong_id",
+        result={"output": "test", "error": None},
+    )
+    assert wait_predicate(wrong_result) is False
+
+    # Verify the result
+    assert result.error is None
+    assert result.output_raw == "Command executed successfully"
+    assert result.definition == tool_def
+    assert result.tool_call_id == "call_123"
+
+
+@pytest.mark.asyncio
+async def test_client_exec_tool_with_error():
+    """Test that client-exec-tool properly handles errors from client."""
+    from datetime import UTC, datetime
+    from unittest.mock import AsyncMock
+
+    from agent_platform.core.streaming.incoming import IncomingDeltaClientToolResult
+
+    # Create a client-exec-tool definition
+    tool_def = ToolDefinition(
+        name="client_exec_tool",
+        description="A tool that executes on the client side",
+        input_schema={"type": "object", "properties": {"command": {"type": "string"}}},
+        category="client-exec-tool",
+    )
+
+    # Create the tools interface with mocked kernel
+    interface = AgentServerToolsInterface()
+    mock_kernel = MagicMock()
+    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
+    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
+    mock_kernel.agent.agent_id = "test-agent"
+    mock_kernel.thread.thread_id = "test-thread"
+    mock_kernel.user.cr_user_id = "test-user"
+
+    mock_kernel.outgoing_events.dispatch = AsyncMock()
+
+    # Mock client returning an error
+    mock_client_result = IncomingDeltaClientToolResult(
+        timestamp=datetime.now(UTC),
+        tool_call_id="call_456",
+        result={"output": None, "error": "Command failed: permission denied"},
+    )
+
+    mock_kernel.incoming_events.wait_for_event = AsyncMock(return_value=mock_client_result)
+
+    interface.attach_kernel(mock_kernel)
+
+    # Create a tool use request
+    tool_use = ResponseToolUseContent(
+        tool_call_id="call_456",
+        tool_name="client_exec_tool",
+        tool_input_raw='{"command": "rm -rf /"}',
+    )
+
+    # Execute the client tool
+    result = await interface._safe_execute_client_tool(tool_def, tool_use)
+
+    # Verify the error is properly handled
+    assert result.error == "Command failed: permission denied"
+    assert result.output_raw is None
+    assert result.definition == tool_def
+    assert result.tool_call_id == "call_456"
+
+
+@pytest.mark.asyncio
+async def test_client_exec_tool_cancellation():
+    """Test that client-exec-tool properly handles cancellation/disconnection."""
+    from unittest.mock import AsyncMock
+
+    # Create a client-exec-tool definition
+    tool_def = ToolDefinition(
+        name="client_exec_tool",
+        description="A tool that executes on the client side",
+        input_schema={"type": "object", "properties": {"command": {"type": "string"}}},
+        category="client-exec-tool",
+    )
+
+    # Create the tools interface with mocked kernel
+    interface = AgentServerToolsInterface()
+    mock_kernel = MagicMock()
+    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
+    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
+    mock_kernel.agent.agent_id = "test-agent"
+    mock_kernel.thread.thread_id = "test-thread"
+    mock_kernel.user.cr_user_id = "test-user"
+
+    mock_kernel.outgoing_events.dispatch = AsyncMock()
+
+    # Mock incoming events to raise CancelledError (simulating client disconnect)
+    mock_kernel.incoming_events.wait_for_event = AsyncMock(
+        side_effect=asyncio.CancelledError("Client disconnected")
+    )
+
+    interface.attach_kernel(mock_kernel)
+
+    # Create a tool use request
+    tool_use = ResponseToolUseContent(
+        tool_call_id="call_789",
+        tool_name="client_exec_tool",
+        tool_input_raw='{"command": "long_running_command"}',
+    )
+
+    # Execute the client tool
+    result = await interface._safe_execute_client_tool(tool_def, tool_use)
+
+    # Verify the cancellation is properly handled
+    assert result.error == "Tool execution cancelled due to client disconnection"
+    assert result.output_raw is None
+    assert result.definition == tool_def
+    assert result.tool_call_id == "call_789"
+
+
+@pytest.mark.asyncio
+async def test_client_info_tool():
+    """Test that client-info-tool dispatches event but doesn't wait for execution."""
+    from unittest.mock import AsyncMock
+
+    from agent_platform.core.streaming.delta import StreamingDeltaRequestToolExecution
+
+    # Create a client-info-tool definition
+    tool_def = ToolDefinition(
+        name="client_info_tool",
+        description="A tool that provides info to the client without execution",
+        input_schema={"type": "object", "properties": {"message": {"type": "string"}}},
+        category="client-info-tool",
+    )
+
+    # Create the tools interface with mocked kernel
+    interface = AgentServerToolsInterface()
+    mock_kernel = MagicMock()
+    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
+    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
+    mock_kernel.agent.agent_id = "test-agent"
+    mock_kernel.thread.thread_id = "test-thread"
+    mock_kernel.user.cr_user_id = "test-user"
+
+    # Mock the outgoing events dispatcher
+    mock_kernel.outgoing_events.dispatch = AsyncMock()
+
+    # We should NOT mock incoming_events.wait_for_event since it shouldn't be called
+    interface.attach_kernel(mock_kernel)
+
+    # Create a tool use request
+    tool_use = ResponseToolUseContent(
+        tool_call_id="info_123",
+        tool_name="client_info_tool",
+        tool_input_raw='{"message": "Display this information"}',
+    )
+
+    # Execute the client tool
+    result = await interface._safe_execute_client_tool(tool_def, tool_use)
+
+    # Verify the outgoing event was dispatched correctly
+    mock_kernel.outgoing_events.dispatch.assert_called_once()
+    dispatched_event = mock_kernel.outgoing_events.dispatch.call_args[0][0]
+    assert isinstance(dispatched_event, StreamingDeltaRequestToolExecution)
+    assert dispatched_event.tool_name == "client_info_tool"
+    assert dispatched_event.tool_call_id == "info_123"
+    assert dispatched_event.input_raw == '{"message": "Display this information"}'
+    assert dispatched_event.requires_execution is False
+
+    # Verify the result (should complete immediately with empty output)
+    assert result.error is None
+    assert result.output_raw == {}
+    assert result.definition == tool_def
+    assert result.tool_call_id == "info_123"
+
+
+@pytest.mark.asyncio
+async def test_execute_pending_tool_calls_with_client_tools():
+    """Test that execute_pending_tool_calls properly handles client tools."""
+    from datetime import UTC, datetime
+    from unittest.mock import AsyncMock
+
+    from agent_platform.core.streaming.incoming import IncomingDeltaClientToolResult
+
+    # Create mixed tool definitions
+    client_exec_tool = ToolDefinition(
+        name="client_exec_tool",
+        description="Execute on client",
+        input_schema={"type": "object"},
+        category="client-exec-tool",
+    )
+
+    client_info_tool = ToolDefinition(
+        name="client_info_tool",
+        description="Info for client",
+        input_schema={"type": "object"},
+        category="client-info-tool",
+    )
+
+    # Create the tools interface with mocked kernel
+    interface = AgentServerToolsInterface()
+    mock_kernel = MagicMock()
+    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
+    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
+    mock_kernel.agent.agent_id = "test-agent"
+    mock_kernel.thread.thread_id = "test-thread"
+    mock_kernel.user.cr_user_id = "test-user"
+
+    mock_kernel.outgoing_events.dispatch = AsyncMock()
+
+    # Mock client response only for exec tool
+    mock_client_result = IncomingDeltaClientToolResult(
+        timestamp=datetime.now(UTC),
+        tool_call_id="exec_call",
+        result={"output": "Executed successfully", "error": None},
+    )
+
+    mock_kernel.incoming_events.wait_for_event = AsyncMock(return_value=mock_client_result)
+
+    interface.attach_kernel(mock_kernel)
+
+    # Create tool use requests
+    exec_tool_use = ResponseToolUseContent(
+        tool_call_id="exec_call",
+        tool_name="client_exec_tool",
+        tool_input_raw='{"action": "run"}',
+    )
+
+    info_tool_use = ResponseToolUseContent(
+        tool_call_id="info_call",
+        tool_name="client_info_tool",
+        tool_input_raw='{"message": "show info"}',
+    )
+
+    # Create pending tool calls
+    pending_calls = [
+        (client_exec_tool, exec_tool_use),
+        (client_info_tool, info_tool_use),
+    ]
+
+    # Execute the tools
+    results = []
+    async for result in interface.execute_pending_tool_calls(pending_calls):
+        results.append(result)
+
+    # Should have 2 results
+    assert len(results) == 2
+
+    # Find results by tool call id
+    exec_result = next(r for r in results if r.tool_call_id == "exec_call")
+    info_result = next(r for r in results if r.tool_call_id == "info_call")
+
+    # Verify exec tool result
+    assert exec_result.error is None
+    assert exec_result.output_raw == "Executed successfully"
+    assert exec_result.definition.name == "client_exec_tool"
+
+    # Verify info tool result
+    assert info_result.error is None
+    assert info_result.output_raw == {}
+    assert info_result.definition.name == "client_info_tool"
+
+    # Verify correct number of outgoing events dispatched
+    assert mock_kernel.outgoing_events.dispatch.call_count == 2
+
+    # Verify wait_for_event was called only once (for exec tool)
+    mock_kernel.incoming_events.wait_for_event.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_client_tool_categories_in_execute_pending_tool_calls():
+    """Test that the tool category routing works correctly in execute_pending_tool_calls."""
+    from unittest.mock import AsyncMock
+
+    # Create tools of different categories
+    action_tool = ToolDefinition(
+        name="action_tool",
+        description="Server action tool",
+        input_schema={"type": "object"},
+        function=lambda: "action result",
+        category="action-tool",
+    )
+
+    mcp_tool = ToolDefinition(
+        name="mcp_tool",
+        description="MCP tool",
+        input_schema={"type": "object"},
+        category="mcp-tool",
+    )
+
+    client_exec_tool = ToolDefinition(
+        name="client_exec_tool",
+        description="Client exec tool",
+        input_schema={"type": "object"},
+        category="client-exec-tool",
+    )
+
+    client_info_tool = ToolDefinition(
+        name="client_info_tool",
+        description="Client info tool",
+        input_schema={"type": "object"},
+        category="client-info-tool",
+    )
+
+    # Create the tools interface with mocked kernel
+    interface = AgentServerToolsInterface()
+    mock_kernel = MagicMock()
+    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
+    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
+    mock_kernel.agent.agent_id = "test-agent"
+    mock_kernel.thread.thread_id = "test-thread"
+    mock_kernel.user.cr_user_id = "test-user"
+
+    interface.attach_kernel(mock_kernel)
+
+    # Create tool use requests
+    tool_uses = [
+        ResponseToolUseContent(
+            tool_call_id="action_call",
+            tool_name="action_tool",
+            tool_input_raw="{}",
+        ),
+        ResponseToolUseContent(
+            tool_call_id="mcp_call",
+            tool_name="mcp_tool",
+            tool_input_raw="{}",
+        ),
+        ResponseToolUseContent(
+            tool_call_id="exec_call",
+            tool_name="client_exec_tool",
+            tool_input_raw="{}",
+        ),
+        ResponseToolUseContent(
+            tool_call_id="info_call",
+            tool_name="client_info_tool",
+            tool_input_raw="{}",
+        ),
+    ]
+
+    pending_calls = [
+        (action_tool, tool_uses[0]),
+        (mcp_tool, tool_uses[1]),
+        (client_exec_tool, tool_uses[2]),
+        (client_info_tool, tool_uses[3]),
+    ]
+
+    # Mock the specific execution methods to track which ones are called
+    with (
+        patch.object(interface, "_safe_execute_tool", new_callable=AsyncMock) as mock_execute_tool,
+        patch.object(
+            interface, "_safe_execute_client_tool", new_callable=AsyncMock
+        ) as mock_execute_client_tool,
+    ):
+        # Mock return values
+        mock_execute_tool.return_value = MagicMock(tool_call_id="action_call")
+        mock_execute_client_tool.return_value = MagicMock(tool_call_id="client_call")
+
+        # Execute the tools (we'll get an error due to mocking, but we can verify the routing)
+        results = []
+        try:
+            async for result in interface.execute_pending_tool_calls(pending_calls):
+                results.append(result)
+        except Exception:
+            # Expected due to mocking, but we can still check the calls
+            pass
+
+        # Verify _safe_execute_tool was called twice for action-tool and mcp-tool
+        assert mock_execute_tool.call_count == 2
+        non_client_call_names = {call[0][0].name for call in mock_execute_tool.call_args_list}
+        assert "action_tool" in non_client_call_names
+        assert "mcp_tool" in non_client_call_names
+
+        non_client_tool_ids = {call[0][1].tool_call_id for call in mock_execute_tool.call_args_list}
+        assert "action_call" in non_client_tool_ids
+        assert "mcp_call" in non_client_tool_ids
+
+        # Verify _safe_execute_client_tool was called twice for client tools
+        assert mock_execute_client_tool.call_count == 2
+        client_calls = mock_execute_client_tool.call_args_list
+
+        # Check that both client tools were routed correctly
+        client_tool_names = {call[0][0].name for call in client_calls}
+        assert "client_exec_tool" in client_tool_names
+        assert "client_info_tool" in client_tool_names
+
+        client_tool_ids = {call[0][1].tool_call_id for call in client_calls}
+        assert "exec_call" in client_tool_ids
+        assert "info_call" in client_tool_ids

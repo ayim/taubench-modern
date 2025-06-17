@@ -35,14 +35,13 @@ def step(func):
 
         with kernel.ctx.start_span(
             f"agent_step_{step_name}",
-            attributes={
-                "langsmith.span.kind": "chain",
-                "langsmith.trace.name": f"Agent Step: {step_name}",
-                "step.name": step_name,
-                "agent.id": kernel.agent.agent_id,
-                "thread.id": kernel.thread.thread_id,
-                "agent.name": kernel.agent.name,
-            },
+            attributes=kernel.get_standard_span_attributes(
+                extra_attributes={
+                    "langsmith.span.kind": "chain",
+                    "langsmith.trace.name": f"Agent Step: {step_name}",
+                    "step.name": step_name,
+                },
+            ),
         ) as span:
             # Capture initial state if span exists
             try:

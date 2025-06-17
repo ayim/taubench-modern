@@ -11,6 +11,7 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
+from agent_platform.core.conditional_langsmith_processor import ConditionalLangSmithProcessor
 from agent_platform.core.configurations import Configuration, FieldMetadata
 
 logger = structlog.get_logger(__name__)
@@ -48,7 +49,6 @@ def setup_telemetry():
     This function configures and returns the global tracer and meter providers
     that will be used by AgentServerContext.
     """
-
     collector_url = OTELConfig.collector_url
     otel_enabled = OTELConfig.is_enabled
     collector_url_set = True
@@ -94,6 +94,12 @@ def setup_telemetry():
             logger.warning("Collector URL is not set. Skipping trace exporter configuration.")
     except Exception as e:
         logger.error(f"Failed to create trace exporter for {collector_url}/v1/traces: {e}")
+
+    # Initialize and add the conditional LangSmith processor
+    langsmith_processor = ConditionalLangSmithProcessor.get_instance()
+    _tracer_provider.add_span_processor(langsmith_processor)
+    logger.debug("Added ConditionalLangSmithProcessor to global trace provider")
+
     # Important: Set as the global tracer provider so AgentServerContext can use it
     trace.set_tracer_provider(_tracer_provider)
 

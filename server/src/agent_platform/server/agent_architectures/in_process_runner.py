@@ -11,6 +11,7 @@ from agent_platform.core.streaming.delta import (
     StreamingDeltaAgentError,
     StreamingDeltaAgentFinished,
 )
+from agent_platform.core.streaming.incoming import IncomingDelta
 from agent_platform.server.agent_architectures.base_runner import BaseAgentRunner
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
@@ -88,7 +89,7 @@ class InProcessAgentRunner(BaseAgentRunner):
             raise RuntimeError("Kernel not attached")
         return self._kernel.outgoing_events.stream()
 
-    async def dispatch_event(self, event: StreamingDelta) -> None:
+    async def dispatch_event(self, event: IncomingDelta) -> None:
         if not self._kernel:
             raise RuntimeError("Kernel not attached")
         await self._kernel.incoming_events.dispatch(event)

@@ -178,6 +178,7 @@ def _openapi_spec_to_tool_definitions(
                     "properties": request_body_args,
                     "required": request_body_required,
                 },
+                category="action-tool",
                 function=_build_post_async_function(
                     action_url,
                     api_key,

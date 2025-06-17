@@ -105,6 +105,15 @@
       "args": "${input:changesArgs}"
     },
     {
+      "name": "Debug Quality CLI",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "agent_platform.quality.cli",
+      "justMyCode": false,
+      "console": "integratedTerminal",
+      "args": "${input:qualityArgs}"
+    },
+    {
       "type": "pydevd",
       "name": "PyDev Test Template",
       "request": "test-template",
@@ -116,6 +125,12 @@
       "type": "promptString",
       "id": "serverArgs",
       "description": "Provide the arguments to pass to the agent server",
+      "default": ""
+    },
+    {
+      "type": "promptString",
+      "id": "qualityArgs",
+      "description": "Provide the arguments to pass to the quality CLI",
       "default": ""
     },
     {

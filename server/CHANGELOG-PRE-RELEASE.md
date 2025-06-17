@@ -1,3 +1,115 @@
+# Sema4.ai Agent Server Pre-Release 2.0.2-alpha.2 (2025-06-17)
+
+## Agent Server
+
+### Miscellaneous
+
+- Added inputs/outputs to some LangSmith traces and removed old OTEL code from the OpenAI Platform Client. ([GPT-902](https://linear.app/sema4ai/issue/GPT-902))
+- Exclude dist from typecheck and uv run pyright ([GPT-992](https://linear.app/sema4ai/issue/GPT-992))
+
+
+## Public API
+
+No significant changes.
+
+
+## Private API
+
+No significant changes.
+
+
+# Sema4.ai Agent Server Pre-Release 2.0.2-alpha.1 (2025-06-17)
+
+## Agent Server
+
+### Bugfixes
+
+- Fixed thread messages always showing `commited: false` and `complete: false` in API responses. ([GPT-895](https://linear.app/sema4ai/issue/GPT-895))
+
+### Miscellaneous
+
+- Move common OTEL attributes to kernel function for usage across spans. ([GPT-947](https://linear.app/sema4ai/issue/GPT-947))
+- Make sure lint/fix/typecheck runs so we stop breaking that ([GPT-998](https://linear.app/sema4ai/issue/GPT-998))
+- Fixed minor lint + format issues.
+
+
+## Public API
+
+### Features
+
+- Agent MCP ([GPT-986](https://linear.app/sema4ai/issue/GPT-986))
+
+
+## Private API
+
+### Features
+
+- New endpoint to list tools on MCP servers given their name/URL. Introduced to capabilities API ([GPT-977](https://linear.app/sema4ai/issue/GPT-977))
+
+### Bugfixes
+
+- In a previous PR we made description field in package payload optional and this broke some clients. Here, we revert those changes.
+
+
+# Sema4.ai Agent Server Pre-Release 2.0.2-alpha (2025-06-16)
+
+## Agent Server
+
+### Features
+
+- Adding new quality benchmarking project for assessing quality of agents in aggregate ([GPT-923](https://linear.app/sema4ai/issue/GPT-923))
+- Update the events infrastructure to prepare for the concept of client-side tools and further clarify the separation between incoming and outgoing events. ([GPT-966](https://linear.app/sema4ai/issue/GPT-966))
+- Support client-side tools (and tag tool defs with their category so we know if they're actions, or from MCP servers, or client-side, etc.) ([GPT-971](https://linear.app/sema4ai/issue/GPT-971))
+
+### Bugfixes
+
+- Converted ResponseToolUseContent messages in LangSmith traces to tool calls rendered by LangSmith. ([GPT-903](https://linear.app/sema4ai/issue/GPT-903))
+- Implemented ConditionalLangSmithProcessor to route LangSmith traces to the right exporters for a given configuration. ([GPT-972](https://linear.app/sema4ai/issue/GPT-972))
+- Use Control Room User ID instead of internal user ID while emitting OTEL events ([GPT-975](https://linear.app/sema4ai/issue/GPT-975))
+
+### Removals and Deprecations
+
+- Removed llm.model and llm.provider attributes from OTEL events to be added back at a later date. ([GPT-936](https://linear.app/sema4ai/issue/GPT-936))
+
+### Miscellaneous
+
+- Added check for LangSmith env vars to use as a global config over agent config. ([GPT-988](https://linear.app/sema4ai/issue/GPT-988))
+
+### Additional Information Not Pertinent to Client Users
+
+- [GPT-973](https://linear.app/sema4ai/issue/GPT-973), [GPT-978](https://linear.app/sema4ai/issue/GPT-978), [GPT-990](https://linear.app/sema4ai/issue/GPT-990)
+
+
+## Public API
+
+### Features
+
+- Add auth to MCP endpoints ([GPT-911](https://linear.app/sema4ai/issue/GPT-911))
+- Typescript Public SDK - surface endpoint for streaming conversations
+
+### Bugfixes
+
+- Remove trailing slash to make it compatible with legacy api
+
+### Miscellaneous
+
+- Change public api prefix to v1
+
+
+## Private API
+
+### Features
+
+- Add POST /tid/fork endpoint to fork thread messages ([GPT-907](https://linear.app/sema4ai/issue/GPT-907))
+- Implement edit thread message endpoint ([GPT-908](https://linear.app/sema4ai/issue/GPT-908))
+- Allow the prompt endpoint to take either a platform_config_raw (as it does today) or an agent_id or a thread_id; if agent or thread IDs are provided, the endpoint will grab the first platform config from the agent (or agent associated with the thread). ([GPT-921](https://linear.app/sema4ai/issue/GPT-921))
+- Add new ephemeral agent stream endpoint to private API (allows you to stream against an agent created in an ephemeral way --- not persisted to storage) ([GPT-967](https://linear.app/sema4ai/issue/GPT-967))
+
+### Bugfixes
+
+- Added sync and async endpoints to Typescript SDK.
+
+
 # Sema4.ai Agent Server Pre-Release 2.0.1-alpha (2025-06-06)
 
 ## Agent Server

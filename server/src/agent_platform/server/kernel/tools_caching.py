@@ -217,6 +217,12 @@ class ToolDefinitionCache:
         self._negative_cache.clear()
         logger.info("Cleared ALL tool caches (singleton)")
 
+    def clear_specific_urls_or_keys(self, urls_or_keys: list[str]) -> None:
+        for url_or_key in urls_or_keys:
+            self._success_cache.pop(url_or_key, None)
+            self._negative_cache.pop(url_or_key, None)
+        logger.info(f"Cleared tool cache for URLs: {', '.join(urls_or_keys)}")
+
     def clear_for_agent(self, agent: Agent) -> None:
         removed_action_server_urls = []
         removed_mcp_server_urls = []

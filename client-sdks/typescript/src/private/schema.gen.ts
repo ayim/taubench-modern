@@ -353,6 +353,29 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/threads/{tid}/fork': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Fork Thread
+     * @description Fork a thread at a specific message point.
+     *
+     *     Creates a new thread with all messages before the specified message.
+     *     The message_id must be for a human message.
+     */
+    post: operations['fork_thread_threads__tid__fork_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/threads/{tid}/messages': {
     parameters: {
       query?: never;
@@ -364,6 +387,26 @@ export interface paths {
     put?: never;
     /** Add Message To Thread */
     post: operations['add_message_to_thread_threads__tid__messages_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/threads/{tid}/messages/{message_id}/edit': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Edit Message
+     * @description Edit a message. Trims the messages from and after the given message_id.
+     */
+    post: operations['edit_message_threads__tid__messages__message_id__edit_post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -944,6 +987,11 @@ export interface components {
        */
       name: string;
       /**
+       * Description
+       * @description The description of the agent.
+       */
+      description?: string | null;
+      /**
        * Public
        * @description Whether the agent is public. (Legacy, ignored.)
        * @default true
@@ -1280,6 +1328,19 @@ export interface components {
       role: '$conversation-history' | '$documents' | '$memories';
       params?: components['schemas']['DocumentsParams'];
     };
+    /** ForkThreadPayload */
+    ForkThreadPayload: {
+      /**
+       * Message Id
+       * @description The ID of the message to fork from (must be a human message).
+       */
+      message_id: string;
+      /**
+       * Name
+       * @description Optional custom name for the forked thread
+       */
+      name?: string | null;
+    };
     /** GooglePlatformParameters */
     GooglePlatformParameters: {
       /**
@@ -1317,15 +1378,15 @@ export interface components {
        */
       agent_id: string;
       /**
-       * Name
-       * @description The name of the thread to stream against.
-       */
-      name?: string | null;
-      /**
        * Thread Id
        * @description The ID of the thread to stream against.
        */
       thread_id?: string | null;
+      /**
+       * Name
+       * @description The name of the thread to stream against.
+       */
+      name?: string | null;
       /**
        * Messages
        * @description All messages in this thread.
@@ -1338,6 +1399,11 @@ export interface components {
       metadata?: {
         [key: string]: unknown;
       };
+      /**
+       * Client Tools
+       * @description The tools attached to the payload from an external client.
+       */
+      client_tools?: components['schemas']['ToolDefinitionPayload'][];
     };
     /** MCPServer */
     MCPServer: {
@@ -2546,6 +2612,38 @@ export interface components {
        */
       total_tokens: number;
     };
+    /** ToolDefinitionPayload */
+    ToolDefinitionPayload: {
+      /**
+       * Name
+       * @description The name of the tool
+       */
+      name: string;
+      /**
+       * Description
+       * @description The description of the tool
+       */
+      description: string;
+      /**
+       * Input Schema
+       * @description The schema of the tool input
+       */
+      input_schema: {
+        [key: string]: unknown;
+      };
+      /**
+       * Category
+       * @description The category of the tool
+       * @default unknown
+       * @enum {string}
+       */
+      category:
+        | 'unknown'
+        | 'action-tool'
+        | 'mcp-tool'
+        | 'client-exec-tool'
+        | 'client-info-tool';
+    };
     /** UploadedFile */
     UploadedFile: {
       /** File Id */
@@ -3648,6 +3746,41 @@ export interface operations {
       };
     };
   };
+  fork_thread_threads__tid__fork_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        tid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ForkThreadPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Thread'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
   add_message_to_thread_threads__tid__messages_post: {
     parameters: {
       query?: never;
@@ -3670,6 +3803,40 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['Thread'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  edit_message_threads__tid__messages__message_id__edit_post: {
+    parameters: {
+      query: {
+        agent_id: string;
+      };
+      header?: never;
+      path: {
+        tid: string;
+        message_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
         };
       };
       /** @description Validation Error */

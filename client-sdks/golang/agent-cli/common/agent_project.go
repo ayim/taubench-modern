@@ -1,11 +1,12 @@
 package common
 
 import (
-	AgentServer "github.com/Sema4AI/agent-client-go/pkg/client"
-	"github.com/Sema4AI/agents-spec/cli/common/glob"
 	"os"
 	"path/filepath"
 	"sync"
+
+	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/common/glob"
+	AgentServer "github.com/Sema4AI/agent-platform/client-sdks/golang/agent-client-go/pkg/client"
 )
 
 type AgentChanges []string

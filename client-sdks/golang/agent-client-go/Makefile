@@ -11,6 +11,7 @@ ARCH := $(shell go env GOARCH)
 BINARY_NAME := $(APP_NAME)-$(OS)-$(ARCH)
 TARBALL := $(BINARY_NAME).tgz
 ZIPFILE := $(BINARY_NAME).zip
+EXECUTABLE := $(APP_NAME)$(if $(filter windows,$(OS)),.exe,)
 
 # Commands
 .PHONY: all run build test test-all test-integration test-integration-verbose deps clean tidy lint format init-project dist dist-all docs
@@ -29,7 +30,7 @@ clean: ## Remove previous build artifacts and test cache
 
 build: ## Build the project and output distribution binaries
 	@echo "Building $(APP_NAME)..."
-	@go build -o $(APP_NAME) cmd/$(APP_NAME)/*.go
+	@go build -o $(EXECUTABLE) cmd/$(APP_NAME)/*.go
 
 test: ## Run unit tests
 	@echo "Running unit tests..."

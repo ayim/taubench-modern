@@ -1,12 +1,13 @@
 {
   "name": "@sema4ai/agent-server-interface",
-  "version": "2.0.0-marco.15",
+  "version": "2.0.5",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "files": [
     "lib"
   ],
   "scripts": {
+    "prebuild": "npm run test",
     "build": "tsc && npm run copy-legacy-types",
     "format": "prettier --write \"**/*.{ts,json}\"",
     "generate:private": "ts-node ./scripts/generate.ts ./private.openapi.json \"private\"",
@@ -15,7 +16,8 @@
     "generate": "npm run generate:all && npm run format && npm run check:types",
     "check:types": "tsc --noEmit",
     "copy-legacy-types": "mkdir -p lib/private/v1 && cp src/private/v1/schema.d.ts lib/private/v1/schema.d.ts && cp src/private/v1/spec.gen.d.ts lib/private/v1/spec.gen.d.ts",
-    "test:types": "tsd"
+    "test:types": "tsd",
+    "test": "jest"
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
@@ -25,9 +27,12 @@
   "license": "ISC",
   "description": "Agent Server Interface for Typescript",
   "devDependencies": {
+    "@types/jest": "^29.5.14",
     "@types/node": "^22.14.1",
+    "jest": "^29.7.0",
     "openapi-typescript": "^7.6.1",
     "prettier": "^3.5.3",
+    "ts-jest": "^29.3.4",
     "ts-node": "^10.9.2",
     "tsd": "^0.32.0",
     "typescript": "^5.8.3"
@@ -40,6 +45,7 @@
     "trailingComma": "es5"
   },
   "dependencies": {
+    "json-joy": "^17.43.0",
     "openapi-fetch": "^0.13.5"
   }
 }

@@ -10,6 +10,7 @@ from agent_platform.core.thread import Thread, ThreadMessage, ThreadTextContent
 from agent_platform.server.storage.errors import (
     InvalidUUIDError,
     ThreadNotFoundError,
+    UserPermissionError,
 )
 from agent_platform.server.storage.sqlite import SQLiteStorage
 
@@ -444,3 +445,169 @@ async def test_delete_threads_for_agent(
         sample_agent.agent_id,
     )
     assert len(other_user_retrieved_threads) == 2
+
+
+@pytest.mark.asyncio
+async def test_trim_messages_from_sequence_with_invalid_message_id(
+    storage: SQLiteStorage,
+    sample_user_id: str,
+    sample_agent: Agent,
+) -> None:
+    """Test trimming messages from a sequence with invalid message ID (agent role)."""
+    thread = Thread(
+        thread_id=str(uuid4()),
+        user_id=sample_user_id,
+        agent_id=sample_agent.agent_id,
+        name="Edit Message Test",
+        messages=[],
+    )
+    await storage.upsert_agent(sample_user_id, sample_agent)
+    await storage.upsert_thread(sample_user_id, thread)
+
+    # Add multiple messages to the thread
+    message1 = ThreadMessage(role="user", content=[ThreadTextContent(text="Hello")])
+    message2 = ThreadMessage(role="agent", content=[ThreadTextContent(text="Hi there!")])
+    message3 = ThreadMessage(role="user", content=[ThreadTextContent(text="How are you?")])
+    message4 = ThreadMessage(role="agent", content=[ThreadTextContent(text="I'm good, thanks!")])
+    message5 = ThreadMessage(role="user", content=[ThreadTextContent(text="What's your name?")])
+    message6 = ThreadMessage(role="agent", content=[ThreadTextContent(text="My name is John Doe")])
+
+    await storage.add_message_to_thread(sample_user_id, thread.thread_id, message1)
+    await storage.add_message_to_thread(sample_user_id, thread.thread_id, message2)
+    await storage.add_message_to_thread(sample_user_id, thread.thread_id, message3)
+    await storage.add_message_to_thread(sample_user_id, thread.thread_id, message4)
+    await storage.add_message_to_thread(sample_user_id, thread.thread_id, message5)
+    await storage.add_message_to_thread(sample_user_id, thread.thread_id, message6)
+
+    # Get the thread to access message IDs
+    thread_before_trim = await storage.get_thread(sample_user_id, thread.thread_id)
+    assert thread_before_trim is not None
+    assert len(thread_before_trim.messages) == 6
+
+    # Try to trim from an agent message (message2) - this should fail
+    agent_message_id = thread_before_trim.messages[1].message_id  # This is an agent message
+    with pytest.raises(UserPermissionError):
+        await storage.trim_messages_from_sequence(
+            sample_user_id,
+            thread.thread_id,
+            agent_message_id,
+        )
+
+    # Check that messages before the trim point remain (message1 and message2)
+    retrieved_thread = await storage.get_thread(sample_user_id, thread.thread_id)
+    assert retrieved_thread is not None
+    assert len(retrieved_thread.messages) == 6
+
+
+@pytest.mark.asyncio
+async def test_trim_messages_from_sequence(
+    storage: SQLiteStorage,
+    sample_user_id: str,
+    sample_agent: Agent,
+) -> None:
+    """Test trimming messages from a sequence."""
+    thread = Thread(
+        thread_id=str(uuid4()),
+        user_id=sample_user_id,
+        agent_id=sample_agent.agent_id,
+        name="Edit Message Test",
+        messages=[],
+    )
+    await storage.upsert_agent(sample_user_id, sample_agent)
+    await storage.upsert_thread(sample_user_id, thread)
+
+    # Add multiple messages to the thread
+    message1 = ThreadMessage(role="user", content=[ThreadTextContent(text="Hello")])
+    message2 = ThreadMessage(role="agent", content=[ThreadTextContent(text="Hi there!")])
+    message3 = ThreadMessage(role="user", content=[ThreadTextContent(text="How are you?")])
+    message4 = ThreadMessage(role="agent", content=[ThreadTextContent(text="I'm good, thanks!")])
+    message5 = ThreadMessage(role="user", content=[ThreadTextContent(text="What's your name?")])
+    message6 = ThreadMessage(role="agent", content=[ThreadTextContent(text="My name is John Doe")])
+
+    await storage.add_message_to_thread(sample_user_id, thread.thread_id, message1)
+    await storage.add_message_to_thread(sample_user_id, thread.thread_id, message2)
+    await storage.add_message_to_thread(sample_user_id, thread.thread_id, message3)
+    await storage.add_message_to_thread(sample_user_id, thread.thread_id, message4)
+    await storage.add_message_to_thread(sample_user_id, thread.thread_id, message5)
+    await storage.add_message_to_thread(sample_user_id, thread.thread_id, message6)
+
+    # Get the thread to access message IDs
+    thread_before_trim = await storage.get_thread(sample_user_id, thread.thread_id)
+    assert thread_before_trim is not None
+    assert len(thread_before_trim.messages) == 6
+
+    # Trim from the second message (should remove message2, message3, message4,
+    # and message5, keeping only message1)
+    third_message_id = thread_before_trim.messages[2].message_id
+    await storage.trim_messages_from_sequence(
+        sample_user_id,
+        thread.thread_id,
+        third_message_id,
+    )
+
+    # Check that only the first and second message remain
+    retrieved_thread = await storage.get_thread(sample_user_id, thread.thread_id)
+    assert retrieved_thread is not None
+    assert len(retrieved_thread.messages) == 2
+    assert isinstance(retrieved_thread.messages[0].content[0], ThreadTextContent)
+    assert retrieved_thread.messages[0].content[0].text == "Hello"
+    assert isinstance(retrieved_thread.messages[1].content[0], ThreadTextContent)
+    assert retrieved_thread.messages[1].content[0].text == "Hi there!"
+
+
+@pytest.mark.asyncio
+async def test_thread_messages_commited_complete_flags(
+    storage: SQLiteStorage,
+    sample_user_id: str,
+    sample_agent: Agent,
+) -> None:
+    """Test that thread messages retrieved from storage have commited=True and complete=True."""
+    # Create a thread with messages
+    thread = Thread(
+        thread_id=str(uuid4()),
+        user_id=sample_user_id,
+        agent_id=sample_agent.agent_id,
+        name="Test Commited/Complete Flags",
+        messages=[
+            ThreadMessage(
+                role="user",
+                content=[ThreadTextContent(text="User message")],
+                commited=False,  # Set to False initially
+                complete=False,  # Set to False initially
+            ),
+            ThreadMessage(
+                role="agent",
+                content=[ThreadTextContent(text="Agent response")],
+                commited=False,  # Set to False initially
+                complete=False,  # Set to False initially
+            ),
+        ],
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
+        metadata={},
+    )
+
+    # Store the thread
+    await storage.upsert_agent(sample_user_id, sample_agent)
+    await storage.upsert_thread(sample_user_id, thread)
+
+    # Retrieve the thread
+    retrieved = await storage.get_thread(sample_user_id, thread.thread_id)
+    assert retrieved is not None
+    assert len(retrieved.messages) == 2
+
+    # Check that both messages have commited=True and complete=True
+    for msg in retrieved.messages:
+        assert msg.commited is True, "Messages retrieved from database should have commited=True"
+        assert msg.complete is True, "Messages retrieved from database should have complete=True"
+        # Also check that content items are marked complete
+        for content in msg.content:
+            assert content.complete is True, "Content items should also be marked complete"
+
+    # Test model_dump includes commited field
+    for msg in retrieved.messages:
+        dumped = msg.model_dump()
+        assert "commited" in dumped, "model_dump should include commited field"
+        assert dumped["commited"] is True
+        assert "complete" in dumped, "model_dump should include complete field"
+        assert dumped["complete"] is True
