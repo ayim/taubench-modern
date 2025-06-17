@@ -1,3 +1,36 @@
+# Sema4.ai Agent Server Pre-Release 2.0.2-alpha.1 (2025-06-17)
+
+## Agent Server
+
+### Bugfixes
+
+- Fixed thread messages always showing `commited: false` and `complete: false` in API responses. ([GPT-895](https://linear.app/sema4ai/issue/GPT-895))
+
+### Miscellaneous
+
+- Move common OTEL attributes to kernel function for usage across spans. ([GPT-947](https://linear.app/sema4ai/issue/GPT-947))
+- Make sure lint/fix/typecheck runs so we stop breaking that ([GPT-998](https://linear.app/sema4ai/issue/GPT-998))
+- Fixed minor lint + format issues.
+
+
+## Public API
+
+### Features
+
+- Agent MCP ([GPT-986](https://linear.app/sema4ai/issue/GPT-986))
+
+
+## Private API
+
+### Features
+
+- New endpoint to list tools on MCP servers given their name/URL. Introduced to capabilities API ([GPT-977](https://linear.app/sema4ai/issue/GPT-977))
+
+### Bugfixes
+
+- In a previous PR we made description field in package payload optional and this broke some clients. Here, we revert those changes.
+
+
 # Sema4.ai Agent Server Pre-Release 2.0.2-alpha (2025-06-16)
 
 ## Agent Server
