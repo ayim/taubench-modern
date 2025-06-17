@@ -10,6 +10,7 @@ import uuid
 from collections.abc import AsyncGenerator, Generator
 from contextlib import AsyncExitStack, ExitStack, asynccontextmanager, contextmanager
 from datetime import timedelta
+from functools import cache
 from typing import Any
 from unittest.mock import patch
 
@@ -18,6 +19,7 @@ import pytest
 import uvicorn
 from fastapi import Request
 from mcp import ClientSession as MCPClientSession
+from mcp import McpError
 from mcp.client.streamable_http import streamablehttp_client as mcp_streamablehttp_client
 from mcp.types import TextContent
 from starlette.applications import Starlette
@@ -32,13 +34,16 @@ from agent_platform.server.storage import SQLiteStorage
 
 logger = logging.getLogger(__name__)
 
-agent_server_app = create_app()
-
 
 if platform.system() == "Darwin":
     multiprocessing.set_start_method("fork")
 
 MOCK_USER_SUB = "test-user-user"
+
+
+@cache
+def get_agent_ids() -> list[str]:
+    return ["b4083775-bd95-4590-aa2c-3b508c2f19af", "34071679-bd8f-466f-baec-f2c11ac52f83"]
 
 
 @contextmanager
@@ -72,14 +77,13 @@ async def mock_storage() -> AsyncGenerator[None, Any]:
 
         user, _ = await storage.get_or_create_user(MOCK_USER_SUB)
 
-        agent_1_id = str(uuid.uuid4())
-        agent_2_id = str(uuid.uuid4())
+        agent_1_id, agent_2_id = get_agent_ids()
 
         await storage.upsert_agent(
             user.user_id,
             Agent(
                 agent_id=agent_1_id,
-                name="TestAgent1",
+                name="Test Agent 1",
                 description="Test agent 1",
                 version="1.0.0",
                 runbook_structured=Runbook(raw_text="You are a helpful assistant.", content=[]),
@@ -97,7 +101,7 @@ async def mock_storage() -> AsyncGenerator[None, Any]:
             user.user_id,
             Agent(
                 agent_id=agent_2_id,
-                name="TestAgent2",
+                name="Test Agent 2",
                 description="Test agent 2",
                 version="1.0.0",
                 runbook_structured=Runbook(raw_text="You are a helpful assistant.", content=[]),
@@ -161,6 +165,8 @@ async def proxy_route(request: Request) -> Response:
 async def lifespan(app: Starlette):
     async with AsyncExitStack() as stack:
         await stack.enter_async_context(mock_storage())
+        agent_server_app = create_app()
+
         client = await stack.enter_async_context(
             httpx.AsyncClient(
                 timeout=None,
@@ -232,7 +238,7 @@ async def test_mcp_endpoints(mock_mcp_proxy):
                 agent = json.loads(item.text)
                 agent_names.add(agent["name"])
 
-            assert agent_names == {"TestAgent1", "TestAgent2"}
+            assert agent_names == {"Test Agent 1", "Test Agent 2"}
 
 
 @pytest.mark.asyncio
@@ -263,3 +269,52 @@ async def test_mcp_endpoints__random_auth(mock_mcp_proxy):
                 agent_names.add(agent["name"])
 
             assert len(agent_names) == 0
+
+
+@pytest.mark.asyncio
+async def test_mcp_agent_endpoints(mock_mcp_proxy):
+    """Test that the MCPAuthenticationMiddleware authenticates requests."""
+
+    agent_1_id, _ = get_agent_ids()
+
+    async with mcp_streamablehttp_client(
+        # f"http://127.0.0.1:18000/api/v2/agent-mcp/{agent_1_id}/mcp/?api_key={MOCK_USER_SUB}"
+        f"http://127.0.0.1:18000/api/v2/agent-mcp/{agent_1_id}/mcp/?api_key={MOCK_USER_SUB}"
+    ) as (
+        read_stream,
+        write_stream,
+        _,
+    ):
+        # # Create a session using the client streams
+        async with MCPClientSession(
+            read_stream, write_stream, read_timeout_seconds=timedelta(seconds=30)
+        ) as session:
+            # Initialize the connection
+            await session.initialize()
+            assert [t.name for t in (await session.list_tools()).tools] == [
+                "message_test_agent_1_agent",
+            ]
+
+
+@pytest.mark.asyncio
+async def test_mcp_agent_endpoints_not_auth(mock_mcp_proxy):
+    """Test that the MCPAuthenticationMiddleware authenticates requests."""
+
+    agent_1_id, _ = get_agent_ids()
+
+    async with mcp_streamablehttp_client(
+        # f"http://127.0.0.1:18000/api/v2/agent-mcp/{agent_1_id}/mcp/?api_key={MOCK_USER_SUB}"
+        f"http://127.0.0.1:18000/api/v2/agent-mcp/{agent_1_id}/mcp/?api_key=not_authed"
+    ) as (
+        read_stream,
+        write_stream,
+        _,
+    ):
+        # # Create a session using the client streams
+        async with MCPClientSession(
+            read_stream, write_stream, read_timeout_seconds=timedelta(seconds=1)
+        ) as session:
+            # The test is expected to fail
+            # since the agent ID is not associated with the authed user.
+            with pytest.raises(McpError):
+                await session.initialize()

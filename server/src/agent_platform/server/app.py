@@ -15,6 +15,7 @@ from agent_platform.server.api import (
     private_v2_router,
     public_v2_router,
 )
+from agent_platform.server.api.agent_mcp import build_agent_mcp_app
 from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.api.mcp import MCPAuthenticationMiddleware, mcp
 from agent_platform.server.constants import SystemConfig
@@ -132,15 +133,18 @@ def create_app() -> FastAPI:
         }
 
     mcp_app = mcp.streamable_http_app()
+    agent_mcp = build_agent_mcp_app()
 
     # Main FastAPI app to include both versions
+
     app = FastAPI(
-        lifespan=create_combined_lifespan(mcp_app),
+        lifespan=create_combined_lifespan(mcp_app, agent_mcp),
     )
 
     # Add authentication middleware to the MCP app to enable user-based authentication
     mcp_app.add_middleware(MCPAuthenticationMiddleware)
     app.mount("/api/v2/public-mcp/", mcp_app)
+    app.mount("/api/v2/agent-mcp/", agent_mcp)
 
     # CORS middleware (completely configurable via SystemConfig)
     if SystemConfig.cors_mode == "all":
