@@ -1,6 +1,7 @@
+# this file is in <HOME>/config.yaml
 agent_server_url: http://localhost:8000
-agents_folder: quality/test-agents
-threads_folder: quality/test-threads
+agents_dir: quality/test-agents
+threads_dir: quality/test-threads
 
 oauth:
   google:

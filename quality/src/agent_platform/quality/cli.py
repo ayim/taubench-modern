@@ -51,6 +51,7 @@ class Context:
     threads_dir: Path
     oauth: dict[str, OAuthProviderConfig]
     verbose: bool
+    home_folder: Path
 
 
 def setup_logging(verbose: bool = False):
@@ -91,17 +92,17 @@ def setup_logging(verbose: bool = False):
 
 @click.group()
 @click.option(
-    "--config-file",
-    type=click.Path(exists=True, file_okay=True, path_type=Path),
-    default=Path("quality/.quality_config.yaml"),
-    help="File containing quality config",
+    "--home-folder",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    default=Path("quality/.datadir"),
+    help="Folder that contains quality data",
 )
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
 @click.option("--show-env", is_flag=True, help="Show loaded .env file location")
 @click.pass_context
 def cli(
     ctx,
-    config_file: Path,
+    home_folder: Path,
     verbose: bool,
     show_env: bool,
 ):
@@ -114,19 +115,30 @@ def cli(
     else:
         load_env_file(verbose=False)
 
-    def load_config(path):
-        with open(path) as f:
-            if str(path).endswith(".yaml") or str(path).endswith(".yml"):
-                return yaml.safe_load(f)
-            else:
-                raise ValueError("Unsupported config file format. Use .yaml or .yml.")
+    home_folder.mkdir(parents=True, exist_ok=True)
 
-    config = load_config(config_file)
+    def load_config_or_create():
+        default_config = {
+            "agent_server_url": "http://localhost:8000",
+            "agents_dir": "quality/test-agents",
+            "threads_dir": "quality/test-threads",
+            "oauth": {},
+        }
+        config_file = home_folder / "config.yaml"
+        if not config_file.exists():
+            with open(config_file, "w") as file:
+                yaml.dump(default_config, file, default_flow_style=False)
+
+        with open(config_file) as f:
+            return yaml.safe_load(f)
+
+    config = load_config_or_create()
 
     ctx.obj = Context(
+        home_folder=home_folder,
         agent_server_url=config["agent_server_url"],
-        agents_dir=Path(config["threads_dir"]),
-        threads_dir=Path(config["agents_dir"]),
+        agents_dir=Path(config["agents_dir"]),
+        threads_dir=Path(config["threads_dir"]),
         oauth={
             provider: OAuthProviderConfig(
                 client_id=data["client_id"],
@@ -286,61 +298,82 @@ async def run(
 
 
 @cli.command()
-@click.argument("provider")
-@click.option("--scopes", required=True, help="Scopes for the oauth connection (space separated).")
 @click.pass_obj
-async def oauth(ctx: Context, provider, scopes):
-    """Obtain access token for a given provider and scopes."""
+async def oauth(ctx: Context):
+    """Obtain access token for oauth connections used in tests."""
 
-    if provider not in ctx.oauth:
-        raise click.UsageError(f"Provider '{provider}' not found in config.")
+    # TODO rename or create a new class: this sounds more like a "manager" than the runner itself
+    runner = QualityTestRunner(
+        test_threads_dir=ctx.threads_dir,
+        test_agents_dir=ctx.agents_dir,
+        server_url=ctx.agent_server_url,
+        datadir=ctx.home_folder,
+    )
 
-    cfg = ctx.oauth[provider]
-    auth_params = {
-        "response_type": "code",
-        "client_id": cfg.client_id,
-        "redirect_uri": cfg.redirect_uri,
-        "scope": scopes,
-    }
-    auth_url = f"{cfg.auth_url}?{urlencode(auth_params)}"
+    oauth_connections = await runner.get_oauth_connections()
 
-    click.echo(f"Open this URL in your browser to authorize:\n{auth_url}")
+    for provider, scopes in oauth_connections.items():
+        scope_names = list(scopes.keys())
+        uses = scopes.values()
+        provider_actions = [item["action"] for use in uses for item in use]
+        scope = " ".join(scope_names)
 
-    parsed_url = urlparse(cfg.redirect_uri)
-    redirect_host = parsed_url.hostname
-    redirect_port = parsed_url.port
-    if redirect_host is None or redirect_port is None:
-        raise click.UsageError(f"Cannot parse redirect uri {cfg.redirect_uri}.")
+        if provider not in ctx.oauth:
+            raise click.UsageError(
+                f"👤 Provider '{provider}' not found in config. Required in 🔧 {provider_actions}"
+            )
 
-    server = OAuthRedirectServer(host=redirect_host, port=redirect_port)
-    print("Waiting for OAuth authorization...")
+        cfg = ctx.oauth[provider]
+        auth_params = {
+            "response_type": "code",
+            "client_id": cfg.client_id,
+            "redirect_uri": cfg.redirect_uri,
+            "scope": scope,
+        }
+        auth_url = f"{cfg.auth_url}?{urlencode(auth_params)}"
 
-    auth_code = server.wait_for_code(timeout=180)
+        click.echo("OAuth Authorization Required for:\n")
+        click.echo(f"👤 Provider:\t '{provider}'")
+        click.echo(f"🔧 Actions:\t '{provider_actions}'")
+        click.echo(f"🌐 Scopes:\t '{scope}'")
+        click.echo(f"\nOpen this URL in your browser to authorize:\n{auth_url}")
 
-    click.echo(f"Received authorization code: {auth_code}")
+        parsed_url = urlparse(cfg.redirect_uri)
+        redirect_host = parsed_url.hostname
+        redirect_port = parsed_url.port
+        if redirect_host is None or redirect_port is None:
+            raise click.UsageError(f"Cannot parse redirect uri {cfg.redirect_uri}.")
 
-    token_data = {
-        "grant_type": "authorization_code",
-        "code": auth_code,
-        "redirect_uri": cfg.redirect_uri,
-        "client_id": cfg.client_id,
-        "client_secret": cfg.client_secret,
-    }
+        # TODO keep the server up until all the oauth connections are not processed
+        server = OAuthRedirectServer(host=redirect_host, port=redirect_port)
+        print("Waiting for OAuth authorization...")
 
-    try:
-        with httpx.Client() as client:
-            response = client.post(cfg.token_url, data=token_data)
-            response.raise_for_status()
-            token_info = response.json()
-    except httpx.HTTPStatusError as e:
-        click.echo(f"HTTP error: {e.response.status_code} - {e.response.text}", err=True)
-        return
-    except httpx.RequestError as e:
-        click.echo(f"Request failed: {e}", err=True)
-        return
+        auth_code = server.wait_for_code(timeout=180)
 
-    click.echo("Access token received:")
-    click.echo(token_info)
+        click.echo(f"Received authorization code: {auth_code}")
+
+        token_data = {
+            "grant_type": "authorization_code",
+            "code": auth_code,
+            "redirect_uri": cfg.redirect_uri,
+            "client_id": cfg.client_id,
+            "client_secret": cfg.client_secret,
+        }
+
+        try:
+            with httpx.Client() as client:
+                response = client.post(cfg.token_url, data=token_data)
+                response.raise_for_status()
+                credentials = response.json()
+        except httpx.HTTPStatusError as e:
+            click.echo(f"HTTP error: {e.response.status_code} - {e.response.text}", err=True)
+            return
+        except httpx.RequestError as e:
+            click.echo(f"Request failed: {e}", err=True)
+            return
+
+        click.echo("Updating OAuth Credentials")
+        await runner.oauth.update_oauth_credentials(provider=provider, credentials=credentials)
 
 
 # Async wrapper for Click commands

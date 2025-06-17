@@ -4,8 +4,10 @@ import json
 import os
 import shutil
 import traceback
+from collections import defaultdict
 from http import HTTPStatus
 from pathlib import Path
+from typing import Any
 
 import httpx
 import structlog
@@ -20,6 +22,7 @@ from agent_platform.quality.models import (
     TestCase,
     ThreadResult,
 )
+from agent_platform.quality.oauth import OAuthManager
 from agent_platform.quality.orchestrator import QualityOrchestrator
 from agent_platform.quality.results_manager import QualityResultsManager
 
@@ -44,12 +47,13 @@ class QualityTestRunner:
         self.orchestrator = QualityOrchestrator(server_url=server_url, data_dir=datadir)
         self.agent_runner = AgentRunner(server_url=server_url)
         self.evaluator = EvaluatorEngine(server_url=server_url)
+        self.oauth = OAuthManager(data_dir=datadir)
 
         # Discover agents early so we can expose them to the UI
-        discovered_agents = self.discover_agents()
+        self.discovered_agents = self.discover_agents()
 
         # Initialize results manager with the same datadir as orchestrator and discovered agents
-        self.results_manager = QualityResultsManager(self.orchestrator.data_dir, discovered_agents)
+        self.results_manager = QualityResultsManager(self.orchestrator.data_dir, self.discovered_agents)
 
     def discover_agents(self) -> list[AgentPackage]:
         """Discover available agent packages."""
@@ -376,6 +380,53 @@ class QualityTestRunner:
         finally:
             # Restore sf-auth.json
             self._restore_sf_auth_json()
+
+    async def get_oauth_connections(
+        self,
+    ) -> defaultdict[str, defaultdict[str, list[Any]]]:
+        import subprocess
+
+        # agent cli is deprecated and shouldn't be used elsewhere
+        # here it is needed to extract oauth variables from python code
+        def get_agent_cli_executable_path(version: str, download: bool = False) -> Path:
+            from sema4ai.common import tools
+
+            target_location = tools.AgentCliTool.get_default_executable(version=version, download=download)
+            return target_location
+
+        agent_cli_exe = get_agent_cli_executable_path(version="v1.3.4", download=True)
+        scopes_by_provider = defaultdict(lambda: defaultdict(list))
+
+        for agent in self.discovered_agents:
+            result = subprocess.run(
+                [agent_cli_exe, "package", "metadata", "--package", agent.zip_path],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            if result.returncode != 0:
+                raise ValueError(f"Cannot extract agent {agent.name} metadata: {result.stderr}")
+
+            data = json.loads(result.stdout)
+
+            for agent_meta in data:
+                for pkg in agent_meta.get("action_packages", []):
+                    for path, endpoint in pkg.get("secrets", {}).items():
+                        secrets = endpoint.get("secrets", {})
+                        for _, secret_info in secrets.items():
+                            if secret_info.get("type") == "OAuth2Secret":
+                                provider = secret_info.get("provider")
+                                for scope in secret_info.get("scopes", []):
+                                    scopes_by_provider[provider][scope].append(
+                                        {
+                                            "action": endpoint.get("action"),
+                                            "path": path,
+                                            "package": endpoint.get("actionPackage"),
+                                        }
+                                    )
+
+        return scopes_by_provider
 
     async def update_action_secrets(  # noqa: C901 PLR0912 PLR0915
         self,

@@ -1,3 +1,2 @@
 .datadir/*
 !.datadir/.gitkeep
-.quality_config.yaml
