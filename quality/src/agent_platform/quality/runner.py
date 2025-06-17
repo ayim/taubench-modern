@@ -53,7 +53,9 @@ class QualityTestRunner:
         self.discovered_agents = self.discover_agents()
 
         # Initialize results manager with the same datadir as orchestrator and discovered agents
-        self.results_manager = QualityResultsManager(self.orchestrator.data_dir, self.discovered_agents)
+        self.results_manager = QualityResultsManager(
+            self.orchestrator.data_dir, self.discovered_agents
+        )
 
     def discover_agents(self) -> list[AgentPackage]:
         """Discover available agent packages."""
@@ -391,7 +393,9 @@ class QualityTestRunner:
         def get_agent_cli_executable_path(version: str, download: bool = False) -> Path:
             from sema4ai.common import tools
 
-            target_location = tools.AgentCliTool.get_default_executable(version=version, download=download)
+            target_location = tools.AgentCliTool.get_default_executable(
+                version=version, download=download
+            )
             return target_location
 
         agent_cli_exe = get_agent_cli_executable_path(version="v1.3.4", download=True)
