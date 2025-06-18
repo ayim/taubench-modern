@@ -4,9 +4,10 @@ import logging
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
-from .config import settings
-from .db import DatabaseManager
-from .models import WorkItemORM, WorkItemStatus
+from agent_platform.workitems.config import settings
+from agent_platform.workitems.db import DatabaseManager
+from agent_platform.workitems.models import WorkItemStatus
+from agent_platform.workitems.orm import WorkItemORM
 
 logger = logging.getLogger(__name__)
 

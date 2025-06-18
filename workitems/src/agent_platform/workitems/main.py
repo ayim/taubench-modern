@@ -6,7 +6,7 @@ import uvicorn
 from fastapi import FastAPI
 from uvicorn.logging import DefaultFormatter
 
-from .lifecycle import make_app
+from .lifecycle import make_workitems_app
 
 
 def _configure_logging() -> None:
@@ -28,10 +28,16 @@ def _configure_logging() -> None:
 
 
 def main() -> None:
+    agent_server_url = getenv("AGENT_SERVER_URL")
+    if not agent_server_url:
+        raise ValueError("AGENT_SERVER_URL is not set")
+
     _configure_logging()
 
     app = FastAPI()
-    app.mount("/api/work-items", make_app())
+    # Make a fake FastApi to mock out the agent client
+    workitems_app = make_workitems_app(agent_server_url=agent_server_url)
+    app.mount("/api/work-items", workitems_app)
     uvicorn.run(app, host="0.0.0.0", port=int(getenv("PORT", "8000")))
 
 

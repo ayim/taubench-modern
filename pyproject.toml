@@ -64,7 +64,7 @@ members = [
 [tool.pytest.ini_options]
 timeout = 600
 pythonpath = ["."]
-testpaths = ["core/tests", "server/tests", "quality/tests"]
+testpaths = ["core/tests", "server/tests", "quality/tests", "workitems/tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -124,6 +124,7 @@ ignore = ["COM812"]
 "server/tests/**/*.py" = ["PLR2004"]
 "quality/tests/**/*.py" = ["PLR2004"]
 "workitems/alembic/**/*.py" = ["ALL"]               # ignore ruff for autogen code
+"workitems/tests/**/*.py" = ["PLR2004"]             # ignore magic constants
 
 [tool.ruff.lint.isort]
 known-first-party = [

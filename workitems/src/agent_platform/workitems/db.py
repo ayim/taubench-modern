@@ -13,7 +13,7 @@ class DatabaseManager:
 
     def init_engine(self, dsn: str) -> None:
         if self._engine is None:
-            self._engine = create_engine(dsn, echo=False)
+            self._engine = create_engine(dsn, echo=True)
             self._session_maker = sessionmaker(bind=self._engine, expire_on_commit=False)
 
     def get_engine(self) -> Engine:

@@ -20,7 +20,7 @@ from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.api.mcp import MCPAuthenticationMiddleware, mcp
 from agent_platform.server.constants import SystemConfig
 from agent_platform.server.lifespan import create_combined_lifespan
-from agent_platform.workitems import make_app
+from agent_platform.workitems import make_workitems_app
 
 logger = structlog.get_logger(__name__)
 
@@ -175,17 +175,17 @@ def create_app() -> FastAPI:
     )
     app.mount("/api/v1", app_private_v1)  # Backwards compatibility
 
-    _add_workitems(app)
+    _add_workitems(app, app_private_v2)
 
     return app
 
 
-def _add_workitems(parent: FastAPI) -> None:
+def _add_workitems(parent: FastAPI, agent_app: FastAPI) -> None:
     """
     Adds the work-items service in the given app.
     """
     # Embed the work-items app in the agent-server app.
     # We have to use a fully-unique path here, else the previous mount on /api/v1 will
     # "steal" everything.
-    workitems_app = make_app()
+    workitems_app = make_workitems_app(agent_app=agent_app)
     parent.mount("/api/work-items", workitems_app)
