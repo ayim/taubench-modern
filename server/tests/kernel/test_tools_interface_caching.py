@@ -621,3 +621,42 @@ async def test_merge_allowed_actions_same_url_union(
     tools2, _ = await iface.from_action_packages([pkg1])
     assert fetch_counter["n"] == 1
     assert [t.name for t in tools2] == ["foo"]
+
+
+# ---------------------------------------------------------------------------
+# scenario G: ensure no un-awaited coroutine warnings on cache hit
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_no_unawaited_coroutines_on_cache_hit(
+    iface: AgentServerToolsInterface,
+    monkeypatch,
+):
+    """Second call to from_action_packages should hit cache without RuntimeWarnings."""
+
+    import warnings
+
+    fetch_counter = {"n": 0}
+
+    async def fake_fetch(pkgs, additional_headers=None):
+        fetch_counter["n"] += 1
+        return [_dummy_tool(name="Echo")], []
+
+    monkeypatch.setattr(iface, "_fetch_action_tools", fake_fetch)
+
+    pkg = _StubActionPackage("https://no-await-warning")
+
+    # 1) Populate cache (miss -> fetch)
+    await iface.from_action_packages([pkg])  # type: ignore[arg-type]
+
+    # 2) Cache hit should not raise RuntimeWarning about un-awaited coroutine
+    with warnings.catch_warnings(record=True) as rec:
+        warnings.simplefilter("always", RuntimeWarning)
+        await iface.from_action_packages([pkg])  # type: ignore[arg-type]
+
+    assert fetch_counter["n"] == 1  # second call was a cache hit
+    # Fail the test if any RuntimeWarning captured
+    assert not any(isinstance(w.message, RuntimeWarning) for w in rec), (
+        "RuntimeWarning produced during cache hit: possible un-awaited coroutine",
+    )
