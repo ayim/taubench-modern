@@ -88,6 +88,24 @@ def _setup_additional_loggers(
     aiosqlite_logger.addHandler(file_handler)
     aiosqlite_logger.propagate = False
 
+    mcp_client_sse_logger = logging.getLogger("mcp.client.sse")
+    mcp_client_sse_logger.addFilter(
+        lambda record: "Unknown SSE event: ping" not in record.getMessage()
+    )
+    mcp_client_sse_logger.setLevel(logging.WARNING)
+    mcp_client_sse_logger.handlers.clear()
+    mcp_client_sse_logger.addHandler(default_handler)
+    mcp_client_sse_logger.addHandler(file_handler)
+
+    mcp_client_http_logger = logging.getLogger("mcp.client.streamable_http")
+    mcp_client_http_logger.addFilter(
+        lambda record: "Unknown SSE event: ping" not in record.getMessage()
+    )
+    mcp_client_http_logger.setLevel(logging.WARNING)
+    mcp_client_http_logger.handlers.clear()
+    mcp_client_http_logger.addHandler(default_handler)
+    mcp_client_http_logger.addHandler(file_handler)
+
     # # Prevents getting spammed with watchfiles logs when
     # # --reload is used in development
     # watchfiles_logger = logging.getLogger("watchfiles.main")
