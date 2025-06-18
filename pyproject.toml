@@ -153,3 +153,4 @@ pythonPlatform = "All"
 useLibraryCodeForTypes = true
 venvPath = "."
 venv = ".venv"
+typeCheckingMode = "basic"
