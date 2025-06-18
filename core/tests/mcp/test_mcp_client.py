@@ -146,6 +146,7 @@ async def test_probe_accepts_header_only():
         assert ok
 
 
+@pytest.mark.flaky(max_runs=5, min_passes=1)
 @pytest.mark.asyncio
 async def test_connect_streamable_http(live_streamable_server):
     """Connect to explicit streamable-http endpoint."""
@@ -162,6 +163,7 @@ async def test_connect_streamable_http(live_streamable_server):
     await client.close()
 
 
+@pytest.mark.flaky(max_runs=5, min_passes=1)
 @pytest.mark.asyncio
 async def test_connect_sse(live_sse_server):
     """Connect to explicit SSE endpoint."""

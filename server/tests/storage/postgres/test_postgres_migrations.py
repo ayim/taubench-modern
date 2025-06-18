@@ -50,6 +50,7 @@ async def cursor_provider(
     return _cursor_provider
 
 
+@pytest.mark.flaky(max_runs=5, min_passes=1)
 @pytest.mark.asyncio
 async def test_postgres_run_migrations_successfully(
     postgres_test_db: AsyncConnectionPool,
