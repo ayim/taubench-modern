@@ -140,7 +140,8 @@ a = Analysis(
     runtime_hooks=[],
     # in v1 we excluded nltk and magic but those are not installed in v2
     # so they are not needed
-    excludes=[],
+    # Add numpy to the excludes list
+    excludes=['numpy'],
     noarchive=False,
     optimize=0,
 )
