@@ -1,3 +1,29 @@
+# Sema4.ai Agent Server Pre-Release 2.0.3-alpha (2025-06-18)
+
+## Agent Server
+
+### Bugfixes
+
+- Add numpy to the PyInstaller exclude list to prevent existence of multiple NumPy packages. ([GPT-1001](https://linear.app/sema4ai/issue/GPT-1001))
+- Make sure we can support SSE/MCP for Studio for now (via default 'auto' mode on server defs) to provide smoother onramp to studio (eventually) sending us this information in the payload (the transport type). For them to send this info, we need to update agent-client-go and agent-cli I believe. ([GPT-1005](https://linear.app/sema4ai/issue/GPT-1005))
+- Fix unawaited coroutine log warnings in MCP use ([GPT-1006](https://linear.app/sema4ai/issue/GPT-1006))
+- Suppress MCP ping warning logs. ([GPT-1007](https://linear.app/sema4ai/issue/GPT-1007))
+
+### Miscellaneous
+
+- Keep dependencies up to date (fixing dependabot alerts) ([GPT-1003](https://linear.app/sema4ai/issue/GPT-1003))
+
+
+## Public API
+
+No significant changes.
+
+
+## Private API
+
+No significant changes.
+
+
 # Sema4.ai Agent Server Pre-Release 2.0.2-alpha.2 (2025-06-17)
 
 ## Agent Server
