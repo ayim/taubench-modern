@@ -46,6 +46,9 @@
   },
   "dependencies": {
     "json-joy": "^17.43.0",
-    "openapi-fetch": "^0.13.5"
+    "openapi-fetch": "^0.14.0"
+  },
+  "overrides": {
+    "brace-expansion": "^2.0.2"
   }
 }
