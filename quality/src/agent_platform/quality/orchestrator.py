@@ -1,6 +1,5 @@
 import asyncio
 import os
-import shutil
 import zipfile
 from http import HTTPStatus
 from pathlib import Path
@@ -56,7 +55,7 @@ class QualityOrchestrator:
         # Clear the data directory if it exists (rmdir)
         if self.data_dir.exists():
             logger.info(f"Clearing data directory: {self.data_dir}")
-            shutil.rmtree(self.data_dir)
+            # shutil.rmtree(self.data_dir)
 
         # Ensure data directory exists and logs directory exists
         self.data_dir.mkdir(parents=True, exist_ok=True)

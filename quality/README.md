@@ -248,6 +248,44 @@ The React-based dashboard offers:
 Make sure you have your `.env` in the monorepo
 root setup in accordance with our normal practices.
 
+### Using OAuth in Tests
+
+Example test `quality/test-agents/004-google-drive-oauth.zip`.
+
+You need to setup a provider for the kind of oauth you want to test.
+
+For example, for Google:
+
+- Go to the Google Cloud Console.
+- "Select a project" > "New project"
+- APIs & Services → Library.
+- Enable "Google Drive API"
+- APIs & Services → OAuth consent screen.
+- APIs & Services → Credentials.
+  - Create Credentials → OAuth client ID.
+  - Setup redirect URI to http://localhost:8080
+  - Copy Client ID and Client Secrets
+
+Then, edit `.datadir/config.yaml` in the quality tool.
+
+```
+agent_server_url: http://localhost:8000
+agents_dir: quality/test-agents
+threads_dir: quality/test-threads
+
+oauth:
+  google:
+    client_id: <CLIENT_ID>
+    client_secret: <CLIENT_SECRET>
+    auth_url: https://accounts.google.com/o/oauth2/auth
+    token_url: https://oauth2.googleapis.com/token
+    redirect_uri: http://localhost:8080
+```
+
+Finally, run `quality-test oauth` to get access tokens.
+
+Now, if you run tests, oauth actions will be authorized.
+
 ### Advanced Configuration
 
 Tests support additional configuration options:

@@ -2,6 +2,7 @@ import json
 import threading
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import uvicorn
 from fastapi import FastAPI, Request
@@ -59,3 +60,17 @@ class OAuthManager:
 
         with open(oauth_file_json, "w") as file:
             json.dump(credentials, file, indent=4, sort_keys=True)
+
+    async def get_oauth_credentials(self, provider: str) -> Any | None:
+        if self._data_dir is None:
+            raise ValueError("Missing datadir in OAuthManager")
+
+        oauth_file_json = self._data_dir / "oauth" / f"{provider}.json"
+
+        if not oauth_file_json.is_file():
+            return None
+
+        with open(oauth_file_json) as file:
+            data = json.load(file)
+
+        return data

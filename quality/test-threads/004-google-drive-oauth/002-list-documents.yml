@@ -1,0 +1,22 @@
+thread:
+  - name: list-documents
+    description: 'List Documents'
+    messages:
+      - role: user
+        content: |
+          Please get a list of Google documents.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: cortex
+  # - name: google
+
+evaluations:
+  - kind: llm-eval-of-last-agent-turn
+    expected: |
+      The agent should have made at least one tool call to get the list of documents.
+      This tool call should show a list of Google documents.
+      the agent should've tried at least one more time.
+      The agent should not loop indefinitely if the tool call fails.

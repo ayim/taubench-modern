@@ -138,11 +138,20 @@ class SFAuthorizationOverride:
 
 
 @dataclass
+class OAuthAccessToken:
+    """OAuth secret."""
+
+    provider: str
+    scopes: list[str]
+    access_token: str
+
+
+@dataclass
 class ActionSecret:
     """A secret for an action."""
 
     name: str
-    value: str
+    value: str | OAuthAccessToken
 
 
 @dataclass
@@ -282,6 +291,36 @@ class AgentPackage:
     name: str
     path: Path
     zip_path: Path
+
+    async def extract_package_metadata(self) -> Any:
+        """Agent Metadata contain info from yaml/json file but also Python code."""
+
+        import json
+        import subprocess
+
+        # agent cli is deprecated and shouldn't be used elsewhere
+        # here it is needed to extract oauth variables from python code
+        def get_agent_cli_executable_path(version: str, download: bool = False) -> Path:
+            from sema4ai.common import tools
+
+            target_location = tools.AgentCliTool.get_default_executable(
+                version=version, download=download
+            )
+            return target_location
+
+        agent_cli_exe = get_agent_cli_executable_path(version="v1.3.4", download=True)
+
+        result = subprocess.run(
+            [agent_cli_exe, "package", "metadata", "--package", self.zip_path],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        if result.returncode != 0:
+            raise ValueError(f"Cannot extract agent {self.name} metadata: {result.stderr}")
+
+        return json.loads(result.stdout)
 
 
 @dataclass
