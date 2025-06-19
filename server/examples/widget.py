@@ -1,9 +1,11 @@
 import asyncio
 import atexit
 import json
+import logging
 import os.path
 import random
 import traceback
+from datetime import datetime
 
 import anywidget
 import requests
@@ -19,6 +21,12 @@ from agent_platform.core.thread import (
     ThreadMessage,
     ThreadTextContent,
     ThreadUserMessage,
+)
+
+# Set up logger for error tracking
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 
 
@@ -125,6 +133,7 @@ class DebugChatWidget(anywidget.AnyWidget):
     is_loading = traitlets.Bool(default_value=False).tag(sync=True)
     status_message = traitlets.Unicode(default_value="Ready").tag(sync=True)
     active_thread_artifacts = traitlets.List(traitlets.Dict()).tag(sync=True)
+    error_history = traitlets.List(traitlets.Dict()).tag(sync=True)
 
     def __init__(self, agent_id, base_url="http://localhost:8000/api/v2", **kwargs):
         super().__init__(agent_id=agent_id, base_url=base_url, **kwargs)
@@ -135,6 +144,7 @@ class DebugChatWidget(anywidget.AnyWidget):
         self.active_thread_id = None
         self.threads_to_runs = {}
         self.active_thread_artifacts = []
+        self.error_history = []
         self.selected_thread_id = None
         self.selected_thread_id_out = None
         self.selected_thread_name = None
@@ -268,7 +278,12 @@ class DebugChatWidget(anywidget.AnyWidget):
         try:
             # No idea why types don't check for this... connect is definitely
             # defined in websockets/__init__.py (it does some lazy loading tho...)
-            self._ws = await websockets.connect(ws_url)  # type: ignore
+            # Disable ping to prevent keepalive timeouts during debugging sessions
+            self._ws = await websockets.connect(
+                ws_url,
+                ping_interval=None,  # Disable automatic ping/pong
+                close_timeout=None,  # Disable close timeout
+            )  # type: ignore
         except Exception as e:
             print("WebSocket connection failed:", e)
             return
@@ -347,13 +362,12 @@ class DebugChatWidget(anywidget.AnyWidget):
                     # Refresh active thread artifacts
                     self.refresh_active_thread_artifacts()
                 elif msg_type == "agent_error":
-                    print("[WS Error]", message_dict.get("message"))
-                    print(message_dict.get("stack_trace"))
+                    # Use the enhanced error logging method
+                    error_record = self._log_agent_error(message_dict)
+
+                    # Update widget state
                     self.is_loading = False
-                    self.status_message = "Error: " + message_dict.get(
-                        "message",
-                        "Unknown error",
-                    )
+                    self.status_message = f"Error: {error_record['error_message']}"
                 elif msg_type == "agent_finished":
                     self.is_loading = False
                     self.status_message = "Agent done"
@@ -365,8 +379,8 @@ class DebugChatWidget(anywidget.AnyWidget):
                     # Possibly partial text or other event
                     pass
 
-        except ConnectionClosed:
-            print("[WS] Connection closed")
+        except ConnectionClosed as e:
+            print(f"[WS] Connection closed ({e!s})")
             self.is_loading = False
             self.status_message = "Ready"
             self._ws = None
@@ -581,3 +595,49 @@ class DebugChatWidget(anywidget.AnyWidget):
             self.refresh_messages()
         except Exception as e:
             print("Error creating thread:", e)
+
+    def _log_agent_error(self, message_dict: dict) -> dict:
+        """
+        Properly capture and log StreamingDeltaAgentError with full serialization.
+        Returns a structured error dict for the error history.
+        """
+        # Extract error data with correct field names
+        error_message = message_dict.get("error", {}).get("message", "Unknown error")
+
+        # Create a comprehensive error record
+        error_record = {
+            "timestamp": datetime.now().isoformat(),
+            "event_type": message_dict.get("event_type", "agent_error"),
+            "error_message": error_message,
+            "thread_id": message_dict.get("thread_id", self.selected_thread_id),
+            "agent_id": message_dict.get("agent_id", self.agent_id),
+            "run_id": message_dict.get("run_id", self.active_run_id),
+            "raw_websocket_message": message_dict,  # Full raw data for debugging
+        }
+
+        # Log structured error information
+        logger.error(
+            f"StreamingDeltaAgentError captured: {error_message}",
+            extra={
+                "error_record": error_record,
+                "thread_id": error_record["thread_id"],
+                "agent_id": error_record["agent_id"],
+                "run_id": error_record["run_id"],
+            },
+        )
+
+        # Add to error history for the widget to display
+        current_errors = list(self.error_history)
+        current_errors.append(error_record)
+        # Keep only last 50 errors to avoid memory bloat
+        if len(current_errors) > 50:  # noqa: PLR2004
+            current_errors = current_errors[-50:]
+        self.error_history = current_errors
+
+        # Print for immediate console visibility
+        print(f"[WS Error Captured] {error_message}")
+        print(f"[WS Error] Thread ID: {error_record['thread_id']}")
+        print(f"[WS Error] Run ID: {error_record['run_id']}")
+        print(f"[WS Error] Raw JSON payload: {json.dumps(message_dict, indent=2)}")
+
+        return error_record
