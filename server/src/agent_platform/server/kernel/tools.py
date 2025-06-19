@@ -67,6 +67,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                     **args_from_json,
                     extra_headers=extra_headers,
                 )
+
                 # TODO: handling of various result types...
                 if isinstance(result, dict):
                     # Check for error_code format
@@ -86,6 +87,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                         result_output = result
                     else:
                         result_output = result
+
                 # Handles all primitive types that action servers can return
                 elif result is None or isinstance(result, str | int | float | bool):
                     result_output = result  # This will be stringified later in the run
@@ -95,6 +97,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                     result_output = result
             except Exception as e:
                 error_message = str(e)
+
         return ToolExecutionResult(
             **tool_result_args,
             output_raw=result_output,

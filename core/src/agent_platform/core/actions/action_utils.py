@@ -1,8 +1,12 @@
+import os
 import random
 import string
 from collections.abc import Callable, Coroutine
-from typing import Any
+from enum import IntEnum
+from http import HTTPStatus
+from typing import Any, TypedDict
 
+from aiohttp import ClientSession
 from jsonpointer import JsonPointer, JsonPointerException
 from structlog import get_logger
 
@@ -10,6 +14,24 @@ from agent_platform.core.tools.tool_definition import ToolDefinition
 from agent_platform.core.utils.url import safe_urljoin
 
 logger = get_logger(__name__)
+
+
+class ActionRunStatus(IntEnum):
+    """Enum for action server run status codes."""
+
+    NOT_RUN = 0  # Action has not been run yet
+    PENDING = 1  # Action is pending/queued
+    PASSED = 2  # Action completed successfully
+    FAILED = 3  # Action failed
+    CANCELLED = 4  # Action was cancelled
+
+
+class ActionStatusResponse(TypedDict, total=False):
+    """Response from action server status check."""
+
+    status: int
+    result: Any
+    error_message: str
 
 
 def _dereference_refs_recursive(item: Any, full_schema: dict) -> Any:
@@ -90,19 +112,118 @@ def _dereference_refs(spec: dict, full_schema: dict) -> dict:
     return resolved_spec
 
 
+async def _get_run_id_from_request_id(
+    session: ClientSession,
+    base_url: str,
+    api_key: str,
+    request_id: str,
+) -> str | None:
+    """Get the run ID from a request ID.
+
+    Args:
+        session: The aiohttp ClientSession to use
+        base_url: The base URL of the action server
+        api_key: The API key for authentication
+        request_id: The request ID to get the run ID for
+
+    Returns:
+        The run ID if found, None otherwise
+    """
+    run_id_url = f"{base_url}/api/runs/run-id-from-request-id/{request_id}"
+    try:
+        async with session.get(
+            run_id_url,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+            },
+        ) as response:
+            if response.status == HTTPStatus.OK:
+                result = await response.json()
+                run_id = result.get("run_id")
+                if run_id:
+                    logger.info(f"Found run ID {run_id} for request ID {request_id}")
+                    return run_id
+                else:
+                    logger.warning(f"No run_id found in response for request ID {request_id}")
+                    return None
+            else:
+                logger.warning(
+                    f"Failed to get run ID for request ID {request_id}. Status: {response.status}"
+                )
+                return None
+    except Exception as e:
+        logger.error(f"Error getting run ID from request ID: {e!s}", exc_info=True)
+        return None
+
+
+async def _check_action_status(
+    session: ClientSession | None,
+    base_url: str,
+    api_key: str,
+    async_action_run_id: str,
+) -> ActionStatusResponse:
+    """Check the status of an action run.
+
+    Args:
+        session: Optional aiohttp ClientSession to reuse.
+        If not provided, a new session will be created.
+        base_url: The base URL of the action server (e.g., http://localhost:8080)
+        api_key: The API key for authentication
+        async_action_run_id: The ID of the async action run
+
+    Returns:
+        dict: The response from the action server containing the run status
+    """
+    try:
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        }
+
+        # If no session provided, create a new one
+        should_close_session = False
+        if session is None:
+            session = ClientSession()
+            should_close_session = True
+
+        try:
+            async with session.get(
+                f"{base_url}/api/runs/{async_action_run_id}", headers=headers
+            ) as response:
+                if response.status != HTTPStatus.OK:
+                    logger.warning(
+                        f"Received invalid status code from action server: {response.status}"
+                    )
+                    return {"status": -1}  # Indicate error with status -1
+
+                return await response.json()
+        finally:
+            # Only close the session if we created it
+            if should_close_session:
+                await session.close()
+    except Exception as e:
+        logger.error(f"Error checking action status: {e!s}", exc_info=True)
+        return {"status": -1}
+
+
 def _build_post_async_function(
     action_url: str,
     api_key: str,
     # Extra headers to be added to the request at
     # tool definition time
     additional_headers: dict | None = None,
-) -> Callable[..., Coroutine]:
+) -> Callable[..., Coroutine[Any, Any, Any]]:
     async def _post_async_function(
         # Extra headers to be added to the request at
         # tool invocation time
         extra_headers: dict | None = None,
         **args: dict[str, Any],
-    ) -> Coroutine:
+    ) -> Any:
+        import asyncio
+        import uuid
+
         from aiohttp import ClientSession
 
         characters = string.ascii_letters + string.digits
@@ -111,6 +232,11 @@ def _build_post_async_function(
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
             "x-action_invocation_id": action_invocation_id,
+            "x-actions-request-id": str(uuid.uuid4()),
+            "x-actions-async-timeout": str(
+                int(os.getenv("ACTIONS_ASYNC_TIMEOUT", "20"))
+            ),  # Default: 20 seconds timeout
+            "x-actions-async-callback": "",  # No callback URL
             **(additional_headers or {}),
             **(extra_headers or {}),
         }
@@ -124,7 +250,70 @@ def _build_post_async_function(
                 headers=safe_headers,
                 json=args,
             ) as response:
-                return await response.json()
+                result = await response.json()
+
+                # In case of async action, we need to poll for the status of the action
+                # The action server will set the x-action-async-completion header to 1
+                # if the action is async.
+                # Ref: https://github.com/Sema4AI/actions/blob/master/action_server/docs/guides/16-run-action-sync-async.md
+                is_async_action = response.headers.get("x-action-async-completion") == "1"
+                async_action_run_id = response.headers.get("x-action-server-run-id")
+                if is_async_action:
+                    # Extract base URL from the action URL
+                    base_url = action_url.split("/api/actions/")[0]
+
+                    # Start polling for action server status
+                    # Default: 20 minutes with 10 second intervals
+                    max_retries = int(os.getenv("ACTIONS_ASYNC_MAX_RETRIES", "120"))
+                    # Default: 10 seconds between retries
+                    retry_interval = float(os.getenv("ACTIONS_ASYNC_RETRY_INTERVAL", "10"))
+                    retries = 0
+
+                    while retries < max_retries:
+                        try:
+                            if async_action_run_id:
+                                # Check action status
+                                status_result = await _check_action_status(
+                                    session=session,
+                                    base_url=base_url,
+                                    api_key=api_key,
+                                    async_action_run_id=async_action_run_id,
+                                )
+
+                                status = status_result.get("status")
+
+                                # Handle different status codes
+                                if status == ActionRunStatus.PASSED:
+                                    return {
+                                        "error": status_result.get("error_message"),
+                                        "result": status_result.get("result"),
+                                    }
+                                elif status == ActionRunStatus.FAILED:
+                                    return {
+                                        "error": status_result.get("error_message")
+                                        or "Action failed",
+                                        "result": None,
+                                    }
+                                elif status == ActionRunStatus.CANCELLED:
+                                    return {"error": "Action was cancelled", "result": None}
+                                else:
+                                    logger.debug(f"Retrying action status check: {status}")
+
+                            await asyncio.sleep(retry_interval)
+                            retries += 1
+
+                        except Exception as e:
+                            logger.error(
+                                f"Error checking async action status: {e!s}", exc_info=True
+                            )
+                            await asyncio.sleep(retry_interval)
+                            retries += 1
+
+                    # If we get here, we've timed out
+                    logger.warning(f"Async action did not complete after {max_retries} retries")
+                    return {"error": "Async action did not complete after timeout", "result": None}
+
+                return result
 
     return _post_async_function
 
@@ -180,9 +369,9 @@ def _openapi_spec_to_tool_definitions(
                 },
                 category="action-tool",
                 function=_build_post_async_function(
-                    action_url,
-                    api_key,
-                    additional_headers,
+                    action_url=action_url,
+                    api_key=api_key,
+                    additional_headers=additional_headers,
                 ),
             )
 
