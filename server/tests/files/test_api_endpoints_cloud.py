@@ -186,7 +186,7 @@ def _file_uploads_with_non_existent_thread(
         requests.exceptions.HTTPError,
         match=(
             r"Error uploading file to thread: 404 "
-            r"{\"detail\":\"Thread [0-9a-f-]+ not found\"}"
+            r"\{\"error\":\{.*\"message\":\"Thread [0-9a-f-]+ not found\".*\}\}"
         ),
     ):
         _ = agent_client.upload_file_to_thread(
@@ -202,7 +202,7 @@ def _file_uploads_with_non_existent_thread(
         requests.exceptions.HTTPError,
         match=(
             r"Error uploading file to thread: 404 "
-            r"{\"detail\":\"Thread [0-9a-f-]+ not found\"}"
+            r"\{\"error\":\{.*\"message\":\"Thread [0-9a-f-]+ not found\".*\}\}"
         ),
     ):
         _ = agent_client.upload_files_to_thread(non_existent_thread_id, multi_files)
@@ -213,7 +213,7 @@ def _file_uploads_with_non_existent_thread(
         requests.exceptions.HTTPError,
         match=(
             r"Error getting files from thread: 404 "
-            r"{\"detail\":\"Thread [0-9a-f-]+ not found\"}"
+            r"\{\"error\":\{.*\"message\":\"Thread [0-9a-f-]+ not found\".*\}\}"
         ),
     ):
         _ = agent_client.list_files(non_existent_thread_id)
@@ -225,7 +225,7 @@ def _file_uploads_with_non_existent_thread(
         requests.exceptions.HTTPError,
         match=(
             r"Error getting file by ref: 404 "
-            r"{\"detail\":\"Thread [0-9a-f-]+ not found\"}"
+            r"\{\"error\":\{.*\"message\":\"Thread [0-9a-f-]+ not found\".*\}\}"
         ),
     ):
         _ = agent_client.get_file_info_by_ref(
@@ -238,8 +238,8 @@ def _file_uploads_with_non_existent_thread(
     with pytest.raises(
         requests.exceptions.HTTPError,
         match=(
-            r"Error downloading file: 404 {\"detail\":\"Thread [0-9a-f-]+ "
-            r"not found\"}"
+            r"Error downloading file: 404 "
+            r"\{\"error\":\{.*\"message\":\"Thread [0-9a-f-]+ not found\".*\}\}"
         ),
     ):
         _ = agent_client.download_file_by_ref(
@@ -253,7 +253,7 @@ def _file_uploads_with_non_existent_thread(
         requests.exceptions.HTTPError,
         match=(
             r"Error deleting all files from thread: 404 "
-            r"{\"detail\":\"Thread [0-9a-f-]+ not found\"}"
+            r"\{\"error\":\{.*\"message\":\"Thread [0-9a-f-]+ not found\".*\}\}"
         ),
     ):
         _ = agent_client.delete_all_files_from_thread(non_existent_thread_id)

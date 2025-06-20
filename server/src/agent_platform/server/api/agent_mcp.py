@@ -30,6 +30,7 @@ from agent_platform.core.payloads import InitiateStreamPayload
 from agent_platform.core.thread import ThreadTextContent
 from agent_platform.server.api.private_v2.runs import sync_run
 from agent_platform.server.auth.handlers import get_auth_handler
+from agent_platform.server.error_handlers import add_exception_handlers
 from agent_platform.server.storage import StorageService
 
 logger = logging.getLogger(__name__)
@@ -314,6 +315,10 @@ def build_agent_mcp_app():
 
     # Create the Starlette application with the lifespan
     agent_mcp = Starlette(lifespan=_lifespan)
+
+    # Register platform-wide exception handlers so errors like UserAccessDeniedError
+    # are mapped to the correct HTTP status codes instead of bubbling up as 500s.
+    add_exception_handlers(agent_mcp)
     # Mount the ASGI application at the appropriate path
     agent_mcp.mount("/{agent_id:str}/mcp", asgi_app)
 

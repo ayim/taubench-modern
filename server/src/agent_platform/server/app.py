@@ -2,12 +2,11 @@ from typing import Any
 
 import structlog
 from fastapi import FastAPI, Request
-from fastapi.exception_handlers import request_validation_exception_handler
-from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse, ORJSONResponse
+from fastapi.responses import ORJSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.cors import CORSMiddleware
 
+from agent_platform.core.errors import ErrorCode, PlatformHTTPError
 from agent_platform.server import __version__
 from agent_platform.server.api import (
     PRIVATE_V2_PREFIX,
@@ -19,38 +18,11 @@ from agent_platform.server.api.agent_mcp import build_agent_mcp_app
 from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.api.mcp import MCPAuthenticationMiddleware, mcp
 from agent_platform.server.constants import SystemConfig
+from agent_platform.server.error_handlers import add_exception_handlers
 from agent_platform.server.lifespan import create_combined_lifespan
 from agent_platform.workitems import make_workitems_app
 
-logger = structlog.get_logger(__name__)
-
-
-# Custom exception handler to log validation errors and request body
-async def validation_exception_handler(
-    request: Request,
-    exc: Exception,
-) -> JSONResponse:
-    # Ensure this handler only processes RequestValidationError
-    if isinstance(exc, RequestValidationError):
-        body = (await request.body()).decode()
-        logger.error(
-            "Request validation failed",
-            errors=exc.errors(),
-            body=body,
-        )
-        # Call the default handler specifically for RequestValidationError
-        return await request_validation_exception_handler(request, exc)
-    else:
-        # This case should technically not be reached if registered correctly,
-        # but added for type safety and robustness.
-        logger.error(
-            "Unexpected exception type caught in validation handler",
-            exc_info=exc,
-        )
-        return ORJSONResponse(
-            status_code=500,
-            content={"detail": "Internal Server Error"},
-        )
+logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
 
 # HTTPMiddleware to ensure that all requests are prefixed with /api/v1 or /api/public/v1
@@ -68,7 +40,7 @@ class EnsureAPIPrefixMiddleware(BaseHTTPMiddleware):
             ),
         ):
             logger.info("Rejecting unknown request", url=request.url)
-            return ORJSONResponse(status_code=404, content={"detail": "Not Found"})
+            return PlatformHTTPError(ErrorCode.NOT_FOUND, "Not Found")
         return await call_next(request)
 
 
@@ -102,24 +74,17 @@ class _CustomFastAPI(FastAPI):
 
 
 def create_app() -> FastAPI:
-    # Version 1 API
     app_private_v2 = _CustomFastAPI(
         title="Sema4.ai Agent Server Private API Version 2",
     )
     app_private_v2.include_router(private_v2_router)
-    app_private_v2.add_exception_handler(
-        RequestValidationError,
-        validation_exception_handler,
-    )
+    add_exception_handlers(app_private_v2)
 
     app_public_v2 = _CustomFastAPI(
         title="Sema4.ai Agent Server Public API Version 2",
     )
     app_public_v2.include_router(public_v2_router)
-    app_public_v2.add_exception_handler(
-        RequestValidationError,
-        validation_exception_handler,
-    )
+    add_exception_handlers(app_public_v2)
 
     @app_private_v2.get("/health")
     async def health() -> dict:
@@ -169,10 +134,7 @@ def create_app() -> FastAPI:
         title="Sema4.ai Agent Server Private API Version 1",
     )
     app_private_v1.include_router(private_v2_router)
-    app_private_v1.add_exception_handler(
-        RequestValidationError,
-        validation_exception_handler,
-    )
+    add_exception_handlers(app_private_v1)
     app.mount("/api/v1", app_private_v1)  # Backwards compatibility
 
     _add_workitems(app, app_private_v2)
