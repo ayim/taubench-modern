@@ -13,8 +13,8 @@ class DatabaseManager:
 
     def init_engine(self, dsn: str) -> None:
         if self._engine is None:
-            self._engine = create_engine(dsn, echo=True)
-            self._session_maker = sessionmaker(bind=self._engine, expire_on_commit=False)
+            self._engine = create_engine(dsn, echo=False)
+            self._session_maker = sessionmaker(bind=self._engine)
 
     def get_engine(self) -> Engine:
         assert self._engine is not None, "engine not initialized"

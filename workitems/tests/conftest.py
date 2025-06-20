@@ -19,6 +19,7 @@ from testcontainers.postgres import PostgresContainer
 from agent_platform.workitems.agents.client import AgentClient, AgentInfo
 from agent_platform.workitems.api import router as workitems_router
 from agent_platform.workitems.db import instance
+from agent_platform.workitems.main import _configure_logging
 from agent_platform.workitems.orm.base import Base
 
 
@@ -122,6 +123,8 @@ def agent_server_url(
 
     env = {
         "SEMA4AI_WORKITEMS_DATABASE_URL": database_url,
+        # wait 1s in between scans over the DB looking for work-items
+        "WORKITEMS_WORKER_INTERVAL": "1",
     }
 
     print("Starting agent server process...")
@@ -176,6 +179,8 @@ async def _app(
     database_url: str, mock_agent_client: MockAgentClient
 ) -> AsyncGenerator[FastAPI, None]:
     """Create FastAPI app for testing with a mocked AgentServerClient."""
+    _configure_logging()
+
     # Initialize the database manager with test database, and forces
     # use of this database
     instance.init_engine(database_url)

@@ -7,18 +7,21 @@ from fastapi import FastAPI
 from .api import router as workitems_router
 from .config import settings
 from .db import instance
-from .worker import worker_loop
+from .worker import execute_work_item, run_agent, worker_loop
 
 logger = logging.getLogger(__name__)
 
 
 def _start_background_worker(app: FastAPI) -> asyncio.Task:
+    logger.info("Starting work-items background worker")
     shutdown_event = asyncio.Event()
 
-    async def worker() -> None:
-        await worker_loop(app.state.workitems.db_manager, shutdown_event)
+    # Compose the real work function by plugging in `run_agent`
+    async def work_func(session, item) -> bool:
+        return await execute_work_item(session, item, run_agent)
 
-    t = asyncio.create_task(worker())
+    t = asyncio.create_task(worker_loop(instance, settings, shutdown_event, work_func))
+
     # TODO is this correct?
     t.add_done_callback(lambda _: shutdown_event.set())
 
@@ -27,6 +30,7 @@ def _start_background_worker(app: FastAPI) -> asyncio.Task:
 
 @asynccontextmanager
 async def lifecycle(app: FastAPI):
+    logger.info("Starting work-items lifecycle")
     app.state.worker = _start_background_worker(app)
     yield
     await on_teardown(app)

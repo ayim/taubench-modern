@@ -1,5 +1,6 @@
 import logging
 import sys
+from contextlib import asynccontextmanager
 from os import getenv
 
 import uvicorn
@@ -7,6 +8,8 @@ from fastapi import FastAPI
 from uvicorn.logging import DefaultFormatter
 
 from .lifecycle import make_workitems_app
+
+logger = logging.getLogger(__name__)
 
 
 def _configure_logging() -> None:
@@ -34,10 +37,18 @@ def main() -> None:
 
     _configure_logging()
 
-    app = FastAPI()
     # Make a fake FastApi to mock out the agent client
     workitems_app = make_workitems_app(agent_server_url=agent_server_url)
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        async with workitems_app.router.lifespan_context(workitems_app):
+            yield
+
+    app = FastAPI(lifespan=lifespan)
+
     app.mount("/api/work-items", workitems_app)
+
     uvicorn.run(app, host="0.0.0.0", port=int(getenv("PORT", "8000")))
 
 

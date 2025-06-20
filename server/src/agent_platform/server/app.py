@@ -99,11 +99,12 @@ def create_app() -> FastAPI:
 
     mcp_app = mcp.streamable_http_app()
     agent_mcp = build_agent_mcp_app()
+    workitems_app = make_workitems_app(agent_app=app_private_v2)
 
     # Main FastAPI app to include both versions
 
     app = FastAPI(
-        lifespan=create_combined_lifespan(mcp_app, agent_mcp),
+        lifespan=create_combined_lifespan(mcp_app, agent_mcp, workitems_app),
     )
 
     # Add authentication middleware to the MCP app to enable user-based authentication
@@ -137,17 +138,7 @@ def create_app() -> FastAPI:
     add_exception_handlers(app_private_v1)
     app.mount("/api/v1", app_private_v1)  # Backwards compatibility
 
-    _add_workitems(app, app_private_v2)
+    # Mount the work-items app
+    app.mount("/api/work-items", workitems_app)
 
     return app
-
-
-def _add_workitems(parent: FastAPI, agent_app: FastAPI) -> None:
-    """
-    Adds the work-items service in the given app.
-    """
-    # Embed the work-items app in the agent-server app.
-    # We have to use a fully-unique path here, else the previous mount on /api/v1 will
-    # "steal" everything.
-    workitems_app = make_workitems_app(agent_app=agent_app)
-    parent.mount("/api/work-items", workitems_app)
