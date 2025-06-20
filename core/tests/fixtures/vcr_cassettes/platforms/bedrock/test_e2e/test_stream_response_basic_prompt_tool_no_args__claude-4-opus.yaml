@@ -1,0 +1,157 @@
+interactions:
+- request:
+    body: '{"messages": [{"role": "user", "content": [{"text": "\n                You
+      are a helpful assistant. You are acting\n                as an agent named ''Test
+      Agent''. You will do\n                your best to assist the user with their
+      request.\n                "}]}, {"role": "assistant", "content": [{"text": "\n                Understood,
+      I will assist the user with their request.\n                "}]}, {"role": "user",
+      "content": [{"text": "\n                Please confirm the request using the
+      provided\n                tool.\n                "}]}], "system": [], "inferenceConfig":
+      {"temperature": 0.0, "maxTokens": 512}, "toolConfig": {"tools": [{"toolSpec":
+      {"name": "_add_book", "description": "Store a new book in the database.", "inputSchema":
+      {"json": {"type": "object", "properties": {"book": {"type": "object", "properties":
+      {"title": {"type": "string", "description": "The title of the book"}, "author":
+      {"type": "string", "description": "The author''s name"}, "category": {"type":
+      ["string", "null"], "description": "The category of the book"}, "year": {"type":
+      "integer"}}, "required": ["title", "author", "category", "year"], "description":
+      "The book to add to the database"}}, "required": ["book"], "strict": true, "additionalProperties":
+      false}}}}, {"toolSpec": {"name": "_confirm_request", "description": "Confirm
+      the request, takes no arguments.", "inputSchema": {"json": {"type": "object",
+      "properties": {}, "required": [], "strict": true, "additionalProperties": false}}}}],
+      "toolChoice": {"auto": {}}}}'
+    headers:
+      Content-Length:
+      - '1526'
+      Content-Type:
+      - !!binary |
+        YXBwbGljYXRpb24vanNvbg==
+      User-Agent:
+      - !!binary |
+        Qm90bzMvMS4zOC4zNyBtZC9Cb3RvY29yZSMxLjM4LjM3IHVhLzIuMSBvcy9tYWNvcyMyNC41LjAg
+        bWQvYXJjaCNhcm02NCBsYW5nL3B5dGhvbiMzLjEyLjkgbWQvcHlpbXBsI0NQeXRob24gbS9iLFos
+        RCBjZmcvcmV0cnktbW9kZSNsZWdhY3kgQm90b2NvcmUvMS4zOC4zNw==
+      X-Amz-Date:
+      - !!binary |
+        MjAyNTA2MTlUMTY0NjQzWg==
+      amz-sdk-invocation-id:
+      - !!binary |
+        ZTE1YTg4MzYtY2FlZC00YTA1LWIzYzItYjlkODJiZmQ3MzE3
+      amz-sdk-request:
+      - !!binary |
+        YXR0ZW1wdD0x
+    method: POST
+    uri: https://bedrock-runtime.us-east-1.amazonaws.com/model/us.anthropic.claude-opus-4-20250514-v1%3A0/converse-stream
+  response:
+    body:
+      string: '{"message":"Model is getting throttled. Try your request again."}'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '65'
+      Content-Type:
+      - application/json
+      Date:
+      - Thu, 19 Jun 2025 16:46:47 GMT
+      x-amzn-ErrorType:
+      - ServiceUnavailableException:http://internal.amazon.com/coral/com.amazon.bedrock/
+      x-amzn-RequestId:
+      - 2ee56bb0-91b1-4c03-b193-7da2efea4843
+    status:
+      code: 503
+      message: Service Unavailable
+- request:
+    body: '{"messages": [{"role": "user", "content": [{"text": "\n                You
+      are a helpful assistant. You are acting\n                as an agent named ''Test
+      Agent''. You will do\n                your best to assist the user with their
+      request.\n                "}]}, {"role": "assistant", "content": [{"text": "\n                Understood,
+      I will assist the user with their request.\n                "}]}, {"role": "user",
+      "content": [{"text": "\n                Please confirm the request using the
+      provided\n                tool.\n                "}]}], "system": [], "inferenceConfig":
+      {"temperature": 0.0, "maxTokens": 512}, "toolConfig": {"tools": [{"toolSpec":
+      {"name": "_add_book", "description": "Store a new book in the database.", "inputSchema":
+      {"json": {"type": "object", "properties": {"book": {"type": "object", "properties":
+      {"title": {"type": "string", "description": "The title of the book"}, "author":
+      {"type": "string", "description": "The author''s name"}, "category": {"type":
+      ["string", "null"], "description": "The category of the book"}, "year": {"type":
+      "integer"}}, "required": ["title", "author", "category", "year"], "description":
+      "The book to add to the database"}}, "required": ["book"], "strict": true, "additionalProperties":
+      false}}}}, {"toolSpec": {"name": "_confirm_request", "description": "Confirm
+      the request, takes no arguments.", "inputSchema": {"json": {"type": "object",
+      "properties": {}, "required": [], "strict": true, "additionalProperties": false}}}}],
+      "toolChoice": {"auto": {}}}}'
+    headers:
+      Content-Length:
+      - '1526'
+      Content-Type:
+      - !!binary |
+        YXBwbGljYXRpb24vanNvbg==
+      User-Agent:
+      - !!binary |
+        Qm90bzMvMS4zOC4zNyBtZC9Cb3RvY29yZSMxLjM4LjM3IHVhLzIuMSBvcy9tYWNvcyMyNC41LjAg
+        bWQvYXJjaCNhcm02NCBsYW5nL3B5dGhvbiMzLjEyLjkgbWQvcHlpbXBsI0NQeXRob24gbS9iLFos
+        RCBjZmcvcmV0cnktbW9kZSNsZWdhY3kgQm90b2NvcmUvMS4zOC4zNw==
+      X-Amz-Date:
+      - !!binary |
+        MjAyNTA2MTlUMTY0NjQ4Wg==
+      amz-sdk-invocation-id:
+      - !!binary |
+        ZTE1YTg4MzYtY2FlZC00YTA1LWIzYzItYjlkODJiZmQ3MzE3
+      amz-sdk-request:
+      - !!binary |
+        dHRsPTIwMjUwNjE5VDE2NDc0N1o7IGF0dGVtcHQ9MjsgbWF4PTU=
+    method: POST
+    uri: https://bedrock-runtime.us-east-1.amazonaws.com/model/us.anthropic.claude-opus-4-20250514-v1%3A0/converse-stream
+  response:
+    body:
+      string: !!binary |
+        AAAAoAAAAFKQYHAnCzpldmVudC10eXBlBwAMbWVzc2FnZVN0YXJ0DTpjb250ZW50LXR5cGUHABBh
+        cHBsaWNhdGlvbi9qc29uDTptZXNzYWdlLXR5cGUHAAVldmVudHsicCI6ImFiY2RlZmdoaWprbG1u
+        b3BxcnN0dXZ3eHl6QUJDREVGR0hJIiwicm9sZSI6ImFzc2lzdGFudCJ9CdeWBQAAALoAAABXyloL
+        iws6ZXZlbnQtdHlwZQcAEWNvbnRlbnRCbG9ja0RlbHRhDTpjb250ZW50LXR5cGUHABBhcHBsaWNh
+        dGlvbi9qc29uDTptZXNzYWdlLXR5cGUHAAVldmVudHsiY29udGVudEJsb2NrSW5kZXgiOjAsImRl
+        bHRhIjp7InRleHQiOiJJIn0sInAiOiJhYmNkZWZnaGlqa2xtbm9wcXJzdHV2d3h5ekFCQ0RFRiJ9
+        HCPHZQAAANUAAABX0TjrFws6ZXZlbnQtdHlwZQcAEWNvbnRlbnRCbG9ja0RlbHRhDTpjb250ZW50
+        LXR5cGUHABBhcHBsaWNhdGlvbi9qc29uDTptZXNzYWdlLXR5cGUHAAVldmVudHsiY29udGVudEJs
+        b2NrSW5kZXgiOjAsImRlbHRhIjp7InRleHQiOiInbGwgY29uZmlybSB0aGUgcmVxdWVzdCBmb3Ii
+        fSwicCI6ImFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6QUJDREVGRyJ9CBjfKwAAAMoAAABXM4jr
+        RAs6ZXZlbnQtdHlwZQcAEWNvbnRlbnRCbG9ja0RlbHRhDTpjb250ZW50LXR5cGUHABBhcHBsaWNh
+        dGlvbi9qc29uDTptZXNzYWdlLXR5cGUHAAVldmVudHsiY29udGVudEJsb2NrSW5kZXgiOjAsImRl
+        bHRhIjp7InRleHQiOiIgeW91IHVzaW5nIHRoZSBwcm92aWRlZCB0b29sLiJ9LCJwIjoiYWJjZGVm
+        Z2hpamtsbW5vcHFyc3QifYfcuF8AAACJAAAAVlvc+UsLOmV2ZW50LXR5cGUHABBjb250ZW50Qmxv
+        Y2tTdG9wDTpjb250ZW50LXR5cGUHABBhcHBsaWNhdGlvbi9qc29uDTptZXNzYWdlLXR5cGUHAAVl
+        dmVudHsiY29udGVudEJsb2NrSW5kZXgiOjAsInAiOiJhYmNkZSJ95xzwrwAAARoAAABXcSFHuAs6
+        ZXZlbnQtdHlwZQcAEWNvbnRlbnRCbG9ja1N0YXJ0DTpjb250ZW50LXR5cGUHABBhcHBsaWNhdGlv
+        bi9qc29uDTptZXNzYWdlLXR5cGUHAAVldmVudHsiY29udGVudEJsb2NrSW5kZXgiOjEsInAiOiJh
+        YmNkZWZnaGlqa2xtbm9wcXJzdHV2d3h5ekFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaMDEyMyIs
+        InN0YXJ0Ijp7InRvb2xVc2UiOnsibmFtZSI6Il9jb25maXJtX3JlcXVlc3QiLCJ0b29sVXNlSWQi
+        OiJ0b29sdXNlX3B1RkVJSDdyUW51N2FYeTJtMnMtT1EifX19SONeJwAAANcAAABXq/i4dws6ZXZl
+        bnQtdHlwZQcAEWNvbnRlbnRCbG9ja0RlbHRhDTpjb250ZW50LXR5cGUHABBhcHBsaWNhdGlvbi9q
+        c29uDTptZXNzYWdlLXR5cGUHAAVldmVudHsiY29udGVudEJsb2NrSW5kZXgiOjEsImRlbHRhIjp7
+        InRvb2xVc2UiOnsiaW5wdXQiOiIifX0sInAiOiJhYmNkZWZnaGlqa2xtbm9wcXJzdHV2d3h5ekFC
+        Q0RFRkdISUpLTE1OT1BRUlNUVVZXIn0AajFxAAAAuAAAAFbHnWh9CzpldmVudC10eXBlBwAQY29u
+        dGVudEJsb2NrU3RvcA06Y29udGVudC10eXBlBwAQYXBwbGljYXRpb24vanNvbg06bWVzc2FnZS10
+        eXBlBwAFZXZlbnR7ImNvbnRlbnRCbG9ja0luZGV4IjoxLCJwIjoiYWJjZGVmZ2hpamtsbW5vcHFy
+        c3R1dnd4eXpBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWiJ99lOEmwAAALgAAABRWfn93gs6ZXZl
+        bnQtdHlwZQcAC21lc3NhZ2VTdG9wDTpjb250ZW50LXR5cGUHABBhcHBsaWNhdGlvbi9qc29uDTpt
+        ZXNzYWdlLXR5cGUHAAVldmVudHsicCI6ImFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6QUJDREVG
+        R0hJSktMTU5PUFFSU1RVVldYWVowMTIiLCJzdG9wUmVhc29uIjoidG9vbF91c2UifWRpgAMAAADf
+        AAAATv/jW3YLOmV2ZW50LXR5cGUHAAhtZXRhZGF0YQ06Y29udGVudC10eXBlBwAQYXBwbGljYXRp
+        b24vanNvbg06bWVzc2FnZS10eXBlBwAFZXZlbnR7Im1ldHJpY3MiOnsibGF0ZW5jeU1zIjo4NTY4
+        fSwicCI6ImFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6QUIiLCJ1c2FnZSI6eyJpbnB1dFRva2Vu
+        cyI6NjI2LCJvdXRwdXRUb2tlbnMiOjQ5LCJ0b3RhbFRva2VucyI6Njc1fX0yvokZ
+    headers:
+      Connection:
+      - keep-alive
+      Content-Type:
+      - application/vnd.amazon.eventstream
+      Date:
+      - Thu, 19 Jun 2025 16:46:54 GMT
+      Transfer-Encoding:
+      - chunked
+      x-amzn-RequestId:
+      - 102a8672-2637-4cd7-b637-3202218929fe
+    status:
+      code: 200
+      message: OK
+version: 1

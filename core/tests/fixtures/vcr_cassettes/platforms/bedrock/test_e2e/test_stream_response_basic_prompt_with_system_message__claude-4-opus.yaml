@@ -1,0 +1,254 @@
+interactions:
+- request:
+    body: '{"messages": [{"role": "user", "content": [{"text": "\n                This
+      is an end-to-end test, please respond with a\n                message containing
+      only the word ''apple''\n                "}]}], "system": [{"text": "\n            Always
+      provide your response wrapped in <response> tags.\n            "}], "inferenceConfig":
+      {"temperature": 0.0, "maxTokens": 512}}'
+    headers:
+      Content-Length:
+      - '371'
+      Content-Type:
+      - !!binary |
+        YXBwbGljYXRpb24vanNvbg==
+      User-Agent:
+      - !!binary |
+        Qm90bzMvMS4zOC4zNyBtZC9Cb3RvY29yZSMxLjM4LjM3IHVhLzIuMSBvcy9tYWNvcyMyNC41LjAg
+        bWQvYXJjaCNhcm02NCBsYW5nL3B5dGhvbiMzLjEyLjkgbWQvcHlpbXBsI0NQeXRob24gbS9aLEQs
+        YiBjZmcvcmV0cnktbW9kZSNsZWdhY3kgQm90b2NvcmUvMS4zOC4zNw==
+      X-Amz-Date:
+      - !!binary |
+        MjAyNTA2MTlUMTYzMjM0Wg==
+      amz-sdk-invocation-id:
+      - !!binary |
+        MzdiOWI0ZTUtZDIwNi00NDU5LThmODUtM2E0MDNhN2MxZDk2
+      amz-sdk-request:
+      - !!binary |
+        YXR0ZW1wdD0x
+    method: POST
+    uri: https://bedrock-runtime.us-east-1.amazonaws.com/model/us.anthropic.claude-opus-4-20250514-v1%3A0/converse-stream
+  response:
+    body:
+      string: '{"message":"Model is getting throttled. Try your request again."}'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '65'
+      Content-Type:
+      - application/json
+      Date:
+      - Thu, 19 Jun 2025 16:32:38 GMT
+      x-amzn-ErrorType:
+      - ServiceUnavailableException:http://internal.amazon.com/coral/com.amazon.bedrock/
+      x-amzn-RequestId:
+      - 9973bc32-1f8e-4245-8e3f-bd0f1cf7d8ae
+    status:
+      code: 503
+      message: Service Unavailable
+- request:
+    body: '{"messages": [{"role": "user", "content": [{"text": "\n                This
+      is an end-to-end test, please respond with a\n                message containing
+      only the word ''apple''\n                "}]}], "system": [{"text": "\n            Always
+      provide your response wrapped in <response> tags.\n            "}], "inferenceConfig":
+      {"temperature": 0.0, "maxTokens": 512}}'
+    headers:
+      Content-Length:
+      - '371'
+      Content-Type:
+      - !!binary |
+        YXBwbGljYXRpb24vanNvbg==
+      User-Agent:
+      - !!binary |
+        Qm90bzMvMS4zOC4zNyBtZC9Cb3RvY29yZSMxLjM4LjM3IHVhLzIuMSBvcy9tYWNvcyMyNC41LjAg
+        bWQvYXJjaCNhcm02NCBsYW5nL3B5dGhvbiMzLjEyLjkgbWQvcHlpbXBsI0NQeXRob24gbS9aLEQs
+        YiBjZmcvcmV0cnktbW9kZSNsZWdhY3kgQm90b2NvcmUvMS4zOC4zNw==
+      X-Amz-Date:
+      - !!binary |
+        MjAyNTA2MTlUMTYzMjM4Wg==
+      amz-sdk-invocation-id:
+      - !!binary |
+        MzdiOWI0ZTUtZDIwNi00NDU5LThmODUtM2E0MDNhN2MxZDk2
+      amz-sdk-request:
+      - !!binary |
+        dHRsPTIwMjUwNjE5VDE2MzMzOFo7IGF0dGVtcHQ9MjsgbWF4PTU=
+    method: POST
+    uri: https://bedrock-runtime.us-east-1.amazonaws.com/model/us.anthropic.claude-opus-4-20250514-v1%3A0/converse-stream
+  response:
+    body:
+      string: '{"message":"Model is getting throttled. Try your request again."}'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '65'
+      Content-Type:
+      - application/json
+      Date:
+      - Thu, 19 Jun 2025 16:32:42 GMT
+      x-amzn-ErrorType:
+      - ServiceUnavailableException:http://internal.amazon.com/coral/com.amazon.bedrock/
+      x-amzn-RequestId:
+      - 16712e4e-d593-445f-a090-5dbc0c60e6b1
+    status:
+      code: 503
+      message: Service Unavailable
+- request:
+    body: '{"messages": [{"role": "user", "content": [{"text": "\n                This
+      is an end-to-end test, please respond with a\n                message containing
+      only the word ''apple''\n                "}]}], "system": [{"text": "\n            Always
+      provide your response wrapped in <response> tags.\n            "}], "inferenceConfig":
+      {"temperature": 0.0, "maxTokens": 512}}'
+    headers:
+      Content-Length:
+      - '371'
+      Content-Type:
+      - !!binary |
+        YXBwbGljYXRpb24vanNvbg==
+      User-Agent:
+      - !!binary |
+        Qm90bzMvMS4zOC4zNyBtZC9Cb3RvY29yZSMxLjM4LjM3IHVhLzIuMSBvcy9tYWNvcyMyNC41LjAg
+        bWQvYXJjaCNhcm02NCBsYW5nL3B5dGhvbiMzLjEyLjkgbWQvcHlpbXBsI0NQeXRob24gbS9aLEQs
+        YiBjZmcvcmV0cnktbW9kZSNsZWdhY3kgQm90b2NvcmUvMS4zOC4zNw==
+      X-Amz-Date:
+      - !!binary |
+        MjAyNTA2MTlUMTYzMjQyWg==
+      amz-sdk-invocation-id:
+      - !!binary |
+        MzdiOWI0ZTUtZDIwNi00NDU5LThmODUtM2E0MDNhN2MxZDk2
+      amz-sdk-request:
+      - !!binary |
+        dHRsPTIwMjUwNjE5VDE2MzM0Mlo7IGF0dGVtcHQ9MzsgbWF4PTU=
+    method: POST
+    uri: https://bedrock-runtime.us-east-1.amazonaws.com/model/us.anthropic.claude-opus-4-20250514-v1%3A0/converse-stream
+  response:
+    body:
+      string: '{"message":"Model is getting throttled. Try your request again."}'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '65'
+      Content-Type:
+      - application/json
+      Date:
+      - Thu, 19 Jun 2025 16:32:46 GMT
+      x-amzn-ErrorType:
+      - ServiceUnavailableException:http://internal.amazon.com/coral/com.amazon.bedrock/
+      x-amzn-RequestId:
+      - 15356dfd-b033-46be-9315-bae13f8fee22
+    status:
+      code: 503
+      message: Service Unavailable
+- request:
+    body: '{"messages": [{"role": "user", "content": [{"text": "\n                This
+      is an end-to-end test, please respond with a\n                message containing
+      only the word ''apple''\n                "}]}], "system": [{"text": "\n            Always
+      provide your response wrapped in <response> tags.\n            "}], "inferenceConfig":
+      {"temperature": 0.0, "maxTokens": 512}}'
+    headers:
+      Content-Length:
+      - '371'
+      Content-Type:
+      - !!binary |
+        YXBwbGljYXRpb24vanNvbg==
+      User-Agent:
+      - !!binary |
+        Qm90bzMvMS4zOC4zNyBtZC9Cb3RvY29yZSMxLjM4LjM3IHVhLzIuMSBvcy9tYWNvcyMyNC41LjAg
+        bWQvYXJjaCNhcm02NCBsYW5nL3B5dGhvbiMzLjEyLjkgbWQvcHlpbXBsI0NQeXRob24gbS9aLEQs
+        YiBjZmcvcmV0cnktbW9kZSNsZWdhY3kgQm90b2NvcmUvMS4zOC4zNw==
+      X-Amz-Date:
+      - !!binary |
+        MjAyNTA2MTlUMTYzMjQ4Wg==
+      amz-sdk-invocation-id:
+      - !!binary |
+        MzdiOWI0ZTUtZDIwNi00NDU5LThmODUtM2E0MDNhN2MxZDk2
+      amz-sdk-request:
+      - !!binary |
+        dHRsPTIwMjUwNjE5VDE2MzM0Nlo7IGF0dGVtcHQ9NDsgbWF4PTU=
+    method: POST
+    uri: https://bedrock-runtime.us-east-1.amazonaws.com/model/us.anthropic.claude-opus-4-20250514-v1%3A0/converse-stream
+  response:
+    body:
+      string: '{"message":"Model is getting throttled. Try your request again."}'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '65'
+      Content-Type:
+      - application/json
+      Date:
+      - Thu, 19 Jun 2025 16:32:52 GMT
+      x-amzn-ErrorType:
+      - ServiceUnavailableException:http://internal.amazon.com/coral/com.amazon.bedrock/
+      x-amzn-RequestId:
+      - 528fb0cf-5df3-4fa9-acfe-c059ddef8c7e
+    status:
+      code: 503
+      message: Service Unavailable
+- request:
+    body: '{"messages": [{"role": "user", "content": [{"text": "\n                This
+      is an end-to-end test, please respond with a\n                message containing
+      only the word ''apple''\n                "}]}], "system": [{"text": "\n            Always
+      provide your response wrapped in <response> tags.\n            "}], "inferenceConfig":
+      {"temperature": 0.0, "maxTokens": 512}}'
+    headers:
+      Content-Length:
+      - '371'
+      Content-Type:
+      - !!binary |
+        YXBwbGljYXRpb24vanNvbg==
+      User-Agent:
+      - !!binary |
+        Qm90bzMvMS4zOC4zNyBtZC9Cb3RvY29yZSMxLjM4LjM3IHVhLzIuMSBvcy9tYWNvcyMyNC41LjAg
+        bWQvYXJjaCNhcm02NCBsYW5nL3B5dGhvbiMzLjEyLjkgbWQvcHlpbXBsI0NQeXRob24gbS9aLEQs
+        YiBjZmcvcmV0cnktbW9kZSNsZWdhY3kgQm90b2NvcmUvMS4zOC4zNw==
+      X-Amz-Date:
+      - !!binary |
+        MjAyNTA2MTlUMTYzMjU5Wg==
+      amz-sdk-invocation-id:
+      - !!binary |
+        MzdiOWI0ZTUtZDIwNi00NDU5LThmODUtM2E0MDNhN2MxZDk2
+      amz-sdk-request:
+      - !!binary |
+        dHRsPTIwMjUwNjE5VDE2MzM1Mlo7IGF0dGVtcHQ9NTsgbWF4PTU=
+    method: POST
+    uri: https://bedrock-runtime.us-east-1.amazonaws.com/model/us.anthropic.claude-opus-4-20250514-v1%3A0/converse-stream
+  response:
+    body:
+      string: !!binary |
+        AAAAigAAAFIbEUeCCzpldmVudC10eXBlBwAMbWVzc2FnZVN0YXJ0DTpjb250ZW50LXR5cGUHABBh
+        cHBsaWNhdGlvbi9qc29uDTptZXNzYWdlLXR5cGUHAAVldmVudHsicCI6ImFiY2RlZmdoaWprbG0i
+        LCJyb2xlIjoiYXNzaXN0YW50In1zgQTkAAAAtwAAAFcyys86CzpldmVudC10eXBlBwARY29udGVu
+        dEJsb2NrRGVsdGENOmNvbnRlbnQtdHlwZQcAEGFwcGxpY2F0aW9uL2pzb24NOm1lc3NhZ2UtdHlw
+        ZQcABWV2ZW50eyJjb250ZW50QmxvY2tJbmRleCI6MCwiZGVsdGEiOnsidGV4dCI6IjxyZXNwb25z
+        ZSJ9LCJwIjoiYWJjZGVmZ2hpamtsbW5vcHFyc3R1In2ecUYMAAAAuQAAAFeN+nFbCzpldmVudC10
+        eXBlBwARY29udGVudEJsb2NrRGVsdGENOmNvbnRlbnQtdHlwZQcAEGFwcGxpY2F0aW9uL2pzb24N
+        Om1lc3NhZ2UtdHlwZQcABWV2ZW50eyJjb250ZW50QmxvY2tJbmRleCI6MCwiZGVsdGEiOnsidGV4
+        dCI6Ij5cbmFwcGxlXG48L3Jlc3BvbnNlPiJ9LCJwIjoiYWJjZGVmZ2hpamsifbNijBsAAADBAAAA
+        VjNf6sMLOmV2ZW50LXR5cGUHABBjb250ZW50QmxvY2tTdG9wDTpjb250ZW50LXR5cGUHABBhcHBs
+        aWNhdGlvbi9qc29uDTptZXNzYWdlLXR5cGUHAAVldmVudHsiY29udGVudEJsb2NrSW5kZXgiOjAs
+        InAiOiJhYmNkZWZnaGlqa2xtbm9wcXJzdHV2d3h5ekFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFla
+        MDEyMzQ1Njc4In2ksXgWAAAAkAAAAFGoSJkbCzpldmVudC10eXBlBwALbWVzc2FnZVN0b3ANOmNv
+        bnRlbnQtdHlwZQcAEGFwcGxpY2F0aW9uL2pzb24NOm1lc3NhZ2UtdHlwZQcABWV2ZW50eyJwIjoi
+        YWJjZGVmZ2hpamtsbW5vIiwic3RvcFJlYXNvbiI6ImVuZF90dXJuIn0XU2rvAAAAzwAAAE6fA8z0
+        CzpldmVudC10eXBlBwAIbWV0YWRhdGENOmNvbnRlbnQtdHlwZQcAEGFwcGxpY2F0aW9uL2pzb24N
+        Om1lc3NhZ2UtdHlwZQcABWV2ZW50eyJtZXRyaWNzIjp7ImxhdGVuY3lNcyI6NzQxNH0sInAiOiJh
+        YmNkZWZnaGlqa2xtbiIsInVzYWdlIjp7ImlucHV0VG9rZW5zIjo1Miwib3V0cHV0VG9rZW5zIjox
+        MiwidG90YWxUb2tlbnMiOjY0fX264bwz
+    headers:
+      Connection:
+      - keep-alive
+      Content-Type:
+      - application/vnd.amazon.eventstream
+      Date:
+      - Thu, 19 Jun 2025 16:33:05 GMT
+      Transfer-Encoding:
+      - chunked
+      x-amzn-RequestId:
+      - b83d5b76-a165-487c-bb05-3afd65645353
+    status:
+      code: 200
+      message: OK
+version: 1

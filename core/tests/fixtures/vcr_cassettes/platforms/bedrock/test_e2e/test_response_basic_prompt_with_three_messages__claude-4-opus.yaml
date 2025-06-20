@@ -1,0 +1,216 @@
+interactions:
+- request:
+    body: '{"messages": [{"role": "user", "content": [{"text": "\n                You
+      are acting as an agent named ''Test Agent''. You\n                are to assist
+      the user with their request.\n                "}]}, {"role": "assistant", "content":
+      [{"text": "\n                Understood, I will assist the user with their request.\n                "}]},
+      {"role": "user", "content": [{"text": "\n                Reply with the answer
+      only, nothing else. What is the\n                capital of the state of Wisconsin,
+      USA?\n\n                The answer must be one word. Starting with a capital\n                letter,
+      and ending with a period. Emit nothing else\n                aside from the
+      capital of Wisconsin with a period\n                at the end and starting
+      with a capital letter.\n\n                NOTE: We are not looking for ALL CAPS.
+      Just regular\n                capitalization with a period at the end.\n                "}]}],
+      "system": [], "inferenceConfig": {"temperature": 0.0, "maxTokens": 512}}'
+    headers:
+      Content-Length:
+      - '1010'
+      Content-Type:
+      - !!binary |
+        YXBwbGljYXRpb24vanNvbg==
+      User-Agent:
+      - !!binary |
+        Qm90bzMvMS4zOC4zNyBtZC9Cb3RvY29yZSMxLjM4LjM3IHVhLzIuMSBvcy9tYWNvcyMyNC41LjAg
+        bWQvYXJjaCNhcm02NCBsYW5nL3B5dGhvbiMzLjEyLjkgbWQvcHlpbXBsI0NQeXRob24gbS9aLEQs
+        YiBjZmcvcmV0cnktbW9kZSNsZWdhY3kgQm90b2NvcmUvMS4zOC4zNw==
+      X-Amz-Date:
+      - !!binary |
+        MjAyNTA2MTlUMTYzMTIxWg==
+      amz-sdk-invocation-id:
+      - !!binary |
+        NDY2OGJlNzUtYjJmNC00MThmLTljZGUtZmEyYzc3YTYyNDY4
+      amz-sdk-request:
+      - !!binary |
+        YXR0ZW1wdD0x
+    method: POST
+    uri: https://bedrock-runtime.us-east-1.amazonaws.com/model/us.anthropic.claude-opus-4-20250514-v1%3A0/converse
+  response:
+    body:
+      string: '{"message":"Model is getting throttled. Try your request again."}'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '65'
+      Content-Type:
+      - application/json
+      Date:
+      - Thu, 19 Jun 2025 16:31:24 GMT
+      x-amzn-ErrorType:
+      - ServiceUnavailableException:http://internal.amazon.com/coral/com.amazon.bedrock/
+      x-amzn-RequestId:
+      - 0ae5e34a-26ec-4add-9151-7eba64d26c27
+    status:
+      code: 503
+      message: Service Unavailable
+- request:
+    body: '{"messages": [{"role": "user", "content": [{"text": "\n                You
+      are acting as an agent named ''Test Agent''. You\n                are to assist
+      the user with their request.\n                "}]}, {"role": "assistant", "content":
+      [{"text": "\n                Understood, I will assist the user with their request.\n                "}]},
+      {"role": "user", "content": [{"text": "\n                Reply with the answer
+      only, nothing else. What is the\n                capital of the state of Wisconsin,
+      USA?\n\n                The answer must be one word. Starting with a capital\n                letter,
+      and ending with a period. Emit nothing else\n                aside from the
+      capital of Wisconsin with a period\n                at the end and starting
+      with a capital letter.\n\n                NOTE: We are not looking for ALL CAPS.
+      Just regular\n                capitalization with a period at the end.\n                "}]}],
+      "system": [], "inferenceConfig": {"temperature": 0.0, "maxTokens": 512}}'
+    headers:
+      Content-Length:
+      - '1010'
+      Content-Type:
+      - !!binary |
+        YXBwbGljYXRpb24vanNvbg==
+      User-Agent:
+      - !!binary |
+        Qm90bzMvMS4zOC4zNyBtZC9Cb3RvY29yZSMxLjM4LjM3IHVhLzIuMSBvcy9tYWNvcyMyNC41LjAg
+        bWQvYXJjaCNhcm02NCBsYW5nL3B5dGhvbiMzLjEyLjkgbWQvcHlpbXBsI0NQeXRob24gbS9aLEQs
+        YiBjZmcvcmV0cnktbW9kZSNsZWdhY3kgQm90b2NvcmUvMS4zOC4zNw==
+      X-Amz-Date:
+      - !!binary |
+        MjAyNTA2MTlUMTYzMTI1Wg==
+      amz-sdk-invocation-id:
+      - !!binary |
+        NDY2OGJlNzUtYjJmNC00MThmLTljZGUtZmEyYzc3YTYyNDY4
+      amz-sdk-request:
+      - !!binary |
+        dHRsPTIwMjUwNjE5VDE2MzIyNFo7IGF0dGVtcHQ9MjsgbWF4PTU=
+    method: POST
+    uri: https://bedrock-runtime.us-east-1.amazonaws.com/model/us.anthropic.claude-opus-4-20250514-v1%3A0/converse
+  response:
+    body:
+      string: '{"message":"Model is getting throttled. Try your request again."}'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '65'
+      Content-Type:
+      - application/json
+      Date:
+      - Thu, 19 Jun 2025 16:31:29 GMT
+      x-amzn-ErrorType:
+      - ServiceUnavailableException:http://internal.amazon.com/coral/com.amazon.bedrock/
+      x-amzn-RequestId:
+      - 1b6cf695-6a1e-4820-ba3e-708e58d1a0d9
+    status:
+      code: 503
+      message: Service Unavailable
+- request:
+    body: '{"messages": [{"role": "user", "content": [{"text": "\n                You
+      are acting as an agent named ''Test Agent''. You\n                are to assist
+      the user with their request.\n                "}]}, {"role": "assistant", "content":
+      [{"text": "\n                Understood, I will assist the user with their request.\n                "}]},
+      {"role": "user", "content": [{"text": "\n                Reply with the answer
+      only, nothing else. What is the\n                capital of the state of Wisconsin,
+      USA?\n\n                The answer must be one word. Starting with a capital\n                letter,
+      and ending with a period. Emit nothing else\n                aside from the
+      capital of Wisconsin with a period\n                at the end and starting
+      with a capital letter.\n\n                NOTE: We are not looking for ALL CAPS.
+      Just regular\n                capitalization with a period at the end.\n                "}]}],
+      "system": [], "inferenceConfig": {"temperature": 0.0, "maxTokens": 512}}'
+    headers:
+      Content-Length:
+      - '1010'
+      Content-Type:
+      - !!binary |
+        YXBwbGljYXRpb24vanNvbg==
+      User-Agent:
+      - !!binary |
+        Qm90bzMvMS4zOC4zNyBtZC9Cb3RvY29yZSMxLjM4LjM3IHVhLzIuMSBvcy9tYWNvcyMyNC41LjAg
+        bWQvYXJjaCNhcm02NCBsYW5nL3B5dGhvbiMzLjEyLjkgbWQvcHlpbXBsI0NQeXRob24gbS9aLEQs
+        YiBjZmcvcmV0cnktbW9kZSNsZWdhY3kgQm90b2NvcmUvMS4zOC4zNw==
+      X-Amz-Date:
+      - !!binary |
+        MjAyNTA2MTlUMTYzMTI5Wg==
+      amz-sdk-invocation-id:
+      - !!binary |
+        NDY2OGJlNzUtYjJmNC00MThmLTljZGUtZmEyYzc3YTYyNDY4
+      amz-sdk-request:
+      - !!binary |
+        dHRsPTIwMjUwNjE5VDE2MzIyOVo7IGF0dGVtcHQ9MzsgbWF4PTU=
+    method: POST
+    uri: https://bedrock-runtime.us-east-1.amazonaws.com/model/us.anthropic.claude-opus-4-20250514-v1%3A0/converse
+  response:
+    body:
+      string: '{"message":"Model is getting throttled. Try your request again."}'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '65'
+      Content-Type:
+      - application/json
+      Date:
+      - Thu, 19 Jun 2025 16:31:33 GMT
+      x-amzn-ErrorType:
+      - ServiceUnavailableException:http://internal.amazon.com/coral/com.amazon.bedrock/
+      x-amzn-RequestId:
+      - 1782cb34-01ee-4191-a598-99e5e68583fa
+    status:
+      code: 503
+      message: Service Unavailable
+- request:
+    body: '{"messages": [{"role": "user", "content": [{"text": "\n                You
+      are acting as an agent named ''Test Agent''. You\n                are to assist
+      the user with their request.\n                "}]}, {"role": "assistant", "content":
+      [{"text": "\n                Understood, I will assist the user with their request.\n                "}]},
+      {"role": "user", "content": [{"text": "\n                Reply with the answer
+      only, nothing else. What is the\n                capital of the state of Wisconsin,
+      USA?\n\n                The answer must be one word. Starting with a capital\n                letter,
+      and ending with a period. Emit nothing else\n                aside from the
+      capital of Wisconsin with a period\n                at the end and starting
+      with a capital letter.\n\n                NOTE: We are not looking for ALL CAPS.
+      Just regular\n                capitalization with a period at the end.\n                "}]}],
+      "system": [], "inferenceConfig": {"temperature": 0.0, "maxTokens": 512}}'
+    headers:
+      Content-Length:
+      - '1010'
+      Content-Type:
+      - !!binary |
+        YXBwbGljYXRpb24vanNvbg==
+      User-Agent:
+      - !!binary |
+        Qm90bzMvMS4zOC4zNyBtZC9Cb3RvY29yZSMxLjM4LjM3IHVhLzIuMSBvcy9tYWNvcyMyNC41LjAg
+        bWQvYXJjaCNhcm02NCBsYW5nL3B5dGhvbiMzLjEyLjkgbWQvcHlpbXBsI0NQeXRob24gbS9aLEQs
+        YiBjZmcvcmV0cnktbW9kZSNsZWdhY3kgQm90b2NvcmUvMS4zOC4zNw==
+      X-Amz-Date:
+      - !!binary |
+        MjAyNTA2MTlUMTYzMTM3Wg==
+      amz-sdk-invocation-id:
+      - !!binary |
+        NDY2OGJlNzUtYjJmNC00MThmLTljZGUtZmEyYzc3YTYyNDY4
+      amz-sdk-request:
+      - !!binary |
+        dHRsPTIwMjUwNjE5VDE2MzIzM1o7IGF0dGVtcHQ9NDsgbWF4PTU=
+    method: POST
+    uri: https://bedrock-runtime.us-east-1.amazonaws.com/model/us.anthropic.claude-opus-4-20250514-v1%3A0/converse
+  response:
+    body:
+      string: '{"metrics":{"latencyMs":6738},"output":{"message":{"content":[{"text":"Madison."}],"role":"assistant"}},"stopReason":"end_turn","usage":{"cacheReadInputTokenCount":0,"cacheReadInputTokens":0,"cacheWriteInputTokenCount":0,"cacheWriteInputTokens":0,"inputTokens":163,"outputTokens":5,"totalTokens":168}}'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '301'
+      Content-Type:
+      - application/json
+      Date:
+      - Thu, 19 Jun 2025 16:31:44 GMT
+      x-amzn-RequestId:
+      - 96a1f076-6191-4ccf-8957-c9069c8a22b9
+    status:
+      code: 200
+      message: OK
+version: 1

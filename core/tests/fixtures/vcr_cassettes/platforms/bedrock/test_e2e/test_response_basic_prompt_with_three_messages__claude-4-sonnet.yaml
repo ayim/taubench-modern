@@ -1,0 +1,54 @@
+interactions:
+- request:
+    body: '{"messages": [{"role": "user", "content": [{"text": "\n                You
+      are acting as an agent named ''Test Agent''. You\n                are to assist
+      the user with their request.\n                "}]}, {"role": "assistant", "content":
+      [{"text": "\n                Understood, I will assist the user with their request.\n                "}]},
+      {"role": "user", "content": [{"text": "\n                Reply with the answer
+      only, nothing else. What is the\n                capital of the state of Wisconsin,
+      USA?\n\n                The answer must be one word. Starting with a capital\n                letter,
+      and ending with a period. Emit nothing else\n                aside from the
+      capital of Wisconsin with a period\n                at the end and starting
+      with a capital letter.\n\n                NOTE: We are not looking for ALL CAPS.
+      Just regular\n                capitalization with a period at the end.\n                "}]}],
+      "system": [], "inferenceConfig": {"temperature": 0.0, "maxTokens": 512}}'
+    headers:
+      Content-Length:
+      - '1010'
+      Content-Type:
+      - !!binary |
+        YXBwbGljYXRpb24vanNvbg==
+      User-Agent:
+      - !!binary |
+        Qm90bzMvMS4zOC4zNyBtZC9Cb3RvY29yZSMxLjM4LjM3IHVhLzIuMSBvcy9tYWNvcyMyNC41LjAg
+        bWQvYXJjaCNhcm02NCBsYW5nL3B5dGhvbiMzLjEyLjkgbWQvcHlpbXBsI0NQeXRob24gbS9aLEQs
+        YiBjZmcvcmV0cnktbW9kZSNsZWdhY3kgQm90b2NvcmUvMS4zOC4zNw==
+      X-Amz-Date:
+      - !!binary |
+        MjAyNTA2MTlUMTYzMjEzWg==
+      amz-sdk-invocation-id:
+      - !!binary |
+        MDJjYTJkNzItM2UzYi00NzMxLWE4MjItN2E2N2Y5MDI1MTBk
+      amz-sdk-request:
+      - !!binary |
+        YXR0ZW1wdD0x
+    method: POST
+    uri: https://bedrock-runtime.us-east-1.amazonaws.com/model/us.anthropic.claude-sonnet-4-20250514-v1%3A0/converse
+  response:
+    body:
+      string: '{"metrics":{"latencyMs":1124},"output":{"message":{"content":[{"text":"Madison."}],"role":"assistant"}},"stopReason":"end_turn","usage":{"cacheReadInputTokenCount":0,"cacheReadInputTokens":0,"cacheWriteInputTokenCount":0,"cacheWriteInputTokens":0,"inputTokens":163,"outputTokens":5,"totalTokens":168}}'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '301'
+      Content-Type:
+      - application/json
+      Date:
+      - Thu, 19 Jun 2025 16:32:14 GMT
+      x-amzn-RequestId:
+      - 1385204f-e8f0-47bb-b2ea-16bd707b9e5a
+    status:
+      code: 200
+      message: OK
+version: 1

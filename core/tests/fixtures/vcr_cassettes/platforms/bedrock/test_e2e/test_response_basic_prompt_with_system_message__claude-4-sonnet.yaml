@@ -1,0 +1,47 @@
+interactions:
+- request:
+    body: '{"messages": [{"role": "user", "content": [{"text": "\n                This
+      is an end-to-end test, please respond with a\n                message containing
+      only the word ''apple''\n                "}]}], "system": [{"text": "\n            Always
+      provide your response wrapped in <response> tags.\n            "}], "inferenceConfig":
+      {"temperature": 0.0, "maxTokens": 512}}'
+    headers:
+      Content-Length:
+      - '371'
+      Content-Type:
+      - !!binary |
+        YXBwbGljYXRpb24vanNvbg==
+      User-Agent:
+      - !!binary |
+        Qm90bzMvMS4zOC4zNyBtZC9Cb3RvY29yZSMxLjM4LjM3IHVhLzIuMSBvcy9tYWNvcyMyNC41LjAg
+        bWQvYXJjaCNhcm02NCBsYW5nL3B5dGhvbiMzLjEyLjkgbWQvcHlpbXBsI0NQeXRob24gbS9aLEQs
+        YiBjZmcvcmV0cnktbW9kZSNsZWdhY3kgQm90b2NvcmUvMS4zOC4zNw==
+      X-Amz-Date:
+      - !!binary |
+        MjAyNTA2MTlUMTYzMjExWg==
+      amz-sdk-invocation-id:
+      - !!binary |
+        YTUyNTIwYzQtNzRhNC00OGIzLWE1MGEtMGVkYzYyOTM5MTI0
+      amz-sdk-request:
+      - !!binary |
+        YXR0ZW1wdD0x
+    method: POST
+    uri: https://bedrock-runtime.us-east-1.amazonaws.com/model/us.anthropic.claude-sonnet-4-20250514-v1%3A0/converse
+  response:
+    body:
+      string: '{"metrics":{"latencyMs":1213},"output":{"message":{"content":[{"text":"<response>\napple\n</response>"}],"role":"assistant"}},"stopReason":"end_turn","usage":{"cacheReadInputTokenCount":0,"cacheReadInputTokens":0,"cacheWriteInputTokenCount":0,"cacheWriteInputTokens":0,"inputTokens":52,"outputTokens":12,"totalTokens":64}}'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '322'
+      Content-Type:
+      - application/json
+      Date:
+      - Thu, 19 Jun 2025 16:32:12 GMT
+      x-amzn-RequestId:
+      - 921b0e94-5001-4c51-8e7d-6e0f1cecfee4
+    status:
+      code: 200
+      message: OK
+version: 1

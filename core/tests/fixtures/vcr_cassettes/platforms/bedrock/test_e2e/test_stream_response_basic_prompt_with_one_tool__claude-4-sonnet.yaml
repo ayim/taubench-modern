@@ -1,0 +1,113 @@
+interactions:
+- request:
+    body: '{"messages": [{"role": "user", "content": [{"text": "\n                This
+      is an end-to-end test, please call the tool\n                called add_book
+      with the following book:\n\n                Title: \"Foundation\"\n                Author:
+      \"Isaac Asimov\"\n                Year: 1951\n\n                Emit nothing
+      else but the tool call with the\n                book information _exactly_
+      as shown above. Completely\n                omit any optional fields.\n                "}]}],
+      "system": [{"text": "\n            You are an expert librarian. You are given
+      a book\n            and you need to add it to the database. If any\n            information
+      is missing/optional, you should leave\n            it out instead of trying
+      to guess it!! Do NOT even\n            include an empty string/null for optional
+      fields, completely\n            omit them.\n            "}], "inferenceConfig":
+      {"temperature": 0.0, "maxTokens": 512}, "toolConfig": {"tools": [{"toolSpec":
+      {"name": "_add_book", "description": "Store a new book in the database.", "inputSchema":
+      {"json": {"type": "object", "properties": {"book": {"type": "object", "properties":
+      {"title": {"type": "string", "description": "The title of the book"}, "author":
+      {"type": "string", "description": "The author''s name"}, "category": {"type":
+      ["string", "null"], "description": "The category of the book"}, "year": {"type":
+      "integer"}}, "required": ["title", "author", "category", "year"], "description":
+      "The book to add to the database"}}, "required": ["book"], "strict": true, "additionalProperties":
+      false}}}}], "toolChoice": {"auto": {}}}}'
+    headers:
+      Content-Length:
+      - '1607'
+      Content-Type:
+      - !!binary |
+        YXBwbGljYXRpb24vanNvbg==
+      User-Agent:
+      - !!binary |
+        Qm90bzMvMS4zOC4zNyBtZC9Cb3RvY29yZSMxLjM4LjM3IHVhLzIuMSBvcy9tYWNvcyMyNC41LjAg
+        bWQvYXJjaCNhcm02NCBsYW5nL3B5dGhvbiMzLjEyLjkgbWQvcHlpbXBsI0NQeXRob24gbS9aLEQs
+        YiBjZmcvcmV0cnktbW9kZSNsZWdhY3kgQm90b2NvcmUvMS4zOC4zNw==
+      X-Amz-Date:
+      - !!binary |
+        MjAyNTA2MTlUMTYzNDIxWg==
+      amz-sdk-invocation-id:
+      - !!binary |
+        NGQ0MzM0NGMtNDVjZC00MWU2LThmMzMtZDc5NzY1ZjJhODE3
+      amz-sdk-request:
+      - !!binary |
+        YXR0ZW1wdD0x
+    method: POST
+    uri: https://bedrock-runtime.us-east-1.amazonaws.com/model/us.anthropic.claude-sonnet-4-20250514-v1%3A0/converse-stream
+  response:
+    body:
+      string: !!binary |
+        AAAAlwAAAFKDYRSxCzpldmVudC10eXBlBwAMbWVzc2FnZVN0YXJ0DTpjb250ZW50LXR5cGUHABBh
+        cHBsaWNhdGlvbi9qc29uDTptZXNzYWdlLXR5cGUHAAVldmVudHsicCI6ImFiY2RlZmdoaWprbG1u
+        b3BxcnN0dXZ3eHl6Iiwicm9sZSI6ImFzc2lzdGFudCJ9G/AFrwAAAQ8AAABX2SFfSgs6ZXZlbnQt
+        dHlwZQcAEWNvbnRlbnRCbG9ja1N0YXJ0DTpjb250ZW50LXR5cGUHABBhcHBsaWNhdGlvbi9qc29u
+        DTptZXNzYWdlLXR5cGUHAAVldmVudHsiY29udGVudEJsb2NrSW5kZXgiOjAsInAiOiJhYmNkZWZn
+        aGlqa2xtbm9wcXJzdHV2d3h5ekFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaIiwic3RhcnQiOnsi
+        dG9vbFVzZSI6eyJuYW1lIjoiX2FkZF9ib29rIiwidG9vbFVzZUlkIjoidG9vbHVzZV9aOWlseTNl
+        bVJZYXRQVW9ZWmQ5YkJRIn19fVR5at8AAACoAAAAV9B6z2kLOmV2ZW50LXR5cGUHABFjb250ZW50
+        QmxvY2tEZWx0YQ06Y29udGVudC10eXBlBwAQYXBwbGljYXRpb24vanNvbg06bWVzc2FnZS10eXBl
+        BwAFZXZlbnR7ImNvbnRlbnRCbG9ja0luZGV4IjowLCJkZWx0YSI6eyJ0b29sVXNlIjp7ImlucHV0
+        IjoiIn19LCJwIjoiYWIiffFNpvoAAADnAAAAVwrZAPELOmV2ZW50LXR5cGUHABFjb250ZW50Qmxv
+        Y2tEZWx0YQ06Y29udGVudC10eXBlBwAQYXBwbGljYXRpb24vanNvbg06bWVzc2FnZS10eXBlBwAF
+        ZXZlbnR7ImNvbnRlbnRCbG9ja0luZGV4IjowLCJkZWx0YSI6eyJ0b29sVXNlIjp7ImlucHV0Ijoi
+        e1wiYm9va1wiOiB7In19LCJwIjoiYWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXpBQkNERUZHSElK
+        S0xNTk9QUVJTVFVWV1hZWjAifaIdVOwAAADWAAAAV5aYkccLOmV2ZW50LXR5cGUHABFjb250ZW50
+        QmxvY2tEZWx0YQ06Y29udGVudC10eXBlBwAQYXBwbGljYXRpb24vanNvbg06bWVzc2FnZS10eXBl
+        BwAFZXZlbnR7ImNvbnRlbnRCbG9ja0luZGV4IjowLCJkZWx0YSI6eyJ0b29sVXNlIjp7ImlucHV0
+        IjoiXCJ0aXRsZVwiOlwiRiJ9fSwicCI6ImFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6QUJDREVG
+        R0hJIn0D4Ry5AAAA6wAAAFfPKe3wCzpldmVudC10eXBlBwARY29udGVudEJsb2NrRGVsdGENOmNv
+        bnRlbnQtdHlwZQcAEGFwcGxpY2F0aW9uL2pzb24NOm1lc3NhZ2UtdHlwZQcABWV2ZW50eyJjb250
+        ZW50QmxvY2tJbmRleCI6MCwiZGVsdGEiOnsidG9vbFVzZSI6eyJpbnB1dCI6Im91bmRhdGlvblwi
+        In19LCJwIjoiYWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXpBQkNERUZHSElKS0xNTk9QUVJTVFVW
+        V1hZWjAxMjM0NSJ9LCJ1VQAAAMsAAABXDujC9As6ZXZlbnQtdHlwZQcAEWNvbnRlbnRCbG9ja0Rl
+        bHRhDTpjb250ZW50LXR5cGUHABBhcHBsaWNhdGlvbi9qc29uDTptZXNzYWdlLXR5cGUHAAVldmVu
+        dHsiY29udGVudEJsb2NrSW5kZXgiOjAsImRlbHRhIjp7InRvb2xVc2UiOnsiaW5wdXQiOiIsXCJh
+        dXRob3JcIjpcIiJ9fSwicCI6ImFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3In3o2pxBAAAAvwAAAFcC
+        uoT7CzpldmVudC10eXBlBwARY29udGVudEJsb2NrRGVsdGENOmNvbnRlbnQtdHlwZQcAEGFwcGxp
+        Y2F0aW9uL2pzb24NOm1lc3NhZ2UtdHlwZQcABWV2ZW50eyJjb250ZW50QmxvY2tJbmRleCI6MCwi
+        ZGVsdGEiOnsidG9vbFVzZSI6eyJpbnB1dCI6IklzYSJ9fSwicCI6ImFiY2RlZmdoaWprbG1ub3Bx
+        cnN0dXYifY7omS4AAADQAAAAVxnYZGcLOmV2ZW50LXR5cGUHABFjb250ZW50QmxvY2tEZWx0YQ06
+        Y29udGVudC10eXBlBwAQYXBwbGljYXRpb24vanNvbg06bWVzc2FnZS10eXBlBwAFZXZlbnR7ImNv
+        bnRlbnRCbG9ja0luZGV4IjowLCJkZWx0YSI6eyJ0b29sVXNlIjp7ImlucHV0IjoiYWMgQXMifX0s
+        InAiOiJhYmNkZWZnaGlqa2xtbm9wcXJzdHV2d3h5ekFCQ0RFRkdISUpLIn0BerQ1AAAAtwAAAFcy
+        ys86CzpldmVudC10eXBlBwARY29udGVudEJsb2NrRGVsdGENOmNvbnRlbnQtdHlwZQcAEGFwcGxp
+        Y2F0aW9uL2pzb24NOm1lc3NhZ2UtdHlwZQcABWV2ZW50eyJjb250ZW50QmxvY2tJbmRleCI6MCwi
+        ZGVsdGEiOnsidG9vbFVzZSI6eyJpbnB1dCI6Imltb3ZcIixcInllYXJcIiJ9fSwicCI6ImFiIn2q
+        SCYqAAAA3QAAAFfhSKDWCzpldmVudC10eXBlBwARY29udGVudEJsb2NrRGVsdGENOmNvbnRlbnQt
+        dHlwZQcAEGFwcGxpY2F0aW9uL2pzb24NOm1lc3NhZ2UtdHlwZQcABWV2ZW50eyJjb250ZW50Qmxv
+        Y2tJbmRleCI6MCwiZGVsdGEiOnsidG9vbFVzZSI6eyJpbnB1dCI6IjoxOTUxfX0ifX0sInAiOiJh
+        YmNkZWZnaGlqa2xtbm9wcXJzdHV2d3h5ekFCQ0RFRkdISUpLTE1OT1BRUlNUVVYifUM9QmgAAACw
+        AAAAVvftI7wLOmV2ZW50LXR5cGUHABBjb250ZW50QmxvY2tTdG9wDTpjb250ZW50LXR5cGUHABBh
+        cHBsaWNhdGlvbi9qc29uDTptZXNzYWdlLXR5cGUHAAVldmVudHsiY29udGVudEJsb2NrSW5kZXgi
+        OjAsInAiOiJhYmNkZWZnaGlqa2xtbm9wcXJzdHV2d3h5ekFCQ0RFRkdISUpLTE1OT1BRUiJ9vxGS
+        ewAAAK0AAABR8fnlLAs6ZXZlbnQtdHlwZQcAC21lc3NhZ2VTdG9wDTpjb250ZW50LXR5cGUHABBh
+        cHBsaWNhdGlvbi9qc29uDTptZXNzYWdlLXR5cGUHAAVldmVudHsicCI6ImFiY2RlZmdoaWprbG1u
+        b3BxcnN0dXZ3eHl6QUJDREVGR0hJSktMTU5PUFFSIiwic3RvcFJlYXNvbiI6InRvb2xfdXNlIn0Z
+        xy4SAAAA9gAAAE4zMhYDCzpldmVudC10eXBlBwAIbWV0YWRhdGENOmNvbnRlbnQtdHlwZQcAEGFw
+        cGxpY2F0aW9uL2pzb24NOm1lc3NhZ2UtdHlwZQcABWV2ZW50eyJtZXRyaWNzIjp7ImxhdGVuY3lN
+        cyI6MTg3M30sInAiOiJhYmNkZWZnaGlqa2xtbm9wcXJzdHV2d3h5ekFCQ0RFRkdISUpLTE1OT1BR
+        UlNUVVZXWFkiLCJ1c2FnZSI6eyJpbnB1dFRva2VucyI6NjUxLCJvdXRwdXRUb2tlbnMiOjc0LCJ0
+        b3RhbFRva2VucyI6NzI1fX24JgSz
+    headers:
+      Connection:
+      - keep-alive
+      Content-Type:
+      - application/vnd.amazon.eventstream
+      Date:
+      - Thu, 19 Jun 2025 16:34:22 GMT
+      Transfer-Encoding:
+      - chunked
+      x-amzn-RequestId:
+      - 8a041194-d624-4dec-a718-1079b41a7a97
+    status:
+      code: 200
+      message: OK
+version: 1
