@@ -170,7 +170,9 @@ class AzureOpenAIClient(
         if "metadata" not in message:
             message["metadata"] = {}
         message["metadata"].update(final_event)
-        logger.info(f"Token usage: {message['usage']}")
+        # TODO: encountered a run where usage was not present in the message,
+        #       so we need to check for that, this may have been a change in the OpenAI API.
+        logger.info(f"Token usage: {message.get('usage', {})}")
 
         # Put request ID (if any) into raw_response
         request_id = message.get("additional_response_fields", {}).get("id", "unknown")
