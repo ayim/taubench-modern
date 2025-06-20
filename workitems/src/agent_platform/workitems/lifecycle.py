@@ -2,6 +2,7 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager
 
+from agent_platform.server.error_handlers import add_exception_handlers
 from fastapi import FastAPI
 
 from .api import router as workitems_router
@@ -47,6 +48,9 @@ def make_workitems_app(
     # Make the workitems FastAPI app
     wi_app = FastAPI(lifespan=lifecycle)
     wi_app.include_router(workitems_router)
+
+    # Register the standard agent-server exception handlers
+    add_exception_handlers(wi_app)
 
     if agent_app is None and agent_server_url is None:
         raise ValueError("Either agent_app or agent_server_url must be provided")
