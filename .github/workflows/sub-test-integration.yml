@@ -76,6 +76,7 @@ jobs:
   unit-tests:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: ${{ inputs.linux-runner }}
