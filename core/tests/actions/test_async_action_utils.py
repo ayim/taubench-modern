@@ -68,8 +68,10 @@ class AsyncMockClientSession:
 # ========== CRITICAL TEST: NON-ASYNC ACTION HANDLING ==========
 @patch("aiohttp.ClientSession")
 @pytest.mark.asyncio
-async def test_non_async_action_direct_return(mock_client_session):
+async def test_non_async_action_direct_return(mock_client_session, monkeypatch):
     """Test that non-async actions (not returning async headers) work correctly."""
+    monkeypatch.setenv("SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION", "true")
+
     mock_session = AsyncMockClientSession(
         post_response_data={"result": "immediate_success", "status": "completed"},
         get_responses=[],  # Should not be called for non-async actions
@@ -91,8 +93,9 @@ async def test_non_async_action_direct_return(mock_client_session):
 @patch("aiohttp.ClientSession")
 @patch("asyncio.sleep", new_callable=AsyncMock)
 @pytest.mark.asyncio
-async def test_async_action_malformed_json_response(mock_sleep, mock_client_session):
+async def test_async_action_malformed_json_response(mock_sleep, mock_client_session, monkeypatch):
     """Test handling of malformed JSON responses."""
+    monkeypatch.setenv("SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION", "true")
 
     class MalformedJsonMockSession(AsyncMockClientSession):
         def __init__(self):
@@ -132,8 +135,11 @@ async def test_async_action_malformed_json_response(mock_sleep, mock_client_sess
 @patch("aiohttp.ClientSession")
 @patch("asyncio.sleep", new_callable=AsyncMock)
 @pytest.mark.asyncio
-async def test_async_action_multiple_retries_eventual_success(mock_sleep, mock_client_session):
+async def test_async_action_multiple_retries_eventual_success(
+    mock_sleep, mock_client_session, monkeypatch
+):
     """Test action that takes multiple retries before succeeding."""
+    monkeypatch.setenv("SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION", "true")
 
     class MultiRetryMockSession(AsyncMockClientSession):
         def __init__(self):
@@ -174,8 +180,10 @@ async def test_async_action_multiple_retries_eventual_success(mock_sleep, mock_c
 @patch("aiohttp.ClientSession")
 @patch("asyncio.sleep", new_callable=AsyncMock)
 @pytest.mark.asyncio
-async def test_async_action_successful_execution(mock_sleep, mock_client_session):
+async def test_async_action_successful_execution(mock_sleep, mock_client_session, monkeypatch):
     """Test successful execution of an async action."""
+    monkeypatch.setenv("SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION", "true")
+
     # Setup mock responses
     mock_session = AsyncMockClientSession(
         post_response_data={"status": "async"},
@@ -201,8 +209,10 @@ async def test_async_action_successful_execution(mock_sleep, mock_client_session
 @patch("aiohttp.ClientSession")
 @patch("asyncio.sleep", new_callable=AsyncMock)
 @pytest.mark.asyncio
-async def test_async_action_failed_execution(mock_sleep, mock_client_session):
+async def test_async_action_failed_execution(mock_sleep, mock_client_session, monkeypatch):
     """Test failed execution of an async action."""
+    monkeypatch.setenv("SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION", "true")
+
     mock_session = AsyncMockClientSession(
         post_response_data={"status": "async"},
         get_responses=[
@@ -225,8 +235,10 @@ async def test_async_action_failed_execution(mock_sleep, mock_client_session):
 @patch("aiohttp.ClientSession")
 @patch("asyncio.sleep", new_callable=AsyncMock)
 @pytest.mark.asyncio
-async def test_async_action_cancelled(mock_sleep, mock_client_session):
+async def test_async_action_cancelled(mock_sleep, mock_client_session, monkeypatch):
     """Test cancelled async action."""
+    monkeypatch.setenv("SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION", "true")
+
     mock_session = AsyncMockClientSession(
         post_response_data={"status": "async"},
         get_responses=[
@@ -246,8 +258,9 @@ async def test_async_action_cancelled(mock_sleep, mock_client_session):
 @patch("aiohttp.ClientSession")
 @patch("asyncio.sleep", new_callable=AsyncMock)
 @pytest.mark.asyncio
-async def test_async_action_timeout(mock_sleep, mock_client_session):
+async def test_async_action_timeout(mock_sleep, mock_client_session, monkeypatch):
     """Test timeout of async action."""
+    monkeypatch.setenv("SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION", "true")
 
     # Create a mock that simulates timeout by limiting retries
     class TimeoutMockSession(AsyncMockClientSession):
@@ -283,6 +296,7 @@ async def test_async_action_timeout(mock_sleep, mock_client_session):
 @pytest.mark.asyncio
 async def test_async_action_network_error(mock_sleep, mock_client_session, monkeypatch):
     """Test handling of network errors during async action execution."""
+    monkeypatch.setenv("SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION", "true")
     monkeypatch.setenv("ACTIONS_ASYNC_MAX_RETRIES", "5")
     monkeypatch.setenv("ACTIONS_ASYNC_RETRY_INTERVAL", "0")
 
@@ -303,8 +317,10 @@ async def test_async_action_network_error(mock_sleep, mock_client_session, monke
 @patch("aiohttp.ClientSession")
 @patch("asyncio.sleep", new_callable=AsyncMock)
 @pytest.mark.asyncio
-async def test_async_action_missing_run_id(mock_sleep, mock_client_session):
+async def test_async_action_missing_run_id(mock_sleep, mock_client_session, monkeypatch):
     """Test handling of missing run ID response."""
+    monkeypatch.setenv("SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION", "true")
+
     mock_session = AsyncMockClientSession(
         post_response_data={"status": "async"},
         get_responses={},  # Empty response, no run_id
@@ -325,8 +341,10 @@ async def test_async_action_missing_run_id(mock_sleep, mock_client_session):
 @patch("aiohttp.ClientSession")
 @patch("asyncio.sleep", new_callable=AsyncMock)
 @pytest.mark.asyncio
-async def test_async_action_invalid_status(mock_sleep, mock_client_session):
+async def test_async_action_invalid_status(mock_sleep, mock_client_session, monkeypatch):
     """Test handling of invalid status response."""
+    monkeypatch.setenv("SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION", "true")
+
     mock_session = AsyncMockClientSession(
         post_response_data={"status": "async"},
         get_responses=[
@@ -345,7 +363,7 @@ async def test_async_action_invalid_status(mock_sleep, mock_client_session):
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-async def test_async_action_with_real_server_fast_polling():  # noqa: C901
+async def test_async_action_with_real_server_fast_polling(monkeypatch):  # noqa: C901
     """
     Integration test that tests the async action polling mechanism with a real action server.
 
@@ -358,6 +376,8 @@ async def test_async_action_with_real_server_fast_polling():  # noqa: C901
     """
     # Skip if integration test dependencies are not available
     pytest.importorskip("aiohttp")
+
+    monkeypatch.setenv("SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION", "true")
 
     # Set environment variables for fast polling
     original_retry_interval = os.environ.get("ACTIONS_ASYNC_RETRY_INTERVAL")

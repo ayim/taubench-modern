@@ -232,14 +232,21 @@ def _build_post_async_function(
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
             "x-action_invocation_id": action_invocation_id,
-            "x-actions-request-id": str(uuid.uuid4()),
-            "x-actions-async-timeout": str(
-                int(os.getenv("ACTIONS_ASYNC_TIMEOUT", "20"))
-            ),  # Default: 20 seconds timeout
-            "x-actions-async-callback": "",  # No callback URL
             **(additional_headers or {}),
             **(extra_headers or {}),
         }
+
+        # Only add async headers if SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION is true
+        if os.getenv("SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION", "").lower() == "true":
+            headers.update(
+                {
+                    "x-actions-request-id": str(uuid.uuid4()),
+                    "x-actions-async-timeout": str(
+                        int(os.getenv("ACTIONS_ASYNC_TIMEOUT", "20"))
+                    ),  # Default: 20 seconds timeout
+                    "x-actions-async-callback": "",  # No callback URL
+                }
+            )
 
         # We can't have any headers that map to None, so filter them out
         safe_headers = {k: v for k, v in headers.items() if v is not None}
