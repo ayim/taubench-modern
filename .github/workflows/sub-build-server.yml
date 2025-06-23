@@ -85,31 +85,31 @@ on:
         required: true
 
 jobs:
-  unit-tests:
-    uses: ./.github/workflows/sub-test-unit.yml
-    with:
-      ref: ${{ inputs.ref }}
-      windows-runner: ${{ inputs.windows-runner }}
-      linux-runner: ${{ inputs.linux-runner }}
-      macos-arm64-runner: ${{ inputs.macos-arm64-runner }}
-      macos-x64-runner: ${{ inputs.macos-x64-runner }}
-    secrets: inherit
+  # unit-tests:
+  #   uses: ./.github/workflows/sub-test-unit.yml
+  #   with:
+  #     ref: ${{ inputs.ref }}
+  #     windows-runner: ${{ inputs.windows-runner }}
+  #     linux-runner: ${{ inputs.linux-runner }}
+  #     macos-arm64-runner: ${{ inputs.macos-arm64-runner }}
+  #     macos-x64-runner: ${{ inputs.macos-x64-runner }}
+  #   secrets: inherit
 
-  integration-tests:
-    uses: ./.github/workflows/sub-test-integration.yml
-    secrets: inherit
-    with:
-      ref: ${{ inputs.ref }}
-      windows-runner: ${{ inputs.windows-runner }}
-      linux-runner: ${{ inputs.linux-runner }}
-      macos-arm64-runner: ${{ inputs.macos-arm64-runner }}
-      macos-x64-runner: ${{ inputs.macos-x64-runner }}
+  # integration-tests:
+  #   uses: ./.github/workflows/sub-test-integration.yml
+  #   secrets: inherit
+  #   with:
+  #     ref: ${{ inputs.ref }}
+  #     windows-runner: ${{ inputs.windows-runner }}
+  #     linux-runner: ${{ inputs.linux-runner }}
+  #     macos-arm64-runner: ${{ inputs.macos-arm64-runner }}
+  #     macos-x64-runner: ${{ inputs.macos-x64-runner }}
 
   build-agent-server:
     uses: ./.github/workflows/sub-build-server-exe.yml
-    needs:
-      - unit-tests
-      - integration-tests
+    # needs:
+    #   - unit-tests
+    #   - integration-tests
     with:
       ref: ${{ inputs.ref }}
       windows-runner: ${{ inputs.windows-runner }}

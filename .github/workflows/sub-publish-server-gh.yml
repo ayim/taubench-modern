@@ -60,23 +60,27 @@ jobs:
           name: agent-server-release-packages
           path: dist
 
-      - name: Create release notes
-        if: ${{ github.ref == 'refs/heads/development' || github.ref == 'refs/heads/release' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release-') }}
-        run: |
-          mkdir -p server/tmp
-          uv run scripts/changes.py create-release-notes \
-            --project server \
-            --windows-x64-url ${{ inputs.windows_x64_binary_url }} \
-            --macos-x64-url ${{ inputs.macos_x64_binary_url }} \
-            --macos-arm64-url ${{ inputs.macos_arm64_binary_url }} \
-            --linux-x64-url ${{ inputs.linux_x64_binary_url }} \
-            --since-date today
+      # - name: Create release notes
+      #   if: ${{ github.ref == 'refs/heads/development' || github.ref == 'refs/heads/release' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release-') }}
+      #   run: |
+      #     mkdir -p server/tmp
+      #     uv run scripts/changes.py create-release-notes \
+      #       --project server \
+      #       --windows-x64-url ${{ inputs.windows_x64_binary_url }} \
+      #       --macos-x64-url ${{ inputs.macos_x64_binary_url }} \
+      #       --macos-arm64-url ${{ inputs.macos_arm64_binary_url }} \
+      #       --linux-x64-url ${{ inputs.linux_x64_binary_url }} \
+      #       --since-date today
 
       - name: Create URL list
-        if: ${{ github.ref != 'refs/heads/development' && github.ref != 'refs/heads/release' && github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/heads/release-') }}
+        # if: ${{ github.ref != 'refs/heads/development' && github.ref != 'refs/heads/release' && github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/heads/release-') }}
         run: |
           mkdir -p server/tmp
           cat << EOF > server/tmp/RELEASE-NOTES.md
+          ## Changelog
+
+          * See the [changelog](https://github.com/Sema4AI/agent-platform/blob/main/server/CHANGELOG.md) for details.
+
           ## Binary Downloads
 
           * Windows x64: ${{ inputs.windows_x64_binary_url }}
