@@ -1,3 +1,40 @@
+# Sema4.ai Agent Server Pre-Release 2.0.4-alpha (2025-06-23)
+
+## Agent Server
+
+### Features
+
+- Add support for async actions invoke ([GPT-946](https://linear.app/sema4ai/issue/GPT-946))
+- Add Claude 4 series models (Sonnet, Opus) specs to the Bedrock Platform Client. ([GPT-1009](https://linear.app/sema4ai/issue/GPT-1009))
+
+### Bugfixes
+
+- Fixed an issue where errors occuring mid-stream could break the kernel. ([GPT-896](https://linear.app/sema4ai/issue/GPT-896))
+- Fix some issues in the underyling SQL for advanced thread message manipulation APIs. ([GPT-1014](https://linear.app/sema4ai/issue/GPT-1014))
+- Removed 503 requests from Claude 4 model cassettes
+
+### Additional Information Not Pertinent to Client Users
+
+- [GPT-896](https://linear.app/sema4ai/issue/GPT-896), [GPT-1010](https://linear.app/sema4ai/issue/GPT-1010)
+
+
+## Public API
+
+No significant changes.
+
+
+## Private API
+
+### Features
+
+- Standardized all error responses across HTTP APIs and WebSocket streams to use a consistent `{ "error": { "code", "error_id", "message" } }` structure. This replaces the previous `detail` field in HTTP responses and flat `error_message`/`error_stack_trace` fields in streaming responses.
+
+      - **Action Required**: Update error handling to use `response.error.message` instead of `response.detail`
+      - **Security**: Sensitive debugging information no longer exposed in client responses
+      - **Traceability**: Each error now includes a unique `error_id` for support correlation ([GPT-896](https://linear.app/sema4ai/issue/GPT-896))
+- workitem crud ([GPT-993](https://linear.app/sema4ai/issue/GPT-993))
+
+
 # Sema4.ai Agent Server Pre-Release 2.0.3-alpha (2025-06-18)
 
 ## Agent Server
