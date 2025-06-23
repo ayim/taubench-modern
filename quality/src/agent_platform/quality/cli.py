@@ -93,7 +93,7 @@ def setup_logging(verbose: bool = False):
 @click.group()
 @click.option(
     "--home-folder",
-    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    type=click.Path(exists=False, file_okay=False, path_type=Path),
     default=Path("quality/.datadir"),
     help="Folder that contains quality data",
 )

@@ -26,6 +26,7 @@ from agent_platform.core.thread.thread import Thread
 from agent_platform.core.tools.tool_definition import ToolDefinition
 from agent_platform.core.user import User
 from agent_platform.server.api.private_v2 import runs as runs_mod
+from agent_platform.server.error_handlers import add_exception_handlers
 from agent_platform.server.storage import (
     AgentNotFoundError,
     RunNotFoundError,
@@ -194,6 +195,8 @@ def fastapi_app(stub_storage: StubStorage, stub_user: User) -> FastAPI:
     app.dependency_overrides[StorageService.get_instance] = lambda: stub_storage
     app.dependency_overrides[auth_user] = lambda: stub_user  # HTTP
     app.dependency_overrides[auth_user_websocket] = lambda: stub_user  # WS
+
+    add_exception_handlers(app)
 
     return app
 
@@ -365,7 +368,7 @@ def test_agent_id_mismatch(
     else:
         resp = client.post(f"/runs/{aid}{endpoint}", json=make_initial_payload(other, tid))
         assert resp.status_code == close_code
-        assert resp.json()["detail"] == msg
+        assert resp.json()["error"]["message"] == msg
 
 
 # -----------------------------------------------------------------------------

@@ -1,0 +1,65 @@
+interactions:
+- request:
+    body: '{"messages": [{"role": "user", "content": [{"text": "\n                This
+      is an end-to-end test, please respond with a\n                message containing
+      only the word ''sunflower''\n                "}]}], "system": [], "inferenceConfig":
+      {"temperature": 0.0, "maxTokens": 512}}'
+    headers:
+      Content-Length:
+      - '279'
+      Content-Type:
+      - !!binary |
+        YXBwbGljYXRpb24vanNvbg==
+      User-Agent:
+      - !!binary |
+        Qm90bzMvMS4zOC4zNyBtZC9Cb3RvY29yZSMxLjM4LjM3IHVhLzIuMSBvcy9tYWNvcyMyNC41LjAg
+        bWQvYXJjaCNhcm02NCBsYW5nL3B5dGhvbiMzLjEyLjkgbWQvcHlpbXBsI0NQeXRob24gbS9aLEQs
+        YiBjZmcvcmV0cnktbW9kZSNsZWdhY3kgQm90b2NvcmUvMS4zOC4zNw==
+      X-Amz-Date:
+      - !!binary |
+        MjAyNTA2MTlUMTYzMjI4Wg==
+      amz-sdk-invocation-id:
+      - !!binary |
+        MzcxMmUwNWQtOWYwZC00MWZkLWJjNWYtNGMxMDc3OTg0NTE3
+      amz-sdk-request:
+      - !!binary |
+        dHRsPTIwMjUwNjE5VDE2MzMyN1o7IGF0dGVtcHQ9MzsgbWF4PTU=
+    method: POST
+    uri: https://bedrock-runtime.us-east-1.amazonaws.com/model/us.anthropic.claude-opus-4-20250514-v1%3A0/converse-stream
+  response:
+    body:
+      string: !!binary |
+        AAAAngAAAFKOcXbACzpldmVudC10eXBlBwAMbWVzc2FnZVN0YXJ0DTpjb250ZW50LXR5cGUHABBh
+        cHBsaWNhdGlvbi9qc29uDTptZXNzYWdlLXR5cGUHAAVldmVudHsicCI6ImFiY2RlZmdoaWprbG1u
+        b3BxcnN0dXZ3eHl6QUJDREVGRyIsInJvbGUiOiJhc3Npc3RhbnQifX0BTpsAAACeAAAAV/4bgk8L
+        OmV2ZW50LXR5cGUHABFjb250ZW50QmxvY2tEZWx0YQ06Y29udGVudC10eXBlBwAQYXBwbGljYXRp
+        b24vanNvbg06bWVzc2FnZS10eXBlBwAFZXZlbnR7ImNvbnRlbnRCbG9ja0luZGV4IjowLCJkZWx0
+        YSI6eyJ0ZXh0Ijoic3VuIn0sInAiOiJhYiJ9/0GtUAAAANEAAABXJLhN1ws6ZXZlbnQtdHlwZQcA
+        EWNvbnRlbnRCbG9ja0RlbHRhDTpjb250ZW50LXR5cGUHABBhcHBsaWNhdGlvbi9qc29uDTptZXNz
+        YWdlLXR5cGUHAAVldmVudHsiY29udGVudEJsb2NrSW5kZXgiOjAsImRlbHRhIjp7InRleHQiOiJm
+        bG93ZXIifSwicCI6ImFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6QUJDREVGR0hJSktMTU5PUFFS
+        U1RVVldYIn05gFWbAAAAlAAAAFbDrKp4CzpldmVudC10eXBlBwAQY29udGVudEJsb2NrU3RvcA06
+        Y29udGVudC10eXBlBwAQYXBwbGljYXRpb24vanNvbg06bWVzc2FnZS10eXBlBwAFZXZlbnR7ImNv
+        bnRlbnRCbG9ja0luZGV4IjowLCJwIjoiYWJjZGVmZ2hpamtsbW5vcCJ9yrB0SgAAAJoAAABR4viB
+        ugs6ZXZlbnQtdHlwZQcAC21lc3NhZ2VTdG9wDTpjb250ZW50LXR5cGUHABBhcHBsaWNhdGlvbi9q
+        c29uDTptZXNzYWdlLXR5cGUHAAVldmVudHsicCI6ImFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHki
+        LCJzdG9wUmVhc29uIjoiZW5kX3R1cm4ife/TILsAAADkAAAATikS0uELOmV2ZW50LXR5cGUHAAht
+        ZXRhZGF0YQ06Y29udGVudC10eXBlBwAQYXBwbGljYXRpb24vanNvbg06bWVzc2FnZS10eXBlBwAF
+        ZXZlbnR7Im1ldHJpY3MiOnsibGF0ZW5jeU1zIjo1NDAzfSwicCI6ImFiY2RlZmdoaWprbG1ub3Bx
+        cnN0dXZ3eHl6QUJDREVGR0hJSiIsInVzYWdlIjp7ImlucHV0VG9rZW5zIjozOSwib3V0cHV0VG9r
+        ZW5zIjo2LCJ0b3RhbFRva2VucyI6NDV9fdIEMkI=
+    headers:
+      Connection:
+      - keep-alive
+      Content-Type:
+      - application/vnd.amazon.eventstream
+      Date:
+      - Thu, 19 Jun 2025 16:32:33 GMT
+      Transfer-Encoding:
+      - chunked
+      x-amzn-RequestId:
+      - d68148f5-0321-4f1c-9299-faa73d015f89
+    status:
+      code: 200
+      message: OK
+version: 1

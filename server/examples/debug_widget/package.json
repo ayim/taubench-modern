@@ -30,7 +30,9 @@
   "pnpm": {
     "overrides": {
       "react": "^19.1.0",
-      "react-dom": "^19.1.0"
+      "react-dom": "^19.1.0",
+      "@babel/runtime": "^7.27.6",
+      "@babel/helpers": "^7.27.6"
     },
     "onlyBuiltDependencies": [
       "@tailwindcss/oxide"

@@ -25,6 +25,8 @@ dev = [
     "pytest-regressions==2.7.0",
     "pytest-mock>=3.14.1",
     "pre-commit>=4.2.0",
+    "flaky>=3.8.1,<4.0.0",
+    "pytest-timeout>=2.4.0,<3.0.0",
 ]
 lint = ["ruff>=0.7.2,<0.12.0"]
 notebooks = [
@@ -60,8 +62,9 @@ members = [
 ]
 
 [tool.pytest.ini_options]
+timeout = 600
 pythonpath = ["."]
-testpaths = ["core/tests", "server/tests", "quality/tests"]
+testpaths = ["core/tests", "server/tests", "quality/tests", "workitems/tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -121,6 +124,7 @@ ignore = ["COM812"]
 "server/tests/**/*.py" = ["PLR2004"]
 "quality/tests/**/*.py" = ["PLR2004"]
 "workitems/alembic/**/*.py" = ["ALL"]               # ignore ruff for autogen code
+"workitems/tests/**/*.py" = ["PLR2004"]             # ignore magic constants
 
 [tool.ruff.lint.isort]
 known-first-party = [
@@ -153,3 +157,4 @@ pythonPlatform = "All"
 useLibraryCodeForTypes = true
 venvPath = "."
 venv = ".venv"
+typeCheckingMode = "basic"

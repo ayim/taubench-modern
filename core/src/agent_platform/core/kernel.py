@@ -13,6 +13,7 @@ from typing import Any, Literal
 
 from agent_platform.core.agent import Agent
 from agent_platform.core.context import AgentServerContext
+from agent_platform.core.errors.streaming import NoPlatformOrModelFoundError
 from agent_platform.core.kernel_interfaces import (
     ConvertersInterface,
     EventsInterface,
@@ -333,11 +334,17 @@ class Kernel(ABC):
             if model:
                 return platform, model
 
-        raise ValueError(
-            f"No platform found for model type: {model_type}, "
+        raise NoPlatformOrModelFoundError(
+            message=f"No platform found for model type: {model_type}, "
             f"quality tier: {quality_tier}, "
             f"provider: {provider}, "
             f"direct model name: {direct_model_name}",
+            data={
+                "model_type": model_type,
+                "quality_tier": quality_tier,
+                "provider": provider,
+                "direct_model_name": direct_model_name,
+            },
         )
 
     def get_standard_span_attributes(

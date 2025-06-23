@@ -6,8 +6,34 @@ from pathlib import Path
 import structlog
 from uvicorn.logging import AccessFormatter, DefaultFormatter
 
+from agent_platform.core.errors.base import PlatformError
 from agent_platform.server.constants import SystemConfig, SystemPaths
 from agent_platform.server.env_vars import LOG_LEVEL
+
+
+def _platform_error_processor(logger, method_name, event_dict):
+    """Extract error_id from PlatformError exceptions and inject into log message."""
+    # TODO: This is a hack to get error_id into the event message. Currently, the logging
+    # system does not take advantage of structlog's features and is due for a rework. ~ @kylie-bee
+    exc_info = event_dict.get("exc_info")
+    platform_error = None
+
+    if exc_info and isinstance(exc_info, BaseException) and isinstance(exc_info, PlatformError):
+        platform_error = exc_info
+    elif exc_info is True:
+        # Handle exc_info=True case - need to inspect the current exception
+        current_exception = sys.exc_info()[1]
+        if current_exception and isinstance(current_exception, PlatformError):
+            platform_error = current_exception
+
+    if platform_error:
+        # Inject error_id directly into the log message
+        error_id = platform_error.response.error_id
+        current_event = event_dict.get("event", "")
+        if error_id and f"error_id={error_id}" not in current_event:
+            event_dict["event"] = f"{current_event} (error_id={error_id})"
+
+    return event_dict
 
 
 def _get_default_formatter(use_color: bool = True) -> logging.Formatter:
@@ -88,6 +114,24 @@ def _setup_additional_loggers(
     aiosqlite_logger.addHandler(file_handler)
     aiosqlite_logger.propagate = False
 
+    mcp_client_sse_logger = logging.getLogger("mcp.client.sse")
+    mcp_client_sse_logger.addFilter(
+        lambda record: "Unknown SSE event: ping" not in record.getMessage()
+    )
+    mcp_client_sse_logger.setLevel(logging.WARNING)
+    mcp_client_sse_logger.handlers.clear()
+    mcp_client_sse_logger.addHandler(default_handler)
+    mcp_client_sse_logger.addHandler(file_handler)
+
+    mcp_client_http_logger = logging.getLogger("mcp.client.streamable_http")
+    mcp_client_http_logger.addFilter(
+        lambda record: "Unknown SSE event: ping" not in record.getMessage()
+    )
+    mcp_client_http_logger.setLevel(logging.WARNING)
+    mcp_client_http_logger.handlers.clear()
+    mcp_client_http_logger.addHandler(default_handler)
+    mcp_client_http_logger.addHandler(file_handler)
+
     # # Prevents getting spammed with watchfiles logs when
     # # --reload is used in development
     # watchfiles_logger = logging.getLogger("watchfiles.main")
@@ -154,6 +198,7 @@ def setup_logging(default_mode: bool = False, log_level: str | None = None):
             structlog.stdlib.PositionalArgumentsFormatter(),
             structlog.processors.StackInfoRenderer(),
             structlog.processors.UnicodeDecoder(),
+            _platform_error_processor,
             structlog.stdlib.render_to_log_kwargs,
         ],
         logger_factory=structlog.stdlib.LoggerFactory(),

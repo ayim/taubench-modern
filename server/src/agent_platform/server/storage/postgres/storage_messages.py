@@ -239,15 +239,15 @@ class PostgresStorageMessagesMixin(CommonMixin):
         async with self._cursor() as cur:
             # 2. Get the messages
             await cur.execute(
-                """SELECT message_id, created_at, updated_at,
-                    role, content, agent_metadata, server_metadata,
-                    parent_run_id
-                    FROM v2.thread_message
-                    WHERE parent_run_id = %(parent_run_id)s::text
-                    AND v2.check_user_access(
-                        t.user_id, %(user_id)s::uuid
-                    )
-                    ORDER BY sequence_number, created_at, message_id""",
+                """SELECT
+                    m.message_id, m.created_at, m.updated_at,
+                    m.role, m.content, m.agent_metadata, m.server_metadata,
+                    m.parent_run_id
+                FROM v2.thread_message AS m
+                JOIN v2.thread AS t ON t.thread_id = m.thread_id
+                WHERE m.parent_run_id = %(parent_run_id)s::text
+                  AND v2.check_user_access(t.user_id, %(user_id)s::uuid)
+                ORDER BY m.sequence_number, m.created_at, m.message_id""",
                 {"parent_run_id": parent_run_id, "user_id": user_id},
             )
 

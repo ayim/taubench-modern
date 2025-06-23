@@ -1,3 +1,66 @@
+# Sema4.ai Agent Server Pre-Release 2.0.4-alpha (2025-06-23)
+
+## Agent Server
+
+### Features
+
+- Add support for async actions invoke ([GPT-946](https://linear.app/sema4ai/issue/GPT-946))
+- Add Claude 4 series models (Sonnet, Opus) specs to the Bedrock Platform Client. ([GPT-1009](https://linear.app/sema4ai/issue/GPT-1009))
+
+### Bugfixes
+
+- Fixed an issue where errors occuring mid-stream could break the kernel. ([GPT-896](https://linear.app/sema4ai/issue/GPT-896))
+- Fix some issues in the underyling SQL for advanced thread message manipulation APIs. ([GPT-1014](https://linear.app/sema4ai/issue/GPT-1014))
+- Removed 503 requests from Claude 4 model cassettes
+
+### Additional Information Not Pertinent to Client Users
+
+- [GPT-896](https://linear.app/sema4ai/issue/GPT-896), [GPT-1010](https://linear.app/sema4ai/issue/GPT-1010)
+
+
+## Public API
+
+No significant changes.
+
+
+## Private API
+
+### Features
+
+- Standardized all error responses across HTTP APIs and WebSocket streams to use a consistent `{ "error": { "code", "error_id", "message" } }` structure. This replaces the previous `detail` field in HTTP responses and flat `error_message`/`error_stack_trace` fields in streaming responses.
+
+      - **Action Required**: Update error handling to use `response.error.message` instead of `response.detail`
+      - **Security**: Sensitive debugging information no longer exposed in client responses
+      - **Traceability**: Each error now includes a unique `error_id` for support correlation ([GPT-896](https://linear.app/sema4ai/issue/GPT-896))
+- workitem crud ([GPT-993](https://linear.app/sema4ai/issue/GPT-993))
+
+
+# Sema4.ai Agent Server Pre-Release 2.0.3-alpha (2025-06-18)
+
+## Agent Server
+
+### Bugfixes
+
+- Add numpy to the PyInstaller exclude list to prevent existence of multiple NumPy packages. ([GPT-1001](https://linear.app/sema4ai/issue/GPT-1001))
+- Make sure we can support SSE/MCP for Studio for now (via default 'auto' mode on server defs) to provide smoother onramp to studio (eventually) sending us this information in the payload (the transport type). For them to send this info, we need to update agent-client-go and agent-cli I believe. ([GPT-1005](https://linear.app/sema4ai/issue/GPT-1005))
+- Fix unawaited coroutine log warnings in MCP use ([GPT-1006](https://linear.app/sema4ai/issue/GPT-1006))
+- Suppress MCP ping warning logs. ([GPT-1007](https://linear.app/sema4ai/issue/GPT-1007))
+
+### Miscellaneous
+
+- Keep dependencies up to date (fixing dependabot alerts) ([GPT-1003](https://linear.app/sema4ai/issue/GPT-1003))
+
+
+## Public API
+
+No significant changes.
+
+
+## Private API
+
+No significant changes.
+
+
 # Sema4.ai Agent Server Pre-Release 2.0.2-alpha.2 (2025-06-17)
 
 ## Agent Server

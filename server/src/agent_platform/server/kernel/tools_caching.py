@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 import time
 from collections.abc import Coroutine
 from dataclasses import dataclass, field
@@ -164,7 +165,7 @@ class ToolDefinitionCache:
 
     # ------------ public ---------------------------------------------------
 
-    async def get_or_fetch(
+    async def get_or_fetch(  # noqa: C901, PLR0912
         self,
         kind: Literal["action_packages", "mcp_servers"],
         key: str,
@@ -174,9 +175,14 @@ class ToolDefinitionCache:
         if ToolCacheConfig.enabled:
             if (val := self._success_cache.get(key)) is not None:
                 self._hit(negative=False)
+                # Ensure we properly close the coroutine that will not be awaited
+                if inspect.iscoroutine(fetch_coro):
+                    fetch_coro.close()
                 return val
             if (issues := self._negative_cache.get(key)) is not None:
                 self._hit(negative=True)
+                if inspect.iscoroutine(fetch_coro):
+                    fetch_coro.close()
                 return [], issues
 
         # ------------------------------------------------ critical section
@@ -189,9 +195,14 @@ class ToolDefinitionCache:
             if ToolCacheConfig.enabled:
                 if (val := self._success_cache.get(key)) is not None:
                     self._hit(negative=False)
+                    # Ensure we properly close the coroutine that will not be awaited
+                    if inspect.iscoroutine(fetch_coro):
+                        fetch_coro.close()
                     return val
                 if (issues := self._negative_cache.get(key)) is not None:
                     self._hit(negative=True)
+                    if inspect.iscoroutine(fetch_coro):
+                        fetch_coro.close()
                     return [], issues
 
             # cache miss --> fetch
@@ -234,10 +245,12 @@ class ToolDefinitionCache:
             self._success_cache.pop(url, None)
             self._negative_cache.pop(url, None)
             removed_mcp_server_urls.append(url)
+        action_servers_str = "\n".join(removed_action_server_urls)
+        mcp_servers_str = "\n".join(removed_mcp_server_urls)
         logger.info(
             f"Cleared tool cache for agent {agent.agent_id}; removed action"
-            f"servers:\n{'\n'.join(removed_action_server_urls)} and "
-            f"MCP servers:\n{'\n'.join(removed_mcp_server_urls)}"
+            f"servers:\n{action_servers_str} and "
+            f"MCP servers:\n{mcp_servers_str}"
         )
 
     def report(self) -> CachedToolDefinitionsReport:

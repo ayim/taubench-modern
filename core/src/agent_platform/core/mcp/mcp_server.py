@@ -12,10 +12,17 @@ class MCPServer:
     name: str = field(metadata={"description": "The name of the MCP server."})
     """The name of the MCP server."""
 
-    transport: Literal["streamable-http", "sse", "stdio"] = field(
-        default="streamable-http",
-        metadata={"description": "Transport protocol to use when connecting to the MCP server."},
+    transport: Literal["auto", "streamable-http", "sse", "stdio"] = field(
+        default="auto",
+        metadata={
+            "description": "Transport protocol to use when connecting to the MCP server. "
+            "Auto defaults to streamable-http unless sse is in the url; if there is no url, "
+            "defaults to stdio."
+        },
     )
+    """Transport protocol to use when connecting to the MCP server.
+    Auto defaults to streamable-http unless sse is in the url; if there is no url,
+    defaults to stdio."""
 
     # Remote transports
     url: str | None = field(
@@ -66,35 +73,44 @@ class MCPServer:
     """If True, all tool calls are executed under a lock to support servers
     that cannot interleave multiple requests."""
 
-    kind: Literal["stdio", "remote", "unknown"] = field(
-        default="unknown",
-        metadata={"description": "The kind of MCP server."},
-        init=False,
-    )
-    """The kind of MCP server."""
-
     def __post_init__(self):
-        if self.url is None and self.command is None:
+        # If neither url nor command are provided, raise an error
+        if not self.url and not self.command:
             raise ValueError("Either url or command must be provided")
 
-        have_url = self.url is not None
-        have_cmd = self.command is not None
-        if have_url == have_cmd:
+        # If both url and command are provided, raise an error
+        if self.url and self.command:
             raise ValueError("Provide *either* url=* or command=*, but not both")
 
-        # Force set kind based on presence of url or command
-        if have_url:
-            object.__setattr__(self, "kind", "remote")
-        elif have_cmd:
-            object.__setattr__(self, "kind", "stdio")
-            if self.transport != "stdio":
+        # When in auto mode
+        if self.transport == "auto":
+            if self.url and "/sse" in self.url.lower():
+                # If "sse" is in the url, use sse
+                object.__setattr__(self, "transport", "sse")
+            elif self.url:
+                # Otherwise, use streamable-http (default when url set)
+                object.__setattr__(self, "transport", "streamable-http")
+            elif self.command:
+                # Otherwise, use stdio (default when no url or command)
                 object.__setattr__(self, "transport", "stdio")
-        if have_url and self.transport == "stdio":
-            raise ValueError("'stdio' transport requires command=")
+
+        # If url is provided, we must be sse or streamble-http
+        if self.url and self.transport not in ["sse", "streamable-http"]:
+            raise ValueError("'url' transport requires transport=sse or transport=streamable-http")
+
+        # If command is provided, we must be stdio
+        if self.command and self.transport != "stdio":
+            raise ValueError("'command' transport requires transport=stdio")
 
     @property
     def is_stdio(self) -> bool:
-        return self.kind == "stdio"
+        """Return True if this server uses the stdio transport.
+
+        Historically the decision was based on the internal *kind* attribute,
+        but since the transport value is now fully validated during
+        ``__post_init__`` we can simply look at the effective ``transport``.
+        """
+        return self.transport == "stdio"
 
     @property
     def cache_key(self) -> str:

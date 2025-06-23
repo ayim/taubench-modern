@@ -1,5 +1,4 @@
 {
-  "python.analysis.typeCheckingMode": "basic",
   "makefile.configureOnOpen": false,
   "python.testing.pytestArgs": ["."],
   "python.testing.unittestEnabled": false,

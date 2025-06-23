@@ -13,6 +13,33 @@ from agent_platform.core.responses.response import ResponseMessage
 from core.tests.platforms.conftest import compare_responses
 from core.tests.vcr_setup import patched_vcr
 
+
+def normalize_response(response: ResponseMessage) -> ResponseMessage:
+    """
+    Normalize a response message for Bedrock-specific formatting.
+
+    Bedrock (Claude 4-series)responses often
+    add newlines between tags in the response
+
+    This function normalizes these differences to match expected responses.
+
+    Args:
+        response: The response message to normalize
+
+    Returns:
+        The normalized response message
+    """
+
+    for i, content_item in enumerate(response.content):
+        if isinstance(content_item, ResponseTextContent):
+            text = content_item.text
+            text = text.replace("\n", "")
+            normalized_content = ResponseTextContent(text=text)
+            response.content[i] = normalized_content
+
+    return response
+
+
 # -------------------------------------------------------------------------
 # MODEL LISTS
 # -------------------------------------------------------------------------
@@ -154,6 +181,7 @@ async def test_bedrock_generate_responses(request, bedrock_client, case, model_i
         )
 
     final_response = _fixup_haiku_response(response) if "haiku" in model_id else response
+    final_response = normalize_response(final_response)
     compare_responses(final_response, expected_response)
 
 
@@ -194,4 +222,5 @@ async def test_bedrock_stream_responses(request, bedrock_client, case, model_id)
         )
 
     final_response = _fixup_haiku_response(response) if "haiku" in model_id else response
+    final_response = normalize_response(final_response)
     compare_responses(final_response, expected_response)

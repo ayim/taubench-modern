@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Any, Literal
 
 from agent_platform.core.delta import GenericDelta
+from agent_platform.core.errors import ErrorResponse
 
 StreamingDeltaType = Literal[
     "agent_ready",
@@ -118,10 +119,11 @@ class StreamingDeltaAgentError(StreamingDeltaAgent):
     """Type representing a streaming delta to indicate that
     the agent is in an error state."""
 
-    error_message: str = field(metadata={"description": "The error message."})
-    """The error message."""
-    error_stack_trace: str = field(metadata={"description": "The error stack trace."})
-    """The error stack trace."""
+    error: ErrorResponse = field(
+        metadata={"description": "The error information in the agreed upon error response."}
+    )
+    """The error information following the agreed upon error response."""
+
     event_type: Literal["agent_error"] = field(
         metadata={"description": "The type of streaming event."},
         default="agent_error",
@@ -132,8 +134,7 @@ class StreamingDeltaAgentError(StreamingDeltaAgent):
     def model_dump(self) -> dict[str, Any]:
         return {
             **super().model_dump(),
-            "error_message": self.error_message,
-            "error_stack_trace": self.error_stack_trace,
+            "error": self.error.model_dump(mode="json"),
         }
 
 

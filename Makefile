@@ -337,11 +337,17 @@ clean:  ## Remove build/dist artifacts
 	@rm -rf dist
 	@rm -rf *.egg-info
 
-# Workitem
-run-workitems:  ## Run standalone agent-platform.workitems server
-	@echo "Running workitems server..."
+# --------------------------------------------------------------------
+# Workitems
+# --------------------------------------------------------------------
+
+#  Run the workitems server, standalone (requires a remote agent-server via AGENT_SERVER_URL)
+run-workitems-server:
 	uv run -m agent_platform.workitems
 
+# Run tests for workitems
+test-workitems:
+	uv run --package agent_platform_workitems pytest -v workitems/tests/
 
 # --------------------------------------------------------------------
 # All

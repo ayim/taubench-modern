@@ -57,6 +57,8 @@ class BedrockModelMap(PlatformModelMap):
     model_aliases: dict[str, str] = field(
         default_factory=lambda: {
             # Anthropic
+            "claude-4-sonnet": "us.anthropic.claude-sonnet-4-20250514-v1:0",
+            "claude-4-opus": "us.anthropic.claude-opus-4-20250514-v1:0",
             # We don't have on-demand access for 3.7-sonnet?
             # "claude-3-7-sonnet": "anthropic.claude-3-7-sonnet-20250219-v1:0",
             "claude-3-5-sonnet": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
@@ -78,6 +80,8 @@ class BedrockModelMap(PlatformModelMap):
     models_to_type: dict[str, str] = field(
         default_factory=lambda: {
             # Anthropic
+            "claude-4-sonnet": "llm",
+            "claude-4-opus": "llm",
             "claude-3-7-sonnet": "llm",
             "claude-3-5-sonnet": "llm",
             "claude-3-5-haiku": "llm",
@@ -98,6 +102,8 @@ class BedrockModelMap(PlatformModelMap):
     models_to_input_modalities: dict[str, list[str]] = field(
         default_factory=lambda: {
             # Anthropic
+            "claude-4-sonnet": ["text", "tools", "images"],
+            "claude-4-opus": ["text", "tools", "images"],
             "claude-3-7-sonnet": ["text", "tools", "images"],
             "claude-3-5-sonnet": ["text", "tools", "images"],
             "claude-3-5-haiku": ["text", "tools", "images"],
@@ -118,6 +124,8 @@ class BedrockModelMap(PlatformModelMap):
     models_to_output_modalities: dict[str, list[str]] = field(
         default_factory=lambda: {
             # Anthropic
+            "claude-4-sonnet": ["text"],
+            "claude-4-opus": ["text"],
             "claude-3-7-sonnet": ["text"],
             "claude-3-5-sonnet": ["text"],
             "claude-3-5-haiku": ["text"],
@@ -138,6 +146,8 @@ class BedrockModelMap(PlatformModelMap):
     model_families: dict[str, str] = field(
         default_factory=lambda: {
             # Anthropic
+            "claude-4-sonnet": "claude",
+            "claude-4-opus": "claude",
             "claude-3-7-sonnet": "claude",
             "claude-3-5-sonnet": "claude",
             "claude-3-5-haiku": "claude",
@@ -158,6 +168,8 @@ class BedrockModelMap(PlatformModelMap):
     model_context_windows: dict[str, int | None] = field(
         default_factory=lambda: {
             # Anthropic
+            "claude-4-sonnet": 200_000,
+            "claude-4-opus": 200_000,
             "claude-3-7-sonnet": 200_000,
             "claude-3-5-sonnet": 200_000,
             "claude-3-5-haiku": 200_000,
@@ -273,6 +285,8 @@ class BedrockPlatformConfigs(PlatformConfigs):
     supported_models_by_provider: dict[str, list[str]] = field(
         default_factory=lambda: {
             "anthropic": [
+                "claude-4-sonnet",
+                "claude-4-opus",
                 "claude-3-5-sonnet",
                 "claude-3-5-haiku",
             ],

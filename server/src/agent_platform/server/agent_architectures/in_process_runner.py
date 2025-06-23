@@ -5,6 +5,8 @@ from datetime import UTC, datetime
 import structlog
 
 from agent_platform.core.agent_architectures.architecture_info import ArchitectureInfo
+from agent_platform.core.errors.base import PlatformError
+from agent_platform.core.errors.responses import ErrorCode, ErrorResponse
 from agent_platform.core.kernel import Kernel
 from agent_platform.core.streaming.delta import (
     StreamingDelta,
@@ -49,7 +51,7 @@ class InProcessAgentRunner(BaseAgentRunner):
         if not self.entry_func:
             raise RuntimeError(f"No entrypoint found for {self.package_name}")
 
-        # You might also do some “init” if the CA has a stateful setUp
+        # You might also do some "init" if the CA has a stateful setUp
         # Or spawn a background task for reading events, etc. Up to you.
 
     async def invoke(self, kernel: Kernel) -> None:
@@ -62,12 +64,22 @@ class InProcessAgentRunner(BaseAgentRunner):
                 "Agent architecture invocation cancelled, likely client disconnected",
             )
         except Exception as e:
-            import traceback
+            if isinstance(e, PlatformError):
+                error_response = e.response
+            else:
+                error_response = ErrorResponse(
+                    error_code=ErrorCode.UNEXPECTED,
+                    message_override="An internal error occurred during agent execution",
+                )
+            # if we don't log here, we rely on the architecture to do it, which is not ideal
+            logger.error(
+                "Error during agent architecture invocation",
+                exc_info=True,
+            )
 
             await kernel.outgoing_events.dispatch(
                 StreamingDeltaAgentError(
-                    error_message=str(e),
-                    error_stack_trace=traceback.format_exc(),
+                    error=error_response,
                     run_id=kernel.run.run_id,
                     thread_id=kernel.run.thread_id,
                     agent_id=kernel.run.agent_id,

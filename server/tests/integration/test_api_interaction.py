@@ -423,6 +423,156 @@ def test_agent_server_port_conflict(tmpdir, logs_dir):  # noqa: C901 PLR0915
             )
 
 
+@pytest.mark.integration
+@pytest.mark.usefixtures("copy_tmpdir_on_failure")
+def test_async_action_polling_with_fast_retry_interval(
+    base_url_agent_server,
+    openai_api_key,
+    action_server_process,
+    logs_dir,
+    resources_dir,
+):
+    """
+    Integration test for async action polling with fast retry intervals.
+
+    This test:
+    1. Sets the retry interval environment variable to 0.1 seconds
+    2. Calls the test_sleep_action that takes 0.5 seconds to complete
+    3. Tests happy path where the action eventually succeeds after multiple fast polling attempts
+
+    This verifies that async polling mechanism works correctly with configurable retry intervals.
+    Note: This is an end-to-end test that includes LLM processing time, so timing assertions
+    are focused on successful completion rather than precise timing measurements.
+    """
+    from agent_platform.orchestrator.agent_server_client import (
+        ActionPackage,
+        AgentServerClient,
+        SecretKey,
+    )
+
+    # Set environment variables for fast polling
+    original_retry_interval = os.environ.get("ACTIONS_ASYNC_RETRY_INTERVAL")
+    original_max_retries = os.environ.get("ACTIONS_ASYNC_MAX_RETRIES")
+    original_timeout = os.environ.get("ACTIONS_ASYNC_TIMEOUT")
+
+    try:
+        # Set a very fast retry interval for testing
+        os.environ["ACTIONS_ASYNC_RETRY_INTERVAL"] = "0.1"  # Poll every 0.1 seconds
+        os.environ["ACTIONS_ASYNC_MAX_RETRIES"] = "50"  # Max 50 retries (5 seconds total)
+        os.environ["ACTIONS_ASYNC_TIMEOUT"] = "0.1"  # Timeout after 0.1 seconds
+
+        cwd = resources_dir / "simple_action_package"
+        api_key = "test"
+        action_server_process.start(
+            cwd=cwd,
+            actions_sync=True,
+            min_processes=1,
+            max_processes=1,
+            reuse_processes=True,
+            lint=True,
+            timeout=500,  # Can be slow (time to bootstrap env)
+            additional_args=["--api-key", api_key],
+            logs_dir=logs_dir,
+        )
+        url = f"http://{action_server_process.host}:{action_server_process.port}"
+
+        with AgentServerClient(base_url_agent_server) as agent_client:
+            agent_id = agent_client.create_agent_and_return_agent_id(
+                action_packages=[
+                    ActionPackage(
+                        name="ActionPackage",
+                        organization="Organization",
+                        version="0.0.1",
+                        url=url,
+                        api_key=SecretKey(value=api_key),
+                        whitelist="",
+                        allowed_actions=["test_sleep_action"],  # Only allow our test action
+                    )
+                ],
+                platform_configs=[
+                    {
+                        "kind": "openai",
+                        "openai_api_key": openai_api_key,
+                    },
+                ],
+            )
+
+            thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
+
+            # First, verify the agent has access to the sleep action
+            result = agent_client.send_message_to_agent_thread(
+                agent_id, thread_id, "What actions can you call? List them."
+            ).lower()
+
+            if "sleep" not in result:
+                raise AssertionError(
+                    f"Agent did not report having access to test_sleep_action. "
+                    f"Found result: {result!r}"
+                )
+
+            # Record the start time
+            start_time = time.time()
+
+            # Call the sleep action with a duration that will require multiple polling attempts
+            # We'll use 0.5 seconds, which with 0.1 second intervals should result
+            # in ~5 polling attempts.
+            result = agent_client.send_message_to_agent_thread(
+                agent_id, thread_id, "Please call the test_sleep_action with duration_seconds=0.5"
+            )
+
+            # Record the end time
+            end_time = time.time()
+            elapsed_time = end_time - start_time
+
+            # Verify the action completed successfully
+            result_lower = result.lower()
+            if "completed" not in result_lower or "0.5" not in result_lower:
+                raise AssertionError(
+                    f"Action did not complete. Expected 'completed' and '0.5' in result."
+                    f"Found result: {result!r}"
+                )
+
+            # Verify the timing - this is an end-to-end test that includes LLM processing time,
+            # so we need to account for the full latency including:
+            # - LLM processing the request and deciding to call the action (1-3 seconds)
+            # - The 0.5 second sleep action itself
+            # - Agent/action server communication overhead
+            # The main goal is to verify the action completes successfully, not strict timing
+            if elapsed_time < 0.4:
+                raise AssertionError(
+                    f"Action completed too quickly ({elapsed_time:.2f}s). "
+                    f"Expected at least 0.4 seconds for a 0.5s sleep action."
+                )
+
+            if elapsed_time > 20.0:  # Much more generous timeout for end-to-end test
+                raise AssertionError(
+                    f"Action took too long ({elapsed_time:.2f}s). "
+                    f"Even with LLM processing time, this should complete within 10 seconds."
+                )
+
+            print(
+                f"✓ Async action completed successfully in {elapsed_time:.2f} seconds "
+                f"with fast polling"
+            )
+
+    finally:
+        # Restore original environment variables
+        if original_retry_interval is not None:
+            os.environ["ACTIONS_ASYNC_RETRY_INTERVAL"] = original_retry_interval
+        else:
+            os.environ.pop("ACTIONS_ASYNC_RETRY_INTERVAL", None)
+
+        if original_max_retries is not None:
+            os.environ["ACTIONS_ASYNC_MAX_RETRIES"] = original_max_retries
+        else:
+            os.environ.pop("ACTIONS_ASYNC_MAX_RETRIES", None)
+
+        if original_timeout is not None:
+            os.environ["ACTIONS_ASYNC_TIMEOUT"] = original_timeout
+        else:
+            os.environ.pop("ACTIONS_ASYNC_TIMEOUT", None)
+
+
 if __name__ == "__main__":
     import pytest
 

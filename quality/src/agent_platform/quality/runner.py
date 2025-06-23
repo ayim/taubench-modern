@@ -5,6 +5,7 @@ import os
 import shutil
 import traceback
 from collections import defaultdict
+from dataclasses import asdict
 from http import HTTPStatus
 from pathlib import Path
 from typing import Any
@@ -16,7 +17,10 @@ from agent_platform.quality.agent_runner import AgentRunner
 from agent_platform.quality.evaluators import EvaluatorEngine
 from agent_platform.quality.models import (
     ActionPackageSecret,
+    ActionSecret,
+    ActionSecrets,
     AgentPackage,
+    OAuthAccessToken,
     Platform,
     SFAuthorizationOverride,
     TestCase,
@@ -253,7 +257,7 @@ class QualityTestRunner:
                 logger.info("Stopping shared infrastructure")
                 await self.orchestrator.stop_infrastructure()
 
-    async def _run_agent_fully_parallel(  # noqa: C901 PLR0912
+    async def _run_agent_fully_parallel(  # noqa: C901 PLR0912 PLR0915
         self, agent_package: AgentPackage, action_server_url: str
     ) -> list[ThreadResult]:
         """Run all tests for a single agent with full parallelization."""
@@ -271,6 +275,47 @@ class QualityTestRunner:
             for test_case in test_cases:
                 all_platforms.update(test_case.target_platforms)
             all_platforms = list(all_platforms)
+
+            package_oauth_secrets = []
+
+            data = await agent_package.extract_package_metadata()
+            for agent_meta in data:
+                for pkg in agent_meta.get("action_packages", []):
+                    package_action_oauth_secrets = []
+                    for _, action in pkg.get("secrets", {}).items():
+                        secrets = action.get("secrets", {})
+                        action_name = action.get("action")
+                        oauth_secrets = []
+                        for secret_name, secret_info in secrets.items():
+                            if secret_info.get("type") == "OAuth2Secret":
+                                provider = secret_info.get("provider")
+                                # TODO remove from loop
+                                credentials = await self.oauth.get_oauth_credentials(
+                                    provider=provider
+                                )
+
+                                if credentials is None:
+                                    raise ValueError(
+                                        f"No oauth credentials for provider {provider}"
+                                    )
+
+                                access_token = OAuthAccessToken(
+                                    provider=provider,
+                                    scopes=credentials.get("scope").split(" "),
+                                    access_token=credentials.get("access_token"),
+                                )
+                                oauth_secrets.append(
+                                    ActionSecret(name=secret_name, value=access_token)
+                                )
+                        package_action_oauth_secrets.append(
+                            ActionSecrets(name=action_name, secrets=oauth_secrets)
+                        )
+
+                    package_oauth_secrets.append(
+                        ActionPackageSecret(
+                            name=pkg.get("name"), actions=package_action_oauth_secrets
+                        )
+                    )
 
             logger.info(f"Creating agent variants for platforms: {[p.name for p in all_platforms]}")
 
@@ -313,7 +358,7 @@ class QualityTestRunner:
                     # Update the secrets on the action server for this agent and test case
                     await self.update_action_secrets(
                         agent_id,
-                        test_case.action_secrets,
+                        test_case.action_secrets + package_oauth_secrets,
                         action_server_url,
                     )
 
@@ -386,33 +431,10 @@ class QualityTestRunner:
     async def get_oauth_connections(
         self,
     ) -> defaultdict[str, defaultdict[str, list[Any]]]:
-        import subprocess
-
-        # agent cli is deprecated and shouldn't be used elsewhere
-        # here it is needed to extract oauth variables from python code
-        def get_agent_cli_executable_path(version: str, download: bool = False) -> Path:
-            from sema4ai.common import tools
-
-            target_location = tools.AgentCliTool.get_default_executable(
-                version=version, download=download
-            )
-            return target_location
-
-        agent_cli_exe = get_agent_cli_executable_path(version="v1.3.4", download=True)
         scopes_by_provider = defaultdict(lambda: defaultdict(list))
 
         for agent in self.discovered_agents:
-            result = subprocess.run(
-                [agent_cli_exe, "package", "metadata", "--package", agent.zip_path],
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-
-            if result.returncode != 0:
-                raise ValueError(f"Cannot extract agent {agent.name} metadata: {result.stderr}")
-
-            data = json.loads(result.stdout)
+            data = await agent.extract_package_metadata()
 
             for agent_meta in data:
                 for pkg in agent_meta.get("action_packages", []):
@@ -435,17 +457,17 @@ class QualityTestRunner:
     async def update_action_secrets(  # noqa: C901 PLR0912 PLR0915
         self,
         agent_id: str,
-        action_secrets_from_test_case: list[ActionPackageSecret],
+        action_secrets: list[ActionPackageSecret],
         action_server_base_url: str | None = None,
     ) -> None:
         """Update the action secrets for an agent."""
         logger.info(f"Updating action secrets for agent {agent_id}")
 
-        if not action_secrets_from_test_case:
+        if not action_secrets:
             logger.debug("No action secrets defined in the test case to update.")
             return
 
-        for package_secret_config in action_secrets_from_test_case:
+        for package_secret_config in action_secrets:
             package_name = package_secret_config.name
             logger.info(f"Processing secrets for package: {package_name} on agent {agent_id}")
 
@@ -484,7 +506,9 @@ class QualityTestRunner:
                                     f"in package '{package_name}'."
                                 )
                             value = env_value
-                        secrets_to_set_for_package[secret_item.name] = value
+                        secrets_to_set_for_package[secret_item.name] = (
+                            value if isinstance(value, str) else asdict(value)
+                        )
             except ValueError as e:  # Catches the missing env var error
                 logger.error(
                     f"Failed to prepare secrets for package '{package_name}' on "

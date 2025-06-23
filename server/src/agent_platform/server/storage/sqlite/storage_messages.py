@@ -61,6 +61,7 @@ class SQLiteStorageMessagesMixin(CommonMixin):
                             "server_metadata": json.dumps(msg.server_metadata),
                             "created_at": msg.created_at,
                             "updated_at": msg.updated_at,
+                            "parent_run_id": msg.parent_run_id,
                         },
                     )
 
@@ -68,10 +69,12 @@ class SQLiteStorageMessagesMixin(CommonMixin):
                     """
                     INSERT INTO v2_thread_message (
                         message_id, thread_id, sequence_number, role, content,
-                        agent_metadata, server_metadata, created_at, updated_at
+                        agent_metadata, server_metadata, created_at, updated_at,
+                        parent_run_id
                     ) VALUES (
                         :message_id, :thread_id, :sequence_number, :role, :content,
-                        :agent_metadata, :server_metadata, :created_at, :updated_at
+                        :agent_metadata, :server_metadata, :created_at, :updated_at,
+                        :parent_run_id
                     )
                     """,
                     inserts,
@@ -162,7 +165,8 @@ class SQLiteStorageMessagesMixin(CommonMixin):
                 """
                 SELECT
                     message_id, created_at, updated_at,
-                    role, content, agent_metadata, server_metadata
+                    role, content, agent_metadata, server_metadata,
+                    parent_run_id
                 FROM v2_thread_message
                 WHERE thread_id = :thread_id
                 ORDER BY sequence_number, created_at, message_id
@@ -237,16 +241,14 @@ class SQLiteStorageMessagesMixin(CommonMixin):
         async with self._cursor() as cur:
             await cur.execute(
                 """
-                SELECT
-                    message_id, created_at, updated_at,
-                    role, content, agent_metadata, server_metadata,
-                    parent_run_id
-                FROM v2_thread_message AS m
-                WHERE m.parent_run_id = :parent_run_id
-                AND v2_check_user_access(
-                    m.user_id, :user_id
-                )
-                ORDER BY sequence_number, created_at, message_id
+                SELECT m.message_id, m.created_at, m.updated_at,
+                       m.role, m.content, m.agent_metadata, m.server_metadata,
+                       m.parent_run_id
+                FROM   v2_thread_message AS m
+                JOIN   v2_thread         AS t ON t.thread_id = m.thread_id
+                WHERE  m.parent_run_id = :parent_run_id
+                  AND  v2_check_user_access(t.user_id, :user_id)
+                ORDER  BY m.sequence_number, m.created_at, m.message_id;
                 """,
                 {"parent_run_id": parent_run_id, "user_id": user_id},
             )

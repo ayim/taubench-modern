@@ -1,48 +1,196 @@
 import asyncio
 import logging
+from collections.abc import Awaitable, Callable, Sequence
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
-from .config import settings
-from .db import DatabaseManager
-from .models import WorkItemORM, WorkItemStatus
+from agent_platform.workitems.config import Settings
+from agent_platform.workitems.db import DatabaseManager
+from agent_platform.workitems.models import WorkItemStatus
+from agent_platform.workitems.orm import WorkItemORM
 
 logger = logging.getLogger(__name__)
 
 
-async def process_pending_item(session: Session, item: WorkItemORM) -> None:
-    session.execute(
-        update(WorkItemORM)
-        .where(WorkItemORM.work_item_id == item.work_item_id)
-        .values(status=WorkItemStatus.EXECUTING)
-    )
-    session.commit()
-
-    # TODO: invoke agent server
-    await asyncio.sleep(0)
-
-    session.execute(
-        update(WorkItemORM)
-        .where(WorkItemORM.work_item_id == item.work_item_id)
-        .values(status=WorkItemStatus.COMPLETED)
-    )
-    session.commit()
+async def run_agent(session: Session, item: WorkItemORM) -> bool:
+    """
+    Run an agent on the agent_server.
+    """
+    # TODO: actually invoke agent server
+    await asyncio.sleep(0.5)
+    return True
 
 
-async def worker_loop(db: DatabaseManager, shutdown_event: asyncio.Event) -> None:
+async def worker_loop(
+    db: DatabaseManager,
+    config: Settings,
+    shutdown_event: asyncio.Event,
+    work_func: Callable[[Session, WorkItemORM], Awaitable[bool]],
+) -> None:
+    """
+    Runs a loop which processes work items, sleeping the configured amount between iterations.
+    """
     while not shutdown_event.is_set():
+        logger.info("searching for work items to process")
         with db.session() as session:
-            result = session.execute(
-                select(WorkItemORM)
-                .where(WorkItemORM.status == WorkItemStatus.PENDING.value)
-                .with_for_update(skip_locked=True)
-                .limit(5)
-            )
-            items = result.scalars().all()
-            for item in items:
-                await process_pending_item(session, item)
+            await worker_iteration(session, config, work_func)
 
-        await asyncio.sleep(settings.worker_interval)
+        await asyncio.sleep(config.worker_interval)
 
     logger.info("finished work-items worker loop")
+
+
+async def worker_iteration(
+    session: Session,
+    config: Settings,
+    work_func: Callable[[Session, WorkItemORM], Awaitable[bool]],
+) -> None:
+    """
+    Reads a batch of "PENDING" work_item rows from the database and
+    marks them as "EXECUTING" and processes them as a batch.
+    """
+    # 1) candidate CTE: find the next 10 pending work items
+    candidate = (
+        select(WorkItemORM.work_item_id)
+        .where(WorkItemORM.status == WorkItemStatus.PENDING.value)
+        .with_for_update(skip_locked=True)
+        .limit(config.max_batch_size)
+        .cte("candidate")
+    )
+    results = session.execute(
+        update(WorkItemORM)
+        .values(status=WorkItemStatus.EXECUTING.value, updated_at=func.now())
+        .where(WorkItemORM.work_item_id == candidate.c.work_item_id)
+        .returning(WorkItemORM.work_item_id)
+    )
+    # collect all rows, using asyncio.gather
+    work_item_ids = results.scalars().fetchall()
+    if work_item_ids:
+        logger.info(f"Dispatching work items {work_item_ids}")
+        batch_results = await run_batch(session, work_item_ids, work_func, config.work_item_timeout)
+        logger.info(f"Completed {len(batch_results)} work items concurrently")
+
+
+async def run_batch(
+    session: Session,
+    work_item_ids: Sequence[str],
+    work_func: Callable[[Session, WorkItemORM], Awaitable[bool]],
+    batch_timeout: float,
+) -> Sequence[bool | BaseException]:
+    """
+    Given a list of work_item_ids, fetch the full work_item objects, and
+    execute a task to run each. Wait for completion over all tasks.
+    """
+    # Get all work items in a single query
+    stmt = select(WorkItemORM).where(WorkItemORM.work_item_id.in_(work_item_ids))
+    items = session.execute(stmt).scalars().all()
+
+    # Failed to find any work_items in the database to operate on.
+    if not items:
+        return []
+
+    # Create tasks for each work item
+    tasks = {}
+    for item in items:
+        logger.info(f"Dispatching work item {item.work_item_id}")
+        task = asyncio.create_task(execute_work_item(session, item, work_func))
+        tasks[item.work_item_id] = task
+
+    # Run all tasks concurrently until they are all completed or a timeout is reached.
+    results: list[bool | BaseException] = []
+    incomplete_work_item_ids = []
+
+    done, pending = await asyncio.wait(
+        tasks.values(), timeout=batch_timeout, return_when=asyncio.ALL_COMPLETED
+    )
+
+    # Collect the pending tasks.
+    if pending:
+        # Some tasks didn't complete within timeout
+        logger.warning(
+            f"Batch timeout ({batch_timeout}s) exceeded for "
+            f"{len(pending)} of {len(tasks)} work items"
+        )
+
+        # Cancel pending tasks
+        for task in pending:
+            task.cancel()
+
+    for task, item in zip(tasks.values(), items, strict=True):
+        if task in done:
+            # Task completed before timeout - get its result
+            try:
+                results.append(task.result())
+                logger.info(f"Work item {item.work_item_id} completed normally")
+            except Exception as e:
+                results.append(e)
+                logger.info(f"Work item {item.work_item_id} failed with error: {e}")
+        else:
+            # Task didn't complete - mark as ERROR
+            incomplete_work_item_ids.append(item.work_item_id)
+            results.append(TimeoutError("Work item timeout exceeded"))
+            logger.error(f"Work item {item.work_item_id} timed out, marking as ERROR")
+
+    # For all timed out work items which are still PENDING/EXECUTING, mark them as having ERROR'ed.
+    # We do this to prevent races between the task writing to the DB after we signaled
+    # the cancellation
+    if incomplete_work_item_ids:
+        session.execute(
+            update(WorkItemORM)
+            .where(
+                WorkItemORM.status.in_(
+                    [WorkItemStatus.PENDING.value, WorkItemStatus.EXECUTING.value]
+                ),
+                WorkItemORM.work_item_id.in_(incomplete_work_item_ids),
+            )
+            .values(status=WorkItemStatus.ERROR)
+        )
+        session.commit()
+
+    return results
+
+
+async def execute_work_item(
+    session: Session,
+    item: WorkItemORM,
+    agent_func: Callable[[Session, WorkItemORM], Awaitable[bool]],
+) -> bool:
+    """
+    Execute one work item. Responsible for updating the work_item status after execution.
+
+    Args:
+        session: The SQLAlchemy session.
+        item: The work item to execute.
+
+    Returns:
+        True if the work item was executed successfully, False otherwise.
+    """
+    try:
+        logger.info(f"Starting execution on work item {item.work_item_id}")
+
+        result = await agent_func(session, item)
+
+        new_status = WorkItemStatus.COMPLETED if result else WorkItemStatus.ERROR
+
+        logger.info(f"Completed execution on work item {item.work_item_id}, result: {result}")
+
+        session.execute(
+            update(WorkItemORM)
+            .where(WorkItemORM.work_item_id == item.work_item_id)
+            .values(status=new_status)
+        )
+        session.commit()
+
+        return result
+    except Exception as e:
+        logger.error(f"Error executing work item {item.work_item_id}: {e}")
+        session.rollback()
+        session.execute(
+            update(WorkItemORM)
+            .where(WorkItemORM.work_item_id == item.work_item_id)
+            .values(status=WorkItemStatus.ERROR)
+        )
+        session.commit()
+
+        return False

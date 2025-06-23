@@ -164,7 +164,11 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
             # LangSmith context for tracing (will be None if unavailable)
             langsmith_span = None
 
-            # Try to set up LangSmith tracing if available
+            # Flag to indicate whether we've yielded the stream_pipe yet. This helps
+            # us avoid yielding twice in the event an exception is raised *after*
+            # the first yield (e.g., during streaming).
+            yielded: bool = False
+
             try:
                 inputs = self._create_langsmith_inputs_from_prompt(finalized_prompt)
 
@@ -179,14 +183,14 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
                 ) as langsmith_span:
                     try:
                         # Yield the stream pipe to let the caller use it
+                        yielded = True
                         yield stream_pipe
                     finally:
-                        # First close the stream
+                        # Ensure the stream is closed even if an exception occurred
                         await stream_pipe.aclose()
 
                         # Record the response in LangSmith if available
                         if stream_pipe.reassembled_response:
-                            # Format the response for LangSmith
                             formatted_messages = (
                                 self.kernel.ctx.langsmith.format_response_for_langsmith(
                                     stream_pipe.reassembled_response
@@ -217,13 +221,19 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
                                 if usage and langsmith_span:
                                     langsmith_span["usage"] = self._generate_usage_metadata(usage)
             except Exception:
-                # If LangSmith setup fails or is not available, continue without tracing
-                try:
-                    # Yield the stream pipe to let the caller use it
-                    yield stream_pipe
-                finally:
-                    # Close the stream
-                    await stream_pipe.aclose()
+                # If LangSmith setup fails *before* we yielded, or any other error
+                # happens prior to the first yield, fall back to a simpler context
+                if not yielded:
+                    try:
+                        yield stream_pipe
+                    finally:
+                        await stream_pipe.aclose()
+                else:
+                    # Exception occurred after we already yielded (likely during
+                    # streaming). Re-raise to propagate to the caller so that the
+                    # normal error-handling flow (e.g., conversion to
+                    # StreamingDeltaAgentError) can take over.
+                    raise
 
     async def count_tokens(self, prompt: Prompt, model: str) -> int:
         """Count the tokens in a prompt.

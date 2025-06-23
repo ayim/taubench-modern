@@ -210,7 +210,6 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
                 message,
                 [*action_tools, *mcp_tools, *kernel.client_tools],
             )
-
     # Update the message to show that the tool calls are running in the chat
     for _, tool_call in state.pending_tool_calls:
         message.update_tool_running(tool_call.tool_call_id)

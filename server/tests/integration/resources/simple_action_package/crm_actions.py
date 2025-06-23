@@ -1,3 +1,4 @@
+import time
 import uuid
 from typing import TypedDict
 
@@ -32,6 +33,22 @@ def add_contact(name: str, email: str, phone: str) -> Response[str]:
     contact_id = str(uuid.uuid4())
     contact_details[contact_id] = {"name": name, "email": email, "phone": phone}
     return Response(result=contact_id)
+
+
+@action
+def test_sleep_action(duration_seconds: float = 1.0) -> Response[str]:
+    """
+    A test action that sleeps for a specified duration.
+    Useful for testing async action behavior.
+
+    Args:
+        duration_seconds: The number of seconds to sleep (default: 1.0).
+
+    Returns:
+        A message indicating the action completed after the specified duration.
+    """
+    time.sleep(duration_seconds)
+    return Response(result=f"Action completed after sleeping for {duration_seconds} seconds")
 
 
 @action
