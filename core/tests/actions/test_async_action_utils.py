@@ -281,8 +281,11 @@ async def test_async_action_timeout(mock_sleep, mock_client_session):
 @patch("aiohttp.ClientSession")
 @patch("asyncio.sleep", new_callable=AsyncMock)
 @pytest.mark.asyncio
-async def test_async_action_network_error(mock_sleep, mock_client_session):
+async def test_async_action_network_error(mock_sleep, mock_client_session, monkeypatch):
     """Test handling of network errors during async action execution."""
+    monkeypatch.setenv("ACTIONS_ASYNC_MAX_RETRIES", "5")
+    monkeypatch.setenv("ACTIONS_ASYNC_RETRY_INTERVAL", "0")
+
     mock_session = AsyncMockClientSession(
         post_response_data={"status": "async"},
         get_responses=Exception("Network error"),  # GET requests will raise an exception

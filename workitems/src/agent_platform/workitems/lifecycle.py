@@ -2,8 +2,9 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager
 
-from agent_platform.server.error_handlers import add_exception_handlers
 from fastapi import FastAPI
+
+from agent_platform.server.error_handlers import add_exception_handlers
 
 from .api import router as workitems_router
 from .config import settings
