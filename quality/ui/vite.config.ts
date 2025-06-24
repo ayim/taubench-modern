@@ -1,10 +1,12 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { readFileSync, existsSync, readdirSync, statSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { join } from 'path';
+import * as os from 'os';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const homeDir = os.homedir();
+// change it if the quality folder is different
+const quality_folder = join(homeDir, '.sema4x', 'quality');
 
 // Custom plugin to serve quality_results files
 function qualityResultsPlugin() {
@@ -14,7 +16,7 @@ function qualityResultsPlugin() {
       server.middlewares.use('/api/quality_results', (req: any, res: any, next: any) => {
         // Remove the /api/quality_results prefix and any leading slash
         const urlPath = req.url?.replace(/^\//, '') || '';
-        const filePath = join(__dirname, '..', '.datadir', 'quality_results', urlPath);
+        const filePath = join(quality_folder, 'quality_results', urlPath);
 
         console.log('API Request:', req.url, '-> File Path:', filePath);
 

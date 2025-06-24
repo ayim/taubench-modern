@@ -51,7 +51,7 @@ class Context:
     threads_dir: Path
     oauth: dict[str, OAuthProviderConfig]
     verbose: bool
-    home_folder: Path
+    quality_folder: Path
 
 
 def setup_logging(verbose: bool = False):
@@ -94,51 +94,68 @@ def setup_logging(verbose: bool = False):
 @click.option(
     "--home-folder",
     type=click.Path(exists=False, file_okay=False, path_type=Path),
-    default=Path("quality/.datadir"),
-    help="Folder that contains quality data",
+    help="Sema4ai home folder",
+)
+@click.option(
+    "--server-url",
+    default="http://localhost:8000",
+    envvar="AGENT_SERVER_URL",
+    help="Agent server URL",
+)
+@click.option(
+    "--test-threads-dir",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    default=Path("quality/test-threads"),
+    help="Directory containing test thread YAML files",
+)
+@click.option(
+    "--test-agents-dir",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    default=Path("quality/test-agents"),
+    help="Directory containing agent ZIP packages",
 )
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
 @click.option("--show-env", is_flag=True, help="Show loaded .env file location")
 @click.pass_context
-def cli(
+def cli(  # noqa: PLR0913
     ctx,
     home_folder: Path,
+    server_url: str,
+    test_threads_dir: Path,
+    test_agents_dir: Path,
     verbose: bool,
     show_env: bool,
 ):
     """Quality testing CLI for agent platform."""
+    if ctx.invoked_subcommand == "init":
+        return
+
     setup_logging(verbose)
 
-    # Load .env file from monorepo root
     if verbose or show_env:
         load_env_file(verbose=True)
     else:
         load_env_file(verbose=False)
 
-    home_folder.mkdir(parents=True, exist_ok=True)
+    home_folder = home_folder if home_folder is not None else Path.home() / ".sema4x"
+    quality_folder = home_folder / "quality"
 
-    def load_config_or_create():
-        default_config = {
-            "agent_server_url": "http://localhost:8000",
-            "agents_dir": "quality/test-agents",
-            "threads_dir": "quality/test-threads",
-            "oauth": {},
-        }
-        config_file = home_folder / "config.yaml"
-        if not config_file.exists():
-            with open(config_file, "w") as file:
-                yaml.dump(default_config, file, default_flow_style=False)
+    if not quality_folder.exists():
+        raise ValueError(f"Cannot find quality folder in {home_folder}. Did you run 'init'?")
+
+    def load_config():
+        config_file = quality_folder / "config.yaml"
 
         with open(config_file) as f:
             return yaml.safe_load(f)
 
-    config = load_config_or_create()
+    config = load_config()
 
     ctx.obj = Context(
-        home_folder=home_folder,
-        agent_server_url=config["agent_server_url"],
-        agents_dir=Path(config["agents_dir"]),
-        threads_dir=Path(config["threads_dir"]),
+        agent_server_url=server_url,
+        quality_folder=quality_folder,
+        agents_dir=test_agents_dir,
+        threads_dir=test_threads_dir,
         oauth={
             provider: OAuthProviderConfig(
                 client_id=data["client_id"],
@@ -151,6 +168,32 @@ def cli(
         },
         verbose=verbose,
     )
+
+
+@cli.command()
+@click.option(
+    "--home-folder",
+    type=click.Path(exists=False, file_okay=False, path_type=Path),
+    help="Home folder for Sema4ai",
+)
+async def init(home_folder):
+    """Prepare the environment."""
+    if home_folder is None:
+        user_home_folder = Path.home()
+        home_folder = user_home_folder / ".sema4x"
+
+    quality_folder = home_folder / "quality"
+    quality_folder.mkdir(parents=True, exist_ok=False)
+
+    default_config = {
+        "oauth": {},
+    }
+    config_file = quality_folder / "config.yaml"
+    if not config_file.exists():
+        with open(config_file, "w") as file:
+            yaml.dump(default_config, file, default_flow_style=False)
+
+    click.echo(f"✅ Quality tool inititialized at {quality_folder}")
 
 
 @cli.command()
@@ -179,6 +222,7 @@ def list_agents(ctx: Context):
     """List available agent packages."""
 
     runner = QualityTestRunner(
+        datadir=ctx.quality_folder,
         test_threads_dir=ctx.threads_dir,
         test_agents_dir=ctx.agents_dir,
         server_url=ctx.agent_server_url,
@@ -201,6 +245,7 @@ def list_agents(ctx: Context):
 def list_tests(ctx: Context, agent_name: str | None):
     """List available test cases, optionally filtered by agent."""
     runner = QualityTestRunner(
+        datadir=ctx.quality_folder,
         test_threads_dir=ctx.threads_dir,
         test_agents_dir=ctx.agents_dir,
         server_url=ctx.agent_server_url,
@@ -252,17 +297,11 @@ async def run(
     selected_agents: list[str],
 ):
     """Run quality tests for agents."""
-    # Get datadir from orchestrator's default location if not specified
-    from agent_platform.quality.orchestrator import QualityOrchestrator
-
-    temp_orchestrator = QualityOrchestrator()
-    datadir = temp_orchestrator.data_dir
-
     runner = QualityTestRunner(
         test_threads_dir=ctx.threads_dir,
         test_agents_dir=ctx.agents_dir,
         server_url=ctx.agent_server_url,
-        datadir=datadir,
+        datadir=ctx.quality_folder,
     )
 
     reporter = QualityReporter()
@@ -284,7 +323,6 @@ async def run(
         else:
             reporter.report_results(all_results)
 
-        # Results are automatically saved to datadir by QualityResultsManager
         results_dir = runner.results_manager.get_results_dir()
         click.echo(f"💾 Results automatically saved to {results_dir}")
 
@@ -307,7 +345,7 @@ async def oauth(ctx: Context):
         test_threads_dir=ctx.threads_dir,
         test_agents_dir=ctx.agents_dir,
         server_url=ctx.agent_server_url,
-        datadir=ctx.home_folder,
+        datadir=ctx.quality_folder,
     )
 
     oauth_connections = await runner.get_oauth_connections()
@@ -390,6 +428,7 @@ def async_command(f):
 check_server.callback = async_command(check_server.callback)
 run.callback = async_command(run.callback)
 oauth.callback = async_command(oauth.callback)
+init.callback = async_command(init.callback)
 
 
 def find_monorepo_root() -> Path:

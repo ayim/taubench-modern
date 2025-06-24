@@ -1,5 +1,4 @@
 import asyncio
-import os
 import zipfile
 from http import HTTPStatus
 from pathlib import Path
@@ -17,15 +16,13 @@ class QualityOrchestrator:
 
     def __init__(
         self,
+        data_dir: Path,
         server_url: str = "http://localhost:8000",
-        data_dir: Path | None = None,
         logs_dir: Path | None = None,
     ):
         self.server_url = server_url
         self.action_server_url = None
-        self.data_dir = data_dir or Path(
-            os.path.join(os.path.dirname(__file__), "..", "..", "..", ".datadir")
-        )
+        self.data_dir = data_dir
         self.logs_dir = logs_dir or self.data_dir / "logs"
 
         # Ensure logs directory exists

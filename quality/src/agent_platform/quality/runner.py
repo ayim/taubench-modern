@@ -41,8 +41,8 @@ class QualityTestRunner:
         self,
         test_threads_dir: Path,
         test_agents_dir: Path,
+        datadir: Path,
         server_url: str = "http://localhost:8000",
-        datadir: Path | None = None,
     ):
         self.test_threads_dir = test_threads_dir
         self.test_agents_dir = test_agents_dir
