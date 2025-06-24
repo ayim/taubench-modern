@@ -3,6 +3,9 @@ from collections.abc import AsyncGenerator
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from agent_platform.core.delta import GenericDelta
+from agent_platform.core.errors import ErrorCode
+from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
+from agent_platform.core.errors.streaming import StreamingError
 from agent_platform.core.platforms.azure.configs import (
     AzureOpenAIModelMap,
     AzureOpenAIPlatformConfigs,
@@ -123,15 +126,121 @@ class AzureOpenAIClient(
     def _init_parsers(self) -> AzureOpenAIParsers:
         return AzureOpenAIParsers()
 
+    def _handle_openai_error(  # noqa: C901, PLR0911
+        self, error: Exception, model: str, error_type: type[PlatformError] = PlatformError
+    ) -> PlatformError:
+        """Handle OpenAI errors and convert them to PlatformError instances.
+
+        Args:
+            error: The OpenAI exception that was raised
+            model: The model being used when the error occurred
+            error_type: The type of error to return. Defaults to PlatformError.
+
+        Returns:
+            PlatformError: The appropriate error for the given OpenAI error
+        """
+        from openai import (
+            APIConnectionError,
+            APIError,
+            APITimeoutError,
+            AuthenticationError,
+            BadRequestError,
+            InternalServerError,
+            NotFoundError,
+            PermissionDeniedError,
+            RateLimitError,
+            UnprocessableEntityError,
+        )
+
+        match error:
+            case RateLimitError():
+                return error_type(
+                    error_code=ErrorCode.TOO_MANY_REQUESTS,
+                    message=f"LLM usage limit reached. Please increase the limit for '{model}' "
+                    f"or switch to an available model.",
+                    data={"model": model},
+                )
+            case AuthenticationError():
+                return error_type(
+                    error_code=ErrorCode.UNAUTHORIZED,
+                    message="Authentication failed for Azure OpenAI. Please check your API "
+                    "key and credentials.",
+                    data={"model": model, "azure_endpoint": self._parameters.azure_endpoint_url},
+                )
+            case PermissionDeniedError():
+                return error_type(
+                    error_code=ErrorCode.FORBIDDEN,
+                    message=f"Access denied for Azure OpenAI model '{model}'. Please check "
+                    "your permissions.",
+                    data={"model": model},
+                )
+            case BadRequestError():
+                return error_type(
+                    error_code=ErrorCode.BAD_REQUEST,
+                    message=f"Something went wrong while sending the request to Azure OpenAI model "
+                    f"'{model}', please try again or contact support.",
+                    data={"model": model},
+                )
+            case NotFoundError():
+                return error_type(
+                    error_code=ErrorCode.NOT_FOUND,
+                    message=f"Azure OpenAI model '{model}' or deployment not found. Please "
+                    "verify the model name and deployment.",
+                    data={"model": model, "deployment": self._parameters.azure_deployment_name},
+                )
+            case UnprocessableEntityError():
+                return error_type(
+                    error_code=ErrorCode.UNPROCESSABLE_ENTITY,
+                    message=f"Something went wrong while sending the request to Azure OpenAI model "
+                    f"'{model}', please try again or contact support.",
+                    data={"model": model},
+                )
+            case APITimeoutError():
+                return error_type(
+                    error_code=ErrorCode.UNEXPECTED,
+                    message=f"Request to Azure OpenAI model '{model}' timed out. Please try again.",
+                    data={"model": model},
+                )
+            case APIConnectionError():
+                return error_type(
+                    error_code=ErrorCode.UNEXPECTED,
+                    message="Failed to connect to Azure OpenAI service. Please check your "
+                    "network connection and endpoint.",
+                    data={"model": model, "azure_endpoint": self._parameters.azure_endpoint_url},
+                )
+            case InternalServerError():
+                return error_type(
+                    error_code=ErrorCode.UNEXPECTED,
+                    message="Azure OpenAI service encountered an internal error. Please "
+                    "try again later or contact support.",
+                    data={"model": model},
+                )
+            case APIError():
+                # Base OpenAI error - catch any other OpenAI-specific errors
+                return error_type(
+                    error_code=ErrorCode.UNEXPECTED,
+                    message=f"An unexpected error occurred with Azure OpenAI model '{model}'. "
+                    "Please try again or contact support.",
+                    data={"model": model},
+                )
+            case _:
+                # For any other unexpected errors, re-raise them
+                raise error
+
     async def generate_response(
         self,
         prompt: AzureOpenAIPrompt,
         model: str,
     ) -> ResponseMessage:
         """Generate a response from the AzureOpenAI platform."""
+        from openai import APIError
+
         request = prompt.as_platform_request(model)
-        response = await self._azure_client.chat.completions.create(**request)
-        return self._parsers.parse_response(response)
+        try:
+            response = await self._azure_client.chat.completions.create(**request)
+            return self._parsers.parse_response(response)
+        except APIError as e:
+            raise self._handle_openai_error(e, model, PlatformHTTPError) from e
 
     async def generate_stream_response(
         self,
@@ -140,6 +249,8 @@ class AzureOpenAIClient(
     ) -> AsyncGenerator[GenericDelta, None]:
         """Stream a response from the AzureOpenAI platform."""
         from copy import deepcopy
+
+        from openai import APIError
 
         logger.info(f"Streaming with Azure OpenAI model: {model}")
         request = prompt.as_platform_request(model, stream=True)
@@ -152,18 +263,22 @@ class AzureOpenAIClient(
         }
         last_message: dict[str, Any] = {}
 
-        # Process each event through the parser
-        response = await self._azure_client.chat.completions.create(**request)
-        async for event in response:
-            async for delta in self._parsers.parse_stream_event(
-                event,
-                message,
-                last_message,
-            ):
-                yield delta
+        try:
+            # Process each event through the parser
+            response = await self._azure_client.chat.completions.create(**request)
+            async for event in response:
+                async for delta in self._parsers.parse_stream_event(
+                    event,
+                    message,
+                    last_message,
+                ):
+                    yield delta
 
-            # Update last message state after processing each event
-            last_message = deepcopy(message)
+                # Update last message state after processing each event
+                last_message = deepcopy(message)
+        except APIError as e:
+            # Handle all OpenAI errors using the extracted error handler
+            raise self._handle_openai_error(e, model, StreamingError) from e
 
         # Add final metadata and platform info
         final_event = self._generate_platform_metadata()
