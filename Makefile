@@ -142,10 +142,10 @@ run-server-exe:  ## Run the agent server executable
 	./dist/$(EXE_NAME)
 
 
-test:  check-env-or-no-env ## Run all tests with pytest (VCR playback only)
+test:  sync check-env-or-no-env ## Run all tests with pytest (VCR playback only)
 	VCR_RECORD=none uv run pytest
 
-test-unit:  ## Run only unit tests
+test-unit: sync  ## Run only unit tests
 ifeq ($(CI),true)
 ifeq ($(IS_LINUX),true)
 	VCR_RECORD=none uv run pytest -v -m "not integration"
@@ -156,7 +156,7 @@ else
 	VCR_RECORD=none uv run pytest -v -m "not integration"
 endif
 
-test-integration:  check-env-or-no-env ## Run only integration tests
+test-integration:  sync check-env-or-no-env ## Run only integration tests
 ifeq ($(CI),true)
 ifeq ($(IS_LINUX),true)
 	VCR_RECORD=none uv run pytest -v -m "integration"
@@ -185,48 +185,38 @@ test-vcr-record-fresh:  check-env ## Run tests with pytest and record VCR casset
 	@NUM_NEW_CASSETTES=$$(find core/tests/fixtures/vcr_cassettes/ -type f | wc -l); \
 	echo "Recorded $$NUM_NEW_CASSETTES cassettes!"
 
-coverage:  ## Run tests with pytest and generate coverage report
+coverage:  sync ## Run tests with pytest and generate coverage report
 	uv run coverage run -m pytest
 	uv run coverage report
 	uv run coverage html
 
-check-pr:  ## Run common PR checks (format, lint, typecheck, unit tests)
+check-pr:  sync ## Run common PR checks (format, lint, typecheck, unit tests)
 	@echo "Running PR checks..."
 	$(MAKE) check-format
 	$(MAKE) lint
 	$(MAKE) typecheck
 	$(MAKE) test-unit
-	$(MAKE) check-changes
 	@echo "✅ All PR checks passed!"
 
-lint:  ## Run ruff linting (check only)
+lint:  sync ## Run ruff linting (check only)
 	uv run ruff check
 
-lint-fix:  ## Run ruff linting (fix violations)
+lint-fix:  sync ## Run ruff linting (fix violations)
 	uv run ruff check --fix
 
-lint-fix-unsafe:  ## Run ruff linting (fix violations)
+lint-fix-unsafe:  sync ## Run ruff linting (fix violations)
 	uv run ruff check --fix --unsafe-fixes
 
-typecheck:  ## Run typechecking with pyright
+typecheck:  sync ## Run typechecking with pyright
 	uv run pyright
 
-format:  ## Run formatting with ruff and prettier (node/npm must be in the path for npx to work).
+format:  sync ## Run formatting with ruff and prettier (node/npm must be in the path for npx to work).
 	uv run ruff format
 	npx prettier@3.5.3 . --write
 
-check-format:  ## Run formatting check with ruff
+check-format:  sync ## Run formatting check with ruff
 	uv run ruff format --check
 	npx prettier@3.5.3 . --check
-
-change:  ## Run the change script
-	uv run scripts/changes.py create-change
-
-check-changes:  ## Run the check-changes part of the change script
-	uv run scripts/changes.py check-changes --project ALL --error-on-missing
-
-draft-changes-server:  ## Run the build-changes part of the change script in draft mode for the server project
-	uv run scripts/changes.py build-changes --project server --draft
 
 # --------------------------------------------------------------------
 # Environment Validation

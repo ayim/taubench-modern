@@ -1,39 +1,239 @@
 name: Release - Build, Upload, and Notify
 
 on:
-  pull_request:
-    branches:
-      - main
-      # TODO: support release-* branches
-    types:
-      - closed
-
-defaults:
-  run:
-    shell: bash
+  push:
+    tags:
+      - 'agent-server-v*'
 
 jobs:
-  build-and-release:
-    if: >
-      github.event_name == 'pull_request' &&
-      github.event.pull_request.merged == true &&
-      startsWith(github.event.pull_request.title, 'Release - Bump to ') &&
-      github.event.pull_request.base.ref == 'main'
-    uses: ./.github/workflows/sub-build-server.yml
-    with:
-      release_channel: stable
-    secrets:
-      GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
-      GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI: ${{ secrets.MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI }}
-      MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI: ${{ secrets.MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI }}
-      MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI: ${{ secrets.MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI }}
-      MACOS_SIGNING_CERT_SEMA4AI: ${{ secrets.MACOS_SIGNING_CERT_SEMA4AI }}
-      MACOS_SIGNING_CERT_PASSWORD_SEMA4AI: ${{ secrets.MACOS_SIGNING_CERT_PASSWORD_SEMA4AI }}
-      MACOS_SIGNING_CERT_NAME_SEMA4AI: ${{ secrets.MACOS_SIGNING_CERT_NAME_SEMA4AI }}
-      WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI }}
-      WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI }}
-      WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI }}
-      WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI }}
-      WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI }}
+  version:
+    name: Determine the version for the (pre-)release build
+    runs-on: ubuntu-24.04
+    outputs:
+      value: ${{ steps.version.outputs.value }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        id: uv
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            uv.lock
+            **/uv.lock
+      - name: Report uv cache status
+        run: echo "uv cache hit? ${{ steps.uv.outputs.cache-hit }}"
+
+      - id: version
+        run: |
+          VERSION=$(uv run python -c "import tomllib; print(tomllib.load(open('server/pyproject.toml', 'rb'))['project']['version'])")
+          echo "value=$VERSION" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build Server • ${{ matrix.os }}
+    needs: [version]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            ext: ''
+            artifact-name: agent-server-build-ubuntu-x64
+          - os: macos-13
+            ext: ''
+            artifact-name: agent-server-build-macos-x64
+          - os: macos-15
+            ext: ''
+            artifact-name: agent-server-build-macos-arm64
+          - os: windows-2025
+            ext: '.exe'
+            artifact-name: agent-server-build-windows-x64
+
+    # ---------- signing / notarization credentials ----------
+    env:
+      # macOS codesign / notarize
+      MACOS_SIGNING_CERT: ${{ secrets.MACOS_SIGNING_CERT_SEMA4AI }}
+      MACOS_SIGNING_CERT_PASSWORD: ${{ secrets.MACOS_SIGNING_CERT_PASSWORD_SEMA4AI }}
+      MACOS_SIGNING_CERT_NAME: ${{ secrets.MACOS_SIGNING_CERT_NAME_SEMA4AI }}
+      APPLEID: ${{ secrets.MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI }}
+      APPLEIDPASS: ${{ secrets.MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI }}
+      APPLETEAMID: ${{ secrets.MACOS_TEAM_ID_FOR_NOTARIZATION_SEMA4AI }}
+
+      # Windows Azure‑sign
+      VAULT_URL: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_URL_SEMA4AI }}
+      CLIENT_ID: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_ID_SEMA4AI }}
+      TENANT_ID: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_TENANT_ID_SEMA4AI }}
+      CLIENT_SECRET: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CLIENT_SECRET_SEMA4AI }}
+      CERTIFICATE_NAME: ${{ secrets.WIN_SIGN_AZURE_KEY_VAULT_CERTIFICATE_NAME_SEMA4AI }}
+
+      # Version from Inputs (PR workflows will set a suffix, (pre-)release will use pyproject.toml)
+      VERSION: ${{ needs.version.outputs.value }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        id: uv
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            uv.lock
+            **/uv.lock
+      - name: Report uv cache status
+        run: echo "uv cache hit? ${{ steps.uv.outputs.cache-hit }}"
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+          cache: true
+          cache-dependency-path: |
+            **/go.sum
+
+      - name: Build and Sign Server Executable
+        run: make build
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact-name }}
+          path: dist/agent-server${{ matrix.ext }}
+
+  upload-executables-to-s3:
+    name: Upload Executables to S3 • ${{ matrix.os }}
+    needs: [version, build]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      id-token: write # Needed for the S3 upload
+      contents: read
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            ext: ''
+            artifact-name: agent-server-build-ubuntu-x64
+            s3-path: linux_x64
+          - os: macos-13
+            ext: ''
+            artifact-name: agent-server-build-macos-x64
+            s3-path: macos_x64
+          - os: macos-15
+            ext: ''
+            artifact-name: agent-server-build-macos-arm64
+            s3-path: macos_arm64
+          - os: windows-2025
+            ext: '.exe'
+            artifact-name: agent-server-build-windows-x64
+            s3-path: windows_x64
+
+    env:
+      VERSION: ${{ needs.version.outputs.value }}
+
+    steps:
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.artifact-name }}
+          path: ./dist
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: eu-west-1
+          role-to-assume: arn:aws:iam::710450854638:role/github-action-agent-server
+
+      - name: Publish Server Executable to S3
+        shell: bash
+        id: s3
+        # Note: Our CDN urls will always look like:
+        # https://cdn.sema4.ai/agent-server/v1.0.0/windows_x64/agent-server.exe
+        # https://cdn.sema4.ai/agent-server/v1.0.0/macos_x64/agent-server
+        # https://cdn.sema4.ai/agent-server/v1.0.0/macos_arm64/agent-server
+        # https://cdn.sema4.ai/agent-server/v1.0.0/linux_x64/agent-server
+        #
+        # So we don't need to create outputs for this, just know the version.
+        run: |
+          S3_BASE_URL="s3://downloads.robocorp.com/agent-server/v${VERSION}"
+
+          aws s3 cp ./dist/agent-server${{ matrix.ext }} "$S3_BASE_URL/${{ matrix.s3-path }}/agent-server${{ matrix.ext }}" --cache-control max-age=120 --content-type "application/octet-stream"
+          echo "Agent server executable uploaded to S3: $S3_BASE_URL/${{ matrix.s3-path }}/agent-server${{ matrix.ext }}"
+
+  upload-version-text-to-s3:
+    name: Upload Verstion text file to S3
+    needs: [version, upload-executables-to-s3]
+    runs-on: ubuntu-24.04
+    permissions:
+      id-token: write # Needed for the S3 upload
+      contents: read
+
+    env:
+      VERSION: ${{ needs.version.outputs.value }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        id: uv
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            uv.lock
+            **/uv.lock
+      - name: Report uv cache status
+        run: echo "uv cache hit? ${{ steps.uv.outputs.cache-hit }}"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: eu-west-1
+          role-to-assume: arn:aws:iam::710450854638:role/github-action-agent-server
+
+      - name: Upload Version Text File to S3
+        shell: bash
+        run: |
+          S3_BASE_URL="s3://downloads.robocorp.com/agent-server/v${VERSION}"
+          echo "v${VERSION}" > version.txt
+          aws s3 cp version.txt "$S3_BASE_URL/version.txt" --cache-control max-age=120 --content-type "text/plain"
+          echo "Version text file uploaded to S3: $S3_BASE_URL/version.txt"
+
+  create-github-release:
+    needs: [version, upload-version-text-to-s3]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create release notes
+        run: |
+          mkdir -p tmp
+          cat << EOF > tmp/RELEASE-NOTES.md
+          ## Binary Downloads
+
+          * **Windows x64:** https://cdn.sema4.ai/agent-server/v${{ needs.version.outputs.value }}/windows_x64/agent-server.exe
+          * **macOS x64:** https://cdn.sema4.ai/agent-server/v${{ needs.version.outputs.value }}/macos_x64/agent-server
+          * **macOS ARM64:** https://cdn.sema4.ai/agent-server/v${{ needs.version.outputs.value }}/macos_arm64/agent-server
+          * **Linux x64:** https://cdn.sema4.ai/agent-server/v${{ needs.version.outputs.value }}/linux_x64/agent-server
+
+          ## Changelog
+
+          See the full changelog at [server/CHANGELOG.md](./server/CHANGELOG.md)
+          EOF
+
+      - name: Determine if pre-release
+        id: prerelease
+        run: |
+          VERSION="${{ needs.version.outputs.value }}"
+          if [[ "$VERSION" == *"-"* ]]; then
+            echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
+            echo "Version $VERSION contains hyphen - marking as pre-release"
+          else
+            echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+            echo "Version $VERSION is a stable release"
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release agent-server ${{ needs.version.outputs.value }}
+          body_path: tmp/RELEASE-NOTES.md
+          draft: false
+          prerelease: ${{ steps.prerelease.outputs.is_prerelease }}
+          generate_release_notes: false

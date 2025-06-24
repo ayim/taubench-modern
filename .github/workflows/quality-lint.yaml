@@ -13,13 +13,52 @@ on:
 
 jobs:
   lint:
-    uses: ./.github/workflows/sub-test-lint.yml
-    secrets: inherit
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        id: uv
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            uv.lock
+            **/uv.lock
+      - name: Report uv cache status
+        run: echo "uv cache hit? ${{ steps.uv.outputs.cache-hit }}"
+
+      - run: make sync
+      - run: make lint
 
   typecheck:
-    uses: ./.github/workflows/sub-test-typecheck.yml
-    secrets: inherit
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        id: uv
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            uv.lock
+            **/uv.lock
+      - name: Report uv cache status
+        run: echo "uv cache hit? ${{ steps.uv.outputs.cache-hit }}"
+
+      - run: make sync
+      - run: make typecheck
 
   format:
-    uses: ./.github/workflows/sub-test-format.yml
-    secrets: inherit
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        id: uv
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            uv.lock
+            **/uv.lock
+      - name: Report uv cache status
+        run: echo "uv cache hit? ${{ steps.uv.outputs.cache-hit }}"
+
+      - run: make sync
+      - run: make check-format

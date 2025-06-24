@@ -2,11 +2,13 @@
 Default architecture for running agents.
 """
 
+from importlib.metadata import version
+
 __author__ = "Sema4.ai Engineering"
 __copyright__ = "Copyright 2025, Sema4.ai"
 __license__ = "Proprietary"
 __summary__ = "Default architecture for the Agent Platform"
-__version__ = "0.0.1"
+__version__ = version("agent_platform_architectures_default")
 
 import logging
 import re
