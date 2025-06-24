@@ -689,6 +689,28 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/capabilities/mcp/tools': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * List Mcp Tools
+     * @description List tools available from the provided MCP servers.
+     *
+     *     Returns a mapping of each server to the tools discovered for that server.
+     */
+    post: operations['list_mcp_tools_capabilities_mcp_tools_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/health': {
     parameters: {
       query?: never;
@@ -1405,6 +1427,14 @@ export interface components {
        */
       client_tools?: components['schemas']['ToolDefinitionPayload'][];
     };
+    /** ListMCPToolsRequest */
+    ListMCPToolsRequest: {
+      /**
+       * Mcp Servers
+       * @description The MCP servers to query for tools.
+       */
+      mcp_servers: components['schemas']['MCPServer'][];
+    };
     /** MCPServer */
     MCPServer: {
       /**
@@ -1413,10 +1443,45 @@ export interface components {
        */
       name: string;
       /**
-       * Url
-       * @description The URL of the MCP server. Prefer to NOT include the /mcp or /sse suffixes as the client will try to negotiate the transport automatically.
+       * Transport
+       * @description Transport protocol to use when connecting to the MCP server. Auto defaults to streamable-http unless sse is in the url; if there is no url, defaults to stdio.
+       * @default auto
+       * @enum {string}
        */
-      url: string;
+      transport: 'auto' | 'streamable-http' | 'sse' | 'stdio';
+      /**
+       * Url
+       * @description The URL of the MCP server. This should point directly to the transport endpoint to use.
+       */
+      url?: string | null;
+      /**
+       * Command
+       * @description The command to run the MCP server. If not provided, the MCP server will be assumed to be running on the local machine.
+       */
+      command?: string | null;
+      /**
+       * Args
+       * @description The arguments to pass to the MCP server command.
+       */
+      args?: string[] | null;
+      /**
+       * Env
+       * @description The environment variables to set for the MCP server command.
+       */
+      env?: {
+        [key: string]: string;
+      } | null;
+      /**
+       * Cwd
+       * @description The working directory to run the MCP server command in.
+       */
+      cwd?: string | null;
+      /**
+       * Force Serial Tool Calls
+       * @description If True, all tool calls are executed under a lock to support servers that cannot interleave multiple requests.
+       * @default false
+       */
+      force_serial_tool_calls: boolean;
     };
     /** MemoriesParams */
     MemoriesParams: {
@@ -4334,6 +4399,41 @@ export interface operations {
         };
         content: {
           'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  list_mcp_tools_capabilities_mcp_tools_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ListMCPToolsRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            [key: string]: unknown;
+          };
         };
       };
       /** @description Validation Error */

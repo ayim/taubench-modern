@@ -6,7 +6,7 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Private API Version 2',
-    version: '2.0.2-alpha',
+    version: '2.0.4',
   },
   paths: {
     '/api/v2/ok': {
@@ -2143,6 +2143,49 @@ export const spec = {
         },
       },
     },
+    '/api/v2/capabilities/mcp/tools': {
+      post: {
+        tags: ['capabilities'],
+        summary: 'List Mcp Tools',
+        description:
+          'List tools available from the provided MCP servers.\n\nReturns a mapping of each server to the tools discovered for that server.',
+        operationId: 'list_mcp_tools_capabilities_mcp_tools_post',
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ListMCPToolsRequest',
+              },
+            },
+          },
+          required: true,
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  additionalProperties: true,
+                  type: 'object',
+                  title: 'Response List Mcp Tools Capabilities Mcp Tools Post',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/HTTPValidationError',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/v2/health': {
       get: {
         summary: 'Health',
@@ -3420,6 +3463,21 @@ export const spec = {
         required: ['agent_id'],
         title: 'InitiateStreamPayload',
       },
+      ListMCPToolsRequest: {
+        properties: {
+          mcp_servers: {
+            items: {
+              $ref: '#/components/schemas/MCPServer',
+            },
+            type: 'array',
+            title: 'Mcp Servers',
+            description: 'The MCP servers to query for tools.',
+          },
+        },
+        type: 'object',
+        required: ['mcp_servers'],
+        title: 'ListMCPToolsRequest',
+      },
       MCPServer: {
         properties: {
           name: {
@@ -3427,15 +3485,94 @@ export const spec = {
             title: 'Name',
             description: 'The name of the MCP server.',
           },
-          url: {
+          transport: {
             type: 'string',
+            enum: ['auto', 'streamable-http', 'sse', 'stdio'],
+            title: 'Transport',
+            description:
+              'Transport protocol to use when connecting to the MCP server. Auto defaults to streamable-http unless sse is in the url; if there is no url, defaults to stdio.',
+            default: 'auto',
+          },
+          url: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Url',
             description:
-              'The URL of the MCP server. Prefer to NOT include the /mcp or /sse suffixes as the client will try to negotiate the transport automatically.',
+              'The URL of the MCP server. This should point directly to the transport endpoint to use.',
+          },
+          command: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Command',
+            description:
+              'The command to run the MCP server. If not provided, the MCP server will be assumed to be running on the local machine.',
+          },
+          args: {
+            anyOf: [
+              {
+                items: {
+                  type: 'string',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Args',
+            description: 'The arguments to pass to the MCP server command.',
+          },
+          env: {
+            anyOf: [
+              {
+                additionalProperties: {
+                  type: 'string',
+                },
+                type: 'object',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Env',
+            description:
+              'The environment variables to set for the MCP server command.',
+          },
+          cwd: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Cwd',
+            description:
+              'The working directory to run the MCP server command in.',
+          },
+          force_serial_tool_calls: {
+            type: 'boolean',
+            title: 'Force Serial Tool Calls',
+            description:
+              'If True, all tool calls are executed under a lock to support servers that cannot interleave multiple requests.',
+            default: false,
           },
         },
         type: 'object',
-        required: ['name', 'url'],
+        required: ['name'],
         title: 'MCPServer',
       },
       MemoriesParams: {
