@@ -1,5 +1,5 @@
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
@@ -171,6 +171,12 @@ class ActionPackageSecret:
 
 
 @dataclass
+class Metric:
+    name: str
+    k: int
+
+
+@dataclass
 class TestCase:
     """A complete test case with thread and evaluations."""
 
@@ -180,6 +186,8 @@ class TestCase:
     file_path: Path
     action_secrets: list[ActionPackageSecret]
     sf_auth_override: SFAuthorizationOverride | None = None
+    trials: int = field(default=1)
+    metrics: list[Metric] = field(default_factory=list)
 
     @classmethod
     def from_file(cls, file_path: Path) -> "TestCase":
@@ -253,6 +261,9 @@ class TestCase:
             else None
         )
 
+        trials = data.get("trials", 1)
+        metrics = [Metric(**m) for m in data.get("metrics", [])]
+
         # Parse action-secrets
         action_secrets = [
             ActionPackageSecret(
@@ -275,6 +286,8 @@ class TestCase:
         ]
 
         return cls(
+            trials=trials,
+            metrics=metrics,
             thread=thread,
             target_platforms=target_platforms,
             evaluations=evaluations,
@@ -343,3 +356,8 @@ class ThreadResult:
     evaluation_results: list[TestResult]
     success: bool
     error: str | None = None
+
+
+@dataclass
+class TestResultGroup:
+    thread_results: list[ThreadResult]

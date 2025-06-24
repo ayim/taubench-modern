@@ -112,7 +112,7 @@ class QualityResultsManager:
         logger.info(f"Starting agent testing: {agent_package.name}")
 
         # Calculate total tests for this agent
-        total_tests = sum(len(tc.target_platforms) for tc in test_cases)
+        total_tests = sum(len(tc.target_platforms) * tc.trials for tc in test_cases)
 
         # Initialize agent status
         self.current_status["agents"][agent_package.name] = {
@@ -178,10 +178,10 @@ class QualityResultsManager:
 
             self._write_status()
 
-    def complete_test(self, agent_name: str, result: ThreadResult):
+    def complete_test(self, agent_name: str, result: ThreadResult, index: int):
         """Record completion of a specific test."""
-        test_id = f"{result.test_case.thread.name}_{result.platform.name}"
-        logger.info(f"Completing test: {agent_name}/{test_id} - Success: {result.success}")
+        test_id = f"{result.test_case.thread.name}_{result.platform.name}_{index}"
+        logger.info(f"Completing test: {agent_name}/{test_id}/{index} - Success: {result.success}")
 
         # Thread-safe test completion - use status lock for shared state updates
         with self._status_lock:
@@ -201,6 +201,7 @@ class QualityResultsManager:
 
                 # Convert ThreadResult to JSON-serializable format
                 result_data = {
+                    "trial_id": index,
                     "test_name": result.test_case.thread.name,
                     "platform": result.platform.name,
                     "success": result.success,
@@ -209,6 +210,8 @@ class QualityResultsManager:
                     "error": result.error,
                     "test_case": {
                         "name": result.test_case.thread.name,
+                        "trials": result.test_case.trials,
+                        "metrics": [{"name": m.name, "k": m.k} for m in result.test_case.metrics],
                         "description": result.test_case.thread.description,
                         "file_path": str(result.test_case.file_path),
                         "evaluations": [

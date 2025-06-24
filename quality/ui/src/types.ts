@@ -20,6 +20,7 @@ export interface AgentStatus {
   failed_tests: number;
   current_test?: CurrentTest | null;
   error?: string | null;
+  test_results: TestResultGroup[];
 }
 
 export interface CurrentTest {
@@ -36,6 +37,8 @@ export interface OverallStats {
   completed_tests: number;
   passed_tests: number;
   failed_tests: number;
+  total_trials?: number;
+  completed_trials?: number;
 }
 
 export interface TestSummary {
@@ -53,15 +56,32 @@ export interface AgentSummary {
   status: string;
 }
 
-export interface TestResult {
+export interface TestResultGroup {
   test_name: string;
   platform: string;
+  test_case: TestCase;
+  trials: TrialResult[];
+}
+export interface TrialResult {
+  trial_id: string;
   agent_name?: string;
   success: boolean;
   started_at?: string;
   completed_at: string;
   error?: string;
+  agent_messages: AgentMessage[];
+  evaluation_results: EvaluationResult[];
+}
+
+export interface TestResult {
+  test_name: string;
+  platform: string;
   test_case: TestCase;
+  agent_name?: string;
+  success: boolean;
+  started_at?: string;
+  completed_at: string;
+  error?: string;
   agent_messages: AgentMessage[];
   evaluation_results: EvaluationResult[];
 }
@@ -69,6 +89,8 @@ export interface TestResult {
 export interface TestCase {
   name: string;
   description: string;
+  trials: number;
+  metrics: Array<{ name: string; k: number }>;
   file_path: string;
   evaluations: Evaluation[];
 }

@@ -1,17 +1,41 @@
 import { useTestResults } from './hooks/useTestResults';
 import { AgentResults } from './components/AgentResults';
 import { AgentsList } from './components/AgentsList';
-import { TestResultsList } from './components/TestResultsList';
+import { TestResultsSummary } from './components/TestResultsSummary';
 import { OverallStatsCard } from './components/OverallStatsCard';
 import { RefreshButton } from './components/RefreshButton';
 import { RunTimer } from './components/RunTimer';
 import { AlertCircle, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { TestResultsList } from './components/TestResultsList';
+import { TestResult, TestResultGroup } from './types';
+
+function groupThreadResults(results: TestResult[]): TestResultGroup[] {
+  const groupMap = new Map<string, TestResultGroup>();
+
+  for (const result of results) {
+    const key = `${result.test_name}::${result.platform}`;
+    if (!groupMap.has(key)) {
+      groupMap.set(key, {
+        test_name: result.test_name,
+        platform: result.platform,
+        test_case: result.test_case,
+        trials: [],
+      });
+    }
+    groupMap.get(key)!.trials.push({
+      trial_id: 'FIXME',
+      ...result,
+    });
+  }
+
+  return Array.from(groupMap.values());
+}
 
 function App() {
   const {
     overallStatus,
     agentStatuses,
-    testResults,
+    testResults: threadResults,
     discoveredAgents,
     selectedAgent,
     setSelectedAgent,
@@ -118,6 +142,8 @@ function App() {
     }
   };
 
+  const resultsByTest = groupThreadResults(threadResults);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -169,20 +195,17 @@ function App() {
               </div>
             )}
 
-            {/* Test Results */}
-            {testResults.length > 0 && (
+            {resultsByTest.length > 0 && <TestResultsSummary results={resultsByTest} />}
+
+            {threadResults.length > 0 && (
               <div className="bg-white rounded-lg border border-gray-200 p-6">
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                  Test Results ({testResults.length})
+                  Thread Results ({threadResults.length})
                   {selectedAgent && (
                     <span className="text-sm font-normal text-gray-600 ml-2">- Filtered by {selectedAgent}</span>
                   )}
                 </h2>
-                <TestResultsList
-                  results={testResults}
-                  onFetchTestResult={fetchIndividualTestResult}
-                  currentRunId={currentRunId}
-                />
+                <TestResultsList results={threadResults} />
               </div>
             )}
           </div>

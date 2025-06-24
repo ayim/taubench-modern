@@ -24,6 +24,7 @@ from agent_platform.quality.models import (
     Platform,
     SFAuthorizationOverride,
     TestCase,
+    TestResultGroup,
     ThreadResult,
 )
 from agent_platform.quality.oauth import OAuthManager
@@ -392,11 +393,13 @@ class QualityTestRunner:
                                 error=str(result),
                             )
                             all_results.append(error_result)
-                            self.results_manager.complete_test(agent_package.name, error_result)
-                        elif isinstance(result, ThreadResult):
-                            # result is confirmed ThreadResult here
-                            all_results.append(result)
-                            self.results_manager.complete_test(agent_package.name, result)
+                            self.results_manager.complete_test(agent_package.name, error_result, 1)
+                        elif isinstance(result, TestResultGroup):
+                            for index, thread_result in enumerate(result.thread_results):
+                                all_results.append(thread_result)
+                                self.results_manager.complete_test(
+                                    agent_package.name, thread_result, index
+                                )
 
                 except Exception as e:
                     logger.error(
@@ -413,7 +416,7 @@ class QualityTestRunner:
                             error=str(e),
                         )
                         all_results.append(error_result)
-                        self.results_manager.complete_test(agent_package.name, error_result)
+                        self.results_manager.complete_test(agent_package.name, error_result, 1)
 
             # Mark agent testing as complete
             self.results_manager.complete_agent_testing(agent_package.name)
@@ -593,26 +596,16 @@ class QualityTestRunner:
         agent_id: str,
         test_case: TestCase,
         platform: Platform,
-    ) -> ThreadResult:
+    ) -> TestResultGroup:
         """Run a single test case on a specific platform with all setup."""
-        try:
-            # Run the test
-            result = await self._run_single_test(agent_id, test_case, platform)
-            return result
 
-        except Exception as e:
-            logger.error(
-                f"Test case failed: {test_case.file_path} on platform {platform.name}",
-                error=str(e),
-            )
-            return ThreadResult(
-                test_case=test_case,
-                platform=platform,
-                agent_messages=[],
-                evaluation_results=[],
-                success=False,
-                error=str(e),
-            )
+        # TODO we could average over the evaluations
+        tasks = [
+            self._run_single_test(agent_id, test_case, platform) for _ in range(test_case.trials)
+        ]
+        results = await asyncio.gather(*tasks)
+
+        return TestResultGroup(thread_results=results)
 
     async def _run_single_test(
         self, agent_id: str, test_case: TestCase, platform: Platform
