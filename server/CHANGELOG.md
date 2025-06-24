@@ -1,3 +1,9 @@
+# Sema4.ai Agent Server 2.0.5-alpha.1 (2025-06-24)
+
+## Agent Server
+
+- Administrative release to test the release process.
+
 # Sema4.ai Agent Server 2.0.4 (2025-06-23)
 
 ## Agent Server

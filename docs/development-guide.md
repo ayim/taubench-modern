@@ -110,8 +110,9 @@ This project follows [Semantic Versioning (semver)](https://semver.org/) princip
 ### Version Management
 
 1. **Update `server/pyproject.toml`**: Change the version field manually
-2. **Create Git Tag**: Tag must match `agent-server-v{VERSION}` (e.g., `agent-server-v2.1.0`)
-3. **Push Tag**: `git push origin agent-server-v2.1.0` triggers the release build
+2. **Update lockfile**: Run `make sync` to ensure uv relocks the repository with the new version
+3. **Create Git Tag**: Tag must match `agent-server-v{VERSION}` (e.g., `agent-server-v2.1.0`)
+4. **Push Tag**: `git push origin agent-server-v2.1.0` triggers the release build
 
 ### Pre-release Guidelines
 
@@ -129,6 +130,9 @@ This project follows [Semantic Versioning (semver)](https://semver.org/) princip
    ```bash
    # Edit server/pyproject.toml
    version = "2.1.0-alpha.1"
+
+   # Update the lockfile after version change
+   make sync
    ```
 
 2. **Update the changelog**:
@@ -167,6 +171,7 @@ This project follows [Semantic Versioning (semver)](https://semver.org/) princip
 1. **Prepare release changes**:
 
    - Update version in `server/pyproject.toml` to remove pre-release suffix
+   - Run `make sync` to update the lockfile after version change
    - Clean up changelog to finalize the release notes
    - Create PR to merge these changes into `development` using squash merge
 
