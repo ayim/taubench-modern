@@ -6,6 +6,13 @@
 
 - Changed the Resource instantiation for OTEL based telemetry. ([GPT-1027](https://linear.app/sema4ai/issue/GPT-1027))
 
+## Private API
+
+### Features
+
+- Added new endpoint for surfacing runbook and action package details.
+ ([GPT-1016](https://linear.app/sema4ai/issue/GPT-1016))
+
 # Sema4.ai Agent Server 2.0.5-alpha.1 (2025-06-24)
 
 ## Agent Server

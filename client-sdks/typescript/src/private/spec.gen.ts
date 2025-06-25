@@ -6,7 +6,7 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Private API Version 2',
-    version: '2.0.4',
+    version: '2.0.5a1',
   },
   paths: {
     '/api/v2/ok': {
@@ -603,6 +603,46 @@ export const spec = {
               'application/json': {
                 schema: {
                   $ref: '#/components/schemas/AgentCompat',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/HTTPValidationError',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/agents/{aid}/agent-details': {
+      get: {
+        tags: ['agents'],
+        summary: 'Get Agent Details',
+        operationId: 'get_agent_details_agents__aid__agent_details_get',
+        parameters: [
+          {
+            name: 'aid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Aid',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/AgentDetails',
                 },
               },
             },
@@ -2229,6 +2269,17 @@ export const spec = {
   },
   components: {
     schemas: {
+      ActionDetail: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+        },
+        type: 'object',
+        required: ['name'],
+        title: 'ActionDetail',
+      },
       ActionPackage: {
         properties: {
           name: {
@@ -2339,6 +2390,33 @@ export const spec = {
         },
         type: 'object',
         title: 'ActionPackageCompat',
+      },
+      ActionPackageDetail: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+          actions: {
+            items: {
+              $ref: '#/components/schemas/ActionDetail',
+            },
+            type: 'array',
+            title: 'Actions',
+          },
+          version: {
+            type: 'string',
+            title: 'Version',
+          },
+          status: {
+            type: 'string',
+            enum: ['online', 'offline'],
+            title: 'Status',
+          },
+        },
+        type: 'object',
+        required: ['name', 'actions', 'version', 'status'],
+        title: 'ActionPackageDetail',
       },
       ActionServerConfigPayload: {
         properties: {
@@ -2631,6 +2709,24 @@ export const spec = {
           'agent_architecture',
         ],
         title: 'AgentCompat',
+      },
+      AgentDetails: {
+        properties: {
+          runbook: {
+            type: 'string',
+            title: 'Runbook',
+          },
+          action_packages: {
+            items: {
+              $ref: '#/components/schemas/ActionPackageDetail',
+            },
+            type: 'array',
+            title: 'Action Packages',
+          },
+        },
+        type: 'object',
+        required: ['runbook', 'action_packages'],
+        title: 'AgentDetails',
       },
       AgentPackagePayload: {
         properties: {

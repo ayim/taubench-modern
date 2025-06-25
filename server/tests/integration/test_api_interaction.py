@@ -573,6 +573,160 @@ def test_async_action_polling_with_fast_retry_interval(
             os.environ.pop("ACTIONS_ASYNC_TIMEOUT", None)
 
 
+@pytest.mark.integration
+@pytest.mark.usefixtures("copy_tmpdir_on_failure")
+async def test_agent_details_endpoint(
+    base_url_agent_server,
+    openai_api_key,
+    action_server_process,
+    logs_dir,
+    resources_dir,
+):
+    """Integration test for the agent-details endpoint.
+    Tests that we can get agent details including action package status."""
+    from agent_platform.orchestrator.agent_server_client import (
+        ActionPackage,
+        AgentServerClient,
+        SecretKey,
+    )
+
+    cwd = resources_dir / "simple_action_package"
+    api_key = "test"
+    action_server_process.start(
+        cwd=cwd,
+        actions_sync=True,
+        min_processes=1,
+        max_processes=1,
+        reuse_processes=True,
+        lint=True,
+        timeout=500,  # Can be slow (time to bootstrap env)
+        additional_args=["--api-key", api_key],
+        logs_dir=logs_dir,
+    )
+    url = f"http://{action_server_process.host}:{action_server_process.port}"
+
+    with AgentServerClient(base_url_agent_server) as agent_client:
+        # Create an agent with two action packages
+        action_packages = [
+            ActionPackage(
+                name=f"test_package_{i}",
+                organization="test_org",
+                version="1.0.0",
+                url=url
+                if i == 0
+                else "http://non-existent-url:12345",  # Second package has invalid URL
+                api_key=SecretKey(value=api_key),
+                whitelist="",
+                allowed_actions=[],
+            )
+            for i in range(2)
+        ]
+
+        agent_id = agent_client.create_agent_and_return_agent_id(
+            action_packages=action_packages,
+            platform_configs=[
+                {
+                    "kind": "openai",
+                    "openai_api_key": openai_api_key,
+                },
+            ],
+        )
+
+        # Get agent details using the client method
+        agent_details = agent_client.get_agent_details(agent_id)
+        assert "runbook" in agent_details, "Agent details should include runbook"
+        assert "action_packages" in agent_details, "Agent details should include action packages"
+        assert len(agent_details["action_packages"]) == 2, "Should have two action packages"
+
+        # First package should be online
+        first_package = agent_details["action_packages"][0]
+        assert first_package["name"] == "test_package_0"
+        assert first_package["version"] == "1.0.0"
+        assert first_package["status"] == "online"
+        assert len(first_package["actions"]) > 0, "Online package should have actions"
+
+        # Second package should be offline (non-existent URL)
+        second_package = agent_details["action_packages"][1]
+        assert second_package["name"] == "test_package_1"
+        assert second_package["version"] == "1.0.0"
+        assert second_package["status"] == "offline"
+        assert len(second_package["actions"]) == 0, "Offline package should have no actions"
+
+
+@pytest.mark.integration
+@pytest.mark.usefixtures("copy_tmpdir_on_failure")
+async def test_agent_details_with_allowed_actions(
+    base_url_agent_server,
+    openai_api_key,
+    action_server_process,
+    logs_dir,
+    resources_dir,
+):
+    """Integration test for the agent-details endpoint with allowed actions.
+    Tests that we can get agent details and only see allowed actions."""
+    from agent_platform.orchestrator.agent_server_client import (
+        ActionPackage,
+        AgentServerClient,
+        SecretKey,
+    )
+
+    cwd = resources_dir / "simple_action_package"
+    api_key = "test"
+    action_server_process.start(
+        cwd=cwd,
+        actions_sync=True,
+        min_processes=1,
+        max_processes=1,
+        reuse_processes=True,
+        lint=True,
+        timeout=500,  # Can be slow (time to bootstrap env)
+        additional_args=["--api-key", api_key],
+        logs_dir=logs_dir,
+    )
+    url = f"http://{action_server_process.host}:{action_server_process.port}"
+
+    with AgentServerClient(base_url_agent_server) as agent_client:
+        # Create an agent with one action package that has allowed actions
+        action_package = ActionPackage(
+            name="test_package",
+            organization="test_org",
+            version="1.0.0",
+            url=url,
+            api_key=SecretKey(value=api_key),
+            allowed_actions=["list_contacts", "get_contact_details"],  # Only allow these actions
+        )
+
+        agent_id = agent_client.create_agent_and_return_agent_id(
+            action_packages=[action_package],
+            platform_configs=[
+                {
+                    "kind": "openai",
+                    "openai_api_key": openai_api_key,
+                },
+            ],
+        )
+
+        # Get agent details using the client method
+        agent_details = agent_client.get_agent_details(agent_id)
+        assert "runbook" in agent_details, "Agent details should include runbook"
+        assert "action_packages" in agent_details, "Agent details should include action packages"
+        assert len(agent_details["action_packages"]) == 1, "Should have one action package"
+
+        # Package should be online and only have the allowed actions
+        package = agent_details["action_packages"][0]
+        assert package["name"] == "test_package"
+        assert package["version"] == "1.0.0"
+        assert package["status"] == "online"
+
+        # Should only have the allowed actions
+        action_names = [action["name"] for action in package["actions"]]
+        assert len(action_names) == 2, "Should only have the two allowed actions"
+        assert "list_contacts" in action_names, "Should have list_contacts action"
+        assert "get_contact_details" in action_names, "Should have get_contact_details action"
+        assert "add_contact" not in action_names, "Should not have add_contact action"
+        assert "delete_contact" not in action_names, "Should not have delete_contact action"
+
+
 if __name__ == "__main__":
     import pytest
 

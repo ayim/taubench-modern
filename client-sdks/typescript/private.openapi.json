@@ -2,13 +2,9 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Sema4.ai Agent Server Private API Version 2",
-    "version": "2.0.4"
+    "version": "2.0.5a1"
   },
-  "servers": [
-    {
-      "url": "/api/v2"
-    }
-  ],
+  "servers": [{ "url": "/api/v2" }],
   "paths": {
     "/ok": {
       "get": {
@@ -17,11 +13,7 @@
         "responses": {
           "200": {
             "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
+            "content": { "application/json": { "schema": {} } }
           }
         }
       }
@@ -37,9 +29,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/AgentCompat"
-                  },
+                  "items": { "$ref": "#/components/schemas/AgentCompat" },
                   "type": "array",
                   "title": "Response List Agents Agents  Get"
                 }
@@ -55,9 +45,7 @@
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpsertAgentPayload"
-              }
+              "schema": { "$ref": "#/components/schemas/UpsertAgentPayload" }
             }
           },
           "required": true
@@ -67,9 +55,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AgentCompat"
-                }
+                "schema": { "$ref": "#/components/schemas/AgentCompat" }
               }
             }
           },
@@ -77,9 +63,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -97,9 +81,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/AgentCompat"
-                  },
+                  "items": { "$ref": "#/components/schemas/AgentCompat" },
                   "type": "array",
                   "title": "Response List Agents Raw Agents Raw Get"
                 }
@@ -119,10 +101,7 @@
             "name": "name",
             "in": "query",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Name"
-            }
+            "schema": { "type": "string", "title": "Name" }
           }
         ],
         "responses": {
@@ -130,9 +109,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AgentCompat"
-                }
+                "schema": { "$ref": "#/components/schemas/AgentCompat" }
               }
             }
           },
@@ -140,9 +117,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -159,23 +134,16 @@
             "name": "aid",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Aid"
-            }
+            "schema": { "type": "string", "title": "Aid" }
           }
         ],
         "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
+          "204": { "description": "Successful Response" },
           "422": {
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -192,19 +160,14 @@
             "name": "aid",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Aid"
-            }
+            "schema": { "type": "string", "title": "Aid" }
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpsertAgentPayload"
-              }
+              "schema": { "$ref": "#/components/schemas/UpsertAgentPayload" }
             }
           }
         },
@@ -213,9 +176,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AgentCompat"
-                }
+                "schema": { "$ref": "#/components/schemas/AgentCompat" }
               }
             }
           },
@@ -223,9 +184,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -240,19 +199,14 @@
             "name": "aid",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Aid"
-            }
+            "schema": { "type": "string", "title": "Aid" }
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PatchAgentPayload"
-              }
+              "schema": { "$ref": "#/components/schemas/PatchAgentPayload" }
             }
           }
         },
@@ -261,9 +215,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AgentCompat"
-                }
+                "schema": { "$ref": "#/components/schemas/AgentCompat" }
               }
             }
           },
@@ -271,9 +223,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -288,10 +238,7 @@
             "name": "aid",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Aid"
-            }
+            "schema": { "type": "string", "title": "Aid" }
           }
         ],
         "responses": {
@@ -299,9 +246,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AgentCompat"
-                }
+                "schema": { "$ref": "#/components/schemas/AgentCompat" }
               }
             }
           },
@@ -309,9 +254,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -326,23 +269,16 @@
             "name": "aid",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Aid"
-            }
+            "schema": { "type": "string", "title": "Aid" }
           }
         ],
         "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
+          "204": { "description": "Successful Response" },
           "422": {
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -359,19 +295,14 @@
             "name": "aid",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Aid"
-            }
+            "schema": { "type": "string", "title": "Aid" }
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpsertAgentPayload"
-              }
+              "schema": { "$ref": "#/components/schemas/UpsertAgentPayload" }
             }
           }
         },
@@ -380,9 +311,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AgentCompat"
-                }
+                "schema": { "$ref": "#/components/schemas/AgentCompat" }
               }
             }
           },
@@ -390,9 +319,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -407,10 +334,7 @@
             "name": "aid",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Aid"
-            }
+            "schema": { "type": "string", "title": "Aid" }
           }
         ],
         "responses": {
@@ -418,9 +342,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AgentCompat"
-                }
+                "schema": { "$ref": "#/components/schemas/AgentCompat" }
               }
             }
           },
@@ -428,9 +350,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -447,10 +367,7 @@
             "name": "aid",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Aid"
-            }
+            "schema": { "type": "string", "title": "Aid" }
           }
         ],
         "responses": {
@@ -460,9 +377,7 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/UploadedFile"
-                  },
+                  "items": { "$ref": "#/components/schemas/UploadedFile" },
                   "title": "Response Get Agent Files Agents  Aid  Files Get"
                 }
               }
@@ -472,9 +387,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -491,10 +404,7 @@
             "name": "aid",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Aid"
-            }
+            "schema": { "type": "string", "title": "Aid" }
           }
         ],
         "requestBody": {
@@ -512,9 +422,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AgentCompat"
-                }
+                "schema": { "$ref": "#/components/schemas/AgentCompat" }
               }
             }
           },
@@ -522,9 +430,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -539,9 +445,7 @@
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AgentPackagePayload"
-              }
+              "schema": { "$ref": "#/components/schemas/AgentPackagePayload" }
             }
           },
           "required": true
@@ -551,9 +455,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AgentCompat"
-                }
+                "schema": { "$ref": "#/components/schemas/AgentCompat" }
               }
             }
           },
@@ -561,9 +463,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -580,19 +480,14 @@
             "name": "aid",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Aid"
-            }
+            "schema": { "type": "string", "title": "Aid" }
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AgentPackagePayload"
-              }
+              "schema": { "$ref": "#/components/schemas/AgentPackagePayload" }
             }
           }
         },
@@ -601,9 +496,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AgentCompat"
-                }
+                "schema": { "$ref": "#/components/schemas/AgentCompat" }
               }
             }
           },
@@ -611,9 +504,40 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agents/{aid}/agent-details": {
+      "get": {
+        "tags": ["agents"],
+        "summary": "Get Agent Details",
+        "operationId": "get_agent_details_agents__aid__agent_details_get",
+        "parameters": [
+          {
+            "name": "aid",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Aid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AgentDetails" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -630,28 +554,19 @@
             "name": "run_id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Run Id"
-            }
+            "schema": { "type": "string", "title": "Run Id" }
           }
         ],
         "responses": {
           "200": {
             "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
+            "content": { "application/json": { "schema": {} } }
           },
           "422": {
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -669,28 +584,19 @@
             "name": "run_id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Run Id"
-            }
+            "schema": { "type": "string", "title": "Run Id" }
           }
         ],
         "responses": {
           "200": {
             "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
+            "content": { "application/json": { "schema": {} } }
           },
           "422": {
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -708,19 +614,14 @@
             "name": "agent_id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Agent Id"
-            }
+            "schema": { "type": "string", "title": "Agent Id" }
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/InitiateStreamPayload"
-              }
+              "schema": { "$ref": "#/components/schemas/InitiateStreamPayload" }
             }
           }
         },
@@ -743,9 +644,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -763,38 +662,27 @@
             "name": "agent_id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Agent Id"
-            }
+            "schema": { "type": "string", "title": "Agent Id" }
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/InitiateStreamPayload"
-              }
+              "schema": { "$ref": "#/components/schemas/InitiateStreamPayload" }
             }
           }
         },
         "responses": {
           "200": {
             "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
+            "content": { "application/json": { "schema": {} } }
           },
           "422": {
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -810,9 +698,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpsertThreadPayload"
-              }
+              "schema": { "$ref": "#/components/schemas/UpsertThreadPayload" }
             }
           }
         },
@@ -821,9 +707,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Thread"
-                }
+                "schema": { "$ref": "#/components/schemas/Thread" }
               }
             }
           },
@@ -831,9 +715,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -849,14 +731,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Agent Id"
             }
           },
@@ -865,14 +740,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Aid"
             }
           },
@@ -881,14 +749,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Name"
             }
           },
@@ -897,14 +758,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "integer" }, { "type": "null" }],
               "title": "Limit"
             }
           }
@@ -916,9 +770,7 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Thread"
-                  },
+                  "items": { "$ref": "#/components/schemas/Thread" },
                   "title": "Response List Threads Threads  Get"
                 }
               }
@@ -928,9 +780,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -945,10 +795,7 @@
             "name": "agent_id",
             "in": "query",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Agent Id"
-            }
+            "schema": { "type": "string", "title": "Agent Id" }
           }
         ],
         "requestBody": {
@@ -956,15 +803,8 @@
             "application/json": {
               "schema": {
                 "anyOf": [
-                  {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  {
-                    "type": "null"
-                  }
+                  { "type": "array", "items": { "type": "string" } },
+                  { "type": "null" }
                 ],
                 "title": "Thread Ids"
               }
@@ -972,16 +812,12 @@
           }
         },
         "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
+          "204": { "description": "Successful Response" },
           "422": {
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -999,19 +835,14 @@
             "name": "tid",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Tid"
-            }
+            "schema": { "type": "string", "title": "Tid" }
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpsertThreadPayload"
-              }
+              "schema": { "$ref": "#/components/schemas/UpsertThreadPayload" }
             }
           }
         },
@@ -1020,9 +851,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Thread"
-                }
+                "schema": { "$ref": "#/components/schemas/Thread" }
               }
             }
           },
@@ -1030,9 +859,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -1048,19 +875,14 @@
             "name": "tid",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Tid"
-            }
+            "schema": { "type": "string", "title": "Tid" }
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PatchThreadPayload"
-              }
+              "schema": { "$ref": "#/components/schemas/PatchThreadPayload" }
             }
           }
         },
@@ -1069,9 +891,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Thread"
-                }
+                "schema": { "$ref": "#/components/schemas/Thread" }
               }
             }
           },
@@ -1079,9 +899,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -1096,10 +914,7 @@
             "name": "tid",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Tid"
-            }
+            "schema": { "type": "string", "title": "Tid" }
           }
         ],
         "responses": {
@@ -1107,9 +922,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Thread"
-                }
+                "schema": { "$ref": "#/components/schemas/Thread" }
               }
             }
           },
@@ -1117,9 +930,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -1134,23 +945,16 @@
             "name": "tid",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Tid"
-            }
+            "schema": { "type": "string", "title": "Tid" }
           }
         ],
         "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
+          "204": { "description": "Successful Response" },
           "422": {
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -1167,10 +971,7 @@
             "name": "tid",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Tid"
-            }
+            "schema": { "type": "string", "title": "Tid" }
           }
         ],
         "responses": {
@@ -1178,9 +979,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Thread"
-                }
+                "schema": { "$ref": "#/components/schemas/Thread" }
               }
             }
           },
@@ -1188,9 +987,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -1207,10 +1004,7 @@
             "name": "tid",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Tid"
-            }
+            "schema": { "type": "string", "title": "Tid" }
           }
         ],
         "responses": {
@@ -1230,9 +1024,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -1250,19 +1042,14 @@
             "name": "tid",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Tid"
-            }
+            "schema": { "type": "string", "title": "Tid" }
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ForkThreadPayload"
-              }
+              "schema": { "$ref": "#/components/schemas/ForkThreadPayload" }
             }
           }
         },
@@ -1271,9 +1058,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Thread"
-                }
+                "schema": { "$ref": "#/components/schemas/Thread" }
               }
             }
           },
@@ -1281,9 +1066,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -1300,10 +1083,7 @@
             "name": "tid",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Tid"
-            }
+            "schema": { "type": "string", "title": "Tid" }
           }
         ],
         "requestBody": {
@@ -1321,9 +1101,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Thread"
-                }
+                "schema": { "$ref": "#/components/schemas/Thread" }
               }
             }
           },
@@ -1331,9 +1109,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -1351,46 +1127,31 @@
             "name": "tid",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Tid"
-            }
+            "schema": { "type": "string", "title": "Tid" }
           },
           {
             "name": "message_id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Message Id"
-            }
+            "schema": { "type": "string", "title": "Message Id" }
           },
           {
             "name": "agent_id",
             "in": "query",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Agent Id"
-            }
+            "schema": { "type": "string", "title": "Agent Id" }
           }
         ],
         "responses": {
           "200": {
             "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
+            "content": { "application/json": { "schema": {} } }
           },
           "422": {
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -1408,10 +1169,7 @@
             "name": "tid",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Tid"
-            }
+            "schema": { "type": "string", "title": "Tid" }
           }
         ],
         "responses": {
@@ -1421,9 +1179,7 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/UploadedFile"
-                  },
+                  "items": { "$ref": "#/components/schemas/UploadedFile" },
                   "title": "Response Get Thread Files Threads  Tid  Files Get"
                 }
               }
@@ -1433,9 +1189,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -1451,10 +1205,7 @@
             "name": "tid",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Tid"
-            }
+            "schema": { "type": "string", "title": "Tid" }
           }
         ],
         "requestBody": {
@@ -1474,9 +1225,7 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/UploadedFile"
-                  },
+                  "items": { "$ref": "#/components/schemas/UploadedFile" },
                   "title": "Response Upload Thread Files Threads  Tid  Files Post"
                 }
               }
@@ -1486,9 +1235,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -1504,23 +1251,16 @@
             "name": "tid",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Tid"
-            }
+            "schema": { "type": "string", "title": "Tid" }
           }
         ],
         "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
+          "204": { "description": "Successful Response" },
           "422": {
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -1538,19 +1278,13 @@
             "name": "tid",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Tid"
-            }
+            "schema": { "type": "string", "title": "Tid" }
           },
           {
             "name": "file_ref",
             "in": "query",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "File Ref"
-            }
+            "schema": { "type": "string", "title": "File Ref" }
           }
         ],
         "responses": {
@@ -1558,9 +1292,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UploadedFile"
-                }
+                "schema": { "$ref": "#/components/schemas/UploadedFile" }
               }
             }
           },
@@ -1568,9 +1300,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -1588,32 +1318,22 @@
             "name": "tid",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Tid"
-            }
+            "schema": { "type": "string", "title": "Tid" }
           },
           {
             "name": "file_id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "File Id"
-            }
+            "schema": { "type": "string", "title": "File Id" }
           }
         ],
         "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
+          "204": { "description": "Successful Response" },
           "422": {
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -1630,37 +1350,25 @@
             "name": "tid",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Tid"
-            }
+            "schema": { "type": "string", "title": "Tid" }
           },
           {
             "name": "file_ref",
             "in": "query",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "File Ref"
-            }
+            "schema": { "type": "string", "title": "File Ref" }
           }
         ],
         "responses": {
           "200": {
             "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
+            "content": { "application/json": { "schema": {} } }
           },
           "422": {
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -1677,10 +1385,7 @@
             "name": "tid",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Tid"
-            }
+            "schema": { "type": "string", "title": "Tid" }
           }
         ],
         "requestBody": {
@@ -1696,19 +1401,13 @@
         "responses": {
           "200": {
             "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
+            "content": { "application/json": { "schema": {} } }
           },
           "422": {
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -1725,10 +1424,7 @@
             "name": "tid",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Tid"
-            }
+            "schema": { "type": "string", "title": "Tid" }
           }
         ],
         "requestBody": {
@@ -1744,19 +1440,13 @@
         "responses": {
           "200": {
             "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
+            "content": { "application/json": { "schema": {} } }
           },
           "422": {
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -1774,9 +1464,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/OTelArtifact"
-                  },
+                  "items": { "$ref": "#/components/schemas/OTelArtifact" },
                   "type": "array",
                   "title": "Response Get Artifacts Debug Artifacts Get"
                 }
@@ -1815,14 +1503,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Trace Id"
             }
           },
@@ -1831,14 +1512,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "User Id"
             }
           },
@@ -1847,14 +1521,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Agent Id"
             }
           },
@@ -1863,14 +1530,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Thread Id"
             }
           },
@@ -1879,14 +1539,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Run Id"
             }
           },
@@ -1895,14 +1548,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Message Id"
             }
           }
@@ -1914,9 +1560,7 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/OTelArtifact"
-                  },
+                  "items": { "$ref": "#/components/schemas/OTelArtifact" },
                   "title": "Response Search Artifacts Debug Artifacts Search Get"
                 }
               }
@@ -1926,9 +1570,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -1945,10 +1587,7 @@
             "name": "aid",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Aid"
-            }
+            "schema": { "type": "string", "title": "Aid" }
           }
         ],
         "responses": {
@@ -1956,9 +1595,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OTelArtifact"
-                }
+                "schema": { "$ref": "#/components/schemas/OTelArtifact" }
               }
             }
           },
@@ -1966,9 +1603,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -2004,11 +1639,7 @@
         "responses": {
           "200": {
             "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
+            "content": { "application/json": { "schema": {} } }
           }
         }
       }
@@ -2021,11 +1652,7 @@
         "responses": {
           "200": {
             "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
+            "content": { "application/json": { "schema": {} } }
           }
         }
       }
@@ -2041,9 +1668,7 @@
             "name": "response_model",
             "in": "query",
             "required": false,
-            "schema": {
-              "title": "Response Model"
-            }
+            "schema": { "title": "Response Model" }
           },
           {
             "name": "summary",
@@ -2058,19 +1683,13 @@
         "responses": {
           "200": {
             "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
+            "content": { "application/json": { "schema": {} } }
           },
           "422": {
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -2088,10 +1707,7 @@
             "name": "kind",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Kind"
-            }
+            "schema": { "type": "string", "title": "Kind" }
           }
         ],
         "requestBody": {
@@ -2109,19 +1725,13 @@
         "responses": {
           "200": {
             "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
+            "content": { "application/json": { "schema": {} } }
           },
           "422": {
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -2137,9 +1747,7 @@
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ListMCPToolsRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/ListMCPToolsRequest" }
             }
           },
           "required": true
@@ -2161,9 +1769,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -2181,14 +1787,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Model"
             }
           },
@@ -2214,14 +1813,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Agent Id"
             }
           },
@@ -2230,14 +1822,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Thread Id"
             }
           }
@@ -2257,9 +1842,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResponseMessage"
-                }
+                "schema": { "$ref": "#/components/schemas/ResponseMessage" }
               }
             }
           },
@@ -2267,9 +1850,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -2287,14 +1868,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Model"
             }
           },
@@ -2320,14 +1894,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Agent Id"
             }
           },
@@ -2336,14 +1903,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Thread Id"
             }
           }
@@ -2361,19 +1921,13 @@
         "responses": {
           "200": {
             "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
+            "content": { "application/json": { "schema": {} } }
           },
           "422": {
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -2423,6 +1977,12 @@
   },
   "components": {
     "schemas": {
+      "ActionDetail": {
+        "properties": { "name": { "type": "string", "title": "Name" } },
+        "type": "object",
+        "required": ["name"],
+        "title": "ActionDetail"
+      },
       "ActionPackage": {
         "properties": {
           "name": {
@@ -2441,32 +2001,19 @@
             "description": "The version of the action package."
           },
           "url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Url",
             "description": "URL of the action server that hosts the action package."
           },
           "api_key": {
             "anyOf": [
-              {
-                "$ref": "#/components/schemas/SecretString"
-              },
-              {
-                "type": "null"
-              }
+              { "$ref": "#/components/schemas/SecretString" },
+              { "type": "null" }
             ],
             "description": "API Key of the action server that hosts the action package."
           },
           "allowed_actions": {
-            "items": {
-              "type": "string"
-            },
+            "items": { "type": "string" },
             "type": "array",
             "title": "Allowed Actions",
             "description": "Actions to enable in the action server that hosts the action package. An empty list implies all actions are enabled."
@@ -2484,51 +2031,44 @@
       },
       "ActionPackageCompat": {
         "properties": {
-          "name": {
-            "type": "string",
-            "title": "Name",
-            "default": ""
-          },
+          "name": { "type": "string", "title": "Name", "default": "" },
           "organization": {
             "type": "string",
             "title": "Organization",
             "default": ""
           },
-          "version": {
-            "type": "string",
-            "title": "Version",
-            "default": ""
-          },
+          "version": { "type": "string", "title": "Version", "default": "" },
           "url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Url"
           },
           "api_key": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Api Key"
           },
-          "whitelist": {
-            "type": "string",
-            "title": "Whitelist",
-            "default": ""
-          }
+          "whitelist": { "type": "string", "title": "Whitelist", "default": "" }
         },
         "type": "object",
         "title": "ActionPackageCompat"
+      },
+      "ActionPackageDetail": {
+        "properties": {
+          "name": { "type": "string", "title": "Name" },
+          "actions": {
+            "items": { "$ref": "#/components/schemas/ActionDetail" },
+            "type": "array",
+            "title": "Actions"
+          },
+          "version": { "type": "string", "title": "Version" },
+          "status": {
+            "type": "string",
+            "enum": ["online", "offline"],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": ["name", "actions", "version", "status"],
+        "title": "ActionPackageDetail"
       },
       "ActionServerConfigPayload": {
         "properties": {
@@ -2539,12 +2079,8 @@
           },
           "api_key": {
             "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "$ref": "#/components/schemas/SecretString"
-              }
+              { "type": "string" },
+              { "$ref": "#/components/schemas/SecretString" }
             ],
             "title": "Api Key",
             "description": "The API key of the action server."
@@ -2559,24 +2095,12 @@
           "content": {
             "items": {
               "anyOf": [
-                {
-                  "$ref": "#/components/schemas/ThreadTextContent"
-                },
-                {
-                  "$ref": "#/components/schemas/ThreadQuickActionsContent"
-                },
-                {
-                  "$ref": "#/components/schemas/ThreadVegaChartContent"
-                },
-                {
-                  "$ref": "#/components/schemas/ThreadToolUsageContent"
-                },
-                {
-                  "$ref": "#/components/schemas/ThreadThoughtContent"
-                },
-                {
-                  "$ref": "#/components/schemas/ThreadAttachmentContent"
-                }
+                { "$ref": "#/components/schemas/ThreadTextContent" },
+                { "$ref": "#/components/schemas/ThreadQuickActionsContent" },
+                { "$ref": "#/components/schemas/ThreadVegaChartContent" },
+                { "$ref": "#/components/schemas/ThreadToolUsageContent" },
+                { "$ref": "#/components/schemas/ThreadThoughtContent" },
+                { "$ref": "#/components/schemas/ThreadAttachmentContent" }
               ]
             },
             "type": "array",
@@ -2614,14 +2138,7 @@
             "description": "The metadata associated with the message (for agent-server use only)"
           },
           "parent_run_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Parent Run Id",
             "description": "The unique identifier for the run that created this message or None if this message was not created by a run"
           }
@@ -2676,27 +2193,15 @@
           "platform_configs": {
             "items": {
               "anyOf": [
-                {
-                  "$ref": "#/components/schemas/BedrockPlatformParameters"
-                },
-                {
-                  "$ref": "#/components/schemas/CortexPlatformParameters"
-                },
-                {
-                  "$ref": "#/components/schemas/OpenAIPlatformParameters"
-                },
+                { "$ref": "#/components/schemas/BedrockPlatformParameters" },
+                { "$ref": "#/components/schemas/CortexPlatformParameters" },
+                { "$ref": "#/components/schemas/OpenAIPlatformParameters" },
                 {
                   "$ref": "#/components/schemas/AzureOpenAIPlatformParameters"
                 },
-                {
-                  "$ref": "#/components/schemas/GooglePlatformParameters"
-                },
-                {
-                  "$ref": "#/components/schemas/GroqPlatformParameters"
-                },
-                {
-                  "$ref": "#/components/schemas/ReductoPlatformParameters"
-                }
+                { "$ref": "#/components/schemas/GooglePlatformParameters" },
+                { "$ref": "#/components/schemas/GroqPlatformParameters" },
+                { "$ref": "#/components/schemas/ReductoPlatformParameters" }
               ]
             },
             "type": "array",
@@ -2708,32 +2213,24 @@
             "description": "The architecture details for the agent."
           },
           "action_packages": {
-            "items": {
-              "$ref": "#/components/schemas/ActionPackageCompat"
-            },
+            "items": { "$ref": "#/components/schemas/ActionPackageCompat" },
             "type": "array",
             "title": "Action Packages"
           },
           "mcp_servers": {
-            "items": {
-              "$ref": "#/components/schemas/MCPServer"
-            },
+            "items": { "$ref": "#/components/schemas/MCPServer" },
             "type": "array",
             "title": "Mcp Servers",
             "description": "The Model Context Protocol (MCP) servers this agent uses."
           },
           "question_groups": {
-            "items": {
-              "$ref": "#/components/schemas/QuestionGroup"
-            },
+            "items": { "$ref": "#/components/schemas/QuestionGroup" },
             "type": "array",
             "title": "Question Groups",
             "description": "The question groups of the agent."
           },
           "observability_configs": {
-            "items": {
-              "$ref": "#/components/schemas/ObservabilityConfig"
-            },
+            "items": { "$ref": "#/components/schemas/ObservabilityConfig" },
             "type": "array",
             "title": "Observability Configs",
             "description": "The observability configs of the agent."
@@ -2767,27 +2264,12 @@
             "title": "Extra",
             "description": "Extra fields for the agent."
           },
-          "runbook": {
-            "type": "string",
-            "title": "Runbook",
-            "default": ""
-          },
+          "runbook": { "type": "string", "title": "Runbook", "default": "" },
           "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Id"
           },
-          "public": {
-            "type": "boolean",
-            "title": "Public",
-            "default": true
-          },
+          "public": { "type": "boolean", "title": "Public", "default": true },
           "metadata": {
             "additionalProperties": true,
             "type": "object",
@@ -2816,6 +2298,19 @@
         ],
         "title": "AgentCompat"
       },
+      "AgentDetails": {
+        "properties": {
+          "runbook": { "type": "string", "title": "Runbook" },
+          "action_packages": {
+            "items": { "$ref": "#/components/schemas/ActionPackageDetail" },
+            "type": "array",
+            "title": "Action Packages"
+          }
+        },
+        "type": "object",
+        "required": ["runbook", "action_packages"],
+        "title": "AgentDetails"
+      },
       "AgentPackagePayload": {
         "properties": {
           "name": {
@@ -2824,14 +2319,7 @@
             "description": "The name of the agent."
           },
           "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Description",
             "description": "The description of the agent."
           },
@@ -2842,26 +2330,12 @@
             "default": true
           },
           "agent_package_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Agent Package Url",
             "description": "The URL of the agent package."
           },
           "agent_package_base64": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Agent Package Base64",
             "description": "The base64 encoded agent package."
           },
@@ -2880,21 +2354,15 @@
             "description": "The action servers for the agent."
           },
           "mcp_servers": {
-            "items": {
-              "$ref": "#/components/schemas/MCPServer"
-            },
+            "items": { "$ref": "#/components/schemas/MCPServer" },
             "type": "array",
             "title": "Mcp Servers",
             "description": "The Model Context Protocol (MCP) servers this agent uses."
           },
           "langsmith": {
             "anyOf": [
-              {
-                "$ref": "#/components/schemas/AgentPackagePayloadLangsmith"
-              },
-              {
-                "type": "null"
-              }
+              { "$ref": "#/components/schemas/AgentPackagePayloadLangsmith" },
+              { "type": "null" }
             ],
             "description": "The Langsmith configuration for the agent."
           }
@@ -2912,12 +2380,8 @@
           },
           "api_key": {
             "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "$ref": "#/components/schemas/SecretString"
-              }
+              { "type": "string" },
+              { "$ref": "#/components/schemas/SecretString" }
             ],
             "title": "Api Key",
             "description": "The API key of the action server."
@@ -2931,12 +2395,8 @@
         "properties": {
           "api_key": {
             "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "$ref": "#/components/schemas/SecretString"
-              }
+              { "type": "string" },
+              { "$ref": "#/components/schemas/SecretString" }
             ],
             "title": "Api Key",
             "description": "The API key of the Langsmith."
@@ -2967,61 +2427,29 @@
           },
           "azure_api_key": {
             "anyOf": [
-              {
-                "$ref": "#/components/schemas/SecretString"
-              },
-              {
-                "type": "null"
-              }
+              { "$ref": "#/components/schemas/SecretString" },
+              { "type": "null" }
             ],
             "description": "The Azure OpenAI API key. If not provided, it will be attempted to be inferred from the environment."
           },
           "azure_endpoint_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Azure Endpoint Url",
             "description": "The Azure OpenAI endpoint URL. If not provided, it will beattempted to be inferred from the environment."
           },
           "azure_deployment_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Azure Deployment Name",
             "description": "The Azure OpenAI deployment name. If not provided, it will be attempted to be inferred from the environment."
           },
           "azure_api_version": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Azure Api Version",
             "description": "The Azure OpenAI API version. If not provided, it will be attempted to be inferred from the environment.",
             "default": "2023-03-15-preview"
           },
           "azure_deployment_name_embeddings": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Azure Deployment Name Embeddings",
             "description": "The Azure OpenAI deployment name for embeddings. If not provided, it will be attempted to be inferred from the environment."
           },
@@ -3051,101 +2479,46 @@
             "default": "bedrock"
           },
           "region_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Region Name",
             "description": "AWS region name (e.g., 'us-west-2'). If not specified, boto3 will use the default region from AWS configuration chain (environment variables, config file, or instance metadata)."
           },
           "api_version": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Api Version",
             "description": "API version to use for the AWS service. Generally should be left as None to use the latest available version. Only set this if you need a specific API version for compatibility."
           },
           "use_ssl": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "boolean" }, { "type": "null" }],
             "title": "Use Ssl",
             "description": "Whether to use SSL/TLS when communicating with AWS (True by default). Setting this to False is not recommended in production environments."
           },
           "verify": {
             "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
+              { "type": "boolean" },
+              { "type": "string" },
+              { "type": "null" }
             ],
             "title": "Verify",
             "description": "Controls SSL certificate verification. Can be:\n- True: Verify certificates using system CA store (default)\n- False: Disable verification (not recommended)\n- str: Path to custom CA bundle file"
           },
           "endpoint_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Endpoint Url",
             "description": "Alternative endpoint URL for the AWS service. Useful for:\n- VPC endpoints\n- Testing with local endpoints\n- Custom service endpoints\nFormat should be a complete URL including scheme (https://)"
           },
           "aws_access_key_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Aws Access Key Id",
             "description": "AWS access key ID for authentication. If not provided, boto3 will attempt to find credentials in the following order:\n1. Environment variables\n2. Shared credential file (~/.aws/credentials)\n3. IAM role for EC2 instance or ECS task"
           },
           "aws_secret_access_key": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Aws Secret Access Key",
             "description": "AWS secret access key for authentication. Required if aws_access_key_id is provided. Should be kept secure and not exposed in code or logs."
           },
           "aws_session_token": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Aws Session Token",
             "description": "Temporary session token for AWS STS (Security Token Service) credentials. Only required when using temporary credentials (e.g., from AssumeRole or federated access)."
           },
@@ -3161,10 +2534,7 @@
       "Body_upload_thread_files_threads__tid__files_post": {
         "properties": {
           "files": {
-            "items": {
-              "type": "string",
-              "format": "binary"
-            },
+            "items": { "type": "string", "format": "binary" },
             "type": "array",
             "title": "Files"
           }
@@ -3176,18 +2546,12 @@
       "CachedToolDefinitionsReport": {
         "properties": {
           "cached_action_packages": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
+            "items": { "additionalProperties": true, "type": "object" },
             "type": "array",
             "title": "Cached Action Packages"
           },
           "cached_mcp_servers": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
+            "items": { "additionalProperties": true, "type": "object" },
             "type": "array",
             "title": "Cached Mcp Servers"
           },
@@ -3267,14 +2631,7 @@
             "description": "The end character index of the citation in the document"
           },
           "cited_text": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Cited Text",
             "description": "The text that is being cited (if provided, may be None)"
           }
@@ -3285,14 +2642,8 @@
       },
       "ConfirmRemoteFileUploadPayload": {
         "properties": {
-          "file_ref": {
-            "type": "string",
-            "title": "File Ref"
-          },
-          "file_id": {
-            "type": "string",
-            "title": "File Id"
-          }
+          "file_ref": { "type": "string", "title": "File Ref" },
+          "file_id": { "type": "string", "title": "File Id" }
         },
         "type": "object",
         "required": ["file_ref", "file_id"],
@@ -3323,9 +2674,7 @@
             "enum": ["$conversation-history", "$documents", "$memories"],
             "title": "Role"
           },
-          "params": {
-            "$ref": "#/components/schemas/ConversationHistoryParams"
-          }
+          "params": { "$ref": "#/components/schemas/ConversationHistoryParams" }
         },
         "type": "object",
         "required": ["role"],
@@ -3341,97 +2690,44 @@
             "default": "cortex"
           },
           "snowflake_username": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Snowflake Username",
             "description": "The Snowflake username. Optional, as token-based auth is preferred."
           },
           "snowflake_password": {
             "anyOf": [
-              {
-                "$ref": "#/components/schemas/SecretString"
-              },
-              {
-                "type": "null"
-              }
+              { "$ref": "#/components/schemas/SecretString" },
+              { "type": "null" }
             ],
             "description": "The Snowflake password. Optional, as token-based auth is preferred."
           },
           "snowflake_account": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Snowflake Account",
             "description": "The Snowflake account. If not provided, it will beinferred from the environment."
           },
           "snowflake_host": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Snowflake Host",
             "description": "The Snowflake host. If not provided, it will beinferred from the environment (built from account name)."
           },
           "snowflake_warehouse": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Snowflake Warehouse",
             "description": "The Snowflake warehouse. Optional."
           },
           "snowflake_database": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Snowflake Database",
             "description": "The Snowflake database. Optional."
           },
           "snowflake_schema": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Snowflake Schema",
             "description": "The Snowflake schema. Optional."
           },
           "snowflake_role": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Snowflake Role",
             "description": "The Snowflake role. Optional."
           }
@@ -3464,9 +2760,7 @@
             "enum": ["$conversation-history", "$documents", "$memories"],
             "title": "Role"
           },
-          "params": {
-            "$ref": "#/components/schemas/DocumentsParams"
-          }
+          "params": { "$ref": "#/components/schemas/DocumentsParams" }
         },
         "type": "object",
         "required": ["role"],
@@ -3480,14 +2774,7 @@
             "description": "The ID of the message to fork from (must be a human message)."
           },
           "name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Name",
             "description": "Optional custom name for the forked thread"
           }
@@ -3507,12 +2794,8 @@
           },
           "google_api_key": {
             "anyOf": [
-              {
-                "$ref": "#/components/schemas/SecretString"
-              },
-              {
-                "type": "null"
-              }
+              { "$ref": "#/components/schemas/SecretString" },
+              { "type": "null" }
             ],
             "description": "The Google API key. If not provided, it will be attempted to be inferred from the environment."
           }
@@ -3531,12 +2814,8 @@
           },
           "groq_api_key": {
             "anyOf": [
-              {
-                "$ref": "#/components/schemas/SecretString"
-              },
-              {
-                "type": "null"
-              }
+              { "$ref": "#/components/schemas/SecretString" },
+              { "type": "null" }
             ],
             "description": "The Groq API key. If not provided, it will be attempted to be inferred from the environment."
           }
@@ -3547,9 +2826,7 @@
       "HTTPValidationError": {
         "properties": {
           "detail": {
-            "items": {
-              "$ref": "#/components/schemas/ValidationError"
-            },
+            "items": { "$ref": "#/components/schemas/ValidationError" },
             "type": "array",
             "title": "Detail"
           }
@@ -3565,33 +2842,17 @@
             "description": "The agent ID of the agent that created this thread."
           },
           "thread_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Thread Id",
             "description": "The ID of the thread to stream against."
           },
           "name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Name",
             "description": "The name of the thread to stream against."
           },
           "messages": {
-            "items": {
-              "$ref": "#/components/schemas/ThreadMessage"
-            },
+            "items": { "$ref": "#/components/schemas/ThreadMessage" },
             "type": "array",
             "title": "Messages",
             "description": "All messages in this thread."
@@ -3603,9 +2864,7 @@
             "description": "Arbitrary thread-level metadata."
           },
           "client_tools": {
-            "items": {
-              "$ref": "#/components/schemas/ToolDefinitionPayload"
-            },
+            "items": { "$ref": "#/components/schemas/ToolDefinitionPayload" },
             "type": "array",
             "title": "Client Tools",
             "description": "The tools attached to the payload from an external client."
@@ -3618,9 +2877,7 @@
       "ListMCPToolsRequest": {
         "properties": {
           "mcp_servers": {
-            "items": {
-              "$ref": "#/components/schemas/MCPServer"
-            },
+            "items": { "$ref": "#/components/schemas/MCPServer" },
             "type": "array",
             "title": "Mcp Servers",
             "description": "The MCP servers to query for tools."
@@ -3645,40 +2902,19 @@
             "default": "auto"
           },
           "url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Url",
             "description": "The URL of the MCP server. This should point directly to the transport endpoint to use."
           },
           "command": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Command",
             "description": "The command to run the MCP server. If not provided, the MCP server will be assumed to be running on the local machine."
           },
           "args": {
             "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
+              { "items": { "type": "string" }, "type": "array" },
+              { "type": "null" }
             ],
             "title": "Args",
             "description": "The arguments to pass to the MCP server command."
@@ -3686,27 +2922,16 @@
           "env": {
             "anyOf": [
               {
-                "additionalProperties": {
-                  "type": "string"
-                },
+                "additionalProperties": { "type": "string" },
                 "type": "object"
               },
-              {
-                "type": "null"
-              }
+              { "type": "null" }
             ],
             "title": "Env",
             "description": "The environment variables to set for the MCP server command."
           },
           "cwd": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Cwd",
             "description": "The working directory to run the MCP server command in."
           },
@@ -3746,9 +2971,7 @@
             "enum": ["$conversation-history", "$documents", "$memories"],
             "title": "Role"
           },
-          "params": {
-            "$ref": "#/components/schemas/MemoriesParams"
-          }
+          "params": { "$ref": "#/components/schemas/MemoriesParams" }
         },
         "type": "object",
         "required": ["role"],
@@ -3783,62 +3006,27 @@
             "description": "The ID of the artifact"
           },
           "correlated_user_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Correlated User Id",
             "description": "The user ID to correlate the artifact to"
           },
           "correlated_agent_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Correlated Agent Id",
             "description": "The agent ID to correlate the artifact to"
           },
           "correlated_thread_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Correlated Thread Id",
             "description": "The thread ID to correlate the artifact to"
           },
           "correlated_run_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Correlated Run Id",
             "description": "The run ID to correlate the artifact to"
           },
           "correlated_message_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Correlated Message Id",
             "description": "The message ID to correlate the artifact to"
           }
@@ -3856,26 +3044,12 @@
             "description": "The type of observability config."
           },
           "api_key": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Api Key",
             "description": "The API to use with this observability config."
           },
           "api_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Api Url",
             "description": "The API URL to use with this observability config."
           },
@@ -3901,12 +3075,8 @@
           },
           "openai_api_key": {
             "anyOf": [
-              {
-                "$ref": "#/components/schemas/SecretString"
-              },
-              {
-                "type": "null"
-              }
+              { "$ref": "#/components/schemas/SecretString" },
+              { "type": "null" }
             ],
             "description": "The OpenAI API key. If not provided, it will be attempted to be inferred from the environment."
           }
@@ -3934,53 +3104,30 @@
       "PatchThreadPayload": {
         "properties": {
           "name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Name",
             "description": "The new name of the thread."
           },
           "agent_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Agent Id",
             "description": "The new agent ID for this thread."
           },
           "messages": {
             "anyOf": [
               {
-                "items": {
-                  "$ref": "#/components/schemas/ThreadMessage"
-                },
+                "items": { "$ref": "#/components/schemas/ThreadMessage" },
                 "type": "array"
               },
-              {
-                "type": "null"
-              }
+              { "type": "null" }
             ],
             "title": "Messages",
             "description": "The new messages for this thread."
           },
           "metadata": {
             "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
+              { "additionalProperties": true, "type": "object" },
+              { "type": "null" }
             ],
             "title": "Metadata",
             "description": "The new metadata for this thread."
@@ -3994,12 +3141,8 @@
           "content": {
             "items": {
               "anyOf": [
-                {
-                  "$ref": "#/components/schemas/PromptTextContent"
-                },
-                {
-                  "$ref": "#/components/schemas/PromptToolUseContent"
-                }
+                { "$ref": "#/components/schemas/PromptTextContent" },
+                { "$ref": "#/components/schemas/PromptToolUseContent" }
               ]
             },
             "type": "array",
@@ -4078,13 +3221,8 @@
           },
           "value": {
             "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "string",
-                "format": "binary"
-              },
+              { "type": "string" },
+              { "type": "string", "format": "binary" },
               {}
             ],
             "title": "Value",
@@ -4124,13 +3262,8 @@
           },
           "value": {
             "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "string",
-                "format": "binary"
-              }
+              { "type": "string" },
+              { "type": "string", "format": "binary" }
             ],
             "title": "Value",
             "description": "The image data - either a URL or base64 encoded string, or raw bytes"
@@ -4195,18 +3328,10 @@
           "content": {
             "items": {
               "anyOf": [
-                {
-                  "$ref": "#/components/schemas/PromptTextContent"
-                },
-                {
-                  "$ref": "#/components/schemas/PromptImageContent"
-                },
-                {
-                  "$ref": "#/components/schemas/PromptAudioContent"
-                },
-                {
-                  "$ref": "#/components/schemas/PromptDocumentContent"
-                }
+                { "$ref": "#/components/schemas/PromptTextContent" },
+                { "$ref": "#/components/schemas/PromptImageContent" },
+                { "$ref": "#/components/schemas/PromptAudioContent" },
+                { "$ref": "#/components/schemas/PromptDocumentContent" }
               ]
             },
             "type": "array",
@@ -4245,13 +3370,8 @@
           },
           "tool_input_raw": {
             "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "string"
-              }
+              { "additionalProperties": true, "type": "object" },
+              { "type": "string" }
             ],
             "title": "Tool Input Raw",
             "description": "Raw tool input, either JSON string (OpenAI) or dict (Claude)"
@@ -4266,21 +3386,11 @@
           "content": {
             "items": {
               "anyOf": [
-                {
-                  "$ref": "#/components/schemas/PromptTextContent"
-                },
-                {
-                  "$ref": "#/components/schemas/PromptImageContent"
-                },
-                {
-                  "$ref": "#/components/schemas/PromptAudioContent"
-                },
-                {
-                  "$ref": "#/components/schemas/PromptToolResultContent"
-                },
-                {
-                  "$ref": "#/components/schemas/PromptDocumentContent"
-                }
+                { "$ref": "#/components/schemas/PromptTextContent" },
+                { "$ref": "#/components/schemas/PromptImageContent" },
+                { "$ref": "#/components/schemas/PromptAudioContent" },
+                { "$ref": "#/components/schemas/PromptToolResultContent" },
+                { "$ref": "#/components/schemas/PromptDocumentContent" }
               ]
             },
             "type": "array",
@@ -4307,9 +3417,7 @@
             "description": "The title of the question group."
           },
           "questions": {
-            "items": {
-              "type": "string"
-            },
+            "items": { "type": "string" },
             "type": "array",
             "title": "Questions",
             "description": "The questions in the question group."
@@ -4336,35 +3444,20 @@
           },
           "reducto_api_key": {
             "anyOf": [
-              {
-                "$ref": "#/components/schemas/SecretString"
-              },
-              {
-                "type": "null"
-              }
+              { "$ref": "#/components/schemas/SecretString" },
+              { "type": "null" }
             ],
             "description": "The Reducto API key. If not provided, it will be attempted to be inferred from the environment."
           },
           "delegate_kind": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Delegate Kind",
             "description": "The kind of the delegate platform client."
           },
           "delegate_api_key": {
             "anyOf": [
-              {
-                "$ref": "#/components/schemas/SecretString"
-              },
-              {
-                "type": "null"
-              }
+              { "$ref": "#/components/schemas/SecretString" },
+              { "type": "null" }
             ],
             "description": "The API key for the delegate platform client. If not provided, it will be attempted to be inferred from the environment."
           }
@@ -4374,10 +3467,7 @@
       },
       "RequestRemoteFileUploadPayload": {
         "properties": {
-          "file_name": {
-            "type": "string",
-            "title": "File Name"
-          }
+          "file_name": { "type": "string", "title": "File Name" }
         },
         "type": "object",
         "required": ["file_name"],
@@ -4443,13 +3533,8 @@
           },
           "value": {
             "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "string",
-                "format": "binary"
-              }
+              { "type": "string" },
+              { "type": "string", "format": "binary" }
             ],
             "title": "Value",
             "description": "The document data - either an agent-server UploadedFile, base64 encoded string, or raw bytes"
@@ -4488,13 +3573,8 @@
           },
           "value": {
             "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "string",
-                "format": "binary"
-              }
+              { "type": "string" },
+              { "type": "string", "format": "binary" }
             ],
             "title": "Value",
             "description": "The image data - either a URL or base64 encoded string, or raw bytes"
@@ -4523,50 +3603,24 @@
           "content": {
             "items": {
               "anyOf": [
-                {
-                  "$ref": "#/components/schemas/ResponseAudioContent"
-                },
-                {
-                  "$ref": "#/components/schemas/ResponseDocumentContent"
-                },
-                {
-                  "$ref": "#/components/schemas/ResponseImageContent"
-                },
-                {
-                  "$ref": "#/components/schemas/ResponseTextContent"
-                },
-                {
-                  "$ref": "#/components/schemas/ResponseToolUseContent"
-                }
+                { "$ref": "#/components/schemas/ResponseAudioContent" },
+                { "$ref": "#/components/schemas/ResponseDocumentContent" },
+                { "$ref": "#/components/schemas/ResponseImageContent" },
+                { "$ref": "#/components/schemas/ResponseTextContent" },
+                { "$ref": "#/components/schemas/ResponseToolUseContent" }
               ]
             },
             "type": "array",
             "title": "Content"
           },
-          "role": {
-            "type": "string",
-            "const": "agent",
-            "title": "Role"
-          },
+          "role": { "type": "string", "const": "agent", "title": "Role" },
           "raw_response": {
-            "anyOf": [
-              {},
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{}, { "type": "null" }],
             "title": "Raw Response",
             "description": "The raw response from the model"
           },
           "stop_reason": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Stop Reason",
             "description": "The reason why the response stopped (e.g., stop_sequence, max_tokens)"
           },
@@ -4655,15 +3709,9 @@
           "content": {
             "items": {
               "anyOf": [
-                {
-                  "$ref": "#/components/schemas/RunbookStepContent"
-                },
-                {
-                  "$ref": "#/components/schemas/RunbookStepsContent"
-                },
-                {
-                  "$ref": "#/components/schemas/RunbookTextContent"
-                }
+                { "$ref": "#/components/schemas/RunbookStepContent" },
+                { "$ref": "#/components/schemas/RunbookStepsContent" },
+                { "$ref": "#/components/schemas/RunbookTextContent" }
               ]
             },
             "type": "array",
@@ -4713,9 +3761,7 @@
             "default": "steps"
           },
           "steps": {
-            "items": {
-              "$ref": "#/components/schemas/RunbookStepContent"
-            },
+            "items": { "$ref": "#/components/schemas/RunbookStepContent" },
             "type": "array",
             "title": "Steps",
             "description": "The steps to be executed"
@@ -4784,9 +3830,7 @@
             "description": "A unique ID for this thread."
           },
           "messages": {
-            "items": {
-              "$ref": "#/components/schemas/ThreadMessage"
-            },
+            "items": { "$ref": "#/components/schemas/ThreadMessage" },
             "type": "array",
             "title": "Messages",
             "description": "All messages in this thread."
@@ -4819,24 +3863,12 @@
           "content": {
             "items": {
               "anyOf": [
-                {
-                  "$ref": "#/components/schemas/ThreadTextContent"
-                },
-                {
-                  "$ref": "#/components/schemas/ThreadQuickActionsContent"
-                },
-                {
-                  "$ref": "#/components/schemas/ThreadVegaChartContent"
-                },
-                {
-                  "$ref": "#/components/schemas/ThreadToolUsageContent"
-                },
-                {
-                  "$ref": "#/components/schemas/ThreadThoughtContent"
-                },
-                {
-                  "$ref": "#/components/schemas/ThreadAttachmentContent"
-                }
+                { "$ref": "#/components/schemas/ThreadTextContent" },
+                { "$ref": "#/components/schemas/ThreadQuickActionsContent" },
+                { "$ref": "#/components/schemas/ThreadVegaChartContent" },
+                { "$ref": "#/components/schemas/ThreadToolUsageContent" },
+                { "$ref": "#/components/schemas/ThreadThoughtContent" },
+                { "$ref": "#/components/schemas/ThreadAttachmentContent" }
               ]
             },
             "type": "array",
@@ -4887,14 +3919,7 @@
             "description": "The metadata associated with the message (for agent-server use only)"
           },
           "parent_run_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Parent Run Id",
             "description": "The unique identifier for the run that created this message or None if this message was not created by a run"
           },
@@ -4938,38 +3963,17 @@
             "description": "The MIME type of the attachment"
           },
           "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Description",
             "description": "The description of the attachment"
           },
           "uri": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Uri",
             "description": "The URI of the attachment, if the attachment is a handle"
           },
           "base64_data": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Base64 Data",
             "description": "The base64 encoded data of the attachment, if the attachment is a file"
           }
@@ -4983,24 +3987,12 @@
           "content": {
             "items": {
               "anyOf": [
-                {
-                  "$ref": "#/components/schemas/ThreadTextContent"
-                },
-                {
-                  "$ref": "#/components/schemas/ThreadQuickActionsContent"
-                },
-                {
-                  "$ref": "#/components/schemas/ThreadVegaChartContent"
-                },
-                {
-                  "$ref": "#/components/schemas/ThreadToolUsageContent"
-                },
-                {
-                  "$ref": "#/components/schemas/ThreadThoughtContent"
-                },
-                {
-                  "$ref": "#/components/schemas/ThreadAttachmentContent"
-                }
+                { "$ref": "#/components/schemas/ThreadTextContent" },
+                { "$ref": "#/components/schemas/ThreadQuickActionsContent" },
+                { "$ref": "#/components/schemas/ThreadVegaChartContent" },
+                { "$ref": "#/components/schemas/ThreadToolUsageContent" },
+                { "$ref": "#/components/schemas/ThreadThoughtContent" },
+                { "$ref": "#/components/schemas/ThreadAttachmentContent" }
               ]
             },
             "type": "array",
@@ -5050,14 +4042,7 @@
             "description": "The metadata associated with the message (for agent-server use only)"
           },
           "parent_run_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Parent Run Id",
             "description": "The unique identifier for the run that created this message or None if this message was not created by a run"
           },
@@ -5084,14 +4069,7 @@
             "description": "The value of the quick action (the text that will be submitted when the action is clicked)"
           },
           "icon": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Icon",
             "description": "The icon of the quick action (if any)"
           }
@@ -5163,9 +4141,7 @@
             "description": "The actual text content of the message"
           },
           "citations": {
-            "items": {
-              "$ref": "#/components/schemas/Citation"
-            },
+            "items": { "$ref": "#/components/schemas/Citation" },
             "type": "array",
             "title": "Citations",
             "description": "The citations in the text content"
@@ -5260,77 +4236,43 @@
             "default": "pending"
           },
           "result": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Result",
             "description": "The result of the tool call, if it has finished"
           },
           "error": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Error",
             "description": "The error message of the tool call, if it has failed"
           },
           "discovered_at": {
             "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
             ],
             "title": "Discovered At",
             "description": "The timestamp when the tool call was discovered in stream or response"
           },
           "pending_at": {
             "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
             ],
             "title": "Pending At",
             "description": "The timestamp when the tool call was pending (fully formed, not yet executed)"
           },
           "started_at": {
             "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
             ],
             "title": "Started At",
             "description": "The timestamp when the tool call started"
           },
           "ended_at": {
             "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
             ],
             "title": "Ended At",
             "description": "The timestamp when the tool call ended"
@@ -5386,13 +4328,8 @@
           },
           "_chart_spec": {
             "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
+              { "additionalProperties": true, "type": "object" },
+              { "type": "null" }
             ],
             "title": "Chart Spec"
           }
@@ -5463,37 +4400,15 @@
       },
       "UploadedFile": {
         "properties": {
-          "file_id": {
-            "type": "string",
-            "title": "File Id"
-          },
+          "file_id": { "type": "string", "title": "File Id" },
           "file_path": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "File Path"
           },
-          "file_ref": {
-            "type": "string",
-            "title": "File Ref"
-          },
-          "file_hash": {
-            "type": "string",
-            "title": "File Hash"
-          },
-          "file_size_raw": {
-            "type": "integer",
-            "title": "File Size Raw"
-          },
-          "mime_type": {
-            "type": "string",
-            "title": "Mime Type"
-          },
+          "file_ref": { "type": "string", "title": "File Ref" },
+          "file_hash": { "type": "string", "title": "File Hash" },
+          "file_size_raw": { "type": "integer", "title": "File Size Raw" },
+          "mime_type": { "type": "string", "title": "Mime Type" },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -5506,58 +4421,25 @@
           },
           "file_path_expiration": {
             "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
             ],
             "title": "File Path Expiration"
           },
           "agent_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Agent Id"
           },
           "thread_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Thread Id"
           },
           "user_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "User Id"
           },
           "file_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "File Url"
           }
         },
@@ -5591,88 +4473,55 @@
             "description": "The version of the agent."
           },
           "user_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "User Id",
             "description": "The id of the user that created the agent."
           },
           "platform_configs": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
+            "items": { "additionalProperties": true, "type": "object" },
             "type": "array",
             "title": "Platform Configs",
             "description": "The platform configs this agent can use."
           },
           "agent_architecture": {
             "anyOf": [
-              {
-                "$ref": "#/components/schemas/AgentArchitecture"
-              },
-              {
-                "type": "null"
-              }
+              { "$ref": "#/components/schemas/AgentArchitecture" },
+              { "type": "null" }
             ],
             "description": "The architecture details for the agent."
           },
           "runbook": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Runbook",
             "description": "The raw text of the runbook."
           },
           "structured_runbook": {
             "anyOf": [
-              {
-                "$ref": "#/components/schemas/Runbook"
-              },
-              {
-                "type": "null"
-              }
+              { "$ref": "#/components/schemas/Runbook" },
+              { "type": "null" }
             ],
             "description": "The structured runbook of the agent."
           },
           "action_packages": {
-            "items": {
-              "$ref": "#/components/schemas/ActionPackage"
-            },
+            "items": { "$ref": "#/components/schemas/ActionPackage" },
             "type": "array",
             "title": "Action Packages",
             "description": "The action packages this agent uses."
           },
           "mcp_servers": {
-            "items": {
-              "$ref": "#/components/schemas/MCPServer"
-            },
+            "items": { "$ref": "#/components/schemas/MCPServer" },
             "type": "array",
             "title": "Mcp Servers",
             "description": "The Model Context Protocol (MCP) servers this agent uses."
           },
           "question_groups": {
-            "items": {
-              "$ref": "#/components/schemas/QuestionGroup"
-            },
+            "items": { "$ref": "#/components/schemas/QuestionGroup" },
             "type": "array",
             "title": "Question Groups",
             "description": "The question groups of the agent."
           },
           "observability_configs": {
-            "items": {
-              "$ref": "#/components/schemas/ObservabilityConfig"
-            },
+            "items": { "$ref": "#/components/schemas/ObservabilityConfig" },
             "type": "array",
             "title": "Observability Configs",
             "description": "The observability configs of the agent."
@@ -5691,38 +4540,19 @@
             "description": "Extra fields for the agent."
           },
           "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Id",
             "description": "The ID of the agent (alias of agent_id for backwards compatibility)."
           },
           "agent_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Agent Id",
             "description": "The ID of the agent."
           },
           "created_at": {
             "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
             ],
             "title": "Created At",
             "description": "The time the agent was created."
@@ -5741,13 +4571,8 @@
           },
           "model": {
             "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
+              { "additionalProperties": true, "type": "object" },
+              { "type": "null" }
             ],
             "title": "Model",
             "description": "Model for the agent (backward compatibility)."
@@ -5776,9 +4601,7 @@
             "description": "The name of this thread."
           },
           "messages": {
-            "items": {
-              "$ref": "#/components/schemas/ThreadMessage"
-            },
+            "items": { "$ref": "#/components/schemas/ThreadMessage" },
             "type": "array",
             "title": "Messages",
             "description": "All messages in this thread."
@@ -5797,27 +4620,12 @@
       "ValidationError": {
         "properties": {
           "loc": {
-            "items": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "integer"
-                }
-              ]
-            },
+            "items": { "anyOf": [{ "type": "string" }, { "type": "integer" }] },
             "type": "array",
             "title": "Location"
           },
-          "msg": {
-            "type": "string",
-            "title": "Message"
-          },
-          "type": {
-            "type": "string",
-            "title": "Error Type"
-          }
+          "msg": { "type": "string", "title": "Message" },
+          "type": { "type": "string", "title": "Error Type" }
         },
         "type": "object",
         "required": ["loc", "msg", "type"],

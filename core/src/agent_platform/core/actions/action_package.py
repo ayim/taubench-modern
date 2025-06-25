@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import Literal
 
 from agent_platform.core.actions.action_utils import (
     get_spec_and_build_tool_definitions,
@@ -166,3 +167,25 @@ class ActionPackage:
         cleaned = {k: v for k, v in d.items() if k in valid_fields}
 
         return cls(**cleaned)
+
+
+# Classes for the action package details
+
+
+@dataclass(frozen=True)
+class ActionDetail:
+    name: str
+
+
+@dataclass(frozen=True)
+class ActionPackageDetail:
+    name: str
+    actions: list[ActionDetail]
+    version: str
+    status: Literal["online", "offline"]
+
+
+@dataclass(frozen=True)
+class AgentDetails:
+    runbook: str
+    action_packages: list[ActionPackageDetail]

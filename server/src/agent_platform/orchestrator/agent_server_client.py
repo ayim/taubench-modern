@@ -594,3 +594,26 @@ class AgentServerClient:
         agent_files: list[str],
     ) -> requests.models.Response:
         return self._upload_multiple_files("agents", agent_id, agent_files)
+
+    def get_agent_details(self, agent_id: str) -> dict:
+        """
+        Gets the details of an agent including its runbook and action package statuses.
+
+        Args:
+            agent_id: The ID of the agent to get details for.
+
+        Returns:
+            A dictionary containing the agent details with runbook and action package information.
+
+        Raises:
+            HTTPError: If the agent details could not be retrieved.
+        """
+        url = urljoin(self.base_url + "/", f"agents/{agent_id}/agent-details")
+        response = requests.get(url)
+        try:
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                f"Error getting agent details: {response.status_code} {response.text}",
+            ) from e

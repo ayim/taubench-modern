@@ -3,7 +3,12 @@ import uuid
 from fastapi import APIRouter, HTTPException
 from structlog import get_logger
 
-from agent_platform.core.actions.action_package import ActionPackage
+from agent_platform.core.actions.action_package import (
+    ActionDetail,
+    ActionPackage,
+    ActionPackageDetail,
+    AgentDetails,
+)
 from agent_platform.core.agent import AgentArchitecture
 from agent_platform.core.agent_spec.extract_spec import (
     extract_and_validate_agent_package,
@@ -301,4 +306,44 @@ async def update_agent_from_package(
         aid=aid,
         payload=payload,
         storage=storage,
+    )
+
+
+@router.get("/{aid}/agent-details", response_model=AgentDetails)
+async def get_agent_details(
+    user: AuthedUser,
+    aid: str,
+    storage: StorageDependency,
+) -> AgentDetails:
+    all_action_details = []
+    agent = await storage.get_agent(user.user_id, aid)
+    for action_package in agent.action_packages:
+        try:
+            tool_defs = await action_package.to_tool_definitions()
+        except Exception as e:
+            logger.error(
+                f"Error getting tool definitions for action package {action_package.name}: {e}"
+            )
+            action_package_details = ActionPackageDetail(
+                name=action_package.name,
+                actions=[],
+                version=action_package.version,
+                status="offline",
+            )
+            all_action_details.append(action_package_details)
+            continue
+        allowed_actions = []
+        for tool_def in tool_defs:
+            allowed_actions.append(ActionDetail(name=tool_def.name))
+        action_package_details = ActionPackageDetail(
+            name=action_package.name,
+            actions=allowed_actions,
+            version=action_package.version,
+            status="online",
+        )
+        logger.debug(f"Action package details: {action_package_details}")
+        all_action_details.append(action_package_details)
+    return AgentDetails(
+        runbook=agent.runbook_structured.raw_text,
+        action_packages=all_action_details,
     )

@@ -195,6 +195,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/agents/{aid}/agent-details': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Agent Details */
+    get: operations['get_agent_details_agents__aid__agent_details_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/runs/{run_id}/messages': {
     parameters: {
       query?: never;
@@ -749,6 +766,11 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /** ActionDetail */
+    ActionDetail: {
+      /** Name */
+      name: string;
+    };
     /** ActionPackage */
     ActionPackage: {
       /**
@@ -811,6 +833,20 @@ export interface components {
        * @default
        */
       whitelist: string;
+    };
+    /** ActionPackageDetail */
+    ActionPackageDetail: {
+      /** Name */
+      name: string;
+      /** Actions */
+      actions: components['schemas']['ActionDetail'][];
+      /** Version */
+      version: string;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: 'online' | 'offline';
     };
     /** ActionServerConfigPayload */
     ActionServerConfigPayload: {
@@ -1000,6 +1036,13 @@ export interface components {
       model?: {
         [key: string]: unknown;
       };
+    };
+    /** AgentDetails */
+    AgentDetails: {
+      /** Runbook */
+      runbook: string;
+      /** Action Packages */
+      action_packages: components['schemas']['ActionPackageDetail'][];
     };
     /** AgentPackagePayload */
     AgentPackagePayload: {
@@ -3372,6 +3415,37 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['AgentCompat'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  get_agent_details_agents__aid__agent_details_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        aid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AgentDetails'];
         };
       };
       /** @description Validation Error */
