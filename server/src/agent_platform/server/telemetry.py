@@ -74,7 +74,7 @@ def setup_telemetry():
     logger.info(f"Collector URL: {collector_url}")
     # Set up resource with service info
     logger.info(f"Service version: {server.__version__}")
-    resource = Resource(
+    resource = Resource.create(
         attributes={
             "service.name": "sema4ai.agent_server",
             "service.version": server.__version__,
