@@ -30,7 +30,8 @@ clean: ## Remove previous build artifacts and test cache
 
 build: ## Build the project and output distribution binaries
 	@echo "Building $(APP_NAME)..."
-	@go build -o $(EXECUTABLE) main.go
+	mkdir -p $(DIST_DIR)
+	@go build -o $(DIST_DIR)/$(EXECUTABLE) main.go
 
 test: ## Run unit tests
 	@echo "Running unit tests..."

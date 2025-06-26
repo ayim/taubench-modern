@@ -83,7 +83,7 @@ func init() {
 	agentCmd.AddCommand(updateCmd)
 	updateCmd.Flags().StringVar(&agentProjectPath, "path", common.AGENT_PROJECT_DEFAULT_NAME, "Set the project path.")
 	updateCmd.Flags().StringVar(&agentPayloadPathVar, "payloadPath", "", "Path to the payload file (JSON).")
-	if err := updateCmd.MarkFlagRequired("payload"); err != nil {
+	if err := updateCmd.MarkFlagRequired("payloadPath"); err != nil {
 		fmt.Printf("failed to mark flag as required: %+v", err)
 	}
 	updateCmd.Flags().BoolVar(
