@@ -38,10 +38,6 @@ func getActionPackagesFromMetadata(metadata []*agentPackageMetadata) []agentPack
 	return metadata[0].ActionPackages
 }
 
-func getKnowledgeFilesFromMetadata(metadata []*agentPackageMetadata) []agentPackageMetadataKnowledge {
-	return metadata[0].Knowledge
-}
-
 func getAgentPackageBase64(agentPackagePath string) (string, error) {
 	fileContent, err := os.ReadFile(agentPackagePath)
 	if err != nil {
@@ -290,5 +286,7 @@ func init() {
 	importCmd.Flags().BoolVar(
 		&public, "public", false, "Make the agent public.")
 	importCmd.Flags().StringVar(&localAgentProjectPath, "agent-project-path", "", "Create agent project to path.")
-	importCmd.MarkFlagRequired("package")
+	if err := importCmd.MarkFlagRequired("package"); err != nil {
+		fmt.Printf("failed to mark flag as required: %+v", err)
+	}
 }

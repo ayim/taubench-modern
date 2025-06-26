@@ -44,9 +44,47 @@ type AgentActionPackage struct {
 	AdditionalHeaders map[string]string `json:"additional_headers"`
 }
 
+// MCPTransport is the set of allowed transport modes.
+// Auto defaults to streamable-http unless “sse” is in the URL;
+// if there is no URL, it defaults to stdio.
+type MCPTransport string
+
+const (
+	MCPTransportAuto           MCPTransport = "auto"
+	MCPTransportStreamableHTTP MCPTransport = "streamable-http"
+	MCPTransportSSE            MCPTransport = "sse"
+	MCPTransportStdio          MCPTransport = "stdio"
+)
+
 type McpServer struct {
+	// Name of the MCP server.
 	Name string `json:"name"`
-	URL  string `json:"url"`
+
+	// Transport protocol to use when connecting to the MCP server.
+	// Auto defaults to streamable-http unless “sse” is in the URL;
+	// if there is no URL, defaults to stdio.
+	Transport MCPTransport `json:"transport"`
+
+	// URL of the MCP server. This should point directly
+	// to the transport endpoint to use.
+	URL *string `json:"url,omitempty"`
+
+	// Command to run the MCP server. If not provided,
+	// the MCP server will be assumed to be running locally.
+	Command *string `json:"command,omitempty"`
+
+	// Arguments to pass to the MCP server command.
+	Args []string `json:"args,omitempty"`
+
+	// Environment variables to set for the MCP server command.
+	Env map[string]string `json:"env,omitempty"`
+
+	// Working directory to run the MCP server command in.
+	Cwd *string `json:"cwd,omitempty"`
+
+	// If true, all tool calls are executed under a lock
+	// to support servers that cannot interleave multiple requests.
+	ForceSerialToolCalls bool `json:"force_serial_tool_calls"`
 }
 
 const (

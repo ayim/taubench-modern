@@ -36,7 +36,9 @@ var rootCmd = &cobra.Command{
 		}
 		// if no args, show help message
 		if len(args) == 0 {
-			cmd.Help()
+			if err := cmd.Help(); err != nil {
+				common.Log("Error while running help cmd: %+v", err)
+			}
 			// no args is an error
 			os.Exit(1)
 		}

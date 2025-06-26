@@ -2,8 +2,9 @@ package client
 
 import (
 	"fmt"
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // ThreadMetadata represents the metadata for a thread.
@@ -15,12 +16,14 @@ type ThreadMetadata struct {
 // Thread represents a saved thread.
 // The ThreadID value can be used to create a new stream.
 type Thread struct {
-	ThreadID  string         `json:"thread_id"`
-	UserID    string         `json:"user_id"`
-	AgentID   string         `json:"agent_id"`
-	Name      string         `json:"name"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	Metadata  ThreadMetadata `json:"metadata"`
+	ThreadID  string               `json:"thread_id"`
+	UserID    string               `json:"user_id"`
+	AgentID   string               `json:"agent_id"`
+	Name      string               `json:"name"`
+	UpdatedAt time.Time            `json:"updated_at"`
+	CreatedAt time.Time            `json:"created_at"`
+	Metadata  ThreadMetadata       `json:"metadata"`
+	Messages  []ThreadStateMessage `json:"messages"`
 }
 
 // ThreadRequest represent an API request to create a new thread.

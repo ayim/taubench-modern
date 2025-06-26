@@ -14,10 +14,10 @@ func IsMatch(pattern, path string) bool {
 	path = filepath.ToSlash(path)
 
 	// Remove leading ./ from pattern and path for consistency
-	if strings.HasPrefix(pattern, "./") {
+	if ok := strings.HasPrefix(pattern, "./"); ok {
 		pattern = pattern[2:]
 	}
-	if strings.HasPrefix(path, "./") {
+	if ok := strings.HasPrefix(path, "./"); ok {
 		path = path[2:]
 	}
 

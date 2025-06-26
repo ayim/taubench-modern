@@ -228,8 +228,8 @@ func copyFilesFor(assistant AgentServer.Agent, filesPath string) ([]common.Agent
 	ret := []common.AgentKnowledge{}
 	for _, file := range assistant.Files {
 		sourcePath := file.FilePath
-		if strings.HasPrefix(sourcePath, "file://") {
-			sourcePath = strings.TrimPrefix(sourcePath, "file://")
+		if after, ok := strings.CutPrefix(sourcePath, "file://"); ok {
+			sourcePath = after
 		}
 		target := filepath.Join(filesPath, filepath.Base(sourcePath))
 		actualTarget, err := common.CopyFileWithUniqueName(sourcePath, target)
@@ -478,7 +478,9 @@ var exportCmd = &cobra.Command{
 func init() {
 	projectCmd.AddCommand(exportCmd)
 	exportCmd.Flags().StringVar(&agentName, "agent", "", "The name of the agent to export.")
-	exportCmd.MarkFlagRequired("agent")
+	if err := exportCmd.MarkFlagRequired("agent"); err != nil {
+		fmt.Printf("failed to mark flag as required: %+v", err)
+	}
 	exportCmd.Flags().StringVar(&agentProjectPath, "path", common.AGENT_PROJECT_DEFAULT_NAME, "Set the project path")
 	exportCmd.Flags().StringVar(&agentVersion, "overwrite-version", "", "Overwrite the agent version")
 	exportCmd.Flags().StringVar(

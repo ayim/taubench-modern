@@ -136,7 +136,9 @@ var extractCmd = &cobra.Command{
 func init() {
 	packageCmd.AddCommand(extractCmd)
 	extractCmd.Flags().StringVar(&agentPackagePath, "package", common.AGENT_PACKAGE_DEFAULT_NAME, "The .zip file that should be extracted.")
-	extractCmd.MarkFlagRequired("package")
+	if err := extractCmd.MarkFlagRequired("package"); err != nil {
+		fmt.Printf("failed to mark flag as required: %+v", err)
+	}
 	extractCmd.Flags().StringVar(&outputDir, "output-dir", ".", "Set the output directory.")
 	extractCmd.Flags().BoolVar(&overwriteAgentProject, "overwrite", false, "The contents will be extracted to a non-empty directory")
 }

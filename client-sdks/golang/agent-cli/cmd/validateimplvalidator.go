@@ -61,7 +61,7 @@ func NewValidator(specEntries map[string]*Entry, agentRootDirOrZip string) *Vali
 func (v *Validator) validateKeyPair(keyNode *yaml.Node, errors chan Error) {
 	entry := v.specEntries[v.currentStackAsStr]
 	if entry == nil {
-		parentAsStr := "<unknown>"
+		var parentAsStr string
 		curr := "<unknown>"
 
 		if len(v.stack) > 0 {
@@ -113,10 +113,11 @@ func (v *Validator) ValidateNodesExistAndBuildYamlInfo(node *yaml.Node, errors c
 				Node: node,
 				Kind: YamlNodeKindFloat,
 			}
-		} else {
-			// Print the current node tag
-			// fmt.Printf("Unhandled node tag: %v\n", node.Tag)
 		}
+		// else {
+		// Print the current node tag
+		// fmt.Printf("Unhandled node tag: %v\n", node.Tag)
+		// }
 
 	} else if node.Kind == yaml.SequenceNode {
 		v.yamlCursorNode.data.Kind = YamlNodeKindList
@@ -171,9 +172,10 @@ func (v *Validator) ValidateNodesExistAndBuildYamlInfo(node *yaml.Node, errors c
 			// }
 		}
 
-	} else {
-		// fmt.Printf("unexpected node kind. Found: Kind: %v - Tag: %v - Stack: %s\n", node.Kind, node.Tag, v.currentStackAsStr)
 	}
+	// else {
+	// fmt.Printf("unexpected node kind. Found: Kind: %v - Tag: %v - Stack: %s\n", node.Kind, node.Tag, v.currentStackAsStr)
+	// }
 }
 
 func (v *Validator) getActionPackageInfo(

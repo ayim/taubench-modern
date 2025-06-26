@@ -62,5 +62,7 @@ func init() {
 		&agentServerURL, "agent-server-url", common.S4S_BACKEND_DEFAULT_URL, "Set the agent server URL.",
 	)
 	deployCmd.Flags().StringVar(&agentProjectPath, "path", common.AGENT_PROJECT_DEFAULT_NAME, "Set the project path.")
-	deployCmd.MarkFlagRequired("path")
+	if err := deployCmd.MarkFlagRequired("path"); err != nil {
+		fmt.Printf("failed to mark flag as required: %+v", err)
+	}
 }

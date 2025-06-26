@@ -1,7 +1,7 @@
 # Makefile for the Go project
 
 # Variables
-APP_NAME := "agent-client"
+APP_NAME := "agent-cli"
 GO_FILES := $(shell find . -name '*.go' | grep -v /vendor/)
 PKG := ./...
 INTEGRATION_TEST_DIR := ./test/integration
@@ -20,7 +20,7 @@ all: test-all build
 
 run: ## Run the application
 	@echo "Running $(APP_NAME)..."
-	@go run cmd/$(APP_NAME)/*.go
+	@go run main.go
 
 clean: ## Remove previous build artifacts and test cache
 	@echo "Cleaning up..."
@@ -30,7 +30,7 @@ clean: ## Remove previous build artifacts and test cache
 
 build: ## Build the project and output distribution binaries
 	@echo "Building $(APP_NAME)..."
-	@go build -o $(EXECUTABLE) cmd/$(APP_NAME)/*.go
+	@go build -o $(EXECUTABLE) main.go
 
 test: ## Run unit tests
 	@echo "Running unit tests..."
@@ -74,10 +74,9 @@ init-project: ## Initialize the project by installing necessary tools
 dist: clean ## Create a binary distribution for the current OS and architecture
 	@echo "Creating distribution..."
 	mkdir -p $(DIST_DIR)
-	GOOS=$(OS) GOARCH=$(ARCH) go build -o $(DIST_DIR)/$(APP_NAME) cmd/$(APP_NAME)/*.go
+	GOOS=$(OS) GOARCH=$(ARCH) go build -o $(DIST_DIR)/$(APP_NAME) main.go
 	tar -czvf $(DIST_DIR)/$(TARBALL) -C $(DIST_DIR) $(APP_NAME)
 	zip -j $(DIST_DIR)/$(ZIPFILE) $(DIST_DIR)/$(APP_NAME)
-	rm $(DIST_DIR)/$(APP_NAME)
 	@echo "Distribution created: $(DIST_DIR)/$(TARBALL) and $(DIST_DIR)/$(ZIPFILE)"
 
 dist-all: clean ## Create binary distributions for common OS and architecture combinations
@@ -87,10 +86,9 @@ dist-all: clean ## Create binary distributions for common OS and architecture co
 		for arch in amd64 arm64; do \
 			EXT=""; \
 			if [ "$$os" = "windows" ]; then EXT=".exe"; fi; \
-			GOOS=$$os GOARCH=$$arch go build -o $(DIST_DIR)/$(APP_NAME)$$EXT cmd/$(APP_NAME)/*.go; \
+			GOOS=$$os GOARCH=$$arch go build -o $(DIST_DIR)/$(APP_NAME)$$EXT main.go; \
 			tar -czvf $(DIST_DIR)/$(APP_NAME)-$$os-$$arch.tgz -C $(DIST_DIR) $(APP_NAME)$$EXT; \
 			zip -j $(DIST_DIR)/$(APP_NAME)-$$os-$$arch.zip $(DIST_DIR)/$(APP_NAME)$$EXT; \
-			rm $(DIST_DIR)/$(APP_NAME)$$EXT; \
 		done; \
 	done
 	@echo "All distributions created in the $(DIST_DIR) directory."

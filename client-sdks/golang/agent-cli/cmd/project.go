@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/common"
 	"github.com/spf13/cobra"
 )
 
@@ -12,7 +13,9 @@ var projectCmd = &cobra.Command{
 }
 
 func runProjectCmd(cmd *cobra.Command, args []string) {
-	cmd.Help()
+	if err := cmd.Help(); err != nil {
+		common.Log("Error while running help cmd: %+v", err)
+	}
 }
 
 func init() {

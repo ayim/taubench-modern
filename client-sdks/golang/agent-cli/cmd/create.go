@@ -186,7 +186,9 @@ func init() {
 	agentCmd.AddCommand(createCmd)
 	createCmd.Flags().StringVar(&agentProjectPath, "path", common.AGENT_PROJECT_DEFAULT_NAME, "Set the project path.")
 	createCmd.Flags().StringVar(&agentPayloadPathVar, "payloadPath", "", "Path to the payload file (JSON).")
-	createCmd.MarkFlagRequired("payloadPath")
+	if err := createCmd.MarkFlagRequired("payloadPath"); err != nil {
+		fmt.Printf("failed to mark flag as required: %+v", err)
+	}
 	createCmd.Flags().BoolVar(
 		&deployAgentToServer,
 		"deploy",

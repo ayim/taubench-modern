@@ -2,9 +2,10 @@ package glob
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestExclude(t *testing.T) {
@@ -18,7 +19,7 @@ func TestExclude(t *testing.T) {
 
 	fileKeys := ""
 
-	for key, _ := range files {
+	for key := range files {
 		fileKeys += key
 	}
 

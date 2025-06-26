@@ -106,8 +106,12 @@ func CopyDir(source string, target string, overwrite bool) error {
 		action = targetDir(target).OverwriteBack
 	}
 
-	defer pathlib.Walk(source, func(info os.FileInfo) bool {
-		return false
-	}, action)
+	defer func() {
+		if err := pathlib.Walk(source, func(info os.FileInfo) bool {
+			return false
+		}, action); err != nil {
+			common.Log("Error %v while walking through source %v", err, source)
+		}
+	}()
 	return nil
 }

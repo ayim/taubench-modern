@@ -45,7 +45,9 @@ func UnzipFile(sourceZip, targetDir string) error {
 		filePath := filepath.Join(targetDir, f.Name)
 
 		if f.FileInfo().IsDir() {
-			os.MkdirAll(filePath, os.ModePerm)
+			if err := os.MkdirAll(filePath, os.ModePerm); err != nil {
+				return fmt.Errorf("failed to create directory: %w", err)
+			}
 			continue
 		}
 
@@ -108,7 +110,7 @@ func ConcatErrors(errors []error) error {
 		message += error.Error() + "\n"
 	}
 
-	return fmt.Errorf(message)
+	return fmt.Errorf("%s", message)
 }
 
 func AddIfNotExists[T comparable](slice []T, s T) []T {

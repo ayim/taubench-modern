@@ -233,5 +233,8 @@ func init() {
 	getCmd.Flags().StringSliceVar(&pathsParam, "paths", []string{}, "Path to local agent projects.")
 	getCmd.Flags().BoolVar(&ignoreMissingParam, "ignore-missing", false, "Ignore missing agent projects.")
 	getCmd.Flags().StringVar(&agentProjectSettingsPath, "agent-project-settings-path", "", "Path to agent project settings.")
-	getCmd.MarkFlagRequired("agent-project-settings-path")
+	if err := getCmd.MarkFlagRequired("agent-project-settings-path"); err != nil {
+		fmt.Printf("failed to mark flag as required: %+v", err)
+	}
+
 }
