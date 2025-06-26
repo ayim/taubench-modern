@@ -37,6 +37,14 @@ exporters:
     metric_expiration: 180m
     enable_open_metrics: true
 
+  # InfluxDB exporter
+  influxdb:
+    endpoint: http://influx-db:8086
+    org: sema4ai
+    bucket: dev
+    token: secret-token
+    timeout: 2s
+
   # Debug exporter for troubleshooting
   debug:
     verbosity: normal
@@ -49,22 +57,20 @@ service:
       processors: [memory_limiter, resource, batch]
       exporters: [otlp/jaeger, debug]
 
-    # Metrics pipeline - send to Prometheus
+    # Metrics pipeline - send to Prometheus and InfluxDB
     metrics:
       receivers: [otlp]
       processors: [memory_limiter, resource, batch]
-      exporters: [prometheus, debug]
+      exporters: [prometheus, influxdb, debug]
 
-    # Logs pipeline - for debugging
+    # Logs pipeline - send to InfluxDB and debug
     logs:
       receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [debug]
+      exporters: [influxdb, debug]
 
   extensions: []
 
   telemetry:
     logs:
       level: 'info'
-    metrics:
-      address: 0.0.0.0:8888

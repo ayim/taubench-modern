@@ -14,6 +14,7 @@ services:
     depends_on:
       - jaeger
       - prometheus
+      - influx-db
     networks:
       - observability
 
@@ -46,8 +47,30 @@ services:
     networks:
       - observability
 
+  # InfluxDB for time-series data
+  influx-db:
+    image: influxdb:2
+    container_name: agent-platform-influxdb
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: adminadmin
+      DOCKER_INFLUXDB_INIT_ORG: sema4ai
+      DOCKER_INFLUXDB_INIT_BUCKET: dev
+      DOCKER_INFLUXDB_INIT_RETENTION: 30d
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: secret-token
+    volumes:
+      - influx-data:/var/lib/influxdb2
+      - influx-config:/etc/influxdb2
+    ports:
+      - '8086:8086'
+    networks:
+      - observability
+
 volumes:
   prometheus_data:
+  influx-data:
+  influx-config:
 
 networks:
   observability:

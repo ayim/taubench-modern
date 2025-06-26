@@ -38,7 +38,31 @@ docker compose -f observability/docker-compose.observability.yml down
 
 - **Jaeger UI**: <http://localhost:16686> - View distributed traces
 - **Prometheus**: <http://localhost:9090> - Query and visualize metrics
+- **InfluxDB**: <http://localhost:8086> - Time-series database for metrics and logs
 - **OTEL Collector**: Receives telemetry on ports 4317 (gRPC) and 4318 (HTTP)
+
+## InfluxDB Access
+
+Access the InfluxDB UI at <http://localhost:8086> with these credentials:
+
+- Username: `admin`
+- Password: `adminadmin`
+- Organization: `sema4ai`
+- Initial Bucket: `dev`
+
+### Using InfluxDB
+
+1. **View Data**:
+
+   - Log in to the InfluxDB UI
+   - Navigate to "Data Explorer" in the left sidebar
+   - Select the "dev" bucket to view metrics and logs
+   - Use the Query Builder or Flux language to analyze data
+
+2. **Available Data**:
+   - All metrics from the agent server (also sent to Prometheus)
+   - Application logs
+   - System metrics from the OTEL collector
 
 ## Prometheus Queries
 
