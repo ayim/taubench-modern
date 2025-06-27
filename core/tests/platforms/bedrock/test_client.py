@@ -4,8 +4,20 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from botocore.exceptions import (
+    BotoCoreError,
+    ClientError,
+    EndpointConnectionError,
+    NoCredentialsError,
+    ReadTimeoutError,
+)
+from botocore.exceptions import (
+    ConnectionError as BotocoreConnectionError,
+)
 
 from agent_platform.core.delta import GenericDelta
+from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
+from agent_platform.core.errors.streaming import StreamingError
 from agent_platform.core.kernel import Kernel
 from agent_platform.core.model_selector import (
     DefaultModelSelector,
@@ -93,6 +105,368 @@ class MockBedrockRuntimeClient:
                 "RetryAttempts": 0,
             },
         }
+
+
+class TestBedrockErrorHandling:
+    """Tests for Bedrock client error handling functionality."""
+
+    @pytest.fixture
+    def bedrock_client(self) -> BedrockClient:
+        """Create a BedrockClient instance for testing."""
+        parameters = BedrockPlatformParameters(
+            region_name="us-west-2",
+            aws_access_key_id="test-access-key",
+            aws_secret_access_key="test-secret-key",
+        )
+        with patch("boto3.client"):
+            return BedrockClient(parameters=parameters)
+
+    def test_handle_bedrock_error_throttling_exception(self, bedrock_client: BedrockClient) -> None:
+        """Test handling of ThrottlingException."""
+        client_error = ClientError(
+            error_response={
+                "Error": {
+                    "Code": "ThrottlingException",
+                    "Message": "Request rate exceeded",
+                },
+            },
+            operation_name="converse",
+        )
+
+        result = bedrock_client._handle_bedrock_error(client_error, "claude-3-sonnet")
+
+        assert isinstance(result, PlatformError)
+        assert result.response.code == "too_many_requests"
+        assert "rate limit exceeded" in result.response.message
+        assert result.data["model"] == "claude-3-sonnet"
+        assert result.data["error_code"] == "ThrottlingException"
+        assert result.data["technical_error_message"] == "Request rate exceeded"
+
+    def test_handle_bedrock_error_access_denied(self, bedrock_client: BedrockClient) -> None:
+        """Test handling of AccessDeniedException."""
+        client_error = ClientError(
+            error_response={
+                "Error": {
+                    "Code": "AccessDeniedException",
+                    "Message": "Access denied to model",
+                },
+            },
+            operation_name="converse",
+        )
+
+        result = bedrock_client._handle_bedrock_error(client_error, "claude-3-sonnet")
+
+        assert isinstance(result, PlatformError)
+        assert result.response.code == "forbidden"
+        assert "Access denied" in result.response.message
+        assert result.data["model"] == "claude-3-sonnet"
+        assert result.data["region"] == "us-west-2"
+
+    def test_handle_bedrock_error_validation_exception(self, bedrock_client: BedrockClient) -> None:
+        """Test handling of ValidationException."""
+        client_error = ClientError(
+            error_response={
+                "Error": {
+                    "Code": "ValidationException",
+                    "Message": "Invalid input parameters",
+                },
+            },
+            operation_name="converse",
+        )
+
+        result = bedrock_client._handle_bedrock_error(client_error, "claude-3-sonnet")
+
+        assert isinstance(result, PlatformError)
+        assert result.response.code == "bad_request"
+        assert "something went wrong" in result.response.message.lower()
+        assert result.data["error_code"] == "ValidationException"
+
+    def test_handle_bedrock_error_resource_not_found(self, bedrock_client: BedrockClient) -> None:
+        """Test handling of ResourceNotFoundException."""
+        client_error = ClientError(
+            error_response={
+                "Error": {
+                    "Code": "ResourceNotFoundException",
+                    "Message": "Model not found",
+                },
+            },
+            operation_name="converse",
+        )
+
+        result = bedrock_client._handle_bedrock_error(client_error, "invalid-model")
+
+        assert isinstance(result, PlatformError)
+        assert result.response.code == "not_found"
+        assert "not found" in result.response.message
+        assert result.data["model"] == "invalid-model"
+
+    def test_handle_bedrock_error_service_quota_exceeded(
+        self, bedrock_client: BedrockClient
+    ) -> None:
+        """Test handling of ServiceQuotaExceededException."""
+        client_error = ClientError(
+            error_response={
+                "Error": {
+                    "Code": "ServiceQuotaExceededException",
+                    "Message": "Service quota exceeded",
+                },
+            },
+            operation_name="converse",
+        )
+
+        result = bedrock_client._handle_bedrock_error(client_error, "claude-3-sonnet")
+
+        assert isinstance(result, PlatformError)
+        assert result.response.code == "too_many_requests"
+        assert "quota exceeded" in result.response.message
+        assert result.data["error_code"] == "ServiceQuotaExceededException"
+
+    def test_handle_bedrock_error_model_timeout(self, bedrock_client: BedrockClient) -> None:
+        """Test handling of ModelTimeoutException."""
+        client_error = ClientError(
+            error_response={
+                "Error": {
+                    "Code": "ModelTimeoutException",
+                    "Message": "Model request timed out",
+                },
+            },
+            operation_name="converse",
+        )
+
+        result = bedrock_client._handle_bedrock_error(client_error, "claude-3-sonnet")
+
+        assert isinstance(result, PlatformError)
+        assert result.response.code == "unexpected"
+        assert "timed out" in result.response.message
+        assert result.data["error_code"] == "ModelTimeoutException"
+
+    def test_handle_bedrock_error_internal_server_error(
+        self, bedrock_client: BedrockClient
+    ) -> None:
+        """Test handling of InternalServerException."""
+        client_error = ClientError(
+            error_response={
+                "Error": {
+                    "Code": "InternalServerException",
+                    "Message": "Internal server error",
+                },
+            },
+            operation_name="converse",
+        )
+
+        result = bedrock_client._handle_bedrock_error(client_error, "claude-3-sonnet")
+
+        assert isinstance(result, PlatformError)
+        assert result.response.code == "unexpected"
+        assert "internal error" in result.response.message
+        assert result.data["error_code"] == "InternalServerException"
+
+    def test_handle_bedrock_error_service_unavailable(self, bedrock_client: BedrockClient) -> None:
+        """Test handling of ServiceUnavailableException."""
+        client_error = ClientError(
+            error_response={
+                "Error": {
+                    "Code": "ServiceUnavailableException",
+                    "Message": "Service temporarily unavailable",
+                },
+            },
+            operation_name="converse",
+        )
+
+        result = bedrock_client._handle_bedrock_error(client_error, "claude-3-sonnet")
+
+        assert isinstance(result, PlatformError)
+        assert result.response.code == "unexpected"
+        assert "temporarily unavailable" in result.response.message
+
+    def test_handle_bedrock_error_unknown_client_error(self, bedrock_client: BedrockClient) -> None:
+        """Test handling of unknown ClientError codes."""
+        client_error = ClientError(
+            error_response={
+                "Error": {
+                    "Code": "UnknownException",
+                    "Message": "Unknown error occurred",
+                },
+            },
+            operation_name="converse",
+        )
+
+        result = bedrock_client._handle_bedrock_error(client_error, "claude-3-sonnet")
+
+        assert isinstance(result, PlatformError)
+        assert result.response.code == "unexpected"
+        assert "something went wrong" in result.response.message.lower()
+        assert result.data["error_code"] == "UnknownException"
+
+    def test_handle_bedrock_error_no_credentials(self, bedrock_client: BedrockClient) -> None:
+        """Test handling of NoCredentialsError."""
+        error = NoCredentialsError()
+
+        result = bedrock_client._handle_bedrock_error(error, "claude-3-sonnet")
+
+        assert isinstance(result, PlatformError)
+        assert result.response.code == "unauthorized"
+        assert "credentials" in result.response.message.lower()
+
+    def test_handle_bedrock_error_connection_error(self, bedrock_client: BedrockClient) -> None:
+        """Test handling of EndpointConnectionError."""
+        error = EndpointConnectionError(endpoint_url="https://bedrock.us-west-2.amazonaws.com")
+
+        result = bedrock_client._handle_bedrock_error(error, "claude-3-sonnet")
+
+        assert isinstance(result, PlatformError)
+        assert result.response.code == "unexpected"
+        assert "connect" in result.response.message.lower()
+
+    def test_handle_bedrock_error_read_timeout(self, bedrock_client: BedrockClient) -> None:
+        """Test handling of ReadTimeoutError."""
+        error = ReadTimeoutError(endpoint_url="https://bedrock.us-west-2.amazonaws.com")
+
+        result = bedrock_client._handle_bedrock_error(error, "claude-3-sonnet")
+
+        assert isinstance(result, PlatformError)
+        assert result.response.code == "unexpected"
+        assert "timed out" in result.response.message
+
+    def test_handle_bedrock_error_botocore_connection_error(
+        self, bedrock_client: BedrockClient
+    ) -> None:
+        """Test handling of botocore ConnectionError."""
+        error = BotocoreConnectionError(error=Exception("Connection failed"))
+
+        result = bedrock_client._handle_bedrock_error(error, "claude-3-sonnet")
+
+        assert isinstance(result, PlatformError)
+        assert result.response.code == "unexpected"
+        assert "network connection" in result.response.message.lower()
+
+    def test_handle_bedrock_error_generic_botocore_error(
+        self, bedrock_client: BedrockClient
+    ) -> None:
+        """Test handling of generic BotoCoreError."""
+        error = BotoCoreError()
+
+        result = bedrock_client._handle_bedrock_error(error, "claude-3-sonnet")
+
+        assert isinstance(result, PlatformError)
+        assert result.response.code == "unexpected"
+        assert "something went wrong" in result.response.message.lower()
+
+    def test_handle_bedrock_error_unknown_exception(self, bedrock_client: BedrockClient) -> None:
+        """Test handling of unknown exceptions (should re-raise)."""
+        error = ValueError("Some unexpected error")
+
+        with pytest.raises(ValueError, match="Some unexpected error"):
+            bedrock_client._handle_bedrock_error(error, "claude-3-sonnet")
+
+    def test_handle_bedrock_error_with_custom_error_type(
+        self, bedrock_client: BedrockClient
+    ) -> None:
+        """Test that custom error types are respected."""
+        client_error = ClientError(
+            error_response={
+                "Error": {
+                    "Code": "ThrottlingException",
+                    "Message": "Rate limit exceeded",
+                },
+            },
+            operation_name="converse",
+        )
+
+        result = bedrock_client._handle_bedrock_error(
+            client_error, "claude-3-sonnet", PlatformHTTPError
+        )
+
+        assert isinstance(result, PlatformHTTPError)
+        assert result.response.code == "too_many_requests"
+
+    @pytest.mark.asyncio
+    async def test_generate_response_error_handling(self, bedrock_client: BedrockClient) -> None:
+        """Test error handling in generate_response method."""
+        bedrock_prompt = BedrockPrompt()
+
+        # Mock the boto3 client to raise an exception
+        client_error = ClientError(
+            error_response={
+                "Error": {
+                    "Code": "ThrottlingException",
+                    "Message": "Rate limit exceeded",
+                },
+            },
+            operation_name="converse",
+        )
+
+        # Use a real model from the existing model map
+        with patch.object(bedrock_client, "_bedrock_runtime_client") as mock_client:
+            mock_client.converse.side_effect = client_error
+
+            with pytest.raises(PlatformHTTPError) as exc_info:
+                await bedrock_client.generate_response(bedrock_prompt, "claude-3-5-sonnet")
+
+            assert exc_info.value.response.code == "too_many_requests"
+
+    @pytest.mark.asyncio
+    async def test_generate_stream_response_error_handling(
+        self, bedrock_client: BedrockClient
+    ) -> None:
+        """Test error handling in generate_stream_response method."""
+        bedrock_prompt = BedrockPrompt()
+
+        # Mock the boto3 client to raise an exception
+        client_error = ClientError(
+            error_response={
+                "Error": {
+                    "Code": "AccessDeniedException",
+                    "Message": "Access denied",
+                },
+            },
+            operation_name="converse_stream",
+        )
+
+        # Use a real model from the existing model map
+        with patch.object(bedrock_client, "_bedrock_runtime_client") as mock_client:
+            mock_client.converse_stream.side_effect = client_error
+
+            with pytest.raises(StreamingError) as exc_info:
+                async for _ in bedrock_client.generate_stream_response(
+                    bedrock_prompt, "claude-3-5-sonnet"
+                ):
+                    pass  # This shouldn't execute due to the exception
+
+            assert exc_info.value.response.code == "forbidden"
+
+    @pytest.mark.asyncio
+    async def test_create_embeddings_error_handling(self, bedrock_client: BedrockClient) -> None:
+        """Test error handling in create_embeddings method."""
+        # Mock the boto3 client to raise an exception
+        client_error = ClientError(
+            error_response={
+                "Error": {
+                    "Code": "ValidationException",
+                    "Message": "Invalid model parameters",
+                },
+            },
+            operation_name="invoke_model",
+        )
+
+        # Use a real embedding model from the existing model map
+        with patch.object(bedrock_client, "_bedrock_runtime_client") as mock_client:
+            mock_client.invoke_model.side_effect = client_error
+
+            with pytest.raises(PlatformHTTPError) as exc_info:
+                await bedrock_client.create_embeddings(["test text"], "titan-embed-text-v2")
+
+            assert exc_info.value.response.code == "bad_request"
+
+    @pytest.mark.asyncio
+    async def test_create_embeddings_value_error_passthrough(
+        self, bedrock_client: BedrockClient
+    ) -> None:
+        """Test that ValueError for unsupported models is not caught by error handler."""
+        # Use a model that exists in the model map but will trigger ValueError
+        # The claude models don't start with known embedding prefixes, so they'll raise ValueError
+        with pytest.raises(ValueError, match="not a supported embedding model"):
+            await bedrock_client.create_embeddings(["test text"], "claude-3-5-sonnet")
 
 
 class TestBedrockClient:
