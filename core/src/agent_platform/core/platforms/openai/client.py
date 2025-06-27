@@ -5,6 +5,9 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from agent_platform.core.delta import GenericDelta
 from agent_platform.core.delta.compute_delta import compute_generic_deltas
+from agent_platform.core.errors import ErrorCode
+from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
+from agent_platform.core.errors.streaming import StreamingError
 from agent_platform.core.platforms.base import (
     PlatformClient,
     PlatformConfigs,
@@ -82,6 +85,106 @@ class OpenAIClient(
     def _init_parsers(self) -> OpenAIParsers:
         return OpenAIParsers()
 
+    def _handle_openai_error(  # noqa: C901, PLR0911
+        self, error: Exception, model: str, error_type: type[PlatformError] = PlatformError
+    ) -> PlatformError:
+        """Handle OpenAI errors and convert them to PlatformError instances.
+
+        Args:
+            error: The OpenAI exception that was raised
+            model: The model being used when the error occurred
+            error_type: The type of error to return. Defaults to PlatformError.
+
+        Returns:
+            PlatformError: The appropriate error for the given OpenAI error
+        """
+        from openai import (
+            APIConnectionError,
+            APIError,
+            APITimeoutError,
+            AuthenticationError,
+            BadRequestError,
+            InternalServerError,
+            NotFoundError,
+            PermissionDeniedError,
+            RateLimitError,
+            UnprocessableEntityError,
+        )
+
+        match error:
+            case RateLimitError():
+                return error_type(
+                    error_code=ErrorCode.TOO_MANY_REQUESTS,
+                    message=f"LLM usage limit reached. Please increase the limit for '{model}' "
+                    f"or switch to an available model.",
+                    data={"model": model},
+                )
+            case AuthenticationError():
+                return error_type(
+                    error_code=ErrorCode.UNAUTHORIZED,
+                    message="Authentication failed for OpenAI. Please check your API "
+                    "key and credentials.",
+                    data={"model": model},
+                )
+            case PermissionDeniedError():
+                return error_type(
+                    error_code=ErrorCode.FORBIDDEN,
+                    message=f"Access denied for OpenAI model '{model}'. Please check "
+                    "your permissions.",
+                    data={"model": model},
+                )
+            case BadRequestError():
+                return error_type(
+                    error_code=ErrorCode.BAD_REQUEST,
+                    message=f"Something went wrong while sending the request to OpenAI model "
+                    f"'{model}', please try again or contact support.",
+                    data={"model": model},
+                )
+            case NotFoundError():
+                return error_type(
+                    error_code=ErrorCode.NOT_FOUND,
+                    message=f"OpenAI model '{model}' not found. Please verify the model name.",
+                    data={"model": model},
+                )
+            case UnprocessableEntityError():
+                return error_type(
+                    error_code=ErrorCode.UNPROCESSABLE_ENTITY,
+                    message=f"Something went wrong while sending the request to OpenAI model "
+                    f"'{model}', please try again or contact support.",
+                    data={"model": model},
+                )
+            case APITimeoutError():
+                return error_type(
+                    error_code=ErrorCode.UNEXPECTED,
+                    message=f"Request to OpenAI model '{model}' timed out. Please try again.",
+                    data={"model": model},
+                )
+            case APIConnectionError():
+                return error_type(
+                    error_code=ErrorCode.UNEXPECTED,
+                    message="Failed to connect to OpenAI service. Please check your "
+                    "network connection.",
+                    data={"model": model},
+                )
+            case InternalServerError():
+                return error_type(
+                    error_code=ErrorCode.UNEXPECTED,
+                    message="OpenAI service encountered an internal error. Please "
+                    "try again later or contact support.",
+                    data={"model": model},
+                )
+            case APIError():
+                # Base OpenAI error - catch any other OpenAI-specific errors
+                return error_type(
+                    error_code=ErrorCode.UNEXPECTED,
+                    message=f"An unexpected error occurred with OpenAI model '{model}'. "
+                    "Please try again or contact support.",
+                    data={"model": model},
+                )
+            case _:
+                # For any other unexpected errors, re-raise them
+                raise error
+
     async def count_tokens(
         self,
         prompt: OpenAIPrompt,
@@ -150,9 +253,14 @@ class OpenAIClient(
         Returns:
             A ResponseMessage with the model's response.
         """
+        from openai import APIError
+
         request = prompt.as_platform_request(model)
-        response = await self._openai_client.chat.completions.create(**request)
-        return self._parsers.parse_response(response)
+        try:
+            response = await self._openai_client.chat.completions.create(**request)
+            return self._parsers.parse_response(response)
+        except APIError as e:
+            raise self._handle_openai_error(e, model, PlatformHTTPError) from e
 
     async def generate_stream_response(
         self,
@@ -168,6 +276,8 @@ class OpenAIClient(
         Yields:
             GenericDeltas that update the ResponseMessage.
         """
+        from openai import APIError
+
         logger.info(f"Streaming with OpenAI model: {model}")
         request = prompt.as_platform_request(model, stream=True)
 
@@ -179,19 +289,23 @@ class OpenAIClient(
         }
         last_message: dict[str, Any] = {}
 
-        # Add stream=True to ensure streaming is enabled
-        request["stream"] = True
-        response = await self._openai_client.chat.completions.create(**request)
-        async for event in response:
-            async for delta in self._parsers.parse_stream_event(
-                event,
-                message,
-                last_message,
-            ):
-                yield delta
+        try:
+            # Add stream=True to ensure streaming is enabled
+            request["stream"] = True
+            response = await self._openai_client.chat.completions.create(**request)
+            async for event in response:
+                async for delta in self._parsers.parse_stream_event(
+                    event,
+                    message,
+                    last_message,
+                ):
+                    yield delta
 
-            # Update last message state after processing each event
-            last_message = deepcopy(message)
+                # Update last message state after processing each event
+                last_message = deepcopy(message)
+        except APIError as e:
+            # Handle all OpenAI errors using the extracted error handler
+            raise self._handle_openai_error(e, model, StreamingError) from e
 
         # Add final metadata and platform info
         final_event = self._generate_platform_metadata()
