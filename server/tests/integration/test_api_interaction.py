@@ -246,17 +246,23 @@ def test_api_interaction_with_action_server(
         )
 
         thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
-        result = agent_client.send_message_to_agent_thread(
+        result, _ = agent_client.send_message_to_agent_thread(
             agent_id, thread_id, "Which tools/actions can you call?"
-        ).lower()
+        )
+
+        result = result.lower()
+
         if "list" not in result or "contact" not in result:
             raise AssertionError(
                 "Agent did not provide that it has the list contact action. "
                 f"Found result: {result!r}"
             )
-        result = agent_client.send_message_to_agent_thread(
+
+        result, _ = agent_client.send_message_to_agent_thread(
             agent_id, thread_id, "Please list all contacts"
-        ).lower()
+        )
+        result = result.lower()
+
         if "john doe" not in result and "jane doe" not in result:
             raise AssertionError(
                 f"Agent did not find contacts: 'john doe' or 'jane doe'. Found result: {result!r}"
@@ -500,9 +506,11 @@ def test_async_action_polling_with_fast_retry_interval(
             thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
 
             # First, verify the agent has access to the sleep action
-            result = agent_client.send_message_to_agent_thread(
+            result, _ = agent_client.send_message_to_agent_thread(
                 agent_id, thread_id, "What actions can you call? List them."
-            ).lower()
+            )
+
+            result = result.lower()
 
             if "sleep" not in result:
                 raise AssertionError(
@@ -516,21 +524,20 @@ def test_async_action_polling_with_fast_retry_interval(
             # Call the sleep action with a duration that will require multiple polling attempts
             # We'll use 0.5 seconds, which with 0.1 second intervals should result
             # in ~5 polling attempts.
-            result = agent_client.send_message_to_agent_thread(
+
+            result, tool_calls = agent_client.send_message_to_agent_thread(
                 agent_id, thread_id, "Please call the test_sleep_action with duration_seconds=0.5"
             )
 
-            # Record the end time
+            tool_call = tool_calls[0] if tool_calls else None
+            assert tool_call is not None, "No tool calls returned."
+            assert tool_call.tool_name == "test_sleep_action", (
+                f"Expected sleep action but got: {tool_call.tool_name}"
+            )
+            assert tool_call.input_data.get("duration_seconds") == 0.5, "Expected duration 0.5"
+
             end_time = time.time()
             elapsed_time = end_time - start_time
-
-            # Verify the action completed successfully
-            result_lower = result.lower()
-            if "completed" not in result_lower or "0.5" not in result_lower:
-                raise AssertionError(
-                    f"Action did not complete. Expected 'completed' and '0.5' in result."
-                    f"Found result: {result!r}"
-                )
 
             # Verify the timing - this is an end-to-end test that includes LLM processing time,
             # so we need to account for the full latency including:

@@ -505,9 +505,12 @@ class AgentServerClient:
         print_success(f"Created thread with ID: {thread_id}")
         return thread_id
 
+    # changed return type to tuple to access AI message text
+    # and tool calls during msg handling
+
     def send_message_to_agent_thread(
         self, agent_id: str, thread_id: str, message: str = "question"
-    ) -> str:
+    ) -> tuple[str, list[ToolCallMessage]]:
         print_header("SENDING MESSAGE AND READING RESPONSE")
         print_info(f"Sending message: {message}")
 
@@ -516,7 +519,7 @@ class AgentServerClient:
         )
         final_message = received_messages.get_final_ai_message()
         assert final_message is not None, "No AI message received in response"
-        return final_message
+        return final_message, received_messages.tool_calls
 
     def upload_file_to_thread(
         self,
