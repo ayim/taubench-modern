@@ -1,6 +1,7 @@
 # Unreleased
 
 - Added error handling for invoking models via the Bedrock platform client. ([GPT-1029](https://linear.app/sema4ai/issue/GPT-1029))
+- Added tests for agent packages with knowledge files to make sure they do not affect agent creation and interaction. ([GPT-1041](https://linear.app/sema4ai/issue/GPT-1041))
 
 # Sema4.ai Agent Server 2.0.5 (2025-06-27)
 

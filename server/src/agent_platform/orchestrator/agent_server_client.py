@@ -478,6 +478,72 @@ class AgentServerClient:
                 f"Error creating agent: {response.status_code} {response.text}",
             )
 
+    def update_agent(self, agent_id: str, update_payload: dict):
+        """Updates an agent."""
+        url = urljoin(self.base_url + "/", f"agents/{agent_id}")
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        }
+        response = requests.put(url, headers=headers, json=update_payload)
+        if response.status_code == requests.codes.ok:
+            print_success(f"Updated agent {agent_id}")
+        else:
+            raise Exception(
+                f"Error updating agent {agent_id}: {response.status_code} {response.text}",
+            )
+
+    def create_agent_from_package_and_return_agent_id(
+        self,
+        *,
+        name: str = "",
+        agent_package_base64: str | None = None,
+        platform_configs: list[dict] | None = None,
+    ) -> str:
+        """Creates an agent from a package and returns the agent ID."""
+        url = urljoin(self.base_url + "/", "agents/package")
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        }
+        data = {
+            "name": name,
+            "agent_package_base64": agent_package_base64,
+            "model": {"provider": "openai", "name": "gpt-4o"},
+        }
+        response = requests.post(url, headers=headers, json=data)
+        if response.status_code == requests.codes.ok:
+            agent_id = response.json()["agent_id"]
+            assert agent_id is not None, "Agent id is None right after creation"
+            print_success(f"Created agent with ID: {agent_id}")
+            # Right now, we're only using OpenAI.
+            from agent_platform.core.platforms.openai import OpenAIPlatformParameters
+            from agent_platform.core.utils import SecretString
+
+            if platform_configs is not None:
+                platform_config = OpenAIPlatformParameters(
+                    openai_api_key=SecretString(platform_configs[0]["openai_api_key"]),
+                ).model_dump()
+                update_payload = {
+                    "name": response.json()["name"],
+                    "description": response.json()["description"],
+                    "version": response.json()["version"],
+                    "platform_configs": [platform_config],
+                    "agent_architecture": {
+                        "name": "agent_platform.architectures.default",
+                        "version": "1.0.0",
+                    },
+                    "runbook": response.json()["runbook"],
+                }
+                self.update_agent(agent_id, update_payload)
+            self._created_agent_ids.append(agent_id)
+
+            return agent_id
+        else:
+            raise Exception(
+                f"Error creating agent from package: {response.status_code} {response.text}",
+            )
+
     def create_thread_and_return_thread_id(self, agent_id: str) -> str:
         """
         Creates a new thread for the given agent.

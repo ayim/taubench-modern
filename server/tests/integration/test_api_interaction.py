@@ -735,6 +735,48 @@ async def test_agent_details_with_allowed_actions(
         assert "delete_contact" not in action_names, "Should not have delete_contact action"
 
 
+@pytest.mark.integration
+@pytest.mark.usefixtures("copy_tmpdir_on_failure")
+async def test_create_agent_from_package_with_knowledge_file(
+    base_url_agent_server,
+    openai_api_key,
+):
+    """
+    Test that an agent with knowledge files is created successfully.
+    Knowledge files are not supported in Agent Server v2;
+    this test is here to make sure that an agent package with knowledge files
+    does not affect agent creation and interaction in v2.
+    """
+    import base64
+
+    from agent_platform.orchestrator.agent_server_client import AgentServerClient
+
+    test_agents_dir = Path(__file__).parent / "resources" / "test-agents"
+
+    test_package_path = test_agents_dir / "agent-package-with-knowledge-file.zip"
+    if not test_package_path.exists():
+        pytest.skip("agent-package-with-knowledge-file.zip not found")
+
+    package_base64 = base64.b64encode(test_package_path.read_bytes()).decode()
+
+    with AgentServerClient(base_url_agent_server) as agent_client:
+        agent_id = agent_client.create_agent_from_package_and_return_agent_id(
+            name="VS Code One Changed",
+            agent_package_base64=package_base64,
+            platform_configs=[
+                {
+                    "kind": "openai",
+                    "openai_api_key": openai_api_key,
+                },
+            ],
+        )
+        thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
+        response = agent_client.send_message_to_agent_thread(
+            agent_id, thread_id, "What is the capital of France? Answer with just the capital."
+        )
+        assert "Paris" in response[0], "Response should contain Paris"
+
+
 if __name__ == "__main__":
     import pytest
 

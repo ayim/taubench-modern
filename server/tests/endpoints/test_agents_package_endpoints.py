@@ -372,6 +372,35 @@ class TestCreateAgentFromPackage:
             assert isinstance(action_package.api_key, SecretString)
 
     @pytest.mark.asyncio
+    async def test_create_agent_from_package_with_knowledge_file(self, mock_user, mock_storage):
+        """
+        Test that an agent with knowledge files is created successfully.
+        Knowledge files are not supported in Agent Server v2;
+        this test is here to make sure that an agent package with knowledge files
+        does not affect agent creation in v2.
+        """
+        test_package_path = TEST_AGENTS_DIR / "agent-package-with-knowledge-file.zip"
+        if not test_package_path.exists():
+            pytest.skip("agent-package-with-knowledge-file.zip not found")
+
+        package_base64 = base64.b64encode(test_package_path.read_bytes()).decode()
+
+        payload = AgentPackagePayload(
+            name="VS Code One Changed",
+            agent_package_base64=package_base64,
+        )
+
+        result = await create_agent_from_package(
+            user=mock_user,
+            payload=payload,
+            storage=mock_storage,
+        )
+
+        assert isinstance(result, AgentCompat)
+        assert result.name == "VS Code One Changed"
+        mock_storage.upsert_agent.assert_called_once()
+
+    @pytest.mark.asyncio
     @patch("agent_platform.server.api.private_v2.agents.extract_and_validate_agent_package")
     async def test_create_agent_from_package_url_success(
         self,
