@@ -1,7 +1,7 @@
 from uuid import uuid4
 
 from sqlalchemy import select, update
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from agent_platform.workitems.agents import AgentClient
 from agent_platform.workitems.models import (
@@ -19,7 +19,7 @@ class AgentValidationError(Exception):
 
 
 class WorkItemService:
-    def __init__(self, session: Session, agent_client: AgentClient):
+    def __init__(self, session: AsyncSession, agent_client: AgentClient):
         self.session = session
         self.agent_client = agent_client
 
@@ -38,22 +38,24 @@ class WorkItemService:
             messages=[msg.model_dump() for msg in payload.messages],
             payload=payload.payload,
         )
-        self.session.add(work_item)
-        self.session.commit()
-        self.session.refresh(work_item)
+        async with self.session.begin():
+            self.session.add(work_item)
 
         return work_item.to_model()
 
     async def describe(self, work_item_id: str) -> WorkItem | None:
-        result = self.session.execute(
-            select(WorkItemORM).where(WorkItemORM.work_item_id == work_item_id)
-        )
-        orm_item = result.scalar_one_or_none()
+        async with self.session.begin():
+            result = await self.session.execute(
+                select(WorkItemORM).where(WorkItemORM.work_item_id == work_item_id)
+            )
+            orm_item = result.scalar_one_or_none()
+
         return orm_item.to_model() if orm_item else None
 
     async def list(self, limit: int = 100) -> list[WorkItem]:
-        result = self.session.execute(select(WorkItemORM).limit(limit))
-        return [item.to_model() for item in result.scalars().all()]
+        async with self.session.begin():
+            result = await self.session.execute(select(WorkItemORM).limit(limit))
+            return [item.to_model() for item in result.scalars().all()]
 
     async def update_status(
         self,
@@ -61,10 +63,10 @@ class WorkItemService:
         status: WorkItemStatus,
         status_updated_by: str,
     ) -> WorkItem | None:
-        self.session.execute(
-            update(WorkItemORM)
-            .where(WorkItemORM.work_item_id == work_item_id)
-            .values(status=status, status_updated_by=status_updated_by)
-        )
-        self.session.commit()
+        async with self.session.begin():
+            await self.session.execute(
+                update(WorkItemORM)
+                .where(WorkItemORM.work_item_id == work_item_id)
+                .values(status=status, status_updated_by=status_updated_by)
+            )
         return await self.describe(work_item_id)

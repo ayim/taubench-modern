@@ -17,6 +17,7 @@ def get_free_port() -> int:
     import socket
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.bind(("", 0))  # Bind to port 0 lets OS choose a free port
         s.listen(1)
         port = s.getsockname()[1]

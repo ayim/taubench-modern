@@ -83,7 +83,7 @@ class TestWorkItemsE2E:
 
             create_response = await client.post("/", json=create_payload)
             assert create_response.status_code == 200, (
-                f"Failed to create work item: {create_response.json()}"
+                f"Failed to create work item: {create_response.text}"
             )
             work_item = create_response.json()
             work_item_id = work_item["work_item_id"]

@@ -14,6 +14,7 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import Annotated
 
+from anyio import ClosedResourceError
 from mcp import types as mcp_types
 from mcp.server.lowlevel import Server
 from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
@@ -310,8 +311,11 @@ def build_agent_mcp_app():
     @asynccontextmanager
     async def _lifespan(_app: Starlette):
         nonlocal session_manager
-        async with session_manager.run():
-            yield
+        try:
+            async with session_manager.run():
+                yield
+        except ClosedResourceError:
+            pass
 
     # Create the Starlette application with the lifespan
     agent_mcp = Starlette(lifespan=_lifespan)

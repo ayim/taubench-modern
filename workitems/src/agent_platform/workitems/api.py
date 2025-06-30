@@ -16,8 +16,8 @@ router = APIRouter(
 logger = logging.getLogger(__name__)
 
 
-def get_db_session(request: Request):
-    with instance.session() as session:
+async def get_db_session(request: Request):
+    async with instance.session() as session:
         yield session
 
 

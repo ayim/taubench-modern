@@ -13,12 +13,12 @@ from agent_platform.orchestrator.pytest_fixtures import base_logs_directory  # n
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import create_engine, text
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from testcontainers.postgres import PostgresContainer
 
 from agent_platform.workitems.agents.client import AgentClient, AgentInfo
 from agent_platform.workitems.api import router as workitems_router
-from agent_platform.workitems.db import instance
+from agent_platform.workitems.db import DatabaseManager, instance
 from agent_platform.workitems.main import _configure_logging
 from agent_platform.workitems.orm.base import Base
 
@@ -151,21 +151,18 @@ def agent_server_url(
 
 
 @pytest.fixture
-def session(database_url) -> Generator[Session, None, None]:
+async def database_manager(database_url) -> AsyncGenerator[DatabaseManager, None]:
     """Create a database session for each test and clean up after."""
-    engine = create_engine(database_url, echo=True)
-    maker = sessionmaker(bind=engine)
-    session = maker()
 
-    yield session
+    database_manager = DatabaseManager()
+    database_manager.init_engine(database_url)
+
+    yield database_manager
 
     # Cleanup: Delete all data from all tables
-    for table in reversed(Base.metadata.sorted_tables):
-        session.execute(text(f"DELETE FROM {table.name}"))
-    session.commit()
-    session.close()
-
-    engine.dispose()
+    async with database_manager.begin() as session:
+        for table in reversed(Base.metadata.sorted_tables):
+            await session.execute(text(f"DELETE FROM {table.name}"))
 
 
 @pytest.fixture
@@ -202,16 +199,16 @@ async def _app(
     # Cleanup: Delete all data from all tables
     engine = None
     try:
-        engine = create_engine(database_url, echo=True)
-        session = sessionmaker(bind=engine)()
+        engine = create_async_engine(database_url, echo=True)
+        session = async_sessionmaker(bind=engine)()
         # Cleanup: Delete all data from all tables
         for table in reversed(Base.metadata.sorted_tables):
-            session.execute(text(f"DELETE FROM {table.name}"))
-        session.commit()
-        session.close()
+            await session.execute(text(f"DELETE FROM {table.name}"))
+        await session.commit()
+        await session.close()
     finally:
         if engine is not None:
-            engine.dispose()
+            await engine.dispose()
 
 
 @pytest_asyncio.fixture

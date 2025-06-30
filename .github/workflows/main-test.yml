@@ -90,7 +90,6 @@ jobs:
       # TODO: Unit tests are currently flaky, skipping for now but allowing workflow to continue
       - name: Run unit tests
         timeout-minutes: 30 # TODO: This might be longer than needed.
-        continue-on-error: true
         run: make test-unit
 
   build:
@@ -221,7 +220,6 @@ jobs:
       # TODO: Remove continue-on-error once tests are stable
       - name: Run Integration tests
         timeout-minutes: 30 # TODO: This might be longer than needed.
-        continue-on-error: true
         env:
           SEMA4AI_TEST_AGENT_SERVER_EXECUTABLE: ${{ runner.os == 'Windows' && '.\\dist\\agent-server.exe' || './dist/agent-server' }}
         run: make test-integration

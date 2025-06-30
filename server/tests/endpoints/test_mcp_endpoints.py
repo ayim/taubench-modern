@@ -6,7 +6,6 @@ import os
 import platform
 import socket
 import tempfile
-import time
 import uuid
 from collections.abc import AsyncGenerator, Generator
 from contextlib import AsyncExitStack, ExitStack, asynccontextmanager, contextmanager
@@ -26,16 +25,13 @@ from starlette.applications import Starlette
 from starlette.responses import Response, StreamingResponse
 from starlette.routing import Route
 
-from agent_platform.core.agent.agent import Agent
-from agent_platform.core.agent.agent_architecture import AgentArchitecture
-from agent_platform.core.runbook.runbook import Runbook
-from agent_platform.server.app import create_app
-from agent_platform.server.storage import SQLiteStorage
-
 logger = logging.getLogger(__name__)
 
-
-if platform.system() == "Darwin":
+if platform.system() == "Windows":
+    # On Windows, 'spawn' is the default, but we need to ensure it's explicitly set.
+    # This helps with process management and prevents timeouts
+    multiprocessing.set_start_method("spawn", force=True)
+else:
     multiprocessing.set_start_method("fork")
 
 MOCK_USER_SUB = "test-user-user"
@@ -65,6 +61,10 @@ def windows_temporary_file():
 async def mock_storage() -> AsyncGenerator[None, Any]:
     """Create a mock storage instance."""
 
+    from agent_platform.core.agent import Agent, AgentArchitecture
+    from agent_platform.core.runbook import Runbook
+    from agent_platform.server.storage import SQLiteStorage
+
     with ExitStack() as stack:
         if platform.system() == "Windows":
             temp_db_file = stack.enter_context(windows_temporary_file())
@@ -72,6 +72,7 @@ async def mock_storage() -> AsyncGenerator[None, Any]:
             temp_db_file = stack.enter_context(tempfile.NamedTemporaryFile()).name
 
         # On Unix-like systems, we can use NamedTemporaryFile as before
+
         storage = SQLiteStorage(temp_db_file)
         await storage.setup()
 
@@ -123,109 +124,156 @@ async def mock_storage() -> AsyncGenerator[None, Any]:
         await storage.teardown()
 
 
-async def proxy_route(request: Request) -> Response:
-    logger.info(f"proxy_route: {request.method} {request.url}")
+def _build_proxy_app() -> Starlette:
+    """Build a Starlette app that proxies requests to the local MCP proxy."""
 
-    cookies = httpx.Cookies(request.cookies)
-    cookies.set("agent_server_user_id", request.query_params["api_key"])
+    async def proxy_route(request: Request) -> Response:
+        logger.info(f"proxy_route: {request.method} {request.url}")
 
-    body = await request.body()
+        cookies = httpx.Cookies(request.cookies)
+        cookies.set("agent_server_user_id", request.query_params["api_key"])
 
-    client: httpx.AsyncClient = request.state.http_client
-    stream_client = client.stream(
-        request.method,
-        f"/{request.path_params['target']}",
-        params=request.query_params,
-        content=body,
-        headers=request.headers,
-        cookies=cookies,
-    )
+        body = await request.body()
 
-    server_response = await stream_client.__aenter__()
-
-    async def _stream():
-        response_body = b""
-        nonlocal server_response, stream_client
-        try:
-            async for chunk in server_response.aiter_raw():
-                response_body += chunk
-                yield chunk
-        finally:
-            await stream_client.__aexit__(None, None, None)
-
-    return StreamingResponse(
-        content=_stream(),
-        status_code=server_response.status_code,
-        headers=server_response.headers,
-        media_type=server_response.headers.get("content-type"),
-    )
-
-
-@asynccontextmanager
-async def lifespan(app: Starlette):
-    async with AsyncExitStack() as stack:
-        await stack.enter_async_context(mock_storage())
-        agent_server_app = create_app()
-
-        client = await stack.enter_async_context(
-            httpx.AsyncClient(
-                timeout=None,
-                transport=httpx.ASGITransport(agent_server_app),
-                base_url="http://127.0.0.1:18000",
-            )
+        client: httpx.AsyncClient = request.state.http_client
+        stream_client = client.stream(
+            request.method,
+            f"/{request.path_params['target']}",
+            params=request.query_params,
+            content=body,
+            headers=request.headers,
+            cookies=cookies,
         )
 
-        await stack.enter_async_context(agent_server_app.router.lifespan_context(agent_server_app))
+        server_response = await stream_client.__aenter__()
 
-        yield {
-            "http_client": client,
-        }
+        async def _stream():
+            response_body = b""
+            nonlocal server_response, stream_client
+            try:
+                async for chunk in server_response.aiter_raw():
+                    response_body += chunk
+                    yield chunk
+            finally:
+                await stream_client.__aexit__(None, None, None)
+
+        return StreamingResponse(
+            content=_stream(),
+            status_code=server_response.status_code,
+            headers=server_response.headers,
+            media_type=server_response.headers.get("content-type"),
+        )
+
+    @asynccontextmanager
+    async def lifespan(app: Starlette):
+        from agent_platform.server.app import create_app
+
+        async with AsyncExitStack() as stack:
+            await stack.enter_async_context(mock_storage())
+            agent_server_app = create_app()
+
+            client = await stack.enter_async_context(
+                httpx.AsyncClient(
+                    timeout=None,
+                    transport=httpx.ASGITransport(agent_server_app),
+                    base_url="http://127.0.0.1:18000",
+                )
+            )
+
+            await stack.enter_async_context(
+                agent_server_app.router.lifespan_context(agent_server_app)
+            )
+
+            yield {
+                "http_client": client,
+            }
+
+    return Starlette(
+        routes=[Route("/{target:path}", proxy_route, methods=list(http.HTTPMethod))],
+        lifespan=lifespan,
+    )
 
 
-local_mcp_proxy = Starlette(
-    debug=True,
-    routes=[Route("/{target:path}", proxy_route, methods=list(http.HTTPMethod))],
-    lifespan=lifespan,
-)
+def _wait_for_port(host: str, port_queue: multiprocessing.Queue, timeout: float = 30.0) -> int:
+    """Wait for a server to be available on a specific port.
+
+    Args:
+        host: The hostname or IP address where the server is expected to be running.
+        port_queue: A multiprocessing Queue that will provide the port number when available.
+        timeout: Maximum time in seconds to wait for the port to become available.
+
+    Returns:
+        int: The port number that was successfully connected to.
+
+    Raises:
+        pytest.fail: If the port doesn't become available within the timeout period,
+                     or if any other error occurs during the connection attempt.
+    """
+    port = None
+
+    try:
+        # Get the port number from the queue, waiting up to timeout seconds
+        port = port_queue.get(timeout=timeout)
+        # Attempt to establish a connection to verify the port is actually available
+        with socket.create_connection((host, port), timeout=10):
+            return port
+    except Exception as e:
+        # If the connection fails, mark the test as an expected failure
+        pytest.fail(f"Server on {host}:{port} did not start within {timeout} seconds\n{e}")
 
 
-def _wait_for_port(host: str, port: int, timeout: float = 10.0) -> None:
-    """Block until a TCP listener appears on *host:port* or *timeout* seconds elapse."""
-    deadline = time.time() + timeout
-    while time.time() < deadline:
-        try:
-            with socket.create_connection((host, port), timeout=0.2):
-                return
-        except OSError:
-            time.sleep(0.1)
-    raise RuntimeError(f"Server on {host}:{port} did not start within {timeout} seconds")
-
-
-def _run_proxy_server(port: int):
+def _run_proxy_server(port_queue: multiprocessing.Queue) -> None:
     """Run the Starlette proxy on the given *port* inside a fresh uvicorn loop."""
-    uvicorn.run(local_mcp_proxy, host="127.0.0.1", port=port, loop="asyncio")
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        # On Windows, we don't set any special socket options to ensure compatibility
+        # with all Windows versions, including Windows 2025
+        if platform.system() != "Windows":
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+        s.bind(("127.0.0.1", 0))
+        s.listen(100)
+
+        port: int = s.getsockname()[1]
+
+        port_queue.put(port)
+
+        config = uvicorn.Config(_build_proxy_app(), host="127.0.0.1", port=port)
+        try:
+            uvicorn.Server(config).run(sockets=[s])
+        except KeyboardInterrupt:
+            pass
 
 
 @pytest.fixture(scope="session")
 def mock_mcp_proxy() -> Generator[str, None, None]:
     """Spin-up the Starlette proxy on a free TCP port and yield its base-URL."""
 
-    # Pick an ephemeral port that is guaranteed to be free for the child.
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(("127.0.0.1", 0))
-        port: int = s.getsockname()[1]
+    port_queue = multiprocessing.Queue()
 
-    p = multiprocessing.Process(target=_run_proxy_server, args=(port,))
+    p = multiprocessing.Process(target=_run_proxy_server, args=(port_queue,))
     p.start()
 
     try:
-        _wait_for_port("127.0.0.1", port)
+        # Wait for the port to be available
+        port = _wait_for_port("127.0.0.1", port_queue)
         yield f"http://127.0.0.1:{port}"
     finally:
-        p.terminate()
-        p.join(timeout=5)
-        if p.is_alive():
-            p.kill()
+        # Process termination for non-Windows platforms
+        try:
+            p.terminate()
+            p.join(timeout=5)
+            if p.is_alive():
+                logger.warning("Process did not terminate gracefully, killing it")
+                p.kill()
+                p.join(timeout=2)
+        except Exception as e:
+            logger.error(f"Error terminating process: {e}")
+            # Make a final attempt to kill the process
+            try:
+                if p.is_alive():
+                    p.kill()
+            except Exception:
+                pass
 
 
 @pytest.mark.asyncio
