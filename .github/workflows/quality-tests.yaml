@@ -1,0 +1,139 @@
+name: Quality Tests
+
+on:
+  # push:
+  #   branches: [development]
+  # pull_request:
+  workflow_dispatch:
+    inputs:
+      agent_server_version:
+        description: 'Agent Server version to test against'
+        required: false
+        default: 'v2.0.5-alpha.3'
+
+jobs:
+  quality-tests:
+    runs-on: ubuntu-latest
+
+    env:
+      AGENT_SERVER_VERSION: ${{ github.event.inputs.agent_server_version || 'v2.0.5-alpha.3' }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python (Astral)
+        uses: astral-sh/setup-uv@1bf14936647e2742afe170d7d7fd95f45bfe4fc7
+        with:
+          python-version: '3.12'
+          activate-environment: true
+
+      # we need to fetch action-server because it is required by agent-cli
+      # we use agent-cli to get package metadata, but we will remove it as soon as we have a better way to do it
+      # agent-cli assumes that there exists an agent-server in $PATH
+      # Note that this agent server is not what we used to run actions
+      - name: Fetch agent server ${{ env.AGENT_SERVER_VERSION }} and action server
+        run: |
+          curl -L \
+               -o ./agent-server \
+               "https://cdn.sema4.ai/agent-server/${AGENT_SERVER_VERSION}/linux_x64/agent-server"
+          chmod +x ./agent-server
+
+          curl -o ./action-server https://cdn.sema4.ai/action-server/releases/latest/linux64/action-server
+          chmod +x ./action-server
+
+          mkdir -p $HOME/.local/bin
+          export PATH="$HOME/.local/bin:$PATH"
+
+          mv ./agent-server $HOME/.local/bin
+          mv ./action-server $HOME/.local/bin
+
+      - name: Sanity-check binaries are reachable
+        run: |
+          agent-server --version
+          action-server version
+
+      - name: Install quality tool project
+        run: |
+          make sync
+
+      - name: Create .env from GitHub Secrets
+        run: |
+          # Generate file in one shot so no secret ever hits the logs
+          cat <<'EOF' > .env
+          OPENAI_API_KEY=${{ secrets.QUALITY_TEST_OPENAI_API_KEY }}
+          AWS_ACCESS_KEY_ID=${{ secrets.QUALITY_TEST_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY=${{ secrets.QUALITY_TEST_AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION=${{ secrets.QUALITY_TEST_AWS_DEFAULT_REGION }}
+          SNOWFLAKE_USERNAME=${{ secrets.QUALITY_TEST_SNOWFLAKE_USERNAME }}
+          SNOWFLAKE_PASSWORD=${{ secrets.QUALITY_TEST_SNOWFLAKE_PASSWORD }}
+          SNOWFLAKE_ACCOUNT=${{ secrets.QUALITY_TEST_SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_ROLE=${{ secrets.QUALITY_TEST_SNOWFLAKE_ROLE }}
+          AZURE_API_KEY=${{ secrets.QUALITY_TEST_AZURE_API_KEY }}
+          AZURE_ENDPOINT_URL=${{ secrets.QUALITY_TEST_AZURE_ENDPOINT_URL }}
+          AZURE_DEPLOYMENT_NAME=${{ secrets.QUALITY_TEST_AZURE_DEPLOYMENT_NAME }}
+          AZURE_DEPLOYMENT_NAME_EMBEDDINGS=${{ secrets.QUALITY_TEST_AZURE_DEPLOYMENT_NAME_EMBEDDINGS }}
+          AZURE_API_VERSION=${{ secrets.QUALITY_TEST_AZURE_API_VERSION }}
+          EOF
+        shell: bash
+
+      - name: Install Snow CLI
+        run: |
+          wget https://sfc-repo.snowflakecomputing.com/snowflake-cli/linux_x86_64/3.2.2/snowflake-cli-3.2.2.x86_64.deb
+          sudo dpkg -i snowflake-cli-3.2.2.x86_64.deb
+
+      - name: Configure Snowflake account
+        run: |
+          mkdir -p $HOME/.snowflake
+          touch $HOME/.snowflake/config.toml
+          touch $HOME/.snowflake/rsa_key.p8
+          chmod 600 $HOME/.snowflake/rsa_key.p8
+          printf '%s' "${{ secrets.QUALITY_TEST_SNOWFLAKE_PRIVATE_KEY }}" > $HOME/.snowflake/rsa_key.p8
+
+          cat <<'EOF' > $HOME/.snowflake/config.toml
+          default_connection_name = "PLATFORMTEAM"
+          [connections]
+          [connections.PLATFORMTEAM]
+          account = "ZVZWMYO-PLATFORMTEAM"
+          user = "${{ secrets.QUALITY_TEST_SNOWFLAKE_USER }}"
+          authenticator = "SNOWFLAKE_JWT"
+          private_key_path = "/home/runner/.snowflake/rsa_key.p8"
+          role = "${{ secrets.QUALITY_TEST_SNOWFLAKE_ROLE }}"
+          EOF
+          chmod 600 $HOME/.snowflake/config.toml
+
+          # Agent Platform reads this file
+          touch $HOME/.sema4ai/sf-auth.json
+          cat <<'EOF' > $HOME/.sema4ai/sf-auth.json
+          {
+            "linkingDetails": {
+              "account": "ZVZWMYO-PLATFORMTEAM",
+              "user": "${{ secrets.QUALITY_TEST_SNOWFLAKE_USER }}",
+              "privateKeyPath": "/home/runner/.snowflake/rsa_key.p8",
+              "role": "${{ secrets.QUALITY_TEST_SNOWFLAKE_ROLE }}",
+              "authenticator": "SNOWFLAKE_JWT",
+              "applicationUrl": "https://fpdmkyyc-zvzwmyo-platformteam.snowflakecomputing.app/api/rest"
+            }
+          }
+          EOF
+        shell: bash
+
+      - name: Sanity Check, test Snowflake connection
+        run: |
+          snow connection test
+
+      # we run only selected agents becuase
+      # it is not clear how to get access tokens in CI, it requires user interactions
+      - name: Run quality tests
+        run: |
+          uv run quality-test init
+          SEMA4AI_TEST_AGENT_SERVER_EXECUTABLE=$HOME/.local/bin/agent-server uv run quality-test run --selected-agents "001-quality-basic-browsing,003-call-center-planner,002-snowflake-cortex-analyst"
+
+      - name: Upload test artifacts
+        if: always() # even on failures
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-test-results
+          path: |
+            ~/.sema4x/quality/quality_results
+            ~/.sema4x/quality/logs

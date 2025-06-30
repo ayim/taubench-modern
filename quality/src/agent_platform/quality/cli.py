@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import sys
 from dataclasses import dataclass
 from http import HTTPStatus
 from pathlib import Path
@@ -11,6 +12,7 @@ import structlog
 import yaml
 from dotenv import load_dotenv
 
+from agent_platform.quality.models import ThreadResult
 from agent_platform.quality.oauth import OAuthRedirectServer
 from agent_platform.quality.reporter import QualityReporter
 from agent_platform.quality.runner import QualityTestRunner
@@ -285,7 +287,7 @@ def list_tests(ctx: Context, agent_name: str | None):
 @click.option(
     "--selected-agents",
     default=[],
-    type=list[str],
+    type=str,
     help="List of agents to run tests for (if not provided, all agents will be run)",
 )
 @click.pass_obj
@@ -294,7 +296,7 @@ async def run(
     detailed: bool,
     platform_summary: bool,
     max_agents: int,
-    selected_agents: list[str],
+    selected_agents: str,
 ):
     """Run quality tests for agents."""
     runner = QualityTestRunner(
@@ -311,7 +313,7 @@ async def run(
             f"🚀 Running tests for all agents (fully parallel, max {max_agents} concurrent agents)"
         )
         all_results = await runner.run_tests_for_all_agents_fully_parallel(
-            selected_agents=selected_agents,
+            selected_agents=[selected.strip() for selected in selected_agents.split(",")],
             max_concurrent_agents=max_agents,
         )
 
@@ -325,6 +327,16 @@ async def run(
 
         results_dir = runner.results_manager.get_results_dir()
         click.echo(f"💾 Results automatically saved to {results_dir}")
+
+        def any_failures(results: dict[str, list[ThreadResult]]) -> bool:
+            """Return True if at least one ThreadResult was not successful."""
+            return any(
+                not thread.success for thread_list in results.values() for thread in thread_list
+            )
+
+        if any_failures(all_results):
+            click.echo("❌ Some tests failed", err=True)
+            sys.exit(1)
 
     except Exception as e:
         click.echo(f"Error running test suite: {e}")
