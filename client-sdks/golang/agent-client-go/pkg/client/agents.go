@@ -69,6 +69,9 @@ type McpServer struct {
 	// to the transport endpoint to use.
 	URL *string `json:"url,omitempty"`
 
+	// Headers used for configuring requests & connections to the MCP server
+	Headers map[string]string `json:"headers,omitempty"`
+
 	// Command to run the MCP server. If not provided,
 	// the MCP server will be assumed to be running locally.
 	Command *string `json:"command,omitempty"`

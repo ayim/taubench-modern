@@ -274,6 +274,10 @@ func init() {
 	packageCmd.AddCommand(importCmd)
 	importCmd.Flags().StringVar(
 		&agentPackagePath, "package", common.AGENT_PACKAGE_DEFAULT_NAME, "The .zip file to import.")
+	if err := importCmd.MarkFlagRequired("package"); err != nil {
+		fmt.Printf("failed to mark flag as required: %+v", err)
+	}
+
 	importCmd.Flags().StringVar(
 		&agentServerURL, "agent-server-url", common.S4S_BACKEND_DEFAULT_URL, "Set the agent server URL.",
 	)
@@ -286,7 +290,5 @@ func init() {
 	importCmd.Flags().BoolVar(
 		&public, "public", false, "Make the agent public.")
 	importCmd.Flags().StringVar(&localAgentProjectPath, "agent-project-path", "", "Create agent project to path.")
-	if err := importCmd.MarkFlagRequired("package"); err != nil {
-		fmt.Printf("failed to mark flag as required: %+v", err)
-	}
+
 }

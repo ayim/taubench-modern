@@ -6,6 +6,7 @@ GO_FILES := $(shell find . -name '*.go' | grep -v /vendor/)
 PKG := ./...
 INTEGRATION_TEST_DIR := ./test/integration
 DIST_DIR := dist
+BUILD_DIR := build
 OS := $(shell go env GOOS)
 ARCH := $(shell go env GOARCH)
 BINARY_NAME := $(APP_NAME)-$(OS)-$(ARCH)
@@ -25,6 +26,7 @@ run: ## Run the application
 clean: ## Remove previous build artifacts and test cache
 	@echo "Cleaning up..."
 	go clean -modcache -cache -testcache -i -r
+	rm -rf $(BUILD_DIR)
 	rm -rf $(DIST_DIR)
 	rm -rf $(APP_NAME)
 

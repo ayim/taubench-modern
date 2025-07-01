@@ -125,7 +125,8 @@ func createAgentWithMCPsse(t *testing.T, agentCounter int, baseURL string, openA
 	// }
 	mcpServers := []acg.McpServer{}
 	mcpServerURL := "https://mcp.deepwiki.com/sse"
-	mcpServers = append(mcpServers, acg.McpServer{Name: "deepwiki-sse", Transport: "sse", URL: &mcpServerURL})
+	mcpServerHeaders := map[string]string{"test": "me"}
+	mcpServers = append(mcpServers, acg.McpServer{Name: "deepwiki-sse", Transport: "sse", URL: &mcpServerURL, Headers: mcpServerHeaders})
 	payload := acg.AgentCreatePayload{
 		Name:        uniqueName,
 		Description: "This is an agent created by an integration test.",
@@ -305,7 +306,7 @@ func TestAgentWithMCPServerSTDIO(t *testing.T) {
 	require.Equal(t, len(serverAgent.McpServers), 1)
 	require.True(t, serverAgent.McpServers[0].Name == "docker-mcp-gateway-stdio")
 
-	threadState, err := client.GetThreadState(thread.ThreadID)
+	threadState, err = client.GetThreadState(thread.ThreadID)
 	require.NoError(t, err)
 
 	// delete the agent

@@ -3,7 +3,7 @@ module github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli
 go 1.23.9
 
 require (
-	github.com/Sema4AI/agent-platform/client-sdks/golang/agent-client-go v0.3.0
+	github.com/Sema4AI/agent-platform/client-sdks/golang/agent-client-go v0.4.0
 	github.com/Sema4AI/rcc v0.0.0-20250514153248-eec1733ee256
 	github.com/google/uuid v1.6.0
 	github.com/spf13/cobra v1.9.1
