@@ -1,6 +1,5 @@
 import asyncio
 import logging
-from collections.abc import Callable
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -41,30 +40,29 @@ def _start_background_worker(
     return t, shutdown_event
 
 
-def _create_lifecycle_function(
-    agent_app: FastAPI | None = None, agent_server_url: str | None = None
-) -> Callable:
-    """Create a lifecycle function with the agent configuration captured."""
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    agent_app = app.state._state["agent_app"] if "agent_app" in app.state._state else None
+    agent_server_url = (
+        app.state._state["agent_server_url"] if "agent_server_url" in app.state._state else None
+    )
 
-    @asynccontextmanager
-    async def lifecycle(app: FastAPI):
-        logger.info("Starting work-items lifecycle")
+    # Create agent client directly using the captured configuration
+    if agent_app is not None:
+        logger.info(f"Using agent app over ASGI: {agent_app}")
+        agent_client = FastAPIAgentClient(agent_app)
+    elif agent_server_url is not None:
+        logger.info(f"Using agent server url over HTTP: {agent_server_url}")
+        agent_client = HttpAgentClient(agent_server_url)
+    else:
+        raise ValueError("Either agent_app or agent_server_url must be provided")
 
-        # Create agent client directly using the captured configuration
-        if agent_app is not None:
-            logger.info(f"Using agent app over ASGI: {agent_app}")
-            agent_client = FastAPIAgentClient(agent_app)
-        elif agent_server_url is not None:
-            logger.info(f"Using agent server url over HTTP: {agent_server_url}")
-            agent_client = HttpAgentClient(agent_server_url)
-        else:
-            raise ValueError("Either agent_app or agent_server_url must be provided")
+    background_worker, shutdown_event = _start_background_worker(app, agent_client)
 
-        app.state.worker = _start_background_worker(app, agent_client)
-        yield
-        await on_teardown(app)
+    yield
 
-    return lifecycle
+    logger.info("Shutting down work-items background worker")
+    shutdown_event.set()
 
 
 def make_workitems_app(
@@ -75,11 +73,8 @@ def make_workitems_app(
     # initialize the database
     instance.init_engine(settings.database_url)
 
-    # Create lifecycle function with captured configuration
-    lifecycle = _create_lifecycle_function(agent_app, agent_server_url)
-
     # Make the workitems FastAPI app
-    wi_app = FastAPI(lifespan=lifecycle)
+    wi_app = FastAPI(lifespan=lifespan)
     wi_app.include_router(workitems_router)
 
     # Register the standard agent-server exception handlers
@@ -90,16 +85,3 @@ def make_workitems_app(
     wi_app.state.agent_server_url = agent_server_url
 
     return wi_app
-
-
-async def on_teardown(app: FastAPI) -> None:
-    """
-    Stop the background worker against the given FastAPI app.
-    """
-    # Pull off the state
-    if hasattr(app, "state") and hasattr(app.state, "worker"):
-        # Try to gracefully shutdown the worker
-        logger.info("Stopping work-items background worker")
-        app.state.worker.cancel()
-
-    logger.info("work-items shut down")

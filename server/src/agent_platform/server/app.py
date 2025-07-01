@@ -190,6 +190,11 @@ def create_app() -> FastAPI:
     )
     app.router.lifespan_context = create_combined_lifespan(mcp_app, agent_mcp, workitems_app)
 
+    # Lift workitems app state into the main app
+    for k, v in workitems_app.state._state.items():
+        logger.info(f"Carrying over Workitems app state: {k} = {v}")
+        app.state._state[k] = v
+
     # Add authentication middleware to the MCP app to enable user-based authentication
     mcp_app.add_middleware(MCPAuthenticationMiddleware)
     app.mount("/api/v2/public-mcp/", mcp_app)
