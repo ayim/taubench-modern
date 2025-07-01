@@ -90,22 +90,6 @@ async def update_agent(
     storage: StorageDependency,
 ) -> AgentCompat:
     agent = UpsertAgentPayload.to_agent(payload, user_id=user.user_id, agent_id=aid)
-
-    # Log MCP server headers when updating agent
-    if payload.mcp_servers:
-        for mcp_server in payload.mcp_servers:
-            if mcp_server.headers:
-                logger.info(
-                    "Agent update - MCP server '%s' configured with headers: %s",
-                    mcp_server.name,
-                    mcp_server.headers,
-                )
-            else:
-                logger.info(
-                    "Agent update - MCP server '%s' configured with no custom headers",
-                    mcp_server.name,
-                )
-
     await storage.upsert_agent(user.user_id, agent)
     ToolDefinitionCache().clear_for_agent(agent)
     return AgentCompat.from_agent(agent)
@@ -302,22 +286,6 @@ async def create_agent_from_package(
     storage: StorageDependency,
 ) -> AgentCompat:
     aid = str(uuid.uuid4())
-
-    # Log MCP server headers when creating agent from package
-    if payload.mcp_servers:
-        for mcp_server in payload.mcp_servers:
-            if mcp_server.headers:
-                logger.info(
-                    "Agent creation from package - MCP server '%s' configured with headers: %s",
-                    mcp_server.name,
-                    mcp_server.headers,
-                )
-            else:
-                logger.info(
-                    "Agent creation from package - MCP server '%s' configured with no headers",
-                    mcp_server.name,
-                )
-
     return await _create_or_update_agent_from_package(
         user=user,
         aid=aid,
