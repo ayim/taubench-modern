@@ -5,6 +5,8 @@ from uuid import uuid4
 from sqlalchemy import JSON, TIMESTAMP, String, text
 from sqlalchemy.orm import Mapped, mapped_column
 
+from agent_platform.core.payloads.initiate_stream import InitiateStreamPayload
+
 from ..models import WorkItem, WorkItemMessage, WorkItemStatus
 from .base import Base
 
@@ -51,6 +53,17 @@ class WorkItemORM(Base):
             status_updated_by=self.status_updated_by,
             messages=[WorkItemMessage.model_validate(msg) for msg in self.messages],
             payload=self.payload,
+        )
+
+    def to_invoke_payload(self) -> InitiateStreamPayload:
+        """Convert a WorkItemORM to an InvokeAgentPayload."""
+        work_item_messages = [WorkItemMessage.model_validate(msg) for msg in self.messages]
+        thread_messages = [msg.to_thread_message() for msg in work_item_messages]
+
+        return InitiateStreamPayload(
+            agent_id=self.agent_id,
+            thread_id=self.thread_id,
+            messages=thread_messages,
         )
 
     @classmethod

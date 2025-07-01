@@ -3,6 +3,9 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any, Literal, Self
 
+from agent_platform.core.thread.base import AnyThreadMessageContent, ThreadMessage
+from agent_platform.core.thread.content.text import ThreadTextContent
+
 
 class WorkItemStatus(StrEnum):
     CANCELLED = "CANCELLED"
@@ -29,6 +32,14 @@ class WorkItemMessageContent:
             "file_name": self.file_name,
             "mime_type": self.mime_type,
         }
+
+    def to_thread_message_content(self) -> AnyThreadMessageContent:
+        """Convert a WorkItemMessageContent to a ThreadMessage."""
+        match self.kind:
+            case "text":
+                return ThreadTextContent(text=self.text)
+            case _:
+                raise ValueError(f"Unsupported kind: {self.kind}")
 
 
 @dataclass
@@ -57,6 +68,16 @@ class WorkItemMessage:
             "role": self.role,
             "content": [item.model_dump() for item in self.content],
         }
+
+    def to_thread_message(self) -> ThreadMessage:
+        """Convert a WorkItemMessage to a ThreadMessage."""
+        content: list[AnyThreadMessageContent] = [
+            item.to_thread_message_content() for item in self.content
+        ]
+        return ThreadMessage(
+            role=self.role,
+            content=content,
+        )
 
 
 @dataclass

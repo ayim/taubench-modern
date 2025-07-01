@@ -5,6 +5,8 @@ from collections.abc import Awaitable, Callable, Sequence
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from agent_platform.workitems.agents.client import AgentClient
+from agent_platform.workitems.agents.models import status_is_failed, status_is_successful
 from agent_platform.workitems.config import Settings
 from agent_platform.workitems.db import DatabaseManager
 from agent_platform.workitems.models import WorkItemStatus
@@ -13,20 +15,46 @@ from agent_platform.workitems.orm import WorkItemORM
 logger = logging.getLogger(__name__)
 
 
-async def run_agent(session: AsyncSession, item: WorkItemORM) -> bool:
+async def run_agent(session: AsyncSession, item: WorkItemORM, agent_client: AgentClient) -> bool:
     """
     Run an agent on the agent_server.
     """
-    # TODO: actually invoke agent server
-    await asyncio.sleep(0.5)
-    return True
+
+    payload = item.to_invoke_payload()
+    logger.info(
+        f"Work item {item.work_item_id}: Invoking agent "
+        f"{item.agent_id} with messages {payload.messages}"
+    )
+
+    invoke_resp = await agent_client.invoke_agent(item.agent_id, payload)
+    run_id = invoke_resp.run_id
+    logger.info(f"Work item {item.work_item_id}: Run {run_id} started")
+
+    # Poll for the run status until it is completed or failed
+    while True:
+        run_status_resp = await agent_client.get_run_status(run_id)
+        if not run_status_resp:
+            logger.warning(f"Run status not found for run {run_id}")
+            await asyncio.sleep(1)
+            continue
+
+        if status_is_successful(run_status_resp.status):
+            logger.info(f"Work item {item.work_item_id}: Run {run_id} completed successfully")
+            return True
+        elif status_is_failed(run_status_resp.status):
+            logger.error(f"Work item {item.work_item_id}: Run {run_id} failed")
+            return False
+        else:
+            logger.info(f"Work item {item.work_item_id}: Run {run_id} is {run_status_resp.status}")
+            await asyncio.sleep(1)
 
 
 async def worker_loop(
     db: DatabaseManager,
     config: Settings,
     shutdown_event: asyncio.Event,
-    work_func: Callable[[AsyncSession, WorkItemORM], Awaitable[bool]],
+    agent_client: AgentClient,
+    work_func: Callable[[AsyncSession, WorkItemORM, AgentClient], Awaitable[bool]],
 ) -> None:
     """
     Runs a loop which processes work items, sleeping the configured amount between iterations.
@@ -34,7 +62,7 @@ async def worker_loop(
     while not shutdown_event.is_set():
         logger.info("searching for work items to process")
         try:
-            await worker_iteration(db, config, work_func)
+            await worker_iteration(db, config, agent_client, work_func)
         except Exception as exc:
             logger.error(f"Error processing work items: {exc}", exc_info=exc)
 
@@ -46,7 +74,8 @@ async def worker_loop(
 async def worker_iteration(
     db: DatabaseManager,
     config: Settings,
-    work_func: Callable[[AsyncSession, WorkItemORM], Awaitable[bool]],
+    agent_client: AgentClient,
+    work_func: Callable[[AsyncSession, WorkItemORM, AgentClient], Awaitable[bool]],
 ) -> None:
     """
     Reads a batch of "PENDING" work_item rows from the database and
@@ -75,14 +104,17 @@ async def worker_iteration(
 
     if work_item_ids:
         logger.info(f"Dispatching work items {work_item_ids}")
-        batch_results = await run_batch(db, work_item_ids, work_func, config.work_item_timeout)
+        batch_results = await run_batch(
+            db, work_item_ids, agent_client, work_func, config.work_item_timeout
+        )
         logger.info(f"Completed {len(batch_results)} work items concurrently")
 
 
 async def run_batch(
     db: DatabaseManager,
     work_item_ids: Sequence[str],
-    work_func: Callable[[AsyncSession, WorkItemORM], Awaitable[bool]],
+    agent_client: AgentClient,
+    work_func: Callable[[AsyncSession, WorkItemORM, AgentClient], Awaitable[bool]],
     batch_timeout: float,
 ) -> Sequence[bool | BaseException]:
     """
@@ -102,7 +134,7 @@ async def run_batch(
     tasks = {}
     for item in items:
         logger.info(f"Dispatching work item (batch run) {item.work_item_id}")
-        task = asyncio.create_task(execute_work_item(db, item, work_func))
+        task = asyncio.create_task(execute_work_item(db, item, agent_client, work_func))
         tasks[item.work_item_id] = task
 
     # Run all tasks concurrently until they are all completed or a timeout is reached.
@@ -144,7 +176,7 @@ async def run_batch(
     # We do this to prevent races between the task writing to the DB after we signaled
     # the cancellation
     if incomplete_work_item_ids:
-        async with session.begin():
+        async with db.begin() as session:
             await session.execute(
                 update(WorkItemORM)
                 .where(
@@ -162,26 +194,50 @@ async def run_batch(
 async def execute_work_item(
     db: DatabaseManager,
     item: WorkItemORM,
-    agent_func: Callable[[AsyncSession, WorkItemORM], Awaitable[bool]],
+    agent_client: AgentClient,
+    agent_func: Callable[[AsyncSession, WorkItemORM, AgentClient], Awaitable[bool]],
 ) -> bool:
-    logger.info(f"Starting execution on work item {item.work_item_id}")
-    result = False
+    """
+    Call agent server to process one work item and update the database with the
+    result.
 
+    Args:
+        db: The database manager.
+        item: The work item to execute.
+        agent_client: The agent client.
+        agent_func: The function to execute the agent.
+
+    Returns:
+        True if the work item was executed successfully, False otherwise.
+    """
     try:
+        logger.info(f"Starting execution on work item {item.work_item_id}")
+
         async with db.session() as session:
-            result = await agent_func(session, item)
+            result = await agent_func(session, item, agent_client)
+
+        new_status = WorkItemStatus.COMPLETED if result else WorkItemStatus.ERROR
+
+        logger.info(f"Completed execution on work item {item.work_item_id}, result: {result}")
+
+        async with db.begin() as session:
+            await session.execute(
+                update(WorkItemORM)
+                .where(WorkItemORM.work_item_id == item.work_item_id)
+                .values(status=new_status)
+            )
+
+        # TODO on COMPLETED, use prompts/generate to judge the result
+
+        return result
     except Exception as e:
         logger.error(f"Error executing work item {item.work_item_id}: {e}", exc_info=e)
 
-    new_status = WorkItemStatus.COMPLETED if result else WorkItemStatus.ERROR
+        async with db.begin() as session:
+            await session.execute(
+                update(WorkItemORM)
+                .where(WorkItemORM.work_item_id == item.work_item_id)
+                .values(status=WorkItemStatus.ERROR)
+            )
 
-    logger.info(f"Completed execution on work item {item.work_item_id}, result: {result}")
-
-    async with db.begin() as session:
-        await session.execute(
-            update(WorkItemORM)
-            .where(WorkItemORM.work_item_id == item.work_item_id)
-            .values(status=new_status)
-        )
-
-    return result
+        return False

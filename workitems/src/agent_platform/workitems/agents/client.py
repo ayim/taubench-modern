@@ -6,14 +6,10 @@ from http import HTTPStatus
 import httpx
 from fastapi import FastAPI
 
+from agent_platform.core.payloads.initiate_stream import InitiateStreamPayload
+from agent_platform.core.thread.base import ThreadMessage
 
-class AgentInfo:
-    """Basic agent information needed for validation."""
-
-    def __init__(self, agent_id: str, name: str, user_id: str):
-        self.agent_id = agent_id
-        self.name = name
-        self.user_id = user_id
+from .models import AgentInfo, InvokeAgentResponse, RunStatusResponse, dump_initiate_stream_payload
 
 
 class AgentClient(ABC):
@@ -29,6 +25,29 @@ class AgentClient(ABC):
 
         Returns:
             AgentInfo if agent exists, None if not found
+        """
+        pass
+
+    @abstractmethod
+    async def invoke_agent(
+        self, agent_id: str, payload: InitiateStreamPayload
+    ) -> InvokeAgentResponse:
+        """
+        Invoke an agent.
+        """
+        pass
+
+    @abstractmethod
+    async def get_run_status(self, run_id: str) -> RunStatusResponse | None:
+        """
+        Get the status of a run by its ID.
+        """
+        pass
+
+    @abstractmethod
+    async def get_messages(self, run_id: str) -> list[ThreadMessage]:
+        """
+        Get the messages of a run by its ID.
         """
         pass
 
@@ -65,6 +84,56 @@ class HttpAgentClient(AgentClient):
             else:
                 raise ValueError(f"Unexpected status code: {response.status_code}")
 
+    async def invoke_agent(
+        self, agent_id: str, payload: InitiateStreamPayload
+    ) -> InvokeAgentResponse:
+        """
+        Invoke an agent.
+        """
+        async with httpx.AsyncClient(base_url=self.base_url) as client:
+            body = dump_initiate_stream_payload(payload)
+            response = await client.post(f"/api/v2/runs/{agent_id}/async", json=body)
+
+            if response.status_code == HTTPStatus.OK.value:
+                invoke_resp = response.json()
+                return InvokeAgentResponse.model_validate(invoke_resp)
+
+            raise ValueError(
+                f"Unexpected status code in /runs/{agent_id}/async: {response.status_code}"
+            )
+
+    async def get_run_status(self, run_id: str) -> RunStatusResponse | None:
+        """
+        Get the status of a run by its ID.
+        """
+        async with httpx.AsyncClient(base_url=self.base_url) as client:
+            response = await client.get(f"/api/v2/runs/{run_id}/status")
+
+            if response.status_code == HTTPStatus.OK.value:
+                return RunStatusResponse.model_validate(response.json())
+            elif response.status_code == HTTPStatus.NOT_FOUND.value:
+                return None
+
+            response.raise_for_status()
+            raise ValueError(
+                f"Unexpected status code in /runs/{run_id}/status: {response.status_code}"
+            )
+
+    async def get_messages(self, run_id: str) -> list[ThreadMessage]:
+        """
+        Get the messages of a run by its ID.
+        """
+        async with httpx.AsyncClient(base_url=self.base_url) as client:
+            response = await client.get(f"/api/v2/runs/{run_id}/messages")
+
+            if response.status_code == HTTPStatus.OK.value:
+                return [ThreadMessage.model_validate(message) for message in response.json()]
+
+            response.raise_for_status()
+            raise ValueError(
+                f"Unexpected status code in /runs/{run_id}/messages: {response.status_code}"
+            )
+
 
 class FastAPIAgentClient(AgentClient):
     """AgentClient implementation using FastAPI app via ASGITransport."""
@@ -100,3 +169,59 @@ class FastAPIAgentClient(AgentClient):
                 return None
             else:
                 raise ValueError(f"Unexpected status code: {response.status_code}")
+
+    async def invoke_agent(
+        self, agent_id: str, payload: InitiateStreamPayload
+    ) -> InvokeAgentResponse:
+        """
+        Invoke an agent.
+        """
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=self.app), base_url="http://testserver"
+        ) as client:
+            body = dump_initiate_stream_payload(payload)
+            response = await client.post(f"/runs/{agent_id}/async", json=body)
+
+            if response.status_code == HTTPStatus.OK.value:
+                invoke_resp = response.json()
+                return InvokeAgentResponse.model_validate(invoke_resp)
+
+            raise ValueError(
+                f"Unexpected status code in /runs/{agent_id}/async: {response.status_code}"
+            )
+
+    async def get_run_status(self, run_id: str) -> RunStatusResponse | None:
+        """
+        Get the status of a run by its ID.
+        """
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=self.app), base_url="http://testserver"
+        ) as client:
+            response = await client.get(f"/runs/{run_id}/status")
+
+            if response.status_code == HTTPStatus.OK.value:
+                return RunStatusResponse.model_validate(response.json())
+            elif response.status_code == HTTPStatus.NOT_FOUND.value:
+                return None
+
+            response.raise_for_status()
+            raise ValueError(
+                f"Unexpected status code in /runs/{run_id}/status: {response.status_code}"
+            )
+
+    async def get_messages(self, run_id: str) -> list[ThreadMessage]:
+        """
+        Get the messages of a run by its ID.
+        """
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=self.app), base_url="http://testserver"
+        ) as client:
+            response = await client.get(f"/runs/{run_id}/messages")
+
+            if response.status_code == HTTPStatus.OK.value:
+                return [ThreadMessage.model_validate(message) for message in response.json()]
+
+            response.raise_for_status()
+            raise ValueError(
+                f"Unexpected status code in /runs/{run_id}/messages: {response.status_code}"
+            )

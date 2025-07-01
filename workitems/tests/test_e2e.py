@@ -1,12 +1,7 @@
 import logging
-import os
 import time
-from collections.abc import AsyncGenerator
-from uuid import uuid4
 
-import dotenv
 import pytest
-import requests
 from httpx import AsyncClient
 
 from agent_platform.workitems.models import WorkItemStatus
@@ -22,41 +17,7 @@ async def wait_until(condition, *args, interval=1.0, timeout=10):
 
 @pytest.mark.integration
 class TestWorkItemsE2E:
-    """E2E tests for work item CRUD operations."""
-
-    @pytest.fixture
-    async def agent_id(self, agent_server_url: str) -> AsyncGenerator[str, None]:
-        dotenv.load_dotenv()
-        openai_key = os.getenv("OPENAI_API_KEY")
-        if not openai_key:
-            pytest.skip("OPENAI_API_KEY environment variable not set")
-
-        payload = {
-            "mode": "conversational",
-            "name": f"test-work-items-agent-{uuid4()}",
-            "version": "1.0.0",
-            "description": ("This is a test agent for work-items testing."),
-            "runbook": "# Objective\nYou are a helpful assistant.",
-            "platform_configs": [
-                {
-                    "kind": "openai",
-                    "openai_api_key": openai_key,
-                },
-            ],
-            "agent_architecture": {
-                "name": "agent_platform.architectures.default",
-                "version": "1.0.0",
-            },
-        }
-
-        response = requests.post(f"{agent_server_url}/api/v2/agents", json=payload)
-        assert response.status_code == 200, f"Failed to create agent: {response.json()}"
-
-        agent_id = response.json()["agent_id"]
-        yield agent_id
-
-        # Cleanup the agent
-        requests.delete(f"{agent_server_url}/api/v2/agents/{agent_id}")
+    """E2E tests for work item CRUD operations. These talk to openai -- add tests sparingly."""
 
     @pytest.mark.asyncio
     async def test_full_workflow_integration(

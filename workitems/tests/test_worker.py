@@ -2,11 +2,13 @@ import asyncio
 import itertools
 import math
 from collections import defaultdict
+from collections.abc import Awaitable, Callable
 
 import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from agent_platform.workitems.agents.client import AgentClient
 from agent_platform.workitems.config import Settings
 from agent_platform.workitems.db import DatabaseManager
 from agent_platform.workitems.models import (
@@ -17,7 +19,6 @@ from agent_platform.workitems.models.workitem import WorkItemStatus
 from agent_platform.workitems.orm.workitem import WorkItemORM
 from agent_platform.workitems.worker import (
     execute_work_item,
-    run_agent,
     run_batch,
     worker_iteration,
 )
@@ -27,7 +28,13 @@ class TestWorker:
     """Test the execution of work items."""
 
     @pytest.mark.asyncio
-    async def test_execute_work_item(self, require_docker, database_manager: DatabaseManager):
+    async def test_execute_work_item(
+        self,
+        require_docker,
+        database_manager: DatabaseManager,
+        mock_agent_client: AgentClient,
+        mock_run_agent: Callable[[AsyncSession, WorkItemORM, AgentClient], Awaitable[bool]],
+    ):
         item = WorkItemORM(
             agent_id="test-agent-1",
             thread_id="test-thread-1",
@@ -43,7 +50,7 @@ class TestWorker:
         async with database_manager.begin() as s:
             s.add(item)
 
-        await execute_work_item(database_manager, item, run_agent)
+        await execute_work_item(database_manager, item, mock_agent_client, mock_run_agent)
 
         async with database_manager.begin() as s:
             result = await s.execute(
@@ -55,11 +62,15 @@ class TestWorker:
         assert actual.status == WorkItemStatus.COMPLETED
 
     @pytest.mark.asyncio
-    async def test_errored_work_item(self, require_docker, database_manager: DatabaseManager):
+    async def test_errored_work_item(
+        self, require_docker, database_manager: DatabaseManager, mock_agent_client: AgentClient
+    ):
         """Test that a work item is marked as errored when the agent
         function raises an exception."""
 
-        async def error_run_agent(session: AsyncSession, item: WorkItemORM) -> bool:
+        async def error_run_agent(
+            session: AsyncSession, item: WorkItemORM, agent_client: AgentClient
+        ) -> bool:
             raise Exception("Test error")
 
         item = WorkItemORM(
@@ -77,7 +88,7 @@ class TestWorker:
         async with database_manager.begin() as session:
             session.add(item)
 
-        await execute_work_item(database_manager, item, error_run_agent)
+        await execute_work_item(database_manager, item, mock_agent_client, error_run_agent)
 
         async with database_manager.begin() as session:
             result = await session.execute(
@@ -88,10 +99,17 @@ class TestWorker:
             assert actual.status == WorkItemStatus.ERROR
 
     @pytest.mark.asyncio
-    async def test_failed_work_item(self, require_docker, database_manager: DatabaseManager):
+    async def test_failed_work_item(
+        self,
+        require_docker,
+        database_manager: DatabaseManager,
+        mock_agent_client: AgentClient,
+    ):
         """Test that a work item is marked as failed when the agent function returns False."""
 
-        async def fail_run_agent(session: AsyncSession, item: WorkItemORM) -> bool:
+        async def fail_run_agent(
+            session: AsyncSession, item: WorkItemORM, agent_client: AgentClient
+        ) -> bool:
             return False
 
         item = WorkItemORM(
@@ -109,7 +127,7 @@ class TestWorker:
         async with database_manager.begin() as session:
             session.add(item)
 
-        await execute_work_item(database_manager, item, fail_run_agent)
+        await execute_work_item(database_manager, item, mock_agent_client, fail_run_agent)
 
         async with database_manager.begin() as session:
             result = await session.execute(
@@ -120,14 +138,21 @@ class TestWorker:
             assert actual.status == WorkItemStatus.ERROR
 
     @pytest.mark.asyncio
-    async def test_batch_processing(self, require_docker, database_manager: DatabaseManager):
+    async def test_batch_processing(
+        self,
+        require_docker,
+        database_manager: DatabaseManager,
+        mock_agent_client: AgentClient,
+    ):
         """Test that a work item is marked as failed when the agent function returns False."""
         # fewer than the batch size, but larger than our sometimes_fail_run_agent()
         num_work_items = 5
 
         counter = itertools.count()
 
-        async def sometimes_fail_run_agent(session: AsyncSession, item: WorkItemORM) -> bool:
+        async def sometimes_fail_run_agent(
+            session: AsyncSession, item: WorkItemORM, agent_client: AgentClient
+        ) -> bool:
             i = next(counter)  # Increment the counter
             match i % num_work_items:
                 case 0:
@@ -166,6 +191,7 @@ class TestWorker:
         results = await run_batch(
             database_manager,
             work_item_ids,
+            mock_agent_client,
             sometimes_fail_run_agent,
             1200.0,  # 20-minute timeout
         )
@@ -195,11 +221,22 @@ class TestWorker:
             )
 
     @pytest.mark.asyncio
-    async def test_worker_iteration(self, require_docker, database_manager: DatabaseManager):
+    async def test_worker_iteration(
+        self,
+        require_docker,
+        database_manager: DatabaseManager,
+        mock_agent_client: AgentClient,
+    ):
         """Test multiple iterations pick up all work items."""
         # With a batch size of 5, we need to have 5 iterations to pick up all of the work
         num_work_items = 21
         max_batch_size = 5
+
+        async def mock_run_agent(
+            session: AsyncSession, item: WorkItemORM, agent_client: AgentClient
+        ) -> bool:
+            """Mock agent function that always returns True."""
+            return True
 
         # create a bunch of work items
         work_items = []
@@ -231,7 +268,8 @@ class TestWorker:
             await worker_iteration(
                 database_manager,
                 config,
-                run_agent,
+                mock_agent_client,
+                mock_run_agent,
             )
 
         # Verify the statuses of those work items in the database
@@ -250,13 +288,20 @@ class TestWorker:
             )
 
     @pytest.mark.asyncio
-    async def test_timeout_work_item(self, require_docker, database_manager: DatabaseManager):
+    async def test_timeout_work_item(
+        self,
+        require_docker,
+        database_manager: DatabaseManager,
+        mock_agent_client: AgentClient,
+    ):
         """Test that a work item is marked as ERROR when timeout is exceeded,
         while other work items in the same batch can complete successfully."""
 
         call_count = 0
 
-        async def slow_agent_func(session: AsyncSession, item: WorkItemORM) -> bool:
+        async def slow_agent_func(
+            session: AsyncSession, item: WorkItemORM, agent_client: AgentClient
+        ) -> bool:
             nonlocal call_count
             call_count += 1
             if call_count == 1:
@@ -297,7 +342,7 @@ class TestWorker:
         config = Settings(work_item_timeout=1.0, max_batch_size=2)
 
         # Run worker iteration (first item should timeout, second should complete)
-        await worker_iteration(database_manager, config, slow_agent_func)
+        await worker_iteration(database_manager, config, mock_agent_client, slow_agent_func)
 
         # Verify the work item statuses
         async with database_manager.begin() as session:
@@ -322,7 +367,7 @@ class TestWorker:
 
     @pytest.mark.asyncio
     async def test_concurrent_worker_iterations(
-        self, require_docker, database_manager: DatabaseManager
+        self, require_docker, database_manager: DatabaseManager, mock_agent_client: AgentClient
     ):
         """Test that concurrent worker iterations process work items without conflicts."""
 
@@ -330,7 +375,9 @@ class TestWorker:
         processed_work_item_ids: set[str] = set()
         processing_lock = asyncio.Lock()
 
-        async def tracking_agent_func(session: AsyncSession, item: WorkItemORM) -> bool:
+        async def tracking_agent_func(
+            session: AsyncSession, item: WorkItemORM, agent_client: AgentClient
+        ) -> bool:
             """Custom agent function that tracks which work_item_ids have been processed."""
             async with processing_lock:
                 processed_work_item_ids.add(item.work_item_id)
@@ -371,8 +418,8 @@ class TestWorker:
         # Start two concurrent worker iterations. Give them their own Session to simulate
         # separate processes.
         await asyncio.gather(
-            worker_iteration(database_manager, config, tracking_agent_func),
-            worker_iteration(database_manager, config, tracking_agent_func),
+            worker_iteration(database_manager, config, mock_agent_client, tracking_agent_func),
+            worker_iteration(database_manager, config, mock_agent_client, tracking_agent_func),
         )
 
         async with database_manager.begin() as session:

@@ -1,26 +1,35 @@
+import os
 import platform
 import shutil
 import subprocess
 import time
-from collections.abc import AsyncGenerator, Generator
+from collections.abc import AsyncGenerator, Awaitable, Callable, Generator
 from pathlib import Path
+from uuid import uuid4
 
+import dotenv
 import pytest
 import pytest_asyncio
+import requests
 import sqlalchemy.exc
 from agent_platform.orchestrator.bootstrap_agent_server import AgentServerProcess
 from agent_platform.orchestrator.pytest_fixtures import base_logs_directory  # noqa: F401
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import create_engine, text
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from testcontainers.postgres import PostgresContainer
 
-from agent_platform.workitems.agents.client import AgentClient, AgentInfo
+from agent_platform.core.payloads.initiate_stream import InitiateStreamPayload
+from agent_platform.core.thread.base import ThreadMessage
+from agent_platform.core.thread.content.text import ThreadTextContent
+from agent_platform.workitems.agents.client import AgentClient, AgentInfo, InvokeAgentResponse
+from agent_platform.workitems.agents.models import RunStatusResponse
 from agent_platform.workitems.api import router as workitems_router
 from agent_platform.workitems.db import DatabaseManager, instance
 from agent_platform.workitems.main import _configure_logging
 from agent_platform.workitems.orm.base import Base
+from agent_platform.workitems.orm.workitem import WorkItemORM
 
 
 class MockAgentClient(AgentClient):
@@ -39,6 +48,34 @@ class MockAgentClient(AgentClient):
     async def describe_agent(self, agent_id: str) -> AgentInfo | None:
         """Return agent info for test agents, None for others."""
         return self.agents.get(agent_id)
+
+    async def invoke_agent(
+        self, agent_id: str, payload: InitiateStreamPayload
+    ) -> InvokeAgentResponse:
+        """Mock invoke_agent method."""
+        return InvokeAgentResponse(
+            run_id="test-run-id",
+            status="running",
+        )
+
+    async def get_messages(self, run_id: str) -> list[ThreadMessage]:
+        """Mock get_messages method."""
+        return [
+            ThreadMessage(
+                role="agent",
+                content=[
+                    ThreadTextContent(text="test-message", complete=True),  # type: ignore
+                ],
+                complete=True,
+            ),
+        ]
+
+    async def get_run_status(self, run_id: str) -> RunStatusResponse | None:
+        """Mock get_run_status method."""
+        return RunStatusResponse(
+            run_id=run_id,
+            status="completed",
+        )
 
 
 ################################################################################
@@ -145,6 +182,41 @@ def agent_server_url(
         print("Agent server process stopped")
 
 
+@pytest.fixture
+async def agent_id(agent_server_url: str) -> AsyncGenerator[str, None]:
+    dotenv.load_dotenv()
+    openai_key = os.getenv("OPENAI_API_KEY")
+    if not openai_key:
+        pytest.skip("OPENAI_API_KEY environment variable not set")
+
+    payload = {
+        "mode": "conversational",
+        "name": f"test-work-items-agent-{uuid4()}",
+        "version": "1.0.0",
+        "description": ("This is a test agent for work-items testing."),
+        "runbook": "# Objective\nYou are a helpful assistant.",
+        "platform_configs": [
+            {
+                "kind": "openai",
+                "openai_api_key": openai_key,
+            },
+        ],
+        "agent_architecture": {
+            "name": "agent_platform.architectures.default",
+            "version": "1.0.0",
+        },
+    }
+
+    response = requests.post(f"{agent_server_url}/api/v2/agents", json=payload)
+    assert response.status_code == 200, f"Failed to create agent: {response.json()}"
+
+    agent_id = response.json()["agent_id"]
+    yield agent_id
+
+    # Cleanup the agent
+    requests.delete(f"{agent_server_url}/api/v2/agents/{agent_id}")
+
+
 ################################################################################
 # Fixtures for unit-tests
 ################################################################################
@@ -190,9 +262,9 @@ async def _app(
         return mock_agent_client
 
     # Override the dependency
-    from agent_platform.workitems.api import get_agent_client
+    from agent_platform.workitems.api import get_agent_client_from_request
 
-    app.dependency_overrides[get_agent_client] = get_test_agent_client
+    app.dependency_overrides[get_agent_client_from_request] = get_test_agent_client
 
     yield app
 
@@ -218,6 +290,20 @@ async def client(_app: FastAPI) -> AsyncGenerator[AsyncClient, None]:
         transport=ASGITransport(app=_app), base_url="http://testserver"
     ) as client:
         yield client
+
+
+@pytest.fixture
+def mock_run_agent(
+    agent_server_url: str,
+) -> Callable[[AsyncSession, WorkItemORM, AgentClient], Awaitable[bool]]:
+    """Fake run_agent function that always returns True."""
+
+    async def noop_run_agent(
+        session: AsyncSession, item: WorkItemORM, agent_client: AgentClient
+    ) -> bool:
+        return True
+
+    return noop_run_agent
 
 
 ################################################################################

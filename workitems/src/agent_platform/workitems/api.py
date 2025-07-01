@@ -3,7 +3,7 @@ from http import HTTPStatus
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
-from .agents.client import AgentClient, FastAPIAgentClient, HttpAgentClient
+from .agents import AgentClient, create_agent_client
 from .db import instance
 from .models import CreateWorkItemPayload, WorkItem, WorkItemStatus
 from .services.workitem import AgentValidationError, WorkItemService
@@ -21,7 +21,7 @@ async def get_db_session(request: Request):
         yield session
 
 
-def get_agent_client(request: Request) -> AgentClient:
+def get_agent_client_from_request(request: Request) -> AgentClient:
     """
     Get the AgentClient dependency.
 
@@ -29,21 +29,12 @@ def get_agent_client(request: Request) -> AgentClient:
     implementations or connect to external agent services.
     For now, we'll use a simple mock that always validates.
     """
-    agent_app = request.app.state.agent_app
-    if agent_app is None:
-        url = request.app.state.agent_server_url
-        if url is None:
-            raise ValueError("agent_app or agent_server_url is required")
-        logger.info(f"Using agent server url over HTTP: {url}")
-        return HttpAgentClient(url)
-
-    logger.info(f"Using agent app over ASGI: {agent_app}")
-    return FastAPIAgentClient(agent_app)
+    return create_agent_client(request.app)
 
 
 # Create module-level dependencies
 _db_session = Depends(get_db_session)
-_agent_client = Depends(get_agent_client)
+_agent_client = Depends(get_agent_client_from_request)
 
 
 @router.post("/", response_model=WorkItem)
