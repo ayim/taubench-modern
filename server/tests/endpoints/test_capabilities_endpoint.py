@@ -66,6 +66,7 @@ async def test_list_mcp_tools_endpoint(client: TestClient, monkeypatch: pytest.M
                     # Default transport is streamable-http
                     "transport": "streamable-http",
                     "url": "https://example.com",
+                    "headers": None,
                     "command": None,
                     "args": None,
                     "env": None,
@@ -106,6 +107,7 @@ async def test_list_mcp_tools_endpoint_with_different_transport(
                     "name": "test",
                     "transport": "stdio",
                     "url": None,
+                    "headers": None,
                     "command": "echo",
                     "args": ["-n", "hello"],
                     "env": None,
@@ -120,6 +122,7 @@ async def test_list_mcp_tools_endpoint_with_different_transport(
                     "name": "test2",
                     "transport": "sse",
                     "url": "http://example.com",
+                    "headers": None,
                     "command": None,
                     "args": None,
                     "env": None,

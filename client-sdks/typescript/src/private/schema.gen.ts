@@ -1498,6 +1498,13 @@ export interface components {
        */
       url?: string | null;
       /**
+       * Headers
+       * @description Headers used for configuring requests & connections to the MCP server.
+       */
+      headers?: {
+        [key: string]: string;
+      } | null;
+      /**
        * Command
        * @description The command to run the MCP server. If not provided, the MCP server will be assumed to be running on the local machine.
        */

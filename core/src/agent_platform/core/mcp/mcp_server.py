@@ -34,6 +34,14 @@ class MCPServer:
     )
     """The URL of the MCP server."""
 
+    headers: dict[str, str] | None = field(
+        default=None,
+        metadata={
+            "description": "Headers used for configuring requests & connections to the MCP server."
+        },
+    )
+    """Headers used for configuring requests & connections to the MCP server."""
+
     # Stdio transports
     command: str | None = field(
         default=None,
@@ -115,7 +123,8 @@ class MCPServer:
     @property
     def cache_key(self) -> str:
         if self.url:
-            return self.url
+            headers_part = tuple(sorted((self.headers or {}).items()))
+            return f"{self.url}|{headers_part}"
         if self.command:
             env_part = tuple(sorted((self.env or {}).items()))
             cwd_part = self.cwd or ""
@@ -128,6 +137,7 @@ class MCPServer:
         return MCPServer(
             name=self.name,
             url=self.url,
+            headers=self.headers,
             command=self.command,
             args=self.args,
             env=self.env,
@@ -142,6 +152,7 @@ class MCPServer:
         return {
             "name": self.name,
             "url": self.url,
+            "headers": self.headers,
             "command": self.command,
             "args": self.args,
             "env": self.env,
@@ -154,11 +165,10 @@ class MCPServer:
         self,
         # Additional headers to be added to the request at
         # tool definition time
-        # NOTE: MCP doesn't really seem to support this at the moment...
         additional_headers: dict | None = None,
     ) -> list[ToolDefinition]:
         """Converts the MCP server to a list of tool definitions."""
-        async with MCPClient(self) as client:
+        async with MCPClient(self, additional_headers=additional_headers) as client:
             tools = await client.list_tools()
         return tools
 

@@ -455,3 +455,230 @@ async def test_bad_url_scheme_rejected():
     bad = MCPClient(MCPServer("bad", url="ftp://example.com"))
     with pytest.raises(ValueError, match="Unsupported URL scheme"):
         await bad.connect()
+
+
+@pytest.mark.asyncio
+async def test_client_additional_headers_override():
+    """
+    `additional_headers` supplied to `MCPClient` should overwrite duplicates
+    coming from the `MCPServer.headers` mapping.
+    """
+    # Create an MCPServer with some headers
+    server = MCPServer(
+        name="test-server",
+        url="https://api.example.com/mcp",
+        headers={
+            "Authorization": "Bearer server-token",
+            "X-Server-Header": "server-value",
+            "Content-Type": "application/json",
+        },
+    )
+
+    # Create additional headers that overlap with server headers
+    additional_headers = {
+        "Authorization": "Bearer client-token",  # Should override server header
+        "X-Client-Header": "client-value",  # Should be added
+        "Content-Type": "application/xml",  # Should override server header
+    }
+
+    # Create MCPClient with both server headers and additional headers
+    client = MCPClient(target_server=server, additional_headers=additional_headers)
+
+    # Verify that additional_headers override server headers for duplicates
+    expected_headers = {
+        "Authorization": "Bearer client-token",  # Overridden by additional_headers
+        "X-Server-Header": "server-value",  # Preserved from server
+        "Content-Type": "application/xml",  # Overridden by additional_headers
+        "X-Client-Header": "client-value",  # Added from additional_headers
+    }
+
+    assert client._headers == expected_headers
+
+    # Verify that original server headers are unchanged
+    assert server.headers == {
+        "Authorization": "Bearer server-token",
+        "X-Server-Header": "server-value",
+        "Content-Type": "application/json",
+    }
+
+
+@pytest.mark.asyncio
+async def test_client_sse_headers_propagated(monkeypatch):
+    """
+    Ensure headers (server + additional) are forwarded to `sse_client`.
+    """
+    # Create an MCPServer with SSE transport and headers
+    server = MCPServer(
+        name="sse-server",
+        url="https://api.example.com/sse",
+        transport="sse",
+        headers={"Authorization": "Bearer server-token", "X-Server-Header": "server-value"},
+    )
+
+    # Additional headers to be merged
+    additional_headers = {
+        "Authorization": "Bearer client-token",  # Should override server header
+        "X-Client-Header": "client-value",  # Should be added
+    }
+
+    # Expected merged headers
+    expected_headers = {
+        "Authorization": "Bearer client-token",
+        "X-Server-Header": "server-value",
+        "X-Client-Header": "client-value",
+    }
+
+    # Mock the probe to return success
+    async def probe_ok(*_a, **_kw):
+        return True
+
+    monkeypatch.setattr(MCPClient, "_probe_endpoint", probe_ok)
+
+    # Capture the headers passed to sse_client
+    captured_headers = None
+
+    @asynccontextmanager
+    async def mock_sse_client(url, headers=None):
+        nonlocal captured_headers
+        captured_headers = headers
+
+        # Create minimal mock transport that satisfies the connection process
+        _send1, _recv1 = anyio.create_memory_object_stream(0)
+        _send2, _recv2 = anyio.create_memory_object_stream(0)
+        rs, ws = _recv1, _send2
+
+        # Mock successful initialization
+        async def fake_init(self):
+            return mtypes.InitializeResult(
+                protocolVersion="2025-03-26",
+                capabilities=mtypes.ServerCapabilities(),
+                serverInfo=mtypes.Implementation(name="test-sse", version="1.0"),
+            )
+
+        monkeypatch.setattr(ClientSession, "initialize", fake_init, raising=True)
+
+        # Return only the streams as expected by the transport
+        yield rs, ws
+
+    # Replace the real sse_client with our mock
+    monkeypatch.setattr("agent_platform.core.mcp.mcp_client.sse_client", mock_sse_client)
+
+    # Create MCPClient with both server and additional headers
+    client = MCPClient(target_server=server, additional_headers=additional_headers)
+
+    # Connect to trigger the sse_client call
+    await client.connect()
+
+    # Verify the headers were passed correctly to sse_client
+    assert captured_headers == expected_headers, (
+        f"Expected {expected_headers}, but got {captured_headers}"
+    )
+
+    # Verify connection was successful
+    assert client.is_connected
+    assert client.chosen_transport == "sse"
+
+    # Note: Skipping cleanup to avoid asyncio transport issues similar to other tests
+
+
+@pytest.mark.asyncio
+async def test_client_headers_edge_cases():
+    """Test various edge cases for header values and types."""
+
+    # Test case 1: headers: None
+    server1 = MCPServer(
+        name="test-server-none",
+        url="https://api.example.com/mcp",
+        headers=None,
+    )
+    client1 = MCPClient(target_server=server1)
+    assert client1._headers == {}
+
+    # Test case 2: headers: {} (empty dict)
+    server2 = MCPServer(
+        name="test-server-empty",
+        url="https://api.example.com/mcp",
+        headers={},
+    )
+    client2 = MCPClient(target_server=server2)
+    assert client2._headers == {}
+
+    # Test case 3: headers: {"":""} (empty key and value)
+    server3 = MCPServer(
+        name="test-server-empty-key-value",
+        url="https://api.example.com/mcp",
+        headers={"": ""},
+    )
+    client3 = MCPClient(target_server=server3)
+    assert client3._headers == {"": ""}
+
+    # Test case 4: headers: {"test":""} (empty value)
+    server4 = MCPServer(
+        name="test-server-empty-value",
+        url="https://api.example.com/mcp",
+        headers={"test": ""},
+    )
+    client4 = MCPClient(target_server=server4)
+    assert client4._headers == {"test": ""}
+
+    # Test case 5: headers: {"": "test"} (empty key)
+    server5 = MCPServer(
+        name="test-server-empty-key",
+        url="https://api.example.com/mcp",
+        headers={"": "test"},
+    )
+    client5 = MCPClient(target_server=server5)
+    assert client5._headers == {"": "test"}
+
+
+@pytest.mark.asyncio
+async def test_client_headers_with_additional_headers_edge_cases():
+    """Test edge cases when combining server headers with additional headers."""
+
+    # Test case 1: Server has None headers, additional headers provided
+    server = MCPServer(
+        name="test-server",
+        url="https://api.example.com/mcp",
+        headers=None,
+    )
+    additional_headers = {"Authorization": "Bearer token"}
+    client = MCPClient(target_server=server, additional_headers=additional_headers)
+    assert client._headers == {"Authorization": "Bearer token"}
+
+    # Test case 2: Server has empty headers, additional headers provided
+    server = MCPServer(
+        name="test-server",
+        url="https://api.example.com/mcp",
+        headers={},
+    )
+    additional_headers = {"Authorization": "Bearer token"}
+    client = MCPClient(target_server=server, additional_headers=additional_headers)
+    assert client._headers == {"Authorization": "Bearer token"}
+
+    # Test case 3: Both server and additional headers have empty keys
+    server = MCPServer(
+        name="test-server",
+        url="https://api.example.com/mcp",
+        headers={"": "server-value"},
+    )
+    additional_headers = {"": "client-value"}  # Should override
+    client = MCPClient(target_server=server, additional_headers=additional_headers)
+    assert client._headers == {"": "client-value"}
+
+    # Test case 4: None additional headers
+    server = MCPServer(
+        name="test-server",
+        url="https://api.example.com/mcp",
+        headers={"Authorization": "Bearer server-token"},
+    )
+    client = MCPClient(target_server=server, additional_headers=None)
+    assert client._headers == {"Authorization": "Bearer server-token"}
+
+    # Test case 5: Empty additional headers
+    server = MCPServer(
+        name="test-server",
+        url="https://api.example.com/mcp",
+        headers={"Authorization": "Bearer server-token"},
+    )
+    client = MCPClient(target_server=server, additional_headers={})
+    assert client._headers == {"Authorization": "Bearer server-token"}

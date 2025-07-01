@@ -60,7 +60,6 @@ class ToolsInterface(ABC):
         # Headers to be added to the request at
         # tool definition time (can be overriden at
         # tool invocation time using extra_headers)
-        # NOTE: MCP doesn't really seem to support this at the moment...
         additional_headers: dict | None = None,
     ) -> tuple[list[ToolDefinition], list[str]]:
         """Converts a list of MCP servers into a list of tool definitions.

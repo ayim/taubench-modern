@@ -169,9 +169,18 @@ class MCPClient:
     #  Construction / context-manager                                    #
     # ------------------------------------------------------------------ #
 
-    def __init__(self, target_server: "MCPServer") -> None:
+    def __init__(
+        self, target_server: "MCPServer", additional_headers: dict[str, str] | None = None
+    ) -> None:
         self._cfg = MCPClientConfiguration  # class-level singleton per ConfigMeta
         self.target_server = target_server
+
+        # Merge headers from server config and additional headers
+        self._headers: dict[str, str] = {}
+        if target_server.headers:
+            self._headers.update(target_server.headers)
+        if additional_headers:
+            self._headers.update(additional_headers)
 
         self._session: ClientSession | None = None
         self._get_session_id_cb: Callable[[], str | None] | None = None
@@ -371,8 +380,10 @@ class MCPClient:
         def factory() -> Any:
             """Create the chosen transport client."""
             if name == "streamable":
-                return streamablehttp_client(target_url)
-            return sse_client(target_url)
+                return streamablehttp_client(
+                    target_url, headers=self._headers if self._headers else None
+                )
+            return sse_client(target_url, headers=self._headers if self._headers else None)
 
         winner_evt = asyncio.Event()
         task = asyncio.create_task(
@@ -499,6 +510,10 @@ class MCPClient:
             "Accept": "text/event-stream" if expect_sse else "application/json",
             "X-MCP-Probe": "1",
         }
+
+        # Add configured headers from MCPServer
+        if self._headers:
+            headers.update(self._headers)
 
         try:
             async with client.stream(

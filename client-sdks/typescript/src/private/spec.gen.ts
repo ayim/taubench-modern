@@ -6,7 +6,7 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Private API Version 2',
-    version: '2.0.5a1',
+    version: '2.0.5',
   },
   paths: {
     '/api/v2/ok': {
@@ -3601,6 +3601,22 @@ export const spec = {
             title: 'Url',
             description:
               'The URL of the MCP server. This should point directly to the transport endpoint to use.',
+          },
+          headers: {
+            anyOf: [
+              {
+                additionalProperties: {
+                  type: 'string',
+                },
+                type: 'object',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Headers',
+            description:
+              'Headers used for configuring requests & connections to the MCP server.',
           },
           command: {
             anyOf: [
