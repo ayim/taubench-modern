@@ -23,7 +23,7 @@ from agent_platform.server.api.mcp import MCPAuthenticationMiddleware, mcp
 from agent_platform.server.constants import SystemConfig
 from agent_platform.server.error_handlers import add_exception_handlers
 from agent_platform.server.lifespan import create_combined_lifespan
-from agent_platform.workitems import make_workitems_app
+from agent_platform.workitems.lifecycle import workitems_db_is_available_sync
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
@@ -181,19 +181,27 @@ def create_app() -> FastAPI:
 
     mcp_app = mcp.streamable_http_app()
     agent_mcp = build_agent_mcp_app()
-    workitems_app = make_workitems_app(agent_app=app_private_v2)
+    workitems_app = None
+
+    apps_to_lifespans = [mcp_app, agent_mcp]
+    if workitems_db_is_available_sync():
+        from agent_platform.workitems import make_workitems_app
+
+        workitems_app = make_workitems_app(agent_app=app_private_v2)
+        apps_to_lifespans.append(workitems_app)
 
     # Main FastAPI app to include both versions
 
     app = _CustomFastAPI(
         title="Sema4.ai Agent Server API",
     )
-    app.router.lifespan_context = create_combined_lifespan(mcp_app, agent_mcp, workitems_app)
+    app.router.lifespan_context = create_combined_lifespan(*apps_to_lifespans)
 
     # Lift workitems app state into the main app
-    for k, v in workitems_app.state._state.items():
-        logger.info(f"Carrying over Workitems app state: {k} = {v}")
-        app.state._state[k] = v
+    if workitems_app:
+        for k, v in workitems_app.state._state.items():
+            logger.info(f"Carrying over Workitems app state: {k} = {v}")
+            app.state._state[k] = v
 
     # Add authentication middleware to the MCP app to enable user-based authentication
     mcp_app.add_middleware(MCPAuthenticationMiddleware)
@@ -227,6 +235,7 @@ def create_app() -> FastAPI:
     app.mount("/api/v1", app_private_v1)  # Backwards compatibility
 
     # Mount the work-items app
-    app.mount("/api/work-items", workitems_app)
+    if workitems_app:
+        app.mount("/api/work-items", workitems_app)
 
     return app

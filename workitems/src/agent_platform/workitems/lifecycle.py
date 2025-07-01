@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI
 
@@ -40,6 +40,23 @@ def _start_background_worker(
     return t, shutdown_event
 
 
+def workitems_db_is_available_sync() -> bool:
+    """
+    Returns True if the database is available, False otherwise.
+    """
+    from sqlalchemy import create_engine, text
+    from sqlalchemy.exc import OperationalError
+
+    try:
+        engine = create_engine(settings.database_url)
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return True
+    except OperationalError as e:
+        logger.warning("Postgres check failed", exc_info=e)
+        return False
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     agent_app = app.state._state["agent_app"] if "agent_app" in app.state._state else None
@@ -57,12 +74,14 @@ async def lifespan(app: FastAPI):
     else:
         raise ValueError("Either agent_app or agent_server_url must be provided")
 
-    background_worker, shutdown_event = _start_background_worker(app, agent_client)
+    worker_task, shutdown_event = _start_background_worker(app, agent_client)
 
     yield
 
     logger.info("Shutting down work-items background worker")
     shutdown_event.set()
+    with suppress(asyncio.CancelledError):
+        await worker_task
 
 
 def make_workitems_app(
