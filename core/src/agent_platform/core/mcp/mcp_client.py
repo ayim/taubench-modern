@@ -633,7 +633,7 @@ class MCPClient:
             definitions.append(
                 ToolDefinition(
                     name=tool.name,
-                    description=tool.description or "",
+                    description=tool.description or f"Tool: {tool.name}",
                     input_schema=_clean(tool.inputSchema),
                     category="mcp-tool",
                     function=_make_bound(tool.name),

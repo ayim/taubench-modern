@@ -232,6 +232,44 @@ async def test_list_tools_binding():
 
 
 @pytest.mark.asyncio
+async def test_list_tools_default_description(monkeypatch):
+    """Test that tools without descriptions get a default description."""
+    server = await _make_dummy_server()
+    client, sess, done = await _make_connected_client(server)
+
+    # Mock the session's list_tools to return a tool without description
+    async def mock_list_tools():
+        return mtypes.ListToolsResult(
+            tools=[
+                mtypes.Tool(
+                    name="test_tool",
+                    description=None,  # No description provided
+                    inputSchema={"type": "object", "properties": {}},
+                ),
+                mtypes.Tool(
+                    name="another_tool",
+                    description="",  # Empty description
+                    inputSchema={"type": "object", "properties": {}},
+                ),
+            ]
+        )
+
+    monkeypatch.setattr(sess, "list_tools", mock_list_tools)
+
+    tools = await client.list_tools()
+    assert len(tools) == 2
+
+    # Check that tools without descriptions get default descriptions
+    assert tools[0].name == "test_tool"
+    assert tools[0].description == "Tool: test_tool"
+
+    assert tools[1].name == "another_tool"
+    assert tools[1].description == "Tool: another_tool"
+
+    await done()
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("status", "ctype", "good_for_streamable", "good_for_sse"),
     [
