@@ -192,14 +192,15 @@ def test_fork_thread_invalid_message_id(client: TestClient, sample_thread: Threa
 
 
 def test_fork_thread_agent_message(client: TestClient, sample_thread: Thread):
-    """Test forking at an agent message (should fail)."""
+    """Test forking at an agent message (should now succeed)."""
     response = client.post(
         f"/threads/{sample_thread.thread_id}/fork",
         json={"message_id": "msg-2"},  # This is an agent message
     )
 
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.json()["detail"] == "Fork point must be a human message"
+    assert response.status_code == status.HTTP_200_OK
+    forked_thread = response.json()
+    assert forked_thread["name"] == "Test Thread (1)"
 
 
 def test_fork_thread_not_found(client: TestClient):

@@ -6,9 +6,9 @@ class ForkThreadPayload:
     """Payload for forking a thread at a specific message."""
 
     message_id: str = field(
-        metadata={"description": "The ID of the message to fork from (must be a human message)."},
+        metadata={"description": "The ID of the message to fork from."},
     )
-    """The ID of the message to fork from (must be a human message)."""
+    """The ID of the message to fork from."""
 
     name: str | None = field(
         default=None,

@@ -235,7 +235,7 @@ async def delete_thread(
 
 
 @router.post("/{tid}/fork", response_model=Thread)
-async def fork_thread(  # noqa: C901
+async def fork_thread(
     user: AuthedUser,
     tid: str,
     payload: ForkThreadPayload,
@@ -245,20 +245,17 @@ async def fork_thread(  # noqa: C901
     """Fork a thread at a specific message point.
 
     Creates a new thread with all messages before the specified message.
-    The message_id must be for a human message.
     """
     # Get the original thread
     original_thread = await storage.get_thread(user.user_id, tid)
     if original_thread is None:
         raise HTTPException(status_code=404, detail="Thread not found")
 
-    # Find the message and validate it's a human message
+    # Find the message
     fork_message = None
     fork_message_index = -1
     for i, msg in enumerate(original_thread.messages):
         if msg.message_id == payload.message_id:
-            if msg.role != "user":
-                raise HTTPException(status_code=400, detail="Fork point must be a human message")
             fork_message = msg
             fork_message_index = i
             break
