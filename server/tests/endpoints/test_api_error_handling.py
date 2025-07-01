@@ -233,6 +233,85 @@ class TestHTTPErrorHandling:
             # might not be working as expected, so we'll skip this test for now
             pytest.skip("Error handlers not working as expected in test environment")
 
+    def test_agent_creation_validation_error_wrong_data_types(self, client: TestClient):
+        """Test agent creation with wrong data types for specific fields."""
+        # Send agent creation request with various wrong data types
+        # Based on the create-agent-bedrock.ipynb example structure
+        response = client.post(
+            "/agents/",
+            json={
+                "mode": "conversational",
+                "name": "Test Agent Validation",
+                "version": 123,  # Should be string, sending int
+                "description": ["invalid", "description"],  # Should be string, sending list
+                "runbook": "# Objective\nYou are a helpful assistant.",
+                "platform_configs": "invalid_platform_config",  # Should be list, sending string
+                "action_packages": [],
+                "mcp_servers": [],
+                "agent_architecture": {
+                    "name": "agent_platform.architectures.default",
+                    "version": "1.0.0",
+                },
+                "observability_configs": [],
+                "question_groups": "invalid_question_groups",  # Should be list, sending string
+                "extra": {
+                    "test": "test",
+                },
+            },
+        )
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+        error_data = response.json()
+        assert "error" in error_data
+        error_info = error_data["error"]
+
+        # Check the error structure matches our expected format
+        assert error_info["code"] == "unprocessable_entity"
+        assert "error_id" in error_info
+        assert "message" in error_info
+
+        # Check that the message indicates validation failure and contains specific field errors
+        message = error_info["message"]
+        assert "Request validation failed:" in message
+
+        # Check that ALL expected fields are mentioned in the expected format
+        # Our _format_validation_exception creates predictable "body -> field_name:" patterns
+        expected_field_patterns = [
+            "body -> version:",
+            "body -> description:",
+            "body -> platform_configs:",
+            "body -> question_groups:",
+        ]
+        for pattern in expected_field_patterns:
+            assert pattern in message, f"Expected '{pattern}' in validation message: {message}"
+
+    def test_agent_creation_validation_error_missing_required_fields(self, client: TestClient):
+        """Test agent creation with missing required fields."""
+        # Send minimal request missing required fields
+        response = client.post(
+            "/agents/",
+            json={
+                "name": "Test Agent",
+                # Missing required fields like mode, version, etc.
+            },
+        )
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+        error_data = response.json()
+        assert "error" in error_data
+        error_info = error_data["error"]
+
+        # Check the error structure
+        assert error_info["code"] == "unprocessable_entity"
+        assert "error_id" in error_info
+        assert "message" in error_info
+
+        # Check that message indicates validation failure
+        message = error_info["message"]
+        assert "Request validation failed:" in message
+
     @patch("agent_platform.server.api.private_v2.agents.extract_and_validate_agent_package")
     def test_agent_creation_conflict_error(
         self, mock_extract, client: TestClient, mock_error_storage

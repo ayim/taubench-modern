@@ -12,6 +12,7 @@ to match the agreed upon error shape which is:
 """
 
 import json
+from typing import TYPE_CHECKING
 
 import structlog
 from fastapi.exceptions import (
@@ -39,6 +40,9 @@ from starlette.status import (
 
 from agent_platform.core.errors import PlatformError, PlatformHTTPError
 from agent_platform.core.errors.responses import ErrorCode, ErrorResponse
+
+if TYPE_CHECKING:
+    from fastapi.exceptions import ValidationException
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
@@ -136,13 +140,20 @@ async def request_validation_exception_handler(
     # need to do this.
     body = (await request.body()).decode()
 
+    # Get the pydantic validation error message
+    validation_error_message = _format_validation_exception(exc)
+
     # Create standard error response (ErrorResponse doesn't have a data field)
-    error_response = ErrorResponse(ErrorCode.UNPROCESSABLE_ENTITY)
+    error_response = ErrorResponse(
+        ErrorCode.UNPROCESSABLE_ENTITY,
+        message_override=f"Request validation failed: {validation_error_message}",
+    )
 
     _safe_log_error(
         logger.error,
-        "Request validation failed (error_id=%s)",
+        "Request validation failed (error_id=%s): %s",
         error_response.error_id,
+        validation_error_message,
         error_id=error_response.error_id,  # TODO: repeated for current structlog config
         validation_errors=exc.errors(),
         request_body=body,
@@ -159,13 +170,20 @@ async def websocket_request_validation_exception_handler(
     ensures the errors are logged and the response is formatted correctly to match the
     agreed upon error shape.
     """
+    # Get the pydantic validation error message
+    validation_error_message = _format_validation_exception(exc)
+
     # Create standard error response (ErrorResponse doesn't have a data field)
-    error_response = ErrorResponse(ErrorCode.UNPROCESSABLE_ENTITY)
+    error_response = ErrorResponse(
+        ErrorCode.UNPROCESSABLE_ENTITY,
+        message_override=f"Request validation failed: {validation_error_message}",
+    )
 
     _safe_log_error(
         logger.error,
-        "WebSocket request validation failed (error_id=%s)",
+        "WebSocket request validation failed (error_id=%s): %s",
         error_response.error_id,
+        validation_error_message,
         error_id=error_response.error_id,  # TODO: repeated for current structlog config
         validation_errors=exc.errors(),
         exc_info=exc,
@@ -249,6 +267,30 @@ def add_exception_handlers(app: Starlette) -> None:
 # -----------------------------------------------------------------------------
 # Internal utilities
 # -----------------------------------------------------------------------------
+
+
+def _format_validation_exception(validation_exc: "ValidationException") -> str:
+    """Convert a FastAPI ValidationException into a human-readable string.
+
+    Args:
+        validation_exc: The ValidationException to format.
+
+    Returns:
+        A human-readable string representation of the validation errors
+    """
+    try:
+        validation_errors = validation_exc.errors()
+        error_messages = []
+        for error in validation_errors:
+            # Convert location tuple to readable path
+            if error["loc"]:
+                location = " -> ".join(str(part) for part in error["loc"])
+                error_messages.append(f"{location}: {error['msg']}")
+            else:
+                error_messages.append(error["msg"])
+        return "; ".join(error_messages)
+    except Exception:
+        return "Unknown validation error"
 
 
 def _safe_log_error(log_method, *args, **kwargs) -> None:
