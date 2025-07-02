@@ -23,7 +23,6 @@ from agent_platform.server.api.mcp import MCPAuthenticationMiddleware, mcp
 from agent_platform.server.constants import SystemConfig
 from agent_platform.server.error_handlers import add_exception_handlers
 from agent_platform.server.lifespan import create_combined_lifespan
-from agent_platform.workitems.lifecycle import workitems_db_is_available_sync
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
@@ -184,11 +183,14 @@ def create_app() -> FastAPI:
     workitems_app = None
 
     apps_to_lifespans = [mcp_app, agent_mcp]
-    if workitems_db_is_available_sync():
+    if SystemConfig.enable_workitems:
+        logger.info("Starting workitems server")
         from agent_platform.workitems import make_workitems_app
 
         workitems_app = make_workitems_app(agent_app=app_private_v2)
         apps_to_lifespans.append(workitems_app)
+    else:
+        logger.info("Workitems server is disabled")
 
     # Main FastAPI app to include both versions
 

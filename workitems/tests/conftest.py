@@ -159,6 +159,8 @@ def agent_server_url(
     agent_server_process = AgentServerProcess(datadir=agent_server_data_dir)
 
     env = {
+        # Enable workitems server
+        "SEMA4AI_AGENT_SERVER_ENABLE_WORKITEMS": "true",
         "SEMA4AI_WORKITEMS_DATABASE_URL": database_url,
         # wait 1s in between scans over the DB looking for work-items
         "WORKITEMS_WORKER_INTERVAL": "1",

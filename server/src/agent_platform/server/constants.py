@@ -174,6 +174,14 @@ class SystemConfig(Configuration):
         ),
     )
 
+    enable_workitems: bool = field(
+        default=False,
+        metadata=FieldMetadata(
+            description="Start the workitems server.",
+            env_vars=["SEMA4AI_AGENT_SERVER_ENABLE_WORKITEMS"],
+        ),
+    )
+
     def __post_init__(self) -> None:
         """Validate configuration settings."""
         # Validate db_type
