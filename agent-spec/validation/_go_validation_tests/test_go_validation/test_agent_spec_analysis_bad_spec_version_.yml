@@ -1,10 +1,10 @@
-- message: "Error: 'spec-version' should be a string."
+- message: 'Error: ''spec-version'' should be a string.'
   range:
     end:
       character: 0
       line: 2
     start:
-      character: 18
+      character: 16
       line: 1
   severity: 1
   source: sema4ai

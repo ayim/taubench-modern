@@ -4,7 +4,7 @@
       character: 0
       line: 24
     start:
-      character: 10
+      character: 6
       line: 23
   severity: 1
   source: sema4ai
@@ -14,7 +14,7 @@
       character: 0
       line: 26
     start:
-      character: 16
+      character: 10
       line: 25
   severity: 1
   source: sema4ai
@@ -24,7 +24,7 @@
       character: 0
       line: 27
     start:
-      character: 16
+      character: 10
       line: 26
   severity: 1
   source: sema4ai
@@ -34,7 +34,7 @@
       character: 0
       line: 28
     start:
-      character: 16
+      character: 10
       line: 27
   severity: 1
   source: sema4ai

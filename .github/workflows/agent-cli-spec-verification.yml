@@ -3,10 +3,12 @@ name: Agent CLI Spec verification
 on:
   push:
     paths:
-      - 'client-sdks/golang/agent-cli/**'
+      - client-sdks/golang/agent-cli/**
+      - agent-spec/**
   pull_request:
     paths:
-      - 'client-sdks/golang/agent-cli/**'
+      - client-sdks/golang/agent-cli/**
+      - agent-spec/**
   # Manual trigger
   workflow_dispatch:
 
@@ -39,14 +41,14 @@ jobs:
           export GOPRIVATE=github.com/Sema4AI/agent-client-go
           go get github.com/Sema4AI/agent-client-go
 
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v4
+      - uses: astral-sh/setup-uv@1bf14936647e2742afe170d7d7fd95f45bfe4fc7
+        id: uv
         with:
-          python-version: '3.10'
-      - name: Upgrade pip/poetry
-        run: python -m pip install --upgrade pip poetry
-      - name: poetry install
-        run: poetry install --no-root
+          enable-cache: true
+          cache-dependency-glob: |
+            uv.lock
+            **/uv.lock
+
       - name: Run pytest
         run: |
-          poetry run python -m pytest -rfE -vv -n auto --confcutdir=. .
+          uv run python -m pytest -rfE -vv -n auto .

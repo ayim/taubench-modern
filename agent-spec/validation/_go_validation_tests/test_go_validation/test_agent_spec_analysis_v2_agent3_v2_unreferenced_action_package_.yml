@@ -1,10 +1,10 @@
-- message: "Action Package path not referenced in the `agent-spec.yaml`: 'MyActions/control-room-test/0.0.1/new-path.zip'."
+- message: 'Action Package path not referenced in the `agent-spec.yaml`: ''MyActions/control-room-test/0.0.1/new-path.zip''.'
   range:
     end:
       character: 0
       line: 15
     start:
-      character: 10
+      character: 6
       line: 14
   severity: 2
   source: sema4ai
@@ -16,7 +16,7 @@
       character: 0
       line: 21
     start:
-      character: 22
+      character: 16
       line: 20
   severity: 1
   source: sema4ai

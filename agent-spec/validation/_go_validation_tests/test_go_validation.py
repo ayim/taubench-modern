@@ -4,7 +4,7 @@ from typing import Literal
 
 import pytest
 
-from _go_validation_tests.conftest import RunResult
+from _go_validation_tests.fixtures import RunResult
 
 log = logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ def run_agent_cli(
 ) -> RunResult:
     import os
 
-    from _go_validation_tests.conftest import DEBUG_GO, run
+    from _go_validation_tests.fixtures import DEBUG_GO, run
 
     if DEBUG_GO:
         full_args = [
@@ -141,7 +141,10 @@ def v2_bad_action_package_version(agent_path):
 def update(package_yaml, replace_func):
     txt = package_yaml.read_text()
     new = replace_func(txt)
-    assert txt != new
+    if txt == new:
+        raise RuntimeError(
+            f"Applying the replacement function on {package_yaml} did not change the file. Contents:\n{txt}"
+        )
     package_yaml.write_text(new)
 
 
@@ -160,10 +163,10 @@ def v2_no_knowledge(agent_path):
     update(
         package_yaml,
         lambda txt: txt.replace(
-            "          knowledge:",
+            "      knowledge:",
             """
-          knowledge: []
-          bad-knowledge:
+      knowledge: []
+      bad-knowledge:
 """,
         ),
     )

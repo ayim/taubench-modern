@@ -1,6 +1,6 @@
-- message: "Expected agent-package/agents/action-packages/name to match the name in
-    the action package being referenced ('Control Room Test'). Found in spec: 'Some
-    other name'"
+- message: 'Expected agent-package/agents/action-packages/name to match the name in
+    the action package being referenced (''Control Room Test''). Found in spec: ''Some
+    other name'''
   range:
     end:
       character: 0

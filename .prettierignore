@@ -6,3 +6,5 @@ server/examples/debug_widget/static/style.css
 **/CHANGELOG-PRE-RELEASE.md
 **/CHANGELOG.md
 **/versionbump.yaml
+agent-spec/validation/_go_validation_tests/test_go_validation/**
+agent-spec/validation/_spec_validation_tests/test_spec/**
