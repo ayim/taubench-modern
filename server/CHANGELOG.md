@@ -1,3 +1,11 @@
+# Sema4.ai Agent Server 2.0.8 (2025-07-03)
+
+- No significant changes. This is a release from the new branch model in the Agent Platform repo.
+
+# Sema4.ai Agent Server 2.0.7 (2025-07-02)
+
+- Work items are now disabled by default due to issues with the work item system.
+
 # Sema4.ai Agent Server 2.0.6 (2025-07-01)
 
 - Added error handling for invoking models via the Bedrock platform client. ([GPT-1029](https://linear.app/sema4ai/issue/GPT-1029))
