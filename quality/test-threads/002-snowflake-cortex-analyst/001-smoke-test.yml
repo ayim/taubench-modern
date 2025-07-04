@@ -26,12 +26,12 @@ action-secrets:
 
 # We need the ~/.sema4ai/sf-auth.json to be overridden with the following
 # for this test scenario to work.
-sf-auth-override:
-  account: ZVZWMYO-HP00956
-  role: ACCOUNTADMIN
-  private_key_path: $CORTEX_HP00956_PRIVATE_KEY_PATH
-  private_key_passphrase: $CORTEX_HP00956_PRIVATE_KEY_PASSPHRASE
-  user: $CORTEX_HP00956_USER
+# sf-auth-override:
+#   account: ZVZWMYO-HP00956
+#   role: ACCOUNTADMIN
+#   private_key_path: $CORTEX_HP00956_PRIVATE_KEY_PATH
+#   private_key_passphrase: $CORTEX_HP00956_PRIVATE_KEY_PASSPHRASE
+#   user: $CORTEX_HP00956_USER
 
 target-platforms:
   - name: openai

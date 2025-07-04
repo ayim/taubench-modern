@@ -3,6 +3,7 @@ import base64
 import json
 import os
 import shutil
+import sys
 import traceback
 from collections import defaultdict
 from dataclasses import asdict
@@ -93,11 +94,8 @@ class QualityTestRunner:
                     continue
 
                 for yml_path in test_dir.glob("*.yml"):
-                    try:
-                        test_case = TestCase.from_file(yml_path)
-                        test_cases.append(test_case)
-                    except Exception as e:
-                        logger.warning(f"Failed to load test case {yml_path}: {e}")
+                    test_case = TestCase.from_file(yml_path)
+                    test_cases.append(test_case)
 
         logger.info(f"Found {len(test_cases)} test cases")
         return test_cases
@@ -268,8 +266,8 @@ class QualityTestRunner:
             # Discover test cases for this agent
             test_cases = self.discover_test_cases(agent_package.name)
             if not test_cases:
-                logger.warning(f"No test cases found for agent {agent_package.name}")
-                return []
+                logger.error(f"No test cases found for agent {agent_package.name}. Terminating...")
+                sys.exit(1)
 
             # Collect all unique platforms across all test cases
             all_platforms = set()
@@ -640,9 +638,14 @@ class QualityTestRunner:
 
         except Exception as e:
             logger.error(
-                f"Test execution failed: {test_case.thread.name} on platform: {platform.name}\n",
-                f"Error: {e!s}\n",
-                f"Traceback:\n{traceback.format_exc()}",
+                "Test execution failed",
+                extra={
+                    "test_case": test_case.thread.name,
+                    "platform": platform.name,
+                    "agent_id": agent_id,
+                    "error": str(e),
+                    "traceback": traceback.format_exc(),
+                },
             )
 
             return ThreadResult(

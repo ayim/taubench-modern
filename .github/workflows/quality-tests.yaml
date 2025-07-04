@@ -26,7 +26,6 @@ jobs:
         uses: astral-sh/setup-uv@1bf14936647e2742afe170d7d7fd95f45bfe4fc7
         with:
           python-version: '3.12'
-          activate-environment: true
 
       # we need to fetch action-server because it is required by agent-cli
       # we use agent-cli to get package metadata, but we will remove it as soon as we have a better way to do it
@@ -122,9 +121,11 @@ jobs:
         run: |
           snow connection test
 
-      # we run only selected agents becuase
-      # it is not clear how to get access tokens in CI, it requires user interactions
+      # we run only selected agents because
+      # it is not clear how to get OAuth access tokens in CI, it requires user interactions
       - name: Run quality tests
+        env:
+          SEMA4AI_HOME: ~/.sema4ai
         run: |
           uv run quality-test init
           SEMA4AI_TEST_AGENT_SERVER_EXECUTABLE=$HOME/.local/bin/agent-server uv run quality-test run --selected-agents "001-quality-basic-browsing,003-call-center-planner,002-snowflake-cortex-analyst"
