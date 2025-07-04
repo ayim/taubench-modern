@@ -1,12 +1,13 @@
 import json
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from agent_platform.core.kernel_interfaces.thread_state import (
     ThreadMessageWithThreadState,
 )
+from agent_platform.core.streaming import StreamingError
 from agent_platform.core.thread.base import ThreadMessage
 from agent_platform.core.thread.content import (
     ThreadQuickActionContent,
@@ -315,3 +316,73 @@ class TestThreadAgentMessage:
             match="Cannot add content to a committed message",
         ):
             agent_msg.append_thought("some new thought")
+
+
+@pytest.mark.asyncio
+class TestThreadMessageSoftCommit:
+    """Test soft commit functionality for handling ws conn loss during tool execution."""
+
+    async def test_soft_commit_preserves_editability(self):
+        """Test that soft_commit saves to storage but keeps message editable."""
+
+        mock_thread_state = AsyncMock()
+        mock_thread_state.kernel = MagicMock()
+        mock_thread_state.kernel.ctx.increment_counter = MagicMock()
+
+        message = ThreadAgentMessage(
+            content=[ThreadTextContent(text="Initial content")],
+            commited=False,
+            complete=False,
+        )
+
+        msg_with_state = ThreadMessageWithThreadState(message, mock_thread_state)
+        msg_with_state.append_content("Tool is running...")
+
+        await msg_with_state.soft_commit()
+
+        mock_thread_state.commit_message.assert_called_once_with(
+            message, ignore_websocket_errors=True
+        )
+
+        assert message.complete is True
+        assert message.commited is False
+
+        msg_with_state.append_content(" Tool completed!")
+
+        await msg_with_state.commit(ignore_websocket_errors=True)
+
+        assert message.commited is True
+        assert message.complete is True
+
+        text_content = next(
+            content for content in message.content if isinstance(content, ThreadTextContent)
+        )
+        assert text_content.text.endswith("Tool completed!")
+
+    async def test_commit_ignoring_websocket_errors(self):
+        """Test that commit with ignore_websocket_errors=True works when websocket fails."""
+
+        mock_thread_state = AsyncMock()
+        mock_thread_state.kernel = MagicMock()
+        mock_thread_state.kernel.ctx.increment_counter = MagicMock()
+
+        mock_thread_state.stream_message_delta = AsyncMock(
+            side_effect=StreamingError("WebSocket connection lost")
+        )
+
+        message = ThreadAgentMessage(
+            content=[ThreadTextContent(text="Long running tool result")],
+            commited=False,
+            complete=False,
+        )
+
+        msg_with_state = ThreadMessageWithThreadState(message, mock_thread_state)
+
+        await msg_with_state.commit(ignore_websocket_errors=True)
+
+        mock_thread_state.commit_message.assert_called_once_with(
+            message, ignore_websocket_errors=True
+        )
+
+        assert message.commited is True
+        assert message.complete is True

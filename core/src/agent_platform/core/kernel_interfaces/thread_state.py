@@ -141,13 +141,62 @@ class ThreadMessageWithThreadState:
         if self._message.content:
             self._message.content[-1].mark_complete()
 
-    async def commit(self) -> None:
-        """Commits the message to the thread state."""
+    async def commit(self, ignore_websocket_errors: bool = False) -> None:
+        """Commits the message to the thread state.
+
+        Args:
+            ignore_websocket_errors: If True, websocket errors will be ignored during commit.
+                Useful for long-running tools where websocket connections might be lost.
+        """
         self._message.commited = True
         self._message.mark_complete()
-        await self.stream_delta()  # Want to get these also into stream (flag updates)
-        await self._thread_state.commit_message(self._message)
 
+        if ignore_websocket_errors:
+            # Try to send websocket delta but ignore errors
+            try:
+                await self.stream_delta()
+            except Exception:
+                # Ignore websocket errors when flag is set
+                pass
+        else:
+            # Normal behavior - websocket errors will propagate
+            await self.stream_delta()
+
+        await self._thread_state.commit_message(
+            self._message, ignore_websocket_errors=ignore_websocket_errors
+        )
+
+        kernel = self._thread_state.kernel
+        kernel.ctx.increment_counter(
+            "sema4ai.agent_server.messages",
+            1,
+            {
+                "agent_id": kernel.agent.agent_id,
+                "thread_id": kernel.thread.thread_id,
+            },
+        )
+
+    async def soft_commit(self) -> None:
+        """Commits the message to storage but keeps it editable for long-running tools.
+
+        This method saves the message to the database but keeps self._message.commited = False
+        so that the message can still be updated (e.g., for long-running tool results).
+        Use this when you want to persist the message but continue tool execution.
+        """
+        # Mark as complete but don't set commited = True yet
+        self._message.mark_complete()
+
+        # Send the current state to websocket (but don't fail if websocket is down)
+        try:
+            await self.stream_delta()
+        except Exception:
+            # Ignore websocket errors during soft commit
+            pass
+
+        # Commit to storage but ignore websocket errors
+        await self._thread_state.commit_message(self._message, ignore_websocket_errors=True)
+
+        # Increment counter
         kernel = self._thread_state.kernel
         kernel.ctx.increment_counter(
             "sema4ai.agent_server.messages",
@@ -538,11 +587,15 @@ class ThreadStateInterface(ABC, UsesKernelMixin):
     async def commit_message(
         self,
         message: ThreadMessageWithThreadState | ThreadMessage,
+        ignore_websocket_errors: bool = False,
     ) -> None:
         """Commits a message to the thread state."""
         unwrapped_message = (
             message._message if isinstance(message, ThreadMessageWithThreadState) else message
         )
+
+        websocket_error = None
+        storage_error = None
 
         try:
             sequence_number = 0
@@ -551,31 +604,44 @@ class ThreadStateInterface(ABC, UsesKernelMixin):
                     unwrapped_message.message_id
                 ]
 
-            await self._send_delta_event(
-                StreamingDeltaMessageEnd(
-                    datetime.now(UTC),
-                    sequence_number,
-                    unwrapped_message.message_id,
-                    self._thread_id,
-                    self._agent_id,
-                    # Send full message at end? (TBD)
-                    unwrapped_message.model_dump(),
-                ),
-            )
+            try:
+                await self._send_delta_event(
+                    StreamingDeltaMessageEnd(
+                        datetime.now(UTC),
+                        sequence_number,
+                        unwrapped_message.message_id,
+                        self._thread_id,
+                        self._agent_id,
+                        # Send full message at end? (TBD)
+                        unwrapped_message.model_dump(),
+                    ),
+                )
+            except Exception as e:
+                websocket_error = e
+                # Continue to commit to storage even if websocket fails
 
-            await self._commit_message_to_storage(unwrapped_message)
+            try:
+                await self._commit_message_to_storage(unwrapped_message)
+            except Exception as e:
+                storage_error = e
 
             if unwrapped_message.message_id in self._previous_message_states:
                 del self._previous_message_states[unwrapped_message.message_id]
             if unwrapped_message.message_id in self._previous_message_sequence_numbers:
                 del self._previous_message_sequence_numbers[unwrapped_message.message_id]
-        except Exception as e:
-            # TODO: unique error type here?
-            raise Exception(
-                f"Failed to commit message {unwrapped_message.message_id} to storage",
-            ) from e
+
         finally:
             self._active_message_id = None
+
+        # Handle errors after cleanup
+        if storage_error:
+            raise Exception(
+                f"Failed to commit message {unwrapped_message.message_id} to storage",
+            ) from storage_error
+        elif websocket_error and not ignore_websocket_errors:
+            raise Exception(
+                f"Failed to send websocket delta for message {unwrapped_message.message_id}",
+            ) from websocket_error
 
     @abstractmethod
     async def _send_delta_event(self, delta_object: StreamingDeltaMessage) -> None:

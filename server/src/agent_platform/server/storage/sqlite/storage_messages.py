@@ -106,51 +106,79 @@ class SQLiteStorageMessagesMixin(CommonMixin):
 
         try:
             async with self._cursor() as cur:
-                # Get the last sequence number
-                await cur.execute(
-                    """
-                    SELECT COALESCE(MAX(sequence_number), -1) AS max_seq
-                    FROM v2_thread_message
-                    WHERE thread_id = :thread_id
-                    """,
-                    {"thread_id": thread_id},
-                )
-                row = await cur.fetchone()
-                next_sequence = (row["max_seq"] + 1) if row else 0
-
                 message_dict = message.model_dump()
 
-                # Insert the new message
+                # Check if message already exists
                 await cur.execute(
                     """
-                    INSERT INTO v2_thread_message (
-                        message_id, thread_id, sequence_number, role, content,
-                        agent_metadata, server_metadata, created_at, updated_at,
-                        parent_run_id
-                    ) VALUES (
-                        :message_id, :thread_id, :sequence_number, :role, :content,
-                        :agent_metadata, :server_metadata, :created_at, :updated_at,
-                        :parent_run_id
-                    )
+                    SELECT sequence_number FROM v2_thread_message
+                    WHERE message_id = :message_id
                     """,
-                    {
-                        "message_id": message_dict["message_id"],
-                        "thread_id": thread_id,
-                        "sequence_number": next_sequence,
-                        "role": message_dict["role"],
-                        "content": json.dumps(message_dict["content"]),
-                        "agent_metadata": json.dumps(message_dict["agent_metadata"]),
-                        "server_metadata": json.dumps(message_dict["server_metadata"]),
-                        "created_at": message_dict["created_at"],
-                        "updated_at": message_dict["updated_at"],
-                        "parent_run_id": message_dict["parent_run_id"],
-                    },
+                    {"message_id": message_dict["message_id"]},
                 )
+                existing_row = await cur.fetchone()
+
+                if existing_row:
+                    # Message exists, update it (preserving sequence number)
+                    await cur.execute(
+                        """
+                        UPDATE v2_thread_message
+                        SET role = :role,
+                            content = :content,
+                            agent_metadata = :agent_metadata,
+                            server_metadata = :server_metadata,
+                            updated_at = :updated_at
+                        WHERE message_id = :message_id
+                        """,
+                        {
+                            "message_id": message_dict["message_id"],
+                            "role": message_dict["role"],
+                            "content": json.dumps(message_dict["content"]),
+                            "agent_metadata": json.dumps(message_dict["agent_metadata"]),
+                            "server_metadata": json.dumps(message_dict["server_metadata"]),
+                            "updated_at": message_dict["updated_at"],
+                        },
+                    )
+                else:
+                    # Message doesn't exist, get the next sequence number and insert
+                    await cur.execute(
+                        """
+                        SELECT COALESCE(MAX(sequence_number), -1) AS max_seq
+                        FROM v2_thread_message
+                        WHERE thread_id = :thread_id
+                        """,
+                        {"thread_id": thread_id},
+                    )
+                    row = await cur.fetchone()
+                    next_sequence = (row["max_seq"] + 1) if row else 0
+
+                    # Insert the new message
+                    await cur.execute(
+                        """
+                        INSERT INTO v2_thread_message (
+                            message_id, thread_id, sequence_number, role, content,
+                            agent_metadata, server_metadata, created_at, updated_at,
+                            parent_run_id
+                        ) VALUES (
+                            :message_id, :thread_id, :sequence_number, :role, :content,
+                            :agent_metadata, :server_metadata, :created_at, :updated_at,
+                            :parent_run_id
+                        )
+                        """,
+                        {
+                            "message_id": message_dict["message_id"],
+                            "thread_id": thread_id,
+                            "sequence_number": next_sequence,
+                            "role": message_dict["role"],
+                            "content": json.dumps(message_dict["content"]),
+                            "agent_metadata": json.dumps(message_dict["agent_metadata"]),
+                            "server_metadata": json.dumps(message_dict["server_metadata"]),
+                            "created_at": message_dict["created_at"],
+                            "updated_at": message_dict["updated_at"],
+                            "parent_run_id": message_dict["parent_run_id"],
+                        },
+                    )
         except IntegrityError as e:
-            if "UNIQUE constraint failed: v2_thread_message.message_id" in str(e):
-                raise RecordAlreadyExistsError(
-                    f"Message {message.message_id} already exists",
-                ) from e
             raise ReferenceIntegrityError(
                 "Invalid foreign key reference updating message",
             ) from e

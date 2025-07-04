@@ -217,6 +217,11 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
         message.update_tool_running(tool_call.tool_call_id)
         await message.stream_delta()
 
+    # If we have pending tool calls, do a soft commit first to persist the message
+    # This allows tools to continue running even if websocket connection is lost
+    if state.pending_tool_calls:
+        await message.soft_commit()
+
     # Execute any pending tool calls and update the message
     async for _ in kernel.tools.execute_pending_tool_calls(
         state.pending_tool_calls,
@@ -224,8 +229,12 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
     ):
         state.called_tools = True
 
-    # Commit the message to the thread and clear pending tool calls
-    await message.commit()
+    # Final commit - if we had tools, ignore websocket errors since tools might be long-running
+    if state.called_tools:
+        await message.commit(ignore_websocket_errors=True)
+    else:
+        # No tools were called, use normal commit
+        await message.commit()
 
     return state
 

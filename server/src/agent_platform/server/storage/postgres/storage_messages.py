@@ -1,11 +1,10 @@
 from psycopg import AsyncCursor
-from psycopg.errors import ForeignKeyViolation, UniqueViolation
+from psycopg.errors import ForeignKeyViolation
 from psycopg.rows import DictRow
 from psycopg.types.json import Jsonb
 
 from agent_platform.core.thread import ThreadMessage
 from agent_platform.server.storage.errors import (
-    RecordAlreadyExistsError,
     ThreadNotFoundError,
     UserAccessDeniedError,
     UserPermissionError,
@@ -98,57 +97,79 @@ class PostgresStorageMessagesMixin(CommonMixin):
                         f"User {user_id} does not have access to thread {thread_id}",
                     )
 
-                # 3. Get the last message
-                await cur.execute(
-                    """SELECT sequence_number FROM v2.thread_message
-                    WHERE thread_id = %(thread_id)s::uuid
-                    ORDER BY sequence_number DESC LIMIT 1""",
-                    {"thread_id": thread_id},
-                )
-
-                # 4. No messages found?
-                if not (last_message := await cur.fetchone()):
-                    sequence_number = 0
-                else:
-                    sequence_number = last_message["sequence_number"] + 1
-
                 message_dict = message.model_dump()
 
-                # 5. Insert the new message
+                # 3. Check if message already exists
                 await cur.execute(
-                    """INSERT INTO v2.thread_message (
-                        message_id, thread_id, sequence_number, role, content,
-                        agent_metadata, server_metadata, created_at, updated_at,
-                        parent_run_id
-                    ) VALUES (
-                        %(message_id)s::uuid, %(thread_id)s::uuid,
-                        %(sequence_number)s, %(role)s, %(content)s,
-                        %(agent_metadata)s, %(server_metadata)s, %(created_at)s,
-                        %(updated_at)s, %(parent_run_id)s
-                    )""",
-                    {
-                        "message_id": message_dict["message_id"],
-                        "thread_id": thread_id,
-                        "sequence_number": sequence_number,
-                        "role": message_dict["role"],
-                        "content": Jsonb(message_dict["content"]),
-                        "agent_metadata": Jsonb(message_dict["agent_metadata"]),
-                        "server_metadata": Jsonb(message_dict["server_metadata"]),
-                        "created_at": message_dict["created_at"],
-                        "updated_at": message_dict["updated_at"],
-                        "parent_run_id": message_dict["parent_run_id"],
-                    },
+                    """SELECT sequence_number FROM v2.thread_message
+                    WHERE message_id = %(message_id)s::uuid""",
+                    {"message_id": message_dict["message_id"]},
                 )
+                existing_message = await cur.fetchone()
+
+                if existing_message:
+                    # 4. Message exists, update it (preserving sequence number)
+                    await cur.execute(
+                        """UPDATE v2.thread_message
+                        SET role = %(role)s,
+                            content = %(content)s,
+                            agent_metadata = %(agent_metadata)s,
+                            server_metadata = %(server_metadata)s,
+                            updated_at = %(updated_at)s
+                        WHERE message_id = %(message_id)s::uuid""",
+                        {
+                            "message_id": message_dict["message_id"],
+                            "role": message_dict["role"],
+                            "content": Jsonb(message_dict["content"]),
+                            "agent_metadata": Jsonb(message_dict["agent_metadata"]),
+                            "server_metadata": Jsonb(message_dict["server_metadata"]),
+                            "updated_at": message_dict["updated_at"],
+                        },
+                    )
+                else:
+                    # 5. Message doesn't exist, get the next sequence number and insert
+                    await cur.execute(
+                        """SELECT sequence_number FROM v2.thread_message
+                        WHERE thread_id = %(thread_id)s::uuid
+                        ORDER BY sequence_number DESC LIMIT 1""",
+                        {"thread_id": thread_id},
+                    )
+
+                    # 6. No messages found?
+                    if not (last_message := await cur.fetchone()):
+                        sequence_number = 0
+                    else:
+                        sequence_number = last_message["sequence_number"] + 1
+
+                    # 7. Insert the new message
+                    await cur.execute(
+                        """INSERT INTO v2.thread_message (
+                            message_id, thread_id, sequence_number, role, content,
+                            agent_metadata, server_metadata, created_at, updated_at,
+                            parent_run_id
+                        ) VALUES (
+                            %(message_id)s::uuid, %(thread_id)s::uuid,
+                            %(sequence_number)s, %(role)s, %(content)s,
+                            %(agent_metadata)s, %(server_metadata)s, %(created_at)s,
+                            %(updated_at)s, %(parent_run_id)s
+                        )""",
+                        {
+                            "message_id": message_dict["message_id"],
+                            "thread_id": thread_id,
+                            "sequence_number": sequence_number,
+                            "role": message_dict["role"],
+                            "content": Jsonb(message_dict["content"]),
+                            "agent_metadata": Jsonb(message_dict["agent_metadata"]),
+                            "server_metadata": Jsonb(message_dict["server_metadata"]),
+                            "created_at": message_dict["created_at"],
+                            "updated_at": message_dict["updated_at"],
+                            "parent_run_id": message_dict["parent_run_id"],
+                        },
+                    )
             except ForeignKeyViolation as e:
                 raise ThreadNotFoundError(
                     f"Thread with ID {thread_id} not found",
                 ) from e
-            except UniqueViolation as e:
-                if "duplicate key value violates unique constraint" in str(e):
-                    raise RecordAlreadyExistsError(
-                        f"Message {message.message_id} already exists",
-                    ) from e
-                raise e
             except Exception:
                 raise
 

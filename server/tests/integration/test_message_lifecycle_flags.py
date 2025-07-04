@@ -60,7 +60,7 @@ async def test_message_lifecycle_flags():
     assert message.complete is True, "Message should remain complete after commit()"
 
     # Verify commit was called on thread state
-    mock_thread_state.commit_message.assert_called_once_with(message)
+    mock_thread_state.commit_message.assert_called_once_with(message, ignore_websocket_errors=False)
 
     # 5. IMMUTABILITY: Cannot modify committed message
     with pytest.raises(ValueError, match="Cannot add content to a committed message"):
@@ -141,3 +141,6 @@ def test_commit_ensures_complete():
     assert message.commited is True
     assert message.complete is True
     assert all(c.complete for c in message.content)
+
+    # Verify commit was called with default parameters
+    mock_thread_state.commit_message.assert_called_once_with(message, ignore_websocket_errors=False)
