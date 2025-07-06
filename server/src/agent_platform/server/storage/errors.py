@@ -50,6 +50,13 @@ class NoSystemUserError(HTTPException):
         super().__init__(status_code=500, detail=detail)
 
 
+class UserNotFoundError(HTTPException):
+    """A user with the given ID was not found."""
+
+    def __init__(self, detail: str = "A user with the given ID was not found"):
+        super().__init__(status_code=404, detail=detail)
+
+
 class MemoryNotFoundError(HTTPException):
     """A memory with the given ID was not found."""
 
@@ -128,3 +135,14 @@ class StorageError(HTTPException):
 
     def __init__(self, detail: str = "A storage error occurred"):
         super().__init__(status_code=500, detail=detail)
+
+
+class WorkItemNotFoundError(HTTPException):
+    """A work item with the given ID was not found."""
+
+    def __init__(
+        self,
+        work_item_id: str,
+        detail: str = "A work item with the given ID was not found",
+    ):
+        super().__init__(status_code=404, detail=detail)

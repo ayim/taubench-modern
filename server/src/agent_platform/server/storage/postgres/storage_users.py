@@ -4,11 +4,24 @@ from uuid import uuid4
 from psycopg.errors import UniqueViolation
 
 from agent_platform.core.user import User
-from agent_platform.server.storage.errors import NoSystemUserError
+from agent_platform.server.storage.errors import NoSystemUserError, UserNotFoundError
 from agent_platform.server.storage.postgres.common import CommonMixin
 
 
 class PostgresStorageUsersMixin(CommonMixin):
+    async def get_user_by_id(self, user_id: str) -> User:
+        """Get a user by ID."""
+        self._validate_uuid(user_id)
+        async with self._cursor() as cur:
+            await cur.execute(
+                "SELECT * FROM v2.user WHERE user_id = %(user_id)s",
+                {"user_id": user_id},
+            )
+            row = await cur.fetchone()
+        if row is None:
+            raise UserNotFoundError(f"User {user_id} not found")
+        return User.model_validate(dict(row))
+
     async def get_system_user_id(self) -> str:
         """Get the system user ID."""
         async with self._cursor() as cur:

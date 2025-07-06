@@ -2,7 +2,7 @@ from typing import Any
 from uuid import UUID
 
 import structlog
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.openapi.constants import REF_PREFIX
 from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel, Field
@@ -67,7 +67,6 @@ class EnsureAPIPrefixMiddleware(BaseHTTPMiddleware):
                 "/api/v2/mcp",
                 "/docs",
                 "/openapi.json",
-                "/api/work-items",
             ),
         ):
             logger.info("Rejecting unknown request", url=request.url)
@@ -180,17 +179,8 @@ def create_app() -> FastAPI:
 
     mcp_app = mcp.streamable_http_app()
     agent_mcp = build_agent_mcp_app()
-    workitems_app = None
 
     apps_to_lifespans = [mcp_app, agent_mcp]
-    if SystemConfig.enable_workitems:
-        logger.info("Starting workitems server")
-        from agent_platform.workitems import make_workitems_app
-
-        workitems_app = make_workitems_app(agent_app=app_private_v2)
-        apps_to_lifespans.append(workitems_app)
-    else:
-        logger.info("Workitems server is disabled")
 
     # Main FastAPI app to include both versions
 
@@ -198,12 +188,6 @@ def create_app() -> FastAPI:
         title="Sema4.ai Agent Server API",
     )
     app.router.lifespan_context = create_combined_lifespan(*apps_to_lifespans)
-
-    # Lift workitems app state into the main app
-    if workitems_app:
-        for k, v in workitems_app.state._state.items():
-            logger.info(f"Carrying over Workitems app state: {k} = {v}")
-            app.state._state[k] = v
 
     # Add authentication middleware to the MCP app to enable user-based authentication
     mcp_app.add_middleware(MCPAuthenticationMiddleware)
@@ -236,8 +220,11 @@ def create_app() -> FastAPI:
     add_exception_handlers(app_private_v1)
     app.mount("/api/v1", app_private_v1)  # Backwards compatibility
 
-    # Mount the work-items app
-    if workitems_app:
-        app.mount("/api/work-items", workitems_app)
+    # Ignore requests for favicon.ico
+    @app.middleware("http")
+    async def ignore_favicon(request: Request, call_next):
+        if request.url.path == "/favicon.ico":
+            return Response(content="", media_type="image/x-icon")
+        return await call_next(request)
 
     return app

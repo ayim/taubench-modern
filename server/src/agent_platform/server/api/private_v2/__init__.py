@@ -8,6 +8,7 @@ from agent_platform.server.api.private_v2.debug import router as debug_router
 from agent_platform.server.api.private_v2.prompt import router as prompt_router
 from agent_platform.server.api.private_v2.runs import router as runs_router
 from agent_platform.server.api.private_v2.threads import router as threads_router
+from agent_platform.server.api.private_v2.work_items import router as work_items_router
 
 PRIVATE_V2_PREFIX = "/api/v2"
 
@@ -48,4 +49,9 @@ router.include_router(
     prompt_router,
     prefix="/prompts",
     tags=["prompts"],
+)
+router.include_router(
+    work_items_router,
+    prefix="/work-items",
+    tags=["work-items"],
 )

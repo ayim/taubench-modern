@@ -36,6 +36,9 @@ from agent_platform.server.storage.postgres.storage_threads import (
 from agent_platform.server.storage.postgres.storage_users import (
     PostgresStorageUsersMixin,
 )
+from agent_platform.server.storage.postgres.storage_work_items import (
+    PostgresStorageWorkItemsMixin,
+)
 
 
 @dataclass(frozen=True)
@@ -99,11 +102,16 @@ class PostgresStorage(
     PostgresStorageUsersMixin,
     PostgresStorageMemoriesMixin,
     PostgresStorageRunsMixin,
+    PostgresStorageWorkItemsMixin,
     PostgresStorageScopedStorageMixin,
     PostgresStorageFilesMixin,
 ):
     def __init__(self, pool: AsyncConnectionPool | None = None):
+        # If a pool is provided externally, PostgresStorage should not be
+        # responsible for closing it: the caller owns its lifecycle. When we
+        # create the pool ourselves we *do* want to close it in teardown().
         self._pool = pool
+        self._owns_pool = pool is None
         self._logger = get_logger(__name__)
         self._migrations = PostgresMigrations(self._cursor)
         self._is_setup = False
@@ -130,7 +138,11 @@ class PostgresStorage(
 
     async def teardown(self) -> None:
         """Close the async connection pool."""
-        if self._is_setup and self._pool is not None:
+        # Only close the pool if we created/own it. A caller-provided pool may
+        # be shared across test cases or even the entire application, so we
+        # must not close it here! Doing so would render the shared pool
+        # unusable and lead to "PoolClosed" errors in subsequent operations.
+        if self._is_setup and self._pool is not None and self._owns_pool:
             await self._pool.close()
             self._pool = None
         self._is_setup = False

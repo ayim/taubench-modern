@@ -39,6 +39,9 @@ from agent_platform.server.storage.sqlite.storage_threads import (
 from agent_platform.server.storage.sqlite.storage_users import (
     SQLiteStorageUsersMixin,
 )
+from agent_platform.server.storage.sqlite.storage_work_items import (
+    SQLiteStorageWorkItemsMixin,
+)
 
 
 @dataclass(frozen=True)
@@ -100,6 +103,7 @@ class SQLiteStorage(
     SQLiteStorageUsersMixin,
     SQLiteStorageMemoriesMixin,
     SQLiteStorageRunsMixin,
+    SQLiteStorageWorkItemsMixin,
     SQLiteStorageScopedStorageMixin,
     SQLiteStorageFilesMixin,
 ):

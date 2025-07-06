@@ -1,9 +1,11 @@
-from contextlib import AsyncExitStack, asynccontextmanager
+import asyncio
+from contextlib import AsyncExitStack, asynccontextmanager, suppress
 
+import structlog
 from fastapi import FastAPI
 from starlette.applications import Starlette
 
-from agent_platform.server.constants import SystemPaths
+from agent_platform.server.constants import SystemConfig, SystemPaths
 
 # Import the data migration function
 from agent_platform.server.scripts.migration.auto_migrate import run_automatic_migration
@@ -11,6 +13,29 @@ from agent_platform.server.storage import StorageService
 
 # Use our new telemetry module instead of the old otel module
 from agent_platform.server.telemetry import setup_telemetry
+from agent_platform.server.work_items import run_agent, worker_loop
+
+logger = structlog.get_logger(__name__)
+
+
+def _start_work_items_background_worker() -> tuple[asyncio.Task, asyncio.Event]:
+    logger.info("Starting work-items background worker")
+    shutdown_event = asyncio.Event()
+
+    def _callback(future: asyncio.Task):
+        try:
+            if exc := future.exception():
+                logger.error(f"Background worker error: {exc}", exc_info=exc)
+
+        except asyncio.CancelledError:
+            pass
+
+        logger.info("work-items shut down")
+
+    t = asyncio.create_task(worker_loop(shutdown_event, run_agent))
+    t.add_done_callback(_callback)
+
+    return t, shutdown_event
 
 
 @asynccontextmanager
@@ -32,18 +57,33 @@ async def lifespan(app: FastAPI):
     # This is safe to run multiple times and will only migrate if needed
     migration_success = await run_automatic_migration()
     if not migration_success:
-        # Log the failure but don't crash the server - the migration module
-        # already logs detailed error information
-        import structlog
-
-        logger = structlog.get_logger(__name__)
         logger.warning("Data migration from v1 to v2 failed, but server will continue")
 
-    yield
+    # Start the work-items background worker only if enabled in configuration
+    work_items_task: asyncio.Task | None = None
+    work_items_shutdown_event: asyncio.Event | None = None
 
-    # Cleanup
-    await StorageService.get_instance().teardown()
-    # No need to shutdown providers - they'll be garbage collected
+    if SystemConfig.enable_workitems:
+        work_items_task, work_items_shutdown_event = _start_work_items_background_worker()
+    else:
+        logger.info("Work-items feature disabled; background worker will not start")
+
+    try:
+        yield
+
+    finally:
+        # Shut down the background worker only if it was started
+        if work_items_shutdown_event is not None and work_items_task is not None:
+            logger.info("Shutting down work-items background worker")
+            work_items_shutdown_event.set()
+
+            with suppress(asyncio.CancelledError):
+                logger.info("Waiting for work-items background worker to shut down")
+                await work_items_task
+
+        logger.info("Shutting down storage")
+        await StorageService.get_instance().teardown()
+        logger.info("Storage shut down")
 
 
 def create_combined_lifespan(*mcp_apps: Starlette):

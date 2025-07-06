@@ -33,7 +33,7 @@ from agent_platform.core.delta.combine_delta import combine_generic_deltas
 from agent_platform.core.payloads import InitiateStreamPayload
 from agent_platform.core.payloads.ephemeral_stream import EphemeralStreamPayload
 from agent_platform.core.payloads.upsert_agent import UpsertAgentPayload
-from agent_platform.core.runs import Run
+from agent_platform.core.runs import Run, RunStatus
 from agent_platform.core.streaming.delta import (
     StreamingDelta,
     StreamingDeltaAgentFinished,
@@ -179,7 +179,7 @@ async def get_run_messages(
     return messages
 
 
-@router.get("/{run_id}/status")
+@router.get("/{run_id}/status", response_model=RunStatus)
 async def get_run_status(
     run_id: str,
     user: AuthedUser,
@@ -191,10 +191,11 @@ async def get_run_status(
     """
     try:
         run = await storage.get_run(run_id)
-        return {
-            "run_id": run.run_id,
-            "status": run.status,
-        }
+        return RunStatus(
+            run_id=run.run_id,
+            status=run.status,
+            thread_id=run.thread_id,
+        )
     except Exception as e:
         # If run not found or any other error, return 404
 
@@ -971,7 +972,7 @@ async def sync_run(  # noqa: C901, PLR0912, PLR0915
         ) from e
 
 
-@router.post("/{agent_id}/async")
+@router.post("/{agent_id}/async", response_model=Run)
 async def async_run(  # noqa: C901, PLR0915
     agent_id: str,
     initial_payload: InitiateStreamPayload,
@@ -1127,10 +1128,7 @@ async def async_run(  # noqa: C901, PLR0915
             background_task.add_done_callback(_handle_background_task_done)
 
             # 5. Return acknowledgment immediately
-            return {
-                "run_id": active_run.run_id,
-                "status": "running",
-            }
+            return active_run
 
     except AgentNotFoundError as e:
         logger.error("Error getting agent", error=e)

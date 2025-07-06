@@ -65,3 +65,19 @@ def base_url_agent_server(tmpdir, logs_dir, files_location):
         host = os.getenv("API_HOST", "localhost")
         port = os.getenv("API_PORT", "8000")
         yield f"http://{host}:{port}"
+
+
+@pytest.fixture
+def base_url_agent_server_with_work_items(tmpdir, logs_dir):
+    start_server = os.getenv("INTEGRATION_TEST_START_SERVER", "true")
+    if start_server == "true":
+        with start_agent_server(
+            tmpdir,
+            logs_dir,
+            env={"SEMA4AI_AGENT_SERVER_ENABLE_WORKITEMS": "true"},
+        ) as url:
+            yield url
+    else:
+        host = os.getenv("API_HOST", "localhost")
+        port = os.getenv("API_PORT", "8000")
+        yield f"http://{host}:{port}"

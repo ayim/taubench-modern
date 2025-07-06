@@ -1,0 +1,212 @@
+from uuid import uuid4
+
+import pytest
+
+from agent_platform.core.agent import Agent
+from agent_platform.core.thread import ThreadMessage
+from agent_platform.core.thread.content import ThreadTextContent
+from agent_platform.core.work_items import WorkItem, WorkItemStatus
+from agent_platform.server.storage.sqlite import SQLiteStorage
+
+
+@pytest.mark.asyncio
+async def test_create_and_get_work_item(
+    storage: SQLiteStorage,
+    sample_user_id: str,
+    sample_agent,
+):
+    """Create a work item and retrieve it back from SQLite storage."""
+    # Ensure the agent exists (FK)
+    await storage.upsert_agent(sample_user_id, sample_agent)
+
+    work_item = WorkItem(
+        work_item_id=str(uuid4()),
+        user_id=sample_user_id,
+        agent_id=sample_agent.agent_id,
+        thread_id=None,
+        status=WorkItemStatus.PENDING,
+        # Provide a minimal message list to exercise JSON (de)serialization
+        messages=[
+            ThreadMessage(
+                role="user",
+                content=[ThreadTextContent(text="Hello!")],
+            ),
+        ],
+        payload={"foo": "bar"},
+    )
+
+    await storage.create_work_item(work_item)
+
+    fetched = await storage.get_work_item(work_item.work_item_id)
+    assert fetched is not None
+    assert fetched.work_item_id == work_item.work_item_id
+    assert fetched.agent_id == work_item.agent_id
+    assert fetched.status == WorkItemStatus.PENDING
+    assert fetched.payload == work_item.payload
+    # Messages round-trip
+    assert len(fetched.messages) == 1
+    assert fetched.messages[0].content[0].model_dump()["text"] == "Hello!"
+
+
+@pytest.mark.asyncio
+async def test_get_work_items_by_ids(
+    storage: SQLiteStorage,
+    sample_user_id: str,
+    sample_agent,
+):
+    """Verify bulk retrieval by IDs in SQLite storage."""
+    await storage.upsert_agent(sample_user_id, sample_agent)
+
+    work_items: list[WorkItem] = []
+    for _ in range(3):
+        wi = WorkItem(
+            work_item_id=str(uuid4()),
+            user_id=sample_user_id,
+            agent_id=sample_agent.agent_id,
+            status=WorkItemStatus.PENDING,
+            messages=[],
+            payload={},
+        )
+        await storage.create_work_item(wi)
+        work_items.append(wi)
+
+    ids = [wi.work_item_id for wi in work_items]
+    fetched = await storage.get_work_items_by_ids(ids)
+
+    assert {fi.work_item_id for fi in fetched} == set(ids)
+
+
+@pytest.mark.asyncio
+async def test_list_work_items_filtering(
+    storage: SQLiteStorage,
+    sample_user_id: str,
+    sample_agent,
+):
+    """List work items for a user with and without agent filter."""
+    # Insert two agents
+    await storage.upsert_agent(sample_user_id, sample_agent)
+
+    second_agent = Agent.model_validate(
+        sample_agent.model_dump()
+        | {
+            "agent_id": str(uuid4()),
+            "name": "Second Agent",
+        },
+    )
+    await storage.upsert_agent(sample_user_id, second_agent)
+
+    # Create two items for first agent, one for second.
+    items = [
+        WorkItem(
+            work_item_id=str(uuid4()),
+            user_id=sample_user_id,
+            agent_id=sample_agent.agent_id,
+            messages=[],
+            payload={},
+        ),
+        WorkItem(
+            work_item_id=str(uuid4()),
+            user_id=sample_user_id,
+            agent_id=sample_agent.agent_id,
+            messages=[],
+            payload={},
+        ),
+        WorkItem(
+            work_item_id=str(uuid4()),
+            user_id=sample_user_id,
+            agent_id=second_agent.agent_id,
+            messages=[],
+            payload={},
+        ),
+    ]
+    for wi in items:
+        await storage.create_work_item(wi)
+
+    all_items = await storage.list_work_items(sample_user_id)
+    assert len(all_items) >= 3  # could be more if other tests created items
+
+    by_agent = await storage.list_work_items(sample_user_id, agent_id=sample_agent.agent_id)
+    # Exactly the two we inserted for first agent should be returned
+    ids_first_agent = {items[0].work_item_id, items[1].work_item_id}
+    assert ids_first_agent.issubset({wi.work_item_id for wi in by_agent})
+
+
+@pytest.mark.asyncio
+async def test_update_work_item_status(
+    storage: SQLiteStorage,
+    sample_user_id: str,
+    sample_agent,
+):
+    """Update status and verify the change persists."""
+    await storage.upsert_agent(sample_user_id, sample_agent)
+
+    wi = WorkItem(
+        work_item_id=str(uuid4()),
+        user_id=sample_user_id,
+        agent_id=sample_agent.agent_id,
+        messages=[],
+        payload={},
+    )
+    await storage.create_work_item(wi)
+
+    await storage.update_work_item_status(sample_user_id, wi.work_item_id, WorkItemStatus.COMPLETED)
+
+    updated = await storage.get_work_item(wi.work_item_id)
+    assert updated is not None
+    assert updated.status == WorkItemStatus.COMPLETED
+
+
+@pytest.mark.asyncio
+async def test_batch_processing_and_mark_error(
+    storage: SQLiteStorage,
+    sample_user_id: str,
+    sample_agent,
+):
+    """Test get_work_item_ids_to_process and mark_incomplete_work_items_as_error."""
+    await storage.upsert_agent(sample_user_id, sample_agent)
+
+    pending_ids: list[str] = []
+    for _ in range(5):
+        wi = WorkItem(
+            work_item_id=str(uuid4()),
+            user_id=sample_user_id,
+            agent_id=sample_agent.agent_id,
+            status=WorkItemStatus.PENDING,
+            messages=[],
+            payload={},
+        )
+        await storage.create_work_item(wi)
+        pending_ids.append(wi.work_item_id)
+
+    first_batch = await storage.get_pending_work_item_ids(limit=2)
+    assert len(first_batch) == 2
+
+    # Verify they are now EXECUTING
+    for wid in first_batch:
+        item = await storage.get_work_item(wid)
+        assert item is not None
+        assert item.status == WorkItemStatus.EXECUTING
+
+    second_batch = await storage.get_pending_work_item_ids(limit=10)
+    assert len(second_batch) == 3  # Remaining
+
+    # Mark first batch as error (they are still EXECUTING)
+    await storage.mark_incomplete_work_items_as_error(first_batch)
+
+    for wid in first_batch:
+        item = await storage.get_work_item(wid)
+        assert item is not None
+        assert item.status == WorkItemStatus.ERROR
+
+    # Verify the second batch is still EXECUTING
+    for wid in second_batch:
+        item = await storage.get_work_item(wid)
+        assert item is not None
+        assert item.status == WorkItemStatus.EXECUTING
+
+    # For completeness, mark remaining as error too
+    await storage.mark_incomplete_work_items_as_error(second_batch)
+    for wid in second_batch:
+        item = await storage.get_work_item(wid)
+        assert item is not None
+        assert item.status == WorkItemStatus.ERROR

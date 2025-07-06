@@ -9,6 +9,7 @@ from agent_platform.core.runs import Run, RunStep
 from agent_platform.core.storage import ScopedStorage
 from agent_platform.core.thread import Thread, ThreadMessage
 from agent_platform.core.user import User
+from agent_platform.core.work_items import WorkItem, WorkItemStatus
 
 
 class BaseStorage(ABC):
@@ -179,6 +180,11 @@ class BaseStorage(ABC):
         Returns a tuple of the user and a boolean indicating whether
         the user was created.
         """
+        pass
+
+    @abstractmethod
+    async def get_user_by_id(self, user_id: str) -> User:
+        """Get a user by ID."""
         pass
 
     # -------------------------
@@ -413,4 +419,66 @@ class BaseStorage(ABC):
     @abstractmethod
     async def delete_all_otel_artifacts(self) -> int:
         """Delete all otel artifacts."""
+        pass
+
+    # -------------------------
+    # Methods for work items
+    # -------------------------
+    @abstractmethod
+    async def create_work_item(self, work_item: WorkItem) -> None:
+        """Create a new work item."""
+        pass
+
+    @abstractmethod
+    async def get_work_item(self, work_item_id: str) -> WorkItem:
+        """Get a work item by ID."""
+        pass
+
+    @abstractmethod
+    async def get_work_items_by_ids(self, work_item_ids: list[str]) -> list[WorkItem]:
+        """Get work items by IDs."""
+        pass
+
+    @abstractmethod
+    async def list_work_items(
+        self,
+        user_id: str,
+        agent_id: str | None = None,
+        limit: int = 100,
+    ) -> list[WorkItem]:
+        """List all work items for the given user and agent."""
+        pass
+
+    @abstractmethod
+    async def update_work_item_status(
+        self,
+        user_id: str,
+        work_item_id: str,
+        status: WorkItemStatus,
+    ) -> None:
+        """Update the status of a work item."""
+        pass
+
+    @abstractmethod
+    async def get_pending_work_item_ids(self, limit: int = 10) -> list[str]:
+        """Get the IDs of work items that are next to be processed."""
+        pass
+
+    @abstractmethod
+    async def mark_incomplete_work_items_as_error(self, work_item_ids: list[str]) -> None:
+        """Mark given work items as ERROR if they are still PENDING/EXECUTING."""
+        pass
+
+    @abstractmethod
+    async def update_work_item_from_thread(
+        self,
+        user_id: str,
+        work_item_id: str,
+        thread_id: str,
+    ) -> None:
+        """Update a work item from a thread.
+
+        This is used to update the work item with the thread ID
+        and the thread messages.
+        """
         pass

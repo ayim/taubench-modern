@@ -5,7 +5,7 @@ from aiosqlite import IntegrityError
 from structlog import get_logger
 
 from agent_platform.core.user import User
-from agent_platform.server.storage.errors import NoSystemUserError
+from agent_platform.server.storage.errors import NoSystemUserError, UserNotFoundError
 from agent_platform.server.storage.sqlite.common import CommonMixin
 
 
@@ -15,6 +15,19 @@ class SQLiteStorageUsersMixin(CommonMixin):
     """
 
     _logger = get_logger(__name__)
+
+    async def get_user_by_id(self, user_id: str) -> User:
+        """Get a user by ID."""
+        self._validate_uuid(user_id)
+        async with self._cursor() as cur:
+            await cur.execute(
+                "SELECT * FROM v2_user WHERE user_id = :user_id",
+                {"user_id": user_id},
+            )
+            row = await cur.fetchone()
+        if row is None:
+            raise UserNotFoundError(f"User {user_id} not found")
+        return User.model_validate(dict(row))
 
     async def get_system_user_id(self) -> str:
         """
