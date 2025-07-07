@@ -163,6 +163,7 @@ async def _check_action_status(
     base_url: str,
     api_key: str,
     async_action_run_id: str,
+    action_server_id: str,
 ) -> ActionStatusResponse:
     """Check the status of an action run.
 
@@ -172,6 +173,7 @@ async def _check_action_status(
         base_url: The base URL of the action server (e.g., http://localhost:8080)
         api_key: The API key for authentication
         async_action_run_id: The ID of the async action run
+        action_server_id: The ID of the action server
 
     Returns:
         dict: The response from the action server containing the run status
@@ -180,6 +182,7 @@ async def _check_action_status(
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
+            "x-action-server-id": action_server_id,
         }
 
         # If no session provided, create a new one
@@ -265,6 +268,7 @@ def _build_post_async_function(
                 # Ref: https://github.com/Sema4AI/actions/blob/master/action_server/docs/guides/16-run-action-sync-async.md
                 is_async_action = response.headers.get("x-action-async-completion") == "1"
                 async_action_run_id = response.headers.get("x-action-server-run-id")
+                action_server_id = response.headers.get("x-action-server-id", "")
                 if is_async_action:
                     # Extract base URL from the action URL
                     base_url = action_url.split("/api/actions/")[0]
@@ -285,6 +289,7 @@ def _build_post_async_function(
                                     base_url=base_url,
                                     api_key=api_key,
                                     async_action_run_id=async_action_run_id,
+                                    action_server_id=action_server_id,
                                 )
 
                                 status = status_result.get("status")
