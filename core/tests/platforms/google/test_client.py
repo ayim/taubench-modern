@@ -11,9 +11,12 @@ from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from fastapi import status
 from google.genai.types import Content, Part
 
 from agent_platform.core.delta import GenericDelta
+from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
+from agent_platform.core.errors.streaming import StreamingError
 from agent_platform.core.kernel import Kernel
 from agent_platform.core.platforms.google.client import GoogleClient
 from agent_platform.core.platforms.google.configs import GoogleModelMap
@@ -84,6 +87,320 @@ class MockGenerateContentResponse:
             return self
 
         return _awaitable().__await__()
+
+
+class MockGoogleGenAIError(Exception):
+    """Mock Google GenAI error for testing."""
+
+    def __init__(self, code: int, message: str, status: str | None = None):
+        self.code = code
+        self.message = message
+        self.status = status
+        super().__init__(f"{self.code} {self.status}. {self.message}")
+
+    def __str__(self):
+        return f"{self.code} {self.status}. {self.message}"
+
+
+class TestGoogleErrorHandling:
+    """Tests for Google client error handling functionality."""
+
+    @pytest.fixture
+    def google_client(self) -> GoogleClient:
+        """Create a GoogleClient instance for testing."""
+        mock_secret = SecretString("test-api-key")
+        with patch("agent_platform.core.utils.SecretString", return_value=mock_secret):
+            parameters = GooglePlatformParameters(google_api_key=mock_secret)
+
+        with patch("google.genai.Client"):
+            return GoogleClient(parameters=parameters)
+
+    def test_handle_google_error_bad_request(self, google_client: GoogleClient) -> None:
+        """Test handling of 400 Bad Request error."""
+        with patch("google.genai.errors.ClientError", MockGoogleGenAIError):
+            error = MockGoogleGenAIError(
+                code=status.HTTP_400_BAD_REQUEST,
+                message="Invalid request parameters",
+                status="INVALID_ARGUMENT",
+            )
+            error.__class__.__name__ = "ClientError"
+
+            result = google_client._handle_google_error(error, "gemini-1.5-pro")
+
+            assert isinstance(result, PlatformError)
+            assert result.response.code == "bad_request"
+            assert "something went wrong" in result.response.message.lower()
+            assert result.data["model"] == "gemini-1.5-pro"
+            assert result.data["status_code"] == status.HTTP_400_BAD_REQUEST
+            assert result.data["status"] == "INVALID_ARGUMENT"
+
+    def test_handle_google_error_unauthorized(self, google_client: GoogleClient) -> None:
+        """Test handling of 401 Unauthorized error."""
+        with patch("google.genai.errors.ClientError", MockGoogleGenAIError):
+            error = MockGoogleGenAIError(
+                code=status.HTTP_401_UNAUTHORIZED,
+                message="Invalid API key",
+                status="UNAUTHENTICATED",
+            )
+            error.__class__.__name__ = "ClientError"
+
+            result = google_client._handle_google_error(error, "gemini-1.5-pro")
+
+            assert isinstance(result, PlatformError)
+            assert result.response.code == "unauthorized"
+            assert "authentication failed" in result.response.message.lower()
+            assert result.data["model"] == "gemini-1.5-pro"
+            assert result.data["status_code"] == status.HTTP_401_UNAUTHORIZED
+
+    def test_handle_google_error_forbidden(self, google_client: GoogleClient) -> None:
+        """Test handling of 403 Forbidden error."""
+        with patch("google.genai.errors.ClientError", MockGoogleGenAIError):
+            error = MockGoogleGenAIError(
+                code=status.HTTP_403_FORBIDDEN,
+                message="Access denied to model",
+                status="PERMISSION_DENIED",
+            )
+            error.__class__.__name__ = "ClientError"
+
+            result = google_client._handle_google_error(error, "gemini-1.5-pro")
+
+            assert isinstance(result, PlatformError)
+            assert result.response.code == "forbidden"
+            assert "access denied" in result.response.message.lower()
+            assert result.data["model"] == "gemini-1.5-pro"
+            assert result.data["status_code"] == status.HTTP_403_FORBIDDEN
+
+    def test_handle_google_error_not_found(self, google_client: GoogleClient) -> None:
+        """Test handling of 404 Not Found error."""
+        with patch("google.genai.errors.ClientError", MockGoogleGenAIError):
+            error = MockGoogleGenAIError(
+                code=status.HTTP_404_NOT_FOUND,
+                message="Model not found",
+                status="NOT_FOUND",
+            )
+            error.__class__.__name__ = "ClientError"
+
+            result = google_client._handle_google_error(error, "invalid-model")
+
+            assert isinstance(result, PlatformError)
+            assert result.response.code == "not_found"
+            assert "not found" in result.response.message.lower()
+            assert result.data["model"] == "invalid-model"
+            assert result.data["status_code"] == status.HTTP_404_NOT_FOUND
+
+    def test_handle_google_error_unprocessable_entity(self, google_client: GoogleClient) -> None:
+        """Test handling of 422 Unprocessable Entity error."""
+        with patch("google.genai.errors.ClientError", MockGoogleGenAIError):
+            error = MockGoogleGenAIError(
+                code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                message="Request validation failed",
+                status="INVALID_ARGUMENT",
+            )
+            error.__class__.__name__ = "ClientError"
+
+            result = google_client._handle_google_error(error, "gemini-1.5-pro")
+
+            assert isinstance(result, PlatformError)
+            assert result.response.code == "unprocessable_entity"
+            assert "something went wrong" in result.response.message.lower()
+            assert result.data["model"] == "gemini-1.5-pro"
+            assert result.data["status_code"] == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    def test_handle_google_error_too_many_requests(self, google_client: GoogleClient) -> None:
+        """Test handling of 429 Too Many Requests error."""
+        with patch("google.genai.errors.ClientError", MockGoogleGenAIError):
+            error = MockGoogleGenAIError(
+                code=status.HTTP_429_TOO_MANY_REQUESTS,
+                message="Rate limit exceeded",
+                status="RESOURCE_EXHAUSTED",
+            )
+            error.__class__.__name__ = "ClientError"
+
+            result = google_client._handle_google_error(error, "gemini-1.5-pro")
+
+            assert isinstance(result, PlatformError)
+            assert result.response.code == "too_many_requests"
+            assert "usage limit reached" in result.response.message.lower()
+            assert result.data["model"] == "gemini-1.5-pro"
+            assert result.data["status_code"] == status.HTTP_429_TOO_MANY_REQUESTS
+
+    def test_handle_google_error_other_client_error(self, google_client: GoogleClient) -> None:
+        """Test handling of other 4xx client errors."""
+        with patch("google.genai.errors.ClientError", MockGoogleGenAIError):
+            error = MockGoogleGenAIError(
+                code=418,  # I'm a teapot
+                message="I'm a teapot",
+                status="UNAVAILABLE",
+            )
+            error.__class__.__name__ = "ClientError"
+
+            result = google_client._handle_google_error(error, "gemini-1.5-pro")
+
+            assert isinstance(result, PlatformError)
+            assert result.response.code == "bad_request"
+            assert "something went wrong" in result.response.message.lower()
+            assert result.data["status_code"] == 418
+
+    def test_handle_google_error_internal_server_error(self, google_client: GoogleClient) -> None:
+        """Test handling of 500 Internal Server Error."""
+        with patch("google.genai.errors.ServerError", MockGoogleGenAIError):
+            error = MockGoogleGenAIError(
+                code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                message="Internal server error",
+                status="INTERNAL",
+            )
+            error.__class__.__name__ = "ServerError"
+
+            result = google_client._handle_google_error(error, "gemini-1.5-pro")
+
+            assert isinstance(result, PlatformError)
+            assert result.response.code == "unexpected"
+            assert "something went wrong" in result.response.message.lower()
+            assert result.data["model"] == "gemini-1.5-pro"
+            assert result.data["status_code"] == status.HTTP_500_INTERNAL_SERVER_ERROR
+
+    def test_handle_google_error_service_unavailable(self, google_client: GoogleClient) -> None:
+        """Test handling of 503 Service Unavailable error."""
+        with patch("google.genai.errors.ServerError", MockGoogleGenAIError):
+            error = MockGoogleGenAIError(
+                code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                message="Service temporarily unavailable",
+                status="UNAVAILABLE",
+            )
+            error.__class__.__name__ = "ServerError"
+
+            result = google_client._handle_google_error(error, "gemini-1.5-pro")
+
+            assert isinstance(result, PlatformError)
+            assert result.response.code == "unexpected"
+            assert "something went wrong" in result.response.message.lower()
+            assert result.data["status_code"] == status.HTTP_503_SERVICE_UNAVAILABLE
+
+    def test_handle_google_error_unknown_status_code(self, google_client: GoogleClient) -> None:
+        """Test handling of unknown status codes."""
+        with patch("google.genai.errors.APIError", MockGoogleGenAIError):
+            error = MockGoogleGenAIError(
+                code=999,  # Unknown status code
+                message="Unknown error",
+                status="UNKNOWN",
+            )
+            error.__class__.__name__ = "APIError"
+
+            result = google_client._handle_google_error(error, "gemini-1.5-pro")
+
+            assert isinstance(result, PlatformError)
+            assert result.response.code == "unexpected"
+            assert "something went wrong" in result.response.message.lower()
+            assert result.data["status_code"] == 999
+
+    def test_handle_google_error_api_error_base_class(self, google_client: GoogleClient) -> None:
+        """Test handling of base APIError class."""
+        with patch("google.genai.errors.APIError", MockGoogleGenAIError):
+            error = MockGoogleGenAIError(
+                code=status.HTTP_400_BAD_REQUEST,
+                message="Generic API error",
+                status="INVALID_ARGUMENT",
+            )
+            error.__class__.__name__ = "APIError"
+
+            result = google_client._handle_google_error(error, "gemini-1.5-pro")
+
+            assert isinstance(result, PlatformError)
+            assert result.response.code == "bad_request"
+            assert "something went wrong" in result.response.message.lower()
+
+    def test_handle_google_error_unknown_exception(self, google_client: GoogleClient) -> None:
+        """Test handling of unknown exceptions (should re-raise)."""
+        error = ValueError("Some unexpected error")
+
+        with pytest.raises(ValueError, match="Some unexpected error"):
+            google_client._handle_google_error(error, "gemini-1.5-pro")
+
+    def test_handle_google_error_with_custom_error_type(self, google_client: GoogleClient) -> None:
+        """Test that custom error types are respected."""
+        with patch("google.genai.errors.ClientError", MockGoogleGenAIError):
+            error = MockGoogleGenAIError(
+                code=status.HTTP_429_TOO_MANY_REQUESTS,
+                message="Rate limit exceeded",
+                status="RESOURCE_EXHAUSTED",
+            )
+            error.__class__.__name__ = "ClientError"
+
+            result = google_client._handle_google_error(error, "gemini-1.5-pro", PlatformHTTPError)
+
+            assert isinstance(result, PlatformHTTPError)
+            assert result.response.code == "too_many_requests"
+
+    @pytest.mark.asyncio
+    async def test_generate_response_error_handling(self, google_client: GoogleClient) -> None:
+        """Test error handling in generate_response method."""
+        google_prompt = GooglePrompt()
+
+        # Mock the Google GenAI client to raise an exception
+        with patch("google.genai.errors.ClientError", MockGoogleGenAIError):
+            error = MockGoogleGenAIError(
+                code=status.HTTP_429_TOO_MANY_REQUESTS,
+                message="Rate limit exceeded",
+                status="RESOURCE_EXHAUSTED",
+            )
+            error.__class__.__name__ = "ClientError"
+
+            with patch.object(google_client, "_google_client") as mock_client:
+                mock_client.aio.models.generate_content.side_effect = error
+
+                with pytest.raises(PlatformHTTPError) as exc_info:
+                    await google_client.generate_response(google_prompt, "gemini-1.5-pro")
+
+                assert exc_info.value.response.code == "too_many_requests"
+
+    @pytest.mark.asyncio
+    async def test_generate_stream_response_error_handling(
+        self, google_client: GoogleClient
+    ) -> None:
+        """Test error handling in generate_stream_response method."""
+        google_prompt = GooglePrompt()
+
+        # Mock the Google GenAI client to raise an exception
+        with patch("google.genai.errors.ClientError", MockGoogleGenAIError):
+            error = MockGoogleGenAIError(
+                code=status.HTTP_403_FORBIDDEN,
+                message="Access denied",
+                status="PERMISSION_DENIED",
+            )
+            error.__class__.__name__ = "ClientError"
+
+            with patch.object(google_client, "_google_client") as mock_client:
+                mock_client.aio.models.generate_content_stream.side_effect = error
+
+                with pytest.raises(StreamingError) as exc_info:
+                    async for _ in google_client.generate_stream_response(
+                        google_prompt, "gemini-1.5-pro"
+                    ):
+                        pass  # This shouldn't execute due to the exception
+
+                assert exc_info.value.response.code == "forbidden"
+
+    @pytest.mark.asyncio
+    async def test_create_embeddings_error_handling(self, google_client: GoogleClient) -> None:
+        """Test error handling in create_embeddings method."""
+        # Mock the Google GenAI client to raise an exception
+        with patch("google.genai.errors.ClientError", MockGoogleGenAIError):
+            error = MockGoogleGenAIError(
+                code=status.HTTP_400_BAD_REQUEST,
+                message="Invalid model parameters",
+                status="INVALID_ARGUMENT",
+            )
+            error.__class__.__name__ = "ClientError"
+
+            with patch.object(google_client, "_google_client") as mock_client:
+                mock_client.aio.models.embed_content.side_effect = error
+
+                with pytest.raises(PlatformHTTPError) as exc_info:
+                    await google_client.create_embeddings(
+                        ["test text"], "models/text-embedding-004"
+                    )
+
+                assert exc_info.value.response.code == "bad_request"
 
 
 class TestGoogleClient:

@@ -3,6 +3,7 @@ from collections.abc import AsyncGenerator
 from copy import deepcopy
 from typing import TYPE_CHECKING, Any, ClassVar, cast
 
+from fastapi import status
 from google import genai
 from google.genai.types import (
     ContentListUnion,
@@ -12,6 +13,9 @@ from google.genai.types import (
 
 from agent_platform.core.delta import GenericDelta
 from agent_platform.core.delta.compute_delta import compute_generic_deltas
+from agent_platform.core.errors import ErrorCode
+from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
+from agent_platform.core.errors.streaming import StreamingError
 from agent_platform.core.platforms.base import (
     PlatformClient,
     PlatformConfigs,
@@ -121,6 +125,146 @@ class GoogleClient(
         """
         return GoogleParsers()
 
+    def _handle_google_error(  # noqa: PLR0911
+        self, error: Exception, model: str, error_type: type[PlatformError] = PlatformError
+    ) -> PlatformError:
+        """Handle Google GenAI errors and convert them to PlatformError instances.
+
+        Args:
+            error: The Google GenAI exception that was raised
+            model: The model being used when the error occurred
+            error_type: The type of error to return. Defaults to PlatformError.
+
+        Returns:
+            PlatformError: The appropriate error for the given Google GenAI error
+        """
+        from google.genai.errors import APIError, ClientError, ServerError
+
+        # Check if it's a Google API error type
+        if not isinstance(error, ClientError | ServerError | APIError):
+            # For any other unexpected errors, re-raise them
+            raise error
+
+        # Extract error details
+        status_code = getattr(error, "code", 0)
+        error_message = getattr(error, "message", str(error))
+        error_status = getattr(error, "status", None)
+
+        # Map HTTP status codes to platform error codes using match/case
+        match status_code:
+            case status.HTTP_400_BAD_REQUEST:
+                return error_type(
+                    error_code=ErrorCode.BAD_REQUEST,
+                    message="Something went wrong while sending the request to Google model "
+                    f"'{model}', please try again or contact support.",
+                    data={
+                        "model": model,
+                        "status_code": status_code,
+                        "status": error_status,
+                        "error_message": error_message,
+                    },
+                )
+            case status.HTTP_401_UNAUTHORIZED:
+                return error_type(
+                    error_code=ErrorCode.UNAUTHORIZED,
+                    message="Authentication failed for Google API. Please check your API "
+                    "key and credentials.",
+                    data={
+                        "model": model,
+                        "status_code": status_code,
+                        "status": error_status,
+                        "error_message": error_message,
+                    },
+                )
+            case status.HTTP_403_FORBIDDEN:
+                return error_type(
+                    error_code=ErrorCode.FORBIDDEN,
+                    message=f"Access denied for Google model '{model}'. Please check "
+                    "your permissions.",
+                    data={
+                        "model": model,
+                        "status_code": status_code,
+                        "status": error_status,
+                        "error_message": error_message,
+                    },
+                )
+            case status.HTTP_404_NOT_FOUND:
+                return error_type(
+                    error_code=ErrorCode.NOT_FOUND,
+                    message=f"Google model '{model}' not found. Please verify the model name.",
+                    data={
+                        "model": model,
+                        "status_code": status_code,
+                        "status": error_status,
+                        "error_message": error_message,
+                    },
+                )
+            case status.HTTP_422_UNPROCESSABLE_ENTITY:
+                return error_type(
+                    error_code=ErrorCode.UNPROCESSABLE_ENTITY,
+                    message=f"Something went wrong while sending the request to Google model "
+                    f"'{model}', please try again or contact support.",
+                    data={
+                        "model": model,
+                        "status_code": status_code,
+                        "status": error_status,
+                        "error_message": error_message,
+                    },
+                )
+            case status.HTTP_429_TOO_MANY_REQUESTS:
+                return error_type(
+                    error_code=ErrorCode.TOO_MANY_REQUESTS,
+                    message=f"Google API usage limit reached for model '{model}'. "
+                    f"Please increase the limit or switch to an available model.",
+                    data={
+                        "model": model,
+                        "status_code": status_code,
+                        "status": error_status,
+                        "error_message": error_message,
+                    },
+                )
+            case _ if (
+                status.HTTP_400_BAD_REQUEST <= status_code < status.HTTP_500_INTERNAL_SERVER_ERROR
+            ):
+                # Other client errors
+                return error_type(
+                    error_code=ErrorCode.BAD_REQUEST,
+                    message=f"Something went wrong while sending the request to Google model "
+                    f"'{model}', please try again or contact support.",
+                    data={
+                        "model": model,
+                        "status_code": status_code,
+                        "status": error_status,
+                        "error_message": error_message,
+                    },
+                )
+            case _ if status.HTTP_500_INTERNAL_SERVER_ERROR <= status_code < 600:  # noqa: PLR2004
+                # Server errors
+                return error_type(
+                    error_code=ErrorCode.UNEXPECTED,
+                    message="Something went wrong while sending the request to Google model "
+                    f"'{model}', please try again or contact support.",
+                    data={
+                        "model": model,
+                        "status_code": status_code,
+                        "status": error_status,
+                        "error_message": error_message,
+                    },
+                )
+            case _:
+                # Unknown status code
+                return error_type(
+                    error_code=ErrorCode.UNEXPECTED,
+                    message="Something went wrong while sending the request to Google model "
+                    f"'{model}', please try again or contact support.",
+                    data={
+                        "model": model,
+                        "status_code": status_code,
+                        "status": error_status,
+                        "error_message": error_message,
+                    },
+                )
+
     async def generate_response(
         self,
         prompt: GooglePrompt,
@@ -138,11 +282,14 @@ class GoogleClient(
         request = prompt.as_platform_request(model)
         logger.info(f"Sending request to Google model: {model}")
 
-        response = await self._google_client.aio.models.generate_content(
-            model=cast(str, request["model"]),
-            contents=cast(ContentListUnion, request["contents"]),
-            config=cast(GenerateContentConfig, request["config"]),
-        )
+        try:
+            response = await self._google_client.aio.models.generate_content(
+                model=cast(str, request["model"]),
+                contents=cast(ContentListUnion, request["contents"]),
+                config=cast(GenerateContentConfig, request["config"]),
+            )
+        except Exception as e:
+            raise self._handle_google_error(e, model, PlatformHTTPError) from e
 
         # Log token usage information if available
         if response.usage_metadata:
@@ -226,8 +373,10 @@ class GoogleClient(
                     break
 
         except Exception as e:
-            # Handle any errors during streaming
-            self._handle_stream_error(e, message_state["current"])
+            # Add error information to message metadata for backward compatibility
+            self._add_error_to_message(message_state["current"], e)
+            # Handle any errors during streaming using the extracted error handler
+            raise self._handle_google_error(e, model, StreamingError) from e
 
         # Add final metadata and generate deltas for any remaining changes
         self._add_final_metadata(message_state["current"], token_counters)
@@ -345,16 +494,6 @@ class GoogleClient(
         message["metadata"]["error"] = str(error)
         message["metadata"]["error_type"] = type(error).__name__
 
-    def _handle_stream_error(self, error: Exception, message: dict[str, Any]) -> None:
-        """Handle an error during streaming.
-
-        Args:
-            error: The error that occurred.
-            message: The message to add error information to.
-        """
-        logger.error(f"Error during streaming: {error}")
-        self._add_error_to_message(message, error)
-
     def _add_final_metadata(
         self,
         message: dict[str, Any],
@@ -435,10 +574,13 @@ class GoogleClient(
             # Note: Gemini does not provide a token count for embeddings.
             # Generate the embedding
             logger.info(f"Generating embedding for text #{i + 1}")
-            embedding_result = await self._google_client.aio.models.embed_content(
-                model=model_id,
-                contents=text,
-            )
+            try:
+                embedding_result = await self._google_client.aio.models.embed_content(
+                    model=model_id,
+                    contents=text,
+                )
+            except Exception as e:
+                raise self._handle_google_error(e, model, PlatformHTTPError) from e
 
             embedding_values = []
 
