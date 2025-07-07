@@ -337,6 +337,38 @@ class TestHTTPErrorHandling:
             status.HTTP_422_UNPROCESSABLE_ENTITY,  # Validation error from mock setup
         ]
 
+    def test_endpoint_not_found_returns_404(self, client: TestClient):
+        """Test that requesting a non-existent endpoint returns proper 404 response."""
+        response = client.get("/non-existent-endpoint")
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+        # Check the error structure matches our expected format
+        error_data = response.json()
+        assert "error" in error_data
+        error_info = error_data["error"]
+        assert error_info["code"] == "not_found"
+        assert "error_id" in error_info
+        assert "message" in error_info
+        # Message should indicate the endpoint was not found
+        assert "not found" in error_info["message"].lower()
+
+    def test_method_not_allowed_returns_405(self, client: TestClient):
+        """Test that using an unsupported method returns proper 405 response."""
+        response = client.patch("/threads/")
+
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+
+        # Check the error structure matches our expected format
+        error_data = response.json()
+        assert "error" in error_data
+        error_info = error_data["error"]
+        assert error_info["code"] == "method_not_allowed"
+        assert "error_id" in error_info
+        assert "message" in error_info
+        # Message should indicate the method is not allowed
+        assert "not allowed" in error_info["message"].lower()
+
 
 class TestPlatformErrorSystem:
     """Tests for the new platform error system."""

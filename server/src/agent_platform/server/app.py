@@ -227,4 +227,7 @@ def create_app() -> FastAPI:
             return Response(content="", media_type="image/x-icon")
         return await call_next(request)
 
+    # Add exception handles to the root app as well (handles endpoint 404s and 405s)
+    add_exception_handlers(app)
+
     return app

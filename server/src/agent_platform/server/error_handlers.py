@@ -25,6 +25,7 @@ from fastapi.responses import ORJSONResponse
 from fastapi.utils import is_body_allowed_for_status_code
 from fastapi.websockets import WebSocket
 from starlette.applications import Starlette
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.status import (
     HTTP_400_BAD_REQUEST,
     HTTP_401_UNAUTHORIZED,
@@ -251,6 +252,9 @@ def add_exception_handlers(app: Starlette) -> None:
     # Override default handlers - use type: ignore to suppress the type checker warnings
     # about handler signatures since FastAPI's type hints are not perfect
     app.add_exception_handler(HTTPException, http_exception_handler)  # type: ignore[arg-type]
+    # Starlette's built-in HTTPException must also be explicitly registered to catch root-level
+    # exceptions like 404s and 405s.
+    app.add_exception_handler(StarletteHTTPException, http_exception_handler)  # type: ignore[arg-type]
     app.add_exception_handler(RequestValidationError, request_validation_exception_handler)  # type: ignore[arg-type]
     app.add_exception_handler(
         WebSocketRequestValidationError,
