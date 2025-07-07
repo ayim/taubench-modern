@@ -326,10 +326,16 @@ class MCPClient:
         srv = self.target_server
         assert srv.command  # type guard
         cmd = _safe_command(srv.command)
+
+        # Merge agent-server's env vars with provided env vars, provided env vars take precedence
+        merged_env = dict(os.environ)
+        if srv.env:
+            merged_env.update(srv.env)
+
         params = StdioServerParameters(
             command=cmd,
             args=srv.args or [],
-            env=srv.env,
+            env=merged_env,
             cwd=srv.cwd,
         )
 

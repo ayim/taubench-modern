@@ -720,3 +720,238 @@ async def test_client_headers_with_additional_headers_edge_cases():
     )
     client = MCPClient(target_server=server, additional_headers={})
     assert client._headers == {"Authorization": "Bearer server-token"}
+
+
+@pytest.mark.asyncio
+async def test_stdio_env_merging(monkeypatch):
+    """Test that stdio transport properly merges environment variables."""
+    import os
+
+    # Mock the stdio environment variable to allow stdio first
+    monkeypatch.setenv("SEMA4AI_AGENT_SERVER_MCP_ALLOW_STDIO", "1")
+
+    # Mock os.environ to have some base environment variables
+    mock_env = {
+        "PATH": "/usr/bin:/bin",
+        "HOME": "/home/user",
+        "EXISTING_VAR": "original_value",
+        "SEMA4AI_AGENT_SERVER_MCP_ALLOW_STDIO": "1",
+    }
+    monkeypatch.setattr(os, "environ", mock_env)
+
+    # Create a server with some environment variables
+    server = MCPServer(
+        name="test-stdio",
+        command="python",
+        args=["-c", "print('test')"],
+        env={
+            "NEW_VAR": "new_value",
+            "EXISTING_VAR": "overridden_value",  # This should override the original
+        },
+    )
+
+    client = MCPClient(target_server=server)
+
+    # Mock the StdioServerParameters to capture the env that gets passed
+    captured_params = None
+
+    def mock_stdio_client(params):
+        nonlocal captured_params
+        captured_params = params
+        # Return a mock context manager that doesn't actually run anything
+        from contextlib import asynccontextmanager
+
+        @asynccontextmanager
+        async def dummy_context():
+            yield None, None
+
+        return dummy_context()
+
+    monkeypatch.setattr("agent_platform.core.mcp.mcp_client.stdio_client", mock_stdio_client)
+
+    # Create the stdio factory (this is what we're testing)
+    client._stdio_factory()
+
+    # The factory should have been called with merged environment
+    assert captured_params is not None
+    merged_env = captured_params.env
+
+    # Verify that the environment was properly merged
+    assert merged_env["PATH"] == "/usr/bin:/bin"  # From original env
+    assert merged_env["HOME"] == "/home/user"  # From original env
+    assert merged_env["NEW_VAR"] == "new_value"  # From server env
+    assert merged_env["EXISTING_VAR"] == "overridden_value"  # Server env overrides original
+    assert merged_env["SEMA4AI_AGENT_SERVER_MCP_ALLOW_STDIO"] == "1"  # From env
+
+
+@pytest.mark.asyncio
+async def test_stdio_env_none_handling(monkeypatch):
+    """Test that stdio transport handles None env gracefully."""
+    import os
+
+    # Mock the stdio environment variable to allow stdio first
+    monkeypatch.setenv("SEMA4AI_AGENT_SERVER_MCP_ALLOW_STDIO", "1")
+
+    # Mock os.environ (this should include the env var set above)
+    mock_env = {
+        "PATH": "/usr/bin:/bin",
+        "HOME": "/home/user",
+        "SEMA4AI_AGENT_SERVER_MCP_ALLOW_STDIO": "1",
+    }
+    monkeypatch.setattr(os, "environ", mock_env)
+
+    # Create a server with no environment variables (None)
+    server = MCPServer(
+        name="test-stdio-none", command="python", args=["-c", "print('test')"], env=None
+    )
+
+    client = MCPClient(target_server=server)
+
+    # Mock the StdioServerParameters to capture the env that gets passed
+    captured_params = None
+
+    def mock_stdio_client(params):
+        nonlocal captured_params
+        captured_params = params
+        # Return a mock context manager that doesn't actually run anything
+        from contextlib import asynccontextmanager
+
+        @asynccontextmanager
+        async def dummy_context():
+            yield None, None
+
+        return dummy_context()
+
+    monkeypatch.setattr("agent_platform.core.mcp.mcp_client.stdio_client", mock_stdio_client)
+
+    # Create the stdio factory
+    client._stdio_factory()
+
+    # The factory should have been called with only the current environment
+    assert captured_params is not None
+    merged_env = captured_params.env
+
+    # Verify that only the current environment is used
+    assert merged_env["PATH"] == "/usr/bin:/bin"
+    assert merged_env["HOME"] == "/home/user"
+    assert merged_env["SEMA4AI_AGENT_SERVER_MCP_ALLOW_STDIO"] == "1"
+    assert len(merged_env) == 3  # Only the original env vars
+
+
+@pytest.mark.asyncio
+async def test_stdio_env_empty_handling(monkeypatch):
+    """Test that stdio transport handles empty env dict gracefully."""
+    import os
+
+    # Mock the stdio environment variable to allow stdio first
+    monkeypatch.setenv("SEMA4AI_AGENT_SERVER_MCP_ALLOW_STDIO", "1")
+
+    # Mock os.environ (this should include the env var set above)
+    mock_env = {
+        "PATH": "/usr/bin:/bin",
+        "HOME": "/home/user",
+        "SEMA4AI_AGENT_SERVER_MCP_ALLOW_STDIO": "1",
+    }
+    monkeypatch.setattr(os, "environ", mock_env)
+
+    # Create a server with empty environment variables
+    server = MCPServer(
+        name="test-stdio-empty", command="python", args=["-c", "print('test')"], env={}
+    )
+
+    client = MCPClient(target_server=server)
+
+    # Mock the StdioServerParameters to capture the env that gets passed
+    captured_params = None
+
+    def mock_stdio_client(params):
+        nonlocal captured_params
+        captured_params = params
+        # Return a mock context manager that doesn't actually run anything
+        from contextlib import asynccontextmanager
+
+        @asynccontextmanager
+        async def dummy_context():
+            yield None, None
+
+        return dummy_context()
+
+    monkeypatch.setattr("agent_platform.core.mcp.mcp_client.stdio_client", mock_stdio_client)
+
+    # Create the stdio factory
+    client._stdio_factory()
+
+    # The factory should have been called with only the current environment
+    assert captured_params is not None
+    merged_env = captured_params.env
+
+    # Verify that only the current environment is used
+    assert merged_env["PATH"] == "/usr/bin:/bin"
+    assert merged_env["HOME"] == "/home/user"
+    assert merged_env["SEMA4AI_AGENT_SERVER_MCP_ALLOW_STDIO"] == "1"
+    assert len(merged_env) == 3  # Only the original env vars
+
+
+@pytest.mark.asyncio
+async def test_stdio_env_merging_preserves_current_env(monkeypatch):
+    """Test that stdio transport preserves all current environment variables."""
+    import os
+
+    # Mock the stdio environment variable to allow stdio first
+    monkeypatch.setenv("SEMA4AI_AGENT_SERVER_MCP_ALLOW_STDIO", "1")
+
+    # Mock os.environ with many variables
+    mock_env = {
+        "PATH": "/usr/bin:/bin",
+        "HOME": "/home/user",
+        "LANG": "en_US.UTF-8",
+        "USER": "testuser",
+        "SHELL": "/bin/bash",
+        "TERM": "xterm-256color",
+        "SEMA4AI_AGENT_SERVER_MCP_ALLOW_STDIO": "1",
+    }
+    monkeypatch.setattr(os, "environ", mock_env)
+
+    # Create a server with just one additional environment variable
+    server = MCPServer(
+        name="test-stdio-preserve",
+        command="python",
+        args=["-c", "print('test')"],
+        env={"CUSTOM_VAR": "custom_value"},
+    )
+
+    client = MCPClient(target_server=server)
+
+    # Mock the StdioServerParameters to capture the env that gets passed
+    captured_params = None
+
+    def mock_stdio_client(params):
+        nonlocal captured_params
+        captured_params = params
+        # Return a mock context manager that doesn't actually run anything
+        from contextlib import asynccontextmanager
+
+        @asynccontextmanager
+        async def dummy_context():
+            yield None, None
+
+        return dummy_context()
+
+    monkeypatch.setattr("agent_platform.core.mcp.mcp_client.stdio_client", mock_stdio_client)
+
+    # Create the stdio factory
+    client._stdio_factory()
+
+    # The factory should have been called with merged environment
+    assert captured_params is not None
+    merged_env = captured_params.env
+
+    # Verify that all current environment variables are preserved
+    for key, value in mock_env.items():
+        assert merged_env[key] == value
+
+    # Verify that the custom variable was added
+    assert merged_env["CUSTOM_VAR"] == "custom_value"
+
+    # Verify the total count
+    assert len(merged_env) == len(mock_env) + 1

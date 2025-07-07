@@ -74,3 +74,74 @@ def test_explicit_valid_combinations(kwargs, expected_transport, expects_stdio):
     srv = MCPServer(name="explicit", **kwargs)
     assert srv.transport == expected_transport
     assert srv.is_stdio is expects_stdio
+
+
+def test_mcp_server_env_handling():
+    """Test that MCPServer properly handles environment variables."""
+    # Test with None env
+    srv1 = MCPServer(name="test1", command="python", env=None)
+    assert srv1.env is None
+
+    # Test with empty env dict
+    srv2 = MCPServer(name="test2", command="python", env={})
+    assert srv2.env == {}
+
+    # Test with populated env dict
+    test_env = {"VAR1": "value1", "VAR2": "value2"}
+    srv3 = MCPServer(name="test3", command="python", env=test_env)
+    assert srv3.env == test_env
+
+    # Test that env is preserved in model_dump
+    dumped = srv3.model_dump()
+    assert dumped["env"] == test_env
+
+    # Test that env is preserved in copy
+    copied = srv3.copy()
+    assert copied.env == test_env
+
+    # Test that env is preserved in model_validate
+    validated = MCPServer.model_validate(dumped)
+    assert validated.env == test_env
+
+
+def test_mcp_server_cache_key_includes_env():
+    """Test that cache key includes environment variables for stdio servers."""
+    # Two servers with same command/args but different env should have different cache keys
+    srv1 = MCPServer(
+        name="test1", command="python", args=["-c", "print('hello')"], env={"VAR1": "value1"}
+    )
+
+    srv2 = MCPServer(
+        name="test2",
+        command="python",
+        args=["-c", "print('hello')"],
+        env={"VAR1": "value2"},  # Different env value
+    )
+
+    srv3 = MCPServer(
+        name="test3",
+        command="python",
+        args=["-c", "print('hello')"],
+        env={"VAR2": "value1"},  # Different env key
+    )
+
+    srv4 = MCPServer(
+        name="test4",
+        command="python",
+        args=["-c", "print('hello')"],
+        env=None,  # No env
+    )
+
+    # All should have different cache keys
+    cache_keys = [srv1.cache_key, srv2.cache_key, srv3.cache_key, srv4.cache_key]
+    assert len(set(cache_keys)) == 4, "All servers should have unique cache keys"
+
+    # Server with same env should have same cache key
+    srv5 = MCPServer(
+        name="test5",  # Different name shouldn't affect cache key
+        command="python",
+        args=["-c", "print('hello')"],
+        env={"VAR1": "value1"},
+    )
+
+    assert srv1.cache_key == srv5.cache_key, "Servers with same config should have same cache key"

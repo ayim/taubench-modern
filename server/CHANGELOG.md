@@ -1,3 +1,7 @@
+# Unreleased
+
+- Changed handling of environment variables for MCP servers using stdio transport to merge the server's environment variables with the agent-server's environment variables. ([GPT-1062](https://linear.app/sema4ai/issue/GPT-1062))
+
 # Sema4.ai Agent Server 2.0.8 (2025-07-03)
 
 - No significant changes. This is a release from the new branch model in the Agent Platform repo.

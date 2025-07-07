@@ -61,9 +61,12 @@ class MCPServer:
 
     env: dict[str, str] | None = field(
         default=None,
-        metadata={"description": "The environment variables to set for the MCP server command."},
+        metadata={
+            "description": "Environment variables to merge with agent-server's env vars "
+            "for the MCP server command."
+        },
     )
-    """The environment variables to set for the MCP server command."""
+    """Environment variables to merge with agent-server's env vars for the MCP server command."""
 
     cwd: str | None = field(
         default=None,
