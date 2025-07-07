@@ -3,10 +3,22 @@ import react from '@vitejs/plugin-react';
 import { readFileSync, existsSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
 import * as os from 'os';
+import path from 'node:path';
 
 const homeDir = os.homedir();
 // change it if the quality folder is different
-const quality_folder = join(homeDir, '.sema4x', 'quality');
+const defaultQualityFolder = join(homeDir, '.sema4x', 'quality');
+
+function resolveFolder(p: string): string {
+  // Only expand if it *starts* with "~/"
+  if (p.startsWith('~/')) {
+    const withoutTilde = p.slice(2); // drop the "~/"
+    return path.resolve(os.homedir(), withoutTilde);
+  }
+
+  // Fallback: let Node handle absolute / relative paths normally
+  return path.resolve(p);
+}
 
 // Custom plugin to serve quality_results files
 function qualityResultsPlugin() {
@@ -14,9 +26,11 @@ function qualityResultsPlugin() {
     name: 'quality-results',
     configureServer(server: any) {
       server.middlewares.use('/api/quality_results', (req: any, res: any, next: any) => {
+        console.log('Quality Home folder', req.headers['x-quality-home-folder']);
+        const qualityFolder = req.headers['x-quality-home-folder'] ?? defaultQualityFolder;
         // Remove the /api/quality_results prefix and any leading slash
         const urlPath = req.url?.replace(/^\//, '') || '';
-        const filePath = join(quality_folder, 'quality_results', urlPath);
+        const filePath = join(resolveFolder(qualityFolder), 'quality_results', urlPath);
 
         console.log('API Request:', req.url, '-> File Path:', filePath);
 

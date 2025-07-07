@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { TestStatus, AgentStatus, OverallStats, TestResult, Agent, DiscoveredAgents } from '../types';
 
-export function useTestResults() {
+export function useTestResults({ homeFolder }: { homeFolder: string }) {
   const [overallStatus, setOverallStatus] = useState<OverallStats | null>(null);
   const [agentStatuses, setAgentStatuses] = useState<AgentStatus[]>([]);
   const [testResults, setTestResults] = useState<TestResult[]>([]);
@@ -14,7 +14,11 @@ export function useTestResults() {
 
   const fetchDiscoveredAgents = useCallback(async () => {
     try {
-      const agentsResponse = await fetch('/api/quality_results/agents.json');
+      const agentsResponse = await fetch('/api/quality_results/agents.json', {
+        headers: {
+          'x-quality-home-folder': homeFolder,
+        },
+      });
       if (agentsResponse.ok) {
         const agentsData: DiscoveredAgents = await agentsResponse.json();
         setDiscoveredAgents(agentsData.agents);
@@ -27,7 +31,7 @@ export function useTestResults() {
       console.warn('Could not fetch discovered agents:', error);
       setDiscoveredAgents([]);
     }
-  }, []);
+  }, [homeFolder]);
 
   const fetchTestResults = useCallback(async () => {
     setLoading(true);
@@ -35,7 +39,11 @@ export function useTestResults() {
 
     try {
       // Fetch status.json
-      const statusResponse = await fetch('/api/quality_results/status.json');
+      const statusResponse = await fetch('/api/quality_results/status.json', {
+        headers: {
+          'x-quality-home-folder': homeFolder,
+        },
+      });
       if (!statusResponse.ok) {
         throw new Error(`Failed to fetch status: ${statusResponse.statusText}`);
       }
@@ -85,7 +93,11 @@ export function useTestResults() {
 
       try {
         // Get list of test result files from the current run
-        const filesResponse = await fetch(`/api/quality_results/runs/${runDir}/`);
+        const filesResponse = await fetch(`/api/quality_results/runs/${runDir}/`, {
+          headers: {
+            'x-quality-home-folder': homeFolder,
+          },
+        });
         if (filesResponse.ok) {
           const filesText = await filesResponse.text();
 
@@ -102,7 +114,11 @@ export function useTestResults() {
 
             try {
               // Fetch the individual test result file
-              const testResponse = await fetch(`/api/quality_results/runs/${runDir}/${filename}`);
+              const testResponse = await fetch(`/api/quality_results/runs/${runDir}/${filename}`, {
+                headers: {
+                  'x-quality-home-folder': homeFolder,
+                },
+              });
               if (testResponse.ok) {
                 const testData = await testResponse.json();
 
@@ -129,14 +145,18 @@ export function useTestResults() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [homeFolder]);
 
   const fetchIndividualTestResult = useCallback(
     async (agentName: string, testName: string, platform: string, runId: string): Promise<TestResult | null> => {
       try {
         // Real file naming pattern: {agentName}_{testName}_{platform}.json
         const filename = `${agentName}_${testName}_${platform}.json`;
-        const response = await fetch(`/api/quality_results/runs/${runId}/${filename}`);
+        const response = await fetch(`/api/quality_results/runs/${runId}/${filename}`, {
+          headers: {
+            'x-quality-home-folder': homeFolder,
+          },
+        });
 
         if (!response.ok) {
           throw new Error(`Failed to fetch test result: ${response.statusText}`);
@@ -152,7 +172,7 @@ export function useTestResults() {
         return null;
       }
     },
-    [],
+    [homeFolder],
   );
 
   // Filter test results based on selected agent

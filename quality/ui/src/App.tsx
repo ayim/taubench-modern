@@ -8,6 +8,8 @@ import { RunTimer } from './components/RunTimer';
 import { AlertCircle, CheckCircle, Clock, XCircle } from 'lucide-react';
 import { TestResultsList } from './components/TestResultsList';
 import { TestResult, TestResultGroup } from './types';
+import { SettingsButton } from './components/SettingsButton';
+import { useState } from 'react';
 
 function groupThreadResults(results: TestResult[]): TestResultGroup[] {
   const groupMap = new Map<string, TestResultGroup>();
@@ -32,6 +34,9 @@ function groupThreadResults(results: TestResult[]): TestResultGroup[] {
 }
 
 function App() {
+  const [settings, setSettings] = useState({
+    homeFolder: '~/.sema4x/quality',
+  });
   const {
     overallStatus,
     agentStatuses,
@@ -45,7 +50,7 @@ function App() {
     fetchIndividualTestResult,
     runStartTime,
     runEndTime,
-  } = useTestResults();
+  } = useTestResults(settings);
 
   // Use a default run ID since we don't have access to it from overallStatus
   const currentRunId = 'current';
@@ -164,6 +169,7 @@ function App() {
                 className="bg-gray-100 px-3 py-2 rounded-lg"
               />
               <RefreshButton onRefresh={refetch} isLoading={loading} />
+              <SettingsButton isLoading={loading} settings={settings} saveSettings={setSettings} />
             </div>
           </div>
         </div>
