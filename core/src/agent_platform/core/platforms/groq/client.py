@@ -5,6 +5,9 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from agent_platform.core.delta import GenericDelta
 from agent_platform.core.delta.compute_delta import compute_generic_deltas
+from agent_platform.core.errors import ErrorCode
+from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
+from agent_platform.core.errors.streaming import StreamingError
 from agent_platform.core.platforms.base import (
     PlatformClient,
     PlatformConfigs,
@@ -78,6 +81,114 @@ class GroqClient(
     def _init_parsers(self) -> GroqParsers:
         return GroqParsers()
 
+    def _handle_groq_error(  # noqa: C901, PLR0911
+        self, error: Exception, model: str, error_type: type[PlatformError] = PlatformError
+    ) -> PlatformError:
+        """Handle Groq errors and convert them to PlatformError instances.
+
+        Args:
+            error: The Groq exception that was raised
+            model: The model being used when the error occurred
+            error_type: The type of error to return. Defaults to PlatformError.
+
+        Returns:
+            PlatformError: The appropriate error for the given Groq error
+        """
+        from groq import (
+            APIConnectionError,
+            APIError,
+            APITimeoutError,
+            AuthenticationError,
+            BadRequestError,
+            ConflictError,
+            InternalServerError,
+            NotFoundError,
+            PermissionDeniedError,
+            RateLimitError,
+            UnprocessableEntityError,
+        )
+
+        match error:
+            case RateLimitError():
+                return error_type(
+                    error_code=ErrorCode.TOO_MANY_REQUESTS,
+                    message=f"Groq API usage limit reached for model '{model}'. "
+                    f"Please increase the limit or switch to an available model.",
+                    data={"model": model, "error_body": getattr(error, "body", None)},
+                )
+            case AuthenticationError():
+                return error_type(
+                    error_code=ErrorCode.UNAUTHORIZED,
+                    message="Authentication failed for Groq API. Please check your API "
+                    "key and credentials.",
+                    data={"model": model, "error_body": getattr(error, "body", None)},
+                )
+            case PermissionDeniedError():
+                return error_type(
+                    error_code=ErrorCode.FORBIDDEN,
+                    message=f"Access denied for Groq model '{model}'. Please check "
+                    "your permissions.",
+                    data={"model": model, "error_body": getattr(error, "body", None)},
+                )
+            case BadRequestError():
+                return error_type(
+                    error_code=ErrorCode.BAD_REQUEST,
+                    message=f"Something went wrong while sending the request to Groq model "
+                    f"'{model}', please try again or contact support.",
+                    data={"model": model, "error_body": getattr(error, "body", None)},
+                )
+            case NotFoundError():
+                return error_type(
+                    error_code=ErrorCode.NOT_FOUND,
+                    message=f"Groq model '{model}' not found. Please verify the model name.",
+                    data={"model": model, "error_body": getattr(error, "body", None)},
+                )
+            case UnprocessableEntityError():
+                return error_type(
+                    error_code=ErrorCode.UNPROCESSABLE_ENTITY,
+                    message=f"Something went wrong while sending the request to Groq model "
+                    f"'{model}', please try again or contact support.",
+                    data={"model": model, "error_body": getattr(error, "body", None)},
+                )
+            case ConflictError():
+                return error_type(
+                    error_code=ErrorCode.CONFLICT,
+                    message=f"Something went wrong while sending the request to Groq model "
+                    f"'{model}', please try again or contact support.",
+                    data={"model": model, "error_body": getattr(error, "body", None)},
+                )
+            case APITimeoutError():
+                return error_type(
+                    error_code=ErrorCode.UNEXPECTED,
+                    message=f"Request to Groq model '{model}' timed out. Please try again.",
+                    data={"model": model, "error_body": getattr(error, "body", None)},
+                )
+            case APIConnectionError():
+                return error_type(
+                    error_code=ErrorCode.UNEXPECTED,
+                    message="Failed to connect to Groq service. Please check your "
+                    "network connection.",
+                    data={"model": model, "error_body": getattr(error, "body", None)},
+                )
+            case InternalServerError():
+                return error_type(
+                    error_code=ErrorCode.UNEXPECTED,
+                    message="Groq service encountered an internal error. Please "
+                    "try again later or contact support.",
+                    data={"model": model, "error_body": getattr(error, "body", None)},
+                )
+            case APIError():
+                # Base Groq error - catch any other Groq-specific errors
+                return error_type(
+                    error_code=ErrorCode.UNEXPECTED,
+                    message=f"An unexpected error occurred with Groq model '{model}'. "
+                    "Please try again or contact support.",
+                    data={"model": model, "error_body": getattr(error, "body", None)},
+                )
+            case _:
+                # For any other unexpected errors, re-raise them
+                raise error
+
     async def generate_response(
         self,
         prompt: GroqPrompt,
@@ -86,7 +197,10 @@ class GroqClient(
         """Generate a response from the Groq platform."""
         # TODO: Otel Span?
         request = prompt.as_platform_request(model)
-        response = await self._client.chat.completions.create(**request)
+        try:
+            response = await self._client.chat.completions.create(**request)
+        except Exception as e:
+            raise self._handle_groq_error(e, model, PlatformHTTPError) from e
         return self._parsers.parse_response(response)
 
     async def generate_stream_response(
@@ -114,19 +228,23 @@ class GroqClient(
         }
         last_message: dict[str, Any] = {}
 
-        # Add stream=True to ensure streaming is enabled
-        request["stream"] = True
-        response = await self._client.chat.completions.create(**request)
-        async for event in response:
-            async for delta in self._parsers.parse_stream_event(
-                event,
-                message,
-                last_message,
-            ):
-                yield delta
+        try:
+            # Add stream=True to ensure streaming is enabled
+            request["stream"] = True
+            response = await self._client.chat.completions.create(**request)
+            async for event in response:
+                async for delta in self._parsers.parse_stream_event(
+                    event,
+                    message,
+                    last_message,
+                ):
+                    yield delta
 
-            # Update last message state after processing each event
-            last_message = deepcopy(message)
+                # Update last message state after processing each event
+                last_message = deepcopy(message)
+        except Exception as e:
+            # Handle any errors during streaming using the extracted error handler
+            raise self._handle_groq_error(e, model, StreamingError) from e
 
         # Add final metadata and platform info
         final_event = self._generate_platform_metadata()
@@ -169,10 +287,13 @@ class GroqClient(
         embeddings = []
         total_tokens = 0
         for text in texts:
-            response = await self._client.embeddings.create(
-                model=model_id,
-                input=text,
-            )
+            try:
+                response = await self._client.embeddings.create(
+                    model=model_id,
+                    input=text,
+                )
+            except Exception as e:
+                raise self._handle_groq_error(e, model, PlatformHTTPError) from e
             embedding = response.data[0].embedding
             total_tokens += response.usage.total_tokens
             embeddings.append(embedding)

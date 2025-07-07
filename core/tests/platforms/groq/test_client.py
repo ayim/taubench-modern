@@ -19,6 +19,8 @@ from groq.types.chat.chat_completion_message import ChatCompletionMessage
 from groq.types.completion_usage import CompletionUsage
 
 from agent_platform.core.delta import GenericDelta
+from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
+from agent_platform.core.errors.streaming import StreamingError
 from agent_platform.core.kernel import Kernel
 from agent_platform.core.platforms.groq.client import GroqClient
 from agent_platform.core.platforms.groq.configs import GroqModelMap
@@ -77,6 +79,250 @@ class MockGroqClient:
     def __init__(self):
         """Initialize the mock client."""
         self.chat = MockChatCompletions()
+
+
+class MockGroqError(Exception):
+    """Mock Groq error for testing."""
+
+    def __init__(self, message: str = "Test error", body: dict | None = None):
+        self.message = message
+        self.body = body or {"error": {"message": message}}
+        super().__init__(message)
+
+    def __str__(self):
+        return self.message
+
+
+class TestGroqErrorHandling:
+    """Tests for Groq client error handling functionality."""
+
+    @pytest.fixture
+    def groq_client(self) -> GroqClient:
+        """Create a GroqClient instance for testing."""
+        mock_secret = SecretString("test-api-key")
+        with patch("agent_platform.core.utils.SecretString", return_value=mock_secret):
+            parameters = GroqPlatformParameters(groq_api_key=mock_secret)
+
+        with patch("groq.AsyncGroq"):
+            return GroqClient(parameters=parameters)
+
+    def test_handle_groq_error_rate_limit_error(self, groq_client: GroqClient) -> None:
+        """Test handling of RateLimitError."""
+        with patch("groq.RateLimitError", MockGroqError):
+            error = MockGroqError("Rate limit exceeded")
+            error.__class__.__name__ = "RateLimitError"
+
+            result = groq_client._handle_groq_error(error, "llama-3.3")
+
+            assert isinstance(result, PlatformError)
+            assert result.response.code == "too_many_requests"
+            assert "usage limit reached" in result.response.message.lower()
+            assert result.data["model"] == "llama-3.3"
+
+    def test_handle_groq_error_authentication_error(self, groq_client: GroqClient) -> None:
+        """Test handling of AuthenticationError."""
+        with patch("groq.AuthenticationError", MockGroqError):
+            error = MockGroqError("Invalid API key")
+            error.__class__.__name__ = "AuthenticationError"
+
+            result = groq_client._handle_groq_error(error, "llama-3.3")
+
+            assert isinstance(result, PlatformError)
+            assert result.response.code == "unauthorized"
+            assert "authentication failed" in result.response.message.lower()
+            assert result.data["model"] == "llama-3.3"
+
+    def test_handle_groq_error_permission_denied(self, groq_client: GroqClient) -> None:
+        """Test handling of PermissionDeniedError."""
+        with patch("groq.PermissionDeniedError", MockGroqError):
+            error = MockGroqError("Access denied")
+            error.__class__.__name__ = "PermissionDeniedError"
+
+            result = groq_client._handle_groq_error(error, "llama-3.3")
+
+            assert isinstance(result, PlatformError)
+            assert result.response.code == "forbidden"
+            assert "access denied" in result.response.message.lower()
+            assert result.data["model"] == "llama-3.3"
+
+    def test_handle_groq_error_bad_request(self, groq_client: GroqClient) -> None:
+        """Test handling of BadRequestError."""
+        with patch("groq.BadRequestError", MockGroqError):
+            error = MockGroqError("Invalid request")
+            error.__class__.__name__ = "BadRequestError"
+
+            result = groq_client._handle_groq_error(error, "llama-3.3")
+
+            assert isinstance(result, PlatformError)
+            assert result.response.code == "bad_request"
+            assert "something went wrong" in result.response.message.lower()
+            assert result.data["model"] == "llama-3.3"
+
+    def test_handle_groq_error_not_found(self, groq_client: GroqClient) -> None:
+        """Test handling of NotFoundError."""
+        with patch("groq.NotFoundError", MockGroqError):
+            error = MockGroqError("Model not found")
+            error.__class__.__name__ = "NotFoundError"
+
+            result = groq_client._handle_groq_error(error, "invalid-model")
+
+            assert isinstance(result, PlatformError)
+            assert result.response.code == "not_found"
+            assert "not found" in result.response.message.lower()
+            assert result.data["model"] == "invalid-model"
+
+    def test_handle_groq_error_unprocessable_entity(self, groq_client: GroqClient) -> None:
+        """Test handling of UnprocessableEntityError."""
+        with patch("groq.UnprocessableEntityError", MockGroqError):
+            error = MockGroqError("Request validation failed")
+            error.__class__.__name__ = "UnprocessableEntityError"
+
+            result = groq_client._handle_groq_error(error, "llama-3.3")
+
+            assert isinstance(result, PlatformError)
+            assert result.response.code == "unprocessable_entity"
+            assert "something went wrong" in result.response.message.lower()
+            assert result.data["model"] == "llama-3.3"
+
+    def test_handle_groq_error_conflict(self, groq_client: GroqClient) -> None:
+        """Test handling of ConflictError."""
+        with patch("groq.ConflictError", MockGroqError):
+            error = MockGroqError("Request conflict")
+            error.__class__.__name__ = "ConflictError"
+
+            result = groq_client._handle_groq_error(error, "llama-3.3")
+
+            assert isinstance(result, PlatformError)
+            assert result.response.code == "conflict"
+            assert "something went wrong" in result.response.message.lower()
+            assert result.data["model"] == "llama-3.3"
+
+    def test_handle_groq_error_timeout(self, groq_client: GroqClient) -> None:
+        """Test handling of APITimeoutError."""
+        with patch("groq.APITimeoutError", MockGroqError):
+            error = MockGroqError("Request timed out")
+            error.__class__.__name__ = "APITimeoutError"
+
+            result = groq_client._handle_groq_error(error, "llama-3.3")
+
+            assert isinstance(result, PlatformError)
+            assert result.response.code == "unexpected"
+            assert "timed out" in result.response.message.lower()
+            assert result.data["model"] == "llama-3.3"
+
+    def test_handle_groq_error_connection_error(self, groq_client: GroqClient) -> None:
+        """Test handling of APIConnectionError."""
+        with patch("groq.APIConnectionError", MockGroqError):
+            error = MockGroqError("Connection failed")
+            error.__class__.__name__ = "APIConnectionError"
+
+            result = groq_client._handle_groq_error(error, "llama-3.3")
+
+            assert isinstance(result, PlatformError)
+            assert result.response.code == "unexpected"
+            assert "failed to connect" in result.response.message.lower()
+            assert result.data["model"] == "llama-3.3"
+
+    def test_handle_groq_error_internal_server_error(self, groq_client: GroqClient) -> None:
+        """Test handling of InternalServerError."""
+        with patch("groq.InternalServerError", MockGroqError):
+            error = MockGroqError("Internal server error")
+            error.__class__.__name__ = "InternalServerError"
+
+            result = groq_client._handle_groq_error(error, "llama-3.3")
+
+            assert isinstance(result, PlatformError)
+            assert result.response.code == "unexpected"
+            assert "internal error" in result.response.message.lower()
+            assert result.data["model"] == "llama-3.3"
+
+    def test_handle_groq_error_api_error_base_class(self, groq_client: GroqClient) -> None:
+        """Test handling of base APIError class."""
+        with patch("groq.APIError", MockGroqError):
+            error = MockGroqError("Generic API error")
+            error.__class__.__name__ = "APIError"
+
+            result = groq_client._handle_groq_error(error, "llama-3.3")
+
+            assert isinstance(result, PlatformError)
+            assert result.response.code == "unexpected"
+            assert "unexpected error" in result.response.message.lower()
+            assert result.data["model"] == "llama-3.3"
+
+    def test_handle_groq_error_unknown_exception(self, groq_client: GroqClient) -> None:
+        """Test handling of unknown exceptions (should re-raise)."""
+        error = ValueError("Some unexpected error")
+
+        with pytest.raises(ValueError, match="Some unexpected error"):
+            groq_client._handle_groq_error(error, "llama-3.3")
+
+    def test_handle_groq_error_with_custom_error_type(self, groq_client: GroqClient) -> None:
+        """Test that custom error types are respected."""
+        with patch("groq.RateLimitError", MockGroqError):
+            error = MockGroqError("Rate limit exceeded")
+            error.__class__.__name__ = "RateLimitError"
+
+            result = groq_client._handle_groq_error(error, "llama-3.3", PlatformHTTPError)
+
+            assert isinstance(result, PlatformHTTPError)
+            assert result.response.code == "too_many_requests"
+
+    @pytest.mark.asyncio
+    async def test_generate_response_error_handling(self, groq_client: GroqClient) -> None:
+        """Test error handling in generate_response method."""
+        groq_prompt = GroqPrompt()
+
+        # Mock the Groq client to raise an exception
+        with patch("groq.RateLimitError", MockGroqError):
+            error = MockGroqError("Rate limit exceeded")
+            error.__class__.__name__ = "RateLimitError"
+
+            with patch.object(groq_client, "_client") as mock_client:
+                mock_client.chat.completions.create.side_effect = error
+
+                with pytest.raises(PlatformHTTPError) as exc_info:
+                    await groq_client.generate_response(groq_prompt, "llama-3.3")
+
+                assert exc_info.value.response.code == "too_many_requests"
+
+    @pytest.mark.asyncio
+    async def test_generate_stream_response_error_handling(self, groq_client: GroqClient) -> None:
+        """Test error handling in generate_stream_response method."""
+        groq_prompt = GroqPrompt()
+
+        # Mock the Groq client to raise an exception
+        with patch("groq.PermissionDeniedError", MockGroqError):
+            error = MockGroqError("Access denied")
+            error.__class__.__name__ = "PermissionDeniedError"
+
+            with patch.object(groq_client, "_client") as mock_client:
+                mock_client.chat.completions.create.side_effect = error
+
+                with pytest.raises(StreamingError) as exc_info:
+                    async for _ in groq_client.generate_stream_response(groq_prompt, "llama-3.3"):
+                        pass  # This shouldn't execute due to the exception
+
+                assert exc_info.value.response.code == "forbidden"
+
+    @pytest.mark.asyncio
+    async def test_create_embeddings_error_handling(self, groq_client: GroqClient) -> None:
+        """Test error handling in create_embeddings method."""
+        # Mock the Groq client to raise an exception
+        with patch("groq.BadRequestError", MockGroqError):
+            error = MockGroqError("Invalid model parameters")
+            error.__class__.__name__ = "BadRequestError"
+
+            # Mock embeddings method
+            mock_embeddings = MagicMock()
+            mock_embeddings.create.side_effect = error
+
+            with patch.object(groq_client, "_client") as mock_client:
+                mock_client.embeddings = mock_embeddings
+
+                with pytest.raises(PlatformHTTPError) as exc_info:
+                    await groq_client.create_embeddings(["test text"], "llama-3.3")
+
+                assert exc_info.value.response.code == "bad_request"
 
 
 class TestGroqClient:
