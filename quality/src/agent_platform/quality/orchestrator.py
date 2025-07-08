@@ -5,6 +5,7 @@ from pathlib import Path
 
 import httpx
 import structlog
+from agent_platform.orchestrator.default_locations import get_agent_server_executable_path
 
 from agent_platform.quality.models import AgentPackage, Platform
 
@@ -17,6 +18,7 @@ class QualityOrchestrator:
     def __init__(
         self,
         data_dir: Path,
+        agent_server_version: str | None,
         server_url: str = "http://localhost:8000",
         logs_dir: Path | None = None,
     ):
@@ -24,6 +26,7 @@ class QualityOrchestrator:
         self.action_server_url = None
         self.data_dir = data_dir
         self.logs_dir = logs_dir or self.data_dir / "logs"
+        self.agent_server_version = agent_server_version
 
         # Ensure logs directory exists
         self.logs_dir.mkdir(parents=True, exist_ok=True)
@@ -329,7 +332,15 @@ class QualityOrchestrator:
         agent_server_data_dir = self.data_dir / "agent_server"
         agent_server_data_dir.mkdir(parents=True, exist_ok=True)
 
-        self._agent_server_process = AgentServerProcess(datadir=agent_server_data_dir)
+        executable_path = None
+        if self.agent_server_version is not None:
+            executable_path = get_agent_server_executable_path(
+                version=self.agent_server_version, download=True
+            )
+
+        self._agent_server_process = AgentServerProcess(
+            datadir=agent_server_data_dir, executable_path=executable_path
+        )
 
         # Parse port from server_url
         from urllib.parse import urlparse

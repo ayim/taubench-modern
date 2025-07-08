@@ -48,6 +48,9 @@ class OAuthProviderConfig:
 
 @dataclass
 class Context:
+    # TODO it is used if there is an already running agent server
+    # since we now can run as executable we should also verify
+    # if the running server has been started with the right executable
     agent_server_url: str
     agents_dir: Path
     threads_dir: Path
@@ -228,6 +231,7 @@ def list_agents(ctx: Context):
         test_threads_dir=ctx.threads_dir,
         test_agents_dir=ctx.agents_dir,
         server_url=ctx.agent_server_url,
+        agent_server_version=None,
     )
 
     agents = runner.discover_agents()
@@ -251,6 +255,7 @@ def list_tests(ctx: Context, agent_name: str | None):
         test_threads_dir=ctx.threads_dir,
         test_agents_dir=ctx.agents_dir,
         server_url=ctx.agent_server_url,
+        agent_server_version=None,
     )
 
     test_cases = runner.discover_test_cases(agent_name)
@@ -290,13 +295,20 @@ def list_tests(ctx: Context, agent_name: str | None):
     type=str,
     help="List of agents to run tests for (if not provided, all agents will be run)",
 )
+@click.option(
+    "--agent-server-version",
+    required=True,
+    type=str,
+    help="Agent server version. If none is provided, the version on the current branch is used",
+)
 @click.pass_obj
-async def run(
+async def run(  # noqa: PLR0913
     ctx: Context,
     detailed: bool,
     platform_summary: bool,
     max_agents: int,
     selected_agents: str,
+    agent_server_version: str | None,
 ):
     """Run quality tests for agents."""
     runner = QualityTestRunner(
@@ -304,6 +316,7 @@ async def run(
         test_agents_dir=ctx.agents_dir,
         server_url=ctx.agent_server_url,
         datadir=ctx.quality_folder,
+        agent_server_version=agent_server_version,
     )
 
     reporter = QualityReporter()
@@ -358,6 +371,7 @@ async def oauth(ctx: Context):
         test_agents_dir=ctx.agents_dir,
         server_url=ctx.agent_server_url,
         datadir=ctx.quality_folder,
+        agent_server_version=None,
     )
 
     oauth_connections = await runner.get_oauth_connections()

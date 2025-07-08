@@ -29,27 +29,18 @@ jobs:
 
       # we need to fetch action-server because it is required by agent-cli
       # we use agent-cli to get package metadata, but we will remove it as soon as we have a better way to do it
-      # agent-cli assumes that there exists an agent-server in $PATH
-      # Note that this agent server is not what we used to run actions
+      # agent-cli assumes that there exists an action-server in $PATH
+      # Note that this action server is not what we used to run actions
       - name: Fetch agent server ${{ env.AGENT_SERVER_VERSION }} and action server
         run: |
-          curl -L \
-               -o ./agent-server \
-               "https://cdn.sema4.ai/agent-server/${AGENT_SERVER_VERSION}/linux_x64/agent-server"
-          chmod +x ./agent-server
-
           curl -o ./action-server https://cdn.sema4.ai/action-server/releases/latest/linux64/action-server
           chmod +x ./action-server
-
           mkdir -p $HOME/.local/bin
           export PATH="$HOME/.local/bin:$PATH"
-
-          mv ./agent-server $HOME/.local/bin
           mv ./action-server $HOME/.local/bin
 
       - name: Sanity-check binaries are reachable
         run: |
-          agent-server --version
           action-server version
 
       - name: Install quality tool project
@@ -128,7 +119,7 @@ jobs:
           SEMA4AI_HOME: ~/.sema4ai
         run: |
           uv run quality-test init
-          SEMA4AI_TEST_AGENT_SERVER_EXECUTABLE=$HOME/.local/bin/agent-server uv run quality-test run --selected-agents "001-quality-basic-browsing,003-call-center-planner,002-snowflake-cortex-analyst"
+          uv run quality-test run --agent-server-version ${AGENT_SERVER_VERSION} --selected-agents "001-quality-basic-browsing,003-call-center-planner,002-snowflake-cortex-analyst"
 
       - name: Upload test artifacts
         if: always() # even on failures

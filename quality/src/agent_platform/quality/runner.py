@@ -43,6 +43,7 @@ class QualityTestRunner:
         test_threads_dir: Path,
         test_agents_dir: Path,
         datadir: Path,
+        agent_server_version: str | None,
         server_url: str = "http://localhost:8000",
     ):
         self.test_threads_dir = test_threads_dir
@@ -50,7 +51,9 @@ class QualityTestRunner:
         self.server_url = server_url
 
         # Initialize components
-        self.orchestrator = QualityOrchestrator(server_url=server_url, data_dir=datadir)
+        self.orchestrator = QualityOrchestrator(
+            server_url=server_url, data_dir=datadir, agent_server_version=agent_server_version
+        )
         self.agent_runner = AgentRunner(server_url=server_url)
         self.evaluator = EvaluatorEngine(server_url=server_url)
         self.oauth = OAuthManager(data_dir=datadir)

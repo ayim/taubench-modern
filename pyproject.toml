@@ -57,13 +57,12 @@ members = [
     "core/",
     "server/",
     "quality/",
-    "workitems/",
 ]
 
 [tool.pytest.ini_options]
 timeout = 600
 pythonpath = ["."]
-testpaths = ["core/tests", "server/tests", "quality/tests", "workitems/tests"]
+testpaths = ["core/tests", "server/tests", "quality/tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -122,8 +121,6 @@ ignore = ["COM812"]
 "server/examples/**/*.ipynb" = ["PLE1142"]
 "server/tests/**/*.py" = ["PLR2004"]
 "quality/tests/**/*.py" = ["PLR2004"]
-"workitems/alembic/**/*.py" = ["ALL"]               # ignore ruff for autogen code
-"workitems/tests/**/*.py" = ["PLR2004"]             # ignore magic constants
 
 [tool.ruff.lint.isort]
 known-first-party = [
@@ -131,7 +128,6 @@ known-first-party = [
     "agent_platform.quality",
     "agent_platform.architectures.default",
     "agent_platform.server",
-    "agent_platform.workitems",
     "sema4ai.common",
 ]
 
