@@ -364,7 +364,7 @@ class SQLiteStorageFilesMixin(CommonMixin):
                     self._logger.exception("File already exists", file_ref=file_ref)
                     raise UniqueFileRefError(
                         file_ref,
-                        detail=(f"A file with the given file_ref {file_ref} already exists"),
+                        message=(f"A file with the given file_ref {file_ref} already exists"),
                     ) from e
                 else:
                     self._logger.exception(
