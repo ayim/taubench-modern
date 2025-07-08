@@ -16,6 +16,7 @@ from agent_platform.core.thread import (
     ThreadThoughtContent,
     ThreadToolUsageContent,
 )
+from agent_platform.core.thread.content.attachment import ThreadAttachmentContent
 from agent_platform.server.kernel.kernel_mixin import UsesKernelMixin
 
 
@@ -38,6 +39,14 @@ class AgentServerConvertersInterface(ConvertersInterface, UsesKernelMixin):
                     prompt_contents.append(
                         PromptTextContent(
                             text=text_content.text.strip(),
+                        ),
+                    )
+                case ThreadAttachmentContent() as attachment_content:
+                    prompt_contents.append(
+                        PromptTextContent(
+                            text=(
+                                f"Uploaded [{attachment_content.name}]({attachment_content.uri})."
+                            ),
                         ),
                     )
                 # TODO: multi-modal content/docs
