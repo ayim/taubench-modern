@@ -1,9 +1,10 @@
-# Unreleased
+# Sema4.ai Agent Server 2.0.9 (2025-07-08)
 
 - Added error handling for invoking models via the Google platform client. ([GPT-1032](https://linear.app/sema4ai/issue/GPT-1032))
 - Added error handling for invoking models via the Groq platform client. ([GPT-1033](https://linear.app/sema4ai/issue/GPT-1033))
 - Added error handling for 404s and 405s. Now such error responses will have a similar error body to other errors. ([GPT-1036](https://linear.app/sema4ai/issue/GPT-1036))
 - Changed handling of environment variables for MCP servers using stdio transport to merge the server's environment variables with the agent-server's environment variables. ([GPT-1062](https://linear.app/sema4ai/issue/GPT-1062))
+- Allowed absolute paths for MCP servers using stdio transport.
 
 # Sema4.ai Agent Server 2.0.8 (2025-07-03)
 
