@@ -471,6 +471,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                 )
                 logger.warning(
                     f"Error fetching tool definitions from MCP server: {detailed}",
+                    exc_info=exc,
                 )
                 return [], detailed
 
