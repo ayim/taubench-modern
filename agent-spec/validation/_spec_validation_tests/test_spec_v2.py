@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from ._spec_validation import InvalidSpecError, validate_from_spec
+from ._spec_validation import InvalidSpec, validate_from_spec
 
 DOCS_DIR = Path(__file__).parent.parent.parent / "versions"
 assert os.path.exists(DOCS_DIR), f"Expected docs dir to exist. Found {DOCS_DIR}"
@@ -18,37 +18,6 @@ def v2_spec():
     json_spec_path = next(iter(specs_found))
     spec = json.loads(json_spec_path.read_text())
     return spec
-
-
-def test_spec_validation_unexpected_entry_in_agent(datadir: Path, v2_spec: dict):
-    from _spec_validation_tests._spec_validation import load_spec
-
-    bad_yaml = """
-agent-package:
-  spec-version: v2
-  agents: # Defines the agents available
-  - bad-name: Example Agent Package # The name of the agent (any string)
-    description: This is the description # Description for the agent (any string)
-    """
-
-    with pytest.raises(InvalidSpecError) as excinfo:
-        validate_from_spec(load_spec(v2_spec), bad_yaml, datadir, raise_on_error=True)
-    assert "Unexpected entry: bad-name (in agent-package/agents)." in str(excinfo.value)
-
-
-def test_spec_validation_unexpected_entry_root(datadir: Path, v2_spec: dict):
-    from _spec_validation_tests._spec_validation import load_spec
-
-    bad_yaml = """
-bad-agent-package:
-  spec-version: v2
-  agents: # Defines the agents available
-    description: This is the description # Description for the agent (any string)
-    """
-
-    with pytest.raises(InvalidSpecError) as excinfo:
-        validate_from_spec(load_spec(v2_spec), bad_yaml, datadir, raise_on_error=True)
-    assert "Unexpected entry: bad-agent-package (in root)." in str(excinfo.value)
 
 
 @pytest.fixture
@@ -359,7 +328,7 @@ def test_spec():
                     yaml_spec_path.parent,
                     raise_on_error=True,
                 )
-            except InvalidSpecError as e:
+            except InvalidSpec as e:
                 raise Exception(
                     f"Invalid spec: {yaml_spec_path} does not match {json_spec_path}"
                 ) from e

@@ -1,0 +1,4 @@
+- Expected agent-package/agents/mcp-servers/transport to be one of ['streamable-http',
+  'sse', 'stdio'] (found 'invalid-transport').
+- Expected agent-package/agents/mcp-servers/transport to be one of ['streamable-http',
+  'sse', 'stdio'] (found 'websocket').

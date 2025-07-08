@@ -111,6 +111,16 @@ agent-package/agents/architecture:
     RelativeTo: ''
   Path: agent-package/agents/architecture
   Required: true
+agent-package/agents/conversation-guide:
+  Deprecated: false
+  Description: 'Conversation guide for the agent. Example: "conversation-guide.yaml"'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: file
+    RecommendedValues: null
+    RelativeTo: ./
+  Path: agent-package/agents/conversation-guide
+  Required: false
 agent-package/agents/description:
   Deprecated: false
   Description: 'Description for the agent. Example: "My smart agent that does what
@@ -166,6 +176,226 @@ agent-package/agents/knowledge/name:
     RelativeTo: ./knowledge
   Path: agent-package/agents/knowledge/name
   Required: true
+agent-package/agents/mcp-servers:
+  Deprecated: false
+  Description: Section to define MCP (Model Context Protocol) servers that the agent
+    can connect to.
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: list
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers
+  Required: false
+agent-package/agents/mcp-servers/command-line:
+  Deprecated: false
+  Description: 'Command line to execute for stdio MCP servers. Example: ["uv", "run",
+    "python", "-m", "my-server"]'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: mcp_server_command_line
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/command-line
+  Required: false
+agent-package/agents/mcp-servers/cwd:
+  Deprecated: false
+  Description: Working directory for the command line (defaults to agent-spec directory
+    if not specified). Can be relative or absolute path.
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: file
+    RecommendedValues: null
+    RelativeTo: ./
+  Path: agent-package/agents/mcp-servers/cwd
+  Required: false
+agent-package/agents/mcp-servers/description:
+  Deprecated: false
+  Description: Description of the MCP server and configuration instructions.
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/description
+  Required: false
+agent-package/agents/mcp-servers/env:
+  Deprecated: false
+  Description: Environment variables for the MCP server (only for stdio kind).
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: mcp_server_env
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/env
+  Required: false
+agent-package/agents/mcp-servers/env/default:
+  Deprecated: false
+  Description: Default value for the variable (only for string type).
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/env/default
+  Required: false
+agent-package/agents/mcp-servers/env/description:
+  Deprecated: false
+  Description: 'Optional: human-readable description of the environment variable.'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/env/description
+  Required: false
+agent-package/agents/mcp-servers/env/provider:
+  Deprecated: false
+  Description: 'OAuth2 provider name (only required for oauth2-secret type). Example:
+    "Microsoft"'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/env/provider
+  Required: false
+agent-package/agents/mcp-servers/env/scopes:
+  Deprecated: false
+  Description: 'OAuth2 scopes (only required for oauth2-secret type). Example: ["user.read",
+    "user.write"]'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: list
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/env/scopes
+  Required: false
+agent-package/agents/mcp-servers/env/type:
+  Deprecated: false
+  Description: 'The type of the environment variable. Accepted values: "secret", "oauth2-secret",
+    "string", "data-server-info"'
+  ExpectedType:
+    EnumValues:
+    - secret
+    - oauth2-secret
+    - string
+    - data-server-info
+    ExpectedType: enum
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/env/type
+  Required: true
+agent-package/agents/mcp-servers/force-serial-tool-calls:
+  Deprecated: false
+  Description: If true, tool calls are serialized (default is false).
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: bool
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/force-serial-tool-calls
+  Required: false
+agent-package/agents/mcp-servers/headers:
+  Deprecated: false
+  Description: Required headers for the MCP server connection (only for streamable-http
+    and sse kinds).
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: mcp_server_headers
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/headers
+  Required: false
+agent-package/agents/mcp-servers/headers/default:
+  Deprecated: false
+  Description: Default value for the variable (only for string type).
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/headers/default
+  Required: false
+agent-package/agents/mcp-servers/headers/description:
+  Deprecated: false
+  Description: 'Optional: human-readable description of the header.'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/headers/description
+  Required: false
+agent-package/agents/mcp-servers/headers/provider:
+  Deprecated: false
+  Description: 'OAuth2 provider name (only required for oauth2-secret type). Example:
+    "Microsoft"'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/headers/provider
+  Required: false
+agent-package/agents/mcp-servers/headers/scopes:
+  Deprecated: false
+  Description: 'OAuth2 scopes (only required for oauth2-secret type). Example: ["user.read",
+    "user.write"]'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: list
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/headers/scopes
+  Required: false
+agent-package/agents/mcp-servers/headers/type:
+  Deprecated: false
+  Description: 'The type of the header. Accepted values: "secret", "oauth2-secret",
+    "string", "data-server-info"'
+  ExpectedType:
+    EnumValues:
+    - secret
+    - oauth2-secret
+    - string
+    - data-server-info
+    ExpectedType: enum
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/headers/type
+  Required: true
+agent-package/agents/mcp-servers/name:
+  Deprecated: false
+  Description: 'The name of the MCP server. Example: "my-server"'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/name
+  Required: true
+agent-package/agents/mcp-servers/transport:
+  Deprecated: false
+  Description: 'The transport to use for the MCP server connection. Accepted values:
+    "streamable-http", "sse", "stdio"'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: mcp_server_transport
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/transport
+  Required: false
+agent-package/agents/mcp-servers/url:
+  Deprecated: false
+  Description: 'URL for the MCP server (only for streamable-http and sse kinds). Example:
+    "http://localhost:8000"'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: mcp_server_url
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/url
+  Required: false
 agent-package/agents/metadata:
   Deprecated: false
   Description: Metadata on how to run the agent
@@ -340,7 +570,7 @@ agent-package/agents/version:
   Description: 'Version of the Agent Package. Example: "1.3.0"'
   ExpectedType:
     EnumValues: null
-    ExpectedType: string
+    ExpectedType: agent_semver_version
     RecommendedValues: null
     RelativeTo: ''
   Path: agent-package/agents/version
@@ -365,4 +595,80 @@ agent-package/spec-version:
     RecommendedValues: null
     RelativeTo: ''
   Path: agent-package/spec-version
+  Required: true
+agent-package/variables:
+  Deprecated: false
+  Description: Variables that can be used in mcp-server header values and env values.
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: list
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/variables
+  Required: false
+agent-package/variables/default:
+  Deprecated: false
+  Description: Default value for the variable (only for string type).
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/variables/default
+  Required: false
+agent-package/variables/description:
+  Deprecated: false
+  Description: 'Optional: human-readable description of the variable.'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/variables/description
+  Required: false
+agent-package/variables/name:
+  Deprecated: false
+  Description: 'The name of the variable. Example: "api-key"'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/variables/name
+  Required: true
+agent-package/variables/provider:
+  Deprecated: false
+  Description: 'OAuth2 provider name (only required for oauth2-secret type). Example:
+    "Microsoft"'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/variables/provider
+  Required: false
+agent-package/variables/scopes:
+  Deprecated: false
+  Description: 'OAuth2 scopes (only required for oauth2-secret type). Example: ["user.read",
+    "user.write"]'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: list
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/variables/scopes
+  Required: false
+agent-package/variables/type:
+  Deprecated: false
+  Description: 'The type of the variable. Accepted values: "secret", "oauth2-secret",
+    "string"'
+  ExpectedType:
+    EnumValues:
+    - secret
+    - oauth2-secret
+    - string
+    ExpectedType: enum
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/variables/type
   Required: true

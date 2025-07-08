@@ -1,0 +1,4 @@
+- Expected agent-package/agents/mcp-servers/headers/type to be one of ['secret', 'oauth2-secret',
+  'string', 'data-server-info'] (found 'wrong-type-in-header').
+- Expected agent-package/agents/mcp-servers/env/type to be one of ['secret', 'oauth2-secret',
+  'string', 'data-server-info'] (found 'wrong-type-in-env').

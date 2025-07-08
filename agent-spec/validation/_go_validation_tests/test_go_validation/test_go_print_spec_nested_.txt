@@ -9,11 +9,32 @@ root (no data)
         version (required)
         whitelist (required)
       architecture (required)
+      conversation-guide
       description (required)
       knowledge
         digest
         embedded (required)
         name (required)
+      mcp-servers
+        command-line
+        cwd
+        description
+        env
+          default
+          description
+          provider
+          scopes
+          type (required)
+        force-serial-tool-calls
+        headers
+          default
+          description
+          provider
+          scopes
+          type (required)
+        name (required)
+        transport
+        url
       metadata (required)
         mode (required)
         worker-config
@@ -32,3 +53,10 @@ root (no data)
       version (required)
     exclude
     spec-version (required)
+    variables
+      default
+      description
+      name (required)
+      provider
+      scopes
+      type (required)

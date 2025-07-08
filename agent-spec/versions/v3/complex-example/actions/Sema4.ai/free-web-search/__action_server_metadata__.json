@@ -1,0 +1,439 @@
+{
+  "metadata": {
+    "name": "Free Web Search",
+    "description": "Web search without credentials using DuckDuckGo API",
+    "secrets": {},
+    "action_package_version": "1.0.0",
+    "metadata_version": 2
+  },
+  "openapi.json": {
+    "openapi": "3.1.0",
+    "info": { "title": "Sema4.ai Action Server", "version": "0.23.2" },
+    "servers": [{ "url": "http://localhost:8080" }],
+    "paths": {
+      "/api/actions/free-web-search/web-search-places/run": {
+        "post": {
+          "summary": "Web Search Places",
+          "description": "Find places in a map location.\nReturned link can be used to check opening hours for the place if hours\nare not already included in the results.",
+          "operationId": "web_search_places",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "place": { "type": "string", "title": "Place", "description": "place to search for" },
+                    "city": { "type": "string", "title": "City", "description": "city to search on", "default": "" },
+                    "country": {
+                      "type": "string",
+                      "title": "Country",
+                      "description": "country to search on",
+                      "default": ""
+                    },
+                    "radius": {
+                      "type": "integer",
+                      "title": "Radius",
+                      "description": "radius to search on (in kilometers)",
+                      "default": 10
+                    },
+                    "max_results": {
+                      "type": "integer",
+                      "title": "Max Results",
+                      "description": "how many results to retrieve",
+                      "default": 5
+                    }
+                  },
+                  "type": "object",
+                  "required": ["place"]
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "properties": {
+                      "results": {
+                        "items": {
+                          "properties": {
+                            "title": {
+                              "type": "string",
+                              "title": "Title",
+                              "description": "The title of the search result",
+                              "default": ""
+                            },
+                            "address": {
+                              "type": "string",
+                              "title": "Address",
+                              "description": "The address of the search result",
+                              "default": ""
+                            },
+                            "phone": {
+                              "type": "string",
+                              "title": "Phone",
+                              "description": "The phone number of the search result",
+                              "default": ""
+                            },
+                            "desc": {
+                              "type": "string",
+                              "title": "Desc",
+                              "description": "The description of the search result",
+                              "default": ""
+                            },
+                            "source": {
+                              "type": "string",
+                              "title": "Source",
+                              "description": "The source of the search result",
+                              "default": ""
+                            },
+                            "latitude": {
+                              "type": "string",
+                              "title": "Latitude",
+                              "description": "The latitude of the search result",
+                              "default": ""
+                            },
+                            "longitude": {
+                              "type": "string",
+                              "title": "Longitude",
+                              "description": "The longitude of the search result",
+                              "default": ""
+                            },
+                            "url": {
+                              "type": "string",
+                              "title": "Url",
+                              "description": "The link of the search result",
+                              "default": ""
+                            },
+                            "hours": {
+                              "type": "string",
+                              "title": "Hours",
+                              "description": "The opening hours of the search result",
+                              "default": ""
+                            },
+                            "category": {
+                              "type": "string",
+                              "title": "Category",
+                              "description": "The category of the search result",
+                              "default": ""
+                            }
+                          },
+                          "type": "object",
+                          "title": "PlaceSearchResult"
+                        },
+                        "type": "array",
+                        "title": "Results",
+                        "description": "A list of place search results"
+                      }
+                    },
+                    "type": "object",
+                    "required": ["results"],
+                    "title": "Response for Web Search Places",
+                    "description": "Details on the place search results."
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HTTPValidationError" } } }
+            }
+          },
+          "x-openai-isConsequential": false
+        }
+      },
+      "/api/actions/free-web-search/web-search-news/run": {
+        "post": {
+          "summary": "Web Search News",
+          "description": "Performs DuckDuckGo Search to find news about a topic.",
+          "operationId": "web_search_news",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "topic": { "type": "string", "title": "Topic", "description": "topic to search on" },
+                    "max_results": {
+                      "type": "integer",
+                      "title": "Max Results",
+                      "description": "how many results to retrieve",
+                      "default": 5
+                    }
+                  },
+                  "type": "object",
+                  "required": ["topic"]
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "properties": {
+                      "results": {
+                        "items": {
+                          "properties": {
+                            "title": {
+                              "type": "string",
+                              "title": "Title",
+                              "description": "The title of the search result",
+                              "default": ""
+                            },
+                            "link": {
+                              "type": "string",
+                              "title": "Link",
+                              "description": "The link of the search result",
+                              "default": ""
+                            },
+                            "desc": {
+                              "type": "string",
+                              "title": "Desc",
+                              "description": "The description of the search result",
+                              "default": ""
+                            }
+                          },
+                          "type": "object",
+                          "title": "SearchResult"
+                        },
+                        "type": "array",
+                        "title": "Results",
+                        "description": "A list of google search results"
+                      }
+                    },
+                    "type": "object",
+                    "required": ["results"],
+                    "title": "Response for Web Search News",
+                    "description": "Titles and links of the results."
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HTTPValidationError" } } }
+            }
+          },
+          "x-openai-isConsequential": false
+        }
+      },
+      "/api/actions/free-web-search/web-search-images/run": {
+        "post": {
+          "summary": "Web Search Images",
+          "description": "Performs DuckDuckGo Search to find images about a topic.",
+          "operationId": "web_search_images",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "keywords": {
+                      "type": "string",
+                      "title": "Keywords",
+                      "description": "keywords to search images on"
+                    },
+                    "type_image": {
+                      "type": "string",
+                      "title": "Type Image",
+                      "description": "type of image to search on ('photo', 'clipart', 'gif', 'transparent', 'line')",
+                      "default": ""
+                    },
+                    "max_results": {
+                      "type": "integer",
+                      "title": "Max Results",
+                      "description": "count on how many results to retrieve",
+                      "default": 10
+                    }
+                  },
+                  "type": "object",
+                  "required": ["keywords"]
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "properties": {
+                      "results": {
+                        "items": { "type": "object" },
+                        "type": "array",
+                        "title": "Results",
+                        "description": "The search result",
+                        "default": {}
+                      }
+                    },
+                    "type": "object",
+                    "title": "Response for Web Search Images",
+                    "description": "Image search results."
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HTTPValidationError" } } }
+            }
+          },
+          "x-openai-isConsequential": false
+        }
+      },
+      "/api/actions/free-web-search/web-search-videos/run": {
+        "post": {
+          "summary": "Web Search Videos",
+          "description": "Performs DuckDuckGo Search to find videos about a topic.",
+          "operationId": "web_search_videos",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "keywords": {
+                      "type": "string",
+                      "title": "Keywords",
+                      "description": "keywords to search videos on"
+                    },
+                    "max_results": {
+                      "type": "integer",
+                      "title": "Max Results",
+                      "description": "count on how many results to retrieve",
+                      "default": 10
+                    }
+                  },
+                  "type": "object",
+                  "required": ["keywords"]
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "properties": {
+                      "results": {
+                        "items": { "type": "object" },
+                        "type": "array",
+                        "title": "Results",
+                        "description": "The search result",
+                        "default": {}
+                      }
+                    },
+                    "type": "object",
+                    "title": "Response for Web Search Videos",
+                    "description": "Video search results."
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HTTPValidationError" } } }
+            }
+          },
+          "x-openai-isConsequential": false
+        }
+      },
+      "/api/actions/free-web-search/web-search-text/run": {
+        "post": {
+          "summary": "Web Search Text",
+          "description": "Performs DuckDuckGo Search to about a topic.",
+          "operationId": "web_search_text",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "keywords": {
+                      "type": "string",
+                      "title": "Keywords",
+                      "description": "keywords to search videos on"
+                    },
+                    "max_results": {
+                      "type": "integer",
+                      "title": "Max Results",
+                      "description": "count on how many results to retrieve",
+                      "default": 10
+                    }
+                  },
+                  "type": "object",
+                  "required": ["keywords"]
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "properties": {
+                      "results": {
+                        "items": { "type": "object" },
+                        "type": "array",
+                        "title": "Results",
+                        "description": "The search result",
+                        "default": {}
+                      }
+                    },
+                    "type": "object",
+                    "title": "Response for Web Search Text",
+                    "description": "Video search results."
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HTTPValidationError" } } }
+            }
+          },
+          "x-openai-isConsequential": false
+        }
+      }
+    },
+    "components": {
+      "schemas": {
+        "HTTPValidationError": {
+          "properties": {
+            "errors": {
+              "items": { "$ref": "#/components/schemas/ValidationError" },
+              "type": "array",
+              "title": "Errors"
+            }
+          },
+          "type": "object",
+          "title": "HTTPValidationError"
+        },
+        "ValidationError": {
+          "properties": {
+            "loc": {
+              "items": { "anyOf": [{ "type": "string" }, { "type": "integer" }] },
+              "type": "array",
+              "title": "Location"
+            },
+            "msg": { "type": "string", "title": "Message" },
+            "type": { "type": "string", "title": "Error Type" }
+          },
+          "type": "object",
+          "required": ["loc", "msg", "type"],
+          "title": "ValidationError"
+        }
+      }
+    }
+  }
+}

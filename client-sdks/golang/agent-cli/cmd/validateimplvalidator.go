@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -55,31 +56,6 @@ func NewValidator(specEntries map[string]*Entry, agentRootDirOrZip string) *Vali
 		yamlCursorNode:          yamlRootNode,
 		actionPackagesFoundInFS: make(map[string]*ActionPackageInFilesystem),
 		IsZipValidation:         isZipValidation,
-	}
-}
-
-func (v *Validator) validateKeyPair(keyNode *yaml.Node, errors chan Error) {
-	entry := v.specEntries[v.currentStackAsStr]
-	if entry == nil {
-		var parentAsStr string
-		curr := "<unknown>"
-
-		if len(v.stack) > 0 {
-			parent := v.stack[:len(v.stack)-1]
-			curr = v.stack[len(v.stack)-1]
-
-			if len(parent) > 0 {
-				parentAsStr = strings.Join(parent, "/")
-			} else {
-				parentAsStr = "root"
-			}
-
-		} else {
-			parentAsStr = "root"
-		}
-
-		errors <- *NewError(fmt.Sprintf("Unexpected entry: %s (in %s).", curr, parentAsStr),
-			keyNode.Line-1, keyNode.Column-1, keyNode.Line, 0, Critical)
 	}
 }
 
@@ -154,7 +130,6 @@ func (v *Validator) ValidateNodesExistAndBuildYamlInfo(node *yaml.Node, errors c
 					Kind: YamlNodeKindUnhandled,
 					Node: key,
 				}
-				v.validateKeyPair(key, errors)
 
 				// fmt.Printf("key: %s, value: %v\n", keyName, key.Value)
 
@@ -498,10 +473,165 @@ func (v *Validator) verifyYamlMatchesSpec(
 				}
 			}
 
+		case ExpectedTypeEnumAgentSemverVersion:
+			if yamlNode.data.Kind != YamlNodeKindString {
+				errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected %s to be a string (found %s).", specData.Path, yamlNode.data.Kind),
+					yamlNode.data, Critical)
+			} else {
+				version := yamlNode.data.Node.Value
+				if version != "" {
+					version = strings.Trim(version, "\"'")
+				}
+				if version != "" && !isValidSemverVersion(version) {
+					errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected %s to be a valid semantic version (found %q).", specData.Path, version),
+						yamlNode.data, Critical)
+				}
+			}
+
+		case ExpectedTypeEnumMcpServerTransport:
+			if yamlNode.data.Kind != YamlNodeKindString {
+				errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected %s to be a string (found %s).", specData.Path, yamlNode.data.Kind),
+					yamlNode.data, Critical)
+			} else {
+				transport := yamlNode.data.Node.Value
+				if transport != "" && transport != "streamable-http" && transport != "sse" && transport != "stdio" {
+					errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected %s to be one of ['streamable-http', 'sse', 'stdio'] (found %q).", specData.Path, transport),
+						yamlNode.data, Critical)
+				} else {
+					if transport == "streamable-http" || transport == "sse" {
+						if yamlNode.parent == nil || yamlNode.parent.GetChildren()["url"] == nil {
+							errors <- *NewErrorFromYamlNode(fmt.Sprintf("%s: When the transport is 'streamable-http' or 'sse', the url must be defined.", specData.Path),
+								yamlNode.data, Critical)
+						}
+					} else if transport == "stdio" {
+						if yamlNode.parent == nil || yamlNode.parent.GetChildren()["command-line"] == nil {
+							errors <- *NewErrorFromYamlNode(fmt.Sprintf("%s: When the transport is 'stdio', the command-line must be defined.", specData.Path),
+								yamlNode.data, Critical)
+						}
+					}
+				}
+			}
+
+		case ExpectedTypeEnumMcpServerHeaders:
+			if yamlNode.data.Kind != YamlNodeKindUnhandled {
+				errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected %s to be an object (found %s).", specData.Path, yamlNode.data.Kind),
+					yamlNode.data, Critical)
+			} else {
+				// Check that 'url' field is also defined
+				if yamlNode.parent == nil || yamlNode.parent.GetChildren()["url"] == nil {
+					errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected %s to be used together with 'url' field.", specData.Path),
+						yamlNode.data, Critical)
+				}
+
+				// Validate that all values are strings or objects (with the according type).
+				for _, value := range yamlNode.GetChildren() {
+					if value.GetData().(*YamlNodeData).Kind == YamlNodeKindString {
+						// Ok, it's a string, no need of further validation
+					} else if value.GetData().(*YamlNodeData).Kind != YamlNodeKindUnhandled {
+						errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected all items in %s to be strings or objects (with a type). Found %s.", specData.Path, value.GetData().(*YamlNodeData).Kind),
+							value.GetData().(*YamlNodeData), Critical)
+					} else {
+						for _, specChild := range specNode.GetChildren() {
+							childNode := value.GetChildren()[specChild.GetName()]
+							if childNode != nil {
+								v.verifyYamlMatchesSpec(specChild.(*SpecTreeNode), childNode.(*YamlTreeNode), yamlNode, errors)
+							}
+						}
+					}
+				}
+			}
+
+		case ExpectedTypeEnumMcpServerUrl:
+			if yamlNode.data.Kind != YamlNodeKindString {
+				errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected %s to be a string (found %s).", specData.Path, yamlNode.data.Kind),
+					yamlNode.data, Critical)
+			} else {
+				// Check that 'command-line' field is not defined (mutual exclusivity)
+				if yamlNode.parent != nil && yamlNode.parent.GetChildren()["command-line"] != nil {
+					errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected %s to be mutually exclusive with 'command-line' field.", specData.Path),
+						yamlNode.data, Critical)
+				}
+
+				// Check transport field if it exists
+				if yamlNode.parent != nil && yamlNode.parent.GetChildren()["transport"] != nil {
+					transportNode := yamlNode.parent.GetChildren()["transport"]
+					transportValue := transportNode.GetData().(*YamlNodeData).Node.Value
+					if transportValue != "streamable-http" && transportValue != "sse" {
+						errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected transport field to be one of ['streamable-http', 'sse'] when using 'url' field (found %q).", transportValue),
+							transportNode.GetData().(*YamlNodeData), Critical)
+					}
+				}
+			}
+
+		case ExpectedTypeEnumMcpServerEnv:
+			if yamlNode.data.Kind != YamlNodeKindUnhandled {
+				errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected %s to be an object (found %s).", specData.Path, yamlNode.data.Kind),
+					yamlNode.data, Critical)
+			} else {
+				// Check that 'command-line' field is defined
+				if yamlNode.parent == nil || yamlNode.parent.GetChildren()["command-line"] == nil {
+					errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected %s to be used together with 'command-line' field.", specData.Path),
+						yamlNode.data, Critical)
+				}
+
+				// Validate that all values are strings or objects (with the according type).
+				for _, value := range yamlNode.GetChildren() {
+					if value.GetData().(*YamlNodeData).Kind == YamlNodeKindString {
+						// Ok, it's a string, no need of further validation
+					} else if value.GetData().(*YamlNodeData).Kind != YamlNodeKindUnhandled {
+						errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected all items in %s to be strings or objects (with a type). Found %s.", specData.Path, value.GetData().(*YamlNodeData).Kind),
+							value.GetData().(*YamlNodeData), Critical)
+					} else {
+						for _, specChild := range specNode.GetChildren() {
+							childNode := value.GetChildren()[specChild.GetName()]
+							if childNode != nil {
+								v.verifyYamlMatchesSpec(specChild.(*SpecTreeNode), childNode.(*YamlTreeNode), yamlNode, errors)
+							}
+						}
+					}
+				}
+			}
+
+		case ExpectedTypeEnumMcpServerCommandLine:
+			if yamlNode.data.Kind != YamlNodeKindList {
+				errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected %s to be a list (found %s).", specData.Path, yamlNode.data.Kind),
+					yamlNode.data, Critical)
+			} else {
+				// Check that 'url' field is not defined (mutual exclusivity)
+				if yamlNode.parent != nil && yamlNode.parent.GetChildren()["url"] != nil {
+					errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected %s to be mutually exclusive with 'url' field.", specData.Path),
+						yamlNode.data, Critical)
+				}
+
+				// Check transport field if it exists
+				if yamlNode.parent != nil && yamlNode.parent.GetChildren()["transport"] != nil {
+					transportNode := yamlNode.parent.GetChildren()["transport"]
+					transportValue := transportNode.GetData().(*YamlNodeData).Node.Value
+					if transportValue != "stdio" {
+						errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected transport field to be 'stdio' when using 'command-line' field (found %q).", transportValue),
+							transportNode.GetData().(*YamlNodeData), Critical)
+					}
+				}
+
+				// Validate that all list items are strings
+				for _, listItemNode := range yamlNode.GetChildren() {
+					if listItemNode.GetData().(*YamlNodeData).Kind != YamlNodeKindString {
+						errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected all items in %s to be strings.", specData.Path),
+							listItemNode.GetData().(*YamlNodeData), Critical)
+					}
+				}
+			}
+
 		default:
 			panic(fmt.Sprintf("Unexpected expected type: %v", specData.ExpectedType.ExpectedType))
 		}
 	}
+}
+
+var semverRegex = regexp.MustCompile(`^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$`)
+
+func isValidSemverVersion(version string) bool {
+	return semverRegex.MatchString(version)
 }
 
 /**

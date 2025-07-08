@@ -1,0 +1,44 @@
+- message: 'Deprecated: ''agent-package/agents/resources''. Please use ''knowledge''
+    instead.'
+  range:
+    end:
+      character: 19
+      line: 21
+    start:
+      character: 6
+      line: 21
+  severity: 1
+  source: sema4ai
+- message: 'Deprecated: ''agent-package/agents/type''. Please use ''architecture''
+    instead.'
+  range:
+    end:
+      character: 17
+      line: 5
+    start:
+      character: 6
+      line: 5
+  severity: 1
+  source: sema4ai
+- message: 'Deprecated: ''agent-package/agents/reasoningLevel''. Please use ''reasoning''
+    instead.'
+  range:
+    end:
+      character: 23
+      line: 22
+    start:
+      character: 6
+      line: 22
+  severity: 1
+  source: sema4ai
+- message: 'Deprecated: ''agent-package/agents/runbooks''. Please use ''runbook''
+    instead.'
+  range:
+    end:
+      character: 29
+      line: 18
+    start:
+      character: 6
+      line: 16
+  severity: 1
+  source: sema4ai

@@ -1,5 +1,4 @@
 import enum
-import logging
 import typing
 import weakref
 from collections.abc import Iterator
@@ -7,14 +6,26 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Any, Generic, Optional, TypeVar
+import logging
+
 
 if typing.TYPE_CHECKING:
-    from tree_sitter import Node, Tree  # pyright: ignore[reportMissingImports]
+    from tree_sitter import Node, Tree
 
     from .list_actions_from_agent import ActionPackageInFilesystem
 
 
 log = logging.getLogger(__name__)
+
+
+def is_valid_semver_version(version: str) -> bool:
+    import re
+
+    SEMVER_REGEX = re.compile(
+        r"^(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)$"
+    )
+
+    return SEMVER_REGEX.match(version) is not None
 
 
 class _ExpectedTypeEnum(Enum):
@@ -30,13 +41,19 @@ class _ExpectedTypeEnum(Enum):
     action_package_version_link = "action_package_version_link"
     action_package_name_link = "action_package_name_link"
     zip_or_folder_based_on_path = "zip_or_folder_based_on_path"
+    agent_semver_version = "agent_semver_version"
+    mcp_server_url = "mcp_server_url"
+    mcp_server_transport = "mcp_server_transport"
+    mcp_server_command_line = "mcp_server_command_line"
+    mcp_server_env = "mcp_server_env"
+    mcp_server_headers = "mcp_server_headers"
+    mcp_server_cwd = "mcp_server_cwd"
 
 
 class _YamlNodeKind(Enum):
     # 'unhandled' is the default (when we find the actual type afterwards it's set
-    # -- if not there it's probably an object or something we didn't expect,
-    # and that's ok, but it may also signal we need some additional heuristic
-    # to determin the actual type).
+    # -- if not there it's probably an object or something we didn't expect, and that's ok,
+    # but it may also signal we need some additional heuristic to determin the actual type).
     unhandled = "unhandled"
 
     list = "list"
@@ -49,24 +66,22 @@ class _YamlNodeKind(Enum):
 
 class ErrorCode(Enum):
     action_package_info_unsynchronized = "action_package_info_unsynchronized"
+    agent_package_incomplete = "agent_package_incomplete"
+    zipped_action_inside_unzipped_agent = "zipped_action_inside_unzipped_agent"
 
 
 @dataclass
 class _ExpectedType:
-    # May be "object", "string", "enum", "file", "list" (implies "list[object]"),
-    # or "bool".
-    expected_type: _ExpectedTypeEnum
+    expected_type: _ExpectedTypeEnum  # May be "object", "string", "enum", "file", "list" (implies "list[object]"), or "bool".
 
     # If a "string" type, the recommended values may be provided
-    # (this means that any string value is accepted,
-    # but the recommended values can be used to help the user).
+    # (this means that any string value is accepted, but the recommended values can be used to help the user).
     recommended_values: list[str] | None = None
 
     # If an "enum" type, the accepted values should be provided.
     enum_values: list[str] | None = None
 
-    # If a "file" type, the relative path to the file
-    # (based on the agent root dir) should be provided.
+    # If a "file" type, the relative path to the file (based on the agent root dir) should be provided.
     relative_to: str | None = None
 
     def __post_init__(self) -> None:
@@ -102,20 +117,19 @@ class RootHasNoDataError(Exception):
 def load_spec(json_spec: dict[str, Any]) -> dict[str, Entry]:
     ret: dict[str, Entry] = {}
 
-    expected_type = "UNDEFINED"
-
     for path, value in json_spec.items():
         try:
-            expected_type = "<unknown>"
+            expected_type: dict | None | str = "<unknown>"
             assert isinstance(value, dict), (
                 f"Invalid spec: {path}. Expected a dictionary. Found {type(value)}"
             )
 
-            value = value.copy()  # noqa: PLW2901
+            value = value.copy()
             deprecated = value.pop("deprecated", False)
             required = value.pop("required", False)
             expected_type = value.pop("expected-type", None)
             description = value.pop("description", None)
+            value.pop("note", None)  # Used to add comments.
             if not description:
                 raise Exception(f"Invalid spec: {path}. Expected a description.")
 
@@ -149,10 +163,10 @@ def load_spec(json_spec: dict[str, Any]) -> dict[str, Entry]:
                 required=required,
                 deprecated=deprecated,
             )
-        except Exception as exc:
+        except Exception:
             raise Exception(
                 f"Invalid spec: {path}. Expected type {expected_type} is not a valid expected type."
-            ) from exc
+            )
     return ret
 
 
@@ -250,7 +264,7 @@ class TreeNode(Generic[T]):
 
     def __init__(self, name: str, parent: Optional["TreeNode[T]"] = None):
         self.name = name
-        self._children: dict[str, TreeNode[T]] = {}
+        self._children: dict[str, "TreeNode[T]"] = {}
         self._data: T | None = None
         if parent:
             self._parent = weakref.ref(parent)
@@ -353,9 +367,9 @@ class _YamlTreeNode(TreeNode[YamlNodeData]):  # Subclass is just for typing
 
 def _convert_flattened_to_nested(flattened: dict[str, Entry]) -> _SpecTreeNode:
     """
-    Converts a flattened dictionary of entries into a nested tree of _SpecTreeNode
-    objects(the idea is that we convert the flattened structure of the spec into a
-    tree which will be traversed to validate the yaml contents).
+    Converts a flattened dictionary of entries into a nested tree of _SpecTreeNode objects
+    (the idea is that we convert the flattened structure of the spec into a tree which
+    will be traversed to validate the yaml contents).
     """
     root = _SpecTreeNode("root")
     for path, entry in flattened.items():
@@ -366,7 +380,7 @@ def _convert_flattened_to_nested(flattened: dict[str, Entry]) -> _SpecTreeNode:
     return root
 
 
-class InvalidSpecError(Exception):
+class InvalidSpec(Exception):
     pass
 
 
@@ -384,11 +398,9 @@ def validate_from_spec(
     be done with tree-sitter (which may not catch syntax errors).
 
     Params:
-        spec_entries: The spec entries as a dictionary
-        (previously loaded from load_spec with the correct version).
+        spec_entries: The spec entries as a dictionary (previously loaded from load_spec with the correct version).
         yaml_spec_contents: The YAML agent spec contents as a string.
-        agent_root_dir: The root directory of the agent package
-        (contains the agent-spec.yaml file).
+        agent_root_dir: The root directory of the agent package (contains the agent-spec.yaml file).
 
     Raises:
         InvalidSpec: If the YAML agent spec is invalid.
@@ -399,13 +411,13 @@ def validate_from_spec(
     errors: tuple[Error, ...] = tuple(validator.validate(tree.root_node))
     if errors and raise_on_error:
         msg = "\n".join(e.message for e in errors)
-        raise InvalidSpecError(msg)
+        raise InvalidSpec(msg)
     return errors
 
 
 def tree_sitter_parse_yaml(yaml_spec_contents: str) -> "Tree":
-    import tree_sitter_yaml  # pyright: ignore[reportMissingImports]
-    from tree_sitter import Language, Parser  # pyright: ignore[reportMissingImports]
+    import tree_sitter_yaml
+    from tree_sitter import Language, Parser
 
     language = tree_sitter_yaml.language()
     parser = Parser(Language(language))
@@ -415,61 +427,27 @@ def tree_sitter_parse_yaml(yaml_spec_contents: str) -> "Tree":
 
 
 class Validator:
-    PRINT_YAML_TREE: bool = False
+    PRINT_YAML_TREE = False
 
     def __init__(self, spec_entries: dict[str, Entry], agent_root_dir: Path) -> None:
         """
         Params:
-            spec_entries: The spec entries as a dictionary.
-            Keys are the paths to the keys in the json spec.
+            spec_entries: The spec entries as a dictionary. Keys are the paths to the keys in the json spec.
                 i.e.: "agent-package/agents/name".
-            agent_root_dir: The root directory of the agent package
-            (contains the agent-spec.yaml file).
+            agent_root_dir: The root directory of the agent package (contains the agent-spec.yaml file).
         """
         self._spec_entries = spec_entries
         self._stack: list[str] = []
         self._current_stack_as_str = ""
         self._agent_root_dir = agent_root_dir
 
-        # During the validation, the yaml parse will be used to create a tree with the
-        # actual
-        # yaml content to be validated (the first pass is doing a validation of the
-        # nodes that exist
-        # in the yaml, while also creating the tree with the actual contents and the
-        # second pass is
-        # doing the actual validation from the spec checking that the nodes exist and
-        # have the correct info).
+        # During the validation, the yaml parse will be used to create a tree with the actual
+        # yaml content to be validated (the first pass is doing a validation of the nodes that exist
+        # in the yaml, while also creating the tree with the actual contents and the second pass is
+        # doing the actual validation from the spec checking that the nodes exist and have the correct info).
         self._yaml_info_loaded = _YamlTreeNode("root")
         self._yaml_cursor_node: _YamlTreeNode = self._yaml_info_loaded
-        self._action_packages_found_in_filesystem: dict[Path, ActionPackageInFilesystem] = {}
-
-    def _validate_key_pair(self, key_node: "Node", value_node: Optional["Node"]) -> Iterator[Error]:
-        entry = self._spec_entries.get(self._current_stack_as_str)
-        if not entry or not value_node:
-            parent_as_str = "<unknown>"
-            curr = "<unknown>"
-
-            if self._stack:
-                parent, curr = self._stack[:-1], self._stack[-1]
-                if parent:
-                    parent_as_str = "/".join(parent)
-                else:
-                    parent_as_str = "root"
-
-            if not entry:
-                yield Error(
-                    message=f"Unexpected entry: {curr} (in {parent_as_str}).",
-                    node=key_node,
-                )
-            else:
-                yield Error(
-                    message=f"Expected value for {self._current_stack_as_str}.",
-                    node=key_node,
-                )
-
-            return
-
-        # Ok, it's an expected key.
+        self._action_packages_found_in_filesystem: dict[Path, "ActionPackageInFilesystem"] = {}
 
     def _is_scalar_node(self, node: Optional["Node"]) -> bool:
         if node is None:
@@ -485,9 +463,7 @@ class Validator:
                             return True
         return False
 
-    def _validate_nodes_exist_and_build_yaml_info(  # noqa: PLR0912,C901
-        self, node: "Node"
-    ) -> Iterator[Error]:
+    def _validate_nodes_exist_and_build_yaml_info(self, node: "Node") -> Iterator[Error]:
         # level = len(self._stack)
         # print("  " * level, node.type, node.start_point.row)
         added_to_stack = False
@@ -535,7 +511,6 @@ class Validator:
                     key_name, YamlNodeData(node, kind=_YamlNodeKind.unhandled)
                 )
 
-                yield from self._validate_key_pair(key, value)
                 added_to_stack = True
                 default_visit_children = False
 
@@ -556,7 +531,7 @@ class Validator:
             assert parent is not None, "Expected parent to be loaded."
             self._yaml_cursor_node = parent
 
-    def _verify_yaml_matches_spec(  # noqa: PLR0915,PLR0912,C901
+    def _verify_yaml_matches_spec(
         self,
         spec_node: _SpecTreeNode,
         yaml_node: _YamlTreeNode | None,
@@ -583,195 +558,427 @@ class Validator:
                 yield Error(
                     message=f"Missing required entry: {spec_node.data.path}.",
                     node=data.node if data else None,
+                    code=ErrorCode.agent_package_incomplete,
                 )
 
         if yaml_node is None:
-            # Unable to proceed the validation for this node
-            # as the yaml info was not found.
+            # Unable to proceed the validation for this node as the yaml info was not found.
             return
+        else:
+            # print(
+            #     f"--- {spec_node.data.path} {spec_node.data.expected_type.expected_type} ---"
+            # )
+            # Ok, the node exists. Let's validate it.
+            if spec_node.data.deprecated:
+                yield Error(
+                    message=f"Deprecated: {spec_node.data.path!r}. {spec_node.data.description}.",
+                    node=yaml_node.data.node,
+                )
 
-        # Ok, the node exists. Let's validate it.
-        elif spec_node.data.deprecated:
-            yield Error(
-                message=f"Deprecated: {spec_node.data.path!r}. {spec_node.data.description}.",
-                node=yaml_node.data.node,
-            )
-
-        elif spec_node.data.expected_type.expected_type == _ExpectedTypeEnum.object:
-            for child in spec_node.children.values():
-                yield from self._verify_yaml_matches_spec(
-                    child, yaml_node.children.get(child.name), yaml_node
-                )
-        elif spec_node.data.expected_type.expected_type == _ExpectedTypeEnum.list:
-            if yaml_node.data.kind != _YamlNodeKind.list:
-                yield Error(
-                    message=f"Expected {spec_node.data.path} to be a list.",
-                    node=yaml_node.data.node,
-                )
-            else:
-                for list_item_node in yaml_node.children.values():
-                    for spec_child in spec_node.children.values():
-                        child_node = list_item_node.children.get(spec_child.name)
-                        yield from self._verify_yaml_matches_spec(spec_child, child_node, yaml_node)
-        elif spec_node.data.expected_type.expected_type == _ExpectedTypeEnum.string:
-            if yaml_node.data.kind != _YamlNodeKind.string:
-                yield Error(
-                    message=f"Expected {spec_node.data.path} to be a string "
-                    f"(found {yaml_node.data.kind.value}).",
-                    node=yaml_node.data.node,
-                )
-        elif spec_node.data.expected_type.expected_type in (
-            _ExpectedTypeEnum.action_package_version_link,
-            _ExpectedTypeEnum.action_package_name_link,
-        ):
-            if yaml_node.data.kind != _YamlNodeKind.string:
-                yield Error(
-                    message=f"Expected {spec_node.data.path} to be a string "
-                    f"(found {yaml_node.data.kind.value}).",
-                    node=yaml_node.data.node,
-                    code=ErrorCode.action_package_info_unsynchronized,
-                )
-            else:
-                package_info_in_filesystem: ActionPackageInFilesystem | None = (
-                    self._get_action_package_info(spec_node, yaml_node)
-                )
-                if package_info_in_filesystem is not None:
-                    if (
-                        spec_node.data.expected_type.expected_type
-                        == _ExpectedTypeEnum.action_package_version_link
-                    ):
-                        version_in_filesystem = package_info_in_filesystem.get_version()
-                        version_in_agent_package = self._get_value_text(yaml_node)
-                        if version_in_filesystem != version_in_agent_package:
-                            yield Error(
-                                message=f"Expected {spec_node.data.path} "
-                                f"to match the version in the action package"
-                                f" being referenced ('{version_in_filesystem}'). "
-                                f"Found in spec: '{version_in_agent_package}'",
-                                node=yaml_node.data.node,
-                                code=ErrorCode.action_package_info_unsynchronized,
-                            )
-                    elif (
-                        spec_node.data.expected_type.expected_type
-                        == _ExpectedTypeEnum.action_package_name_link
-                    ):
-                        name_in_filesystem = package_info_in_filesystem.get_name()
-                        name_in_agent_package = self._get_value_text(yaml_node)
-                        if name_in_filesystem != name_in_agent_package:
-                            yield Error(
-                                message=f"Expected {spec_node.data.path} "
-                                f"to match the name in the action package "
-                                f"being referenced ('{name_in_filesystem}'). "
-                                f"Found in spec: '{name_in_agent_package}'",
-                                node=yaml_node.data.node,
-                                code=ErrorCode.action_package_info_unsynchronized,
-                            )
-
-        elif spec_node.data.expected_type.expected_type == _ExpectedTypeEnum.int:
-            if yaml_node.data.kind != _YamlNodeKind.int:
-                yield Error(
-                    message=f"Expected {spec_node.data.path} to be an int "
-                    f"(found {yaml_node.data.kind.value}).",
-                    node=yaml_node.data.node,
-                )
-        elif spec_node.data.expected_type.expected_type == _ExpectedTypeEnum.float:
-            if yaml_node.data.kind not in (_YamlNodeKind.int, _YamlNodeKind.float):
-                yield Error(
-                    message=f"Expected {spec_node.data.path} to be a float "
-                    f"(found {yaml_node.data.kind.value}).",
-                    node=yaml_node.data.node,
-                )
-        elif spec_node.data.expected_type.expected_type == _ExpectedTypeEnum.bool:
-            if yaml_node.data.kind != _YamlNodeKind.bool:
-                yield Error(
-                    message=f"Expected {spec_node.data.path} to be a bool "
-                    f"(found {yaml_node.data.kind.value}).",
-                    node=yaml_node.data.node,
-                )
-        elif spec_node.data.expected_type.expected_type in (
-            _ExpectedTypeEnum.enum,
-            _ExpectedTypeEnum.zip_or_folder_based_on_path,
-        ):
-            if yaml_node.data.kind != _YamlNodeKind.string:
-                yield Error(
-                    message=f"Expected {spec_node.data.path} "
-                    f"to be a string "
-                    f"(found {yaml_node.data.kind.value}).",
-                    node=yaml_node.data.node,
-                )
-            value_node = yaml_node.data.node.child_by_field_name("value")
-            if value_node is None:
-                yield Error(
-                    message=f"Error while handling: {spec_node.data.path} .",
-                    node=yaml_node.data.node,
-                )
-            else:
-                yaml_node_text = (
-                    value_node.text.decode("utf8") if value_node.text is not None else ""
-                )
-                enum_values = spec_node.data.expected_type.enum_values or [
-                    "No enum values specified"
-                ]
-                if yaml_node_text not in enum_values:
+            elif spec_node.data.expected_type.expected_type == _ExpectedTypeEnum.object:
+                for child in spec_node.children.values():
+                    yield from self._verify_yaml_matches_spec(
+                        child, yaml_node.children.get(child.name), yaml_node
+                    )
+            elif spec_node.data.expected_type.expected_type == _ExpectedTypeEnum.list:
+                if yaml_node.data.kind != _YamlNodeKind.list:
                     yield Error(
-                        message=f"Expected {spec_node.data.path} "
-                        f"to be one of {enum_values} "
-                        f"(found {yaml_node_text!r}).",
+                        message=f"Expected {spec_node.data.path} to be a list.",
                         node=yaml_node.data.node,
                     )
+                else:
+                    for list_item_node in yaml_node.children.values():
+                        for spec_child in spec_node.children.values():
+                            child_node = list_item_node.children.get(spec_child.name)
+                            yield from self._verify_yaml_matches_spec(
+                                spec_child, child_node, yaml_node
+                            )
+            elif spec_node.data.expected_type.expected_type == _ExpectedTypeEnum.string:
+                if yaml_node.data.kind != _YamlNodeKind.string:
+                    yield Error(
+                        message=f"Expected {spec_node.data.path} to be a string (found {yaml_node.data.kind.value}).",
+                        node=yaml_node.data.node,
+                    )
+            elif (
+                spec_node.data.expected_type.expected_type == _ExpectedTypeEnum.agent_semver_version
+            ):
+                if yaml_node.data.kind != _YamlNodeKind.string:
+                    yield Error(
+                        message=f"Expected {spec_node.data.path} to be a string (found {yaml_node.data.kind.value}).",
+                        node=yaml_node.data.node,
+                    )
+                else:
+                    version = self._get_value_text(yaml_node)
+                    if version:
+                        # We're dealing with tree sitter, so, we may need to remove the quotes.
+                        if version.startswith('"') and version.endswith('"'):
+                            version = version[1:-1]
+                        if version.startswith("'") and version.endswith("'"):
+                            version = version[1:-1]
+                    if version and not is_valid_semver_version(version):
+                        yield Error(
+                            message=f"Expected {spec_node.data.path} to be a valid semantic version (found {version!r}).",
+                            node=yaml_node.data.node,
+                        )
+            elif (
+                spec_node.data.expected_type.expected_type == _ExpectedTypeEnum.mcp_server_transport
+            ):
+                # Must check that:
+                # - It's a string
+                # - It must be either 'streamable-http', 'sse' or 'stdio'
+                # - If it's 'streamable-http' or 'sse', the 'url' field must be defined.
+                # - If it's 'stdio', the 'command-line' field must be defined.
+                if yaml_node.data.kind != _YamlNodeKind.string:
+                    yield Error(
+                        message=f"Expected {spec_node.data.path} to be a string (found {yaml_node.data.kind.value}).",
+                        node=yaml_node.data.node,
+                    )
+                else:
+                    transport = self._get_value_text(yaml_node)
+                    if transport not in ["streamable-http", "sse", "stdio"]:
+                        yield Error(
+                            message=f"Expected {spec_node.data.path} to be one of ['streamable-http', 'sse', 'stdio'] (found {transport!r}).",
+                            node=yaml_node.data.node,
+                        )
+                    else:
+                        if transport in ("streamable-http", "sse"):
+                            if not yaml_node.parent or "url" not in yaml_node.parent.children:
+                                yield Error(
+                                    message=f"{spec_node.data.path}: When the transport is 'streamable-http' or 'sse', the url must be defined.",
+                                    node=yaml_node.data.node,
+                                )
+                        elif transport == "stdio":
+                            if (
+                                not yaml_node.parent
+                                or "command-line" not in yaml_node.parent.children
+                            ):
+                                yield Error(
+                                    message=f"{spec_node.data.path}: When the transport is 'stdio', the command-line must be defined.",
+                                    node=yaml_node.data.node,
+                                )
 
-                elif (
-                    spec_node.data.expected_type.expected_type
-                    == _ExpectedTypeEnum.zip_or_folder_based_on_path
-                ):
-                    # Additional validation based on the path
-                    # (to see if zip/folder matches what's in the spec).
-                    package_info_in_filesystem = self._get_action_package_info(spec_node, yaml_node)
-                    if package_info_in_filesystem is not None:
-                        is_zip_package = package_info_in_filesystem.is_zip()
-                        if is_zip_package:
-                            expected_type_from_filesystem = "zip"
-                        else:
-                            expected_type_from_filesystem = "folder"
+            elif spec_node.data.expected_type.expected_type == _ExpectedTypeEnum.mcp_server_url:
+                # Must check that:
+                # - It must be a string
+                # - The 'command-line' field is not defined (it's either 'command-line' or 'url').
+                # - If the `transport` field is defined, it must be one of the following: 'streamable-http' or 'sse'.
+                if yaml_node.data.kind != _YamlNodeKind.string:
+                    yield Error(
+                        message=f"Expected {spec_node.data.path} to be a string (found {yaml_node.data.kind.value}).",
+                        node=yaml_node.data.node,
+                    )
+                else:
+                    # Check that 'command-line' field is not defined (mutual exclusivity)
+                    if yaml_node.parent and "command-line" in yaml_node.parent.children:
+                        yield Error(
+                            message=f"Expected {spec_node.data.path} to be mutually exclusive with 'command-line' field.",
+                            node=yaml_node.data.node,
+                        )
 
-                        if yaml_node_text != expected_type_from_filesystem:
+                    # Check transport field if it exists
+                    if yaml_node.parent and "transport" in yaml_node.parent.children:
+                        transport_node = yaml_node.parent.children["transport"]
+                        transport_value = self._get_value_text(transport_node)
+                        if transport_value not in ["streamable-http", "sse"]:
                             yield Error(
-                                message=f"Expected {spec_node.data.path} "
-                                f"to match the type in the action package "
-                                f"being referenced "
-                                f"('{expected_type_from_filesystem}'). "
-                                f"Found in spec: '{yaml_node_text}'",
-                                node=yaml_node.data.node,
-                                code=ErrorCode.action_package_info_unsynchronized,
+                                message=f"Expected transport field to be one of ['streamable-http', 'sse'] when using 'url' field (found {transport_value!r}).",
+                                node=transport_node.data.node,
                             )
 
-        elif spec_node.data.expected_type.expected_type == _ExpectedTypeEnum.file:
-            if yaml_node.data.kind != _YamlNodeKind.string:
-                yield Error(
-                    message=f"Expected {spec_node.data.path} "
-                    f"to be a string "
-                    f"(found {yaml_node.data.kind.value}).",
-                    node=yaml_node.data.node,
-                )
+            elif spec_node.data.expected_type.expected_type == _ExpectedTypeEnum.mcp_server_headers:
+                # Must check that:
+                # - It must be an object
+                # - The 'url' field is also defined.
+                if yaml_node.data.kind != _YamlNodeKind.unhandled:
+                    yield Error(
+                        message=f"Expected {spec_node.data.path} to be an object (found {yaml_node.data.kind.value}).",
+                        node=yaml_node.data.node,
+                    )
+                else:
+                    # Check that 'url' field is also defined
+                    if not yaml_node.parent or "url" not in yaml_node.parent.children:
+                        yield Error(
+                            message=f"Expected {spec_node.data.path} to be used together with 'url' field.",
+                            node=yaml_node.data.node,
+                        )
+
+                    # Validate that all values are strings or objects (with the according type).
+                    for value in yaml_node.children.values():
+                        if value.data.kind == _YamlNodeKind.string:
+                            pass  # Ok, it's a string, no need of further validation
+
+                        elif value.data.kind != _YamlNodeKind.unhandled:
+                            yield Error(
+                                message=f"Expected all items in {spec_node.data.path} to be strings or objects (with a type). Found {value.data.kind.value}.",
+                                node=value.data.node,
+                            )
+                        else:
+                            for spec_child in spec_node.children.values():
+                                child_node = value.children.get(spec_child.name)
+                                if child_node:
+                                    yield from self._verify_yaml_matches_spec(
+                                        spec_child, child_node, yaml_node
+                                    )
+            elif (
+                spec_node.data.expected_type.expected_type
+                == _ExpectedTypeEnum.mcp_server_command_line
+            ):
+                # Must check that:
+                # - It must be a list of strings
+                # - The 'url' field is not defined (it's either 'command-line' or 'url').
+                # - If the `transport` field is defined, it must be 'stdio'.
+                if yaml_node.data.kind != _YamlNodeKind.list:
+                    yield Error(
+                        message=f"Expected {spec_node.data.path} to be a list (found {yaml_node.data.kind.value}).",
+                        node=yaml_node.data.node,
+                    )
+                else:
+                    # Check that 'url' field is not defined (mutual exclusivity)
+                    if yaml_node.parent and "url" in yaml_node.parent.children:
+                        yield Error(
+                            message=f"Expected {spec_node.data.path} to be mutually exclusive with 'url' field.",
+                            node=yaml_node.data.node,
+                        )
+
+                    # Check transport field if it exists
+                    if yaml_node.parent and "transport" in yaml_node.parent.children:
+                        transport_node = yaml_node.parent.children["transport"]
+                        transport_value = self._get_value_text(transport_node)
+                        if transport_value != "stdio":
+                            yield Error(
+                                message=f"Expected transport field to be 'stdio' when using 'command-line' field (found {transport_value!r}).",
+                                node=transport_node.data.node,
+                            )
+
+                    # Validate that all list items are strings
+                    for list_item_node in yaml_node.children.values():
+                        if list_item_node.data.kind != _YamlNodeKind.string:
+                            yield Error(
+                                message=f"Expected all items in {spec_node.data.path} to be strings.",
+                                node=list_item_node.data.node,
+                            )
+            elif spec_node.data.expected_type.expected_type == _ExpectedTypeEnum.mcp_server_env:
+                # Must check that:
+                # - It must be an object
+                # - The 'command-line' field is defined
+                if yaml_node.data.kind != _YamlNodeKind.unhandled:
+                    yield Error(
+                        message=f"Expected {spec_node.data.path} to be an object (found {yaml_node.data.kind.value}).",
+                        node=yaml_node.data.node,
+                    )
+                else:
+                    # Check that 'command-line' field is defined
+                    if not yaml_node.parent or "command-line" not in yaml_node.parent.children:
+                        yield Error(
+                            message=f"Expected {spec_node.data.path} to be used together with 'command-line' field.",
+                            node=yaml_node.data.node,
+                        )
+
+                    # Validate that all values are strings or objects (with the according type).
+                    for value in yaml_node.children.values():
+                        if value.data.kind == _YamlNodeKind.string:
+                            pass  # Ok, it's a string, no need of further validation
+
+                        elif value.data.kind != _YamlNodeKind.unhandled:
+                            yield Error(
+                                message=f"Expected all items in {spec_node.data.path} to be strings or objects (with a type). Found {value.data.kind.value}.",
+                                node=value.data.node,
+                            )
+                        else:
+                            for spec_child in spec_node.children.values():
+                                child_node = value.children.get(spec_child.name)
+                                if child_node:
+                                    yield from self._verify_yaml_matches_spec(
+                                        spec_child, child_node, yaml_node
+                                    )
+
+            elif spec_node.data.expected_type.expected_type == _ExpectedTypeEnum.mcp_server_cwd:
+                # Must check that:
+                # - It must be a string
+                # - The 'command-line' field is defined
+                # - The path it points to exists (either relative to the agent root or absolute)
+                if yaml_node.data.kind != _YamlNodeKind.string:
+                    yield Error(
+                        message=f"Expected {spec_node.data.path} to be a string (found {yaml_node.data.kind.value}).",
+                        node=yaml_node.data.node,
+                    )
+                else:
+                    # Check that 'command-line' field is defined
+                    if not yaml_node.parent or "command-line" not in yaml_node.parent.children:
+                        yield Error(
+                            message=f"Expected {spec_node.data.path} to be used together with 'command-line' field.",
+                            node=yaml_node.data.node,
+                        )
+
+                    # Check that the path exists
+                    cwd_value = self._get_value_text(yaml_node)
+                    if cwd_value:
+                        # Try as absolute path first
+                        cwd_path = Path(cwd_value)
+                        if not cwd_path.is_absolute():
+                            # Try as relative to agent root
+                            cwd_path = self._agent_root_dir / cwd_value
+
+                        if not cwd_path.exists():
+                            yield Error(
+                                message=f"Expected {spec_node.data.path} to point to an existing directory (found {cwd_value!r}).",
+                                node=yaml_node.data.node,
+                            )
+                        elif not cwd_path.is_dir():
+                            yield Error(
+                                message=f"Expected {spec_node.data.path} to point to a directory, not a file (found {cwd_value!r}).",
+                                node=yaml_node.data.node,
+                            )
+
+            elif spec_node.data.expected_type.expected_type in (
+                _ExpectedTypeEnum.action_package_version_link,
+                _ExpectedTypeEnum.action_package_name_link,
+            ):
+                if yaml_node.data.kind != _YamlNodeKind.string:
+                    yield Error(
+                        message=f"Expected {spec_node.data.path} to be a string (found {yaml_node.data.kind.value}).",
+                        node=yaml_node.data.node,
+                        code=ErrorCode.action_package_info_unsynchronized,
+                    )
+                else:
+                    package_info_in_filesystem: Optional["ActionPackageInFilesystem"] = (
+                        self._get_action_package_info(spec_node, yaml_node)
+                    )
+                    if package_info_in_filesystem is not None:
+                        if (
+                            spec_node.data.expected_type.expected_type
+                            == _ExpectedTypeEnum.action_package_version_link
+                        ):
+                            version_in_filesystem = (
+                                package_info_in_filesystem.get_version()
+                                or "Unable to get version from package.yaml"
+                            )
+                            version_in_agent_package = self._get_value_text(yaml_node)
+                            if version_in_filesystem != version_in_agent_package:
+                                yield Error(
+                                    message=f"Expected {spec_node.data.path} to match the version in the action package being referenced ('{version_in_filesystem}'). Found in spec: '{version_in_agent_package}'",
+                                    node=yaml_node.data.node,
+                                    code=ErrorCode.action_package_info_unsynchronized,
+                                )
+                        elif (
+                            spec_node.data.expected_type.expected_type
+                            == _ExpectedTypeEnum.action_package_name_link
+                        ):
+                            name_in_filesystem = (
+                                package_info_in_filesystem.get_name()
+                                or "Unable to get name from package.yaml"
+                            )
+                            name_in_agent_package = self._get_value_text(yaml_node)
+                            if name_in_filesystem != name_in_agent_package:
+                                yield Error(
+                                    message=f"Expected {spec_node.data.path} to match the name in the action package being referenced ('{name_in_filesystem}'). Found in spec: '{name_in_agent_package}'",
+                                    node=yaml_node.data.node,
+                                    code=ErrorCode.action_package_info_unsynchronized,
+                                )
+
+            elif spec_node.data.expected_type.expected_type == _ExpectedTypeEnum.int:
+                if yaml_node.data.kind != _YamlNodeKind.int:
+                    yield Error(
+                        message=f"Expected {spec_node.data.path} to be an int (found {yaml_node.data.kind.value}).",
+                        node=yaml_node.data.node,
+                    )
+            elif spec_node.data.expected_type.expected_type == _ExpectedTypeEnum.float:
+                if yaml_node.data.kind not in (_YamlNodeKind.int, _YamlNodeKind.float):
+                    yield Error(
+                        message=f"Expected {spec_node.data.path} to be a float (found {yaml_node.data.kind.value}).",
+                        node=yaml_node.data.node,
+                    )
+            elif spec_node.data.expected_type.expected_type == _ExpectedTypeEnum.bool:
+                if yaml_node.data.kind != _YamlNodeKind.bool:
+                    yield Error(
+                        message=f"Expected {spec_node.data.path} to be a bool (found {yaml_node.data.kind.value}).",
+                        node=yaml_node.data.node,
+                    )
+            elif spec_node.data.expected_type.expected_type in (
+                _ExpectedTypeEnum.enum,
+                _ExpectedTypeEnum.zip_or_folder_based_on_path,
+            ):
+                if yaml_node.data.kind != _YamlNodeKind.string:
+                    yield Error(
+                        message=f"Expected {spec_node.data.path} to be a string (found {yaml_node.data.kind.value}).",
+                        node=yaml_node.data.node,
+                    )
+                value_node = yaml_node.data.node.child_by_field_name("value")
+                if value_node is None:
+                    yield Error(
+                        message=f"Error while handling: {spec_node.data.path} .",
+                        node=yaml_node.data.node,
+                    )
+                else:
+                    yaml_node_text = (
+                        value_node.text.decode("utf8") if value_node.text is not None else ""
+                    )
+                    enum_values = spec_node.data.expected_type.enum_values or [
+                        "No enum values specified"
+                    ]
+                    if yaml_node_text not in enum_values:
+                        yield Error(
+                            message=f"Expected {spec_node.data.path} to be one of {enum_values} (found {yaml_node_text!r}).",
+                            node=yaml_node.data.node,
+                        )
+
+                    elif (
+                        spec_node.data.expected_type.expected_type
+                        == _ExpectedTypeEnum.zip_or_folder_based_on_path
+                    ):
+                        # Additional validation based on the path (to see if zip/folder matches what's in the spec).
+                        package_info_in_filesystem = self._get_action_package_info(
+                            spec_node, yaml_node
+                        )
+                        if package_info_in_filesystem is not None:
+                            is_zip_package = package_info_in_filesystem.is_zip()
+                            if is_zip_package:
+                                expected_type_from_filesystem = "zip"
+                            else:
+                                expected_type_from_filesystem = "folder"
+
+                            if yaml_node_text != expected_type_from_filesystem:
+                                yield Error(
+                                    message=f"Expected {spec_node.data.path} to match the type in the action package being referenced ('{expected_type_from_filesystem}'). Found in spec: '{yaml_node_text}'",
+                                    node=yaml_node.data.node,
+                                    code=ErrorCode.action_package_info_unsynchronized,
+                                )
+
+                            # In VSCode we can only analyze the agent when it's unzipped.
+                            if expected_type_from_filesystem == "zip":
+                                yield Error(
+                                    message="The 'zip' mode is only supported inside a .zip distribution. When unzipped, action packages must NOT be zipped! -- "
+                                    "maybe it was just unzipped instead of using the `Import Agent Package` to import the agent into VSCode?",
+                                    node=yaml_node.data.node,
+                                    severity=Severity.critical,
+                                    code=ErrorCode.zipped_action_inside_unzipped_agent,
+                                )
+
+            elif spec_node.data.expected_type.expected_type == _ExpectedTypeEnum.file:
+                if yaml_node.data.kind != _YamlNodeKind.string:
+                    yield Error(
+                        message=f"Expected {spec_node.data.path} to be a string (found {yaml_node.data.kind.value}).",
+                        node=yaml_node.data.node,
+                    )
+                else:
+                    relative_to: str | None = spec_node.data.expected_type.relative_to
+                    assert relative_to, f"Expected relative_to to be set in {spec_node.data.path}"
+
+                    error_or_path = self._get_node_value_points_to_path(
+                        spec_node.data.path, yaml_node, relative_to
+                    )
+                    if isinstance(error_or_path, Error):
+                        yield error_or_path
+
             else:
-                relative_to: str | None = spec_node.data.expected_type.relative_to
-                assert relative_to, f"Expected relative_to to be set in {spec_node.data.path}"
-
-                error_or_path = self._get_node_value_points_to_path(
-                    spec_node.data.path, yaml_node, relative_to
+                raise Exception(
+                    f"Unexpected expected type: {spec_node.data.expected_type.expected_type}"
                 )
-                if isinstance(error_or_path, Error):
-                    yield error_or_path
-
-        else:
-            raise Exception(
-                f"Unexpected expected type: {spec_node.data.expected_type.expected_type}"
-            )
 
     def _get_action_package_info(
         self, spec_node, yaml_node
     ) -> Optional["ActionPackageInFilesystem"]:
-        p = spec_node.data.path.split("/")[:-1] + ["path"]
+        p: str = "/".join(spec_node.data.path.split("/")[:-1] + ["path"])
         path_yaml_node = yaml_node.parent.children.get("path")
         error_or_path = self._get_node_value_points_to_path(p, path_yaml_node, "actions")
         if not isinstance(error_or_path, Path):
@@ -779,7 +986,7 @@ class Validator:
             return None
 
         if error_or_path.is_dir():
-            found_in_filesystem: ActionPackageInFilesystem | None = (
+            found_in_filesystem: "ActionPackageInFilesystem" | None = (
                 self._action_packages_found_in_filesystem.get(error_or_path / "package.yaml")
             )
 
@@ -802,33 +1009,32 @@ class Validator:
                 message=f"Error while handling: {spec_path_for_error_msg} .",
                 node=yaml_node.data.node,
             )
-        elif "\\" in value_text:
-            return Error(
-                message=f"{spec_path_for_error_msg} may not contain `\\` characters.",
-                node=yaml_node.data.node,
-            )
         else:
-            if not relative_to.startswith("."):
-                relative_to = "./" + relative_to
-
-            p = (self._agent_root_dir / relative_to / value_text).absolute()
-
-            path_exists: bool = p.exists()
-
-            if not path_exists:
-                if relative_to.startswith("./"):
-                    relative_to = relative_to[2:]
-                if relative_to == "./":
-                    relative_to = "dir('agent-spec.yaml')"
-                else:
-                    relative_to = f"dir('agent-spec.yaml')/{relative_to}"
+            if "\\" in value_text:
                 return Error(
-                    message=f"Expected {spec_path_for_error_msg} "
-                    f"to map to a file named {value_text!r} "
-                    f"relative to {relative_to!r}.",
+                    message=f"{spec_path_for_error_msg} may not contain `\\` characters.",
                     node=yaml_node.data.node,
                 )
-            return p
+            else:
+                if not relative_to.startswith("."):
+                    relative_to = "./" + relative_to
+
+                p = (self._agent_root_dir / relative_to / value_text).absolute()
+
+                path_exists: bool = p.exists()
+
+                if not path_exists:
+                    if relative_to.startswith("./"):
+                        relative_to = relative_to[2:]
+                    if relative_to == "./":
+                        relative_to = "dir('agent-spec.yaml')"
+                    else:
+                        relative_to = f"dir('agent-spec.yaml')/{relative_to}"
+                    return Error(
+                        message=f"Expected {spec_path_for_error_msg} to map to a file named {value_text!r} relative to {relative_to!r}.",
+                        node=yaml_node.data.node,
+                    )
+                return p
 
     def _get_value_text(self, node: _YamlTreeNode) -> str | None:
         value_node = node.data.node.child_by_field_name("value")
@@ -870,12 +1076,10 @@ class Validator:
         for action_package_in_filesystem in self._action_packages_found_in_filesystem.values():
             if not action_package_in_filesystem.referenced_from_agent_spec:
                 yield Error(
-                    message=f"Action Package path not referenced in the "
-                    f"`agent-spec.yaml`: "
-                    f"'{action_package_in_filesystem.relative_path}'.",
-                    node=(
-                        report_error_at_node.data.node if report_error_at_node is not None else None
-                    ),
+                    message=f"Action Package path not referenced in the `agent-spec.yaml`: '{action_package_in_filesystem.relative_path}'.",
+                    node=report_error_at_node.data.node
+                    if report_error_at_node is not None
+                    else None,
                     code=ErrorCode.action_package_info_unsynchronized,
                     severity=Severity.warning,
                 )

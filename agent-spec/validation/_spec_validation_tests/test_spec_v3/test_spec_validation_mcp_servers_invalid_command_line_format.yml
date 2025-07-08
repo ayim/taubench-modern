@@ -1,0 +1,2 @@
+- Expected agent-package/agents/mcp-servers/command-line to be a list (found string).
+- Expected all items in agent-package/agents/mcp-servers/command-line to be strings.

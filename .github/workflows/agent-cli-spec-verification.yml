@@ -52,3 +52,7 @@ jobs:
       - name: Run pytest
         run: |
           uv run python -m pytest -rfE -vv -n auto .
+
+      - name: Typecheck with mypy
+        run: uv run mypy .
+        if: always()

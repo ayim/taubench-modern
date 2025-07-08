@@ -1,0 +1,2 @@
+- Expected agent-package/agents/conversation-guide to map to a file named '"not-a-file"'
+  relative to "dir('agent-spec.yaml')/".

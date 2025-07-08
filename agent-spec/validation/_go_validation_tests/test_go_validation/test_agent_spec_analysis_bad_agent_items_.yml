@@ -8,13 +8,3 @@
       line: 2
   severity: 1
   source: sema4ai
-- message: 'Unexpected entry: no-reasoning (in agent-package/agents).'
-  range:
-    end:
-      character: 0
-      line: 13
-    start:
-      character: 6
-      line: 12
-  severity: 1
-  source: sema4ai

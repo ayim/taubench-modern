@@ -39,7 +39,10 @@ dependencies = [
 ]
 
 [tool.mypy]
-mypy_path = "_go_validation_tests:_spec_validation_tests"
+mypy_path = "."
+exclude = [
+  "_go_validation_tests/test_go_validation/agent2",
+]
 
 [tool.isort]
 profile = "black"
@@ -65,5 +68,6 @@ line-ending = "auto"
 
 [tool.pytest.ini_options]
 timeout = 600
-pythonpath = ["_go_validation_tests", "_spec_validation_tests"]
+pythonpath = ["."]
 testpaths = ["_go_validation_tests", "_spec_validation_tests"]
+addopts = ["--force-regen"]

@@ -1,0 +1,58 @@
+agent-package:
+  spec-version: v3
+  agents:
+    - name: Control Room Smoke Test
+      description: This agent puts your Control Room setup in to test. It contains all
+        aspects of an agent, allowing you to validate that your setup is ready for the
+        prime time!
+      model:
+        provider: OpenAI
+        name: gpt-4o
+      version: 0.0.1
+      architecture: plan_execute
+      reasoning: enabled
+      runbook: runbook.md
+      action-packages:
+        - name: Control Room Test
+          organization: MyActions
+          type: folder
+          version: 0.0.1
+          whitelist: get_time_now
+          path: MyActions/control-room-test/0.0.1
+      knowledge:
+        - name: molkky-game-rules.pdf
+          embedded: true
+          digest: 4fab7e5b454977f5c8b557000ac55e32e13f7bfe923aaf83f41b1a97ca56b915
+      mcp-servers:
+        - name: local-mcp-server
+          transport: stdio
+          description: Local MCP server for file system operations
+          command-line: ['uv', 'run', 'python', '-m', 'mcp_server']
+          env:
+            MCP_API_KEY:
+              type: secret
+              description: API key for authentication
+          cwd: ./mcp-servers/local-server
+          force-serial-tool-calls: false
+        - name: remote-http-server
+          transport: streamable-http
+          description: Remote MCP server accessible via HTTP
+          url: http://localhost:8000
+          headers:
+            Authorization:
+              type: oauth2-secret
+              description: Your OAuth2 API key for authentication
+              provider: Microsoft
+              scopes:
+                - user.read
+                - user.write
+            User-specified:
+              type: secret
+              description: Some secret to be specified by the user
+            Content-Type: application/json # It can be a value directly
+          force-serial-tool-calls: true
+      metadata:
+        mode: worker
+        worker-config:
+          type: Document Intelligence
+          document-type: Invoice Reconciliation

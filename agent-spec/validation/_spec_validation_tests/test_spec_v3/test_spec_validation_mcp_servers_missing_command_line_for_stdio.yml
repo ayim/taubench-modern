@@ -1,0 +1,2 @@
+- 'agent-package/agents/mcp-servers/transport: When the transport is ''stdio'', the
+  command-line must be defined.'

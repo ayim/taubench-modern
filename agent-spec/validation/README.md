@@ -15,5 +15,5 @@ and the examples in the repo actually match the spec.
 
 ## Change in agent-spec content
 
-1. Update the spec JSON change to [agent-package-specification-v2.json](../docs/v2/agent-package-specification-v2.json) and [validatespecv2.go](../cli/cmd/validatespecv2.go)
+1. Update the spec JSON change to [agent-package-specification-v3.json](../docs/v3/agent-package-specification-v3.json) and [validatespecv3.go](../cli/cmd/validatespecv3.go)
 2. Run `pytest --force-regen` to regenerate templates

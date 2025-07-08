@@ -20,6 +20,13 @@ const (
 	ExpectedTypeEnumActionPackageVersionLink ExpectedTypeEnum = "action_package_version_link"
 	ExpectedTypeEnumActionPackageNameLink    ExpectedTypeEnum = "action_package_name_link"
 	ExpectedTypeEnumZipOrFolderBasedOnPath   ExpectedTypeEnum = "zip_or_folder_based_on_path"
+	ExpectedTypeEnumAgentSemverVersion       ExpectedTypeEnum = "agent_semver_version"
+	ExpectedTypeEnumMcpServerUrl             ExpectedTypeEnum = "mcp_server_url"
+	ExpectedTypeEnumMcpServerTransport       ExpectedTypeEnum = "mcp_server_transport"
+	ExpectedTypeEnumMcpServerCommandLine     ExpectedTypeEnum = "mcp_server_command_line"
+	ExpectedTypeEnumMcpServerCwd             ExpectedTypeEnum = "mcp_server_cwd"
+	ExpectedTypeEnumMcpServerEnv             ExpectedTypeEnum = "mcp_server_env"
+	ExpectedTypeEnumMcpServerHeaders         ExpectedTypeEnum = "mcp_server_headers"
 )
 
 func isValidExpectedTypeEnum(et ExpectedTypeEnum) bool {
@@ -35,7 +42,14 @@ func isValidExpectedTypeEnum(et ExpectedTypeEnum) bool {
 		ExpectedTypeEnumNOT_SET,
 		ExpectedTypeEnumActionPackageVersionLink,
 		ExpectedTypeEnumActionPackageNameLink,
-		ExpectedTypeEnumZipOrFolderBasedOnPath:
+		ExpectedTypeEnumZipOrFolderBasedOnPath,
+		ExpectedTypeEnumAgentSemverVersion,
+		ExpectedTypeEnumMcpServerUrl,
+		ExpectedTypeEnumMcpServerTransport,
+		ExpectedTypeEnumMcpServerCommandLine,
+		ExpectedTypeEnumMcpServerCwd,
+		ExpectedTypeEnumMcpServerEnv,
+		ExpectedTypeEnumMcpServerHeaders:
 		return true
 	default:
 		return false
@@ -180,6 +194,12 @@ func LoadSpec(jsonSpec map[string]interface{}) (map[string]*Entry, error) {
 		descriptionStr, ok := descriptionVal.(string)
 		if !ok || descriptionStr == "" {
 			return nil, fmt.Errorf("invalid spec: %s. Expected a description", path)
+		}
+
+		// Remove note if it exists.
+		_, ok = valueCopy["note"]
+		if ok {
+			delete(valueCopy, "note")
 		}
 
 		var recommendedValues []string

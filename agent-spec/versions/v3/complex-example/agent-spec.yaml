@@ -1,0 +1,91 @@
+agent-package:
+  spec-version: v3
+  agents:
+    - name: Test Agent
+      description: Test Agent for tooling. Multiple actions, custom and Sema4.ai, multiple knowledge files, reasoning enabled
+      model:
+        provider: Azure
+        name: ''
+      version: 0.0.1
+      architecture: agent
+      reasoning: enabled
+      runbook: runbook.md
+      action-packages:
+        - name: Wayback Machine
+          organization: Sema4.ai
+          type: folder
+          version: 1.0.0
+          whitelist: get_wayback_changes,get_wayback_snapshots
+          path: Sema4.ai/wayback-machine
+        - name: Free Web Search
+          organization: Sema4.ai
+          type: folder
+          version: 1.0.0
+          whitelist: web_search_places,web_search_news,web_search_images,web_search_videos,web_search_text
+          path: Sema4.ai/free-web-search
+        - name: Simple Greeter
+          organization: MyActions
+          type: folder
+          version: 0.0.1
+          whitelist: greet
+          path: MyActions/simple-greeter
+        - name: Wikipedia Summary
+          organization: MyActions
+          type: folder
+          version: 0.0.1
+          whitelist: get_wikipedia_article_summary
+          path: MyActions/wikipedia-summary
+      knowledge:
+        - name: zzz-knowledge-file.pdf
+          embedded: true
+          digest: 54d1f96849d76467347d06fb1f008fb920408a643f3beaf4892c4a9688ffb74a
+        - name: zzz-knowledge-file.txt
+          embedded: true
+          digest: 9eb3e170fc7cb38f56cde637dce6c0d268caadf782563540ddb20e427949739c
+      mcp-servers:
+        - name: file-system-server
+          transport: stdio
+          description: MCP server for file system operations and file management
+          command-line: ['uv', 'run', 'python', '-m', 'mcp_file_system']
+          env:
+            FILE_SYSTEM_ROOT:
+              type: string
+              description: The root directory of the file system
+              default: /data
+            MCP_API_KEY:
+              type: secret
+              description: Your API key for authentication
+          cwd: ./mcp-servers/file-system
+          force-serial-tool-calls: false
+        - name: database-server
+          transport: streamable-http
+          description: MCP server for database operations and queries
+          url: http://localhost:8080/mcp
+          headers:
+            Authorization:
+              type: oauth2-secret
+              description: Your OAuth2 API key for authentication
+              provider: Microsoft
+              scopes:
+                - user.read
+                - user.write
+            X-API-Version:
+              type: string
+              description: API version header
+              default: '1.0.0'
+          force-serial-tool-calls: true
+        - name: realtime-server
+          transport: sse
+          description: MCP server for real-time data streaming and notifications
+          url: http://localhost:9000/sse
+          headers:
+            Authorization:
+              type: oauth2-secret
+              description: Your OAuth2 API key for authentication
+              provider: Microsoft
+              scopes:
+                - user.read
+                - user.write
+          force-serial-tool-calls: false
+      metadata:
+        mode: conversational

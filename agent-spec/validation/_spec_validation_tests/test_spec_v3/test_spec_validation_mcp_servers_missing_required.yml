@@ -1,0 +1,3 @@
+- 'Missing required entry: agent-package/agents/mcp-servers/name.'
+- 'agent-package/agents/mcp-servers/transport: When the transport is ''stdio'', the
+  command-line must be defined.'

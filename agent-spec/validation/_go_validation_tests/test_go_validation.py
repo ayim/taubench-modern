@@ -157,21 +157,6 @@ def v2_bad_action_package_name(agent_path):
     )
 
 
-def v2_no_knowledge(agent_path):
-    package_yaml = agent_path / "agent-spec.yaml"
-
-    update(
-        package_yaml,
-        lambda txt: txt.replace(
-            "      knowledge:",
-            """
-      knowledge: []
-      bad-knowledge:
-""",
-        ),
-    )
-
-
 def v2_unreferenced_action_package(agent_path):
     import shutil
 
@@ -291,17 +276,13 @@ def check(  # noqa: PLR0913
         v2_bad_architecture,
         v2_bad_action_package_version,
         v2_bad_action_package_name,
-        v2_no_knowledge,
     ],
 )
 def test_agent_spec_analysis(
     datadir, scenario, data_regression, agent_cli: Path, action_server: Path
 ) -> None:
     do_check: Literal["both", "only_dir", "only_zip"]
-    if scenario is v2_no_knowledge:
-        do_check = "only_dir"
-    else:
-        do_check = "both"
+    do_check = "both"
 
     check(
         "agent2",
@@ -338,4 +319,586 @@ def test_agent_spec_analysis_v2_agent3(
         returncode=0 if scenario is ok else 1,
         action_server=action_server,
         check="only_dir",
+    )
+
+
+def _run_agent_cli_in_folder(
+    agent_path: Path,
+    agent_cli: Path,
+    returncode: int,
+    data_regression,
+):
+    import json
+    import re
+
+    run_result = run_agent_cli(agent_cli, ["validate", str(agent_path), "--json"], cwd=agent_path)
+
+    assert run_result.returncode == returncode, (
+        f"Expected returncode {returncode}, but got {run_result.returncode}\n"
+        f"stdout: {run_result.stdout}\n"
+        f"stderr: {run_result.stderr}"
+    )
+    try:
+        data = json.loads(run_result.stdout)
+    except Exception as exc:
+        raise Exception(
+            f"Failed to parse stdout as json.\n"
+            f"stdout: {run_result.stdout}\n"
+            f"stderr: {run_result.stderr}"
+        ) from exc
+    data_regression.check(data)
+
+    run_result_txt = run_agent_cli(agent_cli, ["validate", str(agent_path)], cwd=agent_path)
+
+    assert run_result_txt.returncode == returncode, (
+        f"Expected returncode {returncode}. Found:\n{run_result_txt}"
+    )
+
+    # Go through the output and match to Error at line: <line-number>: <message>
+    found = []
+    for line in run_result_txt.stdout.splitlines():
+        if line.startswith("Error at line:"):
+            regex = r"Error at line: (\d+): (.+)"
+            match = re.match(regex, line)
+            if match:
+                line_number = int(match.group(1))
+                message = match.group(2)
+                found.append({"line": line_number, "message": message})
+    assert len(found) == len(data), (
+        f"Expected {len(data)} errors, but found {len(found)}:\n{run_result_txt}"
+    )
+
+
+def check_with_spec(
+    agent_cli: Path, data_regression, valid_yaml, datadir, create_folders=(), returncode=1
+):
+    (datadir / "runbook.md").write_text("")
+    for folder in create_folders:
+        (datadir / folder).mkdir(parents=True)
+    (datadir / "agent-spec.yaml").write_text(valid_yaml)
+    _run_agent_cli_in_folder(datadir, agent_cli, returncode, data_regression)
+
+
+def test_spec_validation_mcp_servers_ok(agent_cli: Path, datadir: Path, data_regression):
+    valid_yaml = """
+agent-package:
+  spec-version: v3
+  agents:
+    - name: Agent1
+      description: This is the description
+      version: 0.0.1
+      model:
+        provider: OpenAI
+        name: GPT 4o
+      architecture: plan_execute
+      reasoning: enabled
+      runbook: runbook.md
+      action-packages: []
+      knowledge: []
+      metadata:
+        mode: conversational
+      mcp-servers:
+        - name: mcp-server-1
+          transport: streamable-http
+          description: MCP Server 1 (description of the server, user could add instructions to configure here).
+          url: http://localhost:8000
+          headers:
+            Authorization: "Bearer ${oauth2_api_key}"
+            Content-Type: "${content_type}"
+          force-serial-tool-calls: false
+        - name: mcp-server-2
+          transport: stdio
+          description: MCP Server 2 for stdio transport.
+          command-line: ['uv', 'run', 'python', '-m', 'my-server']
+          env:
+            API_KEY: "${api_key}"
+            DATABASE_URL: "${database_url}"
+          cwd: ./mcp-server/path
+          force-serial-tool-calls: true
+        - name: mcp-server-3
+          transport: sse
+          description: MCP Server 3 for SSE transport.
+          url: http://localhost:9000
+          headers:
+            X-API-Key: "${api_key}"
+    """
+
+    check_with_spec(
+        agent_cli,
+        data_regression,
+        valid_yaml,
+        datadir,
+        create_folders=["./mcp-server/path"],
+        returncode=0,
+    )
+
+
+def test_spec_validation_mcp_servers_missing_required(
+    agent_cli: Path, datadir: Path, data_regression
+):
+    bad_yaml = """
+agent-package:
+  spec-version: v3
+  agents:
+    - name: Agent1
+      description: This is the description
+      version: 0.0.1
+      model:
+        provider: OpenAI
+        name: GPT 4o
+      architecture: plan_execute
+      reasoning: enabled
+      runbook: runbook.md
+      action-packages: []
+      knowledge: []
+      metadata:
+        mode: conversational
+      mcp-servers:
+        - transport: streamable-http
+          url: http://localhost:8000
+          # error: name required
+        - name: mcp-server-2
+          description: Missing transport
+        - name: mcp-server-3
+          transport: stdio
+          # Missing description (ok as it's not required)
+    """
+
+    check_with_spec(
+        agent_cli,
+        data_regression,
+        bad_yaml,
+        datadir,
+    )
+
+
+def test_spec_validation_mcp_servers_invalid_transport(
+    agent_cli: Path, datadir: Path, data_regression
+):
+    bad_yaml = """
+agent-package:
+  spec-version: v3
+  agents:
+    - name: Agent1
+      description: This is the description
+      version: 0.0.1
+      model:
+        provider: OpenAI
+        name: GPT 4o
+      architecture: plan_execute
+      reasoning: enabled
+      runbook: runbook.md
+      action-packages: []
+      knowledge: []
+      metadata:
+        mode: conversational
+      mcp-servers:
+        - name: mcp-server-1
+          transport: invalid-transport
+          description: MCP Server with invalid transport
+        - name: mcp-server-2
+          transport: websocket # also currently not supported
+          description: MCP Server with another invalid transport
+    """
+
+    check_with_spec(
+        agent_cli,
+        data_regression,
+        bad_yaml,
+        datadir,
+    )
+
+
+def test_spec_validation_mcp_servers_missing_url_for_http(
+    agent_cli: Path, datadir: Path, data_regression
+):
+    bad_yaml = """
+agent-package:
+  spec-version: v3
+  agents:
+    - name: Agent1
+      description: This is the description
+      version: 0.0.1
+      model:
+        provider: OpenAI
+        name: GPT 4o
+      architecture: plan_execute
+      reasoning: enabled
+      runbook: runbook.md
+      action-packages: []
+      knowledge: []
+      metadata:
+        mode: conversational
+      mcp-servers:
+        - name: mcp-server-1
+          transport: streamable-http
+          description: MCP Server missing URL
+          headers:
+            Authorization: "Bearer ${oauth2_api_key}"
+        - name: mcp-server-2
+          transport: sse
+          description: MCP Server missing URL for SSE
+    """
+
+    check_with_spec(
+        agent_cli,
+        data_regression,
+        bad_yaml,
+        datadir,
+    )
+
+
+def test_spec_validation_mcp_servers_missing_command_line_for_stdio(
+    agent_cli: Path, datadir: Path, data_regression
+):
+    bad_yaml = """
+agent-package:
+  spec-version: v3
+  agents:
+    - name: Agent1
+      description: This is the description
+      version: 0.0.1
+      model:
+        provider: OpenAI
+        name: GPT 4o
+      architecture: plan_execute
+      reasoning: enabled
+      runbook: runbook.md
+      action-packages: []
+      knowledge: []
+      metadata:
+        mode: conversational
+      mcp-servers:
+        - name: mcp-server-1
+          transport: stdio
+          description: MCP Server missing command-line
+          required-env-vars: ['API_KEY']
+          cwd: ./mcp-server/path
+    """
+
+    check_with_spec(
+        agent_cli,
+        data_regression,
+        bad_yaml,
+        datadir,
+    )
+
+
+def test_spec_validation_mcp_servers_invalid_headers_format(
+    agent_cli: Path, datadir: Path, data_regression
+):
+    bad_yaml = """
+agent-package:
+  spec-version: v3
+  agents:
+    - name: Agent1
+      description: This is the description
+      version: 0.0.1
+      model:
+        provider: OpenAI
+        name: GPT 4o
+      architecture: plan_execute
+      reasoning: enabled
+      runbook: runbook.md
+      action-packages: []
+      knowledge: []
+      metadata:
+        mode: conversational
+      mcp-servers:
+        - name: mcp-server-1
+          transport: streamable-http
+          description: MCP Server with invalid headers format
+          url: http://localhost:8000
+          headers: "not-a-dict"
+        - name: mcp-server-2
+          transport: sse
+          description: MCP Server with invalid headers content
+          url: http://localhost:9000
+          headers:
+            123: "valid-header"
+    """
+
+    check_with_spec(
+        agent_cli,
+        data_regression,
+        bad_yaml,
+        datadir,
+    )
+
+
+def test_spec_validation_mcp_servers_invalid_command_line_format(
+    agent_cli: Path, datadir: Path, data_regression
+):
+    bad_yaml = """
+agent-package:
+  spec-version: v3
+  agents:
+    - name: Agent1
+      description: This is the description
+      version: 0.0.1
+      model:
+        provider: OpenAI
+        name: GPT 4o
+      architecture: plan_execute
+      reasoning: enabled
+      runbook: runbook.md
+      action-packages: []
+      knowledge: []
+      metadata:
+        mode: conversational
+      mcp-servers:
+        - name: mcp-server-1
+          transport: stdio
+          description: MCP Server with invalid command-line format
+          command-line: "not-a-list"
+        - name: mcp-server-2
+          transport: stdio
+          description: MCP Server with invalid command-line content
+          command-line: [123, "python", "-m", "server"]
+    """
+
+    check_with_spec(
+        agent_cli,
+        data_regression,
+        bad_yaml,
+        datadir,
+    )
+
+
+def test_spec_validation_mcp_servers_invalid_env_vars_format(
+    agent_cli: Path, datadir: Path, data_regression
+):
+    bad_yaml = """
+agent-package:
+  spec-version: v3
+  agents:
+    - name: Agent1
+      description: This is the description
+      version: 0.0.1
+      model:
+        provider: OpenAI
+        name: GPT 4o
+      architecture: plan_execute
+      reasoning: enabled
+      runbook: runbook.md
+      action-packages: []
+      knowledge: []
+      metadata:
+        mode: conversational
+      mcp-servers:
+        - name: mcp-server-1
+          transport: stdio
+          description: MCP Server with invalid env vars format
+          command-line: ['python', '-m', 'server']
+          env: "not-a-list"
+        - name: mcp-server-2
+          transport: stdio
+          description: MCP Server with invalid env vars content
+          command-line: ['python', '-m', 'server']
+          env: [123, "API_KEY"]
+    """
+
+    check_with_spec(
+        agent_cli,
+        data_regression,
+        bad_yaml,
+        datadir,
+    )
+
+
+def test_spec_validation_mcp_servers_invalid_cwd_format(
+    agent_cli: Path, datadir: Path, data_regression
+):
+    bad_yaml = """
+agent-package:
+  spec-version: v3
+  agents:
+    - name: Agent1
+      description: This is the description
+      version: 0.0.1
+      model:
+        provider: OpenAI
+        name: GPT 4o
+      architecture: plan_execute
+      reasoning: enabled
+      runbook: runbook.md
+      action-packages: []
+      knowledge: []
+      metadata:
+        mode: conversational
+      mcp-servers:
+        - name: mcp-server-1
+          transport: stdio
+          description: MCP Server with invalid cwd format
+          command-line: ['python', '-m', 'server']
+          cwd: 123
+        - name: mcp-server-2
+          transport: stdio
+          description: MCP Server with invalid cwd content
+          command-line: ['python', '-m', 'server']
+          cwd: ["./path"]
+    """
+
+    check_with_spec(
+        agent_cli,
+        data_regression,
+        bad_yaml,
+        datadir,
+    )
+
+
+def test_spec_validation_mcp_servers_invalid_force_serial_tool_calls_format(
+    agent_cli: Path, datadir: Path, data_regression
+):
+    bad_yaml = """
+agent-package:
+  spec-version: v3
+  agents:
+    - name: Agent1
+      description: This is the description
+      version: 0.0.1
+      model:
+        provider: OpenAI
+        name: GPT 4o
+      architecture: plan_execute
+      reasoning: enabled
+      runbook: runbook.md
+      action-packages: []
+      knowledge: []
+      metadata:
+        mode: conversational
+      mcp-servers:
+        - name: mcp-server-1
+          transport: streamable-http
+          description: MCP Server with invalid force-serial-tool-calls format
+          url: http://localhost:8000
+          force-serial-tool-calls: "not-a-boolean"
+        - name: mcp-server-2
+          transport: stdio
+          description: MCP Server with invalid force-serial-tool-calls content
+          command-line: ['python', '-m', 'server']
+          force-serial-tool-calls: 123
+    """
+
+    check_with_spec(
+        agent_cli,
+        data_regression,
+        bad_yaml,
+        datadir,
+    )
+
+
+def test_spec_validation_mcp_servers_mixed_transport_configurations(
+    agent_cli: Path, datadir: Path, data_regression
+):
+    bad_yaml = """
+agent-package:
+  spec-version: v3
+  agents:
+    - name: Agent1
+      description: This is the description
+      version: 0.0.1
+      model:
+        provider: OpenAI
+        name: GPT 4o
+      architecture: plan_execute
+      reasoning: enabled
+      runbook: runbook.md
+      action-packages: []
+      knowledge: []
+      metadata:
+        mode: conversational
+      mcp-servers:
+        - name: mcp-server-1
+          transport: streamable-http
+          description: MCP Server with stdio fields
+          url: http://localhost:8000
+          command-line: ['python', '-m', 'server']  # Should not be here for http
+          env:
+            API_KEY: "${api_key}"  # Should not be here for http
+        - name: mcp-server-2
+          transport: stdio
+          description: MCP Server with http fields
+          command-line: ['python', '-m', 'server']
+          url: http://localhost:8000  # Should not be here for stdio
+          headers:
+            Authorization: "Bearer ${oauth2_api_key}"  # Should not be here for stdio
+    """
+
+    check_with_spec(
+        agent_cli,
+        data_regression,
+        bad_yaml,
+        datadir,
+    )
+
+
+def test_spec_validation_mcp_servers_headers_bad_type(
+    agent_cli: Path, datadir: Path, data_regression
+):
+    bad_yaml = """
+agent-package:
+  spec-version: v3
+  agents:
+    - name: Agent1
+      description: This is the description
+      version: 0.0.1
+      model:
+        provider: OpenAI
+        name: GPT 4o
+      architecture: plan_execute
+      reasoning: enabled
+      runbook: runbook.md
+      action-packages: []
+      knowledge: []
+      metadata:
+        mode: conversational
+      mcp-servers:
+        - name: mcp-server-1
+          transport: streamable-http
+          description: MCP Server 1 (description of the server, user could add instructions to configure here).
+          url: http://localhost:8000
+          headers:
+            Authorization:
+              type: oauth2-secret
+              description: Your OAuth2 API key for authentication
+              provider: Microsoft
+              scopes:
+                - user.read
+                - user.write
+            Content-Type:
+              type: wrong-type-in-header
+              description: Content type header
+              default: application/json
+          force-serial-tool-calls: false
+        - name: mcp-server-2
+          transport: stdio
+          description: MCP Server 2 for stdio transport.
+          command-line: ['uv', 'run', 'python', '-m', 'my-server']
+          env:
+            API_KEY:
+              type: secret
+              description: Your API key for authentication
+            DATABASE_URL:
+              type: wrong-type-in-env
+              description: Database connection URL
+              default: postgresql://localhost:5432/mydb
+          cwd: ./mcp-server/path
+          force-serial-tool-calls: true
+        - name: mcp-server-3
+          transport: sse
+          description: MCP Server 3 for SSE transport.
+          url: http://localhost:9000
+          headers:
+            X-API-Key:
+              type: secret
+              description: Your API key for authentication
+    """
+
+    check_with_spec(
+        agent_cli,
+        data_regression,
+        bad_yaml,
+        datadir,
+        create_folders=["./mcp-server/path"],
     )

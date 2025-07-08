@@ -144,6 +144,7 @@ exclude = [
     "**/.pytest_cache",
     "**/.ruff_cache",
     "**/venv",
+    "agent-spec/validation/**",
 ]
 reportMissingImports = true
 reportMissingTypeStubs = false

@@ -63,21 +63,26 @@ func findNode(rootNode yaml.Node, key string) *yaml.Node {
 }
 
 func runValidateCmd(cmd *cobra.Command, args []string) {
-	var spec map[string]interface{}
-	err := json.Unmarshal([]byte(SpecV2), &spec)
-	if err != nil {
-		log("Error: %s", err)
-		os.Exit(1)
-	}
-	// Get the entries from the spec
-	specEntries, err := LoadSpec(spec)
-	if err != nil {
-		log("Error: %s", err)
-		os.Exit(1)
-	}
+	// We'll load the spec after determining the version from the YAML file
+	var specEntries map[string]*Entry
+	var err error
 
 	if showSpecFlag {
-		// Convert SpecV2 to a map[string]*Entry
+		// For show-spec, we'll use SpecV3 as default
+		var spec map[string]interface{}
+		err = json.Unmarshal([]byte(SpecV3), &spec)
+		if err != nil {
+			log("Error: %s", err)
+			os.Exit(1)
+		}
+		// Get the entries from the spec
+		specEntries, err = LoadSpec(spec)
+		if err != nil {
+			log("Error: %s", err)
+			os.Exit(1)
+		}
+
+		// Convert Spec to a map[string]*Entry
 		if nestedFlag {
 			tree := ConvertFlattenedToNested(specEntries)
 			fmt.Println(Pretty(tree, 0))
@@ -164,9 +169,27 @@ func runValidateCmd(cmd *cobra.Command, args []string) {
 		reportErrorAndExit("Error: 'spec-version' should be a string.", specVersionNode.Line-1, specVersionNode.Column-1, specVersionNode.Line, 0)
 	}
 
-	// Check that the specVersion is "v2"
-	if specVersionNode.Value != "v2" {
-		reportErrorAndExit(fmt.Sprintf("Error: 'spec-version' must be 'v2'. Found: %s", specVersionNode.Value), specVersionNode.Line-1, specVersionNode.Column-1, specVersionNode.Line, 0)
+	// Check that the specVersion is "v2" or "v3"
+	if specVersionNode.Value != "v2" && specVersionNode.Value != "v3" {
+		reportErrorAndExit(fmt.Sprintf("Error: 'spec-version' must be 'v2' or 'v3'. Found: %s", specVersionNode.Value), specVersionNode.Line-1, specVersionNode.Column-1, specVersionNode.Line, 0)
+	}
+
+	// Load the appropriate spec based on the version
+	var spec map[string]interface{}
+	if specVersionNode.Value == "v2" {
+		err = json.Unmarshal([]byte(SpecV2), &spec)
+	} else {
+		err = json.Unmarshal([]byte(SpecV3), &spec)
+	}
+	if err != nil {
+		log("Error: %s", err)
+		os.Exit(1)
+	}
+	// Get the entries from the spec
+	specEntries, err = LoadSpec(spec)
+	if err != nil {
+		log("Error: %s", err)
+		os.Exit(1)
 	}
 
 	validator := NewValidator(specEntries, agentRootDirOrZip)

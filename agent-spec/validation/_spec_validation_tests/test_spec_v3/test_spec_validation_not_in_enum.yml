@@ -1,0 +1,2 @@
+- Expected agent-package/agents/architecture to be one of ['agent', 'plan_execute']
+  (found 'not-defined').
