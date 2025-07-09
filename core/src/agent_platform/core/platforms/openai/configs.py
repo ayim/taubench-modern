@@ -248,9 +248,9 @@ class OpenAIModelMap(PlatformModelMap):
             # 4.5/4.1 series generally limits the context window to 128k tokens but
             # specific users may have access to the 1 million token context window.
             "gpt-4.5": 128_000,
-            "gpt-4.1": 128_000,
-            "gpt-4.1-mini": 128_000,
-            "gpt-4.1-nano": 128_000,
+            "gpt-4.1": 1_000_000,
+            "gpt-4.1-mini": 1_000_000,
+            "gpt-4.1-nano": 1_000_000,
             # 4o series
             "chatgpt-4o-latest": 128_000,
             "gpt-4o": 128_000,
@@ -266,17 +266,17 @@ class OpenAIModelMap(PlatformModelMap):
             "o4-mini-high": 200_000,
             "o4-mini-low": 200_000,
             # o3 series
-            "o3-high": 128_000,
-            "o3-low": 128_000,
+            "o3-high": 200_000,
+            "o3-low": 200_000,
             # o3-mini series
-            "o3-mini-high": 128_000,
-            "o3-mini-low": 128_000,
+            "o3-mini-high": 200_000,
+            "o3-mini-low": 200_000,
             # o1-mini series
             "o1-mini-high": 128_000,
             "o1-mini-low": 128_000,
             # o1 series
-            "o1-high": 128_000,
-            "o1-low": 128_000,
+            "o1-high": 200_000,
+            "o1-low": 200_000,
             # Embedding models
             "text-embedding-3-small": 8_192,
             "text-embedding-3-large": 8_192,

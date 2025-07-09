@@ -15,15 +15,12 @@ Available targets:
   all                       Perform a clean build of everything
   build-exe                 Build a PyInstaller executable
   build-wheels              Build Python wheels into dist/ via uv
-  change                    Run the change script
-  check-changes             Run the check-changes part of the change script
   check-env                 Check that all required environment variables are set in the .env file
   check-format              Run formatting check with ruff
   check-pr                  Run common PR checks (format, lint, typecheck, unit tests)
   clean                     Remove build/dist artifacts
   coverage                  Run tests with pytest and generate coverage report
   dev-widget                Run pnpm run dev on server/examples/debug_widget
-  draft-changes-server      Run the build-changes part of the change script in draft mode for the server project
   format                    Run formatting with ruff and prettier (node/npm must be in the path for npx to work).
   help                      Show this help
   lint-fix-unsafe           Run ruff linting (fix violations)
