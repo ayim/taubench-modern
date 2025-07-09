@@ -233,6 +233,118 @@ class TestHTTPErrorHandling:
             # might not be working as expected, so we'll skip this test for now
             pytest.skip("Error handlers not working as expected in test environment")
 
+    def test_agent_creation_validation_error_secret_redaction(self, client: TestClient):
+        """Test that API keys and other secrets are redacted from validation error responses."""
+        # Create a payload with wrong data types that should trigger a validation error
+        # but also include sensitive data to test redaction
+        sensitive_api_key = "sk-test-secret-api-key-12345-should-be-redacted"
+
+        response = client.post(
+            "/agents/",
+            json={
+                "mode": "conversational",
+                "name": "Test Agent Secret Redaction",
+                "version": 123,  # Should be string, sending int - triggers validation error
+                "description": "Testing secret redaction in validation errors",
+                "runbook": "# Objective\nYou are a helpful assistant.",
+                "platform_configs": [
+                    {
+                        "kind": "azure",
+                        "azure_api_key": sensitive_api_key,
+                        "azure_endpoint": "https://example.openai.azure.com",
+                        "azure_api_version": "2023-05-15",
+                    }
+                ],
+                "action_packages": [],
+                "mcp_servers": [],
+                "agent_architecture": {
+                    "name": "agent_platform.architectures.default",
+                    "version": "1.0.0",
+                },
+                "observability_configs": [],
+                "question_groups": [],
+                "extra": {},
+            },
+        )
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+        error_data = response.json()
+        assert "error" in error_data
+        error_info = error_data["error"]
+
+        # Check the error structure matches our expected format
+        assert error_info["code"] == "unprocessable_entity"
+        assert "error_id" in error_info
+        assert "message" in error_info
+
+        # Check that validation error message is present
+        message = error_info["message"]
+        assert "Request validation failed:" in message
+
+        # CRITICAL: Verify that the API key is NOT present in the response
+        # Convert entire response to string to check all fields
+        response_text = response.text
+        assert sensitive_api_key not in response_text, (
+            f"API key '{sensitive_api_key}' found in error response. "
+            f"Sensitive data must be redacted from error responses."
+        )
+
+        # The important security requirement is that the secret is NOT present
+        # in the response - this test passes if the secret is successfully redacted
+
+    def test_validation_error_secret_redaction_in_logs(self, client: TestClient, caplog):
+        """Test that API keys and other secrets are redacted from log messages during
+        validation errors."""
+        # Create a payload with sensitive data that should trigger a validation error
+        sensitive_api_key = "test-secret-api-key-12345-should-be-redacted"
+
+        # Clear any existing log records
+        caplog.clear()
+
+        response = client.post(
+            "/agents/",
+            json={
+                "mode": "conversational",
+                "name": "Test Agent Log Redaction",
+                "version": 123,  # Should be string, sending int - triggers validation error
+                "description": "Testing secret redaction in logs",
+                "runbook": "# Objective\nYou are a helpful assistant.",
+                "platform_configs": [
+                    {
+                        "kind": "azure",
+                        "azure_api_key": sensitive_api_key,
+                        "azure_endpoint": "https://example.openai.azure.com",
+                        "azure_api_version": "2023-05-15",
+                    }
+                ],
+                "action_packages": [],
+                "mcp_servers": [],
+                "agent_architecture": {
+                    "name": "agent_platform.architectures.default",
+                    "version": "1.0.0",
+                },
+                "observability_configs": [],
+                "question_groups": [],
+                "extra": {},
+            },
+        )
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+        # Check that the API key is NOT present in any log messages
+        log_messages = [record.message for record in caplog.records]
+        all_log_text = "\n".join(log_messages)
+
+        assert sensitive_api_key not in all_log_text, (
+            f"API key '{sensitive_api_key}' found in log messages. "
+            f"Sensitive data must be redacted from logs. "
+            f"Log messages: {log_messages}"
+        )
+
+        # The important security requirement is that the secret is NOT present
+        # in the log messages - this test passes if the secret is successfully redacted
+
     def test_agent_creation_validation_error_wrong_data_types(self, client: TestClient):
         """Test agent creation with wrong data types for specific fields."""
         # Send agent creation request with various wrong data types

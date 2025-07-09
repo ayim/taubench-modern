@@ -12,7 +12,7 @@ to match the agreed upon error shape which is:
 """
 
 import json
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import structlog
 from fastapi.exceptions import (
@@ -139,7 +139,6 @@ async def request_validation_exception_handler(
     # In prior code, we would check if the exception was a RequestValidationError
     # but per the FastAPI docs and examples, with proper registration, we should not
     # need to do this.
-    body = (await request.body()).decode()
 
     # Get the pydantic validation error message
     validation_error_message = _format_validation_exception(exc)
@@ -150,15 +149,18 @@ async def request_validation_exception_handler(
         message_override=f"Request validation failed: {validation_error_message}",
     )
 
+    # Redact sensitive data from validation errors and request body before logging
+    redacted_validation_errors = _redact_secrets(exc.errors())
+    redacted_body = await _get_redacted_request_body(request)
+
     _safe_log_error(
         logger.error,
         "Request validation failed (error_id=%s): %s",
         error_response.error_id,
         validation_error_message,
         error_id=error_response.error_id,  # TODO: repeated for current structlog config
-        validation_errors=exc.errors(),
-        request_body=body,
-        exc_info=exc,
+        validation_errors=redacted_validation_errors,
+        request_body=redacted_body,
     )
     return convert_error_response(error_response)
 
@@ -180,14 +182,18 @@ async def websocket_request_validation_exception_handler(
         message_override=f"Request validation failed: {validation_error_message}",
     )
 
+    # Redact sensitive data from validation errors before logging
+    # NOTE: WebSocket validation errors don't provide access to the original message body
+    # like HTTP requests do, so we can only redact the validation error data itself
+    redacted_validation_errors = _redact_secrets(exc.errors())
+
     _safe_log_error(
         logger.error,
         "WebSocket request validation failed (error_id=%s): %s",
         error_response.error_id,
         validation_error_message,
         error_id=error_response.error_id,  # TODO: repeated for current structlog config
-        validation_errors=exc.errors(),
-        exc_info=exc,
+        validation_errors=redacted_validation_errors,
     )
     # Convert the error response to JSON string for the reason
     error_dict = error_response.model_dump(mode="json")
@@ -284,8 +290,10 @@ def _format_validation_exception(validation_exc: "ValidationException") -> str:
     """
     try:
         validation_errors = validation_exc.errors()
+        # Redact sensitive data from validation errors before processing
+        redacted_errors = _redact_secrets(validation_errors)
         error_messages = []
-        for error in validation_errors:
+        for error in redacted_errors:
             # Convert location tuple to readable path
             if error["loc"]:
                 location = " -> ".join(str(part) for part in error["loc"])
@@ -324,3 +332,82 @@ def _safe_log_error(log_method, *args, **kwargs) -> None:
         )
         print(safe_msg, file=sys.stderr)
         # Do *not* re-raise - we intentionally swallow the failure.
+
+
+# -----------------------------------------------------------------------------
+# Secret redaction utilities
+#
+# TODO: These utils can likely be moved into structlog config once we are using structlog
+# to handle data in the logs. ~ @kylie-bee
+# -----------------------------------------------------------------------------
+
+
+async def _get_redacted_request_body(request: Request) -> str:  # pragma: no cover
+    """Get the request body with sensitive data redacted.
+
+    Args:
+        request: The FastAPI request object.
+
+    Returns:
+        A JSON string of the request body with sensitive fields redacted.
+        If the body cannot be parsed as JSON, returns the raw body.
+    """
+    try:
+        body_bytes = await request.body()
+        body_str = body_bytes.decode()
+
+        # If the body is empty, return empty string
+        if not body_str.strip():
+            return body_str
+
+        # Try to parse as JSON and redact
+        try:
+            body_data = json.loads(body_str)
+            redacted_data = _redact_secrets(body_data)
+            return json.dumps(redacted_data)
+        except (json.JSONDecodeError, TypeError):
+            # If it's not valid JSON, return the original body
+            # (could be form data, plain text, etc.)
+            return body_str
+    except Exception:
+        # If anything goes wrong, return a safe fallback
+        return "[body-redaction-failed]"
+
+
+def _is_secret_key(key: str) -> bool:  # pragma: no cover
+    """Return True if *key* looks like it contains sensitive information.
+
+    This is a **best-effort** heuristic.  When in doubt we err on the side of
+    redacting to avoid leaking credentials in logs.
+    """
+
+    lowered = key.lower()
+    sensitive_fragments = (
+        "secret",
+        "password",
+        "passwd",
+        "token",
+        "api_key",
+        "apikey",
+        "auth",
+        "bearer",
+        "key",  # keep last - very generic, checked after more specific fragments
+    )
+    return any(fragment in lowered for fragment in sensitive_fragments)
+
+
+def _redact_secrets(value: Any, placeholder: str = "***REDACTED***") -> Any:  # pragma: no cover
+    """Recursively traverse *value* (any JSON-serialisable type) and redact secrets.
+
+    Dictionaries have their values replaced with *placeholder* whenever the key
+    appears sensitive according to `_is_secret_key`.
+    """
+
+    if isinstance(value, dict):
+        return {
+            k: (placeholder if _is_secret_key(k) else _redact_secrets(v, placeholder))
+            for k, v in value.items()
+        }
+    if isinstance(value, list):
+        return [_redact_secrets(item, placeholder) for item in value]
+    return value

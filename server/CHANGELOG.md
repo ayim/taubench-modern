@@ -1,3 +1,7 @@
+# Unreleased
+
+- Redacted sensitive data from validation errors and request body before logging. ([GPT-1065](https://linear.app/sema4ai/issue/GPT-1065))
+
 # Sema4.ai Agent Server 2.0.10 (2025-07-09)
 
 - Added work item validation using LLM-as-a-judge. [GPT-1017](https://linear.app/sema4ai/issue/GPT-1017)
