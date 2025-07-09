@@ -36,7 +36,14 @@ jobs:
 
       - id: version
         run: |
-          echo "value=-pr-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            # Use the actual commit SHA from the PR head, not the temporary merge commit
+            SHORT_SHA=$(echo "${{ github.event.pull_request.head.sha }}" | cut -c1-7)
+            echo "value=-pr-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          else
+            # For workflow_dispatch, use the current commit
+            echo "value=-pr-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          fi
 
   verify:
     name: Static checks
