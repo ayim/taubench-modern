@@ -1,0 +1,28 @@
+thread:
+  - name: upload-and-verify
+    description: 'Upload and verify'
+    messages:
+      - role: user
+        content:
+          kind: attachment
+          description: Company Employees
+          mime_type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+          file_name: employees.xlsx
+      - role: user
+        content:
+          kind: text
+          text: Review the structure of the uploaded file to understand what data is inside and how it's organized.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: cortex
+  # - name: google
+
+evaluations:
+  - kind: llm-eval-of-last-agent-turn
+    expected: |
+      The agent should have used some tools to review the file structure.
+      The agent should have retrieved sheet and header information.
+      The agent should have found sheet names and column names.

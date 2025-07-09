@@ -88,11 +88,20 @@ class ToolUse:
 
 
 @dataclass
+class FileAttachment:
+    """A file attachment"""
+
+    description: str
+    mime_type: str
+    file_name: str
+
+
+@dataclass
 class Message:
     """A message in a conversation thread."""
 
     role: Literal["user", "agent"]
-    content: list[Thought | Text | ToolUse]
+    content: list[Thought | Text | ToolUse | FileAttachment]
 
 
 @dataclass
@@ -197,18 +206,29 @@ class TestCase:
         with open(file_path) as f:
             data = yaml.safe_load(f)
 
+        def parse_content(content: Any):
+            if isinstance(content, str):
+                return Text(content=content)
+
+            match content["kind"]:
+                case "text":
+                    return Text(content=content["text"])
+                case "attachment":
+                    return FileAttachment(
+                        file_name=content["file_name"],
+                        description=content["description"],
+                        mime_type=content["mime_type"],
+                    )
+
+            raise ValueError(f"Unknown message content type {content}")
+
         # Parse thread
         thread_data = data["thread"][0]  # Assuming single thread per file
         thread = Thread(
             name=thread_data["name"],
             description=thread_data.get("description", ""),  # Use .get() with default
             messages=[
-                Message(
-                    role=msg["role"],
-                    content=[Text(content=msg["content"])]
-                    if isinstance(msg["content"], str)
-                    else msg["content"],
-                )
+                Message(role=msg["role"], content=[parse_content(msg["content"])])
                 for msg in thread_data["messages"]
             ],
         )

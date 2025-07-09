@@ -2,6 +2,7 @@ import asyncio
 import zipfile
 from http import HTTPStatus
 from pathlib import Path
+from urllib.parse import urljoin
 
 import httpx
 import structlog
@@ -478,6 +479,7 @@ class QualityOrchestrator:
             timeout=500,  # Can be slow (time to bootstrap env)
             additional_args=["--api-key", "test"],  # Use test API key
             port=0,  # Let it choose an available port
+            env={"SEMA4AI_FILE_MANAGEMENT_URL": urljoin(self.server_url, "api/v2")},
         )
 
         actions_url = f"http://{action_server_process.host}:{action_server_process.port}"

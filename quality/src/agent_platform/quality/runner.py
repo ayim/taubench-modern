@@ -616,7 +616,9 @@ class QualityTestRunner:
 
         try:
             # Run the conversation
-            agent_messages = await self.agent_runner.run_test_case(agent_id, test_case)
+            agent_messages = await self.agent_runner.run_test_case(
+                agent_id, test_case, platform.name
+            )
 
             # Run evaluations
             evaluation_results = []

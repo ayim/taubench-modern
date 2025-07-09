@@ -8,15 +8,20 @@ on:
     inputs:
       agent_server_version:
         description: 'Agent Server version to test against'
-        required: false
-        default: 'v2.0.5-alpha.3'
+        required: true
+        default: 'v2.0.5'
+      tests_to_run:
+        description: 'Comma separated list of tests'
+        required: true
+        default: '001-quality-basic-browsing,003-call-center-planner,002-snowflake-cortex-analyst,005-basic-file-management'
 
 jobs:
   quality-tests:
     runs-on: ubuntu-latest
 
     env:
-      AGENT_SERVER_VERSION: ${{ github.event.inputs.agent_server_version || 'v2.0.5-alpha.3' }}
+      AGENT_SERVER_VERSION: ${{ github.event.inputs.agent_server_version }}
+      TESTS_TO_RUN: ${{ github.event.inputs.tests_to_run }}
 
     steps:
       - name: Check out repository
@@ -119,7 +124,7 @@ jobs:
           SEMA4AI_HOME: ~/.sema4ai
         run: |
           uv run quality-test init
-          uv run quality-test run --agent-server-version ${AGENT_SERVER_VERSION} --selected-agents "001-quality-basic-browsing,003-call-center-planner,002-snowflake-cortex-analyst"
+          uv run quality-test run --agent-server-version ${AGENT_SERVER_VERSION} --selected-agents "${TESTS_TO_RUN}"
 
       - name: Upload test artifacts
         if: always() # even on failures

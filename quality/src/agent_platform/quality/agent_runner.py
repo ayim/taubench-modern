@@ -1,7 +1,9 @@
+from pathlib import Path
+
 import httpx
 import structlog
 
-from agent_platform.quality.models import Message, TestCase, Text, Thought, ToolUse
+from agent_platform.quality.models import FileAttachment, Message, TestCase, Text, Thought, ToolUse
 
 logger = structlog.get_logger(__name__)
 
@@ -12,13 +14,51 @@ class AgentRunner:
     def __init__(self, server_url: str):
         self.server_url = server_url.rstrip("/")
 
-    async def run_test_case(  # noqa: C901
-        self,
-        agent_id: str,
-        test_case: TestCase,
+    async def run_test_case(  # noqa: C901, PLR0912, PLR0915
+        self, agent_id: str, test_case: TestCase, platform_name: str
     ) -> list[Message]:
         """Run a test case against an agent and return agent messages."""
         logger.info(f"Running test case: {test_case.thread.name}")
+
+        thread_id = None
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{self.server_url}/api/v2/threads/",
+                json={"agent_id": agent_id, "name": f"Quality Test Run on {platform_name}"},
+            )
+            response.raise_for_status()
+
+            new_thread = response.json()
+            thread_id = new_thread["thread_id"]
+            logger.info(f"Created new thread: {thread_id}")
+
+        test_case_folder = Path(test_case.file_path).parent
+        thread_files = [
+            (
+                "files",
+                (
+                    attachment.file_name,
+                    open(test_case_folder / attachment.file_name, "rb"),
+                    attachment.mime_type,
+                ),
+            )
+            for message in test_case.thread.messages
+            for attachment in message.content
+            if isinstance(attachment, FileAttachment)
+        ]
+
+        logger.info(f"Found {len(thread_files)} files in thread")
+
+        if len(thread_files) > 0:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                try:
+                    response = await client.post(
+                        f"{self.server_url}/api/v2/threads/{thread_id}/files", files=thread_files
+                    )
+                    response.raise_for_status()
+                except httpx.HTTPError as e:
+                    logger.error(f"Cannot upload files: {e}")
+                    raise
 
         # Convert test case messages to the API format
         api_messages = []
@@ -51,6 +91,21 @@ class AgentRunner:
                                     "error": error,
                                 }
                             )
+                        case FileAttachment(
+                            description=description,
+                            mime_type=mime_type,
+                            file_name=file_name,
+                        ):
+                            api_content.append(
+                                {
+                                    "kind": "attachment",
+                                    "base64_data": None,
+                                    "description": description,
+                                    "mime_type": mime_type,
+                                    "name": file_name,
+                                    "uri": f"agent-server-uri://{file_name}",
+                                }
+                            )
                         case _:
                             # Fallback for unknown content types
                             api_content.append({"kind": "text", "text": str(content_item)})
@@ -63,6 +118,7 @@ class AgentRunner:
             "agent_id": agent_id,
             "name": test_case.thread.name,
             "messages": api_messages,
+            "thread_id": thread_id,
         }
 
         async with httpx.AsyncClient() as client:

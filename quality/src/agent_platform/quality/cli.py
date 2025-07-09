@@ -297,7 +297,7 @@ def list_tests(ctx: Context, agent_name: str | None):
 )
 @click.option(
     "--agent-server-version",
-    required=True,
+    required=False,
     type=str,
     help="Agent server version. If none is provided, the version on the current branch is used",
 )
