@@ -1,12 +1,15 @@
 from http import HTTPStatus
+from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
 from structlog import get_logger
 
 from agent_platform.core.errors import ErrorCode, PlatformHTTPError
+from agent_platform.core.payloads import UploadFilePayload
 from agent_platform.core.payloads.create_work_item import CreateWorkItemPayload
+from agent_platform.core.thread.base import ThreadMessage
 from agent_platform.core.work_items.work_item import WorkItem, WorkItemStatus
-from agent_platform.server.api.dependencies import StorageDependency
+from agent_platform.server.api.dependencies import FileManagerDependency, StorageDependency
 from agent_platform.server.auth import AuthedUser
 from agent_platform.server.constants import SystemConfig
 
@@ -29,8 +32,38 @@ async def create_work_item(
     user: AuthedUser,
     storage: StorageDependency,
 ) -> WorkItem:
-    work_item = CreateWorkItemPayload.to_work_item(payload, user_id=user.user_id)
-    await storage.create_work_item(work_item)
+    agent = await storage.get_agent(user.user_id, payload.agent_id)
+    if not agent:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND.value, detail="Agent not found")
+    if payload.work_item_id is not None:
+        logger.info(f"Work item ID provided: {payload.work_item_id}")
+        work_item = await storage.get_work_item(payload.work_item_id)
+        if not work_item:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND.value, detail="Work item not found"
+            )
+        if work_item.status != WorkItemStatus.PRECREATED:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST.value,
+                detail="Work item is not in initializing state",
+            )
+        # set agent ID as it wouldn't have been set before.
+        work_item.agent_id = payload.agent_id
+        work_item.messages = [
+            ThreadMessage.model_validate(msg.model_dump()) for msg in payload.messages
+        ]
+        await storage.update_work_item(work_item)
+        # set work item status to pending
+        await storage.update_work_item_status(
+            user.user_id, work_item.work_item_id, WorkItemStatus.PENDING
+        )
+        # Update the work_item object to reflect the new status
+        work_item.status = WorkItemStatus.PENDING
+    else:
+        logger.info("No work item ID provided")
+        work_item = CreateWorkItemPayload.to_work_item(payload=payload, user_id=user.user_id)
+        await storage.create_work_item(work_item)
+
     return work_item
 
 
@@ -49,6 +82,54 @@ async def get_work_item(
     if not include_results:
         work_item.messages = []
     return work_item
+
+
+@router.post("/upload-file")
+async def upload_work_item_file(
+    file: UploadFile,
+    user: AuthedUser,
+    storage: StorageDependency,
+    file_manager: FileManagerDependency,
+    work_item_id: str | None = None,
+) -> dict[str, str]:
+    """Upload a file to a work item. If a work_item_id is not provided, a new one is created."""
+    logger.info(f"Uploading file {file.filename} to work item {work_item_id}")
+    if work_item_id:
+        logger.info(f"Work item ID provided: {work_item_id}")
+        if (work_item := await storage.get_work_item(work_item_id)) is None:
+            raise HTTPException(status_code=404, detail="Work item not found")
+        if work_item.status != WorkItemStatus.PRECREATED:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST.value,
+                detail="Work item is not in precreated state",
+            )
+        logger.info(f"Work item ID from work item: {work_item.work_item_id}")
+    else:
+        logger.info("No work item ID provided")
+        # Stub creation
+        work_item = WorkItem(
+            user_id=user.user_id,
+            messages=[],
+            payload={},
+            work_item_id=str(uuid4()),
+            status=WorkItemStatus.PRECREATED,
+        )
+        await storage.create_work_item(work_item)
+
+    logger.info(f"Uploading files to work item {work_item.work_item_id} for user {user.user_id}")
+    existing_files = await storage.get_workitem_files(work_item.work_item_id, user.user_id)
+    for f in existing_files:
+        if f.file_ref == file.filename:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST.value,
+                detail=f"File {f.file_ref} already exists in work item {work_item.work_item_id}",
+            )
+    upload_request = [UploadFilePayload(file=file)]
+    await file_manager.upload(upload_request, work_item, user.user_id)
+
+    return {
+        "work_item_id": work_item.work_item_id,
+    }
 
 
 @router.get("/", response_model=list[WorkItem])

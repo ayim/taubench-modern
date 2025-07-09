@@ -1,5 +1,6 @@
 import asyncio
 import time
+from io import BytesIO
 
 import pytest
 from agent_platform.orchestrator.agent_server_client import AgentServerClient
@@ -228,7 +229,7 @@ async def test_batch_processing_with_errors(
         work_item_ids: list[str] = []
 
         # Step 1: create work-items
-        for i in range(total_items):
+        for _ in range(total_items):
             resp = await client.post(
                 "/",
                 json={
@@ -236,7 +237,8 @@ async def test_batch_processing_with_errors(
                     "messages": [
                         {
                             "role": "user",
-                            "content": [{"kind": "text", "text": f"Cancellation test {i}"}],
+                            # Create a simple question that can easily pass the validation check
+                            "content": [{"kind": "text", "text": "What is 2+2?"}],
                         }
                     ],
                     "payload": {},
@@ -273,7 +275,7 @@ async def test_batch_processing_with_errors(
             if wid in to_cancel:
                 assert status == WorkItemStatus.CANCELLED
             else:
-                assert status in [WorkItemStatus.COMPLETED, WorkItemStatus.NEEDS_REVIEW]
+                assert status in [WorkItemStatus.COMPLETED]
 
 
 @pytest.mark.integration
@@ -837,3 +839,363 @@ async def test_work_item_validation_needs_review_incomplete_task(
                 f"Expected NEEDS_REVIEW but got {final_status}. "
                 f"Agent should have asked for clarification on contradictory instructions."
             )
+
+
+@pytest.mark.integration
+@pytest.mark.postgresql
+@pytest.mark.usefixtures("copy_tmpdir_on_failure")
+@pytest.mark.asyncio
+async def test_work_item_file_upload_workflow(
+    base_url_agent_server_with_work_items: str, agent_id: str
+):
+    """Test complete workflow: upload files → create work item → verify files copied to thread."""
+
+    work_items_url = f"{base_url_agent_server_with_work_items}/api/v2/work-items"
+
+    async with AsyncClient(base_url=work_items_url) as client:
+        # 1. Upload first file (creates work item in PRECREATED state)
+        test_file1 = (
+            "document.txt",
+            BytesIO(b"Important document content for agent"),
+            "text/plain",
+        )
+
+        upload_resp = await client.post("/upload-file", files={"file": test_file1})
+        assert upload_resp.status_code == 200
+        work_item_id = upload_resp.json()["work_item_id"]
+
+        # Verify work item is in PRECREATED state
+        get_resp = await client.get(f"/{work_item_id}")
+        assert get_resp.status_code == 200
+        work_item = get_resp.json()
+        assert work_item["status"] == WorkItemStatus.PRECREATED.value
+        assert work_item["agent_id"] is None
+
+        # 2. Upload second file to same work item
+        test_file2 = ("data.csv", BytesIO(b"name,value\ntest,123"), "text/csv")
+
+        upload_resp2 = await client.post(
+            f"/upload-file?work_item_id={work_item_id}", files={"file": test_file2}
+        )
+        assert upload_resp2.status_code == 200
+        assert upload_resp2.json()["work_item_id"] == work_item_id
+
+        # 3. Convert work item to PENDING by adding agent and messages
+        create_payload = {
+            "agent_id": agent_id,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "kind": "text",
+                            "text": "List the uploaded files",
+                        }
+                    ],
+                }
+            ],
+            "payload": {"task": "file_analysis"},
+            "work_item_id": work_item_id,
+        }
+
+        create_resp = await client.post("/", json=create_payload)
+        assert create_resp.status_code == 200
+        work_item = create_resp.json()
+
+        # Verify work item is now PENDING with agent
+        assert work_item["status"] == WorkItemStatus.PENDING.value
+        assert work_item["agent_id"] == agent_id
+        assert work_item["work_item_id"] == work_item_id
+
+        # 4. Wait for background worker to process the work item
+        async def _is_completed():
+            r = await client.get(f"/{work_item_id}")
+            assert r.status_code == 200
+            return WorkItemStatus(r.json()["status"]) == WorkItemStatus.COMPLETED
+
+        await _wait_until(_is_completed, interval=1.0, timeout=90)
+
+        # 5. Verify final state
+        final_resp = await client.get(f"/{work_item_id}?results=true")
+        assert final_resp.status_code == 200
+        final_work_item = final_resp.json()
+
+        assert WorkItemStatus(final_work_item["status"]) == WorkItemStatus.COMPLETED
+        assert final_work_item["thread_id"] is not None  # Thread should be created
+
+        # Verify messages include file upload notifications
+        messages = final_work_item["messages"]
+        assert len(messages) >= 3  # User message + 2 file upload messages
+
+        # Check for file upload messages
+        file_upload_messages = [
+            msg
+            for msg in messages
+            if msg["role"] == "user"
+            and any(
+                content.get("text", "").startswith("Uploaded") for content in msg.get("content", [])
+            )
+        ]
+        assert len(file_upload_messages) == 2  # One for each file
+
+
+@pytest.mark.integration
+@pytest.mark.postgresql
+@pytest.mark.usefixtures("copy_tmpdir_on_failure")
+@pytest.mark.asyncio
+async def test_work_item_file_upload_duplicate_handling(
+    base_url_agent_server_with_work_items: str, agent_id: str
+):
+    """Test that duplicate file names are properly rejected."""
+
+    work_items_url = f"{base_url_agent_server_with_work_items}/api/v2/work-items"
+
+    async with AsyncClient(base_url=work_items_url) as client:
+        # Upload first file
+        test_file1 = ("duplicate.txt", BytesIO(b"First content"), "text/plain")
+
+        upload_resp = await client.post("/upload-file", files={"file": test_file1})
+        assert upload_resp.status_code == 200
+        work_item_id = upload_resp.json()["work_item_id"]
+
+        # Try to upload file with same name - should fail
+        test_file2 = ("duplicate.txt", BytesIO(b"Second content"), "text/plain")
+
+        duplicate_resp = await client.post(
+            f"/upload-file?work_item_id={work_item_id}", files={"file": test_file2}
+        )
+        assert duplicate_resp.status_code == 400
+        error_msg = duplicate_resp.json()["error"]["message"]
+        assert "already exists" in error_msg
+        assert "duplicate.txt" in error_msg
+
+
+@pytest.mark.integration
+@pytest.mark.usefixtures("copy_tmpdir_on_failure")
+@pytest.mark.asyncio
+async def test_work_item_file_upload_state_validation(
+    base_url_agent_server_with_work_items: str, agent_id: str
+):
+    """Test that files can only be uploaded to PRECREATED work items."""
+
+    work_items_url = f"{base_url_agent_server_with_work_items}/api/v2/work-items"
+
+    async with AsyncClient(base_url=work_items_url) as client:
+        # Create work item directly in PENDING state (with agent)
+        create_payload = {
+            "agent_id": agent_id,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [{"kind": "text", "text": "Test message"}],
+                }
+            ],
+            "payload": {},
+        }
+
+        create_resp = await client.post("/", json=create_payload)
+        assert create_resp.status_code == 200
+        work_item_id = create_resp.json()["work_item_id"]
+
+        # Verify work item is in PENDING state
+        get_resp = await client.get(f"/{work_item_id}")
+        assert get_resp.status_code == 200
+        assert get_resp.json()["status"] == WorkItemStatus.PENDING.value
+
+        # Try to upload file to PENDING work item - should fail
+        test_file = ("test.txt", BytesIO(b"Test content"), "text/plain")
+
+        upload_resp = await client.post(
+            f"/upload-file?work_item_id={work_item_id}", files={"file": test_file}
+        )
+        assert upload_resp.status_code == 400
+        error_msg = upload_resp.json()["error"]["message"]
+        assert "not in precreated state" in error_msg.lower()
+
+
+@pytest.mark.integration
+@pytest.mark.usefixtures("copy_tmpdir_on_failure")
+@pytest.mark.asyncio
+async def test_work_item_file_upload_nonexistent_work_item(
+    base_url_agent_server_with_work_items: str,
+):
+    """Test uploading to non-existent work item returns proper error."""
+
+    work_items_url = f"{base_url_agent_server_with_work_items}/api/v2/work-items"
+    fake_work_item_id = "00000000-0000-0000-0000-000000000000"
+
+    async with AsyncClient(base_url=work_items_url) as client:
+        test_file = ("test.txt", BytesIO(b"Test content"), "text/plain")
+
+        upload_resp = await client.post(
+            f"/upload-file?work_item_id={fake_work_item_id}", files={"file": test_file}
+        )
+        assert upload_resp.status_code == 404
+        error_msg = upload_resp.json()["error"]["message"]
+        assert "A work item with the given ID was not found" in error_msg
+
+
+@pytest.mark.integration
+@pytest.mark.postgresql
+@pytest.mark.usefixtures("copy_tmpdir_on_failure")
+@pytest.mark.asyncio
+async def test_work_item_multiple_file_types_processing(
+    base_url_agent_server_with_work_items: str, agent_id: str
+):
+    """Test processing work item with multiple file types."""
+
+    work_items_url = f"{base_url_agent_server_with_work_items}/api/v2/work-items"
+
+    async with AsyncClient(base_url=work_items_url) as client:
+        # Upload different file types
+        files_to_upload = [
+            ("readme.txt", BytesIO(b"This is a text file with instructions"), "text/plain"),
+            ("data.json", BytesIO(b'{"key": "value", "number": 42}'), "application/json"),
+            (
+                "config.xml",
+                BytesIO(b'<?xml version="1.0"?><config><setting>value</setting></config>'),
+                "text/xml",
+            ),
+        ]
+
+        work_item_id = None
+
+        for i, (filename, content, mime_type) in enumerate(files_to_upload):
+            file_tuple = (filename, content, mime_type)
+
+            if i == 0:
+                # First file creates the work item
+                upload_resp = await client.post("/upload-file", files={"file": file_tuple})
+                assert upload_resp.status_code == 200
+                work_item_id = upload_resp.json()["work_item_id"]
+            else:
+                # Subsequent files are added to existing work item
+                upload_resp = await client.post(
+                    f"/upload-file?work_item_id={work_item_id}", files={"file": file_tuple}
+                )
+                assert upload_resp.status_code == 200
+                assert upload_resp.json()["work_item_id"] == work_item_id
+
+        # Convert to PENDING and process
+        create_payload = {
+            "agent_id": agent_id,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [{"kind": "text", "text": "List the uploaded files"}],
+                }
+            ],
+            "payload": {"task": "file_listing"},
+            "work_item_id": work_item_id,
+        }
+
+        create_resp = await client.post("/", json=create_payload)
+        assert create_resp.status_code == 200
+
+        # Wait for completion
+        async def _is_completed():
+            r = await client.get(f"/{work_item_id}")
+            assert r.status_code == 200
+            return WorkItemStatus(r.json()["status"]) == WorkItemStatus.COMPLETED
+
+        await _wait_until(_is_completed, interval=1.0, timeout=90)
+
+        # Verify all files were processed
+        final_resp = await client.get(f"/{work_item_id}?results=true")
+        assert final_resp.status_code == 200
+        final_work_item = final_resp.json()
+
+        assert WorkItemStatus(final_work_item["status"]) == WorkItemStatus.COMPLETED
+
+        # Check that all 3 files generated upload messages
+        messages = final_work_item["messages"]
+        file_upload_messages = [
+            msg
+            for msg in messages
+            if msg["role"] == "user"
+            and any(
+                content.get("text", "").startswith("Uploaded") for content in msg.get("content", [])
+            )
+        ]
+        assert len(file_upload_messages) == 3  # One for each file type
+
+
+@pytest.mark.integration
+@pytest.mark.postgresql
+@pytest.mark.usefixtures("copy_tmpdir_on_failure")
+@pytest.mark.asyncio
+async def test_work_item_batch_file_processing(
+    base_url_agent_server_with_work_items: str, agent_id: str
+):
+    """Test batch processing of multiple work items with files."""
+
+    work_items_url = f"{base_url_agent_server_with_work_items}/api/v2/work-items"
+    num_work_items = 3
+
+    async with AsyncClient(base_url=work_items_url) as client:
+        work_item_ids = []
+
+        # Create multiple work items with files
+        for i in range(num_work_items):
+            # Upload file
+            test_file = (
+                f"batch_file_{i}.txt",
+                BytesIO(f"Batch content {i}".encode()),
+                "text/plain",
+            )
+
+            upload_resp = await client.post("/upload-file", files={"file": test_file})
+            assert upload_resp.status_code == 200
+            work_item_id = upload_resp.json()["work_item_id"]
+
+            # Convert to PENDING
+            create_payload = {
+                "agent_id": agent_id,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {"kind": "text", "text": "I need a simple list of the uploaded files."}
+                        ],
+                    }
+                ],
+                "payload": {"batch_index": i},
+                "work_item_id": work_item_id,
+            }
+
+            create_resp = await client.post("/", json=create_payload)
+            assert create_resp.status_code == 200
+            work_item_ids.append(work_item_id)
+
+        # Wait for all work items to complete
+        async def _all_completed():
+            for wid in work_item_ids:
+                r = await client.get(f"/{wid}")
+                assert r.status_code == 200
+                if WorkItemStatus(r.json()["status"]) != WorkItemStatus.COMPLETED:
+                    return False
+            return True
+
+        await _wait_until(_all_completed, interval=1.0, timeout=120)
+
+        # Verify all work items completed successfully
+        for wid in work_item_ids:
+            final_resp = await client.get(f"/{wid}?results=true")
+            assert final_resp.status_code == 200
+            final_work_item = final_resp.json()
+
+            assert WorkItemStatus(final_work_item["status"]) == WorkItemStatus.COMPLETED
+            assert final_work_item["thread_id"] is not None
+
+            # Verify file upload message exists
+            messages = final_work_item["messages"]
+            file_upload_messages = [
+                msg
+                for msg in messages
+                if msg["role"] == "user"
+                and any(
+                    content.get("text", "").startswith("Uploaded")
+                    for content in msg.get("content", [])
+                )
+            ]
+            assert len(file_upload_messages) == 1  # One file per work item

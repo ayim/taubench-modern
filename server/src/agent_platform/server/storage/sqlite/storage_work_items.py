@@ -26,7 +26,8 @@ class SQLiteStorageWorkItemsMixin(CommonMixin):
         """Insert a new work item record."""
         # Validate IDs that should be UUIDs
         self._validate_uuid(work_item.user_id)
-        self._validate_uuid(work_item.agent_id)
+        if work_item.agent_id is not None:
+            self._validate_uuid(work_item.agent_id)
         self._validate_uuid(work_item.work_item_id)
         if work_item.thread_id is not None:
             self._validate_uuid(work_item.thread_id)
@@ -245,5 +246,50 @@ class SQLiteStorageWorkItemsMixin(CommonMixin):
                     "work_item_id": work_item_id,
                     "user_id": user_id,
                     "messages": json.dumps([msg.model_dump() for msg in thread_messages]),
+                },
+            )
+
+    async def update_work_item(self, work_item: WorkItem) -> None:
+        """Update a work item."""
+        self._validate_uuid(work_item.user_id)
+        self._validate_uuid(work_item.work_item_id)
+
+        # Convert messages and payload to JSON strings
+        messages_json = (
+            json.dumps([msg.model_dump() for msg in work_item.messages])
+            if work_item.messages
+            else "[]"
+        )
+        payload_json = json.dumps(work_item.payload)
+
+        async with self._cursor() as cur:
+            await cur.execute(
+                """
+                UPDATE v2_work_items
+                   SET agent_id = :agent_id,
+                       thread_id = :thread_id,
+                       messages = :messages,
+                       payload = :payload,
+                       status = :status,
+                       completed_by = :completed_by,
+                       status_updated_at = :status_updated_at,
+                       status_updated_by = :status_updated_by,
+                       updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+                 WHERE work_item_id = :work_item_id
+                   AND v2_check_user_access(user_id, :user_id) = 1
+                """,
+                {
+                    "agent_id": work_item.agent_id,
+                    "thread_id": work_item.thread_id,
+                    "messages": messages_json,
+                    "payload": payload_json,
+                    "status": work_item.status.value
+                    if isinstance(work_item.status, WorkItemStatus)
+                    else str(work_item.status),
+                    "completed_by": work_item.completed_by,
+                    "status_updated_at": work_item.status_updated_at,
+                    "status_updated_by": work_item.status_updated_by,
+                    "work_item_id": work_item.work_item_id,
+                    "user_id": work_item.user_id,
                 },
             )

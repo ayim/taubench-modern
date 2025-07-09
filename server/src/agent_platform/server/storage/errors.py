@@ -122,6 +122,13 @@ class ThreadFileNotFoundError(PlatformHTTPError):
         super().__init__(error_code=ErrorCode.NOT_FOUND, message=message)
 
 
+class WorkItemFileNotFoundError(PlatformHTTPError):
+    """A file with the given ID was not found."""
+
+    def __init__(self, message: str = "A file with the given ID was not found"):
+        super().__init__(error_code=ErrorCode.NOT_FOUND, message=message)
+
+
 class UserPermissionError(PlatformHTTPError):
     """The user does not have permission to access the given resource."""
 

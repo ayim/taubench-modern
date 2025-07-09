@@ -7,12 +7,15 @@ from structlog import get_logger
 from agent_platform.core.agent import Agent
 from agent_platform.core.files import UploadedFile
 from agent_platform.core.thread import Thread
+from agent_platform.core.work_items import WorkItem
 from agent_platform.server.constants import SystemConfig
 from agent_platform.server.storage.errors import (
     AgentNotFoundError,
     ThreadFileNotFoundError,
     ThreadNotFoundError,
     UserPermissionError,
+    WorkItemFileNotFoundError,
+    WorkItemNotFoundError,
 )
 from agent_platform.server.storage.postgres.common import CommonMixin
 
@@ -26,7 +29,7 @@ class PostgresStorageFilesMixin(CommonMixin):
 
     _logger = get_logger(__name__)
 
-    async def _validate_owner_type(self, owner) -> tuple[str, str | None]:
+    async def _validate_agent_thread_owner_type(self, owner) -> tuple[str, str | None]:
         """Validate and return agent_id and optional thread_id from owner.
 
         Args:
@@ -70,12 +73,24 @@ class PostgresStorageFilesMixin(CommonMixin):
 
         return owner.agent_id, owner.thread_id
 
+    async def _validate_work_item_owner_type(self, owner: WorkItem) -> str:
+        self._validate_uuid(owner.work_item_id)
+        self._logger.debug(f"Validating owner type {owner}")
+        await self._validate_work_item_exists(owner.work_item_id)
+        return owner.work_item_id
+
     async def _validate_agent_exists(self, user_id: str, agent_id: str) -> None:
         """Helper method to validate agent existence."""
         try:
             await self.get_agent(user_id, agent_id)
         except AgentNotFoundError:
             raise AgentNotFoundError(f"Agent {agent_id} not found") from None
+
+    async def _validate_work_item_exists(self, work_item_id: str) -> None:
+        try:
+            await self.get_work_item(work_item_id)
+        except WorkItemNotFoundError:
+            raise WorkItemNotFoundError(f"Work item {work_item_id} not found") from None
 
     def _delete_stored_file(self, file_url: str) -> None:
         # TODO: @kylie-bee: We need to separate concerns here, file manager should
@@ -131,33 +146,61 @@ class PostgresStorageFilesMixin(CommonMixin):
 
     async def get_file_by_ref(
         self,
-        owner: Agent | Thread,
+        owner: Agent | Thread | WorkItem,
         file_ref: str,
         user_id: str,
     ) -> UploadedFile | None:
         """Get a file by ref."""
-        agent_id, thread_id = await self._validate_owner_type(owner)
+        match owner:
+            case Agent() | Thread():
+                agent_id, thread_id = await self._validate_agent_thread_owner_type(owner)
+                work_item_id = None
+                if not thread_id:
+                    raise ValueError("Thread ID is required to fetch a file")
+            case WorkItem():
+                agent_id, thread_id = None, None
+                work_item_id = await self._validate_work_item_owner_type(owner)
+            case _:
+                raise ValueError("Owner must be either Agent, Thread or WorkItem instance")
+
         self._logger.debug(
             "Getting file by ref",
             file_ref=file_ref,
             agent_id=agent_id,
             thread_id=thread_id,
         )
-        if not thread_id:
-            raise ValueError("Thread ID is required to fetch a file")
+
         async with self._cursor() as cur:
-            await cur.execute(
-                """SELECT f.*,
-                   v2.check_user_access(f.user_id, %(user_id)s::uuid) AS has_access
-                   FROM v2.file_owner f
-                   WHERE file_ref = %(file_ref)s AND thread_id = %(thread_id)s::uuid
-                """,
-                {
-                    "file_ref": file_ref,
-                    "thread_id": thread_id,
-                    "user_id": user_id,
-                },
-            )
+            if thread_id:
+                await cur.execute(
+                    """SELECT f.*,
+                       v2.check_user_access(f.user_id, %(user_id)s::uuid) AS has_access
+                       FROM v2.file_owner f
+                       WHERE file_ref = %(file_ref)s AND thread_id = %(thread_id)s::uuid
+                    """,
+                    {
+                        "file_ref": file_ref,
+                        "thread_id": thread_id,
+                        "user_id": user_id,
+                    },
+                )
+            elif work_item_id:
+                await cur.execute(
+                    """SELECT f.*,
+                              v2.check_user_access(f.user_id, %(user_id)s::uuid) AS has_access
+                       FROM v2.file_owner f
+                       WHERE file_ref = %(file_ref)s
+                         AND work_item_id = %(work_item_id)s::uuid
+                    """,
+                    {
+                        "file_ref": file_ref,
+                        "work_item_id": work_item_id,
+                        "user_id": user_id,
+                    },
+                )
+            else:
+                raise ValueError("Either thread_id or work_item_id must be provided")
+
             row = await cur.fetchone()
             if row and not row["has_access"]:
                 raise UserPermissionError("User does not have access to this file")
@@ -195,38 +238,73 @@ class PostgresStorageFilesMixin(CommonMixin):
         self._logger.debug("File by ID result", found=bool(row))
         return UploadedFile.model_validate(dict(row)) if row else None
 
-    async def delete_file(
+    async def _get_file_for_deletion(
         self,
-        owner: Agent | Thread,
+        cur,
         file_id: str,
         user_id: str,
-    ) -> None:
-        """Delete a file by ID."""
-        self._validate_uuid(file_id)
-        agent_id, thread_id = await self._validate_owner_type(owner)
-        self._validate_uuid(user_id)
-        self._logger.debug("Deleting file by ID", file_id=file_id)
-        if not thread_id:
-            raise ValueError("Thread ID is required to delete a file")
-        async with self._cursor() as cur:
+        thread_id: str | None,
+        work_item_id: str | None,
+    ) -> dict:
+        """Get file information for deletion with access check."""
+        if thread_id:
             await cur.execute(
                 """SELECT f.file_path,
                    v2.check_user_access(f.user_id, %(user_id)s::uuid) AS has_access
                    FROM v2.file_owner f
                    WHERE file_id = %(file_id)s AND thread_id = %(thread_id)s::uuid
                 """,
-                {
-                    "file_id": file_id,
-                    "thread_id": thread_id,
-                    "user_id": user_id,
-                },
+                {"file_id": file_id, "thread_id": thread_id, "user_id": user_id},
             )
-            row = await cur.fetchone()
-            if not row:
-                self._logger.exception(f"File {file_id} not found")
+        elif work_item_id:
+            await cur.execute(
+                """SELECT f.file_path,
+                          v2.check_user_access(f.user_id, %(user_id)s::uuid) AS has_access
+                   FROM v2.file_owner f
+                   WHERE file_id = %(file_id)s AND work_item_id = %(work_item_id)s::uuid
+                """,
+                {"file_id": file_id, "work_item_id": work_item_id, "user_id": user_id},
+            )
+        else:
+            raise ValueError("Either thread_id or work_item_id must be provided")
+
+        row = await cur.fetchone()
+        if not row:
+            self._logger.error(f"File {file_id} not found")
+            if thread_id:
                 raise ThreadFileNotFoundError(f"File {file_id} not found")
-            if not row["has_access"]:
-                raise UserPermissionError("User does not have access to this file")
+            else:
+                raise WorkItemFileNotFoundError(f"File {file_id} not found")
+
+        if not row["has_access"]:
+            raise UserPermissionError("User does not have access to this file")
+
+        return row
+
+    async def delete_file(
+        self,
+        owner: Agent | Thread | WorkItem,
+        file_id: str,
+        user_id: str,
+    ) -> None:
+        """Delete a file by ID."""
+        self._validate_uuid(file_id)
+        self._validate_uuid(user_id)
+        match owner:
+            case Agent() | Thread():
+                agent_id, thread_id = await self._validate_agent_thread_owner_type(owner)
+                work_item_id = None
+                if not thread_id:
+                    raise ValueError("Thread ID is required to delete a file")
+            case WorkItem():
+                _, thread_id = None, None
+                work_item_id = await self._validate_work_item_owner_type(owner)
+            case _:
+                raise ValueError("Owner must be either Agent, Thread or WorkItem instance")
+
+        self._logger.debug("Deleting file by ID", file_id=file_id)
+        async with self._cursor() as cur:
+            row = await self._get_file_for_deletion(cur, file_id, user_id, thread_id, work_item_id)
 
             if SystemConfig.file_manager_type == "local":
                 file_url = row["file_path"]
@@ -262,21 +340,11 @@ class PostgresStorageFilesMixin(CommonMixin):
         user_id: str,
         embedded: bool,
         embedding_status: None,  # TODO: add a new type for EmbeddingStatus
-        owner: Agent | Thread,
+        owner: Agent | Thread | WorkItem,
         file_path_expiration: datetime | None,
     ) -> UploadedFile:
         """Add or update a file owner."""
         self._validate_uuid(file_id)
-        agent_id, thread_id = await self._validate_owner_type(owner)
-        self._logger.debug(
-            "Putting file owner",
-            file_id=file_id,
-            file_ref=file_ref,
-            agent_id=agent_id,
-            thread_id=thread_id,
-            mime_type=mime_type,
-            file_size_raw=file_size_raw,
-        )
 
         file_dict = {
             "file_id": file_id,
@@ -287,11 +355,32 @@ class PostgresStorageFilesMixin(CommonMixin):
             "mime_type": mime_type,
             "user_id": user_id,
             "embedded": embedded,
-            "agent_id": agent_id,
-            "thread_id": thread_id,
             "file_path_expiration": file_path_expiration,
             "created_at": datetime.now(UTC).isoformat(),
         }
+
+        match owner:
+            case Agent() | Thread():
+                agent_id, thread_id = await self._validate_agent_thread_owner_type(owner)
+                work_item_id = None
+                file_dict |= {"agent_id": agent_id, "thread_id": thread_id, "work_item_id": None}
+            case WorkItem():
+                work_item_id = await self._validate_work_item_owner_type(owner)
+                agent_id, thread_id = None, None
+                file_dict |= {"agent_id": None, "thread_id": None, "work_item_id": work_item_id}
+            case _:
+                raise ValueError("Owner must be either Agent, Thread or WorkItem instance")
+
+        self._logger.debug(
+            "Putting file owner",
+            file_id=file_id,
+            file_ref=file_ref,
+            agent_id=agent_id,
+            thread_id=thread_id,
+            mime_type=mime_type,
+            work_item_id=work_item_id,
+            file_size_raw=file_size_raw,
+        )
 
         async with self._cursor() as cur:
             try:
@@ -302,13 +391,14 @@ class PostgresStorageFilesMixin(CommonMixin):
                     INSERT INTO v2.file_owner (
                         file_id, file_path, file_ref, file_hash,
                         file_size_raw, mime_type, user_id, embedded,
-                        agent_id, thread_id, file_path_expiration,
+                        agent_id, thread_id, work_item_id, file_path_expiration,
                         created_at
                     )
                     VALUES (
                         %(file_id)s, %(file_path)s, %(file_ref)s, %(file_hash)s,
                         %(file_size_raw)s, %(mime_type)s, %(user_id)s::uuid,
                         %(embedded)s, %(agent_id)s::uuid, %(thread_id)s::uuid,
+                        %(work_item_id)s::uuid,
                         %(file_path_expiration)s, %(created_at)s
                     )
                     ON CONFLICT(file_id) DO UPDATE SET
@@ -320,6 +410,7 @@ class PostgresStorageFilesMixin(CommonMixin):
                         embedded = EXCLUDED.embedded,
                         agent_id = EXCLUDED.agent_id,
                         thread_id = EXCLUDED.thread_id,
+                        work_item_id = EXCLUDED.work_item_id,
                         file_path_expiration = EXCLUDED.file_path_expiration,
                         created_at = EXCLUDED.created_at
                     """,
@@ -431,3 +522,26 @@ class PostgresStorageFilesMixin(CommonMixin):
 
             self._logger.debug("File retrieve information updated", file_id=file_id)
             return UploadedFile.model_validate(dict(row))
+
+    async def get_workitem_files(self, work_item_id: str, user_id: str) -> list[UploadedFile]:
+        """Get all files associated with a work item."""
+        self._validate_uuid(work_item_id)
+        self._logger.debug("Getting all files for work item", work_item_id=work_item_id)
+        async with self._cursor() as cur:
+            await cur.execute(
+                """
+                SELECT f.*, v2.check_user_access(f.user_id, %(user_id)s::uuid) AS has_access
+                FROM v2.file_owner f
+                WHERE f.work_item_id = %(work_item_id)s::uuid
+                """,
+                {"work_item_id": work_item_id, "user_id": user_id},
+            )
+            rows = await cur.fetchall()
+            self._logger.debug(f"Found {len(rows)} files for work item {work_item_id}")
+            if not all(row["has_access"] for row in rows):
+                raise UserPermissionError(
+                    "User does not have access to one or more files",
+                )
+            # remove has_access from the rows
+            rows = [{k: v for k, v in dict(row).items() if k != "has_access"} for row in rows]
+            return [UploadedFile.model_validate(row_dict) for row_dict in rows]

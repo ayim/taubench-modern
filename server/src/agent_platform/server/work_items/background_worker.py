@@ -1,13 +1,18 @@
 import asyncio
 import logging
 from collections.abc import Awaitable, Callable, Sequence
+from datetime import UTC, datetime
 from typing import assert_never
+from uuid import uuid4
 
 from fastapi import Request
 
 from agent_platform.core.context import AgentServerContext
 from agent_platform.core.prompts import Prompt
 from agent_platform.core.responses.content.text import ResponseTextContent
+from agent_platform.core.thread import ThreadTextContent
+from agent_platform.core.thread.base import ThreadMessage
+from agent_platform.core.thread.thread import Thread
 from agent_platform.core.work_items import WorkItem, WorkItemStatus
 from agent_platform.server.api.private_v2.prompt import prompt_generate
 from agent_platform.server.api.private_v2.runs import (
@@ -120,12 +125,59 @@ async def run_agent(item: WorkItem) -> bool:
 
     user = await storage.get_user_by_id(item.user_id)
 
+    if not item.agent_id:
+        logger.error(f"Work item {item.work_item_id}: Agent ID is required")
+        return False
+
+    # create a new thread for the work item
+    thread = Thread(
+        user_id=user.user_id,
+        thread_id=str(uuid4()),
+        agent_id=item.agent_id,
+        name=f"Work Item {item.work_item_id}",
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
+    )
+    await storage.upsert_thread(user.user_id, thread)
+
+    # update the work item with the thread id and new file related messages
+    item.thread_id = thread.thread_id
+    await storage.update_work_item(item)
+
+    # copy files from work item to thread
+    files = await storage.get_workitem_files(work_item_id=item.work_item_id, user_id=user.user_id)
+    for file in files:
+        # TODO maybe add bulk method for `put_file_owner`
+        await storage.put_file_owner(
+            file_id=file.file_id,
+            file_path=file.file_path,
+            file_ref=file.file_ref,
+            file_hash=file.file_hash,
+            file_size_raw=file.file_size_raw,
+            mime_type=file.mime_type,
+            user_id=user.user_id,
+            embedded=file.embedded,
+            embedding_status=None,
+            owner=item,
+            file_path_expiration=file.file_path_expiration,
+        )
+
+        file_upload_message = ThreadMessage(
+            role="user",
+            content=[
+                ThreadTextContent(
+                    text=f"Uploaded [{file.file_ref}]({file.file_url})",
+                )
+            ],
+        )
+
+        item.messages.append(file_upload_message)
+
     payload = item.to_initiate_stream_payload()
     logger.info(
         f"Work item {item.work_item_id}: Invoking agent "
         f"{item.agent_id} with messages {payload.messages}"
     )
-
     invoke_resp = await async_run(
         item.agent_id,
         payload,
@@ -313,8 +365,6 @@ async def execute_work_item(
             current_status = None
             latest_item = item
 
-        new_status = WorkItemStatus.COMPLETED if result else WorkItemStatus.ERROR
-
         # Only update if the current status is not CANCELLED
         if current_status != WorkItemStatus.CANCELLED:
             logger.info(
@@ -331,8 +381,6 @@ async def execute_work_item(
                 "Work item %s was cancelled during execution: leaving status as CANCELLED",
                 item.work_item_id,
             )
-
-        # TODO on COMPLETED, use prompts/generate to judge the result
 
         return result
     except Exception as e:

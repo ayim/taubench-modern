@@ -201,3 +201,172 @@ async def test_batch_processing_and_mark_error(
         item = await storage.get_work_item(wid)
         assert item is not None
         assert item.status == WorkItemStatus.ERROR
+
+
+@pytest.mark.asyncio
+async def test_work_item_file_operations(
+    storage: PostgresStorage,
+    sample_user_id: str,
+    sample_agent,
+):
+    """Test file operations with work items."""
+    # Create work item
+    work_item = WorkItem(
+        work_item_id=str(uuid4()),
+        user_id=sample_user_id,
+        agent_id=None,  # PRECREATED state
+        thread_id=None,
+        status=WorkItemStatus.PRECREATED,
+        messages=[],
+        payload={},
+    )
+    await storage.create_work_item(work_item)
+
+    # Test get_workitem_files with empty work item
+    files = await storage.get_workitem_files(work_item.work_item_id, sample_user_id)
+    assert len(files) == 0
+
+    # Upload file to work item
+    file_id = str(uuid4())
+    uploaded_file = await storage.put_file_owner(
+        file_id=file_id,
+        owner=work_item,
+        user_id=sample_user_id,
+        file_path="/test/path/document.txt",
+        file_ref="document.txt",
+        file_hash="test_hash_123",
+        file_size_raw=1024,
+        mime_type="text/plain",
+        embedded=False,
+        embedding_status=None,
+        file_path_expiration=None,
+    )
+
+    assert uploaded_file.file_id == file_id
+    assert uploaded_file.file_ref == "document.txt"
+    assert uploaded_file.work_item_id == work_item.work_item_id
+    assert uploaded_file.thread_id is None
+    assert uploaded_file.agent_id is None
+
+    # Test get_workitem_files with file
+    files = await storage.get_workitem_files(work_item.work_item_id, sample_user_id)
+    assert len(files) == 1
+    assert files[0].file_id == file_id
+    assert files[0].file_ref == "document.txt"
+
+    # Test get_file_by_ref with work item
+    file_by_ref = await storage.get_file_by_ref(work_item, "document.txt", sample_user_id)
+    assert file_by_ref is not None
+    assert file_by_ref.file_id == file_id
+    assert file_by_ref.file_ref == "document.txt"
+
+
+@pytest.mark.asyncio
+async def test_work_item_multiple_files_with_different_names(
+    storage: PostgresStorage,
+    sample_user_id: str,
+):
+    """Test that multiple files with different names can be uploaded to work items."""
+    # Create work item
+    work_item = WorkItem(
+        work_item_id=str(uuid4()),
+        user_id=sample_user_id,
+        agent_id=None,
+        thread_id=None,
+        status=WorkItemStatus.PRECREATED,
+        messages=[],
+        payload={},
+    )
+    await storage.create_work_item(work_item)
+
+    # Upload first file
+    file_id_1 = str(uuid4())
+    await storage.put_file_owner(
+        file_id=file_id_1,
+        owner=work_item,
+        user_id=sample_user_id,
+        file_path="/test/path1/data1.txt",
+        file_ref="data1.txt",
+        file_hash="hash1",
+        file_size_raw=512,
+        mime_type="text/plain",
+        embedded=False,
+        embedding_status=None,
+        file_path_expiration=None,
+    )
+
+    # Upload second file with different name
+    file_id_2 = str(uuid4())
+    await storage.put_file_owner(
+        file_id=file_id_2,
+        owner=work_item,
+        user_id=sample_user_id,
+        file_path="/test/path2/data2.txt",
+        file_ref="data2.txt",  # Different name
+        file_hash="hash2",
+        file_size_raw=1024,
+        mime_type="text/plain",
+        embedded=False,
+        embedding_status=None,
+        file_path_expiration=None,
+    )
+
+    # Should have both files
+    files = await storage.get_workitem_files(work_item.work_item_id, sample_user_id)
+    assert len(files) == 2
+
+    file_refs = {f.file_ref for f in files}
+    assert file_refs == {"data1.txt", "data2.txt"}
+
+    file_ids = {f.file_id for f in files}
+    assert file_ids == {file_id_1, file_id_2}
+
+
+@pytest.mark.asyncio
+async def test_work_item_file_deletion(
+    storage: PostgresStorage,
+    sample_user_id: str,
+):
+    """Test deleting files from work items."""
+    # Create work item
+    work_item = WorkItem(
+        work_item_id=str(uuid4()),
+        user_id=sample_user_id,
+        agent_id=None,
+        thread_id=None,
+        status=WorkItemStatus.PRECREATED,
+        messages=[],
+        payload={},
+    )
+    await storage.create_work_item(work_item)
+
+    # Upload file
+    file_id = str(uuid4())
+    await storage.put_file_owner(
+        file_id=file_id,
+        owner=work_item,
+        user_id=sample_user_id,
+        file_path="/test/path/temp.txt",
+        file_ref="temp.txt",
+        file_hash="temp_hash",
+        file_size_raw=256,
+        mime_type="text/plain",
+        embedded=False,
+        embedding_status=None,
+        file_path_expiration=None,
+    )
+
+    # Verify file exists
+    files = await storage.get_workitem_files(work_item.work_item_id, sample_user_id)
+    assert len(files) == 1
+
+    # Delete file
+    await storage.delete_file(work_item, file_id, sample_user_id)
+
+    # Verify file is deleted
+    files = await storage.get_workitem_files(work_item.work_item_id, sample_user_id)
+    assert len(files) == 0
+
+    # Verify file by ID is also gone
+    deleted_file = await storage.get_file_by_id(file_id, sample_user_id)
+    assert deleted_file is None

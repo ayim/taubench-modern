@@ -114,8 +114,13 @@ async def seed_agents(storage, stub_user):
 # ──────────────────────────────────────────────────────────────
 @pytest.fixture
 def fastapi_app(storage, stub_user) -> FastAPI:
+    from agent_platform.server.file_manager.option import FileManagerService
+
     StorageService.reset()
     StorageService.set_for_testing(storage)
+
+    # Also reset the FileManagerService to ensure it uses the correct storage
+    FileManagerService.reset()
 
     app = FastAPI()
     app.include_router(work_items.router, prefix="/v2/work-items")

@@ -1312,5 +1312,58 @@ class TestFileManager:
         assert thread2_file.file_id == file2_id, "The second thread should still have the same file"
 
 
+@pytest.mark.asyncio
+async def test_upload_files_to_work_item(
+    file_manager: BaseFileManager,
+    storage: SQLiteStorage | PostgresStorage,
+    sample_user_id: str,
+):
+    """Test uploading multiple files to a work item."""
+    # Create a work item
+    from uuid import uuid4
+
+    from agent_platform.core.work_items import WorkItem, WorkItemStatus
+
+    work_item = WorkItem(
+        work_item_id=str(uuid4()),
+        user_id=sample_user_id,
+        agent_id=None,
+        thread_id=None,
+        status=WorkItemStatus.PRECREATED,
+        messages=[],
+        payload={},
+    )
+    await storage.create_work_item(work_item)
+
+    # Upload first file
+    file1_content = b"First file content"
+    file1 = UploadFile(filename="file1.txt", file=BytesIO(file1_content))
+
+    upload_requests = [UploadFilePayload(file=file1)]
+    await file_manager.upload(upload_requests, work_item, sample_user_id)
+
+    # Verify first file exists
+    files = await storage.get_workitem_files(work_item.work_item_id, sample_user_id)
+    assert len(files) == 1
+    first_file_id = files[0].file_id
+
+    # Upload second file with different name
+    file2_content = b"Second file content"
+    file2 = UploadFile(filename="file2.txt", file=BytesIO(file2_content))
+
+    upload_requests = [UploadFilePayload(file=file2)]
+    await file_manager.upload(upload_requests, work_item, sample_user_id)
+
+    # Verify both files exist
+    files = await storage.get_workitem_files(work_item.work_item_id, sample_user_id)
+    assert len(files) == 2
+
+    file_refs = {f.file_ref for f in files}
+    assert file_refs == {"file1.txt", "file2.txt"}
+
+    file_ids = {f.file_id for f in files}
+    assert first_file_id in file_ids  # Original file should still exist
+
+
 if __name__ == "__main__":
     pytest.main()

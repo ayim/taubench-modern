@@ -1,3 +1,5 @@
+from io import BytesIO
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -273,3 +275,154 @@ async def test_full_workflow(client: TestClient, seed_agents: list[Agent]):
     final_describe_item = final_describe_response.json()
     assert final_describe_item["work_item_id"] == work_item_id
     assert final_describe_item["status"] == WorkItemStatus.CANCELLED.value
+
+
+@pytest.mark.asyncio
+async def test_upload_file_to_work_item(client: TestClient, seed_agents: list[Agent]):
+    """Test uploading a file to a work item."""
+    # Create a test file
+    test_content = b"This is test file content for work item"
+    test_file = ("test_file.txt", BytesIO(test_content), "text/plain")
+
+    # Upload file without work_item_id (should create new work item)
+    response = client.post("/v2/work-items/upload-file", files={"file": test_file})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert "work_item_id" in data
+    work_item_id = data["work_item_id"]
+
+    # Verify work item was created in PRECREATED state
+    get_response = client.get(f"/v2/work-items/{work_item_id}")
+    assert get_response.status_code == 200
+    work_item = get_response.json()
+    assert work_item["status"] == WorkItemStatus.PRECREATED.value
+    assert work_item["agent_id"] is None  # No agent assigned yet
+
+
+@pytest.mark.asyncio
+async def test_upload_file_to_existing_work_item(client: TestClient, seed_agents: list[Agent]):
+    """Test uploading a file to an existing work item."""
+    # First create a work item in PRECREATED state
+    test_file1 = ("file1.txt", BytesIO(b"First file content"), "text/plain")
+
+    response = client.post("/v2/work-items/upload-file", files={"file": test_file1})
+    assert response.status_code == 200
+    work_item_id = response.json()["work_item_id"]
+
+    # Upload another file to the same work item
+    test_file2 = ("file2.txt", BytesIO(b"Second file content"), "text/plain")
+
+    response = client.post(
+        f"/v2/work-items/upload-file?work_item_id={work_item_id}", files={"file": test_file2}
+    )
+
+    assert response.status_code == 200
+    assert response.json()["work_item_id"] == work_item_id
+
+
+@pytest.mark.asyncio
+async def test_upload_duplicate_file_name_to_work_item(
+    client: TestClient, seed_agents: list[Agent]
+):
+    """Test uploading a file with duplicate name to work item should fail."""
+    # Create work item with first file
+    test_file1 = ("duplicate.txt", BytesIO(b"First content"), "text/plain")
+
+    response = client.post("/v2/work-items/upload-file", files={"file": test_file1})
+    assert response.status_code == 200
+    work_item_id = response.json()["work_item_id"]
+
+    # Try to upload file with same name
+    test_file2 = ("duplicate.txt", BytesIO(b"Second content"), "text/plain")
+
+    response = client.post(
+        f"/v2/work-items/upload-file?work_item_id={work_item_id}", files={"file": test_file2}
+    )
+
+    assert response.status_code == 400
+    assert "already exists" in response.json()["error"]["message"]
+
+
+@pytest.mark.asyncio
+async def test_upload_file_to_nonexistent_work_item(client: TestClient, seed_agents: list[Agent]):
+    """Test uploading a file to a non-existent work item should fail."""
+    test_file = ("test.txt", BytesIO(b"Test content"), "text/plain")
+    fake_work_item_id = "00000000-0000-0000-0000-000000000000"
+
+    response = client.post(
+        f"/v2/work-items/upload-file?work_item_id={fake_work_item_id}", files={"file": test_file}
+    )
+
+    assert response.status_code == 404
+    assert "A work item with the given ID was not found" in response.json()["error"]["message"]
+
+
+@pytest.mark.asyncio
+async def test_upload_file_to_non_precreated_work_item(
+    client: TestClient, seed_agents: list[Agent]
+):
+    """Test uploading a file to a work item not in PRECREATED state should fail."""
+    # Create a work item with agent (will be in PENDING state)
+    payload = {
+        "agent_id": seed_agents[0].agent_id,
+        "messages": [{"role": "user", "content": [{"kind": "text", "text": "Test message"}]}],
+        "payload": {},
+    }
+
+    response = client.post("/v2/work-items/", json=payload)
+    assert response.status_code == 200
+    work_item_id = response.json()["work_item_id"]
+
+    # Try to upload file to PENDING work item
+    test_file = ("test.txt", BytesIO(b"Test content"), "text/plain")
+
+    response = client.post(
+        f"/v2/work-items/upload-file?work_item_id={work_item_id}", files={"file": test_file}
+    )
+
+    assert response.status_code == 400
+    assert "not in precreated state" in response.json()["error"]["message"]
+
+
+@pytest.mark.asyncio
+async def test_work_item_with_files_workflow(client: TestClient, seed_agents: list[Agent]):
+    """Test complete workflow: upload files -> create work item -> verify files copied to thread."""
+    # 1. Upload files to create work item
+    test_file1 = ("document.txt", BytesIO(b"Important document content"), "text/plain")
+    test_file2 = ("data.csv", BytesIO(b"col1,col2\nval1,val2"), "text/csv")
+
+    # Upload first file
+    response = client.post("/v2/work-items/upload-file", files={"file": test_file1})
+    assert response.status_code == 200
+    work_item_id = response.json()["work_item_id"]
+
+    # Upload second file to same work item
+    response = client.post(
+        f"/v2/work-items/upload-file?work_item_id={work_item_id}", files={"file": test_file2}
+    )
+    assert response.status_code == 200
+
+    # 2. Convert work item to PENDING by adding agent and messages
+    payload = {
+        "agent_id": seed_agents[0].agent_id,
+        "messages": [
+            {"role": "user", "content": [{"kind": "text", "text": "Process these files"}]}
+        ],
+        "payload": {"task": "file_processing"},
+        "work_item_id": work_item_id,
+    }
+
+    response = client.post("/v2/work-items/", json=payload)
+    assert response.status_code == 200
+    work_item = response.json()
+
+    # Verify work item has agent and is PENDING
+    assert work_item["agent_id"] == seed_agents[0].agent_id
+    assert work_item["status"] == WorkItemStatus.PENDING.value
+    assert work_item["work_item_id"] == work_item_id
+
+    # Verify messages include the uploaded files (this would happen during background processing)
+    # Note: In real workflow, files get copied to thread and file upload messages are added
+    assert len(work_item["messages"]) == 1  # Our user message
+    assert work_item["messages"][0]["content"][0]["text"] == "Process these files"

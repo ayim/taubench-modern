@@ -313,7 +313,7 @@ class BaseStorage(ABC):
     @abstractmethod
     async def get_file_by_ref(
         self,
-        owner: Agent | Thread,
+        owner: Agent | Thread | WorkItem,
         file_ref: str,
         user_id: str,
     ) -> UploadedFile | None:
@@ -323,7 +323,7 @@ class BaseStorage(ABC):
     @abstractmethod
     async def delete_file(
         self,
-        owner: Agent | Thread,
+        owner: Agent | Thread | WorkItem,
         file_id: str,
         user_id: str,
     ) -> None:
@@ -360,7 +360,7 @@ class BaseStorage(ABC):
         user_id: str,
         embedded: bool,
         embedding_status: None,  # TODO: add a new type for EmbeddingStatus
-        owner: Agent | Thread,
+        owner: Agent | Thread | WorkItem,
         file_path_expiration: datetime | None,
     ) -> UploadedFile:
         """Add or update a file owner."""
@@ -481,4 +481,14 @@ class BaseStorage(ABC):
         This is used to update the work item with the thread ID
         and the thread messages.
         """
+        pass
+
+    @abstractmethod
+    async def update_work_item(self, work_item: WorkItem) -> None:
+        """Update a work item."""
+        pass
+
+    @abstractmethod
+    async def get_workitem_files(self, work_item_id: str, user_id: str) -> list[UploadedFile]:
+        """Get all files associated with a work item."""
         pass

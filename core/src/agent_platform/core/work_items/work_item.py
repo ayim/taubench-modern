@@ -29,6 +29,9 @@ class WorkItemStatus(StrEnum):
     PENDING = "PENDING"
     """The work item is pending."""
 
+    PRECREATED = "PRECREATED"
+    """The work item is is partially created to allow for file attachments."""
+
 
 @dataclass
 class WorkItem:
@@ -44,7 +47,8 @@ class WorkItem:
     )
     """The ID of the user that created this work item."""
 
-    agent_id: str = field(
+    agent_id: str | None = field(
+        default=None,
         metadata={"description": "The ID of the agent that will process this work item"},
     )
     """The ID of the agent that will process this work item."""
@@ -125,7 +129,7 @@ class WorkItem:
 
     def to_initiate_stream_payload(self) -> InitiateStreamPayload:
         return InitiateStreamPayload(
-            agent_id=self.agent_id,
+            agent_id=self.agent_id or "",
             thread_id=self.thread_id,
             name=f"Work Item {self.work_item_id}",
             messages=self.messages,

@@ -28,6 +28,12 @@ class CreateWorkItemPayload:
     )
     """The payload of the work item."""
 
+    work_item_id: str | None = field(
+        default=None,
+        metadata={"description": "The ID of the work item."},
+    )
+    """The ID of the work item."""
+
     @classmethod
     def to_work_item(cls, payload: "CreateWorkItemPayload", user_id: str) -> WorkItem:
         return WorkItem(

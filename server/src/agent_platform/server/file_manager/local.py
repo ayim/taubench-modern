@@ -9,6 +9,7 @@ from agent_platform.core.agent import Agent
 from agent_platform.core.files import FileData, UploadedFile
 from agent_platform.core.payloads import UploadFilePayload
 from agent_platform.core.thread import Thread
+from agent_platform.core.work_items import WorkItem
 from agent_platform.server.constants import SystemPaths
 from agent_platform.server.file_manager.base import (
     MISSING_FILE_HASH,
@@ -38,7 +39,7 @@ class LocalFileManager(BaseFileManager):
 
     async def _revert_uploads(
         self,
-        owner: Agent | Thread,
+        owner: Agent | Thread | WorkItem,
         user_id: str,
         uploads: list[tuple[str, str]],
     ) -> None:
@@ -49,13 +50,23 @@ class LocalFileManager(BaseFileManager):
     async def _upload_files(
         self,
         files: list[UploadFilePayload],
-        owner: Agent | Thread,
+        owner: Agent | Thread | WorkItem,
         user_id: str,
     ) -> list[UploadedFile]:
         """Uploads all files or none to ensure consistency."""
-        owner_id = owner.agent_id if isinstance(owner, Agent) else owner.thread_id
-        logger.info(f"Uploading {len(files)} files to {owner_id}")
+        match owner:
+            case Agent():
+                owner_id = owner.agent_id
+            case Thread():
+                owner_id = owner.thread_id
+            case WorkItem():
+                owner_id = owner.work_item_id
+            case _:
+                raise ValueError()
 
+        # owner_id = owner.agent_id if isinstance(owner, Agent) else owner.thread_id
+        logger.info(f"Uploading {len(files)} files to {owner_id}")
+        logger.info(f"Owner: <{owner.__class__.__name__} id={owner_id}>")
         uploaded_files: list[UploadedFile] = []
         for f in files:
             file_id = str(uuid4())

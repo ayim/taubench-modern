@@ -35,7 +35,8 @@ class PostgresStorageWorkItemsMixin(CommonMixin):
 
         # Validate UUIDs that should be valid
         self._validate_uuid(work_item.user_id)
-        self._validate_uuid(work_item.agent_id)
+        if work_item.agent_id is not None:
+            self._validate_uuid(work_item.agent_id)
         self._validate_uuid(work_item.work_item_id)
         if work_item.thread_id is not None:
             self._validate_uuid(work_item.thread_id)
@@ -276,4 +277,39 @@ class PostgresStorageWorkItemsMixin(CommonMixin):
                     "user_id": user_id,
                     "messages": Jsonb([msg.model_dump() for msg in thread_messages]),
                 },
+            )
+
+    async def update_work_item(self, work_item: WorkItem) -> None:
+        """Update a work item."""
+        self._validate_uuid(work_item.user_id)
+        self._validate_uuid(work_item.work_item_id)
+
+        # Convert work item to dict
+        work_item_data = work_item.model_dump()
+
+        # Convert messages and payload to Jsonb
+        work_item_data["messages"] = (
+            Jsonb([msg.model_dump() for msg in work_item.messages])
+            if work_item.messages
+            else Jsonb([])
+        )
+        work_item_data["payload"] = Jsonb(work_item.payload)
+
+        async with self._cursor() as cur:
+            await cur.execute(
+                """
+                UPDATE v2.work_items
+                   SET agent_id = %(agent_id)s,
+                       thread_id = %(thread_id)s,
+                       messages = %(messages)s,
+                       payload = %(payload)s,
+                       status = %(status)s,
+                       completed_by = %(completed_by)s,
+                       status_updated_at = %(status_updated_at)s,
+                       status_updated_by = %(status_updated_by)s,
+                       updated_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC'
+                 WHERE work_item_id = %(work_item_id)s::uuid
+                   AND v2.check_user_access(user_id, %(user_id)s::uuid)
+                """,
+                work_item_data,
             )

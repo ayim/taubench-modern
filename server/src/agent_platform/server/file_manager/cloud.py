@@ -15,6 +15,7 @@ from agent_platform.core.configurations import Configuration, FieldMetadata
 from agent_platform.core.files import FileData, UploadedFile
 from agent_platform.core.payloads import UploadFilePayload
 from agent_platform.core.thread import Thread
+from agent_platform.core.work_items import WorkItem
 from agent_platform.server.file_manager.base import (
     MISSING_FILE_HASH,
     BaseFileManager,
@@ -111,7 +112,7 @@ class CloudFileManager(BaseFileManager):
     async def _upload_files(
         self,
         files: list[UploadFilePayload],
-        owner: Agent | Thread,
+        owner: Agent | Thread | WorkItem,
         user_id: str,
     ) -> list[UploadedFile]:
         """Uploads all files or none to ensure consistency."""
@@ -165,7 +166,7 @@ class CloudFileManager(BaseFileManager):
     async def _revert_uploads(
         self,
         file_ids: list[str],
-        owner: Agent | Thread,
+        owner: Agent | Thread | WorkItem,
     ) -> None:
         """Revert uploads by deleting files from both storage and cloud.
 
@@ -324,7 +325,7 @@ class CloudFileManager(BaseFileManager):
 
     async def generate_unique_file_ref(
         self,
-        owner: Agent | Thread,
+        owner: Agent | Thread | WorkItem,
         file_name: str,
     ) -> str:
         from agent_platform.server.storage.errors import UniqueFileRefError
