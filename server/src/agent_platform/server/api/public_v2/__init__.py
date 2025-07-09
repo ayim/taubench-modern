@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from agent_platform.server.api.private_v2.work_items import router as work_items_router
 from agent_platform.server.api.public_v2.agents import router as agents_router
 
 PUBLIC_V2_PREFIX = "/api/public/v1"
@@ -10,6 +11,13 @@ router.include_router(
     agents_router,
     prefix="/agents",
     tags=["agents"],
+)
+
+# TODO: move all the endpoints under the actual public API folder on a later date
+router.include_router(
+    work_items_router,
+    prefix="/work-items",
+    tags=["work-items"],
 )
 
 

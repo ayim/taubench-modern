@@ -29,7 +29,7 @@ async def test_create_work_item(client: TestClient, seed_agents: list[Agent]):
         "payload": {"test_key": "test_value"},
     }
 
-    response = client.post("/v2/work-items/", json=payload)
+    response = client.post("/public/v1/work-items/", json=payload)
 
     assert response.status_code == 200
     data = response.json()
@@ -54,7 +54,7 @@ async def test_create_work_item_invalid_agent(client: TestClient):
         "payload": {},
     }
 
-    response = client.post("/v2/work-items/", json=payload)
+    response = client.post("/public/v1/work-items/", json=payload)
 
     assert response.status_code == 400
     detail = response.json()
@@ -76,11 +76,11 @@ async def test_describe_work_item(client: TestClient, seed_agents: list[Agent]):
         "payload": {},
     }
 
-    create_response = client.post("/v2/work-items/", json=create_payload)
+    create_response = client.post("/public/v1/work-items/", json=create_payload)
     work_item_id = create_response.json()["work_item_id"]
 
     # Get work item with results=true (return messages)
-    response = client.get(f"/v2/work-items/{work_item_id}?results=true")
+    response = client.get(f"/public/v1/work-items/{work_item_id}?results=true")
 
     assert response.status_code == 200
     data = response.json()
@@ -89,7 +89,7 @@ async def test_describe_work_item(client: TestClient, seed_agents: list[Agent]):
     assert data["messages"][0]["content"][0]["text"] == "Test message with results"
 
     # Get work item with results=false (default, no messages)
-    response = client.get(f"/v2/work-items/{work_item_id}")
+    response = client.get(f"/public/v1/work-items/{work_item_id}")
 
     assert response.status_code == 200
     data = response.json()
@@ -99,7 +99,7 @@ async def test_describe_work_item(client: TestClient, seed_agents: list[Agent]):
 @pytest.mark.asyncio
 async def test_describe_nonexistent_work_item(client: TestClient):
     """Test describing a work item that doesn't exist."""
-    response = client.get("/v2/work-items/00000000-0000-0000-0000-000000000000")
+    response = client.get("/public/v1/work-items/00000000-0000-0000-0000-000000000000")
 
     # Valid uuid, so not found
     assert response.status_code == 404
@@ -109,7 +109,7 @@ async def test_describe_nonexistent_work_item(client: TestClient):
     assert detail["error"]["code"] == "not_found"
     assert "not found" in detail["error"]["message"].lower()
 
-    response = client.get("/v2/work-items/invalid-uuid")
+    response = client.get("/public/v1/work-items/invalid-uuid")
 
     # Invalid uuid, so bad request
     assert response.status_code == 400
@@ -137,12 +137,12 @@ async def test_list_work_items(client: TestClient, seed_agents: list[Agent]):
             "payload": {"list_index": i},
         }
 
-        create_response = client.post("/v2/work-items/", json=create_payload)
+        create_response = client.post("/public/v1/work-items/", json=create_payload)
         assert create_response.status_code == 200
         work_items.append(create_response.json())
 
     # List work items
-    response = client.get("/v2/work-items/")
+    response = client.get("/public/v1/work-items/")
 
     assert response.status_code == 200
     data = response.json()
@@ -167,11 +167,11 @@ async def test_list_work_items_with_limit(client: TestClient, seed_agents: list[
             "payload": {},
         }
 
-        create_response = client.post("/v2/work-items/", json=create_payload)
+        create_response = client.post("/public/v1/work-items/", json=create_payload)
         assert create_response.status_code == 200
 
     # List with limit=2
-    response = client.get("/v2/work-items/?limit=2")
+    response = client.get("/public/v1/work-items/?limit=2")
 
     assert response.status_code == 200
     data = response.json()
@@ -195,23 +195,23 @@ async def test_cancel_work_item(client: TestClient, seed_agents: list[Agent]):
         "payload": {"cancel_test": True},
     }
 
-    create_response = client.post("/v2/work-items/", json=create_payload)
+    create_response = client.post("/public/v1/work-items/", json=create_payload)
     assert create_response.status_code == 200
     work_item = create_response.json()
     work_item_id = work_item["work_item_id"]
 
     # Verify the item exists before canceling
-    get_response = client.get(f"/v2/work-items/{work_item_id}")
+    get_response = client.get(f"/public/v1/work-items/{work_item_id}")
     assert get_response.status_code == 200
 
     # Cancel the work item
-    cancel_response = client.post(f"/v2/work-items/{work_item_id}/cancel")
+    cancel_response = client.post(f"/public/v1/work-items/{work_item_id}/cancel")
 
     assert cancel_response.status_code == 200
     assert cancel_response.json()["status"] == "ok"
 
     # Verify the item is deleted (based on current cancel implementation)
-    get_response_after = client.get(f"/v2/work-items/{work_item_id}")
+    get_response_after = client.get(f"/public/v1/work-items/{work_item_id}")
     assert get_response_after.status_code == 200
     item_after_cancel = get_response_after.json()
     assert item_after_cancel["work_item_id"] == work_item_id
@@ -222,7 +222,7 @@ async def test_cancel_work_item(client: TestClient, seed_agents: list[Agent]):
 async def test_cancel_nonexistent_work_item(client: TestClient):
     """Test canceling a work item that doesn't exist."""
     # This would yield a bad request given the invalid uuid
-    response = client.post("/v2/work-items/nonexistent-id/cancel")
+    response = client.post("/public/v1/work-items/nonexistent-id/cancel")
 
     assert response.status_code == 400
     detail = response.json()
@@ -232,7 +232,7 @@ async def test_cancel_nonexistent_work_item(client: TestClient):
     assert "invalid uuid" in detail["error"]["message"].lower()
 
     # We don't check existence, so this would yield 200
-    response = client.post("/v2/work-items/00000000-0000-0000-0000-000000000000/cancel")
+    response = client.post("/public/v1/work-items/00000000-0000-0000-0000-000000000000/cancel")
     assert response.status_code == 200
 
 
@@ -246,31 +246,31 @@ async def test_full_workflow(client: TestClient, seed_agents: list[Agent]):
         "payload": {"workflow": "complete"},
     }
 
-    create_response = client.post("/v2/work-items/", json=create_payload)
+    create_response = client.post("/public/v1/work-items/", json=create_payload)
     assert create_response.status_code == 200
     work_item = create_response.json()
     work_item_id = work_item["work_item_id"]
 
     # 2. Describe
-    describe_response = client.get(f"/v2/work-items/{work_item_id}")
+    describe_response = client.get(f"/public/v1/work-items/{work_item_id}")
     assert describe_response.status_code == 200
     described_item = describe_response.json()
     assert described_item["work_item_id"] == work_item_id
     assert described_item["agent_id"] == seed_agents[1].agent_id
 
     # 3. List (should contain our item)
-    list_response = client.get("/v2/work-items/")
+    list_response = client.get("/public/v1/work-items/")
     assert list_response.status_code == 200
     items = list_response.json()
     item_ids = [item["work_item_id"] for item in items]
     assert work_item_id in item_ids
 
     # 4. Cancel
-    cancel_response = client.post(f"/v2/work-items/{work_item_id}/cancel")
+    cancel_response = client.post(f"/public/v1/work-items/{work_item_id}/cancel")
     assert cancel_response.status_code == 200
 
     # 5. Verify cancellation
-    final_describe_response = client.get(f"/v2/work-items/{work_item_id}")
+    final_describe_response = client.get(f"/public/v1/work-items/{work_item_id}")
     assert final_describe_response.status_code == 200
     final_describe_item = final_describe_response.json()
     assert final_describe_item["work_item_id"] == work_item_id
@@ -285,7 +285,7 @@ async def test_upload_file_to_work_item(client: TestClient, seed_agents: list[Ag
     test_file = ("test_file.txt", BytesIO(test_content), "text/plain")
 
     # Upload file without work_item_id (should create new work item)
-    response = client.post("/v2/work-items/upload-file", files={"file": test_file})
+    response = client.post("/public/v1/work-items/upload-file", files={"file": test_file})
 
     assert response.status_code == 200
     data = response.json()
@@ -293,7 +293,7 @@ async def test_upload_file_to_work_item(client: TestClient, seed_agents: list[Ag
     work_item_id = data["work_item_id"]
 
     # Verify work item was created in PRECREATED state
-    get_response = client.get(f"/v2/work-items/{work_item_id}")
+    get_response = client.get(f"/public/v1/work-items/{work_item_id}")
     assert get_response.status_code == 200
     work_item = get_response.json()
     assert work_item["status"] == WorkItemStatus.PRECREATED.value
@@ -306,7 +306,7 @@ async def test_upload_file_to_existing_work_item(client: TestClient, seed_agents
     # First create a work item in PRECREATED state
     test_file1 = ("file1.txt", BytesIO(b"First file content"), "text/plain")
 
-    response = client.post("/v2/work-items/upload-file", files={"file": test_file1})
+    response = client.post("/public/v1/work-items/upload-file", files={"file": test_file1})
     assert response.status_code == 200
     work_item_id = response.json()["work_item_id"]
 
@@ -314,7 +314,7 @@ async def test_upload_file_to_existing_work_item(client: TestClient, seed_agents
     test_file2 = ("file2.txt", BytesIO(b"Second file content"), "text/plain")
 
     response = client.post(
-        f"/v2/work-items/upload-file?work_item_id={work_item_id}", files={"file": test_file2}
+        f"/public/v1/work-items/upload-file?work_item_id={work_item_id}", files={"file": test_file2}
     )
 
     assert response.status_code == 200
@@ -329,7 +329,7 @@ async def test_upload_duplicate_file_name_to_work_item(
     # Create work item with first file
     test_file1 = ("duplicate.txt", BytesIO(b"First content"), "text/plain")
 
-    response = client.post("/v2/work-items/upload-file", files={"file": test_file1})
+    response = client.post("/public/v1/work-items/upload-file", files={"file": test_file1})
     assert response.status_code == 200
     work_item_id = response.json()["work_item_id"]
 
@@ -337,7 +337,7 @@ async def test_upload_duplicate_file_name_to_work_item(
     test_file2 = ("duplicate.txt", BytesIO(b"Second content"), "text/plain")
 
     response = client.post(
-        f"/v2/work-items/upload-file?work_item_id={work_item_id}", files={"file": test_file2}
+        f"/public/v1/work-items/upload-file?work_item_id={work_item_id}", files={"file": test_file2}
     )
 
     assert response.status_code == 400
@@ -351,7 +351,8 @@ async def test_upload_file_to_nonexistent_work_item(client: TestClient, seed_age
     fake_work_item_id = "00000000-0000-0000-0000-000000000000"
 
     response = client.post(
-        f"/v2/work-items/upload-file?work_item_id={fake_work_item_id}", files={"file": test_file}
+        f"/public/v1/work-items/upload-file?work_item_id={fake_work_item_id}",
+        files={"file": test_file},
     )
 
     assert response.status_code == 404
@@ -370,7 +371,7 @@ async def test_upload_file_to_non_precreated_work_item(
         "payload": {},
     }
 
-    response = client.post("/v2/work-items/", json=payload)
+    response = client.post("/public/v1/work-items/", json=payload)
     assert response.status_code == 200
     work_item_id = response.json()["work_item_id"]
 
@@ -378,7 +379,7 @@ async def test_upload_file_to_non_precreated_work_item(
     test_file = ("test.txt", BytesIO(b"Test content"), "text/plain")
 
     response = client.post(
-        f"/v2/work-items/upload-file?work_item_id={work_item_id}", files={"file": test_file}
+        f"/public/v1/work-items/upload-file?work_item_id={work_item_id}", files={"file": test_file}
     )
 
     assert response.status_code == 400
@@ -393,13 +394,13 @@ async def test_work_item_with_files_workflow(client: TestClient, seed_agents: li
     test_file2 = ("data.csv", BytesIO(b"col1,col2\nval1,val2"), "text/csv")
 
     # Upload first file
-    response = client.post("/v2/work-items/upload-file", files={"file": test_file1})
+    response = client.post("/public/v1/work-items/upload-file", files={"file": test_file1})
     assert response.status_code == 200
     work_item_id = response.json()["work_item_id"]
 
     # Upload second file to same work item
     response = client.post(
-        f"/v2/work-items/upload-file?work_item_id={work_item_id}", files={"file": test_file2}
+        f"/public/v1/work-items/upload-file?work_item_id={work_item_id}", files={"file": test_file2}
     )
     assert response.status_code == 200
 
@@ -413,7 +414,7 @@ async def test_work_item_with_files_workflow(client: TestClient, seed_agents: li
         "work_item_id": work_item_id,
     }
 
-    response = client.post("/v2/work-items/", json=payload)
+    response = client.post("/public/v1/work-items/", json=payload)
     assert response.status_code == 200
     work_item = response.json()
 

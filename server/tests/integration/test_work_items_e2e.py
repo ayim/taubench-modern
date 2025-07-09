@@ -60,7 +60,7 @@ async def _wait_until(cond, interval: float = 1.0, timeout: float = 30):
 async def test_full_workflow_integration(base_url_agent_server_with_work_items: str, agent_id: str):
     """E2E: create --> describe --> list --> cancel on work-items endpoints."""
 
-    work_items_url = f"{base_url_agent_server_with_work_items}/api/v2/work-items"
+    work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
 
     async with AsyncClient(base_url=work_items_url) as client:
         # 1. Create
@@ -128,7 +128,7 @@ async def test_full_workflow_integration(base_url_agent_server_with_work_items: 
 async def test_process_single_work_item(base_url_agent_server_with_work_items: str, agent_id: str):
     """Create a work item and wait until background worker marks it COMPLETED."""
 
-    work_items_url = f"{base_url_agent_server_with_work_items}/api/v2/work-items"
+    work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
 
     async with AsyncClient(base_url=work_items_url) as client:
         resp = await client.post(
@@ -167,7 +167,7 @@ async def test_batch_processing(base_url_agent_server_with_work_items: str, agen
     """Create multiple work items and ensure they all complete."""
 
     num_items = 5
-    work_items_url = f"{base_url_agent_server_with_work_items}/api/v2/work-items"
+    work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
 
     async with AsyncClient(base_url=work_items_url) as client:
         work_item_ids = []
@@ -223,7 +223,7 @@ async def test_batch_processing_with_errors(
     """Create a batch, cancel a subset, and verify mixed statuses (COMPLETED & CANCELLED)."""
 
     total_items = 5
-    work_items_url = f"{base_url_agent_server_with_work_items}/api/v2/work-items"
+    work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
 
     async with AsyncClient(base_url=work_items_url) as client:
         work_item_ids: list[str] = []
@@ -286,7 +286,7 @@ async def test_process_single_work_item__failed_success_validation(
 ):
     """Create a work item and wait until background worker marks it NEEDS_REVIEW."""
 
-    work_items_url = f"{base_url_agent_server_with_work_items}/api/v2/work-items"
+    work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
 
     async with AsyncClient(base_url=work_items_url) as client:
         resp = await client.post(
@@ -371,7 +371,7 @@ async def test_process_single_work_item__with_calculation_tool(
             "Always use the calculate tool for mathematical operations.",
         )
 
-        work_items_url = f"{base_url_agent_server_with_work_items}/api/v2/work-items"
+        work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
 
         async with AsyncClient(base_url=work_items_url) as client:
             resp = await client.post(
@@ -461,7 +461,7 @@ async def test_work_item_validation_completed(
             ),
         )
 
-        work_items_url = f"{base_url_agent_server_with_work_items}/api/v2/work-items"
+        work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
 
         async with AsyncClient(base_url=work_items_url) as client:
             # Create a work item with a simple, clearly completable task
@@ -528,7 +528,7 @@ async def test_work_item_validation_needs_review(
             ),
         )
 
-        work_items_url = f"{base_url_agent_server_with_work_items}/api/v2/work-items"
+        work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
 
         async with AsyncClient(base_url=work_items_url) as client:
             # Create a work item that requires complex analysis the agent cannot complete
@@ -659,7 +659,7 @@ async def test_work_item_validation_behavior_with_simple_tasks(
             runbook="You are a helpful assistant. Complete tasks as requested.",
         )
 
-        work_items_url = f"{base_url_agent_server_with_work_items}/api/v2/work-items"
+        work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
 
         # Test cases that should generally be COMPLETED
         simple_tasks = ["List three colors", "Count from 1 to 5", "Say 'task complete'"]
@@ -720,7 +720,7 @@ async def test_work_item_validation_needs_review_missing_tools(
             ),
         )
 
-        work_items_url = f"{base_url_agent_server_with_work_items}/api/v2/work-items"
+        work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
 
         async with AsyncClient(base_url=work_items_url) as client:
             # Create a work item that requires sending an email (which requires tools)
@@ -791,7 +791,7 @@ async def test_work_item_validation_needs_review_incomplete_task(
             ),
         )
 
-        work_items_url = f"{base_url_agent_server_with_work_items}/api/v2/work-items"
+        work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
 
         async with AsyncClient(base_url=work_items_url) as client:
             # Create a work item with contradictory/incomplete instructions
@@ -850,7 +850,7 @@ async def test_work_item_file_upload_workflow(
 ):
     """Test complete workflow: upload files → create work item → verify files copied to thread."""
 
-    work_items_url = f"{base_url_agent_server_with_work_items}/api/v2/work-items"
+    work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
 
     async with AsyncClient(base_url=work_items_url) as client:
         # 1. Upload first file (creates work item in PRECREATED state)
@@ -948,7 +948,7 @@ async def test_work_item_file_upload_duplicate_handling(
 ):
     """Test that duplicate file names are properly rejected."""
 
-    work_items_url = f"{base_url_agent_server_with_work_items}/api/v2/work-items"
+    work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
 
     async with AsyncClient(base_url=work_items_url) as client:
         # Upload first file
@@ -978,7 +978,7 @@ async def test_work_item_file_upload_state_validation(
 ):
     """Test that files can only be uploaded to PRECREATED work items."""
 
-    work_items_url = f"{base_url_agent_server_with_work_items}/api/v2/work-items"
+    work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
 
     async with AsyncClient(base_url=work_items_url) as client:
         # Create work item directly in PENDING state (with agent)
@@ -1021,7 +1021,7 @@ async def test_work_item_file_upload_nonexistent_work_item(
 ):
     """Test uploading to non-existent work item returns proper error."""
 
-    work_items_url = f"{base_url_agent_server_with_work_items}/api/v2/work-items"
+    work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
     fake_work_item_id = "00000000-0000-0000-0000-000000000000"
 
     async with AsyncClient(base_url=work_items_url) as client:
@@ -1044,7 +1044,7 @@ async def test_work_item_multiple_file_types_processing(
 ):
     """Test processing work item with multiple file types."""
 
-    work_items_url = f"{base_url_agent_server_with_work_items}/api/v2/work-items"
+    work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
 
     async with AsyncClient(base_url=work_items_url) as client:
         # Upload different file types
@@ -1129,7 +1129,7 @@ async def test_work_item_batch_file_processing(
 ):
     """Test batch processing of multiple work items with files."""
 
-    work_items_url = f"{base_url_agent_server_with_work_items}/api/v2/work-items"
+    work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
     num_work_items = 3
 
     async with AsyncClient(base_url=work_items_url) as client:

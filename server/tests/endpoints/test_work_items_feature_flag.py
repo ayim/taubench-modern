@@ -43,7 +43,7 @@ async def test_work_items_disabled(monkeypatch):
             transport=httpx.ASGITransport(app),
             base_url="http://test",
         ) as client:
-            response = await client.get("/api/v2/work-items/")
+            response = await client.get("/api/public/v1/work-items/")
 
         # ------------------------------------------------------------------
         # 4. Verify the response shape

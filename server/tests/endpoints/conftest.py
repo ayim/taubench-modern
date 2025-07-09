@@ -123,7 +123,7 @@ def fastapi_app(storage, stub_user) -> FastAPI:
     FileManagerService.reset()
 
     app = FastAPI()
-    app.include_router(work_items.router, prefix="/v2/work-items")
+    app.include_router(work_items.router, prefix="/public/v1/work-items")
     app.dependency_overrides[auth_user] = lambda: stub_user
     add_exception_handlers(app)
     return app

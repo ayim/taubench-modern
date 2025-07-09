@@ -131,6 +131,112 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/public/v1/work-items/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Work Items */
+    get: operations['list_work_items_work_items__get'];
+    put?: never;
+    /** Create Work Item */
+    post: operations['create_work_item_work_items__post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/public/v1/work-items/{work_item_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Work Item */
+    get: operations['get_work_item_work_items__work_item_id__get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/public/v1/work-items/upload-file': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Upload Work Item File
+     * @description Upload a file to a work item. If a work_item_id is not provided, a new one is created.
+     */
+    post: operations['upload_work_item_file_work_items_upload_file_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/public/v1/work-items/{work_item_id}/continue': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Continue Work Item */
+    post: operations['continue_work_item_work_items__work_item_id__continue_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/public/v1/work-items/{work_item_id}/restart': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Restart Work Item */
+    post: operations['restart_work_item_work_items__work_item_id__restart_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/public/v1/work-items/{work_item_id}/cancel': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Cancel Item */
+    post: operations['cancel_item_work_items__work_item_id__cancel_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/public/v1/ok': {
     parameters: {
       query?: never;
@@ -163,10 +269,41 @@ export interface components {
       /** Mode */
       mode: string;
     };
+    /** Body_upload_work_item_file_work_items_upload_file_post */
+    Body_upload_work_item_file_work_items_upload_file_post: {
+      /**
+       * File
+       * Format: binary
+       */
+      file: string;
+    };
     /** ChatMessageRequest */
     ChatMessageRequest: {
       /** Content */
       content: string;
+    };
+    /** Citation */
+    Citation: {
+      /**
+       * Document Uri
+       * @description The URI of the document that the citation is from
+       */
+      document_uri: string;
+      /**
+       * Start Char Index
+       * @description The start character index of the citation in the document
+       */
+      start_char_index: number;
+      /**
+       * End Char Index
+       * @description The end character index of the citation in the document
+       */
+      end_char_index: number;
+      /**
+       * Cited Text
+       * @description The text that is being cited (if provided, may be None)
+       */
+      cited_text?: string | null;
     };
     /** Conversation */
     Conversation: {
@@ -182,10 +319,30 @@ export interface components {
       /** Name */
       name: string;
     };
-    /** HTTPValidationError */
-    HTTPValidationError: {
-      /** Detail */
-      detail?: components['schemas']['ValidationError'][];
+    /** CreateWorkItemPayload */
+    CreateWorkItemPayload: {
+      /**
+       * Agent Id
+       * @description The ID of the agent that will process this work item.
+       */
+      agent_id: string;
+      /**
+       * Messages
+       * @description The messages in the work item conversation.
+       */
+      messages?: components['schemas']['ThreadMessage'][];
+      /**
+       * Payload
+       * @description The payload of the work item.
+       */
+      payload?: {
+        [key: string]: unknown;
+      };
+      /**
+       * Work Item Id
+       * @description The ID of the work item.
+       */
+      work_item_id?: string | null;
     };
     /** PaginatedResponse */
     PaginatedResponse: {
@@ -196,14 +353,478 @@ export interface components {
       /** Data */
       data: unknown[];
     };
-    /** ValidationError */
-    ValidationError: {
-      /** Location */
-      loc: (string | number)[];
-      /** Message */
-      msg: string;
-      /** Error Type */
-      type: string;
+    /** ThreadAttachmentContent */
+    ThreadAttachmentContent: {
+      /**
+       * Content Id
+       * @description The unique identifier of the content
+       */
+      content_id?: string;
+      /**
+       * Kind
+       * @description Content kind: always 'attachment'
+       * @default attachment
+       */
+      kind: string;
+      /**
+       * Complete
+       * @description True when the content has finished streaming, false otherwise. Clients can use this to determine if the content item is 'complete' or if further updates are expected.
+       * @default false
+       */
+      complete: boolean;
+      /**
+       * Name
+       * @description The name of the attachment
+       */
+      name: string;
+      /**
+       * Mime Type
+       * @description The MIME type of the attachment
+       */
+      mime_type: string;
+      /**
+       * Description
+       * @description The description of the attachment
+       */
+      description?: string | null;
+      /**
+       * Uri
+       * @description The URI of the attachment, if the attachment is a handle
+       */
+      uri?: string | null;
+      /**
+       * Base64 Data
+       * @description The base64 encoded data of the attachment, if the attachment is a file
+       */
+      base64_data?: string | null;
+    };
+    /** ThreadMessage */
+    ThreadMessage: {
+      /**
+       * Content
+       * @description The contents of the thread message
+       */
+      content: (
+        | components['schemas']['ThreadTextContent']
+        | components['schemas']['ThreadQuickActionsContent']
+        | components['schemas']['ThreadVegaChartContent']
+        | components['schemas']['ThreadToolUsageContent']
+        | components['schemas']['ThreadThoughtContent']
+        | components['schemas']['ThreadAttachmentContent']
+      )[];
+      /**
+       * Role
+       * @description The role of the message sender.
+       * @enum {string}
+       */
+      role: 'user' | 'agent';
+      /**
+       * Complete
+       * @description True when the content has finished streaming, false otherwise. Clients can use this to determine if the content item is 'complete' or if further updates are expected.
+       * @default false
+       */
+      complete: boolean;
+      /**
+       * Commited
+       * @description Whether the message has been committed to the thread (saved to backing storage)
+       * @default false
+       */
+      commited: boolean;
+      /**
+       * Created At
+       * Format: date-time
+       * @description The time the message was created
+       */
+      created_at?: string;
+      /**
+       * Updated At
+       * Format: date-time
+       * @description The time the message was last updated
+       */
+      updated_at?: string;
+      /**
+       * Agent Metadata
+       * @description The metadata associated with the message (for agent architecture use only)
+       */
+      agent_metadata?: {
+        [key: string]: unknown;
+      };
+      /**
+       * Server Metadata
+       * @description The metadata associated with the message (for agent-server use only)
+       */
+      server_metadata?: {
+        [key: string]: unknown;
+      };
+      /**
+       * Parent Run Id
+       * @description The unique identifier for the run that created this message or None if this message was not created by a run
+       */
+      parent_run_id?: string | null;
+      /**
+       * Message Id
+       * @description The unique identifier for the message
+       */
+      message_id?: string;
+    };
+    /** ThreadQuickActionContent */
+    ThreadQuickActionContent: {
+      /**
+       * Label
+       * @description The label of the quick action
+       */
+      label: string;
+      /**
+       * Value
+       * @description The value of the quick action (the text that will be submitted when the action is clicked)
+       */
+      value: string;
+      /**
+       * Icon
+       * @description The icon of the quick action (if any)
+       */
+      icon?: string | null;
+    };
+    /** ThreadQuickActionsContent */
+    ThreadQuickActionsContent: {
+      /**
+       * Content Id
+       * @description The unique identifier of the content
+       */
+      content_id?: string;
+      /**
+       * Kind
+       * @description Content kind: always 'quick_actions'
+       * @default quick_actions
+       */
+      kind: string;
+      /**
+       * Complete
+       * @description True when the content has finished streaming, false otherwise. Clients can use this to determine if the content item is 'complete' or if further updates are expected.
+       * @default false
+       */
+      complete: boolean;
+      /**
+       * Actions
+       * @description The list of quick actions to display
+       */
+      actions: components['schemas']['ThreadQuickActionContent'][];
+      /**
+       * Completed
+       * @description Whether the quick actions are completed
+       * @default false
+       */
+      completed: boolean;
+    };
+    /** ThreadTextContent */
+    ThreadTextContent: {
+      /**
+       * Content Id
+       * @description The unique identifier of the content
+       */
+      content_id?: string;
+      /**
+       * Kind
+       * @description Content kind: always 'text'
+       * @default text
+       */
+      kind: string;
+      /**
+       * Complete
+       * @description True when the content has finished streaming, false otherwise. Clients can use this to determine if the content item is 'complete' or if further updates are expected.
+       * @default false
+       */
+      complete: boolean;
+      /**
+       * Text
+       * @description The actual text content of the message
+       */
+      text: string;
+      /**
+       * Citations
+       * @description The citations in the text content
+       */
+      citations?: components['schemas']['Citation'][];
+    };
+    /** ThreadThoughtContent */
+    ThreadThoughtContent: {
+      /**
+       * Content Id
+       * @description The unique identifier of the content
+       */
+      content_id?: string;
+      /**
+       * Kind
+       * @description Content kind: always 'thought'
+       * @default thought
+       */
+      kind: string;
+      /**
+       * Complete
+       * @description True when the content has finished streaming, false otherwise. Clients can use this to determine if the content item is 'complete' or if further updates are expected.
+       * @default false
+       */
+      complete: boolean;
+      /**
+       * Thought
+       * @description The actual text content of the thought
+       */
+      thought: string;
+    };
+    /** ThreadToolUsageContent */
+    ThreadToolUsageContent: {
+      /**
+       * Content Id
+       * @description The unique identifier of the content
+       */
+      content_id?: string;
+      /**
+       * Kind
+       * @description Content kind: always 'tool_call'
+       * @default tool_call
+       */
+      kind: string;
+      /**
+       * Complete
+       * @description True when the content has finished streaming, false otherwise. Clients can use this to determine if the content item is 'complete' or if further updates are expected.
+       * @default false
+       */
+      complete: boolean;
+      /**
+       * Name
+       * @description The name of the tool to call
+       */
+      name: string;
+      /**
+       * Tool Call Id
+       * @description The ID of the tool call
+       */
+      tool_call_id: string;
+      /**
+       * Arguments Raw
+       * @description The raw arguments (JSON string) passed to the tool
+       */
+      arguments_raw: string;
+      /**
+       * Sub Type
+       * @description The sub-type of the tool call, if it has one
+       * @default unknown
+       * @enum {string}
+       */
+      sub_type:
+        | 'kernel-internal'
+        | 'aa-internal'
+        | 'action-external'
+        | 'mcp-external'
+        | 'provider-side'
+        | 'unknown';
+      /**
+       * Status
+       * @description The status of the tool call, either 'running', 'finished', 'failed', 'pending', or 'streaming'
+       * @default pending
+       * @enum {string}
+       */
+      status: 'running' | 'finished' | 'failed' | 'pending' | 'streaming';
+      /**
+       * Result
+       * @description The result of the tool call, if it has finished
+       */
+      result?: string | null;
+      /**
+       * Error
+       * @description The error message of the tool call, if it has failed
+       */
+      error?: string | null;
+      /**
+       * Discovered At
+       * @description The timestamp when the tool call was discovered in stream or response
+       */
+      discovered_at?: string | null;
+      /**
+       * Pending At
+       * @description The timestamp when the tool call was pending (fully formed, not yet executed)
+       */
+      pending_at?: string | null;
+      /**
+       * Started At
+       * @description The timestamp when the tool call started
+       */
+      started_at?: string | null;
+      /**
+       * Ended At
+       * @description The timestamp when the tool call ended
+       */
+      ended_at?: string | null;
+      /**
+       * Metadata
+       * @description The metadata of the tool call
+       */
+      metadata?: {
+        [key: string]: unknown;
+      };
+    };
+    /** ThreadVegaChartContent */
+    ThreadVegaChartContent: {
+      /**
+       * Content Id
+       * @description The unique identifier of the content
+       */
+      content_id?: string;
+      /**
+       * Kind
+       * @description Content kind: always 'vega_chart'
+       * @default vega_chart
+       * @constant
+       */
+      kind: 'vega_chart';
+      /**
+       * Complete
+       * @description True when the content has finished streaming, false otherwise. Clients can use this to determine if the content item is 'complete' or if further updates are expected.
+       * @default false
+       */
+      complete: boolean;
+      /**
+       * Chart Spec Raw
+       * @description The Vega or Vega-Lite chart spec JSON (as a string) to display
+       */
+      chart_spec_raw: string;
+      /**
+       * Sub Type
+       * @description The type of the chart, either 'vega' or 'vega-lite'
+       * @default vega
+       * @enum {string}
+       */
+      sub_type: 'vega' | 'vega-lite';
+      /**
+       * Completed
+       * @description Whether the chart is completed
+       * @default false
+       */
+      completed: boolean;
+      /** Chart Spec */
+      _chart_spec?: {
+        [key: string]: unknown;
+      } | null;
+    };
+    /** WorkItem */
+    WorkItem: {
+      /**
+       * Work Item Id
+       * @description The unique identifier for the work item
+       */
+      work_item_id: string;
+      /**
+       * User Id
+       * @description The ID of the user that created this work item
+       */
+      user_id: string;
+      /**
+       * Agent Id
+       * @description The ID of the agent that will process this work item
+       */
+      agent_id?: string | null;
+      /**
+       * Thread Id
+       * @description The ID of the thread associated with this work item (may be null until created).
+       */
+      thread_id?: string | null;
+      /**
+       * @description The status of the work item
+       * @default PENDING
+       */
+      status: components['schemas']['WorkItemStatus'];
+      /**
+       * Created At
+       * Format: date-time
+       * @description The timestamp when the work item was created
+       */
+      created_at?: string;
+      /**
+       * Updated At
+       * Format: date-time
+       * @description The timestamp when the work item was last updated
+       */
+      updated_at?: string;
+      /**
+       * Completed By
+       * @description The ID of the user who completed the work item
+       */
+      completed_by?: string | null;
+      /**
+       * Status Updated At
+       * Format: date-time
+       * @description The timestamp when the work item status was last updated
+       */
+      status_updated_at?: string;
+      /**
+       * Status Updated By
+       * @description The ID of the user who last updated the work item status
+       * @default SYSTEM
+       */
+      status_updated_by: string;
+      /**
+       * Messages
+       * @description The messages in the work item conversation
+       */
+      messages?: components['schemas']['ThreadMessage'][];
+      /**
+       * Payload
+       * @description The payload of the work item
+       */
+      payload?: {
+        [key: string]: unknown;
+      };
+    };
+    /**
+     * WorkItemStatus
+     * @description The status of a work item.
+     * @enum {string}
+     */
+    WorkItemStatus:
+      | 'CANCELLED'
+      | 'COMPLETED'
+      | 'ERROR'
+      | 'EXECUTING'
+      | 'NEEDS_REVIEW'
+      | 'PENDING'
+      | 'PRECREATED';
+    /**
+     * ErrorDetail
+     * @description Pydantic model for error detail - used only for OpenAPI schema generation.
+     */
+    ErrorDetail: {
+      /**
+       * Error Id
+       * Format: uuid
+       * @description Unique ID for tracing
+       */
+      error_id: string;
+      /**
+       * Code
+       * @description Error code in format 'family.code'
+       */
+      code: string;
+      /**
+       * Message
+       * @description Human readable error message
+       */
+      message: string;
+    };
+    /**
+     * ErrorEnvelope
+     * @description Pydantic model for error envelope - used only for OpenAPI schema generation.
+     *
+     *     This matches the exact structure returned by our error handlers:
+     *     {
+     *         "error": {
+     *             "error_id": "<uuid>",
+     *             "code": "<family.code>",
+     *             "message": "<human-readable>"
+     *         }
+     *     }
+     */
+    ErrorEnvelope: {
+      error: components['schemas']['ErrorDetail'];
     };
   };
   responses: never;
@@ -242,7 +863,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
       /** @description Internal Server Error */
@@ -250,7 +871,9 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
       };
     };
   };
@@ -279,7 +902,9 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
       };
       /** @description Validation Error */
       422: {
@@ -287,7 +912,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
       /** @description Internal Server Error */
@@ -295,7 +920,9 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
       };
     };
   };
@@ -326,7 +953,9 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
       };
       /** @description Validation Error */
       422: {
@@ -334,7 +963,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
       /** @description Internal Server Error */
@@ -342,7 +971,9 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
       };
     };
   };
@@ -375,21 +1006,27 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
       };
       /** @description Validation Error */
       422: {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
       };
       /** @description Internal Server Error */
       500: {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
       };
     };
   };
@@ -419,7 +1056,9 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
       };
       /** @description Validation Error */
       422: {
@@ -427,7 +1066,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
       /** @description Internal Server Error */
@@ -435,7 +1074,9 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
       };
     };
   };
@@ -469,21 +1110,27 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
       };
       /** @description Validation Error */
       422: {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
       };
       /** @description Internal Server Error */
       500: {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
       };
     };
   };
@@ -518,21 +1165,27 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
       };
       /** @description Validation Error */
       422: {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
       };
       /** @description Internal Server Error */
       500: {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
       };
     };
   };
@@ -562,7 +1215,9 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
       };
       /** @description Validation Error */
       422: {
@@ -570,7 +1225,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
       /** @description Internal Server Error */
@@ -578,7 +1233,240 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  list_work_items_work_items__get: {
+    parameters: {
+      query?: {
+        /** @description The ID of the agent to filter by */
+        agent_id?: string | null;
+        /** @description The maximum number of work items to return */
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WorkItem'][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  create_work_item_work_items__post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateWorkItemPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WorkItem'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  get_work_item_work_items__work_item_id__get: {
+    parameters: {
+      query?: {
+        /** @description Whether to include the results of the work item */
+        results?: boolean;
+      };
+      header?: never;
+      path: {
+        work_item_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WorkItem'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  upload_work_item_file_work_items_upload_file_post: {
+    parameters: {
+      query?: {
+        work_item_id?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'multipart/form-data': components['schemas']['Body_upload_work_item_file_work_items_upload_file_post'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            [key: string]: string;
+          };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  continue_work_item_work_items__work_item_id__continue_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        work_item_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WorkItem'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  restart_work_item_work_items__work_item_id__restart_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        work_item_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WorkItem'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  cancel_item_work_items__work_item_id__cancel_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        work_item_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
       };
     };
   };
