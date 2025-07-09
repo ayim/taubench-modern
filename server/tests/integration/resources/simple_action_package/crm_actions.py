@@ -36,6 +36,31 @@ def add_contact(name: str, email: str, phone: str) -> Response[str]:
 
 
 @action
+def calculate(expression: str) -> Response[str]:
+    """
+    Performs basic mathematical calculations.
+
+    Args:
+        expression: A mathematical expression to evaluate (e.g., "2 + 2", "10 * 5").
+
+    Returns:
+        The result of the mathematical calculation.
+    """
+    try:
+        # Simple safe evaluation for basic math operations
+        allowed_chars = set("0123456789+-*/.() ")
+        if not all(c in allowed_chars for c in expression):
+            return Response(
+                error="Invalid characters in expression. Only numbers and +, -, *, /, (, ) are allowed."  # noqa: E501
+            )
+
+        result = eval(expression)
+        return Response(result=f"The result of {expression} is {result}")
+    except Exception as e:
+        return Response(error=f"Error evaluating expression: {e!s}")
+
+
+@action
 def test_sleep_action(duration_seconds: float = 1.0) -> Response[str]:
     """
     A test action that sleeps for a specified duration.

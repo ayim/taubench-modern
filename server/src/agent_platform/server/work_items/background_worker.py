@@ -1,16 +1,115 @@
 import asyncio
 import logging
 from collections.abc import Awaitable, Callable, Sequence
+from typing import assert_never
 
 from fastapi import Request
 
+from agent_platform.core.context import AgentServerContext
+from agent_platform.core.prompts import Prompt
+from agent_platform.core.responses.content.text import ResponseTextContent
 from agent_platform.core.work_items import WorkItem, WorkItemStatus
-from agent_platform.server.api.private_v2.runs import async_run, get_run_status
+from agent_platform.server.api.private_v2.prompt import prompt_generate
+from agent_platform.server.api.private_v2.runs import (
+    async_run,
+    get_run_status,
+)
+from agent_platform.server.api.private_v2.utils import create_minimal_kernel
 from agent_platform.server.storage import StorageService
 from agent_platform.server.storage.errors import NoSystemUserError
 from agent_platform.server.work_items.settings import WORK_ITEMS_SETTINGS
 
 logger = logging.getLogger(__name__)
+
+
+async def _validate_success(item: WorkItem) -> WorkItemStatus:
+    system_message = (
+        "You are a helpful agent that validates if the work item executed by an AI "
+        "agent was completed successfully. \n"
+        "Review the conversation history and determine if the task was completed "
+        "successfully. \n\n"
+        "Assessment criteria: \n"
+        "1. Task completion: Check if the original request or work item was fully "
+        "addressed \n"
+        "2. Tool usage effectiveness: Evaluate if the agent used available tools "
+        "appropriately to accomplish the task \n"
+        "3. Error handling: Verify that any errors were properly addressed or "
+        "resolved \n"
+        "4. Analysis quality: Ensure the agent provided thorough analysis and "
+        "insights when required \n"
+        "5. User satisfaction: Consider if the response adequately addresses the "
+        "user's needs \n"
+        "6. Completeness: Ensure no important aspects of the task were left "
+        "unfinished \n\n"
+        "Signs of successful completion: \n"
+        "- The agent provided a complete solution to the requested task \n"
+        "- Available tools were used effectively to gather information or perform "
+        "actions \n"
+        "- All requirements were met or exceeded \n"
+        "- The agent confirmed successful completion \n"
+        "- Analysis was thorough and accurate \n"
+        "- The agent successfully navigated through any challenges encountered \n\n"
+        "Signs requiring human review: \n"
+        "- The agent encountered unresolved errors or exceptions \n"
+        "- The solution is incomplete or partially implemented \n"
+        "- The agent expressed uncertainty about the correctness of the solution \n"
+        "- Tools failed to execute properly or returned unexpected results \n"
+        "- The agent requested human intervention or clarification \n"
+        "- The agent stated it cannot complete the task due to missing tools or capabilities \n"
+        "- The agent identified contradictory or ambiguous instructions requiring clarification \n"
+        "- Complex business logic or critical systems were analyzed without proper "
+        "validation \n"
+        "- The conversation ended abruptly without clear completion \n"
+        "- The agent was unable to access required tools or information \n\n"
+        "You must respond with ONLY one of these two values: \n"
+        f"{WorkItemStatus.COMPLETED.value} - if the work item was successfully "
+        "completed based on the criteria above \n"
+        f"{WorkItemStatus.NEEDS_REVIEW.value} - if the work item requires human "
+        "review or was not completed successfully\n"
+    )
+
+    storage = StorageService.get_instance()
+    user = await storage.get_user_by_id(item.user_id)
+
+    # Create a minimal kernel context to access the converters interface
+    mock_request = Request(scope={"type": "http", "method": "POST"})
+    ctx = AgentServerContext.from_request(
+        request=mock_request,
+        user=user,
+        version="2.0.0",
+    )
+    kernel = create_minimal_kernel(ctx)
+
+    # Use the existing thread-to-prompt message converter
+    converted_messages = await kernel.converters.thread_messages_to_prompt_messages(item.messages)
+
+    # Convert to the expected message types
+    prompt_messages = []
+    for msg in converted_messages:
+        prompt_messages.append(msg)
+
+    prompt = Prompt(
+        system_instruction=system_message,
+        messages=prompt_messages,
+        temperature=0.0,
+    )
+    result = await prompt_generate(
+        prompt,
+        user=user,
+        storage=storage,
+        request=Request(scope={"type": "http", "method": "POST"}),
+        agent_id=item.agent_id,
+    )
+    if content := result.content:
+        if text_content := [c.text for c in content if isinstance(c, ResponseTextContent)]:
+            try:
+                logger.debug(f"Work item validation response: {text_content[-1]}")
+                return WorkItemStatus(text_content[-1])
+            except ValueError:
+                logger.warning(f"Work item validation failed: invalid response: {content!r}")
+                pass
+    # If we get here, the work item validation failed; return NEEDS_REVIEW
+    return WorkItemStatus.NEEDS_REVIEW
 
 
 async def run_agent(item: WorkItem) -> bool:
@@ -61,6 +160,8 @@ async def run_agent(item: WorkItem) -> bool:
         else:
             logger.info(f"Work item {item.work_item_id}: Run {run_id} is {run_status_resp.status}")
             await asyncio.sleep(1)
+
+    assert_never(run_agent)
 
 
 async def worker_loop(
@@ -188,18 +289,18 @@ async def execute_work_item(
     Returns:
         True if the work item was executed successfully, False otherwise.
     """
+    storage = StorageService.get_instance()
+
     try:
-        storage = StorageService.get_instance()
+        system_user_id = await storage.get_system_user_id()
+    except NoSystemUserError:
+        system_user, _ = await storage.get_or_create_user(
+            sub="tenant:work-items:system:system_user",
+        )
+        logger.info(f"Created system user {system_user.user_id}")
+        system_user_id = system_user.user_id
 
-        try:
-            system_user_id = await storage.get_system_user_id()
-        except NoSystemUserError:
-            system_user, _ = await storage.get_or_create_user(
-                sub="tenant:work-items:system:system_user",
-            )
-            logger.info(f"Created system user {system_user.user_id}")
-            system_user_id = system_user.user_id
-
+    try:
         logger.info(f"Starting execution on work item {item.work_item_id}")
 
         result = await agent_func(item)
@@ -210,6 +311,7 @@ async def execute_work_item(
             current_status = latest_item.status
         except Exception:  # If fetch fails, fall back to our computed status
             current_status = None
+            latest_item = item
 
         new_status = WorkItemStatus.COMPLETED if result else WorkItemStatus.ERROR
 
@@ -220,6 +322,9 @@ async def execute_work_item(
                 item.work_item_id,
                 result,
             )
+
+            new_status = (await _validate_success(latest_item)) if result else WorkItemStatus.ERROR
+
             await storage.update_work_item_status(system_user_id, item.work_item_id, new_status)
         else:
             logger.info(

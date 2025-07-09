@@ -49,7 +49,6 @@ agent_platform_core = { workspace = true }
 agent_platform_architectures_default = { workspace = true }
 agent_platform_server = { workspace = true }
 agent_platform_quality = { workspace = true }
-agent_platform_workitems = { workspace = true }
 
 [tool.uv.workspace]
 members = [

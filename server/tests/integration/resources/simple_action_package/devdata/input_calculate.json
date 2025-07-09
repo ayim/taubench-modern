@@ -1,0 +1,19 @@
+{
+  "inputs": [
+    {
+      "inputName": "input-1",
+      "inputValue": {
+        "expression": "2 + 2"
+      }
+    }
+  ],
+  "metadata": {
+    "actionName": "calculate",
+    "actionRelativePath": "crm_actions.py",
+    "schemaDescription": ["expression: string: A mathematical expression to evaluate (e.g., \"2 + 2\", \"10 * 5\")."],
+    "managedParamsSchemaDescription": {},
+    "inputFileVersion": "v3",
+    "kind": "action",
+    "actionSignature": "action/args: 'expression: str'"
+  }
+}
