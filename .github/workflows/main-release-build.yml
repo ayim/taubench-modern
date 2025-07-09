@@ -213,7 +213,7 @@ jobs:
 
           ## Changelog
 
-          See the full changelog at [server/CHANGELOG.md](./server/CHANGELOG.md)
+          See the full changelog at [server/CHANGELOG.md](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/server/CHANGELOG.md)
           EOF
 
       - name: Determine if pre-release
