@@ -1,5 +1,7 @@
-# Unreleased
+# Sema4.ai Agent Server 2.0.10 (2025-07-09)
 
+- Added work item validation using LLM-as-a-judge. [GPT-1017](https://linear.app/sema4ai/issue/GPT-1017)
+- Support file attachments in work-item API. [GPT-1018](https://linear.app/sema4ai/issue/GPT-1018)
 - Modifications to streaming, clients may notice responses being a bit "chunkier" but in general they should come even slightly faster than they used to.
 - Workitems should be more efficiently processed under load now (less impact to other routes/server activities).
 
