@@ -5,6 +5,7 @@ import structlog
 from fastapi import FastAPI
 from starlette.applications import Starlette
 
+from agent_platform.core.responses.streaming.stream_pipe import ResponseStreamPipe
 from agent_platform.server.constants import SystemConfig, SystemPaths
 
 # Import the data migration function
@@ -80,6 +81,10 @@ async def lifespan(app: FastAPI):
             with suppress(asyncio.CancelledError):
                 logger.info("Waiting for work-items background worker to shut down")
                 await work_items_task
+
+        # Shutdown separate diff pool for ResponseStreamPipe
+        logger.info("Shutting down ResponseStreamPipe diff pool")
+        ResponseStreamPipe._DIFF_POOL.shutdown(wait=False)
 
         logger.info("Shutting down storage")
         await StorageService.get_instance().teardown()

@@ -1,7 +1,11 @@
 import asyncio
+import os
 import re
 from collections.abc import AsyncGenerator
-from typing import cast
+from concurrent.futures import ThreadPoolExecutor
+from typing import Any, ClassVar, cast
+
+import structlog
 
 from agent_platform.core.delta import GenericDelta
 from agent_platform.core.delta.combine_delta import combine_generic_deltas
@@ -23,297 +27,373 @@ from agent_platform.core.responses.streaming.stream_sink_noop import (
 )
 from agent_platform.core.tools.tool_definition import ToolDefinition
 
+logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
+
+
+# Sentinel objects placed on queues to signal “stream finished”
+class DeltaEndSentinel:
+    pass
+
+
+class MsgEndSentinel:
+    pass
+
 
 class ResponseStreamPipe:
+    """
+    Consume a stream of `GenericDelta` objects, reassemble them into a
+    `ResponseMessage`, and stream incremental updates to one or more sinks.
+
+    This version is engineered for low tail-latency under concurrent load:
+    heavy diffing work is executed in a thread pool; the main request
+    coroutine never blocks on CPU, so it can keep reading tokens from the
+    LLM-backend as fast as they arrive.
+    """
+
+    # 30 Hz flush cadence: limits JSON diff churn
+    DEFAULT_FLUSH_INTERVAL: float = 1.0 / 30.0
+    # 3 second timeout for per-sink callback latency
+    DEFAULT_SINK_TIMEOUT: float = 3.0
+
+    # Thread-pool dedicated to combine_generic_deltas
+    _DIFF_POOL: ClassVar[ThreadPoolExecutor] = ThreadPoolExecutor(
+        max_workers=os.cpu_count() or 1,  # over-subscription hurts with the GIL
+        thread_name_prefix="delta-diff",
+    )
+
     def __init__(
         self,
         stream: AsyncGenerator[GenericDelta, None],
         prompt: Prompt,
-    ):
+        *,
+        flush_interval: float | None = None,
+        delta_queue_size: int = 4096,
+        sink_timeout: float | None = None,
+    ) -> None:
         self.stream = stream
-        self.stream_closed = False
-        self.buffer_object: dict = {}
-        self.chunk_buffer: list[GenericDelta] = []
         self.source_prompt = prompt
+        self.flush_interval: float = (
+            flush_interval if flush_interval is not None else self.DEFAULT_FLUSH_INTERVAL
+        )
 
-        # Cache for tool definitions lookup
+        # Bound for per-sink callback latency
+        self._sink_timeout: float = (
+            sink_timeout if sink_timeout is not None else self.DEFAULT_SINK_TIMEOUT
+        )
+
+        # Fast lookup for tool definitions used by sinks
         self._tool_def_cache: dict[str, ToolDefinition] = {
             tool_def.name: tool_def for tool_def in self.source_prompt.tools
         }
 
-        # The most recently assembled ResponseMessage (still might be incomplete)
-        self.current_message: ResponseMessage | None = None
+        # ─── Runtime state ────────────────────────────────────────
+        self.current_message: ResponseMessage | None = None  # may be incomplete
+        self.last_message: ResponseMessage | None = None  # stable; dispatched
+        self.stream_closed = False
+        self._open_content_indices: set[int] = set()
 
-        # The last stable ResponseMessage that we've dispatched to sinks
-        self.last_message: ResponseMessage | None = None
+        # Queues
+        self._delta_q: asyncio.Queue[GenericDelta | DeltaEndSentinel] = asyncio.Queue(
+            maxsize=delta_queue_size
+        )
+        self._msg_q: asyncio.Queue[ResponseMessage | MsgEndSentinel] = asyncio.Queue()
 
-        # Sinks that we'll call on partial updates
-        self.sinks: tuple[ResponseStreamSinkBase, ...] = ()
+        # Sinks
+        self._sinks: tuple[ResponseStreamSinkBase, ...] = ()
 
+        # Sinks that have failed and are muted for the rest of the stream
+        self._broken_sinks: set[ResponseStreamSinkBase] = set()
+
+        # Task handles (set in pipe_to)
+        self._reader_task: asyncio.Task[Any] | None = None
+        self._diff_task: asyncio.Task[Any] | None = None
+        self._dispatch_task: asyncio.Task[Any] | None = None
+
+    # ──────────────────────────────────────────────────────────────
+    # Public helpers
+    # ──────────────────────────────────────────────────────────────
     @property
     def reassembled_response(self) -> ResponseMessage | None:
-        """
-        The reassembled response message, if available.
-        """
+        """Return the latest complete `ResponseMessage`, if any."""
         return self.last_message
 
-    def raw_response_matches(self, regex: re.Pattern) -> bool:
-        """
-        Check if the raw response matches the given regex.
-        """
+    def raw_response_matches(self, regex: re.Pattern[str]) -> bool:
         if not self.last_message:
             return False
-
-        all_text_content = "\n".join(
-            [
-                content.text
-                for content in self.last_message.content
-                if isinstance(content, ResponseTextContent)
-            ]
+        text = "\n".join(
+            c.text for c in self.last_message.content if isinstance(c, ResponseTextContent)
         )
-        return regex.match(all_text_content) is not None
+        return regex.match(text) is not None
 
     def raw_response_matches_with_postfix(
         self,
-        regex: re.Pattern,
+        regex: re.Pattern[str],
         postfix: str,
     ) -> bool:
-        """
-        Check if the raw response matches the given regex.
-        """
         if not self.last_message:
             return False
-
-        all_text_content = "\n".join(
-            [
-                content.text
-                for content in self.last_message.content
-                if isinstance(content, ResponseTextContent)
-            ]
+        text = "\n".join(
+            c.text for c in self.last_message.content if isinstance(c, ResponseTextContent)
         )
-        return regex.match(all_text_content + postfix) is not None
+        return regex.match(text + postfix) is not None
 
+    # ──────────────────────────────────────────────────────────────
+    # Async context-manager sugar
+    # ──────────────────────────────────────────────────────────────
     async def __aenter__(self) -> "ResponseStreamPipe":
-        """Allow this class to be used as an async context manager."""
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
-        """Close the stream when exiting the context manager."""
         await self.aclose()
 
-    async def pipe_to(self, *sinks: ResponseStreamSinkBase):
+    # ──────────────────────────────────────────────────────────────
+    # Public API
+    # ──────────────────────────────────────────────────────────────
+    async def pipe_to(self, *sinks: ResponseStreamSinkBase) -> None:
         """
-        Consume deltas from self.stream, buffer them, and whenever
-        we can form a valid ResponseMessage, call _compute_response_update().
+        Start streaming to *sinks*.  Returns when the upstream stream ends
+        (or an exception occurs).  Re-entrance is not supported.
         """
         if self.stream_closed:
-            raise RuntimeError("Stream is already closed")
+            raise RuntimeError("Stream already closed")
 
-        # Ignore noop sinks
-        self.sinks = tuple(sink for sink in sinks if type(sink) is not NoOpResponseStreamSink)
+        # Skip explicit No-Op sink instances but keep subclasses that add behavior
+        self._sinks = tuple(s for s in sinks if type(s) is not NoOpResponseStreamSink)
 
-        async for chunk in self.stream:
-            self.chunk_buffer.append(chunk)
-            if self._try_reassemble_response():
-                await self._compute_response_update()
-                # Make sure we yield to the event loop so that we don't
-                # starve it of time slices
-                await asyncio.sleep(0)
+        loop = asyncio.get_running_loop()
 
-        # Once the stream ends, do a final flush of any leftover chunks
-        if self._try_reassemble_response():
-            await self._compute_response_update()
+        # ─── Tasks lifecycle ──────────────────────────────────────
+        self._reader_task = loop.create_task(self._reader())
+        self._diff_task = loop.create_task(self._diff_worker())
+        self._dispatch_task = loop.create_task(self._dispatch_worker())
 
-        # Dispatch "end" of the message
-        if self.last_message:
-            await self._dispatch_message_end(self.last_message)
-
-        self.stream_closed = True
+        tasks = (self._reader_task, self._diff_task, self._dispatch_task)
+        try:
+            await asyncio.gather(*tasks)
+        finally:
+            # cancel the rest if one finished with an error
+            for t in tasks:
+                if not t.done():
+                    t.cancel()
+            await self.aclose()
 
     async def aclose(self) -> None:
-        """
-        Close the stream and make sure we don't try to call any more sinks.
-        """
-        if hasattr(self.stream, "aclose"):
-            await self.stream.aclose()
-
-        # If we're closed, we need to make sure we don't try to call any
-        # more sinks
-        self.sinks = ()
+        """Close the upstream stream and make sure we won't call sinks again."""
+        if self.stream_closed:
+            return
         self.stream_closed = True
 
-    def _find_matching_tool_def(
+        # Cancel internal tasks
+        tasks = tuple(t for t in (self._reader_task, self._diff_task, self._dispatch_task) if t)
+        for task in tasks:
+            try:
+                if not task.done():
+                    task.cancel()
+            except asyncio.CancelledError:
+                pass
+
+        # Wait until every task *exists* (do not re-raise any exceptions)
+        await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Ensure upstream stream is closed
+        if hasattr(self.stream, "aclose"):
+            try:
+                await self.stream.aclose()
+            except Exception:
+                pass
+
+        # Close sinks
+        self._sinks = ()
+
+    # ═════════════════════════════════════════════════════════════
+    # Internal tasks
+    # ═════════════════════════════════════════════════════════════
+    async def _reader(self) -> None:
+        """Read deltas from `self.stream` and shove them on `_delta_q`."""
+        try:
+            async for chunk in self.stream:
+                await self._delta_q.put(chunk)
+        finally:
+            # Stream ended or errored, then we push sentinel for downstream workers
+            await self._delta_q.put(DeltaEndSentinel())
+
+    async def _diff_worker(self) -> None:
+        """Continuously diff/validate pending deltas and emit messages.
+
+        The previous implementation only flushed after *reading* a delta. If
+        the LLM paused mid-generation, no further deltas would arrive and the
+        consumer would never receive partially completed messages. We now
+        employ `asyncio.wait_for` so that a timeout triggers a flush even when
+        the queue is idle.
+        """
+        loop = asyncio.get_running_loop()
+        buffer_obj: dict[str, Any] = {}
+        batch: list[GenericDelta] = []
+        batch_size_limit = 128
+
+        while True:
+            # Wait for the next delta, but time-out regularly so we can flush
+            # in the absence of new data.
+            try:
+                delta = await asyncio.wait_for(self._delta_q.get(), timeout=self.flush_interval)
+            except TimeoutError:
+                delta = None
+
+            # ─── End-of-stream sentinel ─────────────────────────────
+            if isinstance(delta, DeltaEndSentinel):
+                if batch:
+                    buffer_obj, _ = await self._flush_batch(loop, batch, buffer_obj)
+                    batch.clear()
+                await self._msg_q.put(MsgEndSentinel())
+                return
+
+            # ─── Normal delta payload ──────────────────────────────
+            if isinstance(delta, GenericDelta):
+                batch.append(delta)
+
+            # ─── Flush conditions ──────────────────────────────────
+            if batch and (delta is None or len(batch) >= batch_size_limit):
+                buffer_obj, flushed = await self._flush_batch(loop, batch, buffer_obj)
+                if flushed:
+                    batch.clear()
+
+    async def _flush_batch(
         self,
-        tool_use_content: ResponseToolUseContent,
-    ) -> ToolDefinition | None:
-        """
-        Find the matching tool def in the prompt (if any)
-        """
-        return self._tool_def_cache.get(tool_use_content.tool_name)
+        loop: asyncio.AbstractEventLoop,
+        batch: list[GenericDelta],
+        current_buf: dict[str, Any],
+    ) -> tuple[dict[str, Any], bool]:
+        """Helper: run diff+validate in executor; push result to msg queue.
 
-    def _try_reassemble_response(self) -> bool:
+        Returns:
+            tuple[dict[str, Any], bool]:
+                - new_buf: the new buffer state
+                - flushed: whether the batch was flushed (i.e. whether the
+                  message is complete)
         """
-        Try to reassemble the response message from the buffered chunks.
-        """
-        # Step one is to take the buffered chunks and combine them
-        # into a single object
         try:
-            self.buffer_object = combine_generic_deltas(
-                self.chunk_buffer,
-                self.buffer_object,
+            new_buf, msg = await loop.run_in_executor(
+                self._DIFF_POOL,
+                _apply_and_validate,  # local helper defined below
+                batch,
+                current_buf,
             )
-            # We managed to combine, so clear the buffer
-            self.chunk_buffer.clear()
-        except ValueError:
-            # Not enough information to combine yet
-            # (I don't think this can actually happen)
-            return False
+        except Exception:
+            # likely need more deltas, just keep current state
+            return current_buf, False
 
-        # Step two is to validate the combined object
-        # into a ResponseMessage
-        try:
-            # Try and form the response message
-            self.current_message = ResponseMessage.model_validate(
-                self.buffer_object,
-            )
-        except (ValueError, TypeError):
-            # Not enough information to form a response message yet
-            # (This is maybe more possible?)
-            return False
+        await self._msg_q.put(msg)
+        return new_buf, True
 
-        # If we made it here, we successfully reassembled the response
-        # and propagated the update
-        return True
-
-    async def _compute_response_update(self) -> None:
+    async def _dispatch_worker(self) -> None:
         """
-        Compare self.current_message to self.last_message to figure out
-        what's new or changed. Dispatch partial updates to sinks.
+        Consume fully-validated messages from `_msg_q` and send incremental
+        updates to sinks.
         """
-        if not self.current_message:
-            # Nothing to do
-            return
+        while True:
+            msg = await self._msg_q.get()
+            if isinstance(msg, MsgEndSentinel):
+                # Ensure the stable snapshot is set to the last message seen.
+                # (It should already be, but this adds a final safeguard in
+                #   case the previous update step was skipped due to early
+                #   cancellation or unforeseen control-flow.)
+                if self.current_message is not None:
+                    self.last_message = self.current_message
 
-        new_msg = self.current_message
-        old_msg = self.last_message
+                # final “end” callbacks
+                if self.last_message:
+                    await self._dispatch_message_end(self.last_message)
+                return
 
-        if old_msg is None:
-            # This is our first message, so we dispatch it
-            await self._dispatch_message_begin(new_msg)
-        else:
-            # We have a previous message, so we need to figure out what's new
-            await self._dispatch_message_partial(old_msg, new_msg)
+            self.current_message = cast(ResponseMessage, msg)
+            if self.last_message is None:
+                await self._dispatch_message_begin(self.current_message)
+            else:
+                await self._dispatch_message_partial(self.last_message, self.current_message)
 
-        # Update our last message to reflect what we've just dispatched
-        self.last_message = new_msg
+            # Update the stable snapshot _after_ dispatch so that it always
+            # represents the most recently *dispatched* message, not the one
+            # currently being diff-processed.
+            self.last_message = self.current_message
 
+    # ═════════════════════════════════════════════════════════════
+    # Dispatch helpers
+    # ═════════════════════════════════════════════════════════════
+    def _find_matching_tool_def(self, tool_use: ResponseToolUseContent) -> ToolDefinition | None:
+        return self._tool_def_cache.get(tool_use.tool_name)
+
+    # ---------------- message-level ----------------
     async def _dispatch_message_begin(self, msg: ResponseMessage) -> None:
-        """
-        Dispatch a fully assembled message to sinks.
-        """
-        # Dispatch message begin to sinks
-        for sink in self.sinks:
-            await sink.on_message_begin(msg)
-
-        # Dispatch content to sinks
+        await self._fan_out("on_message_begin", msg)
         for idx, content in enumerate(msg.content):
             await self._dispatch_content_begin(idx, content)
-
-        # Dispatch stop_reason to sinks (if present)
         if msg.stop_reason:
-            for sink in self.sinks:
-                await sink.on_stop_reason(msg.stop_reason)
-
-        # Dispatch usage to sinks (if present)
+            await self._fan_out("on_stop_reason", msg.stop_reason)
         if msg.usage:
-            for sink in self.sinks:
-                await sink.on_usage(msg.usage)
+            await self._fan_out("on_usage", msg.usage)
 
     async def _dispatch_message_partial(
         self,
-        old_msg: ResponseMessage,
-        new_msg: ResponseMessage,
+        old: ResponseMessage,
+        new: ResponseMessage,
     ) -> None:
-        """
-        Dispatch a partial message to sinks.
-        """
-        # Check to see if message contents have grown, if so we should end
-        # the last message content
-        if len(new_msg.content) > len(old_msg.content) and len(old_msg.content) > 0:
-            await self._dispatch_content_end(
-                len(old_msg.content) - 1,
-                old_msg.content[-1],
-            )
+        # NOTE: We expect our streams to have "grow-only" semantics, and
+        # they must _not_ change content kind (e.g. text -> image). This
+        # is how LLMs inately behave (at least for now), but something
+        # like a diffusion model might not necessarily work the exact same
+        # way
 
-        # We assume the stream is append only and content grows monotonically
-        for idx, new_content in enumerate(new_msg.content):
-            if idx >= len(old_msg.content):
-                # This is a new content, so we dispatch the begin and partial
-                # for whatever is there already
-                await self._dispatch_content_begin(idx, new_content)
-                # Next content (likely end of loop)
-                continue
+        old_len = len(old.content)
+        new_len = len(new.content)
 
-            old_content = old_msg.content[idx]
-            if old_content.kind != new_content.kind:
-                # This can't happen, we're assuming the stream is append only
+        # 1) Diff common prefix (length never changes)
+        for idx in range(old_len if new_len >= old_len else new_len):
+            if old.content[idx].kind != new.content[idx].kind:
                 raise RuntimeError("Content kind changed during streaming")
+            await self._dispatch_content_partial(idx, old.content[idx], new.content[idx])
 
-            # Dispatch the partial
-            await self._dispatch_content_partial(idx, old_content, new_content)
+        # 2) Handle append(s)
+        if new_len > old_len:
+            # finalise old tail only if there was at least one item previously
+            if old_len > 0:
+                await self._dispatch_content_end(old_len - 1, old.content[-1])
 
-        # TODO: other things we want to incrementally dispatch?
+            # open new items (if any)
+            for idx in range(old_len, new_len):
+                await self._dispatch_content_begin(idx, new.content[idx])
 
     async def _dispatch_message_end(self, msg: ResponseMessage) -> None:
-        """
-        Called once we know the message is fully complete (stream ended).
-        Dispatches 'end' for each piece of content that began, if not already ended.
-        """
-        # End the last content (other content gets ended in _dispatch_content_partial)
-        await self._dispatch_content_end(
-            len(msg.content) - 1,
-            msg.content[-1],
-        )
+        if msg.content:
+            await self._dispatch_content_end(len(msg.content) - 1, msg.content[-1])
 
-        # TODO: other content only relevant at end?
+        # Close any still-open content items
+        for idx, c in enumerate(msg.content):
+            if idx in self._open_content_indices:
+                await self._dispatch_content_end(idx, c)
 
         if msg.stop_reason:
-            for sink in self.sinks:
-                await sink.on_stop_reason(msg.stop_reason)
-
+            await self._fan_out("on_stop_reason", msg.stop_reason)
         if msg.usage:
-            for sink in self.sinks:
-                await sink.on_usage(msg.usage)
+            await self._fan_out("on_usage", msg.usage)
+        await self._fan_out("on_message_end", msg)
 
-        for sink in self.sinks:
-            await sink.on_message_end(msg)
-
-    async def _dispatch_content_begin(
-        self,
-        idx: int,
-        content: ResponseMessageContent,
-    ) -> None:
-        """
-        Dispatch a content begin to sinks.
-        """
-        for sink in self.sinks:
-            await sink.on_content_begin(idx, content)
-            match content:
-                case ResponseTextContent() as text_content:
-                    await sink.on_text_content_begin(idx, text_content)
-                case ResponseImageContent() as image_content:
-                    await sink.on_image_content_begin(idx, image_content)
-                case ResponseAudioContent() as audio_content:
-                    await sink.on_audio_content_begin(idx, audio_content)
-                case ResponseDocumentContent() as document_content:
-                    await sink.on_document_content_begin(idx, document_content)
-                case ResponseToolUseContent() as tool_use_content:
-                    tool_def = self._find_matching_tool_def(tool_use_content)
-                    await sink.on_tool_use_content_begin(
-                        idx,
-                        tool_use_content,
-                        tool_def,
-                    )
+    # ---------------- content-level ----------------
+    async def _dispatch_content_begin(self, idx: int, content: ResponseMessageContent) -> None:
+        await self._fan_out("on_content_begin", idx, content)
+        self._open_content_indices.add(idx)
+        match content:
+            case ResponseTextContent() as c:
+                await self._fan_out("on_text_content_begin", idx, c)
+            case ResponseImageContent() as c:
+                await self._fan_out("on_image_content_begin", idx, c)
+            case ResponseAudioContent() as c:
+                await self._fan_out("on_audio_content_begin", idx, c)
+            case ResponseDocumentContent() as c:
+                await self._fan_out("on_document_content_begin", idx, c)
+            case ResponseToolUseContent() as c:
+                await self._fan_out(
+                    "on_tool_use_content_begin", idx, c, self._find_matching_tool_def(c)
+                )
 
     async def _dispatch_content_partial(
         self,
@@ -321,92 +401,111 @@ class ResponseStreamPipe:
         old_content: ResponseMessageContent,
         new_content: ResponseMessageContent,
     ) -> None:
-        """
-        Dispatch a content partial to sinks.
-        """
-        for sink in self.sinks:
-            # No generic partial dispatch, we have content-specific partial
-            # dispatch methods only
-            match new_content:
-                case ResponseTextContent() as new_text_content:
-                    old_text_content = cast(ResponseTextContent, old_content)
-                    await sink.on_text_content_partial(
-                        idx,
-                        old_text_content,
-                        new_text_content,
-                    )
-                case ResponseImageContent() as new_image_content:
-                    old_image_content = cast(ResponseImageContent, old_content)
-                    await sink.on_image_content_partial(
-                        idx,
-                        old_image_content,
-                        new_image_content,
-                    )
-                case ResponseAudioContent() as new_audio_content:
-                    old_audio_content = cast(ResponseAudioContent, old_content)
-                    await sink.on_audio_content_partial(
-                        idx,
-                        old_audio_content,
-                        new_audio_content,
-                    )
-                case ResponseDocumentContent() as new_document_content:
-                    old_document_content = cast(
-                        ResponseDocumentContent,
-                        old_content,
-                    )
-                    await sink.on_document_content_partial(
-                        idx,
-                        old_document_content,
-                        new_document_content,
-                    )
-                case ResponseToolUseContent() as new_tool_use_content:
-                    old_tool_use_content = cast(
-                        ResponseToolUseContent,
-                        old_content,
-                    )
-                    tool_def = self._find_matching_tool_def(new_tool_use_content)
-                    await sink.on_tool_use_content_partial(
-                        idx,
-                        old_tool_use_content,
-                        new_tool_use_content,
-                        tool_def,
-                    )
+        match new_content:
+            case ResponseTextContent() as new_c:
+                await self._fan_out(
+                    "on_text_content_partial",
+                    idx,
+                    cast(ResponseTextContent, old_content),
+                    new_c,
+                )
+            case ResponseImageContent() as new_c:
+                await self._fan_out(
+                    "on_image_content_partial",
+                    idx,
+                    cast(ResponseImageContent, old_content),
+                    new_c,
+                )
+            case ResponseAudioContent() as new_c:
+                await self._fan_out(
+                    "on_audio_content_partial",
+                    idx,
+                    cast(ResponseAudioContent, old_content),
+                    new_c,
+                )
+            case ResponseDocumentContent() as new_c:
+                await self._fan_out(
+                    "on_document_content_partial",
+                    idx,
+                    cast(ResponseDocumentContent, old_content),
+                    new_c,
+                )
+            case ResponseToolUseContent() as new_c:
+                await self._fan_out(
+                    "on_tool_use_content_partial",
+                    idx,
+                    cast(ResponseToolUseContent, old_content),
+                    new_c,
+                    self._find_matching_tool_def(new_c),
+                )
 
-    async def _dispatch_content_end(
-        self,
-        idx: int,
-        final_content: ResponseMessageContent,
-    ) -> None:
+    async def _dispatch_content_end(self, idx: int, final: ResponseMessageContent) -> None:
+        await self._fan_out("on_content_end", idx, final)
+        self._open_content_indices.discard(idx)
+        match final:
+            case ResponseTextContent() as c:
+                await self._fan_out("on_text_content_end", idx, c)
+            case ResponseImageContent() as c:
+                await self._fan_out("on_image_content_end", idx, c)
+            case ResponseAudioContent() as c:
+                await self._fan_out("on_audio_content_end", idx, c)
+            case ResponseDocumentContent() as c:
+                await self._fan_out("on_document_content_end", idx, c)
+            case ResponseToolUseContent() as c:
+                await self._fan_out(
+                    "on_tool_use_content_end",
+                    idx,
+                    c,
+                    self._find_matching_tool_def(c),
+                )
+
+    # ═════════════════════════════════════════════════════════════
+    # Low-level utilities
+    # ═════════════════════════════════════════════════════════════
+    async def _fan_out(self, method: str, *args: Any) -> None:
         """
-        Dispatch a content end to sinks.
+        Parallel fan-out with **fault isolation** and **latency bounds**.
+
+        * Any sink raising **or** timing-out is logged exactly once and
+          then excluded from further callbacks (muted).
+        * Healthy sinks continue unaffected.
         """
-        for sink in self.sinks:
-            await sink.on_content_end(idx, final_content)
-            match final_content:
-                case ResponseTextContent() as final_text_content:
-                    await sink.on_text_content_end(
-                        idx,
-                        final_text_content,
-                    )
-                case ResponseImageContent() as final_image_content:
-                    await sink.on_image_content_end(
-                        idx,
-                        final_image_content,
-                    )
-                case ResponseAudioContent() as final_audio_content:
-                    await sink.on_audio_content_end(
-                        idx,
-                        final_audio_content,
-                    )
-                case ResponseDocumentContent() as final_document_content:
-                    await sink.on_document_content_end(
-                        idx,
-                        final_document_content,
-                    )
-                case ResponseToolUseContent() as final_tool_use_content:
-                    tool_def = self._find_matching_tool_def(final_tool_use_content)
-                    await sink.on_tool_use_content_end(
-                        idx,
-                        final_tool_use_content,
-                        tool_def,
-                    )
+
+        async def _call(sink: ResponseStreamSinkBase):
+            if sink in self._broken_sinks or not hasattr(sink, method):
+                return
+            try:
+                await asyncio.wait_for(
+                    getattr(sink, method)(*args),  # type: ignore[attr-defined]
+                    timeout=self._sink_timeout,
+                )
+            except Exception as exc:
+                logger.warning(
+                    "Sink %s failed in %s (muted for rest of stream): %s",
+                    type(sink).__name__,
+                    method,
+                    exc,
+                    exc_info=True,
+                )
+                self._broken_sinks.add(sink)
+
+        if not self._sinks:
+            return
+
+        await asyncio.gather(*(_call(s) for s in self._sinks))
+
+
+# ─────────────────────────────────────────────────────────────────────
+# Executor helper kept at module level so it is picklable on Windows
+# ─────────────────────────────────────────────────────────────────────
+def _apply_and_validate(
+    chunk_buf: list[GenericDelta],
+    current_buf: dict[str, Any],
+) -> tuple[dict[str, Any], ResponseMessage]:
+    """
+    Pure function executed in the thread-pool:
+    merge the deltas and validate the resulting message.
+    """
+    new_buf = combine_generic_deltas(chunk_buf, current_buf)
+    msg = ResponseMessage.model_validate(new_buf)
+    return new_buf, msg

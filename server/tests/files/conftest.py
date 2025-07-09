@@ -70,6 +70,7 @@ def _get_base_url(tmpdir, logs_dir, files_location, env_vars):
         agent_server_process = AgentServerProcess(datadir=agent_server_data_dir)
         agent_server_process.start(
             logs_dir=logs_dir,
+            timeout=10 * 60,
             env=env_vars,
         )
         try:

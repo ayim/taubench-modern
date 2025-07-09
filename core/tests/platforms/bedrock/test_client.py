@@ -397,7 +397,7 @@ class TestBedrockErrorHandling:
         )
 
         # Use a real model from the existing model map
-        with patch.object(bedrock_client, "_bedrock_runtime_client") as mock_client:
+        with patch.object(bedrock_client, "_bedrock_client") as mock_client:
             mock_client.converse.side_effect = client_error
 
             with pytest.raises(PlatformHTTPError) as exc_info:
@@ -424,7 +424,7 @@ class TestBedrockErrorHandling:
         )
 
         # Use a real model from the existing model map
-        with patch.object(bedrock_client, "_bedrock_runtime_client") as mock_client:
+        with patch.object(bedrock_client, "_bedrock_client") as mock_client:
             mock_client.converse_stream.side_effect = client_error
 
             with pytest.raises(StreamingError) as exc_info:
@@ -450,7 +450,7 @@ class TestBedrockErrorHandling:
         )
 
         # Use a real embedding model from the existing model map
-        with patch.object(bedrock_client, "_bedrock_runtime_client") as mock_client:
+        with patch.object(bedrock_client, "_bedrock_client") as mock_client:
             mock_client.invoke_model.side_effect = client_error
 
             with pytest.raises(PlatformHTTPError) as exc_info:
@@ -474,7 +474,14 @@ class TestBedrockClient:
 
     @pytest.fixture
     def mock_boto3_client(self) -> MagicMock:
+        # Use AsyncMock for the service operations so they can be awaited by the
+        # async Bedrock client implementation.
         mock_client = MagicMock(name="MockBedrockRuntimeClient")
+
+        # ------------------------------------------------------------
+        # `converse` --- single shot response
+        # ------------------------------------------------------------
+        mock_client.converse = AsyncMock()
         mock_client.converse.return_value = {
             "output": {
                 "message": {
@@ -486,53 +493,58 @@ class TestBedrockClient:
             "metrics": {"latencyMs": 500},
         }
 
-        class MockStream:
-            def __iter__(self):
-                events = [
-                    {
-                        "chunk": {
-                            "bytes": (b'{"type":"message_start","message":{"role":"assistant"}}'),
-                        },
-                    },
-                    {
-                        "chunk": {
-                            "bytes": (
-                                b'{"type":"content_block_start","index":0,"content_block"'
-                                b':{"type":"text"}}'
-                            ),
-                        },
-                    },
-                    {
-                        "chunk": {
-                            "bytes": (
-                                b'{"type":"content_block_delta","index":0,"delta":{"type"'
-                                b':"text_delta","text":"test "}}'
-                            ),
-                        },
-                    },
-                    {
-                        "chunk": {
-                            "bytes": (
-                                b'{"type":"content_block_delta","index":0,"delta":{"type"'
-                                b':"text_delta","text":"response"}}'
-                            ),
-                        },
-                    },
-                    {"chunk": {"bytes": b'{"type":"message_stop"}'}},
-                    {
-                        "chunk": {
-                            "bytes": (
-                                b'{"type":"metadata","usage":{"input_tokens":10,"output_'
-                                b'tokens":20,"total_tokens":30},"metrics":{"latency_ms":'
-                                b"500}}"
-                            ),
-                        },
-                    },
-                ]
-                yield from events
+        # ------------------------------------------------------------
+        # `converse_stream` --- streamed SSE/HTTP2 response
+        # ------------------------------------------------------------
 
+        async def _async_stream():  # type: ignore[return-type]
+            events = [
+                {
+                    "chunk": {
+                        "bytes": (b'{"type":"message_start","message":{"role":"assistant"}}'),
+                    },
+                },
+                {
+                    "chunk": {
+                        "bytes": (
+                            b'{"type":"content_block_start","index":0,"content_block"'
+                            b':{"type":"text"}}'
+                        ),
+                    },
+                },
+                {
+                    "chunk": {
+                        "bytes": (
+                            b'{"type":"content_block_delta","index":0,"delta":{"type"'
+                            b':"text_delta","text":"test "}}'
+                        ),
+                    },
+                },
+                {
+                    "chunk": {
+                        "bytes": (
+                            b'{"type":"content_block_delta","index":0,"delta":{"type"'
+                            b':"text_delta","text":"response"}}'
+                        ),
+                    },
+                },
+                {"chunk": {"bytes": b'{"type":"message_stop"}'}},
+                {
+                    "chunk": {
+                        "bytes": (
+                            b'{"type":"metadata","usage":{"input_tokens":10,"output_'
+                            b'tokens":20,"total_tokens":30},"metrics":{"latency_ms":'
+                            b"500}}"
+                        ),
+                    },
+                },
+            ]
+            for ev in events:
+                yield ev
+
+        mock_client.converse_stream = AsyncMock()
         mock_client.converse_stream.return_value = {
-            "stream": MockStream(),
+            "stream": _async_stream(),
             "ResponseMetadata": {
                 "RequestId": "test-request-id",
                 "HTTPStatusCode": 200,
@@ -546,6 +558,12 @@ class TestBedrockClient:
                 "RetryAttempts": 0,
             },
         }
+
+        # ------------------------------------------------------------
+        # `invoke_model` --- embeddings endpoint
+        # ------------------------------------------------------------
+        mock_client.invoke_model = AsyncMock()
+
         return mock_client
 
     @pytest.fixture
@@ -569,7 +587,7 @@ class TestBedrockClient:
     ) -> BedrockClient:
         with patch("boto3.client", return_value=mock_boto3_client):
             client = BedrockClient(kernel=kernel, parameters=parameters)
-            client._bedrock_runtime_client = mock_boto3_client
+            client._bedrock_client = mock_boto3_client
 
             mock_response = ResponseMessage(
                 content=[ResponseTextContent(text="test response")],
@@ -609,44 +627,44 @@ class TestBedrockClient:
         self,
         parameters: BedrockPlatformParameters,
     ) -> None:
-        with patch("boto3.client") as mock_client:
-            parameters = parameters.model_copy(
-                update={"config_params": {"read_timeout": 60}},
-            )
-            client = BedrockClient(parameters=parameters)
-            assert client.parameters.config_params == {"read_timeout": 60}
-            assert mock_client.call_args[1]["config"].read_timeout == 60
+        # BedrockClient now uses aiobotocore only; ensure the async config is
+        # built with the supplied params.
+        parameters = parameters.model_copy(
+            update={"config_params": {"read_timeout": 60}},
+        )
+        client = BedrockClient(parameters=parameters)
+        assert client.parameters.config_params == {"read_timeout": 60}
+        assert client._config.read_timeout == 60  # type: ignore[attr-defined]
 
     def test_init_clients(self, parameters: BedrockPlatformParameters) -> None:
-        with patch("boto3.client") as mock_boto3_client:
-            BedrockClient(parameters=parameters)
-            mock_boto3_client.assert_called_once_with(
-                "bedrock-runtime",
-                region_name="us-west-2",
-                aws_access_key_id="test-access-key",
-                aws_secret_access_key="test-secret-key",
-            )
+        # The client no longer performs a synchronous boto3 call, simply
+        # verify that instantiation succeeds with the correct parameters.
+        client = BedrockClient(parameters=parameters)
+        assert client._parameters.region_name == "us-west-2"
+        assert client._parameters.aws_access_key_id == "test-access-key"
+        assert client._parameters.aws_secret_access_key == "test-secret-key"
 
     def test_init_parameters_from_kwargs(self) -> None:
-        with patch("boto3.client"):
-            client = BedrockClient(
-                region_name="us-west-2",
-                aws_access_key_id="test-access-key",
-                aws_secret_access_key="test-secret-key",
-            )
-            assert client.parameters.region_name == "us-west-2"
-            assert client.parameters.aws_access_key_id == "test-access-key"
-            assert client.parameters.aws_secret_access_key == "test-secret-key"
+        # No synchronous boto3 call is triggered, but instantiation still
+        # accepts raw kwargs.
+        client = BedrockClient(
+            region_name="us-west-2",
+            aws_access_key_id="test-access-key",
+            aws_secret_access_key="test-secret-key",
+        )
+        assert client.parameters.region_name == "us-west-2"
+        assert client.parameters.aws_access_key_id == "test-access-key"
+        assert client.parameters.aws_secret_access_key == "test-secret-key"
 
     def test_init_parameters_with_updates(
         self,
         parameters: BedrockPlatformParameters,
     ) -> None:
-        with patch("boto3.client"):
-            client = BedrockClient(parameters=parameters, region_name="us-east-1")
-            assert client.parameters.region_name == "us-east-1"
-            assert client.parameters.aws_access_key_id == "test-access-key"
-            assert client.parameters.aws_secret_access_key == "test-secret-key"
+        # BedrockClient handles parameter overrides without touching boto3.
+        client = BedrockClient(parameters=parameters, region_name="us-east-1")
+        assert client.parameters.region_name == "us-east-1"
+        assert client.parameters.aws_access_key_id == "test-access-key"
+        assert client.parameters.aws_secret_access_key == "test-secret-key"
 
     @pytest.mark.asyncio
     @patch.object(
@@ -747,7 +765,11 @@ class TestBedrockClient:
             "model_aliases",
             test_model_map,
         ):
-            mock_boto3_client.converse_stream.return_value = {"stream": [{}]}
+
+            async def _dummy_stream():
+                yield {}
+
+            mock_boto3_client.converse_stream.return_value = {"stream": _dummy_stream()}
             bedrock_client.parsers.parse_stream_event = mock_stream_generator
 
             deltas: list[GenericDelta] = []
@@ -792,7 +814,11 @@ class TestBedrockClient:
             "model_aliases",
             test_model_map,
         ):
-            mock_boto3_client.converse_stream.return_value = {"stream": [{}]}
+
+            async def _dummy_stream():
+                yield {}
+
+            mock_boto3_client.converse_stream.return_value = {"stream": _dummy_stream()}
             bedrock_client.parsers.parse_stream_event = mock_stream_generator
 
             deltas: list[GenericDelta] = []

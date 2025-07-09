@@ -1,10 +1,15 @@
+import asyncio
 import json
+import logging
 from collections.abc import AsyncGenerator
 from copy import deepcopy
-from typing import TYPE_CHECKING, Any, ClassVar, cast
+from typing import TYPE_CHECKING, Any, ClassVar, ParamSpec, TypeVar
 
-from agent_platform.core.delta import GenericDelta
-from agent_platform.core.delta.compute_delta import compute_generic_deltas
+import aiobotocore.session
+from aiobotocore.config import AioConfig
+from botocore.exceptions import ClientError
+
+from agent_platform.core.delta import GenericDelta, compute_generic_deltas
 from agent_platform.core.errors import ErrorCode
 from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
 from agent_platform.core.errors.streaming import StreamingError
@@ -26,9 +31,12 @@ from agent_platform.core.platforms.bedrock.prompts import BedrockPrompt
 from agent_platform.core.responses.response import ResponseMessage
 
 if TYPE_CHECKING:
-    from types_boto3_bedrock_runtime.client import BedrockRuntimeClient
-
     from agent_platform.core.kernel import Kernel
+
+log = logging.getLogger(__name__)
+
+T = TypeVar("T")
+P = ParamSpec("P")
 
 
 class BedrockClient(
@@ -37,35 +45,184 @@ class BedrockClient(
         BedrockParsers,
         BedrockPlatformParameters,
         BedrockPrompt,
-    ],
+    ]
 ):
-    """A client for the Bedrock platform."""
-
     NAME: ClassVar[str] = "bedrock"
     configs: ClassVar[type[PlatformConfigs]] = BedrockPlatformConfigs
     model_map: ClassVar[type[PlatformModelMap]] = BedrockModelMap
+
+    # ------------------------------------------------------------------#
+    # Construction
+    # ------------------------------------------------------------------#
 
     def __init__(
         self,
         *,
         kernel: "Kernel | None" = None,
         parameters: BedrockPlatformParameters | None = None,
-        region_name: str | None = None,
-        aws_access_key_id: str | None = None,
-        aws_secret_access_key: str | None = None,
-        **kwargs: Any,
+        **overrides: Any,
     ):
-        super().__init__(
-            kernel=kernel,
-            region_name=region_name,
-            aws_access_key_id=aws_access_key_id,
-            aws_secret_access_key=aws_secret_access_key,
-            parameters=parameters,
-            **kwargs,
+        super().__init__(kernel=kernel, parameters=parameters, **overrides)
+
+        # 1. Build one global aiobotocore session
+        self._session = aiobotocore.session.get_session()
+
+        # user-supplied botocore.Config is converted to its async twin
+        botocore_cfg = self._parameters.config_params or {}
+        self._config = AioConfig(
+            retries={
+                "mode": "standard",  # or 'adaptive'
+                "max_attempts": 4,  # initial call + 3 retries
+            },
+            **botocore_cfg,  # keeps any user-supplied overrides
         )
-        self._bedrock_runtime_client = self._init_clients(
-            self._parameters,
-        )
+
+        self._bedrock_client: Any | None = None
+
+    async def _client(self):
+        """
+        Lazily create a single connection-pooled runtime client.
+        """
+        if self._bedrock_client is None:
+            params_without_kind = self._parameters.model_dump(exclude_none=True)
+            params_without_kind.pop("kind", None)
+            params_without_kind.pop("config_params", None)
+            self._bedrock_client = await self._session.create_client(
+                "bedrock-runtime",
+                config=self._config,
+                **params_without_kind,
+            ).__aenter__()
+        return self._bedrock_client
+
+    # ------------------------------------------------------------------#
+    # Public API
+    # ------------------------------------------------------------------#
+
+    async def generate_response(
+        self,
+        prompt: BedrockPrompt,
+        model: str,
+    ) -> ResponseMessage:
+        model_id = BedrockModelMap.model_aliases[model]
+
+        try:
+            # Bedrock's `converse` is POST; returns JSON body.
+            client = await self._client()
+            response = await client.converse(
+                **prompt.as_platform_request(model_id, stream=False),
+            )
+            return self._parsers.parse_response(response)
+        except Exception as exc:
+            raise self._handle_bedrock_error(exc, model, PlatformHTTPError) from exc
+
+    async def generate_stream_response(
+        self,
+        prompt: BedrockPrompt,
+        model: str,
+    ) -> AsyncGenerator[GenericDelta, None]:
+        model_id = BedrockModelMap.model_aliases[model]
+
+        try:
+            # Returns an async iterator over SSE / HTTP2 frames
+            client = await self._client()
+            response = await client.converse_stream(
+                **prompt.as_platform_request(model_id, stream=True),
+            )
+        except Exception as exc:
+            raise self._handle_bedrock_error(exc, model, StreamingError) from exc
+
+        # ------------------------------------------------------------ #
+        # Streaming loop: parse each partial event and yield deltas
+        # ------------------------------------------------------------ #
+        message_state: dict[str, Any] = {}
+        last_msg_state: dict[str, Any] = {}
+
+        async for event in response["stream"]:
+            async for delta in self._parsers.parse_stream_event(
+                event, response, message_state, last_msg_state
+            ):
+                yield delta
+            last_msg_state = deepcopy(message_state)
+
+        # Attach final metadata delta
+        final_event = self._generate_platform_metadata()
+        message_state.setdefault("metadata", {}).update(final_event)
+        message_state["raw_response"] = {**response, "stream": None}
+
+        for delta in compute_generic_deltas(last_msg_state, message_state):
+            yield delta
+
+    # ------------------------------------------------------------------#
+    # Embeddings (batch capable)
+    # ------------------------------------------------------------------#
+
+    async def create_embeddings(
+        self,
+        texts: list[str],
+        model: str,
+    ) -> dict[str, Any]:
+        """Create embeddings and translate any Bedrock/HTTP errors.
+
+        This helper wraps the low-level Bedrock call so that *any* boto-core
+        or client exceptions are normalised via ``_handle_bedrock_error`` into
+        a ``PlatformHTTPError`` --- mirroring the behaviour of the chat-based
+        helpers. Non-Bedrock errors such as a missing model (``ValueError``)
+        continue to propagate unchanged to satisfy test expectations.
+        """
+
+        model_id = BedrockModelMap.model_aliases[model]
+
+        try:
+            if model_id.startswith("amazon.titan-embed-text"):
+                # Titan does *not* batch today
+
+                async def titan_single(txt: str):
+                    body = {"inputText": txt}
+                    client = await self._client()
+                    response = await client.invoke_model(
+                        modelId=model_id,
+                        body=json.dumps(body),
+                    )
+                    # The response body is a stream; read() returns the raw JSON bytes
+                    data = json.loads(response["body"].read())
+                    return data["embedding"], data.get("inputTextTokenCount", 0)
+
+                results = await asyncio.gather(*(titan_single(t) for t in texts))
+                embeddings, token_counts = zip(*results, strict=True)
+                return {
+                    "embeddings": list(embeddings),
+                    "model": model,
+                    "usage": {"total_tokens": sum(token_counts)},
+                }
+
+            if model_id.startswith("cohere.embed"):
+                request = {
+                    "texts": texts,
+                    "input_type": "search_document",
+                    "embedding_types": ["float"],
+                }
+                client = await self._client()
+                response = await client.invoke_model(
+                    modelId=model_id,
+                    body=json.dumps(request),
+                )
+                # The response body is a stream; read() returns the raw JSON bytes
+                data = json.loads(response["body"].read())
+                return {
+                    "embeddings": data["embeddings"],
+                    "model": model,
+                    "usage": {"total_tokens": data.get("token_count", 0)},
+                }
+
+            # Maintain backwards-compatibility with earlier error message expectation
+            raise ValueError(f"{model_id!r} is not a supported embedding model")
+        except ValueError:
+            # Not a Bedrock error, so propagate it unchanged so calling code can
+            # decide how to handle unsupported models.
+            raise
+        except Exception as exc:
+            # Translate all other exceptions via the shared Bedrock handler.
+            raise self._handle_bedrock_error(exc, model, PlatformHTTPError) from exc
 
     def _init_converters(self, kernel: "Kernel | None" = None) -> BedrockConverters:
         converters = BedrockConverters()
@@ -76,176 +233,34 @@ class BedrockClient(
     def _init_parameters(
         self,
         parameters: BedrockPlatformParameters | None = None,
-        region_name: str | None = None,
-        aws_access_key_id: str | None = None,
-        aws_secret_access_key: str | None = None,
         **kwargs: Any,
     ) -> BedrockPlatformParameters:
         if parameters is None:
-            parameters = BedrockPlatformParameters(
-                region_name=region_name,
-                aws_access_key_id=aws_access_key_id,
-                aws_secret_access_key=aws_secret_access_key,
-                **kwargs,
-            )
-        else:
-            if region_name is not None:
-                kwargs["region_name"] = region_name
-            if aws_access_key_id is not None:
-                kwargs["aws_access_key_id"] = aws_access_key_id
-            if aws_secret_access_key is not None:
-                kwargs["aws_secret_access_key"] = aws_secret_access_key
+            parameters = BedrockPlatformParameters(**kwargs)
+        elif kwargs:
             parameters = parameters.model_copy(update=kwargs)
         return parameters
 
     def _init_parsers(self) -> BedrockParsers:
         return BedrockParsers()
 
-    def _init_clients(
+    # ------------------------------------------------------------------#
+    # Token counting --- still unsupported natively
+    # ------------------------------------------------------------------#
+
+    async def count_tokens(self, prompt: BedrockPrompt, model: str) -> int:
+        raise NotImplementedError("Bedrock does not expose a tokeniser.")
+
+    # ------------------------------------------------------------------#
+    # Error handling
+    # ------------------------------------------------------------------#
+
+    def _handle_bedrock_error(
         self,
-        parameters: BedrockPlatformParameters,
-    ) -> "BedrockRuntimeClient":
-        import boto3
-        from botocore.config import Config
-
-        # Remove the kind and config_params from the
-        # parameters before passing them to boto3
-        without_kind_and_config_params = parameters.model_dump(exclude_none=True)
-        without_kind_and_config_params.pop("kind")
-        without_kind_and_config_params.pop("config_params")
-
-        # Create a new Config object from the config_params
-        if parameters.config_params:
-            config = Config(**parameters.config_params)
-            without_kind_and_config_params["config"] = config
-
-        return boto3.client(
-            "bedrock-runtime",
-            **without_kind_and_config_params,
-        )
-
-    def _handle_bedrock_error(  # noqa: C901, PLR0911, PLR0912
-        self, error: Exception, model: str, error_type: type[PlatformError] = PlatformError
+        error: Exception,
+        model: str,
+        err_cls: type[PlatformError] = PlatformError,
     ) -> PlatformError:
-        """Handle Bedrock errors and convert them to PlatformError instances.
-
-        Args:
-            error: The boto3 exception that was raised
-            model: The model being used when the error occurred
-            error_type: The type of error to return. Defaults to PlatformError.
-
-        Returns:
-            PlatformError: The appropriate error for the given Bedrock error
-        """
-        from botocore.exceptions import ClientError
-
-        # Handle ClientError (most common AWS service error)
-        if isinstance(error, ClientError):
-            error_code = error.response.get("Error", {}).get("Code", "Unknown")
-            error_message = error.response.get("Error", {}).get("Message", str(error))
-
-            match error_code:
-                case "ThrottlingException":
-                    return error_type(
-                        error_code=ErrorCode.TOO_MANY_REQUESTS,
-                        message=f"Request rate limit exceeded for Bedrock model '{model}'. "
-                        "Please slow down your requests or try again later.",
-                        data={
-                            "model": model,
-                            "error_code": error_code,
-                            "technical_error_message": error_message,
-                        },
-                    )
-                case "AccessDeniedException":
-                    return error_type(
-                        error_code=ErrorCode.FORBIDDEN,
-                        message=f"Access denied for Bedrock model '{model}'. Please check "
-                        "your permissions and ensure the model is accessible in your region.",
-                        data={
-                            "model": model,
-                            "region": self._parameters.region_name,
-                            "technical_error_message": error_message,
-                        },
-                    )
-                case "ValidationException":
-                    return error_type(
-                        error_code=ErrorCode.BAD_REQUEST,
-                        message=f"Something went wrong while sending the request to Bedrock model "
-                        f"'{model}', please try again or contact support.",
-                        data={
-                            "model": model,
-                            "error_code": error_code,
-                            "technical_error_message": error_message,
-                        },
-                    )
-                case "ResourceNotFoundException":
-                    return error_type(
-                        error_code=ErrorCode.NOT_FOUND,
-                        message=f"Bedrock model '{model}' not found. Please verify the model ID "
-                        "and ensure it's available in your region.",
-                        data={
-                            "model": model,
-                            "region": self._parameters.region_name,
-                            "technical_error_message": error_message,
-                        },
-                    )
-                case "ServiceQuotaExceededException":
-                    return error_type(
-                        error_code=ErrorCode.TOO_MANY_REQUESTS,
-                        message=f"Service quota exceeded for Bedrock model '{model}'. "
-                        "Please request a quota increase or try a different model.",
-                        data={
-                            "model": model,
-                            "error_code": error_code,
-                            "technical_error_message": error_message,
-                        },
-                    )
-                case "ModelTimeoutException":
-                    return error_type(
-                        error_code=ErrorCode.UNEXPECTED,
-                        message=f"Request to Bedrock model '{model}' timed out. Please try again.",
-                        data={
-                            "model": model,
-                            "error_code": error_code,
-                            "technical_error_message": error_message,
-                        },
-                    )
-                case "InternalServerException":
-                    return error_type(
-                        error_code=ErrorCode.UNEXPECTED,
-                        message="Bedrock service encountered an internal error. Please "
-                        "try again later or contact support.",
-                        data={
-                            "model": model,
-                            "error_code": error_code,
-                            "technical_error_message": error_message,
-                        },
-                    )
-                case "ServiceUnavailableException":
-                    return error_type(
-                        error_code=ErrorCode.UNEXPECTED,
-                        message="Bedrock service is temporarily unavailable. "
-                        "Please try again later.",
-                        data={
-                            "model": model,
-                            "error_code": error_code,
-                            "technical_error_message": error_message,
-                        },
-                    )
-                case _:
-                    # Handle any other ClientError codes
-                    return error_type(
-                        error_code=ErrorCode.UNEXPECTED,
-                        message=f"Something went wrong while sending the request to Bedrock model "
-                        f"'{model}', please try again or contact support.",
-                        data={
-                            "model": model,
-                            "error_code": error_code,
-                            "technical_error_message": error_message,
-                        },
-                    )
-
-        # Handle other botocore exceptions
         from botocore.exceptions import (
             BotoCoreError,
             EndpointConnectionError,
@@ -256,214 +271,96 @@ class BedrockClient(
             ConnectionError as BotoConnectionError,
         )
 
+        if isinstance(error, ClientError):
+            code = error.response.get("Error", {}).get("Code", "Unknown")
+            message = error.response.get("Error", {}).get("Message", str(error))
+
+            mapping: dict[str, tuple[ErrorCode, str]] = {
+                "ThrottlingException": (
+                    ErrorCode.TOO_MANY_REQUESTS,
+                    "Request rate limit exceeded.",
+                ),
+                "AccessDeniedException": (
+                    ErrorCode.FORBIDDEN,
+                    "Access denied.",
+                ),
+                "ValidationException": (
+                    ErrorCode.BAD_REQUEST,
+                    "Something went wrong while validating your request.",
+                ),
+                "ResourceNotFoundException": (
+                    ErrorCode.NOT_FOUND,
+                    "Model not found.",
+                ),
+                "ServiceQuotaExceededException": (
+                    ErrorCode.TOO_MANY_REQUESTS,
+                    "Service quota exceeded.",
+                ),
+                "ModelTimeoutException": (
+                    ErrorCode.UNEXPECTED,
+                    "Bedrock model request timed out.",
+                ),
+                "InternalServerException": (
+                    ErrorCode.UNEXPECTED,
+                    "Bedrock internal error.",
+                ),
+                "ServiceUnavailableException": (
+                    ErrorCode.UNEXPECTED,
+                    "Bedrock service is temporarily unavailable.",
+                ),
+            }
+
+            err_code, user_msg = mapping.get(code, (ErrorCode.UNEXPECTED, "Something went wrong."))
+
+            data: dict[str, Any] = {
+                "technical_error_message": message,
+                "model": model,
+                "error_code": code,
+            }
+
+            # Region info for AccessDenied to satisfy tests
+            if code == "AccessDeniedException":
+                data["region"] = self._parameters.region_name
+
+            return err_cls(
+                error_code=err_code,
+                message=f"{user_msg} (model='{model}', code='{code}')",
+                data=data,
+            )
+
         match error:
             case NoCredentialsError():
-                return error_type(
+                return err_cls(
                     error_code=ErrorCode.UNAUTHORIZED,
-                    message="No AWS credentials found. Please configure your AWS credentials.",
+                    message="No AWS credentials found.",
                     data={"model": model},
                 )
             case EndpointConnectionError():
-                return error_type(
+                return err_cls(
                     error_code=ErrorCode.UNEXPECTED,
-                    message="Failed to connect to Bedrock service. Please check your "
-                    "network connection and region configuration.",
-                    data={"model": model, "region": self._parameters.region_name},
+                    message="Failed to connect to Bedrock endpoint.",
+                    data={"region": self._parameters.region_name, "model": model},
                 )
             case ReadTimeoutError():
-                return error_type(
+                return err_cls(
                     error_code=ErrorCode.UNEXPECTED,
-                    message=f"Request to Bedrock model '{model}' timed out. Please try again.",
+                    message="Bedrock request timed out.",
                     data={"model": model},
                 )
             case BotoConnectionError():
-                return error_type(
+                return err_cls(
                     error_code=ErrorCode.UNEXPECTED,
-                    message="Network connection error occurred while connecting to Bedrock. "
-                    "Please check your network connection.",
+                    message="Network connection error.",
                     data={"model": model},
                 )
             case BotoCoreError():
-                return error_type(
+                return err_cls(
                     error_code=ErrorCode.UNEXPECTED,
-                    message=f"Something went wrong while sending the request to Bedrock model "
-                    f"'{model}', please try again or contact support.",
+                    message="Something went wrong.",
                     data={"model": model},
                 )
             case _:
-                # For any other unexpected errors, re-raise them
                 raise error
-
-    async def generate_response(
-        self,
-        prompt: BedrockPrompt,
-        model: str,
-    ) -> ResponseMessage:
-        """Generate a complete response from the Bedrock platform.
-
-        Args:
-            prompt: The prompt to send to the model.
-            model: The model to use to generate the response.
-        Returns:
-            The complete model response.
-        """
-        from types_boto3_bedrock_runtime.type_defs import ConverseRequestTypeDef
-
-        model_id = BedrockModelMap.model_aliases[model]
-        request = cast(ConverseRequestTypeDef, prompt.as_platform_request(model_id))
-
-        try:
-            response = self._bedrock_runtime_client.converse(**request)
-            return self.parsers.parse_response(response)
-        except Exception as e:
-            raise self._handle_bedrock_error(e, model, PlatformHTTPError) from e
-
-    async def generate_stream_response(
-        self,
-        prompt: BedrockPrompt,
-        model: str,
-    ) -> AsyncGenerator[GenericDelta, None]:
-        """Stream a response from the Bedrock platform.
-
-        Args:
-            prompt: The prompt to send to the model.
-            model: The model to use to generate the response.
-
-        Yields:
-            GenericDeltas that update the ResponseMessage.
-        """
-        from types_boto3_bedrock_runtime.type_defs import ConverseStreamRequestTypeDef
-
-        model_id = BedrockModelMap.model_aliases[model]
-        request = cast(
-            ConverseStreamRequestTypeDef,
-            prompt.as_platform_request(model_id, stream=True),
-        )
-
-        try:
-            response = self._bedrock_runtime_client.converse_stream(**request)
-        except Exception as e:
-            raise self._handle_bedrock_error(e, model, StreamingError) from e
-
-        # Initialize message state
-        message: dict[str, Any] = {}
-        last_message: dict[str, Any] = {}
-
-        # Process each event through the parser to get deltas
-        for event in response["stream"]:
-            async for delta in self._parsers.parse_stream_event(
-                event,  # type: ignore
-                response,
-                message,
-                last_message,
-            ):
-                yield delta
-
-            # Update last message state after processing each event
-            last_message = deepcopy(message)
-
-        final_event = self._generate_platform_metadata()
-        if "metadata" not in message:
-            message["metadata"] = {}
-        message["metadata"].update(final_event)
-        message["raw_response"] = {
-            **response,
-            "stream": None,
-        }
-
-        for delta in compute_generic_deltas(last_message, message):
-            yield delta
-
-    async def create_embeddings(
-        self,
-        texts: list[str],
-        model: str,
-    ) -> dict[str, Any]:
-        """Create embeddings using a Bedrock embedding model.
-
-        Args:
-            texts: List of text strings to create embeddings for.
-            model: The model to use to generate embeddings.
-
-        Returns:
-            A dictionary containing the embeddings and any
-            additional model-specific information.
-        """
-        model_id = BedrockModelMap.model_aliases[model]
-
-        try:
-            # Different Bedrock embedding models use different request formats;
-            # so we need to handle them differently.
-            if model_id.startswith("amazon.titan-embed-text"):
-                embeddings = []
-                total_tokens = 0
-
-                for text in texts:
-                    request = {"inputText": text}
-                    response = self._bedrock_runtime_client.invoke_model(
-                        modelId=model_id,
-                        body=json.dumps(request),
-                    )
-                    response_body = json.loads(response["body"].read())
-                    # the JSON deserializer in the AWS SDK already converts the embeddings
-                    # to a Python list of floats.
-                    # Hence, we can just append the embedding to the list.
-                    embeddings.append(response_body["embedding"])
-                    total_tokens += response_body.get("inputTextTokenCount", 0)
-
-                return {
-                    "embeddings": embeddings,
-                    "model": model,
-                    "usage": {"total_tokens": total_tokens},
-                }
-
-            elif model_id.startswith("cohere.embed"):
-                # Cohere embedding models support batch processing
-                request = {
-                    "texts": texts,
-                    "input_type": "search_document",
-                    "embedding_types": ["float"],
-                }
-
-                response = self._bedrock_runtime_client.invoke_model(
-                    modelId=model_id,
-                    body=json.dumps(request),
-                )
-
-                response_body = json.loads(response["body"].read())
-
-                return {
-                    "embeddings": response_body["embeddings"],
-                    "model": model,
-                    "usage": {"total_tokens": response_body.get("token_count", 0)},
-                }
-
-            else:
-                raise ValueError(f"Model {model_id} is not a supported embedding model")
-        except ValueError:
-            # Re-raise ValueError for unsupported models without modification
-            raise
-        except Exception as e:
-            raise self._handle_bedrock_error(e, model, PlatformHTTPError) from e
-
-    async def count_tokens(
-        self,
-        prompt: BedrockPrompt,
-        model: str,
-    ) -> int:
-        """Count the tokens in a prompt.
-
-        Args:
-            prompt: The prompt to count the tokens of.
-            model: The model to use to count the tokens.
-
-        Returns:
-            The number of tokens in the prompt.
-
-        Raises:
-            NotImplementedError: This method is not yet implemented.
-        """
-        raise NotImplementedError("count_tokens is not yet implemented for Bedrock")
 
 
 PlatformClient.register_platform_client("bedrock", BedrockClient)

@@ -3,7 +3,7 @@ from contextlib import contextmanager
 
 
 def _install_patches():  # noqa: C901, PLR0915
-    from vcr.stubs import VCRHTTPResponse, httpx_stubs
+    from vcr.stubs import httpx_stubs
 
     undo = []
 
@@ -110,15 +110,60 @@ def _install_patches():  # noqa: C901, PLR0915
 
     httpx_stubs._async_vcr_send = patched_async_vcr_send
 
-    # Patch VCRHTTPResponse to include version_string attribute
-    # This is a patch to make boto3 happy
-    original_init = VCRHTTPResponse.__init__
+    # ------------------------------------------------------------------
+    # Patch aiohttp_stubs.build_response for compatibility
+    # ------------------------------------------------------------------
+    from vcr.stubs import aiohttp_stubs
 
-    def patched_init(self, *args, **kwargs):
-        original_init(self, *args, **kwargs)
-        # Add version_string attribute if missing
-        if not hasattr(self, "version_string"):
-            self.version_string = "HTTP/1.1"
+    original_build_response = aiohttp_stubs.build_response
+
+    def patched_build_response(vcr_request, vcr_response, history):
+        """Build an aiohttp MockClientResponse tolerant of older/newer cassette formats.
+
+        We have two cassette layouts floating around in the repo:
+        1. The default aiohttp layout (``status`` / ``body`` / optional ``url``).
+        2. The httpx layout produced by our custom httpx patch
+           (``status_code`` / ``content`` / ``http_version``).
+
+        The stock ``build_response`` assumes #1.  When fed #2 it raises a
+        ``TypeError`` because ``url`` is missing (``URL(None)``).
+
+        Strategy:
+        • If ``url`` is missing, fall back to the *request* URL.
+        • If we have httpx-style keys, convert them to their aiohttp twins.
+        """
+
+        # If the cassette is in httpx format, normalise it first.
+        if "status_code" in vcr_response:
+            # httpx --> aiohttp field mapping
+            vcr_response = {
+                **vcr_response,
+                "status": {
+                    "code": vcr_response.pop("status_code"),
+                    "message": vcr_response.get("reason", "OK"),
+                },
+                "body": {"string": vcr_response.pop("content", b"")},
+            }
+
+        # Ensure we always have a URL for the response object.
+        vcr_response.setdefault("url", vcr_request.url)
+
+        built = original_build_response(vcr_request, vcr_response, history)
+
+        # Ensure raw_headers exists for aiobotocore compatibility
+        if getattr(built, "_raw_headers", None) in (None, []):
+            header_items = []
+            for k, v in built.headers.items():
+                if isinstance(v, tuple | list):
+                    joined_val = ", ".join(str(item) for item in v)
+                    header_items.append((k.encode("utf-8"), joined_val.encode("utf-8")))
+                else:
+                    header_items.append((k.encode("utf-8"), str(v).encode("utf-8")))
+            # aiohttp exposes raw_headers as a cached_property (read-only);
+            # the underlying storage is _raw_headers. Set that instead.
+            built._raw_headers = tuple(header_items)
+
+        return built
 
     def _swap(mod, attr, new):
         original = getattr(mod, attr)
@@ -128,7 +173,16 @@ def _install_patches():  # noqa: C901, PLR0915
     _swap(httpx_stubs, "_shared_vcr_send", patched_shared_vcr_send)
     _swap(httpx_stubs, "_sync_vcr_send", patched_sync_vcr_send)
     _swap(httpx_stubs, "_async_vcr_send", patched_async_vcr_send)
-    _swap(VCRHTTPResponse, "__init__", patched_init)
+    _swap(aiohttp_stubs, "build_response", patched_build_response)
+
+    # Ensure MockStream has readchunk for aiohttp >=3.9 compatibility
+    if not hasattr(aiohttp_stubs.MockStream, "readchunk"):
+
+        async def _readchunk(self):
+            data = await self.read()
+            return data, False  # (chunk, end_of_chunk flag)
+
+        aiohttp_stubs.MockStream.readchunk = _readchunk  # type: ignore[attr-defined]
 
     return lambda: [setattr(m, a, o) for m, a, o in undo]
 

@@ -20,6 +20,7 @@ platforms-anthropic = ["anthropic>=0.41.3,<1.0.0"]
 platforms-aws = [
     "boto3>=1.36.9,<2.0.0",
     "types-boto3[bedrock,bedrock-runtime]>=1.36.9,<2.0.0",
+    "aiobotocore>=2.23.0,<3.0.0",
 ]
 platforms-google = [
     "google-genai>=1.11.0,<2.0.0",
@@ -36,6 +37,7 @@ platforms-all = [
     "snowflake-snowpark-python>=1.30.0,<2.0.0",
     "boto3>=1.36.9,<2.0.0",
     "types-boto3[bedrock,bedrock-runtime]>=1.36.9,<2.0.0",
+    "aiobotocore>=2.23.0,<3.0.0",
     "google-genai>=1.11.0,<2.0.0",
     "groq>=0.22.0,<1.0.0",
     "reductoai>=0.6.0,<1.0.0",

@@ -1,3 +1,8 @@
+# Unreleased
+
+- Modifications to streaming, clients may notice responses being a bit "chunkier" but in general they should come even slightly faster than they used to.
+- Workitems should be more efficiently processed under load now (less impact to other routes/server activities).
+
 # Sema4.ai Agent Server 2.0.9 (2025-07-08)
 
 - Errors related to stored agents, threads, etc. are now handled consistently across the platform. ([GPT-1028](https://linear.app/sema4ai/issue/GPT-1028))
