@@ -1,6 +1,7 @@
-# Unreleased
+# Sema4.ai Agent Server 2.0.11 (2025-07-09)
 
 - Redacted sensitive data from validation errors and request body before logging. ([GPT-1065](https://linear.app/sema4ai/issue/GPT-1065))
+- Add SEMA4AI_AGENT_SERVER_ENABLE_WORKITEMS=true in Dockerfile for ACE.
 
 # Sema4.ai Agent Server 2.0.10 (2025-07-09)
 
