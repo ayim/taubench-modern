@@ -182,7 +182,7 @@ async def _check_action_status(
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
-            "x-action-server-pod-id": action_server_id,
+            "x-action-server-pod-ip": action_server_id,
         }
 
         # If no session provided, create a new one
@@ -268,7 +268,7 @@ def _build_post_async_function(
                 # Ref: https://github.com/Sema4AI/actions/blob/master/action_server/docs/guides/16-run-action-sync-async.md
                 is_async_action = response.headers.get("x-action-async-completion") == "1"
                 async_action_run_id = response.headers.get("x-action-server-run-id")
-                action_server_id = response.headers.get("x-action-server-pod-id", "")
+                action_server_id = response.headers.get("x-action-server-pod-ip", "")
                 if is_async_action:
                     # Extract base URL from the action URL
                     base_url = action_url.split("/api/actions/")[0]
