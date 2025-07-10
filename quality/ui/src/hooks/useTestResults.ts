@@ -104,13 +104,13 @@ export function useTestResults({ homeFolder }: { homeFolder: string }) {
           // Parse the directory listing or file names
           // For now, we'll build test results from completed test files
           // Real file names look like: 001-quality-basic-browsing_one-step-browse_azure.json
-          const filePattern = /(\d+-\w+-[\w-]+)_([\w-]+)_(\w+)\.json/g;
+          const filePattern = /(\d+-\w+-[\w-]+)_([\w-]+)_(\w+)_([\w-]+)\.json/g;
           const matches = [...filesText.matchAll(filePattern)];
 
           const results: TestResult[] = [];
 
           for (const match of matches) {
-            const [filename, agentId] = match;
+            const [filename, agentName, threadName, platform] = match;
 
             try {
               // Fetch the individual test result file
@@ -122,10 +122,14 @@ export function useTestResults({ homeFolder }: { homeFolder: string }) {
               if (testResponse.ok) {
                 const testData = await testResponse.json();
 
-                // Add agent_name from the parsed filename
+                // Always derive the agent identifier from the filename (first capture group).
+                // This guarantees it matches the names surfaced in the AgentsList and keeps
+                // the filtering logic consistent.
                 results.push({
                   ...testData,
-                  agent_name: agentId, // Use the agent ID from filename
+                  agent_name: agentName,
+                  thread_name: threadName,
+                  platform: platform,
                 });
               }
             } catch (error) {

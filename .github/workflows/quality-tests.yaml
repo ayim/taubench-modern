@@ -7,13 +7,13 @@ on:
   workflow_dispatch:
     inputs:
       agent_server_version:
-        description: 'Agent Server version to test against'
-        required: true
-        default: 'v2.0.5'
+        description: 'Agent Server version to test against (optional: leave blank to use latest)'
+        required: false
+        default: ''
       tests_to_run:
-        description: 'Comma separated list of tests'
-        required: true
-        default: '001-quality-basic-browsing,003-call-center-planner,002-snowflake-cortex-analyst,005-basic-file-management'
+        description: 'Comma separated list of tests to run (optional: leave blank to run all tests)'
+        required: false
+        default: ''
 
 jobs:
   quality-tests:
@@ -31,6 +31,12 @@ jobs:
         uses: astral-sh/setup-uv@1bf14936647e2742afe170d7d7fd95f45bfe4fc7
         with:
           python-version: '3.12'
+
+      - name: Determine Agent Server version when input is blank
+        if: env.AGENT_SERVER_VERSION == ''
+        run: |
+          version="v$(python -c 'import tomllib, pathlib, sys; print(tomllib.loads(pathlib.Path("server/pyproject.toml").read_text())["project"]["version"])')"
+          echo "AGENT_SERVER_VERSION=$version" >> "$GITHUB_ENV"
 
       # we need to fetch action-server because it is required by agent-cli
       # we use agent-cli to get package metadata, but we will remove it as soon as we have a better way to do it

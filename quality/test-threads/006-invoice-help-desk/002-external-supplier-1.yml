@@ -1,0 +1,51 @@
+thread:
+  - name: external-supplier-ex1
+    description: 'External Supplier (ex1)'
+    messages:
+      - role: user
+        content: |
+          From: accounts.receivable@prl.ie
+          To: ap-helpdesk@molex.com
+          Subject: Current status on a few outstanding invoices
+
+          Good afternoon,
+
+          Could you please let me know the payment status on the following invoices?
+
+          • J2573227/1CT   (amount €2.22, date 06/12/2024)
+          • J2549316/1CT   (€64.03, 06/11/2024)
+          • J2556188/1CT   (€16.42, 15/11/2024)
+          • J2519903/1CT   (€99.99, 01/10/2024)
+
+          Thank you!
+          Kind regards,
+          Lisa Burke  
+          PRL Freight Ireland Unlimited
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: cortex
+  # - name: google
+
+evaluations:
+  - kind: llm-eval-of-last-agent-turn
+    expected: |
+      The agent should (1) classify the message as an **EXTERNAL** request and (2) reply using the standard table format.
+      The table **must contain exactly four rows** with the following outcomes **in any order**:
+
+      • Two invoices returned as **EXACT**  
+        - J2573227/1CT with Status PAID  
+        - J2549316/1CT with Status PAID  
+
+      • One invoice returned as **FUZZY**  
+        - J25561881CT with Status IN PROCESS (or another non-VOIDED status)  
+
+      • One invoice flagged **MISSING**  
+        - J2519903/1CT, with the rest of the columns blank or “––”  
+
+      Additional checks:  
+      • The reply must *not* include any record whose STATUS is VOIDED.  
+      • Column headers must match the specification (Type, Invoice, Bill To, ..., Payment).  
+      • No other invoices may appear.

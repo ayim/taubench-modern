@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 import sys
 from dataclasses import dataclass
 from http import HTTPStatus
@@ -57,6 +58,7 @@ class Context:
     oauth: dict[str, OAuthProviderConfig]
     verbose: bool
     quality_folder: Path
+    is_in_github_actions: bool
 
 
 def setup_logging(verbose: bool = False):
@@ -172,6 +174,7 @@ def cli(  # noqa: PLR0913
             for provider, data in config["oauth"].items()
         },
         verbose=verbose,
+        is_in_github_actions=os.getenv("GITHUB_ACTIONS") == "true",
     )
 
 
@@ -291,7 +294,7 @@ def list_tests(ctx: Context, agent_name: str | None):
 )
 @click.option(
     "--selected-agents",
-    default=[],
+    default="",
     type=str,
     help="List of agents to run tests for (if not provided, all agents will be run)",
 )
@@ -317,6 +320,7 @@ async def run(  # noqa: PLR0913
         server_url=ctx.agent_server_url,
         datadir=ctx.quality_folder,
         agent_server_version=agent_server_version,
+        is_in_github_actions=ctx.is_in_github_actions,
     )
 
     reporter = QualityReporter()
@@ -326,7 +330,9 @@ async def run(  # noqa: PLR0913
             f"🚀 Running tests for all agents (fully parallel, max {max_agents} concurrent agents)"
         )
         all_results = await runner.run_tests_for_all_agents_fully_parallel(
-            selected_agents=[selected.strip() for selected in selected_agents.split(",")],
+            selected_agents=[
+                selected.strip() for selected in selected_agents.split(",") if selected.strip()
+            ],
             max_concurrent_agents=max_agents,
         )
 

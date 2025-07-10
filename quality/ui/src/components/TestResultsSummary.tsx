@@ -1,5 +1,5 @@
-import React from 'react';
-import { Clock3, ListChecks, ListX, LineChartIcon, TestTube2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Clock3, ListChecks, ListX, LineChartIcon, TestTube2, ChevronDown } from 'lucide-react';
 import { TestResultGroup, TrialResult } from '../types';
 
 interface TestResultsListProps {
@@ -81,53 +81,58 @@ const getMetricName = (metric: { name: string; k: number }): string => {
 };
 
 export const TestResultsSummary: React.FC<TestResultsListProps> = ({ results }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
   return (
     <div className="bg-white rounded-lg border border-gray-200">
-      <div className="p-4 border-b border-gray-200">
+      <div className="p-4 border-b border-gray-200 cursor-pointer" onClick={() => setIsOpen((prev) => !prev)}>
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Test Results Summary</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-0">Test Results Summary</h2>
+          <ChevronDown className={`w-5 h-5 text-gray-600 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
         </div>
       </div>
-      <div className="divide-y divide-gray-200">
-        {results.map((group, index) => {
-          const total = group.trials.length;
-          const passed = group.trials.filter((t) => t.success).length;
-          const failed = total - passed;
-          const duration = getTotalDuration(group.trials);
+      {isOpen && (
+        <div className="divide-y divide-gray-200 max-h-96 overflow-y-auto">
+          {results.map((group, index) => {
+            const total = group.trials.length;
+            const passed = group.trials.filter((t) => t.success).length;
+            const failed = total - passed;
+            const duration = getTotalDuration(group.trials);
 
-          return (
-            <div key={index} className="p-4 cursor-pointer hover:bg-gray-50 transition-colors">
-              <h2 className="text-xl font-semibold mb-2 flex items-center gap-2">
-                <TestTube2 className="w-5 h-5 text-blue-500" />
-                {group.test_name} <span className="text-sm text-gray-500">({group.platform})</span>
-              </h2>
+            return (
+              <div key={index} className="p-4 cursor-pointer hover:bg-gray-50 transition-colors">
+                <h2 className="text-xl font-semibold mb-2 flex items-center gap-2">
+                  <TestTube2 className="w-5 h-5 text-blue-500" />
+                  {group.test_name} <span className="text-sm text-gray-500">({group.platform})</span>
+                </h2>
 
-              <div className="text-sm text-gray-700 flex flex-wrap gap-4 mb-3">
-                <div className="flex items-center gap-1">
-                  <ListChecks className="w-4 h-4 text-green-600" /> {passed} passed
-                </div>
-                <div className="flex items-center gap-1">
-                  <ListX className="w-4 h-4 text-red-600" /> {failed} failed
-                </div>
-                {group.test_case.trials > 1 &&
-                  group.test_case.metrics.map((metric) => (
-                    <div className="flex items-center gap-1">
-                      <LineChartIcon className="w-4 h-4 text-green-600" /> {computeMetric(metric, group.trials)}{' '}
-                      {getMetricName(metric)}
-                    </div>
-                  ))}
+                <div className="text-sm text-gray-700 flex flex-wrap gap-4 mb-3">
+                  <div className="flex items-center gap-1">
+                    <ListChecks className="w-4 h-4 text-green-600" /> {passed} passed
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <ListX className="w-4 h-4 text-red-600" /> {failed} failed
+                  </div>
+                  {group.test_case.trials > 1 &&
+                    group.test_case.metrics.map((metric) => (
+                      <div className="flex items-center gap-1">
+                        <LineChartIcon className="w-4 h-4 text-green-600" /> {computeMetric(metric, group.trials)}{' '}
+                        {getMetricName(metric)}
+                      </div>
+                    ))}
 
-                <div className="flex items-center gap-1">
-                  <Clock3 className="w-4 h-4 text-gray-600" /> {duration} total
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="font-medium">{total}</span> trials
+                  <div className="flex items-center gap-1">
+                    <Clock3 className="w-4 h-4 text-gray-600" /> {duration} total
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="font-medium">{total}</span> trials
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

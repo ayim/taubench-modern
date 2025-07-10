@@ -136,7 +136,7 @@ class SnowflakeAuth:
             account=data["linkingDetails"]["account"],
             user=data["linkingDetails"]["user"],
             role=data["linkingDetails"]["role"],
-            application_url=data["linkingDetails"]["applicationUrl"],
+            application_url=data["linkingDetails"].get("applicationUrl", ""),
             private_key_path=data["linkingDetails"]["privateKeyPath"],
             private_key_passphrase=(
                 data["linkingDetails"]["privateKeyPassphrase"]

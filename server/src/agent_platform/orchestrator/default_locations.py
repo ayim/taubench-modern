@@ -25,6 +25,7 @@ class AgentServerTool(BaseTool):
     base_url = "https://cdn.sema4.ai/agent-server"
     executable_name = "agent-server"
     macos_arm_64_download_path: str = "macos_arm64"
+    linux64_download_path: str = "linux_x64"
 
     make_run_check = False
 

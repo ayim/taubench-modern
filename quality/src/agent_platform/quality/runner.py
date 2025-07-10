@@ -38,13 +38,14 @@ logger = structlog.get_logger(__name__)
 class QualityTestRunner:
     """Orchestrates quality testing with automatic infrastructure management."""
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         test_threads_dir: Path,
         test_agents_dir: Path,
         datadir: Path,
         agent_server_version: str | None,
         server_url: str = "http://localhost:8000",
+        is_in_github_actions: bool = False,
     ):
         self.test_threads_dir = test_threads_dir
         self.test_agents_dir = test_agents_dir
@@ -57,6 +58,7 @@ class QualityTestRunner:
         self.agent_runner = AgentRunner(server_url=server_url)
         self.evaluator = EvaluatorEngine(server_url=server_url)
         self.oauth = OAuthManager(data_dir=datadir)
+        self.is_in_github_actions = is_in_github_actions
 
         # Discover agents early so we can expose them to the UI
         self.discovered_agents = self.discover_agents()
@@ -664,6 +666,9 @@ class QualityTestRunner:
 
     def _update_sf_auth_json(self, sf_auth_override: SFAuthorizationOverride) -> None:
         """Update sf-auth.json with the given override."""
+        if self.is_in_github_actions:
+            return
+
         try:
             # Create a backup of the current sf-auth.json
             # (if an existing backup is NOT already present)
@@ -698,6 +703,9 @@ class QualityTestRunner:
 
     def _restore_sf_auth_json(self) -> None:
         """Restore sf-auth.json to the original state."""
+        if self.is_in_github_actions:
+            return
+
         # Look for a sf-auth-backup.json file in the ~/.sema4ai directory
         # and if it's present, move it back to sf-auth.json
         try:

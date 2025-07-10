@@ -1,0 +1,42 @@
+thread:
+  - name: internal-supplier-ex1
+    description: 'Internal Supplier (ex1)'
+    messages:
+      - role: user
+        content: |
+          From: AP_ASIA_SUPPORT@molex.com
+          To: ap-helpdesk@molex.com
+          Subject: Urgent -- due date check
+
+          Hi team,
+
+          Regional finance is chasing an update on invoice 50001234-01 (CNY 1,280.50, invoice date 20-Sep-24, supplier “Molex Shanghai”).
+
+          Is it still in POSTED status, and when is payment expected?
+
+          Thanks!
+          - Eric
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: cortex
+  # - name: google
+
+evaluations:
+  - kind: llm-eval-of-last-agent-turn
+    expected: |
+      The agent should (1) recognize the sender's "@molex.com" domain and
+      treat this as an **INTERNAL** request and (2) return a single-row table with these details:
+
+      • One invoice returned as **EXACT**  
+        - Invoice 50001234-01  
+        - Currency CNY, Amount 1,280.50  
+        - Status POSTED  
+        - Net Due 2024-10-20 (or the correct date derived from the fixture)  
+
+      Additional checks:  
+      • No FUZZY or MISSING rows should appear.  
+      • Table column headers must match the standard template.  
+      • The agent should not include any VOIDED or unrelated invoice records.
