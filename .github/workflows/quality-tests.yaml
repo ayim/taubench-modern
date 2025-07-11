@@ -41,8 +41,8 @@ jobs:
       # we need to fetch action-server because it is required by agent-cli
       # we use agent-cli to get package metadata, but we will remove it as soon as we have a better way to do it
       # agent-cli assumes that there exists an action-server in $PATH
-      # Note that this action server is not what we used to run actions
-      - name: Fetch agent server ${{ env.AGENT_SERVER_VERSION }} and action server
+      # Note that this action server is not what we used to run actions, but it is required by agent-cli
+      - name: Fetch latest action server
         run: |
           curl -o ./action-server https://cdn.sema4.ai/action-server/releases/latest/linux64/action-server
           chmod +x ./action-server
@@ -66,7 +66,7 @@ jobs:
           AWS_ACCESS_KEY_ID=${{ secrets.QUALITY_TEST_AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY=${{ secrets.QUALITY_TEST_AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION=${{ secrets.QUALITY_TEST_AWS_DEFAULT_REGION }}
-          SNOWFLAKE_USERNAME=${{ secrets.QUALITY_TEST_SNOWFLAKE_USERNAME }}
+          SNOWFLAKE_USERNAME=${{ secrets.QUALITY_TEST_SNOWFLAKE_USER }}
           SNOWFLAKE_PASSWORD=${{ secrets.QUALITY_TEST_SNOWFLAKE_PASSWORD }}
           SNOWFLAKE_ACCOUNT=${{ secrets.QUALITY_TEST_SNOWFLAKE_ACCOUNT }}
           SNOWFLAKE_ROLE=${{ secrets.QUALITY_TEST_SNOWFLAKE_ROLE }}
@@ -123,14 +123,21 @@ jobs:
         run: |
           snow connection test
 
+      - name: Configure uv for rcc
+        shell: bash
+        run: |
+          echo "UV_PYTHON=python" >> $GITHUB_ENV
+          echo "UV_SYSTEM_PYTHON=true" >> $GITHUB_ENV
+
+      - name: Point rcc at a real home directory
+        run: echo "SEMA4AI_HOME=$HOME/.sema4ai" >> "$GITHUB_ENV"
+
       # we run only selected agents because
       # it is not clear how to get OAuth access tokens in CI, it requires user interactions
       - name: Run quality tests
-        env:
-          SEMA4AI_HOME: ~/.sema4ai
         run: |
           uv run quality-test init
-          uv run quality-test run --agent-server-version ${AGENT_SERVER_VERSION} --selected-agents "${TESTS_TO_RUN}"
+          uv run quality-test run --agent-server-version ${{ env.AGENT_SERVER_VERSION }} --selected-agents "${{ env.TESTS_TO_RUN }}"
 
       - name: Upload test artifacts
         if: always() # even on failures
