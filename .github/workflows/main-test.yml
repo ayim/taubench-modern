@@ -79,7 +79,6 @@ jobs:
 
   unit-tests:
     name: Unit Tests • ${{ matrix.os }}
-    needs: verify
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45 # TODO: This might be longer than needed.
     strategy:
