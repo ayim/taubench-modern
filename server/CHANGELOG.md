@@ -1,3 +1,9 @@
+# Sema4.ai Agent Server 2.0.12 (2025-07-11)
+
+- Make Work Items visible in Work Room ([GPT-1077](https://linear.app/sema4ai/issue/GPT-1077/file-is-not-visible-to-action-when-created-by-work-items))
+- Update async action calling to use pod IP instead of ID (change header name to `x-action-server-pod-ip`)
+- Assorted non-functional changes to support Quality Framework
+
 # Sema4.ai Agent Server 2.0.11 (2025-07-09)
 
 - Redacted sensitive data from validation errors and request body before logging. ([GPT-1065](https://linear.app/sema4ai/issue/GPT-1065))
