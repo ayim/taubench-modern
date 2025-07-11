@@ -1,11 +1,13 @@
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
 
 from agent_platform.core.agent import Agent
-from agent_platform.core.thread import ThreadMessage
+from agent_platform.core.thread import Thread, ThreadMessage
 from agent_platform.core.thread.content import ThreadTextContent
 from agent_platform.core.work_items import WorkItem, WorkItemStatus
+from agent_platform.server.storage.errors import WorkItemFileNotFoundError
 from agent_platform.server.storage.sqlite import SQLiteStorage
 
 
@@ -379,3 +381,340 @@ async def test_work_item_file_deletion(
     # Verify file by ID is also gone
     deleted_file = await storage.get_file_by_id(file_id, sample_user_id)
     assert deleted_file is None
+
+
+@pytest.mark.asyncio
+async def test_associate_work_item_file_success(
+    storage: SQLiteStorage,
+    sample_user_id: str,
+    sample_agent: Agent,
+):
+    """Test that associate_work_item_file successfully updates file ownership."""
+    # Ensure the agent exists (FK)
+    await storage.upsert_agent(sample_user_id, sample_agent)
+
+    # Create work item initially without thread_id (PRECREATED state)
+    work_item = WorkItem(
+        work_item_id=str(uuid4()),
+        user_id=sample_user_id,
+        agent_id=None,  # Initially no agent
+        thread_id=None,  # Initially no thread
+        status=WorkItemStatus.PRECREATED,
+        messages=[],
+        payload={},
+    )
+    await storage.create_work_item(work_item)
+
+    # Upload file to work item (initially without agent_id/thread_id)
+    file_id = str(uuid4())
+    uploaded_file = await storage.put_file_owner(
+        file_id=file_id,
+        owner=work_item,
+        user_id=sample_user_id,
+        file_path="/test/path/document.txt",
+        file_ref="document.txt",
+        file_hash="test_hash_123",
+        file_size_raw=1024,
+        mime_type="text/plain",
+        embedded=False,
+        embedding_status=None,
+        file_path_expiration=None,
+    )
+
+    # Verify initial state (no agent_id/thread_id)
+    assert uploaded_file.agent_id is None
+    assert uploaded_file.thread_id is None
+    assert uploaded_file.work_item_id == work_item.work_item_id
+
+    # Create a thread for the work item
+    thread = Thread(
+        user_id=sample_user_id,
+        thread_id=str(uuid4()),
+        agent_id=sample_agent.agent_id,
+        name="Test Thread",
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
+    )
+    await storage.upsert_thread(sample_user_id, thread)
+
+    # Associate the file with agent and thread
+    await storage.associate_work_item_file(
+        file_id=file_id,
+        work_item=work_item,
+        agent_id=sample_agent.agent_id,
+        thread_id=thread.thread_id,
+    )
+
+    # Verify file is now associated
+    files = await storage.get_workitem_files(work_item.work_item_id, sample_user_id)
+    assert len(files) == 1
+    associated_file = files[0]
+    assert associated_file.file_id == file_id
+    assert associated_file.agent_id == sample_agent.agent_id
+    assert associated_file.thread_id == thread.thread_id
+    assert associated_file.work_item_id == work_item.work_item_id
+
+
+@pytest.mark.asyncio
+async def test_associate_work_item_file_updates_existing_entry(
+    storage: SQLiteStorage,
+    sample_user_id: str,
+    sample_agent: Agent,
+):
+    """Test that associate_work_item_file updates existing entry instead of creating new one."""
+    # Ensure the agent exists (FK)
+    await storage.upsert_agent(sample_user_id, sample_agent)
+
+    # Create work item initially without thread_id (PRECREATED state)
+    work_item = WorkItem(
+        work_item_id=str(uuid4()),
+        user_id=sample_user_id,
+        agent_id=None,  # Initially no agent
+        thread_id=None,  # Initially no thread
+        status=WorkItemStatus.PRECREATED,
+        messages=[],
+        payload={},
+    )
+    await storage.create_work_item(work_item)
+
+    # Upload file to work item
+    file_id = str(uuid4())
+    await storage.put_file_owner(
+        file_id=file_id,
+        owner=work_item,
+        user_id=sample_user_id,
+        file_path="/test/path/document.txt",
+        file_ref="document.txt",
+        file_hash="test_hash_123",
+        file_size_raw=1024,
+        mime_type="text/plain",
+        embedded=False,
+        embedding_status=None,
+        file_path_expiration=None,
+    )
+
+    # Get initial file count
+    files_before = await storage.get_workitem_files(work_item.work_item_id, sample_user_id)
+    assert len(files_before) == 1
+
+    # Create a thread for the work item
+    thread = Thread(
+        user_id=sample_user_id,
+        thread_id=str(uuid4()),
+        agent_id=sample_agent.agent_id,
+        name="Test Thread",
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
+    )
+    await storage.upsert_thread(sample_user_id, thread)
+
+    # Associate the file with agent and thread
+    await storage.associate_work_item_file(
+        file_id=file_id,
+        work_item=work_item,
+        agent_id=sample_agent.agent_id,
+        thread_id=thread.thread_id,
+    )
+
+    # Verify still only one file entry (updated, not duplicated)
+    files_after = await storage.get_workitem_files(work_item.work_item_id, sample_user_id)
+    assert len(files_after) == 1
+    assert files_after[0].file_id == file_id
+    assert files_after[0].agent_id == sample_agent.agent_id
+    assert files_after[0].thread_id == thread.thread_id
+
+
+@pytest.mark.asyncio
+async def test_associate_work_item_file_error_handling(
+    storage: SQLiteStorage,
+    sample_user_id: str,
+    sample_agent: Agent,
+):
+    """Test error handling in associate_work_item_file."""
+    # Ensure the agent exists (FK)
+    await storage.upsert_agent(sample_user_id, sample_agent)
+
+    # Create work item initially without thread_id (PRECREATED state)
+    work_item = WorkItem(
+        work_item_id=str(uuid4()),
+        user_id=sample_user_id,
+        agent_id=None,  # Initially no agent
+        thread_id=None,  # Initially no thread
+        status=WorkItemStatus.PRECREATED,
+        messages=[],
+        payload={},
+    )
+    await storage.create_work_item(work_item)
+
+    # Create a thread for the work item
+    thread = Thread(
+        user_id=sample_user_id,
+        thread_id=str(uuid4()),
+        agent_id=sample_agent.agent_id,
+        name="Test Thread",
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
+    )
+    await storage.upsert_thread(sample_user_id, thread)
+
+    # Test with non-existent file_id
+    non_existent_file_id = str(uuid4())
+    with pytest.raises(WorkItemFileNotFoundError):
+        await storage.associate_work_item_file(
+            file_id=non_existent_file_id,
+            work_item=work_item,
+            agent_id=sample_agent.agent_id,
+            thread_id=thread.thread_id,
+        )
+
+    # Upload a file to different work item
+    other_work_item = WorkItem(
+        work_item_id=str(uuid4()),
+        user_id=sample_user_id,
+        agent_id=None,
+        thread_id=None,
+        status=WorkItemStatus.PRECREATED,
+        messages=[],
+        payload={},
+    )
+    await storage.create_work_item(other_work_item)
+
+    file_id = str(uuid4())
+    await storage.put_file_owner(
+        file_id=file_id,
+        owner=other_work_item,  # Different work item
+        user_id=sample_user_id,
+        file_path="/test/path/document.txt",
+        file_ref="document.txt",
+        file_hash="test_hash_123",
+        file_size_raw=1024,
+        mime_type="text/plain",
+        embedded=False,
+        embedding_status=None,
+        file_path_expiration=None,
+    )
+
+    # Try to associate with wrong work item - should fail
+    with pytest.raises(WorkItemFileNotFoundError):
+        await storage.associate_work_item_file(
+            file_id=file_id,
+            work_item=work_item,  # Wrong work item
+            agent_id=sample_agent.agent_id,
+            thread_id=thread.thread_id,
+        )
+
+
+@pytest.mark.asyncio
+async def test_work_item_file_ownership_system_user(
+    storage: SQLiteStorage,
+    sample_user_id: str,
+):
+    """Test that workitem files are owned by system user but accessible to all users."""
+    work_items_system_sub = "tenant:work-items:system:system_user"
+
+    # Create system user
+    system_user, _ = await storage.get_or_create_user(work_items_system_sub)
+
+    # Create work item
+    work_item = WorkItem(
+        work_item_id=str(uuid4()),
+        user_id=sample_user_id,
+        agent_id=None,
+        thread_id=None,
+        status=WorkItemStatus.PRECREATED,
+        messages=[],
+        payload={},
+    )
+    await storage.create_work_item(work_item)
+
+    # Upload file with system user as owner (simulating workitem file upload)
+    file_id = str(uuid4())
+    uploaded_file = await storage.put_file_owner(
+        file_id=file_id,
+        owner=work_item,
+        user_id=system_user.user_id,  # System user owns the file
+        file_path="/test/path/document.txt",
+        file_ref="document.txt",
+        file_hash="test_hash_123",
+        file_size_raw=1024,
+        mime_type="text/plain",
+        embedded=False,
+        embedding_status=None,
+        file_path_expiration=None,
+    )
+
+    # Verify system user owns the file
+    assert uploaded_file.user_id == system_user.user_id
+
+    # System user files should be accessible to all users (per check_user_access logic)
+    regular_user_files = await storage.get_workitem_files(work_item.work_item_id, sample_user_id)
+    assert len(regular_user_files) == 1
+    assert regular_user_files[0].file_id == file_id
+
+    # System user should also be able to access the file
+    system_user_files = await storage.get_workitem_files(
+        work_item.work_item_id, system_user.user_id
+    )
+    assert len(system_user_files) == 1
+    assert system_user_files[0].file_id == file_id
+
+
+@pytest.mark.asyncio
+async def test_get_workitem_files_with_system_user(
+    storage: SQLiteStorage,
+    sample_user_id: str,
+):
+    """Test that get_workitem_files works correctly with system user owned files."""
+    work_items_system_sub = "tenant:work-items:system:system_user"
+
+    # Create system user
+    system_user, _ = await storage.get_or_create_user(work_items_system_sub)
+
+    # Create work item
+    work_item = WorkItem(
+        work_item_id=str(uuid4()),
+        user_id=sample_user_id,
+        agent_id=None,
+        thread_id=None,
+        status=WorkItemStatus.PRECREATED,
+        messages=[],
+        payload={},
+    )
+    await storage.create_work_item(work_item)
+
+    # Upload multiple files with system user
+    file_ids = []
+    for i in range(3):
+        file_id = str(uuid4())
+        file_ids.append(file_id)
+        await storage.put_file_owner(
+            file_id=file_id,
+            owner=work_item,
+            user_id=system_user.user_id,
+            file_path=f"/test/path/document{i}.txt",
+            file_ref=f"document{i}.txt",
+            file_hash=f"test_hash_{i}",
+            file_size_raw=1024,
+            mime_type="text/plain",
+            embedded=False,
+            embedding_status=None,
+            file_path_expiration=None,
+        )
+
+    # Get files with system user ID
+    files = await storage.get_workitem_files(work_item.work_item_id, system_user.user_id)
+    assert len(files) == 3
+
+    # Verify all files are returned and owned by system user
+    returned_file_ids = {f.file_id for f in files}
+    assert returned_file_ids == set(file_ids)
+    for file in files:
+        assert file.user_id == system_user.user_id
+        assert file.work_item_id == work_item.work_item_id
+
+    # Regular user should also be able to access system user files (per check_user_access logic)
+    regular_user_files = await storage.get_workitem_files(work_item.work_item_id, sample_user_id)
+    assert len(regular_user_files) == 3
+    for file in regular_user_files:
+        assert file.user_id == system_user.user_id  # Still owned by system user
+        assert file.work_item_id == work_item.work_item_id

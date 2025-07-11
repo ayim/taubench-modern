@@ -12,6 +12,7 @@ from agent_platform.core.work_items.work_item import WorkItem, WorkItemStatus
 from agent_platform.server.api.dependencies import FileManagerDependency, StorageDependency
 from agent_platform.server.auth import AuthedUser
 from agent_platform.server.constants import SystemConfig
+from agent_platform.server.work_items.background_worker import WORK_ITEMS_SYSTEM_USER_SUB
 
 
 def _require_workitems_enabled():
@@ -116,8 +117,12 @@ async def upload_work_item_file(
         )
         await storage.create_work_item(work_item)
 
-    logger.info(f"Uploading files to work item {work_item.work_item_id} for user {user.user_id}")
-    existing_files = await storage.get_workitem_files(work_item.work_item_id, user.user_id)
+    # A real user uploads the file, but we store it in the file_owners table as the system_user.
+    system_user, _ = await storage.get_or_create_user(WORK_ITEMS_SYSTEM_USER_SUB)
+    logger.info(
+        f"Uploading files to work item {work_item.work_item_id} on behalf of user {user.user_id}"
+    )
+    existing_files = await storage.get_workitem_files(work_item.work_item_id, system_user.user_id)
     for f in existing_files:
         if f.file_ref == file.filename:
             raise HTTPException(
@@ -125,7 +130,7 @@ async def upload_work_item_file(
                 detail=f"File {f.file_ref} already exists in work item {work_item.work_item_id}",
             )
     upload_request = [UploadFilePayload(file=file)]
-    await file_manager.upload(upload_request, work_item, user.user_id)
+    await file_manager.upload(upload_request, work_item, system_user.user_id)
 
     return {
         "work_item_id": work_item.work_item_id,

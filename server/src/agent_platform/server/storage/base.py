@@ -367,6 +367,16 @@ class BaseStorage(ABC):
         pass
 
     @abstractmethod
+    async def associate_work_item_file(
+        self,
+        file_id: str,
+        work_item: WorkItem,
+        agent_id: str,
+        thread_id: str,
+    ) -> None:
+        """Associates an existing file with a agent_id and thread_id."""
+
+    @abstractmethod
     async def update_file_retrieve_information(
         self,
         file_id: str,

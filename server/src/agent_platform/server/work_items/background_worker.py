@@ -26,6 +26,8 @@ from agent_platform.server.work_items.settings import WORK_ITEMS_SETTINGS
 
 logger = logging.getLogger(__name__)
 
+WORK_ITEMS_SYSTEM_USER_SUB = "tenant:work-items:system:system_user"
+
 
 async def _validate_success(item: WorkItem) -> WorkItemStatus:
     system_message = (
@@ -122,8 +124,8 @@ async def run_agent(item: WorkItem) -> bool:
     Run an agent on the agent_server.
     """
     storage = StorageService.get_instance()
-
-    user = await storage.get_user_by_id(item.user_id)
+    # we know that this user exists already, so just get it
+    system_user, _ = await storage.get_or_create_user(WORK_ITEMS_SYSTEM_USER_SUB)
 
     if not item.agent_id:
         logger.error(f"Work item {item.work_item_id}: Agent ID is required")
@@ -131,35 +133,31 @@ async def run_agent(item: WorkItem) -> bool:
 
     # create a new thread for the work item
     thread = Thread(
-        user_id=user.user_id,
+        user_id=system_user.user_id,
         thread_id=str(uuid4()),
         agent_id=item.agent_id,
         name=f"Work Item {item.work_item_id}",
         created_at=datetime.now(UTC),
         updated_at=datetime.now(UTC),
     )
-    await storage.upsert_thread(user.user_id, thread)
+    await storage.upsert_thread(system_user.user_id, thread)
 
     # update the work item with the thread id and new file related messages
     item.thread_id = thread.thread_id
     await storage.update_work_item(item)
 
-    # copy files from work item to thread
-    files = await storage.get_workitem_files(work_item_id=item.work_item_id, user_id=user.user_id)
+    # copy all work item files to the thread, but don't create new file_id's in the process.
+    files = await storage.get_workitem_files(
+        work_item_id=item.work_item_id,
+        user_id=system_user.user_id,
+    )
     for file in files:
-        # TODO maybe add bulk method for `put_file_owner`
-        await storage.put_file_owner(
+        # TODO maybe add bulk method to do all associations at once?
+        await storage.associate_work_item_file(
             file_id=file.file_id,
-            file_path=file.file_path,
-            file_ref=file.file_ref,
-            file_hash=file.file_hash,
-            file_size_raw=file.file_size_raw,
-            mime_type=file.mime_type,
-            user_id=user.user_id,
-            embedded=file.embedded,
-            embedding_status=None,
-            owner=item,
-            file_path_expiration=file.file_path_expiration,
+            work_item=item,
+            agent_id=item.agent_id,
+            thread_id=item.thread_id,
         )
 
         file_upload_message = ThreadMessage(
@@ -181,7 +179,7 @@ async def run_agent(item: WorkItem) -> bool:
     invoke_resp = await async_run(
         item.agent_id,
         payload,
-        user=user,
+        user=system_user,
         storage=storage,
         request=Request(scope={"type": "http", "method": "POST"}),
     )
@@ -190,7 +188,7 @@ async def run_agent(item: WorkItem) -> bool:
 
     # Poll for the run status until it is completed or failed
     while True:
-        run_status_resp = await get_run_status(run_id, user=user, storage=storage)
+        run_status_resp = await get_run_status(run_id, user=system_user, storage=storage)
         if not run_status_resp:
             logger.warning(f"Run status not found for run {run_id}")
             await asyncio.sleep(1)
@@ -199,7 +197,7 @@ async def run_agent(item: WorkItem) -> bool:
         if run_status_resp.is_success:
             # Update messages with the thread's results?
             await storage.update_work_item_from_thread(
-                user.user_id,
+                system_user.user_id,
                 item.work_item_id,
                 run_status_resp.thread_id,
             )
@@ -347,7 +345,7 @@ async def execute_work_item(
         system_user_id = await storage.get_system_user_id()
     except NoSystemUserError:
         system_user, _ = await storage.get_or_create_user(
-            sub="tenant:work-items:system:system_user",
+            sub=WORK_ITEMS_SYSTEM_USER_SUB,
         )
         logger.info(f"Created system user {system_user.user_id}")
         system_user_id = system_user.user_id

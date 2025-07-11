@@ -455,6 +455,47 @@ class PostgresStorageFilesMixin(CommonMixin):
         self._logger.debug("File owner table modified", file_id=file_id)
         return UploadedFile.model_validate(file_dict)
 
+    async def associate_work_item_file(
+        self,
+        file_id: str,
+        work_item: WorkItem,
+        agent_id: str,
+        thread_id: str,
+    ) -> None:
+        """Associates an existing file with a agent_id and thread_id."""
+        self._validate_uuid(file_id)
+        self._validate_uuid(agent_id)
+        self._validate_uuid(thread_id)
+        self._logger.debug(
+            "Associating workitem file with agent and thread",
+            file_id=file_id,
+            work_item_id=work_item.work_item_id,
+            agent_id=agent_id,
+            thread_id=thread_id,
+        )
+        async with self._cursor() as cur:
+            result = await cur.execute(
+                """
+                UPDATE v2.file_owner SET
+                agent_id = %(agent_id)s::uuid,
+                thread_id = %(thread_id)s::uuid
+                WHERE file_id = %(file_id)s and work_item_id = %(work_item_id)s::uuid
+                """,
+                {
+                    "file_id": file_id,
+                    "agent_id": agent_id,
+                    "thread_id": thread_id,
+                    "work_item_id": work_item.work_item_id,
+                },
+            )
+            # Raise an error if we couldn't find this workitem and file pair.
+            if result.rowcount == 0:
+                self._logger.error("File not found", file_id=file_id)
+                raise WorkItemFileNotFoundError(f"File {file_id} not found")
+            elif result.rowcount > 1:
+                self._logger.error("Multiple files found (should not happen)", file_id=file_id)
+                raise Exception(f"Multiple files found for file {file_id} (should not happen)")
+
     async def update_file_retrieve_information(
         self,
         file_id: str,
