@@ -1,2 +1,3 @@
+- 'Unexpected entry: required-env-vars (in agent-package/agents/mcp-servers).'
 - 'agent-package/agents/mcp-servers/transport: When the transport is ''stdio'', the
   command-line must be defined.'

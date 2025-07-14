@@ -9,6 +9,16 @@
       line: 19
   severity: 1
   source: sema4ai
+- message: 'Unexpected entry: required-env-vars (in agent-package/agents/mcp-servers).'
+  range:
+    end:
+      character: 0
+      line: 22
+    start:
+      character: 10
+      line: 21
+  severity: 2
+  source: sema4ai
 - code: action_package_info_unsynchronized
   message: Expected agent-package/agents/mcp-servers/cwd to map to a file named './mcp-server/path'
     relative to 'dir('agent-spec.yaml')/'.

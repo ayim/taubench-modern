@@ -858,7 +858,9 @@ agent-package:
     """
 
     errors = validate_from_spec(load_spec(v3_spec), bad_yaml, datadir, raise_on_error=False)
-    assert not errors, "Expected no errors"
+    assert errors, "Expected errors"
+    errors_str = [e.message for e in errors]
+    data_regression.check(errors_str)
 
 
 @pytest.mark.usefixtures("_gen_runbook")
@@ -890,7 +892,7 @@ agent-package:
           description: MCP Server with stdio fields
           url: http://localhost:8000
           command-line: ['python', '-m', 'server']  # Should not be here for http
-          required-env-vars: ['API_KEY']  # Should not be here for http
+          wrong-required-env-vars: ['API_KEY']  # Should not be here for http
         - name: mcp-server-2
           transport: stdio
           description: MCP Server with http fields

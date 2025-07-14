@@ -1,3 +1,4 @@
+- 'Unexpected entry: wrong-required-env-vars (in agent-package/agents/mcp-servers).'
 - Expected agent-package/agents/mcp-servers/url to be mutually exclusive with 'command-line'
   field.
 - Expected agent-package/agents/mcp-servers/command-line to be mutually exclusive

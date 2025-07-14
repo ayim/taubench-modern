@@ -1,4 +1,5 @@
 import enum
+import logging
 import typing
 import weakref
 from collections.abc import Iterator
@@ -6,8 +7,6 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Any, Generic, Optional, TypeVar
-import logging
-
 
 if typing.TYPE_CHECKING:
     from tree_sitter import Node, Tree
@@ -449,6 +448,50 @@ class Validator:
         self._yaml_cursor_node: _YamlTreeNode = self._yaml_info_loaded
         self._action_packages_found_in_filesystem: dict[Path, "ActionPackageInFilesystem"] = {}
 
+    def _validate_key_pair(self, key_node: "Node", value_node: Optional["Node"]) -> Iterator[Error]:
+        entry = self._spec_entries.get(self._current_stack_as_str)
+        # We have a special case for:
+        # agent-package/agents/mcp-servers/headers
+        # agent-package/agents/mcp-servers/env
+        # In this case we actually have something as
+        # agent-package/agents/mcp-servers/headers/<object>/<required-field-name> or
+        # agent-package/agents/mcp-servers/env/<object>/<required-field-name>
+        # so, we do some special handling for this to "remove" the <object> part
+        # and validate the path without that part.
+        if not entry:
+            if self._current_stack_as_str.startswith("agent-package/agents/mcp-servers"):
+                current_stack_as_str = self._current_stack_as_str.split("/")
+                if len(current_stack_as_str) > 3:
+                    if current_stack_as_str[3] in ("headers", "env"):
+                        current_stack_as_str = current_stack_as_str[:4] + current_stack_as_str[5:]
+                        entry = self._spec_entries.get("/".join(current_stack_as_str))
+
+        if not entry or not value_node:
+            parent_as_str = "<unknown>"
+            curr = "<unknown>"
+
+            if self._stack:
+                parent, curr = self._stack[:-1], self._stack[-1]
+                if parent:
+                    parent_as_str = "/".join(parent)
+                else:
+                    parent_as_str = "root"
+
+            if not entry:
+                yield Error(
+                    message=f"Unexpected entry: {curr} (in {parent_as_str}).",
+                    node=key_node,
+                    severity=Severity.warning,
+                )
+            else:
+                yield Error(
+                    message=f"Expected value for {self._current_stack_as_str}.",
+                    node=key_node,
+                    severity=Severity.warning,
+                )
+
+            return
+
     def _is_scalar_node(self, node: Optional["Node"]) -> bool:
         if node is None:
             return False
@@ -511,6 +554,7 @@ class Validator:
                     key_name, YamlNodeData(node, kind=_YamlNodeKind.unhandled)
                 )
 
+                yield from self._validate_key_pair(key, value)
                 added_to_stack = True
                 default_visit_children = False
 

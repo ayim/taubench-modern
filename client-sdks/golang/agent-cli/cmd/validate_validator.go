@@ -59,6 +59,55 @@ func NewValidator(specEntries map[string]*Entry, agentRootDirOrZip string) *Vali
 	}
 }
 
+func (v *Validator) validateKeyPair(keyNode *yaml.Node, errors chan Error) {
+	entry := v.specEntries[v.currentStackAsStr]
+
+	// We have a special case for:
+	// agent-package/agents/mcp-servers/headers
+	// agent-package/agents/mcp-servers/env
+	// In this case we actually have something as
+	// agent-package/agents/mcp-servers/headers/<object>/<required-field-name> or
+	// agent-package/agents/mcp-servers/env/<object>/<required-field-name>
+	// so, we do some special handling for this to "remove" the <object> part
+	// and validate the path without that part.
+	if entry == nil {
+		if strings.HasPrefix(v.currentStackAsStr, "agent-package/agents/mcp-servers") {
+			currentStackParts := strings.Split(v.currentStackAsStr, "/")
+			if len(currentStackParts) > 3 {
+				if currentStackParts[3] == "headers" || currentStackParts[3] == "env" {
+					// Remove the <object> part (index 4)
+					// Compose: [:4] + [5:]
+					newStackParts := append(currentStackParts[:4], currentStackParts[5:]...)
+					joined := strings.Join(newStackParts, "/")
+					entry = v.specEntries[joined]
+				}
+			}
+		}
+	}
+
+	if entry == nil {
+		var parentAsStr string
+		curr := "<unknown>"
+
+		if len(v.stack) > 0 {
+			parent := v.stack[:len(v.stack)-1]
+			curr = v.stack[len(v.stack)-1]
+
+			if len(parent) > 0 {
+				parentAsStr = strings.Join(parent, "/")
+			} else {
+				parentAsStr = "root"
+			}
+
+		} else {
+			parentAsStr = "root"
+		}
+
+		errors <- *NewError(fmt.Sprintf("Unexpected entry: %s (in %s).", curr, parentAsStr),
+			keyNode.Line-1, keyNode.Column-1, keyNode.Line, 0, Warning)
+	}
+}
+
 func (v *Validator) ValidateNodesExistAndBuildYamlInfo(node *yaml.Node, errors chan Error) {
 	// fmt.Printf("Node: line: %d, column: %d, kind: %v, tag: %v, value: %v\n", node.Line, node.Column, node.Kind, node.Tag, node.Value)
 
@@ -131,6 +180,7 @@ func (v *Validator) ValidateNodesExistAndBuildYamlInfo(node *yaml.Node, errors c
 					Node: key,
 				}
 
+				v.validateKeyPair(key, errors)
 				// fmt.Printf("key: %s, value: %v\n", keyName, key.Value)
 
 				v.ValidateNodesExistAndBuildYamlInfo(value, errors)
