@@ -183,7 +183,10 @@ async def list_work_items(
     ),
     limit: int = Query(100, description="The maximum number of work items to return"),
 ) -> list[WorkItem]:
-    return await storage.list_work_items(user.user_id, agent_id=agent_id, limit=limit)
+    work_items = await storage.list_work_items(user.user_id, agent_id=agent_id, limit=limit)
+    for work_item in work_items:
+        work_item.messages = []
+    return work_items
 
 
 @router.post("/{work_item_id}/continue", response_model=WorkItem)

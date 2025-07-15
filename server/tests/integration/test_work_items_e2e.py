@@ -107,8 +107,13 @@ async def test_full_workflow_integration(base_url_agent_server_with_work_items: 
         # 3. List
         list_resp = await client.get("/")
         assert list_resp.status_code == 200
-        ids = [wi["work_item_id"] for wi in list_resp.json()]
+        listed_items = list_resp.json()
+        ids = [wi["work_item_id"] for wi in listed_items]
         assert work_item_id in ids
+
+        # Verify that items returned from list endpoint have empty messages
+        for listed_item in listed_items:
+            assert listed_item["messages"] == []
 
         # 4. Cancel
         cancel_resp = await client.post(f"/{work_item_id}/cancel")

@@ -125,7 +125,7 @@ async def test_describe_nonexistent_work_item(client: TestClient):
 async def test_list_work_items(client: TestClient, seed_agents: list[Agent]):
     """Test listing work items."""
     # Create multiple work items
-    work_items = []
+    created_work_items = []
     for i in range(3):
         create_payload = {
             "agent_id": seed_agents[i].agent_id,
@@ -140,7 +140,12 @@ async def test_list_work_items(client: TestClient, seed_agents: list[Agent]):
 
         create_response = client.post("/public/v1/work-items/", json=create_payload)
         assert create_response.status_code == 200
-        work_items.append(create_response.json())
+        created_work_items.append(create_response.json())
+
+    # Verify that created work items have messages
+    for work_item in created_work_items:
+        assert len(work_item["messages"]) == 1
+        assert work_item["messages"][0]["role"] == "user"
 
     # List work items
     response = client.get("/public/v1/work-items/")
@@ -153,8 +158,14 @@ async def test_list_work_items(client: TestClient, seed_agents: list[Agent]):
 
     # Check that our created items are in the list
     work_item_ids = {item["work_item_id"] for item in data}
-    for work_item in work_items:
-        assert work_item["work_item_id"] in work_item_ids
+    created_work_item_ids = {item["work_item_id"] for item in created_work_items}
+
+    for work_item_id in created_work_item_ids:
+        assert work_item_id in work_item_ids
+
+    # Check that items returned from list endpoint have empty messages
+    for listed_work_item in data:
+        assert listed_work_item["messages"] == []
 
 
 @pytest.mark.asyncio
@@ -179,6 +190,10 @@ async def test_list_work_items_with_limit(client: TestClient, seed_agents: list[
 
     assert isinstance(data, list)
     assert len(data) == 2
+
+    # Check that items returned from list endpoint have empty messages
+    for listed_work_item in data:
+        assert listed_work_item["messages"] == []
 
 
 @pytest.mark.asyncio
@@ -265,6 +280,10 @@ async def test_full_workflow(client: TestClient, seed_agents: list[Agent]):
     items = list_response.json()
     item_ids = [item["work_item_id"] for item in items]
     assert work_item_id in item_ids
+
+    # Check that items returned from list endpoint have empty messages
+    for listed_work_item in items:
+        assert listed_work_item["messages"] == []
 
     # 4. Cancel
     cancel_response = client.post(f"/public/v1/work-items/{work_item_id}/cancel")
