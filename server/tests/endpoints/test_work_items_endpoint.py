@@ -1,3 +1,4 @@
+from http import HTTPStatus
 from io import BytesIO
 
 import pytest
@@ -427,3 +428,171 @@ async def test_work_item_with_files_workflow(client: TestClient, seed_agents: li
     # Note: In real workflow, files get copied to thread and file upload messages are added
     assert len(work_item["messages"]) == 1  # Our user message
     assert work_item["messages"][0]["content"][0]["text"] == "Process these files"
+
+
+@pytest.mark.asyncio
+async def test_create_describe_and_list_work_item_with_callback(
+    client: TestClient, seed_agents: list[Agent]
+):
+    """Test creating a work item with callback, then describing and listing to
+    verify callbacks are included."""
+    # Create a work item with a callback
+    create_payload = {
+        "agent_id": seed_agents[0].agent_id,
+        "messages": [
+            {"role": "user", "content": [{"kind": "text", "text": "Test message with callback"}]}
+        ],
+        "payload": {"test_key": "test_value"},
+        "callbacks": [
+            {
+                "url": "https://example.com/webhook",
+                "signature_secret": "secret123",
+                "on_status": "NEEDS_REVIEW",
+            }
+        ],
+    }
+
+    create_response = client.post("/public/v1/work-items/", json=create_payload)
+    assert create_response.status_code == 200
+    created_work_item = create_response.json()
+    work_item_id = created_work_item["work_item_id"]
+
+    # Verify callback was stored correctly in creation response
+    assert len(created_work_item["callbacks"]) == 1
+    callback = created_work_item["callbacks"][0]
+    assert callback["url"] == "https://example.com/webhook"
+    assert callback["signature_secret"] == "secret123"
+    assert callback["on_status"] == "NEEDS_REVIEW"
+
+    # Test describe endpoint includes callbacks
+    describe_response = client.get(f"/public/v1/work-items/{work_item_id}")
+    assert describe_response.status_code == 200
+    described_work_item = describe_response.json()
+    assert len(described_work_item["callbacks"]) == 1
+    described_callback = described_work_item["callbacks"][0]
+    assert described_callback["url"] == "https://example.com/webhook"
+    assert described_callback["signature_secret"] == "secret123"
+    assert described_callback["on_status"] == "NEEDS_REVIEW"
+
+    # Test list endpoint includes callbacks
+    list_response = client.get("/public/v1/work-items/")
+    assert list_response.status_code == 200
+    work_items = list_response.json()
+
+    # Find our work item in the list
+    target_work_item = None
+    for item in work_items:
+        if item["work_item_id"] == work_item_id:
+            target_work_item = item
+            break
+
+    assert target_work_item is not None
+    assert len(target_work_item["callbacks"]) == 1
+    listed_callback = target_work_item["callbacks"][0]
+    assert listed_callback["url"] == "https://example.com/webhook"
+    assert listed_callback["signature_secret"] == "secret123"
+    assert listed_callback["on_status"] == "NEEDS_REVIEW"
+
+
+@pytest.mark.asyncio
+async def test_create_work_item_with_multiple_callbacks(
+    client: TestClient, seed_agents: list[Agent]
+):
+    """Test creating a work item with multiple callbacks for different statuses."""
+    create_payload = {
+        "agent_id": seed_agents[1].agent_id,
+        "messages": [
+            {"role": "user", "content": [{"kind": "text", "text": "Multiple callbacks test"}]}
+        ],
+        "payload": {"multi_callback": True},
+        "callbacks": [
+            {
+                "url": "https://example.com/error",
+                "signature_secret": "secret_error",
+                "on_status": "ERROR",
+            },
+            {
+                "url": "https://example.com/needs_review",
+                "on_status": "NEEDS_REVIEW",
+            },
+        ],
+    }
+
+    response = client.post("/public/v1/work-items/", json=create_payload)
+    assert response.status_code == 200
+    work_item = response.json()
+
+    # Verify all callbacks were stored
+    assert len(work_item["callbacks"]) == 2
+
+    # Check each callback
+    callbacks_by_status = {cb["on_status"]: cb for cb in work_item["callbacks"]}
+
+    error_callback = callbacks_by_status["ERROR"]
+    assert error_callback["url"] == "https://example.com/error"
+    assert error_callback["signature_secret"] == "secret_error"
+
+    needs_review_callback = callbacks_by_status["NEEDS_REVIEW"]
+    assert needs_review_callback["url"] == "https://example.com/needs_review"
+    assert needs_review_callback["signature_secret"] is None
+
+
+@pytest.mark.parametrize(
+    ("callback_config", "expected_status"),
+    [
+        pytest.param({"url": "", "on_status": "COMPLETED"}, HTTPStatus.BAD_REQUEST, id="empty_url"),
+        pytest.param(
+            {"url": "https://example.com/webhook", "on_status": "INVALID_STATUS"},
+            HTTPStatus.UNPROCESSABLE_ENTITY,
+            id="invalid_status",
+        ),
+    ],
+)
+@pytest.mark.asyncio
+async def test_create_work_item_with_invalid_callbacks(
+    client: TestClient, seed_agents: list[Agent], callback_config: dict, expected_status: HTTPStatus
+):
+    """Test validation of invalid callback configurations."""
+    payload = {
+        "agent_id": seed_agents[0].agent_id,
+        "messages": [
+            {"role": "user", "content": [{"kind": "text", "text": "Test invalid callback"}]}
+        ],
+        "payload": {},
+        "callbacks": [callback_config],
+    }
+
+    response = client.post("/public/v1/work-items/", json=payload)
+    assert response.status_code == expected_status.value
+    error_detail = response.json()
+    assert "error" in error_detail
+
+
+@pytest.mark.asyncio
+async def test_cannot_create_multiple_callbacks_for_same_status(
+    client: TestClient, seed_agents: list[Agent]
+):
+    """Test creating a work item with multiple callbacks for the same status."""
+    # Create a work item with a callback
+    create_payload = {
+        "agent_id": seed_agents[0].agent_id,
+        "messages": [
+            {"role": "user", "content": [{"kind": "text", "text": "Test message with callback"}]}
+        ],
+        "payload": {"test_key": "test_value"},
+        "callbacks": [
+            {
+                "url": "https://example.com/webhook1",
+                "signature_secret": "secret123",
+                "on_status": "NEEDS_REVIEW",
+            },
+            {
+                "url": "https://example.com/webhook2",
+                "signature_secret": "secret123",
+                "on_status": "NEEDS_REVIEW",
+            },
+        ],
+    }
+
+    create_response = client.post("/public/v1/work-items/", json=create_payload)
+    assert create_response.status_code == HTTPStatus.BAD_REQUEST.value

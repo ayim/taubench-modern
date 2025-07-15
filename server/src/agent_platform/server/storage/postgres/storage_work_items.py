@@ -25,6 +25,8 @@ class PostgresStorageWorkItemsMixin(CommonMixin):
             item_dict["messages"] = json.loads(item_dict["messages"])
         if "payload" in item_dict and isinstance(item_dict["payload"], str):
             item_dict["payload"] = json.loads(item_dict["payload"])
+        if "callbacks" in item_dict and isinstance(item_dict["callbacks"], str):
+            item_dict["callbacks"] = json.loads(item_dict["callbacks"])
         return item_dict
 
     # ------------------------------------------------------------------
@@ -44,6 +46,7 @@ class PostgresStorageWorkItemsMixin(CommonMixin):
         work_item_dict = work_item.model_dump()
         work_item_dict["messages"] = Jsonb(work_item_dict["messages"])
         work_item_dict["payload"] = Jsonb(work_item_dict["payload"])
+        work_item_dict["callbacks"] = Jsonb(work_item_dict["callbacks"])
 
         try:
             async with self._cursor() as cur:
@@ -53,13 +56,13 @@ class PostgresStorageWorkItemsMixin(CommonMixin):
                         work_item_id, user_id, agent_id, thread_id, status,
                         created_at, updated_at, completed_by,
                         status_updated_at, status_updated_by,
-                        messages, payload
+                        messages, payload, callbacks
                     ) VALUES (
                         %(work_item_id)s::uuid, %(user_id)s::uuid,
                         %(agent_id)s::uuid, %(thread_id)s::uuid, %(status)s,
                         %(created_at)s, %(updated_at)s, %(completed_by)s,
                         %(status_updated_at)s, %(status_updated_by)s,
-                        %(messages)s, %(payload)s
+                        %(messages)s, %(payload)s, %(callbacks)s
                     )
                     """,
                     work_item_dict,

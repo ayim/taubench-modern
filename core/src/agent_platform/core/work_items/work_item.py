@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from agent_platform.core.payloads.initiate_stream import InitiateStreamPayload
@@ -31,6 +31,130 @@ class WorkItemStatus(StrEnum):
 
     PRECREATED = "PRECREATED"
     """The work item is is partially created to allow for file attachments."""
+
+
+# Define a subset of workitem statuses that we allow for callbacks.
+allowed_callback_status_types = Literal[
+    WorkItemStatus.COMPLETED,
+    WorkItemStatus.ERROR,
+    WorkItemStatus.NEEDS_REVIEW,
+    WorkItemStatus.CANCELLED,
+]
+allowed_callback_statuses = (
+    WorkItemStatus.COMPLETED,
+    WorkItemStatus.ERROR,
+    WorkItemStatus.NEEDS_REVIEW,
+    WorkItemStatus.CANCELLED,
+)
+
+
+@dataclass
+class WorkItemCallback:
+    """Payload to define callback after a work item reaches a certain status."""
+
+    url: str = field(
+        metadata={
+            "description": "The URL to call (POST) when the work item reaches the specified status."
+        },
+    )
+    """The URL to call (POST) when the work item reaches the specified status."""
+
+    signature_secret: str | None = field(
+        default=None,
+        metadata={
+            "description": "The secret to use to sign the callback payload."
+            " If not provided, the callback will not be signed."
+        },
+    )
+    """The secret to use to sign the callback payload. If not provided,
+    the callback will not be signed."""
+
+    on_status: allowed_callback_status_types = field(
+        default=WorkItemStatus.NEEDS_REVIEW,
+        metadata={
+            "description": "The status which, when reached, will trigger"
+            " the callback (default NEEDS_REVIEW)."
+        },
+    )
+    """The status which, when reached, will trigger the callback."""
+
+    def __post_init__(self):
+        if self.on_status not in allowed_callback_statuses:
+            raise ValueError(f"Calbacks can only be registered on: {allowed_callback_statuses}")
+
+    def model_dump(self) -> dict:
+        return {
+            "url": self.url,
+            "signature_secret": self.signature_secret,
+            "on_status": self.on_status.value,
+        }
+
+    @classmethod
+    def model_validate(cls, data: dict) -> "WorkItemCallback":
+        data = data.copy()
+
+        # Parse on_status if it's a string
+        if "on_status" in data and isinstance(data["on_status"], str):
+            data["on_status"] = WorkItemStatus(data["on_status"])
+
+        return cls(**data)
+
+
+@dataclass
+class WorkItemCallbackPayload:
+    """Payload to define callback after a work item reaches a certain status."""
+
+    work_item_id: str = field(
+        metadata={"description": "The unique identifier for the work item"},
+    )
+    """The unique identifier for the work item."""
+
+    agent_id: str = field(
+        metadata={"description": "The unique identifier for the agent"},
+    )
+    """The unique identifier for the agent."""
+
+    thread_id: str = field(
+        metadata={"description": "The unique identifier for the thread"},
+    )
+    """The unique identifier for the thread."""
+
+    status: WorkItemStatus = field(
+        metadata={"description": "The status of the work item"},
+    )
+    """The status of the work item."""
+
+    work_item_url: str = field(
+        metadata={"description": "The URL of the work item"},
+    )
+    """The URL of the work item."""
+
+    def model_dump(self) -> dict:
+        return {
+            "work_item_id": self.work_item_id,
+            "agent_id": self.agent_id,
+            "thread_id": self.thread_id,
+            "status": self.status.value,
+            "work_item_url": self.work_item_url,
+        }
+
+    @classmethod
+    def model_validate(cls, data: dict) -> "WorkItemCallbackPayload":
+        data = data.copy()
+
+        if not data.get("work_item_id"):
+            raise ValueError("work_item_id is required")
+        if not data.get("agent_id"):
+            raise ValueError("agent_id is required")
+        if not data.get("thread_id"):
+            raise ValueError("thread_id is required")
+        # Parse status if it's a string
+        if "status" in data and isinstance(data["status"], str):
+            data["status"] = WorkItemStatus(data["status"])
+
+        # TODO validate that work_item_url is set (need to wire in that value first)
+
+        return cls(**data)
 
 
 @dataclass
@@ -111,13 +235,19 @@ class WorkItem:
     )
     """The payload of the work item."""
 
+    callbacks: list[WorkItemCallback] = field(
+        default_factory=list,
+        metadata={"description": "The callbacks for the work item"},
+    )
+    """The callbacks for the work item."""
+
     def model_dump(self) -> dict:
         return {
             "work_item_id": self.work_item_id,
             "user_id": self.user_id,
             "agent_id": self.agent_id,
             "thread_id": self.thread_id,
-            "status": self.status,
+            "status": self.status.value,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
             "completed_by": self.completed_by,
@@ -125,6 +255,7 @@ class WorkItem:
             "status_updated_by": self.status_updated_by,
             "messages": [msg.model_dump() for msg in self.messages],
             "payload": self.payload,
+            "callbacks": [callback.model_dump() for callback in self.callbacks],
         }
 
     def to_initiate_stream_payload(self) -> InitiateStreamPayload:
@@ -140,7 +271,7 @@ class WorkItem:
         )
 
     @classmethod
-    def model_validate(cls, data: dict) -> "WorkItem":
+    def model_validate(cls, data: dict) -> "WorkItem":  # noqa: C901
         data = data.copy()
 
         # Handle UUIDs
@@ -166,6 +297,13 @@ class WorkItem:
             data["messages"] = [
                 ThreadMessage.model_validate(msg) if isinstance(msg, dict) else msg
                 for msg in data["messages"]
+            ]
+        if "callbacks" in data and data["callbacks"] is not None:
+            data["callbacks"] = [
+                WorkItemCallback.model_validate(callback)
+                if isinstance(callback, dict)
+                else callback
+                for callback in data["callbacks"]
             ]
 
         return cls(**data)

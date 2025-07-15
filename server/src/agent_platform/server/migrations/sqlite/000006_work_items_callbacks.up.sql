@@ -1,0 +1,1 @@
+ALTER TABLE v2_work_items ADD COLUMN callbacks TEXT DEFAULT NULL; -- JSON serialised

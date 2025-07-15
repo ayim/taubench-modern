@@ -22,11 +22,13 @@ from agent_platform.server.api.private_v2.runs import (
 from agent_platform.server.api.private_v2.utils import create_minimal_kernel
 from agent_platform.server.storage import StorageService
 from agent_platform.server.storage.errors import NoSystemUserError
-from agent_platform.server.work_items.settings import WORK_ITEMS_SETTINGS
+from agent_platform.server.work_items.callbacks import execute_callbacks
+from agent_platform.server.work_items.settings import (
+    WORK_ITEMS_SETTINGS,
+    WORK_ITEMS_SYSTEM_USER_SUB,
+)
 
 logger = logging.getLogger(__name__)
-
-WORK_ITEMS_SYSTEM_USER_SUB = "tenant:work-items:system:system_user"
 
 
 async def _validate_success(item: WorkItem) -> WorkItemStatus:
@@ -203,6 +205,7 @@ async def run_agent(item: WorkItem) -> bool:
             )
 
             logger.info(f"Work item {item.work_item_id}: Run {run_id} completed successfully")
+
             return True
         elif run_status_resp.is_failure:
             logger.error(f"Work item {item.work_item_id}: Run {run_id} failed")
@@ -374,11 +377,16 @@ async def execute_work_item(
             new_status = (await _validate_success(latest_item)) if result else WorkItemStatus.ERROR
 
             await storage.update_work_item_status(system_user_id, item.work_item_id, new_status)
+            item.status = new_status
+
+            # Will be "COMPLETED", "NEEDS_REVIEW", or "ERROR"
+            await execute_callbacks(item, new_status)
         else:
             logger.info(
                 "Work item %s was cancelled during execution: leaving status as CANCELLED",
                 item.work_item_id,
             )
+            await execute_callbacks(item, WorkItemStatus.CANCELLED)
 
         return result
     except Exception as e:

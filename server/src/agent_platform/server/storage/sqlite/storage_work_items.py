@@ -17,6 +17,8 @@ class SQLiteStorageWorkItemsMixin(CommonMixin):
             item_dict["messages"] = json.loads(item_dict["messages"])
         if "payload" in item_dict and isinstance(item_dict["payload"], str):
             item_dict["payload"] = json.loads(item_dict["payload"])
+        if "callbacks" in item_dict and isinstance(item_dict["callbacks"], str):
+            item_dict["callbacks"] = json.loads(item_dict["callbacks"])
         return item_dict
 
     # ------------------------------------------------------------------
@@ -35,6 +37,7 @@ class SQLiteStorageWorkItemsMixin(CommonMixin):
         work_item_dict = work_item.model_dump()
         work_item_dict["messages"] = json.dumps(work_item_dict["messages"])
         work_item_dict["payload"] = json.dumps(work_item_dict["payload"])
+        work_item_dict["callbacks"] = json.dumps(work_item_dict["callbacks"])
 
         async with self._cursor() as cur:
             await cur.execute(
@@ -43,12 +46,12 @@ class SQLiteStorageWorkItemsMixin(CommonMixin):
                     work_item_id, user_id, agent_id, thread_id, status,
                     created_at, updated_at, completed_by,
                     status_updated_at, status_updated_by,
-                    messages, payload
+                    messages, payload, callbacks
                 ) VALUES (
                     :work_item_id, :user_id, :agent_id, :thread_id, :status,
                     :created_at, :updated_at, :completed_by,
                     :status_updated_at, :status_updated_by,
-                    :messages, :payload
+                    :messages, :payload, :callbacks
                 )
                 """,
                 work_item_dict,

@@ -4,7 +4,7 @@ from typing import Any
 from uuid import uuid4
 
 from agent_platform.core.thread.base import ThreadMessage
-from agent_platform.core.work_items import WorkItem, WorkItemStatus
+from agent_platform.core.work_items import WorkItem, WorkItemCallback, WorkItemStatus
 
 
 @dataclass
@@ -34,6 +34,15 @@ class CreateWorkItemPayload:
     )
     """The ID of the work item."""
 
+    callbacks: list[WorkItemCallback] | None = field(
+        default=None,
+        metadata={
+            "description": "A list of callbacks to trigger when the"
+            " work item reaches a certain status."
+        },
+    )
+    """A list of callbacks to trigger when the work item reaches a certain status."""
+
     @classmethod
     def to_work_item(cls, payload: "CreateWorkItemPayload", user_id: str) -> WorkItem:
         return WorkItem(
@@ -49,4 +58,5 @@ class CreateWorkItemPayload:
             completed_by=None,  # Not completed yet
             status_updated_at=datetime.now(UTC),
             status_updated_by=user_id,
+            callbacks=payload.callbacks or [],
         )
