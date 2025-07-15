@@ -1,7 +1,10 @@
+# ruff: noqa: E501
+
 import asyncio
 import logging
 from collections.abc import Awaitable, Callable, Sequence
 from datetime import UTC, datetime
+from textwrap import dedent
 from typing import assert_never
 from uuid import uuid4
 
@@ -32,50 +35,35 @@ logger = logging.getLogger(__name__)
 
 
 async def _validate_success(item: WorkItem) -> WorkItemStatus:
-    system_message = (
-        "You are a helpful agent that validates if the work item executed by an AI "
-        "agent was completed successfully. \n"
-        "Review the conversation history and determine if the task was completed "
-        "successfully. \n\n"
-        "Assessment criteria: \n"
-        "1. Task completion: Check if the original request or work item was fully "
-        "addressed \n"
-        "2. Tool usage effectiveness: Evaluate if the agent used available tools "
-        "appropriately to accomplish the task \n"
-        "3. Error handling: Verify that any errors were properly addressed or "
-        "resolved \n"
-        "4. Analysis quality: Ensure the agent provided thorough analysis and "
-        "insights when required \n"
-        "5. User satisfaction: Consider if the response adequately addresses the "
-        "user's needs \n"
-        "6. Completeness: Ensure no important aspects of the task were left "
-        "unfinished \n\n"
-        "Signs of successful completion: \n"
-        "- The agent provided a complete solution to the requested task \n"
-        "- Available tools were used effectively to gather information or perform "
-        "actions \n"
-        "- All requirements were met or exceeded \n"
-        "- The agent confirmed successful completion \n"
-        "- Analysis was thorough and accurate \n"
-        "- The agent successfully navigated through any challenges encountered \n\n"
-        "Signs requiring human review: \n"
-        "- The agent encountered unresolved errors or exceptions \n"
-        "- The solution is incomplete or partially implemented \n"
-        "- The agent expressed uncertainty about the correctness of the solution \n"
-        "- Tools failed to execute properly or returned unexpected results \n"
-        "- The agent requested human intervention or clarification \n"
-        "- The agent stated it cannot complete the task due to missing tools or capabilities \n"
-        "- The agent identified contradictory or ambiguous instructions requiring clarification \n"
-        "- Complex business logic or critical systems were analyzed without proper "
-        "validation \n"
-        "- The conversation ended abruptly without clear completion \n"
-        "- The agent was unable to access required tools or information \n\n"
-        "You must respond with ONLY one of these two values: \n"
-        f"{WorkItemStatus.COMPLETED.value} - if the work item was successfully "
-        "completed based on the criteria above \n"
-        f"{WorkItemStatus.NEEDS_REVIEW.value} - if the work item requires human "
-        "review or was not completed successfully\n"
-    )
+    system_message = dedent("""
+        You are a helpful agent that validates if the work item executed by an AI agent was completed successfully.
+        Review the conversation history and determine if the task was completed successfully.
+
+        **Critical rule:**
+        If **any** “Signs requiring human review” apply, you **must** respond **NEEDS_REVIEW** immediately—do **not** consider any other criteria or signs of success.
+
+        **Signs requiring human review** *(if any apply, respond NEEDS_REVIEW immediately)*:
+        - The agent defers, requests clarification, or explicitly states it cannot fulfill the request (e.g. “I cannot complete this,” “I do not know…”).
+        - The agent's response does **not** contain the direct deliverable (answer, calculation, document, code snippet, etc.) exactly as requested.
+        - The agent substitutes only explanation or analysis instead of providing the requested output.
+        - Any unhandled or unresolved error condition (invalid input, tool failure, exception).
+        - The solution is incomplete or partially implemented.
+        - The agent expressed uncertainty about the correctness of the solution.
+        - The agent requested human intervention or clarification.
+        - The conversation ended without a clear deliverable.
+
+        **Signs of successful completion** *(all must apply **and** **no** review-signs apply)*:
+        1. The agent delivered exactly the requested output in the correct form.
+        2. Available tools were used effectively (if applicable).
+        3. All requirements were met or exceeded.
+        4. The agent confirmed successful completion.
+        5. Analysis was thorough and accurate (when analysis was part of the ask).
+        6. The agent navigated any challenges without deferral.
+
+        You must respond with **ONLY** one of these two values:
+        - **NEEDS_REVIEW** — if **any** “Signs requiring human review” apply.
+        - **COMPLETED** — otherwise (i.e., none of the review signs apply and all signs of successful completion apply).
+    """)
 
     storage = StorageService.get_instance()
     user = await storage.get_user_by_id(item.user_id)
@@ -91,7 +79,6 @@ async def _validate_success(item: WorkItem) -> WorkItemStatus:
 
     # Use the existing thread-to-prompt message converter
     converted_messages = await kernel.converters.thread_messages_to_prompt_messages(item.messages)
-
     # Convert to the expected message types
     prompt_messages = []
     for msg in converted_messages:

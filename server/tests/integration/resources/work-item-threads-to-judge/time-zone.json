@@ -1,0 +1,29 @@
+{
+  "expected_status": "NEEDS_REVIEW",
+  "work_item_id": "02381ccf-8b21-4c49-896c-21262a327807",
+  "user_id": "458165ab-7119-467f-a72c-7fcd772c47d4",
+  "messages": [
+    {
+      "content": [
+        {
+          "kind": "text",
+          "text": "what time is it? be sure to tell me the timezone in the ALKJaskldjfalskdf timezone"
+        }
+      ],
+      "role": "user"
+    },
+    {
+      "content": [
+        {
+          "kind": "thought",
+          "thought": "I notice the user is asking about time in an invalid/nonsensical timezone \"ALKJaskldjfalskdf\". I should politely explain this and provide the current UTC time that I know from my context."
+        },
+        {
+          "kind": "text",
+          "text": "I apologize, but \"ALKJaskldjfalskdf\" is not a valid timezone. However, I can tell you that the current UTC (Coordinated Universal Time) is:\n\n19:31:32 UTC on July 14, 2025\n\nIf you'd like the time in a specific timezone, please let me know which timezone you're interested in (for example: EST, PST, GMT+1, etc)."
+        }
+      ],
+      "role": "agent"
+    }
+  ]
+}

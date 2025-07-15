@@ -1,0 +1,29 @@
+{
+  "expected_status": "COMPLETED",
+  "work_item_id": "87654321-4321-8765-4321-876543210987",
+  "user_id": "458165ab-7119-467f-a72c-7fcd772c47d4",
+  "messages": [
+    {
+      "content": [
+        {
+          "kind": "text",
+          "text": "Say hello"
+        }
+      ],
+      "role": "user"
+    },
+    {
+      "content": [
+        {
+          "kind": "thought",
+          "thought": "The user is asking me to say hello. This is a simple and straightforward request that I can fulfill easily."
+        },
+        {
+          "kind": "text",
+          "text": "Hello! How can I help you today?"
+        }
+      ],
+      "role": "agent"
+    }
+  ]
+}

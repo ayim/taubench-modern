@@ -1,12 +1,15 @@
 import asyncio
 import time
+import unittest.mock
 from io import BytesIO
+from pathlib import Path
 
 import pytest
 from agent_platform.orchestrator.agent_server_client import AgentServerClient
 from httpx import AsyncClient
 
 from agent_platform.core.work_items import WorkItemStatus
+from agent_platform.core.work_items.work_item import WorkItem
 
 # ---------------------------------------------------------------------------
 # Helpers / fixtures
@@ -1328,3 +1331,113 @@ async def test_work_item_file_ownership(base_url_agent_server_with_work_items: s
         # - associate_work_item_file worked (files copied to thread)
         # - Background worker processed successfully (reached final status)
         assert final_status == WorkItemStatus.NEEDS_REVIEW
+
+
+# ---------------------------------------------------------------------------
+# Regression tests. See https://linear.app/sema4ai/issue/GPT-1080/
+# ---------------------------------------------------------------------------
+
+
+def _get_work_item_judge_test_files():
+    """Get all JSON files from the work-item-threads-to-judge directory for parameterization."""
+
+    # Get the directory path relative to this test file
+    current_dir = Path(__file__).parent
+    work_item_threads_dir = current_dir / "resources" / "work-item-threads-to-judge"
+
+    if not work_item_threads_dir.exists():
+        return []
+
+    # Get all JSON files and create pytest parameters
+    json_files = []
+    for file_path in work_item_threads_dir.glob("*.json"):
+        # Use the filename without extension as the test ID
+        test_id = file_path.stem.replace("-", "_")
+        json_files.append(pytest.param(file_path.name, id=test_id))
+
+    return sorted(json_files, key=lambda x: x.values[0])  # Sort by filename
+
+
+@pytest.mark.integration
+@pytest.mark.usefixtures("copy_tmpdir_on_failure")
+@pytest.mark.asyncio
+@pytest.mark.parametrize("resource_file", _get_work_item_judge_test_files())
+async def test_work_item_judge_with_recorded_threads(
+    base_url_agent_server_with_work_items: str,
+    openai_api_key: str,
+    resource_file: str,
+    resources_dir: Path,
+):
+    """Test the work item judge using pre-recorded conversation threads.
+
+    This test exercises the judge (_validate_success) with real model calls but uses
+    pre-recorded conversation threads instead of running the full work item execution.
+    This allows us to test the judge's decision-making without the complexity and
+    non-determinism of full agent execution.
+
+    Each JSON file contains an 'expected_status' field that defines what the judge
+    should return for that conversation thread.
+    """
+    import json
+
+    from agent_platform.server.work_items.background_worker import _validate_success
+
+    # Load the recorded thread from JSON
+    work_item_resources_dir = resources_dir / "work-item-threads-to-judge"
+    with open(work_item_resources_dir / resource_file, encoding="utf-8") as fh:
+        work_item_data = json.load(fh)
+
+    # Extract expected status from the JSON file
+    expected_status = WorkItemStatus(work_item_data.pop("expected_status"))
+
+    # Convert to WorkItem object (without the expected_status field)
+    work_item = WorkItem.model_validate(work_item_data)
+
+    # Test the judge directly with a real model call
+    with AgentServerClient(base_url_agent_server_with_work_items) as agent_client:
+        # Create a temporary agent for validation (the judge needs an agent_id)
+        agent_id = agent_client.create_agent_and_return_agent_id(
+            platform_configs=[{"kind": "openai", "openai_api_key": openai_api_key}],
+        )
+        work_item.agent_id = agent_id
+
+        # Mock the storage service to provide what _validate_success needs
+        from agent_platform.core.agent.agent import Agent
+        from agent_platform.core.agent.agent_architecture import AgentArchitecture
+        from agent_platform.core.platforms.openai.parameters import OpenAIPlatformParameters
+        from agent_platform.core.runbook.runbook import Runbook
+        from agent_platform.core.user import User
+        from agent_platform.core.utils import SecretString
+        from agent_platform.server.storage import StorageService
+
+        # Create a mock user
+        mock_user = User(user_id=work_item.user_id, sub="test_user")
+
+        # Create a mock platform config
+        mock_platform_config = OpenAIPlatformParameters(openai_api_key=SecretString(openai_api_key))
+
+        # Create a mock agent
+        mock_agent = Agent(
+            name="Test Agent",
+            description="Test agent for validation",
+            user_id=work_item.user_id,
+            runbook_structured=Runbook(raw_text="You are a helpful assistant", content=[]),
+            version="1.0.0",
+            platform_configs=[mock_platform_config],
+            agent_architecture=AgentArchitecture(name="test_arch", version="1.0.0"),
+        )
+
+        # Create a mock storage service
+        mock_storage = unittest.mock.AsyncMock()
+        mock_storage.get_user_by_id.return_value = mock_user
+        mock_storage.get_agent.return_value = mock_agent
+
+        # Replace the storage service instance
+        with unittest.mock.patch.object(StorageService, "get_instance", return_value=mock_storage):
+            # Call the judge with real model call
+            result_status = await _validate_success(work_item)
+
+        # Assert the expected result
+        assert result_status == expected_status, (
+            f"Expected {expected_status} but got {result_status} for {resource_file}"
+        )
