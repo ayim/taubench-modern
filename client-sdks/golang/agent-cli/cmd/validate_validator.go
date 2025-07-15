@@ -642,6 +642,81 @@ func (v *Validator) verifyYamlMatchesSpec(
 				}
 			}
 
+		case ExpectedTypeEnumMcpServerVarType:
+			// Var type must be one of the following:
+			// - secret
+			// - oauth2-secret
+			// - string
+			// - data-server-info
+			if yamlNode.data.Kind != YamlNodeKindString {
+				errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected %s to be a string (found %s).", specData.Path, yamlNode.data.Kind),
+					yamlNode.data, Critical)
+			} else {
+				// Get the value of the type field
+				varType := yamlNode.data.Node.Value
+				allowedTypes := map[string]bool{
+					"secret":          true,
+					"oauth2-secret":   true,
+					"string":          true,
+					"data-server-info": true,
+				}
+				if !allowedTypes[varType] {
+					errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected %s to be one of ['secret', 'oauth2-secret', 'string', 'data-server-info'] (found %q).", specData.Path, varType),
+						yamlNode.data, Critical)
+				} else {
+					// Constraints for each var type
+					constraintsForVarType := map[string]map[string]string{
+						"secret": {
+							"provider": "not-allowed",
+							"scopes":   "not-allowed",
+							"default":  "optional",
+						},
+						"oauth2-secret": {
+							"provider": "required",
+							"scopes":   "required",
+							"default":  "not-allowed",
+						},
+						"string": {
+							"provider": "not-allowed",
+							"scopes":   "not-allowed",
+							"default":  "optional",
+						},
+						"data-server-info": {
+							"provider": "not-allowed",
+							"scopes":   "not-allowed",
+							"default":  "not-allowed",
+						},
+					}
+					constraints, ok := constraintsForVarType[varType]
+					if !ok {
+						// Should not happen, but just in case
+						errors <- *NewErrorFromYamlNode(fmt.Sprintf("Internal error: unknown var type %q.", varType),
+							yamlNode.data, Critical)
+					} else {
+						if yamlNode.parent == nil {
+							errors <- *NewErrorFromYamlNode("Expected parent to be defined at this point.", yamlNode.data, Critical)
+						} else {
+							parentChildren := yamlNode.parent.GetChildren()
+							for constraintAttr, constraintValue := range constraints {
+								switch constraintValue {
+								case "required":
+									if _, exists := parentChildren[constraintAttr]; !exists {
+										errors <- *NewErrorFromYamlNode(fmt.Sprintf("type: %s requires %s to be defined.", varType, constraintAttr),
+											yamlNode.data, Critical)
+									}
+								case "not-allowed":
+									if _, exists := parentChildren[constraintAttr]; exists {
+										errors <- *NewErrorFromYamlNode(fmt.Sprintf("type: %s does not expect %s to be defined.", varType, constraintAttr),
+											yamlNode.data, Warning)
+									}
+								// "optional" means do nothing
+								}
+							}
+						}
+					}
+				}
+			}
+
 		case ExpectedTypeEnumMcpServerCommandLine:
 			if yamlNode.data.Kind != YamlNodeKindList {
 				errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected %s to be a list (found %s).", specData.Path, yamlNode.data.Kind),

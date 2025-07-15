@@ -50,6 +50,9 @@ agent-package:
               type: secret
               description: Some secret to be specified by the user
             Content-Type: application/json # It can be a value directly
+            SEMA4AI-DATA-SERVER-INFO:
+              type: data-server-info
+              description: Information to connect to the data server (JSON-formatted string)
           force-serial-tool-calls: true
       metadata:
         mode: worker

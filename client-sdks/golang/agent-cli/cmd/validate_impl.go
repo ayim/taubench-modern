@@ -27,6 +27,7 @@ const (
 	ExpectedTypeEnumMcpServerCwd             ExpectedTypeEnum = "mcp_server_cwd"
 	ExpectedTypeEnumMcpServerEnv             ExpectedTypeEnum = "mcp_server_env"
 	ExpectedTypeEnumMcpServerHeaders         ExpectedTypeEnum = "mcp_server_headers"
+	ExpectedTypeEnumMcpServerVarType         ExpectedTypeEnum = "mcp_server_var_type"
 )
 
 func isValidExpectedTypeEnum(et ExpectedTypeEnum) bool {
@@ -49,7 +50,8 @@ func isValidExpectedTypeEnum(et ExpectedTypeEnum) bool {
 		ExpectedTypeEnumMcpServerCommandLine,
 		ExpectedTypeEnumMcpServerCwd,
 		ExpectedTypeEnumMcpServerEnv,
-		ExpectedTypeEnumMcpServerHeaders:
+		ExpectedTypeEnumMcpServerHeaders,
+		ExpectedTypeEnumMcpServerVarType:
 		return true
 	default:
 		return false

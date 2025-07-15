@@ -902,3 +902,63 @@ agent-package:
         datadir,
         create_folders=["./mcp-server/path"],
     )
+
+
+def test_spec_validation_bad_oauth2_secret_type(agent_cli: Path, datadir: Path, data_regression):
+    bad_yaml = """
+agent-package:
+  spec-version: v3
+  agents:
+    - name: Agent1
+      description: This is the description
+      version: 0.0.1
+      model:
+        provider: OpenAI
+        name: GPT 4o
+      architecture: plan_execute
+      reasoning: enabled
+      runbook: runbook.md
+      action-packages: []
+      knowledge: []
+      metadata:
+        mode: conversational
+      mcp-servers:
+        - name: mcp-server-1
+          transport: streamable-http
+          description: MCP Server with invalid oauth2-secret type
+          url: http://localhost:8000
+          headers:
+            Authorization:
+              type: oauth2-secret
+              description: Your OAuth2 API key for authentication
+              missing-provider: Microsoft
+              missing-scopes: 11
+            A-secret:
+              type: secret
+              description: Your secret
+              default: "secret"
+              provider: "not-allowed"
+              scopes:
+                - not-allowed
+            A-string:
+              type: string
+              description: Your string
+              default: "string"
+              provider: "not-allowed"
+              scopes:
+                - not-allowed
+            A-data-server-info:
+              type: data-server-info
+              description: Your data-server-info
+              default: "not-allowed"
+              provider: "not-allowed"
+              scopes:
+                - not-allowed
+    """
+
+    check_with_spec(
+        agent_cli,
+        data_regression,
+        bad_yaml,
+        datadir,
+    )
