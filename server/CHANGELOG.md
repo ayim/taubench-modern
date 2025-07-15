@@ -1,3 +1,8 @@
+# Sema4.ai Agent Server 2.0.13 (2025-07-14)
+
+- Implement status-based callbacks for Work-Items service.
+- Improve LLM-as-Judge checks for Work-Items service.
+
 # Sema4.ai Agent Server 2.0.12 (2025-07-11)
 
 - Make Work Items visible in Work Room ([GPT-1077](https://linear.app/sema4ai/issue/GPT-1077/file-is-not-visible-to-action-when-created-by-work-items))
