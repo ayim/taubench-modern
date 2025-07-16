@@ -2,8 +2,12 @@ import os
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
+
+# Import cloud server fixture for cloud tests
+from server.tests.files.test_api_endpoints_cloud import cloud_server  # noqa: F401
 
 
 @pytest.fixture
@@ -71,12 +75,106 @@ def base_url_agent_server(tmpdir, logs_dir, files_location):
 def base_url_agent_server_with_work_items(tmpdir, logs_dir):
     start_server = os.getenv("INTEGRATION_TEST_START_SERVER", "true")
     if start_server == "true":
-        with start_agent_server(
-            tmpdir,
-            logs_dir,
-            env={"SEMA4AI_AGENT_SERVER_ENABLE_WORKITEMS": "true"},
-        ) as url:
-            yield url
+        env_vars = {
+            "SEMA4AI_AGENT_SERVER_ENABLE_WORKITEMS": "true",
+            "S4_AGENT_SERVER_FILE_MANAGER_TYPE": "local",  # Explicitly use local file manager
+        }
+
+        with patch.dict(os.environ, env_vars):
+            with start_agent_server(tmpdir, logs_dir, env=env_vars) as url:
+                yield url
+    else:
+        host = os.getenv("API_HOST", "localhost")
+        port = os.getenv("API_PORT", "8000")
+        yield f"http://{host}:{port}"
+
+
+@pytest.fixture
+def base_url_agent_server_sqlite_workitems(tmpdir, logs_dir):
+    start_server = os.getenv("INTEGRATION_TEST_START_SERVER", "true")
+    if start_server == "true":
+        env_vars = {
+            "SEMA4AI_AGENT_SERVER_ENABLE_WORKITEMS": "true",
+            "S4_AGENT_SERVER_DB_TYPE": "sqlite",
+            "S4_AGENT_SERVER_FILE_MANAGER_TYPE": "local",
+        }
+
+        with patch.dict(os.environ, env_vars):
+            with start_agent_server(tmpdir, logs_dir, env=env_vars) as url:
+                yield url
+    else:
+        host = os.getenv("API_HOST", "localhost")
+        port = os.getenv("API_PORT", "8000")
+        yield f"http://{host}:{port}"
+
+
+@pytest.fixture
+def base_url_agent_server_postgres_workitems(tmpdir, logs_dir):
+    start_server = os.getenv("INTEGRATION_TEST_START_SERVER", "true")
+    if start_server == "true":
+        env_vars = {
+            "SEMA4AI_AGENT_SERVER_ENABLE_WORKITEMS": "true",
+            "POSTGRES_HOST": "localhost",
+            "POSTGRES_PORT": "5432",
+            "POSTGRES_DB": "agent-server",
+            "POSTGRES_USER": "postgres",
+            "POSTGRES_PASSWORD": "postgres",
+            "S4_AGENT_SERVER_FILE_MANAGER_TYPE": "local",
+        }
+
+        with patch.dict(os.environ, env_vars):
+            with start_agent_server(tmpdir, logs_dir, env=env_vars) as url:
+                yield url
+    else:
+        host = os.getenv("API_HOST", "localhost")
+        port = os.getenv("API_PORT", "8000")
+        yield f"http://{host}:{port}"
+
+
+@pytest.fixture
+def base_url_agent_server_sqlite_workitems_cloud(tmpdir, logs_dir, cloud_server):  # noqa: F811
+    start_server = os.getenv("INTEGRATION_TEST_START_SERVER", "true")
+    if start_server == "true":
+        env_vars = {
+            "SEMA4AI_AGENT_SERVER_ENABLE_WORKITEMS": "true",
+            "S4_AGENT_SERVER_DB_TYPE": "sqlite",
+            "FILE_MANAGEMENT_API_URL": "http://localhost:8001",
+            "S4_AGENT_SERVER_FILE_MANAGER_TYPE": "cloud",
+        }
+        # Use patch.dict to properly isolate environment variables
+        with patch.dict(os.environ, env_vars):
+            with start_agent_server(tmpdir, logs_dir, env=env_vars) as url:
+                yield url
+
+        # Note: temp_uploads directory cleanup is handled by the cloud_server fixture
+        # since it's session-scoped and owns the directory
+    else:
+        host = os.getenv("API_HOST", "localhost")
+        port = os.getenv("API_PORT", "8000")
+        yield f"http://{host}:{port}"
+
+
+@pytest.fixture
+def base_url_agent_server_postgres_workitems_cloud(tmpdir, logs_dir, cloud_server):  # noqa: F811
+    start_server = os.getenv("INTEGRATION_TEST_START_SERVER", "true")
+    if start_server == "true":
+        env_vars = {
+            "SEMA4AI_AGENT_SERVER_ENABLE_WORKITEMS": "true",
+            "POSTGRES_HOST": "localhost",
+            "POSTGRES_PORT": "5432",
+            "POSTGRES_DB": "agent-server",
+            "POSTGRES_USER": "postgres",
+            "POSTGRES_PASSWORD": "postgres",
+            "FILE_MANAGEMENT_API_URL": "http://localhost:8001",
+            "S4_AGENT_SERVER_FILE_MANAGER_TYPE": "cloud",
+        }
+        # Use patch.dict to properly isolate environment variables
+        with patch.dict(os.environ, env_vars):
+            with start_agent_server(tmpdir, logs_dir, env=env_vars) as url:
+                yield url
+
+        # Note: temp_uploads directory cleanup is handled by the cloud_server fixture
+        # since it's session-scoped and owns the directory
     else:
         host = os.getenv("API_HOST", "localhost")
         port = os.getenv("API_PORT", "8000")

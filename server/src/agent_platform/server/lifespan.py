@@ -14,7 +14,7 @@ from agent_platform.server.storage import StorageService
 
 # Use our new telemetry module instead of the old otel module
 from agent_platform.server.telemetry import setup_telemetry
-from agent_platform.server.work_items import run_agent, worker_loop
+from agent_platform.server.work_items.background_worker import run_agent, worker_loop
 
 logger = structlog.get_logger(__name__)
 

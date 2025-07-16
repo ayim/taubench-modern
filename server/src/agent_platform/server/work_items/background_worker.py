@@ -23,13 +23,11 @@ from agent_platform.server.api.private_v2.runs import (
     get_run_status,
 )
 from agent_platform.server.api.private_v2.utils import create_minimal_kernel
+from agent_platform.server.constants import WORK_ITEMS_SYSTEM_USER_SUB
 from agent_platform.server.storage import StorageService
 from agent_platform.server.storage.errors import NoSystemUserError
 from agent_platform.server.work_items.callbacks import execute_callbacks
-from agent_platform.server.work_items.settings import (
-    WORK_ITEMS_SETTINGS,
-    WORK_ITEMS_SYSTEM_USER_SUB,
-)
+from agent_platform.server.work_items.settings import WORK_ITEMS_SETTINGS
 
 logger = logging.getLogger(__name__)
 

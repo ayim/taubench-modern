@@ -276,3 +276,6 @@ class SystemPaths(Configuration):
         object.__setattr__(self, "log_file_path", self.log_dir / "agent-server.log")
         object.__setattr__(self, "upload_dir", self.data_dir / "uploads")
         object.__setattr__(self, "config_dir", self.data_dir / "config")
+
+
+WORK_ITEMS_SYSTEM_USER_SUB = "tenant:work-items:system:system_user"

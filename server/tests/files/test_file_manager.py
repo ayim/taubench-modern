@@ -941,7 +941,7 @@ class TestFileManager:
             file_manager._build_file_url = MagicMock(return_value="file:///test/path")
 
         result = await file_manager.request_remote_file_upload(
-            thread=sample_thread,
+            owner=sample_thread,
             file_name="test.txt",
         )
 
@@ -960,6 +960,7 @@ class TestFileManager:
         file_manager: BaseFileManager,
         sample_thread: Thread,
         setup_storage: SQLiteStorage | PostgresStorage,
+        mock_requests,
     ):
         """Test confirming a remote file upload."""
         # Clean up any existing files for this thread first
@@ -978,7 +979,7 @@ class TestFileManager:
 
         # First request the upload
         request_result = await file_manager.request_remote_file_upload(
-            thread=sample_thread,
+            owner=sample_thread,
             file_name=unique_filename,
         )
 
@@ -988,7 +989,7 @@ class TestFileManager:
 
         # Then confirm it
         file = await file_manager.confirm_remote_file_upload(
-            thread=sample_thread,
+            owner=sample_thread,
             file_ref=request_result.file_ref,
             file_id=request_result.file_id,
         )
@@ -999,9 +1000,11 @@ class TestFileManager:
         assert file.thread_id == sample_thread.thread_id
         assert file.user_id == sample_thread.user_id
 
-        # For cloud implementation, file_path should be None
+        # For cloud implementation, file_path should be a download URL
         if isinstance(file_manager, CloudFileManager):
-            assert file.file_path is None
+            # Should be the download URL from the mock's GET response
+            expected_download_url = mock_requests.get.return_value.json.return_value["url"]
+            assert file.file_path == expected_download_url
 
         # Verify it's in storage
         stored_file = await setup_storage.get_file_by_id(
@@ -1036,7 +1039,7 @@ class TestFileManager:
         for invalid_filename in invalid_filenames:
             with pytest.raises(InvalidFileUploadError, match="Invalid file name"):
                 await file_manager.request_remote_file_upload(
-                    thread=sample_thread,
+                    owner=sample_thread,
                     file_name=invalid_filename,
                 )
 

@@ -10,5 +10,3 @@ class Settings:
 
 
 WORK_ITEMS_SETTINGS = Settings()
-
-WORK_ITEMS_SYSTEM_USER_SUB = "tenant:work-items:system:system_user"

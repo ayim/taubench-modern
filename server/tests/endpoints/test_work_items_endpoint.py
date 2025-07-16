@@ -1,5 +1,7 @@
+import os
 from http import HTTPStatus
 from io import BytesIO
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -7,6 +9,10 @@ from fastapi.testclient import TestClient
 from agent_platform.core.agent import Agent
 from agent_platform.core.work_items.work_item import WorkItemStatus
 from agent_platform.server.constants import SystemConfig
+from agent_platform.server.file_manager import (
+    FileManagerService,
+)
+from agent_platform.server.storage.option import StorageService
 
 
 @pytest.fixture(autouse=True)
@@ -17,6 +23,64 @@ def _enable_work_items():
     yield
     if original_instance is not None:
         SystemConfig.set_instance(original_instance)
+
+
+@pytest.fixture
+def mock_requests():
+    """Mock requests for cloud file manager tests."""
+    mock = MagicMock()
+    # Mock presigned post response
+    mock.post.return_value.status_code = 200
+    mock.post.return_value.json.return_value = {
+        "url": "https://example.com/upload",
+        "form_data": {"key": "value"},
+    }
+    # Mock presigned get URL response
+    mock.get.return_value.status_code = 200
+    mock.get.return_value.json.return_value = {
+        "url": "https://example.com/download/test-file",
+    }
+    # Mock file deletion response
+    mock.delete.return_value.status_code = 200
+    mock.delete.return_value.json.return_value = {"deleted": True}
+    # Mock file content download
+    mock.get.return_value.content = b"test content"
+    return mock
+
+
+@pytest.fixture(params=["local", "cloud"])
+def file_manager_type(request, mock_requests):
+    """Parametrized fixture that provides both local and cloud file manager types."""
+    manager_type = request.param
+
+    # Reset the FileManagerService to ensure a clean state
+    FileManagerService.reset()
+
+    if manager_type == "cloud":
+        # Set required environment variable
+        os.environ["FILE_MANAGEMENT_API_URL"] = "https://example.com/files"
+        with patch("agent_platform.server.file_manager.cloud.requests", mock_requests):
+            # Set up cloud file manager
+            storage = StorageService.get_instance()
+            manager = FileManagerService.get_instance(storage, manager_type="cloud")
+            yield manager_type, manager
+        # Clean up environment variable
+        if "FILE_MANAGEMENT_API_URL" in os.environ:
+            del os.environ["FILE_MANAGEMENT_API_URL"]
+    else:
+        # Set up local file manager
+        storage = StorageService.get_instance()
+        manager = FileManagerService.get_instance(storage, manager_type="local")
+        yield manager_type, manager
+
+    # Clean up after the test
+    FileManagerService.reset()
+
+
+def skip_if_local_for_remote_tests(file_manager_type):
+    """Skip test if using local file manager for remote upload/confirm tests."""
+    if file_manager_type == "local":
+        pytest.skip("Two-stage upload only works with CloudFileManager")
 
 
 @pytest.mark.asyncio
@@ -298,8 +362,12 @@ async def test_full_workflow(client: TestClient, seed_agents: list[Agent]):
 
 
 @pytest.mark.asyncio
-async def test_upload_file_to_work_item(client: TestClient, seed_agents: list[Agent]):
+async def test_upload_file_to_work_item(
+    client: TestClient, seed_agents: list[Agent], file_manager_type
+):
     """Test uploading a file to a work item."""
+    manager_type, manager = file_manager_type
+
     # Create a test file
     test_content = b"This is test file content for work item"
     test_file = ("test_file.txt", BytesIO(test_content), "text/plain")
@@ -321,8 +389,11 @@ async def test_upload_file_to_work_item(client: TestClient, seed_agents: list[Ag
 
 
 @pytest.mark.asyncio
-async def test_upload_file_to_existing_work_item(client: TestClient, seed_agents: list[Agent]):
+async def test_upload_file_to_existing_work_item(
+    client: TestClient, seed_agents: list[Agent], file_manager_type
+):
     """Test uploading a file to an existing work item."""
+    manager_type, manager = file_manager_type
     # First create a work item in PRECREATED state
     test_file1 = ("file1.txt", BytesIO(b"First file content"), "text/plain")
 
@@ -343,9 +414,10 @@ async def test_upload_file_to_existing_work_item(client: TestClient, seed_agents
 
 @pytest.mark.asyncio
 async def test_upload_duplicate_file_name_to_work_item(
-    client: TestClient, seed_agents: list[Agent]
+    client: TestClient, seed_agents: list[Agent], file_manager_type
 ):
     """Test uploading a file with duplicate name to work item should fail."""
+    manager_type, manager = file_manager_type
     # Create work item with first file
     test_file1 = ("duplicate.txt", BytesIO(b"First content"), "text/plain")
 
@@ -365,8 +437,11 @@ async def test_upload_duplicate_file_name_to_work_item(
 
 
 @pytest.mark.asyncio
-async def test_upload_file_to_nonexistent_work_item(client: TestClient, seed_agents: list[Agent]):
+async def test_upload_file_to_nonexistent_work_item(
+    client: TestClient, seed_agents: list[Agent], file_manager_type
+):
     """Test uploading a file to a non-existent work item should fail."""
+    manager_type, manager = file_manager_type
     test_file = ("test.txt", BytesIO(b"Test content"), "text/plain")
     fake_work_item_id = "00000000-0000-0000-0000-000000000000"
 
@@ -381,9 +456,10 @@ async def test_upload_file_to_nonexistent_work_item(client: TestClient, seed_age
 
 @pytest.mark.asyncio
 async def test_upload_file_to_non_precreated_work_item(
-    client: TestClient, seed_agents: list[Agent]
+    client: TestClient, seed_agents: list[Agent], file_manager_type
 ):
     """Test uploading a file to a work item not in PRECREATED state should fail."""
+    manager_type, manager = file_manager_type
     # Create a work item with agent (will be in PENDING state)
     payload = {
         "agent_id": seed_agents[0].agent_id,
@@ -403,12 +479,18 @@ async def test_upload_file_to_non_precreated_work_item(
     )
 
     assert response.status_code == 400
-    assert "not in precreated state" in response.json()["error"]["message"]
+    assert (
+        "Files can only be attached to work-items in the PRECREATED state."
+        in response.json()["error"]["message"]
+    )
 
 
 @pytest.mark.asyncio
-async def test_work_item_with_files_workflow(client: TestClient, seed_agents: list[Agent]):
+async def test_work_item_with_files_workflow(
+    client: TestClient, seed_agents: list[Agent], file_manager_type
+):
     """Test complete workflow: upload files -> create work item -> verify files copied to thread."""
+    manager_type, manager = file_manager_type
     # 1. Upload files to create work item
     test_file1 = ("document.txt", BytesIO(b"Important document content"), "text/plain")
     test_file2 = ("data.csv", BytesIO(b"col1,col2\nval1,val2"), "text/csv")
@@ -615,3 +697,242 @@ async def test_cannot_create_multiple_callbacks_for_same_status(
 
     create_response = client.post("/public/v1/work-items/", json=create_payload)
     assert create_response.status_code == HTTPStatus.BAD_REQUEST.value
+
+
+@pytest.mark.asyncio
+async def test_work_item_request_remote_file_upload_new_work_item(
+    client: TestClient, file_manager_type
+):
+    """Test requesting remote file upload that creates a new work item."""
+    manager_type, manager = file_manager_type
+    skip_if_local_for_remote_tests(manager_type)
+
+    # Request upload without work_item_id (should create new one)
+    response = client.post(
+        "/public/v1/work-items/upload-file",
+        data={"file": "test.pdf"},  # String parameter for remote upload
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+
+    # Should return work item ID and upload details
+    assert "work_item_id" in data
+    assert "upload_url" in data
+    assert "upload_form_data" in data
+    assert "file_id" in data
+    assert "file_ref" in data
+
+    work_item_id = data["work_item_id"]
+
+    # Verify work item was created in PRECREATED state
+    get_response = client.get(f"/public/v1/work-items/{work_item_id}")
+    assert get_response.status_code == 200
+    work_item = get_response.json()
+    assert work_item["status"] == WorkItemStatus.PRECREATED.value
+    assert work_item["agent_id"] is None
+
+
+@pytest.mark.asyncio
+async def test_work_item_request_remote_file_upload_existing_work_item(
+    client: TestClient, file_manager_type
+):
+    """Test requesting remote file upload for existing work item."""
+    manager_type, manager = file_manager_type
+    skip_if_local_for_remote_tests(manager_type)
+
+    # First create a work item via file upload
+    response = client.post("/public/v1/work-items/upload-file", data={"file": "first.txt"})
+    assert response.status_code == 200
+    work_item_id = response.json()["work_item_id"]
+
+    # Request upload for existing work item
+    response = client.post(
+        f"/public/v1/work-items/upload-file?work_item_id={work_item_id}",
+        data={"file": "second.txt"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+
+    # Should return same work item ID
+    assert data["work_item_id"] == work_item_id
+    assert "upload_url" in data
+    assert "upload_form_data" in data
+    assert "file_id" in data
+    assert "file_ref" in data
+
+
+@pytest.mark.asyncio
+async def test_work_item_request_remote_file_upload_invalid_work_item(
+    client: TestClient, file_manager_type
+):
+    """Test requesting remote file upload for non-existent work item."""
+    manager_type, manager = file_manager_type
+    skip_if_local_for_remote_tests(manager_type)
+
+    fake_work_item_id = "00000000-0000-0000-0000-000000000000"
+
+    response = client.post(
+        f"/public/v1/work-items/upload-file?work_item_id={fake_work_item_id}",
+        data={"file": "test.txt"},
+    )
+
+    assert response.status_code == 404
+    assert "A work item with the given ID was not found" in response.json()["error"]["message"]
+
+
+@pytest.mark.asyncio
+async def test_work_item_request_remote_file_upload_non_precreated_work_item(
+    client: TestClient, seed_agents: list[Agent], file_manager_type
+):
+    """Test requesting remote file upload for work item not in PRECREATED state."""
+    manager_type, manager = file_manager_type
+    skip_if_local_for_remote_tests(manager_type)
+
+    # Create work item directly in PENDING state
+    payload = {
+        "agent_id": seed_agents[0].agent_id,
+        "messages": [{"role": "user", "content": [{"kind": "text", "text": "Test message"}]}],
+        "payload": {},
+    }
+
+    response = client.post("/public/v1/work-items/", json=payload)
+    assert response.status_code == 200
+    work_item_id = response.json()["work_item_id"]
+
+    # Try to request upload for PENDING work item
+    response = client.post(
+        f"/public/v1/work-items/upload-file?work_item_id={work_item_id}", data={"file": "test.txt"}
+    )
+
+    assert response.status_code == 400
+    assert (
+        "Files can only be attached to work-items in the PRECREATED state."
+        in response.json()["error"]["message"]
+    )
+
+
+@pytest.mark.asyncio
+async def test_work_item_confirm_remote_file_upload(client: TestClient, file_manager_type):
+    """Test confirming a remote file upload."""
+    manager_type, manager = file_manager_type
+    skip_if_local_for_remote_tests(manager_type)
+
+    # First request upload
+    response = client.post("/public/v1/work-items/upload-file", data={"file": "test.pdf"})
+    assert response.status_code == 200
+    data = response.json()
+    work_item_id = data["work_item_id"]
+    file_id = data["file_id"]
+    file_ref = data["file_ref"]
+
+    # Confirm the upload
+    confirm_payload = {"file_ref": file_ref, "file_id": file_id}
+
+    response = client.post(
+        f"/public/v1/work-items/{work_item_id}/confirm-file", json=confirm_payload
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["work_item_id"] == work_item_id
+
+
+@pytest.mark.asyncio
+async def test_work_item_confirm_remote_file_upload_missing_work_item(
+    client: TestClient, file_manager_type
+):
+    """Test confirming remote file upload for non-existent work item."""
+    manager_type, manager = file_manager_type
+    skip_if_local_for_remote_tests(manager_type)
+
+    fake_work_item_id = "00000000-0000-0000-0000-000000000000"
+
+    confirm_payload = {"file_ref": "test.pdf", "file_id": "fake-file-id"}
+
+    response = client.post(
+        f"/public/v1/work-items/{fake_work_item_id}/confirm-file", json=confirm_payload
+    )
+
+    assert response.status_code == 404
+    assert "A work item with the given ID was not found" in response.json()["error"]["message"]
+
+
+@pytest.mark.asyncio
+async def test_work_item_confirm_remote_file_upload_non_precreated_work_item(
+    client: TestClient, seed_agents: list[Agent], file_manager_type
+):
+    """Test confirming remote file upload for work item not in PRECREATED state."""
+    manager_type, manager = file_manager_type
+    skip_if_local_for_remote_tests(manager_type)
+
+    # Create work item directly in PENDING state
+    payload = {
+        "agent_id": seed_agents[0].agent_id,
+        "messages": [{"role": "user", "content": [{"kind": "text", "text": "Test message"}]}],
+        "payload": {},
+    }
+
+    response = client.post("/public/v1/work-items/", json=payload)
+    assert response.status_code == 200
+    work_item_id = response.json()["work_item_id"]
+
+    # Try to confirm upload for PENDING work item
+    confirm_payload = {"file_ref": "test.pdf", "file_id": "fake-file-id"}
+
+    response = client.post(
+        f"/public/v1/work-items/{work_item_id}/confirm-file", json=confirm_payload
+    )
+
+    assert response.status_code == 400
+    assert (
+        "Files can only be attached to work-items in the PRECREATED state."
+        in response.json()["error"]["message"]
+    )
+
+
+@pytest.mark.asyncio
+async def test_work_item_two_stage_file_upload_workflow(
+    client: TestClient, seed_agents: list[Agent], file_manager_type
+):
+    """Test complete two-stage file upload workflow: request -> upload -> confirm -> process."""
+    manager_type, manager = file_manager_type
+    skip_if_local_for_remote_tests(manager_type)
+
+    # 1. Request remote upload (creates work item)
+    response = client.post("/public/v1/work-items/upload-file", data={"file": "document.pdf"})
+    assert response.status_code == 200
+    upload_data = response.json()
+    work_item_id = upload_data["work_item_id"]
+
+    # 2. Simulate external upload (this would be done by client to cloud storage)
+    # In real workflow, client would upload to upload_data["upload_url"]
+    # with upload_data["form_data"]
+
+    # 3. Confirm the upload
+    confirm_payload = {"file_ref": upload_data["file_ref"], "file_id": upload_data["file_id"]}
+
+    response = client.post(
+        f"/public/v1/work-items/{work_item_id}/confirm-file", json=confirm_payload
+    )
+    assert response.status_code == 200
+
+    # 4. Convert work item to PENDING by adding agent and messages
+    payload = {
+        "agent_id": seed_agents[0].agent_id,
+        "messages": [
+            {"role": "user", "content": [{"kind": "text", "text": "Process this document"}]}
+        ],
+        "payload": {"task": "document_processing"},
+        "work_item_id": work_item_id,
+    }
+
+    response = client.post("/public/v1/work-items/", json=payload)
+    assert response.status_code == 200
+    work_item = response.json()
+
+    # Verify work item has agent and is PENDING
+    assert work_item["agent_id"] == seed_agents[0].agent_id
+    assert work_item["status"] == WorkItemStatus.PENDING.value
+    assert work_item["work_item_id"] == work_item_id

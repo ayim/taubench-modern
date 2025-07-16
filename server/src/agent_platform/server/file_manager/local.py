@@ -184,7 +184,7 @@ class LocalFileManager(BaseFileManager):
 
     async def request_remote_file_upload(
         self,
-        thread: Thread,
+        owner: Thread | WorkItem,
         file_name: str,
     ) -> RemoteFileUploadData:
         file_id = str(uuid4())
@@ -193,7 +193,7 @@ class LocalFileManager(BaseFileManager):
                 file_name,
             ],
         )
-        file_ref = await self.generate_unique_file_ref(thread, file_name)
+        file_ref = await self.generate_unique_file_ref(owner, file_name)
         url = self._build_file_url(file_id, file_ref)
         return RemoteFileUploadData(
             url=url,
@@ -204,7 +204,7 @@ class LocalFileManager(BaseFileManager):
 
     async def confirm_remote_file_upload(
         self,
-        thread: Thread,
+        owner: Thread | WorkItem,
         file_ref: str,
         file_id: str,
     ) -> UploadedFile:
@@ -215,17 +215,17 @@ class LocalFileManager(BaseFileManager):
             file_hash=MISSING_FILE_HASH,
             file_size_raw=0,
             mime_type="text/plain",
-            user_id=thread.user_id,
+            user_id=owner.user_id,
             embedded=False,
             embedding_status=None,
-            owner=thread,
+            owner=owner,
             file_path_expiration=None,
         )
         return file
 
     async def generate_unique_file_ref(
         self,
-        owner: Agent | Thread,
+        owner: Agent | Thread | WorkItem,
         file_name: str,
     ) -> str:
         from agent_platform.server.storage.errors import UniqueFileRefError

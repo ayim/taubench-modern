@@ -7,7 +7,9 @@ from fastapi.responses import StreamingResponse
 from structlog import get_logger
 
 from agent_platform.core.context import AgentServerContext
-from agent_platform.core.files import UploadedFile
+from agent_platform.core.files import (
+    UploadedFile,
+)
 from agent_platform.core.payloads import (
     AddThreadMessagePayload,
     ForkThreadPayload,
@@ -566,7 +568,7 @@ async def confirm_remote_file_upload(
         raise HTTPException(status_code=404, detail="Thread not found")
 
     file = await file_manager.confirm_remote_file_upload(
-        thread=thread, file_ref=payload.file_ref, file_id=payload.file_id
+        owner=thread, file_ref=payload.file_ref, file_id=payload.file_id
     )
     files = await file_manager.refresh_file_paths([file])
 
@@ -620,6 +622,6 @@ async def request_remote_file_upload(
         raise HTTPException(status_code=404, detail="Thread not found")
 
     response = await file_manager.request_remote_file_upload(
-        thread=thread, file_name=payload.file_name
+        owner=thread, file_name=payload.file_name
     )
     return response

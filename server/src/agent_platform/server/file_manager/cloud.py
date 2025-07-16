@@ -12,10 +12,13 @@ from fastapi import status
 
 from agent_platform.core.agent import Agent
 from agent_platform.core.configurations import Configuration, FieldMetadata
+from agent_platform.core.errors.base import PlatformHTTPError
+from agent_platform.core.errors.responses import ErrorCode
 from agent_platform.core.files import FileData, UploadedFile
 from agent_platform.core.payloads import UploadFilePayload
 from agent_platform.core.thread import Thread
 from agent_platform.core.work_items import WorkItem
+from agent_platform.server.constants import WORK_ITEMS_SYSTEM_USER_SUB
 from agent_platform.server.file_manager.base import (
     MISSING_FILE_HASH,
     BaseFileManager,
@@ -89,11 +92,29 @@ class CloudFileManager(BaseFileManager):
                 "fileName": file_name,
             },
         )
+        if response.status_code != status.HTTP_200_OK:
+            logger.error(
+                "Failed to get presigned URL. Received status_code=%s, expected=200.",
+                response.status_code,
+            )
+            if response.status_code == status.HTTP_404_NOT_FOUND:
+                raise PlatformHTTPError(
+                    error_code=ErrorCode.NOT_FOUND,
+                    status_code=response.status_code,
+                    message="File not found in cloud storage",
+                )
+            raise PlatformHTTPError(
+                error_code=ErrorCode.UNEXPECTED,
+                status_code=response.status_code,
+                message="Failed to get presigned URL",
+            )
+
         return response.json()["url"]
 
     async def _store(self, file_data: FileData, file_id: str) -> str:
         presigned_post = self._get_presigned_post(file_id)
         payload = presigned_post["form_data"]
+
         response = requests.post(
             presigned_post["url"],
             data=payload,
@@ -288,12 +309,12 @@ class CloudFileManager(BaseFileManager):
 
     async def request_remote_file_upload(
         self,
-        thread: Thread,
+        owner: Thread | WorkItem,
         file_name: str,
     ) -> RemoteFileUploadData:
         file_id = str(uuid4())
         self._validate_files_pre_upload([file_name])
-        file_ref = await self.generate_unique_file_ref(thread, file_name)
+        file_ref = await self.generate_unique_file_ref(owner, file_name)
         presigned_post = self._get_presigned_post(file_id)
         return RemoteFileUploadData(
             url=presigned_post["url"],
@@ -304,22 +325,31 @@ class CloudFileManager(BaseFileManager):
 
     async def confirm_remote_file_upload(
         self,
-        thread: Thread,
+        owner: Thread | WorkItem,
         file_ref: str,
         file_id: str,
     ) -> UploadedFile:
+        if isinstance(owner, WorkItem):
+            system_user, _ = await self.storage.get_or_create_user(WORK_ITEMS_SYSTEM_USER_SUB)
+            user_id = system_user.user_id
+        else:
+            user_id = owner.user_id
+
+        # Get the presigned download URL for the file
+        refreshed_file_path = self._get_presigned_url(file_id, file_ref)
+
         file = await self.storage.put_file_owner(
             file_id=file_id,
-            file_path=None,
+            file_path=refreshed_file_path,
             file_ref=file_ref,
             file_hash=MISSING_FILE_HASH,
             file_size_raw=0,
             mime_type="text/plain",
-            user_id=thread.user_id,
+            user_id=user_id,
             embedded=False,
             embedding_status=None,
-            owner=thread,
-            file_path_expiration=datetime.now(UTC),
+            owner=owner,
+            file_path_expiration=self._get_file_path_expiration(),
         )
         return file
 

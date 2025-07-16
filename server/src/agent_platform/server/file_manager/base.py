@@ -125,7 +125,7 @@ class BaseFileManager(ABC):
     @abstractmethod
     async def request_remote_file_upload(
         self,
-        thread: Thread,
+        owner: Thread | WorkItem,
         file_name: str,
     ) -> RemoteFileUploadData:
         pass
@@ -133,7 +133,7 @@ class BaseFileManager(ABC):
     @abstractmethod
     async def confirm_remote_file_upload(
         self,
-        thread: Thread,
+        owner: Thread | WorkItem,
         file_ref: str,
         file_id: str,
     ) -> UploadedFile:

@@ -12,9 +12,11 @@ from agent_platform.core.payloads.create_work_item import (
 from agent_platform.core.thread.base import ThreadMessage
 from agent_platform.core.work_items.work_item import WorkItem, WorkItemCallback, WorkItemStatus
 from agent_platform.server.api.dependencies import FileManagerDependency, StorageDependency
+from agent_platform.server.api.private_v2.threads import (
+    ConfirmRemoteFileUploadPayload,
+)
 from agent_platform.server.auth import AuthedUser
-from agent_platform.server.constants import SystemConfig
-from agent_platform.server.work_items.settings import WORK_ITEMS_SYSTEM_USER_SUB
+from agent_platform.server.constants import WORK_ITEMS_SYSTEM_USER_SUB, SystemConfig
 
 
 def _require_workitems_enabled():
@@ -121,37 +123,100 @@ async def get_work_item(
     return work_item
 
 
+@router.post("/{work_item_id}/confirm-file")
+async def confirm_file(
+    work_item_id: str,
+    payload: ConfirmRemoteFileUploadPayload,
+    user: AuthedUser,
+    storage: StorageDependency,
+    file_manager: FileManagerDependency,
+) -> dict[str, str]:
+    """Confirm a remote file upload to a work item."""
+    # 1. Ensure the work_item exists
+    work_item = await storage.get_work_item(work_item_id)
+    if not work_item:
+        raise PlatformHTTPError(ErrorCode.NOT_FOUND, "Work item not found")
+
+    if work_item.status != WorkItemStatus.PRECREATED:
+        raise PlatformHTTPError(
+            ErrorCode.BAD_REQUEST,
+            f"Files can only be attached to work-items in the PRECREATED state."
+            f" Currently in {work_item.status}",
+        )
+
+    # Check for duplicate file names
+    system_user, _ = await storage.get_or_create_user(WORK_ITEMS_SYSTEM_USER_SUB)
+    existing_files = await storage.get_workitem_files(work_item.work_item_id, system_user.user_id)
+    for f in existing_files:
+        if f.file_ref == payload.file_ref:
+            raise PlatformHTTPError(
+                ErrorCode.BAD_REQUEST,
+                f"File {f.file_ref} already exists in work item {work_item.work_item_id}",
+            )
+
+    # 2. Call file_manager.confirm_remote_file_upload
+    await file_manager.confirm_remote_file_upload(
+        owner=work_item, file_ref=payload.file_ref, file_id=payload.file_id
+    )
+
+    # 3. Return the work_item_id
+    return {"work_item_id": work_item_id}
+
+
 @router.post("/upload-file")
 async def upload_work_item_file(
-    file: UploadFile,
+    file: UploadFile | str,
     user: AuthedUser,
     storage: StorageDependency,
     file_manager: FileManagerDependency,
     work_item_id: str | None = None,
-) -> dict[str, str]:
+) -> dict[str, str | dict]:
     """Upload a file to a work item. If a work_item_id is not provided, a new one is created."""
+    # Check if this is a request for remote file upload (no actual file data)
+    if isinstance(file, str):
+        # This is a request for presigned URL, not direct upload
+        if work_item_id is None:
+            # Create a new work item in PRECREATED state
+            work_item = await _create_stub_work_item(user.user_id, storage)
+        else:
+            work_item = await storage.get_work_item(work_item_id)
+            if not work_item:
+                raise PlatformHTTPError(ErrorCode.NOT_FOUND, "Work item not found")
+            if work_item.status != WorkItemStatus.PRECREATED:
+                raise PlatformHTTPError(
+                    ErrorCode.BAD_REQUEST,
+                    f"Files can only be attached to work-items in the PRECREATED state."
+                    f" Currently in {work_item.status}",
+                )
+
+        # Request remote file upload from file manager
+        remote_upload_data = await file_manager.request_remote_file_upload(work_item, file)
+
+        return {
+            "work_item_id": work_item.work_item_id,
+            "upload_url": remote_upload_data.url,
+            "upload_form_data": remote_upload_data.form_data,
+            "file_id": remote_upload_data.file_id,
+            "file_ref": remote_upload_data.file_ref,
+        }
+
+    # We have a file directly included in the POST. Upload it and add it to the work_item.
     logger.info(f"Uploading file {file.filename} to work item {work_item_id}")
     if work_item_id:
         logger.info(f"Work item ID provided: {work_item_id}")
         if (work_item := await storage.get_work_item(work_item_id)) is None:
-            raise HTTPException(status_code=404, detail="Work item not found")
+            raise PlatformHTTPError(ErrorCode.NOT_FOUND, "Work item not found")
         if work_item.status != WorkItemStatus.PRECREATED:
-            raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST.value,
-                detail="Work item is not in precreated state",
+            raise PlatformHTTPError(
+                ErrorCode.BAD_REQUEST,
+                f"Files can only be attached to work-items in the PRECREATED state."
+                f" Currently in {work_item.status}",
             )
         logger.info(f"Work item ID from work item: {work_item.work_item_id}")
     else:
         logger.info("No work item ID provided")
         # Stub creation
-        work_item = WorkItem(
-            user_id=user.user_id,
-            messages=[],
-            payload={},
-            work_item_id=str(uuid4()),
-            status=WorkItemStatus.PRECREATED,
-        )
-        await storage.create_work_item(work_item)
+        work_item = await _create_stub_work_item(user.user_id, storage)
 
     # A real user uploads the file, but we store it in the file_owners table as the system_user.
     system_user, _ = await storage.get_or_create_user(WORK_ITEMS_SYSTEM_USER_SUB)
@@ -161,9 +226,9 @@ async def upload_work_item_file(
     existing_files = await storage.get_workitem_files(work_item.work_item_id, system_user.user_id)
     for f in existing_files:
         if f.file_ref == file.filename:
-            raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST.value,
-                detail=f"File {f.file_ref} already exists in work item {work_item.work_item_id}",
+            raise PlatformHTTPError(
+                ErrorCode.BAD_REQUEST,
+                f"File {f.file_ref} already exists in work item {work_item.work_item_id}",
             )
     upload_request = [UploadFilePayload(file=file)]
     await file_manager.upload(upload_request, work_item, system_user.user_id)
@@ -221,3 +286,15 @@ async def cancel_item(
 ):
     await storage.update_work_item_status(user.user_id, work_item_id, WorkItemStatus.CANCELLED)
     return {"status": "ok"}
+
+
+async def _create_stub_work_item(user_id: str, storage: StorageDependency) -> WorkItem:
+    work_item = WorkItem(
+        work_item_id=str(uuid4()),
+        user_id=user_id,
+        status=WorkItemStatus.PRECREATED,
+        messages=[],
+        payload={},
+    )
+    await storage.create_work_item(work_item)
+    return work_item

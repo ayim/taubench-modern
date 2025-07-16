@@ -34,41 +34,44 @@ def is_port_in_use(port: int) -> bool:
 @pytest.fixture(scope="session")
 def cloud_server():
     """Start the cloud server for testing if not already running."""
+    server_process = None
+
     if is_port_in_use(8001):
         print("Cloud server already running on port 8001")
-        yield "http://localhost:8001"
-        return
+    else:
+        print("Starting cloud server on port 8001")
+        server_process = subprocess.Popen(
+            [sys.executable, str(CLOUD_SERVER_PATH)],
+            env={**os.environ, "PYTHONUNBUFFERED": "1"},
+        )
 
-    print("Starting cloud server on port 8001")
-    server_process = subprocess.Popen(
-        [sys.executable, str(CLOUD_SERVER_PATH)],
-        env={**os.environ, "PYTHONUNBUFFERED": "1"},
-    )
+        # Wait for the server to start
+        time.sleep(2)  # Give the server time to start
 
-    # Wait for the server to start
-    time.sleep(2)  # Give the server time to start
+        # Check if server is running
+        try:
+            requests.get("http://localhost:8001")
+        except requests.ConnectionError as e:
+            server_process.terminate()
+            server_process.wait()
+            raise Exception("Cloud server failed to start") from e
 
-    # Check if server is running
     try:
-        requests.get("http://localhost:8001")
-    except requests.ConnectionError as e:
-        server_process.terminate()
-        server_process.wait()
-        raise Exception("Cloud server failed to start") from e
+        yield "http://localhost:8001"
+    finally:
+        # Always clean up temp_uploads directory (regardless of who started the server)
+        temp_uploads_dir = Path(CLOUD_SERVER_PATH).parent / "temp_uploads"
+        if temp_uploads_dir.exists():
+            import shutil
 
-    yield "http://localhost:8001"
+            shutil.rmtree(temp_uploads_dir)
+            print("Cleaned up temp_uploads directory")
 
-    # Cleanup: terminate the server only if we started it
-    server_process.send_signal(signal.SIGTERM)
-    server_process.wait()
-
-    # Clean up the temp_uploads directory
-    temp_uploads_dir = Path(CLOUD_SERVER_PATH).parent / "temp_uploads"
-    if temp_uploads_dir.exists():
-        import shutil
-
-        shutil.rmtree(temp_uploads_dir)
-        print("Cleaned up temp_uploads directory")
+        # Only terminate the server if we started it
+        if server_process:
+            server_process.send_signal(signal.SIGTERM)
+            server_process.wait()
+            print("Terminated cloud server")
 
 
 def _file_uploads_with_existing_thread(

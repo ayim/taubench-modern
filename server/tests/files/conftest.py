@@ -54,9 +54,8 @@ def openai_api_key():
 
 
 def _get_base_url(tmpdir, logs_dir, files_location, env_vars):
-    # Set environment variables
-    for key, value in env_vars.items():
-        os.environ[key] = str(value)
+    # Use patch.dict to properly isolate environment variables
+    from unittest.mock import patch
 
     # Set INTEGRATION_TEST_START_SERVER to true by default (it should be
     # possible to anyone to get the project and run "make test-integration"
@@ -68,15 +67,18 @@ def _get_base_url(tmpdir, logs_dir, files_location, env_vars):
         agent_server_data_dir = Path(tmpdir) / "agent_server_data"
         agent_server_data_dir.mkdir(parents=True, exist_ok=True)
         agent_server_process = AgentServerProcess(datadir=agent_server_data_dir)
-        agent_server_process.start(
-            logs_dir=logs_dir,
-            timeout=10 * 60,
-            env=env_vars,
-        )
-        try:
-            yield f"http://{agent_server_process.host}:{agent_server_process.port}"
-        finally:
-            agent_server_process.stop()
+
+        # Use patch.dict to isolate environment variables
+        with patch.dict(os.environ, env_vars):
+            agent_server_process.start(
+                logs_dir=logs_dir,
+                timeout=10 * 60,
+                env=env_vars,
+            )
+            try:
+                yield f"http://{agent_server_process.host}:{agent_server_process.port}"
+            finally:
+                agent_server_process.stop()
     else:
         host = os.getenv("API_HOST", "localhost")
         port = os.getenv("API_PORT", "8000")
@@ -87,6 +89,7 @@ def _get_base_url(tmpdir, logs_dir, files_location, env_vars):
 def base_url_agent_server_sqlite(tmpdir, logs_dir, files_location):
     env_vars = {
         "S4_AGENT_SERVER_DB_TYPE": "sqlite",
+        "S4_AGENT_SERVER_FILE_MANAGER_TYPE": "local",  # Explicitly use local file manager
     }
     yield from _get_base_url(tmpdir, logs_dir, files_location, env_vars)
 
@@ -99,6 +102,7 @@ def base_url_agent_server_postgres(tmpdir, logs_dir, files_location):
         "POSTGRES_DB": "agent-server",
         "POSTGRES_USER": "postgres",
         "POSTGRES_PASSWORD": "postgres",
+        "S4_AGENT_SERVER_FILE_MANAGER_TYPE": "local",  # Explicitly use local file manager
     }
     yield from _get_base_url(tmpdir, logs_dir, files_location, env_vars)
 

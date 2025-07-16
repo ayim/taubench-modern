@@ -39,6 +39,9 @@ async def handle_presigned_post(request: PresignedPostRequest):
     Endpoint for getting presigned POST URL
     Called by CFM's _get_presigned_post method
     """
+    # Ensure upload directory exists
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+
     log(f"Generating presigned POST URL for file ID: {request.fileId}")
     token = jwt.encode(
         {"fileId": request.fileId, "exp": int(time.time()) + request.expiresIn},
@@ -58,6 +61,9 @@ async def handle_presigned_url(fileId: str, fileName: str, expiresIn: int):  # n
     Endpoint for getting presigned download URL
     Called by CFM's _get_presigned_url method
     """
+    # Ensure upload directory exists
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+
     log(f"Generating presigned URL for file: {fileName} (ID: {fileId})")
     if not os.path.exists(os.path.join(UPLOAD_DIR, fileId)):
         raise HTTPException(status_code=404, detail="File not found")
@@ -81,6 +87,9 @@ async def handle_delete(request: Request):
     Endpoint for file deletion
     Called by CFM's _delete_stored_file method
     """
+    # Ensure upload directory exists
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+
     data = await request.json()
     file_id = data.get("fileId")
     log(f"Deleting file: {file_id}")
@@ -112,6 +121,9 @@ async def handle_upload(
         jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
         log(f"Handling file upload for ID: {fileId}")
 
+        # Ensure upload directory exists (in case it was cleaned up)
+        os.makedirs(UPLOAD_DIR, exist_ok=True)
+
         file_path = os.path.join(UPLOAD_DIR, fileId)
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
@@ -137,6 +149,9 @@ async def handle_download(fileId: str, token: str):  # noqa: N803
         # Verify token
         jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
         log(f"Handling file download for ID: {fileId}")
+
+        # Ensure upload directory exists
+        os.makedirs(UPLOAD_DIR, exist_ok=True)
 
         file_path = os.path.join(UPLOAD_DIR, fileId)
         if not os.path.exists(file_path):

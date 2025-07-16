@@ -11,6 +11,9 @@ from httpx import AsyncClient
 from agent_platform.core.work_items import WorkItemStatus
 from agent_platform.core.work_items.work_item import WorkItem
 
+# Import cloud server fixture for file upload tests
+from server.tests.files.test_api_endpoints_cloud import cloud_server  # noqa: F401
+
 # ---------------------------------------------------------------------------
 # Helpers / fixtures
 # ---------------------------------------------------------------------------
@@ -60,10 +63,19 @@ async def _wait_until(cond, interval: float = 1.0, timeout: float = 30):
 @pytest.mark.integration
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
 @pytest.mark.asyncio
-async def test_full_workflow_integration(base_url_agent_server_with_work_items: str, agent_id: str):
+@pytest.mark.parametrize(
+    "base_url_fixture",
+    [
+        "base_url_agent_server_sqlite_workitems",
+        "base_url_agent_server_postgres_workitems",
+    ],
+)
+async def test_full_workflow_integration(base_url_fixture: str, request, agent_id: str):
     """E2E: create --> describe --> list --> cancel on work-items endpoints."""
 
-    work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
+    url = request.getfixturevalue(base_url_fixture)
+    work_items_url = f"{url}/api/public/v1/work-items"
+    print(f"work_items_url: {work_items_url}")
 
     async with AsyncClient(base_url=work_items_url) as client:
         # 1. Create
@@ -133,10 +145,18 @@ async def test_full_workflow_integration(base_url_agent_server_with_work_items: 
 @pytest.mark.integration
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
 @pytest.mark.asyncio
-async def test_process_single_work_item(base_url_agent_server_with_work_items: str, agent_id: str):
+@pytest.mark.parametrize(
+    "base_url_fixture",
+    [
+        "base_url_agent_server_sqlite_workitems",
+        "base_url_agent_server_postgres_workitems",
+    ],
+)
+async def test_process_single_work_item(base_url_fixture: str, request, agent_id: str):
     """Create a work item and wait until background worker marks it COMPLETED."""
 
-    work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
+    url = request.getfixturevalue(base_url_fixture)
+    work_items_url = f"{url}/api/public/v1/work-items"
 
     async with AsyncClient(base_url=work_items_url) as client:
         resp = await client.post(
@@ -171,11 +191,19 @@ async def test_process_single_work_item(base_url_agent_server_with_work_items: s
 @pytest.mark.integration
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
 @pytest.mark.asyncio
-async def test_batch_processing(base_url_agent_server_with_work_items: str, agent_id: str):
+@pytest.mark.parametrize(
+    "base_url_fixture",
+    [
+        "base_url_agent_server_sqlite_workitems",
+        "base_url_agent_server_postgres_workitems",
+    ],
+)
+async def test_batch_processing(base_url_fixture: str, request, agent_id: str):
     """Create multiple work items and ensure they all complete."""
 
+    url = request.getfixturevalue(base_url_fixture)
+    work_items_url = f"{url}/api/public/v1/work-items"
     num_items = 5
-    work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
 
     async with AsyncClient(base_url=work_items_url) as client:
         work_item_ids = []
@@ -225,14 +253,19 @@ async def test_batch_processing(base_url_agent_server_with_work_items: str, agen
 @pytest.mark.skip(reason="Skipping this test until cancelled work items are handled correctly")
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
 @pytest.mark.asyncio
-async def test_batch_processing_with_errors(
-    base_url_agent_server_with_work_items: str,
-    agent_id: str,
-):
+@pytest.mark.parametrize(
+    "base_url_fixture",
+    [
+        "base_url_agent_server_sqlite_workitems",
+        "base_url_agent_server_postgres_workitems",
+    ],
+)
+async def test_batch_processing_with_errors(base_url_fixture: str, request, agent_id: str):
     """Create a batch, cancel a subset, and verify mixed statuses (COMPLETED & CANCELLED)."""
 
+    url = request.getfixturevalue(base_url_fixture)
+    work_items_url = f"{url}/api/public/v1/work-items"
     total_items = 5
-    work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
 
     async with AsyncClient(base_url=work_items_url) as client:
         work_item_ids: list[str] = []
@@ -290,12 +323,19 @@ async def test_batch_processing_with_errors(
 @pytest.mark.integration
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "base_url_fixture",
+    [
+        "base_url_agent_server_sqlite_workitems",
+        "base_url_agent_server_postgres_workitems",
+    ],
+)
 async def test_process_single_work_item__failed_success_validation(
-    base_url_agent_server_with_work_items: str, openai_api_key: str, agent_id: str
+    base_url_fixture: str, request, openai_api_key: str, agent_id: str
 ):
     """Create a work item and wait until background worker marks it NEEDS_REVIEW."""
-
-    work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
+    url = request.getfixturevalue(base_url_fixture)
+    work_items_url = f"{url}/api/public/v1/work-items"
 
     async with AsyncClient(base_url=work_items_url) as client:
         resp = await client.post(
@@ -329,8 +369,16 @@ async def test_process_single_work_item__failed_success_validation(
 @pytest.mark.integration
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
 @pytest.mark.asyncio
-async def test_process_single_work_item__with_calculation_tool(
-    base_url_agent_server_with_work_items: str,
+@pytest.mark.parametrize(
+    "base_url_fixture",
+    [
+        "base_url_agent_server_sqlite_workitems",
+        "base_url_agent_server_postgres_workitems",
+    ],
+)
+async def test_process_single_work_item__with_calculation_tool(  # noqa: PLR0913
+    base_url_fixture: str,
+    request,
     openai_api_key: str,
     action_server_process,
     logs_dir,
@@ -362,7 +410,10 @@ async def test_process_single_work_item__with_calculation_tool(
     )
     url = f"http://{action_server_process.host}:{action_server_process.port}"
 
-    with AgentServerClient(base_url_agent_server_with_work_items) as agent_client:
+    url_agent_server = request.getfixturevalue(base_url_fixture)
+    work_items_url = f"{url_agent_server}/api/public/v1/work-items"
+
+    with AgentServerClient(url_agent_server) as agent_client:
         agent_id = agent_client.create_agent_and_return_agent_id(
             platform_configs=[{"kind": "openai", "openai_api_key": openai_api_key}],
             action_packages=[
@@ -379,8 +430,6 @@ async def test_process_single_work_item__with_calculation_tool(
             runbook="You are a helpful assistant that solves math problems. "
             "Always use the calculate tool for mathematical operations.",
         )
-
-        work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
 
         async with AsyncClient(base_url=work_items_url) as client:
             resp = await client.post(
@@ -451,16 +500,23 @@ async def test_process_single_work_item__with_calculation_tool(
 @pytest.mark.integration
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
 @pytest.mark.asyncio
-async def test_work_item_validation_completed(
-    base_url_agent_server_with_work_items: str, openai_api_key: str
-):
+@pytest.mark.parametrize(
+    "base_url_fixture",
+    [
+        "base_url_agent_server_sqlite_workitems",
+        "base_url_agent_server_postgres_workitems",
+    ],
+)
+async def test_work_item_validation_completed(base_url_fixture: str, request, openai_api_key: str):
     """Test end-to-end work item validation with a simple task that should be marked as COMPLETED.
 
     This test verifies that the work item validation logic correctly processes
     simple, straightforward tasks and marks them as successfully completed.
     """
+    url_agent_server = request.getfixturevalue(base_url_fixture)
+    work_items_url = f"{url_agent_server}/api/public/v1/work-items"
 
-    with AgentServerClient(base_url_agent_server_with_work_items) as agent_client:
+    with AgentServerClient(url_agent_server) as agent_client:
         # Create an agent with a simple successful task
         agent_id = agent_client.create_agent_and_return_agent_id(
             platform_configs=[{"kind": "openai", "openai_api_key": openai_api_key}],
@@ -469,8 +525,6 @@ async def test_work_item_validation_completed(
                 "Be concise and complete your tasks fully."
             ),
         )
-
-        work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
 
         async with AsyncClient(base_url=work_items_url) as client:
             # Create a work item with a simple, clearly completable task
@@ -517,16 +571,25 @@ async def test_work_item_validation_completed(
 @pytest.mark.integration
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "base_url_fixture",
+    [
+        "base_url_agent_server_sqlite_workitems",
+        "base_url_agent_server_postgres_workitems",
+    ],
+)
 async def test_work_item_validation_needs_review(
-    base_url_agent_server_with_work_items: str, openai_api_key: str
+    base_url_fixture: str, request, openai_api_key: str
 ):
     """Test end-to-end work item validation with a task that should result in NEEDS_REVIEW.
 
     This test verifies that the work item validation logic correctly identifies
     incomplete or uncertain responses that require human review.
     """
+    url_agent_server = request.getfixturevalue(base_url_fixture)
+    work_items_url = f"{url_agent_server}/api/public/v1/work-items"
 
-    with AgentServerClient(base_url_agent_server_with_work_items) as agent_client:
+    with AgentServerClient(url_agent_server) as agent_client:
         # Create an agent that will struggle with complex analysis
         agent_id = agent_client.create_agent_and_return_agent_id(
             platform_configs=[{"kind": "openai", "openai_api_key": openai_api_key}],
@@ -536,8 +599,6 @@ async def test_work_item_validation_needs_review(
                 "you should express uncertainty and request human assistance."
             ),
         )
-
-        work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
 
         async with AsyncClient(base_url=work_items_url) as client:
             # Create a work item that requires complex analysis the agent cannot complete
@@ -652,8 +713,15 @@ async def _count_work_item_statuses(client, simple_results, problematic_results)
 @pytest.mark.integration
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "base_url_fixture",
+    [
+        "base_url_agent_server_sqlite_workitems",
+        "base_url_agent_server_postgres_workitems",
+    ],
+)
 async def test_work_item_validation_behavior_with_simple_tasks(
-    base_url_agent_server_with_work_items: str, openai_api_key: str
+    base_url_fixture: str, request, openai_api_key: str
 ):
     """Test work item validation behavior across multiple task types.
 
@@ -661,14 +729,15 @@ async def test_work_item_validation_behavior_with_simple_tasks(
     of tasks and produces reasonable classifications.
     """
 
-    with AgentServerClient(base_url_agent_server_with_work_items) as agent_client:
+    url_agent_server = request.getfixturevalue(base_url_fixture)
+    work_items_url = f"{url_agent_server}/api/public/v1/work-items"
+
+    with AgentServerClient(url_agent_server) as agent_client:
         # Create an agent for simple tasks
         agent_id = agent_client.create_agent_and_return_agent_id(
             platform_configs=[{"kind": "openai", "openai_api_key": openai_api_key}],
             runbook="You are a helpful assistant. Complete tasks as requested.",
         )
-
-        work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
 
         # Test cases that should generally be COMPLETED
         simple_tasks = ["List three colors", "Count from 1 to 5", "Say 'task complete'"]
@@ -709,16 +778,25 @@ async def test_work_item_validation_behavior_with_simple_tasks(
 @pytest.mark.integration
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "base_url_fixture",
+    [
+        "base_url_agent_server_sqlite_workitems",
+        "base_url_agent_server_postgres_workitems",
+    ],
+)
 async def test_work_item_validation_needs_review_missing_tools(
-    base_url_agent_server_with_work_items: str, openai_api_key: str
+    base_url_fixture: str, request, openai_api_key: str
 ):
     """Test work item validation with a task requiring tools the agent doesn't have.
 
     This test verifies that when an agent is asked to perform actions it cannot
     complete due to missing tools or capabilities, it gets marked as NEEDS_REVIEW.
     """
+    url_agent_server = request.getfixturevalue(base_url_fixture)
+    work_items_url = f"{url_agent_server}/api/public/v1/work-items"
 
-    with AgentServerClient(base_url_agent_server_with_work_items) as agent_client:
+    with AgentServerClient(url_agent_server) as agent_client:
         # Create an agent without any action packages/tools
         agent_id = agent_client.create_agent_and_return_agent_id(
             platform_configs=[{"kind": "openai", "openai_api_key": openai_api_key}],
@@ -728,8 +806,6 @@ async def test_work_item_validation_needs_review_missing_tools(
                 "state that you cannot complete the task and request human assistance."
             ),
         )
-
-        work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
 
         async with AsyncClient(base_url=work_items_url) as client:
             # Create a work item that requires sending an email (which requires tools)
@@ -780,16 +856,25 @@ async def test_work_item_validation_needs_review_missing_tools(
 @pytest.mark.integration
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "base_url_fixture",
+    [
+        "base_url_agent_server_sqlite_workitems",
+        "base_url_agent_server_postgres_workitems",
+    ],
+)
 async def test_work_item_validation_needs_review_incomplete_task(
-    base_url_agent_server_with_work_items: str, openai_api_key: str
+    base_url_fixture: str, request, openai_api_key: str
 ):
     """Test work item validation with an incomplete or ambiguous task.
 
     This test verifies that when an agent receives contradictory or incomplete
     instructions, it requests clarification and gets marked as NEEDS_REVIEW.
     """
+    url_agent_server = request.getfixturevalue(base_url_fixture)
+    work_items_url = f"{url_agent_server}/api/public/v1/work-items"
 
-    with AgentServerClient(base_url_agent_server_with_work_items) as agent_client:
+    with AgentServerClient(url_agent_server) as agent_client:
         # Create an agent that should ask for clarification on ambiguous tasks
         agent_id = agent_client.create_agent_and_return_agent_id(
             platform_configs=[{"kind": "openai", "openai_api_key": openai_api_key}],
@@ -799,8 +884,6 @@ async def test_work_item_validation_needs_review_incomplete_task(
                 "rather than making assumptions. Request human input when needed."
             ),
         )
-
-        work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
 
         async with AsyncClient(base_url=work_items_url) as client:
             # Create a work item with contradictory/incomplete instructions
@@ -854,12 +937,20 @@ async def test_work_item_validation_needs_review_incomplete_task(
 @pytest.mark.postgresql
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
 @pytest.mark.asyncio
-async def test_work_item_file_upload_workflow(
-    base_url_agent_server_with_work_items: str, agent_id: str
-):
+@pytest.mark.parametrize(
+    "base_url_fixture",
+    [
+        "base_url_agent_server_sqlite_workitems",
+        "base_url_agent_server_postgres_workitems",
+        "base_url_agent_server_sqlite_workitems_cloud",
+        "base_url_agent_server_postgres_workitems_cloud",
+    ],
+)
+async def test_work_item_file_upload_workflow(base_url_fixture: str, request, agent_id: str):
     """Test complete workflow: upload files → create work item → verify files copied to thread."""
 
-    work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
+    url_agent_server = request.getfixturevalue(base_url_fixture)
+    work_items_url = f"{url_agent_server}/api/public/v1/work-items"
 
     async with AsyncClient(base_url=work_items_url) as client:
         # 1. Upload first file (creates work item in PRECREATED state)
@@ -952,12 +1043,22 @@ async def test_work_item_file_upload_workflow(
 @pytest.mark.postgresql
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "base_url_fixture",
+    [
+        "base_url_agent_server_sqlite_workitems",
+        "base_url_agent_server_postgres_workitems",
+        "base_url_agent_server_sqlite_workitems_cloud",
+        "base_url_agent_server_postgres_workitems_cloud",
+    ],
+)
 async def test_work_item_file_upload_duplicate_handling(
-    base_url_agent_server_with_work_items: str, agent_id: str
+    base_url_fixture: str, request, agent_id: str
 ):
     """Test that duplicate file names are properly rejected."""
 
-    work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
+    url_agent_server = request.getfixturevalue(base_url_fixture)
+    work_items_url = f"{url_agent_server}/api/public/v1/work-items"
 
     async with AsyncClient(base_url=work_items_url) as client:
         # Upload first file
@@ -982,12 +1083,22 @@ async def test_work_item_file_upload_duplicate_handling(
 @pytest.mark.integration
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "base_url_fixture",
+    [
+        "base_url_agent_server_sqlite_workitems",
+        "base_url_agent_server_postgres_workitems",
+        "base_url_agent_server_sqlite_workitems_cloud",
+        "base_url_agent_server_postgres_workitems_cloud",
+    ],
+)
 async def test_work_item_file_upload_state_validation(
-    base_url_agent_server_with_work_items: str, agent_id: str
+    base_url_fixture: str, request, agent_id: str
 ):
     """Test that files can only be uploaded to PRECREATED work items."""
 
-    work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
+    url_agent_server = request.getfixturevalue(base_url_fixture)
+    work_items_url = f"{url_agent_server}/api/public/v1/work-items"
 
     async with AsyncClient(base_url=work_items_url) as client:
         # Create work item directly in PENDING state (with agent)
@@ -1019,18 +1130,26 @@ async def test_work_item_file_upload_state_validation(
         )
         assert upload_resp.status_code == 400
         error_msg = upload_resp.json()["error"]["message"]
-        assert "not in precreated state" in error_msg.lower()
+        assert "Files can only be attached to work-items in the PRECREATED state." in error_msg
 
 
 @pytest.mark.integration
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
 @pytest.mark.asyncio
-async def test_work_item_file_upload_nonexistent_work_item(
-    base_url_agent_server_with_work_items: str,
-):
+@pytest.mark.parametrize(
+    "base_url_fixture",
+    [
+        "base_url_agent_server_sqlite_workitems",
+        "base_url_agent_server_postgres_workitems",
+        "base_url_agent_server_sqlite_workitems_cloud",
+        "base_url_agent_server_postgres_workitems_cloud",
+    ],
+)
+async def test_work_item_file_upload_nonexistent_work_item(base_url_fixture: str, request):
     """Test uploading to non-existent work item returns proper error."""
 
-    work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
+    url_agent_server = request.getfixturevalue(base_url_fixture)
+    work_items_url = f"{url_agent_server}/api/public/v1/work-items"
     fake_work_item_id = "00000000-0000-0000-0000-000000000000"
 
     async with AsyncClient(base_url=work_items_url) as client:
@@ -1048,12 +1167,22 @@ async def test_work_item_file_upload_nonexistent_work_item(
 @pytest.mark.postgresql
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "base_url_fixture",
+    [
+        "base_url_agent_server_sqlite_workitems",
+        "base_url_agent_server_postgres_workitems",
+        "base_url_agent_server_sqlite_workitems_cloud",
+        "base_url_agent_server_postgres_workitems_cloud",
+    ],
+)
 async def test_work_item_multiple_file_types_processing(
-    base_url_agent_server_with_work_items: str, agent_id: str
+    base_url_fixture: str, request, agent_id: str
 ):
     """Test processing work item with multiple file types."""
 
-    work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
+    url_agent_server = request.getfixturevalue(base_url_fixture)
+    work_items_url = f"{url_agent_server}/api/public/v1/work-items"
 
     async with AsyncClient(base_url=work_items_url) as client:
         # Upload different file types
@@ -1133,12 +1262,20 @@ async def test_work_item_multiple_file_types_processing(
 @pytest.mark.postgresql
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
 @pytest.mark.asyncio
-async def test_work_item_batch_file_processing(
-    base_url_agent_server_with_work_items: str, agent_id: str
-):
+@pytest.mark.parametrize(
+    "base_url_fixture",
+    [
+        "base_url_agent_server_sqlite_workitems",
+        "base_url_agent_server_postgres_workitems",
+        "base_url_agent_server_sqlite_workitems_cloud",
+        "base_url_agent_server_postgres_workitems_cloud",
+    ],
+)
+async def test_work_item_batch_file_processing(base_url_fixture: str, request, agent_id: str):
     """Test batch processing of multiple work items with files."""
 
-    work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
+    url_agent_server = request.getfixturevalue(base_url_fixture)
+    work_items_url = f"{url_agent_server}/api/public/v1/work-items"
     num_work_items = 3
 
     async with AsyncClient(base_url=work_items_url) as client:
@@ -1214,7 +1351,16 @@ async def test_work_item_batch_file_processing(
 @pytest.mark.postgresql
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
 @pytest.mark.asyncio
-async def test_work_item_file_ownership(base_url_agent_server_with_work_items: str, agent_id: str):
+@pytest.mark.parametrize(
+    "base_url_fixture",
+    [
+        "base_url_agent_server_sqlite_workitems",
+        "base_url_agent_server_postgres_workitems",
+        "base_url_agent_server_sqlite_workitems_cloud",
+        "base_url_agent_server_postgres_workitems_cloud",
+    ],
+)
+async def test_work_item_file_ownership(base_url_fixture: str, request, agent_id: str):  # noqa: PLR0915
     """
     Verify complete file ownership workflow from upload
     through processing, including system user ownership and proper file associations.
@@ -1225,7 +1371,8 @@ async def test_work_item_file_ownership(base_url_agent_server_with_work_items: s
     - Multiple files are handled properly
     - Complete workflow: PRECREATED → PENDING → COMPLETED
     """
-    work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
+    url_agent_server = request.getfixturevalue(base_url_fixture)
+    work_items_url = f"{url_agent_server}/api/public/v1/work-items"
 
     async with AsyncClient(base_url=work_items_url) as client:
         # 1. Upload multiple files to test both system user ownership and associate_work_item_file
@@ -1336,6 +1483,438 @@ async def test_work_item_file_ownership(base_url_agent_server_with_work_items: s
         # - associate_work_item_file worked (files copied to thread)
         # - Background worker processed successfully (reached final status)
         assert final_status == WorkItemStatus.NEEDS_REVIEW
+
+
+@pytest.mark.integration
+@pytest.mark.postgresql
+@pytest.mark.usefixtures("copy_tmpdir_on_failure")
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "base_url_fixture",
+    [
+        "base_url_agent_server_sqlite_workitems_cloud",
+        "base_url_agent_server_postgres_workitems_cloud",
+    ],
+)
+async def test_work_item_two_stage_file_upload_workflow(  # noqa: PLR0915
+    base_url_fixture: str,
+    request,
+    agent_id: str,
+    cloud_server,  # noqa: F811
+):
+    """Test complete two-stage file upload workflow:
+    request -> cloud upload -> confirm -> process."""
+
+    url_agent_server = request.getfixturevalue(base_url_fixture)
+    work_items_url = f"{url_agent_server}/api/public/v1/work-items"
+
+    async with AsyncClient(base_url=work_items_url) as client:
+        # 1. Request remote upload (creates work item in PRECREATED state)
+        upload_request_resp = await client.post(
+            "/upload-file", data={"file": "important-document.pdf"}
+        )
+        assert upload_request_resp.status_code == 200
+        upload_data = upload_request_resp.json()
+
+        work_item_id = upload_data["work_item_id"]
+        upload_url = upload_data["upload_url"]
+        form_data = upload_data["upload_form_data"]
+        file_id = upload_data["file_id"]
+        file_ref = upload_data["file_ref"]
+
+        # Verify work item is in PRECREATED state
+        get_resp = await client.get(f"/{work_item_id}")
+        assert get_resp.status_code == 200
+        work_item = get_resp.json()
+        assert work_item["status"] == WorkItemStatus.PRECREATED.value
+        assert work_item["agent_id"] is None
+
+        # 2. Upload file to cloud storage using presigned URL
+        import httpx
+
+        test_file_content = b"This is a test PDF document content"
+
+        async with httpx.AsyncClient() as http_client:
+            # Upload to cloud storage
+            upload_resp = await http_client.post(
+                upload_url,
+                data=form_data,
+                files={"file": ("important-document.pdf", test_file_content, "application/pdf")},
+            )
+            assert upload_resp.status_code == 200
+
+        # 3. Confirm the upload
+        confirm_payload = {"file_ref": file_ref, "file_id": file_id}
+
+        confirm_resp = await client.post(f"/{work_item_id}/confirm-file", json=confirm_payload)
+        assert confirm_resp.status_code == 200
+        confirm_data = confirm_resp.json()
+        assert confirm_data["work_item_id"] == work_item_id
+
+        # 4. Convert work item to PENDING by adding agent and messages
+        create_payload = {
+            "agent_id": agent_id,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "kind": "text",
+                            "text": "Analyze the uploaded document",
+                        }
+                    ],
+                }
+            ],
+            "payload": {"task": "document_analysis"},
+            "work_item_id": work_item_id,
+        }
+
+        create_resp = await client.post("/", json=create_payload)
+        assert create_resp.status_code == 200
+        work_item = create_resp.json()
+
+        # Verify work item is now PENDING with agent
+        assert work_item["status"] == WorkItemStatus.PENDING.value
+        assert work_item["agent_id"] == agent_id
+        assert work_item["work_item_id"] == work_item_id
+
+        # 5. Wait for background worker to process the work item
+        async def _is_completed():
+            r = await client.get(f"/{work_item_id}")
+            assert r.status_code == 200
+            status = WorkItemStatus(r.json()["status"])
+            return status in [WorkItemStatus.COMPLETED, WorkItemStatus.NEEDS_REVIEW]
+
+        await _wait_until(_is_completed, interval=1.0, timeout=90)
+
+        # 6. Verify final state
+        final_resp = await client.get(f"/{work_item_id}?results=true")
+        assert final_resp.status_code == 200
+        final_work_item = final_resp.json()
+
+        final_status = WorkItemStatus(final_work_item["status"])
+        assert final_status in [WorkItemStatus.COMPLETED, WorkItemStatus.NEEDS_REVIEW]
+        assert final_work_item["thread_id"] is not None  # Thread should be created
+
+        # Verify messages include file upload notification
+        messages = final_work_item["messages"]
+        assert len(messages) >= 2  # User message + file upload message
+
+        # Check for file upload message
+        file_upload_messages = [
+            msg
+            for msg in messages
+            if msg["role"] == "user"
+            and any(
+                content.get("text", "").startswith("Uploaded") for content in msg.get("content", [])
+            )
+        ]
+        assert len(file_upload_messages) == 1  # One file uploaded
+
+        # Verify the file reference is in the upload message
+        upload_text = file_upload_messages[0]["content"][0]["text"]
+        assert file_ref in upload_text
+
+
+@pytest.mark.integration
+@pytest.mark.postgresql
+@pytest.mark.usefixtures("copy_tmpdir_on_failure")
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "base_url_fixture",
+    [
+        "base_url_agent_server_sqlite_workitems_cloud",
+        "base_url_agent_server_postgres_workitems_cloud",
+    ],
+)
+async def test_work_item_two_stage_multiple_files_upload(
+    base_url_fixture: str,
+    request,
+    agent_id: str,
+    cloud_server,  # noqa: F811
+):
+    """Test two-stage upload workflow with multiple files."""
+
+    url_agent_server = request.getfixturevalue(base_url_fixture)
+    work_items_url = f"{url_agent_server}/api/public/v1/work-items"
+
+    async with AsyncClient(base_url=work_items_url) as client:
+        work_item_id = None
+        uploaded_files = []
+
+        # Test data for multiple files
+        files_to_upload = [
+            ("report.pdf", b"PDF report content", "application/pdf"),
+            ("data.csv", b"CSV data content", "text/csv"),
+            ("summary.txt", b"Summary text content", "text/plain"),
+        ]
+
+        for i, (filename, content, mime_type) in enumerate(files_to_upload):
+            # 1. Request remote upload
+            if i == 0:
+                # First file creates the work item
+                upload_request_resp = await client.post("/upload-file", data={"file": filename})
+                assert upload_request_resp.status_code == 200
+                upload_data = upload_request_resp.json()
+                work_item_id = upload_data["work_item_id"]
+            else:
+                # Subsequent files are added to existing work item
+                upload_request_resp = await client.post(
+                    f"/upload-file?work_item_id={work_item_id}", data={"file": filename}
+                )
+                assert upload_request_resp.status_code == 200
+                upload_data = upload_request_resp.json()
+                assert upload_data["work_item_id"] == work_item_id
+
+            # 2. Upload to cloud storage
+            import httpx
+
+            async with httpx.AsyncClient() as http_client:
+                upload_resp = await http_client.post(
+                    upload_data["upload_url"],
+                    data=upload_data["upload_form_data"],
+                    files={"file": (filename, content, mime_type)},
+                )
+                assert upload_resp.status_code == 200
+
+            # 3. Confirm the upload
+            confirm_payload = {
+                "file_ref": upload_data["file_ref"],
+                "file_id": upload_data["file_id"],
+            }
+
+            confirm_resp = await client.post(f"/{work_item_id}/confirm-file", json=confirm_payload)
+            assert confirm_resp.status_code == 200
+
+            uploaded_files.append(upload_data["file_ref"])
+
+        # 4. Convert to PENDING and process
+        create_payload = {
+            "agent_id": agent_id,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [{"kind": "text", "text": "Process all uploaded files"}],
+                }
+            ],
+            "payload": {"task": "multi_file_processing"},
+            "work_item_id": work_item_id,
+        }
+
+        create_resp = await client.post("/", json=create_payload)
+        assert create_resp.status_code == 200
+
+        # 5. Wait for completion
+        async def _is_completed():
+            r = await client.get(f"/{work_item_id}")
+            assert r.status_code == 200
+            status = WorkItemStatus(r.json()["status"])
+            return status in [WorkItemStatus.COMPLETED, WorkItemStatus.NEEDS_REVIEW]
+
+        await _wait_until(_is_completed, interval=1.0, timeout=90)
+
+        # 6. Verify all files were processed
+        final_resp = await client.get(f"/{work_item_id}?results=true")
+        assert final_resp.status_code == 200
+        final_work_item = final_resp.json()
+
+        final_status = WorkItemStatus(final_work_item["status"])
+        assert final_status in [WorkItemStatus.COMPLETED, WorkItemStatus.NEEDS_REVIEW]
+
+        # Check that all 3 files generated upload messages
+        messages = final_work_item["messages"]
+        file_upload_messages = [
+            msg
+            for msg in messages
+            if msg["role"] == "user"
+            and any(
+                content.get("text", "").startswith("Uploaded") for content in msg.get("content", [])
+            )
+        ]
+        assert len(file_upload_messages) == 3  # One for each file
+
+        # Verify all files are referenced in upload messages
+        for file_ref in uploaded_files:
+            found = any(file_ref in msg["content"][0]["text"] for msg in file_upload_messages)
+            assert found, f"File {file_ref} not found in upload messages"
+
+
+@pytest.mark.integration
+@pytest.mark.postgresql
+@pytest.mark.usefixtures("copy_tmpdir_on_failure")
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "base_url_fixture",
+    [
+        "base_url_agent_server_sqlite_workitems_cloud",
+        "base_url_agent_server_postgres_workitems_cloud",
+    ],
+)
+async def test_work_item_two_stage_upload_error_handling(
+    base_url_fixture: str,
+    request,
+    agent_id: str,
+    cloud_server,  # noqa: F811
+):
+    """Test error handling in two-stage upload workflow."""
+
+    url_agent_server = request.getfixturevalue(base_url_fixture)
+    work_items_url = f"{url_agent_server}/api/public/v1/work-items"
+
+    async with AsyncClient(base_url=work_items_url) as client:
+        # 1. Request remote upload
+        upload_request_resp = await client.post("/upload-file", data={"file": "test-document.pdf"})
+        assert upload_request_resp.status_code == 200
+        upload_data = upload_request_resp.json()
+        work_item_id = upload_data["work_item_id"]
+
+        # 2. Test confirming upload without actually uploading to cloud
+        confirm_payload = {"file_ref": upload_data["file_ref"], "file_id": upload_data["file_id"]}
+
+        # This should not work as we don't have a file in cloud storage
+        confirm_resp = await client.post(f"/{work_item_id}/confirm-file", json=confirm_payload)
+        assert confirm_resp.status_code == 404
+        assert "File not found in cloud storage" in confirm_resp.json()["error"]["message"]
+
+        # 3. Test confirming with invalid file_id
+        invalid_confirm_payload = {
+            "file_ref": "invalid.pdf",
+            "file_id": "00000000-0000-0000-0000-000000000001",
+        }
+
+        confirm_resp = await client.post(
+            f"/{work_item_id}/confirm-file", json=invalid_confirm_payload
+        )
+        assert confirm_resp.status_code == 404
+        assert "File not found in cloud storage" in confirm_resp.json()["error"]["message"]
+
+        # 4. Test confirming for non-existent work item
+        fake_work_item_id = "00000000-0000-0000-0000-000000000000"
+        confirm_resp = await client.post(f"/{fake_work_item_id}/confirm-file", json=confirm_payload)
+        assert confirm_resp.status_code == 404
+        assert (
+            "A work item with the given ID was not found" in confirm_resp.json()["error"]["message"]
+        )
+
+        # 5. Test requesting upload for non-existent work item
+        upload_request_resp = await client.post(
+            f"/upload-file?work_item_id={fake_work_item_id}", data={"file": "test.pdf"}
+        )
+        assert upload_request_resp.status_code == 404
+        assert (
+            "A work item with the given ID was not found"
+            in upload_request_resp.json()["error"]["message"]
+        )
+
+
+@pytest.mark.integration
+@pytest.mark.postgresql
+@pytest.mark.usefixtures("copy_tmpdir_on_failure")
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "base_url_fixture",
+    [
+        "base_url_agent_server_sqlite_workitems_cloud",
+        "base_url_agent_server_postgres_workitems_cloud",
+    ],
+)
+async def test_work_item_mixed_upload_methods(
+    base_url_fixture: str,
+    request,
+    agent_id: str,
+    cloud_server,  # noqa: F811
+):
+    """Test mixing direct upload and two-stage upload methods."""
+
+    url_agent_server = request.getfixturevalue(base_url_fixture)
+    work_items_url = f"{url_agent_server}/api/public/v1/work-items"
+
+    async with AsyncClient(base_url=work_items_url) as client:
+        # 1. Start with direct upload (creates work item)
+        direct_file = (
+            "direct.txt",
+            BytesIO(b"Direct upload content"),
+            "text/plain",
+        )
+
+        direct_upload_resp = await client.post("/upload-file", files={"file": direct_file})
+        assert direct_upload_resp.status_code == 200
+        work_item_id = direct_upload_resp.json()["work_item_id"]
+
+        # 2. Add file via two-stage upload to same work item
+        upload_request_resp = await client.post(
+            f"/upload-file?work_item_id={work_item_id}", data={"file": "two-stage.pdf"}
+        )
+        assert upload_request_resp.status_code == 200
+        upload_data = upload_request_resp.json()
+        assert upload_data["work_item_id"] == work_item_id
+
+        # 3. Upload to cloud storage
+        import httpx
+
+        async with httpx.AsyncClient() as http_client:
+            upload_resp = await http_client.post(
+                upload_data["upload_url"],
+                data=upload_data["upload_form_data"],
+                files={"file": ("two-stage.pdf", b"Two-stage content", "application/pdf")},
+            )
+            assert upload_resp.status_code == 200
+
+        # 4. Confirm the two-stage upload
+        confirm_payload = {"file_ref": upload_data["file_ref"], "file_id": upload_data["file_id"]}
+
+        confirm_resp = await client.post(f"/{work_item_id}/confirm-file", json=confirm_payload)
+        assert confirm_resp.status_code == 200
+
+        # 5. Convert to PENDING and process
+        create_payload = {
+            "agent_id": agent_id,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [{"kind": "text", "text": "Process both uploaded files"}],
+                }
+            ],
+            "payload": {"task": "mixed_upload_processing"},
+            "work_item_id": work_item_id,
+        }
+
+        create_resp = await client.post("/", json=create_payload)
+        assert create_resp.status_code == 200
+
+        # 6. Wait for completion
+        async def _is_completed():
+            r = await client.get(f"/{work_item_id}")
+            assert r.status_code == 200
+            status = WorkItemStatus(r.json()["status"])
+            return status in [WorkItemStatus.COMPLETED, WorkItemStatus.NEEDS_REVIEW]
+
+        await _wait_until(_is_completed, interval=1.0, timeout=90)
+
+        # 7. Verify both files were processed
+        final_resp = await client.get(f"/{work_item_id}?results=true")
+        assert final_resp.status_code == 200
+        final_work_item = final_resp.json()
+
+        final_status = WorkItemStatus(final_work_item["status"])
+        assert final_status in [WorkItemStatus.COMPLETED, WorkItemStatus.NEEDS_REVIEW]
+
+        # Check that both files generated upload messages
+        messages = final_work_item["messages"]
+        file_upload_messages = [
+            msg
+            for msg in messages
+            if msg["role"] == "user"
+            and any(
+                content.get("text", "").startswith("Uploaded") for content in msg.get("content", [])
+            )
+        ]
+        assert len(file_upload_messages) == 2  # Both direct and two-stage files
+
+        # Verify both files are referenced
+        upload_texts = [msg["content"][0]["text"] for msg in file_upload_messages]
+        assert any("direct.txt" in text for text in upload_texts)
+        assert any("two-stage.pdf" in text for text in upload_texts)
 
 
 # ---------------------------------------------------------------------------
