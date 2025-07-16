@@ -6,7 +6,7 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Private API Version 2',
-    version: '2.0.5',
+    version: '2.0.12',
   },
   paths: {
     '/api/v2/ok': {
@@ -77,7 +77,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -140,7 +140,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -173,7 +173,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -223,7 +223,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -271,7 +271,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -309,7 +309,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -340,7 +340,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -390,7 +390,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -428,7 +428,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -472,7 +472,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -523,7 +523,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -562,7 +562,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -612,7 +612,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -652,7 +652,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -690,7 +690,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -721,7 +721,9 @@ export const spec = {
             description: 'Successful Response',
             content: {
               'application/json': {
-                schema: {},
+                schema: {
+                  $ref: '#/components/schemas/RunStatus',
+                },
               },
             },
           },
@@ -730,7 +732,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -786,7 +788,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -827,7 +829,9 @@ export const spec = {
             description: 'Successful Response',
             content: {
               'application/json': {
-                schema: {},
+                schema: {
+                  $ref: '#/components/schemas/Run',
+                },
               },
             },
           },
@@ -836,7 +840,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -875,7 +879,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -972,7 +976,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -1023,7 +1027,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -1074,7 +1078,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -1123,7 +1127,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -1161,7 +1165,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -1192,7 +1196,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -1232,7 +1236,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -1275,7 +1279,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -1288,7 +1292,7 @@ export const spec = {
         tags: ['threads'],
         summary: 'Fork Thread',
         description:
-          'Fork a thread at a specific message point.\n\nCreates a new thread with all messages before the specified message.\nThe message_id must be for a human message.',
+          'Fork a thread at a specific message point.\n\nCreates a new thread with all messages before the specified message.',
         operationId: 'fork_thread_threads__tid__fork_post',
         parameters: [
           {
@@ -1327,7 +1331,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -1377,7 +1381,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -1436,7 +1440,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -1481,7 +1485,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -1535,7 +1539,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -1567,7 +1571,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -1617,7 +1621,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -1660,7 +1664,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -1707,7 +1711,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -1756,7 +1760,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -1805,7 +1809,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -1977,7 +1981,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -2017,7 +2021,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -2122,7 +2126,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -2175,7 +2179,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -2218,7 +2222,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/HTTPValidationError',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -3417,8 +3421,7 @@ export const spec = {
           message_id: {
             type: 'string',
             title: 'Message Id',
-            description:
-              'The ID of the message to fork from (must be a human message).',
+            description: 'The ID of the message to fork from.',
           },
           name: {
             anyOf: [
@@ -3486,19 +3489,6 @@ export const spec = {
         },
         type: 'object',
         title: 'GroqPlatformParameters',
-      },
-      HTTPValidationError: {
-        properties: {
-          detail: {
-            items: {
-              $ref: '#/components/schemas/ValidationError',
-            },
-            type: 'array',
-            title: 'Detail',
-          },
-        },
-        type: 'object',
-        title: 'HTTPValidationError',
       },
       InitiateStreamPayload: {
         properties: {
@@ -3660,7 +3650,7 @@ export const spec = {
             ],
             title: 'Env',
             description:
-              'The environment variables to set for the MCP server command.',
+              "Environment variables to merge with agent-server's env vars for the MCP server command.",
           },
           cwd: {
             anyOf: [
@@ -4632,6 +4622,93 @@ export const spec = {
         required: ['tool_call_id', 'tool_name', 'tool_input_raw'],
         title: 'ResponseToolUseContent',
       },
+      Run: {
+        properties: {
+          run_id: {
+            type: 'string',
+            title: 'Run Id',
+            description: 'The ID of the run',
+          },
+          agent_id: {
+            type: 'string',
+            title: 'Agent Id',
+            description: 'The ID of the associated agent',
+          },
+          thread_id: {
+            type: 'string',
+            title: 'Thread Id',
+            description: 'The ID of the associated thread',
+          },
+          created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At',
+            description: 'The timestamp when the run was created',
+          },
+          finished_at: {
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Finished At',
+            description: 'The timestamp when the run was finished',
+          },
+          status: {
+            type: 'string',
+            enum: ['created', 'running', 'completed', 'failed', 'cancelled'],
+            title: 'Status',
+            description:
+              "The run's status (e.g., 'created', 'running','completed', 'failed', 'cancelled')",
+            default: 'created',
+          },
+          metadata: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Metadata',
+            description: 'Metadata associated with the run',
+          },
+          run_type: {
+            type: 'string',
+            enum: ['sync', 'async', 'stream'],
+            title: 'Run Type',
+            description: "The type of run (e.g., 'sync', 'async', 'stream')",
+            default: 'stream',
+          },
+        },
+        type: 'object',
+        required: ['run_id', 'agent_id', 'thread_id'],
+        title: 'Run',
+      },
+      RunStatus: {
+        properties: {
+          run_id: {
+            type: 'string',
+            title: 'Run Id',
+            description: 'The ID of the run',
+          },
+          thread_id: {
+            type: 'string',
+            title: 'Thread Id',
+            description: 'The ID of the thread associated with the run',
+          },
+          status: {
+            type: 'string',
+            enum: ['created', 'running', 'completed', 'failed', 'cancelled'],
+            title: 'Status',
+            description:
+              "The run's status (e.g., 'created', 'running','completed', 'failed', 'cancelled')",
+            default: 'created',
+          },
+        },
+        type: 'object',
+        required: ['run_id', 'thread_id'],
+        title: 'RunStatus',
+      },
       Runbook: {
         properties: {
           raw_text: {
@@ -5571,6 +5648,17 @@ export const spec = {
             ],
             title: 'File Url',
           },
+          work_item_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Work Item Id',
+          },
         },
         type: 'object',
         required: [
@@ -5808,34 +5896,42 @@ export const spec = {
         required: ['agent_id', 'name'],
         title: 'UpsertThreadPayload',
       },
-      ValidationError: {
+      ErrorDetail: {
+        description:
+          'Pydantic model for error detail - used only for OpenAPI schema generation.',
         properties: {
-          loc: {
-            items: {
-              anyOf: [
-                {
-                  type: 'string',
-                },
-                {
-                  type: 'integer',
-                },
-              ],
-            },
-            type: 'array',
-            title: 'Location',
-          },
-          msg: {
+          error_id: {
+            description: 'Unique ID for tracing',
+            format: 'uuid',
+            title: 'Error Id',
             type: 'string',
+          },
+          code: {
+            description: "Error code in format 'family.code'",
+            title: 'Code',
+            type: 'string',
+          },
+          message: {
+            description: 'Human readable error message',
             title: 'Message',
-          },
-          type: {
             type: 'string',
-            title: 'Error Type',
           },
         },
+        required: ['error_id', 'code', 'message'],
+        title: 'ErrorDetail',
         type: 'object',
-        required: ['loc', 'msg', 'type'],
-        title: 'ValidationError',
+      },
+      ErrorEnvelope: {
+        description:
+          'Pydantic model for error envelope - used only for OpenAPI schema generation.\n\nThis matches the exact structure returned by our error handlers:\n{\n    "error": {\n        "error_id": "<uuid>",\n        "code": "<family.code>",\n        "message": "<human-readable>"\n    }\n}',
+        properties: {
+          error: {
+            $ref: '#/components/schemas/ErrorDetail',
+          },
+        },
+        required: ['error'],
+        title: 'ErrorEnvelope',
+        type: 'object',
       },
     },
   },

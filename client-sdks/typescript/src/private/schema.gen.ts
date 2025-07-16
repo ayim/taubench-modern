@@ -384,7 +384,6 @@ export interface paths {
      * @description Fork a thread at a specific message point.
      *
      *     Creates a new thread with all messages before the specified message.
-     *     The message_id must be for a human message.
      */
     post: operations['fork_thread_threads__tid__fork_post'];
     delete?: never;
@@ -1397,7 +1396,7 @@ export interface components {
     ForkThreadPayload: {
       /**
        * Message Id
-       * @description The ID of the message to fork from (must be a human message).
+       * @description The ID of the message to fork from.
        */
       message_id: string;
       /**
@@ -1429,11 +1428,6 @@ export interface components {
       kind: 'groq';
       /** @description The Groq API key. If not provided, it will be attempted to be inferred from the environment. */
       groq_api_key?: components['schemas']['SecretString'] | null;
-    };
-    /** HTTPValidationError */
-    HTTPValidationError: {
-      /** Detail */
-      detail?: components['schemas']['ValidationError'][];
     };
     /** InitiateStreamPayload */
     InitiateStreamPayload: {
@@ -1516,7 +1510,7 @@ export interface components {
       args?: string[] | null;
       /**
        * Env
-       * @description The environment variables to set for the MCP server command.
+       * @description Environment variables to merge with agent-server's env vars for the MCP server command.
        */
       env?: {
         [key: string]: string;
@@ -2149,6 +2143,76 @@ export interface components {
        * @description Raw tool input as a JSON string.
        */
       tool_input_raw: string;
+    };
+    /** Run */
+    Run: {
+      /**
+       * Run Id
+       * @description The ID of the run
+       */
+      run_id: string;
+      /**
+       * Agent Id
+       * @description The ID of the associated agent
+       */
+      agent_id: string;
+      /**
+       * Thread Id
+       * @description The ID of the associated thread
+       */
+      thread_id: string;
+      /**
+       * Created At
+       * Format: date-time
+       * @description The timestamp when the run was created
+       */
+      created_at?: string;
+      /**
+       * Finished At
+       * @description The timestamp when the run was finished
+       */
+      finished_at?: string | null;
+      /**
+       * Status
+       * @description The run's status (e.g., 'created', 'running','completed', 'failed', 'cancelled')
+       * @default created
+       * @enum {string}
+       */
+      status: 'created' | 'running' | 'completed' | 'failed' | 'cancelled';
+      /**
+       * Metadata
+       * @description Metadata associated with the run
+       */
+      metadata?: {
+        [key: string]: unknown;
+      };
+      /**
+       * Run Type
+       * @description The type of run (e.g., 'sync', 'async', 'stream')
+       * @default stream
+       * @enum {string}
+       */
+      run_type: 'sync' | 'async' | 'stream';
+    };
+    /** RunStatus */
+    RunStatus: {
+      /**
+       * Run Id
+       * @description The ID of the run
+       */
+      run_id: string;
+      /**
+       * Thread Id
+       * @description The ID of the thread associated with the run
+       */
+      thread_id: string;
+      /**
+       * Status
+       * @description The run's status (e.g., 'created', 'running','completed', 'failed', 'cancelled')
+       * @default created
+       * @enum {string}
+       */
+      status: 'created' | 'running' | 'completed' | 'failed' | 'cancelled';
     };
     /** Runbook */
     Runbook: {
@@ -2793,6 +2857,8 @@ export interface components {
       user_id?: string | null;
       /** File Url */
       file_url?: string | null;
+      /** Work Item Id */
+      work_item_id?: string | null;
     };
     /** UpsertAgentPayload */
     UpsertAgentPayload: {
@@ -2934,14 +3000,43 @@ export interface components {
         [key: string]: unknown;
       };
     };
-    /** ValidationError */
-    ValidationError: {
-      /** Location */
-      loc: (string | number)[];
-      /** Message */
-      msg: string;
-      /** Error Type */
-      type: string;
+    /**
+     * ErrorDetail
+     * @description Pydantic model for error detail - used only for OpenAPI schema generation.
+     */
+    ErrorDetail: {
+      /**
+       * Error Id
+       * Format: uuid
+       * @description Unique ID for tracing
+       */
+      error_id: string;
+      /**
+       * Code
+       * @description Error code in format 'family.code'
+       */
+      code: string;
+      /**
+       * Message
+       * @description Human readable error message
+       */
+      message: string;
+    };
+    /**
+     * ErrorEnvelope
+     * @description Pydantic model for error envelope - used only for OpenAPI schema generation.
+     *
+     *     This matches the exact structure returned by our error handlers:
+     *     {
+     *         "error": {
+     *             "error_id": "<uuid>",
+     *             "code": "<family.code>",
+     *             "message": "<human-readable>"
+     *         }
+     *     }
+     */
+    ErrorEnvelope: {
+      error: components['schemas']['ErrorDetail'];
     };
   };
   responses: never;
@@ -3020,7 +3115,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -3071,7 +3166,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -3100,7 +3195,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -3131,7 +3226,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -3166,7 +3261,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -3195,7 +3290,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -3230,7 +3325,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -3261,7 +3356,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -3296,7 +3391,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -3327,7 +3422,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -3362,7 +3457,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -3395,7 +3490,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -3430,7 +3525,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -3461,7 +3556,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -3492,7 +3587,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -3514,7 +3609,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': unknown;
+          'application/json': components['schemas']['RunStatus'];
         };
       };
       /** @description Validation Error */
@@ -3523,7 +3618,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -3558,7 +3653,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -3584,7 +3679,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': unknown;
+          'application/json': components['schemas']['Run'];
         };
       };
       /** @description Validation Error */
@@ -3593,7 +3688,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -3627,7 +3722,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -3660,7 +3755,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -3693,7 +3788,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -3724,7 +3819,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -3759,7 +3854,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -3788,7 +3883,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -3823,7 +3918,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -3854,7 +3949,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -3887,7 +3982,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -3922,7 +4017,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -3957,7 +4052,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -3991,7 +4086,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -4022,7 +4117,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -4057,7 +4152,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -4086,7 +4181,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -4119,7 +4214,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -4149,7 +4244,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -4182,7 +4277,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -4217,7 +4312,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -4252,7 +4347,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -4328,7 +4423,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -4359,7 +4454,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -4451,7 +4546,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -4488,7 +4583,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
@@ -4523,7 +4618,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };
