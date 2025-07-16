@@ -16,7 +16,7 @@ from agent_platform.core.work_items.work_item import (
     WorkItemCallbackPayload,
     WorkItemStatus,
 )
-from agent_platform.server.work_items.settings import TENANT_ID, WORKROOM_URL
+from agent_platform.server.work_items.settings import WORKROOM_URL, WORKSPACE_ID
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +75,7 @@ async def execute_callbacks(work_item: WorkItem, status: WorkItemStatus, timeout
 def _build_work_item_url(work_item: WorkItem) -> str:
     """Build the work item URL."""
     pieces = {
-        "tenant_id": TENANT_ID,
+        "workspace_id": WORKSPACE_ID,
         "agent_id": work_item.agent_id,
         "work_item_id": work_item.work_item_id,
     }

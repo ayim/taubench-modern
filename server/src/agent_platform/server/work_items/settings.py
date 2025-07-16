@@ -23,4 +23,4 @@ def get_workroom_url():
 
 
 WORKROOM_URL = get_workroom_url()
-TENANT_ID = getenv("SEMA4AI_AGENT_SERVER_TENANT_ID", "no-tenant-id")
+WORKSPACE_ID = getenv("SEMA4AI_AGENT_SERVER_WORKSPACE_ID", "no-workspace-id")
