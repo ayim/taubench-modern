@@ -354,7 +354,7 @@ async def execute_work_item(
         # Only update if the current status is not CANCELLED
         if current_status != WorkItemStatus.CANCELLED:
             logger.info(
-                "Completed execution on work item %s, result: %s (updating status)",
+                "Completed execution on work item %s, function result: %s (updating status)",
                 item.work_item_id,
                 result,
             )
@@ -364,6 +364,11 @@ async def execute_work_item(
             await storage.update_work_item_status(system_user_id, item.work_item_id, new_status)
             item.status = new_status
 
+            logger.info(
+                "Completed validation of work item %s, final status: %s",
+                item.work_item_id,
+                new_status,
+            )
             # Will be "COMPLETED", "NEEDS_REVIEW", or "ERROR"
             await execute_callbacks(item, new_status)
         else:

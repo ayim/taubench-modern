@@ -88,6 +88,10 @@ async def _execute_callback(work_item: WorkItem, callback: WorkItemCallback):
         if callback.signature_secret:
             headers["X-SEMA4AI-SIGNATURE"] = _compute_signature(callback.signature_secret, body)
 
+        logger.info(f"Sending callback for work item {work_item.work_item_id} to {callback.url}")
+        logger.debug(f"Callback body: {body!r}")
+        logger.debug(f"Callback headers: {headers!r}")
+
         response = requests.post(callback.url, json=body, headers=headers)
         response.raise_for_status()
 
