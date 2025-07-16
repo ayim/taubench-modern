@@ -1,6 +1,9 @@
 import asyncio
+import json
+import threading
 import time
 import unittest.mock
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from io import BytesIO
 from pathlib import Path
 
@@ -9,7 +12,7 @@ from agent_platform.orchestrator.agent_server_client import AgentServerClient
 from httpx import AsyncClient
 
 from agent_platform.core.work_items import WorkItemStatus
-from agent_platform.core.work_items.work_item import WorkItem
+from agent_platform.core.work_items.work_item import WorkItem, WorkItemCallback
 
 # Import cloud server fixture for file upload tests
 from server.tests.files.test_api_endpoints_cloud import cloud_server  # noqa: F401
@@ -232,12 +235,16 @@ async def test_batch_processing(base_url_fixture: str, request, agent_id: str):
         assert len(work_item_ids) == num_items
 
         async def _all_completed():
+            statuses = []
             for wid in work_item_ids:
                 r = await client.get(f"/{wid}")
                 assert r.status_code == 200
                 status = WorkItemStatus(r.json()["status"])
+                statuses.append((wid, status))
                 if status != WorkItemStatus.COMPLETED:
+                    print(f"[batch status check] wid={wid} status={status}")
                     return False
+            print(f"[batch status check] All statuses: {statuses}")
             return True
 
         await _wait_until(_all_completed, interval=1.0, timeout=90)
@@ -2025,3 +2032,141 @@ async def test_work_item_judge_with_recorded_threads(
         assert result_status == expected_status, (
             f"Expected {expected_status} but got {result_status} for {resource_file}"
         )
+
+
+# NOTE: Callback tests have been moved to test_work_items_callbacks.py
+# This reduces duplication and improves maintainability.
+
+
+@pytest.mark.integration
+@pytest.mark.usefixtures("copy_tmpdir_on_failure")
+@pytest.mark.asyncio
+async def test_work_item_callback_e2e_mocked_completion(
+    base_url_agent_server_with_work_items: str, openai_api_key: str
+):
+    """Test end-to-end callback execution with mocked work item completion."""
+
+    # Track received callback requests
+    received_callbacks = []
+    callback_event = threading.Event()
+
+    class CallbackHandler(BaseHTTPRequestHandler):
+        def do_POST(self):  # noqa: N802
+            content_length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(content_length).decode("utf-8")
+
+            received_callbacks.append(
+                {"path": self.path, "headers": dict(self.headers), "body": json.loads(body)}
+            )
+
+            # Signal that we received a callback
+            callback_event.set()
+
+            # Send response
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b'{"status": "received"}')
+
+        def log_message(self, format, *args):  # noqa: A002
+            # Suppress HTTP server logs during tests
+            pass
+
+    # Start callback server
+    server = HTTPServer(("localhost", 0), CallbackHandler)
+    server_port = server.server_address[1]
+    callback_url = f"http://localhost:{server_port}/webhook"
+
+    server_thread = threading.Thread(target=server.serve_forever)
+    server_thread.daemon = True
+    server_thread.start()
+
+    try:
+        with AgentServerClient(base_url_agent_server_with_work_items) as agent_client:
+            # Create agent with callback
+            agent_id = agent_client.create_agent_and_return_agent_id(
+                platform_configs=[{"kind": "openai", "openai_api_key": openai_api_key}],
+                runbook="You are a helpful assistant.",
+            )
+
+            work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
+
+            async with AsyncClient(base_url=work_items_url) as client:
+                # Create work item with callback
+                resp = await client.post(
+                    "/",
+                    json={
+                        "agent_id": agent_id,
+                        "messages": [
+                            {
+                                "role": "user",
+                                "content": [{"kind": "text", "text": "Test message"}],
+                            }
+                        ],
+                        "payload": {"workflow": "callback_test"},
+                        "callbacks": [
+                            {
+                                "url": callback_url,
+                                "on_status": "COMPLETED",
+                            }
+                        ],
+                    },
+                )
+                assert resp.status_code == 200
+                work_item_id = resp.json()["work_item_id"]
+
+                # Wait for work item to be picked up by background worker
+                await asyncio.sleep(2)
+
+                # Manually trigger callback by directly calling the callback execution function
+                # This simulates what would happen when a work item completes
+                from agent_platform.server.work_items.callbacks import execute_callbacks
+
+                # Create a mock work item for callback testing instead of accessing storage
+                # This avoids the storage initialization issue in the test process
+                work_item = WorkItem(
+                    work_item_id=work_item_id,
+                    user_id="test-user",
+                    agent_id=agent_id,
+                    thread_id="test-thread-123",  # Set a test thread ID
+                    status=WorkItemStatus.COMPLETED,
+                    callbacks=[
+                        WorkItemCallback(
+                            url=callback_url,
+                            on_status=WorkItemStatus.COMPLETED,
+                        )
+                    ],
+                )
+
+                # Execute callbacks
+                await execute_callbacks(work_item, WorkItemStatus.COMPLETED)
+
+                # Wait for callback to be fired
+                callback_received = callback_event.wait(timeout=5.0)
+                assert callback_received, "Callback was not received within timeout"
+
+                # Verify callback payload
+                assert len(received_callbacks) == 1
+                callback = received_callbacks[0]
+
+                assert callback["path"] == "/webhook"
+                assert callback["headers"]["Content-Type"] == "application/json"
+
+                # Verify callback body
+                body = callback["body"]
+                assert body["work_item_id"] == work_item_id
+                assert body["agent_id"] == agent_id
+                assert body["status"] == "COMPLETED"
+                assert body["thread_id"] == "test-thread-123"
+
+                # Verify the work item URL format
+                # With default test settings, should be "http://localhost:8000/{agent_id}/{work_item_id}"
+                expected_url_suffix = f"{agent_id}/{work_item_id}"
+                assert body["work_item_url"].endswith(expected_url_suffix)
+
+                # Verify the URL starts with expected base
+                assert body["work_item_url"].startswith("http://localhost:8000/")
+
+    finally:
+        server.shutdown()
+        server_thread.join(timeout=1)

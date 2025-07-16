@@ -3,6 +3,7 @@ import hashlib
 import hmac
 import json
 import logging
+from urllib.parse import urljoin
 
 import requests
 
@@ -15,12 +16,29 @@ from agent_platform.core.work_items.work_item import (
     WorkItemCallbackPayload,
     WorkItemStatus,
 )
+from agent_platform.server.work_items.settings import TENANT_ID, WORKROOM_URL
 
 logger = logging.getLogger(__name__)
 
 
 class InvalidTimeoutError(PlatformError):
     """Raised when the timeout is not a positive number."""
+
+    def __init__(self, message: str = "Callback timeout must be a positive number"):
+        super().__init__(
+            error_code=ErrorCode.UNPROCESSABLE_ENTITY,
+            message=message,
+        )
+
+
+class InvalidWorkItemError(PlatformError):
+    """Raised when the work item is invalid."""
+
+    def __init__(self, message: str = "Work item is invalid"):
+        super().__init__(
+            error_code=ErrorCode.UNPROCESSABLE_ENTITY,
+            message=message,
+        )
 
 
 async def execute_callbacks(work_item: WorkItem, status: WorkItemStatus, timeout: float = 60.0):
@@ -32,10 +50,7 @@ async def execute_callbacks(work_item: WorkItem, status: WorkItemStatus, timeout
         timeout: The timeout in seconds for the callbacks to execute.
     """
     if timeout is None or timeout <= 0:
-        raise InvalidTimeoutError(
-            error_code=ErrorCode.UNPROCESSABLE_ENTITY,
-            message="Callback timeout must be a positive number",
-        )
+        raise InvalidTimeoutError()
 
     callbacks = [callback for callback in work_item.callbacks if callback.on_status == status]
 
@@ -55,6 +70,23 @@ async def execute_callbacks(work_item: WorkItem, status: WorkItemStatus, timeout
             f"Callback execution for status {status} "
             f"timed out for work item {work_item.work_item_id}"
         )
+
+
+def _build_work_item_url(work_item: WorkItem) -> str:
+    """Build the work item URL."""
+    pieces = {
+        "tenant_id": TENANT_ID,
+        "agent_id": work_item.agent_id,
+        "work_item_id": work_item.work_item_id,
+    }
+
+    for k, v in pieces.items():
+        if v is None or not str(v).strip():
+            raise InvalidWorkItemError(f"{k} should not be None or empty")
+
+    url_parts = [str(v).strip() for v in pieces.values()]
+    path = "/".join(url_parts)
+    return urljoin(WORKROOM_URL, path)
 
 
 async def _execute_callback(work_item: WorkItem, callback: WorkItemCallback):
@@ -79,7 +111,7 @@ async def _execute_callback(work_item: WorkItem, callback: WorkItemCallback):
                 "agent_id": work_item.agent_id,
                 "thread_id": work_item.thread_id,
                 "status": work_item.status.value,
-                "work_item_url": "http://localhost.TODO",
+                "work_item_url": _build_work_item_url(work_item),
             }
         )
 

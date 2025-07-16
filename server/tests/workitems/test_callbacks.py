@@ -15,6 +15,8 @@ from agent_platform.core.work_items.work_item import (
 )
 from agent_platform.server.work_items.callbacks import (
     InvalidTimeoutError,
+    InvalidWorkItemError,
+    _build_work_item_url,
     _compute_signature,
     _execute_callback,
     execute_callbacks,
@@ -23,6 +25,38 @@ from agent_platform.server.work_items.callbacks import (
 
 @pytest.mark.asyncio
 class TestWorkItemsCallbacks:
+    async def test_build_work_item_url(self):
+        """Test the _build_work_item_url function with various scenarios."""
+        # Test with all fields populated
+        work_item = WorkItem(
+            work_item_id="test_work_item_123",
+            user_id="user_456",
+            agent_id="agent_789",
+            thread_id="thread_012",
+            status=WorkItemStatus.COMPLETED,
+        )
+
+        url = _build_work_item_url(work_item)
+        # With default settings (TENANT_ID="no-tenant-id", WORKROOM_URL="http://localhost:8000/")
+        # The function includes tenant_id in the URL path
+        expected_url = "http://localhost:8000/no-tenant-id/agent_789/test_work_item_123"
+        assert url == expected_url
+
+        # Test with None agent_id (should raise InvalidWorkItemError)
+        work_item.agent_id = None
+        with pytest.raises(InvalidWorkItemError, match="agent_id should not be None or empty"):
+            _build_work_item_url(work_item)
+
+        # Test with empty string agent_id (should raise InvalidWorkItemError)
+        work_item.agent_id = ""
+        with pytest.raises(InvalidWorkItemError, match="agent_id should not be None or empty"):
+            _build_work_item_url(work_item)
+
+        # Test with whitespace agent_id (should raise InvalidWorkItemError)
+        work_item.agent_id = "   "
+        with pytest.raises(InvalidWorkItemError, match="agent_id should not be None or empty"):
+            _build_work_item_url(work_item)
+
     async def test_compute_signature_consistency(self):
         """Test that the same object generates the same signature twice."""
         body = WorkItemCallbackPayload.model_validate(
@@ -186,7 +220,9 @@ class TestWorkItemsCallbacks:
             assert body["agent_id"] == "agent_789"
             assert body["thread_id"] == "thread_012"
             assert body["status"] == "COMPLETED"
-            assert body["work_item_url"] == "http://localhost.TODO"
+            # With default settings, the URL should be "http://localhost:8000/no-tenant-id/agent_789/test_work_item_123"
+            expected_url = "http://localhost:8000/no-tenant-id/agent_789/test_work_item_123"
+            assert body["work_item_url"] == expected_url
 
         finally:
             server.shutdown()
@@ -295,7 +331,9 @@ class TestWorkItemsCallbacks:
             # Verify signature
             expected_signature = _compute_signature(secret, request["body"])
             assert request["headers"]["X-SEMA4AI-SIGNATURE"] == expected_signature
-            assert request["body"]["work_item_url"] == "http://localhost.TODO"
+            # With default settings, the URL should be "http://localhost:8000/no-tenant-id/agent_789/test_work_item_123"
+            expected_url = "http://localhost:8000/no-tenant-id/agent_789/test_work_item_123"
+            assert request["body"]["work_item_url"] == expected_url
 
         finally:
             server.shutdown()
@@ -442,3 +480,61 @@ class TestWorkItemsCallbacks:
             error_message = mock_logger.error.call_args[0][0]
             assert "Callback failed" in error_message
             assert "test_work_item_123" in error_message
+
+    async def test_execute_callbacks_no_matching_status(self):
+        """Test that callbacks are not executed when status doesn't match."""
+        # Track received callback requests
+        received_requests = []
+
+        class CallbackHandler(BaseHTTPRequestHandler):
+            def do_POST(self):  # noqa: N802
+                content_length = int(self.headers.get("Content-Length", 0))
+                body = self.rfile.read(content_length).decode("utf-8")
+                received_requests.append(json.loads(body))
+
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(b'{"status": "received"}')
+
+            def log_message(self, format, *args):  # noqa: A002
+                pass
+
+        # Start callback server
+        server = HTTPServer(("localhost", 0), CallbackHandler)
+        callback_url = f"http://localhost:{server.server_address[1]}/webhook"
+
+        server_thread = threading.Thread(target=server.serve_forever)
+        server_thread.daemon = True
+        server_thread.start()
+
+        try:
+            # Create work item with callback for COMPLETED status
+            work_item = WorkItem(
+                work_item_id="test-work-item-123",
+                user_id="test-user",
+                agent_id="test-agent-456",
+                thread_id="test-thread-789",
+                status=WorkItemStatus.NEEDS_REVIEW,  # Different from callback status
+                callbacks=[
+                    WorkItemCallback(
+                        url=callback_url,
+                        on_status=WorkItemStatus.COMPLETED,  # Callback only for COMPLETED
+                    )
+                ],
+            )
+
+            # Execute callbacks for NEEDS_REVIEW status (should not trigger callback)
+            await execute_callbacks(work_item, WorkItemStatus.NEEDS_REVIEW)
+
+            # Give it a moment to ensure no callbacks are sent
+            import asyncio
+
+            await asyncio.sleep(0.1)
+
+            # Verify no callbacks were received
+            assert len(received_requests) == 0
+
+        finally:
+            server.shutdown()
+            server_thread.join(timeout=1)
