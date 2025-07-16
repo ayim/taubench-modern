@@ -1,3 +1,7 @@
+# Sema4.ai Agent Server 2.0.15 (2025-07-16)
+
+- Bug-fixes for work-items
+
 # Sema4.ai Agent Server 2.0.14 (2025-07-16)
 
 - Support pre-signed URLs for uploading files to work-items ([GPT-1069](https://linear.app/sema4ai/issue/GPT-1069/add-presigned-url-file-upload-support-for-large-files))
