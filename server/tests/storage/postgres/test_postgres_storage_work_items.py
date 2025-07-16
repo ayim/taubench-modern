@@ -6,7 +6,7 @@ import pytest
 from agent_platform.core.agent import Agent
 from agent_platform.core.thread import Thread, ThreadMessage
 from agent_platform.core.thread.content import ThreadTextContent
-from agent_platform.core.work_items import WorkItem, WorkItemStatus
+from agent_platform.core.work_items import WorkItem, WorkItemCallback, WorkItemStatus
 from agent_platform.server.storage.errors import WorkItemFileNotFoundError
 from agent_platform.server.storage.postgres import PostgresStorage
 
@@ -709,3 +709,118 @@ async def test_get_workitem_files_with_system_user(
     for file in regular_user_files:
         assert file.user_id == system_user.user_id  # Still owned by system user
         assert file.work_item_id == work_item.work_item_id
+
+
+@pytest.mark.asyncio
+async def test_update_work_item_all_fields(
+    storage: PostgresStorage,
+    sample_user_id: str,
+    sample_agent,
+):
+    """Test that update_work_item updates all fields.
+
+    This test simulates the scenario where a work item is created in PRECREATED state
+    (e.g., after file upload) and then updated with all fields when create_work_item
+    is called with the existing work_item_id.
+    """
+    # Ensure the agent exists (FK)
+    await storage.upsert_agent(sample_user_id, sample_agent)
+
+    work_item_id = str(uuid4())
+
+    # Create a work item in PRECREATED state with initial values
+    initial_work_item = WorkItem(
+        work_item_id=work_item_id,
+        user_id=sample_user_id,
+        agent_id=None,  # Set agent_id initially to avoid FK constraint issues
+        thread_id=None,
+        status=WorkItemStatus.PRECREATED,
+        messages=[],  # No messages initially
+        payload={},  # Empty payload initially
+        callbacks=[],  # No callbacks initially
+        completed_by=None,
+        status_updated_by="SYSTEM",
+    )
+
+    await storage.create_work_item(initial_work_item)
+
+    # Verify initial state
+    fetched_initial = await storage.get_work_item(work_item_id)
+    assert fetched_initial.status == WorkItemStatus.PRECREATED
+    assert fetched_initial.agent_id is None
+    assert fetched_initial.messages == []
+    assert fetched_initial.payload == {}
+    assert fetched_initial.callbacks == []
+
+    # Now update the work item with all new values (simulating create_work_item call)
+    updated_work_item = WorkItem(
+        work_item_id=work_item_id,
+        user_id=sample_user_id,
+        agent_id=sample_agent.agent_id,  # Now has an agent
+        thread_id=None,  # Keep thread_id as None to avoid FK constraint
+        status=WorkItemStatus.PENDING,  # New status
+        messages=[  # New messages
+            ThreadMessage(
+                role="user",
+                content=[ThreadTextContent(text="Updated message!")],
+            ),
+        ],
+        payload={"updated": "payload", "key": "value"},  # New payload
+        callbacks=[  # New callbacks
+            WorkItemCallback(
+                url="https://example.com/webhook",
+                signature_secret="secret123",
+                on_status=WorkItemStatus.COMPLETED,
+            ),
+            WorkItemCallback(
+                url="https://example.com/error-webhook",
+                on_status=WorkItemStatus.ERROR,
+            ),
+        ],
+        completed_by="user123",  # New completed_by
+        status_updated_by=sample_user_id,  # New status_updated_by
+        created_at=fetched_initial.created_at,  # Keep original created_at
+        updated_at=datetime.now(UTC),  # New updated_at
+        status_updated_at=datetime.now(UTC),  # New status_updated_at
+    )
+
+    # Update the work item
+    await storage.update_work_item(updated_work_item)
+
+    # Fetch and verify all fields were updated
+    fetched_updated = await storage.get_work_item(work_item_id)
+
+    # Verify core fields
+    assert fetched_updated.work_item_id == work_item_id
+    assert fetched_updated.user_id == sample_user_id
+    assert fetched_updated.agent_id == sample_agent.agent_id
+    assert fetched_updated.thread_id is None
+    assert fetched_updated.status == WorkItemStatus.PENDING
+    assert fetched_updated.completed_by == "user123"
+    assert fetched_updated.status_updated_by == sample_user_id
+
+    # Verify messages were updated
+    assert len(fetched_updated.messages) == 1
+    assert fetched_updated.messages[0].content[0].model_dump()["text"] == "Updated message!"
+
+    # Verify payload was updated
+    assert fetched_updated.payload == {"updated": "payload", "key": "value"}
+
+    # Verify callbacks were updated
+    assert len(fetched_updated.callbacks) == 2
+
+    # Find callbacks by URL to verify their properties
+    callback_by_url = {cb.url: cb for cb in fetched_updated.callbacks}
+
+    assert "https://example.com/webhook" in callback_by_url
+    webhook_callback = callback_by_url["https://example.com/webhook"]
+    assert webhook_callback.signature_secret == "secret123"
+    assert webhook_callback.on_status == WorkItemStatus.COMPLETED
+
+    assert "https://example.com/error-webhook" in callback_by_url
+    error_callback = callback_by_url["https://example.com/error-webhook"]
+    assert error_callback.signature_secret is None
+    assert error_callback.on_status == WorkItemStatus.ERROR
+
+    # Verify that created_at is preserved (not updated)
+    assert fetched_updated.created_at == fetched_initial.created_at

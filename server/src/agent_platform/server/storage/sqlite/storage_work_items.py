@@ -257,13 +257,18 @@ class SQLiteStorageWorkItemsMixin(CommonMixin):
         self._validate_uuid(work_item.user_id)
         self._validate_uuid(work_item.work_item_id)
 
-        # Convert messages and payload to JSON strings
+        # Convert messages, payload, and callbacks to JSON strings
         messages_json = (
             json.dumps([msg.model_dump() for msg in work_item.messages])
             if work_item.messages
             else "[]"
         )
         payload_json = json.dumps(work_item.payload)
+        callbacks_json = (
+            json.dumps([callback.model_dump() for callback in work_item.callbacks])
+            if work_item.callbacks
+            else "[]"
+        )
 
         async with self._cursor() as cur:
             await cur.execute(
@@ -273,6 +278,7 @@ class SQLiteStorageWorkItemsMixin(CommonMixin):
                        thread_id = :thread_id,
                        messages = :messages,
                        payload = :payload,
+                       callbacks = :callbacks,
                        status = :status,
                        completed_by = :completed_by,
                        status_updated_at = :status_updated_at,
@@ -286,6 +292,7 @@ class SQLiteStorageWorkItemsMixin(CommonMixin):
                     "thread_id": work_item.thread_id,
                     "messages": messages_json,
                     "payload": payload_json,
+                    "callbacks": callbacks_json,
                     "status": work_item.status.value
                     if isinstance(work_item.status, WorkItemStatus)
                     else str(work_item.status),

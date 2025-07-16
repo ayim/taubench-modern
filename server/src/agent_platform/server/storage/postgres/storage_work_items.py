@@ -290,13 +290,18 @@ class PostgresStorageWorkItemsMixin(CommonMixin):
         # Convert work item to dict
         work_item_data = work_item.model_dump()
 
-        # Convert messages and payload to Jsonb
+        # Convert messages, payload, and callbacks to Jsonb
         work_item_data["messages"] = (
             Jsonb([msg.model_dump() for msg in work_item.messages])
             if work_item.messages
             else Jsonb([])
         )
         work_item_data["payload"] = Jsonb(work_item.payload)
+        work_item_data["callbacks"] = (
+            Jsonb([callback.model_dump() for callback in work_item.callbacks])
+            if work_item.callbacks
+            else Jsonb([])
+        )
 
         async with self._cursor() as cur:
             await cur.execute(
@@ -306,6 +311,7 @@ class PostgresStorageWorkItemsMixin(CommonMixin):
                        thread_id = %(thread_id)s,
                        messages = %(messages)s,
                        payload = %(payload)s,
+                       callbacks = %(callbacks)s,
                        status = %(status)s,
                        completed_by = %(completed_by)s,
                        status_updated_at = %(status_updated_at)s,
