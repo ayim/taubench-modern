@@ -1,6 +1,6 @@
-- 'agent-package/agents/mcp-servers/transport: When the transport is ''streamable-http''
-  or ''sse'', the url must be defined.'
 - Expected agent-package/agents/mcp-servers/headers to be used together with 'url'
   field.
+- 'agent-package/agents/mcp-servers/transport: When the transport is ''streamable-http''
+  or ''sse'', the url must be defined.'
 - 'agent-package/agents/mcp-servers/transport: When the transport is ''streamable-http''
   or ''sse'', the url must be defined.'

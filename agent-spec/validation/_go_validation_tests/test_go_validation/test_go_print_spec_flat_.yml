@@ -121,6 +121,17 @@ agent-package/agents/conversation-guide:
     RelativeTo: ./
   Path: agent-package/agents/conversation-guide
   Required: false
+agent-package/agents/conversation-starter:
+  Deprecated: false
+  Description: 'Initial message to start a conversation with the agent. Example: "Hello,
+    what can you do?"'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/conversation-starter
+  Required: false
 agent-package/agents/description:
   Deprecated: false
   Description: 'Description for the agent. Example: "My smart agent that does what
@@ -276,12 +287,8 @@ agent-package/agents/mcp-servers/env/type:
   Description: 'The type of the environment variable. Accepted values: "secret", "oauth2-secret",
     "string", "data-server-info"'
   ExpectedType:
-    EnumValues:
-    - secret
-    - oauth2-secret
-    - string
-    - data-server-info
-    ExpectedType: enum
+    EnumValues: null
+    ExpectedType: mcp_server_var_type
     RecommendedValues: null
     RelativeTo: ''
   Path: agent-package/agents/mcp-servers/env/type
@@ -354,12 +361,8 @@ agent-package/agents/mcp-servers/headers/type:
   Description: 'The type of the header. Accepted values: "secret", "oauth2-secret",
     "string", "data-server-info"'
   ExpectedType:
-    EnumValues:
-    - secret
-    - oauth2-secret
-    - string
-    - data-server-info
-    ExpectedType: enum
+    EnumValues: null
+    ExpectedType: mcp_server_var_type
     RecommendedValues: null
     RelativeTo: ''
   Path: agent-package/agents/mcp-servers/headers/type
@@ -377,7 +380,9 @@ agent-package/agents/mcp-servers/name:
 agent-package/agents/mcp-servers/transport:
   Deprecated: false
   Description: 'The transport to use for the MCP server connection. Accepted values:
-    "streamable-http", "sse", "stdio"'
+    "streamable-http", "sse", "stdio", "auto". Note: "auto " will try to detect the
+    mode automatically based on whether the url is defined (if not it''s stdio) and
+    whether the url ends with /mcp or /sse (default being streamable-http).'
   ExpectedType:
     EnumValues: null
     ExpectedType: mcp_server_transport
@@ -536,7 +541,7 @@ agent-package/agents/resources:
 agent-package/agents/runbook:
   Deprecated: false
   Description: The runbook is used to build the prompt passed to the agent to define
-    its behavior. Relative path (right next to the 'agent-spec.yaml') for the file
+    its behavior. Relative path (right next to the "agent-spec.yaml") for the file
     to be used for the runbook. A markdown formatted file is expected.
   ExpectedType:
     EnumValues: null
@@ -575,6 +580,17 @@ agent-package/agents/version:
     RelativeTo: ''
   Path: agent-package/agents/version
   Required: true
+agent-package/agents/welcome-message:
+  Deprecated: false
+  Description: 'Welcome message displayed to users when they first interact with the
+    agent. Example: "What tools do you have?"'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/welcome-message
+  Required: false
 agent-package/exclude:
   Deprecated: false
   Description: 'List of files to exclude from the agent package. Example: ["*.zip",

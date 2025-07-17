@@ -10,6 +10,7 @@ root (no data)
         whitelist (required)
       architecture (required)
       conversation-guide
+      conversation-starter
       description (required)
       knowledge
         digest
@@ -51,6 +52,7 @@ root (no data)
       runbooks (deprecated)
       type (deprecated)
       version (required)
+      welcome-message
     exclude
     spec-version (required)
     variables

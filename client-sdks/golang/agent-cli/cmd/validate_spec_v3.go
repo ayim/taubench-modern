@@ -120,7 +120,7 @@ var SpecV3 = `
     }
   },
   "agent-package/agents/runbook": {
-    "description": "The runbook is used to build the prompt passed to the agent to define its behavior. Relative path (right next to the 'agent-spec.yaml') for the file to be used for the runbook. A markdown formatted file is expected.",
+    "description": "The runbook is used to build the prompt passed to the agent to define its behavior. Relative path (right next to the \"agent-spec.yaml\") for the file to be used for the runbook. A markdown formatted file is expected.",
     "required": true,
     "expected-type": {
       "type": "file",
@@ -202,7 +202,7 @@ var SpecV3 = `
     "expected-type": "string"
   },
   "agent-package/agents/mcp-servers/transport": {
-    "description": "The transport to use for the MCP server connection. Accepted values: \"streamable-http\", \"sse\", \"stdio\"",
+    "description": "The transport to use for the MCP server connection. Accepted values: \"streamable-http\", \"sse\", \"stdio\", \"auto\". Note: \"auto \" will try to detect the mode automatically based on whether the url is defined (if not it's stdio) and whether the url ends with /mcp or /sse (default being streamable-http).",
     "required": false,
     "expected-type": "mcp_server_transport"
   },
@@ -224,10 +224,7 @@ var SpecV3 = `
   "agent-package/agents/mcp-servers/headers/type": {
     "description": "The type of the header. Accepted values: \"secret\", \"oauth2-secret\", \"string\", \"data-server-info\"",
     "required": true,
-    "expected-type": {
-      "type": "enum",
-      "values": ["secret", "oauth2-secret", "string", "data-server-info"]
-    }
+    "expected-type": "mcp_server_var_type"
   },
   "agent-package/agents/mcp-servers/headers/description": {
     "description": "Optional: human-readable description of the header.",
@@ -262,10 +259,7 @@ var SpecV3 = `
   "agent-package/agents/mcp-servers/env/type": {
     "description": "The type of the environment variable. Accepted values: \"secret\", \"oauth2-secret\", \"string\", \"data-server-info\"",
     "required": true,
-    "expected-type": {
-      "type": "enum",
-      "values": ["secret", "oauth2-secret", "string", "data-server-info"]
-    }
+    "expected-type": "mcp_server_var_type"
   },
   "agent-package/agents/mcp-servers/env/description": {
     "description": "Optional: human-readable description of the environment variable.",
@@ -307,6 +301,16 @@ var SpecV3 = `
       "type": "file",
       "relative-to": "./"
     }
+  },
+  "agent-package/agents/conversation-starter": {
+    "description": "Initial message to start a conversation with the agent. Example: \"Hello, what can you do?\"",
+    "required": false,
+    "expected-type": "string"
+  },
+  "agent-package/agents/welcome-message": {
+    "description": "Welcome message displayed to users when they first interact with the agent. Example: \"What tools do you have?\"",
+    "required": false,
+    "expected-type": "string"
   },
   "agent-package/agents/metadata": {
     "description": "Metadata on how to run the agent",

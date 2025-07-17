@@ -962,3 +962,37 @@ agent-package:
         bad_yaml,
         datadir,
     )
+
+
+def test_spec_validation_bad_auto_transport(agent_cli: Path, datadir: Path, data_regression):
+    bad_yaml = """
+agent-package:
+  spec-version: v3
+  agents:
+    - name: Agent1
+      description: This is the description
+      version: 0.0.1
+      model:
+        provider: OpenAI
+        name: GPT 4o
+      architecture: plan_execute
+      reasoning: enabled
+      runbook: runbook.md
+      action-packages: []
+      knowledge: []
+      conversation-starter: 1
+      welcome-message: 1
+      metadata:
+        mode: conversational
+      mcp-servers:
+        - name: mcp-server-1
+          transport: auto
+          description: MCP Server with auto transport
+    """
+
+    check_with_spec(
+        agent_cli,
+        data_regression,
+        bad_yaml,
+        datadir,
+    )

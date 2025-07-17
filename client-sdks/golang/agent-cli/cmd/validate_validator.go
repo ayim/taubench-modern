@@ -544,8 +544,8 @@ func (v *Validator) verifyYamlMatchesSpec(
 					yamlNode.data, Critical)
 			} else {
 				transport := yamlNode.data.Node.Value
-				if transport != "" && transport != "streamable-http" && transport != "sse" && transport != "stdio" {
-					errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected %s to be one of ['streamable-http', 'sse', 'stdio'] (found %q).", specData.Path, transport),
+				if transport != "" && transport != "streamable-http" && transport != "sse" && transport != "stdio" && transport != "auto" {
+					errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected %s to be one of ['streamable-http', 'sse', 'stdio', 'auto'] (found %q).", specData.Path, transport),
 						yamlNode.data, Critical)
 				} else {
 					if transport == "streamable-http" || transport == "sse" {
@@ -556,6 +556,11 @@ func (v *Validator) verifyYamlMatchesSpec(
 					} else if transport == "stdio" {
 						if yamlNode.parent == nil || yamlNode.parent.GetChildren()["command-line"] == nil {
 							errors <- *NewErrorFromYamlNode(fmt.Sprintf("%s: When the transport is 'stdio', the command-line must be defined.", specData.Path),
+								yamlNode.data, Critical)
+						}
+					} else if transport == "auto" {
+						if yamlNode.parent == nil || (yamlNode.parent.GetChildren()["url"] == nil && yamlNode.parent.GetChildren()["command-line"] == nil) {
+							errors <- *NewErrorFromYamlNode(fmt.Sprintf("%s: When the transport is 'auto', either the url or command-line field must be defined.", specData.Path),
 								yamlNode.data, Critical)
 						}
 					}
@@ -606,7 +611,7 @@ func (v *Validator) verifyYamlMatchesSpec(
 				if yamlNode.parent != nil && yamlNode.parent.GetChildren()["transport"] != nil {
 					transportNode := yamlNode.parent.GetChildren()["transport"]
 					transportValue := transportNode.GetData().(*YamlNodeData).Node.Value
-					if transportValue != "streamable-http" && transportValue != "sse" {
+					if transportValue != "streamable-http" && transportValue != "sse" && transportValue != "auto" {
 						errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected transport field to be one of ['streamable-http', 'sse'] when using 'url' field (found %q).", transportValue),
 							transportNode.GetData().(*YamlNodeData), Critical)
 					}
@@ -732,8 +737,8 @@ func (v *Validator) verifyYamlMatchesSpec(
 				if yamlNode.parent != nil && yamlNode.parent.GetChildren()["transport"] != nil {
 					transportNode := yamlNode.parent.GetChildren()["transport"]
 					transportValue := transportNode.GetData().(*YamlNodeData).Node.Value
-					if transportValue != "stdio" {
-						errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected transport field to be 'stdio' when using 'command-line' field (found %q).", transportValue),
+					if transportValue != "stdio" && transportValue != "auto" {
+						errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected transport field to be 'stdio' or 'auto' when using 'command-line' field (found %q).", transportValue),
 							transportNode.GetData().(*YamlNodeData), Critical)
 					}
 				}

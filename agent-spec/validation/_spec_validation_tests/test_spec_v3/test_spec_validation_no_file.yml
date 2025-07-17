@@ -1,4 +1,4 @@
-- Expected agent-package/agents/runbook to map to a file named 'no-runbook.md' relative
-  to "dir('agent-spec.yaml')/".
 - Expected agent-package/agents/knowledge/name to map to a file named 'knowledge-file.txt'
   relative to "dir('agent-spec.yaml')/knowledge".
+- Expected agent-package/agents/runbook to map to a file named 'no-runbook.md' relative
+  to "dir('agent-spec.yaml')/".

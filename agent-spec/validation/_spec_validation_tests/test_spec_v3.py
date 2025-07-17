@@ -1004,6 +1004,40 @@ agent-package:
     errors_str = [e.message for e in errors]
     data_regression.check(errors_str)
 
+@pytest.mark.usefixtures("_gen_runbook")
+def test_spec_bad_auto_transport(datadir: Path, v3_spec: dict, data_regression):
+    from _spec_validation_tests._spec_validation import load_spec
+
+    bad_yaml = """
+agent-package:
+  spec-version: v3
+  agents:
+    - name: Agent1
+      description: This is the description
+      version: 0.0.1
+      model:
+        provider: OpenAI
+        name: GPT 4o
+      architecture: plan_execute
+      reasoning: enabled
+      runbook: runbook.md
+      action-packages: []
+      knowledge: []
+      conversation-starter: 1
+      welcome-message: 1
+      metadata:
+        mode: conversational
+      mcp-servers:
+        - name: mcp-server-1
+          transport: auto
+          description: MCP Server with auto transport
+    """
+
+    errors = validate_from_spec(load_spec(v3_spec), bad_yaml, datadir, raise_on_error=False)
+    assert errors, "Expected errors"
+    errors_str = [e.message for e in errors]
+    data_regression.check(errors_str)
+
 
 def test_spec():
     from _spec_validation_tests._spec_validation import load_spec

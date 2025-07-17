@@ -1,12 +1,13 @@
+- Expected agent-package/agents/mcp-servers/command-line to be mutually exclusive
+  with 'url' field.
+- Expected agent-package/agents/mcp-servers/command-line to be mutually exclusive
+  with 'url' field.
+- Expected agent-package/agents/mcp-servers/url to be mutually exclusive with 'command-line'
+  field.
+- Expected agent-package/agents/mcp-servers/url to be mutually exclusive with 'command-line'
+  field.
+- Expected transport field to be 'stdio' or 'auto' when using 'command-line' field
+  (found 'streamable-http').
+- Expected transport field to be one of ['streamable-http', 'sse', 'auto'] when using
+  'url' field (found 'stdio').
 - 'Unexpected entry: wrong-required-env-vars (in agent-package/agents/mcp-servers).'
-- Expected agent-package/agents/mcp-servers/url to be mutually exclusive with 'command-line'
-  field.
-- Expected agent-package/agents/mcp-servers/command-line to be mutually exclusive
-  with 'url' field.
-- Expected transport field to be 'stdio' when using 'command-line' field (found 'streamable-http').
-- Expected agent-package/agents/mcp-servers/url to be mutually exclusive with 'command-line'
-  field.
-- Expected transport field to be one of ['streamable-http', 'sse'] when using 'url'
-  field (found 'stdio').
-- Expected agent-package/agents/mcp-servers/command-line to be mutually exclusive
-  with 'url' field.

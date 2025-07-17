@@ -1,5 +1,5 @@
-- message: Expected transport field to be 'stdio' when using 'command-line' field
-    (found "streamable-http").
+- message: Expected transport field to be 'stdio' or 'auto' when using 'command-line'
+    field (found "streamable-http").
   range:
     end:
       character: 0

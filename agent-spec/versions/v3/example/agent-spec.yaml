@@ -35,9 +35,9 @@ agent-package:
           cwd: ./mcp-servers/local-server
           force-serial-tool-calls: false
         - name: remote-http-server
-          transport: streamable-http
+          transport: auto
           description: Remote MCP server accessible via HTTP
-          url: http://localhost:8000
+          url: http://localhost:8000/mcp
           headers:
             Authorization:
               type: oauth2-secret
@@ -54,6 +54,8 @@ agent-package:
               type: data-server-info
               description: Information to connect to the data server (JSON-formatted string)
           force-serial-tool-calls: true
+      conversation-starter: 'Hello, what tools do you have?'
+      welcome-message: 'Hello, how can I help you today?'
       metadata:
         mode: worker
         worker-config:

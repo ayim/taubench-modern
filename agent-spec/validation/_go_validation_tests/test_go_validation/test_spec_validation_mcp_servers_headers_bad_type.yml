@@ -1,5 +1,5 @@
-- message: Expected agent-package/agents/mcp-servers/headers/type to be one of [secret
-    oauth2-secret string data-server-info] (found 'wrong-type-in-header').
+- message: Expected agent-package/agents/mcp-servers/headers/type to be one of ['secret',
+    'oauth2-secret', 'string', 'data-server-info'] (found "wrong-type-in-header").
   range:
     end:
       character: 0
@@ -9,8 +9,8 @@
       line: 31
   severity: 1
   source: sema4ai
-- message: Expected agent-package/agents/mcp-servers/env/type to be one of [secret
-    oauth2-secret string data-server-info] (found 'wrong-type-in-env').
+- message: Expected agent-package/agents/mcp-servers/env/type to be one of ['secret',
+    'oauth2-secret', 'string', 'data-server-info'] (found "wrong-type-in-env").
   range:
     end:
       character: 0
