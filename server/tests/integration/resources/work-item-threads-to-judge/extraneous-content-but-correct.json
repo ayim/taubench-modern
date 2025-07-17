@@ -1,0 +1,29 @@
+{
+  "expected_status": "COMPLETED",
+  "work_item_id": "ddddeeee-0000-1111-2222-333333333333",
+  "user_id": "458165ab-7119-467f-a72c-7fcd772c47d4",
+  "messages": [
+    {
+      "content": [
+        {
+          "kind": "text",
+          "text": "Return the word count of 'The quick brown fox'."
+        }
+      ],
+      "role": "user"
+    },
+    {
+      "content": [
+        {
+          "kind": "thought",
+          "thought": "I need to count the words in that phrase. Let me count: The, quick, brown, fox - that's 4 words. I might also share some related information."
+        },
+        {
+          "kind": "text",
+          "text": "That sentence has 4 words.\n\nFun fact: The complete pangram \"The quick brown fox jumps over the lazy dog\" contains every letter of the English alphabet and is commonly used for typing practice and font testing. The phrase you provided is just the beginning of that famous sentence!"
+        }
+      ],
+      "role": "agent"
+    }
+  ]
+}

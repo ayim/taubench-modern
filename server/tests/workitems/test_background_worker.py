@@ -372,7 +372,7 @@ class TestBackgroundWorker:
     async def test_validate_success_with_invalid_response(
         self, configured_storage, stub_user, seed_agents
     ):
-        """Test that _validate_success defaults to NEEDS_REVIEW for invalid LLM responses."""
+        """Test that _validate_success defaults to INDETERMINATE for invalid LLM responses."""
 
         item = _make_work_item(stub_user.user_id, seed_agents[0].agent_id)
 
@@ -386,14 +386,14 @@ class TestBackgroundWorker:
             return_value=mock_response,
         ):
             result = await bw._validate_success(item)
-            # Should default to NEEDS_REVIEW for invalid responses
-            assert result == WorkItemStatus.NEEDS_REVIEW
+            # Should default to INDETERMINATE for invalid responses
+            assert result == WorkItemStatus.INDETERMINATE
 
     @pytest.mark.asyncio
     async def test_validate_success_with_empty_content(
         self, configured_storage, stub_user, seed_agents
     ):
-        """Test that _validate_success defaults to NEEDS_REVIEW when LLM returns empty content."""
+        """Test that _validate_success defaults to INDETERMINATE when LLM returns empty content."""
 
         item = _make_work_item(stub_user.user_id, seed_agents[0].agent_id)
 
@@ -405,13 +405,13 @@ class TestBackgroundWorker:
             return_value=mock_response,
         ):
             result = await bw._validate_success(item)
-            assert result == WorkItemStatus.NEEDS_REVIEW
+            assert result == WorkItemStatus.INDETERMINATE
 
     @pytest.mark.asyncio
     async def test_validate_success_with_non_text_content(
         self, configured_storage, stub_user, seed_agents
     ):
-        """Test that _validate_success defaults to NEEDS_REVIEW when LLM returns
+        """Test that _validate_success defaults to INDETERMINATE when LLM returns
         only non-text content."""
 
         item = _make_work_item(stub_user.user_id, seed_agents[0].agent_id)
@@ -431,7 +431,7 @@ class TestBackgroundWorker:
             return_value=mock_response,
         ):
             result = await bw._validate_success(item)
-            assert result == WorkItemStatus.NEEDS_REVIEW
+            assert result == WorkItemStatus.INDETERMINATE
 
     @pytest.mark.asyncio
     async def test_response_text_content_is_parsed(
@@ -477,8 +477,8 @@ class TestBackgroundWorker:
             return_value=mock_response,
         ):
             result = await bw._validate_success(item)
-            # Should return NEEDS_REVIEW because ThreadTextContent isn't parsed
-            assert result == WorkItemStatus.NEEDS_REVIEW
+            # Should return INDETERMINATE because ThreadTextContent isn't parsed
+            assert result == WorkItemStatus.INDETERMINATE
 
     @pytest.mark.asyncio
     async def test_mixed_content_types(self, configured_storage, stub_user, seed_agents):
@@ -513,7 +513,7 @@ class TestBackgroundWorker:
     async def test_validation_with_various_invalid_responses(
         self, configured_storage, stub_user, seed_agents
     ):
-        """Test that various invalid validation responses all default to NEEDS_REVIEW.
+        """Test that various invalid validation responses all default to INDETERMINATE.
 
         Ensures robust handling of edge cases where the validation LLM returns
         unexpected text that doesn't match the expected COMPLETED/NEEDS_REVIEW values.
@@ -543,4 +543,4 @@ class TestBackgroundWorker:
                 return_value=mock_response,
             ):
                 result = await bw._validate_success(item)
-                assert result == WorkItemStatus.NEEDS_REVIEW, f"Failed for text: '{invalid_text}'"
+                assert result == WorkItemStatus.INDETERMINATE, f"Failed for text: '{invalid_text}'"

@@ -1,0 +1,29 @@
+{
+  "expected_status": "NEEDS_REVIEW",
+  "work_item_id": "eeeeeeee-5555-6666-7777-888888888888",
+  "user_id": "458165ab-7119-467f-a72c-7fcd772c47d4",
+  "messages": [
+    {
+      "content": [
+        {
+          "kind": "text",
+          "text": "Summarize the attached 50-page PDF."
+        }
+      ],
+      "role": "user"
+    },
+    {
+      "content": [
+        {
+          "kind": "thought",
+          "thought": "The user wants me to summarize a PDF, but I should ask for more specific guidance about what they want summarized."
+        },
+        {
+          "kind": "text",
+          "text": "I'd be happy to help summarize the PDF! Could you clarify which sections or aspects you'd like me to focus on? For example, are you looking for an executive summary, key findings, methodology, or something else specific?"
+        }
+      ],
+      "role": "agent"
+    }
+  ]
+}

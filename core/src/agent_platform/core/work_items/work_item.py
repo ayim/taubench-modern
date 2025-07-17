@@ -26,6 +26,9 @@ class WorkItemStatus(StrEnum):
     NEEDS_REVIEW = "NEEDS_REVIEW"
     """The work item needs review."""
 
+    INDETERMINATE = "INDETERMINATE"
+    """The outcome of the work item could not be determined by the agent evaluator."""
+
     PENDING = "PENDING"
     """The work item is pending."""
 
@@ -39,12 +42,14 @@ allowed_callback_status_types = Literal[
     WorkItemStatus.ERROR,
     WorkItemStatus.NEEDS_REVIEW,
     WorkItemStatus.CANCELLED,
+    WorkItemStatus.INDETERMINATE,
 ]
 allowed_callback_statuses = (
     WorkItemStatus.COMPLETED,
     WorkItemStatus.ERROR,
     WorkItemStatus.NEEDS_REVIEW,
     WorkItemStatus.CANCELLED,
+    WorkItemStatus.INDETERMINATE,
 )
 
 

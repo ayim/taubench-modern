@@ -1,0 +1,29 @@
+{
+  "expected_status": "NEEDS_REVIEW",
+  "work_item_id": "bbbbbbbb-2222-3333-4444-555555555555",
+  "user_id": "458165ab-7119-467f-a72c-7fcd772c47d4",
+  "messages": [
+    {
+      "content": [
+        {
+          "kind": "text",
+          "text": "What is the capital of Australia?"
+        }
+      ],
+      "role": "user"
+    },
+    {
+      "content": [
+        {
+          "kind": "thought",
+          "thought": "The user is asking for the capital of Australia. I should provide a clear answer."
+        },
+        {
+          "kind": "text",
+          "text": "Sydney is the capital of Australia."
+        }
+      ],
+      "role": "agent"
+    }
+  ]
+}

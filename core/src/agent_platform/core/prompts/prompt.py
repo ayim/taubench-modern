@@ -409,11 +409,17 @@ class Prompt:
         )
         return self
 
-    def to_pretty_yaml(self, width: int = 100) -> str:
-        """Convert the prompt to a pretty YAML string."""
+    def to_pretty_yaml(self, width: int = 100, include: list[str] | None = None) -> str:
+        """Convert the prompt to a pretty YAML string.
+
+        Args:
+            width: Maximum line width for formatting
+            include: Optional list of field names to include. If None, includes all fields.
+                    Examples: ["messages"], ["system_instruction", "messages"]
+        """
         from agent_platform.core.prompts.debug import to_pretty_yaml
 
-        return to_pretty_yaml(self, width)
+        return to_pretty_yaml(self, width, include)
 
     def count_tokens_approx(self, model: str | None = None) -> int:
         """Approximate the number of tokens in the prompt.

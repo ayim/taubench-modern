@@ -1,0 +1,37 @@
+{
+  "expected_status": "NEEDS_REVIEW",
+  "work_item_id": "dddddddd-4444-5555-6666-777777777777",
+  "user_id": "458165ab-7119-467f-a72c-7fcd772c47d4",
+  "messages": [
+    {
+      "content": [
+        {
+          "kind": "text",
+          "text": "Translate \"hello\" to Klingon."
+        }
+      ],
+      "role": "user"
+    },
+    {
+      "content": [
+        {
+          "kind": "thought",
+          "thought": "I'll use the translate tool to translate this to Klingon."
+        },
+        {
+          "kind": "tool_call",
+          "name": "translate",
+          "tool_call_id": "tool_5678",
+          "arguments_raw": "{\"text\": \"hello\", \"to\": \"tlh\"}",
+          "status": "failed",
+          "error": "unsupported language code 'tlh'"
+        },
+        {
+          "kind": "text",
+          "text": "Here is the translation: nuqneH!"
+        }
+      ],
+      "role": "agent"
+    }
+  ]
+}

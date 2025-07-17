@@ -1,0 +1,29 @@
+{
+  "expected_status": "NEEDS_REVIEW",
+  "work_item_id": "aaaaaaaa-1111-2222-3333-444444444444",
+  "user_id": "458165ab-7119-467f-a72c-7fcd772c47d4",
+  "messages": [
+    {
+      "content": [
+        {
+          "kind": "text",
+          "text": "Give me a three-item bulleted list of the advantages of solar energy."
+        }
+      ],
+      "role": "user"
+    },
+    {
+      "content": [
+        {
+          "kind": "thought",
+          "thought": "I know three advantages, but I'll explain them in prose instead of the requested format."
+        },
+        {
+          "kind": "text",
+          "text": "Solar energy is renewable, reduces carbon emissions, and lowers electricity bills. It is therefore an important component of sustainable infrastructure that helps both the environment and consumers."
+        }
+      ],
+      "role": "agent"
+    }
+  ]
+}

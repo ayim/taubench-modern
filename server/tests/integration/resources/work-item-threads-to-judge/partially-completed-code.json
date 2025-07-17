@@ -1,0 +1,29 @@
+{
+  "expected_status": "NEEDS_REVIEW",
+  "work_item_id": "ccccdddd-9999-0000-1111-222222222222",
+  "user_id": "458165ab-7119-467f-a72c-7fcd772c47d4",
+  "messages": [
+    {
+      "content": [
+        {
+          "kind": "text",
+          "text": "Give me Python code that prints numbers 1-5 and 10-15."
+        }
+      ],
+      "role": "user"
+    },
+    {
+      "content": [
+        {
+          "kind": "thought",
+          "thought": "The user wants Python code that prints two ranges of numbers. I'll provide the first range."
+        },
+        {
+          "kind": "text",
+          "text": "Here's the Python code:\n\n```python\nfor i in range(1, 6):\n    print(i)\n```"
+        }
+      ],
+      "role": "agent"
+    }
+  ]
+}

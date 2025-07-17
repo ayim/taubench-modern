@@ -1,0 +1,29 @@
+{
+  "expected_status": "COMPLETED",
+  "work_item_id": "aaaabbbb-7777-8888-9999-000000000000",
+  "user_id": "458165ab-7119-467f-a72c-7fcd772c47d4",
+  "messages": [
+    {
+      "content": [
+        {
+          "kind": "text",
+          "text": "Say hello in Spanish."
+        }
+      ],
+      "role": "user"
+    },
+    {
+      "content": [
+        {
+          "kind": "thought",
+          "thought": "The user wants me to say hello in Spanish. This is straightforward - 'Hola' is hello in Spanish."
+        },
+        {
+          "kind": "text",
+          "text": "¡Hola! (That's \"hello\" in Spanish. Let me know if you need anything else!)"
+        }
+      ],
+      "role": "agent"
+    }
+  ]
+}

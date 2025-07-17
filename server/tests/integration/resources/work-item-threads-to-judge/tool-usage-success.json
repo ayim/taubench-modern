@@ -1,0 +1,37 @@
+{
+  "expected_status": "COMPLETED",
+  "work_item_id": "cccccccc-3333-4444-5555-666666666666",
+  "user_id": "458165ab-7119-467f-a72c-7fcd772c47d4",
+  "messages": [
+    {
+      "content": [
+        {
+          "kind": "text",
+          "text": "Calculate 12345 * 678."
+        }
+      ],
+      "role": "user"
+    },
+    {
+      "content": [
+        {
+          "kind": "thought",
+          "thought": "I should use the calculate tool for this mathematical operation."
+        },
+        {
+          "kind": "tool_call",
+          "name": "calculate",
+          "tool_call_id": "tool_1234",
+          "arguments_raw": "{\"expression\": \"12345 * 678\"}",
+          "status": "finished",
+          "result": "8369910"
+        },
+        {
+          "kind": "text",
+          "text": "The result is 8,369,910."
+        }
+      ],
+      "role": "agent"
+    }
+  ]
+}

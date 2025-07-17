@@ -1949,6 +1949,101 @@ def _get_work_item_judge_test_files():
     return sorted(json_files, key=lambda x: x.values[0])  # Sort by filename
 
 
+def _create_mock_storage_for_judge(work_item: WorkItem, openai_api_key: str):
+    """Create mock storage service with required dependencies for judge testing."""
+    from agent_platform.core.agent.agent import Agent
+    from agent_platform.core.agent.agent_architecture import AgentArchitecture
+    from agent_platform.core.platforms.openai.parameters import OpenAIPlatformParameters
+    from agent_platform.core.runbook.runbook import Runbook
+    from agent_platform.core.user import User
+    from agent_platform.core.utils import SecretString
+
+    mock_user = User(user_id=work_item.user_id, sub="test_user")
+    mock_platform_config = OpenAIPlatformParameters(openai_api_key=SecretString(openai_api_key))
+    mock_agent = Agent(
+        name="Test Agent",
+        description="Test agent for validation",
+        user_id=work_item.user_id,
+        runbook_structured=Runbook(raw_text="You are a helpful assistant", content=[]),
+        version="1.0.0",
+        platform_configs=[mock_platform_config],
+        agent_architecture=AgentArchitecture(name="test_arch", version="1.0.0"),
+    )
+
+    mock_storage = unittest.mock.AsyncMock()
+    mock_storage.get_user_by_id.return_value = mock_user
+    mock_storage.get_agent.return_value = mock_agent
+    return mock_storage
+
+
+def _create_capture_function():
+    """Create function to capture judge response and conversation for debugging."""
+    judge_response = None
+    formatted_conversation = None
+
+    async def capture_prompt_generate(*args, **kwargs):
+        nonlocal judge_response, formatted_conversation
+        from agent_platform.server.api.private_v2.prompt import prompt_generate
+
+        result = await prompt_generate(*args, **kwargs)
+        judge_response = result
+
+        if args and hasattr(args[0], "messages") and args[0].messages:
+            user_message = args[0].messages[0]
+            if hasattr(user_message, "content") and user_message.content:
+                prompt_text = user_message.content[0].text
+                start_marker = "<conversation_start>"
+                end_marker = "</conversation_start>"
+                if start_marker in prompt_text and end_marker in prompt_text:
+                    start_idx = prompt_text.find(start_marker) + len(start_marker)
+                    end_idx = prompt_text.find(end_marker)
+                    formatted_conversation = prompt_text[start_idx:end_idx].strip()
+        return result
+
+    return capture_prompt_generate, lambda: (judge_response, formatted_conversation)
+
+
+def _create_detailed_error_message(
+    expected_status, result_status, resource_file, judge_response, formatted_conversation
+):
+    """Create detailed error message for judge test failures."""
+    from agent_platform.core.responses.response import ResponseMessage
+
+    error_msg = [
+        f"Expected {expected_status} but got {result_status} for {resource_file}",
+        "",
+        "=== JUDGE'S FULL RESPONSE ===",
+    ]
+
+    if judge_response and isinstance(judge_response, ResponseMessage):
+        judge_texts = []
+        try:
+            content_list = getattr(judge_response, "content", [])
+            if content_list:
+                for content_item in content_list:
+                    if hasattr(content_item, "text"):
+                        judge_texts.append(content_item.text)
+        except (TypeError, AttributeError):
+            pass
+
+        if judge_texts:
+            error_msg.append("Judge's response text(s):")
+            for i, text in enumerate(judge_texts):
+                error_msg.append(f"  [{i + 1}] {text!r}")
+        else:
+            error_msg.append("Judge's response contained no text content")
+
+        error_msg.append(f"Full response object: {judge_response}")
+    else:
+        error_msg.append("No judge response captured")
+
+    if formatted_conversation:
+        error_msg.extend(["", "=== CONVERSATION SENT TO JUDGE ===", formatted_conversation])
+
+    error_msg.append("=" * 50)
+    return "\n".join(error_msg)
+
+
 @pytest.mark.integration
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
 @pytest.mark.asyncio
@@ -1959,79 +2054,53 @@ async def test_work_item_judge_with_recorded_threads(
     resource_file: str,
     resources_dir: Path,
 ):
-    """Test the work item judge using pre-recorded conversation threads.
-
-    This test exercises the judge (_validate_success) with real model calls but uses
-    pre-recorded conversation threads instead of running the full work item execution.
-    This allows us to test the judge's decision-making without the complexity and
-    non-determinism of full agent execution.
-
-    Each JSON file contains an 'expected_status' field that defines what the judge
-    should return for that conversation thread.
-    """
+    """Test the work item judge using pre-recorded conversation threads."""
     import json
 
+    from agent_platform.server.storage import StorageService
     from agent_platform.server.work_items.background_worker import _validate_success
 
-    # Load the recorded thread from JSON
+    # Load test data
     work_item_resources_dir = resources_dir / "work-item-threads-to-judge"
     with open(work_item_resources_dir / resource_file, encoding="utf-8") as fh:
         work_item_data = json.load(fh)
 
-    # Extract expected status from the JSON file
     expected_status = WorkItemStatus(work_item_data.pop("expected_status"))
-
-    # Convert to WorkItem object (without the expected_status field)
     work_item = WorkItem.model_validate(work_item_data)
 
-    # Test the judge directly with a real model call
+    # Setup agent and mocks
     with AgentServerClient(base_url_agent_server_with_work_items) as agent_client:
-        # Create a temporary agent for validation (the judge needs an agent_id)
         agent_id = agent_client.create_agent_and_return_agent_id(
             platform_configs=[{"kind": "openai", "openai_api_key": openai_api_key}],
         )
         work_item.agent_id = agent_id
 
-        # Mock the storage service to provide what _validate_success needs
-        from agent_platform.core.agent.agent import Agent
-        from agent_platform.core.agent.agent_architecture import AgentArchitecture
-        from agent_platform.core.platforms.openai.parameters import OpenAIPlatformParameters
-        from agent_platform.core.runbook.runbook import Runbook
-        from agent_platform.core.user import User
-        from agent_platform.core.utils import SecretString
-        from agent_platform.server.storage import StorageService
+        mock_storage = _create_mock_storage_for_judge(work_item, openai_api_key)
+        capture_function, get_captured_data = _create_capture_function()
 
-        # Create a mock user
-        mock_user = User(user_id=work_item.user_id, sub="test_user")
-
-        # Create a mock platform config
-        mock_platform_config = OpenAIPlatformParameters(openai_api_key=SecretString(openai_api_key))
-
-        # Create a mock agent
-        mock_agent = Agent(
-            name="Test Agent",
-            description="Test agent for validation",
-            user_id=work_item.user_id,
-            runbook_structured=Runbook(raw_text="You are a helpful assistant", content=[]),
-            version="1.0.0",
-            platform_configs=[mock_platform_config],
-            agent_architecture=AgentArchitecture(name="test_arch", version="1.0.0"),
-        )
-
-        # Create a mock storage service
-        mock_storage = unittest.mock.AsyncMock()
-        mock_storage.get_user_by_id.return_value = mock_user
-        mock_storage.get_agent.return_value = mock_agent
-
-        # Replace the storage service instance
-        with unittest.mock.patch.object(StorageService, "get_instance", return_value=mock_storage):
-            # Call the judge with real model call
+        # Test judge with mocked dependencies
+        with (
+            unittest.mock.patch.object(StorageService, "get_instance", return_value=mock_storage),
+            unittest.mock.patch(
+                "agent_platform.server.work_items.background_worker.prompt_generate",
+                side_effect=capture_function,
+            ),
+        ):
             result_status = await _validate_success(work_item)
 
-        # Assert the expected result
-        assert result_status == expected_status, (
-            f"Expected {expected_status} but got {result_status} for {resource_file}"
-        )
+        # Assert result with detailed error message if needed
+        if result_status != expected_status:
+            judge_response, formatted_conversation = get_captured_data()
+            error_msg = _create_detailed_error_message(
+                expected_status,
+                result_status,
+                resource_file,
+                judge_response,
+                formatted_conversation,
+            )
+            raise AssertionError(error_msg)
+
+        assert result_status == expected_status
 
 
 # NOTE: Callback tests have been moved to test_work_items_callbacks.py

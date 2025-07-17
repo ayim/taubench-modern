@@ -5,20 +5,32 @@ if TYPE_CHECKING:
     from agent_platform.core.prompts.prompt import Prompt
 
 
-def _to_debug_dict_for_prompt(prompt: "Prompt", width: int = 100) -> dict:
+def _to_debug_dict_for_prompt(
+    prompt: "Prompt", width: int = 100, include: list[str] | None = None
+) -> dict:
     """
     Convert the Prompt into a dictionary structure suitable for YAML dumping.
+
+    Args:
+        prompt: The prompt to convert
+        width: Width for formatting
+        include: Optional list of field names to include. If None, includes all fields.
     """
     result = {}
     for f in fields(prompt):
         field_name = f.name
-        value = getattr(prompt, field_name)
 
         # We'll skip _finalized as it's internal
         if field_name == "_finalized":
             continue
 
-        elif field_name == "messages":
+        # If include is specified, only include those fields
+        if include is not None and field_name not in include:
+            continue
+
+        value = getattr(prompt, field_name)
+
+        if field_name == "messages":
             # Convert each message in the list
             converted_msgs = []
             for msg in value:
@@ -78,10 +90,15 @@ def _to_debug_dict_for_content(content: Any, width: int = 100) -> dict:
     return raw
 
 
-def to_pretty_yaml(self, width: int = 100) -> str:
+def to_pretty_yaml(self, width: int = 100, include: list[str] | None = None) -> str:
     """
     Produce a human-friendly YAML string representing this Prompt and
     its messages/content using ruamel.yaml for better formatting control.
+
+    Args:
+        width: Maximum line width for formatting
+        include: Optional list of field names to include. If None, includes all fields.
+                Examples: ["messages"], ["system_instruction", "messages"]
     """
     from io import StringIO
 
@@ -111,7 +128,7 @@ def to_pretty_yaml(self, width: int = 100) -> str:
         return obj
 
     # Prepare data with formatting hints
-    data_dict = _to_debug_dict_for_prompt(self)
+    data_dict = _to_debug_dict_for_prompt(self, width, include)
     formatted_data = _prepare_for_yaml(data_dict)
 
     # Configure and use ruamel.yaml

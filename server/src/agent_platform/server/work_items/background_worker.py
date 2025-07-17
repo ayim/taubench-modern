@@ -1,17 +1,17 @@
-# ruff: noqa: E501
-
 import asyncio
 import logging
 from collections.abc import Awaitable, Callable, Sequence
 from datetime import UTC, datetime
 from textwrap import dedent
-from typing import assert_never
+from typing import assert_never, cast
 from uuid import uuid4
 
 from fastapi import Request
 
 from agent_platform.core.context import AgentServerContext
 from agent_platform.core.prompts import Prompt
+from agent_platform.core.prompts.content.text import PromptTextContent
+from agent_platform.core.prompts.messages import PromptUserMessage
 from agent_platform.core.responses.content.text import ResponseTextContent
 from agent_platform.core.thread import ThreadTextContent
 from agent_platform.core.thread.base import ThreadMessage
@@ -33,17 +33,28 @@ logger = logging.getLogger(__name__)
 
 
 async def _validate_success(item: WorkItem) -> WorkItemStatus:
+    # 1. System message describing the judge's role
     system_message = dedent("""
-        You are a helpful agent that validates if the work item executed by an AI agent was completed successfully.
-        Review the conversation history and determine if the task was completed successfully.
+        You are an expert evaluator of LLM conversations. Your role is to assess whether \
+        an AI agent successfully completed a given work item by analyzing the conversation \
+        history between the agent and user.
+    """)
+
+    # 2-5. Combined judgment prompt with criteria, primer, messages, and final instructions
+    judge_prompt_msg = dedent("""
+        ## Evaluation Criteria
 
         **Critical rule:**
-        If **any** “Signs requiring human review” apply, you **must** respond **NEEDS_REVIEW** immediately—do **not** consider any other criteria or signs of success.
+        If **any** "Signs requiring human review" apply, you **must** respond **NEEDS_REVIEW** \
+        immediately—do **not** consider any other criteria or signs of success.
 
         **Signs requiring human review** *(if any apply, respond NEEDS_REVIEW immediately)*:
-        - The agent defers, requests clarification, or explicitly states it cannot fulfill the request (e.g. “I cannot complete this,” “I do not know…”).
-        - The agent's response does **not** contain the direct deliverable (answer, calculation, document, code snippet, etc.) exactly as requested.
-        - The agent substitutes only explanation or analysis instead of providing the requested output.
+        - The agent defers, requests clarification, or explicitly states it cannot fulfill \
+        the request (e.g. "I cannot complete this," "I do not know…").
+        - The agent's response does **not** contain the direct deliverable (answer, calculation, \
+        document, code snippet, etc.) exactly as requested.
+        - The agent substitutes only explanation or analysis instead of providing the \
+        requested output.
         - Any unhandled or unresolved error condition (invalid input, tool failure, exception).
         - The solution is incomplete or partially implemented.
         - The agent expressed uncertainty about the correctness of the solution.
@@ -58,9 +69,37 @@ async def _validate_success(item: WorkItem) -> WorkItemStatus:
         5. Analysis was thorough and accurate (when analysis was part of the ask).
         6. The agent navigated any challenges without deferral.
 
-        You must respond with **ONLY** one of these two values:
-        - **NEEDS_REVIEW** — if **any** “Signs requiring human review” apply.
-        - **COMPLETED** — otherwise (i.e., none of the review signs apply and all signs of successful completion apply).
+        ## Conversation to Evaluate
+
+        Please evaluate the conversation between the start and end markers below. The conversation \
+        is provided in YAML format:
+
+        <conversation_start>
+        {conversation_thread}
+        </conversation_start>
+
+        ## Response Instructions
+
+        Please follow this two-step process:
+
+        **Step 1: Analysis**
+        First, analyze the conversation systematically:
+        1. Check each "Signs requiring human review" criterion - does any apply?
+        2. If none apply, check each "Signs of successful completion" criterion - do all apply?
+        3. Explain your reasoning for each relevant criterion.
+
+        **Step 2: Final Classification**
+        Based on your analysis, respond with **ONLY** one of these two values on a new line:
+        - **NEEDS_REVIEW** — if **any** "Signs requiring human review" apply.
+        - **COMPLETED** — otherwise (i.e., none of the review signs apply and all signs of \
+        successful completion apply).
+
+        Format your response as:
+        ```
+        ANALYSIS: [Your detailed reasoning here]
+
+        CLASSIFICATION: [NEEDS_REVIEW or COMPLETED]
+        ```
     """)
 
     storage = StorageService.get_instance()
@@ -77,14 +116,14 @@ async def _validate_success(item: WorkItem) -> WorkItemStatus:
 
     # Use the existing thread-to-prompt message converter
     converted_messages = await kernel.converters.thread_messages_to_prompt_messages(item.messages)
-    # Convert to the expected message types
-    prompt_messages = []
-    for msg in converted_messages:
-        prompt_messages.append(msg)
+    # Format the conversation thread through a temporary prompt instance
+    temp_prompt = Prompt(messages=cast(list, converted_messages))
+    formatted_conversation_thread = temp_prompt.to_pretty_yaml(include=["messages"])
+    judge_prompt_msg = judge_prompt_msg.format(conversation_thread=formatted_conversation_thread)
 
     prompt = Prompt(
         system_instruction=system_message,
-        messages=prompt_messages,
+        messages=[PromptUserMessage(content=[PromptTextContent(text=judge_prompt_msg)])],
         temperature=0.0,
     )
     result = await prompt_generate(
@@ -96,14 +135,32 @@ async def _validate_success(item: WorkItem) -> WorkItemStatus:
     )
     if content := result.content:
         if text_content := [c.text for c in content if isinstance(c, ResponseTextContent)]:
+            response_text = text_content[-1]
+            logger.debug(f"Work item validation response: {response_text}")
+
+            # Extract the classification from the structured response
+            for line in response_text.split("\n"):
+                clean_line = line.strip()
+                if clean_line.startswith("CLASSIFICATION:"):
+                    classification = clean_line.split("CLASSIFICATION:", 1)[1].strip()
+                    try:
+                        return WorkItemStatus(classification)
+                    except ValueError:
+                        logger.warning(
+                            f"Work item validation failed: invalid classification: {classification}"
+                        )
+                        break
+
+            # Fallback: try to parse the entire response as before (for backward compatibility)
             try:
-                logger.debug(f"Work item validation response: {text_content[-1]}")
-                return WorkItemStatus(text_content[-1])
+                return WorkItemStatus(response_text.strip())
             except ValueError:
-                logger.warning(f"Work item validation failed: invalid response: {content!r}")
+                logger.warning(
+                    f"Work item validation failed: could not parse response: {response_text!r}"
+                )
                 pass
-    # If we get here, the work item validation failed; return NEEDS_REVIEW
-    return WorkItemStatus.NEEDS_REVIEW
+    # If we get here, the work item validation failed; return INDETERMINATE
+    return WorkItemStatus.INDETERMINATE
 
 
 async def run_agent(item: WorkItem) -> bool:
