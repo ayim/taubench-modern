@@ -135,3 +135,116 @@ The following dependencies need to be installed manually:
 ## Development Guide
 
 See [docs/development-guide.md](docs/development-guide.md) for more information on how to develop the Agent Platform.
+
+### Developing with Workroom
+
+##### Requirements
+
+_To develop with the Workroom application, you must have NPM setup locally in that you have valid authentication with which to use to install packages needed by Workroom and associated dependencies. You should have a `~/.npmrc` file with the following structure:_
+
+_This is needed for both local and docker-based development_
+
+```
+//npm.pkg.github.com/:_authToken=ghp_<snip>
+@sema4ai:registry=https://npm.pkg.github.com/
+```
+
+#### Running the full stack with hot reloading
+
+```sh
+docker compose --profile hot up --build
+
+# Agent Server available on http://localhost:8000
+# Work Room available on http://localhost:8001
+```
+
+#### Known limitations
+
+- Actions do not work (MCP servers do) at all: the short answer "missing router"
+
+---
+
+You can run a full-stack workroom and agent-server system using `docker` and `docker compose`. This stack comes in two flavours:
+
+1. Hot reloading (agent-server and workroom built and watched for changes)
+2. Default (everything built for you at startup - "finished product")
+
+#### Hot reload mode: currently work room only
+
+```sh
+COMPOSE_PROFILES=hot docker compose up --build
+
+# or:
+docker compose --profile hot up --build
+```
+
+#### Default mode: no hot-reload
+
+```sh
+COMPOSE_PROFILES=default docker compose up --build
+
+# or:
+docker compose --profile default up --build
+```
+
+Navigate to [`http://localhost:8001`](http://localhost:8001) to open the workroom instance (agent-server is available at [`http://localhost:8002`](http://localhost:8002))
+
+### Creating agents
+
+_Make sure to at least replace the Open API LLM key `REPLACE_WITH_VALID_KEY` to have a working agent_
+
+_Note: The documentation for the agent API is exposed on the running server [over here](http://localhost:8000/docs#/agents/create_agent_agents__post)_
+
+```sh
+curl --request POST -L \
+  --url http://localhost:8000/api/v2/agents \
+  --header 'content-type: application/json' \
+  --data '{
+  "mode": "conversational",
+  "name": "New Agent",
+  "version": "1.0.0",
+  "description": "This is a test agent created using the CURL command in the README.\nThis agent uses the OpenAI PlatformClient.",
+  "runbook": "# Objective\nYou are a helpful assistant.",
+  "platform_configs": [
+    {
+      "kind": "openai",
+      "openai_api_key": "REPLACE_WITH_VALID_KEY"
+    }
+  ],
+  "action_packages": [],
+  "mcp_servers": [
+    {
+      "name": "placeholder-mcp-server",
+      "url": "http://localhost:3001/sse"
+    }
+  ],
+  "agent_architecture": {
+    "name": "agent_platform.architectures.default",
+    "version": "1.0.0"
+  },
+  "observability_configs": [
+    {
+      "type": "langsmith",
+      "api_url": "https://api.smith.langchain.com",
+      "api_key": "REPLACE_WITH_VALID_KEY",
+      "settings": {
+        "project_name": "example"
+      }
+    }
+  ],
+  "question_groups": [],
+  "extra": {
+    "test": "test"
+  }
+}'
+```
+
+### Troubleshooting
+
+Networking and other issues
+
+```sh
+docker compose down --remove-orphans
+docker network prune
+docker compose --profile hot up --build --force-recreate
+```

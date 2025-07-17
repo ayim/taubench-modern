@@ -32,6 +32,7 @@ downloads/
 eggs/
 .eggs/
 lib/
+!workroom/lib/
 lib64/
 parts/
 sdist/
@@ -48,6 +49,9 @@ MANIFEST
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
+
+# Exclude the spec file for the agent-server executable
+!server/agent-server.spec
 
 # Installer logs
 pip-log.txt
@@ -198,3 +202,6 @@ logs/
 
 # JetBrains local config files
 .idea
+
+# NPM
+.npmrc

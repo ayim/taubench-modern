@@ -1,0 +1,49 @@
+receivers:
+  otlp/http:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch/stream:
+
+exporters:
+  influxdb/dev:
+    endpoint: http://influx-db:8086
+    timeout: 2s
+    org: sema4ai
+    bucket: dev
+    token: secret-token
+
+extensions:
+  health_check:
+    endpoint: '0.0.0.0:13133'
+    path: /health
+    response_body:
+      healthy: OK
+
+service:
+  extensions:
+    - health_check
+  pipelines:
+    logs/stream:
+      receivers:
+        - otlp/http
+      processors:
+        - batch/stream
+      exporters:
+        - influxdb/dev
+    metrics/stream:
+      receivers:
+        - otlp/http
+      processors:
+        - batch/stream
+      exporters:
+        - influxdb/dev
+    traces/stream:
+      receivers:
+        - otlp/http
+      processors:
+        - batch/stream
+      exporters:
+        - influxdb/dev

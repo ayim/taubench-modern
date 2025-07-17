@@ -1,0 +1,42 @@
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./DM-Sans-Regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'DM Sans';
+  font-style: medium;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./DM-Sans-Medium.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./DM-Sans-SemiBold.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./DM-Sans-Bold.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'DM Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./DM-Mono-Regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Heldane Display';
+  font-style: medium;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./Heldane-Display-Medium.woff2') format('woff2');
+}
