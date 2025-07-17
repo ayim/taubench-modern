@@ -1004,6 +1004,7 @@ agent-package:
     errors_str = [e.message for e in errors]
     data_regression.check(errors_str)
 
+
 @pytest.mark.usefixtures("_gen_runbook")
 def test_spec_bad_auto_transport(datadir: Path, v3_spec: dict, data_regression):
     from _spec_validation_tests._spec_validation import load_spec

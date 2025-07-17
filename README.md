@@ -140,19 +140,32 @@ See [docs/development-guide.md](docs/development-guide.md) for more information 
 
 ##### Requirements
 
-_To develop with the Workroom application, you must have NPM setup locally in that you have valid authentication with which to use to install packages needed by Workroom and associated dependencies. You should have a `~/.npmrc` file with the following structure:_
+1. _To develop with the Workroom application, you must have NPM setup locally in that you have valid authentication with which to use to install packages needed by Workroom and associated dependencies. You should have a `~/.npmrc` file with the following structure:_
 
-_This is needed for both local and docker-based development_
+   _This is needed for both local and docker-based development_
 
-```
-//npm.pkg.github.com/:_authToken=ghp_<snip>
-@sema4ai:registry=https://npm.pkg.github.com/
-```
+   ```
+   //npm.pkg.github.com/:_authToken=ghp_<snip>
+   @sema4ai:registry=https://npm.pkg.github.com/
+   ```
+
+2. _`.env` file in `./workroom` populated with [the env example values](./workroom/.env.example)_
 
 #### Running the full stack with hot reloading
 
+Make sure to `npm install` within `./workroom` before running in hot-reload mode. The docker container mounts the `node_modules` directory so as to include potentially npm-linked dependencies.
+
+In one terminal:
+
 ```sh
-docker compose --profile hot up --build
+cd workroom
+npm run dev
+```
+
+And in another:
+
+```sh
+docker compose up --build
 
 # Agent Server available on http://localhost:8000
 # Work Room available on http://localhost:8001
@@ -168,26 +181,6 @@ You can run a full-stack workroom and agent-server system using `docker` and `do
 
 1. Hot reloading (agent-server and workroom built and watched for changes)
 2. Default (everything built for you at startup - "finished product")
-
-#### Hot reload mode: currently work room only
-
-```sh
-COMPOSE_PROFILES=hot docker compose up --build
-
-# or:
-docker compose --profile hot up --build
-```
-
-#### Default mode: no hot-reload
-
-```sh
-COMPOSE_PROFILES=default docker compose up --build
-
-# or:
-docker compose --profile default up --build
-```
-
-Navigate to [`http://localhost:8001`](http://localhost:8001) to open the workroom instance (agent-server is available at [`http://localhost:8002`](http://localhost:8002))
 
 ### Creating agents
 

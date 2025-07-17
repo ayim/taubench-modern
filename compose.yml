@@ -38,30 +38,6 @@ x-env-workoom: &template-env-workroom
   VITE_DEV_WORKROOM_TENANT_LIST_URL: /spar-tenants-list
   VITE_INSTANCE_ID: dev
 
-x-service-workroom: &template-service-workroom
-  build:
-    context: ./workroom
-    dockerfile: Dockerfile
-    secrets:
-      - npmrc
-    args:
-      <<: *template-env-workroom
-  environment:
-    DEPLOYMENT_TYPE: spar
-    META_URL: http://localhost:8001/meta
-    NODE_ENV: development
-  ports:
-    - '8001:3001'
-  expose:
-    - '8001'
-  networks:
-    default:
-      aliases:
-        - workroom
-  depends_on:
-    agent-server:
-      condition: service_healthy
-
 services:
   postgres:
     image: postgres:17
@@ -125,28 +101,6 @@ services:
         condition: service_healthy
   agent-server:
     <<: *template-service-agent-server
-  workroom-default:
-    <<: *template-service-workroom
-    container_name: workroom-default
-    profiles:
-      - default
-  workroom-hot:
-    <<: *template-service-workroom
-    container_name: workroom-hot
-    build:
-      context: ./workroom
-      dockerfile: Dockerfile.dev
-      secrets:
-        - npmrc
-    environment:
-      <<: *template-env-workroom
-    ports:
-      - '8001:8001'
-    volumes:
-      - ./workroom/public:/app/public
-      - ./workroom/src:/app/src
-    profiles:
-      - hot
 
 volumes:
   postgres_data:
