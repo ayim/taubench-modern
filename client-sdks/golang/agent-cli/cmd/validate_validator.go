@@ -660,9 +660,9 @@ func (v *Validator) verifyYamlMatchesSpec(
 				// Get the value of the type field
 				varType := yamlNode.data.Node.Value
 				allowedTypes := map[string]bool{
-					"secret":          true,
-					"oauth2-secret":   true,
-					"string":          true,
+					"secret":           true,
+					"oauth2-secret":    true,
+					"string":           true,
 					"data-server-info": true,
 				}
 				if !allowedTypes[varType] {
@@ -714,7 +714,7 @@ func (v *Validator) verifyYamlMatchesSpec(
 										errors <- *NewErrorFromYamlNode(fmt.Sprintf("type: %s does not expect %s to be defined.", varType, constraintAttr),
 											yamlNode.data, Warning)
 									}
-								// "optional" means do nothing
+									// "optional" means do nothing
 								}
 							}
 						}

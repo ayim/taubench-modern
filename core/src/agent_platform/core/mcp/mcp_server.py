@@ -2,6 +2,11 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 from agent_platform.core.mcp.mcp_client import MCPClient
+from agent_platform.core.mcp.mcp_types import (
+    MCPVariables,
+    deserialize_mcp_variables,
+    serialize_mcp_variables,
+)
 from agent_platform.core.tools.tool_definition import ToolDefinition
 
 
@@ -34,7 +39,7 @@ class MCPServer:
     )
     """The URL of the MCP server."""
 
-    headers: dict[str, str] | None = field(
+    headers: MCPVariables | None = field(
         default=None,
         metadata={
             "description": "Headers used for configuring requests & connections to the MCP server."
@@ -59,7 +64,7 @@ class MCPServer:
     )
     """The arguments to pass to the MCP server command."""
 
-    env: dict[str, str] | None = field(
+    env: MCPVariables | None = field(
         default=None,
         metadata={
             "description": "Environment variables to merge with agent-server's env vars "
@@ -154,14 +159,17 @@ class MCPServer:
         Useful for JSON serialization."""
         return {
             "name": self.name,
-            "url": self.url,
-            "headers": self.headers,
-            "command": self.command,
-            "args": self.args,
-            "env": self.env,
-            "cwd": self.cwd,
-            "force_serial_tool_calls": self.force_serial_tool_calls,
             "transport": self.transport,
+            # based on transport - url + headers
+            "url": self.url or None,
+            "headers": serialize_mcp_variables(self.headers) or None,
+            # based on transport - command + args + env + cwd
+            "command": self.command or None,
+            "args": self.args or None,
+            "env": serialize_mcp_variables(self.env) or None,
+            "cwd": self.cwd or None,
+            # generic
+            "force_serial_tool_calls": self.force_serial_tool_calls,
         }
 
     async def to_tool_definitions(
@@ -179,4 +187,9 @@ class MCPServer:
     def model_validate(cls, data: dict) -> "MCPServer":
         """Deserializes the MCP server from a dictionary.
         Useful for JSON deserialization."""
+        data = data.copy()
+        if "headers" in data:
+            data["headers"] = deserialize_mcp_variables(data["headers"])
+        if "env" in data:
+            data["env"] = deserialize_mcp_variables(data["env"])
         return cls(**data)

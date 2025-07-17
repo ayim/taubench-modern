@@ -1,7 +1,7 @@
 # Makefile for the Go project
 
 # Variables
-APP_NAME := "agent-client"
+APP_NAME := agent-client
 GO_FILES := $(shell find . -name '*.go' | grep -v /vendor/)
 PKG := ./...
 INTEGRATION_TEST_DIR := ./test/integration

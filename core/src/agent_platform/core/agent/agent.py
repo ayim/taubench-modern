@@ -226,9 +226,11 @@ class Agent:
             ObservabilityConfig.model_validate(observability_config)
             for observability_config in data.pop("observability_configs", [])
         ]
+        question_groups_raw = data.pop("question_groups", None)
+        if question_groups_raw is None:
+            question_groups_raw = []
         question_groups = [
-            QuestionGroup.model_validate(question_group)
-            for question_group in data.pop("question_groups", [])
+            QuestionGroup.model_validate(question_group) for question_group in question_groups_raw
         ]
         runbook_structured = Runbook.model_validate(data.pop("runbook_structured", {}))
         platform_configs = [

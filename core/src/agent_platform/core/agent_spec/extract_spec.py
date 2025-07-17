@@ -6,14 +6,18 @@ from pathlib import Path
 from typing import Any, Literal
 
 import httpx
+import structlog
 from fastapi import HTTPException, status
 from ruamel.yaml import YAML
 
+from agent_platform.core.agent.question_group import QuestionGroup
 from agent_platform.core.agent_spec.config import AgentSpecConfig
 from agent_platform.core.agent_spec.knowledge import KnowledgeStreams
 from agent_platform.core.agent_spec.package_parsed import AgentPackageParsed
 
 _yaml = YAML(typ="safe")
+
+logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
 
 async def extract_and_validate_agent_package(
@@ -51,10 +55,11 @@ async def extract_and_validate_agent_package(
     try:
         with zipfile.ZipFile(io.BytesIO(blob)) as zf:
             spec_raw = _read_file_from_zip(zf, AgentSpecConfig.agent_spec_filename)
-            runbook_raw = _read_file_from_zip(zf, AgentSpecConfig.runbook_filename)
-
             spec: dict[str, Any] = _yaml.load(spec_raw.decode())
             _validate_spec(spec, zf)
+
+            runbook_raw = _read_file_from_zip(zf, AgentSpecConfig.runbook_filename)
+            question_groups = _extract_question_groups(spec, zf)
 
             knowledge: Mapping[str, bytes] | KnowledgeStreams | None
             if include_knowledge:
@@ -70,6 +75,7 @@ async def extract_and_validate_agent_package(
                 spec=spec,
                 runbook_text=runbook_raw.decode("utf-8", errors="replace"),
                 knowledge=knowledge,
+                question_groups=question_groups,
             )
 
     except zipfile.BadZipFile as exc:
@@ -171,20 +177,30 @@ def _validate_spec(
             detail="Malformed spec: missing 'agent-package/agents'",
         ) from exc
 
-    if agent_pkg.get("spec-version") != "v2":
+    if agent_pkg.get("spec-version") != "v2" and agent_pkg.get("spec-version") != "v3":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only spec-version='v2' is supported",
+            detail="Only spec-version='v2' or spec-version='v3' are supported",
         )
 
+    # ---------------- agent check ---------------- #
+    # NOTE: spec allows for multiple agents? We can only handle one.
     if len(agents) != 1:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Only one agent is supported",
         )
-
-    # NOTE: spec allows for multiple agents? We can only handle one.
     agent0 = agents[0]
+
+    # ---------------- conversation guide file check ---------------- #
+    conversation_guide_path = agent0.get("conversation-guide")
+    if conversation_guide_path:
+        if conversation_guide_path not in zf.namelist():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"'conversation-guide' specified as '{conversation_guide_path}'"
+                "in agent spec, but file not found in package.",
+            )
 
     # ---------------- knowledge file checks ---------------- #
     # Verify that knowledge files declared in the spec match exactly
@@ -209,3 +225,57 @@ def _validate_spec(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Knowledge files mismatch - " + "; ".join(details),
         )
+
+
+def _extract_question_groups(spec: dict[str, Any], zf: zipfile.ZipFile) -> list[QuestionGroup]:
+    # Exceptions are ignored as the conversation guide is optional
+    # ---------------- agent check ---------------- #
+    # NOTE: spec allows for multiple agents? We can only handle one.
+    agents: list = spec.get("agent-package", {}).get("agents", [])
+    if len(agents) != 1:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only one agent is supported",
+        )
+    agent0 = agents[0]
+
+    # ---------------- conversation guide file check ---------------- #
+    conversation_guide_path = agent0.get("conversation-guide")
+    if not conversation_guide_path:
+        return []
+
+    try:
+        conversation_guide_raw = _read_file_from_zip(zf, conversation_guide_path)
+    except Exception as e:
+        logger.error(
+            "Conversation guide file '%s' not found or could not be read",
+            AgentSpecConfig.conversation_guide_filename,
+            exc_info=True,
+            error=str(e),
+        )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Conversation guide file not found or could not be read",
+        ) from e
+
+    # ---------------- question groups check ---------------- #
+    question_groups: list[QuestionGroup] = []
+    if conversation_guide_raw:
+        try:
+            guide_yaml = _yaml.load(conversation_guide_raw.decode())
+            qg_list = guide_yaml.get("question-groups", []) if isinstance(guide_yaml, dict) else []
+
+            question_groups = [
+                QuestionGroup.model_validate(qg) for qg in qg_list if isinstance(qg, dict)
+            ]
+        except Exception as e:
+            logger.error(
+                "Failed to parse or validate conversation guide",
+                exc_info=True,
+                error=str(e),
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to parse or validate conversation guide",
+            ) from e
+    return question_groups

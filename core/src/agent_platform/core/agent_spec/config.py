@@ -28,3 +28,9 @@ class AgentSpecConfig(Configuration):
         metadata=FieldMetadata(description="The directory of the knowledge files."),
     )
     """The directory of the knowledge files."""
+
+    conversation_guide_filename: str = field(
+        default="conversation-guide.yaml",
+        metadata=FieldMetadata(description="The filename of the conversation guide."),
+    )
+    """The filename of the conversation guide."""

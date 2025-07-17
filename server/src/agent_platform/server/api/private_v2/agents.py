@@ -258,11 +258,13 @@ async def _create_or_update_agent_from_package(
         model=payload.model,
         agent_architecture=AgentArchitecture(
             # Doesn't matter what we were given, all legacy architectures
-            # get mapped to default for v2
+            # get mapped to default for v2 & v3
             name="agent_platform.architectures.default",
             version="1.0.0",
         ),
-        metadata=agent0["metadata"],
+        metadata={
+            **agent0["metadata"],
+        },
     )
 
     # Now, for the third and final step, we have essentially a normal

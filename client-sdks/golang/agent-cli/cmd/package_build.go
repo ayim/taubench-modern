@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/common/glob"
+	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/pretty"
 
 	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/common"
 	"github.com/Sema4AI/rcc/pathlib"
@@ -21,7 +22,7 @@ import (
 
 func zipDir(sourceDir, targetZip string) error {
 	// read the agent spec file to get the excluded files
-	spec, err := readSpec(sourceDir)
+	spec, err := ReadSpec(sourceDir)
 	if err != nil {
 		return err
 	}
@@ -115,10 +116,8 @@ func buildActionPackage(sourceDir, targetZip string) error {
 	}
 	defer os.RemoveAll(tempDir)
 
-	logVerbose("buildActionPackage:")
-	logVerbose("- sourceDir: %+v", sourceDir)
-	logVerbose("- tempDir: %+v", tempDir)
-	logVerbose("- targetZip: %+v", targetZip)
+	pretty.LogIfVerbose("[buildActionPackage] from: %s", sourceDir)
+	pretty.LogIfVerbose("[buildActionPackage] target: %s", targetZip)
 
 	args := []string{
 		"package",
@@ -143,11 +142,11 @@ func buildActionPackage(sourceDir, targetZip string) error {
 	cmd.Stderr = &stderr
 	cmd.Dir = sourceDir
 
-	logVerbose("[Action Server cmd]: %+v", cmd)
+	pretty.LogIfVerbose("[Action Server cmd]: %+v", cmd)
 	err = cmd.Run()
 
-	logVerbose("[Action Server stdout]: %+v", stdout.String())
-	logVerbose("[Action Server stderr]:\n%+v", stderr.String())
+	pretty.LogIfVerbose("[Action Server stdout]: %+v", stdout.String())
+	pretty.LogIfVerbose("[Action Server stderr]:\n%+v", stderr.String())
 	if err != nil {
 		return fmt.Errorf("[buildActionPackage] failed to build action package: %w", err)
 	}
@@ -167,7 +166,7 @@ func buildActionPackage(sourceDir, targetZip string) error {
 		return fmt.Errorf("[buildActionPackage] failed to copy generated zip: %w", err)
 	}
 
-	logVerbose("Action Package built")
+	pretty.Log("[buildActionPackages] action package is ready!")
 	return nil
 }
 
@@ -176,16 +175,16 @@ func buildActionPackages(spec *common.AgentSpec, agentProjectActionsPath string)
 	// after building the action package. E.g.: Sema4.ai/greeter : Sema4.ai/greeter.zip.
 	updatedPaths := make(map[string]string)
 
-	log("Building Action Packages...")
+	pretty.LogIfVerbose("[buildActionPackages] building action packages...")
 	for agentIndex, agent := range spec.AgentPackage.Agents {
 		for actionIndex, act := range agent.ActionPackages {
 			targetPath, ok := updatedPaths[act.Path]
 			if !ok {
-				log("- Action Package Path: %s", act.Path)
+				pretty.LogIfVerbose("[buildActionPackages] - action Package Path: %s", act.Path)
 				sourcePath := filepath.Join(agentProjectActionsPath, act.Path)
 				targetPath = filepath.Join(act.Organization, common.KebabCase(act.Name), act.Version+".zip")
 				targetZipFile := filepath.Join(agentProjectActionsPath, targetPath)
-				logVerbose("Build action package from: %+v to: %s", sourcePath, targetZipFile)
+				pretty.LogIfVerbose("Build action package from: %+v to: %s", sourcePath, targetZipFile)
 				err := buildActionPackage(sourcePath, targetZipFile)
 				if err != nil {
 					return fmt.Errorf("[buildActionPackages] failed to build action package: %w", err)
@@ -193,10 +192,10 @@ func buildActionPackages(spec *common.AgentSpec, agentProjectActionsPath string)
 
 				targetPath = filepath.ToSlash(targetPath)
 				updatedPaths[act.Path] = targetPath
-				log("  - Done with: %s", act.Path)
+				pretty.Log("[buildActionPackages]  - done with: %s", act.Path)
 			}
 
-			spec.AgentPackage.Agents[agentIndex].ActionPackages[actionIndex] = common.AgentActionPackage{
+			spec.AgentPackage.Agents[agentIndex].ActionPackages[actionIndex] = common.SpecAgentActionPackage{
 				Path:         targetPath,
 				Type:         common.ActionPackageZip,
 				Name:         act.Name,
@@ -206,37 +205,127 @@ func buildActionPackages(spec *common.AgentSpec, agentProjectActionsPath string)
 			}
 		}
 	}
-	log("Action Packages built")
 
-	prettySpec, err := json.MarshalIndent(spec, "", "  ")
+	_, err := json.MarshalIndent(spec, "", "  ")
 	if err != nil {
-		logVerbose("agent-spec json parsing failed on: %w", err)
+		pretty.Exit(1, "agent-spec json parsing failed on: %+v", err)
 	}
-	logVerbose("agent-spec:\n%s", string(prettySpec))
+
+	pretty.Log("[buildActionPackages] action packages are ready!")
 	return nil
 }
 
-func readSpec(agentPackageDir string) (*common.AgentSpec, error) {
-	var spec common.AgentSpec
+func ReadSpec(agentPackageDir string) (*common.AgentSpec, error) {
 	specPath := filepath.Join(agentPackageDir, common.AGENT_PROJECT_SPEC_FILE)
+	pretty.LogIfVerbose("[readSpec] agent spec YAML file path: %+v", specPath)
+
 	data, err := os.ReadFile(specPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, fmt.Errorf("%s not found", specPath)
+			return nil, fmt.Errorf("spec YAML file @ [%s] not found", specPath)
 		}
 		return nil, fmt.Errorf("[readSpec] failed to read spec YAML file: %w", err)
 	}
+
+	var spec common.AgentSpec
 	if err := yaml.Unmarshal(data, &spec); err != nil {
 		return nil, fmt.Errorf("[readSpec] failed to unmarshal YAML: %v", err)
 	}
+
+	pretty.LogIfVerbose("[readSpec] spec validated!")
 	return &spec, nil
 }
 
-func writeSpec(spec *common.AgentSpec, agentPackageDir string) error {
-	data, err := yaml.Marshal(spec)
+// FilterMcpServerSecretValuesFromSpec returns a deep copy of the spec with all MCP Server variable Value fields removed.
+func FilterMcpServerSecretValuesFromSpec(spec *common.AgentSpec) *common.AgentSpec {
+	pretty.LogIfVerbose("[filterMcpServerValuesFromSpec] filtering mcp server values from agent spec...")
+	if spec == nil {
+		return spec
+	}
+	copySpec := *spec
+	copySpec.AgentPackage = spec.AgentPackage
+	copySpec.AgentPackage.Agents = make([]common.SpecAgent, len(spec.AgentPackage.Agents))
+	for i, agent := range spec.AgentPackage.Agents {
+		agentCopy := agent
+		agentCopy.McpServers = make([]common.SpecMcpServer, len(agent.McpServers))
+		for j, mcp := range agent.McpServers {
+			mcpCopy := mcp
+			// we need to remove the secret values from the headers and env
+			mcpCopy.Headers = RemoveSecretValues(mcp.Headers)
+			mcpCopy.Env = RemoveSecretValues(mcp.Env)
+			// we need to overwrite the default values with the values from the headers and env
+			mcpCopy.Headers = OverwriteDefaultValues(mcpCopy.Headers)
+			mcpCopy.Env = OverwriteDefaultValues(mcpCopy.Env)
+			// done
+			agentCopy.McpServers[j] = mcpCopy
+		}
+		copySpec.AgentPackage.Agents[i] = agentCopy
+	}
+	return &copySpec
+}
+
+// FilterQuestionGroupsFromSpec returns a deep copy of the spec with all question groups removed.
+func FilterQuestionGroupsFromSpec(spec *common.AgentSpec) *common.AgentSpec {
+	pretty.LogIfVerbose("[filterQuestionGroupsFromSpec] filtering question groups from agent spec...")
+	if spec == nil {
+		return spec
+	}
+	copySpec := *spec
+	copySpec.AgentPackage = spec.AgentPackage
+	copySpec.AgentPackage.Agents = make([]common.SpecAgent, len(spec.AgentPackage.Agents))
+	for i, agent := range spec.AgentPackage.Agents {
+		agentCopy := agent
+		agentCopy.Metadata.QuestionGroups = nil
+		copySpec.AgentPackage.Agents[i] = agentCopy
+	}
+	return &copySpec
+}
+
+// RemoveSecretValues returns a copy of the input map with secret values removed
+func RemoveSecretValues(vars common.SpecMcpServerVariables) common.SpecMcpServerVariables {
+	if vars == nil {
+		return nil
+	}
+	copyVars := make(common.SpecMcpServerVariables, len(vars))
+	for k, v := range vars {
+		// Only remove value for secret and oauth2-secret types
+		if !v.HasRawValue() && (v.Type == common.SpecMcpTypeSecret || v.Type == common.SpecMcpTypeOAuth2Secret) {
+			v.Value = nil
+		}
+		// All other types (including data-server-info, string) are preserved
+		copyVars[k] = v
+	}
+	return copyVars
+}
+
+func OverwriteDefaultValues(vars common.SpecMcpServerVariables) common.SpecMcpServerVariables {
+	if vars == nil {
+		return nil
+	}
+	copyVars := make(common.SpecMcpServerVariables, len(vars))
+	for k, v := range vars {
+		if v.Value != nil && v.Type == common.SpecMcpTypeString {
+			v.Default = *v.Value
+			v.Value = nil
+		}
+		copyVars[k] = v
+	}
+	return copyVars
+}
+
+// WriteSpec writes the agent specification to a YAML file in the specified agent package directory.
+// The function returns an error if marshalling or writing fails.
+func WriteSpec(spec *common.AgentSpec, agentPackageDir string) error {
+	// Question groups shouldn't be included in the Agent Spec - they should be part of the conversation guide file.
+	newSpec := spec
+	newSpec = FilterQuestionGroupsFromSpec(newSpec)
+	newSpec = FilterMcpServerSecretValuesFromSpec(newSpec)
+
+	data, err := yaml.Marshal(newSpec)
 	if err != nil {
 		return fmt.Errorf("[writeSpec] failed to marshal YAML: %w", err)
 	}
+
 	err = pathlib.WriteFile(
 		filepath.Join(agentPackageDir, common.AGENT_PROJECT_SPEC_FILE),
 		data,
@@ -260,7 +349,7 @@ func buildAgentPackage(inputDir, outputDir, name string, overwriteAgentPackage b
 		}
 	}
 
-	spec, err := readSpec(inputDir)
+	spec, err := ReadSpec(inputDir)
 	if err != nil {
 		return err
 	}
@@ -274,31 +363,28 @@ func buildAgentPackage(inputDir, outputDir, name string, overwriteAgentPackage b
 	}
 	defer os.RemoveAll(tempDir)
 
-	log("Creating agent package metadata file")
-	err = createAgentPackageMetadataFile(tempDir)
-	if err != nil {
+	pretty.Log("[buildAgentPackage] destination temp directory for package: %+v", tempDir)
+
+	pretty.Log("[buildAgentPackage] creating agent package metadata file...")
+	if err := createAgentPackageMetadataFile(tempDir); err != nil {
 		return fmt.Errorf("[buildAgentPackage] failed to create agent package metadata file: %w", err)
 	}
-	log("Agent package metadata file created")
+	pretty.Log("[buildAgentPackage] agent package metadata file created")
 
-	err = buildActionPackages(spec, common.AgentProjectActionsLocation(tempDir))
-	if err != nil {
-		return err
+	if err = buildActionPackages(spec, common.AgentProjectActionsLocation(tempDir)); err != nil {
+		return fmt.Errorf("[buildAgentPackage] failed to build action packages: %w", err)
 	}
 
-	err = writeSpec(spec, tempDir)
-	if err != nil {
-		return err
+	if err := WriteSpec(spec, tempDir); err != nil {
+		return fmt.Errorf("[buildAgentPackage] failed to create write spec: %w", err)
 	}
 
-	err = os.MkdirAll(outputDir, 0o755)
-	if err != nil {
+	if err := os.MkdirAll(outputDir, 0o755); err != nil {
 		return fmt.Errorf("[buildAgentPackage] failed to create output directory: %w", err)
 	}
 
-	err = zipDir(tempDir, packagePath)
-	if err != nil {
-		return err
+	if err := zipDir(tempDir, packagePath); err != nil {
+		return fmt.Errorf("[buildAgentPackage] failed to create zip the directory: %w", err)
 	}
 
 	return nil

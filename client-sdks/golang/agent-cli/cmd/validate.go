@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 
+	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/pretty"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
@@ -38,8 +39,7 @@ func reportErrorAndExit(message string, startLine int, startColumn int, endLine 
 		// Convert diagnostics to json
 		json, err := json.MarshalIndent(diagnostics, "", "  ")
 		if err != nil {
-			log("Error: %s", err)
-			os.Exit(1)
+			pretty.Exit(1, "Error: %s", err)
 		}
 		// Print the diagnostics to stdout (as json: coordinates are 0-indexed).
 		fmt.Println(string(json))
@@ -72,14 +72,12 @@ func runValidateCmd(cmd *cobra.Command, args []string) {
 		var spec map[string]interface{}
 		err = json.Unmarshal([]byte(SpecV3), &spec)
 		if err != nil {
-			log("Error: %s", err)
-			os.Exit(1)
+			pretty.Exit(1, "Error: %s", err)
 		}
 		// Get the entries from the spec
 		specEntries, err = LoadSpec(spec)
 		if err != nil {
-			log("Error: %s", err)
-			os.Exit(1)
+			pretty.Exit(1, "Error: %s", err)
 		}
 
 		// Convert Spec to a map[string]*Entry
@@ -90,8 +88,7 @@ func runValidateCmd(cmd *cobra.Command, args []string) {
 			// Now print the specEntries in a json format
 			json, err := json.MarshalIndent(specEntries, "", "  ")
 			if err != nil {
-				log("Error: %s", err)
-				os.Exit(1)
+				pretty.Exit(1, "Error: %s", err)
 			}
 			fmt.Println(string(json))
 		}
@@ -100,8 +97,7 @@ func runValidateCmd(cmd *cobra.Command, args []string) {
 	}
 	// At least one argument is required, the agent root directory
 	if len(args) < 1 {
-		log("Error: agent root directory is required.")
-		os.Exit(1)
+		pretty.Exit(1, "Error: agent root directory is required.")
 	}
 
 	var yamlFile []byte
@@ -182,14 +178,12 @@ func runValidateCmd(cmd *cobra.Command, args []string) {
 		err = json.Unmarshal([]byte(SpecV3), &spec)
 	}
 	if err != nil {
-		log("Error: %s", err)
-		os.Exit(1)
+		pretty.Exit(1, "Error: %s", err)
 	}
 	// Get the entries from the spec
 	specEntries, err = LoadSpec(spec)
 	if err != nil {
-		log("Error: %s", err)
-		os.Exit(1)
+		pretty.Exit(1, "Error: %s", err)
 	}
 
 	validator := NewValidator(specEntries, agentRootDirOrZip)
@@ -219,7 +213,7 @@ func runValidateCmd(cmd *cobra.Command, args []string) {
 	if jsonSpecFlag {
 		json, err := json.MarshalIndent(diagnostics, "", "  ")
 		if err != nil {
-			log("Error: %s", err)
+			pretty.Error("Error: %s", err)
 		}
 		fmt.Println(string(json))
 	} else {

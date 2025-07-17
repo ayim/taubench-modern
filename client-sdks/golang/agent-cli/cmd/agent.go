@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/common"
+	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/pretty"
 	"github.com/spf13/cobra"
 )
 
@@ -14,7 +14,7 @@ var agentCmd = &cobra.Command{
 
 func runAgentCmd(cmd *cobra.Command, args []string) {
 	if err := cmd.Help(); err != nil {
-		common.Log("Error while running help cmd: %+v", err)
+		pretty.Error("Error while running help cmd: %+v", err)
 	}
 }
 

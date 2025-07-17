@@ -8,12 +8,12 @@ import (
 	"path/filepath"
 
 	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/common"
+	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/pretty"
 	"github.com/Sema4AI/rcc/pathlib"
 	"github.com/spf13/cobra"
 )
 
 func extractActionPackage(packagePath, targetDir string) error {
-
 	// FOR SUPPORT: action-server extract build --output-dir <targetDir> <packagePath>
 	cmd := exec.Command(
 		common.GetActionServerBin(),
@@ -30,10 +30,10 @@ func extractActionPackage(packagePath, targetDir string) error {
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
-	logVerbose("[Action Server cmd]: %+v", cmd)
+	pretty.LogIfVerbose("[Action Server cmd]: %+v", cmd)
 	err := cmd.Run()
-	logVerbose("[Action Server stdout]: %+v", stdout.String())
-	logVerbose("[Action Server stderr]:\n%+v", stderr.String())
+	pretty.LogIfVerbose("[Action Server stdout]: %+v", stdout.String())
+	pretty.LogIfVerbose("[Action Server stderr]:\n%+v", stderr.String())
 	if err != nil {
 		return fmt.Errorf("[extractActionPackage] failed to extract action package: %w", err)
 	}
@@ -47,24 +47,31 @@ func extractActionPackages(spec *common.AgentSpec, agentProjectActionsPath strin
 	updatedPaths := make(map[string]string)
 
 	for agentIndex, agent := range spec.AgentPackage.Agents {
+		pretty.LogIfVerbose("[extractActionPackages] dealing with agent: %+v", agent.Name)
+		pretty.LogIfVerbose("[extractActionPackages] agent has %+v action packages", len(agent.ActionPackages))
 		for actionIndex, act := range agent.ActionPackages {
+			pretty.LogIfVerbose("[extractActionPackages] handling action package: %+v", act.Name)
 			newPath, ok := updatedPaths[act.Path]
 			if !ok {
 				zipPath := filepath.Join(agentProjectActionsPath, act.Path)
 				targetPath := filepath.Join(agentProjectActionsPath, act.Organization, common.KebabCase(act.Name))
+
+				pretty.LogIfVerbose("[extractActionPackages] extracting from [%+v] to [%+v]", zipPath, targetPath)
 				err := extractActionPackage(zipPath, targetPath)
 				if err != nil {
 					return fmt.Errorf("[extractActionPackages] failed from:%s to: %s error: %w", zipPath, targetPath, err)
 				}
 
+				pretty.LogIfVerbose("[extractActionPackages] cleaning up zip...")
 				if err := os.RemoveAll(zipPath); err != nil {
 					return fmt.Errorf("[extractActionPackages] failed to remove action package zip: %s error: %w", zipPath, err)
 				}
 				newPath = filepath.ToSlash(filepath.Join(act.Organization, common.KebabCase(act.Name)))
 				updatedPaths[act.Path] = newPath
+				pretty.LogIfVerbose("[extractActionPackages] action package new path: %+v", newPath)
 			}
 
-			spec.AgentPackage.Agents[agentIndex].ActionPackages[actionIndex] = common.AgentActionPackage{
+			spec.AgentPackage.Agents[agentIndex].ActionPackages[actionIndex] = common.SpecAgentActionPackage{
 				Name:         act.Name,
 				Organization: act.Organization,
 				Version:      act.Version,
@@ -87,23 +94,25 @@ func extractAgentPackage(agentPackagePath, outputDir string, overwriteAgentProje
 		return fmt.Errorf("[extractAgentPackage] failed to create temporary directory: %w", err)
 	}
 	defer os.RemoveAll(tempDir)
+	pretty.LogIfVerbose("[extractAgentPackage] will use the temp dir @: %+v", tempDir)
+	if err = common.UnzipFile(agentPackagePath, tempDir); err != nil {
+		return err
+	}
 
-	err = common.UnzipFile(agentPackagePath, tempDir)
+	pretty.LogIfVerbose("[extractAgentPackage] unzipped successfully... reading spec...")
+	spec, err := ReadSpec(tempDir)
 	if err != nil {
 		return err
 	}
 
-	spec, err := readSpec(tempDir)
-	if err != nil {
-		return err
-	}
-
+	pretty.LogIfVerbose("[extractAgentPackage] extracting action packages...")
 	err = extractActionPackages(spec, common.AgentProjectActionsLocation(tempDir))
 	if err != nil {
 		return err
 	}
 
-	err = writeSpec(spec, tempDir)
+	pretty.LogIfVerbose("[extractAgentPackage] writing spec...")
+	err = WriteSpec(spec, tempDir)
 	if err != nil {
 		return err
 	}
@@ -113,6 +122,7 @@ func extractAgentPackage(agentPackagePath, outputDir string, overwriteAgentProje
 		return fmt.Errorf("[extractAgentPackage] failed to copy directory %s to %s: %w", tempDir, outputDir, err)
 	}
 
+	pretty.LogIfVerbose("[extractAgentPackage] extraction succeeded!")
 	return nil
 }
 

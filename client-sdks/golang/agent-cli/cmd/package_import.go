@@ -1,17 +1,15 @@
 package cmd
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/common"
+	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/pretty"
 	AgentServer "github.com/Sema4AI/agent-platform/client-sdks/golang/agent-client-go/pkg/client"
 	rccCommon "github.com/Sema4AI/rcc/common"
-	"github.com/Sema4AI/rcc/pathlib"
 	"github.com/spf13/cobra"
 )
 
@@ -23,27 +21,57 @@ var (
 	localAgentProjectPath string
 )
 
-func getAgentNameFromMetadata(metadata []*agentPackageMetadata) string {
+func getAgentNameFromMetadata(metadata []*common.AgentPackageMetadata) string {
+	if len(metadata) == 0 || metadata[0] == nil {
+		return ""
+	}
 	return metadata[0].Name
 }
 
-func getAgentModelFromMetadata(metadata []*agentPackageMetadata) *AgentServer.AgentModel {
-	return &AgentServer.AgentModel{
+func getAgentModelFromMetadata(metadata []*common.AgentPackageMetadata) AgentServer.AgentModel {
+	if len(metadata) == 0 || metadata[0] == nil {
+		return AgentServer.AgentModel{
+			Provider: "",
+			Name:     "",
+			Config:   map[string]interface{}{},
+		}
+	}
+	return AgentServer.AgentModel{
 		Provider: metadata[0].Model.Provider,
 		Name:     metadata[0].Model.Name,
 		Config:   map[string]interface{}{},
 	}
 }
-func getActionPackagesFromMetadata(metadata []*agentPackageMetadata) []agentPackageActionPackageMetadata {
-	return metadata[0].ActionPackages
-}
-
-func getAgentPackageBase64(agentPackagePath string) (string, error) {
-	fileContent, err := os.ReadFile(agentPackagePath)
-	if err != nil {
-		return "", fmt.Errorf("failed to read agent package file: %w", err)
+func getMcpServersFromMetadata(metadata []*common.AgentPackageMetadata) []AgentServer.McpServer {
+	if len(metadata) == 0 || metadata[0] == nil {
+		return []AgentServer.McpServer{}
 	}
-	return base64.StdEncoding.EncodeToString(fileContent), nil
+	var servers []AgentServer.McpServer
+	for _, mcp := range metadata[0].McpServers {
+		headers := make(map[string]AgentServer.McpServerVariable)
+		for key, value := range mcp.Headers {
+			headers[key] = common.BuildAgentMcpServerVariable(&value)
+		}
+
+		env := make(map[string]AgentServer.McpServerVariable)
+		for key, value := range mcp.Env {
+			env[key] = common.BuildAgentMcpServerVariable(&value)
+		}
+
+		servers = append(servers, AgentServer.McpServer{
+			Name:                 mcp.Name,
+			Description:          mcp.Description,
+			Transport:            mcp.Transport,
+			URL:                  &mcp.URL,
+			Headers:              headers,
+			Command:              &mcp.Command,
+			Args:                 mcp.Arguments,
+			Env:                  env,
+			Cwd:                  &mcp.Cwd,
+			ForceSerialToolCalls: mcp.ForceSerialToolCalls,
+		})
+	}
+	return servers
 }
 
 func getModelConfig(modelConfig string) (map[string]interface{}, error) {
@@ -57,13 +85,13 @@ func getModelConfig(modelConfig string) (map[string]interface{}, error) {
 	return config, nil
 }
 
-func getActionServerConfig(actionServerConfig string) (AgentServer.AgentPayloadPackageActionServer, error) {
+func getActionServerConfig(actionServerConfig string) (*AgentServer.AgentActionPackage, error) {
 	if actionServerConfig == "" {
-		return AgentServer.AgentPayloadPackageActionServer{}, nil
+		return nil, nil
 	}
-	var config AgentServer.AgentPayloadPackageActionServer
+	var config *AgentServer.AgentActionPackage
 	if err := json.Unmarshal([]byte(actionServerConfig), &config); err != nil {
-		return AgentServer.AgentPayloadPackageActionServer{}, fmt.Errorf("failed to parse action server config: %w", err)
+		return nil, fmt.Errorf("failed to parse action server config: %w", err)
 	}
 	return config, nil
 }
@@ -79,8 +107,78 @@ func getLangsmithConfig(langsmithConfig string) (*AgentServer.LangSmithConfig, e
 	return &config, nil
 }
 
+func importAgentPackageToAgentServer(agentPackageDestPath, agentPackageSourcePath, serverUrl, modelConfiguration, actionServerConfiguration, langSmithConfiguration string, makePublic bool) error {
+	agentServerClient := AgentServer.NewClient(serverUrl)
+
+	metadata, err := GenerateAgentMetadataFromPackageTo(agentPackageSourcePath, agentPackageDestPath)
+	if err != nil {
+		return fmt.Errorf("failed to generate metadata: %w", err)
+	}
+
+	spec, err := ReadSpec(agentPackageDestPath)
+	if err != nil {
+		return fmt.Errorf("failed to read spec: %w", err)
+	}
+
+	runbook, err := ReadRunbook(filepath.Join(agentPackageDestPath, spec.AgentPackage.Agents[0].Runbook))
+	if err != nil {
+		return fmt.Errorf("failed to read runbook: %w", err)
+	}
+
+	actionPackages := []AgentServer.AgentActionPackage{}
+	actionServerConfig, err := getActionServerConfig(actionServerConfiguration)
+	if err != nil {
+		return fmt.Errorf("failed to parse action server config: %w", err)
+	}
+	if actionServerConfig != nil {
+		actionPackages = append(actionPackages, *actionServerConfig)
+	}
+
+	payload := AgentServer.AgentPayload{
+		Name:           getAgentNameFromMetadata(metadata),
+		Description:    metadata[0].Description,
+		Version:        metadata[0].Version,
+		Runbook:        runbook,
+		Model:          getAgentModelFromMetadata(metadata),
+		ActionPackages: actionPackages,
+		McpServers:     getMcpServersFromMetadata(metadata),
+		Metadata:       metadata[0].Metadata,
+		Extra: AgentServer.AgentExtra{
+			WelcomeMessage:      metadata[0].WelcomeMessage,
+			ConversationStarter: metadata[0].ConversationStarter,
+		},
+		Public: makePublic,
+	}
+
+	if modelConfiguration != "" {
+		modelConfigObj, err := getModelConfig(modelConfiguration)
+		if err != nil {
+			return fmt.Errorf("failed to parse given model config: %w", err)
+		}
+		payload.Model.Config = modelConfigObj
+	}
+
+	langsmithConfig, err := getLangsmithConfig(langSmithConfiguration)
+	if err != nil {
+		return fmt.Errorf("failed to parse langsmith config: %w", err)
+	}
+	payload.AdvancedConfig.LangSmith = langsmithConfig
+
+	agent, err := createOrUpdateAgent(payload, agentServerClient)
+	if err != nil {
+		return fmt.Errorf("failed to create or update Agent: %w", err)
+	}
+	agentJson, err := json.Marshal(agent)
+	if err != nil {
+		return fmt.Errorf("failed to marshal Agent: %w", err)
+	}
+	rccCommon.Stdout("%s\n", agentJson)
+	return nil
+}
+
+// createOrUpdateAgent creates or updates an agent given an AgentPayload object and an AgentServer client
 func createOrUpdateAgent(
-	payload AgentServer.AgentPayloadPackage,
+	payload AgentServer.AgentPayload,
 	client *AgentServer.Client,
 ) (*AgentServer.Agent, error) {
 	agents, err := client.GetAgents(false)
@@ -98,18 +196,21 @@ func createOrUpdateAgent(
 
 	var agent *AgentServer.Agent
 	if existingAgentID != "" {
-		logVerbose("Found an existing agent with name: %s. Updating.\n", payload.Name)
-		agent, err = client.UpdateAgentViaPackage(existingAgentID, payload)
+		pretty.LogIfVerbose("[createOrUpdateAgent] found existing agent. will update: %s", payload.Name)
+		pretty.LogIfVerbose("[createOrUpdateAgent] payload: %+v", payload)
+		agent, err = client.UpdateAgent(existingAgentID, payload)
 		if err != nil {
 			return nil, fmt.Errorf("failed to update agent: %w", err)
 		}
 	} else {
-		logVerbose("Creating a new agent with name: %s.\n", payload.Name)
-		agent, err = client.CreateAgentViaPackage(payload)
+		pretty.LogIfVerbose("[createOrUpdateAgent] creating a new agent with name: %s", payload.Name)
+		agent, err = client.CreateAgent(payload)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create agent: %w", err)
 		}
 	}
+
+	pretty.LogIfVerbose("[createOrUpdateAgent] succeeded!\n")
 
 	rawAgent, err := client.GetAgent(agent.ID, true)
 	if err != nil {
@@ -117,131 +218,6 @@ func createOrUpdateAgent(
 	}
 
 	return rawAgent, nil
-}
-
-func preparePayload(
-	metadata []*agentPackageMetadata,
-	agentPackagePath string,
-	public bool,
-	modelConfig string,
-	actionServerConfig string,
-	langsmithConfig string,
-) (*AgentServer.AgentPayloadPackage, error) {
-	agentPackageBase64, err := getAgentPackageBase64(agentPackagePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read agent package file: %w", err)
-	}
-
-	payload := AgentServer.AgentPayloadPackage{
-		Name:               getAgentNameFromMetadata(metadata),
-		Public:             public,
-		AgentPackageUrl:    nil,
-		AgentPackageBase64: &agentPackageBase64,
-		Model:              *getAgentModelFromMetadata(metadata),
-		ActionServers:      []AgentServer.AgentPayloadPackageActionServer{},
-	}
-
-	modelConfigObj, err := getModelConfig(modelConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse given model config: %w", err)
-	}
-	payload.Model.Config = modelConfigObj
-
-	actionServerObj, err := getActionServerConfig(actionServerConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse given action server config: %w", err)
-	}
-	payload.ActionServers = []AgentServer.AgentPayloadPackageActionServer{actionServerObj}
-
-	langsmithConfigObj, err := getLangsmithConfig(langsmithConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse given langsmith config: %w", err)
-	}
-	payload.LangSmith = langsmithConfigObj
-
-	return &payload, nil
-}
-
-func prepareActionPackages(metadata []*agentPackageMetadata, agentPackageDestPath string) error {
-	galleryRootDir := common.S4SActionsGalleryLocation()
-	if !pathlib.Exists(galleryRootDir) {
-		logVerbose("Skipping the Action Packages preparation as Sema4.ai Studio Gallery was not found")
-		return nil
-	}
-
-	logVerbose("Importing Action Packages...")
-	actionPackages := getActionPackagesFromMetadata(metadata)
-	for _, actionPackage := range actionPackages {
-		logVerbose("Action Package Path: %+v", actionPackage.Path)
-
-		// skipping action packages coming from Sema4.ai
-		if strings.Contains(actionPackage.Path, common.S4S_BUNDLED_ACTIONS_DIR) {
-			logVerbose("Skipping import of Action Package: %s", actionPackage.Path)
-			continue
-		}
-
-		// determine the organization and the package name from the path
-		actionPackageOrganization, actionPackagePackageName := filepath.Split(actionPackage.Path)
-		if actionPackageOrganization == "" || actionPackagePackageName == "" {
-			return fmt.Errorf("[prepareActionPackages] failed to parse Action Package path")
-		}
-
-		// (source) calculate where the action packages need to be copied from
-		actionPackageSourcePath := filepath.Join(agentPackageDestPath, common.AGENT_PROJECT_ACTIONS_DIR, actionPackageOrganization, actionPackagePackageName)
-		logVerbose("Action Package Path from the extracted Agent Package: %+v", actionPackageSourcePath)
-		if !pathlib.Exists(actionPackageSourcePath) {
-			return fmt.Errorf("[prepareActionPackages] calculated source path does not exist")
-		}
-
-		// (destination) calculate where the action packages need to be copied to
-		actionPackageDestPath := filepath.Join(galleryRootDir, actionPackageOrganization, actionPackagePackageName, actionPackage.Version)
-		logVerbose("Importing Action Package to: %+v", actionPackageDestPath)
-		if err := os.MkdirAll(actionPackageDestPath, 0o755); err != nil {
-			return fmt.Errorf("[prepareActionPackages] failed to create destination for Action Package: %w", err)
-		}
-
-		// we don't have a zipped action package but an expanded one
-		if err := common.CopyDir(actionPackageSourcePath, actionPackageDestPath, true); err != nil {
-			return fmt.Errorf("[prepareActionPackages] failed to copy files for Action Package: %w", err)
-		}
-		logVerbose("Action Package  '%s'  imported successfully to: %s", actionPackage.Name, actionPackageDestPath)
-	}
-
-	return nil
-}
-
-func importAgentPackageToAgentServer(agentPackageDestPath, agentPackageSourcePath, serverUrl, modelConfiguration, actionServerConfiguration, langSmithConfiguration string, makePublic bool) error {
-	agentServerClient := AgentServer.NewClient(serverUrl)
-
-	metadata, err := generateAgentMetadataFromPackageTo(agentPackageSourcePath, agentPackageDestPath)
-	if err != nil {
-		return fmt.Errorf("failed to generate metadata: %w", err)
-	}
-	payload, err := preparePayload(
-		metadata,
-		agentPackageSourcePath,
-		makePublic,
-		modelConfiguration,
-		actionServerConfiguration,
-		langSmithConfiguration,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to prepare payload: %w", err)
-	}
-	err = prepareActionPackages(metadata, agentPackageDestPath)
-	if err != nil {
-		return fmt.Errorf("failed to prepare Action Packages: %w", err)
-	}
-	agent, err := createOrUpdateAgent(*payload, agentServerClient)
-	if err != nil {
-		return fmt.Errorf("failed to create or update Agent: %w", err)
-	}
-	agentJson, err := json.Marshal(agent)
-	if err != nil {
-		return fmt.Errorf("failed to marshal Agent: %w", err)
-	}
-	rccCommon.Stdout("%s\n", agentJson)
-	return nil
 }
 
 // If an agent with the same name already exists, it will be updated.

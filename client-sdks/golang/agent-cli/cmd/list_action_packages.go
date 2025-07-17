@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/pretty"
 	"github.com/Sema4AI/rcc/pathlib"
 	"github.com/spf13/cobra"
 
@@ -42,11 +43,11 @@ func NewActionPackageInFilesystem(relativePath, packageYAMLPath, zipPath string,
 
 	if ap.ZipPath == "" {
 		if ap.PackageYAMLPath == "" {
-			log("When the zip path is not provided, package_yaml_path is expected to be provided.")
+			pretty.Log("When the zip path is not provided, package_yaml_path is expected to be provided.")
 		}
 	} else {
 		if ap.PackageYAMLPath != "" {
-			log("When zip path is provided, package_yaml_path is not expected.")
+			pretty.Log("When zip path is provided, package_yaml_path is not expected.")
 		}
 	}
 
@@ -81,9 +82,9 @@ func (ap *ActionPackageInFilesystem) GetAsDict() (map[string]interface{}, error)
 
 	if err != nil {
 		if ap.IsZip() {
-			log("Error getting package.yaml from %s as yaml.", ap.ZipPath)
+			pretty.Log("Error getting package.yaml from %s as yaml.", ap.ZipPath)
 		} else {
-			log("Error getting %s as yaml.", ap.PackageYAMLPath)
+			pretty.Log("Error getting %s as yaml.", ap.PackageYAMLPath)
 		}
 		ap.loadedYAMLError = err.Error()
 		return nil, err
@@ -155,7 +156,7 @@ func ListActionPackagesFromAgent(agentRootDirOrZip string) map[string]*ActionPac
 			} else if strings.HasSuffix(path, ".zip") {
 				packageYAMLContents, err := GetPackageYAMLFromZip(path)
 				if err != nil {
-					log("Error getting package.yaml from %s.", path)
+					pretty.Log("Error getting package.yaml from %s.", path)
 					return err
 				}
 				relativePath, _ := filepath.Rel(actionsDir, path)
@@ -168,13 +169,13 @@ func ListActionPackagesFromAgent(agentRootDirOrZip string) map[string]*ActionPac
 		})
 
 		if err != nil {
-			log("Error walking through actions directory: %v", err)
+			pretty.Log("Error walking through actions directory: %v", err)
 		}
 	} else {
 		// Deal with zip files (mostly the same thing as the block above but accessing the zip contents).
 		zipReader, err := zip.OpenReader(agentRootDirOrZip)
 		if err != nil {
-			log("Error opening agent zip file: %v", err)
+			pretty.Log("Error opening agent zip file: %v", err)
 			return found
 		}
 		defer zipReader.Close()
@@ -216,14 +217,14 @@ func ListActionPackagesFromAgent(agentRootDirOrZip string) map[string]*ActionPac
 func GetFileContentsFromZip(file *zip.File) string {
 	fileReader, err := file.Open()
 	if err != nil {
-		log("Error opening file in zip: %v", err)
+		pretty.Log("Error opening file in zip: %v", err)
 		return ""
 	}
 	defer fileReader.Close()
 
 	content, err := io.ReadAll(fileReader)
 	if err != nil {
-		log("Error reading file in zip: %v", err)
+		pretty.Log("Error reading file in zip: %v", err)
 		return ""
 	}
 
@@ -239,33 +240,33 @@ func GetFileContentsFromZip(file *zip.File) string {
 func GetPackageYAMLFromInnerZip(file *zip.File) string {
 	innerZipReader, err := file.Open()
 	if err != nil {
-		log("Error opening inner zip file: %v", err)
+		pretty.Log("Error opening inner zip file: %v", err)
 		return ""
 	}
 	defer innerZipReader.Close()
 
 	innerZipBytes, err := io.ReadAll(innerZipReader)
 	if err != nil {
-		log("Error reading inner zip file: %v", err)
+		pretty.Log("Error reading inner zip file: %v", err)
 		return ""
 	}
 
 	innerZip, err := zip.NewReader(bytes.NewReader(innerZipBytes), int64(len(innerZipBytes)))
 	if err != nil {
-		log("Error creating reader for inner zip: %v", err)
+		pretty.Log("Error creating reader for inner zip: %v", err)
 		return ""
 	}
 
 	innerZipFile, err := innerZip.Open("package.yaml")
 	if err != nil {
-		log("Error opening package.yaml in inner zip: %v", err)
+		pretty.Log("Error opening package.yaml in inner zip: %v", err)
 		return ""
 	}
 	defer innerZipFile.Close()
 
 	content, err := io.ReadAll(innerZipFile)
 	if err != nil {
-		log("Error reading package.yaml in inner zip: %v", err)
+		pretty.Log("Error reading package.yaml in inner zip: %v", err)
 		return ""
 	}
 
@@ -307,7 +308,7 @@ var listActionPackagesFromAgentCmd = &cobra.Command{
 func runListActionPackagesFromAgentCmd(cmd *cobra.Command, args []string) {
 	// At least one argument is required, the agent root directory
 	if len(args) < 1 {
-		log("Error: agent root directory is required.")
+		pretty.Log("Error: agent root directory is required.")
 		os.Exit(1)
 	}
 	agentRootDir := args[0]
@@ -320,7 +321,7 @@ func runListActionPackagesFromAgentCmd(cmd *cobra.Command, args []string) {
 			"path":    action.RelativePath,
 		})
 		if err != nil {
-			log("Error marshalling action: %v", err)
+			pretty.Log("Error marshalling action: %v", err)
 			os.Exit(1)
 		}
 		fmt.Println(string(actionJson))

@@ -1,6 +1,13 @@
 import pytest
 
 from agent_platform.core.mcp.mcp_server import MCPServer
+from agent_platform.core.mcp.mcp_types import (
+    MCPUnionOfVariableTypes,
+    MCPVariableTypeDataServerInfo,
+    MCPVariableTypeOAuth2Secret,
+    MCPVariableTypeSecret,
+    MCPVariableTypeString,
+)
 
 # ---------------------------------------------------------------------------
 #  Error cases
@@ -87,13 +94,85 @@ def test_mcp_server_env_handling():
     assert srv2.env == {}
 
     # Test with populated env dict
-    test_env = {"VAR1": "value1", "VAR2": "value2"}
+    test_env: dict[str, MCPUnionOfVariableTypes] = {"VAR1": "value1", "VAR2": "value2"}
     srv3 = MCPServer(name="test3", command="python", env=test_env)
     assert srv3.env == test_env
 
     # Test that env is preserved in model_dump
     dumped = srv3.model_dump()
-    assert dumped["env"] == test_env
+    assert dumped["env"] == {"VAR1": "value1", "VAR2": "value2"}
+
+    # Test with populated env dict
+    test_env: dict[str, MCPUnionOfVariableTypes] = {
+        "VAR1": MCPVariableTypeString(default="/data", description="this"),
+        "VAR2": "value2",
+    }
+    srv3 = MCPServer(name="test3", command="python", env=test_env)
+    assert srv3.env == test_env
+
+    # Test that env is preserved in model_dump
+    dumped = srv3.model_dump()
+    assert dumped["env"] == {
+        "VAR1": {"type": "string", "description": "this", "default": "/data"},
+        "VAR2": "value2",
+    }
+
+    # Test with populated env dict
+    test_env: dict[str, MCPUnionOfVariableTypes] = {
+        "VAR1": MCPVariableTypeSecret(description="this"),
+        "VAR2": "value2",
+    }
+    srv3 = MCPServer(name="test3", command="python", env=test_env)
+    assert srv3.env == test_env
+
+    # Test that env is preserved in model_dump
+    dumped = srv3.model_dump()
+    assert dumped["env"] == {
+        "VAR1": {
+            "type": "secret",
+            "description": "this",
+        },
+        "VAR2": "value2",
+    }
+
+    # Test with populated env dict
+    test_env: dict[str, MCPUnionOfVariableTypes] = {
+        "VAR1": MCPVariableTypeOAuth2Secret(
+            scopes=["user.read"], provider="Github", description="this"
+        ),
+        "VAR2": "value2",
+    }
+    srv3 = MCPServer(name="test3", command="python", env=test_env)
+    assert srv3.env == test_env
+
+    # Test that env is preserved in model_dump
+    dumped = srv3.model_dump()
+    assert dumped["env"] == {
+        "VAR1": {
+            "type": "oauth2-secret",
+            "description": "this",
+            "provider": "Github",
+            "scopes": ["user.read"],
+        },
+        "VAR2": "value2",
+    }
+
+    # Test with populated env dict
+    test_env: dict[str, MCPUnionOfVariableTypes] = {
+        "VAR1": MCPVariableTypeDataServerInfo(),
+        "VAR2": "value2",
+    }
+    srv3 = MCPServer(name="test3", command="python", env=test_env)
+    assert srv3.env == test_env
+
+    # Test that env is preserved in model_dump
+    dumped = srv3.model_dump()
+    assert dumped["env"] == {
+        "VAR1": {
+            "type": "data-server-info",
+        },
+        "VAR2": "value2",
+    }
 
     # Test that env is preserved in copy
     copied = srv3.copy()
@@ -101,7 +180,10 @@ def test_mcp_server_env_handling():
 
     # Test that env is preserved in model_validate
     validated = MCPServer.model_validate(dumped)
-    assert validated.env == test_env
+    assert validated.env == {
+        "VAR1": MCPVariableTypeDataServerInfo(),
+        "VAR2": "value2",
+    }
 
 
 def test_mcp_server_cache_key_includes_env():

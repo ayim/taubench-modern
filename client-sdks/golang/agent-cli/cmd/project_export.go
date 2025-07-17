@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/common"
+	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/pretty"
 	AgentServer "github.com/Sema4AI/agent-platform/client-sdks/golang/agent-client-go/pkg/client"
 	"github.com/Sema4AI/rcc/pathlib"
 	"github.com/spf13/cobra"
@@ -24,10 +25,12 @@ var (
 )
 
 // Keys are agent ids.
-type specState struct {
-	assistantKnowledge      map[string][]common.AgentKnowledge
-	assistantActionPackages map[string][]common.AgentActionPackage
-	assistantRunbooks       map[string]string
+type SpecState struct {
+	assistantKnowledge          map[string][]common.SpecAgentKnowledge
+	assistantActionPackages     map[string][]common.SpecAgentActionPackage
+	assistantMcpServer          map[string][]common.SpecMcpServer
+	assistantRunbooks           map[string]string
+	AssistantConversationGuides map[string]string
 }
 
 type ActionPackageCompositeKey struct {
@@ -50,39 +53,56 @@ func safeAgentString(agent *AgentServer.Agent) string {
 		len(agent.ActionPackages))
 }
 
-func (state *specState) specForAgent(assistant AgentServer.Agent) common.Agent {
+func (state *SpecState) specForAgent(assistant AgentServer.Agent) common.SpecAgent {
 	metadata := assistant.Metadata
 
 	// Ensuring WorkerConfig is not included in the spec if the agent type is "conversational".
 	if metadata.Mode == "conversational" {
 		metadata.WorkerConfig = nil
 	}
+	if metadata.WelcomeMessage != "" {
+		metadata.WelcomeMessage = ""
+	}
+	if metadata.QuestionGroups != nil {
+		metadata.QuestionGroups = nil
+	}
 
-	return common.Agent{
+	return common.SpecAgent{
 		Name:        assistant.Name,
 		Description: assistant.Description,
-		Model: common.AgentModel{
+		Model: common.SpecAgentModel{
 			Provider: assistant.Model.Provider,
 			Name:     assistant.Model.Name,
 		},
-		Version:        assistant.Version,
-		Architecture:   assistant.AdvancedConfig.Architecture,
-		Reasoning:      assistant.AdvancedConfig.Reasoning,
-		Runbook:        state.assistantRunbooks[assistant.ID],
+		Version:             assistant.Version,
+		Architecture:        assistant.AdvancedConfig.Architecture,
+		Reasoning:           assistant.AdvancedConfig.Reasoning,
+		Runbook:             state.assistantRunbooks[assistant.ID],
+		ConversationGuide:   state.AssistantConversationGuides[assistant.ID],
+		ConversationStarter: assistant.Extra.ConversationStarter,
+		WelcomeMessage: func() string {
+			// TODO: remove this once we have a proper welcome message field in the agent
+			// - done for backwards compatibility
+			if assistant.Extra.WelcomeMessage != "" {
+				return assistant.Extra.WelcomeMessage
+			}
+			return assistant.Metadata.WelcomeMessage
+		}(),
 		ActionPackages: state.assistantActionPackages[assistant.ID],
+		McpServers:     state.assistantMcpServer[assistant.ID],
 		Knowledge:      state.assistantKnowledge[assistant.ID],
 		Metadata:       metadata,
 	}
 }
 
-func (state *specState) createSpecFile(assistants []AgentServer.Agent, projectPath string) error {
-	agents := []common.Agent{}
+func (state *SpecState) createSpecFile(assistants []AgentServer.Agent, projectPath string) error {
+	agents := []common.SpecAgent{}
 	for _, assistant := range assistants {
 		agents = append(agents, state.specForAgent(assistant))
 	}
 
-	agentPackage := common.AgentPackage{
-		SpecVersion: "v2",
+	agentPackage := common.SpecAgentPackage{
+		SpecVersion: "v3",
 		Agents:      agents,
 		Exclude: []string{
 			"./.git/**",
@@ -102,17 +122,10 @@ func (state *specState) createSpecFile(assistants []AgentServer.Agent, projectPa
 		AgentPackage: agentPackage,
 	}
 
-	specData, err := yaml.Marshal(agentSpec)
-	if err != nil {
-		return fmt.Errorf("[createSpecFile] failed to marshal YAML: %w", err)
-	}
-
-	specPath := common.AgentProjectSpecFileLocation(projectPath)
-	err = pathlib.WriteFile(specPath, specData, 0o644)
-	if err != nil {
+	if err := WriteSpec(&agentSpec, projectPath); err != nil {
 		return fmt.Errorf("[createSpecFile] failed to write spec YAML file: %w", err)
 	}
-	logVerbose("Created Spec file @: %s", specPath)
+	pretty.LogIfVerbose("[createSpecFile] created agent spec file @: %s", projectPath)
 	return nil
 }
 
@@ -126,7 +139,7 @@ func processOrganization(orgPath string, availableActions map[ActionPackageCompo
 		return fmt.Errorf("[processOrganization] failed to read directory %s: %w", orgPath, err)
 	}
 
-	logVerbose("Processing Organization @: %s", orgPath)
+	pretty.LogIfVerbose("[processOrganization] @: %s", orgPath)
 
 	for _, entry := range entries {
 		// Skip non-directory entries like .DS_Store
@@ -206,14 +219,13 @@ func createAvailableActionPackagesMap() (map[ActionPackageCompositeKey]string, e
 	return availableActions, nil
 }
 
-func (state *specState) createKnowledgeDir(assistants []AgentServer.Agent, projectPath string) error {
+func (state *SpecState) createKnowledgeDir(assistants []AgentServer.Agent, projectPath string) error {
 	filesPath := common.AgentProjectKnowledgeLocation(projectPath)
 	err := os.MkdirAll(filesPath, 0o755)
 	if err != nil {
 		return fmt.Errorf("[createKnowledgeDir] failed to create files directory: %w", err)
 	}
 
-	logVerbose("Creating Knowledge directory @: %s", filesPath)
 	for _, assistant := range assistants {
 		Files, err := copyFilesFor(assistant, filesPath)
 		if err != nil {
@@ -221,11 +233,12 @@ func (state *specState) createKnowledgeDir(assistants []AgentServer.Agent, proje
 		}
 		state.assistantKnowledge[assistant.ID] = Files
 	}
+	pretty.LogIfVerbose("[createKnowledgeDir] @: %s", filesPath)
 	return nil
 }
 
-func copyFilesFor(assistant AgentServer.Agent, filesPath string) ([]common.AgentKnowledge, error) {
-	ret := []common.AgentKnowledge{}
+func copyFilesFor(assistant AgentServer.Agent, filesPath string) ([]common.SpecAgentKnowledge, error) {
+	ret := []common.SpecAgentKnowledge{}
 	for _, file := range assistant.Files {
 		sourcePath := file.FilePath
 		if after, ok := strings.CutPrefix(sourcePath, "file://"); ok {
@@ -240,7 +253,7 @@ func copyFilesFor(assistant AgentServer.Agent, filesPath string) ([]common.Agent
 		if err != nil {
 			return nil, fmt.Errorf("[copyFilesFor] failed to generate digest for file %s: %w", actualTarget, err)
 		}
-		ret = append(ret, common.AgentKnowledge{
+		ret = append(ret, common.SpecAgentKnowledge{
 			Name:     filepath.Base(actualTarget),
 			Embedded: file.Embedded,
 			Digest:   digest,
@@ -271,8 +284,8 @@ func copyActionPackagesFor(
 	assistant AgentServer.Agent,
 	availableActions map[ActionPackageCompositeKey]string,
 	projectPath string,
-) ([]common.AgentActionPackage, error) {
-	var actionPackages []common.AgentActionPackage
+) ([]common.SpecAgentActionPackage, error) {
+	var actionPackages []common.SpecAgentActionPackage
 
 	for _, actionPackage := range assistant.ActionPackages {
 		source, ok := availableActions[ActionPackageCompositeKey{ActionPackageName: actionPackage.Name, version: actionPackage.Version, Organization: actionPackage.Organization}]
@@ -281,8 +294,8 @@ func copyActionPackagesFor(
 		}
 
 		packageFolderName := filepath.Base(filepath.Dir(source))
-		logVerbose("[copyActionPackagesFor] Processing source: %s", source)
-		logVerbose("[copyActionPackagesFor] Package folder: %s", packageFolderName)
+		pretty.LogIfVerbose("[copyActionPackagesFor] processing source: %s", source)
+		pretty.LogIfVerbose("[copyActionPackagesFor] package folder: %s", packageFolderName)
 
 		var targetActionPackagePath string
 		var actionRelPath string
@@ -300,10 +313,10 @@ func copyActionPackagesFor(
 		)
 		actionRelPath = filepath.Join(actionPackage.Organization, packageFolderName)
 
-		logVerbose("[copyActionPackagesFor] Target Action Package Path: %s", targetActionPackagePath)
-		logVerbose("[copyActionPackagesFor] Relative Path: %s", actionRelPath)
+		pretty.LogIfVerbose("[copyActionPackagesFor] target Action Package Path: %s", targetActionPackagePath)
+		pretty.LogIfVerbose("[copyActionPackagesFor] relative Path: %s", actionRelPath)
 
-		actionPackages = append(actionPackages, common.AgentActionPackage{
+		actionPackages = append(actionPackages, common.SpecAgentActionPackage{
 			Name:         actionPackage.Name,
 			Organization: actionPackage.Organization,
 			Path:         filepath.ToSlash(actionRelPath),
@@ -315,35 +328,35 @@ func copyActionPackagesFor(
 		if err := common.CopyDir(source, targetActionPackagePath, true); err != nil {
 			return nil, fmt.Errorf("[copyActionPackagesFor] failed to copy directory %s to %s: %w", source, targetActionPackagePath, err)
 		}
-		logVerbose("[copyActionPackagesFor] [DONE] Action Package was copied successfully!")
+		pretty.LogIfVerbose("[copyActionPackagesFor] [DONE] action Package was copied successfully!")
 	}
 
 	return actionPackages, nil
 }
 
-func (state *specState) createActionsDir(assistants []AgentServer.Agent, projectPath string) error {
+func (state *SpecState) createActionsDir(assistants []AgentServer.Agent, projectPath string) error {
 	bundledActionsPath := common.AgentProjectBundledActionsLocation(projectPath)
 	err := os.MkdirAll(bundledActionsPath, 0o755)
 	if err != nil {
 		return fmt.Errorf("[createActionsDir] failed to create bundled actions directory: %w", err)
 	}
-	logVerbose("Created Sema4.ai Actions directory @: %s", bundledActionsPath)
+	pretty.LogIfVerbose("[createActionsDir] created Sema4.ai Actions directory @: %s", bundledActionsPath)
 
 	unbundledActionsPath := common.AgentProjectUnbundledActionsLocation(projectPath)
 	err = os.MkdirAll(unbundledActionsPath, 0o755)
 	if err != nil {
 		return fmt.Errorf("[createActionsDir] failed to create unbundled actions directory: %w", err)
 	}
-	logVerbose("Created MyActions directory @: %s", unbundledActionsPath)
+	pretty.LogIfVerbose("[createActionsDir] created MyActions directory @: %s", unbundledActionsPath)
 
 	availableActions, err := createAvailableActionPackagesMap()
 	if err != nil {
 		return err
 	}
-	logVerbose("Available local actions: %+v", availableActions)
+	pretty.LogIfVerbose("[createActionsDir] available local actions: %+v", availableActions)
 
 	for _, assistant := range assistants {
-		logVerbose("Copying actions for agent: %s", safeAgentString(&assistant))
+		pretty.LogIfVerbose("[createActionsDir] copying actions for agent: %s", safeAgentString(&assistant))
 		actions, err := copyActionPackagesFor(
 			assistant,
 			availableActions,
@@ -355,13 +368,14 @@ func (state *specState) createActionsDir(assistants []AgentServer.Agent, project
 		state.assistantActionPackages[assistant.ID] = actions
 	}
 
+	pretty.LogIfVerbose("[createActionsDir] actions are ready!")
 	return nil
 }
 
-func (state *specState) createRunbookFile(assistants []AgentServer.Agent, projectPath string) error {
+func (state *SpecState) createRunbookFile(assistants []AgentServer.Agent, projectPath string) error {
 	runbookPath := common.AgentProjectRunbookFileLocation(projectPath)
 	for _, assistant := range assistants {
-		logVerbose("Extracting runbook for: %s", safeAgentString(&assistant))
+		pretty.LogIfVerbose("[createActionsDir] extracting runbook for: %s", safeAgentString(&assistant))
 		err := pathlib.WriteFile(
 			runbookPath, []byte(assistant.Runbook), 0o644,
 		)
@@ -369,6 +383,97 @@ func (state *specState) createRunbookFile(assistants []AgentServer.Agent, projec
 			return err
 		}
 		state.assistantRunbooks[assistant.ID] = filepath.Base(runbookPath)
+	}
+	pretty.LogIfVerbose("[createActionsDir] runbooks are ready!")
+	return nil
+}
+
+func (state *SpecState) CreateConversationGuideFile(assistants []AgentServer.Agent, projectPath string) error {
+	conversationGuidePath := common.AgentProjectConversationGuideFileLocation(projectPath)
+	for _, assistant := range assistants {
+		if len(assistant.QuestionGroups) <= 0 && len(assistant.Metadata.QuestionGroups) <= 0 {
+			pretty.LogIfVerbose("[createConversationGuideFile] no question groups found for agent %s", assistant.ID)
+			_ = state.removeConversationGuide(projectPath)
+			continue
+		}
+		questionGroups := assistant.QuestionGroups
+		if len(questionGroups) == 0 && len(assistant.Metadata.QuestionGroups) > 0 {
+			questionGroups = assistant.Metadata.QuestionGroups
+		}
+
+		pretty.LogIfVerbose("[createConversationGuideFile] extracting conversation guide for: %s", safeAgentString(&assistant))
+		data, err := yaml.Marshal(&common.AgentPackageConversationGuideContents{
+			QuestionGroups: questionGroups,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to marshal QuestionGroups for agent %s: %w", assistant.ID, err)
+		}
+		if err = pathlib.WriteFile(conversationGuidePath, data, 0o644); err != nil {
+			return err
+		}
+		state.AssistantConversationGuides = make(map[string]string)
+		state.AssistantConversationGuides[assistant.ID] = filepath.Base(conversationGuidePath)
+	}
+	return nil
+}
+
+func (state *SpecState) removeConversationGuide(projectPath string) error {
+	conversationGuidePath := common.AgentProjectConversationGuideFileLocation(projectPath)
+	if pathlib.Exists(conversationGuidePath) {
+		if err := os.Remove(conversationGuidePath); err != nil {
+			return fmt.Errorf("failed to remove conversation guide file: %w", err)
+		}
+		pretty.LogIfVerbose("[removeConversationGuide] conversation guide file removed")
+	}
+	return nil
+}
+
+func (state *SpecState) createMcpServers(assistants []AgentServer.Agent) error {
+	var mcpServers []common.SpecMcpServer
+
+	for _, assistant := range assistants {
+		pretty.LogIfVerbose("[createMcpServers] extracting mcpServers for: %s", safeAgentString(&assistant))
+		for _, mcpServer := range assistant.McpServers {
+			pretty.LogIfVerbose("[createMcpServers] dealing with: %s", mcpServer.Name)
+			headers := make(common.SpecMcpServerVariables)
+			for key, value := range mcpServer.Headers {
+				headers[key] = common.BuildSpecMcpServerVariable(&value)
+			}
+			env := make(common.SpecMcpServerVariables)
+			for key, value := range mcpServer.Env {
+				env[key] = common.BuildSpecMcpServerVariable(&value)
+			}
+
+			var url string
+			if mcpServer.URL != nil {
+				url = *mcpServer.URL
+			}
+
+			var commandLine []string
+			if mcpServer.Command != nil {
+				commandLine = append([]string{*mcpServer.Command}, mcpServer.Args...)
+			}
+
+			var cwd string
+			if mcpServer.Cwd != nil {
+				cwd = *mcpServer.Cwd
+			}
+
+			mcpServers = append(mcpServers, common.SpecMcpServer{
+				Name:                 mcpServer.Name,
+				Transport:            mcpServer.Transport,
+				Description:          mcpServer.Description,
+				URL:                  url,
+				CommandLine:          commandLine,
+				Headers:              headers,
+				Env:                  env,
+				Cwd:                  cwd,
+				ForceSerialToolCalls: mcpServer.ForceSerialToolCalls,
+			})
+		}
+
+		pretty.LogIfVerbose("[createMcpServers] mcp servers are ready!")
+		state.assistantMcpServer[assistant.ID] = mcpServers
 	}
 	return nil
 }
@@ -378,7 +483,7 @@ func createAgentProject(assistants []AgentServer.Agent, projectPath string) erro
 		return fmt.Errorf("[createAgentProject] project path cannot be empty")
 	}
 
-	logVerbose("Creating Agent Project to path: %s", projectPath)
+	pretty.LogIfVerbose("[createAgentProject] creating agent project to path: %s", projectPath)
 	if pathlib.Exists(projectPath) && !pathlib.IsEmptyDir(projectPath) {
 		return fmt.Errorf("[createAgentProject] project directory %s already exists and is not empty", projectPath)
 	}
@@ -388,32 +493,48 @@ func createAgentProject(assistants []AgentServer.Agent, projectPath string) erro
 		return fmt.Errorf("[createAgentProject] failed to create agent project directory: %w", err)
 	}
 
-	state := specState{
-		assistantKnowledge:      map[string][]common.AgentKnowledge{},
-		assistantActionPackages: map[string][]common.AgentActionPackage{},
-		assistantRunbooks:       map[string]string{},
+	state := SpecState{
+		assistantKnowledge:          map[string][]common.SpecAgentKnowledge{},
+		assistantActionPackages:     map[string][]common.SpecAgentActionPackage{},
+		assistantMcpServer:          map[string][]common.SpecMcpServer{},
+		assistantRunbooks:           map[string]string{},
+		AssistantConversationGuides: map[string]string{},
 	}
 
+	// Create the knowledge directory and copy agent files
 	err = state.createKnowledgeDir(assistants, projectPath)
 	if err != nil {
 		return err
 	}
 
+	// Create the actions directory and copy action packages
 	err = state.createActionsDir(assistants, projectPath)
 	if err != nil {
 		return err
 	}
 
+	// Extract and store MCP server configurations
+	err = state.createMcpServers(assistants)
+	if err != nil {
+		return err
+	}
+
+	// Create the runbook file for the agent(s)
 	err = state.createRunbookFile(assistants, projectPath)
 	if err != nil {
 		return err
 	}
 
+	// Optionally create the conversation guide file (ignore error if missing)
+	_ = state.CreateConversationGuideFile(assistants, projectPath)
+
+	// Create the agent spec YAML file
 	err = state.createSpecFile(assistants, projectPath)
 	if err != nil {
 		return err
 	}
 
+	pretty.LogIfVerbose("[createAgentProject] agent project is ready")
 	return nil
 }
 
@@ -456,7 +577,7 @@ var exportCmd = &cobra.Command{
 		// This is a workaround solution for 1.0 release.
 		for i := range assistants {
 			if agentVersion != "" {
-				logVerbose(
+				pretty.LogIfVerbose(
 					"Overwriting version %s for agent '%s' with %s",
 					assistants[i].Version,
 					assistants[i].Name,

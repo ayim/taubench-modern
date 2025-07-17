@@ -1,4 +1,10 @@
-cli
-cli.exe
 .idea/
-*.test
+
+agent-cli
+agent-cli.exe
+
+tests/out/*
+tests/fixtures/agent-packages/a-1.v3/*
+tests/fixtures/agent-payloads/*
+
+agent-project/*

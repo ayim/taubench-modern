@@ -15,7 +15,7 @@ type ActionPackagesChanges []string
 type AgentProject struct {
 	Path                  string                `json:"path"`
 	AgentID               string                `json:"agentId"`
-	Agent                 Agent                 `json:"agent"`
+	Agent                 SpecAgent             `json:"agent"`
 	Synced                bool                  `json:"synced"`
 	AgentChanges          AgentChanges          `json:"agentChanges"`
 	ActionPackagesChanges ActionPackagesChanges `json:"actionPackagesChanges"`
@@ -34,7 +34,7 @@ func excludeByHardcodedPatters(path string) bool {
 	return false
 }
 
-func (ap *AgentProject) GetUnbundledActionPackageForFile(filePath string) *AgentActionPackage {
+func (ap *AgentProject) GetUnbundledActionPackageForFile(filePath string) *SpecAgentActionPackage {
 	for _, actionPackage := range ap.Agent.ActionPackages {
 		packagePath := filepath.Join(AgentProjectActionsLocation(ap.Path), actionPackage.Path)
 		packagePathPattern := packagePath + "/**"
@@ -56,7 +56,7 @@ func (ap *AgentProject) GetActionPackagesFilesForSynchronization() ([]string, er
 
 	wg := sync.WaitGroup{}
 
-	var myActionsPackages []AgentActionPackage
+	var myActionsPackages []SpecAgentActionPackage
 
 	for _, actionPackage := range ap.Agent.ActionPackages {
 		if actionPackage.Organization == AGENT_PROJECT_UNBUNDLED_ACTIONS_DIR {

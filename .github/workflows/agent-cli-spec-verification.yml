@@ -1,4 +1,4 @@
-name: Agent CLI Spec verification
+name: Agent CLI Spec Validation
 
 on:
   push:

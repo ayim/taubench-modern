@@ -2,36 +2,48 @@ package common
 
 import (
 	"archive/zip"
+	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
-	"time"
 	"unicode"
 )
 
 var (
 	Verbose bool
+	NoColor bool
 )
 
-func Log(format string, a ...interface{}) {
-	timestamp := time.Now().Format("2006-01-02 15:04:05.000")
-	formattedStr := fmt.Sprintf("[%s] $: "+format, append([]interface{}{timestamp}, a...)...)
-	lines := strings.Split(formattedStr, "\n")
-	for i := 1; i < len(lines); i++ {
-		lines[i] = "    " + lines[i]
-	}
-	indentedStr := strings.Join(lines, "\n")
-	// Print to stderr so that it doesn't get mixed with stdout (which may be used for json output).
-	fmt.Fprintln(os.Stderr, indentedStr)
+func Ptr[T any](v T) *T { return &v }
+
+type ExitCode struct {
+	Code    int
+	Message string
 }
 
-func LogVerbose(format string, a ...interface{}) {
-	if Verbose {
-		Log(format, a...)
+func Exit(code int, format string, rest ...interface{}) {
+	message := format
+	if len(rest) > 0 {
+		message = fmt.Sprintf(format, rest...)
 	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			if ec, ok := r.(ExitCode); ok {
+				os.Exit(ec.Code)
+			}
+			panic(r)
+		}
+	}()
+
+	panic(ExitCode{
+		Code:    code,
+		Message: message,
+	})
 }
 
 func UnzipFile(sourceZip, targetDir string) error {
@@ -146,4 +158,39 @@ func (cs *ConcurrentSlice[T]) AddIfNotExists(item T) []T {
 
 	cs.items = AddIfNotExists(cs.items, item)
 	return cs.items
+}
+
+// === HELPERS ===
+
+// StringSlicesEqual checks if two string slices are equal (order and content)
+func StringSlicesEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// DerefString returns the value of a string pointer or an empty string if nil
+func DerefString(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
+
+// DecodeBase64 decodes a base64-encoded string and returns the bytes.
+func DecodeBase64(s string) ([]byte, error) {
+	if s == "" {
+		return nil, errors.New("input string is empty")
+	}
+	decoded, err := base64.StdEncoding.DecodeString(s)
+	if err != nil {
+		return nil, err
+	}
+	return decoded, nil
 }

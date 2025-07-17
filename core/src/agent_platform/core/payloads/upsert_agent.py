@@ -210,7 +210,15 @@ class UpsertAgentPayload:
     def _handle_legacy_welcome_message(self):
         """Handle backward compatibility for 'welcome_message' in metadata."""
         if "welcome_message" in self.metadata:
-            del self.metadata["welcome_message"]  # Ignored
+            object.__setattr__(
+                self,
+                "extra",
+                {
+                    **self.extra,
+                    "welcome_message": self.metadata["welcome_message"],
+                },
+            )
+            del self.metadata["welcome_message"]
 
     def _handle_legacy_worker_config(self):
         """Handle backward compatibility for 'worker_config' in metadata."""
@@ -234,6 +242,11 @@ class UpsertAgentPayload:
 
     def _handle_legacy_question_groups(self):
         """Handle backward compatibility for 'question_groups' in metadata."""
+        if self.question_groups:
+            if "question_groups" in self.metadata:
+                del self.metadata["question_groups"]
+            return
+
         if "question_groups" in self.metadata and isinstance(
             self.metadata["question_groups"], list
         ):
@@ -605,7 +618,7 @@ class UpsertAgentPayload:
                 cast(AnyPlatformParameters, PlatformParameters.model_validate(config))
                 for config in payload.platform_configs
             ],
-            extra={**extra, **metadata_without_mode},
+            extra={**metadata_without_mode, **extra},
             user_id=user_id,
             agent_id=(
                 # We prefer an agent_id passed in

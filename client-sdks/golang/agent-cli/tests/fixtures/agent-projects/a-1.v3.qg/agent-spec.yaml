@@ -1,0 +1,69 @@
+agent-package:
+  spec-version: v3
+  agents:
+    - name: a1
+      description: a1
+      model:
+        provider: OpenAI
+        name: gpt-4o
+      version: 0.0.1
+      architecture: agent
+      reasoning: disabled
+      runbook: runbook.md
+      conversation-guide: conversation-guide.yaml
+      action-packages: []
+      mcp-servers:
+        - name: file-system-server
+          transport: stdio
+          description: MCP server for file system operations
+          command-line: ['uv', 'run', 'python', '-m', 'mcp_file_system']
+          env:
+            FILE_SYSTEM_ROOT:
+              type: string
+              description: Your content type for authentication
+              default: /data
+            MY_OAUTH2_API_KEY:
+              type: oauth2-secret
+              description: Your OAuth2 API key for authentication
+              provider: Microsoft
+              scopes:
+                - user.read
+                - user.write
+            MCP_API_KEY:
+              type: secret
+              description: Your API key for authentication
+            CONTENT_TYPE: application/json
+          cwd: ./mcp-servers/file-system
+          force-serial-tool-calls: false
+        - name: database-server
+          transport: streamable-http
+          description: MCP server for database operations
+          url: http://localhost:8080/mcp
+          headers:
+            Authorization:
+              type: oauth2-secret
+              description: Your OAuth2 API key for authentication
+              provider: Microsoft
+              scopes: []
+            X-API-Version:
+              type: string
+              description: API version header
+              default: '1.0.0'
+            X-email-API-Key:
+              type: secret
+              description: API key to access e-mails
+            Content-Type: application/json
+          force-serial-tool-calls: true
+        - name: database-server-no-heads
+          transport: sse
+          description: SSE MCP server for database operations
+          url: http://localhost:8080/sse
+        - name: file-system-server-no-env
+          transport: stdio
+          description: Docker MCP server for file system operations
+          command-line: ['docker']
+          cwd: '/Users/username/this/is/where/docker/is/'
+          force-serial-tool-calls: true
+      knowledge: []
+      metadata:
+        mode: conversational

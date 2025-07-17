@@ -1,4 +1,4 @@
-package main
+package tests
 
 import (
 	"flag"
@@ -22,7 +22,7 @@ func getBinaryPath() (string, error) {
 	// If binary path not provided, use default build location
 	binPath := binaryPath
 	if binPath == "" {
-		buildDir := filepath.Join("build")
+		buildDir := filepath.Join("../dist")
 		if runtime.GOOS == "windows" {
 			binPath = filepath.Join(buildDir, "agent-cli.exe")
 		} else {

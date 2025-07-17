@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/common"
+	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/pretty"
 	AgentServer "github.com/Sema4AI/agent-platform/client-sdks/golang/agent-client-go/pkg/client"
 	"github.com/spf13/cobra"
 )
@@ -15,7 +16,7 @@ var (
 )
 
 func deleteAgentFromAgentServer(agentID, serverURL string) error {
-	logVerbose("Deleting agent from agent-server: %s - %s", agentID, serverURL)
+	pretty.LogIfVerbose("[deleteAgentFromAgentServer]: %s - %s", agentID, serverURL)
 
 	client := AgentServer.NewClient(serverURL)
 
@@ -28,7 +29,7 @@ func deleteAgentFromAgentServer(agentID, serverURL string) error {
 }
 
 func deleteAgentProject(path string) error {
-	logVerbose("Deleting agent project locally from path: %s", path)
+	pretty.LogIfVerbose("[deleteAgentProject] locally from path: %s", path)
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return fmt.Errorf("path does not exist: %s", path)
@@ -52,7 +53,7 @@ func deleteAgentProject(path string) error {
 }
 
 func deleteAgent(path string, agentId string, serverURL string) error {
-	logVerbose("Deleting agent with project path: %s, agent ID: %s", path, agentId)
+	pretty.LogIfVerbose("[deleteAgent] with project path: %s, agent ID: %s", path, agentId)
 
 	if agentId != "" {
 		err := deleteDeployedAgentByID(agentId, serverURL)
@@ -72,7 +73,7 @@ func deleteAgent(path string, agentId string, serverURL string) error {
 }
 
 func deleteDeployedAgentByID(agentID string, serverURL string) error {
-	logVerbose("Deleting deployed agent by ID: %s", agentID)
+	pretty.LogIfVerbose("[deleteDeployedAgentByID] agent by ID: %s", agentID)
 
 	return deleteAgentFromAgentServer(agentID, serverURL)
 }

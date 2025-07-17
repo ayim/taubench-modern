@@ -70,7 +70,13 @@ Creates a project from an agent package. Accepts optional `--output-dir` and `--
 
 Generates JSON metadata for an agent package. Accepts optional `--output-file`.
 
+## Usage Examples
+
+You can find several examples in the file: [Helpful CLI CMDs](./tests/fixtures/helpful-cli-cmds.sh)
+
 ## Development
+
+> ! Make use of `make` found here: [Makefile](./Makefile)
 
 1. Add environment variable for go to get private packages: `$ go env -w GOPRIVATE=github.com/<your github handle>/*`
 2. Install development environment:

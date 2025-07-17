@@ -30,7 +30,6 @@ func ValidateActionServerVersion() error {
 func GetActionServerBin() string {
 	val, ok := os.LookupEnv(ACTION_SERVER_BIN_PATH_ENV_VARIABLE)
 	if !(ok) {
-		LogVerbose("The action-server binary not found in env, using default")
 		val = "action-server"
 	}
 	return val

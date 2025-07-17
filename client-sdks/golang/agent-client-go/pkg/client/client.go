@@ -92,7 +92,7 @@ func (c *Client) UpdateAgentViaPackage(agentID string, req AgentPayloadPackage) 
 }
 
 // CreateAgent creates a new agent given an AgentCreatePayload object.
-func (c *Client) CreateAgent(req AgentCreatePayload) (*Agent, error) {
+func (c *Client) CreateAgent(req AgentPayload) (*Agent, error) {
 	jsonData, err := json.Marshal(req)
 	if err != nil {
 		return nil, agentErr.NewAgentError(fmt.Errorf("failed to marshal request: %w", err), http.StatusBadRequest)
@@ -109,6 +109,35 @@ func (c *Client) CreateAgent(req AgentCreatePayload) (*Agent, error) {
 	}
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		return nil, agentErr.NewAgentError(fmt.Errorf("failed to create agent: %s", string(body)), resp.StatusCode)
+	}
+
+	var agent Agent
+	if err := json.Unmarshal(body, &agent); err != nil {
+		return nil, agentErr.NewAgentError(fmt.Errorf("failed to decode response: %w", err), http.StatusInternalServerError)
+	}
+	return &agent, nil
+}
+
+// UpdateAgent updates an agent given an AgentUpdatePayload object.
+func (c *Client) UpdateAgent(agentID string, req AgentPayload) (*Agent, error) {
+	jsonData, err := json.Marshal(req)
+	if err != nil {
+		return nil, agentErr.NewAgentError(fmt.Errorf("failed to marshal request: %w", err), http.StatusBadRequest)
+	}
+
+	resp, err := c.put(fmt.Sprintf("/api/v2/agents/%s", agentID), bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, agentErr.NewAgentError(fmt.Errorf("failed to update agent: %w", err), http.StatusInternalServerError)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, agentErr.NewAgentError(fmt.Errorf("failed to read response: %w", err), resp.StatusCode)
+	}
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		return nil, agentErr.NewAgentError(fmt.Errorf("failed to update agent: %s", string(body)), resp.StatusCode)
 	}
 
 	var agent Agent

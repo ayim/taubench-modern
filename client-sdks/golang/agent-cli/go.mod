@@ -3,7 +3,7 @@ module github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli
 go 1.23.9
 
 require (
-	github.com/Sema4AI/agent-platform/client-sdks/golang/agent-client-go v0.4.0
+	github.com/Sema4AI/agent-platform/client-sdks/golang/agent-client-go v0.5.0
 	github.com/Sema4AI/rcc v0.0.0-20250514153248-eec1733ee256
 	github.com/google/uuid v1.6.0
 	github.com/spf13/cobra v1.9.1
@@ -21,6 +21,7 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
+	github.com/ttacon/chalk v0.0.0-20160626202418-22c06c80ed31
 	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/term v0.32.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect

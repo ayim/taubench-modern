@@ -1,10 +1,9 @@
 # Makefile for the Go project
 
 # Variables
-APP_NAME := "agent-cli"
+APP_NAME := agent-cli
 GO_FILES := $(shell find . -name '*.go' | grep -v /vendor/)
 PKG := ./...
-INTEGRATION_TEST_DIR := ./test/integration
 DIST_DIR := dist
 BUILD_DIR := build
 OS := $(shell go env GOOS)
@@ -15,9 +14,9 @@ ZIPFILE := $(BINARY_NAME).zip
 EXECUTABLE := $(APP_NAME)$(if $(filter windows,$(OS)),.exe,)
 
 # Commands
-.PHONY: all run build test test-all test-integration test-integration-verbose deps clean tidy lint format init-project dist dist-all docs
+.PHONY: all run build test deps clean tidy lint format init-project dist dist-all docs
 
-all: test-all build
+all: test build
 
 run: ## Run the application
 	@echo "Running $(APP_NAME)..."
@@ -35,33 +34,26 @@ build: ## Build the project and output distribution binaries
 	mkdir -p $(DIST_DIR)
 	@go build -o $(DIST_DIR)/$(EXECUTABLE) main.go
 
-test: ## Run unit tests
-	@echo "Running unit tests..."
-	go test -count=1 $(PKG)
-
-test-integration: ## Run integration tests
-	@echo "Running integration tests..."
-	go test -count=1 $(INTEGRATION_TEST_DIR) --tags=integration
-
-test-integration-verbose: ## Run integration tests with verbose output
-	@echo "Running integration tests (verbose)..."
-	go test -count=1 $(INTEGRATION_TEST_DIR) --tags=integration -v
-
-test-all: test test-integration ## Run all tests (unit and integration)
-	@echo "Running all tests..."
+test: ## Run tests
+	@echo "Running tests..."
+	go test ./tests -v -run "$(TEST)"
 
 deps: ## Fetch and update project dependencies
 	@echo "Updating dependencies..."
 	go get -u ./...
 	go mod tidy
 
-tidy: ## Tidy up go.mod and remove unused dependencies
+tidy: lint-fix ## Tidy up go.mod and remove unused dependencies
 	@echo "Tidying up go.mod..."
 	go mod tidy
 
 lint: ## Lint the Go source files
 	@echo "Linting..."
 	golangci-lint run
+
+lint-fix:
+	@echo "Fixing Linting..."
+	golangci-lint run --fix
 
 format: ## Format all Go source files
 	@echo "Formatting Go source files..."

@@ -8,3 +8,4 @@ server/examples/debug_widget/static/style.css
 **/versionbump.yaml
 agent-spec/validation/_go_validation_tests/test_go_validation/**
 agent-spec/validation/_spec_validation_tests/test_spec*/**
+client-sdks/golang/agent-cli/tests

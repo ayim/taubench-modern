@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/common"
+	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/pretty"
 	AgentServer "github.com/Sema4AI/agent-platform/client-sdks/golang/agent-client-go/pkg/client"
 	rccCommon "github.com/Sema4AI/rcc/common"
 	"github.com/Sema4AI/rcc/pathlib"
@@ -27,7 +28,8 @@ var (
 	agentProjectSettingsPath string
 )
 
-func readRunbook(runbookPath string) (string, error) {
+// ReadRunbook reads the contents of a runbook file.
+func ReadRunbook(runbookPath string) (string, error) {
 	if !pathlib.Exists(runbookPath) {
 		return "", errors.New("runbook does not exist")
 	}
@@ -38,30 +40,43 @@ func readRunbook(runbookPath string) (string, error) {
 	return string(runbookContent), nil
 }
 
+// getAgentProjectSpec reads the agent spec from a given path.
 func getAgentProjectSpec(path string) (*common.AgentSpec, error) {
 	// Check if path exists
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return nil, fmt.Errorf("project directory path does not exist: %s", path)
 	}
 
-	spec, err := readSpec(path)
+	spec, err := ReadSpec(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read agent spec from path %s: %w", path, err)
 	}
 
 	for i := range spec.AgentPackage.Agents {
 		agent := &spec.AgentPackage.Agents[i]
-		runbookContent, err := readRunbook(filepath.Join(path, agent.Runbook))
+
+		// We need to read the Runbook file as the file contents can be passed to Agent Server
+		runbookContent, err := ReadRunbook(filepath.Join(path, agent.Runbook))
 		if err != nil {
-			log("Error: failed to read runbook %s: %s", agent.Runbook, err)
+			pretty.Error("Error: failed to read runbook %s: %s", agent.Runbook, err)
+			return nil, fmt.Errorf("failed to read runbook %s: %w", agent.Runbook, err)
 		} else {
 			agent.Runbook = runbookContent
 		}
-	}
 
+		// We need to read the Conversation Guide file as the file contents can be passed to Agent Server
+		if agent.ConversationGuide != "" {
+			conversationGuideContent, err := common.ReadConversationGuideYAML(filepath.Join(path, agent.ConversationGuide))
+			if err == nil {
+				// We can ignore the error here as the conversation guide is optional
+				agent.Metadata.QuestionGroups = conversationGuideContent
+			}
+		}
+	}
 	return spec, nil
 }
 
+// getAgentProject reads the agent project from a given path.
 func getAgentProject(path string) (*common.AgentProject, error) {
 	if path == "" {
 		return nil, nil
@@ -73,7 +88,7 @@ func getAgentProject(path string) (*common.AgentProject, error) {
 	// --ignore-missing flag was passed.
 	if spec == nil {
 		if ignoreMissingParam {
-			log("ignoring missing agent spec for path: %s, error: %s", path, err)
+			pretty.Log("ignoring missing agent spec for path: %s, error: %s", path, err)
 			return nil, nil
 		} else {
 			return nil, fmt.Errorf("agent spec from path: %s does not exist, err: %s", path, err)
@@ -91,6 +106,7 @@ func getAgentProject(path string) (*common.AgentProject, error) {
 	return agentProject, nil
 }
 
+// getAgentProjects reads the agent projects from a given paths.
 func getAgentProjects(paths []string) ([]*common.AgentProject, error) {
 	if len(paths) == 0 {
 		return nil, nil
@@ -129,6 +145,7 @@ func getAgentProjects(paths []string) ([]*common.AgentProject, error) {
 	return allAgentProjects, nil
 }
 
+// getDeployedAgents reads the deployed agents from a given server URL.
 func getDeployedAgents(serverURL string) ([]*AgentServer.Agent, error) {
 	client := AgentServer.NewClient(serverURL)
 	agents, err := client.GetAgents(true)
@@ -143,6 +160,7 @@ func getDeployedAgents(serverURL string) ([]*AgentServer.Agent, error) {
 	return result, nil
 }
 
+// checkAgentsSynchronization checks the synchronization status of the agent projects and the deployed agents.
 func checkAgentsSynchronization(agentProjects []*common.AgentProject, deployedAgents []*AgentServer.Agent) error {
 	wg := sync.WaitGroup{}
 	var synchronizationErrors []error
@@ -177,6 +195,7 @@ func checkAgentsSynchronization(agentProjects []*common.AgentProject, deployedAg
 	return nil
 }
 
+// getAgents reads the agents from the agent server.
 func getAgents() error {
 	output := AgentsOutput{
 		// The local agent uses type from common package which is different from the types used by deployed agent that uses type from client package.

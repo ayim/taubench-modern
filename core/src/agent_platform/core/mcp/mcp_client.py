@@ -179,7 +179,11 @@ class MCPClient:
         # Merge headers from server config and additional headers
         self._headers: dict[str, str] = {}
         if target_server.headers:
-            self._headers.update(target_server.headers)
+            target_headers: dict[str, str] = {
+                key: value if isinstance(value, str) else value.value or ""
+                for key, value in target_server.headers.items()
+            }
+            self._headers.update(target_headers)
         if additional_headers:
             self._headers.update(additional_headers)
 
@@ -331,7 +335,11 @@ class MCPClient:
         # Merge agent-server's env vars with provided env vars, provided env vars take precedence
         merged_env = dict(os.environ)
         if srv.env:
-            merged_env.update(srv.env)
+            target_env: dict[str, str] = {
+                key: value if isinstance(value, str) else value.value or ""
+                for key, value in srv.env.items()
+            }
+            merged_env.update(target_env)
 
         params = StdioServerParameters(
             command=cmd,

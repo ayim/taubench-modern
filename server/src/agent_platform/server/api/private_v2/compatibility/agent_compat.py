@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from typing import ClassVar, Literal
 
 from agent_platform.core.agent import Agent
+from agent_platform.core.mcp.mcp_server import MCPServer
 from agent_platform.core.platforms import AnyPlatformParameters
 
 
@@ -15,6 +16,90 @@ class ActionPackageCompat:
     url: str | None = field(default=None)
     api_key: str | None = field(default=None)
     whitelist: str = field(default="")
+
+
+@dataclass(frozen=True)
+class MCPVariableCompat:
+    type: Literal["string", "secret", "oauth2-secret", "data-server-info"]
+    description: str | None = None
+    default: str | None = None
+    provider: str | None = None
+    scopes: list[str] | None = None
+    value: str | None = None
+
+    @classmethod
+    def from_variable(cls, var, reveal_sensitive: bool = False):
+        # Handle string (legacy, not a dict)
+        if isinstance(var, str):
+            return var if (reveal_sensitive or not var) else "**********"
+        # Handle dataclass types
+        t = getattr(var, "type", None)
+        value = getattr(var, "value", None)
+        masked_value = value if (reveal_sensitive or not value) else "**********"
+        if t == "string":
+            return cls(
+                type="string",
+                description=getattr(var, "description", None),
+                default=getattr(var, "default", None),
+                value=masked_value,
+            )
+        elif t == "secret":
+            return cls(
+                type="secret",
+                description=getattr(var, "description", None),
+                value=masked_value,
+            )
+        elif t == "oauth2-secret":
+            return cls(
+                type="oauth2-secret",
+                provider=getattr(var, "provider", None),
+                scopes=getattr(var, "scopes", None),
+                description=getattr(var, "description", None),
+                value=masked_value,
+            )
+        elif t == "data-server-info":
+            return cls(
+                type="data-server-info",
+                value=masked_value,
+            )
+        # fallback: string
+        return str(var)
+
+
+@dataclass(frozen=True)
+class MCPServerCompat:
+    name: str
+    transport: str
+    url: str | None = None
+    headers: dict[str, str | MCPVariableCompat] | None = None
+    command: str | None = None
+    args: list[str] | None = None
+    env: dict[str, str | MCPVariableCompat] | None = None
+    cwd: str | None = None
+    force_serial_tool_calls: bool = False
+
+    @classmethod
+    def from_mcp_server(cls, server: MCPServer, reveal_sensitive: bool = False):
+        def mask_vars(vars_dict):
+            if not vars_dict:
+                return None
+            result = {}
+            for k, v in vars_dict.items():
+                compat = MCPVariableCompat.from_variable(v, reveal_sensitive)
+                result[k] = compat
+            return result
+
+        return cls(
+            name=server.name,
+            transport=server.transport,
+            url=server.url,
+            headers=mask_vars(server.headers),
+            command=server.command,
+            args=server.args,
+            env=mask_vars(server.env),
+            cwd=server.cwd,
+            force_serial_tool_calls=server.force_serial_tool_calls,
+        )
 
 
 @dataclass(frozen=True)
@@ -60,6 +145,7 @@ class AgentCompat(Agent):
     action_packages: list[ActionPackageCompat] = field(  # type: ignore (purposefully shadowing for backwards compatibility)
         default_factory=list,
     )
+    mcp_servers: list[MCPServerCompat] = field(default_factory=list)
 
     @classmethod
     def _convert_platform_config_to_legacy_model(  # noqa: C901
@@ -187,7 +273,11 @@ class AgentCompat(Agent):
                     if "worker-config" in agent.extra
                     else agent.extra.get("worker_config", {})
                 ),
-                welcome_message="",
+                welcome_message=(
+                    agent.extra["welcome-message"]
+                    if "welcome-message" in agent.extra
+                    else agent.extra.get("welcome-message", "")
+                ),
                 question_groups=agent.question_groups,
             ),
             model=model,
@@ -217,7 +307,10 @@ class AgentCompat(Agent):
                 )
                 for ap in agent.action_packages
             ],
-            mcp_servers=agent.mcp_servers,
+            mcp_servers=[
+                MCPServerCompat.from_mcp_server(s, reveal_sensitive=reveal_sensitive)
+                for s in agent.mcp_servers
+            ],
             agent_architecture=agent.agent_architecture,
             question_groups=agent.question_groups,
             platform_configs=masked_platform_configs,

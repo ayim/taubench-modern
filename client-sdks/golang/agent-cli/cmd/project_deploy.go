@@ -6,11 +6,13 @@ import (
 	"path/filepath"
 
 	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/common"
+	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/pretty"
+	AgentServer "github.com/Sema4AI/agent-platform/client-sdks/golang/agent-client-go/pkg/client"
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
 
-func deployProject(serverURL, projectPath string) error {
+func deployProjectFromPath(serverURL, projectPath string) error {
 	tempPackageDir, err := common.CreateTempDir(fmt.Sprintf("deploy-%s", uuid.New().String()))
 	if err != nil {
 		return fmt.Errorf("failed to create temp directory: %w", err)
@@ -33,11 +35,17 @@ func deployProject(serverURL, projectPath string) error {
 	tempPackageFile := "package.zip"
 	tempPackagePath := filepath.Join(tempPackageDir, tempPackageFile)
 
+	// Important: When we deploy the Agent to the Agent Server, because we do it through the package endpoint,
+	// we don't need to filter out the values from the Spec as those values will become the ones passed along to
+	// the Agent Server internal tools
+	pretty.LogIfVerbose("[deployProject] building agent package @: %+v", tempPackageDir)
 	err = buildAgentPackage(projectPath, tempPackageDir, tempPackageFile, true)
 	if err != nil {
 		return fmt.Errorf("failed to build Agent Package: %w", err)
 	}
 
+	pretty.LogIfVerbose("[deployProject] import agent package to server @: %+v", serverURL)
+	pretty.LogIfVerbose("[deployProject] import agent package dest @: %+v", agentPackageDestPath)
 	err = importAgentPackageToAgentServer(agentPackageDestPath, tempPackagePath, serverURL, "", "", "", false)
 	if err != nil {
 		return err
@@ -46,12 +54,23 @@ func deployProject(serverURL, projectPath string) error {
 	return nil
 }
 
+func deployProjectFromAgent(serverURL string, agent *AgentServer.Agent) error {
+	client := AgentServer.NewClient(serverURL)
+	agentPayload := AgentServer.BuildAgentPayload(agent)
+
+	_, err := createOrUpdateAgent(agentPayload, client)
+	if err != nil {
+		return fmt.Errorf("failed to create or update agent: %w", err)
+	}
+	return nil
+}
+
 var deployCmd = &cobra.Command{
 	Use:   "deploy",
 	Short: "Deploy Agent Project.",
 	Long:  "Deploy Agent Project to Agent Server.",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return deployProject(agentServerURL, agentProjectPath)
+		return deployProjectFromPath(agentServerURL, agentProjectPath)
 	},
 }
 

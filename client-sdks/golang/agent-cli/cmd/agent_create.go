@@ -8,17 +8,20 @@ import (
 	"path/filepath"
 
 	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/common"
+	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/pretty"
 	AgentServer "github.com/Sema4AI/agent-platform/client-sdks/golang/agent-client-go/pkg/client"
 	rccCommon "github.com/Sema4AI/rcc/common"
+
 	"github.com/spf13/cobra"
 )
 
 var (
-	deployAgentToServer bool
-	agentPayloadPathVar string
+	deployAgentToServer   bool
+	agentPayloadPathVar   string
+	agentPayloadBase64Var string // new flag for base64 payload
 )
 
-func validateAgentPayload(payload *AgentServer.AgentCreatePayload) error {
+func validateAgentPayload(payload *AgentServer.AgentPayload) error {
 	// Do minimal validation here, as long as the payload can be parsed
 	// we can just create the agent to file system which will make it configurable
 	// later in the studio side.
@@ -71,22 +74,11 @@ func validateAgentPayload(payload *AgentServer.AgentCreatePayload) error {
 
 func deployAgent(agent *AgentServer.Agent, serverURL string) (*AgentServer.Agent, error) {
 	client := AgentServer.NewClient(serverURL)
-	payload := AgentServer.AgentCreatePayload{
-		Name:           agent.Name,
-		Description:    agent.Description,
-		Version:        agent.Version,
-		Runbook:        agent.Runbook,
-		Model:          agent.Model,
-		ActionPackages: agent.ActionPackages,
-		McpServers:     agent.McpServers,
-		AdvancedConfig: agent.AdvancedConfig,
-		Metadata:       agent.Metadata,
-	}
-
+	payload := AgentServer.BuildAgentPayload(agent)
 	return client.CreateAgent(payload)
 }
 
-func defineAgent(payload *AgentServer.AgentCreatePayload) (*AgentServer.Agent, error) {
+func defineAgent(payload *AgentServer.AgentPayload) (*AgentServer.Agent, error) {
 	// Make sure McpServers is not nil when defining the Agent.
 	if payload.McpServers == nil {
 		payload.McpServers = []AgentServer.McpServer{}
@@ -99,23 +91,10 @@ func defineAgent(payload *AgentServer.AgentCreatePayload) (*AgentServer.Agent, e
 	}
 
 	// Return agent from payload
-	return &AgentServer.Agent{
-		ID:             "",
-		UserID:         "",
-		Name:           payload.Name,
-		Description:    payload.Description,
-		Version:        payload.Version,
-		Runbook:        payload.Runbook,
-		Model:          payload.Model,
-		ActionPackages: payload.ActionPackages,
-		McpServers:     payload.McpServers,
-		AdvancedConfig: payload.AdvancedConfig,
-		Metadata:       payload.Metadata,
-		Files:          nil,
-	}, nil
+	return AgentServer.BuildAgent(payload), nil
 }
 
-func createAgent(projectPath string, payload *AgentServer.AgentCreatePayload, serverURL string, deployToServer bool) error {
+func createAgent(projectPath string, payload *AgentServer.AgentPayload, serverURL string, deployToServer bool) error {
 	// Make sure the output directory does not exist or is clean
 	outputDir := filepath.Clean(projectPath)
 	if _, err := os.Stat(outputDir); os.IsExist(err) {
@@ -127,19 +106,20 @@ func createAgent(projectPath string, payload *AgentServer.AgentCreatePayload, se
 		return err
 	}
 
-	err = createAgentProject([]AgentServer.Agent{*agent}, outputDir)
-	if err != nil {
+	if err = createAgentProject([]AgentServer.Agent{*agent}, outputDir); err != nil {
 		return err
 	}
 
 	if deployToServer {
+		pretty.LogIfVerbose("[createAgent] deploying agent @: %s", serverURL)
 		deployedAgent, err := deployAgent(agent, serverURL)
 		if err != nil {
+			pretty.Error("[createAgent] deploying failed: %+v", err)
 			// Clean up the local agent project if the deploy fails as the caller could not know
 			// if the agent was created locally or not.
-			deleteErr := deleteAgentProject(outputDir)
-			if deleteErr != nil {
-				logVerbose("failed to clean up local agent project")
+			pretty.LogIfVerbose("[createAgent] deleting agent project...")
+			if err := deleteAgentProject(outputDir); err != nil {
+				pretty.Error("failed to clean up local agent project: %+v", err)
 			}
 			return err
 		}
@@ -149,6 +129,7 @@ func createAgent(projectPath string, payload *AgentServer.AgentCreatePayload, se
 			return fmt.Errorf("failed to marshal agent: %w", err)
 		}
 
+		pretty.LogIfVerbose("[createAgent] deployed agent:")
 		rccCommon.Stdout("%s\n", outputJSON)
 	}
 
@@ -160,20 +141,31 @@ var createCmd = &cobra.Command{
 	Short: "Create a new Agent.",
 	Long:  `Create a new Agent by providing the Agent as a payload.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var payload *AgentServer.AgentCreatePayload
-
-		if agentPayloadPathVar == "" {
-			return fmt.Errorf("payload path is required")
+		if agentPayloadPathVar == "" && agentPayloadBase64Var == "" {
+			return fmt.Errorf("either --payloadPath or --payload64 is required")
+		}
+		if agentPayloadPathVar != "" && agentPayloadBase64Var != "" {
+			return fmt.Errorf("only one of --payloadPath or --payload64 can be provided, not both")
 		}
 
-		// Read the payload file.
-		data, err := os.ReadFile(agentPayloadPathVar)
-		if err != nil {
-			return fmt.Errorf("failed to read payload file: %w", err)
+		var data []byte
+		var err error
+		if agentPayloadPathVar != "" {
+			// Read the payload file.
+			data, err = os.ReadFile(agentPayloadPathVar)
+			if err != nil {
+				return fmt.Errorf("failed to read payload file: %w", err)
+			}
+		} else {
+			// Decode base64 payload
+			data, err = common.DecodeBase64(agentPayloadBase64Var)
+			if err != nil {
+				return fmt.Errorf("failed to decode base64 payload: %w", err)
+			}
 		}
 
 		// Create a new instance and unmarshal into it
-		payload = &AgentServer.AgentCreatePayload{}
+		payload := &AgentServer.AgentPayload{}
 		if err := json.Unmarshal(data, payload); err != nil {
 			return fmt.Errorf("failed to parse JSON: %w", err)
 		}
@@ -185,10 +177,8 @@ var createCmd = &cobra.Command{
 func init() {
 	agentCmd.AddCommand(createCmd)
 	createCmd.Flags().StringVar(&agentProjectPath, "path", common.AGENT_PROJECT_DEFAULT_NAME, "Set the project path.")
-	createCmd.Flags().StringVar(&agentPayloadPathVar, "payloadPath", "", "Path to the payload file (JSON).")
-	if err := createCmd.MarkFlagRequired("payloadPath"); err != nil {
-		fmt.Printf("failed to mark flag as required: %+v", err)
-	}
+	createCmd.Flags().StringVar(&agentPayloadPathVar, "payloadPath", "", "Path to the payload file (JSON). Mutually exclusive with --payload64.")
+	createCmd.Flags().StringVar(&agentPayloadBase64Var, "payload64", "", "Agent payload as a base64-encoded string. Mutually exclusive with --payloadPath.")
 	createCmd.Flags().BoolVar(
 		&deployAgentToServer,
 		"deploy",

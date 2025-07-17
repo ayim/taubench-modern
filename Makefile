@@ -16,7 +16,7 @@ DEBUG     ?= false
 CI        ?= false
 EXE_NAME  ?= agent-server
 DIST_PATH ?= dist
-VERSION   ?= 
+VERSION   ?=
 
 # Update the EXE_NAME if we're on Windows
 ifeq ($(IS_WINDOWS),true)
@@ -124,7 +124,7 @@ observability-clean: ## Clean the observability stack and volumes.
 	@echo "Cleaning observability stack and volumes..."
 	docker compose -f observability/docker-compose.observability.yml down -v
 	docker volume rm agent-platform_prometheus_data 2>/dev/null || true
-	
+
 # --------------------------------------------------------------------
 # Run & Test
 # --------------------------------------------------------------------
@@ -140,6 +140,11 @@ run-server-exe:  ## Run the agent server executable
 	fi
 	@echo "Running server from dist/..."
 	./dist/$(EXE_NAME)
+
+
+run-as-studio:  ## Run the agent server as in Studio
+	@echo "Running server from agent_platform.server (as Studio)..."
+	uv run -m agent_platform.server --host "127.0.0.1" --port 58885 --use-data-dir-lock --kill-lock-holder
 
 
 test:  sync check-env-or-no-env ## Run all tests with pytest (VCR playback only)

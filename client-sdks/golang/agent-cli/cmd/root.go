@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/common"
+	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/pretty"
 	rccCommon "github.com/Sema4AI/rcc/common"
 
 	"github.com/spf13/cobra"
@@ -12,16 +13,6 @@ import (
 var (
 	versionFlag bool
 )
-
-// Aliases for backward compatibility
-func log(format string, a ...interface{}) {
-	common.Log(format, a...)
-}
-
-// Aliases for backward compatibility
-func logVerbose(format string, a ...interface{}) {
-	common.LogVerbose(format, a...)
-}
 
 var rootCmd = &cobra.Command{
 	Use:          "agent-cli",
@@ -37,7 +28,7 @@ var rootCmd = &cobra.Command{
 		// if no args, show help message
 		if len(args) == 0 {
 			if err := cmd.Help(); err != nil {
-				common.Log("Error while running help cmd: %+v", err)
+				pretty.Error("Error while running help cmd: %+v", err)
 			}
 			// no args is an error
 			os.Exit(1)

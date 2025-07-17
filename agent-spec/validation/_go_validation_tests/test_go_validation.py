@@ -79,23 +79,24 @@ def test_go_print_spec(agent_cli: Path, datadir, data_regression, scenario, str_
         data_regression.check(found)
 
 
-def no_spec_version(agent_path):
+def _update_spec(agent_path, replace_func):
     agent_spec = agent_path / "agent-spec.yaml"
     txt = agent_spec.read_text()
-    agent_spec.write_text(txt.replace("spec-version: v1", ""))
+    agent_spec.write_text(replace_func(txt))
+
+
+def no_spec_version(agent_path):
+    _update_spec(agent_path, lambda txt: txt.replace("spec-version: v1", ""))
 
 
 def bad_spec_version(agent_path):
-    agent_spec = agent_path / "agent-spec.yaml"
-    txt = agent_spec.read_text()
-    agent_spec.write_text(txt.replace("spec-version: v2", "spec-version: 22"))
+    _update_spec(agent_path, lambda txt: txt.replace("spec-version: v2", "spec-version: 22"))
 
 
 def v2_bad_architecture(agent_path):
-    agent_spec = agent_path / "agent-spec.yaml"
-    txt = agent_spec.read_text()
-    agent_spec.write_text(
-        txt.replace("architecture: plan_execute", "architecture: bad-architecture")
+    _update_spec(
+        agent_path,
+        lambda txt: txt.replace("architecture: plan_execute", "architecture: bad-architecture"),
     )
 
 
@@ -254,6 +255,8 @@ def check(  # noqa: PLR0913
 
     zip_path = agent_path.parent / "built-agent.zip"
     assert os.path.exists(zip_path)
+
+    # Print agent-spec.yaml from the zip file
 
     run_result = run_agent_cli(agent_cli, ["validate", str(zip_path), "--json"], cwd=agent_path)
 
