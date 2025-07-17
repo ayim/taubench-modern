@@ -6,7 +6,7 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Private API Version 2',
-    version: '2.0.12',
+    version: '2.0.17',
   },
   paths: {
     '/api/v2/ok': {
@@ -2613,12 +2613,10 @@ export const spec = {
           },
           mcp_servers: {
             items: {
-              $ref: '#/components/schemas/MCPServer',
+              $ref: '#/components/schemas/MCPServerCompat',
             },
             type: 'array',
             title: 'Mcp Servers',
-            description:
-              'The Model Context Protocol (MCP) servers this agent uses.',
           },
           question_groups: {
             items: {
@@ -3596,7 +3594,23 @@ export const spec = {
             anyOf: [
               {
                 additionalProperties: {
-                  type: 'string',
+                  anyOf: [
+                    {
+                      type: 'string',
+                    },
+                    {
+                      $ref: '#/components/schemas/MCPVariableTypeOAuth2Secret',
+                    },
+                    {
+                      $ref: '#/components/schemas/MCPVariableTypeSecret',
+                    },
+                    {
+                      $ref: '#/components/schemas/MCPVariableTypeString',
+                    },
+                    {
+                      $ref: '#/components/schemas/MCPVariableTypeDataServerInfo',
+                    },
+                  ],
                 },
                 type: 'object',
               },
@@ -3640,7 +3654,23 @@ export const spec = {
             anyOf: [
               {
                 additionalProperties: {
-                  type: 'string',
+                  anyOf: [
+                    {
+                      type: 'string',
+                    },
+                    {
+                      $ref: '#/components/schemas/MCPVariableTypeOAuth2Secret',
+                    },
+                    {
+                      $ref: '#/components/schemas/MCPVariableTypeSecret',
+                    },
+                    {
+                      $ref: '#/components/schemas/MCPVariableTypeString',
+                    },
+                    {
+                      $ref: '#/components/schemas/MCPVariableTypeDataServerInfo',
+                    },
+                  ],
                 },
                 type: 'object',
               },
@@ -3676,6 +3706,333 @@ export const spec = {
         type: 'object',
         required: ['name'],
         title: 'MCPServer',
+      },
+      MCPServerCompat: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+          transport: {
+            type: 'string',
+            title: 'Transport',
+          },
+          url: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Url',
+          },
+          headers: {
+            anyOf: [
+              {
+                additionalProperties: {
+                  anyOf: [
+                    {
+                      type: 'string',
+                    },
+                    {
+                      $ref: '#/components/schemas/MCPVariableCompat',
+                    },
+                  ],
+                },
+                type: 'object',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Headers',
+          },
+          command: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Command',
+          },
+          args: {
+            anyOf: [
+              {
+                items: {
+                  type: 'string',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Args',
+          },
+          env: {
+            anyOf: [
+              {
+                additionalProperties: {
+                  anyOf: [
+                    {
+                      type: 'string',
+                    },
+                    {
+                      $ref: '#/components/schemas/MCPVariableCompat',
+                    },
+                  ],
+                },
+                type: 'object',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Env',
+          },
+          cwd: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Cwd',
+          },
+          force_serial_tool_calls: {
+            type: 'boolean',
+            title: 'Force Serial Tool Calls',
+            default: false,
+          },
+        },
+        type: 'object',
+        required: ['name', 'transport'],
+        title: 'MCPServerCompat',
+      },
+      MCPVariableCompat: {
+        properties: {
+          type: {
+            type: 'string',
+            enum: ['string', 'secret', 'oauth2-secret', 'data-server-info'],
+            title: 'Type',
+          },
+          description: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Description',
+          },
+          default: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Default',
+          },
+          provider: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Provider',
+          },
+          scopes: {
+            anyOf: [
+              {
+                items: {
+                  type: 'string',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Scopes',
+          },
+          value: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Value',
+          },
+        },
+        type: 'object',
+        required: ['type'],
+        title: 'MCPVariableCompat',
+      },
+      MCPVariableTypeDataServerInfo: {
+        properties: {
+          type: {
+            type: 'string',
+            const: 'data-server-info',
+            title: 'Type',
+            default: 'data-server-info',
+          },
+          value: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Value',
+          },
+        },
+        type: 'object',
+        title: 'MCPVariableTypeDataServerInfo',
+      },
+      MCPVariableTypeOAuth2Secret: {
+        properties: {
+          type: {
+            type: 'string',
+            const: 'oauth2-secret',
+            title: 'Type',
+            default: 'oauth2-secret',
+          },
+          provider: {
+            type: 'string',
+            title: 'Provider',
+          },
+          scopes: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Scopes',
+          },
+          description: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Description',
+          },
+          value: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Value',
+          },
+        },
+        type: 'object',
+        required: ['provider', 'scopes'],
+        title: 'MCPVariableTypeOAuth2Secret',
+      },
+      MCPVariableTypeSecret: {
+        properties: {
+          type: {
+            type: 'string',
+            const: 'secret',
+            title: 'Type',
+            default: 'secret',
+          },
+          description: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Description',
+          },
+          value: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Value',
+          },
+        },
+        type: 'object',
+        title: 'MCPVariableTypeSecret',
+      },
+      MCPVariableTypeString: {
+        properties: {
+          type: {
+            type: 'string',
+            const: 'string',
+            title: 'Type',
+            default: 'string',
+          },
+          description: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Description',
+          },
+          default: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Default',
+          },
+          value: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Value',
+          },
+        },
+        type: 'object',
+        title: 'MCPVariableTypeString',
       },
       MemoriesParams: {
         properties: {

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Sema4.ai Agent Server Public API Version 2",
-    "version": "2.0.14"
+    "version": "2.0.17"
   },
   "servers": [
     {
@@ -1885,7 +1885,7 @@
         "type": "object"
       },
       "ErrorEnvelope": {
-        "description": "Pydantic model for error envelope - used only for OpenAPI schema generation.\n\nThis matches the exact structure returned by our error handlers:\n{\n    \"error\": {\n        \"error_id\": \"\u003Cuuid\u003E\",\n        \"code\": \"\u003Cfamily.code\u003E\",\n        \"message\": \"\u003Chuman-readable\u003E\"\n    }\n}",
+        "description": "Pydantic model for error envelope - used only for OpenAPI schema generation.\n\nThis matches the exact structure returned by our error handlers:\n{\n    \"error\": {\n        \"error_id\": \"<uuid>\",\n        \"code\": \"<family.code>\",\n        \"message\": \"<human-readable>\"\n    }\n}",
         "properties": {
           "error": {
             "$ref": "#/components/schemas/ErrorDetail"

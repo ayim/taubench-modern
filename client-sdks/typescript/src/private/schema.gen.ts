@@ -966,11 +966,8 @@ export interface components {
       agent_architecture: components['schemas']['AgentArchitecture'];
       /** Action Packages */
       action_packages?: components['schemas']['ActionPackageCompat'][];
-      /**
-       * Mcp Servers
-       * @description The Model Context Protocol (MCP) servers this agent uses.
-       */
-      mcp_servers?: components['schemas']['MCPServer'][];
+      /** Mcp Servers */
+      mcp_servers?: components['schemas']['MCPServerCompat'][];
       /**
        * Question Groups
        * @description The question groups of the agent.
@@ -1496,7 +1493,12 @@ export interface components {
        * @description Headers used for configuring requests & connections to the MCP server.
        */
       headers?: {
-        [key: string]: string;
+        [key: string]:
+          | string
+          | components['schemas']['MCPVariableTypeOAuth2Secret']
+          | components['schemas']['MCPVariableTypeSecret']
+          | components['schemas']['MCPVariableTypeString']
+          | components['schemas']['MCPVariableTypeDataServerInfo'];
       } | null;
       /**
        * Command
@@ -1513,7 +1515,12 @@ export interface components {
        * @description Environment variables to merge with agent-server's env vars for the MCP server command.
        */
       env?: {
-        [key: string]: string;
+        [key: string]:
+          | string
+          | components['schemas']['MCPVariableTypeOAuth2Secret']
+          | components['schemas']['MCPVariableTypeSecret']
+          | components['schemas']['MCPVariableTypeString']
+          | components['schemas']['MCPVariableTypeDataServerInfo'];
       } | null;
       /**
        * Cwd
@@ -1526,6 +1533,108 @@ export interface components {
        * @default false
        */
       force_serial_tool_calls: boolean;
+    };
+    /** MCPServerCompat */
+    MCPServerCompat: {
+      /** Name */
+      name: string;
+      /** Transport */
+      transport: string;
+      /** Url */
+      url?: string | null;
+      /** Headers */
+      headers?: {
+        [key: string]: string | components['schemas']['MCPVariableCompat'];
+      } | null;
+      /** Command */
+      command?: string | null;
+      /** Args */
+      args?: string[] | null;
+      /** Env */
+      env?: {
+        [key: string]: string | components['schemas']['MCPVariableCompat'];
+      } | null;
+      /** Cwd */
+      cwd?: string | null;
+      /**
+       * Force Serial Tool Calls
+       * @default false
+       */
+      force_serial_tool_calls: boolean;
+    };
+    /** MCPVariableCompat */
+    MCPVariableCompat: {
+      /**
+       * Type
+       * @enum {string}
+       */
+      type: 'string' | 'secret' | 'oauth2-secret' | 'data-server-info';
+      /** Description */
+      description?: string | null;
+      /** Default */
+      default?: string | null;
+      /** Provider */
+      provider?: string | null;
+      /** Scopes */
+      scopes?: string[] | null;
+      /** Value */
+      value?: string | null;
+    };
+    /** MCPVariableTypeDataServerInfo */
+    MCPVariableTypeDataServerInfo: {
+      /**
+       * Type
+       * @default data-server-info
+       * @constant
+       */
+      type: 'data-server-info';
+      /** Value */
+      value?: string | null;
+    };
+    /** MCPVariableTypeOAuth2Secret */
+    MCPVariableTypeOAuth2Secret: {
+      /**
+       * Type
+       * @default oauth2-secret
+       * @constant
+       */
+      type: 'oauth2-secret';
+      /** Provider */
+      provider: string;
+      /** Scopes */
+      scopes: string[];
+      /** Description */
+      description?: string | null;
+      /** Value */
+      value?: string | null;
+    };
+    /** MCPVariableTypeSecret */
+    MCPVariableTypeSecret: {
+      /**
+       * Type
+       * @default secret
+       * @constant
+       */
+      type: 'secret';
+      /** Description */
+      description?: string | null;
+      /** Value */
+      value?: string | null;
+    };
+    /** MCPVariableTypeString */
+    MCPVariableTypeString: {
+      /**
+       * Type
+       * @default string
+       * @constant
+       */
+      type: 'string';
+      /** Description */
+      description?: string | null;
+      /** Default */
+      default?: string | null;
+      /** Value */
+      value?: string | null;
     };
     /** MemoriesParams */
     MemoriesParams: {
