@@ -346,6 +346,9 @@ def _run_agent_cli_in_folder(
             f"stdout: {run_result.stdout}\n"
             f"stderr: {run_result.stderr}"
         ) from exc
+
+    # Sort the data by message and line
+    data = sorted(data, key=lambda e: (e["message"], e["range"]["start"]["line"]))
     data_regression.check(data)
 
     run_result_txt = run_agent_cli(agent_cli, ["validate", str(agent_path)], cwd=agent_path)
