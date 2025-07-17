@@ -6,7 +6,7 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Public API Version 2',
-    version: '2.0.9',
+    version: '2.0.14',
   },
   paths: {
     '/api/public/v1/agents': {
@@ -752,6 +752,62 @@ export const spec = {
         },
       },
     },
+    '/api/public/v1/work-items/{work_item_id}/confirm-file': {
+      post: {
+        tags: ['work-items'],
+        summary: 'Confirm File',
+        description: 'Confirm a remote file upload to a work item.',
+        operationId: 'confirm_file_work_items__work_item_id__confirm_file_post',
+        parameters: [
+          {
+            name: 'work_item_id',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Work Item Id',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ConfirmRemoteFileUploadPayload',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  additionalProperties: {
+                    type: 'string',
+                  },
+                  title:
+                    'Response Confirm File Work Items  Work Item Id  Confirm File Post',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/public/v1/work-items/upload-file': {
       post: {
         tags: ['work-items'],
@@ -795,7 +851,15 @@ export const spec = {
                 schema: {
                   type: 'object',
                   additionalProperties: {
-                    type: 'string',
+                    anyOf: [
+                      {
+                        type: 'string',
+                      },
+                      {
+                        type: 'object',
+                        additionalProperties: true,
+                      },
+                    ],
                   },
                   title:
                     'Response Upload Work Item File Work Items Upload File Post',
@@ -980,8 +1044,15 @@ export const spec = {
       Body_upload_work_item_file_work_items_upload_file_post: {
         properties: {
           file: {
-            type: 'string',
-            format: 'binary',
+            anyOf: [
+              {
+                type: 'string',
+                format: 'binary',
+              },
+              {
+                type: 'string',
+              },
+            ],
             title: 'File',
           },
         },
@@ -1036,6 +1107,21 @@ export const spec = {
         type: 'object',
         required: ['document_uri', 'start_char_index', 'end_char_index'],
         title: 'Citation',
+      },
+      ConfirmRemoteFileUploadPayload: {
+        properties: {
+          file_ref: {
+            type: 'string',
+            title: 'File Ref',
+          },
+          file_id: {
+            type: 'string',
+            title: 'File Id',
+          },
+        },
+        type: 'object',
+        required: ['file_ref', 'file_id'],
+        title: 'ConfirmRemoteFileUploadPayload',
       },
       Conversation: {
         properties: {
@@ -1100,6 +1186,22 @@ export const spec = {
             ],
             title: 'Work Item Id',
             description: 'The ID of the work item.',
+          },
+          callbacks: {
+            anyOf: [
+              {
+                items: {
+                  $ref: '#/components/schemas/WorkItemCallback',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Callbacks',
+            description:
+              'A list of callbacks to trigger when the work item reaches a certain status.',
           },
         },
         type: 'object',
@@ -1738,10 +1840,52 @@ export const spec = {
             title: 'Payload',
             description: 'The payload of the work item',
           },
+          callbacks: {
+            items: {
+              $ref: '#/components/schemas/WorkItemCallback',
+            },
+            type: 'array',
+            title: 'Callbacks',
+            description: 'The callbacks for the work item',
+          },
         },
         type: 'object',
         required: ['work_item_id', 'user_id'],
         title: 'WorkItem',
+      },
+      WorkItemCallback: {
+        properties: {
+          url: {
+            type: 'string',
+            title: 'Url',
+            description:
+              'The URL to call (POST) when the work item reaches the specified status.',
+          },
+          signature_secret: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Signature Secret',
+            description:
+              'The secret to use to sign the callback payload. If not provided, the callback will not be signed.',
+          },
+          on_status: {
+            type: 'string',
+            enum: ['COMPLETED', 'ERROR', 'NEEDS_REVIEW', 'CANCELLED'],
+            title: 'On Status',
+            description:
+              'The status which, when reached, will trigger the callback (default NEEDS_REVIEW).',
+            default: 'NEEDS_REVIEW',
+          },
+        },
+        type: 'object',
+        required: ['url'],
+        title: 'WorkItemCallback',
       },
       WorkItemStatus: {
         type: 'string',

@@ -166,6 +166,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/public/v1/work-items/{work_item_id}/confirm-file': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Confirm File
+     * @description Confirm a remote file upload to a work item.
+     */
+    post: operations['confirm_file_work_items__work_item_id__confirm_file_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/public/v1/work-items/upload-file': {
     parameters: {
       query?: never;
@@ -271,10 +291,7 @@ export interface components {
     };
     /** Body_upload_work_item_file_work_items_upload_file_post */
     Body_upload_work_item_file_work_items_upload_file_post: {
-      /**
-       * File
-       * Format: binary
-       */
+      /** File */
       file: string;
     };
     /** ChatMessageRequest */
@@ -304,6 +321,13 @@ export interface components {
        * @description The text that is being cited (if provided, may be None)
        */
       cited_text?: string | null;
+    };
+    /** ConfirmRemoteFileUploadPayload */
+    ConfirmRemoteFileUploadPayload: {
+      /** File Ref */
+      file_ref: string;
+      /** File Id */
+      file_id: string;
     };
     /** Conversation */
     Conversation: {
@@ -343,6 +367,11 @@ export interface components {
        * @description The ID of the work item.
        */
       work_item_id?: string | null;
+      /**
+       * Callbacks
+       * @description A list of callbacks to trigger when the work item reaches a certain status.
+       */
+      callbacks?: components['schemas']['WorkItemCallback'][] | null;
     };
     /** PaginatedResponse */
     PaginatedResponse: {
@@ -774,6 +803,31 @@ export interface components {
       payload?: {
         [key: string]: unknown;
       };
+      /**
+       * Callbacks
+       * @description The callbacks for the work item
+       */
+      callbacks?: components['schemas']['WorkItemCallback'][];
+    };
+    /** WorkItemCallback */
+    WorkItemCallback: {
+      /**
+       * Url
+       * @description The URL to call (POST) when the work item reaches the specified status.
+       */
+      url: string;
+      /**
+       * Signature Secret
+       * @description The secret to use to sign the callback payload. If not provided, the callback will not be signed.
+       */
+      signature_secret?: string | null;
+      /**
+       * On Status
+       * @description The status which, when reached, will trigger the callback (default NEEDS_REVIEW).
+       * @default NEEDS_REVIEW
+       * @enum {string}
+       */
+      on_status: 'COMPLETED' | 'ERROR' | 'NEEDS_REVIEW' | 'CANCELLED';
     };
     /**
      * WorkItemStatus
@@ -1340,6 +1394,43 @@ export interface operations {
       };
     };
   };
+  confirm_file_work_items__work_item_id__confirm_file_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        work_item_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ConfirmRemoteFileUploadPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            [key: string]: string;
+          };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
   upload_work_item_file_work_items_upload_file_post: {
     parameters: {
       query?: {
@@ -1362,7 +1453,11 @@ export interface operations {
         };
         content: {
           'application/json': {
-            [key: string]: string;
+            [key: string]:
+              | string
+              | {
+                  [key: string]: unknown;
+                };
           };
         };
       };
