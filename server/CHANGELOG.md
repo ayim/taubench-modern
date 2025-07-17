@@ -1,3 +1,7 @@
+# Sema4.ai Agent Server 2.0.16 (2025-07-16)
+
+- More bug-fixes for work-items
+  
 # Sema4.ai Agent Server 2.0.15 (2025-07-16)
 
 - Bug-fixes for work-items
