@@ -1,3 +1,10 @@
+# Sema4.ai Agent Server 2.0.17 (2025-07-17)
+
+- SPAR: Workroom integration with monorepo
+- Fix ordering issue in agent server spec tests.
+- Regenerate Public API Spec for workitems related endpoints
+- Agent CLI & Agent Spec v3
+
 # Sema4.ai Agent Server 2.0.16 (2025-07-16)
 
 - More bug-fixes for work-items
