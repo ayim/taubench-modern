@@ -39,7 +39,9 @@ class TestWorkItemsCallbacks:
         url = _build_work_item_url(work_item)
         # With default settings (WORKSPACE_ID="no-workspace-id", WORKROOM_URL="http://localhost:8000/")
         # The function includes workspace_id in the URL path
-        expected_url = "http://localhost:8000/no-workspace-id/agent_789/test_work_item_123"
+        expected_url = (
+            f"http://localhost:8000/no-workspace-id/{work_item.agent_id}/{work_item.thread_id}"
+        )
         assert url == expected_url
 
         # Test with None agent_id (should raise InvalidWorkItemError)
@@ -220,8 +222,10 @@ class TestWorkItemsCallbacks:
             assert body["agent_id"] == "agent_789"
             assert body["thread_id"] == "thread_012"
             assert body["status"] == "COMPLETED"
-            # With default settings, the URL should be "http://localhost:8000/no-workspace-id/agent_789/test_work_item_123"
-            expected_url = "http://localhost:8000/no-workspace-id/agent_789/test_work_item_123"
+            # With default settings, the URL should be "http://localhost:8000/no-workspace-id/agent_789/thread_012"
+            expected_url = (
+                f"http://localhost:8000/no-workspace-id/{work_item.agent_id}/{work_item.thread_id}"
+            )
             assert body["work_item_url"] == expected_url
 
         finally:
@@ -331,8 +335,10 @@ class TestWorkItemsCallbacks:
             # Verify signature
             expected_signature = _compute_signature(secret, request["body"])
             assert request["headers"]["X-SEMA4AI-SIGNATURE"] == expected_signature
-            # With default settings, the URL should be "http://localhost:8000/no-workspace-id/agent_789/test_work_item_123"
-            expected_url = "http://localhost:8000/no-workspace-id/agent_789/test_work_item_123"
+            # With default settings, the URL should be "http://localhost:8000/no-workspace-id/agent_789/thread_012"
+            expected_url = (
+                f"http://localhost:8000/no-workspace-id/{work_item.agent_id}/{work_item.thread_id}"
+            )
             assert request["body"]["work_item_url"] == expected_url
 
         finally:

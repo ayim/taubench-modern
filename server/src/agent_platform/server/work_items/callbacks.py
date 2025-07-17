@@ -77,7 +77,7 @@ def _build_work_item_url(work_item: WorkItem) -> str:
     pieces = {
         "workspace_id": WORKSPACE_ID,
         "agent_id": work_item.agent_id,
-        "work_item_id": work_item.work_item_id,
+        "thread_id": work_item.thread_id,
     }
 
     for k, v in pieces.items():

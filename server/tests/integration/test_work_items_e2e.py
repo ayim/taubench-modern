@@ -2160,8 +2160,8 @@ async def test_work_item_callback_e2e_mocked_completion(
                 assert body["thread_id"] == "test-thread-123"
 
                 # Verify the work item URL format
-                # With default test settings, should be "http://localhost:8000/{agent_id}/{work_item_id}"
-                expected_url_suffix = f"{agent_id}/{work_item_id}"
+                # With default test settings, should be "http://localhost:8000/{agent_id}/{thread_id}"
+                expected_url_suffix = f"{agent_id}/{body['thread_id']}"
                 assert body["work_item_url"].endswith(expected_url_suffix)
 
                 # Verify the URL starts with expected base

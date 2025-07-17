@@ -13,9 +13,9 @@ def make_text_message(text: str) -> list[dict[str, Any]]:
     ]
 
 
-def assert_work_item_url(body: dict[str, Any], agent_id: str, work_item_id: str) -> None:
+def assert_work_item_url(body: dict[str, Any], agent_id: str, thread_id: str) -> None:
     """Assert that the work item URL has the expected format."""
-    expected_url_suffix = f"{agent_id}/{work_item_id}"
+    expected_url_suffix = f"{agent_id}/{thread_id}"
     assert body["work_item_url"].endswith(expected_url_suffix)
     # With default test settings, should start with "http://localhost:8000/"
     assert body["work_item_url"].startswith("http://localhost:8000/")
@@ -63,7 +63,7 @@ async def test_work_item_callback_completed(
     assert body["status"] == "COMPLETED"
     assert body["thread_id"] is not None
 
-    assert_work_item_url(body, agent_id, work_item_id)
+    assert_work_item_url(body, agent_id, body["thread_id"])
 
 
 @pytest.mark.integration
@@ -115,7 +115,7 @@ async def test_work_item_callback_needs_review(
     assert body["status"] == "NEEDS_REVIEW"
     assert body["thread_id"] is not None
 
-    assert_work_item_url(body, agent_id, work_item_id)
+    assert_work_item_url(body, agent_id, body["thread_id"])
 
 
 @pytest.mark.integration
@@ -174,7 +174,7 @@ async def test_work_item_callback_with_signature(
     assert body["status"] == "COMPLETED"
     assert body["thread_id"] is not None
 
-    assert_work_item_url(body, agent_id, work_item_id)
+    assert_work_item_url(body, agent_id, body["thread_id"])
 
 
 @pytest.mark.integration

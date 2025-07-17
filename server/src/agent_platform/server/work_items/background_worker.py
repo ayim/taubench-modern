@@ -345,11 +345,10 @@ async def execute_work_item(
 
         # Do not overwrite CANCELLED if the user cancelled while we were executing.
         try:
-            latest_item = await storage.get_work_item(item.work_item_id)
-            current_status = latest_item.status
+            item = await storage.get_work_item(item.work_item_id)
+            current_status = item.status
         except Exception:  # If fetch fails, fall back to our computed status
             current_status = None
-            latest_item = item
 
         # Only update if the current status is not CANCELLED
         if current_status != WorkItemStatus.CANCELLED:
@@ -359,7 +358,7 @@ async def execute_work_item(
                 result,
             )
 
-            new_status = (await _validate_success(latest_item)) if result else WorkItemStatus.ERROR
+            new_status = (await _validate_success(item)) if result else WorkItemStatus.ERROR
 
             await storage.update_work_item_status(system_user_id, item.work_item_id, new_status)
             item.status = new_status
