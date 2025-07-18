@@ -81,7 +81,7 @@ def _get_tool_name(agent: Agent) -> str:
     """
     Generate a standardized tool name for an agent.
 
-    Converts the agent name to lowercase, replaces spaces with underscores,
+    Converts the agent name to lowercase, replaces spaces with underscores, and
     removes any non-alphanumeric characters.
 
     Args:
@@ -92,7 +92,10 @@ def _get_tool_name(agent: Agent) -> str:
     """
     agent_name = agent.name.lower().replace(" ", "_")
     agent_name = re.sub(r"[^a-z0-9_]", "", agent_name)
-    return f"message_{agent_name}_agent"
+    if not agent_name.endswith("agent"):
+        agent_name = f"{agent_name}_agent"
+
+    return f"message_{agent_name}"
 
 
 async def chat_with_agent(data: ChatWithAgentInputSchema) -> Generator[str, None, None]:

@@ -192,7 +192,7 @@ def create_app() -> FastAPI:
     # Add authentication middleware to the MCP app to enable user-based authentication
     mcp_app.add_middleware(MCPAuthenticationMiddleware)
     app.mount("/api/v2/public-mcp/", mcp_app)
-    app.mount("/api/v2/agent-mcp/", agent_mcp)
+    app.mount(f"{PUBLIC_V2_PREFIX}/agent-mcp/", agent_mcp)
 
     # CORS middleware (completely configurable via SystemConfig)
     if SystemConfig.cors_mode == "all":

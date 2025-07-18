@@ -358,7 +358,7 @@ async def test_mcp_agent_endpoints(mock_mcp_proxy):
 
     base_url = mock_mcp_proxy
     async with mcp_streamablehttp_client(
-        f"{base_url}/api/v2/agent-mcp/{agent_1_id}/mcp/?api_key={MOCK_USER_SUB}"
+        f"{base_url}/api/public/v1/agent-mcp/{agent_1_id}/mcp/?api_key={MOCK_USER_SUB}"
     ) as (
         read_stream,
         write_stream,
@@ -385,7 +385,7 @@ async def test_mcp_agent_endpoints_not_auth(mock_mcp_proxy):
     async def attempt_unauthorized_connection():
         base_url = mock_mcp_proxy
         async with mcp_streamablehttp_client(
-            f"{base_url}/api/v2/agent-mcp/{agent_1_id}/mcp/?api_key=not_authed"
+            f"{base_url}/api/public/v1/agent-mcp/{agent_1_id}/mcp/?api_key=not_authed"
         ) as (
             read_stream,
             write_stream,
