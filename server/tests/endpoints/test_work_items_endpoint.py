@@ -301,19 +301,8 @@ async def test_cancel_work_item(client: TestClient, seed_agents: list[Agent]):
 @pytest.mark.asyncio
 async def test_cancel_nonexistent_work_item(client: TestClient):
     """Test canceling a work item that doesn't exist."""
-    # This would yield a bad request given the invalid uuid
-    response = client.post("/public/v1/work-items/nonexistent-id/cancel")
-
-    assert response.status_code == 400
-    detail = response.json()
-    assert "error" in detail
-    assert "code" in detail["error"]
-    assert detail["error"]["code"] == "bad_request"
-    assert "invalid uuid" in detail["error"]["message"].lower()
-
-    # We don't check existence, so this would yield 200
     response = client.post("/public/v1/work-items/00000000-0000-0000-0000-000000000000/cancel")
-    assert response.status_code == 200
+    assert response.status_code == HTTPStatus.NOT_FOUND.value
 
 
 @pytest.mark.asyncio

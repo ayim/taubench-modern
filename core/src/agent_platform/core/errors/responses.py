@@ -61,6 +61,11 @@ class ErrorCode(Enum):
         "Too many requests. Please try again later.",
         429,
     )
+    PRECONDITION_FAILED = ErrorInfo(
+        "precondition_failed",
+        "The request failed due to a invalid state.",
+        412,
+    )
 
     @property
     def code(self) -> str:

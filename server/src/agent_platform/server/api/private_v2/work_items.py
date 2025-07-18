@@ -17,6 +17,7 @@ from agent_platform.server.api.private_v2.threads import (
 )
 from agent_platform.server.auth import AuthedUser
 from agent_platform.server.constants import WORK_ITEMS_SYSTEM_USER_SUB, SystemConfig
+from agent_platform.server.work_items.state_machine import WorkItemStateMachine
 
 
 def _require_workitems_enabled():
@@ -260,10 +261,18 @@ async def continue_work_item(
     user: AuthedUser,
     storage: StorageDependency,
 ):
-    item = await storage.update_work_item_status(user.user_id, work_item_id, WorkItemStatus.PENDING)
+    item = await storage.get_work_item(work_item_id)
     if not item:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND.value, detail="Not found")
-    return item
+        raise PlatformHTTPError(ErrorCode.NOT_FOUND, "Work-item not found")
+
+    if not WorkItemStateMachine.is_valid_transition(item.status, WorkItemStatus.PENDING):
+        raise PlatformHTTPError(
+            ErrorCode.PRECONDITION_FAILED,
+            f"Cannot continue work item from status {item.status.value}.",
+        )
+
+    await storage.update_work_item_status(user.user_id, work_item_id, WorkItemStatus.PENDING)
+    return await storage.get_work_item(work_item_id)
 
 
 @router.post("/{work_item_id}/restart", response_model=WorkItem)
@@ -272,10 +281,19 @@ async def restart_work_item(
     user: AuthedUser,
     storage: StorageDependency,
 ):
-    item = await storage.update_work_item_status(user.user_id, work_item_id, WorkItemStatus.PENDING)
-    if not item:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND.value, detail="Not found")
-    return item
+    # Get the current work item to check its status
+    work_item = await storage.get_work_item(work_item_id)
+    if not work_item:
+        raise PlatformHTTPError(ErrorCode.NOT_FOUND, "Work item not found")
+
+    if not WorkItemStateMachine.is_valid_transition(work_item.status, WorkItemStatus.PENDING):
+        raise PlatformHTTPError(
+            ErrorCode.PRECONDITION_FAILED,
+            f"Cannot restart work item from status {work_item.status.value}.",
+        )
+
+    await storage.update_work_item_status(user.user_id, work_item_id, WorkItemStatus.PENDING)
+    return await storage.get_work_item(work_item_id)
 
 
 @router.post("/{work_item_id}/cancel")
@@ -284,6 +302,18 @@ async def cancel_item(
     user: AuthedUser,
     storage: StorageDependency,
 ):
+    # Get the current work item to check its status
+    work_item = await storage.get_work_item(work_item_id)
+    if not work_item:
+        raise PlatformHTTPError(ErrorCode.NOT_FOUND, "Work item not found")
+
+    # Check if cancellation is allowed from the current status
+    if not WorkItemStateMachine.is_valid_transition(work_item.status, WorkItemStatus.CANCELLED):
+        raise PlatformHTTPError(
+            ErrorCode.PRECONDITION_FAILED,
+            f"Cannot cancel work item from status {work_item.status.value}.",
+        )
+
     await storage.update_work_item_status(user.user_id, work_item_id, WorkItemStatus.CANCELLED)
     return {"status": "ok"}
 
