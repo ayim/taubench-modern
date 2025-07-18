@@ -18,6 +18,9 @@ from agent_platform.server.storage.postgres.storage_artifacts import (
 from agent_platform.server.storage.postgres.storage_files import (
     PostgresStorageFilesMixin,
 )
+from agent_platform.server.storage.postgres.storage_mcp_servers import (
+    PostgresStorageMCPServersMixin,
+)
 from agent_platform.server.storage.postgres.storage_memory import (
     PostgresStorageMemoriesMixin,
 )
@@ -105,6 +108,7 @@ class PostgresStorage(
     PostgresStorageWorkItemsMixin,
     PostgresStorageScopedStorageMixin,
     PostgresStorageFilesMixin,
+    PostgresStorageMCPServersMixin,
 ):
     def __init__(self, pool: AsyncConnectionPool | None = None):
         # If a pool is provided externally, PostgresStorage should not be

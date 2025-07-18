@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Literal
 
 from agent_platform.core.mcp.mcp_client import MCPClient
@@ -8,6 +9,11 @@ from agent_platform.core.mcp.mcp_types import (
     serialize_mcp_variables,
 )
 from agent_platform.core.tools.tool_definition import ToolDefinition
+
+
+class MCPServerSource(str, Enum):
+    FILE = "FILE"
+    API = "API"
 
 
 @dataclass(frozen=True)

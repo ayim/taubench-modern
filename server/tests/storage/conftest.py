@@ -10,6 +10,7 @@ from agent_platform.core.agent import (
     ObservabilityConfig,
     QuestionGroup,
 )
+from agent_platform.core.mcp.mcp_server import MCPServer
 from agent_platform.core.runbook import Runbook
 from agent_platform.core.thread import Thread, ThreadMessage, ThreadTextContent
 from agent_platform.core.utils import SecretString
@@ -96,4 +97,38 @@ def sample_thread(
         created_at=datetime.now(UTC),
         updated_at=datetime.now(UTC),
         metadata={"thread_metadata": "some_metadata"},
+    )
+
+
+@pytest.fixture
+def sample_mcp_server_http() -> MCPServer:
+    """Sample MCP server using HTTP transport."""
+    return MCPServer(
+        name="test-http-server",
+        transport="streamable-http",
+        url="https://example.com/mcp",
+        headers={"Authorization": "Bearer test-token"},
+    )
+
+
+@pytest.fixture
+def sample_mcp_server_stdio() -> MCPServer:
+    """Sample MCP server using stdio transport."""
+    return MCPServer(
+        name="test-stdio-server",
+        transport="stdio",
+        command="python",
+        args=["-m", "mcp_test_server"],
+        env={"TEST_ENV": "test_value"},
+        cwd="/tmp",
+    )
+
+
+@pytest.fixture
+def sample_mcp_server_sse() -> MCPServer:
+    """Sample MCP server using SSE transport."""
+    return MCPServer(
+        name="test-sse-server",
+        transport="sse",
+        url="https://example.com/sse",
     )

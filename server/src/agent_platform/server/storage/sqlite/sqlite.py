@@ -21,6 +21,9 @@ from agent_platform.server.storage.sqlite.storage_artifacts import (
 from agent_platform.server.storage.sqlite.storage_files import (
     SQLiteStorageFilesMixin,
 )
+from agent_platform.server.storage.sqlite.storage_mcp_servers import (
+    SQLiteStorageMCPServersMixin,
+)
 from agent_platform.server.storage.sqlite.storage_memory import (
     SQLiteStorageMemoriesMixin,
 )
@@ -106,6 +109,7 @@ class SQLiteStorage(
     SQLiteStorageWorkItemsMixin,
     SQLiteStorageScopedStorageMixin,
     SQLiteStorageFilesMixin,
+    SQLiteStorageMCPServersMixin,
 ):
     """
     SQLite-based storage that mirrors the Postgres-based semantics, including

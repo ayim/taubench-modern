@@ -4,6 +4,7 @@ from datetime import datetime
 from agent_platform.core.agent import Agent
 from agent_platform.core.files import UploadedFile
 from agent_platform.core.kernel_interfaces.otel import OTelArtifact
+from agent_platform.core.mcp.mcp_server import MCPServer, MCPServerSource
 from agent_platform.core.memory import Memory
 from agent_platform.core.runs import Run, RunStep
 from agent_platform.core.storage import ScopedStorage
@@ -477,6 +478,39 @@ class BaseStorage(ABC):
     @abstractmethod
     async def mark_incomplete_work_items_as_error(self, work_item_ids: list[str]) -> None:
         """Mark given work items as ERROR if they are still PENDING/EXECUTING."""
+        pass
+
+    # -------------------------
+    # Methods for MCP servers
+    # -------------------------
+    @abstractmethod
+    async def create_mcp_server(self, mcp_server: "MCPServer", source: "MCPServerSource") -> None:
+        """Create a new MCP server."""
+        pass
+
+    @abstractmethod
+    async def get_mcp_server(self, mcp_server_id: str) -> "MCPServer":
+        """Get an MCP server by ID."""
+        pass
+
+    @abstractmethod
+    async def list_mcp_servers(self) -> dict[str, "MCPServer"]:
+        """List all MCP servers."""
+        pass
+
+    @abstractmethod
+    async def update_mcp_server(
+        self,
+        mcp_server_id: str,
+        mcp_server: "MCPServer",
+        mcp_server_source: "MCPServerSource",
+    ) -> None:
+        """Update an MCP server."""
+        pass
+
+    @abstractmethod
+    async def delete_mcp_server(self, mcp_server_id: str) -> None:
+        """Delete an MCP server."""
         pass
 
     @abstractmethod

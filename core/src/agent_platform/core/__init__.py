@@ -20,12 +20,15 @@ from agent_platform.core import (
     tools,
 )
 from agent_platform.core.kernel import Kernel
+from agent_platform.core.mcp.mcp_server import MCPServer, MCPServerSource
 from agent_platform.core.user import User
 
 __version__ = "1.1.0"
 
 __all__ = [
     "Kernel",
+    "MCPServer",
+    "MCPServerSource",
     "User",
     "actions",
     "agent",

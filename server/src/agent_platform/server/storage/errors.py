@@ -157,3 +157,17 @@ class WorkItemNotFoundError(PlatformHTTPError):
         super().__init__(
             error_code=ErrorCode.NOT_FOUND, message=message, data={"work_item_id": work_item_id}
         )
+
+
+class MCPServerNotFoundError(PlatformHTTPError):
+    """An MCP server with the given ID was not found."""
+
+    def __init__(self, message: str = "An MCP server with the given ID was not found"):
+        super().__init__(error_code=ErrorCode.NOT_FOUND, message=message)
+
+
+class MCPServerWithNameAlreadyExistsError(PlatformHTTPError):
+    """An MCP server with the given name already exists."""
+
+    def __init__(self, message: str = "An MCP server with the given name already exists"):
+        super().__init__(error_code=ErrorCode.CONFLICT, message=message)
