@@ -282,6 +282,11 @@ jobs:
       - name: Set executable permissions
         if: runner.os != 'Windows'
         run: chmod +x client-sdks/golang/agent-cli/build/agent-cli
-      - name: Run smoke test
+      - name: Run smoke test (Linux + MacOS)
+        if: runner.os != 'Windows'
         working-directory: client-sdks/golang/agent-cli
         run: go test ./tests -run TestVersion -v -binary=../${{ matrix.binary }}
+      - name: Run smoke test (Windows)
+        if: runner.os == 'Windows'
+        working-directory: client-sdks/golang/agent-cli
+        run: go test ./tests -run TestVersion -v -binary=..\${{ matrix.binary }}
