@@ -16,8 +16,8 @@
   },
   "dependencies": {
     "@microsoft/fetch-event-source": "^2.0.1",
-    "@sema4ai/agent-components": "^6.4.0",
-    "@sema4ai/agent-server-interface": "^2.0.0-marco.15",
+    "@sema4ai/agent-components": "^6.5.0",
+    "@sema4ai/agent-server-interface": "^2.3.0",
     "@sema4ai/components": "^1.5.1",
     "@sema4ai/document-intelligence-interface": "^1.3.9",
     "@sema4ai/icons": "^1.3.0",
