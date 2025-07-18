@@ -71,6 +71,7 @@ markers = [
     "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
     "unit: marks tests as unit tests (deselect with '-m \"not unit\"')",
     "postgresql: marks tests that require PostgreSQL (deselect with '-m \"not postgresql\"')",
+    "cloud: marks tests that require cloud storage (deselect with '-m \"not cloud\"')",
 ]
 filterwarnings = [
     # Ignore pkg_resources/declare_namespace deprecation warnings from snowflake-snowpark-python

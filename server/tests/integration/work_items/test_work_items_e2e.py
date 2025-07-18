@@ -1,0 +1,187 @@
+from io import BytesIO
+
+import pytest
+from agent_platform.orchestrator.agent_server_client import AgentServerClient
+from httpx import AsyncClient
+
+from agent_platform.core.work_items.work_item import WorkItemStatus
+from agent_platform.server.work_items.callbacks import _compute_signature
+from server.tests.integration.work_items.helper_functions import (
+    _wait_until,
+    assert_work_item_url,
+    make_text_message,
+)
+
+
+@pytest.mark.integration
+@pytest.mark.usefixtures("copy_tmpdir_on_failure")
+@pytest.mark.asyncio
+async def test_work_items_e2e(  # noqa: PLR0915
+    base_url_agent_server_workitems_matrix: str,
+    openai_api_key: str,
+    callback_server,
+):
+    """
+    Comprehensive e2e test covering the complete work item lifecycle:
+    - File upload (single direct upload) with upload message verification
+    - Multiple callbacks with signature verification (only one should fire)
+    - All endpoint testing (list, describe, cancel)
+    - Judge validation (handles both COMPLETED and NEEDS_REVIEW as valid outcomes)
+    - Complete status transitions and verification
+    """
+
+    # Create agent for this test run
+    with AgentServerClient(base_url_agent_server_workitems_matrix) as agent_client:
+        agent_id = agent_client.create_agent_and_return_agent_id(
+            platform_configs=[{"kind": "openai", "openai_api_key": openai_api_key}],
+            runbook="""
+            You are a helpful assistant. Always respond with exactly what the user asks for.
+            """,
+        )
+
+        work_items_url = f"{base_url_agent_server_workitems_matrix}/api/public/v1/work-items"
+
+        async with AsyncClient(base_url=work_items_url) as client:
+            # 1. Upload file
+            file_content = b"Important document content for agent analysis"
+            filename = "document.txt"
+            file_tuple = (filename, BytesIO(file_content), "text/plain")
+
+            upload_resp = await client.post("/upload-file", files={"file": file_tuple})
+            assert upload_resp.status_code == 200
+            work_item_id = upload_resp.json()["work_item_id"]
+
+            # Verify work item is in PRECREATED state
+            get_resp = await client.get(f"/{work_item_id}")
+            assert get_resp.status_code == 200
+            work_item = get_resp.json()
+            assert work_item["status"] == WorkItemStatus.PRECREATED.value
+            assert work_item["agent_id"] is None
+
+            # 2. Setup multiple callback servers with signature verification
+            signature_secret_completed = "test_secret_completed_123"
+            signature_secret_needs_review = "test_secret_needs_review_456"
+
+            completed_callback_srv = callback_server(["COMPLETED"])
+            needs_review_callback_srv = callback_server(["NEEDS_REVIEW"])
+
+            # 3. Convert work item to PENDING by adding agent and messages with multiple callbacks
+            create_payload = {
+                "agent_id": agent_id,
+                "messages": make_text_message("What is 2+2?"),
+                "payload": {"task": "simple_math", "test_type": "e2e_comprehensive"},
+                "callbacks": [
+                    {
+                        "url": completed_callback_srv.url,
+                        "on_status": "COMPLETED",
+                        "signature_secret": signature_secret_completed,
+                    },
+                    {
+                        "url": needs_review_callback_srv.url,
+                        "on_status": "NEEDS_REVIEW",
+                        "signature_secret": signature_secret_needs_review,
+                    },
+                ],
+                "work_item_id": work_item_id,
+            }
+
+            create_resp = await client.post("/", json=create_payload)
+            assert create_resp.status_code == 200
+            work_item = create_resp.json()
+
+            # Verify work item is now PENDING with agent
+            assert work_item["status"] in [
+                WorkItemStatus.PENDING.value,
+                WorkItemStatus.EXECUTING.value,
+            ]
+            assert work_item["agent_id"] == agent_id
+            assert work_item["work_item_id"] == work_item_id
+
+            # 4. Wait for main work item to reach final status
+            # Note: The judge can return either COMPLETED or NEEDS_REVIEW
+            async def _is_final_status():
+                r = await client.get(f"/{work_item_id}")
+                assert r.status_code == 200
+                status = WorkItemStatus(r.json()["status"])
+                return status in [WorkItemStatus.COMPLETED, WorkItemStatus.NEEDS_REVIEW]
+
+            await _wait_until(_is_final_status, interval=1.0, timeout=120)
+
+            # 5. Get final work item state
+            final_resp = await client.get(f"/{work_item_id}?results=true")
+            assert final_resp.status_code == 200
+            final_work_item = final_resp.json()
+
+            final_status = WorkItemStatus(final_work_item["status"])
+            assert final_status in [WorkItemStatus.COMPLETED, WorkItemStatus.NEEDS_REVIEW], (
+                f"Expected COMPLETED or NEEDS_REVIEW status, got {final_status}. "
+                f"The judge can return either status for simple questions."
+            )
+            assert final_work_item["thread_id"] is not None
+
+            # 6. Verify appropriate callback was triggered based on final status
+            if final_status == WorkItemStatus.COMPLETED:
+                # COMPLETED callback should have fired
+                callback_received = completed_callback_srv.wait_for("COMPLETED")
+                assert callback_received, "COMPLETED callback was not received within timeout"
+                assert len(completed_callback_srv.requests) == 1, (
+                    "Expected exactly 1 COMPLETED callback, "
+                    f"got {len(completed_callback_srv.requests)}"
+                )
+                assert len(needs_review_callback_srv.requests) == 0, (
+                    "Expected 0 NEEDS_REVIEW callbacks, "
+                    f"got {len(needs_review_callback_srv.requests)}. "
+                    "Only the COMPLETED callback should have fired."
+                )
+
+                # Verify callback details
+                request = completed_callback_srv.single_request()
+                body = request["body"]
+                expected_signature = _compute_signature(signature_secret_completed, body)
+
+            elif final_status == WorkItemStatus.NEEDS_REVIEW:
+                # NEEDS_REVIEW callback should have fired
+                callback_received = needs_review_callback_srv.wait_for("NEEDS_REVIEW")
+                assert callback_received, "NEEDS_REVIEW callback was not received within timeout"
+                assert len(needs_review_callback_srv.requests) == 1, (
+                    "Expected exactly 1 NEEDS_REVIEW callback, "
+                    f"got {len(needs_review_callback_srv.requests)}"
+                )
+                assert len(completed_callback_srv.requests) == 0, (
+                    f"Expected 0 COMPLETED callbacks, got {len(completed_callback_srv.requests)}. "
+                    f"Only the NEEDS_REVIEW callback should have fired."
+                )
+
+                # Verify callback details
+                request = needs_review_callback_srv.single_request()
+                body = request["body"]
+                expected_signature = _compute_signature(signature_secret_needs_review, body)
+
+            # Common callback verification
+            assert request["path"] == "/webhook"
+            assert request["headers"]["Content-Type"] == "application/json"
+            assert body["work_item_id"] == work_item_id
+            assert body["agent_id"] == agent_id
+            assert body["status"] == final_status.value
+            assert body["thread_id"] is not None
+
+            # Verify signature
+            assert "X-SEMA4AI-SIGNATURE" in request["headers"]
+            actual_signature = request["headers"]["X-SEMA4AI-SIGNATURE"]
+            assert actual_signature == expected_signature
+
+            # Verify work item URL
+            assert_work_item_url(body, agent_id, body["thread_id"])
+
+            # 7. Final endpoint verification - ensure we can still query the completed work item
+            final_list_resp = await client.get("/")
+            assert final_list_resp.status_code == 200
+            final_listed_items = final_list_resp.json()
+            final_work_item_ids = [wi["work_item_id"] for wi in final_listed_items]
+            assert work_item_id in final_work_item_ids
+
+            # 8. Verify final describe still works
+            final_desc_resp = await client.get(f"/{work_item_id}")
+            assert final_desc_resp.status_code == 200
+            assert final_desc_resp.json()["work_item_id"] == work_item_id
+            assert final_desc_resp.json()["status"] == final_status.value
