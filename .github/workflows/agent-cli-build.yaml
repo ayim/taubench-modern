@@ -284,4 +284,4 @@ jobs:
         run: chmod +x client-sdks/golang/agent-cli/build/agent-cli
       - name: Run smoke test
         working-directory: client-sdks/golang/agent-cli
-        run: go test -v smoke_test.go -binary=${{ matrix.binary }}
+        run: go test ./tests -v -binary=${{ matrix.binary }}
