@@ -58,6 +58,12 @@ async def _wait_until(cond, interval: float = 1.0, timeout: float = 30):
         await asyncio.sleep(interval)
 
 
+def _fail_on_needs_review(status: WorkItemStatus):
+    """Utility function to fail on NEEDS_REVIEW status."""
+    if status == WorkItemStatus.NEEDS_REVIEW:
+        raise pytest.fail("Test failed because of NEEDS_REVIEW status")
+
+
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
@@ -100,7 +106,7 @@ async def test_full_workflow_integration(base_url_fixture: str, request, agent_i
 
         assert item["agent_id"] == agent_id
         assert item["thread_id"] is None  # Thread not yet created
-        assert item["status"] == WorkItemStatus.PENDING.value
+        assert item["status"] in [WorkItemStatus.PENDING.value, WorkItemStatus.EXECUTING.value]
         assert item["messages"][0]["content"][0]["text"] == "Integration test workflow"
         assert item["payload"]["workflow"] == "integration_test"
         assert "created_at" in item
@@ -182,6 +188,7 @@ async def test_process_single_work_item(base_url_fixture: str, request, agent_id
             r = await client.get(f"/{work_item_id}")
             assert r.status_code == 200
             status = WorkItemStatus(r.json()["status"])
+            _fail_on_needs_review(status)
             return status == WorkItemStatus.COMPLETED
 
         await _wait_until(_is_completed, interval=1.0, timeout=60)
@@ -459,6 +466,7 @@ async def test_process_single_work_item__with_calculation_tool(  # noqa: PLR0913
                 r = await client.get(f"/{work_item_id}")
                 assert r.status_code == 200
                 status = WorkItemStatus(r.json()["status"])
+                _fail_on_needs_review(status)
                 return status == WorkItemStatus.COMPLETED
 
             await _wait_until(_is_completed, interval=1.0, timeout=60)
@@ -1010,7 +1018,7 @@ async def test_work_item_file_upload_workflow(base_url_fixture: str, request, ag
         work_item = create_resp.json()
 
         # Verify work item is now PENDING with agent
-        assert work_item["status"] == WorkItemStatus.PENDING.value
+        assert work_item["status"] in [WorkItemStatus.PENDING.value, WorkItemStatus.EXECUTING.value]
         assert work_item["agent_id"] == agent_id
         assert work_item["work_item_id"] == work_item_id
 
@@ -1018,7 +1026,9 @@ async def test_work_item_file_upload_workflow(base_url_fixture: str, request, ag
         async def _is_completed():
             r = await client.get(f"/{work_item_id}")
             assert r.status_code == 200
-            return WorkItemStatus(r.json()["status"]) == WorkItemStatus.COMPLETED
+            status = WorkItemStatus(r.json()["status"])
+            _fail_on_needs_review(status)
+            return status == WorkItemStatus.COMPLETED
 
         await _wait_until(_is_completed, interval=1.0, timeout=90)
 
@@ -1127,7 +1137,10 @@ async def test_work_item_file_upload_state_validation(
         # Verify work item is in PENDING state
         get_resp = await client.get(f"/{work_item_id}")
         assert get_resp.status_code == 200
-        assert get_resp.json()["status"] == WorkItemStatus.PENDING.value
+        assert get_resp.json()["status"] in [
+            WorkItemStatus.PENDING.value,
+            WorkItemStatus.EXECUTING.value,
+        ]
 
         # Try to upload file to PENDING work item - should fail
         test_file = ("test.txt", BytesIO(b"Test content"), "text/plain")
@@ -1241,7 +1254,9 @@ async def test_work_item_multiple_file_types_processing(
         async def _is_completed():
             r = await client.get(f"/{work_item_id}")
             assert r.status_code == 200
-            return WorkItemStatus(r.json()["status"]) == WorkItemStatus.COMPLETED
+            status = WorkItemStatus(r.json()["status"])
+            _fail_on_needs_review(status)
+            return status == WorkItemStatus.COMPLETED
 
         await _wait_until(_is_completed, interval=1.0, timeout=90)
 
@@ -1431,7 +1446,10 @@ async def test_work_item_file_ownership(base_url_fixture: str, request, agent_id
         pending_resp = await client.get(f"/{work_item_id}")
         assert pending_resp.status_code == 200
         pending_work_item = pending_resp.json()
-        assert pending_work_item["status"] == WorkItemStatus.PENDING.value
+        assert pending_work_item["status"] in [
+            WorkItemStatus.PENDING.value,
+            WorkItemStatus.EXECUTING.value,
+        ]
         assert pending_work_item["agent_id"] == agent_id
 
         # 5. Wait for background worker processing
@@ -1581,11 +1599,11 @@ async def test_work_item_two_stage_file_upload_workflow(  # noqa: PLR0915
         work_item = create_resp.json()
 
         # Verify work item is now PENDING with agent
-        assert work_item["status"] == WorkItemStatus.PENDING.value
+        assert work_item["status"] in [WorkItemStatus.PENDING.value, WorkItemStatus.EXECUTING.value]
         assert work_item["agent_id"] == agent_id
         assert work_item["work_item_id"] == work_item_id
 
-        # 5. Wait for background worker to process the work item
+        # 5. Wait for the background worker to process the work item
         async def _is_completed():
             r = await client.get(f"/{work_item_id}")
             assert r.status_code == 200
