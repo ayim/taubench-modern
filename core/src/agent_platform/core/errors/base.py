@@ -90,6 +90,7 @@ Traceback (most recent call last):
 from typing import Any
 
 import structlog
+from starlette.requests import Request
 from starlette.status import WS_1011_INTERNAL_ERROR
 
 from agent_platform.core.errors.responses import ErrorCode, ErrorResponse
@@ -154,6 +155,18 @@ class PlatformError(Exception):
         # Let structlog handle serializing data, which may simply be to use __repr__
         return {"error": self.response.model_dump(mode="json"), **self.data}
 
+    async def __call__(self, scope, receive, send):
+        """Make it ASGI compatible so it can be used in the middleware"""
+
+        match scope["type"]:
+            case "http":
+                from agent_platform.server.error_handlers import platform_error_handler
+
+                response = await platform_error_handler(Request(scope, receive, send), self)
+                await response(scope, receive, send)
+            case _:
+                logger.warning(f"Unhandled scope type in PlatformError: {scope['type']}")
+
 
 class PlatformHTTPError(PlatformError):
     """Base class for platform HTTP errors.
@@ -213,6 +226,18 @@ class PlatformHTTPError(PlatformError):
         if self.headers:
             context["headers"] = dict(self.headers)
         return context
+
+    async def __call__(self, scope, receive, send):
+        """Make it ASGI compatible so it can be used in the middleware"""
+
+        match scope["type"]:
+            case "http":
+                from agent_platform.server.error_handlers import platform_http_error_handler
+
+                response = await platform_http_error_handler(Request(scope, receive, send), self)
+                await response(scope, receive, send)
+            case _:
+                logger.warning(f"Unhandled scope type in PlatformHTTPError: {scope['type']}")
 
 
 class PlatformWebSocketError(PlatformError):

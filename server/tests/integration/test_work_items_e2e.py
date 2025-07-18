@@ -169,7 +169,7 @@ async def test_process_single_work_item(base_url_fixture: str, request, agent_id
                 "messages": [
                     {
                         "role": "user",
-                        "content": [{"kind": "text", "text": "Please echo back this text"}],
+                        "content": [{"kind": "text", "text": "What is 2+2"}],
                     }
                 ],
                 "payload": {"workflow": "integration_test"},
@@ -210,7 +210,7 @@ async def test_batch_processing(base_url_fixture: str, request, agent_id: str):
 
     async with AsyncClient(base_url=work_items_url) as client:
         work_item_ids = []
-        for i in range(num_items):
+        for _i in range(num_items):
             resp = await client.post(
                 "/",
                 json={
@@ -221,7 +221,7 @@ async def test_batch_processing(base_url_fixture: str, request, agent_id: str):
                             "content": [
                                 {
                                     "kind": "text",
-                                    "text": f"Echo back this text: Batch message {i}",
+                                    "text": "What is 2+2",
                                 }
                             ],
                         }
