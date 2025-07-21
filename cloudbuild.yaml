@@ -4,6 +4,7 @@ substitutions:
   _DB_INSTANCE: 'agent-postgres'
   _DB_NAME: 'agents'
   _DB_USER: 'agents'
+  # Note: BUILD_ID is a built-in Cloud Build variable, but we can reference it here
 
 steps:
   - id: 'setup-prerequisites'
@@ -12,44 +13,110 @@ steps:
     args:
       - '-c'
       - |
+        # Exit on any error
+        set -e
+
         echo "🔍 Pre-flight validation..."
 
         # Get current user
         CURRENT_USER=$$(gcloud auth list --filter=status:ACTIVE --format="value(account)" --quiet)
+        if [ -z "$$CURRENT_USER" ]; then
+          echo "❌ No authenticated user found. Run: gcloud auth login"
+          exit 1
+        fi
+
         echo "📧 Current user: $$CURRENT_USER"
         echo "🏗️  Project: ${_PROJECT_ID}"
 
-        # Check permissions
-        REQUIRED_ROLES=("roles/editor" "roles/owner" "roles/cloudsql.admin" "roles/run.admin" "roles/secretmanager.admin")
-        HAS_PERMISSION=false
-        for role in "$${REQUIRED_ROLES[@]}"; do
+        # CRITICAL: Early permission check - exit immediately if insufficient
+        echo "🔐 Checking critical permissions..."
+        BROAD_ROLES=("roles/owner" "roles/editor")
+        SPECIFIC_ROLES=("roles/cloudsql.admin" "roles/run.admin" "roles/secretmanager.admin" "roles/artifactregistry.admin")
+
+        HAS_BROAD_PERMISSION=false
+        HAS_SPECIFIC_PERMISSIONS=true
+        MISSING_SPECIFIC=()
+
+        # Check for broad permissions first
+        for role in "$${BROAD_ROLES[@]}"; do
           if gcloud projects get-iam-policy ${_PROJECT_ID} --flatten="bindings[].members" --format="value(bindings.role)" --filter="bindings.members:$$CURRENT_USER AND bindings.role:$$role" --quiet 2>/dev/null | grep -q "$$role"; then
-            echo "✅ Has $$role"
-            HAS_PERMISSION=true
+            echo "✅ Has $$role (sufficient for all operations)"
+            HAS_BROAD_PERMISSION=true
             break
           fi
         done
 
-        if [ "$$HAS_PERMISSION" = "false" ]; then
-          echo "❌ INSUFFICIENT PERMISSIONS!"
-          echo "Ask your admin to grant roles/editor: gcloud projects add-iam-policy-binding ${_PROJECT_ID} --member='user:$$CURRENT_USER' --role='roles/editor'"
+        # If no broad permissions, check specific ones
+        if [ "$$HAS_BROAD_PERMISSION" = "false" ]; then
+          echo "⚠️  No broad permissions, checking specific roles..."
+          for role in "$${SPECIFIC_ROLES[@]}"; do
+            if ! gcloud projects get-iam-policy ${_PROJECT_ID} --flatten="bindings[].members" --format="value(bindings.role)" --filter="bindings.members:$$CURRENT_USER AND bindings.role:$$role" --quiet 2>/dev/null | grep -q "$$role"; then
+              MISSING_SPECIFIC+=("$$role")
+              HAS_SPECIFIC_PERMISSIONS=false
+            fi
+          done
+        fi
+
+        # FAIL FAST if permissions are insufficient
+        if [ "$$HAS_BROAD_PERMISSION" = "false" ] && [ "$$HAS_SPECIFIC_PERMISSIONS" = "false" ]; then
+          echo ""
+          echo "❌ CRITICAL: INSUFFICIENT PERMISSIONS!"
+          echo "Missing roles: $${MISSING_SPECIFIC[*]}"
+          echo ""
+          echo "To fix, ask your admin to run:"
+          echo "gcloud projects add-iam-policy-binding ${_PROJECT_ID} --member='user:$$CURRENT_USER' --role='roles/editor'"
+          echo ""
+          echo "Or run the permission check script first:"
+          echo "./scripts/check-gcp-permissions.sh"
           exit 1
         fi
 
         echo "🔧 Enabling APIs..."
-        gcloud services enable sqladmin.googleapis.com run.googleapis.com cloudbuild.googleapis.com monitoring.googleapis.com logging.googleapis.com artifactregistry.googleapis.com compute.googleapis.com --quiet 2>/dev/null
+        gcloud services enable sqladmin.googleapis.com run.googleapis.com cloudbuild.googleapis.com monitoring.googleapis.com logging.googleapis.com artifactregistry.googleapis.com compute.googleapis.com --quiet
 
-        echo "🔍 Checking npmrc secret..."
-        if ! gcloud secrets describe npmrc-secret --project=${_PROJECT_ID} --quiet 2>/dev/null >/dev/null; then
-          echo "❌ Missing npmrc-secret! Run: gcloud secrets create npmrc-secret --data-file=~/.npmrc --project=${_PROJECT_ID}"
+        echo "🔍 CRITICAL: Checking required secrets..."
+        if ! gcloud secrets describe npmrc-secret --project=${_PROJECT_ID} --quiet 2>/dev/null; then
+          echo ""
+          echo "❌ CRITICAL: Missing npmrc-secret!"
+          echo "This secret is required for building the workroom frontend."
+          echo ""
+          echo "To fix, run:"
+          echo "gcloud secrets create npmrc-secret --data-file=~/.npmrc --project=${_PROJECT_ID}"
+          echo ""
+          echo "If you don't have ~/.npmrc, check the README for setup instructions."
           exit 1
         fi
+        echo "✅ npmrc-secret exists"
 
-        echo "🔐 Setting up service account permissions..."
+        echo "🏗️ Setting up Artifact Registry..."
+        # Create repository if it doesn't exist
+        if ! gcloud artifacts repositories describe cloud-run-source-deploy --location=${_REGION} --quiet 2>/dev/null; then
+          echo "Creating Artifact Registry repository..."
+          gcloud artifacts repositories create cloud-run-source-deploy \
+            --repository-format=docker \
+            --location=${_REGION} \
+            --description="Docker repository for Cloud Run deployments" \
+            --quiet
+        else
+          echo "✅ Artifact Registry repository already exists"
+        fi
+
+                echo "🔐 Verifying service account permissions..."
         BUILD_SA="$(gcloud projects describe ${_PROJECT_ID} --format='value(projectNumber)' --quiet)-compute@developer.gserviceaccount.com"
-        for role in "roles/secretmanager.secretAccessor" "roles/cloudsql.client" "roles/artifactregistry.reader"; do
-          gcloud projects add-iam-policy-binding ${_PROJECT_ID} --member="serviceAccount:$$BUILD_SA" --role="$$role" --quiet 2>/dev/null || true
+        echo "📧 Build service account: $$BUILD_SA"
+
+        # Verify service account has necessary permissions (these should be granted by the user account beforehand)
+        REQUIRED_SA_ROLES=("roles/secretmanager.secretAccessor" "roles/cloudsql.client" "roles/artifactregistry.writer")
+        for role in "$${REQUIRED_SA_ROLES[@]}"; do
+          if gcloud projects get-iam-policy ${_PROJECT_ID} --flatten="bindings[].members" --format="value(bindings.role)" --filter="bindings.members:serviceAccount:$$BUILD_SA AND bindings.role:$$role" --quiet 2>/dev/null | grep -q "$$role"; then
+            echo "✅ Service account has $$role"
+          else
+            echo "⚠️  Service account missing $$role (should be granted by permission check script)"
+          fi
         done
+
+        echo "🔐 Configuring Docker authentication..."
+        gcloud auth configure-docker ${_REGION}-docker.pkg.dev --quiet
 
         echo "✅ Pre-flight complete"
 
@@ -59,9 +126,12 @@ steps:
     args:
       - '-c'
       - |
+        # Exit on any error
+        set -e
+
         echo "🗄️ Setting up Cloud SQL..."
 
-        if ! gcloud sql instances describe ${_DB_INSTANCE} --quiet 2>/dev/null >/dev/null; then
+        if ! gcloud sql instances describe ${_DB_INSTANCE} --quiet; then
           echo "Creating PostgreSQL instance..."
           gcloud sql instances create ${_DB_INSTANCE} \
             --database-version=POSTGRES_15 \
@@ -73,121 +143,134 @@ steps:
             --maintenance-window-day=SUN \
             --maintenance-window-hour=04 \
             --authorized-networks=0.0.0.0/0 \
-            --quiet 2>/dev/null
+            --quiet
         fi
 
-        if ! gcloud sql databases describe ${_DB_NAME} --instance=${_DB_INSTANCE} --quiet 2>/dev/null >/dev/null; then
-          gcloud sql databases create ${_DB_NAME} --instance=${_DB_INSTANCE} --quiet 2>/dev/null
+        if ! gcloud sql databases describe ${_DB_NAME} --instance=${_DB_INSTANCE} --quiet; then
+          gcloud sql databases create ${_DB_NAME} --instance=${_DB_INSTANCE} --quiet
         fi
 
-        gcloud sql users set-password ${_DB_USER} --instance=${_DB_INSTANCE} --password=agents --quiet 2>/dev/null || \
-        gcloud sql users create ${_DB_USER} --instance=${_DB_INSTANCE} --password=agents --quiet 2>/dev/null
+        # Create user or update password
+        if gcloud sql users describe ${_DB_USER} --instance=${_DB_INSTANCE} --quiet 2>/dev/null; then
+          gcloud sql users set-password ${_DB_USER} --instance=${_DB_INSTANCE} --password=agents --quiet
+        else
+          gcloud sql users create ${_DB_USER} --instance=${_DB_INSTANCE} --password=agents --quiet
+        fi
 
         echo "✅ Cloud SQL configured"
 
-  - id: 'check-changes'
+  - id: 'prepare-build'
     name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:latest'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        echo "🔍 Checking for changes..."
+        # Exit on any error
+        set -e
 
-        # Check agent-server changes
+        echo "🔍 Preparing build environment..."
+
+        # Simplified: Always build both services (no complex caching for now)
+        echo "SKIP_AGENT_BUILD=false" > /workspace/build-flags.env
+        echo "SKIP_WORKROOM_BUILD=false" >> /workspace/build-flags.env
+
+        # Generate source hashes for labeling
         AGENT_HASH=$$(find . -name "*.py" -path "./server/*" -o -name "Dockerfile" -o -name "pyproject.toml" -path "./server/*" | sort | xargs sha256sum | sha256sum | cut -d' ' -f1)
-        AGENT_LAST=""
-        if gcloud container images describe ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/cloud-run-source-deploy/agent-server:latest --quiet 2>/dev/null >/dev/null; then
-          AGENT_LAST=$$(gcloud container images describe ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/cloud-run-source-deploy/agent-server:latest --format="value(config.labels['source-hash'])" --quiet 2>/dev/null || echo "")
-        fi
-
-        # Check workroom changes  
         WORKROOM_HASH=$$(find ./workroom -name "*.tsx" -o -name "*.ts" -o -name "*.json" -o -name "Dockerfile" | sort | xargs sha256sum | sha256sum | cut -d' ' -f1)
-        WORKROOM_LAST=""
-        if gcloud container images describe ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/cloud-run-source-deploy/workroom:latest --quiet 2>/dev/null >/dev/null; then
-          WORKROOM_LAST=$$(gcloud container images describe ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/cloud-run-source-deploy/workroom:latest --format="value(config.labels['source-hash'])" --quiet 2>/dev/null || echo "")
-        fi
 
-        # Prepare build flags
-        if [ "$$AGENT_HASH" = "$$AGENT_LAST" ]; then
-          echo "SKIP_AGENT_BUILD=true" > /workspace/build-flags.env
-          echo "Agent-server: No changes - using cache"
-        else
-          echo "SKIP_AGENT_BUILD=false" > /workspace/build-flags.env
-          echo "SOURCE_HASH=$$AGENT_HASH" >> /workspace/build-flags.env
-          echo "Agent-server: Changes detected - will rebuild"
-        fi
+        echo "SOURCE_HASH=$$AGENT_HASH" >> /workspace/build-flags.env
+        echo "WORKROOM_SOURCE_HASH=$$WORKROOM_HASH" >> /workspace/build-flags.env
 
-        if [ "$$WORKROOM_HASH" = "$$WORKROOM_LAST" ]; then
-          echo "SKIP_WORKROOM_BUILD=true" >> /workspace/build-flags.env
-          echo "Workroom: No changes - using cache"
-        else
-          echo "SKIP_WORKROOM_BUILD=false" >> /workspace/build-flags.env
-          echo "WORKROOM_SOURCE_HASH=$$WORKROOM_HASH" >> /workspace/build-flags.env
-          echo "Workroom: Changes detected - will rebuild"
-        fi
+        echo "📦 Will build both agent-server and workroom"
 
-        # Fetch npmrc if needed for workroom
-        if [ "$$WORKROOM_HASH" != "$$WORKROOM_LAST" ]; then
-          gcloud secrets versions access latest --secret=npmrc-secret --project=${_PROJECT_ID} --quiet > /workspace/.npmrc
-        fi
+        # Fetch npmrc for workroom build
+        gcloud secrets versions access latest --secret=npmrc-secret --project=${_PROJECT_ID} --quiet > /workspace/.npmrc
 
   - id: 'build-agent-server'
     name: 'gcr.io/cloud-builders/docker'
+    env:
+      - 'BUILD_ID=${BUILD_ID}'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
+        # Exit on any error
+        set -e
+
         source /workspace/build-flags.env
 
-        if [ "$$SKIP_AGENT_BUILD" = "true" ]; then
-          echo "🔄 Using cached agent-server..."
-          docker pull ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/cloud-run-source-deploy/agent-server:latest >/dev/null 2>&1
-          docker tag ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/cloud-run-source-deploy/agent-server:latest ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/cloud-run-source-deploy/agent-server:$BUILD_ID >/dev/null 2>&1
-          docker push ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/cloud-run-source-deploy/agent-server:$BUILD_ID >/dev/null 2>&1
-        else
-          echo "🔨 Building agent-server..."
-          docker build \
-            --cache-from ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/cloud-run-source-deploy/agent-server:latest \
-            --label "source-hash=$$SOURCE_HASH" \
-            --label "build-id=$BUILD_ID" \
-            -t ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/cloud-run-source-deploy/agent-server:$BUILD_ID \
-            -t ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/cloud-run-source-deploy/agent-server:latest \
-            -f Dockerfile . >/dev/null 2>&1
-          docker push ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/cloud-run-source-deploy/agent-server:$BUILD_ID >/dev/null 2>&1
-          docker push ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/cloud-run-source-deploy/agent-server:latest >/dev/null 2>&1
-          echo "✅ Agent-server built"
+        # Debug: Show BUILD_ID and other variables
+        echo "🔍 Debug: BUILD_ID='$BUILD_ID'"
+        echo "🔍 Debug: _PROJECT_ID='${_PROJECT_ID}'"
+        echo "🔍 Debug: _REGION='${_REGION}'"
+
+        # Ensure BUILD_ID is set, fallback to timestamp if empty
+        if [ -z "$BUILD_ID" ]; then
+          BUILD_ID="manual-$(date +%Y%m%d-%H%M%S)"
+          echo "⚠️  BUILD_ID was empty, using fallback: $BUILD_ID"
         fi
+
+        # Docker authentication is automatic in Cloud Build
+
+        echo "🔨 Building agent-server..."
+        docker build \
+          --label "source-hash=$$SOURCE_HASH" \
+          --label "build-id=$BUILD_ID" \
+          -t ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/cloud-run-source-deploy/agent-server:$BUILD_ID \
+          -t ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/cloud-run-source-deploy/agent-server:latest \
+          -f Dockerfile .
+
+        echo "📤 Pushing agent-server images..."
+        docker push ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/cloud-run-source-deploy/agent-server:$BUILD_ID
+        docker push ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/cloud-run-source-deploy/agent-server:latest
+        echo "✅ Agent-server built and pushed"
 
   - id: 'build-workroom'
     name: 'gcr.io/cloud-builders/docker'
     env:
       - 'DOCKER_BUILDKIT=1'
+      - 'BUILD_ID=${BUILD_ID}'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
+        # Exit on any error
+        set -e
+
         source /workspace/build-flags.env
 
-        if [ "$$SKIP_WORKROOM_BUILD" = "true" ]; then
-          echo "🔄 Using cached workroom..."
-          docker pull ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/cloud-run-source-deploy/workroom:latest >/dev/null 2>&1
-          docker tag ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/cloud-run-source-deploy/workroom:latest ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/cloud-run-source-deploy/workroom:$BUILD_ID >/dev/null 2>&1
-          docker push ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/cloud-run-source-deploy/workroom:$BUILD_ID >/dev/null 2>&1
-        else
-          echo "🔨 Building workroom..."
-          docker build \
-            --cache-from ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/cloud-run-source-deploy/workroom:latest \
-            --secret id=npmrc,src=/workspace/.npmrc \
-            --label "source-hash=$$WORKROOM_SOURCE_HASH" \
-            --label "build-id=$BUILD_ID" \
-            -t ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/cloud-run-source-deploy/workroom:$BUILD_ID \
-            -t ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/cloud-run-source-deploy/workroom:latest \
-            -f workroom/Dockerfile ./workroom >/dev/null 2>&1
-          docker push ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/cloud-run-source-deploy/workroom:$BUILD_ID >/dev/null 2>&1
-          docker push ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/cloud-run-source-deploy/workroom:latest >/dev/null 2>&1
-          rm -f /workspace/.npmrc
-          echo "✅ Workroom built"
+        # Debug: Show BUILD_ID and other variables
+        echo "🔍 Debug: BUILD_ID='$BUILD_ID'"
+        echo "🔍 Debug: _PROJECT_ID='${_PROJECT_ID}'"
+        echo "🔍 Debug: _REGION='${_REGION}'"
+
+        # Ensure BUILD_ID is set, fallback to timestamp if empty
+        if [ -z "$BUILD_ID" ]; then
+          BUILD_ID="manual-$(date +%Y%m%d-%H%M%S)"
+          echo "⚠️  BUILD_ID was empty, using fallback: $BUILD_ID"
         fi
+
+        # Docker authentication is automatic in Cloud Build
+
+        echo "🔨 Building workroom..."
+        docker build \
+          --secret id=npmrc,src=/workspace/.npmrc \
+          --build-arg VITE_INSTANCE_ID=dev \
+          --build-arg VITE_DEPLOYMENT_TYPE=spar \
+          --build-arg VITE_DEV_WORKROOM_TENANT_LIST_URL=/spar-tenants-list \
+          --build-arg VITE_DEV_SERVER_PORT=8001 \
+          --build-arg NODE_ENV=production \
+          --label "source-hash=$$WORKROOM_SOURCE_HASH" \
+          --label "build-id=$BUILD_ID" \
+          -t ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/cloud-run-source-deploy/workroom:$BUILD_ID \
+          -t ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/cloud-run-source-deploy/workroom:latest \
+          -f workroom/Dockerfile ./workroom
+
+        echo "📤 Pushing workroom images..."
+        docker push ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/cloud-run-source-deploy/workroom:$BUILD_ID
+        docker push ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/cloud-run-source-deploy/workroom:latest
+        rm -f /workspace/.npmrc
+        echo "✅ Workroom built and pushed"
 
   - id: 'deploy-services'
     name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:latest'
@@ -195,6 +278,9 @@ steps:
     args:
       - '-c'
       - |
+        # Exit on any error
+        set -e
+
         echo "🚀 Deploying services with health checks..."
 
         # Get Cloud SQL IP dynamically
@@ -237,7 +323,7 @@ steps:
         echo "⏳ Waiting for agent-server to be ready..."
         AGENT_SERVER_URL=""
         for i in {1..30}; do
-          AGENT_SERVER_URL=$$(gcloud run services describe agent-server --region=${_REGION} --format="value(status.url)" --quiet 2>/dev/null || echo "")
+          AGENT_SERVER_URL=$$(gcloud run services describe agent-server --region=${_REGION} --format="value(status.url)" --quiet || echo "")
           if [ -n "$$AGENT_SERVER_URL" ]; then
             break
           fi
@@ -250,12 +336,17 @@ steps:
         fi
 
         # Check agent-server status (internal service, no external health check)
-        AGENT_STATUS=$$(gcloud run services describe agent-server --region=${_REGION} --format="value(status.conditions[0].status)" --quiet 2>/dev/null || echo "Unknown")
+        AGENT_STATUS=$$(gcloud run services describe agent-server --region=${_REGION} --format="value(status.conditions[0].status)" --quiet || echo "Unknown")
         if [ "$$AGENT_STATUS" != "True" ]; then
           echo "⚠️  Agent-server status: $$AGENT_STATUS"
         fi
 
-                # Deploy workroom as main entry point (public access)
+        echo "🔗 Agent-server URL: $$AGENT_SERVER_URL"
+
+        # Extract hostname from agent-server URL for nginx proxy
+        AGENT_SERVER_HOST=$$(echo "$$AGENT_SERVER_URL" | sed 's|https://||' | sed 's|http://||')
+
+        # Deploy workroom as main entry point (public access) with correct agent-server URL
         echo "🔧 Deploying workroom..."
         gcloud run deploy workroom \
           --image=${_REGION}-docker.pkg.dev/${_PROJECT_ID}/cloud-run-source-deploy/workroom:latest \
@@ -271,14 +362,14 @@ steps:
           --timeout=300 \
           --cpu-boost \
           --execution-environment=gen2 \
-          --set-env-vars="VITE_INSTANCE_ID=production,VITE_DEPLOYMENT_TYPE=spar,VITE_DEV_WORKROOM_TENANT_LIST_URL=/spar-tenants-list,META_URL=https://placeholder.example.com,DEPLOYMENT_TYPE=spar" \
+          --set-env-vars="AGENT_SERVER_HOST=$$AGENT_SERVER_HOST,AGENT_SERVER_PORT=443,DEPLOYMENT_TYPE=spar,META_URL=placeholder,NODE_ENV=production" \
           --quiet
 
         # Wait for workroom to be ready and get its URL
         echo "⏳ Waiting for workroom to be ready..."
         WORKROOM_URL=""
         for i in {1..20}; do
-          WORKROOM_URL=$$(gcloud run services describe workroom --region=${_REGION} --format="value(status.url)" --quiet 2>/dev/null || echo "")
+          WORKROOM_URL=$$(gcloud run services describe workroom --region=${_REGION} --format="value(status.url)" --quiet || echo "")
           if [ -n "$$WORKROOM_URL" ]; then
             break
           fi
@@ -292,20 +383,31 @@ steps:
 
         # Update workroom with correct META_URL pointing to itself
         echo "🔧 Updating workroom with correct META_URL..."
+        echo "   Workroom URL: $$WORKROOM_URL"
+        echo "   Agent-server (internal): $$AGENT_SERVER_URL"
+        echo "   Agent-server host for nginx: $$AGENT_SERVER_HOST"
         gcloud run services update workroom \
           --region=${_REGION} \
-          --update-env-vars="META_URL=$$WORKROOM_URL" \
+          --update-env-vars="META_URL=$$WORKROOM_URL/meta" \
+          --quiet
+
+        # Explicitly ensure workroom is publicly accessible
+        echo "🔐 Setting workroom IAM policy for public access..."
+        gcloud beta run services add-iam-policy-binding workroom \
+          --region=${_REGION} \
+          --member="allUsers" \
+          --role="roles/run.invoker" \
           --quiet
 
         # Test workroom health
         WORKROOM_HEALTH="❌"
-        if curl -s -m 30 "$$WORKROOM_URL/healthz" >/dev/null 2>&1; then
+        if curl -s -m 30 "$$WORKROOM_URL/healthz"; then
           WORKROOM_HEALTH="✅"
         fi
 
         # Get final status
-        AGENT_STATUS=$$(gcloud run services describe agent-server --region=${_REGION} --format="value(status.conditions[0].status)" --quiet 2>/dev/null || echo "Unknown")
-        WORKROOM_STATUS=$$(gcloud run services describe workroom --region=${_REGION} --format="value(status.conditions[0].status)" --quiet 2>/dev/null || echo "Unknown")
+        AGENT_STATUS=$$(gcloud run services describe agent-server --region=${_REGION} --format="value(status.conditions[0].status)" --quiet || echo "Unknown")
+        WORKROOM_STATUS=$$(gcloud run services describe workroom --region=${_REGION} --format="value(status.conditions[0].status)" --quiet || echo "Unknown")
 
         # CLEAN FINAL SUMMARY
         echo ""
@@ -320,6 +422,11 @@ steps:
         echo "🔧 SERVICES:"
         echo "   • Workroom (Frontend): $$([ "$$WORKROOM_STATUS" = "True" ] && echo "✅ Running" || echo "❌ $$WORKROOM_STATUS")"
         echo "   • Agent Server (Backend): $$([ "$$AGENT_STATUS" = "True" ] && echo "✅ Running" || echo "❌ $$AGENT_STATUS")"
+        echo ""
+        echo "🔗 SERVICE COMMUNICATION:"
+        echo "   • Public Access: $$WORKROOM_URL (Workroom frontend + API proxy)"
+        echo "   • Internal Agent-server: $$AGENT_SERVER_URL (nginx proxy target)"
+        echo "   • META endpoint: $$WORKROOM_URL/meta (served by nginx)"
         echo ""
         echo "🗄️  DATABASE:"
         echo "   • PostgreSQL: $$SQL_IP ($$SQL_STATE)"

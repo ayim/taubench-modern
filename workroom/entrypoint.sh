@@ -2,8 +2,6 @@
 
 set -e
 
-[[ -z "${META_URL}" ]] && { echo "Must specify META_URL" ; exit 1; }
-
 if [[ "$DEPLOYMENT_TYPE" == "ace" ]]; then
   cp /etc/nginx/nginx.ace.conf /etc/nginx/nginx.conf
 elif [[ "$DEPLOYMENT_TYPE" == "spar" ]]; then
@@ -13,6 +11,12 @@ else
   exit 1
 fi
 
-sed -i "s,:META_URL,${META_URL}," /etc/nginx/nginx.conf
+[[ -z "${META_URL}" ]] && { echo "Must specify META_URL" ; exit 1; }
+[[ -z "${AGENT_SERVER_URL}" ]] && { echo "Must specify AGENT_SERVER_URL" ; exit 1; }
+[[ -z "${WORKROOM_URL}" ]] && { echo "Must specify WORKROOM_URL" ; exit 1; }
 
-nginx
+sed -i "s,:META_URL,${META_URL}," /etc/nginx/nginx.conf
+sed -i "s,:AGENT_SERVER_URL,${AGENT_SERVER_URL}," /etc/nginx/nginx.conf
+sed -i "s,:WORKROOM_URL,${WORKROOM_URL}," /etc/nginx/nginx.conf
+
+exec nginx

@@ -4,6 +4,7 @@ import { Meta } from '~/lib/AgentAPIClient';
 export type AuthOptions = { bypassAuth: true } | (AuthClientOpts & { bypassAuth: undefined });
 export const getAuthOptions = async (): Promise<AuthOptions> => {
   if (import.meta.env.MODE === 'development') {
+    console.warn('This should not be invoked in prod!', { deploymentType: import.meta.env.VITE_DEPLOYMENT_TYPE });
     return Promise.resolve({
       type: import.meta.env.VITE_AUTHORIZATION_PROVIDER_TYPE as AuthClientOpts['type'],
       redirectUri: `${window.location.origin}/signin-callback`,

@@ -32,16 +32,10 @@ export default defineConfig(({ mode }) => {
   if (!env.VITE_DEV_SERVER_PORT) {
     throw new Error('Vite dev server port is required');
   }
-  if (!env.AGENT_SERVER_PORT) {
-    throw new Error('Agent server port is required');
-  }
-  if (!env.AGENT_SERVER_HOST) {
-    throw new Error('Agent server host is required');
-  }
 
   const VITE_DEV_SERVER_PORT = parseInt(env.VITE_DEV_SERVER_PORT, 10);
-  const AGENT_SERVER_PORT = parseInt(env.AGENT_SERVER_PORT, 10);
-  const AGENT_SERVER_HOST = env.AGENT_SERVER_HOST;
+  const AGENT_SERVER_URL = env.AGENT_SERVER_URL;
+  const AGENT_SERVER_URL_WS = AGENT_SERVER_URL.replace(/^https?:/i, 'ws:');
 
   const isSPAR = env.VITE_DEPLOYMENT_TYPE === 'spar';
 
@@ -54,7 +48,7 @@ export default defineConfig(({ mode }) => {
     console.log('2. Mocking the response of /tenants/spar/workroom/meta');
     console.log(`3. Mocking the response of /tenants/spar/agents/AGENT_ID/meta`);
     console.log(
-      `4. Proxing all /tenants/spar/agents calls to the locally running agent-server (http://${AGENT_SERVER_HOST}:${AGENT_SERVER_PORT}) - including websocket`,
+      `4. Proxing all /tenants/spar/agents calls to the locally running agent-server (${AGENT_SERVER_URL}) - including websocket`,
     );
     console.log('--------------------------------------------------------------');
   }
@@ -144,12 +138,12 @@ export default defineConfig(({ mode }) => {
       port: VITE_DEV_SERVER_PORT,
       proxy: {
         '/tenants/spar/agents/api/v2/': {
-          target: `http://${AGENT_SERVER_HOST}:${AGENT_SERVER_PORT}`,
+          target: AGENT_SERVER_URL,
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/tenants\/spar\/agents/, ''),
         },
         '/tenants/spar/agents/api/v2/runs/': {
-          target: `ws://${AGENT_SERVER_HOST}:${AGENT_SERVER_PORT}`,
+          target: AGENT_SERVER_URL_WS,
           changeOrigin: true,
           ws: true,
           rewrite: (path) => path.replace(/^\/tenants\/spar\/agents/, ''),
@@ -157,7 +151,7 @@ export default defineConfig(({ mode }) => {
         // This proxy currently does not work fully: the casing is different for the action servers
         // We should update the original code to preserve the casing and surface it on the regular agent API v2 path
         '^/tenants/spar/workroom/agents/([^/]+)/details$': {
-          target: `http://${AGENT_SERVER_HOST}:${AGENT_SERVER_PORT}`,
+          target: AGENT_SERVER_URL,
           changeOrigin: true,
           rewrite: (path) =>
             path.replace(/^\/tenants\/spar\/workroom\/agents\/([^/]+)\/details$/, '/api/v2/agents/$1/agent-details'),

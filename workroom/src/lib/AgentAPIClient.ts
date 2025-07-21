@@ -62,6 +62,7 @@ export class AgentAPIClient {
     }
 
     if (import.meta.env.MODE === 'development') {
+      console.warn('This should not be invoked in prod!', { deploymentType: import.meta.env.VITE_DEPLOYMENT_TYPE });
       return {
         deploymentType: import.meta.env.VITE_DEPLOYMENT_TYPE,
         realm: import.meta.env.VITE_DEV_OIDC_REALM,

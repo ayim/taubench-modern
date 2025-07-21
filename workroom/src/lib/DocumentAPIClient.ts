@@ -11,10 +11,7 @@ import { AgentAPIClient } from './AgentAPIClient';
 import { errorToast, successToast } from '~/utils/toasts';
 import { SortDirection } from '@sema4ai/components';
 
-export const getDocumentAPIClient = (
-  tenantId: string,
-  agentAPIClient: AgentAPIClient,
-): DocumentAPI => ({
+export const getDocumentAPIClient = (tenantId: string, agentAPIClient: AgentAPIClient): DocumentAPI => ({
   getDocumentTypesList: async () => {
     return agentAPIClient.docIntelliFetch(
       tenantId,
@@ -31,8 +28,8 @@ export const getDocumentAPIClient = (
     showLastNDays: number,
     docNameOrFormatNamePattern?: string,
     is_training?: boolean,
-    sortBy?: sortByType, 
-    sortOrder?: SortDirection
+    sortBy?: sortByType,
+    sortOrder?: SortDirection,
   ) => {
     return agentAPIClient.docIntelliFetch(
       tenantId,
@@ -49,7 +46,7 @@ export const getDocumentAPIClient = (
             pageSize,
             is_training,
             sort_by: sortBy,
-            sort_order: sortOrder
+            sort_order: sortOrder,
           },
         },
       },
@@ -106,10 +103,7 @@ export const getDocumentAPIClient = (
       { params: { path: { documentTypeName: document_type_name, workspaceId: tenantId } } },
     );
   },
-  updateDocTypeConfigurations: async (
-    document_type_name: string,
-    configuration: DocTypeConfiguration,
-  ) => {
+  updateDocTypeConfigurations: async (document_type_name: string, configuration: DocTypeConfiguration) => {
     return agentAPIClient.docIntelliFetch(
       tenantId,
       'post',
@@ -156,11 +150,7 @@ export const getDocumentAPIClient = (
       },
     );
   },
-  updateTrainingDoc: async (
-    document_type_name: string,
-    document_class_name: string,
-    training_doc,
-  ) => {
+  updateTrainingDoc: async (document_type_name: string, document_class_name: string, training_doc) => {
     return agentAPIClient.docIntelliFetch(
       tenantId,
       'post',
@@ -198,11 +188,7 @@ export const getDocumentAPIClient = (
       },
     );
   },
-  documentAction: async (
-    documentTypeName: string,
-    documentFormatName: string,
-    action: ActionType,
-  ) => {
+  documentAction: async (documentTypeName: string, documentFormatName: string, action: ActionType) => {
     return agentAPIClient.docIntelliFetch(
       tenantId,
       'post',
@@ -389,13 +375,22 @@ export const getDocumentAPIClient = (
     );
   },
   getLLMDebuggingResult: async (document_type_name, document_class_name, document_id) => {
-    return agentAPIClient.docIntelliFetch(tenantId, 'get', '/api/v1/document-intelligence/workspace-id/{workspaceId}/document-types/{documentTypeName}/document-format/{documentFormatName}/document-work-item/{documentId}/llm-service/debug-extraction', {
-      params: {
-        path: { workspaceId: tenantId, documentFormatName: document_class_name, documentTypeName: document_type_name, documentId: document_id },
+    return agentAPIClient.docIntelliFetch(
+      tenantId,
+      'get',
+      '/api/v1/document-intelligence/workspace-id/{workspaceId}/document-types/{documentTypeName}/document-format/{documentFormatName}/document-work-item/{documentId}/llm-service/debug-extraction',
+      {
+        params: {
+          path: {
+            workspaceId: tenantId,
+            documentFormatName: document_class_name,
+            documentTypeName: document_type_name,
+            documentId: document_id,
+          },
+        },
+        errorMsg: 'Failed to get LLM Debugging result',
       },
-      errorMsg: 'Failed to get LLM Debugging result',
-    });
-
+    );
   },
 
   onSuccess: (message: string) => successToast(message),

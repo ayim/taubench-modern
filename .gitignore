@@ -32,7 +32,7 @@ downloads/
 eggs/
 .eggs/
 lib/
-!workroom/lib/
+!workroom/src/lib/
 lib64/
 parts/
 sdist/

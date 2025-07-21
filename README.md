@@ -138,7 +138,7 @@ See [docs/development-guide.md](docs/development-guide.md) for more information 
 
 ### Developing with Workroom
 
-##### Requirements
+#### Requirements
 
 1. _To develop with the Workroom application, you must have NPM setup locally in that you have valid authentication with which to use to install packages needed by Workroom and associated dependencies. You should have a `~/.npmrc` file with the following structure:_
 
@@ -153,7 +153,7 @@ See [docs/development-guide.md](docs/development-guide.md) for more information 
 
 #### Running the full stack with hot reloading
 
-Make sure to `npm install` within `./workroom` before running in hot-reload mode. The docker container mounts the `node_modules` directory so as to include potentially npm-linked dependencies.
+Make sure to `npm install` within `./workroom` before running in hot-reload mode.
 
 In one terminal:
 
@@ -170,6 +170,8 @@ docker compose up --build
 # Agent Server available on http://localhost:8000
 # Work Room available on http://localhost:8001
 ```
+
+_You can also run a production build of workroom within docker, omitting the `npm run dev` command, by executing just `docker compose --profile production up`._
 
 #### Known limitations
 
@@ -239,5 +241,5 @@ Networking and other issues
 ```sh
 docker compose down --remove-orphans
 docker network prune
-docker compose --profile hot up --build --force-recreate
+docker compose --profile production up --build --force-recreate
 ```

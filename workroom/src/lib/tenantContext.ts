@@ -3,8 +3,7 @@ import { operations } from '@sema4ai/workroom-interface';
 import { Meta } from './AgentAPIClient';
 
 export const TenantContext = createContext<
-  operations['getWorkroomMeta']['responses'][200]['content']['application/json'] &
-    Pick<Meta, 'branding'>
+  operations['getWorkroomMeta']['responses'][200]['content']['application/json'] & Pick<Meta, 'branding'>
 >({
   features: {
     documentIntelligence: {
@@ -18,7 +17,7 @@ export const TenantContext = createContext<
     agentDetails: {
       enabled: false,
       reason: '',
-    }
+    },
   },
 });
 
