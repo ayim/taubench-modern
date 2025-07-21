@@ -13,7 +13,6 @@ router.include_router(
     tags=["agents"],
 )
 
-# TODO: move all the endpoints under the actual public API folder on a later date
 router.include_router(
     work_items_router,
     prefix="/work-items",

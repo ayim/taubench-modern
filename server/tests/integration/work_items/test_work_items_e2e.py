@@ -186,3 +186,13 @@ async def test_work_items_e2e(  # noqa: PLR0915
             assert final_desc_resp.status_code == 200
             assert final_desc_resp.json()["work_item_id"] == work_item_id
             assert final_desc_resp.json()["status"] == final_status.value
+
+        # Make sure the private v2 work-items endpoint is working:
+        async with AsyncClient(
+            base_url=f"{base_url_agent_server_workitems_matrix}/api/v2"
+        ) as client:
+            v2_list_resp = await client.get("/work-items/")
+            assert v2_list_resp.status_code == 200
+            v2_listed_items = v2_list_resp.json()
+            v2_work_item_ids = [wi["work_item_id"] for wi in v2_listed_items]
+            assert work_item_id in v2_work_item_ids
