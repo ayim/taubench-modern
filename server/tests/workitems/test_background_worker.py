@@ -544,3 +544,259 @@ class TestBackgroundWorker:
             ):
                 result = await bw._validate_success(item)
                 assert result == WorkItemStatus.INDETERMINATE, f"Failed for text: '{invalid_text}'"
+
+    # --------------------------------------------------
+    # Thread creation and file handling tests
+    # --------------------------------------------------
+    @pytest.mark.asyncio
+    async def test_thread_created_with_system_user_ownership(
+        self, configured_storage, stub_user, seed_agents, stub_validate_work_item_result
+    ):
+        """Test that when a work item is processed,
+        the thread is created with system user ownership."""
+        from unittest.mock import AsyncMock, patch
+
+        item = _make_work_item(stub_user.user_id, seed_agents[0].agent_id)
+        await configured_storage.create_work_item(item)
+
+        # Track the calls to upsert_thread to verify system user ownership
+        original_upsert_thread = configured_storage.upsert_thread
+        upsert_calls = []
+
+        async def track_upsert_thread(user_id, thread):
+            upsert_calls.append({"user_id": user_id, "thread": thread})
+            return await original_upsert_thread(user_id, thread)
+
+        # Mock agent server calls since we don't want to actually invoke the agent
+        with (
+            patch.object(configured_storage, "upsert_thread", side_effect=track_upsert_thread),
+            patch("agent_platform.server.work_items.background_worker.async_run") as mock_async_run,
+            patch(
+                "agent_platform.server.work_items.background_worker.get_run_status"
+            ) as mock_get_status,
+        ):
+            # Mock successful agent execution
+            mock_async_run.return_value = AsyncMock(run_id="test-run-123")
+            mock_get_status.return_value = AsyncMock(
+                is_success=True, is_failure=False, thread_id="test-thread-123"
+            )
+
+            # Also need to mock the file retrieval to return empty list
+            configured_storage.get_workitem_files = AsyncMock(return_value=[])
+            configured_storage.update_work_item_from_thread = AsyncMock()
+
+            result = await bw.execute_work_item(item, bw.run_agent)
+            assert result is True
+
+            # Verify thread was created with system user
+            assert len(upsert_calls) == 1
+            assert upsert_calls[0]["user_id"] != stub_user.user_id  # Not the original user
+
+            # Get the system user
+            from agent_platform.server.constants import WORK_ITEMS_SYSTEM_USER_SUB
+
+            system_user, _ = await configured_storage.get_or_create_user(WORK_ITEMS_SYSTEM_USER_SUB)
+            assert upsert_calls[0]["user_id"] == system_user.user_id
+            assert upsert_calls[0]["thread"].agent_id == seed_agents[0].agent_id
+
+    @pytest.mark.asyncio
+    async def test_file_upload_messages_added_to_thread(
+        self, configured_storage, stub_user, seed_agents, stub_validate_work_item_result
+    ):
+        """Test that file upload messages are properly added to the work item during processing."""
+        from datetime import UTC, datetime
+        from unittest.mock import AsyncMock, patch
+
+        from agent_platform.core.files import UploadedFile
+
+        item = _make_work_item(stub_user.user_id, seed_agents[0].agent_id)
+        await configured_storage.create_work_item(item)
+
+        # Mock files that would be returned by storage.get_workitem_files()
+        mock_files = [
+            UploadedFile(
+                file_id="file-1",
+                file_ref="document.txt",
+                file_path="/path/to/document.txt",
+                file_hash="hash1",
+                file_size_raw=100,
+                mime_type="text/plain",
+                user_id=stub_user.user_id,
+                embedded=False,
+                agent_id=None,
+                thread_id=None,
+                work_item_id=item.work_item_id,
+                file_path_expiration=None,
+                created_at=datetime.now(UTC),
+                file_url="http://example.com/file1",
+            ),
+            UploadedFile(
+                file_id="file-2",
+                file_ref="data.csv",
+                file_path="/path/to/data.csv",
+                file_hash="hash2",
+                file_size_raw=200,
+                mime_type="text/csv",
+                user_id=stub_user.user_id,
+                embedded=False,
+                agent_id=None,
+                thread_id=None,
+                work_item_id=item.work_item_id,
+                file_path_expiration=None,
+                created_at=datetime.now(UTC),
+                file_url="http://example.com/file2",
+            ),
+        ]
+
+        # Track the payload sent to agent execution to verify file messages are included
+        stream_payloads = []
+
+        async def track_async_run(agent_id, payload, **kwargs):
+            stream_payloads.append(payload)
+            return AsyncMock(run_id="test-run-123")
+
+        # Mock agent server calls and file operations
+        with (
+            patch(
+                "agent_platform.server.work_items.background_worker.async_run",
+                side_effect=track_async_run,
+            ),
+            patch(
+                "agent_platform.server.work_items.background_worker.get_run_status"
+            ) as mock_get_status,
+        ):
+            # Mock successful agent execution
+            mock_get_status.return_value = AsyncMock(
+                is_success=True, is_failure=False, thread_id="test-thread-123"
+            )
+
+            # Mock file retrieval to return our test files
+            configured_storage.get_workitem_files = AsyncMock(return_value=mock_files)
+            configured_storage.associate_work_item_file = AsyncMock()
+            configured_storage.update_work_item_from_thread = AsyncMock()
+
+            result = await bw.execute_work_item(item, bw.run_agent)
+            assert result is True
+
+            # Verify that the agent was called with messages including file uploads
+            assert len(stream_payloads) == 1
+            payload = stream_payloads[0]
+
+            # Check that file upload messages were added to the payload messages
+            file_upload_messages = [
+                msg
+                for msg in payload.messages
+                if any(
+                    "Uploaded" in str(content)
+                    and ("document.txt" in str(content) or "data.csv" in str(content))
+                    for content in msg.content
+                )
+            ]
+            assert len(file_upload_messages) >= 2  # Two files should have upload messages
+
+            # Check that both files are referenced in the messages
+            all_message_text = " ".join(
+                [str(content) for msg in payload.messages for content in msg.content]
+            )
+            assert "document.txt" in all_message_text
+            assert "data.csv" in all_message_text
+
+    @pytest.mark.asyncio
+    async def test_work_item_thread_id_updated_after_creation(
+        self, configured_storage, stub_user, seed_agents, stub_validate_work_item_result
+    ):
+        """Test that work item thread_id is properly updated after thread creation."""
+        from unittest.mock import AsyncMock, patch
+
+        item = _make_work_item(stub_user.user_id, seed_agents[0].agent_id)
+        await configured_storage.create_work_item(item)
+
+        # Verify thread_id is initially None
+        assert item.thread_id is None
+
+        # Track the calls to upsert_thread to capture the created thread ID
+        original_upsert_thread = configured_storage.upsert_thread
+        created_threads = []
+
+        async def track_upsert_thread(user_id, thread):
+            created_threads.append({"user_id": user_id, "thread": thread})
+            return await original_upsert_thread(user_id, thread)
+
+        # Mock agent server calls
+        with (
+            patch.object(configured_storage, "upsert_thread", side_effect=track_upsert_thread),
+            patch("agent_platform.server.work_items.background_worker.async_run") as mock_async_run,
+            patch(
+                "agent_platform.server.work_items.background_worker.get_run_status"
+            ) as mock_get_status,
+        ):
+            # Mock successful agent execution
+            mock_async_run.return_value = AsyncMock(run_id="test-run-123")
+            mock_get_status.return_value = AsyncMock(
+                is_success=True, is_failure=False, thread_id="test-thread-123"
+            )
+
+            # Mock file operations
+            configured_storage.get_workitem_files = AsyncMock(return_value=[])
+            configured_storage.update_work_item_from_thread = AsyncMock()
+
+            result = await bw.execute_work_item(item, bw.run_agent)
+            assert result is True
+
+            # Verify work item was updated with the exact thread_id that was created
+            updated_item = await configured_storage.get_work_item(item.work_item_id)
+            assert updated_item.thread_id is not None
+
+            # Verify the thread_id matches the one that was actually created
+            assert len(created_threads) == 1
+            created_thread = created_threads[0]["thread"]
+            assert updated_item.thread_id == created_thread.thread_id
+
+    @pytest.mark.asyncio
+    async def test_thread_messages_copied_from_work_item(
+        self, configured_storage, stub_user, seed_agents, stub_validate_work_item_result
+    ):
+        """Test that work item messages are properly used when creating the thread."""
+        from unittest.mock import AsyncMock, patch
+
+        # Create work item with multiple messages
+        item = _make_work_item(stub_user.user_id, seed_agents[0].agent_id)
+        item.messages = [
+            ThreadUserMessage(content=[ThreadTextContent(text="First user message")]),
+            ThreadUserMessage(content=[ThreadTextContent(text="Second user message")]),
+        ]
+        await configured_storage.create_work_item(item)
+
+        # Track the calls to initiate stream to verify messages are passed
+        stream_payloads = []
+
+        async def track_async_run(agent_id, payload, **kwargs):
+            stream_payloads.append(payload)
+            return AsyncMock(run_id="test-run-123")
+
+        # Mock agent server calls
+        with (
+            patch(
+                "agent_platform.server.work_items.background_worker.async_run",
+                side_effect=track_async_run,
+            ),
+            patch(
+                "agent_platform.server.work_items.background_worker.get_run_status"
+            ) as mock_get_status,
+        ):
+            # Mock successful agent execution
+            mock_get_status.return_value = AsyncMock(
+                is_success=True, is_failure=False, thread_id="test-thread-123"
+            )
+
+            # Mock file operations
+            configured_storage.get_workitem_files = AsyncMock(return_value=[])
+            configured_storage.update_work_item_from_thread = AsyncMock()
+
+            result = await bw.execute_work_item(item, bw.run_agent)
+            assert result is True
+
+            # Verify that the agent was called with the work item messages
+            assert len(stream_payloads) == 1
+            payload = stream_payloads[0]
+            assert len(payload.messages) >= 2  # Should include at least our original messages

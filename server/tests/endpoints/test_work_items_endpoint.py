@@ -932,42 +932,58 @@ async def test_work_item_two_stage_file_upload_workflow(
     client: TestClient, seed_agents: list[Agent], file_manager_type
 ):
     """Test complete two-stage file upload workflow: request -> upload -> confirm -> process."""
-    manager_type, manager = file_manager_type
-    skip_if_local_for_remote_tests(manager_type)
 
-    # 1. Request remote upload (creates work item)
-    response = client.post("/public/v1/work-items/upload-file", data={"file": "document.pdf"})
-    assert response.status_code == 200
-    upload_data = response.json()
-    work_item_id = upload_data["work_item_id"]
+    skip_if_local_for_remote_tests(file_manager_type)
 
-    # 2. Simulate external upload (this would be done by client to cloud storage)
-    # In real workflow, client would upload to upload_data["upload_url"]
-    # with upload_data["form_data"]
+    agent = seed_agents[0]
+
+    # 1. Request remote upload (creates work item in PRECREATED state)
+    request_payload = {"file": "important-document.pdf"}
+    request_response = client.post("/public/v1/work-items/upload-file", data=request_payload)
+    assert request_response.status_code == 200
+
+    request_data = request_response.json()
+    work_item_id = request_data["work_item_id"]
+    file_id = request_data["file_id"]
+    file_ref = request_data["file_ref"]
+
+    # Verify work item is in PRECREATED state
+    get_response = client.get(f"/public/v1/work-items/{work_item_id}")
+    assert get_response.status_code == 200
+    work_item = get_response.json()
+    assert work_item["status"] == WorkItemStatus.PRECREATED.value
+    assert work_item["agent_id"] is None
+
+    # 2. Simulate cloud upload (this would normally be done by client to cloud storage)
+    # For testing purposes, we'll skip the actual upload to cloud storage
 
     # 3. Confirm the upload
-    confirm_payload = {"file_ref": upload_data["file_ref"], "file_id": upload_data["file_id"]}
-
-    response = client.post(
+    confirm_payload = {"file_ref": file_ref, "file_id": file_id}
+    confirm_response = client.post(
         f"/public/v1/work-items/{work_item_id}/confirm-file", json=confirm_payload
     )
-    assert response.status_code == 200
+    assert confirm_response.status_code == 200
+    confirm_data = confirm_response.json()
+    assert confirm_data["work_item_id"] == work_item_id
 
     # 4. Convert work item to PENDING by adding agent and messages
-    payload = {
-        "agent_id": seed_agents[0].agent_id,
+    create_payload = {
+        "agent_id": agent.agent_id,
         "messages": [
-            {"role": "user", "content": [{"kind": "text", "text": "Process this document"}]}
+            {
+                "role": "user",
+                "content": [{"kind": "text", "text": "Analyze the uploaded document"}],
+            }
         ],
-        "payload": {"task": "document_processing"},
+        "payload": {"task": "document_analysis"},
         "work_item_id": work_item_id,
     }
 
-    response = client.post("/public/v1/work-items/", json=payload)
-    assert response.status_code == 200
-    work_item = response.json()
+    create_response = client.post("/public/v1/work-items/", json=create_payload)
+    assert create_response.status_code == 200
+    work_item = create_response.json()
 
-    # Verify work item has agent and is PENDING
-    assert work_item["agent_id"] == seed_agents[0].agent_id
+    # Verify work item is now PENDING with agent
     assert work_item["status"] == WorkItemStatus.PENDING.value
+    assert work_item["agent_id"] == agent.agent_id
     assert work_item["work_item_id"] == work_item_id
