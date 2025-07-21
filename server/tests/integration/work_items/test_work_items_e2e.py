@@ -6,6 +6,7 @@ from httpx import AsyncClient
 
 from agent_platform.core.work_items.work_item import WorkItemStatus
 from agent_platform.server.work_items.callbacks import _compute_signature
+from agent_platform.server.work_items.rest import WorkItemsListResponse
 from server.tests.integration.work_items.helper_functions import (
     _wait_until,
     assert_work_item_url,
@@ -176,8 +177,8 @@ async def test_work_items_e2e(  # noqa: PLR0915
             # 7. Final endpoint verification - ensure we can still query the completed work item
             final_list_resp = await client.get("/")
             assert final_list_resp.status_code == 200
-            final_listed_items = final_list_resp.json()
-            final_work_item_ids = [wi["work_item_id"] for wi in final_listed_items]
+            final_listed_items = WorkItemsListResponse.model_validate(final_list_resp.json())
+            final_work_item_ids = [wi.work_item_id for wi in final_listed_items.records]
             assert work_item_id in final_work_item_ids
 
             # 8. Verify final describe still works

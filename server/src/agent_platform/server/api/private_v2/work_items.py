@@ -17,6 +17,7 @@ from agent_platform.server.api.private_v2.threads import (
 )
 from agent_platform.server.auth import AuthedUser
 from agent_platform.server.constants import WORK_ITEMS_SYSTEM_USER_SUB, SystemConfig
+from agent_platform.server.work_items.rest import WorkItemsListResponse
 from agent_platform.server.work_items.state_machine import WorkItemStateMachine
 
 
@@ -239,7 +240,7 @@ async def upload_work_item_file(
     }
 
 
-@router.get("/", response_model=list[WorkItem])
+@router.get("/", response_model=WorkItemsListResponse)
 async def list_work_items(
     user: AuthedUser,
     storage: StorageDependency,
@@ -247,12 +248,22 @@ async def list_work_items(
         None,
         description="The ID of the agent to filter by",
     ),
-    limit: int = Query(100, description="The maximum number of work items to return"),
-) -> list[WorkItem]:
-    work_items = await storage.list_work_items(user.user_id, agent_id=agent_id, limit=limit)
+    limit: int = Query(100, ge=1, description="The maximum number of work items to return"),
+    offset: int = Query(0, ge=0, description="The offset to start from"),
+) -> WorkItemsListResponse:
+    work_items = await storage.list_work_items(
+        user.user_id, agent_id=agent_id, limit=limit, offset=offset
+    )
     for work_item in work_items:
         work_item.messages = []
-    return work_items
+
+    # if we have fewer than the limit, we have no more work items to fetch
+    if len(work_items) < limit:
+        next_offset = None
+    else:
+        next_offset = offset + limit
+
+    return WorkItemsListResponse(records=work_items, next_offset=next_offset)
 
 
 @router.post("/{work_item_id}/continue", response_model=WorkItem)

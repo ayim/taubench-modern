@@ -122,6 +122,7 @@ class PostgresStorageWorkItemsMixin(CommonMixin):
         user_id: str,
         agent_id: str | None = None,
         limit: int = 100,
+        offset: int = 0,
     ) -> list[WorkItem]:
         """List work-items accessible to *user_id* (optionally filtered by agent)."""
         self._validate_uuid(user_id)
@@ -141,7 +142,10 @@ class PostgresStorageWorkItemsMixin(CommonMixin):
             "agent_id": agent_id or sentinel_agent_uuid,
             # Extra flag so the OR condition knows whether to apply the filter.
             "agent_filter_on": agent_id is not None,
+            # Limit to N rows
             "limit": limit,
+            # ... starting from the Mth row
+            "offset": offset,
         }
 
         query = """
@@ -151,6 +155,7 @@ class PostgresStorageWorkItemsMixin(CommonMixin):
                AND (%(agent_filter_on)s = FALSE OR w.agent_id = %(agent_id)s::uuid)
              ORDER BY w.created_at
              LIMIT %(limit)s
+            OFFSET %(offset)s
         """
 
         async with self._cursor() as cur:

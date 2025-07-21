@@ -13,6 +13,7 @@ from agent_platform.server.file_manager import (
     FileManagerService,
 )
 from agent_platform.server.storage.option import StorageService
+from agent_platform.server.work_items.rest import WorkItemsListResponse
 
 
 @pytest.fixture(autouse=True)
@@ -215,26 +216,29 @@ async def test_list_work_items(client: TestClient, seed_agents: list[Agent]):
     response = client.get("/public/v1/work-items/")
 
     assert response.status_code == 200
-    data = response.json()
+    data = WorkItemsListResponse.model_validate(response.json())
 
-    assert isinstance(data, list)
-    assert len(data) == 3
+    assert isinstance(data.records, list)
+    assert len(data.records) == 3
 
     # Check that our created items are in the list
-    work_item_ids = {item["work_item_id"] for item in data}
+    work_item_ids = {item.work_item_id for item in data.records}
     created_work_item_ids = {item["work_item_id"] for item in created_work_items}
 
     for work_item_id in created_work_item_ids:
         assert work_item_id in work_item_ids
 
     # Check that items returned from list endpoint have empty messages
-    for listed_work_item in data:
-        assert listed_work_item["messages"] == []
+    for listed_work_item in data.records:
+        assert listed_work_item.messages == []
 
 
 @pytest.mark.asyncio
-async def test_list_work_items_with_limit(client: TestClient, seed_agents: list[Agent]):
-    """Test listing work items with limit parameter."""
+async def test_list_work_items_with_invalid_pagination(
+    client: TestClient,
+    seed_agents: list[Agent],
+):
+    """Test listing work items with invalid limit parameter."""
     # Create 5 work items
     for _ in range(5):
         create_payload = {
@@ -246,18 +250,60 @@ async def test_list_work_items_with_limit(client: TestClient, seed_agents: list[
         create_response = client.post("/public/v1/work-items/", json=create_payload)
         assert create_response.status_code == 200
 
-    # List with limit=2
+    # Must expect at least one row
+    response = client.get("/public/v1/work-items/?limit=0&offset=2")
+    assert response.status_code == 422
+
+    # Cannot have negative offset
+    response = client.get("/public/v1/work-items/?limit=2&offset=-1")
+    assert response.status_code == 422
+
+    # Cannot have negative limit
+    response = client.get("/public/v1/work-items/?limit=-1&offset=2")
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_list_work_items_with_pagination(client: TestClient, seed_agents: list[Agent]):
+    """Test listing work items with limit/offset parameters."""
+    actual = []
+    # Create 5 work items
+    for _ in range(5):
+        create_payload = {
+            "agent_id": seed_agents[0].agent_id,
+            "messages": [],
+            "payload": {},
+        }
+
+        create_response = client.post("/public/v1/work-items/", json=create_payload)
+        assert create_response.status_code == 200
+        actual.append(create_response.json()["work_item_id"])
+
+    # List with limit=2 (implicit, offset=0)
     response = client.get("/public/v1/work-items/?limit=2")
 
     assert response.status_code == 200
-    data = response.json()
+    data = WorkItemsListResponse.model_validate(response.json())
+    assert len(data.records) == 2
+    assert data.records[0].work_item_id == actual[0]
+    assert data.records[1].work_item_id == actual[1]
+    assert data.next_offset == 2
 
-    assert isinstance(data, list)
-    assert len(data) == 2
+    response = client.get("/public/v1/work-items/?limit=2&offset=2")
 
-    # Check that items returned from list endpoint have empty messages
-    for listed_work_item in data:
-        assert listed_work_item["messages"] == []
+    assert response.status_code == 200
+    data = WorkItemsListResponse.model_validate(response.json())
+    assert len(data.records) == 2
+    assert data.records[0].work_item_id == actual[2]
+    assert data.records[1].work_item_id == actual[3]
+    assert data.next_offset == 4
+
+    response = client.get("/public/v1/work-items/?limit=2&offset=4")
+    assert response.status_code == 200
+    data = WorkItemsListResponse.model_validate(response.json())
+    assert len(data.records) == 1
+    assert data.records[0].work_item_id == actual[4]
+    assert data.next_offset is None
 
 
 @pytest.mark.asyncio
@@ -330,13 +376,13 @@ async def test_full_workflow(client: TestClient, seed_agents: list[Agent]):
     # 3. List (should contain our item)
     list_response = client.get("/public/v1/work-items/")
     assert list_response.status_code == 200
-    items = list_response.json()
-    item_ids = [item["work_item_id"] for item in items]
+    items = WorkItemsListResponse.model_validate(list_response.json())
+    item_ids = [item.work_item_id for item in items.records]
     assert work_item_id in item_ids
 
     # Check that items returned from list endpoint have empty messages
-    for listed_work_item in items:
-        assert listed_work_item["messages"] == []
+    for listed_work_item in items.records:
+        assert listed_work_item.messages == []
 
     # 4. Cancel
     cancel_response = client.post(f"/public/v1/work-items/{work_item_id}/cancel")
@@ -567,21 +613,21 @@ async def test_create_describe_and_list_work_item_with_callback(
     # Test list endpoint includes callbacks
     list_response = client.get("/public/v1/work-items/")
     assert list_response.status_code == 200
-    work_items = list_response.json()
+    work_items = WorkItemsListResponse.model_validate(list_response.json())
 
     # Find our work item in the list
     target_work_item = None
-    for item in work_items:
-        if item["work_item_id"] == work_item_id:
+    for item in work_items.records:
+        if item.work_item_id == work_item_id:
             target_work_item = item
             break
 
     assert target_work_item is not None
-    assert len(target_work_item["callbacks"]) == 1
-    listed_callback = target_work_item["callbacks"][0]
-    assert listed_callback["url"] == "https://example.com/webhook"
-    assert listed_callback["signature_secret"] == "secret123"
-    assert listed_callback["on_status"] == "NEEDS_REVIEW"
+    assert len(target_work_item.callbacks) == 1
+    listed_callback = target_work_item.callbacks[0]
+    assert listed_callback.url == "https://example.com/webhook"
+    assert listed_callback.signature_secret == "secret123"
+    assert listed_callback.on_status == "NEEDS_REVIEW"
 
 
 @pytest.mark.asyncio

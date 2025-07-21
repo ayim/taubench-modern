@@ -452,10 +452,7 @@ class BaseStorage(ABC):
 
     @abstractmethod
     async def list_work_items(
-        self,
-        user_id: str,
-        agent_id: str | None = None,
-        limit: int = 100,
+        self, user_id: str, agent_id: str | None = None, limit: int = 100, offset: int = 0
     ) -> list[WorkItem]:
         """List all work items for the given user and agent."""
         pass

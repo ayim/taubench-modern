@@ -98,6 +98,7 @@ class SQLiteStorageWorkItemsMixin(CommonMixin):
         user_id: str,
         agent_id: str | None = None,
         limit: int = 100,
+        offset: int = 0,
     ) -> list[WorkItem]:
         """List all work items accessible to *user_id*. If *agent_id* is
         provided, the list is further filtered to that agent."""
@@ -110,6 +111,7 @@ class SQLiteStorageWorkItemsMixin(CommonMixin):
             "user_id": user_id,
             "agent_id": agent_id,
             "limit": str(limit),
+            "offset": str(offset),
         }
 
         query = """
@@ -119,6 +121,7 @@ class SQLiteStorageWorkItemsMixin(CommonMixin):
                AND (:agent_id IS NULL OR w.agent_id = :agent_id)
              ORDER BY w.created_at
              LIMIT :limit
+            OFFSET :offset
         """
 
         async with self._cursor() as cur:
