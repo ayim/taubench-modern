@@ -1,6 +1,9 @@
 package common
 
 import (
+	"encoding/json"
+	"path"
+
 	AgentServer "github.com/Sema4AI/agent-platform/client-sdks/golang/agent-client-go/pkg/client"
 )
 
@@ -132,6 +135,37 @@ func (s SpecMcpServerVariable) MarshalYAML() (interface{}, error) {
 	}, nil
 }
 
+// UnmarshalJSON implements custom unmarshaling for McpServerVariable
+func (s *SpecMcpServerVariable) UnmarshalJSON(data []byte) error {
+	// Try to unmarshal as a string (scalar value)
+	var scalarValue string
+	if err := json.Unmarshal(data, &scalarValue); err == nil {
+		*s = SpecMcpServerVariable{
+			Value: &scalarValue,
+		}
+		return nil
+	}
+	// Otherwise, unmarshal as an object
+	type Alias SpecMcpServerVariable
+	var obj Alias
+	if err := json.Unmarshal(data, &obj); err != nil {
+		return err
+	}
+	*s = SpecMcpServerVariable(obj)
+	return nil
+}
+
+// MarshalJSON implements custom marshaling for McpServerVariable
+func (s SpecMcpServerVariable) MarshalJSON() ([]byte, error) {
+	// If this is a simple string variable (Type=="string", no description/provider/scopes, only Default set), marshal as string
+	if s.HasRawValue() {
+		return json.Marshal(s.Value)
+	}
+	// Otherwise, marshal as an object
+	type Alias SpecMcpServerVariable
+	return json.Marshal(Alias(s))
+}
+
 // HasRawValue checks to see if Value should be treated as raw string and not object
 func (s SpecMcpServerVariable) HasRawValue() bool {
 	return s.Type == "" && s.Provider == "" && s.Description == "" && s.Default == "" && len(s.Scopes) == 0
@@ -173,7 +207,18 @@ type SpecAgent struct {
 	Metadata            AgentServer.AgentMetadata     `yaml:"metadata" json:"metadata"`
 }
 
-func (a *SpecAgent) IsEqual(deployed *AgentServer.Agent) (bool, AgentChanges) {
+func (a *SpecAgent) IsEqual(ap *AgentProject, deployed *AgentServer.Agent) (bool, AgentChanges) {
+	// Calculate the path to the conversation guide file
+	if ap == nil || deployed == nil {
+		return false, AgentChanges{}
+	}
+	conversationGuidePath := path.Join(ap.Path, a.ConversationGuide)
+	if a.ConversationGuide == "" {
+		// If the conversation guide is not set, we consider it as equal to the empty string.
+		conversationGuidePath = ""
+	}
+
+	// Map of changes to check
 	changesMap := map[string]bool{
 		"name":        a.Name == deployed.Name,
 		"description": a.Description == deployed.Description,
@@ -184,7 +229,7 @@ func (a *SpecAgent) IsEqual(deployed *AgentServer.Agent) (bool, AgentChanges) {
 		"architecture":        a.Architecture == deployed.AdvancedConfig.Architecture,
 		"reasoning":           a.Reasoning == deployed.AdvancedConfig.Reasoning,
 		"runbook":             a.Runbook == deployed.Runbook,
-		"conversationGuide":   IsConversationGuideEqual(a.ConversationGuide, deployed.QuestionGroups),
+		"conversationGuide":   IsConversationGuideEqual(conversationGuidePath, deployed.QuestionGroups),
 		"conversationStarter": a.ConversationStarter == deployed.Extra.ConversationStarter, // TODO: change this when ConversationStarter is added to top level Agent struct
 		"welcomeMessage":      a.WelcomeMessage == deployed.Extra.WelcomeMessage,           // TODO: change this when WelcomeMessage is added to top level Agent struct
 		"metadata":            IsAgentMetadataEqual(a.Metadata, deployed.Metadata),
@@ -192,6 +237,7 @@ func (a *SpecAgent) IsEqual(deployed *AgentServer.Agent) (bool, AgentChanges) {
 		"mcpServers":          AreMcpServersEqual(a.McpServers, deployed.McpServers),
 	}
 
+	// Collect the changes
 	changes := AgentChanges{}
 	for key, synced := range changesMap {
 		if !synced {

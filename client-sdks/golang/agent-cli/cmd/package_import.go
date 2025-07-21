@@ -197,7 +197,6 @@ func createOrUpdateAgent(
 	var agent *AgentServer.Agent
 	if existingAgentID != "" {
 		pretty.LogIfVerbose("[createOrUpdateAgent] found existing agent. will update: %s", payload.Name)
-		pretty.LogIfVerbose("[createOrUpdateAgent] payload: %+v", payload)
 		agent, err = client.UpdateAgent(existingAgentID, payload)
 		if err != nil {
 			return nil, fmt.Errorf("failed to update agent: %w", err)

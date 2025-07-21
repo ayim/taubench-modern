@@ -23,9 +23,9 @@ type AgentPackageMetadata struct {
 	Reasoning           AgentServer.AgentReasoning          `json:"reasoning"`
 	Knowledge           []AgentPackageMetadataKnowledge     `json:"knowledge"`
 	Datasources         []AgentPackageDatasource            `json:"datasources"`
-	QuestionGroups      AgentServer.QuestionGroups          `json:"question_groups"`
-	ConversationStarter string                              `json:"conversation_starter"`
-	WelcomeMessage      string                              `json:"welcome_message"`
+	QuestionGroups      AgentServer.QuestionGroups          `json:"question_groups,omitempty"`
+	ConversationStarter string                              `json:"conversation_starter,omitempty"`
+	WelcomeMessage      string                              `json:"welcome_message,omitempty"`
 	Metadata            AgentServer.AgentMetadata           `json:"metadata"`
 	ActionPackages      []AgentPackageActionPackageMetadata `json:"action_packages"`
 	McpServers          []AgentPackageMcpServer             `json:"mcp_servers,omitempty"`

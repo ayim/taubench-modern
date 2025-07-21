@@ -76,7 +76,9 @@ func (s *McpServerVariable) UnmarshalJSON(data []byte) error {
 	// Try to unmarshal as a string (scalar value)
 	var scalarValue string
 	if err := json.Unmarshal(data, &scalarValue); err == nil {
-		s.Value = &scalarValue
+		*s = McpServerVariable{
+			Value: &scalarValue,
+		}
 		return nil
 	}
 	// Otherwise, unmarshal as an object
@@ -223,9 +225,9 @@ type AgentPayload struct {
 	Version        string               `json:"version"`
 	Runbook        string               `json:"runbook"`
 	Model          AgentModel           `json:"model"`
-	AdvancedConfig AgentAdvancedConfig  `json:"advanced_config"`
+	AdvancedConfig AgentAdvancedConfig  `json:"advanced_config,omitempty"`
 	ActionPackages []AgentActionPackage `json:"action_packages"`
-	McpServers     []McpServer          `json:"mcp_servers"`
+	McpServers     []McpServer          `json:"mcp_servers,omitempty"`
 	QuestionGroups QuestionGroups       `json:"question_groups,omitempty"`
 	Metadata       AgentMetadata        `json:"metadata,omitempty"` // TODO: remove this as Metadata is deprecated
 	Extra          AgentExtra           `json:"extra,omitempty"`

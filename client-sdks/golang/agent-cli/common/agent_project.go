@@ -151,7 +151,7 @@ func (ap *AgentProject) GetNotSynchronizedActionPackages(deployedAgent *AgentSer
 }
 
 func (ap *AgentProject) ApplySynchronizationStatus(deployedAgent *AgentServer.Agent) error {
-	isEqual, agentChanges := ap.Agent.IsEqual(deployedAgent)
+	isEqual, agentChanges := ap.Agent.IsEqual(ap, deployedAgent)
 	notSynchronizedActionPackages, err := ap.GetNotSynchronizedActionPackages(deployedAgent)
 	if err != nil {
 		return err

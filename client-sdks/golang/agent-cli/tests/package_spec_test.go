@@ -680,7 +680,7 @@ func TestSpecAgentIsEqual(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			eq, changes := tt.spec.IsEqual(&tt.deployed)
+			eq, changes := tt.spec.IsEqual(&common.AgentProject{}, &tt.deployed)
 			assert.Equal(t, tt.expectEq, eq)
 			if tt.expectCh != nil {
 				assert.ElementsMatch(t, tt.expectCh, changes)

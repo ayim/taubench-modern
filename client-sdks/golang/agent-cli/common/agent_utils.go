@@ -121,7 +121,8 @@ func isMcpServerEqual(local *SpecMcpServer, deployed *AgentServer.McpServer) boo
 	if local.Name != deployed.Name {
 		return false
 	}
-	if string(local.Transport) != string(deployed.Transport) {
+	// If the transport is auto, we consider it as equal to the other transport.
+	if string(local.Transport) != string(deployed.Transport) && local.Transport != "auto" && deployed.Transport != "auto" {
 		return false
 	}
 	if local.Description != deployed.Description {
@@ -187,7 +188,6 @@ func isMcpServerVariableEqual(local *SpecMcpServerVariable, deployed *AgentServe
 			return false
 		}
 	}
-
 	if string(local.Type) != string(deployed.Type) {
 		return false
 	}

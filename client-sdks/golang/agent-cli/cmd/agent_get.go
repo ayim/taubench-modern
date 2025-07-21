@@ -160,8 +160,8 @@ func getDeployedAgents(serverURL string) ([]*AgentServer.Agent, error) {
 	return result, nil
 }
 
-// checkAgentsSynchronization checks the synchronization status of the agent projects and the deployed agents.
-func checkAgentsSynchronization(agentProjects []*common.AgentProject, deployedAgents []*AgentServer.Agent) error {
+// CheckAgentsSynchronization checks the synchronization status of the agent projects and the deployed agents.
+func CheckAgentsSynchronization(agentProjects []*common.AgentProject, deployedAgents []*AgentServer.Agent) error {
 	wg := sync.WaitGroup{}
 	var synchronizationErrors []error
 
@@ -220,7 +220,7 @@ func getAgents() error {
 
 	output.Project = append(output.Project, agentProjects...)
 
-	err = checkAgentsSynchronization(agentProjects, deployedAgents)
+	err = CheckAgentsSynchronization(agentProjects, deployedAgents)
 	if err != nil {
 		return fmt.Errorf("failed to check agents synchronization: %w", err)
 	}
