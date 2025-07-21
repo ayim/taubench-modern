@@ -21,6 +21,8 @@ class PostgresStorageWorkItemsMixin(CommonMixin):
     # ------------------------------------------------------------------
     def _convert_work_item_json_fields(self, item_dict: dict) -> dict:
         """Convert JSON string columns to Python objects if needed."""
+        if "initial_messages" in item_dict and isinstance(item_dict["initial_messages"], str):
+            item_dict["initial_messages"] = json.loads(item_dict["initial_messages"])
         if "messages" in item_dict and isinstance(item_dict["messages"], str):
             item_dict["messages"] = json.loads(item_dict["messages"])
         if "payload" in item_dict and isinstance(item_dict["payload"], str):
@@ -44,6 +46,7 @@ class PostgresStorageWorkItemsMixin(CommonMixin):
             self._validate_uuid(work_item.thread_id)
 
         work_item_dict = work_item.model_dump()
+        work_item_dict["initial_messages"] = Jsonb(work_item_dict["initial_messages"])
         work_item_dict["messages"] = Jsonb(work_item_dict["messages"])
         work_item_dict["payload"] = Jsonb(work_item_dict["payload"])
         work_item_dict["callbacks"] = Jsonb(work_item_dict["callbacks"])
@@ -56,13 +59,13 @@ class PostgresStorageWorkItemsMixin(CommonMixin):
                         work_item_id, user_id, agent_id, thread_id, status,
                         created_at, updated_at, completed_by,
                         status_updated_at, status_updated_by,
-                        messages, payload, callbacks
+                        messages, payload, callbacks, initial_messages
                     ) VALUES (
                         %(work_item_id)s::uuid, %(user_id)s::uuid,
                         %(agent_id)s::uuid, %(thread_id)s::uuid, %(status)s,
                         %(created_at)s, %(updated_at)s, %(completed_by)s,
                         %(status_updated_at)s, %(status_updated_by)s,
-                        %(messages)s, %(payload)s, %(callbacks)s
+                        %(messages)s, %(payload)s, %(callbacks)s, %(initial_messages)s
                     )
                     """,
                     work_item_dict,
@@ -295,6 +298,12 @@ class PostgresStorageWorkItemsMixin(CommonMixin):
         # Convert work item to dict
         work_item_data = work_item.model_dump()
 
+        work_item_data["initial_messages"] = (
+            Jsonb([msg.model_dump() for msg in work_item.initial_messages])
+            if work_item.initial_messages
+            else Jsonb([])
+        )
+
         # Convert messages, payload, and callbacks to Jsonb
         work_item_data["messages"] = (
             Jsonb([msg.model_dump() for msg in work_item.messages])
@@ -314,6 +323,7 @@ class PostgresStorageWorkItemsMixin(CommonMixin):
                 UPDATE v2.work_items
                    SET agent_id = %(agent_id)s,
                        thread_id = %(thread_id)s,
+                       initial_messages = %(initial_messages)s,
                        messages = %(messages)s,
                        payload = %(payload)s,
                        callbacks = %(callbacks)s,

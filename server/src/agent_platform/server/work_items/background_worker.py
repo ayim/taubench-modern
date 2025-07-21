@@ -190,13 +190,15 @@ async def run_agent(item: WorkItem) -> bool:
     item.thread_id = thread.thread_id
     await storage.update_work_item(item)
 
-    # copy all work item files to the thread, but don't create new file_id's in the process.
+    # Next: build up the user-messages in the thread. The work_item will already have
+    # `messages` filled out now. We need to add in corresponding messages for each file.
     files = await storage.get_workitem_files(
         work_item_id=item.work_item_id,
         user_id=system_user.user_id,
     )
     for file in files:
         # TODO maybe add bulk method to do all associations at once?
+        # Don't create new file_ids while we associate these files with the work item.
         await storage.associate_work_item_file(
             file_id=file.file_id,
             work_item=item,

@@ -228,6 +228,12 @@ class WorkItem:
     )
     """The ID of the user who last updated the work item status."""
 
+    initial_messages: list[ThreadMessage] = field(
+        default_factory=list,
+        metadata={"description": "The initial conversation messages for this work item"},
+    )
+    """The original messages in the work item conversation."""
+
     messages: list[ThreadMessage] = field(
         default_factory=list,
         metadata={"description": "The messages in the work item conversation"},
@@ -258,6 +264,7 @@ class WorkItem:
             "completed_by": self.completed_by,
             "status_updated_at": self.status_updated_at.isoformat(),
             "status_updated_by": self.status_updated_by,
+            "initial_messages": [msg.model_dump() for msg in self.initial_messages],
             "messages": [msg.model_dump() for msg in self.messages],
             "payload": self.payload,
             "callbacks": [callback.model_dump() for callback in self.callbacks],
@@ -310,5 +317,26 @@ class WorkItem:
                 else callback
                 for callback in data["callbacks"]
             ]
+        if "initial_messages" in data and data["initial_messages"] is not None:
+            data["initial_messages"] = [
+                ThreadMessage.model_validate(msg) if isinstance(msg, dict) else msg
+                for msg in data["initial_messages"]
+            ]
 
         return cls(**data)
+
+    def restart(self, user_id: str) -> None:
+        """
+        Restart the work item.
+
+        This will reset the work item to the initial state,
+        but keep the starting message(s).
+        """
+        self.status = WorkItemStatus.PENDING
+        self.thread_id = None
+        # Make sure the ThreadMessages get a new ID
+        self.messages = [msg.copy_with_new_ids() for msg in self.initial_messages]
+        self.updated_at = datetime.now(UTC)
+        self.status_updated_at = datetime.now(UTC)
+        self.status_updated_by = user_id
+        self.completed_by = None

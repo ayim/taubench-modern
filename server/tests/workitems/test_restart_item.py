@@ -1,10 +1,13 @@
 from datetime import UTC, datetime
+from uuid import uuid4
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from agent_platform.core.errors.base import PlatformHTTPError
+from agent_platform.core.thread.base import ThreadMessage
+from agent_platform.core.thread.content.text import ThreadTextContent
 from agent_platform.core.user import User
 from agent_platform.core.work_items.work_item import WorkItem, WorkItemStatus
 from agent_platform.server.api.private_v2.work_items import router as work_items_router
@@ -146,3 +149,57 @@ class TestRestartWorkItem:
         assert updated_item.status == WorkItemStatus.PENDING
         assert updated_item.status_updated_by == test_user.user_id
         assert updated_item.status_updated_at >= now
+
+    async def test_restart_work_item(
+        self,
+        client: TestClient,
+        test_user: User,
+        storage: MockStorage,
+    ):
+        """Test successful restart from NEEDS_REVIEW state."""
+        now = datetime.now(UTC)
+
+        initial_msg = ThreadMessage(
+            content=[ThreadTextContent(text="Initial request")], role="user"
+        )
+        agent_msg = ThreadMessage(content=[ThreadTextContent(text="Agent response")], role="agent")
+        work_item = WorkItem(
+            work_item_id=str(uuid4()),
+            user_id=test_user.user_id,
+            agent_id=str(uuid4()),
+            thread_id=str(uuid4()),
+            status=WorkItemStatus.NEEDS_REVIEW,
+            initial_messages=[initial_msg],
+            messages=[initial_msg, agent_msg],
+            payload={},
+        )
+        storage.create_work_item(work_item)
+
+        # Act: Make HTTP request to restart endpoint
+        response = client.post(f"/work-items/{work_item.work_item_id}/restart")
+
+        # Assert: Check the response
+        assert response.status_code == 200
+        returned_work_item = response.json()
+        assert returned_work_item["work_item_id"] == work_item.work_item_id
+        assert returned_work_item["status"] == WorkItemStatus.PENDING.value
+        assert returned_work_item["status_updated_by"] == test_user.user_id
+        assert returned_work_item["status_updated_at"] >= now.isoformat()
+        assert len(returned_work_item["messages"]) == 1
+        assert (
+            returned_work_item["messages"][0]["content"][0]["text"]
+            == initial_msg.content[0].as_text_content()
+        )
+
+        updated_item = await storage.get_work_item(work_item.work_item_id)
+        assert updated_item.status == WorkItemStatus.PENDING
+        assert updated_item.thread_id is None
+        assert updated_item.completed_by is None
+        assert len(updated_item.messages) == 1
+        assert updated_item.messages[0].message_id != initial_msg.message_id, (
+            "the new initial message set as the first message should have a unique ID"
+        )
+        assert (
+            updated_item.messages[0].content[0].as_text_content()
+            == work_item.initial_messages[0].content[0].as_text_content()
+        )

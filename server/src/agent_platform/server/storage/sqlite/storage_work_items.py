@@ -13,6 +13,8 @@ class SQLiteStorageWorkItemsMixin(CommonMixin):
     # ------------------------------------------------------------------
     def _convert_work_item_json_fields(self, item_dict: dict) -> dict:
         """Convert JSON string fields to their Python counterparts."""
+        if "initial_messages" in item_dict and isinstance(item_dict["initial_messages"], str):
+            item_dict["initial_messages"] = json.loads(item_dict["initial_messages"])
         if "messages" in item_dict and isinstance(item_dict["messages"], str):
             item_dict["messages"] = json.loads(item_dict["messages"])
         if "payload" in item_dict and isinstance(item_dict["payload"], str):
@@ -35,6 +37,7 @@ class SQLiteStorageWorkItemsMixin(CommonMixin):
             self._validate_uuid(work_item.thread_id)
 
         work_item_dict = work_item.model_dump()
+        work_item_dict["initial_messages"] = json.dumps(work_item_dict["initial_messages"])
         work_item_dict["messages"] = json.dumps(work_item_dict["messages"])
         work_item_dict["payload"] = json.dumps(work_item_dict["payload"])
         work_item_dict["callbacks"] = json.dumps(work_item_dict["callbacks"])
@@ -46,12 +49,12 @@ class SQLiteStorageWorkItemsMixin(CommonMixin):
                     work_item_id, user_id, agent_id, thread_id, status,
                     created_at, updated_at, completed_by,
                     status_updated_at, status_updated_by,
-                    messages, payload, callbacks
+                    messages, payload, callbacks, initial_messages
                 ) VALUES (
                     :work_item_id, :user_id, :agent_id, :thread_id, :status,
                     :created_at, :updated_at, :completed_by,
                     :status_updated_at, :status_updated_by,
-                    :messages, :payload, :callbacks
+                    :messages, :payload, :callbacks, :initial_messages
                 )
                 """,
                 work_item_dict,
@@ -261,6 +264,11 @@ class SQLiteStorageWorkItemsMixin(CommonMixin):
         self._validate_uuid(work_item.work_item_id)
 
         # Convert messages, payload, and callbacks to JSON strings
+        initial_messages_json = (
+            json.dumps([msg.model_dump() for msg in work_item.initial_messages])
+            if work_item.initial_messages
+            else "[]"
+        )
         messages_json = (
             json.dumps([msg.model_dump() for msg in work_item.messages])
             if work_item.messages
@@ -282,6 +290,7 @@ class SQLiteStorageWorkItemsMixin(CommonMixin):
                        messages = :messages,
                        payload = :payload,
                        callbacks = :callbacks,
+                       initial_messages = :initial_messages,
                        status = :status,
                        completed_by = :completed_by,
                        status_updated_at = :status_updated_at,
@@ -296,6 +305,7 @@ class SQLiteStorageWorkItemsMixin(CommonMixin):
                     "messages": messages_json,
                     "payload": payload_json,
                     "callbacks": callbacks_json,
+                    "initial_messages": initial_messages_json,
                     "status": work_item.status.value
                     if isinstance(work_item.status, WorkItemStatus)
                     else str(work_item.status),

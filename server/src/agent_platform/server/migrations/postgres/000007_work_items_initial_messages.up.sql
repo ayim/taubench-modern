@@ -1,0 +1,1 @@
+ALTER TABLE v2.work_items ADD COLUMN initial_messages JSONB DEFAULT NULL;

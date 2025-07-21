@@ -1,0 +1,1 @@
+ALTER TABLE v2_work_items ADD COLUMN initial_messages TEXT DEFAULT NULL; -- JSON serialised

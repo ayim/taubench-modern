@@ -49,6 +49,7 @@ class CreateWorkItemPayload:
             user_id=user_id,
             agent_id=payload.agent_id,
             thread_id=None,
+            initial_messages=payload.messages,
             messages=payload.messages,
             payload=payload.payload,
             work_item_id=str(uuid4()),

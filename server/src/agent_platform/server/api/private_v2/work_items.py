@@ -86,6 +86,11 @@ async def create_work_item(
 
         # set agent ID as it wouldn't have been set before.
         work_item.agent_id = payload.agent_id
+        # Set the initial messages and messages to the user-provided list of messages.
+        # Messages for work-items files are added after the work-item moves to EXECUTING.
+        work_item.initial_messages = [
+            ThreadMessage.model_validate(msg.model_dump()) for msg in payload.messages
+        ]
         work_item.messages = [
             ThreadMessage.model_validate(msg.model_dump()) for msg in payload.messages
         ]
@@ -303,7 +308,11 @@ async def restart_work_item(
             f"Cannot restart work item from status {work_item.status.value}.",
         )
 
-    await storage.update_work_item_status(user.user_id, work_item_id, WorkItemStatus.PENDING)
+    # Reset the internal state of the work item back to the initial state.
+    work_item.restart(user.user_id)
+    # Persist the changes to the database.
+    await storage.update_work_item(work_item)
+
     return await storage.get_work_item(work_item_id)
 
 
