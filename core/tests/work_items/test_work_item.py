@@ -208,7 +208,7 @@ def test_work_item_model_validate_field_parsing():
         "created_at": "2024-01-15T10:30:00+00:00",  # String -> datetime
         "updated_at": "2024-01-15T11:30:00+00:00",  # String -> datetime
         "status_updated_at": "2024-01-15T12:30:00+00:00",  # String -> datetime
-        "status_updated_by": "user-123",
+        "status_updated_by": "AGENT",  # String -> WorkItemStatusUpdatedBy enum
         "messages": [
             {
                 "message_id": str(uuid4()),
