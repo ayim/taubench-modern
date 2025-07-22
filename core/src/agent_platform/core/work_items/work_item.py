@@ -213,9 +213,14 @@ class WorkItem:
     """The unique identifier for the work item."""
 
     user_id: str = field(
-        metadata={"description": "The ID of the user that created this work item"},
+        metadata={"description": "The ID of the user that owns this work item"},
     )
-    """The ID of the user that created this work item."""
+    """The ID of the user that owns this work item."""
+
+    created_by: str = field(
+        metadata={"description": "The ID of the user who created the work item"},
+    )
+    """The ID of the user who created the work item."""
 
     agent_id: str | None = field(
         default=None,
@@ -303,6 +308,7 @@ class WorkItem:
         return {
             "work_item_id": self.work_item_id,
             "user_id": self.user_id,
+            "created_by": self.created_by,
             "agent_id": self.agent_id,
             "thread_id": self.thread_id,
             "status": self.status.value,
@@ -337,6 +343,8 @@ class WorkItem:
         # Handle UUIDs
         if "user_id" in data and isinstance(data["user_id"], UUID):
             data["user_id"] = str(data["user_id"])
+        if "created_by" in data and isinstance(data["created_by"], UUID):
+            data["created_by"] = str(data["created_by"])
         if "agent_id" in data and isinstance(data["agent_id"], UUID):
             data["agent_id"] = str(data["agent_id"])
         if "thread_id" in data and isinstance(data["thread_id"], UUID):
@@ -379,10 +387,9 @@ class WorkItem:
 
         return cls(**data)
 
-    def restart(self, user_id: str) -> None:
+    def restart(self) -> None:
         """
         Restart the work item.
-
         This will reset the work item to the initial state,
         but keep the starting message(s).
         """

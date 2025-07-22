@@ -30,6 +30,7 @@ async def test_create_and_get_work_item(
     work_item = WorkItem(
         work_item_id=str(uuid4()),
         user_id=sample_user_id,
+        created_by=sample_user_id,
         agent_id=sample_agent.agent_id,
         thread_id=None,
         status=WorkItemStatus.PENDING,
@@ -70,6 +71,7 @@ async def test_get_work_items_by_ids(
         wi = WorkItem(
             work_item_id=str(uuid4()),
             user_id=sample_user_id,
+            created_by=sample_user_id,
             agent_id=sample_agent.agent_id,
             status=WorkItemStatus.PENDING,
             messages=[],
@@ -108,6 +110,7 @@ async def test_list_work_items_filtering(
         WorkItem(
             work_item_id=str(uuid4()),
             user_id=sample_user_id,
+            created_by=sample_user_id,
             agent_id=sample_agent.agent_id,
             messages=[],
             payload={},
@@ -115,6 +118,7 @@ async def test_list_work_items_filtering(
         WorkItem(
             work_item_id=str(uuid4()),
             user_id=sample_user_id,
+            created_by=sample_user_id,
             agent_id=sample_agent.agent_id,
             messages=[],
             payload={},
@@ -122,6 +126,7 @@ async def test_list_work_items_filtering(
         WorkItem(
             work_item_id=str(uuid4()),
             user_id=sample_user_id,
+            created_by=sample_user_id,
             agent_id=second_agent.agent_id,
             messages=[],
             payload={},
@@ -150,6 +155,7 @@ async def test_update_work_item_status(
     wi = WorkItem(
         work_item_id=str(uuid4()),
         user_id=sample_user_id,
+        created_by=sample_user_id,
         agent_id=sample_agent.agent_id,
         messages=[],
         payload={},
@@ -175,6 +181,7 @@ async def test_complete_work_item(
     wi = WorkItem(
         work_item_id=str(uuid4()),
         user_id=sample_user_id,
+        created_by=sample_user_id,
         agent_id=sample_agent.agent_id,
         messages=[],
         payload={},
@@ -233,6 +240,7 @@ async def test_batch_processing_and_mark_error(
         wi = WorkItem(
             work_item_id=str(uuid4()),
             user_id=sample_user_id,
+            created_by=sample_user_id,
             agent_id=sample_agent.agent_id,
             status=WorkItemStatus.PENDING,
             messages=[],
@@ -286,6 +294,7 @@ async def test_work_item_file_operations(
     work_item = WorkItem(
         work_item_id=str(uuid4()),
         user_id=sample_user_id,
+        created_by=sample_user_id,
         agent_id=None,  # PRECREATED state
         thread_id=None,
         status=WorkItemStatus.PRECREATED,
@@ -343,6 +352,7 @@ async def test_work_item_multiple_files_with_different_names(
     work_item = WorkItem(
         work_item_id=str(uuid4()),
         user_id=sample_user_id,
+        created_by=sample_user_id,
         agent_id=None,
         thread_id=None,
         status=WorkItemStatus.PRECREATED,
@@ -404,6 +414,7 @@ async def test_work_item_file_deletion(
     work_item = WorkItem(
         work_item_id=str(uuid4()),
         user_id=sample_user_id,
+        created_by=sample_user_id,
         agent_id=None,
         thread_id=None,
         status=WorkItemStatus.PRECREATED,
@@ -458,6 +469,7 @@ async def test_associate_work_item_file_success(
     work_item = WorkItem(
         work_item_id=str(uuid4()),
         user_id=sample_user_id,
+        created_by=sample_user_id,
         agent_id=None,  # Initially no agent
         thread_id=None,  # Initially no thread
         status=WorkItemStatus.PRECREATED,
@@ -530,6 +542,7 @@ async def test_associate_work_item_file_updates_existing_entry(
     work_item = WorkItem(
         work_item_id=str(uuid4()),
         user_id=sample_user_id,
+        created_by=sample_user_id,
         agent_id=None,  # Initially no agent
         thread_id=None,  # Initially no thread
         status=WorkItemStatus.PRECREATED,
@@ -599,6 +612,7 @@ async def test_associate_work_item_file_error_handling(
     work_item = WorkItem(
         work_item_id=str(uuid4()),
         user_id=sample_user_id,
+        created_by=sample_user_id,
         agent_id=None,  # Initially no agent
         thread_id=None,  # Initially no thread
         status=WorkItemStatus.PRECREATED,
@@ -632,6 +646,7 @@ async def test_associate_work_item_file_error_handling(
     other_work_item = WorkItem(
         work_item_id=str(uuid4()),
         user_id=sample_user_id,
+        created_by=sample_user_id,
         agent_id=None,
         thread_id=None,
         status=WorkItemStatus.PRECREATED,
@@ -680,6 +695,7 @@ async def test_work_item_file_ownership_system_user(
     work_item = WorkItem(
         work_item_id=str(uuid4()),
         user_id=sample_user_id,
+        created_by=sample_user_id,
         agent_id=None,
         thread_id=None,
         status=WorkItemStatus.PRECREATED,
@@ -735,6 +751,7 @@ async def test_get_workitem_files_with_system_user(
     work_item = WorkItem(
         work_item_id=str(uuid4()),
         user_id=sample_user_id,
+        created_by=sample_user_id,
         agent_id=None,
         thread_id=None,
         status=WorkItemStatus.PRECREATED,
@@ -802,6 +819,7 @@ async def test_update_work_item_all_fields(
     initial_work_item = WorkItem(
         work_item_id=work_item_id,
         user_id=sample_user_id,
+        created_by=sample_user_id,
         agent_id=None,
         thread_id=None,
         status=WorkItemStatus.PRECREATED,
@@ -826,6 +844,7 @@ async def test_update_work_item_all_fields(
     updated_work_item = WorkItem(
         work_item_id=work_item_id,
         user_id=sample_user_id,
+        created_by=sample_user_id,
         agent_id=sample_agent.agent_id,  # Now has an agent
         thread_id=None,  # Keep thread_id as None to avoid FK constraint
         status=WorkItemStatus.PENDING,  # New status

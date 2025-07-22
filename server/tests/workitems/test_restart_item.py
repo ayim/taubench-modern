@@ -47,6 +47,14 @@ def test_user() -> User:
 
 
 @pytest.fixture
+def system_user() -> User:
+    return User(
+        user_id="456",
+        sub="tenant:testing:system:system_user",
+    )
+
+
+@pytest.fixture
 def fastapi_app(storage: MockStorage, test_user: User) -> FastAPI:
     """Create FastAPI test app with dependency overrides."""
     app = FastAPI()
@@ -67,13 +75,14 @@ def client(fastapi_app: FastAPI) -> TestClient:
 
 class TestRestartWorkItem:
     async def test_restart_work_item_success(
-        self, client: TestClient, storage: MockStorage, test_user: User
+        self, client: TestClient, storage: MockStorage, test_user: User, system_user: User
     ):
         """Test successfully restarting a work item."""
         # Setup: Create a work item that can be restarted
         work_item = WorkItem(
             work_item_id="123",
-            user_id=test_user.user_id,
+            user_id=system_user.user_id,
+            created_by=test_user.user_id,
             agent_id="789",
             status=WorkItemStatus.ERROR,  # ERROR status can be restarted
         )
@@ -101,13 +110,14 @@ class TestRestartWorkItem:
         assert "error" in error_data
 
     def test_restart_work_item_invalid_transition(
-        self, client: TestClient, storage: MockStorage, test_user: User
+        self, client: TestClient, storage: MockStorage, test_user: User, system_user: User
     ):
         """Test restarting a work item from an invalid status."""
         # Setup: Create a work item in PENDING status (can't restart pending items)
         work_item = WorkItem(
             work_item_id="123",
-            user_id=test_user.user_id,
+            user_id=system_user.user_id,
+            created_by=test_user.user_id,
             agent_id="789",
             status=WorkItemStatus.PENDING,
         )
@@ -123,13 +133,14 @@ class TestRestartWorkItem:
         assert "Cannot restart work item from status" in error_data["error"]["message"]
 
     async def test_restart_other_users_work_item(
-        self, client: TestClient, storage: MockStorage, test_user: User
+        self, client: TestClient, storage: MockStorage, test_user: User, system_user: User
     ):
         """Test restarting a work item created by another user."""
         # Create a work-item as a user who is different than our mock user
         work_item = WorkItem(
             work_item_id="123",
-            user_id=test_user.user_id,
+            user_id=system_user.user_id,
+            created_by=test_user.user_id,
             agent_id="789",
             status=WorkItemStatus.ERROR,  # ERROR status can be restarted
         )
@@ -159,6 +170,7 @@ class TestRestartWorkItem:
         client: TestClient,
         test_user: User,
         storage: MockStorage,
+        system_user: User,
     ):
         """Test successful restart from NEEDS_REVIEW state."""
         now = datetime.now(UTC)
@@ -169,7 +181,8 @@ class TestRestartWorkItem:
         agent_msg = ThreadMessage(content=[ThreadTextContent(text="Agent response")], role="agent")
         work_item = WorkItem(
             work_item_id=str(uuid4()),
-            user_id=test_user.user_id,
+            user_id=system_user.user_id,
+            created_by=test_user.user_id,
             agent_id=str(uuid4()),
             thread_id=str(uuid4()),
             status=WorkItemStatus.NEEDS_REVIEW,

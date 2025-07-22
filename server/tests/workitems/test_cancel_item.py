@@ -1,7 +1,6 @@
 """Tests for the cancel_item endpoint with state machine integration."""
 
 from http import HTTPStatus
-from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
@@ -11,9 +10,10 @@ from agent_platform.core.user import User
 from agent_platform.core.work_items.work_item import (
     WorkItem,
     WorkItemStatus,
-    WorkItemStatusUpdatedBy,
 )
 from agent_platform.server.api.private_v2.work_items import cancel_item
+
+from .mock_storage import MockStorage
 
 
 class TestCancelItem:
@@ -25,9 +25,9 @@ class TestCancelItem:
         return User(user_id=str(uuid4()), sub="test-user")
 
     @pytest.fixture
-    def mock_storage(self):
+    def mock_storage(self) -> MockStorage:
         """Create a mock storage dependency."""
-        return AsyncMock()
+        return MockStorage()
 
     @pytest.fixture
     def sample_work_item(self):
@@ -35,6 +35,7 @@ class TestCancelItem:
         return WorkItem(
             work_item_id=str(uuid4()),
             user_id=str(uuid4()),
+            created_by=str(uuid4()),
             agent_id=str(uuid4()),
             status=WorkItemStatus.PENDING,
             messages=[],
@@ -51,9 +52,11 @@ class TestCancelItem:
     )
     async def test_cancel_success(self, status, mock_user, mock_storage, sample_work_item):
         """Test successful cancellation from allowed states."""
+        # Set up the work item with the desired status
         sample_work_item.status = status
-        mock_storage.get_work_item.return_value = sample_work_item
-        mock_storage.update_work_item_status.return_value = None
+
+        # Pre-populate the mock storage with the work item
+        mock_storage.create_work_item(sample_work_item)
 
         result = await cancel_item(
             work_item_id=sample_work_item.work_item_id,
@@ -62,13 +65,10 @@ class TestCancelItem:
         )
 
         assert result == {"status": "ok"}
-        mock_storage.get_work_item.assert_called_once_with(sample_work_item.work_item_id)
-        mock_storage.update_work_item_status.assert_called_once_with(
-            mock_user.user_id,
-            sample_work_item.work_item_id,
-            WorkItemStatus.CANCELLED,
-            WorkItemStatusUpdatedBy.HUMAN,
-        )
+
+        # Verify the work item status was updated
+        updated_item = await mock_storage.get_work_item(sample_work_item.work_item_id)
+        assert updated_item.status == WorkItemStatus.CANCELLED
 
     @pytest.mark.parametrize(
         "status",
@@ -81,8 +81,11 @@ class TestCancelItem:
     )
     async def test_cancel_fails(self, status, mock_user, mock_storage, sample_work_item):
         """Test that cancellation fails from disallowed states."""
+        # Set up the work item with the desired status
         sample_work_item.status = status
-        mock_storage.get_work_item.return_value = sample_work_item
+
+        # Pre-populate the mock storage with the work item
+        mock_storage.create_work_item(sample_work_item)
 
         with pytest.raises(PlatformHTTPError) as exc_info:
             await cancel_item(
@@ -92,11 +95,13 @@ class TestCancelItem:
             )
 
         assert exc_info.value.status_code == HTTPStatus.PRECONDITION_FAILED.value
-        mock_storage.update_work_item_status.assert_not_called()
+
+        # Verify the work item status was NOT changed
+        unchanged_item = await mock_storage.get_work_item(sample_work_item.work_item_id)
+        assert unchanged_item.status == status
 
     async def test_cancel_nonexistent_work_item(self, mock_user, mock_storage):
         """Test that cancellation fails when work item doesn't exist."""
-        mock_storage.get_work_item.return_value = None
         work_item_id = str(uuid4())
 
         with pytest.raises(PlatformHTTPError) as exc_info:
@@ -107,5 +112,4 @@ class TestCancelItem:
             )
 
         assert exc_info.value.status_code == HTTPStatus.NOT_FOUND.value
-        assert exc_info.value.detail == "Work item not found"
-        mock_storage.update_work_item_status.assert_not_called()
+        assert exc_info.value.detail == "A work item with the given ID was not found"

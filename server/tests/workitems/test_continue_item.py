@@ -44,6 +44,14 @@ def test_user() -> User:
 
 
 @pytest.fixture
+def system_user() -> User:
+    return User(
+        user_id="system_user",
+        sub="tenant:testing:system:system_user",
+    )
+
+
+@pytest.fixture
 def fastapi_app(storage: MockStorage, test_user: User) -> FastAPI:
     """Create FastAPI test app with dependency overrides."""
     app = FastAPI()
@@ -64,13 +72,14 @@ def client(fastapi_app: FastAPI) -> TestClient:
 
 class TestContinueWorkItem:
     async def test_continue_success(
-        self, client: TestClient, storage: MockStorage, test_user: User
+        self, client: TestClient, storage: MockStorage, test_user: User, system_user: User
     ):
         """Test successfully continuing a work item from NEEDS_REVIEW to PENDING."""
         # Setup: Create a work item that can be continued
         work_item = WorkItem(
             work_item_id="123",
-            user_id=test_user.user_id,
+            user_id=system_user.user_id,
+            created_by=test_user.user_id,
             agent_id="789",
             status=WorkItemStatus.NEEDS_REVIEW,  # NEEDS_REVIEW status can be continued
         )
@@ -98,13 +107,14 @@ class TestContinueWorkItem:
         assert "error" in error_data
 
     def test_continue_invalid_transition(
-        self, client: TestClient, storage: MockStorage, test_user: User
+        self, client: TestClient, storage: MockStorage, test_user: User, system_user: User
     ):
         """Test continuing a work item from an invalid status."""
         # Setup: Create a work item in EXECUTING status (can't continue executing items)
         work_item = WorkItem(
             work_item_id="123",
-            user_id=test_user.user_id,
+            user_id=system_user.user_id,
+            created_by=test_user.user_id,
             agent_id="789",
             status=WorkItemStatus.EXECUTING,
         )
@@ -120,13 +130,14 @@ class TestContinueWorkItem:
         assert "Cannot continue work item from status" in error_data["error"]["message"]
 
     async def test_continue_metadata_update(
-        self, client: TestClient, storage: MockStorage, test_user: User
+        self, client: TestClient, storage: MockStorage, test_user: User, system_user: User
     ):
         """Test continuing a work item updates metadata correctly."""
         # Setup: Create a work item that can be continued
         work_item = WorkItem(
             work_item_id="123",
-            user_id=test_user.user_id,
+            user_id=system_user.user_id,
+            created_by=test_user.user_id,
             agent_id="789",
             status=WorkItemStatus.NEEDS_REVIEW,
         )
@@ -152,13 +163,14 @@ class TestContinueWorkItem:
         assert updated_item.status_updated_at >= now
 
     async def test_continue_from_indeterminate_success(
-        self, client: TestClient, storage: MockStorage, test_user: User
+        self, client: TestClient, storage: MockStorage, test_user: User, system_user: User
     ):
         """Test successfully continuing a work item from INDETERMINATE to PENDING."""
         # Setup: Create a work item in INDETERMINATE status
         work_item = WorkItem(
             work_item_id="123",
-            user_id=test_user.user_id,
+            user_id=system_user.user_id,
+            created_by=test_user.user_id,
             agent_id="789",
             status=WorkItemStatus.INDETERMINATE,
         )
@@ -190,13 +202,15 @@ class TestContinueWorkItem:
         client: TestClient,
         storage: MockStorage,
         test_user: User,
+        system_user: User,
         valid_status: WorkItemStatus,
     ):
         """Test continuing from other valid statuses (PRECREATED, COMPLETED, ERROR) succeeds."""
         # Setup: Create a work item in a valid status for continue
         work_item = WorkItem(
             work_item_id="123",
-            user_id=test_user.user_id,
+            user_id=system_user.user_id,
+            created_by=test_user.user_id,
             agent_id="789",
             status=valid_status,
         )
@@ -228,13 +242,15 @@ class TestContinueWorkItem:
         client: TestClient,
         storage: MockStorage,
         test_user: User,
+        system_user: User,
         invalid_status: WorkItemStatus,
     ):
         """Test continuing from various invalid statuses fails with 412."""
         # Setup: Create a work item in an invalid status for continue
         work_item = WorkItem(
             work_item_id="123",
-            user_id=test_user.user_id,
+            user_id=system_user.user_id,
+            created_by=test_user.user_id,
             agent_id="789",
             status=invalid_status,
         )

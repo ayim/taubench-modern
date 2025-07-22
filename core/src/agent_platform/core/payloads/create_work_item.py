@@ -49,9 +49,15 @@ class CreateWorkItemPayload:
     """A list of callbacks to trigger when the work item reaches a certain status."""
 
     @classmethod
-    def to_work_item(cls, payload: "CreateWorkItemPayload", user_id: str) -> WorkItem:
+    def to_work_item(
+        cls,
+        payload: "CreateWorkItemPayload",
+        owner_user_id: str,
+        created_by_user_id: str,
+    ) -> WorkItem:
         return WorkItem(
-            user_id=user_id,
+            user_id=owner_user_id,
+            created_by=created_by_user_id,
             agent_id=payload.agent_id,
             thread_id=None,
             initial_messages=payload.messages,

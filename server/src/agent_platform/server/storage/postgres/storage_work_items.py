@@ -44,6 +44,7 @@ class PostgresStorageWorkItemsMixin(CommonMixin):
 
         # Validate UUIDs that should be valid
         self._validate_uuid(work_item.user_id)
+        self._validate_uuid(work_item.created_by)
         if work_item.agent_id is not None:
             self._validate_uuid(work_item.agent_id)
         self._validate_uuid(work_item.work_item_id)
@@ -61,13 +62,13 @@ class PostgresStorageWorkItemsMixin(CommonMixin):
                 await cur.execute(
                     """
                     INSERT INTO v2.work_items (
-                        work_item_id, user_id, agent_id, thread_id, status,
+                        work_item_id, user_id, created_by, agent_id, thread_id, status,
                         created_at, updated_at, completed_by,
                         status_updated_at, status_updated_by,
                         messages, payload, callbacks, initial_messages
                     ) VALUES (
                         %(work_item_id)s::uuid, %(user_id)s::uuid,
-                        %(agent_id)s::uuid, %(thread_id)s::uuid, %(status)s,
+                        %(created_by)s::uuid, %(agent_id)s::uuid, %(thread_id)s::uuid, %(status)s,
                         %(created_at)s, %(updated_at)s, %(completed_by)s,
                         %(status_updated_at)s, %(status_updated_by)s,
                         %(messages)s, %(payload)s, %(callbacks)s, %(initial_messages)s
@@ -131,17 +132,19 @@ class PostgresStorageWorkItemsMixin(CommonMixin):
         agent_id: str | None = None,
         limit: int = 100,
         offset: int = 0,
+        created_by: str | None = None,
     ) -> list[WorkItem]:
         """List work-items accessible to *user_id* (optionally filtered by agent)."""
         self._validate_uuid(user_id)
         if agent_id is not None:
             self._validate_uuid(agent_id)
 
-        # Use a sentinel UUID when *agent_id* is None so that we can keep a
+        # Use a sentinel UUID when *agent_id* or *created_by* is None so that we can keep a
         # single query without running into Postgres' "ambiguous parameter"
         # issue for untyped NULLs. The all-zero UUID will never match a real
-        # agent_id (because agent_id is generated with uuid4()).
+        # agent_id or created_by (because agent_id and created_by are generated with uuid4()).
         sentinel_agent_uuid = "00000000-0000-0000-0000-000000000000"
+        sentinel_created_by_uuid = "00000000-0000-0000-0000-000000000000"
 
         params: dict[str, object] = {
             "user_id": user_id,
@@ -154,6 +157,8 @@ class PostgresStorageWorkItemsMixin(CommonMixin):
             "limit": limit,
             # ... starting from the Mth row
             "offset": offset,
+            "created_by": created_by or sentinel_created_by_uuid,
+            "created_by_filter_on": created_by is not None,
         }
 
         query = """
@@ -161,6 +166,7 @@ class PostgresStorageWorkItemsMixin(CommonMixin):
               FROM v2.work_items w
              WHERE v2.check_user_access(w.user_id, %(user_id)s::uuid)
                AND (%(agent_filter_on)s = FALSE OR w.agent_id = %(agent_id)s::uuid)
+               AND (%(created_by_filter_on)s = FALSE OR w.created_by = %(created_by)s::uuid)
              ORDER BY w.created_at
              LIMIT %(limit)s
             OFFSET %(offset)s

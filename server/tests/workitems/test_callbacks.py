@@ -53,7 +53,8 @@ class TestWorkItemsCallbacks:
         # Test with all fields populated
         work_item = WorkItem(
             work_item_id="test_work_item_123",
-            user_id="user_456",
+            user_id="system_user",
+            created_by="user_456",
             agent_id="agent_789",
             thread_id="thread_012",
             status=WorkItemStatus.COMPLETED,
@@ -218,7 +219,8 @@ class TestWorkItemsCallbacks:
             # Create test work item
             work_item = WorkItem(
                 work_item_id="test_work_item_123",
-                user_id="user_456",
+                user_id="system_user",
+                created_by="user_456",
                 agent_id="agent_789",
                 thread_id="thread_012",
                 status=WorkItemStatus.COMPLETED,
@@ -333,7 +335,8 @@ class TestWorkItemsCallbacks:
             # Create test work item
             work_item = WorkItem(
                 work_item_id="test_work_item_123",
-                user_id="user_456",
+                user_id="system_user",
+                created_by="user_456",
                 agent_id="agent_789",
                 thread_id="thread_012",
                 status=WorkItemStatus.COMPLETED,
@@ -388,7 +391,8 @@ class TestWorkItemsCallbacks:
         """Test that execute_callbacks does nothing when there are no callbacks."""
         work_item = WorkItem(
             work_item_id="test_work_item_123",
-            user_id="user_456",
+            user_id="system_user",
+            created_by="user_456",
             agent_id="agent_789",
             thread_id="thread_012",
             status=WorkItemStatus.COMPLETED,
@@ -402,7 +406,8 @@ class TestWorkItemsCallbacks:
         """Test that execute_callbacks does nothing when status doesn't match any callback."""
         work_item = WorkItem(
             work_item_id="test_work_item_123",
-            user_id="user_456",
+            user_id="system_user",
+            created_by="user_456",
             agent_id="agent_789",
             thread_id="thread_012",
             status=WorkItemStatus.COMPLETED,
@@ -450,7 +455,8 @@ class TestWorkItemsCallbacks:
         try:
             work_item = WorkItem(
                 work_item_id="test_work_item_123",
-                user_id="user_456",
+                user_id="system_user",
+                created_by="user_456",
                 agent_id="agent_789",
                 thread_id="thread_012",
                 status=WorkItemStatus.COMPLETED,
@@ -497,7 +503,8 @@ class TestWorkItemsCallbacks:
             await execute_callbacks(
                 WorkItem(
                     work_item_id="test_work_item_123",
-                    user_id="user_456",
+                    user_id="system_user",
+                    created_by="user_456",
                     agent_id="agent_789",
                     thread_id="thread_012",
                 ),
@@ -509,7 +516,8 @@ class TestWorkItemsCallbacks:
         """Test that callback errors are handled gracefully."""
         work_item = WorkItem(
             work_item_id="test_work_item_123",
-            user_id="user_456",
+            user_id="system_user",
+            created_by="user_456",
             agent_id="agent_789",
             thread_id="thread_012",
             status=WorkItemStatus.COMPLETED,
@@ -563,7 +571,8 @@ class TestWorkItemsCallbacks:
             # Create work item with callback for COMPLETED status
             work_item = WorkItem(
                 work_item_id="test-work-item-123",
-                user_id="test-user",
+                user_id="system_user",
+                created_by="test-user",
                 agent_id="test-agent-456",
                 thread_id="test-thread-789",
                 status=WorkItemStatus.NEEDS_REVIEW,  # Different from callback status

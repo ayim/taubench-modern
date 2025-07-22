@@ -1,0 +1,1 @@
+ALTER TABLE v2.work_items DROP COLUMN IF EXISTS created_by; 

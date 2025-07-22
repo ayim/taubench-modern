@@ -18,7 +18,8 @@ def test_work_item_model_dump_includes_work_item_url():
     """Test that WorkItem.model_dump() includes work_item_url field."""
     work_item = WorkItem(
         work_item_id="test-123",
-        user_id="user-456",
+        user_id="system-user-123",
+        created_by="user-123",
         agent_id="agent-789",
         thread_id="thread-012",
         status=WorkItemStatus.PENDING,
@@ -34,7 +35,8 @@ def test_work_item_model_validate_handles_work_item_url():
     """Test that WorkItem.model_validate() properly handles work_item_url field."""
     data = {
         "work_item_id": "test-123",
-        "user_id": "user-456",
+        "user_id": "system-user-123",
+        "created_by": "user-123",
         "agent_id": "agent-789",
         "thread_id": "thread-012",
         "status": "PENDING",
@@ -56,7 +58,8 @@ def test_work_item_model_validate_handles_none_work_item_url():
     """Test that WorkItem.model_validate() handles None work_item_url field."""
     data = {
         "work_item_id": "test-123",
-        "user_id": "user-456",
+        "user_id": "system-user-123",
+        "created_by": "user-123",
         "agent_id": "agent-789",
         "thread_id": "thread-012",
         "status": "PENDING",
@@ -135,7 +138,8 @@ def test_work_item_restart():
         work_item_id="test-123",
         agent_id="agent-456",
         thread_id="thread-789",
-        user_id="user-123",
+        user_id="system-user-123",
+        created_by="user-123",
         status=WorkItemStatus.NEEDS_REVIEW,
         initial_messages=[
             user_msg,
@@ -147,7 +151,7 @@ def test_work_item_restart():
     )
     original_messages = work_item.messages.copy()
 
-    work_item.restart("user-456")
+    work_item.restart()
     assert work_item.status == WorkItemStatus.PENDING
     assert work_item.thread_id is None
     assert len(work_item.messages) == 1
@@ -176,6 +180,7 @@ def test_work_item_to_initiate_stream_payload():
         agent_id=str(uuid4()),
         thread_id=str(uuid4()),
         user_id=str(uuid4()),
+        created_by=str(uuid4()),
         status=WorkItemStatus.EXECUTING,
         initial_messages=[initial_msg],
         messages=[initial_msg, file_msg],
@@ -201,6 +206,7 @@ def test_work_item_model_validate_field_parsing():
     test_data = {
         "work_item_id": str(uuid4()),
         "user_id": str(uuid4()),
+        "created_by": str(uuid4()),
         "agent_id": str(uuid4()),
         "thread_id": str(uuid4()),
         "status": "COMPLETED",  # String -> WorkItemStatus enum
@@ -263,6 +269,7 @@ def test_work_item_model_validate_field_parsing():
     minimal_data = {
         "work_item_id": "test-123",
         "user_id": "user-456",
+        "created_by": "user-123",
     }
     work_item_minimal = WorkItem.model_validate(minimal_data)
     assert work_item_minimal.completed_by is None

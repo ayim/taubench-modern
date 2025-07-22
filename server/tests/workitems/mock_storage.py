@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 
+from agent_platform.core.user import User
 from agent_platform.core.work_items import (
     WorkItem,
     WorkItemCompletedBy,
@@ -14,6 +15,20 @@ class MockStorage:
 
     def __init__(self) -> None:
         self.work_items: dict[str, WorkItem] = {}
+        self.users: dict[str, User] = {}
+
+    async def get_or_create_user(self, sub: str) -> tuple[User, bool]:
+        """Get an existing user or create a new one."""
+        if sub in self.users:
+            return self.users[sub], False
+
+        user = User(
+            user_id=f"user_{len(self.users)}",
+            sub=sub,
+            created_at=datetime.now(UTC),
+        )
+        self.users[sub] = user
+        return user, True
 
     async def get_work_item(self, work_item_id: str) -> WorkItem:
         item = self.work_items.get(work_item_id)
@@ -37,7 +52,12 @@ class MockStorage:
     async def get_work_items_by_ids(self, work_item_ids: list[str]) -> list[WorkItem]:
         return [await self.get_work_item(wid) for wid in work_item_ids]
 
-    def list_work_items(self, user_id: str, agent_id: str | None = None) -> list[WorkItem]:
+    def list_work_items(
+        self,
+        user_id: str,
+        agent_id: str | None = None,
+        created_by: str | None = None,
+    ) -> list[WorkItem]:
         candidates = list(self.work_items.values())
         if agent_id:
             candidates = [item for item in candidates if item.agent_id == agent_id]

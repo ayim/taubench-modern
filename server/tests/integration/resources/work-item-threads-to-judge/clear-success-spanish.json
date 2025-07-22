@@ -2,6 +2,7 @@
   "expected_status": "COMPLETED",
   "work_item_id": "aaaabbbb-7777-8888-9999-000000000000",
   "user_id": "458165ab-7119-467f-a72c-7fcd772c47d4",
+  "created_by": "458165ab-7119-467f-a72c-7fcd772c47d4",
   "messages": [
     {
       "content": [

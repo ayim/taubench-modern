@@ -32,11 +32,17 @@ def stub_validate_work_item_result(mocker):
     )
 
 
-def _make_work_item(user_id: str, agent_id: str, text: str = "test message") -> WorkItem:
+def _make_work_item(
+    owner_user_id: str,
+    created_by_user_id: str,
+    agent_id: str,
+    text: str = "test message",
+) -> WorkItem:
     """Convenience helper to build a PENDING WorkItem for the given user/agent."""
     return WorkItem(
         work_item_id=str(uuid4()),
-        user_id=user_id,
+        user_id=owner_user_id,
+        created_by=created_by_user_id,
         agent_id=agent_id,
         thread_id=None,
         status=WorkItemStatus.PENDING,
@@ -66,6 +72,15 @@ def patch_worker_settings(monkeypatch):
     return test_settings
 
 
+@pytest.fixture
+async def system_user(storage):
+    user, created = await storage.get_or_create_user(
+        sub="tenant:testing:system:system_user",
+    )
+    assert created is False, "User should already exist"
+    return user
+
+
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
@@ -79,9 +94,14 @@ class TestBackgroundWorker:
     # --------------------------------------------------
     @pytest.mark.asyncio
     async def test_execute_work_item(
-        self, configured_storage, stub_user, seed_agents, stub_validate_work_item_result
+        self,
+        configured_storage,
+        stub_user,
+        system_user,
+        seed_agents,
+        stub_validate_work_item_result,
     ):
-        item = _make_work_item(stub_user.user_id, seed_agents[0].agent_id)
+        item = _make_work_item(system_user.user_id, stub_user.user_id, seed_agents[0].agent_id)
         await configured_storage.create_work_item(item)
 
         async def mock_agent_func(wi: WorkItem) -> bool:
@@ -101,9 +121,10 @@ class TestBackgroundWorker:
         self,
         configured_storage,
         stub_user,
+        system_user,
         seed_agents,
     ):
-        item = _make_work_item(stub_user.user_id, seed_agents[0].agent_id)
+        item = _make_work_item(system_user.user_id, stub_user.user_id, seed_agents[0].agent_id)
         await configured_storage.create_work_item(item)
 
         async def error_agent_func(_: WorkItem) -> bool:
@@ -123,9 +144,10 @@ class TestBackgroundWorker:
         self,
         configured_storage,
         stub_user,
+        system_user,
         seed_agents,
     ):
-        item = _make_work_item(stub_user.user_id, seed_agents[0].agent_id)
+        item = _make_work_item(system_user.user_id, stub_user.user_id, seed_agents[0].agent_id)
         await configured_storage.create_work_item(item)
 
         async def fail_agent_func(_: WorkItem) -> bool:
@@ -142,7 +164,12 @@ class TestBackgroundWorker:
     # --------------------------------------------------
     @pytest.mark.asyncio
     async def test_batch_processing(
-        self, configured_storage, stub_user, seed_agents, stub_validate_work_item_result
+        self,
+        configured_storage,
+        stub_user,
+        system_user,
+        seed_agents,
+        stub_validate_work_item_result,
     ):
         num_work_items = 5
         counter = itertools.count()
@@ -160,7 +187,7 @@ class TestBackgroundWorker:
         # Seed work-items in DB
         work_items: list[WorkItem] = []
         for _ in range(num_work_items):
-            wi = _make_work_item(stub_user.user_id, seed_agents[0].agent_id)
+            wi = _make_work_item(system_user.user_id, stub_user.user_id, seed_agents[0].agent_id)
             work_items.append(wi)
             await configured_storage.create_work_item(wi)
 
@@ -186,7 +213,12 @@ class TestBackgroundWorker:
     # --------------------------------------------------
     @pytest.mark.asyncio
     async def test_worker_iteration(
-        self, configured_storage, stub_user, seed_agents, stub_validate_work_item_result
+        self,
+        configured_storage,
+        stub_user,
+        system_user,
+        seed_agents,
+        stub_validate_work_item_result,
     ):
         num_work_items = 21
         max_batch_size = bw.WORK_ITEMS_SETTINGS.max_batch_size  # 5 in fixture
@@ -197,7 +229,7 @@ class TestBackgroundWorker:
         # Add work-items
         for _ in range(num_work_items):
             await configured_storage.create_work_item(
-                _make_work_item(stub_user.user_id, seed_agents[0].agent_id)
+                _make_work_item(system_user.user_id, stub_user.user_id, seed_agents[0].agent_id)
             )
 
         # Run enough iterations to pick them all up
@@ -215,7 +247,12 @@ class TestBackgroundWorker:
     # --------------------------------------------------
     @pytest.mark.asyncio
     async def test_timeout_work_item(
-        self, configured_storage, stub_user, seed_agents, stub_validate_work_item_result
+        self,
+        configured_storage,
+        stub_user,
+        system_user,
+        seed_agents,
+        stub_validate_work_item_result,
     ):
         call_count = 0
 
@@ -228,8 +265,12 @@ class TestBackgroundWorker:
 
         # Two work-items: first will timeout, second succeeds
         items = [
-            _make_work_item(stub_user.user_id, seed_agents[0].agent_id, "timeout-1"),
-            _make_work_item(stub_user.user_id, seed_agents[0].agent_id, "timeout-2"),
+            _make_work_item(
+                stub_user.user_id, stub_user.user_id, seed_agents[0].agent_id, "timeout-1"
+            ),
+            _make_work_item(
+                stub_user.user_id, stub_user.user_id, seed_agents[0].agent_id, "timeout-2"
+            ),
         ]
         for wi in items:
             await configured_storage.create_work_item(wi)
@@ -252,7 +293,12 @@ class TestBackgroundWorker:
     # --------------------------------------------------
     @pytest.mark.asyncio
     async def test_concurrent_worker_iterations(
-        self, configured_storage, stub_user, seed_agents, stub_validate_work_item_result
+        self,
+        configured_storage,
+        stub_user,
+        system_user,
+        seed_agents,
+        stub_validate_work_item_result,
     ):
         processed_ids: set[str] = set()
         lock = asyncio.Lock()
@@ -265,7 +311,9 @@ class TestBackgroundWorker:
 
         # Create 10 work-items
         work_items = [
-            _make_work_item(stub_user.user_id, seed_agents[0].agent_id, f"msg-{i}")
+            _make_work_item(
+                stub_user.user_id, stub_user.user_id, seed_agents[0].agent_id, f"msg-{i}"
+            )
             for i in range(10)
         ]
         for wi in work_items:
@@ -284,15 +332,21 @@ class TestBackgroundWorker:
         assert processed_ids == expected_ids
 
     @pytest.mark.asyncio
-    async def test_work_item_validate_success__needs_review(
-        self, configured_storage, stub_user, seed_agents, stub_validate_work_item_result, mocker
+    async def test_work_item_validate_success__needs_review(  # noqa: PLR0913
+        self,
+        configured_storage,
+        stub_user,
+        system_user,
+        seed_agents,
+        stub_validate_work_item_result,
+        mocker,
     ):
         mocker.patch(
             "agent_platform.server.work_items.background_worker._validate_success",
             return_value=WorkItemStatus.NEEDS_REVIEW,
         )
 
-        item = _make_work_item(stub_user.user_id, seed_agents[0].agent_id)
+        item = _make_work_item(system_user.user_id, stub_user.user_id, seed_agents[0].agent_id)
         await configured_storage.create_work_item(item)
 
         async def mock_agent_func(wi: WorkItem) -> bool:
@@ -309,13 +363,13 @@ class TestBackgroundWorker:
     # --------------------------------------------------
     @pytest.mark.asyncio
     async def test_validate_success_with_completed_response(
-        self, configured_storage, stub_user, seed_agents
+        self, configured_storage, stub_user, system_user, seed_agents
     ):
         """Test that _validate_success correctly parses a COMPLETED response
         from the validation LLM."""
 
         # Create a work item with realistic conversation messages
-        item = _make_work_item(stub_user.user_id, seed_agents[0].agent_id)
+        item = _make_work_item(system_user.user_id, stub_user.user_id, seed_agents[0].agent_id)
         item.messages = [
             ThreadUserMessage(content=[ThreadTextContent(text="Please calculate 2+2")]),
             ThreadAgentMessage(
@@ -341,12 +395,12 @@ class TestBackgroundWorker:
 
     @pytest.mark.asyncio
     async def test_validate_success_with_needs_review_response(
-        self, configured_storage, stub_user, seed_agents
+        self, configured_storage, stub_user, system_user, seed_agents
     ):
         """Test that _validate_success correctly parses a NEEDS_REVIEW response
         from the validation LLM."""
 
-        item = _make_work_item(stub_user.user_id, seed_agents[0].agent_id)
+        item = _make_work_item(system_user.user_id, stub_user.user_id, seed_agents[0].agent_id)
         item.messages = [
             ThreadUserMessage(content=[ThreadTextContent(text="Debug this complex system")]),
             ThreadAgentMessage(
@@ -370,11 +424,11 @@ class TestBackgroundWorker:
 
     @pytest.mark.asyncio
     async def test_validate_success_with_invalid_response(
-        self, configured_storage, stub_user, seed_agents
+        self, configured_storage, stub_user, system_user, seed_agents
     ):
         """Test that _validate_success defaults to INDETERMINATE for invalid LLM responses."""
 
-        item = _make_work_item(stub_user.user_id, seed_agents[0].agent_id)
+        item = _make_work_item(system_user.user_id, stub_user.user_id, seed_agents[0].agent_id)
 
         # Mock prompt_generate to return an invalid response that isn't COMPLETED or NEEDS_REVIEW
         mock_response = ResponseMessage(
@@ -391,11 +445,11 @@ class TestBackgroundWorker:
 
     @pytest.mark.asyncio
     async def test_validate_success_with_empty_content(
-        self, configured_storage, stub_user, seed_agents
+        self, configured_storage, stub_user, system_user, seed_agents
     ):
         """Test that _validate_success defaults to INDETERMINATE when LLM returns empty content."""
 
-        item = _make_work_item(stub_user.user_id, seed_agents[0].agent_id)
+        item = _make_work_item(system_user.user_id, stub_user.user_id, seed_agents[0].agent_id)
 
         # Mock prompt_generate to return empty content
         mock_response = ResponseMessage(content=[], role="agent")
@@ -409,12 +463,12 @@ class TestBackgroundWorker:
 
     @pytest.mark.asyncio
     async def test_validate_success_with_non_text_content(
-        self, configured_storage, stub_user, seed_agents
+        self, configured_storage, stub_user, system_user, seed_agents
     ):
         """Test that _validate_success defaults to INDETERMINATE when LLM returns
         only non-text content."""
 
-        item = _make_work_item(stub_user.user_id, seed_agents[0].agent_id)
+        item = _make_work_item(system_user.user_id, stub_user.user_id, seed_agents[0].agent_id)
 
         # Mock prompt_generate to return only tool use content (no text)
         mock_response = ResponseMessage(
@@ -435,11 +489,11 @@ class TestBackgroundWorker:
 
     @pytest.mark.asyncio
     async def test_response_text_content_is_parsed(
-        self, configured_storage, stub_user, seed_agents
+        self, configured_storage, stub_user, system_user, seed_agents
     ):
         """Test that ResponseTextContent is correctly parsed by the validation logic."""
 
-        item = _make_work_item(stub_user.user_id, seed_agents[0].agent_id)
+        item = _make_work_item(system_user.user_id, stub_user.user_id, seed_agents[0].agent_id)
 
         # Mock prompt_generate to return ResponseTextContent with COMPLETED
         mock_response = ResponseMessage(
@@ -455,7 +509,7 @@ class TestBackgroundWorker:
 
     @pytest.mark.asyncio
     async def test_thread_text_content_is_not_parsed(
-        self, configured_storage, stub_user, seed_agents
+        self, configured_storage, stub_user, system_user, seed_agents
     ):
         """Test that ThreadTextContent is not parsed by the validation logic.
 
@@ -463,7 +517,7 @@ class TestBackgroundWorker:
         ThreadTextContent and ResponseTextContent, only parsing the latter.
         """
 
-        item = _make_work_item(stub_user.user_id, seed_agents[0].agent_id)
+        item = _make_work_item(system_user.user_id, stub_user.user_id, seed_agents[0].agent_id)
 
         # Create a mock response with ThreadTextContent (wrong type for validation parsing)
         # Using type: ignore since this simulates incorrect content type
@@ -481,14 +535,16 @@ class TestBackgroundWorker:
             assert result == WorkItemStatus.INDETERMINATE
 
     @pytest.mark.asyncio
-    async def test_mixed_content_types(self, configured_storage, stub_user, seed_agents):
+    async def test_mixed_content_types(
+        self, configured_storage, stub_user, system_user, seed_agents
+    ):
         """Test validation logic with mixed content types in the LLM response.
 
         Verifies that when multiple content types are present, the validation
         logic correctly extracts text from ResponseTextContent items.
         """
 
-        item = _make_work_item(stub_user.user_id, seed_agents[0].agent_id)
+        item = _make_work_item(system_user.user_id, stub_user.user_id, seed_agents[0].agent_id)
 
         # Mock response with mixed content types
         # Note: validation logic takes the LAST ResponseTextContent, so put COMPLETED last
@@ -511,7 +567,7 @@ class TestBackgroundWorker:
 
     @pytest.mark.asyncio
     async def test_validation_with_various_invalid_responses(
-        self, configured_storage, stub_user, seed_agents
+        self, configured_storage, stub_user, system_user, seed_agents
     ):
         """Test that various invalid validation responses all default to INDETERMINATE.
 
@@ -519,7 +575,7 @@ class TestBackgroundWorker:
         unexpected text that doesn't match the expected COMPLETED/NEEDS_REVIEW values.
         """
 
-        item = _make_work_item(stub_user.user_id, seed_agents[0].agent_id)
+        item = _make_work_item(system_user.user_id, stub_user.user_id, seed_agents[0].agent_id)
 
         # Test various invalid responses
         invalid_responses = [
@@ -550,13 +606,18 @@ class TestBackgroundWorker:
     # --------------------------------------------------
     @pytest.mark.asyncio
     async def test_thread_created_with_system_user_ownership(
-        self, configured_storage, stub_user, seed_agents, stub_validate_work_item_result
+        self,
+        configured_storage,
+        stub_user,
+        system_user,
+        seed_agents,
+        stub_validate_work_item_result,
     ):
         """Test that when a work item is processed,
         the thread is created with system user ownership."""
         from unittest.mock import AsyncMock, patch
 
-        item = _make_work_item(stub_user.user_id, seed_agents[0].agent_id)
+        item = _make_work_item(system_user.user_id, stub_user.user_id, seed_agents[0].agent_id)
         await configured_storage.create_work_item(item)
 
         # Track the calls to upsert_thread to verify system user ownership
@@ -601,7 +662,12 @@ class TestBackgroundWorker:
 
     @pytest.mark.asyncio
     async def test_file_upload_messages_added_to_thread(
-        self, configured_storage, stub_user, seed_agents, stub_validate_work_item_result
+        self,
+        configured_storage,
+        stub_user,
+        system_user,
+        seed_agents,
+        stub_validate_work_item_result,
     ):
         """Test that file upload messages are properly added to the work item during processing."""
         from datetime import UTC, datetime
@@ -609,7 +675,7 @@ class TestBackgroundWorker:
 
         from agent_platform.core.files import UploadedFile
 
-        item = _make_work_item(stub_user.user_id, seed_agents[0].agent_id)
+        item = _make_work_item(system_user.user_id, stub_user.user_id, seed_agents[0].agent_id)
         await configured_storage.create_work_item(item)
 
         # Mock files that would be returned by storage.get_workitem_files()
@@ -703,12 +769,17 @@ class TestBackgroundWorker:
 
     @pytest.mark.asyncio
     async def test_work_item_thread_id_updated_after_creation(
-        self, configured_storage, stub_user, seed_agents, stub_validate_work_item_result
+        self,
+        configured_storage,
+        stub_user,
+        system_user,
+        seed_agents,
+        stub_validate_work_item_result,
     ):
         """Test that work item thread_id is properly updated after thread creation."""
         from unittest.mock import AsyncMock, patch
 
-        item = _make_work_item(stub_user.user_id, seed_agents[0].agent_id)
+        item = _make_work_item(system_user.user_id, stub_user.user_id, seed_agents[0].agent_id)
         await configured_storage.create_work_item(item)
 
         # Verify thread_id is initially None
@@ -754,13 +825,18 @@ class TestBackgroundWorker:
 
     @pytest.mark.asyncio
     async def test_thread_messages_copied_from_work_item(
-        self, configured_storage, stub_user, seed_agents, stub_validate_work_item_result
+        self,
+        configured_storage,
+        stub_user,
+        system_user,
+        seed_agents,
+        stub_validate_work_item_result,
     ):
         """Test that work item messages are properly used when creating the thread."""
         from unittest.mock import AsyncMock, patch
 
         # Create work item with multiple messages
-        item = _make_work_item(stub_user.user_id, seed_agents[0].agent_id)
+        item = _make_work_item(system_user.user_id, stub_user.user_id, seed_agents[0].agent_id)
         item.messages = [
             ThreadUserMessage(content=[ThreadTextContent(text="First user message")]),
             ThreadUserMessage(content=[ThreadTextContent(text="Second user message")]),

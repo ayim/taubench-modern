@@ -35,6 +35,7 @@ class SQLiteStorageWorkItemsMixin(CommonMixin):
         """Insert a new work item record."""
         # Validate IDs that should be UUIDs
         self._validate_uuid(work_item.user_id)
+        self._validate_uuid(work_item.created_by)
         if work_item.agent_id is not None:
             self._validate_uuid(work_item.agent_id)
         self._validate_uuid(work_item.work_item_id)
@@ -51,12 +52,12 @@ class SQLiteStorageWorkItemsMixin(CommonMixin):
             await cur.execute(
                 """
                 INSERT INTO v2_work_items (
-                    work_item_id, user_id, agent_id, thread_id, status,
+                    work_item_id, user_id, created_by, agent_id, thread_id, status,
                     created_at, updated_at, completed_by,
                     status_updated_at, status_updated_by,
                     messages, payload, callbacks, initial_messages
                 ) VALUES (
-                    :work_item_id, :user_id, :agent_id, :thread_id, :status,
+                    :work_item_id, :user_id, :created_by, :agent_id, :thread_id, :status,
                     :created_at, :updated_at, :completed_by,
                     :status_updated_at, :status_updated_by,
                     :messages, :payload, :callbacks, :initial_messages
@@ -107,19 +108,24 @@ class SQLiteStorageWorkItemsMixin(CommonMixin):
         agent_id: str | None = None,
         limit: int = 100,
         offset: int = 0,
+        created_by: str | None = None,
     ) -> list[WorkItem]:
         """List all work items accessible to *user_id*. If *agent_id* is
-        provided, the list is further filtered to that agent."""
+        provided, the list is further filtered to that agent. If *created_by* is
+        provided, the list is further filtered to work items created by that user."""
 
         self._validate_uuid(user_id)
         if agent_id is not None:
             self._validate_uuid(agent_id)
+        if created_by is not None:
+            self._validate_uuid(created_by)
 
         params: dict[str, str | None] = {
             "user_id": user_id,
             "agent_id": agent_id,
             "limit": str(limit),
             "offset": str(offset),
+            "created_by": created_by,
         }
 
         query = """
@@ -127,6 +133,7 @@ class SQLiteStorageWorkItemsMixin(CommonMixin):
               FROM v2_work_items w
              WHERE v2_check_user_access(w.user_id, :user_id) = 1
                AND (:agent_id IS NULL OR w.agent_id = :agent_id)
+               AND (:created_by IS NULL OR w.created_by = :created_by)
              ORDER BY w.created_at
              LIMIT :limit
             OFFSET :offset

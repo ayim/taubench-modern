@@ -117,7 +117,14 @@ async def create_work_item(
         # Ensure the requested callbacks are supported by the WorkItems service
         payload.callbacks = await _validate_callbacks(payload.callbacks)
 
-        work_item = CreateWorkItemPayload.to_work_item(payload=payload, user_id=user.user_id)
+        # Use the system user for lookups to avoid permission issues.
+        system_user, _ = await storage.get_or_create_user(WORK_ITEMS_SYSTEM_USER_SUB)
+
+        work_item = CreateWorkItemPayload.to_work_item(
+            payload=payload,
+            owner_user_id=system_user.user_id,
+            created_by_user_id=user.user_id,
+        )
         await storage.create_work_item(work_item)
 
     return work_item
@@ -259,7 +266,7 @@ async def upload_work_item_file(
 
 
 @router.get("/", response_model=WorkItemsListResponse)
-async def list_work_items(
+async def list_work_items(  # noqa: PLR0913
     user: AuthedUser,
     storage: StorageDependency,
     agent_id: str | None = Query(
@@ -268,9 +275,20 @@ async def list_work_items(
     ),
     limit: int = Query(100, ge=1, description="The maximum number of work items to return"),
     offset: int = Query(0, ge=0, description="The offset to start from"),
+    # Allow filtering by the user who created the work items to maintain similar functionality
+    created_by: str | None = Query(
+        None,
+        description="The ID of the user who created the work items",
+    ),
 ) -> WorkItemsListResponse:
+    # User the system user for lookups to avoid permission issues.
+    system_user, _ = await storage.get_or_create_user(WORK_ITEMS_SYSTEM_USER_SUB)
     work_items = await storage.list_work_items(
-        user.user_id, agent_id=agent_id, limit=limit, offset=offset
+        system_user.user_id,
+        agent_id=agent_id,
+        limit=limit,
+        offset=offset,
+        created_by=created_by,
     )
     for work_item in work_items:
         work_item.messages = []
@@ -303,8 +321,13 @@ async def continue_work_item(
             f"Cannot continue work item from status {item.status.value}.",
         )
 
+    # Use the system user for lookups to avoid permission issues.
+    system_user, _ = await storage.get_or_create_user(WORK_ITEMS_SYSTEM_USER_SUB)
     await storage.update_work_item_status(
-        user.user_id, work_item_id, WorkItemStatus.PENDING, WorkItemStatusUpdatedBy.HUMAN
+        system_user.user_id,
+        work_item_id,
+        WorkItemStatus.PENDING,
+        WorkItemStatusUpdatedBy.HUMAN,
     )
     return await storage.get_work_item(work_item_id)
 
@@ -327,7 +350,7 @@ async def restart_work_item(
         )
 
     # Reset the internal state of the work item back to the initial state.
-    work_item.restart(user.user_id)
+    work_item.restart()
     # Persist the changes to the database.
     await storage.update_work_item(work_item)
 
@@ -352,8 +375,13 @@ async def cancel_item(
             f"Cannot cancel work item from status {work_item.status.value}.",
         )
 
+    # Use the system user for lookups to avoid permission issues.
+    system_user, _ = await storage.get_or_create_user(WORK_ITEMS_SYSTEM_USER_SUB)
     await storage.update_work_item_status(
-        user.user_id, work_item_id, WorkItemStatus.CANCELLED, WorkItemStatusUpdatedBy.HUMAN
+        system_user.user_id,
+        work_item_id,
+        WorkItemStatus.CANCELLED,
+        WorkItemStatusUpdatedBy.HUMAN,
     )
     return {"status": "ok"}
 
@@ -373,14 +401,19 @@ async def complete_work_item(
             ErrorCode.PRECONDITION_FAILED,
             f"Cannot complete work item from status {work_item.status.value}.",
         )
-    await storage.complete_work_item(user.user_id, work_item_id, WorkItemCompletedBy.HUMAN)
+
+    # Use the system user for lookups to avoid permission issues.
+    system_user, _ = await storage.get_or_create_user(WORK_ITEMS_SYSTEM_USER_SUB)
+    await storage.complete_work_item(system_user.user_id, work_item_id, WorkItemCompletedBy.HUMAN)
     return {"status": "ok"}
 
 
 async def _create_stub_work_item(user_id: str, storage: StorageDependency) -> WorkItem:
+    system_user, _ = await storage.get_or_create_user(WORK_ITEMS_SYSTEM_USER_SUB)
     work_item = WorkItem(
         work_item_id=str(uuid4()),
-        user_id=user_id,
+        user_id=system_user.user_id,
+        created_by=user_id,
         status=WorkItemStatus.PRECREATED,
         messages=[],
         payload={},

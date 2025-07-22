@@ -2,6 +2,7 @@
   "expected_status": "NEEDS_REVIEW",
   "work_item_id": "ccccdddd-9999-0000-1111-222222222222",
   "user_id": "458165ab-7119-467f-a72c-7fcd772c47d4",
+  "created_by": "458165ab-7119-467f-a72c-7fcd772c47d4",
   "messages": [
     {
       "content": [
