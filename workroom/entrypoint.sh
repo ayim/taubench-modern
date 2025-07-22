@@ -19,4 +19,8 @@ sed -i "s,:META_URL,${META_URL}," /etc/nginx/nginx.conf
 sed -i "s,:AGENT_SERVER_URL,${AGENT_SERVER_URL}," /etc/nginx/nginx.conf
 sed -i "s,:WORKROOM_URL,${WORKROOM_URL}," /etc/nginx/nginx.conf
 
+# Extract hostname from AGENT_SERVER_URL for Host header
+AGENT_SERVER_HOST=$(echo "${AGENT_SERVER_URL}" | sed 's|https\?://||')
+sed -i "s,:AGENT_SERVER_HOST,${AGENT_SERVER_HOST}," /etc/nginx/nginx.conf
+
 exec nginx

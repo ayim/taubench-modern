@@ -10,15 +10,14 @@ ENV VITE_DEPLOYMENT_TYPE=$VITE_DEPLOYMENT_TYPE
 ENV VITE_DEV_WORKROOM_TENANT_LIST_URL=$VITE_DEV_WORKROOM_TENANT_LIST_URL
 ENV VITE_DEV_SERVER_PORT=$VITE_DEV_SERVER_PORT
 
-ENV AGENT_SERVER_HOST=
-ENV AGENT_SERVER_PORT=
+ENV AGENT_SERVER_URL=
 ENV ACE_SERVICE_VERSION=
 ENV WORKROOM_URL=
 
 WORKDIR /app
 
 RUN apk upgrade --no-cache && \
-  apk add --no-cache npm
+  apk add --no-cache npm bash
 
 COPY package*.json ./
 
@@ -39,7 +38,7 @@ EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD curl -f http://localhost:3001/meta || exit 1
 
-ENTRYPOINT ["sh", "/app/entrypoint.sh"]
+ENTRYPOINT ["bash", "/app/entrypoint.sh"]
 
 ARG DOCKERFILE_URL
 LABEL org.opencontainers.image.source="${DOCKERFILE_URL}"

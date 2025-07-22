@@ -299,14 +299,14 @@ steps:
 
         echo "📊 Database IP: $$SQL_IP (State: $$SQL_STATE)"
 
-        # Deploy agent-server with proper health checks (internal only)
+        # Deploy agent-server with proper health checks (public access for now)
         echo "🔧 Deploying agent-server..."
         gcloud run deploy agent-server \
           --image=${_REGION}-docker.pkg.dev/${_PROJECT_ID}/cloud-run-source-deploy/agent-server:latest \
           --platform=managed \
           --region=${_REGION} \
-          --no-allow-unauthenticated \
-          --ingress=internal \
+          --allow-unauthenticated \
+          --ingress=all \
           --port=8000 \
           --memory=2Gi \
           --cpu=2 \
@@ -315,7 +315,7 @@ steps:
           --timeout=900 \
           --cpu-boost \
           --execution-environment=gen2 \
-          --set-env-vars="SEMA4AI_AGENT_SERVER_OTEL_ENABLED=true,SEMA4AI_AGENT_SERVER_ENABLE_WORKITEMS=true,SEMA4AI_OPTIMIZE_FOR_CONTAINER=1,SEMA4AI_AGENT_SERVER_DB_TYPE=postgres,POSTGRES_HOST=$$SQL_IP,POSTGRES_PORT=5432,POSTGRES_DB=${_DB_NAME},POSTGRES_USER=${_DB_USER},POSTGRES_PASSWORD=agents,SEMA4AI_AGENT_SERVER_LOG_LEVEL=INFO,SEMA4AI_AGENT_SERVER_HOST=0.0.0.0,SEMA4AI_AGENT_SERVER_PORT=8000,LOG_LEVEL=INFO" \
+          --set-env-vars="SEMA4AI_AGENT_SERVER_OTEL_ENABLED=true,SEMA4AI_AGENT_SERVER_ENABLE_WORKITEMS=true,SEMA4AI_OPTIMIZE_FOR_CONTAINER=1,SEMA4AI_AGENT_SERVER_DB_TYPE=postgres,POSTGRES_HOST=$$SQL_IP,POSTGRES_PORT=5432,POSTGRES_DB=${_DB_NAME},POSTGRES_USER=${_DB_USER},POSTGRES_PASSWORD=agents,SEMA4AI_AGENT_SERVER_LOG_LEVEL=INFO,SEMA4AI_AGENT_SERVER_HOST=0.0.0.0,SEMA4AI_AGENT_SERVER_PORT=8000,LOG_LEVEL=INFO,FORWARDED_ALLOW_IPS=*,USE_FORWARDED_HOST=true,SECURE_SCHEME_HEADERS=X-Forwarded-Proto:https" \
           --add-cloudsql-instances=${_PROJECT_ID}:${_REGION}:${_DB_INSTANCE} \
           --quiet
 
@@ -343,6 +343,9 @@ steps:
 
         echo "🔗 Agent-server URL: $$AGENT_SERVER_URL"
 
+        # Save agent-server URL to prevent accidental overwriting later
+        AGENT_SERVER_BACKEND_URL="$$AGENT_SERVER_URL"
+
         # Extract hostname from agent-server URL for nginx proxy
         AGENT_SERVER_HOST=$$(echo "$$AGENT_SERVER_URL" | sed 's|https://||' | sed 's|http://||')
 
@@ -362,7 +365,7 @@ steps:
           --timeout=300 \
           --cpu-boost \
           --execution-environment=gen2 \
-          --set-env-vars="AGENT_SERVER_HOST=$$AGENT_SERVER_HOST,AGENT_SERVER_PORT=443,DEPLOYMENT_TYPE=spar,META_URL=placeholder,NODE_ENV=production" \
+          --set-env-vars="AGENT_SERVER_URL=$$AGENT_SERVER_BACKEND_URL,AGENT_SERVER_HOST=$$AGENT_SERVER_HOST,AGENT_SERVER_PORT=443,DEPLOYMENT_TYPE=spar,META_URL=placeholder,WORKROOM_URL=placeholder,NODE_ENV=production" \
           --quiet
 
         # Wait for workroom to be ready and get its URL
@@ -384,20 +387,14 @@ steps:
         # Update workroom with correct META_URL pointing to itself
         echo "🔧 Updating workroom with correct META_URL..."
         echo "   Workroom URL: $$WORKROOM_URL"
-        echo "   Agent-server (internal): $$AGENT_SERVER_URL"
+        echo "   Agent-server (internal): $$AGENT_SERVER_BACKEND_URL"
         echo "   Agent-server host for nginx: $$AGENT_SERVER_HOST"
         gcloud run services update workroom \
           --region=${_REGION} \
-          --update-env-vars="META_URL=$$WORKROOM_URL/meta" \
+          --update-env-vars="META_URL=$$WORKROOM_URL/meta,AGENT_SERVER_URL=$$AGENT_SERVER_BACKEND_URL,WORKROOM_URL=$$WORKROOM_URL" \
           --quiet
 
-        # Explicitly ensure workroom is publicly accessible
-        echo "🔐 Setting workroom IAM policy for public access..."
-        gcloud beta run services add-iam-policy-binding workroom \
-          --region=${_REGION} \
-          --member="allUsers" \
-          --role="roles/run.invoker" \
-          --quiet
+                # Both services are now public - no additional IAM needed
 
         # Test workroom health
         WORKROOM_HEALTH="❌"
@@ -425,7 +422,7 @@ steps:
         echo ""
         echo "🔗 SERVICE COMMUNICATION:"
         echo "   • Public Access: $$WORKROOM_URL (Workroom frontend + API proxy)"
-        echo "   • Internal Agent-server: $$AGENT_SERVER_URL (nginx proxy target)"
+        echo "   • Internal Agent-server: $$AGENT_SERVER_BACKEND_URL (nginx proxy target)"
         echo "   • META endpoint: $$WORKROOM_URL/meta (served by nginx)"
         echo ""
         echo "🗄️  DATABASE:"
