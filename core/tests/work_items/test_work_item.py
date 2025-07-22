@@ -20,6 +20,7 @@ def test_work_item_callback_payload_smoke():
         thread_id="thread-789",
         status=WorkItemStatus.COMPLETED,
         work_item_url="http://example.com/work-items/test-123",
+        agent_name="Test Agent",  # Add agent_name
     )
 
     # Test model_dump() serializes correctly
@@ -30,6 +31,7 @@ def test_work_item_callback_payload_smoke():
         "thread_id": "thread-789",
         "status": "COMPLETED",
         "work_item_url": "http://example.com/work-items/test-123",
+        "agent_name": "Test Agent",  # Verify agent_name in dump
     }
 
     # Test model_validate() deserializes correctly
@@ -39,6 +41,7 @@ def test_work_item_callback_payload_smoke():
     assert validated.thread_id == payload.thread_id
     assert validated.status == payload.status
     assert validated.work_item_url == payload.work_item_url
+    assert validated.agent_name == payload.agent_name  # Verify agent_name after validation
 
     # Test validation errors
     with pytest.raises(ValueError, match="work_item_id is required"):
@@ -49,6 +52,17 @@ def test_work_item_callback_payload_smoke():
 
     with pytest.raises(ValueError, match="thread_id is required"):
         WorkItemCallbackPayload.model_validate({"work_item_id": "test", "agent_id": "agent"})
+
+    with pytest.raises(ValueError, match="agent_name is required"):
+        WorkItemCallbackPayload.model_validate(
+            {
+                "work_item_id": "test",
+                "agent_id": "agent",
+                "thread_id": "thread",
+                "status": "COMPLETED",
+                "work_item_url": "http://example.com",
+            }
+        )
 
 
 def test_work_item_restart():

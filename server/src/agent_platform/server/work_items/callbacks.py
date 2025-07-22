@@ -16,6 +16,8 @@ from agent_platform.core.work_items.work_item import (
     WorkItemCallbackPayload,
     WorkItemStatus,
 )
+from agent_platform.server.constants import WORK_ITEMS_SYSTEM_USER_SUB
+from agent_platform.server.storage.option import StorageService
 from agent_platform.server.work_items.settings import WORKROOM_URL, WORKSPACE_ID
 
 logger = logging.getLogger(__name__)
@@ -104,6 +106,19 @@ async def _execute_callback(work_item: WorkItem, callback: WorkItemCallback):
             "User-Agent": "Sema4AI-WorkItems-Callback/1.0",
         }
 
+        storage = StorageService.get_instance()
+        # Get agent name as SYSTEM user
+        system_user, _ = await storage.get_or_create_user(WORK_ITEMS_SYSTEM_USER_SUB)
+        if work_item.agent_id is None:
+            # at the time of callback, the agent_id has to be set.
+            # if it isn't, we're in a bad state.
+            raise InvalidWorkItemError(
+                f"Agent ID is not set for work item {work_item.work_item_id} "
+                "at the time of callback"
+            )
+        agent = await storage.get_agent(user_id=system_user.user_id, agent_id=work_item.agent_id)
+        agent_name = agent.name
+
         # Coerce into our Payload type for strong type checking
         webhook_payload = WorkItemCallbackPayload.model_validate(
             {
@@ -112,6 +127,7 @@ async def _execute_callback(work_item: WorkItem, callback: WorkItemCallback):
                 "thread_id": work_item.thread_id,
                 "status": work_item.status.value,
                 "work_item_url": _build_work_item_url(work_item),
+                "agent_name": agent_name,
             }
         )
 

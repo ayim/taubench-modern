@@ -144,6 +144,11 @@ class WorkItemCallbackPayload:
     )
     """The URL of the work item."""
 
+    agent_name: str = field(
+        metadata={"description": "The name of the agent"},
+    )
+    """The name of the agent."""
+
     def model_dump(self) -> dict:
         return {
             "work_item_id": self.work_item_id,
@@ -151,6 +156,7 @@ class WorkItemCallbackPayload:
             "thread_id": self.thread_id,
             "status": self.status.value,
             "work_item_url": self.work_item_url,
+            "agent_name": self.agent_name,
         }
 
     @classmethod
@@ -163,11 +169,14 @@ class WorkItemCallbackPayload:
             raise ValueError("agent_id is required")
         if not data.get("thread_id"):
             raise ValueError("thread_id is required")
+        if not data.get("work_item_url"):
+            raise ValueError("work_item_url is required")
+        if not data.get("agent_name"):
+            raise ValueError("agent_name is required")
+
         # Parse status if it's a string
         if "status" in data and isinstance(data["status"], str):
             data["status"] = WorkItemStatus(data["status"])
-
-        # TODO validate that work_item_url is set (need to wire in that value first)
 
         return cls(**data)
 

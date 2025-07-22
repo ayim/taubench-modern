@@ -1,7 +1,7 @@
 import json
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from unittest.mock import patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -25,6 +25,29 @@ from agent_platform.server.work_items.callbacks import (
 
 @pytest.mark.asyncio
 class TestWorkItemsCallbacks:
+    @pytest.fixture(autouse=True)
+    async def setup_storage_mock(self):
+        """Setup storage mock for all tests."""
+        mock_storage = MagicMock()
+        mock_storage._db = MagicMock()  # Add _db attribute
+
+        # Create a mock user
+        mock_user = MagicMock()
+        mock_user.user_id = "test-user-123"
+
+        # Make get_or_create_user return a tuple (user, created)
+        mock_storage.get_or_create_user = AsyncMock(return_value=(mock_user, False))
+
+        # Make get_agent return an agent with a name
+        mock_agent = MagicMock()
+        mock_agent.name = "Test Agent"
+        mock_storage.get_agent = AsyncMock(return_value=mock_agent)
+
+        with patch(
+            "agent_platform.server.storage.StorageService.get_instance", return_value=mock_storage
+        ):
+            yield mock_storage
+
     async def test_build_work_item_url(self):
         """Test the _build_work_item_url function with various scenarios."""
         # Test with all fields populated
@@ -68,6 +91,7 @@ class TestWorkItemsCallbacks:
                 "thread_id": "thread_456",
                 "status": "COMPLETED",
                 "work_item_url": "http://localhost:8000",
+                "agent_name": "Test Agent",
             }
         )
         secret = "test_secret"
@@ -89,6 +113,7 @@ class TestWorkItemsCallbacks:
                 "thread_id": "thread_456",
                 "status": "COMPLETED",
                 "work_item_url": "http://localhost:8000",
+                "agent_name": "Test Agent",
             }
         )
 
@@ -99,6 +124,7 @@ class TestWorkItemsCallbacks:
                 "thread_id": "thread_456",
                 "agent_id": "agent_123",
                 "work_item_url": "http://localhost:8000",
+                "agent_name": "Test Agent",
             }
         )
 
@@ -118,6 +144,7 @@ class TestWorkItemsCallbacks:
                 "thread_id": "thread_456",
                 "status": "COMPLETED",
                 "work_item_url": "http://localhost:8000",
+                "agent_name": "Test Agent",
             }
         )
 
@@ -135,6 +162,7 @@ class TestWorkItemsCallbacks:
                 "thread_id": "thread_456",
                 "status": "COMPLETED",
                 "work_item_url": "http://localhost:8000",
+                "agent_name": "Test Agent",
             }
         )
 
@@ -145,7 +173,8 @@ class TestWorkItemsCallbacks:
                 "thread_id": "thread_457",
                 "status": "COMPLETED",
                 "work_item_url": "http://localhost:8000",
-            }
+                "agent_name": "Test Agent",
+            },
         )
 
         secret = "test_secret"
@@ -222,6 +251,7 @@ class TestWorkItemsCallbacks:
             assert body["agent_id"] == "agent_789"
             assert body["thread_id"] == "thread_012"
             assert body["status"] == "COMPLETED"
+            assert body["agent_name"] == "Test Agent"  # Verify agent name from our mock
             # With default settings, the URL should be "http://localhost:8000/no-workspace-id/agent_789/thread_012"
             expected_url = (
                 f"http://localhost:8000/no-workspace-id/{work_item.agent_id}/{work_item.thread_id}"
@@ -335,6 +365,15 @@ class TestWorkItemsCallbacks:
             # Verify signature
             expected_signature = _compute_signature(secret, request["body"])
             assert request["headers"]["X-SEMA4AI-SIGNATURE"] == expected_signature
+
+            # Verify body
+            body = request["body"]
+            assert body["work_item_id"] == "test_work_item_123"
+            assert body["agent_id"] == "agent_789"
+            assert body["thread_id"] == "thread_012"
+            assert body["status"] == "COMPLETED"
+            assert body["agent_name"] == "Test Agent"  # Verify agent name from our mock
+
             # With default settings, the URL should be "http://localhost:8000/no-workspace-id/agent_789/thread_012"
             expected_url = (
                 f"http://localhost:8000/no-workspace-id/{work_item.agent_id}/{work_item.thread_id}"
@@ -440,6 +479,12 @@ class TestWorkItemsCallbacks:
             assert "/webhook1" in paths
             assert "/webhook3" in paths
             assert "/webhook2" not in paths
+
+            # Verify agent_name in both requests
+            for request in received_requests:
+                assert (
+                    request["body"]["agent_name"] == "Test Agent"
+                )  # Verify agent name from our mock
 
         finally:
             server.shutdown()
