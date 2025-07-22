@@ -3,7 +3,6 @@ module github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli
 go 1.23.9
 
 require (
-	github.com/Sema4AI/agent-platform/client-sdks/golang/agent-client-go v0.5.1
 	github.com/Sema4AI/rcc v0.0.0-20250514153248-eec1733ee256
 	github.com/google/uuid v1.6.0
 	github.com/spf13/cobra v1.9.1
@@ -13,7 +12,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-require golang.org/x/text v0.27.0 // indirect
+require golang.org/x/text v0.27.0
 
 require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
@@ -28,5 +27,3 @@ require (
 	golang.org/x/term v0.32.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 )
-
-replace github.com/Sema4AI/agent-platform/client-sdks/golang/agent-client-go => ../agent-client-go

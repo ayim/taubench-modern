@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"path"
 
-	AgentServer "github.com/Sema4AI/agent-platform/client-sdks/golang/agent-client-go/pkg/client"
+	AgentServer "github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/agent-server-client"
 )
 
 const (

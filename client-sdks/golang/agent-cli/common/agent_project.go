@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"sync"
 
+	AgentServer "github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/agent-server-client"
 	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/common/glob"
-	AgentServer "github.com/Sema4AI/agent-platform/client-sdks/golang/agent-client-go/pkg/client"
 )
 
 type AgentChanges []string

@@ -5,9 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
+	AgentServer "github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/agent-server-client"
 	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/common"
 	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/pretty"
-	AgentServer "github.com/Sema4AI/agent-platform/client-sdks/golang/agent-client-go/pkg/client"
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )

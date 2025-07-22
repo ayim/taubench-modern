@@ -13,9 +13,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	AgentServer "github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/agent-server-client"
 	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/common"
 	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/pretty"
-	AgentServer "github.com/Sema4AI/agent-platform/client-sdks/golang/agent-client-go/pkg/client"
 	rccCommon "github.com/Sema4AI/rcc/common"
 	"github.com/Sema4AI/rcc/pathlib"
 	"github.com/spf13/cobra"
@@ -473,7 +473,7 @@ func GenerateAgentMetadataFromProject(agentProjectPath string) ([]*common.AgentP
 	pretty.LogIfVerbose("[generateAgentMetadataFromProject] gathering agents metadata...")
 	metadataForAllAgents := make([]*common.AgentPackageMetadata, 0)
 	for _, agent := range spec.AgentPackage.Agents {
-		pretty.LogIfVerbose("[generateAgentMetadataFromProject] dealing with agent: %+v", agent)
+		pretty.LogIfVerbose("[generateAgentMetadataFromProject] dealing with agent: %+v", agent.Name)
 		metadata := common.AgentPackageMetadata{
 			Name:                agent.Name,
 			Description:         agent.Description,

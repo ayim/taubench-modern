@@ -10,7 +10,7 @@ import (
 
 	"path/filepath"
 
-	AgentServer "github.com/Sema4AI/agent-platform/client-sdks/golang/agent-client-go/pkg/client"
+	AgentServer "github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/agent-server-client"
 )
 
 func TestReadSpecV3Empty(t *testing.T) {

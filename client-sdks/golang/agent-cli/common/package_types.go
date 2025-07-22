@@ -3,7 +3,7 @@ package common
 import (
 	"encoding/json"
 
-	AgentServer "github.com/Sema4AI/agent-platform/client-sdks/golang/agent-client-go/pkg/client"
+	AgentServer "github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/agent-server-client"
 )
 
 type AgentPackageMetadataKnowledge struct {

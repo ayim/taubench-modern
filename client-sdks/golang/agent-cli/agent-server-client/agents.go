@@ -1,4 +1,4 @@
-package client
+package agent_server_client
 
 import (
 	"encoding/json"
@@ -42,7 +42,7 @@ type AgentActionPackage struct {
 	Organization      string            `json:"organization"`
 	Version           string            `json:"version"`
 	URL               string            `json:"url"`
-	APIKey            string            `json:"api_key"`
+	APIKey            string            `json:"api_key,omitempty"`
 	Whitelist         string            `json:"whitelist"`
 	AdditionalHeaders map[string]string `json:"additional_headers"`
 }

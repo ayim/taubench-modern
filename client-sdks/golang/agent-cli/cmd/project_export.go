@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	AgentServer "github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/agent-server-client"
 	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/common"
 	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/pretty"
-	AgentServer "github.com/Sema4AI/agent-platform/client-sdks/golang/agent-client-go/pkg/client"
 	"github.com/Sema4AI/rcc/pathlib"
 	"github.com/spf13/cobra"
 	"golang.org/x/mod/semver"

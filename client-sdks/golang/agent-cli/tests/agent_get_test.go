@@ -8,9 +8,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	AgentServer "github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/agent-server-client"
 	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/cmd"
 	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/common"
-	AgentServer "github.com/Sema4AI/agent-platform/client-sdks/golang/agent-client-go/pkg/client"
 )
 
 func TestReadConversationGuideYAML_Success(t *testing.T) {

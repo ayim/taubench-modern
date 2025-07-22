@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"sync"
 
+	AgentServer "github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/agent-server-client"
 	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/common"
 	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/pretty"
-	AgentServer "github.com/Sema4AI/agent-platform/client-sdks/golang/agent-client-go/pkg/client"
 	rccCommon "github.com/Sema4AI/rcc/common"
 	"github.com/Sema4AI/rcc/pathlib"
 	"github.com/spf13/cobra"

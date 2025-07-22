@@ -1,4 +1,4 @@
-package error
+package agent_server_client
 
 import (
 	"fmt"

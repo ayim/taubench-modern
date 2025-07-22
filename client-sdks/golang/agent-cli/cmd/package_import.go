@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
+	AgentServer "github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/agent-server-client"
 	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/common"
 	"github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/pretty"
-	AgentServer "github.com/Sema4AI/agent-platform/client-sdks/golang/agent-client-go/pkg/client"
 	rccCommon "github.com/Sema4AI/rcc/common"
+	"github.com/Sema4AI/rcc/pathlib"
 	"github.com/spf13/cobra"
 )
 
@@ -26,6 +28,10 @@ func getAgentNameFromMetadata(metadata []*common.AgentPackageMetadata) string {
 		return ""
 	}
 	return metadata[0].Name
+}
+
+func getActionPackagesFromMetadata(metadata []*common.AgentPackageMetadata) []common.AgentPackageActionPackageMetadata {
+	return metadata[0].ActionPackages
 }
 
 func getAgentModelFromMetadata(metadata []*common.AgentPackageMetadata) AgentServer.AgentModel {
@@ -107,28 +113,82 @@ func getLangsmithConfig(langsmithConfig string) (*AgentServer.LangSmithConfig, e
 	return &config, nil
 }
 
-func importAgentPackageToAgentServer(agentPackageDestPath, agentPackageSourcePath, serverUrl, modelConfiguration, actionServerConfiguration, langSmithConfiguration string, makePublic bool) error {
-	agentServerClient := AgentServer.NewClient(serverUrl)
-
-	metadata, err := GenerateAgentMetadataFromPackageTo(agentPackageSourcePath, agentPackageDestPath)
-	if err != nil {
-		return fmt.Errorf("failed to generate metadata: %w", err)
+func prepareActionPackages(metadata []*common.AgentPackageMetadata, agentPackageDestPath string) error {
+	galleryRootDir := common.S4SActionsGalleryLocation()
+	if !pathlib.Exists(galleryRootDir) {
+		pretty.LogIfVerbose("[prepareActionPackages] skipping the Action Packages preparation as Sema4.ai Studio Gallery was not found")
+		return nil
 	}
 
-	spec, err := ReadSpec(agentPackageDestPath)
-	if err != nil {
-		return fmt.Errorf("failed to read spec: %w", err)
+	pretty.LogIfVerbose("[prepareActionPackages] importing Action Packages...")
+	actionPackages := getActionPackagesFromMetadata(metadata)
+	for _, actionPackage := range actionPackages {
+		pretty.LogIfVerbose("[prepareActionPackages] Action Package Path: %+v", actionPackage.Path)
+
+		// skipping action packages coming from Sema4.ai
+		if strings.Contains(actionPackage.Path, common.S4S_BUNDLED_ACTIONS_DIR) {
+			pretty.LogIfVerbose("[prepareActionPackages] skipping import of Action Package: %s", actionPackage.Path)
+			continue
+		}
+
+		// determine the organization and the package name from the path
+		actionPackageOrganization, actionPackagePackageName := filepath.Split(actionPackage.Path)
+		if actionPackageOrganization == "" || actionPackagePackageName == "" {
+			return fmt.Errorf("[prepareActionPackages] failed to parse Action Package path")
+		}
+
+		// (source) calculate where the action packages need to be copied from
+		actionPackageSourcePath := filepath.Join(agentPackageDestPath, common.AGENT_PROJECT_ACTIONS_DIR, actionPackageOrganization, actionPackagePackageName)
+		pretty.LogIfVerbose("Action Package Path from the extracted Agent Package: %+v", actionPackageSourcePath)
+		if !pathlib.Exists(actionPackageSourcePath) {
+			return fmt.Errorf("[prepareActionPackages] calculated source path does not exist")
+		}
+
+		// (destination) calculate where the action packages need to be copied to
+		actionPackageDestPath := filepath.Join(galleryRootDir, actionPackageOrganization, actionPackagePackageName, actionPackage.Version)
+		pretty.LogIfVerbose("Importing Action Package to: %+v", actionPackageDestPath)
+		if err := os.MkdirAll(actionPackageDestPath, 0o755); err != nil {
+			return fmt.Errorf("[prepareActionPackages] failed to create destination for Action Package: %w", err)
+		}
+
+		// we don't have a zipped action package but an expanded one
+		if err := common.CopyDir(actionPackageSourcePath, actionPackageDestPath, true); err != nil {
+			return fmt.Errorf("[prepareActionPackages] failed to copy files for Action Package: %w", err)
+		}
+		pretty.LogIfVerbose("Action Package  '%s'  imported successfully to: %s", actionPackage.Name, actionPackageDestPath)
 	}
 
-	runbook, err := ReadRunbook(filepath.Join(agentPackageDestPath, spec.AgentPackage.Agents[0].Runbook))
-	if err != nil {
-		return fmt.Errorf("failed to read runbook: %w", err)
-	}
+	return nil
+}
 
+func BuildAgentPayload(
+	metadata []*common.AgentPackageMetadata,
+	spec *common.AgentSpec,
+	runbook string,
+	modelConfiguration string,
+	actionServerConfiguration string,
+	langSmithConfiguration string,
+	makePublic bool,
+) (*AgentServer.AgentPayload, error) {
 	actionPackages := []AgentServer.AgentActionPackage{}
+	for _, ap := range metadata[0].ActionPackages {
+		// determine the organization and the package name from the path
+		actionPackageOrganization, actionPackagePackageName := filepath.Split(ap.Path)
+		if actionPackageOrganization == "" || actionPackagePackageName == "" {
+			return nil, fmt.Errorf("[BuildAgentPayload] failed to parse Action Package path")
+		}
+
+		actionPackages = append(actionPackages, AgentServer.AgentActionPackage{
+			Name:         ap.Name,
+			Organization: strings.Trim(actionPackageOrganization, "/"),
+			Version:      ap.Version,
+			Whitelist:    ap.Whitelist,
+		})
+	}
+
 	actionServerConfig, err := getActionServerConfig(actionServerConfiguration)
 	if err != nil {
-		return fmt.Errorf("failed to parse action server config: %w", err)
+		return nil, fmt.Errorf("[BuildAgentPayload] failed to parse action server config: %w", err)
 	}
 	if actionServerConfig != nil {
 		actionPackages = append(actionPackages, *actionServerConfig)
@@ -153,24 +213,55 @@ func importAgentPackageToAgentServer(agentPackageDestPath, agentPackageSourcePat
 	if modelConfiguration != "" {
 		modelConfigObj, err := getModelConfig(modelConfiguration)
 		if err != nil {
-			return fmt.Errorf("failed to parse given model config: %w", err)
+			return nil, fmt.Errorf("[BuildAgentPayload] failed to parse given model config: %w", err)
 		}
 		payload.Model.Config = modelConfigObj
 	}
 
 	langsmithConfig, err := getLangsmithConfig(langSmithConfiguration)
 	if err != nil {
-		return fmt.Errorf("failed to parse langsmith config: %w", err)
+		return nil, fmt.Errorf("[BuildAgentPayload] failed to parse langsmith config: %w", err)
 	}
 	payload.AdvancedConfig.LangSmith = langsmithConfig
 
-	agent, err := createOrUpdateAgent(payload, agentServerClient)
+	return &payload, nil
+}
+
+func importAgentPackageToAgentServer(agentPackageDestPath, agentPackageSourcePath, serverUrl, modelConfiguration, actionServerConfiguration, langSmithConfiguration string, makePublic bool) error {
+	agentServerClient := AgentServer.NewClient(serverUrl)
+
+	metadata, err := GenerateAgentMetadataFromPackageTo(agentPackageSourcePath, agentPackageDestPath)
 	if err != nil {
-		return fmt.Errorf("failed to create or update Agent: %w", err)
+		return fmt.Errorf("[importAgentPackageToAgentServer] failed to generate metadata: %w", err)
+	}
+
+	spec, err := ReadSpec(agentPackageDestPath)
+	if err != nil {
+		return fmt.Errorf("[importAgentPackageToAgentServer] failed to read spec: %w", err)
+	}
+
+	runbook, err := ReadRunbook(filepath.Join(agentPackageDestPath, spec.AgentPackage.Agents[0].Runbook))
+	if err != nil {
+		return fmt.Errorf("[importAgentPackageToAgentServer] failed to read runbook: %w", err)
+	}
+
+	err = prepareActionPackages(metadata, agentPackageDestPath)
+	if err != nil {
+		return fmt.Errorf("[importAgentPackageToAgentServer] failed to prepare action packages: %w", err)
+	}
+
+	payload, err := BuildAgentPayload(metadata, spec, runbook, modelConfiguration, actionServerConfiguration, langSmithConfiguration, makePublic)
+	if err != nil {
+		return err
+	}
+
+	agent, err := createOrUpdateAgent(*payload, agentServerClient)
+	if err != nil {
+		return fmt.Errorf("[importAgentPackageToAgentServer] failed to create or update Agent: %w", err)
 	}
 	agentJson, err := json.Marshal(agent)
 	if err != nil {
-		return fmt.Errorf("failed to marshal Agent: %w", err)
+		return fmt.Errorf("[importAgentPackageToAgentServer] failed to marshal Agent: %w", err)
 	}
 	rccCommon.Stdout("%s\n", agentJson)
 	return nil

@@ -1,4 +1,4 @@
-package client
+package agent_server_client
 
 // BuildAgentPayload builds an AgentPayload from an Agent.
 func BuildAgentPayload(agent *Agent) AgentPayload {

@@ -1,4 +1,4 @@
-package client
+package agent_server_client
 
 import (
 	"fmt"

@@ -1,4 +1,4 @@
-package client
+package agent_server_client
 
 const (
 	// do not edit this line, use versionbump to bump the version
