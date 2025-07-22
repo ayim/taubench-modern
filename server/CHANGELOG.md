@@ -1,3 +1,7 @@
+# Sema4.ai Agent Server 2.0.19 (2025-07-22)
+
+- Update migration numbers to be unique for SQLite and Postgres.
+
 # Sema4.ai Agent Server 2.0.18 (2025-07-22)
 
 - **BREAKING CHANGE**: Reworked work-items list endpoint to support pagination - response is now an object with `work_items` array instead of a direct array ([GPT-1112](https://linear.app/sema4ai/issue/GPT-1112))
