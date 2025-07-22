@@ -6,7 +6,9 @@ from agent_platform.core.thread.base import ThreadMessage
 from agent_platform.core.thread.content.text import ThreadTextContent
 from agent_platform.core.work_items.work_item import (
     WorkItem,
+    WorkItemCallback,
     WorkItemCallbackPayload,
+    WorkItemCompletedBy,
     WorkItemStatus,
     WorkItemStatusUpdatedBy,
 )
@@ -128,3 +130,82 @@ def test_work_item_to_initiate_stream_payload():
         "from_work_item": True,
         "work_item_id": work_item.work_item_id,
     }
+
+
+def test_work_item_model_validate_field_parsing():
+    """Test that the model_validate method properly parses various field types."""
+    from datetime import UTC, datetime
+    from uuid import uuid4
+
+    # Create test data with string values that need parsing
+    test_data = {
+        "work_item_id": str(uuid4()),
+        "user_id": str(uuid4()),
+        "agent_id": str(uuid4()),
+        "thread_id": str(uuid4()),
+        "status": "COMPLETED",  # String -> WorkItemStatus enum
+        "completed_by": "AGENT",  # String -> WorkItemCompletedBy enum
+        "created_at": "2024-01-15T10:30:00+00:00",  # String -> datetime
+        "updated_at": "2024-01-15T11:30:00+00:00",  # String -> datetime
+        "status_updated_at": "2024-01-15T12:30:00+00:00",  # String -> datetime
+        "status_updated_by": "user-123",
+        "messages": [
+            {
+                "message_id": str(uuid4()),
+                "role": "user",
+                "content": [{"kind": "text", "text": "Hello"}],
+                "created_at": "2024-01-15T10:30:00+00:00",
+            }
+        ],
+        "initial_messages": [
+            {
+                "message_id": str(uuid4()),
+                "role": "user",
+                "content": [{"kind": "text", "text": "Initial"}],
+                "created_at": "2024-01-15T10:29:00+00:00",
+            }
+        ],
+        "callbacks": [
+            {
+                "url": "https://example.com/callback",
+                "on_status": "NEEDS_REVIEW",  # String -> WorkItemStatus enum
+                "signature_secret": "secret123",
+            }
+        ],
+        "payload": {"key": "value"},
+    }
+
+    # Test that model_validate properly parses all fields
+    work_item = WorkItem.model_validate(test_data)
+
+    # Test enum parsing
+    assert work_item.status == WorkItemStatus.COMPLETED
+    assert isinstance(work_item.status, WorkItemStatus)
+    assert work_item.completed_by == WorkItemCompletedBy.AGENT
+    assert isinstance(work_item.completed_by, WorkItemCompletedBy)
+
+    # Test datetime parsing
+    assert isinstance(work_item.created_at, datetime)
+    assert isinstance(work_item.updated_at, datetime)
+    assert isinstance(work_item.status_updated_at, datetime)
+    assert work_item.created_at.tzinfo == UTC
+
+    # Test nested object parsing
+    assert len(work_item.messages) == 1
+    assert isinstance(work_item.messages[0], ThreadMessage)
+    assert len(work_item.initial_messages) == 1
+    assert isinstance(work_item.initial_messages[0], ThreadMessage)
+    assert len(work_item.callbacks) == 1
+    assert isinstance(work_item.callbacks[0], WorkItemCallback)
+    assert work_item.callbacks[0].on_status == WorkItemStatus.NEEDS_REVIEW
+
+    # Test with None/missing optional fields
+    minimal_data = {
+        "work_item_id": "test-123",
+        "user_id": "user-456",
+    }
+    work_item_minimal = WorkItem.model_validate(minimal_data)
+    assert work_item_minimal.completed_by is None
+    assert work_item_minimal.agent_id is None
+    assert work_item_minimal.thread_id is None
+    assert work_item_minimal.status == WorkItemStatus.PENDING  # Default value
