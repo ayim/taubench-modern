@@ -10,7 +10,12 @@ from agent_platform.core.payloads.create_work_item import (
     CreateWorkItemPayload,
 )
 from agent_platform.core.thread.base import ThreadMessage
-from agent_platform.core.work_items.work_item import WorkItem, WorkItemCallback, WorkItemStatus
+from agent_platform.core.work_items.work_item import (
+    WorkItem,
+    WorkItemCallback,
+    WorkItemCompletedBy,
+    WorkItemStatus,
+)
 from agent_platform.server.api.dependencies import FileManagerDependency, StorageDependency
 from agent_platform.server.api.private_v2.threads import (
     ConfirmRemoteFileUploadPayload,
@@ -335,6 +340,25 @@ async def cancel_item(
         )
 
     await storage.update_work_item_status(user.user_id, work_item_id, WorkItemStatus.CANCELLED)
+    return {"status": "ok"}
+
+
+@router.post("/{work_item_id}/complete")
+async def complete_work_item(
+    work_item_id: str,
+    user: AuthedUser,
+    storage: StorageDependency,
+):
+    """Administratively mark a work item as completed."""
+    work_item = await storage.get_work_item(work_item_id)
+    if not work_item:
+        raise PlatformHTTPError(ErrorCode.NOT_FOUND, "Work item not found")
+    if not WorkItemStateMachine.is_valid_transition(work_item.status, WorkItemStatus.COMPLETED):
+        raise PlatformHTTPError(
+            ErrorCode.PRECONDITION_FAILED,
+            f"Cannot complete work item from status {work_item.status.value}.",
+        )
+    await storage.complete_work_item(user.user_id, work_item_id, WorkItemCompletedBy.HUMAN)
     return {"status": "ok"}
 
 

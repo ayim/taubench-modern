@@ -987,3 +987,63 @@ async def test_work_item_two_stage_file_upload_workflow(
     assert work_item["status"] == WorkItemStatus.PENDING.value
     assert work_item["agent_id"] == agent.agent_id
     assert work_item["work_item_id"] == work_item_id
+
+
+@pytest.mark.asyncio
+async def test_complete_work_item_from_valid_statuses(client: TestClient, seed_agents: list[Agent]):
+    """Test completing work items from all valid statuses."""
+    from agent_platform.server.constants import WORK_ITEMS_SYSTEM_USER_SUB
+    from agent_platform.server.storage.option import StorageService
+
+    storage = StorageService.get_instance()
+    system_user, _ = await storage.get_or_create_user(WORK_ITEMS_SYSTEM_USER_SUB)
+
+    valid_from_statuses = [
+        WorkItemStatus.EXECUTING,
+        WorkItemStatus.NEEDS_REVIEW,
+        WorkItemStatus.INDETERMINATE,
+        WorkItemStatus.ERROR,
+    ]
+
+    for from_status in valid_from_statuses:
+        # Create a new work item for each test
+        create_payload = {
+            "agent_id": seed_agents[0].agent_id,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "kind": "text",
+                            "text": f"This item will be completed from {from_status.value}",
+                        }
+                    ],
+                }
+            ],
+            "payload": {"complete_test": True, "from_status": from_status.value},
+        }
+
+        create_response = client.post("/public/v1/work-items/", json=create_payload)
+        assert create_response.status_code == 200
+        work_item = create_response.json()
+        work_item_id = work_item["work_item_id"]
+
+        # Move the work item to the target status
+        await storage.update_work_item_status(system_user.user_id, work_item_id, from_status)
+
+        # Verify the item is in the expected status
+        get_response = client.get(f"/public/v1/work-items/{work_item_id}")
+        assert get_response.status_code == 200
+        assert get_response.json()["status"] == from_status.value
+
+        # Complete the work item
+        complete_response = client.post(f"/public/v1/work-items/{work_item_id}/complete")
+        assert complete_response.status_code == 200, f"Failed to complete from {from_status.value}"
+        assert complete_response.json()["status"] == "ok"
+
+        # Verify the item is now COMPLETED
+        get_response_after = client.get(f"/public/v1/work-items/{work_item_id}")
+        assert get_response_after.status_code == 200
+        item_after_complete = get_response_after.json()
+        assert item_after_complete["work_item_id"] == work_item_id
+        assert item_after_complete["status"] == WorkItemStatus.COMPLETED.value
