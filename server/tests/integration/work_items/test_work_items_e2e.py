@@ -193,6 +193,6 @@ async def test_work_items_e2e(  # noqa: PLR0915
         ) as client:
             v2_list_resp = await client.get("/work-items/")
             assert v2_list_resp.status_code == 200
-            v2_listed_items = v2_list_resp.json()
+            v2_listed_items = v2_list_resp.json()["records"]
             v2_work_item_ids = [wi["work_item_id"] for wi in v2_listed_items]
             assert work_item_id in v2_work_item_ids
