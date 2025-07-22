@@ -76,7 +76,8 @@ async def _validate_success(item: WorkItem) -> WorkItemStatus:
         ## Conversation to Evaluate
 
         Please evaluate the conversation between the start and end markers below. The conversation \
-        is provided in YAML format:
+        is provided in YAML format which includes the agent's xml formatting markers and thinking \
+        which you should use in the totality of your evaluation.
 
         <conversation_start>
         {conversation_thread}

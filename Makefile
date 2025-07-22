@@ -344,6 +344,96 @@ run-workitems-server:
 test-workitems:
 	uv run --package agent_platform_workitems pytest -v workitems/tests/
 
+test-workitems-judge:  sync ## Test work item judge stability by running multiple times (NUM_RUNS=20, TEST_PATTERN=test_work_item_judge_with_recorded_threads)
+	@if [ -z "$$OPENAI_API_KEY" ]; then \
+		echo "❌ OPENAI_API_KEY is not set!"; \
+		echo "This test requires an OpenAI API key to run."; \
+		echo "Please set OPENAI_API_KEY in your environment or .env file."; \
+		exit 1; \
+	fi
+	@NUM_RUNS=$${NUM_RUNS:-20}; \
+	TEST_PATTERN=$${TEST_PATTERN:-test_work_item_judge_with_recorded_threads}; \
+	TIMESTAMP=$$(date +"%Y%m%d_%H%M%S"); \
+	RESULTS_DIR="judge_test_results/$$TIMESTAMP"; \
+	SUMMARY_FILE="$$RESULTS_DIR/summary.txt"; \
+	mkdir -p "$$RESULTS_DIR"; \
+	echo "Starting judge stability test..."; \
+	echo "Number of runs: $$NUM_RUNS"; \
+	echo "Test pattern: $$TEST_PATTERN"; \
+	echo "Results directory: $$RESULTS_DIR"; \
+	echo "=========================================="; \
+	PASSED=0; \
+	FAILED=0; \
+	FAILED_RUNS=""; \
+	for i in $$(seq 1 $$NUM_RUNS); do \
+		echo ""; \
+		echo "=========================================="; \
+		echo "🔄 RUN $$i/$$NUM_RUNS - $$(date '+%H:%M:%S')"; \
+		echo "=========================================="; \
+		OUTPUT_FILE="$$RESULTS_DIR/run_$$i.log"; \
+		if VCR_RECORD=none uv run pytest -k "$$TEST_PATTERN" -v --tb=long 2>&1 | tee "$$OUTPUT_FILE"; then \
+			echo "  ✅ PASSED"; \
+			PASSED=$$((PASSED + 1)); \
+			rm "$$OUTPUT_FILE"; \
+		else \
+			echo "  ❌ FAILED - saved to $$OUTPUT_FILE"; \
+			FAILED=$$((FAILED + 1)); \
+			FAILED_RUNS="$$FAILED_RUNS $$i"; \
+			FAILURE_FILE="$$RESULTS_DIR/failure_$$i.txt"; \
+			echo "=== FAILURE DETAILS FOR RUN $$i ===" > "$$FAILURE_FILE"; \
+			echo "Timestamp: $$(date)" >> "$$FAILURE_FILE"; \
+			echo "" >> "$$FAILURE_FILE"; \
+			grep -A 50 -B 10 "FAILED\|AssertionError\|ERROR" "$$OUTPUT_FILE" >> "$$FAILURE_FILE" 2>/dev/null || tail -100 "$$OUTPUT_FILE" >> "$$FAILURE_FILE"; \
+		fi; \
+	done; \
+	echo "=========================================="; \
+	echo "TEST STABILITY SUMMARY"; \
+	echo "=========================================="; \
+	echo "Total runs: $$NUM_RUNS"; \
+	echo "Passed: $$PASSED"; \
+	echo "Failed: $$FAILED"; \
+	if command -v bc >/dev/null 2>&1; then \
+		SUCCESS_RATE=$$(echo "scale=2; $$PASSED * 100 / $$NUM_RUNS" | bc -l); \
+	else \
+		SUCCESS_RATE="N/A (bc not available)"; \
+	fi; \
+	echo "Success rate: $$SUCCESS_RATE%"; \
+	{ \
+		echo "Judge Test Stability Report"; \
+		echo "Generated: $$(date)"; \
+		echo "Test: $$TEST_PATTERN"; \
+		echo "=========================================="; \
+		echo "Total runs: $$NUM_RUNS"; \
+		echo "Passed: $$PASSED"; \
+		echo "Failed: $$FAILED"; \
+		echo "Success rate: $$SUCCESS_RATE%"; \
+		echo ""; \
+		if [ $$FAILED -gt 0 ]; then \
+			echo "Failed runs:$$FAILED_RUNS"; \
+			echo ""; \
+			echo "Failure patterns (if any):"; \
+			echo "----------------------------------------"; \
+			if ls "$$RESULTS_DIR"/failure_*.txt >/dev/null 2>&1; then \
+				echo "=== Common error patterns ==="; \
+				grep -h "AssertionError\|ERROR\|Expected.*but got" "$$RESULTS_DIR"/failure_*.txt | sort | uniq -c | sort -nr; \
+			fi; \
+		else \
+			echo "🎉 All tests passed! The judge appears to be stable."; \
+		fi; \
+	} > "$$SUMMARY_FILE"; \
+	echo ""; \
+	echo "Full summary saved to: $$SUMMARY_FILE"; \
+	if [ $$FAILED -gt 0 ]; then \
+		echo "Failed run details saved in: $$RESULTS_DIR/"; \
+		echo ""; \
+		echo "To analyze failures:"; \
+		echo "  cat $$SUMMARY_FILE"; \
+		echo "  ls $$RESULTS_DIR/failure_*.txt"; \
+		exit 1; \
+	else \
+		echo "🎉 All tests passed! Judge appears stable."; \
+	fi
+
 # --------------------------------------------------------------------
 # All
 # --------------------------------------------------------------------

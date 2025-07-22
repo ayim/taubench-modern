@@ -7,7 +7,7 @@
       "content": [
         {
           "kind": "text",
-          "text": "Translate \"hello\" to Klingon."
+          "text": "Translate the customer feedback form responses in our proprietary business language code 'CORP-2024' to English."
         }
       ],
       "role": "user"
@@ -16,19 +16,28 @@
       "content": [
         {
           "kind": "thought",
-          "thought": "I'll use the translate tool to translate this to Klingon."
+          "thought": "I need to use the translation tool to translate from the business language code 'CORP-2024' to English."
         },
         {
           "kind": "tool_call",
           "name": "translate",
           "tool_call_id": "tool_5678",
-          "arguments_raw": "{\"text\": \"hello\", \"to\": \"tlh\"}",
+          "arguments_raw": "{\"text\": \"customer feedback responses\", \"from\": \"CORP-2024\", \"to\": \"en\"}",
           "status": "failed",
-          "error": "unsupported language code 'tlh'"
+          "error": "unsupported language code 'CORP-2024'"
+        }
+      ],
+      "role": "agent"
+    },
+    {
+      "content": [
+        {
+          "kind": "thought",
+          "thought": "The translation tool failed because 'CORP-2024' is not a supported language code. Since this appears to be a proprietary business language, I cannot complete this translation task without the appropriate tools or access to the translation system."
         },
         {
           "kind": "text",
-          "text": "Here is the translation: nuqneH!"
+          "text": "I apologize, but I cannot complete the translation task. The translation tool failed because 'CORP-2024' is not a supported language code in the available translation system. This appears to be a proprietary business language that requires specialized translation tools or access that I don't currently have. You may need to use your organization's internal translation system or contact the team responsible for 'CORP-2024' translations."
         }
       ],
       "role": "agent"

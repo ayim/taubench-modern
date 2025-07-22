@@ -71,6 +71,7 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
+judge_test_results/
 
 # Translations
 *.mo
