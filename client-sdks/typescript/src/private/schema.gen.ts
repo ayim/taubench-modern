@@ -96,8 +96,11 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Get Agent */
-    get: operations['get_agent_agents__aid__get'];
+    /**
+     * Get agent
+     * @description Returns the agent with the given name.
+     */
+    get: operations['get_agent_by_name_agents__aid__get'];
     /** Update Agent */
     put: operations['update_agent_agents__aid__put'];
     post?: never;
@@ -727,15 +730,85 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v2/health': {
+  '/api/v2/mcp-servers/': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** Health */
-    get: operations['health_health_get'];
+    /**
+     * List Mcp Servers
+     * @description List all MCP servers.
+     */
+    get: operations['list_mcp_servers_mcp_servers__get'];
+    put?: never;
+    /**
+     * Upsert Mcp Server
+     * @description Create or update an MCP server.
+     */
+    post: operations['upsert_mcp_server_mcp_servers__post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/mcp-servers/{mcp_server_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Mcp Server
+     * @description Get a specific MCP server by ID.
+     */
+    get: operations['get_mcp_server_mcp_servers__mcp_server_id__get'];
+    /**
+     * Update Mcp Server
+     * @description Update an existing MCP server by ID
+     */
+    put: operations['update_mcp_server_mcp_servers__mcp_server_id__put'];
+    post?: never;
+    /**
+     * Delete Mcp Server
+     * @description Delete an MCP server.
+     */
+    delete: operations['delete_mcp_server_mcp_servers__mcp_server_id__delete'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/work-items/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Work Items */
+    get: operations['list_work_items_work_items__get'];
+    put?: never;
+    /** Create Work Item */
+    post: operations['create_work_item_work_items__post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/work-items/{work_item_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Work Item */
+    get: operations['get_work_item_work_items__work_item_id__get'];
     put?: never;
     post?: never;
     delete?: never;
@@ -744,18 +817,200 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v2/metrics': {
+  '/api/v2/work-items/{work_item_id}/confirm-file': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** Metrics */
-    get: operations['metrics_metrics_get'];
+    get?: never;
+    put?: never;
+    /**
+     * Confirm File
+     * @description Confirm a remote file upload to a work item.
+     */
+    post: operations['confirm_file_work_items__work_item_id__confirm_file_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/work-items/upload-file': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Upload Work Item File
+     * @description Upload a file to a work item. If a work_item_id is not provided, a new one is created.
+     */
+    post: operations['upload_work_item_file_work_items_upload_file_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/work-items/{work_item_id}/continue': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Continue Work Item */
+    post: operations['continue_work_item_work_items__work_item_id__continue_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/work-items/{work_item_id}/restart': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Restart Work Item */
+    post: operations['restart_work_item_work_items__work_item_id__restart_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/work-items/{work_item_id}/cancel': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Cancel Item */
+    post: operations['cancel_item_work_items__work_item_id__cancel_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/agents': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List agents
+     * @description Returns a list of all agents for the authenticated user. You can filter by name using the 'name' query parameter.
+     */
+    get: operations['get_agents_agents_get'];
     put?: never;
     post?: never;
     delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/agents/{aid}/conversations': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List conversations
+     * @description Returns a list of all conversations for the given agent.
+     */
+    get: operations['get_conversations_agents__aid__conversations_get'];
+    put?: never;
+    /**
+     * Create new conversation
+     * @description Creates a new conversation for the given agent.
+     */
+    post: operations['create_conversation_agents__aid__conversations_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/agents/{aid}/conversations/{cid}/messages': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get conversation messages
+     * @description Returns the conversation messages of the given chat_id for the given agent.
+     */
+    get: operations['get_chat_messages_agents__aid__conversations__cid__messages_get'];
+    put?: never;
+    /**
+     * Post a message (synchronous)
+     * @description Post a message to a conversation thread, and get the updated conversation state.
+     */
+    post: operations['post_messages_simple_agents__aid__conversations__cid__messages_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/agents/{aid}/conversations/{cid}/stream': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Post a message to a conversation and stream the response
+     * @description Post a message to a conversation and stream the response
+     */
+    post: operations['post_public_api_messages_simple_agents__aid__conversations__cid__stream_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/agents/{aid}/conversations/{cid}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Delete conversation
+     * @description Deletes the conversation with the given conversation ID for the given agent.
+     */
+    delete: operations['delete_chat_agents__aid__conversations__cid__delete'];
     options?: never;
     head?: never;
     patch?: never;
@@ -924,114 +1179,6 @@ export interface components {
        * @description The version of the agent architecture.
        */
       version: string;
-    };
-    /** AgentCompat */
-    AgentCompat: {
-      /**
-       * Name
-       * @description The name of the agent.
-       */
-      name: string;
-      /**
-       * Description
-       * @description The description of the agent.
-       */
-      description: string;
-      /**
-       * User Id
-       * @description The id of the user that created the agent.
-       */
-      user_id: string;
-      /** @description The structured runbook of the agent. */
-      runbook_structured: components['schemas']['Runbook'];
-      /**
-       * Version
-       * @description The version of the agent.
-       */
-      version: string;
-      /**
-       * Platform Configs
-       * @description The platform configs this agent can use.
-       */
-      platform_configs: (
-        | components['schemas']['BedrockPlatformParameters']
-        | components['schemas']['CortexPlatformParameters']
-        | components['schemas']['OpenAIPlatformParameters']
-        | components['schemas']['AzureOpenAIPlatformParameters']
-        | components['schemas']['GooglePlatformParameters']
-        | components['schemas']['GroqPlatformParameters']
-        | components['schemas']['ReductoPlatformParameters']
-      )[];
-      /** @description The architecture details for the agent. */
-      agent_architecture: components['schemas']['AgentArchitecture'];
-      /** Action Packages */
-      action_packages?: components['schemas']['ActionPackageCompat'][];
-      /** Mcp Servers */
-      mcp_servers?: components['schemas']['MCPServerCompat'][];
-      /**
-       * Question Groups
-       * @description The question groups of the agent.
-       */
-      question_groups?: components['schemas']['QuestionGroup'][];
-      /**
-       * Observability Configs
-       * @description The observability configs of the agent.
-       */
-      observability_configs?: components['schemas']['ObservabilityConfig'][];
-      /**
-       * Created At
-       * Format: date-time
-       * @description The creation time of the agent.
-       */
-      created_at?: string;
-      /**
-       * Updated At
-       * Format: date-time
-       * @description The last update time of the agent.
-       */
-      updated_at?: string;
-      /**
-       * Mode
-       * @default conversational
-       * @enum {string}
-       */
-      mode: 'conversational' | 'worker';
-      /**
-       * Agent Id
-       * @description The unique identifier of the agent.
-       */
-      agent_id?: string;
-      /**
-       * Extra
-       * @description Extra fields for the agent.
-       */
-      extra?: {
-        [key: string]: unknown;
-      };
-      /**
-       * Runbook
-       * @default
-       */
-      runbook: string;
-      /** Id */
-      id?: string | null;
-      /**
-       * Public
-       * @default true
-       */
-      public: boolean;
-      /** Metadata */
-      metadata?: {
-        [key: string]: unknown;
-      };
-      /** Advanced Config */
-      advanced_config?: {
-        [key: string]: unknown;
-      };
-      /** Model */
-      model?: {
-        [key: string]: unknown;
-      };
     };
     /** AgentDetails */
     AgentDetails: {
@@ -1233,6 +1380,11 @@ export interface components {
       /** Files */
       files: string[];
     };
+    /** Body_upload_work_item_file_work_items_upload_file_post */
+    Body_upload_work_item_file_work_items_upload_file_post: {
+      /** File */
+      file: string;
+    };
     /** CachedToolDefinitionsReport */
     CachedToolDefinitionsReport: {
       /** Cached Action Packages */
@@ -1264,6 +1416,11 @@ export interface components {
       /** Average Time To Fetch Mcp Servers */
       average_time_to_fetch_mcp_servers: number;
     };
+    /** ChatMessageRequest */
+    ChatMessageRequest: {
+      /** Content */
+      content: string;
+    };
     /** Citation */
     Citation: {
       /**
@@ -1293,6 +1450,15 @@ export interface components {
       file_ref: string;
       /** File Id */
       file_id: string;
+    };
+    /** Conversation */
+    Conversation: {
+      /** Id */
+      id: string;
+      /** Name */
+      name: string;
+      /** Agent Id */
+      agent_id: string;
     };
     /** ConversationHistoryParams */
     ConversationHistoryParams: {
@@ -1364,6 +1530,41 @@ export interface components {
        * @description The Snowflake role. Optional.
        */
       snowflake_role?: string | null;
+    };
+    /** CreateChatRequest */
+    CreateChatRequest: {
+      /** Name */
+      name: string;
+    };
+    /** CreateWorkItemPayload */
+    CreateWorkItemPayload: {
+      /**
+       * Agent Id
+       * @description The ID of the agent that will process this work item.
+       */
+      agent_id: string;
+      /**
+       * Messages
+       * @description The messages in the work item conversation.
+       */
+      messages?: components['schemas']['ThreadMessage'][];
+      /**
+       * Payload
+       * @description The payload of the work item.
+       */
+      payload?: {
+        [key: string]: unknown;
+      };
+      /**
+       * Work Item Id
+       * @description The ID of the work item.
+       */
+      work_item_id?: string | null;
+      /**
+       * Callbacks
+       * @description A list of callbacks to trigger when the work item reaches a certain status.
+       */
+      callbacks?: components['schemas']['WorkItemCallback'][] | null;
     };
     /** DocumentsParams */
     DocumentsParams: {
@@ -1751,6 +1952,15 @@ export interface components {
       kind: 'openai';
       /** @description The OpenAI API key. If not provided, it will be attempted to be inferred from the environment. */
       openai_api_key?: components['schemas']['SecretString'] | null;
+    };
+    /** PaginatedResponse */
+    PaginatedResponse: {
+      /** Next */
+      next: string | null;
+      /** Has More */
+      has_more: boolean;
+      /** Data */
+      data: unknown[];
     };
     /** PatchAgentPayload */
     PatchAgentPayload: {
@@ -3109,6 +3319,250 @@ export interface components {
         [key: string]: unknown;
       };
     };
+    /** WorkItem */
+    WorkItem: {
+      /**
+       * Work Item Id
+       * @description The unique identifier for the work item
+       */
+      work_item_id: string;
+      /**
+       * User Id
+       * @description The ID of the user that created this work item
+       */
+      user_id: string;
+      /**
+       * Agent Id
+       * @description The ID of the agent that will process this work item
+       */
+      agent_id?: string | null;
+      /**
+       * Thread Id
+       * @description The ID of the thread associated with this work item (may be null until created).
+       */
+      thread_id?: string | null;
+      /**
+       * @description The status of the work item
+       * @default PENDING
+       */
+      status: components['schemas']['WorkItemStatus'];
+      /**
+       * Created At
+       * Format: date-time
+       * @description The timestamp when the work item was created
+       */
+      created_at?: string;
+      /**
+       * Updated At
+       * Format: date-time
+       * @description The timestamp when the work item was last updated
+       */
+      updated_at?: string;
+      /**
+       * Completed By
+       * @description The ID of the user who completed the work item
+       */
+      completed_by?: string | null;
+      /**
+       * Status Updated At
+       * Format: date-time
+       * @description The timestamp when the work item status was last updated
+       */
+      status_updated_at?: string;
+      /**
+       * Status Updated By
+       * @description The ID of the user who last updated the work item status
+       * @default SYSTEM
+       */
+      status_updated_by: string;
+      /**
+       * Initial Messages
+       * @description The initial conversation messages for this work item
+       */
+      initial_messages?: components['schemas']['ThreadMessage'][];
+      /**
+       * Messages
+       * @description The messages in the work item conversation
+       */
+      messages?: components['schemas']['ThreadMessage'][];
+      /**
+       * Payload
+       * @description The payload of the work item
+       */
+      payload?: {
+        [key: string]: unknown;
+      };
+      /**
+       * Callbacks
+       * @description The callbacks for the work item
+       */
+      callbacks?: components['schemas']['WorkItemCallback'][];
+    };
+    /** WorkItemCallback */
+    WorkItemCallback: {
+      /**
+       * Url
+       * @description The URL to call (POST) when the work item reaches the specified status.
+       */
+      url: string;
+      /**
+       * Signature Secret
+       * @description The secret to use to sign the callback payload. If not provided, the callback will not be signed.
+       */
+      signature_secret?: string | null;
+      /**
+       * On Status
+       * @description The status which, when reached, will trigger the callback (default NEEDS_REVIEW).
+       * @default NEEDS_REVIEW
+       * @enum {string}
+       */
+      on_status:
+        | 'COMPLETED'
+        | 'ERROR'
+        | 'NEEDS_REVIEW'
+        | 'CANCELLED'
+        | 'INDETERMINATE';
+    };
+    /**
+     * WorkItemStatus
+     * @description The status of a work item.
+     * @enum {string}
+     */
+    WorkItemStatus:
+      | 'CANCELLED'
+      | 'COMPLETED'
+      | 'ERROR'
+      | 'EXECUTING'
+      | 'NEEDS_REVIEW'
+      | 'INDETERMINATE'
+      | 'PENDING'
+      | 'PRECREATED';
+    /** WorkItemsListResponse */
+    WorkItemsListResponse: {
+      /** Records */
+      records: components['schemas']['WorkItem'][];
+      /** Next Offset */
+      next_offset?: number | null;
+    };
+    /** AgentCompat */
+    agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat: {
+      /**
+       * Name
+       * @description The name of the agent.
+       */
+      name: string;
+      /**
+       * Description
+       * @description The description of the agent.
+       */
+      description: string;
+      /**
+       * User Id
+       * @description The id of the user that created the agent.
+       */
+      user_id: string;
+      /** @description The structured runbook of the agent. */
+      runbook_structured: components['schemas']['Runbook'];
+      /**
+       * Version
+       * @description The version of the agent.
+       */
+      version: string;
+      /**
+       * Platform Configs
+       * @description The platform configs this agent can use.
+       */
+      platform_configs: (
+        | components['schemas']['BedrockPlatformParameters']
+        | components['schemas']['CortexPlatformParameters']
+        | components['schemas']['OpenAIPlatformParameters']
+        | components['schemas']['AzureOpenAIPlatformParameters']
+        | components['schemas']['GooglePlatformParameters']
+        | components['schemas']['GroqPlatformParameters']
+        | components['schemas']['ReductoPlatformParameters']
+      )[];
+      /** @description The architecture details for the agent. */
+      agent_architecture: components['schemas']['AgentArchitecture'];
+      /** Action Packages */
+      action_packages?: components['schemas']['ActionPackageCompat'][];
+      /** Mcp Servers */
+      mcp_servers?: components['schemas']['MCPServerCompat'][];
+      /**
+       * Question Groups
+       * @description The question groups of the agent.
+       */
+      question_groups?: components['schemas']['QuestionGroup'][];
+      /**
+       * Observability Configs
+       * @description The observability configs of the agent.
+       */
+      observability_configs?: components['schemas']['ObservabilityConfig'][];
+      /**
+       * Created At
+       * Format: date-time
+       * @description The creation time of the agent.
+       */
+      created_at?: string;
+      /**
+       * Updated At
+       * Format: date-time
+       * @description The last update time of the agent.
+       */
+      updated_at?: string;
+      /**
+       * Mode
+       * @default conversational
+       * @enum {string}
+       */
+      mode: 'conversational' | 'worker';
+      /**
+       * Agent Id
+       * @description The unique identifier of the agent.
+       */
+      agent_id?: string;
+      /**
+       * Extra
+       * @description Extra fields for the agent.
+       */
+      extra?: {
+        [key: string]: unknown;
+      };
+      /**
+       * Runbook
+       * @default
+       */
+      runbook: string;
+      /** Id */
+      id?: string | null;
+      /**
+       * Public
+       * @default true
+       */
+      public: boolean;
+      /** Metadata */
+      metadata?: {
+        [key: string]: unknown;
+      };
+      /** Advanced Config */
+      advanced_config?: {
+        [key: string]: unknown;
+      };
+      /** Model */
+      model?: {
+        [key: string]: unknown;
+      };
+    };
+    /** AgentCompat */
+    agent_platform__server__api__public_v2__interface__AgentCompat: {
+      /** Id */
+      id: string;
+      /** Name */
+      name: string;
+      /** Description */
+      description: string;
+      /** Mode */
+      mode: string;
+    };
     /**
      * ErrorDetail
      * @description Pydantic model for error detail - used only for OpenAPI schema generation.
@@ -3191,7 +3645,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['AgentCompat'][];
+          'application/json': components['schemas']['agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat'][];
         };
       };
     };
@@ -3215,7 +3669,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['AgentCompat'];
+          'application/json': components['schemas']['agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat'];
         };
       };
       /** @description Validation Error */
@@ -3244,7 +3698,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['AgentCompat'][];
+          'application/json': components['schemas']['agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat'][];
         };
       };
     };
@@ -3266,7 +3720,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['AgentCompat'];
+          'application/json': components['schemas']['agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat'];
         };
       };
       /** @description Validation Error */
@@ -3309,7 +3763,7 @@ export interface operations {
       };
     };
   };
-  get_agent_agents__aid__get: {
+  get_agent_by_name_agents__aid__get: {
     parameters: {
       query?: never;
       header?: never;
@@ -3320,17 +3774,35 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description Successful Response */
+      /** @description Success */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['AgentCompat'];
+          'application/json': components['schemas']['agent_platform__server__api__public_v2__interface__AgentCompat'];
+        };
+      };
+      /** @description Agent not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
       /** @description Validation Error */
       422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
         headers: {
           [name: string]: unknown;
         };
@@ -3361,7 +3833,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['AgentCompat'];
+          'application/json': components['schemas']['agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat'];
         };
       };
       /** @description Validation Error */
@@ -3425,7 +3897,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['AgentCompat'];
+          'application/json': components['schemas']['agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat'];
         };
       };
       /** @description Validation Error */
@@ -3456,7 +3928,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['AgentCompat'];
+          'application/json': components['schemas']['agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat'];
         };
       };
       /** @description Validation Error */
@@ -3491,7 +3963,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['AgentCompat'];
+          'application/json': components['schemas']['agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat'];
         };
       };
       /** @description Validation Error */
@@ -3557,7 +4029,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['AgentCompat'];
+          'application/json': components['schemas']['agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat'];
         };
       };
       /** @description Validation Error */
@@ -3590,7 +4062,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['AgentCompat'];
+          'application/json': components['schemas']['agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat'];
         };
       };
       /** @description Validation Error */
@@ -3625,7 +4097,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['AgentCompat'];
+          'application/json': components['schemas']['agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat'];
         };
       };
       /** @description Validation Error */
@@ -4732,7 +5204,7 @@ export interface operations {
       };
     };
   };
-  health_health_get: {
+  list_mcp_servers_mcp_servers__get: {
     parameters: {
       query?: never;
       header?: never;
@@ -4748,15 +5220,150 @@ export interface operations {
         };
         content: {
           'application/json': {
-            [key: string]: unknown;
+            [key: string]: components['schemas']['MCPServer'];
           };
         };
       };
     };
   };
-  metrics_metrics_get: {
+  upsert_mcp_server_mcp_servers__post: {
     parameters: {
       query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MCPServer'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['MCPServer'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  get_mcp_server_mcp_servers__mcp_server_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        mcp_server_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['MCPServer'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  update_mcp_server_mcp_servers__mcp_server_id__put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        mcp_server_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MCPServer'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['MCPServer'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  delete_mcp_server_mcp_servers__mcp_server_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        mcp_server_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  list_work_items_work_items__get: {
+    parameters: {
+      query?: {
+        /** @description The ID of the agent to filter by */
+        agent_id?: string | null;
+        /** @description The maximum number of work items to return */
+        limit?: number;
+        /** @description The offset to start from */
+        offset?: number;
+      };
       header?: never;
       path?: never;
       cookie?: never;
@@ -4769,9 +5376,609 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
+          'application/json': components['schemas']['WorkItemsListResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  create_work_item_work_items__post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateWorkItemPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WorkItem'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  get_work_item_work_items__work_item_id__get: {
+    parameters: {
+      query?: {
+        /** @description Whether to include the results of the work item */
+        results?: boolean;
+      };
+      header?: never;
+      path: {
+        work_item_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WorkItem'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  confirm_file_work_items__work_item_id__confirm_file_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        work_item_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ConfirmRemoteFileUploadPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
           'application/json': {
-            [key: string]: unknown;
+            [key: string]: string;
           };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  upload_work_item_file_work_items_upload_file_post: {
+    parameters: {
+      query?: {
+        work_item_id?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'multipart/form-data': components['schemas']['Body_upload_work_item_file_work_items_upload_file_post'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            [key: string]:
+              | string
+              | {
+                  [key: string]: unknown;
+                };
+          };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  continue_work_item_work_items__work_item_id__continue_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        work_item_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WorkItem'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  restart_work_item_work_items__work_item_id__restart_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        work_item_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WorkItem'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  cancel_item_work_items__work_item_id__cancel_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        work_item_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  get_agents_agents_get: {
+    parameters: {
+      query?: {
+        limit?: number | null;
+        /** @description Filter agents by name (starts with, case insensitive). */
+        name?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Success */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PaginatedResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  get_conversations_agents__aid__conversations_get: {
+    parameters: {
+      query?: {
+        limit?: number | null;
+      };
+      header?: never;
+      path: {
+        aid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Success */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PaginatedResponse'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  create_conversation_agents__aid__conversations_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        aid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateChatRequest'];
+      };
+    };
+    responses: {
+      /** @description Success */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Conversation'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  get_chat_messages_agents__aid__conversations__cid__messages_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        aid: string;
+        cid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Success */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PaginatedResponse'];
+        };
+      };
+      /** @description Agent/Conversation not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  post_messages_simple_agents__aid__conversations__cid__messages_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        aid: string;
+        cid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ChatMessageRequest'];
+      };
+    };
+    responses: {
+      /** @description Success */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PaginatedResponse'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  post_public_api_messages_simple_agents__aid__conversations__cid__stream_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        aid: string;
+        cid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ChatMessageRequest'];
+      };
+    };
+    responses: {
+      /** @description SSE stream of Delta messages */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+          'text/event-stream': unknown;
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  delete_chat_agents__aid__conversations__cid__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        aid: string;
+        cid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Success */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Conversation'];
+        };
+      };
+      /** @description Conversation not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };

@@ -5,7 +5,7 @@
 export const spec = {
   openapi: '3.1.0',
   info: {
-    title: 'Sema4.ai Agent Server Private API Version 2',
+    title: 'Sema4.ai Agent Server API',
     version: '2.0.17',
   },
   paths: {
@@ -37,7 +37,7 @@ export const spec = {
               'application/json': {
                 schema: {
                   items: {
-                    $ref: '#/components/schemas/AgentCompat',
+                    $ref: '#/components/schemas/agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat',
                   },
                   type: 'array',
                   title: 'Response List Agents Agents  Get',
@@ -67,7 +67,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/AgentCompat',
+                  $ref: '#/components/schemas/agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat',
                 },
               },
             },
@@ -97,7 +97,7 @@ export const spec = {
               'application/json': {
                 schema: {
                   items: {
-                    $ref: '#/components/schemas/AgentCompat',
+                    $ref: '#/components/schemas/agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat',
                   },
                   type: 'array',
                   title: 'Response List Agents Raw Agents Raw Get',
@@ -130,7 +130,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/AgentCompat',
+                  $ref: '#/components/schemas/agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat',
                 },
               },
             },
@@ -213,7 +213,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/AgentCompat',
+                  $ref: '#/components/schemas/agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat',
                 },
               },
             },
@@ -261,7 +261,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/AgentCompat',
+                  $ref: '#/components/schemas/agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat',
                 },
               },
             },
@@ -279,9 +279,10 @@ export const spec = {
         },
       },
       get: {
-        tags: ['agents'],
-        summary: 'Get Agent',
-        operationId: 'get_agent_agents__aid__get',
+        tags: ['agents', 'agents'],
+        summary: 'Get agent',
+        description: 'Returns the agent with the given name.',
+        operationId: 'get_agent_by_name_agents__aid__get',
         parameters: [
           {
             name: 'aid',
@@ -295,17 +296,37 @@ export const spec = {
         ],
         responses: {
           '200': {
-            description: 'Successful Response',
+            description: 'Success',
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/AgentCompat',
+                  $ref: '#/components/schemas/agent_platform__server__api__public_v2__interface__AgentCompat',
+                },
+              },
+            },
+          },
+          '404': {
+            description: 'Agent not found',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
           },
           '422': {
             description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+          '500': {
+            description: 'Internal Server Error',
             content: {
               'application/json': {
                 schema: {
@@ -380,7 +401,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/AgentCompat',
+                  $ref: '#/components/schemas/agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat',
                 },
               },
             },
@@ -418,7 +439,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/AgentCompat',
+                  $ref: '#/components/schemas/agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat',
                 },
               },
             },
@@ -513,7 +534,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/AgentCompat',
+                  $ref: '#/components/schemas/agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat',
                 },
               },
             },
@@ -552,7 +573,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/AgentCompat',
+                  $ref: '#/components/schemas/agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat',
                 },
               },
             },
@@ -602,7 +623,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/AgentCompat',
+                  $ref: '#/components/schemas/agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat',
                 },
               },
             },
@@ -2230,19 +2251,61 @@ export const spec = {
         },
       },
     },
-    '/api/v2/health': {
+    '/api/v2/mcp-servers/': {
       get: {
-        summary: 'Health',
-        operationId: 'health_health_get',
+        tags: ['mcp-servers'],
+        summary: 'List Mcp Servers',
+        description: 'List all MCP servers.',
+        operationId: 'list_mcp_servers_mcp_servers__get',
         responses: {
           '200': {
             description: 'Successful Response',
             content: {
               'application/json': {
                 schema: {
-                  additionalProperties: true,
+                  additionalProperties: {
+                    $ref: '#/components/schemas/MCPServer',
+                  },
                   type: 'object',
-                  title: 'Response Health Health Get',
+                  title: 'Response List Mcp Servers Mcp Servers  Get',
+                },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        tags: ['mcp-servers'],
+        summary: 'Upsert Mcp Server',
+        description: 'Create or update an MCP server.',
+        operationId: 'upsert_mcp_server_mcp_servers__post',
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/MCPServer',
+              },
+            },
+          },
+          required: true,
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/MCPServer',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -2250,19 +2313,1060 @@ export const spec = {
         },
       },
     },
-    '/api/v2/metrics': {
+    '/api/v2/mcp-servers/{mcp_server_id}': {
       get: {
-        summary: 'Metrics',
-        operationId: 'metrics_metrics_get',
+        tags: ['mcp-servers'],
+        summary: 'Get Mcp Server',
+        description: 'Get a specific MCP server by ID.',
+        operationId: 'get_mcp_server_mcp_servers__mcp_server_id__get',
+        parameters: [
+          {
+            name: 'mcp_server_id',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Mcp Server Id',
+            },
+          },
+        ],
         responses: {
           '200': {
             description: 'Successful Response',
             content: {
               'application/json': {
                 schema: {
-                  additionalProperties: true,
+                  $ref: '#/components/schemas/MCPServer',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+      put: {
+        tags: ['mcp-servers'],
+        summary: 'Update Mcp Server',
+        description: 'Update an existing MCP server by ID',
+        operationId: 'update_mcp_server_mcp_servers__mcp_server_id__put',
+        parameters: [
+          {
+            name: 'mcp_server_id',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Mcp Server Id',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/MCPServer',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/MCPServer',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+      delete: {
+        tags: ['mcp-servers'],
+        summary: 'Delete Mcp Server',
+        description: 'Delete an MCP server.',
+        operationId: 'delete_mcp_server_mcp_servers__mcp_server_id__delete',
+        parameters: [
+          {
+            name: 'mcp_server_id',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Mcp Server Id',
+            },
+          },
+        ],
+        responses: {
+          '204': {
+            description: 'Successful Response',
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/work-items/': {
+      post: {
+        tags: ['work-items'],
+        summary: 'Create Work Item',
+        operationId: 'create_work_item_work_items__post',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/CreateWorkItemPayload',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/WorkItem',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+      get: {
+        tags: ['work-items'],
+        summary: 'List Work Items',
+        operationId: 'list_work_items_work_items__get',
+        parameters: [
+          {
+            name: 'agent_id',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              description: 'The ID of the agent to filter by',
+              title: 'Agent Id',
+            },
+            description: 'The ID of the agent to filter by',
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'integer',
+              minimum: 1,
+              description: 'The maximum number of work items to return',
+              default: 100,
+              title: 'Limit',
+            },
+            description: 'The maximum number of work items to return',
+          },
+          {
+            name: 'offset',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'integer',
+              minimum: 0,
+              description: 'The offset to start from',
+              default: 0,
+              title: 'Offset',
+            },
+            description: 'The offset to start from',
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/WorkItemsListResponse',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/work-items/{work_item_id}': {
+      get: {
+        tags: ['work-items'],
+        summary: 'Get Work Item',
+        operationId: 'get_work_item_work_items__work_item_id__get',
+        parameters: [
+          {
+            name: 'work_item_id',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Work Item Id',
+            },
+          },
+          {
+            name: 'results',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'boolean',
+              description: 'Whether to include the results of the work item',
+              default: false,
+              title: 'Results',
+            },
+            description: 'Whether to include the results of the work item',
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/WorkItem',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/work-items/{work_item_id}/confirm-file': {
+      post: {
+        tags: ['work-items'],
+        summary: 'Confirm File',
+        description: 'Confirm a remote file upload to a work item.',
+        operationId: 'confirm_file_work_items__work_item_id__confirm_file_post',
+        parameters: [
+          {
+            name: 'work_item_id',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Work Item Id',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ConfirmRemoteFileUploadPayload',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
                   type: 'object',
-                  title: 'Response Metrics Metrics Get',
+                  additionalProperties: {
+                    type: 'string',
+                  },
+                  title:
+                    'Response Confirm File Work Items  Work Item Id  Confirm File Post',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/work-items/upload-file': {
+      post: {
+        tags: ['work-items'],
+        summary: 'Upload Work Item File',
+        description:
+          'Upload a file to a work item. If a work_item_id is not provided, a new one is created.',
+        operationId: 'upload_work_item_file_work_items_upload_file_post',
+        parameters: [
+          {
+            name: 'work_item_id',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              title: 'Work Item Id',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: {
+                $ref: '#/components/schemas/Body_upload_work_item_file_work_items_upload_file_post',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  additionalProperties: {
+                    anyOf: [
+                      {
+                        type: 'string',
+                      },
+                      {
+                        type: 'object',
+                        additionalProperties: true,
+                      },
+                    ],
+                  },
+                  title:
+                    'Response Upload Work Item File Work Items Upload File Post',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/work-items/{work_item_id}/continue': {
+      post: {
+        tags: ['work-items'],
+        summary: 'Continue Work Item',
+        operationId:
+          'continue_work_item_work_items__work_item_id__continue_post',
+        parameters: [
+          {
+            name: 'work_item_id',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Work Item Id',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/WorkItem',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/work-items/{work_item_id}/restart': {
+      post: {
+        tags: ['work-items'],
+        summary: 'Restart Work Item',
+        operationId: 'restart_work_item_work_items__work_item_id__restart_post',
+        parameters: [
+          {
+            name: 'work_item_id',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Work Item Id',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/WorkItem',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/work-items/{work_item_id}/cancel': {
+      post: {
+        tags: ['work-items'],
+        summary: 'Cancel Item',
+        operationId: 'cancel_item_work_items__work_item_id__cancel_post',
+        parameters: [
+          {
+            name: 'work_item_id',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Work Item Id',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/agents': {
+      get: {
+        tags: ['agents', 'agents'],
+        summary: 'List agents',
+        description:
+          "Returns a list of all agents for the authenticated user. You can filter by name using the 'name' query parameter.",
+        operationId: 'get_agents_agents_get',
+        parameters: [
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [
+                {
+                  type: 'integer',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              title: 'Limit',
+            },
+          },
+          {
+            name: 'name',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              description:
+                'Filter agents by name (starts with, case insensitive).',
+              title: 'Name',
+            },
+            description:
+              'Filter agents by name (starts with, case insensitive).',
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Success',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/PaginatedResponse',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+          '500': {
+            description: 'Internal Server Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/agents/{aid}/conversations': {
+      get: {
+        tags: ['agents', 'conversations'],
+        summary: 'List conversations',
+        description: 'Returns a list of all conversations for the given agent.',
+        operationId: 'get_conversations_agents__aid__conversations_get',
+        parameters: [
+          {
+            name: 'aid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Aid',
+            },
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [
+                {
+                  type: 'integer',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              title: 'Limit',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Success',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/PaginatedResponse',
+                },
+              },
+            },
+          },
+          '400': {
+            description: 'Bad Request',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+          '500': {
+            description: 'Internal Server Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        tags: ['agents', 'conversations'],
+        summary: 'Create new conversation',
+        description: 'Creates a new conversation for the given agent.',
+        operationId: 'create_conversation_agents__aid__conversations_post',
+        parameters: [
+          {
+            name: 'aid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Aid',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/CreateChatRequest',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Success',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/Conversation',
+                },
+              },
+            },
+          },
+          '400': {
+            description: 'Bad Request',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+          '500': {
+            description: 'Internal Server Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/agents/{aid}/conversations/{cid}/messages': {
+      get: {
+        tags: ['agents', 'conversations'],
+        summary: 'Get conversation messages',
+        description:
+          'Returns the conversation messages of the given chat_id for the given agent.',
+        operationId:
+          'get_chat_messages_agents__aid__conversations__cid__messages_get',
+        parameters: [
+          {
+            name: 'aid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Aid',
+            },
+          },
+          {
+            name: 'cid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Cid',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Success',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/PaginatedResponse',
+                },
+              },
+            },
+          },
+          '404': {
+            description: 'Agent/Conversation not found',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+          '500': {
+            description: 'Internal Server Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        tags: ['agents', 'conversations'],
+        summary: 'Post a message (synchronous)',
+        description:
+          'Post a message to a conversation thread, and get the updated conversation state.',
+        operationId:
+          'post_messages_simple_agents__aid__conversations__cid__messages_post',
+        parameters: [
+          {
+            name: 'aid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Aid',
+            },
+          },
+          {
+            name: 'cid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Cid',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ChatMessageRequest',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Success',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/PaginatedResponse',
+                },
+              },
+            },
+          },
+          '400': {
+            description: 'Bad Request',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+          '500': {
+            description: 'Internal Server Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/agents/{aid}/conversations/{cid}/stream': {
+      post: {
+        tags: ['agents', 'conversations'],
+        summary: 'Post a message to a conversation and stream the response',
+        description: 'Post a message to a conversation and stream the response',
+        operationId:
+          'post_public_api_messages_simple_agents__aid__conversations__cid__stream_post',
+        parameters: [
+          {
+            name: 'aid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Aid',
+            },
+          },
+          {
+            name: 'cid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Cid',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ChatMessageRequest',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'SSE stream of Delta messages',
+            content: {
+              'application/json': {
+                schema: {},
+              },
+              'text/event-stream': {},
+            },
+          },
+          '400': {
+            description: 'Bad Request',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+          '500': {
+            description: 'Internal Server Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/agents/{aid}/conversations/{cid}': {
+      delete: {
+        tags: ['agents', 'conversations'],
+        summary: 'Delete conversation',
+        description:
+          'Deletes the conversation with the given conversation ID for the given agent.',
+        operationId: 'delete_chat_agents__aid__conversations__cid__delete',
+        parameters: [
+          {
+            name: 'aid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Aid',
+            },
+          },
+          {
+            name: 'cid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Cid',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Success',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/Conversation',
+                },
+              },
+            },
+          },
+          '404': {
+            description: 'Conversation not found',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+          '500': {
+            description: 'Internal Server Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
@@ -2543,174 +3647,6 @@ export const spec = {
         type: 'object',
         required: ['name', 'version'],
         title: 'AgentArchitecture',
-      },
-      AgentCompat: {
-        properties: {
-          name: {
-            type: 'string',
-            title: 'Name',
-            description: 'The name of the agent.',
-          },
-          description: {
-            type: 'string',
-            title: 'Description',
-            description: 'The description of the agent.',
-          },
-          user_id: {
-            type: 'string',
-            title: 'User Id',
-            description: 'The id of the user that created the agent.',
-          },
-          runbook_structured: {
-            $ref: '#/components/schemas/Runbook',
-            description: 'The structured runbook of the agent.',
-          },
-          version: {
-            type: 'string',
-            title: 'Version',
-            description: 'The version of the agent.',
-          },
-          platform_configs: {
-            items: {
-              anyOf: [
-                {
-                  $ref: '#/components/schemas/BedrockPlatformParameters',
-                },
-                {
-                  $ref: '#/components/schemas/CortexPlatformParameters',
-                },
-                {
-                  $ref: '#/components/schemas/OpenAIPlatformParameters',
-                },
-                {
-                  $ref: '#/components/schemas/AzureOpenAIPlatformParameters',
-                },
-                {
-                  $ref: '#/components/schemas/GooglePlatformParameters',
-                },
-                {
-                  $ref: '#/components/schemas/GroqPlatformParameters',
-                },
-                {
-                  $ref: '#/components/schemas/ReductoPlatformParameters',
-                },
-              ],
-            },
-            type: 'array',
-            title: 'Platform Configs',
-            description: 'The platform configs this agent can use.',
-          },
-          agent_architecture: {
-            $ref: '#/components/schemas/AgentArchitecture',
-            description: 'The architecture details for the agent.',
-          },
-          action_packages: {
-            items: {
-              $ref: '#/components/schemas/ActionPackageCompat',
-            },
-            type: 'array',
-            title: 'Action Packages',
-          },
-          mcp_servers: {
-            items: {
-              $ref: '#/components/schemas/MCPServerCompat',
-            },
-            type: 'array',
-            title: 'Mcp Servers',
-          },
-          question_groups: {
-            items: {
-              $ref: '#/components/schemas/QuestionGroup',
-            },
-            type: 'array',
-            title: 'Question Groups',
-            description: 'The question groups of the agent.',
-          },
-          observability_configs: {
-            items: {
-              $ref: '#/components/schemas/ObservabilityConfig',
-            },
-            type: 'array',
-            title: 'Observability Configs',
-            description: 'The observability configs of the agent.',
-          },
-          created_at: {
-            type: 'string',
-            format: 'date-time',
-            title: 'Created At',
-            description: 'The creation time of the agent.',
-          },
-          updated_at: {
-            type: 'string',
-            format: 'date-time',
-            title: 'Updated At',
-            description: 'The last update time of the agent.',
-          },
-          mode: {
-            type: 'string',
-            enum: ['conversational', 'worker'],
-            title: 'Mode',
-            default: 'conversational',
-          },
-          agent_id: {
-            type: 'string',
-            title: 'Agent Id',
-            description: 'The unique identifier of the agent.',
-          },
-          extra: {
-            additionalProperties: true,
-            type: 'object',
-            title: 'Extra',
-            description: 'Extra fields for the agent.',
-          },
-          runbook: {
-            type: 'string',
-            title: 'Runbook',
-            default: '',
-          },
-          id: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Id',
-          },
-          public: {
-            type: 'boolean',
-            title: 'Public',
-            default: true,
-          },
-          metadata: {
-            additionalProperties: true,
-            type: 'object',
-            title: 'Metadata',
-          },
-          advanced_config: {
-            additionalProperties: true,
-            type: 'object',
-            title: 'Advanced Config',
-          },
-          model: {
-            additionalProperties: true,
-            type: 'object',
-            title: 'Model',
-          },
-        },
-        type: 'object',
-        required: [
-          'name',
-          'description',
-          'user_id',
-          'runbook_structured',
-          'version',
-          'platform_configs',
-          'agent_architecture',
-        ],
-        title: 'AgentCompat',
       },
       AgentDetails: {
         properties: {
@@ -3104,6 +4040,25 @@ export const spec = {
         required: ['files'],
         title: 'Body_upload_thread_files_threads__tid__files_post',
       },
+      Body_upload_work_item_file_work_items_upload_file_post: {
+        properties: {
+          file: {
+            anyOf: [
+              {
+                type: 'string',
+                format: 'binary',
+              },
+              {
+                type: 'string',
+              },
+            ],
+            title: 'File',
+          },
+        },
+        type: 'object',
+        required: ['file'],
+        title: 'Body_upload_work_item_file_work_items_upload_file_post',
+      },
       CachedToolDefinitionsReport: {
         properties: {
           cached_action_packages: {
@@ -3180,6 +4135,17 @@ export const spec = {
         ],
         title: 'CachedToolDefinitionsReport',
       },
+      ChatMessageRequest: {
+        properties: {
+          content: {
+            type: 'string',
+            title: 'Content',
+          },
+        },
+        type: 'object',
+        required: ['content'],
+        title: 'ChatMessageRequest',
+      },
       Citation: {
         properties: {
           document_uri: {
@@ -3231,6 +4197,25 @@ export const spec = {
         type: 'object',
         required: ['file_ref', 'file_id'],
         title: 'ConfirmRemoteFileUploadPayload',
+      },
+      Conversation: {
+        properties: {
+          id: {
+            type: 'string',
+            title: 'Id',
+          },
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+          agent_id: {
+            type: 'string',
+            title: 'Agent Id',
+          },
+        },
+        type: 'object',
+        required: ['id', 'name', 'agent_id'],
+        title: 'Conversation',
       },
       ConversationHistoryParams: {
         properties: {
@@ -3378,6 +4363,72 @@ export const spec = {
         },
         type: 'object',
         title: 'CortexPlatformParameters',
+      },
+      CreateChatRequest: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+        },
+        type: 'object',
+        required: ['name'],
+        title: 'CreateChatRequest',
+      },
+      CreateWorkItemPayload: {
+        properties: {
+          agent_id: {
+            type: 'string',
+            title: 'Agent Id',
+            description:
+              'The ID of the agent that will process this work item.',
+          },
+          messages: {
+            items: {
+              $ref: '#/components/schemas/ThreadMessage',
+            },
+            type: 'array',
+            title: 'Messages',
+            description: 'The messages in the work item conversation.',
+          },
+          payload: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Payload',
+            description: 'The payload of the work item.',
+          },
+          work_item_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Work Item Id',
+            description: 'The ID of the work item.',
+          },
+          callbacks: {
+            anyOf: [
+              {
+                items: {
+                  $ref: '#/components/schemas/WorkItemCallback',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Callbacks',
+            description:
+              'A list of callbacks to trigger when the work item reaches a certain status.',
+          },
+        },
+        type: 'object',
+        required: ['agent_id'],
+        title: 'CreateWorkItemPayload',
       },
       DocumentsParams: {
         properties: {
@@ -4230,6 +5281,33 @@ export const spec = {
         },
         type: 'object',
         title: 'OpenAIPlatformParameters',
+      },
+      PaginatedResponse: {
+        properties: {
+          next: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Next',
+          },
+          has_more: {
+            type: 'boolean',
+            title: 'Has More',
+          },
+          data: {
+            items: {},
+            type: 'array',
+            title: 'Data',
+          },
+        },
+        type: 'object',
+        required: ['next', 'has_more', 'data'],
+        title: 'PaginatedResponse',
       },
       PatchAgentPayload: {
         properties: {
@@ -6252,6 +7330,393 @@ export const spec = {
         type: 'object',
         required: ['agent_id', 'name'],
         title: 'UpsertThreadPayload',
+      },
+      WorkItem: {
+        properties: {
+          work_item_id: {
+            type: 'string',
+            title: 'Work Item Id',
+            description: 'The unique identifier for the work item',
+          },
+          user_id: {
+            type: 'string',
+            title: 'User Id',
+            description: 'The ID of the user that created this work item',
+          },
+          agent_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Agent Id',
+            description: 'The ID of the agent that will process this work item',
+          },
+          thread_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Thread Id',
+            description:
+              'The ID of the thread associated with this work item (may be null until created).',
+          },
+          status: {
+            $ref: '#/components/schemas/WorkItemStatus',
+            description: 'The status of the work item',
+            default: 'PENDING',
+          },
+          created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At',
+            description: 'The timestamp when the work item was created',
+          },
+          updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At',
+            description: 'The timestamp when the work item was last updated',
+          },
+          completed_by: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Completed By',
+            description: 'The ID of the user who completed the work item',
+          },
+          status_updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Status Updated At',
+            description:
+              'The timestamp when the work item status was last updated',
+          },
+          status_updated_by: {
+            type: 'string',
+            title: 'Status Updated By',
+            description:
+              'The ID of the user who last updated the work item status',
+            default: 'SYSTEM',
+          },
+          initial_messages: {
+            items: {
+              $ref: '#/components/schemas/ThreadMessage',
+            },
+            type: 'array',
+            title: 'Initial Messages',
+            description: 'The initial conversation messages for this work item',
+          },
+          messages: {
+            items: {
+              $ref: '#/components/schemas/ThreadMessage',
+            },
+            type: 'array',
+            title: 'Messages',
+            description: 'The messages in the work item conversation',
+          },
+          payload: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Payload',
+            description: 'The payload of the work item',
+          },
+          callbacks: {
+            items: {
+              $ref: '#/components/schemas/WorkItemCallback',
+            },
+            type: 'array',
+            title: 'Callbacks',
+            description: 'The callbacks for the work item',
+          },
+        },
+        type: 'object',
+        required: ['work_item_id', 'user_id'],
+        title: 'WorkItem',
+      },
+      WorkItemCallback: {
+        properties: {
+          url: {
+            type: 'string',
+            title: 'Url',
+            description:
+              'The URL to call (POST) when the work item reaches the specified status.',
+          },
+          signature_secret: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Signature Secret',
+            description:
+              'The secret to use to sign the callback payload. If not provided, the callback will not be signed.',
+          },
+          on_status: {
+            type: 'string',
+            enum: [
+              'COMPLETED',
+              'ERROR',
+              'NEEDS_REVIEW',
+              'CANCELLED',
+              'INDETERMINATE',
+            ],
+            title: 'On Status',
+            description:
+              'The status which, when reached, will trigger the callback (default NEEDS_REVIEW).',
+            default: 'NEEDS_REVIEW',
+          },
+        },
+        type: 'object',
+        required: ['url'],
+        title: 'WorkItemCallback',
+      },
+      WorkItemStatus: {
+        type: 'string',
+        enum: [
+          'CANCELLED',
+          'COMPLETED',
+          'ERROR',
+          'EXECUTING',
+          'NEEDS_REVIEW',
+          'INDETERMINATE',
+          'PENDING',
+          'PRECREATED',
+        ],
+        title: 'WorkItemStatus',
+        description: 'The status of a work item.',
+      },
+      WorkItemsListResponse: {
+        properties: {
+          records: {
+            items: {
+              $ref: '#/components/schemas/WorkItem',
+            },
+            type: 'array',
+            title: 'Records',
+          },
+          next_offset: {
+            anyOf: [
+              {
+                type: 'integer',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Next Offset',
+          },
+        },
+        type: 'object',
+        required: ['records'],
+        title: 'WorkItemsListResponse',
+      },
+      agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat:
+        {
+          properties: {
+            name: {
+              type: 'string',
+              title: 'Name',
+              description: 'The name of the agent.',
+            },
+            description: {
+              type: 'string',
+              title: 'Description',
+              description: 'The description of the agent.',
+            },
+            user_id: {
+              type: 'string',
+              title: 'User Id',
+              description: 'The id of the user that created the agent.',
+            },
+            runbook_structured: {
+              $ref: '#/components/schemas/Runbook',
+              description: 'The structured runbook of the agent.',
+            },
+            version: {
+              type: 'string',
+              title: 'Version',
+              description: 'The version of the agent.',
+            },
+            platform_configs: {
+              items: {
+                anyOf: [
+                  {
+                    $ref: '#/components/schemas/BedrockPlatformParameters',
+                  },
+                  {
+                    $ref: '#/components/schemas/CortexPlatformParameters',
+                  },
+                  {
+                    $ref: '#/components/schemas/OpenAIPlatformParameters',
+                  },
+                  {
+                    $ref: '#/components/schemas/AzureOpenAIPlatformParameters',
+                  },
+                  {
+                    $ref: '#/components/schemas/GooglePlatformParameters',
+                  },
+                  {
+                    $ref: '#/components/schemas/GroqPlatformParameters',
+                  },
+                  {
+                    $ref: '#/components/schemas/ReductoPlatformParameters',
+                  },
+                ],
+              },
+              type: 'array',
+              title: 'Platform Configs',
+              description: 'The platform configs this agent can use.',
+            },
+            agent_architecture: {
+              $ref: '#/components/schemas/AgentArchitecture',
+              description: 'The architecture details for the agent.',
+            },
+            action_packages: {
+              items: {
+                $ref: '#/components/schemas/ActionPackageCompat',
+              },
+              type: 'array',
+              title: 'Action Packages',
+            },
+            mcp_servers: {
+              items: {
+                $ref: '#/components/schemas/MCPServerCompat',
+              },
+              type: 'array',
+              title: 'Mcp Servers',
+            },
+            question_groups: {
+              items: {
+                $ref: '#/components/schemas/QuestionGroup',
+              },
+              type: 'array',
+              title: 'Question Groups',
+              description: 'The question groups of the agent.',
+            },
+            observability_configs: {
+              items: {
+                $ref: '#/components/schemas/ObservabilityConfig',
+              },
+              type: 'array',
+              title: 'Observability Configs',
+              description: 'The observability configs of the agent.',
+            },
+            created_at: {
+              type: 'string',
+              format: 'date-time',
+              title: 'Created At',
+              description: 'The creation time of the agent.',
+            },
+            updated_at: {
+              type: 'string',
+              format: 'date-time',
+              title: 'Updated At',
+              description: 'The last update time of the agent.',
+            },
+            mode: {
+              type: 'string',
+              enum: ['conversational', 'worker'],
+              title: 'Mode',
+              default: 'conversational',
+            },
+            agent_id: {
+              type: 'string',
+              title: 'Agent Id',
+              description: 'The unique identifier of the agent.',
+            },
+            extra: {
+              additionalProperties: true,
+              type: 'object',
+              title: 'Extra',
+              description: 'Extra fields for the agent.',
+            },
+            runbook: {
+              type: 'string',
+              title: 'Runbook',
+              default: '',
+            },
+            id: {
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              title: 'Id',
+            },
+            public: {
+              type: 'boolean',
+              title: 'Public',
+              default: true,
+            },
+            metadata: {
+              additionalProperties: true,
+              type: 'object',
+              title: 'Metadata',
+            },
+            advanced_config: {
+              additionalProperties: true,
+              type: 'object',
+              title: 'Advanced Config',
+            },
+            model: {
+              additionalProperties: true,
+              type: 'object',
+              title: 'Model',
+            },
+          },
+          type: 'object',
+          required: [
+            'name',
+            'description',
+            'user_id',
+            'runbook_structured',
+            'version',
+            'platform_configs',
+            'agent_architecture',
+          ],
+          title: 'AgentCompat',
+        },
+      agent_platform__server__api__public_v2__interface__AgentCompat: {
+        properties: {
+          id: {
+            type: 'string',
+            title: 'Id',
+          },
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+          description: {
+            type: 'string',
+            title: 'Description',
+          },
+          mode: {
+            type: 'string',
+            title: 'Mode',
+          },
+        },
+        type: 'object',
+        required: ['id', 'name', 'description', 'mode'],
+        title: 'AgentCompat',
       },
       ErrorDetail: {
         description:

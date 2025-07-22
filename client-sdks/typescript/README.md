@@ -1,6 +1,12 @@
 ## Agent Server Interface (Typescript)
 
-Generate types and schema.
+### Retrieving the latest OpenAPI spec for the PRIVATE API
+
+1. Run the server (`docker compose up` at the root)
+2. Navigate to the [API Open API spec page](http://localhost:8000/openapi.json)
+3. Copy the content into [private.openapi.json](./private.openapi.json)
+
+### Generating types and schema.
 
 ```
 npm run generate

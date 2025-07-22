@@ -76,22 +76,23 @@ export type ActionPackage = components['schemas']['ActionPackageCompat'] & {
   api_key: string;
 };
 
-export type Agent = components['schemas']['AgentCompat'] & {
-  created_at: string;
-  updated_at: string;
-  agent_id: string;
-  id: string;
-  model:
-    | v1['schemas']['OpenAIGPT']
-    | v1['schemas']['AzureGPT']
-    | v1['schemas']['AnthropicClaude']
-    | v1['schemas']['AmazonBedrock']
-    | v1['schemas']['Ollama']
-    | v1['schemas']['SnowflakeCortex'];
-  advanced_config: v1['schemas']['AgentAdvancedConfig'];
-  action_packages: ActionPackage[];
-  metadata: v1['schemas']['AgentMetadata'];
-};
+export type Agent =
+  components['schemas']['agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat'] & {
+    created_at: string;
+    updated_at: string;
+    agent_id: string;
+    id: string;
+    model:
+      | v1['schemas']['OpenAIGPT']
+      | v1['schemas']['AzureGPT']
+      | v1['schemas']['AnthropicClaude']
+      | v1['schemas']['AmazonBedrock']
+      | v1['schemas']['Ollama']
+      | v1['schemas']['SnowflakeCortex'];
+    advanced_config: v1['schemas']['AgentAdvancedConfig'];
+    action_packages: ActionPackage[];
+    metadata: v1['schemas']['AgentMetadata'];
+  };
 
 export type ContextStats = {
   context_window_size: number;
