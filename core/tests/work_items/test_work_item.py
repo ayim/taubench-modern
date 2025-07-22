@@ -14,6 +14,66 @@ from agent_platform.core.work_items.work_item import (
 )
 
 
+def test_work_item_model_dump_includes_work_item_url():
+    """Test that WorkItem.model_dump() includes work_item_url field."""
+    work_item = WorkItem(
+        work_item_id="test-123",
+        user_id="user-456",
+        agent_id="agent-789",
+        thread_id="thread-012",
+        status=WorkItemStatus.PENDING,
+        work_item_url="http://example.com/workspace/agent-789/thread-012",
+    )
+
+    dumped = work_item.model_dump()
+    assert "work_item_url" in dumped
+    assert dumped["work_item_url"] == "http://example.com/workspace/agent-789/thread-012"
+
+
+def test_work_item_model_validate_handles_work_item_url():
+    """Test that WorkItem.model_validate() properly handles work_item_url field."""
+    data = {
+        "work_item_id": "test-123",
+        "user_id": "user-456",
+        "agent_id": "agent-789",
+        "thread_id": "thread-012",
+        "status": "PENDING",
+        "work_item_url": "http://example.com/workspace/agent-789/thread-012",
+        "created_at": "2023-01-01T00:00:00Z",
+        "updated_at": "2023-01-01T00:00:00Z",
+        "status_updated_at": "2023-01-01T00:00:00Z",
+        "status_updated_by": "SYSTEM",
+        "messages": [],
+        "payload": {},
+        "callbacks": [],
+    }
+
+    work_item = WorkItem.model_validate(data)
+    assert work_item.work_item_url == "http://example.com/workspace/agent-789/thread-012"
+
+
+def test_work_item_model_validate_handles_none_work_item_url():
+    """Test that WorkItem.model_validate() handles None work_item_url field."""
+    data = {
+        "work_item_id": "test-123",
+        "user_id": "user-456",
+        "agent_id": "agent-789",
+        "thread_id": "thread-012",
+        "status": "PENDING",
+        "work_item_url": None,
+        "created_at": "2023-01-01T00:00:00Z",
+        "updated_at": "2023-01-01T00:00:00Z",
+        "status_updated_at": "2023-01-01T00:00:00Z",
+        "status_updated_by": "SYSTEM",
+        "messages": [],
+        "payload": {},
+        "callbacks": [],
+    }
+
+    work_item = WorkItem.model_validate(data)
+    assert work_item.work_item_url is None
+
+
 def test_work_item_callback_payload_smoke():
     """Basic smoke test for WorkItemCallbackPayload."""
     # Create a valid payload

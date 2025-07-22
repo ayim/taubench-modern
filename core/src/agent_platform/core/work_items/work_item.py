@@ -275,6 +275,12 @@ class WorkItem:
     )
     """The original messages in the work item conversation."""
 
+    work_item_url: str | None = field(
+        default=None,
+        metadata={"description": "The URL to access this work item in the workroom interface"},
+    )
+    """The URL to access this work item in the workroom interface."""
+
     messages: list[ThreadMessage] = field(
         default_factory=list,
         metadata={"description": "The messages in the work item conversation"},
@@ -306,6 +312,7 @@ class WorkItem:
             "status_updated_at": self.status_updated_at.isoformat(),
             "status_updated_by": self.status_updated_by.value,
             "initial_messages": [msg.model_dump() for msg in self.initial_messages],
+            "work_item_url": self.work_item_url,
             "messages": [msg.model_dump() for msg in self.messages],
             "payload": self.payload,
             "callbacks": [callback.model_dump() for callback in self.callbacks],
@@ -336,6 +343,8 @@ class WorkItem:
             data["thread_id"] = str(data["thread_id"])
         if "work_item_id" in data and isinstance(data["work_item_id"], UUID):
             data["work_item_id"] = str(data["work_item_id"])
+        if "work_item_url" in data and isinstance(data["work_item_url"], str):
+            data["work_item_url"] = str(data["work_item_url"])
 
         # Parse nested objects
         if "status" in data and isinstance(data["status"], str):

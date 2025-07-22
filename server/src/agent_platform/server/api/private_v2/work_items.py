@@ -23,6 +23,7 @@ from agent_platform.server.api.private_v2.threads import (
 )
 from agent_platform.server.auth import AuthedUser
 from agent_platform.server.constants import WORK_ITEMS_SYSTEM_USER_SUB, SystemConfig
+from agent_platform.server.work_items.callbacks import _build_work_item_url
 from agent_platform.server.work_items.rest import WorkItemsListResponse
 from agent_platform.server.work_items.state_machine import WorkItemStateMachine
 
@@ -136,6 +137,9 @@ async def get_work_item(
     work_item = await storage.get_work_item(work_item_id)
     if not include_results:
         work_item.messages = []
+    work_item.work_item_url = (
+        _build_work_item_url(work_item) if work_item.thread_id and work_item.agent_id else None
+    )
     return work_item
 
 
@@ -270,6 +274,9 @@ async def list_work_items(
     )
     for work_item in work_items:
         work_item.messages = []
+        work_item.work_item_url = (
+            _build_work_item_url(work_item) if work_item.thread_id and work_item.agent_id else ""
+        )
 
     # if we have fewer than the limit, we have no more work items to fetch
     if len(work_items) < limit:

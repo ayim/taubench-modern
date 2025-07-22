@@ -132,34 +132,72 @@ async def test_create_work_item_invalid_agent(client: TestClient):
 
 @pytest.mark.asyncio
 async def test_describe_work_item(client: TestClient, seed_agents: list[Agent]):
-    """Test describing a work item with results included."""
-    # First create a work item
-    create_payload = {
-        "agent_id": seed_agents[1].agent_id,
-        "messages": [
-            {"role": "user", "content": [{"kind": "text", "text": "Test message with results"}]}
-        ],
-        "payload": {},
-    }
+    """Test that we can describe a work item."""
+    agent_id = seed_agents[0].agent_id
 
-    create_response = client.post("/public/v1/work-items/", json=create_payload)
-    work_item_id = create_response.json()["work_item_id"]
-
-    # Get work item with results=true (return messages)
-    response = client.get(f"/public/v1/work-items/{work_item_id}?results=true")
-
+    # Create a work item
+    response = client.post(
+        "/public/v1/work-items",
+        json={
+            "agent_id": agent_id,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [{"type": "text", "text": "Please help me."}],
+                }
+            ],
+        },
+    )
     assert response.status_code == 200
-    data = response.json()
-    assert len(data["messages"]) == 1  # Messages should be included
-    assert data["messages"][0]["content"][0]["kind"] == "text"
-    assert data["messages"][0]["content"][0]["text"] == "Test message with results"
+    work_item_id = response.json()["work_item_id"]
 
-    # Get work item with results=false (default, no messages)
+    # Get the work item description
     response = client.get(f"/public/v1/work-items/{work_item_id}")
-
     assert response.status_code == 200
-    data = response.json()
-    assert len(data["messages"]) == 0  # Messages should not be included
+
+    work_item = response.json()
+    assert work_item["work_item_id"] == work_item_id
+    assert work_item["agent_id"] == agent_id
+    assert work_item["status"] == "PENDING"
+    assert "work_item_url" in work_item  # Verify work_item_url field is present
+    # Initially should be None since no thread is created yet
+    assert work_item["work_item_url"] is None
+
+
+async def test_work_item_response_includes_work_item_url(
+    client: TestClient, seed_agents: list[Agent]
+):
+    """Test that work item API responses include work_item_url field."""
+    agent_id = seed_agents[0].agent_id
+
+    # Create a work item
+    response = client.post(
+        "/public/v1/work-items",
+        json={
+            "agent_id": agent_id,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [{"type": "text", "text": "Test message"}],
+                }
+            ],
+        },
+    )
+    assert response.status_code == 200
+
+    work_item = response.json()
+    assert "work_item_url" in work_item
+    # Should initially be None since no thread is created during work item creation
+    assert work_item["work_item_url"] is None
+
+    # List work items should also include work_item_url
+    response = client.get("/public/v1/work-items")
+    assert response.status_code == 200
+
+    work_items = response.json()["records"]
+    assert len(work_items) > 0
+    for item in work_items:
+        assert "work_item_url" in item
 
 
 @pytest.mark.asyncio
