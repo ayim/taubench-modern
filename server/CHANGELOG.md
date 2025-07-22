@@ -1,6 +1,16 @@
-# Unreleased
+# Sema4.ai Agent Server 2.0.18 (2025-07-22)
 
+- **BREAKING CHANGE**: Reworked work-items list endpoint to support pagination - response is now an object with `work_items` array instead of a direct array ([GPT-1112](https://linear.app/sema4ai/issue/GPT-1112))
+- Added work-items endpoints to private v2 API for Workroom integration ([GPT-1113](https://linear.app/sema4ai/issue/GPT-1113))
+- Added `/complete` endpoint for work-items ([GPT-1105](https://linear.app/sema4ai/issue/GPT-1105))
+- Generate Workroom URL automatically when thread is assigned to work-item ([GPT-1102](https://linear.app/sema4ai/issue/GPT-1102))
+- Added MCP servers CRUD endpoints for server configuration ([GPT-1082](https://linear.app/sema4ai/issue/GPT-1082))
+- Exposed Agent as MCP under the public API
+- Changed work-item ownership model: all work-items now owned by system user with separate creator tracking
+- Added `completed_by` parameter to work-item status updates to track completion source
+- Implemented secret manager with envelope encryption
 - Handle setting `status_updated_by` on work items during various transitions ([GPT-1111](https://linear.app/sema4ai/issue/GPT-1111))
+
 
 # Sema4.ai Agent Server 2.0.17 (2025-07-17)
 
