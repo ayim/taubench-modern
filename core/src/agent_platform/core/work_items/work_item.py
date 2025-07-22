@@ -36,6 +36,16 @@ class WorkItemStatus(StrEnum):
     """The work item is is partially created to allow for file attachments."""
 
 
+class WorkItemCompletedBy(StrEnum):
+    """The user who completed the work item."""
+
+    AGENT = "AGENT"
+    """The agent completed the work item."""
+
+    HUMAN = "HUMAN"
+    """A human completed the work item."""
+
+
 # Define a subset of workitem statuses that we allow for callbacks.
 allowed_callback_status_types = Literal[
     WorkItemStatus.COMPLETED,
@@ -210,7 +220,7 @@ class WorkItem:
     )
     """The timestamp when the work item was last updated."""
 
-    completed_by: str | None = field(
+    completed_by: WorkItemCompletedBy | None = field(
         default=None,
         metadata={"description": "The ID of the user who completed the work item"},
     )
@@ -261,7 +271,7 @@ class WorkItem:
             "status": self.status.value,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
-            "completed_by": self.completed_by,
+            "completed_by": self.completed_by.value if self.completed_by else None,
             "status_updated_at": self.status_updated_at.isoformat(),
             "status_updated_by": self.status_updated_by,
             "initial_messages": [msg.model_dump() for msg in self.initial_messages],

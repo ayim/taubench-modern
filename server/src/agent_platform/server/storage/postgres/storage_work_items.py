@@ -4,7 +4,11 @@ from collections.abc import Sequence
 from psycopg.errors import ForeignKeyViolation, UniqueViolation
 from psycopg.types.json import Jsonb
 
-from agent_platform.core.work_items import WorkItem, WorkItemStatus
+from agent_platform.core.work_items import (
+    WorkItem,
+    WorkItemCompletedBy,
+    WorkItemStatus,
+)
 from agent_platform.server.storage.errors import (
     RecordAlreadyExistsError,
     ReferenceIntegrityError,
@@ -197,6 +201,39 @@ class PostgresStorageWorkItemsMixin(CommonMixin):
                     "user_id": user_id,
                 },
             )
+
+    async def complete_work_item(
+        self,
+        user_id: str,
+        work_item_id: str,
+        completed_by: WorkItemCompletedBy,
+    ) -> None:
+        """Complete a work item with the specified completed_by value."""
+
+        self._validate_uuid(user_id)
+        self._validate_uuid(work_item_id)
+
+        query = """
+            UPDATE v2.work_items
+               SET status = %(status)s,
+                   completed_by = %(completed_by)s,
+                   status_updated_by = %(user_id)s,
+                   status_updated_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC',
+                   updated_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC'
+             WHERE work_item_id = %(work_item_id)s::uuid
+               AND v2.check_user_access(user_id, %(user_id)s::uuid)
+        """
+        params = {
+            "status": WorkItemStatus.COMPLETED.value,
+            "work_item_id": work_item_id,
+            "user_id": user_id,
+            "completed_by": completed_by.value
+            if isinstance(completed_by, WorkItemCompletedBy)
+            else str(completed_by),
+        }
+
+        async with self._cursor() as cur:
+            await cur.execute(query, params)
 
     # ------------------------------------------------------------------
     # Batch helpers

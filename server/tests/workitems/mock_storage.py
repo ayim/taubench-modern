@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from agent_platform.core.work_items.work_item import WorkItem, WorkItemStatus
+from agent_platform.core.work_items.work_item import WorkItem, WorkItemCompletedBy, WorkItemStatus
 from agent_platform.server.storage.errors import WorkItemNotFoundError
 
 
@@ -44,5 +44,16 @@ class MockStorage:
         if work_item_id not in self.work_items:
             raise WorkItemNotFoundError(work_item_id)
         self.work_items[work_item_id].status = status
+        self.work_items[work_item_id].status_updated_by = user_id
+        self.work_items[work_item_id].status_updated_at = datetime.now(UTC)
+
+    async def complete_work_item(
+        self, user_id: str, work_item_id: str, completed_by: WorkItemCompletedBy
+    ) -> None:
+        """Complete a work item with the specified completed_by value."""
+        if work_item_id not in self.work_items:
+            raise WorkItemNotFoundError(work_item_id)
+        self.work_items[work_item_id].status = WorkItemStatus.COMPLETED
+        self.work_items[work_item_id].completed_by = completed_by
         self.work_items[work_item_id].status_updated_by = user_id
         self.work_items[work_item_id].status_updated_at = datetime.now(UTC)

@@ -60,7 +60,9 @@ class TestCancelItem:
         assert result == {"status": "ok"}
         mock_storage.get_work_item.assert_called_once_with(sample_work_item.work_item_id)
         mock_storage.update_work_item_status.assert_called_once_with(
-            mock_user.user_id, sample_work_item.work_item_id, WorkItemStatus.CANCELLED
+            mock_user.user_id,
+            sample_work_item.work_item_id,
+            WorkItemStatus.CANCELLED,
         )
 
     @pytest.mark.parametrize(

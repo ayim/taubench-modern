@@ -16,7 +16,11 @@ from agent_platform.core.responses.content.text import ResponseTextContent
 from agent_platform.core.thread import ThreadTextContent
 from agent_platform.core.thread.base import ThreadMessage
 from agent_platform.core.thread.thread import Thread
-from agent_platform.core.work_items import WorkItem, WorkItemStatus
+from agent_platform.core.work_items import (
+    WorkItem,
+    WorkItemCompletedBy,
+    WorkItemStatus,
+)
 from agent_platform.server.api.private_v2.prompt import prompt_generate
 from agent_platform.server.api.private_v2.runs import (
     async_run,
@@ -419,7 +423,12 @@ async def execute_work_item(
 
             new_status = (await _validate_success(item)) if result else WorkItemStatus.ERROR
 
-            await storage.update_work_item_status(system_user_id, item.work_item_id, new_status)
+            if new_status == WorkItemStatus.COMPLETED:
+                await storage.complete_work_item(
+                    system_user_id, item.work_item_id, WorkItemCompletedBy.AGENT
+                )
+            else:
+                await storage.update_work_item_status(system_user_id, item.work_item_id, new_status)
             item.status = new_status
 
             logger.info(

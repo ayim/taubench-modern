@@ -6,7 +6,12 @@ import pytest
 from agent_platform.core.agent import Agent
 from agent_platform.core.thread import Thread, ThreadMessage
 from agent_platform.core.thread.content import ThreadTextContent
-from agent_platform.core.work_items import WorkItem, WorkItemCallback, WorkItemStatus
+from agent_platform.core.work_items import (
+    WorkItem,
+    WorkItemCallback,
+    WorkItemCompletedBy,
+    WorkItemStatus,
+)
 from agent_platform.server.storage.errors import WorkItemFileNotFoundError
 from agent_platform.server.storage.sqlite import SQLiteStorage
 
@@ -133,7 +138,6 @@ async def test_list_work_items_filtering(
     assert ids_first_agent.issubset({wi.work_item_id for wi in by_agent})
 
 
-@pytest.mark.asyncio
 async def test_update_work_item_status(
     storage: SQLiteStorage,
     sample_user_id: str,
@@ -156,6 +160,62 @@ async def test_update_work_item_status(
     updated = await storage.get_work_item(wi.work_item_id)
     assert updated is not None
     assert updated.status == WorkItemStatus.COMPLETED
+
+
+@pytest.mark.asyncio
+async def test_complete_work_item(
+    storage: SQLiteStorage,
+    sample_user_id: str,
+    sample_agent,
+):
+    """Test completing work items with different completed_by values."""
+    await storage.upsert_agent(sample_user_id, sample_agent)
+
+    wi = WorkItem(
+        work_item_id=str(uuid4()),
+        user_id=sample_user_id,
+        agent_id=sample_agent.agent_id,
+        messages=[],
+        payload={},
+        completed_by=None,  # Initially not completed
+    )
+    await storage.create_work_item(wi)
+
+    # Test 1: Complete work item with completed_by=AGENT
+    await storage.complete_work_item(
+        sample_user_id,
+        wi.work_item_id,
+        WorkItemCompletedBy.AGENT,
+    )
+
+    updated = await storage.get_work_item(wi.work_item_id)
+    assert updated is not None
+    assert updated.status == WorkItemStatus.COMPLETED
+    assert updated.completed_by == WorkItemCompletedBy.AGENT
+
+    # Test 2: Complete work item with completed_by=HUMAN (should overwrite previous completion)
+    await storage.complete_work_item(
+        sample_user_id,
+        wi.work_item_id,
+        WorkItemCompletedBy.HUMAN,
+    )
+
+    updated = await storage.get_work_item(wi.work_item_id)
+    assert updated is not None
+    assert updated.status == WorkItemStatus.COMPLETED
+    assert updated.completed_by == WorkItemCompletedBy.HUMAN
+
+    # Test 3: Verify that updating status after completion preserves completed_by
+    await storage.update_work_item_status(
+        sample_user_id,
+        wi.work_item_id,
+        WorkItemStatus.NEEDS_REVIEW,
+    )
+
+    updated = await storage.get_work_item(wi.work_item_id)
+    assert updated is not None
+    assert updated.status == WorkItemStatus.NEEDS_REVIEW
+    assert updated.completed_by == WorkItemCompletedBy.HUMAN  # Should remain unchanged
 
 
 @pytest.mark.asyncio
@@ -786,7 +846,7 @@ async def test_update_work_item_all_fields(
                 on_status=WorkItemStatus.ERROR,
             ),
         ],
-        completed_by="user123",  # New completed_by
+        completed_by=WorkItemCompletedBy.HUMAN,  # New completed_by
         status_updated_by=sample_user_id,  # New status_updated_by
         created_at=fetched_initial.created_at,  # Keep original created_at
         updated_at=datetime.now(UTC),  # New updated_at
@@ -805,7 +865,7 @@ async def test_update_work_item_all_fields(
     assert fetched_updated.agent_id == sample_agent.agent_id
     assert fetched_updated.thread_id is None
     assert fetched_updated.status == WorkItemStatus.PENDING
-    assert fetched_updated.completed_by == "user123"
+    assert fetched_updated.completed_by == WorkItemCompletedBy.HUMAN
     assert fetched_updated.status_updated_by == sample_user_id
 
     # Verify messages were updated

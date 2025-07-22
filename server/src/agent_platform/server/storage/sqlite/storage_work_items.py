@@ -1,6 +1,10 @@
 import json
 
-from agent_platform.core.work_items import WorkItem, WorkItemStatus
+from agent_platform.core.work_items import (
+    WorkItem,
+    WorkItemCompletedBy,
+    WorkItemStatus,
+)
 from agent_platform.server.storage.errors import WorkItemNotFoundError
 from agent_platform.server.storage.sqlite.common import CommonMixin
 
@@ -162,6 +166,39 @@ class SQLiteStorageWorkItemsMixin(CommonMixin):
                 },
             )
 
+    async def complete_work_item(
+        self,
+        user_id: str,
+        work_item_id: str,
+        completed_by: WorkItemCompletedBy,
+    ) -> None:
+        """Complete a work item with the specified completed_by value."""
+
+        self._validate_uuid(user_id)
+        self._validate_uuid(work_item_id)
+
+        query = """
+            UPDATE v2_work_items
+               SET status = :status,
+                   completed_by = :completed_by,
+                   status_updated_by = :user_id,
+                   status_updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+                   updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+             WHERE work_item_id = :work_item_id
+               AND v2_check_user_access(user_id, :user_id) = 1
+        """
+        params = {
+            "status": WorkItemStatus.COMPLETED.value,
+            "work_item_id": work_item_id,
+            "user_id": user_id,
+            "completed_by": completed_by.value
+            if isinstance(completed_by, WorkItemCompletedBy)
+            else str(completed_by),
+        }
+
+        async with self._cursor() as cur:
+            await cur.execute(query, params)
+
     # ------------------------------------------------------------------
     # Batch / workflow helpers
     # ------------------------------------------------------------------
@@ -309,7 +346,9 @@ class SQLiteStorageWorkItemsMixin(CommonMixin):
                     "status": work_item.status.value
                     if isinstance(work_item.status, WorkItemStatus)
                     else str(work_item.status),
-                    "completed_by": work_item.completed_by,
+                    "completed_by": work_item.completed_by.value
+                    if work_item.completed_by
+                    else None,
                     "status_updated_at": work_item.status_updated_at,
                     "status_updated_by": work_item.status_updated_by,
                     "work_item_id": work_item.work_item_id,

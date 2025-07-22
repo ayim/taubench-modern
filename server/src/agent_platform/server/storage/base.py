@@ -10,7 +10,11 @@ from agent_platform.core.runs import Run, RunStep
 from agent_platform.core.storage import ScopedStorage
 from agent_platform.core.thread import Thread, ThreadMessage
 from agent_platform.core.user import User
-from agent_platform.core.work_items import WorkItem, WorkItemStatus
+from agent_platform.core.work_items import (
+    WorkItem,
+    WorkItemCompletedBy,
+    WorkItemStatus,
+)
 
 
 class BaseStorage(ABC):
@@ -465,6 +469,16 @@ class BaseStorage(ABC):
         status: WorkItemStatus,
     ) -> None:
         """Update the status of a work item."""
+        pass
+
+    @abstractmethod
+    async def complete_work_item(
+        self,
+        user_id: str,
+        work_item_id: str,
+        completed_by: WorkItemCompletedBy,
+    ) -> None:
+        """Complete a work item with the specified completed_by value."""
         pass
 
     @abstractmethod
