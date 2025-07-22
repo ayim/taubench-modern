@@ -14,6 +14,7 @@ from agent_platform.core.work_items import (
     WorkItem,
     WorkItemCompletedBy,
     WorkItemStatus,
+    WorkItemStatusUpdatedBy,
 )
 
 
@@ -467,6 +468,7 @@ class BaseStorage(ABC):
         user_id: str,
         work_item_id: str,
         status: WorkItemStatus,
+        status_updated_by: WorkItemStatusUpdatedBy = WorkItemStatusUpdatedBy.SYSTEM,
     ) -> None:
         """Update the status of a work item."""
         pass

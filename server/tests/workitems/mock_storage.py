@@ -1,6 +1,11 @@
 from datetime import UTC, datetime
 
-from agent_platform.core.work_items.work_item import WorkItem, WorkItemCompletedBy, WorkItemStatus
+from agent_platform.core.work_items import (
+    WorkItem,
+    WorkItemCompletedBy,
+    WorkItemStatus,
+    WorkItemStatusUpdatedBy,
+)
 from agent_platform.server.storage.errors import WorkItemNotFoundError
 
 
@@ -39,12 +44,16 @@ class MockStorage:
         return candidates
 
     async def update_work_item_status(
-        self, user_id: str, work_item_id: str, status: WorkItemStatus
+        self,
+        user_id: str,
+        work_item_id: str,
+        status: WorkItemStatus,
+        status_updated_by: WorkItemStatusUpdatedBy = WorkItemStatusUpdatedBy.SYSTEM,
     ) -> None:
         if work_item_id not in self.work_items:
             raise WorkItemNotFoundError(work_item_id)
         self.work_items[work_item_id].status = status
-        self.work_items[work_item_id].status_updated_by = user_id
+        self.work_items[work_item_id].status_updated_by = status_updated_by
         self.work_items[work_item_id].status_updated_at = datetime.now(UTC)
 
     async def complete_work_item(
@@ -55,5 +64,5 @@ class MockStorage:
             raise WorkItemNotFoundError(work_item_id)
         self.work_items[work_item_id].status = WorkItemStatus.COMPLETED
         self.work_items[work_item_id].completed_by = completed_by
-        self.work_items[work_item_id].status_updated_by = user_id
+        self.work_items[work_item_id].status_updated_by = completed_by.as_status_updated_by()
         self.work_items[work_item_id].status_updated_at = datetime.now(UTC)

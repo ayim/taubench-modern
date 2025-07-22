@@ -8,7 +8,11 @@ import pytest
 
 from agent_platform.core.errors.base import PlatformHTTPError
 from agent_platform.core.user import User
-from agent_platform.core.work_items.work_item import WorkItem, WorkItemStatus
+from agent_platform.core.work_items.work_item import (
+    WorkItem,
+    WorkItemStatus,
+    WorkItemStatusUpdatedBy,
+)
 from agent_platform.server.api.private_v2.work_items import cancel_item
 
 
@@ -63,6 +67,7 @@ class TestCancelItem:
             mock_user.user_id,
             sample_work_item.work_item_id,
             WorkItemStatus.CANCELLED,
+            WorkItemStatusUpdatedBy.HUMAN,
         )
 
     @pytest.mark.parametrize(

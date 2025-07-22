@@ -8,6 +8,7 @@ from agent_platform.core.work_items import (
     WorkItem,
     WorkItemCompletedBy,
     WorkItemStatus,
+    WorkItemStatusUpdatedBy,
 )
 from agent_platform.server.storage.errors import (
     RecordAlreadyExistsError,
@@ -178,6 +179,7 @@ class PostgresStorageWorkItemsMixin(CommonMixin):
         user_id: str,
         work_item_id: str,
         status: WorkItemStatus,
+        status_updated_by: WorkItemStatusUpdatedBy = WorkItemStatusUpdatedBy.SYSTEM,
     ) -> None:
         """Update the *status* of a work-item."""
 
@@ -189,7 +191,7 @@ class PostgresStorageWorkItemsMixin(CommonMixin):
                 """
                 UPDATE v2.work_items
                    SET status = %(status)s,
-                       status_updated_by = %(user_id)s,
+                       status_updated_by = %(status_updated_by)s,
                        status_updated_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC',
                        updated_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC'
                  WHERE work_item_id = %(work_item_id)s::uuid
@@ -199,6 +201,7 @@ class PostgresStorageWorkItemsMixin(CommonMixin):
                     "status": status.value if isinstance(status, WorkItemStatus) else str(status),
                     "work_item_id": work_item_id,
                     "user_id": user_id,
+                    "status_updated_by": status_updated_by.value,
                 },
             )
 
@@ -217,7 +220,7 @@ class PostgresStorageWorkItemsMixin(CommonMixin):
             UPDATE v2.work_items
                SET status = %(status)s,
                    completed_by = %(completed_by)s,
-                   status_updated_by = %(user_id)s,
+                   status_updated_by = %(status_updated_by)s,
                    status_updated_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC',
                    updated_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC'
              WHERE work_item_id = %(work_item_id)s::uuid
@@ -230,6 +233,7 @@ class PostgresStorageWorkItemsMixin(CommonMixin):
             "completed_by": completed_by.value
             if isinstance(completed_by, WorkItemCompletedBy)
             else str(completed_by),
+            "status_updated_by": completed_by.as_status_updated_by().value,
         }
 
         async with self._cursor() as cur:

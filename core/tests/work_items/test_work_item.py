@@ -8,6 +8,7 @@ from agent_platform.core.work_items.work_item import (
     WorkItem,
     WorkItemCallbackPayload,
     WorkItemStatus,
+    WorkItemStatusUpdatedBy,
 )
 
 
@@ -93,7 +94,7 @@ def test_work_item_restart():
     )
     assert work_item.completed_by is None
     assert work_item.status_updated_at is not None
-    assert work_item.status_updated_by == "user-456"
+    assert work_item.status_updated_by == WorkItemStatusUpdatedBy.HUMAN
 
     # when we reset, we must make sure that we got a new message_id or stuff gets really messy.
     assert work_item.messages[0].message_id != user_msg.message_id

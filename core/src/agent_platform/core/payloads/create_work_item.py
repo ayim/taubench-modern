@@ -4,7 +4,12 @@ from typing import Any
 from uuid import uuid4
 
 from agent_platform.core.thread.base import ThreadMessage
-from agent_platform.core.work_items import WorkItem, WorkItemCallback, WorkItemStatus
+from agent_platform.core.work_items import (
+    WorkItem,
+    WorkItemCallback,
+    WorkItemStatus,
+    WorkItemStatusUpdatedBy,
+)
 
 
 @dataclass
@@ -58,6 +63,6 @@ class CreateWorkItemPayload:
             updated_at=datetime.now(UTC),
             completed_by=None,  # Not completed yet
             status_updated_at=datetime.now(UTC),
-            status_updated_by=user_id,
+            status_updated_by=WorkItemStatusUpdatedBy.HUMAN,
             callbacks=payload.callbacks or [],
         )

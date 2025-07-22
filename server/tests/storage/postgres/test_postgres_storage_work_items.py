@@ -11,6 +11,7 @@ from agent_platform.core.work_items import (
     WorkItemCallback,
     WorkItemCompletedBy,
     WorkItemStatus,
+    WorkItemStatusUpdatedBy,
 )
 from agent_platform.server.storage.errors import WorkItemFileNotFoundError
 from agent_platform.server.storage.postgres import PostgresStorage
@@ -800,7 +801,7 @@ async def test_update_work_item_all_fields(
         payload={},  # Empty payload initially
         callbacks=[],  # No callbacks initially
         completed_by=None,
-        status_updated_by="SYSTEM",
+        status_updated_by=WorkItemStatusUpdatedBy.HUMAN,
     )
 
     await storage.create_work_item(initial_work_item)
@@ -839,7 +840,7 @@ async def test_update_work_item_all_fields(
             ),
         ],
         completed_by=WorkItemCompletedBy.HUMAN,  # New completed_by
-        status_updated_by=sample_user_id,  # New status_updated_by
+        status_updated_by=WorkItemStatusUpdatedBy.AGENT,  # New status_updated_by
         created_at=fetched_initial.created_at,  # Keep original created_at
         updated_at=datetime.now(UTC),  # New updated_at
         status_updated_at=datetime.now(UTC),  # New status_updated_at
@@ -858,7 +859,7 @@ async def test_update_work_item_all_fields(
     assert fetched_updated.thread_id is None
     assert fetched_updated.status == WorkItemStatus.PENDING
     assert fetched_updated.completed_by == WorkItemCompletedBy.HUMAN
-    assert fetched_updated.status_updated_by == sample_user_id
+    assert fetched_updated.status_updated_by == WorkItemStatusUpdatedBy.AGENT
 
     # Verify messages were updated
     assert len(fetched_updated.messages) == 1

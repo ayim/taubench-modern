@@ -6,7 +6,11 @@ from fastapi.testclient import TestClient
 
 from agent_platform.core.errors.base import PlatformHTTPError
 from agent_platform.core.user import User
-from agent_platform.core.work_items.work_item import WorkItem, WorkItemStatus
+from agent_platform.core.work_items.work_item import (
+    WorkItem,
+    WorkItemStatus,
+    WorkItemStatusUpdatedBy,
+)
 from agent_platform.server.api.private_v2.work_items import router as work_items_router
 from agent_platform.server.auth.handlers import auth_user
 from agent_platform.server.constants import SystemConfig
@@ -138,13 +142,13 @@ class TestContinueWorkItem:
         returned_work_item = response.json()
         assert returned_work_item["work_item_id"] == "123"
         assert returned_work_item["status"] == WorkItemStatus.PENDING.value
-        assert returned_work_item["status_updated_by"] == test_user.user_id
+        assert returned_work_item["status_updated_by"] == WorkItemStatusUpdatedBy.HUMAN.value
         assert returned_work_item["status_updated_at"] >= now.isoformat()
 
         # Verify that status_updated_* are updated for the requesting user.
         updated_item = await storage.get_work_item("123")
         assert updated_item.status == WorkItemStatus.PENDING
-        assert updated_item.status_updated_by == test_user.user_id
+        assert updated_item.status_updated_by == WorkItemStatusUpdatedBy.HUMAN.value
         assert updated_item.status_updated_at >= now
 
     async def test_continue_from_indeterminate_success(

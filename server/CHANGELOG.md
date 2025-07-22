@@ -1,3 +1,7 @@
+# Unreleased
+
+- Handle setting `status_updated_by` on work items during various transitions ([GPT-1111](https://linear.app/sema4ai/issue/GPT-1111))
+
 # Sema4.ai Agent Server 2.0.17 (2025-07-17)
 
 - SPAR: Workroom integration with monorepo

@@ -4,6 +4,7 @@ from agent_platform.core.work_items import (
     WorkItem,
     WorkItemCompletedBy,
     WorkItemStatus,
+    WorkItemStatusUpdatedBy,
 )
 from agent_platform.server.storage.errors import WorkItemNotFoundError
 from agent_platform.server.storage.sqlite.common import CommonMixin
@@ -142,6 +143,7 @@ class SQLiteStorageWorkItemsMixin(CommonMixin):
         user_id: str,
         work_item_id: str,
         status: WorkItemStatus,
+        status_updated_by: WorkItemStatusUpdatedBy = WorkItemStatusUpdatedBy.SYSTEM,
     ) -> None:
         """Update the status of a single work item."""
 
@@ -153,7 +155,7 @@ class SQLiteStorageWorkItemsMixin(CommonMixin):
                 """
                 UPDATE v2_work_items
                    SET status = :status,
-                       status_updated_by = :user_id,
+                       status_updated_by = :status_updated_by,
                        status_updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
                        updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
                  WHERE work_item_id = :work_item_id
@@ -163,6 +165,7 @@ class SQLiteStorageWorkItemsMixin(CommonMixin):
                     "status": status.value if isinstance(status, WorkItemStatus) else str(status),
                     "work_item_id": work_item_id,
                     "user_id": user_id,
+                    "status_updated_by": status_updated_by.value,
                 },
             )
 
@@ -181,7 +184,7 @@ class SQLiteStorageWorkItemsMixin(CommonMixin):
             UPDATE v2_work_items
                SET status = :status,
                    completed_by = :completed_by,
-                   status_updated_by = :user_id,
+                   status_updated_by = :status_updated_by,
                    status_updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
                    updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
              WHERE work_item_id = :work_item_id
@@ -194,6 +197,7 @@ class SQLiteStorageWorkItemsMixin(CommonMixin):
             "completed_by": completed_by.value
             if isinstance(completed_by, WorkItemCompletedBy)
             else str(completed_by),
+            "status_updated_by": completed_by.as_status_updated_by().value,
         }
 
         async with self._cursor() as cur:
@@ -350,7 +354,7 @@ class SQLiteStorageWorkItemsMixin(CommonMixin):
                     if work_item.completed_by
                     else None,
                     "status_updated_at": work_item.status_updated_at,
-                    "status_updated_by": work_item.status_updated_by,
+                    "status_updated_by": work_item.status_updated_by.value,
                     "work_item_id": work_item.work_item_id,
                     "user_id": work_item.user_id,
                 },

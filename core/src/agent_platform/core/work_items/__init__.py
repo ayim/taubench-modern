@@ -3,6 +3,7 @@ from agent_platform.core.work_items.work_item import (
     WorkItemCallback,
     WorkItemCompletedBy,
     WorkItemStatus,
+    WorkItemStatusUpdatedBy,
 )
 
 __all__ = [
@@ -10,4 +11,5 @@ __all__ = [
     "WorkItemCallback",
     "WorkItemCompletedBy",
     "WorkItemStatus",
+    "WorkItemStatusUpdatedBy",
 ]

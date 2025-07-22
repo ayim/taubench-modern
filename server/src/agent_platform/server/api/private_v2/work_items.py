@@ -15,6 +15,7 @@ from agent_platform.core.work_items.work_item import (
     WorkItemCallback,
     WorkItemCompletedBy,
     WorkItemStatus,
+    WorkItemStatusUpdatedBy,
 )
 from agent_platform.server.api.dependencies import FileManagerDependency, StorageDependency
 from agent_platform.server.api.private_v2.threads import (
@@ -102,7 +103,10 @@ async def create_work_item(
         await storage.update_work_item(work_item)
         # set work item status to pending
         await storage.update_work_item_status(
-            user.user_id, work_item.work_item_id, WorkItemStatus.PENDING
+            user.user_id,
+            work_item.work_item_id,
+            WorkItemStatus.PENDING,
+            WorkItemStatusUpdatedBy.HUMAN,
         )
         # Update the work_item object to reflect the new status
         work_item.status = WorkItemStatus.PENDING
@@ -292,7 +296,9 @@ async def continue_work_item(
             f"Cannot continue work item from status {item.status.value}.",
         )
 
-    await storage.update_work_item_status(user.user_id, work_item_id, WorkItemStatus.PENDING)
+    await storage.update_work_item_status(
+        user.user_id, work_item_id, WorkItemStatus.PENDING, WorkItemStatusUpdatedBy.HUMAN
+    )
     return await storage.get_work_item(work_item_id)
 
 
@@ -339,7 +345,9 @@ async def cancel_item(
             f"Cannot cancel work item from status {work_item.status.value}.",
         )
 
-    await storage.update_work_item_status(user.user_id, work_item_id, WorkItemStatus.CANCELLED)
+    await storage.update_work_item_status(
+        user.user_id, work_item_id, WorkItemStatus.CANCELLED, WorkItemStatusUpdatedBy.HUMAN
+    )
     return {"status": "ok"}
 
 

@@ -21,6 +21,7 @@ from agent_platform.core.work_items import (
     WorkItemCompletedBy,
     WorkItemStatus,
 )
+from agent_platform.core.work_items.work_item import WorkItemStatusUpdatedBy
 from agent_platform.server.api.private_v2.prompt import prompt_generate
 from agent_platform.server.api.private_v2.runs import (
     async_run,
@@ -429,7 +430,12 @@ async def execute_work_item(
                     system_user_id, item.work_item_id, WorkItemCompletedBy.AGENT
                 )
             else:
-                await storage.update_work_item_status(system_user_id, item.work_item_id, new_status)
+                await storage.update_work_item_status(
+                    system_user_id,
+                    item.work_item_id,
+                    new_status,
+                    WorkItemStatusUpdatedBy.AGENT,
+                )
             item.status = new_status
 
             logger.info(
@@ -454,6 +460,7 @@ async def execute_work_item(
             system_user_id,
             item.work_item_id,
             WorkItemStatus.ERROR,
+            WorkItemStatusUpdatedBy.SYSTEM,
         )
 
         return False

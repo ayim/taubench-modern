@@ -36,6 +36,19 @@ class WorkItemStatus(StrEnum):
     """The work item is is partially created to allow for file attachments."""
 
 
+class WorkItemStatusUpdatedBy(StrEnum):
+    """The user who last updated the work item status."""
+
+    SYSTEM = "SYSTEM"
+    """The system last updated the work item status."""
+
+    AGENT = "AGENT"
+    """The agent last updated the work item status."""
+
+    HUMAN = "HUMAN"
+    """A human last updated the work item status."""
+
+
 class WorkItemCompletedBy(StrEnum):
     """The user who completed the work item."""
 
@@ -44,6 +57,15 @@ class WorkItemCompletedBy(StrEnum):
 
     HUMAN = "HUMAN"
     """A human completed the work item."""
+
+    def as_status_updated_by(self) -> WorkItemStatusUpdatedBy:
+        match self:
+            case WorkItemCompletedBy.HUMAN:
+                return WorkItemStatusUpdatedBy.HUMAN
+            case WorkItemCompletedBy.AGENT:
+                return WorkItemStatusUpdatedBy.AGENT
+            case _:
+                return WorkItemStatusUpdatedBy.SYSTEM
 
 
 # Define a subset of workitem statuses that we allow for callbacks.
@@ -231,9 +253,9 @@ class WorkItem:
 
     completed_by: WorkItemCompletedBy | None = field(
         default=None,
-        metadata={"description": "The ID of the user who completed the work item"},
+        metadata={"description": "The type of user who completed the work item"},
     )
-    """The ID of the user who completed the work item."""
+    """The type of user who completed the work item."""
 
     status_updated_at: datetime = field(
         default_factory=lambda: datetime.now(UTC),
@@ -241,11 +263,11 @@ class WorkItem:
     )
     """The timestamp when the work item status was last updated."""
 
-    status_updated_by: str = field(
-        default="SYSTEM",
-        metadata={"description": "The ID of the user who last updated the work item status"},
+    status_updated_by: WorkItemStatusUpdatedBy = field(
+        default=WorkItemStatusUpdatedBy.HUMAN,
+        metadata={"description": "The type of user who last updated the work item status"},
     )
-    """The ID of the user who last updated the work item status."""
+    """The type of user who last updated the work item status."""
 
     initial_messages: list[ThreadMessage] = field(
         default_factory=list,
@@ -282,7 +304,7 @@ class WorkItem:
             "updated_at": self.updated_at.isoformat(),
             "completed_by": self.completed_by.value if self.completed_by else None,
             "status_updated_at": self.status_updated_at.isoformat(),
-            "status_updated_by": self.status_updated_by,
+            "status_updated_by": self.status_updated_by.value,
             "initial_messages": [msg.model_dump() for msg in self.initial_messages],
             "messages": [msg.model_dump() for msg in self.messages],
             "payload": self.payload,
@@ -302,7 +324,7 @@ class WorkItem:
         )
 
     @classmethod
-    def model_validate(cls, data: dict) -> "WorkItem":  # noqa: C901
+    def model_validate(cls, data: dict) -> "WorkItem":  # noqa: C901, PLR0912
         data = data.copy()
 
         # Handle UUIDs
@@ -326,6 +348,8 @@ class WorkItem:
             data["completed_by"] = WorkItemCompletedBy(data["completed_by"])
         if "status_updated_at" in data and isinstance(data["status_updated_at"], str):
             data["status_updated_at"] = datetime.fromisoformat(data["status_updated_at"])
+        if "status_updated_by" in data and isinstance(data["status_updated_by"], str):
+            data["status_updated_by"] = WorkItemStatusUpdatedBy(data["status_updated_by"])
         if "messages" in data:
             data["messages"] = [
                 ThreadMessage.model_validate(msg) if isinstance(msg, dict) else msg
@@ -359,5 +383,5 @@ class WorkItem:
         self.messages = [msg.copy_with_new_ids() for msg in self.initial_messages]
         self.updated_at = datetime.now(UTC)
         self.status_updated_at = datetime.now(UTC)
-        self.status_updated_by = user_id
+        self.status_updated_by = WorkItemStatusUpdatedBy.HUMAN
         self.completed_by = None
