@@ -6,6 +6,23 @@
 2. Navigate to the [API Open API spec page](http://localhost:8000/openapi.json)
 3. Copy the content into [private.openapi.json](./private.openapi.json)
 
+### Releasing a new version
+_The process is currently manual - the north star is for it to be fully automated:_
+_The agent server API changes should trigger an automatic publishing of the interface, without any engineer intervention_
+
+1. Update the version of the interface to match the current version of the Agent Server (present in the `info.version` of the `openapi.json`)
+2. Run the following command:
+_The pre-release should start with 1 if there has not been any new release of that specific version, or incremented by 1 if that version has already been released_
+```
+npm version 2.0.17-2
+```
+3. Open a PR and get it merged
+4. Create a new release with the following format:
+_Notice the version appended after -v_
+```
+sema4ai-agent-server-interface-v2.0.17-2
+```
+
 ### Generating types and schema.
 
 ```
