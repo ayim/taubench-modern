@@ -322,6 +322,8 @@ class WorkItem:
             data["created_at"] = datetime.fromisoformat(data["created_at"])
         if "updated_at" in data and isinstance(data["updated_at"], str):
             data["updated_at"] = datetime.fromisoformat(data["updated_at"])
+        if "completed_by" in data and isinstance(data["completed_by"], str):
+            data["completed_by"] = WorkItemCompletedBy(data["completed_by"])
         if "status_updated_at" in data and isinstance(data["status_updated_at"], str):
             data["status_updated_at"] = datetime.fromisoformat(data["status_updated_at"])
         if "messages" in data:
