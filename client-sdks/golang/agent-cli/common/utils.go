@@ -8,9 +8,14 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"unicode"
+
+	"golang.org/x/text/runes"
+	"golang.org/x/text/transform"
+	"golang.org/x/text/unicode/norm"
 )
 
 var (
@@ -90,23 +95,26 @@ func UnzipFile(sourceZip, targetDir string) error {
 	return nil
 }
 
-func KebabCase(s string) string {
-	var result []rune
-	for i, r := range s {
-		if unicode.IsSpace(r) || r == '_' || r == '.' || r == ',' {
-			result = append(result, '-')
-		} else {
-			if unicode.IsUpper(r) {
-				if i > 0 && (unicode.IsLower(rune(s[i-1])) || unicode.IsDigit(rune(s[i-1]))) {
-					result = append(result, '-')
-				}
-				result = append(result, unicode.ToLower(r))
-			} else {
-				result = append(result, r)
-			}
-		}
-	}
-	return strings.Trim(strings.Join(strings.Fields(string(result)), "-"), "-")
+// Copied from the action server to ensure consistent file naming conventions
+func Slugify(s string) string {
+	// Handle unicode: decompose (NFKD), then filter out accents (nonspacing marks), then compose (NFC)
+	t := transform.Chain(
+		norm.NFKD,
+		runes.Remove(runes.In(unicode.Mn)), // drop combining marks
+		norm.NFC,
+	)
+	s, _, _ = transform.String(t, s)
+
+	// Lowercase
+	s = strings.ToLower(s)
+	// Remove all non-word, non-space, non-hyphen characters
+	re := regexp.MustCompile(`[^\w\s-]`)
+	s = re.ReplaceAllString(s, "")
+	// Replace spaces and hyphens with a single hyphen
+	re = regexp.MustCompile(`[-\s]+`)
+	s = re.ReplaceAllString(s, "-")
+	// Trim leading/trailing hyphens and underscores
+	return strings.Trim(s, "-_")
 }
 
 func CreateTempDir(suffix string) (string, error) {

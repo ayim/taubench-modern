@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- For action build and extract ensure consistent file naming conventions with action server
+
 ## 1.3.4 - 2025-06-13
 - Fixed agent-cli moving remote Action Packages to MyActions & not keep them in the correct organization
 

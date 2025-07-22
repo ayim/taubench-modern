@@ -54,7 +54,7 @@ func extractActionPackages(spec *common.AgentSpec, agentProjectActionsPath strin
 			newPath, ok := updatedPaths[act.Path]
 			if !ok {
 				zipPath := filepath.Join(agentProjectActionsPath, act.Path)
-				targetPath := filepath.Join(agentProjectActionsPath, act.Organization, common.KebabCase(act.Name))
+				targetPath := filepath.Join(agentProjectActionsPath, act.Organization, common.Slugify(act.Name))
 
 				pretty.LogIfVerbose("[extractActionPackages] extracting from [%+v] to [%+v]", zipPath, targetPath)
 				err := extractActionPackage(zipPath, targetPath)
@@ -66,7 +66,7 @@ func extractActionPackages(spec *common.AgentSpec, agentProjectActionsPath strin
 				if err := os.RemoveAll(zipPath); err != nil {
 					return fmt.Errorf("[extractActionPackages] failed to remove action package zip: %s error: %w", zipPath, err)
 				}
-				newPath = filepath.ToSlash(filepath.Join(act.Organization, common.KebabCase(act.Name)))
+				newPath = filepath.ToSlash(filepath.Join(act.Organization, common.Slugify(act.Name)))
 				updatedPaths[act.Path] = newPath
 				pretty.LogIfVerbose("[extractActionPackages] action package new path: %+v", newPath)
 			}

@@ -182,7 +182,7 @@ func buildActionPackages(spec *common.AgentSpec, agentProjectActionsPath string)
 			if !ok {
 				pretty.LogIfVerbose("[buildActionPackages] - action Package Path: %s", act.Path)
 				sourcePath := filepath.Join(agentProjectActionsPath, act.Path)
-				targetPath = filepath.Join(act.Organization, common.KebabCase(act.Name), act.Version+".zip")
+				targetPath = filepath.Join(act.Organization, common.Slugify(act.Name), act.Version+".zip")
 				targetZipFile := filepath.Join(agentProjectActionsPath, targetPath)
 				pretty.LogIfVerbose("Build action package from: %+v to: %s", sourcePath, targetZipFile)
 				err := buildActionPackage(sourcePath, targetZipFile)
