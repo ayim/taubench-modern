@@ -117,6 +117,9 @@ class SQLiteStorage(
     """
 
     def __init__(self, db_path: str | None = None):
+        # Initialize all parent mixins (including CommonMixin for secret manager)
+        super().__init__()
+
         self._logger = get_logger(__name__)
         self._db_path = db_path or self._get_db_path()
         self._migrations = SQLiteMigrations(self._db_path)

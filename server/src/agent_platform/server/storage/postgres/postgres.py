@@ -111,6 +111,9 @@ class PostgresStorage(
     PostgresStorageMCPServersMixin,
 ):
     def __init__(self, pool: AsyncConnectionPool | None = None):
+        # Initialize all parent mixins (including CommonMixin for secret manager)
+        super().__init__()
+
         # If a pool is provided externally, PostgresStorage should not be
         # responsible for closing it: the caller owns its lifecycle. When we
         # create the pool ourselves we *do* want to close it in teardown().

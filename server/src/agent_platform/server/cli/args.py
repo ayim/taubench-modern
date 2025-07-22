@@ -64,7 +64,7 @@ def parse_args() -> ServerArgs:
         "--port",
         type=int,
         default=SystemConfig.port,
-        help=(f"Port to run the HTTP server on. Default is from config or {SystemConfig.port}."),
+        help=f"Port to run the HTTP server on. Default is from config or {SystemConfig.port}.",
     )
     parser.add_argument(
         "--version",

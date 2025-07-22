@@ -5,9 +5,13 @@ from typing import Annotated
 from fastapi import Depends
 
 from agent_platform.server.file_manager import BaseFileManager, FileManagerService
+from agent_platform.server.secret_manager.base import BaseSecretManager
+from agent_platform.server.secret_manager.option import SecretService
 from agent_platform.server.storage import BaseStorage, StorageService
 
 StorageDependency = Annotated[BaseStorage, Depends(StorageService.get_instance)]
+
+SecretDependency = Annotated[BaseSecretManager, Depends(SecretService.get_instance)]
 
 
 def get_file_manager(storage: StorageDependency) -> BaseFileManager:

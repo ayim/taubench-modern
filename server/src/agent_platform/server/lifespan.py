@@ -10,6 +10,7 @@ from agent_platform.server.constants import SystemConfig, SystemPaths
 
 # Import the data migration function
 from agent_platform.server.scripts.migration.auto_migrate import run_automatic_migration
+from agent_platform.server.secret_manager.option import SecretService
 from agent_platform.server.storage import StorageService
 
 # Use our new telemetry module instead of the old otel module
@@ -47,6 +48,8 @@ async def lifespan(app: FastAPI):
     # Original code
     SystemPaths.upload_dir.mkdir(parents=True, exist_ok=True)
     await StorageService.get_instance().setup()
+
+    SecretService.get_instance().setup()
 
     # IMPORTANT: Order of operations is critical here!
     # Current sequence: DB Migrations (create v2 tables) -> Data migration (v1 to v2)
