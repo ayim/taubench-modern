@@ -25,9 +25,11 @@ const (
 	ExpectedTypeEnumMcpServerTransport       ExpectedTypeEnum = "mcp_server_transport"
 	ExpectedTypeEnumMcpServerCommandLine     ExpectedTypeEnum = "mcp_server_command_line"
 	ExpectedTypeEnumMcpServerCwd             ExpectedTypeEnum = "mcp_server_cwd"
-	ExpectedTypeEnumMcpServerEnv             ExpectedTypeEnum = "mcp_server_env"
-	ExpectedTypeEnumMcpServerHeaders         ExpectedTypeEnum = "mcp_server_headers"
+	ExpectedTypeEnumMcpServerEnv             ExpectedTypeEnum = "map[string,object]#mcp_server_env"
+	ExpectedTypeEnumMcpServerHeaders         ExpectedTypeEnum = "map[string,object]#mcp_server_headers"
 	ExpectedTypeEnumMcpServerVarType         ExpectedTypeEnum = "mcp_server_var_type"
+	ExpectedTypeEnumMcpServerTools           ExpectedTypeEnum = "mcp_server_tools"
+	ExpectedTypeEnumMapStringObject          ExpectedTypeEnum = "map[string,object]"
 )
 
 func isValidExpectedTypeEnum(et ExpectedTypeEnum) bool {
@@ -51,7 +53,9 @@ func isValidExpectedTypeEnum(et ExpectedTypeEnum) bool {
 		ExpectedTypeEnumMcpServerCwd,
 		ExpectedTypeEnumMcpServerEnv,
 		ExpectedTypeEnumMcpServerHeaders,
-		ExpectedTypeEnumMcpServerVarType:
+		ExpectedTypeEnumMcpServerVarType,
+		ExpectedTypeEnumMapStringObject,
+		ExpectedTypeEnumMcpServerTools:
 		return true
 	default:
 		return false

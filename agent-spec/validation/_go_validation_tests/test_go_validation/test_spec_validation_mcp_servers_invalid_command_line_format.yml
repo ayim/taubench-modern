@@ -9,8 +9,8 @@
       line: 21
   severity: 1
   source: sema4ai
-- message: Expected all items in agent-package/agents/mcp-servers/command-line to
-    be strings.
+- message: 'Expected all items in agent-package/agents/mcp-servers/command-line to
+    be strings. Found: int'
   range:
     end:
       character: 0

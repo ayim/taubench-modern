@@ -62,27 +62,43 @@ func NewValidator(specEntries map[string]*Entry, agentRootDirOrZip string) *Vali
 func (v *Validator) validateKeyPair(keyNode *yaml.Node, errors chan Error) {
 	entry := v.specEntries[v.currentStackAsStr]
 
-	// We have a special case for:
-	// agent-package/agents/mcp-servers/headers
-	// agent-package/agents/mcp-servers/env
-	// In this case we actually have something as
-	// agent-package/agents/mcp-servers/headers/<object>/<required-field-name> or
-	// agent-package/agents/mcp-servers/env/<object>/<required-field-name>
-	// so, we do some special handling for this to "remove" the <object> part
-	// and validate the path without that part.
 	if entry == nil {
-		if strings.HasPrefix(v.currentStackAsStr, "agent-package/agents/mcp-servers") {
-			currentStackParts := strings.Split(v.currentStackAsStr, "/")
-			if len(currentStackParts) > 3 {
-				if currentStackParts[3] == "headers" || currentStackParts[3] == "env" {
-					// Remove the <object> part (index 4)
-					// Compose: [:4] + [5:]
-					newStackParts := append(currentStackParts[:4], currentStackParts[5:]...)
-					joined := strings.Join(newStackParts, "/")
-					entry = v.specEntries[joined]
+		// Ok, we haven't been able to find the entry in the spec as is. This may be due to
+		// map[string,object]#<type> or map[string,object] fields.
+		// We have to check the curren stack to see if there is a path which is a map[string,object]#<type>
+		// or map[string,object] field.
+		// If so, we have to remove the the related part and re-validate the path without that part.
+		// For example, if the current stack is:
+		// agent-package/agents/mcp-servers/headers/my-object/my-field
+		// we have to remove the my-object part and validate the path without that part.
+		// So, the new path will be:
+		// agent-package/agents/mcp-servers/headers/my-field
+		var currentStackAsStr []string
+		skipNext := false
+		currentStackParts := strings.Split(v.currentStackAsStr, "/")
+		for i := 0; i < len(currentStackParts); i += 1 {
+			if skipNext {
+			    skipNext = false
+				continue
+			}
+			part := currentStackParts[i]
+			currentStackAsStr = append(currentStackAsStr, part)
+
+			parentEntry := v.specEntries[strings.Join(currentStackAsStr, "/")]
+
+			if parentEntry != nil {
+				switch parentEntry.ExpectedType.ExpectedType{
+				case ExpectedTypeEnumMapStringObject:
+				    fallthrough
+				case ExpectedTypeEnumMcpServerEnv:
+				    fallthrough
+				case ExpectedTypeEnumMcpServerHeaders:
+					skipNext = true
 				}
 			}
 		}
+
+		entry = v.specEntries[strings.Join(currentStackAsStr, "/")]
 	}
 
 	if entry == nil {
@@ -568,22 +584,54 @@ func (v *Validator) verifyYamlMatchesSpec(
 			}
 
 		case ExpectedTypeEnumMcpServerHeaders:
+			fallthrough
+		case ExpectedTypeEnumMcpServerEnv:
+			fallthrough
+		case ExpectedTypeEnumMapStringObject:
+			acceptDirectString := false
+
+			if specData.ExpectedType.ExpectedType == ExpectedTypeEnumMcpServerHeaders {
+				acceptDirectString = true
+
+				if yamlNode.data.Kind == YamlNodeKindUnhandled {
+					// Check that 'url' field is also defined
+					if yamlNode.parent == nil || yamlNode.parent.GetChildren()["url"] == nil {
+						errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected %s to be used together with 'url' field.", specData.Path),
+							yamlNode.data, Critical)
+					}
+				}
+
+			} else if specData.ExpectedType.ExpectedType == ExpectedTypeEnumMcpServerEnv {
+				acceptDirectString = true
+
+				if yamlNode.data.Kind == YamlNodeKindUnhandled {
+					// Check that 'command-line' field is defined
+					if yamlNode.parent == nil || yamlNode.parent.GetChildren()["command-line"] == nil {
+						errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected %s to be used together with 'command-line' field.", specData.Path),
+							yamlNode.data, Critical)
+					}
+				}
+			}
+
 			if yamlNode.data.Kind != YamlNodeKindUnhandled {
 				errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected %s to be an object (found %s).", specData.Path, yamlNode.data.Kind),
 					yamlNode.data, Critical)
 			} else {
-				// Check that 'url' field is also defined
-				if yamlNode.parent == nil || yamlNode.parent.GetChildren()["url"] == nil {
-					errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected %s to be used together with 'url' field.", specData.Path),
-						yamlNode.data, Critical)
-				}
-
+				// For all (map[string,object] or map[string,object]#<type>)
 				// Validate that all values are strings or objects (with the according type).
 				for _, value := range yamlNode.GetChildren() {
-					if value.GetData().(*YamlNodeData).Kind == YamlNodeKindString {
+					if acceptDirectString && value.GetData().(*YamlNodeData).Kind == YamlNodeKindString {
 						// Ok, it's a string, no need of further validation
 					} else if value.GetData().(*YamlNodeData).Kind != YamlNodeKindUnhandled {
-						errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected all items in %s to be strings or objects (with a type). Found %s.", specData.Path, value.GetData().(*YamlNodeData).Kind),
+						var msg string
+						if acceptDirectString {
+							msg = fmt.Sprintf("Expected all items in %s to be strings or objects. Found %s.", 
+							    specData.Path, value.GetData().(*YamlNodeData).Kind)
+						} else {
+							msg = fmt.Sprintf("Expected all items in %s to be objects. Found %s.", 
+								specData.Path, value.GetData().(*YamlNodeData).Kind)
+						}
+						errors <- *NewErrorFromYamlNode(msg,
 							value.GetData().(*YamlNodeData), Critical)
 					} else {
 						for _, specChild := range specNode.GetChildren() {
@@ -595,6 +643,23 @@ func (v *Validator) verifyYamlMatchesSpec(
 					}
 				}
 			}
+
+		case ExpectedTypeEnumMcpServerTools:
+			// Must check that:
+			// - It must be a list of strings
+			if yamlNode.data.Kind == YamlNodeKindList {
+				for _, listItemNode := range yamlNode.GetChildren() {
+					if listItemNode.GetData().(*YamlNodeData).Kind != YamlNodeKindString {
+						errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected all items in %s to be strings. Found: %s", 
+							specData.Path, listItemNode.GetData().(*YamlNodeData).Kind),
+							listItemNode.GetData().(*YamlNodeData), Critical)
+					}
+				}
+			} else {
+				errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected %s to be a list of strings (if tools are not specified, or the list is empty, all tools are allowed). Found: %s", specData.Path, yamlNode.data.Kind),
+				yamlNode.data, Critical)
+			}
+
 
 		case ExpectedTypeEnumMcpServerUrl:
 			if yamlNode.data.Kind != YamlNodeKindString {
@@ -614,35 +679,6 @@ func (v *Validator) verifyYamlMatchesSpec(
 					if transportValue != "streamable-http" && transportValue != "sse" && transportValue != "auto" {
 						errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected transport field to be one of ['streamable-http', 'sse'] when using 'url' field (found %q).", transportValue),
 							transportNode.GetData().(*YamlNodeData), Critical)
-					}
-				}
-			}
-
-		case ExpectedTypeEnumMcpServerEnv:
-			if yamlNode.data.Kind != YamlNodeKindUnhandled {
-				errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected %s to be an object (found %s).", specData.Path, yamlNode.data.Kind),
-					yamlNode.data, Critical)
-			} else {
-				// Check that 'command-line' field is defined
-				if yamlNode.parent == nil || yamlNode.parent.GetChildren()["command-line"] == nil {
-					errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected %s to be used together with 'command-line' field.", specData.Path),
-						yamlNode.data, Critical)
-				}
-
-				// Validate that all values are strings or objects (with the according type).
-				for _, value := range yamlNode.GetChildren() {
-					if value.GetData().(*YamlNodeData).Kind == YamlNodeKindString {
-						// Ok, it's a string, no need of further validation
-					} else if value.GetData().(*YamlNodeData).Kind != YamlNodeKindUnhandled {
-						errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected all items in %s to be strings or objects (with a type). Found %s.", specData.Path, value.GetData().(*YamlNodeData).Kind),
-							value.GetData().(*YamlNodeData), Critical)
-					} else {
-						for _, specChild := range specNode.GetChildren() {
-							childNode := value.GetChildren()[specChild.GetName()]
-							if childNode != nil {
-								v.verifyYamlMatchesSpec(specChild.(*SpecTreeNode), childNode.(*YamlTreeNode), yamlNode, errors)
-							}
-						}
 					}
 				}
 			}
@@ -746,7 +782,8 @@ func (v *Validator) verifyYamlMatchesSpec(
 				// Validate that all list items are strings
 				for _, listItemNode := range yamlNode.GetChildren() {
 					if listItemNode.GetData().(*YamlNodeData).Kind != YamlNodeKindString {
-						errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected all items in %s to be strings.", specData.Path),
+						errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected all items in %s to be strings. Found: %s", 
+						    specData.Path, listItemNode.GetData().(*YamlNodeData).Kind),
 							listItemNode.GetData().(*YamlNodeData), Critical)
 					}
 				}

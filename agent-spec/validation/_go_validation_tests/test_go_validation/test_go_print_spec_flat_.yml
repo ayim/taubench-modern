@@ -187,6 +187,49 @@ agent-package/agents/knowledge/name:
     RelativeTo: ./knowledge
   Path: agent-package/agents/knowledge/name
   Required: true
+agent-package/agents/mcp-gateway:
+  Deprecated: false
+  Description: Section to define the Docker MCP Gateway configuration for the agent.
+    Docker MCP Gateway is a tool that allows you to run MCP servers in a Docker containers.
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: object
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-gateway
+  Required: false
+agent-package/agents/mcp-gateway/catalog:
+  Deprecated: false
+  Description: 'Optional custom catalog file path. If not specified, the default catalog
+    from Docker MCP Gateway is used. Example: "./custom-catalog.yml"'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: file
+    RecommendedValues: null
+    RelativeTo: ./
+  Path: agent-package/agents/mcp-gateway/catalog
+  Required: false
+agent-package/agents/mcp-gateway/servers:
+  Deprecated: false
+  Description: Configuration for MCP servers in the Docker MCP Gateway.
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: map[string,object]
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-gateway/servers
+  Required: true
+agent-package/agents/mcp-gateway/servers/tools:
+  Deprecated: false
+  Description: 'Tools configuration for a server. Can be a list of tool names. If
+    empty or not specified, all tools are allowed. Example: ["tool1", "tool2"]'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: mcp_server_tools
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-gateway/servers/tools
+  Required: false
 agent-package/agents/mcp-servers:
   Deprecated: false
   Description: Section to define MCP (Model Context Protocol) servers that the agent
@@ -235,7 +278,7 @@ agent-package/agents/mcp-servers/env:
   Description: Environment variables for the MCP server (only for stdio kind).
   ExpectedType:
     EnumValues: null
-    ExpectedType: mcp_server_env
+    ExpectedType: map[string,object]#mcp_server_env
     RecommendedValues: null
     RelativeTo: ''
   Path: agent-package/agents/mcp-servers/env
@@ -309,7 +352,7 @@ agent-package/agents/mcp-servers/headers:
     and sse kinds).
   ExpectedType:
     EnumValues: null
-    ExpectedType: mcp_server_headers
+    ExpectedType: map[string,object]#mcp_server_headers
     RecommendedValues: null
     RelativeTo: ''
   Path: agent-package/agents/mcp-servers/headers

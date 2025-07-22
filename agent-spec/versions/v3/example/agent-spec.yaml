@@ -54,6 +54,15 @@ agent-package:
               type: data-server-info
               description: Information to connect to the data server (JSON-formatted string)
           force-serial-tool-calls: true
+      mcp-gateway:
+        catalog: ./custom-docker-mcp-catalog.yml
+        servers:
+          atlassian:
+            tools:
+              - confluence_add_comment
+              - confluence_add_label
+              - confluence_create_page
+          duckduckgo:
       conversation-starter: 'Hello, what tools do you have?'
       welcome-message: 'Hello, how can I help you today?'
       metadata:

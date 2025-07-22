@@ -5,6 +5,7 @@ from typing import Literal
 import pytest
 
 from _go_validation_tests.fixtures import RunResult
+from pytest_regressions.data_regression import DataRegressionFixture
 
 log = logging.getLogger(__name__)
 
@@ -329,10 +330,11 @@ def _run_agent_cli_in_folder(
     agent_path: Path,
     agent_cli: Path,
     returncode: int,
-    data_regression,
+    data_regression: DataRegressionFixture | None,
 ):
     import json
     import re
+    import typing
 
     run_result = run_agent_cli(agent_cli, ["validate", str(agent_path), "--json"], cwd=agent_path)
 
@@ -352,7 +354,18 @@ def _run_agent_cli_in_folder(
 
     # Sort the data by message and line
     data = sorted(data, key=lambda e: (e["message"], e["range"]["start"]["line"]))
-    data_regression.check(data)
+    if data_regression:
+        data_regression.check(typing.cast(typing.Any, data))
+    elif data:
+        # If data regression is not given, we cannot have any errors.
+        raise AssertionError(
+            "Expected no errors. Found:\n%s\nStderr: %s\nStdout: %s"
+            % (
+                "\n".join(str(x) for x in data),
+                run_result.stderr,
+                run_result.stdout,
+            )
+        )
 
     run_result_txt = run_agent_cli(agent_cli, ["validate", str(agent_path)], cwd=agent_path)
 
@@ -1002,3 +1015,54 @@ agent-package:
         bad_yaml,
         datadir,
     )
+
+
+def test_spec_bad_mcp_gateway(agent_cli: Path, datadir: Path, data_regression):
+    bad_yaml = """
+agent-package:
+  spec-version: v3
+  agents:
+    - name: Agent1
+      description: This is the description
+      version: 0.0.1
+      model:
+        provider: OpenAI
+        name: GPT 4o
+      architecture: plan_execute
+      reasoning: enabled
+      runbook: runbook.md
+      action-packages: []
+      knowledge: []
+      metadata:
+        mode: conversational
+      mcp-gateway:
+        servers:
+          atlassian:
+            tools: 1
+          duckduckgo:
+            tools: 'wrong'
+          bar:
+            tools:
+            - tool1
+            - 1
+          wrong-too: []
+    """
+
+    check_with_spec(
+        agent_cli,
+        data_regression,
+        bad_yaml,
+        datadir,
+    )
+
+
+def test_spec(agent_cli: Path):
+    import os
+
+    DOCS_DIR = Path(__file__).parent.parent.parent / "versions"
+    assert os.path.exists(DOCS_DIR), f"Expected docs dir to exist. Found {DOCS_DIR}"
+
+    specs_found = DOCS_DIR.glob("**/agent-package-specification*.json")
+    for json_spec_path in specs_found:
+        for yaml_spec_path in json_spec_path.parent.glob("**/agent-spec*.yaml"):
+            _run_agent_cli_in_folder(yaml_spec_path.parent, agent_cli, 0, None)

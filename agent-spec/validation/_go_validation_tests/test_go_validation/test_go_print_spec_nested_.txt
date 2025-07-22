@@ -16,6 +16,10 @@ root (no data)
         digest
         embedded (required)
         name (required)
+      mcp-gateway
+        catalog
+        servers (required)
+          tools
       mcp-servers
         command-line
         cwd
