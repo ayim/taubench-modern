@@ -1,0 +1,158 @@
+name: Workroom Release
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/workroom-release-build.yml'
+      - 'workroom/**'
+
+env:
+  RELEASE_CHANNEL: ci
+  WORKROOM_ECR_REGION: 'us-east-1'
+  WORKROOM_ECR_ACCOUNT: '024848458368' # releases-dev
+  WORKROOM_AWS_ROLE_ARN: 'arn:aws:iam::024848458368:role/github-action-for-agent-server-repositories-ci'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.WORKROOM_ECR_REGION }}
+          role-to-assume: ${{ env.WORKROOM_AWS_ROLE_ARN }}
+          role-session-name: GHA-JOB-${{ github.run_id }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          registries: '${{ env.WORKROOM_ECR_ACCOUNT }}'
+
+      - name: Generate build metadata
+        id: build-metadata
+        run: |
+          workroom_version=$(node -p "require('./workroom/package.json').version")
+          commit_hash=$(git rev-parse --short HEAD)
+          timestamp=$(date -u +"%Y%m%dT%H%M%SZ")
+
+          build_details="${commit_hash}.${timestamp}"
+
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref_name }}" == "main" ]]; then
+            # Merge to main; Publish a CI ACE release
+            workroom_tag="${workroom_version}+${build_details}"
+            ace_prerelease="none"
+            release_channel="ci"
+          else
+            # Push to dev branch; Publish a "manual" / dev ACE release
+            repo_name="$(
+              echo "${{ github.event.repository.name }}" |
+                tr '[:upper:]' '[:lower:]' |
+                tr -cd 'a-z-'
+            )"
+            branch_name="$(
+              echo "${{ github.ref_name }}" |
+                tr '[:upper:]' '[:lower:]' |
+                tr -cd 'a-z' |
+                cut -c -20
+            )"
+
+            workroom_tag="${workroom_version}-${repo_name}-${branch_name}+${build_details}"
+            ace_prerelease="${repo_name}-${branch_name}-${commit_hash}"
+            release_channel="manual"
+          fi
+
+          workroom_tag_sanitized="${workroom_tag//+/_}" # Replace + with _ for the tag to be valid
+          echo "workroom-tag-sanitized=${workroom_tag_sanitized}" >> "${GITHUB_OUTPUT}"
+          echo "ace-prerelease=${ace_prerelease}" >> "${GITHUB_OUTPUT}"
+          echo "release-channel=${release_channel}" >> "${GITHUB_OUTPUT}"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Create .npmrc file
+        shell: bash
+        run: |
+          cat << EOF > .npmrc
+          registry=https://registry.npmjs.org/
+          @sema4ai:registry=https://npm.pkg.github.com/
+          //npm.pkg.github.com/:_authToken=${{ secrets.SEMA4_CI_USER_PACKAGE_READ_TOKEN }}
+          EOF
+
+      - name: Build and push workroom
+        id: build
+        uses: docker/build-push-action@v6
+        env:
+          DOCKER_BUILD_CHECKS_ANNOTATIONS: false
+          DOCKER_BUILD_SUMMARY: false
+          DOCKER_BUILD_RECORD_UPLOAD: false
+          repository: '${{ steps.login-ecr.outputs.registry }}/${{ steps.build-metadata.outputs.release-channel }}/ace/workroom'
+          cache-repository: '${{ steps.login-ecr.outputs.registry }}/manual/ace/workroom'
+          tag: '${{ steps.build-metadata.outputs.workroom-tag-sanitized }}'
+        with:
+          file: 'workroom/Dockerfile'
+          context: 'workroom'
+          push: true
+          tags: '${{ env.repository }}:${{ env.tag }}'
+          cache-from: type=registry,ref=${{ env.cache-repository }}:build-cache
+          cache-to: type=registry,mode=max,image-manifest=true,oci-mediatypes=true,compression=zstd,compression-level=3,ref=${{ env.cache-repository }}:build-cache
+          provenance: false
+          secret-files: |
+            "npmrc=./.npmrc"
+          build-args: |
+            VITE_DEPLOYMENT_TYPE=spar
+            VITE_DEV_SERVER_PORT=8001
+            VITE_DEV_WORKROOM_TENANT_LIST_URL=/spar-tenants-list
+            VITE_INSTANCE_ID=dev
+            ACE_SERVICE_VERSION=${{ steps.build-metadata.outputs.workroom-tag-sanitized }}
+            AGENT_SERVER_URL=http://agent-server:8000
+            DEPLOYMENT_TYPE=spar
+            META_URL=http://localhost:8001/meta
+            NODE_ENV=production
+            WORKROOM_URL=http://localhost:8001
+
+      - name: Publish ACE
+        id: publish-ace
+        shell: bash
+        run: |
+          workroom_version="${{ steps.build-metadata.outputs.workroom-tag-sanitized }}"
+          build_ace_from_branch="master"
+          ace_prerelease="${{ steps.build-metadata.outputs.ace-prerelease }}"
+
+          cat <<EOF
+          Triggering ACE publish workflow with payload:
+            - branch=${build_ace_from_branch}
+            - workroom-version=${workroom_version}
+            - prerelease=${ace_prerelease}
+          EOF
+
+          ACTION_PAYLOAD=$(jq -n \
+            --arg ref "${build_ace_from_branch}" \
+            --arg workroomVersion "${workroom_version}" \
+            --arg prerelease "${ace_prerelease}" \
+            '{
+              "ref": $ref,
+              "inputs": {
+                "branch": $ref,
+                "workroom-version": $workroomVersion,
+                "prerelease": $prerelease
+              }
+            }')
+
+          curl \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer ${{ secrets.ACE_DEPLOY_WORKFLOW_TRIGGER_TOKEN }}" \
+            --url "https://api.github.com/repos/Sema4AI/ace/actions/workflows/ace-publish-v2.yml/dispatches" \
+            --data "${ACTION_PAYLOAD}" \
+            --fail \
+            --show-error
