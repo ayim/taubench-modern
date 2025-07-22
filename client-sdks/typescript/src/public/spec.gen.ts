@@ -665,11 +665,25 @@ export const spec = {
             required: false,
             schema: {
               type: 'integer',
+              minimum: 1,
               description: 'The maximum number of work items to return',
               default: 100,
               title: 'Limit',
             },
             description: 'The maximum number of work items to return',
+          },
+          {
+            name: 'offset',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'integer',
+              minimum: 0,
+              description: 'The offset to start from',
+              default: 0,
+              title: 'Offset',
+            },
+            description: 'The offset to start from',
           },
         ],
         responses: {
@@ -678,11 +692,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  type: 'array',
-                  items: {
-                    $ref: '#/components/schemas/WorkItem',
-                  },
-                  title: 'Response List Work Items Work Items  Get',
+                  $ref: '#/components/schemas/WorkItemsListResponse',
                 },
               },
             },
@@ -1826,6 +1836,14 @@ export const spec = {
               'The ID of the user who last updated the work item status',
             default: 'SYSTEM',
           },
+          initial_messages: {
+            items: {
+              $ref: '#/components/schemas/ThreadMessage',
+            },
+            type: 'array',
+            title: 'Initial Messages',
+            description: 'The initial conversation messages for this work item',
+          },
           messages: {
             items: {
               $ref: '#/components/schemas/ThreadMessage',
@@ -1876,7 +1894,13 @@ export const spec = {
           },
           on_status: {
             type: 'string',
-            enum: ['COMPLETED', 'ERROR', 'NEEDS_REVIEW', 'CANCELLED'],
+            enum: [
+              'COMPLETED',
+              'ERROR',
+              'NEEDS_REVIEW',
+              'CANCELLED',
+              'INDETERMINATE',
+            ],
             title: 'On Status',
             description:
               'The status which, when reached, will trigger the callback (default NEEDS_REVIEW).',
@@ -1895,11 +1919,37 @@ export const spec = {
           'ERROR',
           'EXECUTING',
           'NEEDS_REVIEW',
+          'INDETERMINATE',
           'PENDING',
           'PRECREATED',
         ],
         title: 'WorkItemStatus',
         description: 'The status of a work item.',
+      },
+      WorkItemsListResponse: {
+        properties: {
+          records: {
+            items: {
+              $ref: '#/components/schemas/WorkItem',
+            },
+            type: 'array',
+            title: 'Records',
+          },
+          next_offset: {
+            anyOf: [
+              {
+                type: 'integer',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Next Offset',
+          },
+        },
+        type: 'object',
+        required: ['records'],
+        title: 'WorkItemsListResponse',
       },
       ErrorDetail: {
         description:

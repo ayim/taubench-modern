@@ -96,11 +96,8 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /**
-     * Get agent
-     * @description Returns the agent with the given name.
-     */
-    get: operations['get_agent_by_name_agents__aid__get'];
+    /** Get Agent */
+    get: operations['get_agent_agents__aid__get'];
     /** Update Agent */
     put: operations['update_agent_agents__aid__put'];
     post?: never;
@@ -908,18 +905,15 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v2/agents': {
+  '/api/v2/health': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /**
-     * List agents
-     * @description Returns a list of all agents for the authenticated user. You can filter by name using the 'name' query parameter.
-     */
-    get: operations['get_agents_agents_get'];
+    /** Health */
+    get: operations['health_health_get'];
     put?: never;
     post?: never;
     delete?: never;
@@ -928,89 +922,18 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v2/agents/{aid}/conversations': {
+  '/api/v2/metrics': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /**
-     * List conversations
-     * @description Returns a list of all conversations for the given agent.
-     */
-    get: operations['get_conversations_agents__aid__conversations_get'];
-    put?: never;
-    /**
-     * Create new conversation
-     * @description Creates a new conversation for the given agent.
-     */
-    post: operations['create_conversation_agents__aid__conversations_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v2/agents/{aid}/conversations/{cid}/messages': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get conversation messages
-     * @description Returns the conversation messages of the given chat_id for the given agent.
-     */
-    get: operations['get_chat_messages_agents__aid__conversations__cid__messages_get'];
-    put?: never;
-    /**
-     * Post a message (synchronous)
-     * @description Post a message to a conversation thread, and get the updated conversation state.
-     */
-    post: operations['post_messages_simple_agents__aid__conversations__cid__messages_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v2/agents/{aid}/conversations/{cid}/stream': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Post a message to a conversation and stream the response
-     * @description Post a message to a conversation and stream the response
-     */
-    post: operations['post_public_api_messages_simple_agents__aid__conversations__cid__stream_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v2/agents/{aid}/conversations/{cid}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
+    /** Metrics */
+    get: operations['metrics_metrics_get'];
     put?: never;
     post?: never;
-    /**
-     * Delete conversation
-     * @description Deletes the conversation with the given conversation ID for the given agent.
-     */
-    delete: operations['delete_chat_agents__aid__conversations__cid__delete'];
+    delete?: never;
     options?: never;
     head?: never;
     patch?: never;
@@ -1179,6 +1102,114 @@ export interface components {
        * @description The version of the agent architecture.
        */
       version: string;
+    };
+    /** AgentCompat */
+    AgentCompat: {
+      /**
+       * Name
+       * @description The name of the agent.
+       */
+      name: string;
+      /**
+       * Description
+       * @description The description of the agent.
+       */
+      description: string;
+      /**
+       * User Id
+       * @description The id of the user that created the agent.
+       */
+      user_id: string;
+      /** @description The structured runbook of the agent. */
+      runbook_structured: components['schemas']['Runbook'];
+      /**
+       * Version
+       * @description The version of the agent.
+       */
+      version: string;
+      /**
+       * Platform Configs
+       * @description The platform configs this agent can use.
+       */
+      platform_configs: (
+        | components['schemas']['BedrockPlatformParameters']
+        | components['schemas']['CortexPlatformParameters']
+        | components['schemas']['OpenAIPlatformParameters']
+        | components['schemas']['AzureOpenAIPlatformParameters']
+        | components['schemas']['GooglePlatformParameters']
+        | components['schemas']['GroqPlatformParameters']
+        | components['schemas']['ReductoPlatformParameters']
+      )[];
+      /** @description The architecture details for the agent. */
+      agent_architecture: components['schemas']['AgentArchitecture'];
+      /** Action Packages */
+      action_packages?: components['schemas']['ActionPackageCompat'][];
+      /** Mcp Servers */
+      mcp_servers?: components['schemas']['MCPServerCompat'][];
+      /**
+       * Question Groups
+       * @description The question groups of the agent.
+       */
+      question_groups?: components['schemas']['QuestionGroup'][];
+      /**
+       * Observability Configs
+       * @description The observability configs of the agent.
+       */
+      observability_configs?: components['schemas']['ObservabilityConfig'][];
+      /**
+       * Created At
+       * Format: date-time
+       * @description The creation time of the agent.
+       */
+      created_at?: string;
+      /**
+       * Updated At
+       * Format: date-time
+       * @description The last update time of the agent.
+       */
+      updated_at?: string;
+      /**
+       * Mode
+       * @default conversational
+       * @enum {string}
+       */
+      mode: 'conversational' | 'worker';
+      /**
+       * Agent Id
+       * @description The unique identifier of the agent.
+       */
+      agent_id?: string;
+      /**
+       * Extra
+       * @description Extra fields for the agent.
+       */
+      extra?: {
+        [key: string]: unknown;
+      };
+      /**
+       * Runbook
+       * @default
+       */
+      runbook: string;
+      /** Id */
+      id?: string | null;
+      /**
+       * Public
+       * @default true
+       */
+      public: boolean;
+      /** Metadata */
+      metadata?: {
+        [key: string]: unknown;
+      };
+      /** Advanced Config */
+      advanced_config?: {
+        [key: string]: unknown;
+      };
+      /** Model */
+      model?: {
+        [key: string]: unknown;
+      };
     };
     /** AgentDetails */
     AgentDetails: {
@@ -1416,11 +1447,6 @@ export interface components {
       /** Average Time To Fetch Mcp Servers */
       average_time_to_fetch_mcp_servers: number;
     };
-    /** ChatMessageRequest */
-    ChatMessageRequest: {
-      /** Content */
-      content: string;
-    };
     /** Citation */
     Citation: {
       /**
@@ -1450,15 +1476,6 @@ export interface components {
       file_ref: string;
       /** File Id */
       file_id: string;
-    };
-    /** Conversation */
-    Conversation: {
-      /** Id */
-      id: string;
-      /** Name */
-      name: string;
-      /** Agent Id */
-      agent_id: string;
     };
     /** ConversationHistoryParams */
     ConversationHistoryParams: {
@@ -1530,11 +1547,6 @@ export interface components {
        * @description The Snowflake role. Optional.
        */
       snowflake_role?: string | null;
-    };
-    /** CreateChatRequest */
-    CreateChatRequest: {
-      /** Name */
-      name: string;
     };
     /** CreateWorkItemPayload */
     CreateWorkItemPayload: {
@@ -1952,15 +1964,6 @@ export interface components {
       kind: 'openai';
       /** @description The OpenAI API key. If not provided, it will be attempted to be inferred from the environment. */
       openai_api_key?: components['schemas']['SecretString'] | null;
-    };
-    /** PaginatedResponse */
-    PaginatedResponse: {
-      /** Next */
-      next: string | null;
-      /** Has More */
-      has_more: boolean;
-      /** Data */
-      data: unknown[];
     };
     /** PatchAgentPayload */
     PatchAgentPayload: {
@@ -3444,125 +3447,6 @@ export interface components {
       /** Next Offset */
       next_offset?: number | null;
     };
-    /** AgentCompat */
-    agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat: {
-      /**
-       * Name
-       * @description The name of the agent.
-       */
-      name: string;
-      /**
-       * Description
-       * @description The description of the agent.
-       */
-      description: string;
-      /**
-       * User Id
-       * @description The id of the user that created the agent.
-       */
-      user_id: string;
-      /** @description The structured runbook of the agent. */
-      runbook_structured: components['schemas']['Runbook'];
-      /**
-       * Version
-       * @description The version of the agent.
-       */
-      version: string;
-      /**
-       * Platform Configs
-       * @description The platform configs this agent can use.
-       */
-      platform_configs: (
-        | components['schemas']['BedrockPlatformParameters']
-        | components['schemas']['CortexPlatformParameters']
-        | components['schemas']['OpenAIPlatformParameters']
-        | components['schemas']['AzureOpenAIPlatformParameters']
-        | components['schemas']['GooglePlatformParameters']
-        | components['schemas']['GroqPlatformParameters']
-        | components['schemas']['ReductoPlatformParameters']
-      )[];
-      /** @description The architecture details for the agent. */
-      agent_architecture: components['schemas']['AgentArchitecture'];
-      /** Action Packages */
-      action_packages?: components['schemas']['ActionPackageCompat'][];
-      /** Mcp Servers */
-      mcp_servers?: components['schemas']['MCPServerCompat'][];
-      /**
-       * Question Groups
-       * @description The question groups of the agent.
-       */
-      question_groups?: components['schemas']['QuestionGroup'][];
-      /**
-       * Observability Configs
-       * @description The observability configs of the agent.
-       */
-      observability_configs?: components['schemas']['ObservabilityConfig'][];
-      /**
-       * Created At
-       * Format: date-time
-       * @description The creation time of the agent.
-       */
-      created_at?: string;
-      /**
-       * Updated At
-       * Format: date-time
-       * @description The last update time of the agent.
-       */
-      updated_at?: string;
-      /**
-       * Mode
-       * @default conversational
-       * @enum {string}
-       */
-      mode: 'conversational' | 'worker';
-      /**
-       * Agent Id
-       * @description The unique identifier of the agent.
-       */
-      agent_id?: string;
-      /**
-       * Extra
-       * @description Extra fields for the agent.
-       */
-      extra?: {
-        [key: string]: unknown;
-      };
-      /**
-       * Runbook
-       * @default
-       */
-      runbook: string;
-      /** Id */
-      id?: string | null;
-      /**
-       * Public
-       * @default true
-       */
-      public: boolean;
-      /** Metadata */
-      metadata?: {
-        [key: string]: unknown;
-      };
-      /** Advanced Config */
-      advanced_config?: {
-        [key: string]: unknown;
-      };
-      /** Model */
-      model?: {
-        [key: string]: unknown;
-      };
-    };
-    /** AgentCompat */
-    agent_platform__server__api__public_v2__interface__AgentCompat: {
-      /** Id */
-      id: string;
-      /** Name */
-      name: string;
-      /** Description */
-      description: string;
-      /** Mode */
-      mode: string;
-    };
     /**
      * ErrorDetail
      * @description Pydantic model for error detail - used only for OpenAPI schema generation.
@@ -3645,7 +3529,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat'][];
+          'application/json': components['schemas']['AgentCompat'][];
         };
       };
     };
@@ -3669,7 +3553,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat'];
+          'application/json': components['schemas']['AgentCompat'];
         };
       };
       /** @description Validation Error */
@@ -3698,7 +3582,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat'][];
+          'application/json': components['schemas']['AgentCompat'][];
         };
       };
     };
@@ -3720,7 +3604,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat'];
+          'application/json': components['schemas']['AgentCompat'];
         };
       };
       /** @description Validation Error */
@@ -3763,7 +3647,7 @@ export interface operations {
       };
     };
   };
-  get_agent_by_name_agents__aid__get: {
+  get_agent_agents__aid__get: {
     parameters: {
       query?: never;
       header?: never;
@@ -3774,35 +3658,17 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description Success */
+      /** @description Successful Response */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['agent_platform__server__api__public_v2__interface__AgentCompat'];
-        };
-      };
-      /** @description Agent not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorEnvelope'];
+          'application/json': components['schemas']['AgentCompat'];
         };
       };
       /** @description Validation Error */
       422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorEnvelope'];
-        };
-      };
-      /** @description Internal Server Error */
-      500: {
         headers: {
           [name: string]: unknown;
         };
@@ -3833,7 +3699,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat'];
+          'application/json': components['schemas']['AgentCompat'];
         };
       };
       /** @description Validation Error */
@@ -3897,7 +3763,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat'];
+          'application/json': components['schemas']['AgentCompat'];
         };
       };
       /** @description Validation Error */
@@ -3928,7 +3794,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat'];
+          'application/json': components['schemas']['AgentCompat'];
         };
       };
       /** @description Validation Error */
@@ -3963,7 +3829,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat'];
+          'application/json': components['schemas']['AgentCompat'];
         };
       };
       /** @description Validation Error */
@@ -4029,7 +3895,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat'];
+          'application/json': components['schemas']['AgentCompat'];
         };
       };
       /** @description Validation Error */
@@ -4062,7 +3928,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat'];
+          'application/json': components['schemas']['AgentCompat'];
         };
       };
       /** @description Validation Error */
@@ -4097,7 +3963,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat'];
+          'application/json': components['schemas']['AgentCompat'];
         };
       };
       /** @description Validation Error */
@@ -5628,357 +5494,46 @@ export interface operations {
       };
     };
   };
-  get_agents_agents_get: {
+  health_health_get: {
     parameters: {
-      query?: {
-        limit?: number | null;
-        /** @description Filter agents by name (starts with, case insensitive). */
-        name?: string | null;
-      };
+      query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description Success */
+      /** @description Successful Response */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['PaginatedResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorEnvelope'];
-        };
-      };
-      /** @description Internal Server Error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorEnvelope'];
+          'application/json': {
+            [key: string]: unknown;
+          };
         };
       };
     };
   };
-  get_conversations_agents__aid__conversations_get: {
+  metrics_metrics_get: {
     parameters: {
-      query?: {
-        limit?: number | null;
-      };
+      query?: never;
       header?: never;
-      path: {
-        aid: string;
-      };
+      path?: never;
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description Success */
+      /** @description Successful Response */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['PaginatedResponse'];
-        };
-      };
-      /** @description Bad Request */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorEnvelope'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorEnvelope'];
-        };
-      };
-      /** @description Internal Server Error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorEnvelope'];
-        };
-      };
-    };
-  };
-  create_conversation_agents__aid__conversations_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        aid: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CreateChatRequest'];
-      };
-    };
-    responses: {
-      /** @description Success */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Conversation'];
-        };
-      };
-      /** @description Bad Request */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorEnvelope'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorEnvelope'];
-        };
-      };
-      /** @description Internal Server Error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorEnvelope'];
-        };
-      };
-    };
-  };
-  get_chat_messages_agents__aid__conversations__cid__messages_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        aid: string;
-        cid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Success */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['PaginatedResponse'];
-        };
-      };
-      /** @description Agent/Conversation not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorEnvelope'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorEnvelope'];
-        };
-      };
-      /** @description Internal Server Error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorEnvelope'];
-        };
-      };
-    };
-  };
-  post_messages_simple_agents__aid__conversations__cid__messages_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        aid: string;
-        cid: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['ChatMessageRequest'];
-      };
-    };
-    responses: {
-      /** @description Success */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['PaginatedResponse'];
-        };
-      };
-      /** @description Bad Request */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorEnvelope'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorEnvelope'];
-        };
-      };
-      /** @description Internal Server Error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorEnvelope'];
-        };
-      };
-    };
-  };
-  post_public_api_messages_simple_agents__aid__conversations__cid__stream_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        aid: string;
-        cid: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['ChatMessageRequest'];
-      };
-    };
-    responses: {
-      /** @description SSE stream of Delta messages */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': unknown;
-          'text/event-stream': unknown;
-        };
-      };
-      /** @description Bad Request */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorEnvelope'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorEnvelope'];
-        };
-      };
-      /** @description Internal Server Error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorEnvelope'];
-        };
-      };
-    };
-  };
-  delete_chat_agents__aid__conversations__cid__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        aid: string;
-        cid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Success */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Conversation'];
-        };
-      };
-      /** @description Conversation not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorEnvelope'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorEnvelope'];
-        };
-      };
-      /** @description Internal Server Error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorEnvelope'];
+          'application/json': {
+            [key: string]: unknown;
+          };
         };
       };
     };

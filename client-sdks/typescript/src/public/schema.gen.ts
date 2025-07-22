@@ -792,6 +792,11 @@ export interface components {
        */
       status_updated_by: string;
       /**
+       * Initial Messages
+       * @description The initial conversation messages for this work item
+       */
+      initial_messages?: components['schemas']['ThreadMessage'][];
+      /**
        * Messages
        * @description The messages in the work item conversation
        */
@@ -827,7 +832,12 @@ export interface components {
        * @default NEEDS_REVIEW
        * @enum {string}
        */
-      on_status: 'COMPLETED' | 'ERROR' | 'NEEDS_REVIEW' | 'CANCELLED';
+      on_status:
+        | 'COMPLETED'
+        | 'ERROR'
+        | 'NEEDS_REVIEW'
+        | 'CANCELLED'
+        | 'INDETERMINATE';
     };
     /**
      * WorkItemStatus
@@ -840,8 +850,16 @@ export interface components {
       | 'ERROR'
       | 'EXECUTING'
       | 'NEEDS_REVIEW'
+      | 'INDETERMINATE'
       | 'PENDING'
       | 'PRECREATED';
+    /** WorkItemsListResponse */
+    WorkItemsListResponse: {
+      /** Records */
+      records: components['schemas']['WorkItem'][];
+      /** Next Offset */
+      next_offset?: number | null;
+    };
     /**
      * ErrorDetail
      * @description Pydantic model for error detail - used only for OpenAPI schema generation.
@@ -1300,6 +1318,8 @@ export interface operations {
         agent_id?: string | null;
         /** @description The maximum number of work items to return */
         limit?: number;
+        /** @description The offset to start from */
+        offset?: number;
       };
       header?: never;
       path?: never;
@@ -1313,7 +1333,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['WorkItem'][];
+          'application/json': components['schemas']['WorkItemsListResponse'];
         };
       };
       /** @description Validation Error */

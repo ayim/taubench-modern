@@ -5,7 +5,7 @@
 export const spec = {
   openapi: '3.1.0',
   info: {
-    title: 'Sema4.ai Agent Server API',
+    title: 'Sema4.ai Agent Server Private API Version 2',
     version: '2.0.17',
   },
   paths: {
@@ -37,7 +37,7 @@ export const spec = {
               'application/json': {
                 schema: {
                   items: {
-                    $ref: '#/components/schemas/agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat',
+                    $ref: '#/components/schemas/AgentCompat',
                   },
                   type: 'array',
                   title: 'Response List Agents Agents  Get',
@@ -67,7 +67,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat',
+                  $ref: '#/components/schemas/AgentCompat',
                 },
               },
             },
@@ -97,7 +97,7 @@ export const spec = {
               'application/json': {
                 schema: {
                   items: {
-                    $ref: '#/components/schemas/agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat',
+                    $ref: '#/components/schemas/AgentCompat',
                   },
                   type: 'array',
                   title: 'Response List Agents Raw Agents Raw Get',
@@ -130,7 +130,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat',
+                  $ref: '#/components/schemas/AgentCompat',
                 },
               },
             },
@@ -213,7 +213,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat',
+                  $ref: '#/components/schemas/AgentCompat',
                 },
               },
             },
@@ -261,7 +261,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat',
+                  $ref: '#/components/schemas/AgentCompat',
                 },
               },
             },
@@ -279,10 +279,9 @@ export const spec = {
         },
       },
       get: {
-        tags: ['agents', 'agents'],
-        summary: 'Get agent',
-        description: 'Returns the agent with the given name.',
-        operationId: 'get_agent_by_name_agents__aid__get',
+        tags: ['agents'],
+        summary: 'Get Agent',
+        operationId: 'get_agent_agents__aid__get',
         parameters: [
           {
             name: 'aid',
@@ -296,37 +295,17 @@ export const spec = {
         ],
         responses: {
           '200': {
-            description: 'Success',
+            description: 'Successful Response',
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/agent_platform__server__api__public_v2__interface__AgentCompat',
-                },
-              },
-            },
-          },
-          '404': {
-            description: 'Agent not found',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/ErrorEnvelope',
+                  $ref: '#/components/schemas/AgentCompat',
                 },
               },
             },
           },
           '422': {
             description: 'Validation Error',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/ErrorEnvelope',
-                },
-              },
-            },
-          },
-          '500': {
-            description: 'Internal Server Error',
             content: {
               'application/json': {
                 schema: {
@@ -401,7 +380,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat',
+                  $ref: '#/components/schemas/AgentCompat',
                 },
               },
             },
@@ -439,7 +418,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat',
+                  $ref: '#/components/schemas/AgentCompat',
                 },
               },
             },
@@ -534,7 +513,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat',
+                  $ref: '#/components/schemas/AgentCompat',
                 },
               },
             },
@@ -573,7 +552,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat',
+                  $ref: '#/components/schemas/AgentCompat',
                 },
               },
             },
@@ -623,7 +602,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat',
+                  $ref: '#/components/schemas/AgentCompat',
                 },
               },
             },
@@ -2846,78 +2825,19 @@ export const spec = {
         },
       },
     },
-    '/api/v2/agents': {
+    '/api/v2/health': {
       get: {
-        tags: ['agents', 'agents'],
-        summary: 'List agents',
-        description:
-          "Returns a list of all agents for the authenticated user. You can filter by name using the 'name' query parameter.",
-        operationId: 'get_agents_agents_get',
-        parameters: [
-          {
-            name: 'limit',
-            in: 'query',
-            required: false,
-            schema: {
-              anyOf: [
-                {
-                  type: 'integer',
-                },
-                {
-                  type: 'null',
-                },
-              ],
-              title: 'Limit',
-            },
-          },
-          {
-            name: 'name',
-            in: 'query',
-            required: false,
-            schema: {
-              anyOf: [
-                {
-                  type: 'string',
-                },
-                {
-                  type: 'null',
-                },
-              ],
-              description:
-                'Filter agents by name (starts with, case insensitive).',
-              title: 'Name',
-            },
-            description:
-              'Filter agents by name (starts with, case insensitive).',
-          },
-        ],
+        summary: 'Health',
+        operationId: 'health_health_get',
         responses: {
           '200': {
-            description: 'Success',
+            description: 'Successful Response',
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/PaginatedResponse',
-                },
-              },
-            },
-          },
-          '422': {
-            description: 'Validation Error',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/ErrorEnvelope',
-                },
-              },
-            },
-          },
-          '500': {
-            description: 'Internal Server Error',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/ErrorEnvelope',
+                  additionalProperties: true,
+                  type: 'object',
+                  title: 'Response Health Health Get',
                 },
               },
             },
@@ -2925,448 +2845,19 @@ export const spec = {
         },
       },
     },
-    '/api/v2/agents/{aid}/conversations': {
+    '/api/v2/metrics': {
       get: {
-        tags: ['agents', 'conversations'],
-        summary: 'List conversations',
-        description: 'Returns a list of all conversations for the given agent.',
-        operationId: 'get_conversations_agents__aid__conversations_get',
-        parameters: [
-          {
-            name: 'aid',
-            in: 'path',
-            required: true,
-            schema: {
-              type: 'string',
-              title: 'Aid',
-            },
-          },
-          {
-            name: 'limit',
-            in: 'query',
-            required: false,
-            schema: {
-              anyOf: [
-                {
-                  type: 'integer',
-                },
-                {
-                  type: 'null',
-                },
-              ],
-              title: 'Limit',
-            },
-          },
-        ],
+        summary: 'Metrics',
+        operationId: 'metrics_metrics_get',
         responses: {
           '200': {
-            description: 'Success',
+            description: 'Successful Response',
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/PaginatedResponse',
-                },
-              },
-            },
-          },
-          '400': {
-            description: 'Bad Request',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/ErrorEnvelope',
-                },
-              },
-            },
-          },
-          '422': {
-            description: 'Validation Error',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/ErrorEnvelope',
-                },
-              },
-            },
-          },
-          '500': {
-            description: 'Internal Server Error',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/ErrorEnvelope',
-                },
-              },
-            },
-          },
-        },
-      },
-      post: {
-        tags: ['agents', 'conversations'],
-        summary: 'Create new conversation',
-        description: 'Creates a new conversation for the given agent.',
-        operationId: 'create_conversation_agents__aid__conversations_post',
-        parameters: [
-          {
-            name: 'aid',
-            in: 'path',
-            required: true,
-            schema: {
-              type: 'string',
-              title: 'Aid',
-            },
-          },
-        ],
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: {
-                $ref: '#/components/schemas/CreateChatRequest',
-              },
-            },
-          },
-        },
-        responses: {
-          '200': {
-            description: 'Success',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/Conversation',
-                },
-              },
-            },
-          },
-          '400': {
-            description: 'Bad Request',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/ErrorEnvelope',
-                },
-              },
-            },
-          },
-          '422': {
-            description: 'Validation Error',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/ErrorEnvelope',
-                },
-              },
-            },
-          },
-          '500': {
-            description: 'Internal Server Error',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/ErrorEnvelope',
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-    '/api/v2/agents/{aid}/conversations/{cid}/messages': {
-      get: {
-        tags: ['agents', 'conversations'],
-        summary: 'Get conversation messages',
-        description:
-          'Returns the conversation messages of the given chat_id for the given agent.',
-        operationId:
-          'get_chat_messages_agents__aid__conversations__cid__messages_get',
-        parameters: [
-          {
-            name: 'aid',
-            in: 'path',
-            required: true,
-            schema: {
-              type: 'string',
-              title: 'Aid',
-            },
-          },
-          {
-            name: 'cid',
-            in: 'path',
-            required: true,
-            schema: {
-              type: 'string',
-              title: 'Cid',
-            },
-          },
-        ],
-        responses: {
-          '200': {
-            description: 'Success',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/PaginatedResponse',
-                },
-              },
-            },
-          },
-          '404': {
-            description: 'Agent/Conversation not found',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/ErrorEnvelope',
-                },
-              },
-            },
-          },
-          '422': {
-            description: 'Validation Error',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/ErrorEnvelope',
-                },
-              },
-            },
-          },
-          '500': {
-            description: 'Internal Server Error',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/ErrorEnvelope',
-                },
-              },
-            },
-          },
-        },
-      },
-      post: {
-        tags: ['agents', 'conversations'],
-        summary: 'Post a message (synchronous)',
-        description:
-          'Post a message to a conversation thread, and get the updated conversation state.',
-        operationId:
-          'post_messages_simple_agents__aid__conversations__cid__messages_post',
-        parameters: [
-          {
-            name: 'aid',
-            in: 'path',
-            required: true,
-            schema: {
-              type: 'string',
-              title: 'Aid',
-            },
-          },
-          {
-            name: 'cid',
-            in: 'path',
-            required: true,
-            schema: {
-              type: 'string',
-              title: 'Cid',
-            },
-          },
-        ],
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: {
-                $ref: '#/components/schemas/ChatMessageRequest',
-              },
-            },
-          },
-        },
-        responses: {
-          '200': {
-            description: 'Success',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/PaginatedResponse',
-                },
-              },
-            },
-          },
-          '400': {
-            description: 'Bad Request',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/ErrorEnvelope',
-                },
-              },
-            },
-          },
-          '422': {
-            description: 'Validation Error',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/ErrorEnvelope',
-                },
-              },
-            },
-          },
-          '500': {
-            description: 'Internal Server Error',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/ErrorEnvelope',
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-    '/api/v2/agents/{aid}/conversations/{cid}/stream': {
-      post: {
-        tags: ['agents', 'conversations'],
-        summary: 'Post a message to a conversation and stream the response',
-        description: 'Post a message to a conversation and stream the response',
-        operationId:
-          'post_public_api_messages_simple_agents__aid__conversations__cid__stream_post',
-        parameters: [
-          {
-            name: 'aid',
-            in: 'path',
-            required: true,
-            schema: {
-              type: 'string',
-              title: 'Aid',
-            },
-          },
-          {
-            name: 'cid',
-            in: 'path',
-            required: true,
-            schema: {
-              type: 'string',
-              title: 'Cid',
-            },
-          },
-        ],
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: {
-                $ref: '#/components/schemas/ChatMessageRequest',
-              },
-            },
-          },
-        },
-        responses: {
-          '200': {
-            description: 'SSE stream of Delta messages',
-            content: {
-              'application/json': {
-                schema: {},
-              },
-              'text/event-stream': {},
-            },
-          },
-          '400': {
-            description: 'Bad Request',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/ErrorEnvelope',
-                },
-              },
-            },
-          },
-          '422': {
-            description: 'Validation Error',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/ErrorEnvelope',
-                },
-              },
-            },
-          },
-          '500': {
-            description: 'Internal Server Error',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/ErrorEnvelope',
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-    '/api/v2/agents/{aid}/conversations/{cid}': {
-      delete: {
-        tags: ['agents', 'conversations'],
-        summary: 'Delete conversation',
-        description:
-          'Deletes the conversation with the given conversation ID for the given agent.',
-        operationId: 'delete_chat_agents__aid__conversations__cid__delete',
-        parameters: [
-          {
-            name: 'aid',
-            in: 'path',
-            required: true,
-            schema: {
-              type: 'string',
-              title: 'Aid',
-            },
-          },
-          {
-            name: 'cid',
-            in: 'path',
-            required: true,
-            schema: {
-              type: 'string',
-              title: 'Cid',
-            },
-          },
-        ],
-        responses: {
-          '200': {
-            description: 'Success',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/Conversation',
-                },
-              },
-            },
-          },
-          '404': {
-            description: 'Conversation not found',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/ErrorEnvelope',
-                },
-              },
-            },
-          },
-          '422': {
-            description: 'Validation Error',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/ErrorEnvelope',
-                },
-              },
-            },
-          },
-          '500': {
-            description: 'Internal Server Error',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/ErrorEnvelope',
+                  additionalProperties: true,
+                  type: 'object',
+                  title: 'Response Metrics Metrics Get',
                 },
               },
             },
@@ -3647,6 +3138,174 @@ export const spec = {
         type: 'object',
         required: ['name', 'version'],
         title: 'AgentArchitecture',
+      },
+      AgentCompat: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+            description: 'The name of the agent.',
+          },
+          description: {
+            type: 'string',
+            title: 'Description',
+            description: 'The description of the agent.',
+          },
+          user_id: {
+            type: 'string',
+            title: 'User Id',
+            description: 'The id of the user that created the agent.',
+          },
+          runbook_structured: {
+            $ref: '#/components/schemas/Runbook',
+            description: 'The structured runbook of the agent.',
+          },
+          version: {
+            type: 'string',
+            title: 'Version',
+            description: 'The version of the agent.',
+          },
+          platform_configs: {
+            items: {
+              anyOf: [
+                {
+                  $ref: '#/components/schemas/BedrockPlatformParameters',
+                },
+                {
+                  $ref: '#/components/schemas/CortexPlatformParameters',
+                },
+                {
+                  $ref: '#/components/schemas/OpenAIPlatformParameters',
+                },
+                {
+                  $ref: '#/components/schemas/AzureOpenAIPlatformParameters',
+                },
+                {
+                  $ref: '#/components/schemas/GooglePlatformParameters',
+                },
+                {
+                  $ref: '#/components/schemas/GroqPlatformParameters',
+                },
+                {
+                  $ref: '#/components/schemas/ReductoPlatformParameters',
+                },
+              ],
+            },
+            type: 'array',
+            title: 'Platform Configs',
+            description: 'The platform configs this agent can use.',
+          },
+          agent_architecture: {
+            $ref: '#/components/schemas/AgentArchitecture',
+            description: 'The architecture details for the agent.',
+          },
+          action_packages: {
+            items: {
+              $ref: '#/components/schemas/ActionPackageCompat',
+            },
+            type: 'array',
+            title: 'Action Packages',
+          },
+          mcp_servers: {
+            items: {
+              $ref: '#/components/schemas/MCPServerCompat',
+            },
+            type: 'array',
+            title: 'Mcp Servers',
+          },
+          question_groups: {
+            items: {
+              $ref: '#/components/schemas/QuestionGroup',
+            },
+            type: 'array',
+            title: 'Question Groups',
+            description: 'The question groups of the agent.',
+          },
+          observability_configs: {
+            items: {
+              $ref: '#/components/schemas/ObservabilityConfig',
+            },
+            type: 'array',
+            title: 'Observability Configs',
+            description: 'The observability configs of the agent.',
+          },
+          created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At',
+            description: 'The creation time of the agent.',
+          },
+          updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At',
+            description: 'The last update time of the agent.',
+          },
+          mode: {
+            type: 'string',
+            enum: ['conversational', 'worker'],
+            title: 'Mode',
+            default: 'conversational',
+          },
+          agent_id: {
+            type: 'string',
+            title: 'Agent Id',
+            description: 'The unique identifier of the agent.',
+          },
+          extra: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Extra',
+            description: 'Extra fields for the agent.',
+          },
+          runbook: {
+            type: 'string',
+            title: 'Runbook',
+            default: '',
+          },
+          id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Id',
+          },
+          public: {
+            type: 'boolean',
+            title: 'Public',
+            default: true,
+          },
+          metadata: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Metadata',
+          },
+          advanced_config: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Advanced Config',
+          },
+          model: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Model',
+          },
+        },
+        type: 'object',
+        required: [
+          'name',
+          'description',
+          'user_id',
+          'runbook_structured',
+          'version',
+          'platform_configs',
+          'agent_architecture',
+        ],
+        title: 'AgentCompat',
       },
       AgentDetails: {
         properties: {
@@ -4135,17 +3794,6 @@ export const spec = {
         ],
         title: 'CachedToolDefinitionsReport',
       },
-      ChatMessageRequest: {
-        properties: {
-          content: {
-            type: 'string',
-            title: 'Content',
-          },
-        },
-        type: 'object',
-        required: ['content'],
-        title: 'ChatMessageRequest',
-      },
       Citation: {
         properties: {
           document_uri: {
@@ -4197,25 +3845,6 @@ export const spec = {
         type: 'object',
         required: ['file_ref', 'file_id'],
         title: 'ConfirmRemoteFileUploadPayload',
-      },
-      Conversation: {
-        properties: {
-          id: {
-            type: 'string',
-            title: 'Id',
-          },
-          name: {
-            type: 'string',
-            title: 'Name',
-          },
-          agent_id: {
-            type: 'string',
-            title: 'Agent Id',
-          },
-        },
-        type: 'object',
-        required: ['id', 'name', 'agent_id'],
-        title: 'Conversation',
       },
       ConversationHistoryParams: {
         properties: {
@@ -4363,17 +3992,6 @@ export const spec = {
         },
         type: 'object',
         title: 'CortexPlatformParameters',
-      },
-      CreateChatRequest: {
-        properties: {
-          name: {
-            type: 'string',
-            title: 'Name',
-          },
-        },
-        type: 'object',
-        required: ['name'],
-        title: 'CreateChatRequest',
       },
       CreateWorkItemPayload: {
         properties: {
@@ -5281,33 +4899,6 @@ export const spec = {
         },
         type: 'object',
         title: 'OpenAIPlatformParameters',
-      },
-      PaginatedResponse: {
-        properties: {
-          next: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Next',
-          },
-          has_more: {
-            type: 'boolean',
-            title: 'Has More',
-          },
-          data: {
-            items: {},
-            type: 'array',
-            title: 'Data',
-          },
-        },
-        type: 'object',
-        required: ['next', 'has_more', 'data'],
-        title: 'PaginatedResponse',
       },
       PatchAgentPayload: {
         properties: {
@@ -7525,198 +7116,6 @@ export const spec = {
         type: 'object',
         required: ['records'],
         title: 'WorkItemsListResponse',
-      },
-      agent_platform__server__api__private_v2__compatibility__agent_compat__AgentCompat:
-        {
-          properties: {
-            name: {
-              type: 'string',
-              title: 'Name',
-              description: 'The name of the agent.',
-            },
-            description: {
-              type: 'string',
-              title: 'Description',
-              description: 'The description of the agent.',
-            },
-            user_id: {
-              type: 'string',
-              title: 'User Id',
-              description: 'The id of the user that created the agent.',
-            },
-            runbook_structured: {
-              $ref: '#/components/schemas/Runbook',
-              description: 'The structured runbook of the agent.',
-            },
-            version: {
-              type: 'string',
-              title: 'Version',
-              description: 'The version of the agent.',
-            },
-            platform_configs: {
-              items: {
-                anyOf: [
-                  {
-                    $ref: '#/components/schemas/BedrockPlatformParameters',
-                  },
-                  {
-                    $ref: '#/components/schemas/CortexPlatformParameters',
-                  },
-                  {
-                    $ref: '#/components/schemas/OpenAIPlatformParameters',
-                  },
-                  {
-                    $ref: '#/components/schemas/AzureOpenAIPlatformParameters',
-                  },
-                  {
-                    $ref: '#/components/schemas/GooglePlatformParameters',
-                  },
-                  {
-                    $ref: '#/components/schemas/GroqPlatformParameters',
-                  },
-                  {
-                    $ref: '#/components/schemas/ReductoPlatformParameters',
-                  },
-                ],
-              },
-              type: 'array',
-              title: 'Platform Configs',
-              description: 'The platform configs this agent can use.',
-            },
-            agent_architecture: {
-              $ref: '#/components/schemas/AgentArchitecture',
-              description: 'The architecture details for the agent.',
-            },
-            action_packages: {
-              items: {
-                $ref: '#/components/schemas/ActionPackageCompat',
-              },
-              type: 'array',
-              title: 'Action Packages',
-            },
-            mcp_servers: {
-              items: {
-                $ref: '#/components/schemas/MCPServerCompat',
-              },
-              type: 'array',
-              title: 'Mcp Servers',
-            },
-            question_groups: {
-              items: {
-                $ref: '#/components/schemas/QuestionGroup',
-              },
-              type: 'array',
-              title: 'Question Groups',
-              description: 'The question groups of the agent.',
-            },
-            observability_configs: {
-              items: {
-                $ref: '#/components/schemas/ObservabilityConfig',
-              },
-              type: 'array',
-              title: 'Observability Configs',
-              description: 'The observability configs of the agent.',
-            },
-            created_at: {
-              type: 'string',
-              format: 'date-time',
-              title: 'Created At',
-              description: 'The creation time of the agent.',
-            },
-            updated_at: {
-              type: 'string',
-              format: 'date-time',
-              title: 'Updated At',
-              description: 'The last update time of the agent.',
-            },
-            mode: {
-              type: 'string',
-              enum: ['conversational', 'worker'],
-              title: 'Mode',
-              default: 'conversational',
-            },
-            agent_id: {
-              type: 'string',
-              title: 'Agent Id',
-              description: 'The unique identifier of the agent.',
-            },
-            extra: {
-              additionalProperties: true,
-              type: 'object',
-              title: 'Extra',
-              description: 'Extra fields for the agent.',
-            },
-            runbook: {
-              type: 'string',
-              title: 'Runbook',
-              default: '',
-            },
-            id: {
-              anyOf: [
-                {
-                  type: 'string',
-                },
-                {
-                  type: 'null',
-                },
-              ],
-              title: 'Id',
-            },
-            public: {
-              type: 'boolean',
-              title: 'Public',
-              default: true,
-            },
-            metadata: {
-              additionalProperties: true,
-              type: 'object',
-              title: 'Metadata',
-            },
-            advanced_config: {
-              additionalProperties: true,
-              type: 'object',
-              title: 'Advanced Config',
-            },
-            model: {
-              additionalProperties: true,
-              type: 'object',
-              title: 'Model',
-            },
-          },
-          type: 'object',
-          required: [
-            'name',
-            'description',
-            'user_id',
-            'runbook_structured',
-            'version',
-            'platform_configs',
-            'agent_architecture',
-          ],
-          title: 'AgentCompat',
-        },
-      agent_platform__server__api__public_v2__interface__AgentCompat: {
-        properties: {
-          id: {
-            type: 'string',
-            title: 'Id',
-          },
-          name: {
-            type: 'string',
-            title: 'Name',
-          },
-          description: {
-            type: 'string',
-            title: 'Description',
-          },
-          mode: {
-            type: 'string',
-            title: 'Mode',
-          },
-        },
-        type: 'object',
-        required: ['id', 'name', 'description', 'mode'],
-        title: 'AgentCompat',
       },
       ErrorDetail: {
         description:
