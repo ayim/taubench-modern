@@ -56,8 +56,8 @@ var SpecV3 = `
     "expected-type": "list",
     "note": "Variables are in the spec are NOT meant to be used currently!"
   },
-  "agent-package/variables/default": {
-    "description": "Default value for the variable (only for string type).",
+  "agent-package/variables/value": {
+    "description": "Default value for the variable (only for string or secret type).",
     "required": false,
     "expected-type": "string",
     "note": "Variables are in the spec are NOT meant to be used currently!"
@@ -241,8 +241,8 @@ var SpecV3 = `
     "required": false,
     "expected-type": "list"
   },
-  "agent-package/agents/mcp-servers/headers/default": {
-    "description": "Default value for the variable (only for string type).",
+  "agent-package/agents/mcp-servers/headers/value": {
+    "description": "Default value for the variable (only for string or secret type).",
     "required": false,
     "expected-type": "string"
   },
@@ -276,8 +276,8 @@ var SpecV3 = `
     "required": false,
     "expected-type": "list"
   },
-  "agent-package/agents/mcp-servers/env/default": {
-    "description": "Default value for the variable (only for string type).",
+  "agent-package/agents/mcp-servers/env/value": {
+    "description": "Default value for the variable (only for string or secret type).",
     "required": false,
     "expected-type": "string"
   },

@@ -888,7 +888,7 @@ agent-package:
             Content-Type:
               type: wrong-type-in-header
               description: Content type header
-              default: application/json
+              value: application/json
           force-serial-tool-calls: false
         - name: mcp-server-2
           transport: stdio
@@ -901,7 +901,7 @@ agent-package:
             DATABASE_URL:
               type: wrong-type-in-env
               description: Database connection URL
-              default: postgresql://localhost:5432/mydb
+              value: postgresql://localhost:5432/mydb
           cwd: ./mcp-server/path
           force-serial-tool-calls: true
         - name: mcp-server-3
@@ -955,21 +955,21 @@ agent-package:
             A-secret:
               type: secret
               description: Your secret
-              default: "secret"
+              value: "secret"
               provider: "not-allowed"
               scopes:
                 - not-allowed
             A-string:
               type: string
               description: Your string
-              default: "string"
+              value: "string"
               provider: "not-allowed"
               scopes:
                 - not-allowed
             A-data-server-info:
               type: data-server-info
               description: Your data-server-info
-              default: "not-allowed"
+              value: "not-allowed"
               provider: "not-allowed"
               scopes:
                 - not-allowed

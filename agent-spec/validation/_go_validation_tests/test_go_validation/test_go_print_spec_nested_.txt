@@ -25,18 +25,18 @@ root (no data)
         cwd
         description
         env
-          default
           description
           provider
           scopes
           type (required)
+          value
         force-serial-tool-calls
         headers
-          default
           description
           provider
           scopes
           type (required)
+          value
         name (required)
         transport
         url
@@ -60,9 +60,9 @@ root (no data)
     exclude
     spec-version (required)
     variables
-      default
       description
       name (required)
       provider
       scopes
       type (required)
+      value

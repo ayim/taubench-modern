@@ -51,7 +51,7 @@ agent-package:
             FILE_SYSTEM_ROOT:
               type: string
               description: The root directory of the file system
-              default: /data
+              value: /data
             MCP_API_KEY:
               type: secret
               description: Your API key for authentication
@@ -72,7 +72,7 @@ agent-package:
             X-API-Version:
               type: string
               description: API version header
-              default: '1.0.0'
+              value: '1.0.0'
           force-serial-tool-calls: true
         - name: realtime-server
           transport: sse

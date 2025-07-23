@@ -283,16 +283,6 @@ agent-package/agents/mcp-servers/env:
     RelativeTo: ''
   Path: agent-package/agents/mcp-servers/env
   Required: false
-agent-package/agents/mcp-servers/env/default:
-  Deprecated: false
-  Description: Default value for the variable (only for string type).
-  ExpectedType:
-    EnumValues: null
-    ExpectedType: string
-    RecommendedValues: null
-    RelativeTo: ''
-  Path: agent-package/agents/mcp-servers/env/default
-  Required: false
 agent-package/agents/mcp-servers/env/description:
   Deprecated: false
   Description: 'Optional: human-readable description of the environment variable.'
@@ -336,6 +326,16 @@ agent-package/agents/mcp-servers/env/type:
     RelativeTo: ''
   Path: agent-package/agents/mcp-servers/env/type
   Required: true
+agent-package/agents/mcp-servers/env/value:
+  Deprecated: false
+  Description: Default value for the variable (only for string or secret type).
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/env/value
+  Required: false
 agent-package/agents/mcp-servers/force-serial-tool-calls:
   Deprecated: false
   Description: If true, tool calls are serialized (default is false).
@@ -356,16 +356,6 @@ agent-package/agents/mcp-servers/headers:
     RecommendedValues: null
     RelativeTo: ''
   Path: agent-package/agents/mcp-servers/headers
-  Required: false
-agent-package/agents/mcp-servers/headers/default:
-  Deprecated: false
-  Description: Default value for the variable (only for string type).
-  ExpectedType:
-    EnumValues: null
-    ExpectedType: string
-    RecommendedValues: null
-    RelativeTo: ''
-  Path: agent-package/agents/mcp-servers/headers/default
   Required: false
 agent-package/agents/mcp-servers/headers/description:
   Deprecated: false
@@ -410,6 +400,16 @@ agent-package/agents/mcp-servers/headers/type:
     RelativeTo: ''
   Path: agent-package/agents/mcp-servers/headers/type
   Required: true
+agent-package/agents/mcp-servers/headers/value:
+  Deprecated: false
+  Description: Default value for the variable (only for string or secret type).
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/headers/value
+  Required: false
 agent-package/agents/mcp-servers/name:
   Deprecated: false
   Description: 'The name of the MCP server. Example: "my-server"'
@@ -665,16 +665,6 @@ agent-package/variables:
     RelativeTo: ''
   Path: agent-package/variables
   Required: false
-agent-package/variables/default:
-  Deprecated: false
-  Description: Default value for the variable (only for string type).
-  ExpectedType:
-    EnumValues: null
-    ExpectedType: string
-    RecommendedValues: null
-    RelativeTo: ''
-  Path: agent-package/variables/default
-  Required: false
 agent-package/variables/description:
   Deprecated: false
   Description: 'Optional: human-readable description of the variable.'
@@ -731,3 +721,13 @@ agent-package/variables/type:
     RelativeTo: ''
   Path: agent-package/variables/type
   Required: true
+agent-package/variables/value:
+  Deprecated: false
+  Description: Default value for the variable (only for string or secret type).
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/variables/value
+  Required: false

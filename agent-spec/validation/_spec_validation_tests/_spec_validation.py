@@ -918,22 +918,22 @@ class Validator:
                             "secret": {
                                 "provider": "not-allowed",
                                 "scopes": "not-allowed",
-                                "default": "optional",
+                                "value": "optional",
                             },
                             "oauth2-secret": {
                                 "provider": "required",
                                 "scopes": "required",
-                                "default": "not-allowed",
+                                "value": "not-allowed",
                             },
                             "string": {
                                 "provider": "not-allowed",
                                 "scopes": "not-allowed",
-                                "default": "optional",
+                                "value": "optional",
                             },
                             "data-server-info": {
                                 "provider": "not-allowed",
                                 "scopes": "not-allowed",
-                                "default": "not-allowed",
+                                "value": "not-allowed",
                             },
                         }
 
