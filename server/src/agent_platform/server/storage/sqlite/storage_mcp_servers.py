@@ -34,8 +34,8 @@ class SQLiteStorageMCPServersMixin(CommonMixin):
     # -------------------------------------------------------------------------
     # MCP Servers
     # -------------------------------------------------------------------------
-    async def create_mcp_server(self, mcp_server: MCPServer, source: MCPServerSource) -> None:
-        """Create a new MCP server."""
+    async def create_mcp_server(self, mcp_server: MCPServer, source: MCPServerSource) -> str:
+        """Create a new MCP server. Returns the generated MCP server ID."""
         # 1. Generate ID and timestamps
         mcp_server_id = str(uuid.uuid4())
         now = datetime.now(UTC).isoformat()
@@ -65,11 +65,14 @@ class SQLiteStorageMCPServersMixin(CommonMixin):
                 raise RecordAlreadyExistsError(
                     f"MCP server {mcp_server_id} already exists",
                 ) from e
-            elif "unique constraint failed: v2_mcp_server.name" in error_msg:
+            elif "unique constraint failed: v2_mcp_server.name, v2_mcp_server.source" in error_msg:
                 raise MCPServerWithNameAlreadyExistsError(
-                    f"MCP server with name '{mcp_server.name}' already exists",
+                    f"MCP server with name '{mcp_server.name}' and source "
+                    f"'{source.value}' already exists",
                 ) from e
             raise
+
+        return mcp_server_id
 
     async def get_mcp_server(self, mcp_server_id: str) -> MCPServer:
         """Get an MCP server by ID."""
@@ -98,6 +101,34 @@ class SQLiteStorageMCPServersMixin(CommonMixin):
             config_dict = self._decrypt_config(encrypted_config)
             return MCPServer.model_validate(config_dict)
 
+    async def get_mcp_server_with_metadata(
+        self, mcp_server_id: str
+    ) -> tuple[MCPServer, MCPServerSource]:
+        """Get an MCP server by ID with its source information."""
+        # 1. Validate the uuid
+        self._validate_uuid(mcp_server_id)
+
+        async with self._cursor() as cur:
+            # 2. Get the MCP server with source
+            await cur.execute(
+                """
+                SELECT enc_config, source FROM v2_mcp_server
+                WHERE mcp_server_id = ?
+                """,
+                (mcp_server_id,),
+            )
+
+            # 3. No MCP server found?
+            if not (row := await cur.fetchone()):
+                raise MCPServerNotFoundError(f"MCP server {mcp_server_id} not found")
+
+            # 4. Decrypt and return the MCP server and source
+            encrypted_config = row[0]
+            config_dict = self._decrypt_config(encrypted_config)
+            mcp_server = MCPServer.model_validate(config_dict)
+            source = MCPServerSource(row[1])
+            return mcp_server, source
+
     async def list_mcp_servers(self) -> dict[str, MCPServer]:
         """List all MCP servers."""
 
@@ -122,6 +153,73 @@ class SQLiteStorageMCPServersMixin(CommonMixin):
                 config_dict = self._decrypt_config(encrypted_config)
                 result[server_id] = MCPServer.model_validate(config_dict)
             return result
+
+    async def list_mcp_servers_with_metadata(self) -> dict[str, tuple[MCPServer, MCPServerSource]]:
+        """List all MCP servers with their source information."""
+
+        async with self._cursor() as cur:
+            # 2. Get all MCP servers with source information
+            await cur.execute(
+                """
+                SELECT mcp_server_id, enc_config, source FROM v2_mcp_server
+                ORDER BY created_at DESC
+                """,
+            )
+
+            # 3. No MCP servers found?
+            if not (rows := await cur.fetchall()):
+                return {}
+
+            # 4. Decrypt and return the MCP servers as a dict of id -> (MCPServer, MCPServerSource)
+            result = {}
+            for row in rows:
+                server_id = row[0]
+                encrypted_config = row[1]
+                config_dict = self._decrypt_config(encrypted_config)
+                mcp_server = MCPServer.model_validate(config_dict)
+                source = MCPServerSource(row[2])
+                result[server_id] = (mcp_server, source)
+            return result
+
+    async def get_mcp_server_by_name(
+        self, name: str, source: MCPServerSource
+    ) -> tuple[str, MCPServer, MCPServerSource] | None:
+        """Get an MCP server by name"""
+        async with self._cursor() as cur:
+            # 2. Get the MCP server by name and source
+            await cur.execute(
+                """
+                SELECT mcp_server_id, enc_config, source FROM v2_mcp_server
+                WHERE name = ? AND source = ?
+                """,
+                (name, source.value),
+            )
+
+            # 3. No MCP server found?
+            if not (row := await cur.fetchone()):
+                return None
+
+            # 4. Decrypt and return the MCP server ID, config, and source
+            encrypted_config = row[1]
+            config_dict = self._decrypt_config(encrypted_config)
+            mcp_server = MCPServer.model_validate(config_dict)
+            return row[0], mcp_server, MCPServerSource(row[2])
+
+    async def list_mcp_servers_by_source(self, source: MCPServerSource) -> dict[str, str]:
+        """List MCP servers by source"""
+        async with self._cursor() as cur:
+            # 2. Get all MCP servers for this user with the specified source
+            await cur.execute(
+                """
+                SELECT name, mcp_server_id FROM v2_mcp_server
+                WHERE source = ?
+                """,
+                (source.value,),
+            )
+
+            # 3. Return as dict of name -> mcp_server_id
+            rows = await cur.fetchall()
+            return {row[0]: row[1] for row in rows}
 
     async def update_mcp_server(
         self,
@@ -165,27 +263,34 @@ class SQLiteStorageMCPServersMixin(CommonMixin):
                     raise MCPServerNotFoundError(f"MCP server {mcp_server_id} not found")
         except IntegrityError as e:
             error_msg = str(e).lower()
-            if "unique constraint failed: v2_mcp_server.name" in error_msg:
+            if "unique constraint failed: v2_mcp_server.name, v2_mcp_server.source" in error_msg:
                 raise MCPServerWithNameAlreadyExistsError(
-                    f"MCP server with name '{mcp_server.name}' already exists",
+                    f"MCP server with name '{mcp_server.name}' and source "
+                    f"'{mcp_server_source.value}' already exists",
                 ) from e
             raise
 
-    async def delete_mcp_server(self, mcp_server_id: str) -> None:
-        """Delete an MCP server."""
-        # 1. Validate the uuid
-        self._validate_uuid(mcp_server_id)
+    async def delete_mcp_server(self, mcp_server_ids: list[str]) -> None:
+        """Delete one or more MCP servers."""
+        # 1. Validate all uuids
+        for server_id in mcp_server_ids:
+            self._validate_uuid(server_id)
 
         async with self._cursor() as cur:
-            # 2. Delete the MCP server
+            # 2. Delete the MCP servers
+            # Multiple delete - use IN clause with dynamic parameters
+            placeholders = ",".join("?" * len(mcp_server_ids))
             await cur.execute(
-                """
+                f"""
                 DELETE FROM v2_mcp_server
-                WHERE mcp_server_id = ?
+                WHERE mcp_server_id IN ({placeholders})
                 """,
-                (mcp_server_id,),
+                mcp_server_ids,
             )
 
-            # 3. Check if delete succeeded
-            if cur.rowcount == 0:
-                raise MCPServerNotFoundError(f"MCP server {mcp_server_id} not found")
+            # 3. Check if all deletes succeeded
+            if cur.rowcount != len(mcp_server_ids):
+                raise MCPServerNotFoundError(
+                    f"Some MCP servers not found (expected {len(mcp_server_ids)}, "
+                    f"deleted {cur.rowcount})"
+                )

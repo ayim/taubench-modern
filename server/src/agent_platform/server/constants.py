@@ -182,6 +182,15 @@ class SystemConfig(Configuration):
         ),
     )
 
+    # MCP configuration
+    mcp_servers_config_file: str | None = field(
+        default=None,
+        metadata=FieldMetadata(
+            description="Path to the configuration file containing MCP server definitions.",
+            env_vars=["SEMA4AI_AGENT_SERVER_MCP_SERVERS_CONFIG_FILE"],
+        ),
+    )
+
     def __post_init__(self) -> None:
         """Validate configuration settings."""
         # Validate db_type

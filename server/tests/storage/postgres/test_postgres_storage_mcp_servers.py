@@ -53,7 +53,7 @@ async def test_mcp_server_crud_operations(
     assert updated_retrieved.headers == {"Authorization": "Bearer updated-token"}
 
     # Delete
-    await storage.delete_mcp_server(server_id)
+    await storage.delete_mcp_server([server_id])
 
     # Verify deletion
     with pytest.raises(MCPServerNotFoundError):
@@ -195,3 +195,161 @@ async def test_mcp_server_different_transports(
             assert server.transport == "sse"
             assert server.url == "https://example.com/sse"
             assert server.command is None
+
+
+@pytest.mark.asyncio
+async def test_get_mcp_server_by_name(
+    storage: PostgresStorage,
+    sample_user_id: str,
+    sample_mcp_server_http: MCPServer,
+    sample_mcp_server_stdio: MCPServer,
+) -> None:
+    """Test getting MCP server by name."""
+    # Create servers
+    await storage.create_mcp_server(sample_mcp_server_http, MCPServerSource.API)
+    await storage.create_mcp_server(sample_mcp_server_stdio, MCPServerSource.FILE)
+
+    # Test getting existing server by name
+    result = await storage.get_mcp_server_by_name(sample_mcp_server_http.name, MCPServerSource.API)
+    assert result is not None
+    server_id, server, source = result
+    assert server.name == sample_mcp_server_http.name
+    assert server.transport == sample_mcp_server_http.transport
+    assert source == MCPServerSource.API
+
+    # Test getting FILE source server
+    result_file = await storage.get_mcp_server_by_name(
+        sample_mcp_server_stdio.name, MCPServerSource.FILE
+    )
+    assert result_file is not None
+    server_id_file, server_file, source_file = result_file
+    assert server_file.name == sample_mcp_server_stdio.name
+    assert source_file == MCPServerSource.FILE
+
+    # Test getting non-existent server
+    result_none = await storage.get_mcp_server_by_name("non-existent-server", MCPServerSource.API)
+    assert result_none is None
+
+
+@pytest.mark.asyncio
+async def test_list_mcp_servers_by_source(
+    storage: PostgresStorage,
+    sample_user_id: str,
+    sample_mcp_server_http: MCPServer,
+    sample_mcp_server_stdio: MCPServer,
+    sample_mcp_server_sse: MCPServer,
+) -> None:
+    """Test listing MCP servers by source."""
+    # Create servers with different sources
+    await storage.create_mcp_server(sample_mcp_server_http, MCPServerSource.API)
+    await storage.create_mcp_server(sample_mcp_server_stdio, MCPServerSource.FILE)
+    await storage.create_mcp_server(sample_mcp_server_sse, MCPServerSource.FILE)
+
+    # Test listing API source servers
+    api_servers = await storage.list_mcp_servers_by_source(MCPServerSource.API)
+    assert len(api_servers) == 1
+    assert sample_mcp_server_http.name in api_servers
+
+    # Test listing FILE source servers
+    file_servers = await storage.list_mcp_servers_by_source(MCPServerSource.FILE)
+    assert len(file_servers) == 2
+    assert sample_mcp_server_stdio.name in file_servers
+    assert sample_mcp_server_sse.name in file_servers
+
+    # Test with no servers of a given source
+    # Since we removed user_id, we just verify the method works
+    empty_result = await storage.list_mcp_servers_by_source(MCPServerSource.API)
+    assert isinstance(empty_result, dict)
+
+
+@pytest.mark.asyncio
+async def test_get_mcp_server_by_name_with_invalid_name(
+    storage: PostgresStorage,
+) -> None:
+    """Test get_mcp_server_by_name with invalid server name."""
+    # Since user_id is removed, test with non-existent server name
+    result = await storage.get_mcp_server_by_name("non-existent-server", MCPServerSource.API)
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_list_mcp_servers_by_source_empty(
+    storage: PostgresStorage,
+) -> None:
+    """Test list_mcp_servers_by_source when no servers exist for source."""
+    # Since user_id is removed, test empty result for a source
+    result = await storage.list_mcp_servers_by_source(MCPServerSource.API)
+    assert isinstance(result, dict)
+    assert len(result) == 0
+
+
+async def test_list_mcp_servers_with_metadata(
+    storage: PostgresStorage,
+    sample_mcp_server_http: MCPServer,
+    sample_mcp_server_stdio: MCPServer,
+):
+    """Test listing MCP servers with metadata (server data + source)."""
+    # Create servers with different sources
+    server1_id = await storage.create_mcp_server(sample_mcp_server_http, MCPServerSource.API)
+    server2_id = await storage.create_mcp_server(sample_mcp_server_stdio, MCPServerSource.FILE)
+
+    # List servers with metadata
+    servers_with_metadata = await storage.list_mcp_servers_with_metadata()
+
+    # Verify both servers are returned with correct metadata
+    assert len(servers_with_metadata) == 2
+    assert server1_id in servers_with_metadata
+    assert server2_id in servers_with_metadata
+
+    # Check server 1 (API source)
+    server1_data, server1_source = servers_with_metadata[server1_id]
+    assert server1_data.name == sample_mcp_server_http.name
+    assert server1_data.transport == sample_mcp_server_http.transport
+    assert server1_source == MCPServerSource.API
+
+    # Check server 2 (FILE source)
+    server2_data, server2_source = servers_with_metadata[server2_id]
+    assert server2_data.name == sample_mcp_server_stdio.name
+    assert server2_data.transport == sample_mcp_server_stdio.transport
+    assert server2_source == MCPServerSource.FILE
+
+
+async def test_get_mcp_server_with_metadata(
+    storage: PostgresStorage,
+    sample_mcp_server_http: MCPServer,
+):
+    """Test getting an MCP server with metadata (server data + source)."""
+    # Create server
+    server_id = await storage.create_mcp_server(sample_mcp_server_http, MCPServerSource.API)
+
+    # Get server with metadata
+    server_data, source = await storage.get_mcp_server_with_metadata(server_id)
+
+    # Verify server data
+    assert server_data.name == sample_mcp_server_http.name
+    assert server_data.transport == sample_mcp_server_http.transport
+    assert server_data.url == sample_mcp_server_http.url
+    assert server_data.headers == sample_mcp_server_http.headers
+
+    # Verify source
+    assert source == MCPServerSource.API
+
+
+async def test_get_mcp_server_with_metadata_not_found(
+    storage: PostgresStorage,
+):
+    """Test get_mcp_server_with_metadata with non-existent server."""
+    from uuid import uuid4
+
+    non_existent_id = str(uuid4())
+
+    with pytest.raises(MCPServerNotFoundError):
+        await storage.get_mcp_server_with_metadata(non_existent_id)
+
+
+async def test_list_mcp_servers_with_metadata_empty(
+    storage: PostgresStorage,
+):
+    """Test list_mcp_servers_with_metadata when no servers exist."""
+    result = await storage.list_mcp_servers_with_metadata()
+    assert result == {}

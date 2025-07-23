@@ -502,8 +502,8 @@ class BaseStorage(ABC):
     # Methods for MCP servers
     # -------------------------
     @abstractmethod
-    async def create_mcp_server(self, mcp_server: "MCPServer", source: "MCPServerSource") -> None:
-        """Create a new MCP server."""
+    async def create_mcp_server(self, mcp_server: "MCPServer", source: "MCPServerSource") -> str:
+        """Create a new MCP server. Returns the generated MCP server ID."""
         pass
 
     @abstractmethod
@@ -512,8 +512,34 @@ class BaseStorage(ABC):
         pass
 
     @abstractmethod
+    async def get_mcp_server_with_metadata(
+        self, mcp_server_id: str
+    ) -> tuple["MCPServer", "MCPServerSource"]:
+        """Get an MCP server by ID with its source information."""
+        pass
+
+    @abstractmethod
     async def list_mcp_servers(self) -> dict[str, "MCPServer"]:
         """List all MCP servers."""
+        pass
+
+    @abstractmethod
+    async def list_mcp_servers_with_metadata(
+        self,
+    ) -> dict[str, tuple["MCPServer", "MCPServerSource"]]:
+        """List all MCP servers with their source information."""
+        pass
+
+    @abstractmethod
+    async def get_mcp_server_by_name(
+        self, name: str, source: "MCPServerSource"
+    ) -> tuple[str, "MCPServer", "MCPServerSource"] | None:
+        """Get an MCP server by name"""
+        pass
+
+    @abstractmethod
+    async def list_mcp_servers_by_source(self, source: "MCPServerSource") -> dict[str, str]:
+        """List MCP servers by source. Returns dict of {name: mcp_server_id}."""
         pass
 
     @abstractmethod
@@ -527,8 +553,8 @@ class BaseStorage(ABC):
         pass
 
     @abstractmethod
-    async def delete_mcp_server(self, mcp_server_id: str) -> None:
-        """Delete an MCP server."""
+    async def delete_mcp_server(self, mcp_server_ids: list[str]) -> None:
+        """Delete MCP servers."""
         pass
 
     @abstractmethod

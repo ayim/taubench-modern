@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -278,27 +280,202 @@ def test_list_mcp_servers_with_nonexistent_ids(client: TestClient):
 
 
 def test_mcp_server_response_format(client: TestClient, sample_mcp_server_payload: dict):
-    """Test that the response format matches expectations for dict[str, MCPServer]."""
-    # Create a server
+    """Test the format of MCP server responses."""
+    # Create server
+    create_response = client.post("/api/v2/private/mcp-servers/", json=sample_mcp_server_payload)
+    assert create_response.status_code == 200
+    created_data = create_response.json()
+
+    # Verify create response has MCPServerResponse format
+    expected_fields = [
+        "mcp_server_id",
+        "source",
+        "name",
+        "transport",
+        "url",
+        "headers",
+        "command",
+        "args",
+        "env",
+        "cwd",
+        "force_serial_tool_calls",
+    ]
+    for field in expected_fields:
+        assert field in created_data
+
+    # Verify created server has correct source and values
+    assert created_data["source"] == "API"
+    assert created_data["name"] == sample_mcp_server_payload["name"]
+    assert created_data["transport"] == sample_mcp_server_payload["transport"]
+    assert created_data["url"] == sample_mcp_server_payload["url"]
+    assert created_data["headers"] == sample_mcp_server_payload["headers"]
+
+    # Get the created server ID from the list
+    list_response = client.get("/api/v2/private/mcp-servers/")
+    assert list_response.status_code == 200
+    servers = list_response.json()
+    assert len(servers) == 1
+    server_id = next(iter(servers.keys()))
+
+    # Verify list response format
+    list_server_data = servers[server_id]
+    for field in expected_fields:
+        assert field in list_server_data
+    assert list_server_data["source"] == "API"
+
+    # Get individual server
+    get_response = client.get(f"/api/v2/private/mcp-servers/{server_id}")
+    assert get_response.status_code == 200
+    server_data = get_response.json()
+
+    # Verify individual get response format
+    for field in expected_fields:
+        assert field in server_data
+
+    # Verify specific values
+    assert server_data["mcp_server_id"] == server_id
+    assert server_data["source"] == "API"
+    assert server_data["name"] == sample_mcp_server_payload["name"]
+    assert server_data["transport"] == sample_mcp_server_payload["transport"]
+
+
+@patch("agent_platform.server.api.private_v2.mcp_servers._sync_file_based_mcp_servers")
+def test_list_mcp_servers_calls_sync(mock_sync, client: TestClient):
+    """Test that list_mcp_servers calls the sync function."""
+    # Make the request
+    response = client.get("/api/v2/private/mcp-servers/")
+    assert response.status_code == 200
+
+    # Verify sync was called
+    mock_sync.assert_called_once()
+
+
+@patch("agent_platform.server.api.private_v2.mcp_servers._sync_file_based_mcp_servers")
+def test_get_mcp_server_calls_sync(mock_sync, client: TestClient, sample_mcp_server_payload: dict):
+    """Test that get_mcp_server calls the sync function."""
+    # Create a server first
     create_response = client.post("/api/v2/private/mcp-servers/", json=sample_mcp_server_payload)
     assert create_response.status_code == 200
 
-    # List servers
+    # Get server list to find the ID
+    list_response = client.get("/api/v2/private/mcp-servers/")
+    servers = list_response.json()
+    server_id = next(iter(servers.keys()))
+
+    # Reset the mock to only count the get_mcp_server call
+    mock_sync.reset_mock()
+
+    # Make the get request
+    response = client.get(f"/api/v2/private/mcp-servers/{server_id}")
+    assert response.status_code == 200
+
+    # Verify sync was called
+    mock_sync.assert_called_once()
+
+
+@patch("agent_platform.server.api.private_v2.mcp_servers._read_mcp_servers_config_file")
+def test_list_includes_file_based_servers(
+    mock_read_config, client: TestClient, sample_mcp_server_payload: dict
+):
+    """Test that file-based servers are included in the list after sync."""
+    # Mock file-based server from config
+    from agent_platform.core.mcp.mcp_server import MCPServer
+
+    file_server = MCPServer(
+        name="file-based-server",
+        transport="stdio",
+        command="npx",
+        args=["-y", "@modelcontextprotocol/server-memory"],
+    )
+    mock_read_config.return_value = [file_server]
+
+    # Create an API server
+    create_response = client.post("/api/v2/private/mcp-servers/", json=sample_mcp_server_payload)
+    assert create_response.status_code == 200
+
+    # List servers (this will trigger sync)
     list_response = client.get("/api/v2/private/mcp-servers/")
     assert list_response.status_code == 200
+    servers = list_response.json()
 
-    data = list_response.json()
+    # Should have both API and FILE servers
+    assert len(servers) == 2
+    server_names = [server["name"] for server in servers.values()]
+    assert sample_mcp_server_payload["name"] in server_names
+    assert "file-based-server" in server_names
 
-    # Verify it's a dictionary
-    assert isinstance(data, dict)
 
-    # Verify each key is a string (UUID) and each value is an MCPServer object
-    for server_id, server_data in data.items():
-        assert isinstance(server_id, str)
-        assert isinstance(server_data, dict)
+@patch("agent_platform.server.api.private_v2.mcp_servers._read_mcp_servers_config_file")
+def test_sync_removes_obsolete_file_servers(mock_read_config, client: TestClient):
+    """Test that obsolete file-based servers are removed during sync."""
+    from agent_platform.core.mcp.mcp_server import MCPServer
 
-        # Verify required MCPServer fields are present
-        assert "name" in server_data
-        assert "transport" in server_data
-        assert server_data["name"] == sample_mcp_server_payload["name"]
-        assert server_data["transport"] == sample_mcp_server_payload["transport"]
+    # First, create a file server by mocking a config with it
+    file_server = MCPServer(name="temp-file-server", transport="stdio", command="test")
+    mock_read_config.return_value = [file_server]
+
+    # List servers to create the file server
+    list_response = client.get("/api/v2/private/mcp-servers/")
+    assert list_response.status_code == 200
+    servers = list_response.json()
+    assert len(servers) == 1
+    assert "temp-file-server" in [s["name"] for s in servers.values()]
+
+    # Now mock empty config (server removed from file)
+    mock_read_config.return_value = []
+
+    # List again - should remove the file server
+    list_response = client.get("/api/v2/private/mcp-servers/")
+    assert list_response.status_code == 200
+    servers = list_response.json()
+    assert len(servers) == 0
+
+
+@patch("agent_platform.server.api.private_v2.mcp_servers._read_mcp_servers_config_file")
+def test_sync_updates_existing_file_server(mock_read_config, client: TestClient):
+    """Test that existing file-based servers are updated during sync."""
+    from agent_platform.core.mcp.mcp_server import MCPServer
+
+    # Create initial file server
+    original_server = MCPServer(name="update-me-server", transport="stdio", command="old-command")
+    mock_read_config.return_value = [original_server]
+
+    # List servers to create the file server
+    list_response = client.get("/api/v2/private/mcp-servers/")
+    servers = list_response.json()
+    assert len(servers) == 1
+    original_command = next(iter(servers.values()))["command"]
+    assert original_command == "old-command"
+
+    # Update the server config
+    updated_server = MCPServer(
+        name="update-me-server",  # Same name
+        transport="stdio",
+        command="new-command",  # Different command
+        args=["-new", "args"],
+    )
+    mock_read_config.return_value = [updated_server]
+
+    # List again - should update the server
+    list_response = client.get("/api/v2/private/mcp-servers/")
+    servers = list_response.json()
+    assert len(servers) == 1
+    updated_command = next(iter(servers.values()))["command"]
+    updated_args = next(iter(servers.values()))["args"]
+    assert updated_command == "new-command"
+    assert updated_args == ["-new", "args"]
+
+
+def test_sync_error_handling(client: TestClient):
+    """Test that sync errors don't break the API endpoints."""
+    with patch(
+        "agent_platform.server.api.private_v2.mcp_servers._sync_file_based_mcp_servers"
+    ) as mock_sync:
+        # Make sync raise an exception
+        mock_sync.side_effect = Exception("Sync failed")
+
+        # List should still work (sync errors are caught and logged)
+        response = client.get("/api/v2/private/mcp-servers/")
+        # The API should still return 200 even if sync fails
+        assert response.status_code == 200
+        assert isinstance(response.json(), dict)

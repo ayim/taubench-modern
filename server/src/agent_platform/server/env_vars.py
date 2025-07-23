@@ -97,7 +97,7 @@ def get_env_var(
     return default
 
 
-# Environment variables are defined in Configuration classes throughtout the
+# Environment variables are defined in Configuration classes throughout the
 # server. These are provided here for use before the configuration system is
 # initialized.
 
@@ -106,3 +106,8 @@ CONFIG_PATH = get_env_var(["SEMA4AI_AGENT_SERVER_CONFIG_PATH"])
 
 # Logging
 LOG_LEVEL = get_env_var(["SEMA4AI_AGENT_SERVER_LOG_LEVEL", "LOG_LEVEL"])
+
+# MCP servers configuration file
+SEMA4AI_AGENT_SERVER_MCP_SERVERS_CONFIG_FILE = get_env_var(
+    ["SEMA4AI_AGENT_SERVER_MCP_SERVERS_CONFIG_FILE"], default=None
+)
