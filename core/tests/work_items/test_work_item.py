@@ -283,6 +283,7 @@ def test_work_item_subject_field():
     work_item = WorkItem(
         work_item_id="test-123",
         user_id="user-456",
+        created_by="user-456",
         agent_id="agent-789",
         user_subject="test-user-user_subject",
         messages=[],
@@ -301,6 +302,7 @@ def test_work_item_subject_field():
     data = {
         "work_item_id": "test-456",
         "user_id": "user-789",
+        "created_by": "user-789",
         "agent_id": "agent-123",
         "user_subject": "another-user-user_subject",
         "messages": [],
@@ -320,6 +322,7 @@ def test_work_item_subject_field():
     work_item_no_subject = WorkItem(
         work_item_id="test-789",
         user_id="user-123",
+        created_by="user-123",
         agent_id="agent-456",
         user_subject=None,
         messages=[],

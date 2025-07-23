@@ -80,6 +80,7 @@ async def test_work_item_subject_field(
             ),
         ],
         payload={"test": "user_subject"},
+        created_by=sample_user_id,
     )
 
     await storage.create_work_item(work_item)

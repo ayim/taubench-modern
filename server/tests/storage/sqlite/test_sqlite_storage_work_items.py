@@ -73,6 +73,7 @@ async def test_work_item_subject_field(
     work_item = WorkItem(
         work_item_id=str(uuid4()),
         user_id=sample_user_id,
+        created_by=sample_user_id,
         agent_id=sample_agent.agent_id,
         thread_id=None,
         status=WorkItemStatus.PENDING,
