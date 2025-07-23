@@ -1,3 +1,8 @@
+# Sema4.ai Agent Server 2.0.20 (2025-07-23)
+
+- Add CRUD for MCP servers.
+- Added encryption and secret manager for MCP configs.
+
 # Sema4.ai Agent Server 2.0.19 (2025-07-22)
 
 - Update migration numbers to be unique for SQLite and Postgres.
