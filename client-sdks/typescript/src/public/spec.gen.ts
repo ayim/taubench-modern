@@ -6,7 +6,7 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Public API Version 2',
-    version: '2.0.17',
+    version: '2.0.20',
   },
   paths: {
     '/api/public/v1/agents': {
@@ -685,6 +685,24 @@ export const spec = {
             },
             description: 'The offset to start from',
           },
+          {
+            name: 'created_by',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              description: 'The ID of the user who created the work items',
+              title: 'Created By',
+            },
+            description: 'The ID of the user who created the work items',
+          },
         ],
         responses: {
           '200': {
@@ -976,6 +994,46 @@ export const spec = {
         tags: ['work-items'],
         summary: 'Cancel Item',
         operationId: 'cancel_item_work_items__work_item_id__cancel_post',
+        parameters: [
+          {
+            name: 'work_item_id',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Work Item Id',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/public/v1/work-items/{work_item_id}/complete': {
+      post: {
+        tags: ['work-items'],
+        summary: 'Complete Work Item',
+        description: 'Administratively mark a work item as completed.',
+        operationId:
+          'complete_work_item_work_items__work_item_id__complete_post',
         parameters: [
           {
             name: 'work_item_id',
@@ -1766,7 +1824,12 @@ export const spec = {
           user_id: {
             type: 'string',
             title: 'User Id',
-            description: 'The ID of the user that created this work item',
+            description: 'The ID of the user that owns this work item',
+          },
+          created_by: {
+            type: 'string',
+            title: 'Created By',
+            description: 'The ID of the user who created the work item',
           },
           agent_id: {
             anyOf: [
@@ -1813,14 +1876,13 @@ export const spec = {
           completed_by: {
             anyOf: [
               {
-                type: 'string',
+                $ref: '#/components/schemas/WorkItemCompletedBy',
               },
               {
                 type: 'null',
               },
             ],
-            title: 'Completed By',
-            description: 'The ID of the user who completed the work item',
+            description: 'The type of user who completed the work item',
           },
           status_updated_at: {
             type: 'string',
@@ -1830,11 +1892,22 @@ export const spec = {
               'The timestamp when the work item status was last updated',
           },
           status_updated_by: {
-            type: 'string',
-            title: 'Status Updated By',
+            $ref: '#/components/schemas/WorkItemStatusUpdatedBy',
             description:
-              'The ID of the user who last updated the work item status',
-            default: 'SYSTEM',
+              'The type of user who last updated the work item status',
+            default: 'HUMAN',
+          },
+          user_subject: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'User Subject',
+            description: 'The subject of the user who created the work item',
           },
           initial_messages: {
             items: {
@@ -1843,6 +1916,19 @@ export const spec = {
             type: 'array',
             title: 'Initial Messages',
             description: 'The initial conversation messages for this work item',
+          },
+          work_item_url: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Work Item Url',
+            description:
+              'The URL to access this work item in the workroom interface',
           },
           messages: {
             items: {
@@ -1868,7 +1954,7 @@ export const spec = {
           },
         },
         type: 'object',
-        required: ['work_item_id', 'user_id'],
+        required: ['work_item_id', 'user_id', 'created_by'],
         title: 'WorkItem',
       },
       WorkItemCallback: {
@@ -1911,6 +1997,12 @@ export const spec = {
         required: ['url'],
         title: 'WorkItemCallback',
       },
+      WorkItemCompletedBy: {
+        type: 'string',
+        enum: ['AGENT', 'HUMAN'],
+        title: 'WorkItemCompletedBy',
+        description: 'The user who completed the work item.',
+      },
       WorkItemStatus: {
         type: 'string',
         enum: [
@@ -1925,6 +2017,12 @@ export const spec = {
         ],
         title: 'WorkItemStatus',
         description: 'The status of a work item.',
+      },
+      WorkItemStatusUpdatedBy: {
+        type: 'string',
+        enum: ['SYSTEM', 'AGENT', 'HUMAN'],
+        title: 'WorkItemStatusUpdatedBy',
+        description: 'The user who last updated the work item status.',
       },
       WorkItemsListResponse: {
         properties: {

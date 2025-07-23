@@ -6,7 +6,7 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Private API Version 2',
-    version: '2.0.17',
+    version: '2.0.20',
   },
   paths: {
     '/api/v2/ok': {
@@ -2243,7 +2243,7 @@ export const spec = {
               'application/json': {
                 schema: {
                   additionalProperties: {
-                    $ref: '#/components/schemas/MCPServer',
+                    $ref: '#/components/schemas/MCPServerResponse',
                   },
                   type: 'object',
                   title: 'Response List Mcp Servers Mcp Servers  Get',
@@ -2274,7 +2274,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/MCPServer',
+                  $ref: '#/components/schemas/MCPServerResponse',
                 },
               },
             },
@@ -2315,7 +2315,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/MCPServer',
+                  $ref: '#/components/schemas/MCPServerResponse',
                 },
               },
             },
@@ -2364,7 +2364,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/MCPServer',
+                  $ref: '#/components/schemas/MCPServerResponse',
                 },
               },
             },
@@ -2500,6 +2500,24 @@ export const spec = {
               title: 'Offset',
             },
             description: 'The offset to start from',
+          },
+          {
+            name: 'created_by',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              description: 'The ID of the user who created the work items',
+              title: 'Created By',
+            },
+            description: 'The ID of the user who created the work items',
           },
         ],
         responses: {
@@ -2792,6 +2810,46 @@ export const spec = {
         tags: ['work-items'],
         summary: 'Cancel Item',
         operationId: 'cancel_item_work_items__work_item_id__cancel_post',
+        parameters: [
+          {
+            name: 'work_item_id',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Work Item Id',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/work-items/{work_item_id}/complete': {
+      post: {
+        tags: ['work-items'],
+        summary: 'Complete Work Item',
+        description: 'Administratively mark a work item as completed.',
+        operationId:
+          'complete_work_item_work_items__work_item_id__complete_post',
         parameters: [
           {
             name: 'work_item_id',
@@ -4484,6 +4542,123 @@ export const spec = {
         type: 'object',
         required: ['name', 'transport'],
         title: 'MCPServerCompat',
+      },
+      MCPServerResponse: {
+        properties: {
+          mcp_server_id: {
+            type: 'string',
+            title: 'Mcp Server Id',
+            description: 'The unique identifier of the MCP server.',
+          },
+          source: {
+            $ref: '#/components/schemas/MCPServerSource',
+            description: 'The source of the MCP server (FILE or API).',
+          },
+          name: {
+            type: 'string',
+            title: 'Name',
+            description: 'The name of the MCP server.',
+          },
+          transport: {
+            type: 'string',
+            title: 'Transport',
+            description:
+              'Transport protocol to use when connecting to the MCP server.',
+          },
+          url: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Url',
+            description: 'The URL of the MCP server.',
+          },
+          headers: {
+            anyOf: [
+              {
+                additionalProperties: true,
+                type: 'object',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Headers',
+            description:
+              'Headers used for configuring requests & connections to the MCP server.',
+          },
+          command: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Command',
+            description: 'The command to run the MCP server.',
+          },
+          args: {
+            anyOf: [
+              {
+                items: {
+                  type: 'string',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Args',
+            description: 'The arguments to pass to the MCP server command.',
+          },
+          env: {
+            anyOf: [
+              {
+                additionalProperties: true,
+                type: 'object',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Env',
+            description:
+              "Environment variables to merge with agent-server's env vars.",
+          },
+          cwd: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Cwd',
+            description: 'Working directory to run the MCP server command in.',
+          },
+          force_serial_tool_calls: {
+            type: 'boolean',
+            title: 'Force Serial Tool Calls',
+            description: 'If true, all tool calls are executed under a lock.',
+            default: false,
+          },
+        },
+        type: 'object',
+        required: ['mcp_server_id', 'source', 'name', 'transport'],
+        title: 'MCPServerResponse',
+      },
+      MCPServerSource: {
+        type: 'string',
+        enum: ['FILE', 'API'],
+        title: 'MCPServerSource',
       },
       MCPVariableCompat: {
         properties: {
@@ -6932,7 +7107,12 @@ export const spec = {
           user_id: {
             type: 'string',
             title: 'User Id',
-            description: 'The ID of the user that created this work item',
+            description: 'The ID of the user that owns this work item',
+          },
+          created_by: {
+            type: 'string',
+            title: 'Created By',
+            description: 'The ID of the user who created the work item',
           },
           agent_id: {
             anyOf: [
@@ -6979,14 +7159,13 @@ export const spec = {
           completed_by: {
             anyOf: [
               {
-                type: 'string',
+                $ref: '#/components/schemas/WorkItemCompletedBy',
               },
               {
                 type: 'null',
               },
             ],
-            title: 'Completed By',
-            description: 'The ID of the user who completed the work item',
+            description: 'The type of user who completed the work item',
           },
           status_updated_at: {
             type: 'string',
@@ -6996,11 +7175,22 @@ export const spec = {
               'The timestamp when the work item status was last updated',
           },
           status_updated_by: {
-            type: 'string',
-            title: 'Status Updated By',
+            $ref: '#/components/schemas/WorkItemStatusUpdatedBy',
             description:
-              'The ID of the user who last updated the work item status',
-            default: 'SYSTEM',
+              'The type of user who last updated the work item status',
+            default: 'HUMAN',
+          },
+          user_subject: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'User Subject',
+            description: 'The subject of the user who created the work item',
           },
           initial_messages: {
             items: {
@@ -7009,6 +7199,19 @@ export const spec = {
             type: 'array',
             title: 'Initial Messages',
             description: 'The initial conversation messages for this work item',
+          },
+          work_item_url: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Work Item Url',
+            description:
+              'The URL to access this work item in the workroom interface',
           },
           messages: {
             items: {
@@ -7034,7 +7237,7 @@ export const spec = {
           },
         },
         type: 'object',
-        required: ['work_item_id', 'user_id'],
+        required: ['work_item_id', 'user_id', 'created_by'],
         title: 'WorkItem',
       },
       WorkItemCallback: {
@@ -7077,6 +7280,12 @@ export const spec = {
         required: ['url'],
         title: 'WorkItemCallback',
       },
+      WorkItemCompletedBy: {
+        type: 'string',
+        enum: ['AGENT', 'HUMAN'],
+        title: 'WorkItemCompletedBy',
+        description: 'The user who completed the work item.',
+      },
       WorkItemStatus: {
         type: 'string',
         enum: [
@@ -7091,6 +7300,12 @@ export const spec = {
         ],
         title: 'WorkItemStatus',
         description: 'The status of a work item.',
+      },
+      WorkItemStatusUpdatedBy: {
+        type: 'string',
+        enum: ['SYSTEM', 'AGENT', 'HUMAN'],
+        title: 'WorkItemStatusUpdatedBy',
+        description: 'The user who last updated the work item status.',
       },
       WorkItemsListResponse: {
         properties: {

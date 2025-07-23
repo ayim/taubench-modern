@@ -257,6 +257,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/public/v1/work-items/{work_item_id}/complete': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Complete Work Item
+     * @description Administratively mark a work item as completed.
+     */
+    post: operations['complete_work_item_work_items__work_item_id__complete_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/public/v1/ok': {
     parameters: {
       query?: never;
@@ -744,9 +764,14 @@ export interface components {
       work_item_id: string;
       /**
        * User Id
-       * @description The ID of the user that created this work item
+       * @description The ID of the user that owns this work item
        */
       user_id: string;
+      /**
+       * Created By
+       * @description The ID of the user who created the work item
+       */
+      created_by: string;
       /**
        * Agent Id
        * @description The ID of the agent that will process this work item
@@ -774,11 +799,8 @@ export interface components {
        * @description The timestamp when the work item was last updated
        */
       updated_at?: string;
-      /**
-       * Completed By
-       * @description The ID of the user who completed the work item
-       */
-      completed_by?: string | null;
+      /** @description The type of user who completed the work item */
+      completed_by?: components['schemas']['WorkItemCompletedBy'] | null;
       /**
        * Status Updated At
        * Format: date-time
@@ -786,16 +808,25 @@ export interface components {
        */
       status_updated_at?: string;
       /**
-       * Status Updated By
-       * @description The ID of the user who last updated the work item status
-       * @default SYSTEM
+       * @description The type of user who last updated the work item status
+       * @default HUMAN
        */
-      status_updated_by: string;
+      status_updated_by: components['schemas']['WorkItemStatusUpdatedBy'];
+      /**
+       * User Subject
+       * @description The subject of the user who created the work item
+       */
+      user_subject?: string | null;
       /**
        * Initial Messages
        * @description The initial conversation messages for this work item
        */
       initial_messages?: components['schemas']['ThreadMessage'][];
+      /**
+       * Work Item Url
+       * @description The URL to access this work item in the workroom interface
+       */
+      work_item_url?: string | null;
       /**
        * Messages
        * @description The messages in the work item conversation
@@ -840,6 +871,12 @@ export interface components {
         | 'INDETERMINATE';
     };
     /**
+     * WorkItemCompletedBy
+     * @description The user who completed the work item.
+     * @enum {string}
+     */
+    WorkItemCompletedBy: 'AGENT' | 'HUMAN';
+    /**
      * WorkItemStatus
      * @description The status of a work item.
      * @enum {string}
@@ -853,6 +890,12 @@ export interface components {
       | 'INDETERMINATE'
       | 'PENDING'
       | 'PRECREATED';
+    /**
+     * WorkItemStatusUpdatedBy
+     * @description The user who last updated the work item status.
+     * @enum {string}
+     */
+    WorkItemStatusUpdatedBy: 'SYSTEM' | 'AGENT' | 'HUMAN';
     /** WorkItemsListResponse */
     WorkItemsListResponse: {
       /** Records */
@@ -1320,6 +1363,8 @@ export interface operations {
         limit?: number;
         /** @description The offset to start from */
         offset?: number;
+        /** @description The ID of the user who created the work items */
+        created_by?: string | null;
       };
       header?: never;
       path?: never;
@@ -1555,6 +1600,37 @@ export interface operations {
     };
   };
   cancel_item_work_items__work_item_id__cancel_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        work_item_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  complete_work_item_work_items__work_item_id__complete_post: {
     parameters: {
       query?: never;
       header?: never;
