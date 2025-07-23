@@ -56,6 +56,45 @@ async def test_create_and_get_work_item(
 
 
 @pytest.mark.asyncio
+async def test_work_item_subject_field(
+    storage: PostgresStorage,
+    sample_user_id: str,
+    sample_agent,
+):
+    """Test that the user_subject field is properly populated with user's sub."""
+    await storage.upsert_agent(sample_user_id, sample_agent)
+
+    # Get the user to verify their sub
+    user, _ = await storage.get_or_create_user(sample_user_id)
+
+    work_item = WorkItem(
+        work_item_id=str(uuid4()),
+        user_id=sample_user_id,
+        agent_id=sample_agent.agent_id,
+        thread_id=None,
+        status=WorkItemStatus.PENDING,
+        messages=[
+            ThreadMessage(
+                role="user",
+                content=[ThreadTextContent(text="Subject test!")],
+            ),
+        ],
+        payload={"test": "user_subject"},
+    )
+
+    await storage.create_work_item(work_item)
+
+    # Retrieve and verify user_subject field is populated
+    fetched = await storage.get_work_item(work_item.work_item_id)
+    assert fetched.user_subject == user.sub
+
+    # Verify user_subject field is included in serialization
+    serialized = fetched.model_dump()
+    assert "user_subject" in serialized
+    assert serialized["user_subject"] == user.sub
+
+
+@pytest.mark.asyncio
 async def test_get_work_items_by_ids(
     storage: PostgresStorage,
     sample_user_id: str,

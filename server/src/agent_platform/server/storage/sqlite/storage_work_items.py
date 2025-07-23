@@ -47,6 +47,8 @@ class SQLiteStorageWorkItemsMixin(CommonMixin):
         work_item_dict["messages"] = json.dumps(work_item_dict["messages"])
         work_item_dict["payload"] = json.dumps(work_item_dict["payload"])
         work_item_dict["callbacks"] = json.dumps(work_item_dict["callbacks"])
+        user, _ = await self.get_or_create_user(work_item.user_id)
+        work_item_dict["user_subject"] = user.sub
 
         async with self._cursor() as cur:
             await cur.execute(
@@ -55,12 +57,12 @@ class SQLiteStorageWorkItemsMixin(CommonMixin):
                     work_item_id, user_id, created_by, agent_id, thread_id, status,
                     created_at, updated_at, completed_by,
                     status_updated_at, status_updated_by,
-                    messages, payload, callbacks, initial_messages
+                    messages, payload, callbacks, initial_messages, user_subject
                 ) VALUES (
                     :work_item_id, :user_id, :created_by, :agent_id, :thread_id, :status,
                     :created_at, :updated_at, :completed_by,
                     :status_updated_at, :status_updated_by,
-                    :messages, :payload, :callbacks, :initial_messages
+                    :messages, :payload, :callbacks, :initial_messages, :user_subject
                 )
                 """,
                 work_item_dict,

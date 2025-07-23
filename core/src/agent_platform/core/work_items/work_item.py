@@ -274,6 +274,12 @@ class WorkItem:
     )
     """The type of user who last updated the work item status."""
 
+    user_subject: str | None = field(
+        default=None,
+        metadata={"description": "The subject of the user who created the work item"},
+    )
+    """The subject of the user who created the work item."""
+
     initial_messages: list[ThreadMessage] = field(
         default_factory=list,
         metadata={"description": "The initial conversation messages for this work item"},
@@ -322,6 +328,7 @@ class WorkItem:
             "messages": [msg.model_dump() for msg in self.messages],
             "payload": self.payload,
             "callbacks": [callback.model_dump() for callback in self.callbacks],
+            "user_subject": self.user_subject,
         }
 
     def to_initiate_stream_payload(self) -> InitiateStreamPayload:
@@ -353,6 +360,8 @@ class WorkItem:
             data["work_item_id"] = str(data["work_item_id"])
         if "work_item_url" in data and isinstance(data["work_item_url"], str):
             data["work_item_url"] = str(data["work_item_url"])
+        if "user_subject" in data and isinstance(data["user_subject"], str):
+            data["user_subject"] = str(data["user_subject"])
 
         # Parse nested objects
         if "status" in data and isinstance(data["status"], str):
@@ -384,7 +393,6 @@ class WorkItem:
                 ThreadMessage.model_validate(msg) if isinstance(msg, dict) else msg
                 for msg in data["initial_messages"]
             ]
-
         return cls(**data)
 
     def restart(self) -> None:

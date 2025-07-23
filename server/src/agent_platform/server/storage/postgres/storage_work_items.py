@@ -56,6 +56,8 @@ class PostgresStorageWorkItemsMixin(CommonMixin):
         work_item_dict["messages"] = Jsonb(work_item_dict["messages"])
         work_item_dict["payload"] = Jsonb(work_item_dict["payload"])
         work_item_dict["callbacks"] = Jsonb(work_item_dict["callbacks"])
+        user, _ = await self.get_or_create_user(work_item.user_id)
+        work_item_dict["user_subject"] = user.sub
 
         try:
             async with self._cursor() as cur:
@@ -65,13 +67,14 @@ class PostgresStorageWorkItemsMixin(CommonMixin):
                         work_item_id, user_id, created_by, agent_id, thread_id, status,
                         created_at, updated_at, completed_by,
                         status_updated_at, status_updated_by,
-                        messages, payload, callbacks, initial_messages
+                        messages, payload, callbacks, initial_messages, user_subject
                     ) VALUES (
                         %(work_item_id)s::uuid, %(user_id)s::uuid,
                         %(created_by)s::uuid, %(agent_id)s::uuid, %(thread_id)s::uuid, %(status)s,
                         %(created_at)s, %(updated_at)s, %(completed_by)s,
                         %(status_updated_at)s, %(status_updated_by)s,
-                        %(messages)s, %(payload)s, %(callbacks)s, %(initial_messages)s
+                        %(messages)s, %(payload)s, %(callbacks)s, %(initial_messages)s,
+                        %(user_subject)s
                     )
                     """,
                     work_item_dict,

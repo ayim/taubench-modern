@@ -276,3 +276,57 @@ def test_work_item_model_validate_field_parsing():
     assert work_item_minimal.agent_id is None
     assert work_item_minimal.thread_id is None
     assert work_item_minimal.status == WorkItemStatus.PENDING  # Default value
+
+
+def test_work_item_subject_field():
+    """Test that the user_subject field works correctly in the WorkItem model."""
+    work_item = WorkItem(
+        work_item_id="test-123",
+        user_id="user-456",
+        agent_id="agent-789",
+        user_subject="test-user-user_subject",
+        messages=[],
+        payload={"test": "data"},
+    )
+
+    # Test that user_subject is accessible
+    assert work_item.user_subject == "test-user-user_subject"
+
+    # Test model_dump includes user_subject field
+    serialized = work_item.model_dump()
+    assert "user_subject" in serialized
+    assert serialized["user_subject"] == "test-user-user_subject"
+
+    # Test model_validate with user_subject field
+    data = {
+        "work_item_id": "test-456",
+        "user_id": "user-789",
+        "agent_id": "agent-123",
+        "user_subject": "another-user-user_subject",
+        "messages": [],
+        "payload": {},
+        "status": "PENDING",
+        "created_at": "2023-01-01T00:00:00Z",
+        "updated_at": "2023-01-01T00:00:00Z",
+        "status_updated_at": "2023-01-01T00:00:00Z",
+        "status_updated_by": "HUMAN",
+        "initial_messages": [],
+        "callbacks": [],
+    }
+    validated_item = WorkItem.model_validate(data)
+    assert validated_item.user_subject == "another-user-user_subject"
+
+    # Test with None user_subject
+    work_item_no_subject = WorkItem(
+        work_item_id="test-789",
+        user_id="user-123",
+        agent_id="agent-456",
+        user_subject=None,
+        messages=[],
+        payload={},
+    )
+    assert work_item_no_subject.user_subject is None
+
+    serialized_none = work_item_no_subject.model_dump()
+    assert "user_subject" in serialized_none
+    assert serialized_none["user_subject"] is None
