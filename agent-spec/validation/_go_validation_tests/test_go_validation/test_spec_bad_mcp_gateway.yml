@@ -1,6 +1,6 @@
-- message: 'Expected agent-package/agents/mcp-gateway/servers/tools to be a list of
-    strings (if tools are not specified, or the list is empty, all tools are allowed).
-    Found: int'
+- message: 'Expected agent-package/agents/docker-mcp-gateway/servers/tools to be a
+    list of strings (if tools are not specified, or the list is empty, all tools are
+    allowed). Found: int'
   range:
     end:
       character: 0
@@ -10,9 +10,9 @@
       line: 20
   severity: 1
   source: sema4ai
-- message: 'Expected agent-package/agents/mcp-gateway/servers/tools to be a list of
-    strings (if tools are not specified, or the list is empty, all tools are allowed).
-    Found: string'
+- message: 'Expected agent-package/agents/docker-mcp-gateway/servers/tools to be a
+    list of strings (if tools are not specified, or the list is empty, all tools are
+    allowed). Found: string'
   range:
     end:
       character: 0
@@ -22,8 +22,8 @@
       line: 22
   severity: 1
   source: sema4ai
-- message: Expected all items in agent-package/agents/mcp-gateway/servers to be objects.
-    Found list.
+- message: Expected all items in agent-package/agents/docker-mcp-gateway/servers to
+    be objects. Found list.
   range:
     end:
       character: 0
@@ -33,8 +33,8 @@
       line: 27
   severity: 1
   source: sema4ai
-- message: 'Expected all items in agent-package/agents/mcp-gateway/servers/tools to
-    be strings. Found: int'
+- message: 'Expected all items in agent-package/agents/docker-mcp-gateway/servers/tools
+    to be strings. Found: int'
   range:
     end:
       character: 0

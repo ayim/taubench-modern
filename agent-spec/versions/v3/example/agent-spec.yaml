@@ -54,7 +54,7 @@ agent-package:
               type: data-server-info
               description: Information to connect to the data server (JSON-formatted string)
           force-serial-tool-calls: true
-      mcp-gateway:
+      docker-mcp-gateway:
         catalog: ./custom-docker-mcp-catalog.yml
         servers:
           atlassian:

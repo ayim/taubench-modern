@@ -294,12 +294,12 @@ var SpecV3 = `
     "required": false,
     "expected-type": "bool"
   },
-  "agent-package/agents/mcp-gateway": {
+  "agent-package/agents/docker-mcp-gateway": {
     "description": "Section to define the Docker MCP Gateway configuration for the agent. Docker MCP Gateway is a tool that allows you to run MCP servers in a Docker containers.",
     "required": false,
     "expected-type": "object"
   },
-  "agent-package/agents/mcp-gateway/catalog": {
+  "agent-package/agents/docker-mcp-gateway/catalog": {
     "description": "Optional custom catalog file path. If not specified, the default catalog from Docker MCP Gateway is used. Example: \"./custom-catalog.yml\"",
     "required": false,
     "expected-type": {
@@ -307,12 +307,12 @@ var SpecV3 = `
       "relative-to": "./"
     }
   },
-  "agent-package/agents/mcp-gateway/servers": {
+  "agent-package/agents/docker-mcp-gateway/servers": {
     "description": "Configuration for MCP servers in the Docker MCP Gateway.",
     "required": true,
     "expected-type": "map[string,object]"
   },
-  "agent-package/agents/mcp-gateway/servers/tools": {
+  "agent-package/agents/docker-mcp-gateway/servers/tools": {
     "description": "Tools configuration for a server. Can be a list of tool names. If empty or not specified, all tools are allowed. Example: [\"tool1\", \"tool2\"]",
     "required": false,
     "expected-type": "mcp_server_tools"

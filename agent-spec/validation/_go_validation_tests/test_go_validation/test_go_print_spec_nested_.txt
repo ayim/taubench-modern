@@ -12,14 +12,14 @@ root (no data)
       conversation-guide
       conversation-starter
       description (required)
+      docker-mcp-gateway
+        catalog
+        servers (required)
+          tools
       knowledge
         digest
         embedded (required)
         name (required)
-      mcp-gateway
-        catalog
-        servers (required)
-          tools
       mcp-servers
         command-line
         cwd

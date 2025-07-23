@@ -1035,7 +1035,7 @@ agent-package:
       knowledge: []
       metadata:
         mode: conversational
-      mcp-gateway:
+      docker-mcp-gateway:
         servers:
           atlassian:
             tools: 1

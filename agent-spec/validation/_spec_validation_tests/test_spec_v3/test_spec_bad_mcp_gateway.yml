@@ -1,8 +1,8 @@
-- Expected agent-package/agents/mcp-gateway/servers/tools to be a list of strings
+- Expected agent-package/agents/docker-mcp-gateway/servers/tools to be a list of strings
   (found int).
-- Expected agent-package/agents/mcp-gateway/servers/tools to be a list of strings
+- Expected agent-package/agents/docker-mcp-gateway/servers/tools to be a list of strings
   (found string).
-- Expected all items in agent-package/agents/mcp-gateway/servers to be objects. Found
-  list.
-- 'Expected all items in agent-package/agents/mcp-gateway/servers/tools to be strings.
-  Found: int'
+- Expected all items in agent-package/agents/docker-mcp-gateway/servers to be objects.
+  Found list.
+- 'Expected all items in agent-package/agents/docker-mcp-gateway/servers/tools to
+  be strings. Found: int'
