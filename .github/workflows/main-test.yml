@@ -9,6 +9,12 @@ on:
       - 'client-sdks/golang/agent-cli/**'
     branches:
       - '*'
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+      - converted_to_draft
   workflow_dispatch:
 
 concurrency:
@@ -77,14 +83,61 @@ jobs:
       - run: make typecheck
       - run: make check-format
 
+  compute-matrix:
+    runs-on: ubuntu-latest
+    name: Compute Matrix
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate strategy matrix
+        id: set-matrix
+        shell: python
+        run: |
+          import json, os
+
+          # Load the GitHub event payload
+          event_path = os.environ.get("GITHUB_EVENT_PATH", "")
+          payload = json.load(open(event_path)) if event_path else {}
+
+          # Determine if this is a draft PR
+          draft = payload.get("pull_request", {}).get("draft", False)
+
+          # Build the minimal or full matrix
+          if draft:
+              matrix = {
+                  "include": [
+                      {
+                          "os": "ubuntu-24.04",
+                          "ext": "",
+                          "artifact-name": "agent-server-build-ubuntu-x64"
+                      }
+                  ]
+              }
+          else:
+              matrix = {
+                  "include": [
+                      {"os": "ubuntu-24.04", "ext": "",    "artifact-name": "agent-server-build-ubuntu-x64"},
+                      {"os": "macos-13",    "ext": "",    "artifact-name": "agent-server-build-macos-x64"},
+                      {"os": "macos-15",    "ext": "",    "artifact-name": "agent-server-build-macos-arm64"},
+                      {"os": "windows-2025","ext": ".exe","artifact-name": "agent-server-build-windows-x64"}
+                  ]
+              }
+
+          # Write the matrix JSON to the GITHUB_OUTPUT file
+          output_path = os.environ["GITHUB_OUTPUT"]
+          with open(output_path, "a") as fh:
+              fh.write(f"matrix={json.dumps(matrix)}\n")
+
   unit-tests:
+    needs:
+      - compute-matrix
     name: Unit Tests • ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45 # TODO: This might be longer than needed.
     strategy:
       fail-fast: false
-      matrix:
-        os: [ubuntu-24.04, macos-13, macos-15, windows-2025]
+      matrix: ${{ fromJson(needs.compute-matrix.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
@@ -104,24 +157,11 @@ jobs:
 
   build:
     name: Build Server • ${{ matrix.os }}
-    needs: [version, unit-tests]
+    needs: [version, unit-tests, compute-matrix]
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-24.04
-            ext: ''
-            artifact-name: agent-server-build-ubuntu-x64
-          - os: macos-13
-            ext: ''
-            artifact-name: agent-server-build-macos-x64
-          - os: macos-15
-            ext: ''
-            artifact-name: agent-server-build-macos-arm64
-          - os: windows-2025
-            ext: '.exe'
-            artifact-name: agent-server-build-windows-x64
+      matrix: ${{ fromJson(needs.compute-matrix.outputs.matrix) }}
 
     # ---------- signing / notarization credentials ----------
     env:
@@ -173,7 +213,7 @@ jobs:
 
   integration-tests:
     name: Integration Tests • ${{ matrix.os }}
-    needs: [version, build]
+    needs: [version, build, compute-matrix]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45 # TODO: This might be longer than needed.
     permissions:
@@ -181,24 +221,7 @@ jobs:
       contents: read
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-24.04
-            ext: ''
-            artifact-name: agent-server-build-ubuntu-x64
-            s3-path: linux_x64
-          - os: macos-13
-            ext: ''
-            artifact-name: agent-server-build-macos-x64
-            s3-path: macos_x64
-          - os: macos-15
-            ext: ''
-            artifact-name: agent-server-build-macos-arm64
-            s3-path: macos_arm64
-          - os: windows-2025
-            ext: '.exe'
-            artifact-name: agent-server-build-windows-x64
-            s3-path: windows_x64
+      matrix: ${{ fromJson(needs.compute-matrix.outputs.matrix) }}
 
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
