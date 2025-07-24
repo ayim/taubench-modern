@@ -65,7 +65,6 @@ type McpServerVariable struct {
 	Description string   `json:"description,omitempty"`
 	Provider    string   `json:"provider,omitempty"`
 	Scopes      []string `json:"scopes,omitempty"`
-	Default     string   `json:"default,omitempty"`
 
 	// The value that is sent over by the user to be used as replacement for variable object
 	Value *string `json:"value,omitempty"`
@@ -104,7 +103,7 @@ func (s McpServerVariable) MarshalJSON() ([]byte, error) {
 
 // HasRawValue checks to see if Value should be treated as raw string and not object
 func (s McpServerVariable) HasRawValue() bool {
-	return s.Type == "" && s.Provider == "" && s.Description == "" && s.Default == "" && len(s.Scopes) == 0
+	return s.Type == "" && s.Provider == "" && s.Description == "" && len(s.Scopes) == 0
 }
 
 type McpServerVariables = map[string]McpServerVariable

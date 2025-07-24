@@ -103,27 +103,27 @@ def test_mcp_server_env_handling():
     assert dumped["env"] == {"VAR1": "value1", "VAR2": "value2"}
 
     # Test with populated env dict
-    test_env: dict[str, MCPUnionOfVariableTypes] = {
-        "VAR1": MCPVariableTypeString(default="/data", description="this"),
+    test_env1: dict[str, MCPUnionOfVariableTypes] = {
+        "VAR1": MCPVariableTypeString(value="/data", description="this"),
         "VAR2": "value2",
     }
-    srv3 = MCPServer(name="test3", command="python", env=test_env)
-    assert srv3.env == test_env
+    srv3 = MCPServer(name="test3", command="python", env=test_env1)
+    assert srv3.env == test_env1
 
     # Test that env is preserved in model_dump
     dumped = srv3.model_dump()
     assert dumped["env"] == {
-        "VAR1": {"type": "string", "description": "this", "default": "/data"},
+        "VAR1": {"type": "string", "description": "this", "value": "/data"},
         "VAR2": "value2",
     }
 
     # Test with populated env dict
-    test_env: dict[str, MCPUnionOfVariableTypes] = {
+    test_env2: dict[str, MCPUnionOfVariableTypes] = {
         "VAR1": MCPVariableTypeSecret(description="this"),
         "VAR2": "value2",
     }
-    srv3 = MCPServer(name="test3", command="python", env=test_env)
-    assert srv3.env == test_env
+    srv3 = MCPServer(name="test3", command="python", env=test_env2)
+    assert srv3.env == test_env2
 
     # Test that env is preserved in model_dump
     dumped = srv3.model_dump()
@@ -136,14 +136,14 @@ def test_mcp_server_env_handling():
     }
 
     # Test with populated env dict
-    test_env: dict[str, MCPUnionOfVariableTypes] = {
+    test_env3: dict[str, MCPUnionOfVariableTypes] = {
         "VAR1": MCPVariableTypeOAuth2Secret(
             scopes=["user.read"], provider="Github", description="this"
         ),
         "VAR2": "value2",
     }
-    srv3 = MCPServer(name="test3", command="python", env=test_env)
-    assert srv3.env == test_env
+    srv3 = MCPServer(name="test3", command="python", env=test_env3)
+    assert srv3.env == test_env3
 
     # Test that env is preserved in model_dump
     dumped = srv3.model_dump()
@@ -158,12 +158,12 @@ def test_mcp_server_env_handling():
     }
 
     # Test with populated env dict
-    test_env: dict[str, MCPUnionOfVariableTypes] = {
+    test_env4: dict[str, MCPUnionOfVariableTypes] = {
         "VAR1": MCPVariableTypeDataServerInfo(),
         "VAR2": "value2",
     }
-    srv3 = MCPServer(name="test3", command="python", env=test_env)
-    assert srv3.env == test_env
+    srv3 = MCPServer(name="test3", command="python", env=test_env4)
+    assert srv3.env == test_env4
 
     # Test that env is preserved in model_dump
     dumped = srv3.model_dump()
@@ -176,7 +176,7 @@ def test_mcp_server_env_handling():
 
     # Test that env is preserved in copy
     copied = srv3.copy()
-    assert copied.env == test_env
+    assert copied.env == test_env4
 
     # Test that env is preserved in model_validate
     validated = MCPServer.model_validate(dumped)
@@ -227,3 +227,271 @@ def test_mcp_server_cache_key_includes_env():
     )
 
     assert srv1.cache_key == srv5.cache_key, "Servers with same config should have same cache key"
+
+
+def test_mcp_server_model_dump_and_validate_roundtrip():
+    """Test that model_dump and model_validate are inverse operations for MCPServer, including all header/env types."""
+    from agent_platform.core.mcp.mcp_types import (
+        MCPVariableTypeString,
+        MCPVariableTypeSecret,
+        MCPVariableTypeOAuth2Secret,
+        MCPVariableTypeDataServerInfo,
+    )
+
+    # Compose headers/env with all types
+    all_types = {
+        "KEY_WITH_VALUE": "value",
+        "KEY_STRING_OBJECT": MCPVariableTypeString(value="v", description="desc"),
+        "KEY_SECRET_OBJECT": MCPVariableTypeSecret(description="sdesc"),
+        "KEY_OAUTH2_OBJECT": MCPVariableTypeOAuth2Secret(
+            scopes=["scope1"], provider="prov", description="odesc"
+        ),
+        "KEY_DATA_OBJECT": MCPVariableTypeDataServerInfo(),
+    }
+
+    # URL-based server
+    srv_url = MCPServer(
+        name="remote-server",
+        url="https://api.example.com/MCP",
+        headers=all_types,
+        force_serial_tool_calls=True,
+        transport="streamable-http",
+    )
+    dumped_url = srv_url.model_dump()
+
+    # Validate dumped_url structure and content
+    assert set(dumped_url.keys()) == {
+        "name",
+        "transport",
+        "url",
+        "headers",
+        "command",
+        "args",
+        "env",
+        "cwd",
+        "force_serial_tool_calls",
+    }
+    assert dumped_url["headers"] == {
+        "KEY_WITH_VALUE": "value",
+        "KEY_STRING_OBJECT": {"type": "string", "description": "desc", "value": "v"},
+        "KEY_SECRET_OBJECT": {"type": "secret", "description": "sdesc"},
+        "KEY_OAUTH2_OBJECT": {
+            "type": "oauth2-secret",
+            "scopes": ["scope1"],
+            "provider": "prov",
+            "description": "odesc",
+        },
+        "KEY_DATA_OBJECT": {"type": "data-server-info"},
+    }
+    assert dumped_url["env"] is None
+    assert dumped_url["command"] is None
+    assert dumped_url["args"] is None
+    assert dumped_url["cwd"] is None
+    assert dumped_url["url"] == "https://api.example.com/MCP"
+    assert dumped_url["name"] == "remote-server"
+    assert dumped_url["transport"] == "streamable-http"
+    assert dumped_url["force_serial_tool_calls"] is True
+
+    # Model validate dumped_url
+    validated_url = MCPServer.model_validate(dumped_url)
+    assert validated_url.name == srv_url.name
+    assert validated_url.url == srv_url.url
+    assert validated_url.headers == srv_url.headers
+    assert validated_url.force_serial_tool_calls == srv_url.force_serial_tool_calls
+    assert validated_url.transport == srv_url.transport
+    assert validated_url.command is None
+    assert validated_url.args is None
+    assert validated_url.env is None
+    assert validated_url.cwd is None
+
+    # Command-based server
+    srv_cmd = MCPServer(
+        name="local-server",
+        command="run-local-server",
+        args=["--port", "8080"],
+        env=all_types,
+        cwd="/tmp",
+        force_serial_tool_calls=False,
+        transport="stdio",
+    )
+    dumped_cmd = srv_cmd.model_dump()
+
+    # Validate dumped_cmd structure and content
+    assert set(dumped_cmd.keys()) == {
+        "name",
+        "transport",
+        "url",
+        "headers",
+        "command",
+        "args",
+        "env",
+        "cwd",
+        "force_serial_tool_calls",
+    }
+    assert dumped_cmd["env"] == {
+        "KEY_WITH_VALUE": "value",
+        "KEY_STRING_OBJECT": {"type": "string", "description": "desc", "value": "v"},
+        "KEY_SECRET_OBJECT": {"type": "secret", "description": "sdesc"},
+        "KEY_OAUTH2_OBJECT": {
+            "type": "oauth2-secret",
+            "scopes": ["scope1"],
+            "provider": "prov",
+            "description": "odesc",
+        },
+        "KEY_DATA_OBJECT": {"type": "data-server-info"},
+    }
+    assert dumped_cmd["headers"] is None
+    assert dumped_cmd["url"] is None
+    assert dumped_cmd["command"] == "run-local-server"
+    assert dumped_cmd["args"] == ["--port", "8080"]
+    assert dumped_cmd["cwd"] == "/tmp"
+    assert dumped_cmd["name"] == "local-server"
+    assert dumped_cmd["transport"] == "stdio"
+    assert dumped_cmd["force_serial_tool_calls"] is False
+
+    # Model validate dumped_cmd
+    validated_cmd = MCPServer.model_validate(dumped_cmd)
+    assert validated_cmd.name == srv_cmd.name
+    assert validated_cmd.command == srv_cmd.command
+    assert validated_cmd.args == srv_cmd.args
+    assert validated_cmd.env == srv_cmd.env
+    assert validated_cmd.cwd == srv_cmd.cwd
+    assert validated_cmd.force_serial_tool_calls == srv_cmd.force_serial_tool_calls
+    assert validated_cmd.transport == srv_cmd.transport
+    assert validated_cmd.url is None
+    assert validated_cmd.headers is None
+
+
+def test_mcp_server_model_dump_and_validate_roundtrip_with_secrets():
+    """Test that model_dump and model_validate are inverse operations for MCPServer, including all header/env types."""
+    from agent_platform.core.mcp.mcp_types import (
+        MCPVariableTypeString,
+        MCPVariableTypeSecret,
+        MCPVariableTypeOAuth2Secret,
+        MCPVariableTypeDataServerInfo,
+    )
+
+    # Compose headers/env with all types
+    all_types = {
+        "KEY_WITH_VALUE": "value",
+        "KEY_STRING_OBJECT": MCPVariableTypeString(value="v", description="desc"),
+        "KEY_SECRET_OBJECT": MCPVariableTypeSecret(description="sdesc", value="svalue"),
+        "KEY_OAUTH2_OBJECT": MCPVariableTypeOAuth2Secret(
+            scopes=["scope1"], provider="prov", description="odesc", value="oauth2value"
+        ),
+        "KEY_DATA_OBJECT": MCPVariableTypeDataServerInfo(value="datavalue"),
+    }
+
+    # URL-based server
+    srv_url = MCPServer(
+        name="remote-server",
+        url="https://api.example.com/MCP",
+        headers=all_types,
+        force_serial_tool_calls=True,
+        transport="streamable-http",
+    )
+    dumped_url = srv_url.model_dump()
+
+    # Validate dumped_url structure and content
+    assert set(dumped_url.keys()) == {
+        "name",
+        "transport",
+        "url",
+        "headers",
+        "command",
+        "args",
+        "env",
+        "cwd",
+        "force_serial_tool_calls",
+    }
+    assert dumped_url["headers"] == {
+        "KEY_WITH_VALUE": "value",
+        "KEY_STRING_OBJECT": {"type": "string", "description": "desc", "value": "v"},
+        "KEY_SECRET_OBJECT": {"type": "secret", "description": "sdesc", "value": "svalue"},
+        "KEY_OAUTH2_OBJECT": {
+            "type": "oauth2-secret",
+            "scopes": ["scope1"],
+            "provider": "prov",
+            "description": "odesc",
+            "value": "oauth2value",
+        },
+        "KEY_DATA_OBJECT": {"type": "data-server-info", "value": "datavalue"},
+    }
+    assert dumped_url["env"] is None
+    assert dumped_url["command"] is None
+    assert dumped_url["args"] is None
+    assert dumped_url["cwd"] is None
+    assert dumped_url["url"] == "https://api.example.com/MCP"
+    assert dumped_url["name"] == "remote-server"
+    assert dumped_url["transport"] == "streamable-http"
+    assert dumped_url["force_serial_tool_calls"] is True
+
+    # Model validate dumped_url
+    validated_url = MCPServer.model_validate(dumped_url)
+    assert validated_url.name == srv_url.name
+    assert validated_url.url == srv_url.url
+    assert validated_url.headers == srv_url.headers
+    assert validated_url.force_serial_tool_calls == srv_url.force_serial_tool_calls
+    assert validated_url.transport == srv_url.transport
+    assert validated_url.command is None
+    assert validated_url.args is None
+    assert validated_url.env is None
+    assert validated_url.cwd is None
+
+    # Command-based server
+    srv_cmd = MCPServer(
+        name="local-server",
+        command="run-local-server",
+        args=["--port", "8080"],
+        env=all_types,
+        cwd="/tmp",
+        force_serial_tool_calls=False,
+        transport="stdio",
+    )
+    dumped_cmd = srv_cmd.model_dump()
+
+    # Validate dumped_cmd structure and content
+    assert set(dumped_cmd.keys()) == {
+        "name",
+        "transport",
+        "url",
+        "headers",
+        "command",
+        "args",
+        "env",
+        "cwd",
+        "force_serial_tool_calls",
+    }
+    assert dumped_cmd["env"] == {
+        "KEY_WITH_VALUE": "value",
+        "KEY_STRING_OBJECT": {"type": "string", "description": "desc", "value": "v"},
+        "KEY_SECRET_OBJECT": {"type": "secret", "description": "sdesc", "value": "svalue"},
+        "KEY_OAUTH2_OBJECT": {
+            "type": "oauth2-secret",
+            "scopes": ["scope1"],
+            "provider": "prov",
+            "description": "odesc",
+            "value": "oauth2value",
+        },
+        "KEY_DATA_OBJECT": {"type": "data-server-info", "value": "datavalue"},
+    }
+    assert dumped_cmd["headers"] is None
+    assert dumped_cmd["url"] is None
+    assert dumped_cmd["command"] == "run-local-server"
+    assert dumped_cmd["args"] == ["--port", "8080"]
+    assert dumped_cmd["cwd"] == "/tmp"
+    assert dumped_cmd["name"] == "local-server"
+    assert dumped_cmd["transport"] == "stdio"
+    assert dumped_cmd["force_serial_tool_calls"] is False
+
+    # Model validate dumped_cmd
+    validated_cmd = MCPServer.model_validate(dumped_cmd)
+    assert validated_cmd.name == srv_cmd.name
+    assert validated_cmd.command == srv_cmd.command
+    assert validated_cmd.args == srv_cmd.args
+    assert validated_cmd.env == srv_cmd.env
+    assert validated_cmd.cwd == srv_cmd.cwd
+    assert validated_cmd.force_serial_tool_calls == srv_cmd.force_serial_tool_calls
+    assert validated_cmd.transport == srv_cmd.transport
+    assert validated_cmd.url is None
+    assert validated_cmd.headers is None

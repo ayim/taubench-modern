@@ -55,7 +55,6 @@ type AgentPackageMcpServerVariable struct {
 	Description string   `json:"description,omitempty"`
 	Provider    string   `json:"provider,omitempty"`
 	Scopes      []string `json:"scopes,omitempty"`
-	Default     string   `json:"default,omitempty"`
 }
 
 // UnmarshalJSON implements custom unmarshaling for AgentPackageMcpServerVariable
@@ -89,7 +88,7 @@ func (s AgentPackageMcpServerVariable) MarshalJSON() ([]byte, error) {
 
 // HasRawValue checks to see if Value should be treated as raw string and not object
 func (s AgentPackageMcpServerVariable) HasRawValue() bool {
-	return s.Type == "" && s.Description == "" && s.Provider == "" && len(s.Scopes) == 0 && s.Default == ""
+	return s.Type == "" && s.Description == "" && s.Provider == "" && len(s.Scopes) == 0
 }
 
 func BuildAgentPackageMcpServerVariable(val *SpecMcpServerVariable) AgentPackageMcpServerVariable {
@@ -97,7 +96,6 @@ func BuildAgentPackageMcpServerVariable(val *SpecMcpServerVariable) AgentPackage
 		Value:       val.Value,
 		Type:        string(val.Type),
 		Description: val.Description,
-		Default:     val.Default,
 		Provider:    val.Provider,
 		Scopes:      val.Scopes,
 	}
@@ -108,7 +106,6 @@ func BuildSpecMcpServerVariable(val *AgentServer.McpServerVariable) SpecMcpServe
 		Value:       val.Value,
 		Type:        SpecMcpVariableType(val.Type),
 		Description: val.Description,
-		Default:     val.Default,
 		Provider:    val.Provider,
 		Scopes:      val.Scopes,
 	}
@@ -121,7 +118,6 @@ func BuildAgentMcpServerVariable(val *AgentPackageMcpServerVariable) AgentServer
 		Description: val.Description,
 		Provider:    val.Provider,
 		Scopes:      val.Scopes,
-		Default:     val.Default,
 	}
 }
 

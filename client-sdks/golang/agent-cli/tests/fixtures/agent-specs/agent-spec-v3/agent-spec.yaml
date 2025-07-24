@@ -26,7 +26,7 @@ agent-package:
             FILE_SYSTEM_ROOT:
               type: string
               description: Your content type for authentication
-              default: /data
+              value: /data
             MY_OAUTH2_API_KEY:
               type: oauth2-secret
               description: Your OAuth2 API key for authentication
@@ -55,7 +55,7 @@ agent-package:
             X-API-Version:
               type: string
               description: API version header
-              default: '1.0.0'
+              value: '1.0.0'
             X-email-API-Key:
               type: secret
               description: API key to access e-mails

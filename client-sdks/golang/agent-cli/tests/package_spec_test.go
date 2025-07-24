@@ -36,7 +36,7 @@ func TestReadSpecV3(t *testing.T) {
 	assert.Equal(t, 2, len(spec.AgentPackage.Agents[0].McpServers[0].Env["MY_OAUTH2_API_KEY"].Scopes), "agent metadata should have correct Scopes")
 	assert.Equal(t, "Microsoft", spec.AgentPackage.Agents[0].McpServers[0].Env["MY_OAUTH2_API_KEY"].Provider, "agent metadata should have correct Provider")
 	assert.Equal(t, common.SpecMcpTypeString, spec.AgentPackage.Agents[0].McpServers[0].Env["FILE_SYSTEM_ROOT"].Type, "agent metadata should have correct Provider")
-	assert.Equal(t, "/data", spec.AgentPackage.Agents[0].McpServers[0].Env["FILE_SYSTEM_ROOT"].Default, "agent metadata should have correct Provider")
+	assert.Equal(t, "/data", *spec.AgentPackage.Agents[0].McpServers[0].Env["FILE_SYSTEM_ROOT"].Value, "agent metadata should have correct Provider")
 }
 
 func TestWriteSpecV3(t *testing.T) {
@@ -53,7 +53,7 @@ func TestWriteSpecV3(t *testing.T) {
 	assert.Equal(t, 2, len(spec.AgentPackage.Agents[0].McpServers[0].Env["MY_OAUTH2_API_KEY"].Scopes), "agent metadata should have correct Scopes")
 	assert.Equal(t, "Microsoft", spec.AgentPackage.Agents[0].McpServers[0].Env["MY_OAUTH2_API_KEY"].Provider, "agent metadata should have correct Provider")
 	assert.Equal(t, common.SpecMcpTypeString, spec.AgentPackage.Agents[0].McpServers[0].Env["FILE_SYSTEM_ROOT"].Type, "agent metadata should have correct Provider")
-	assert.Equal(t, "/data", spec.AgentPackage.Agents[0].McpServers[0].Env["FILE_SYSTEM_ROOT"].Default, "agent metadata should have correct Provider")
+	assert.Equal(t, "/data", *spec.AgentPackage.Agents[0].McpServers[0].Env["FILE_SYSTEM_ROOT"].Value, "agent metadata should have correct Provider")
 }
 
 func TestWriteSpecStringMatchV3(t *testing.T) {
@@ -229,8 +229,8 @@ func TestFilterMcpServerSecretValuesFromSpec(t *testing.T) {
 	assert.Contains(t, mcp.Headers, "X-RAW")
 	assert.Contains(t, mcp.Headers, "X-DATAINFO")
 	assert.Nil(t, mcp.Headers["X-SECRET"].Value)
-	if assert.Nil(t, mcp.Headers["X-STRING"].Value) {
-		assert.Equal(t, stringValue, mcp.Headers["X-STRING"].Default)
+	if assert.NotNil(t, mcp.Headers["X-STRING"].Value) {
+		assert.Equal(t, stringValue, *mcp.Headers["X-STRING"].Value)
 	}
 	assert.Nil(t, mcp.Headers["X-OAUTH2"].Value)
 	if assert.NotNil(t, mcp.Headers["X-RAW"].Value) {
@@ -246,8 +246,8 @@ func TestFilterMcpServerSecretValuesFromSpec(t *testing.T) {
 	assert.Contains(t, mcp.Env, "ENV-OAUTH2")
 	assert.Contains(t, mcp.Env, "ENV-RAW")
 	assert.Nil(t, mcp.Env["ENV-SECRET"].Value)
-	if assert.Nil(t, mcp.Env["ENV-STRING"].Value) {
-		assert.Equal(t, stringValue, mcp.Env["ENV-STRING"].Default)
+	if assert.NotNil(t, mcp.Env["ENV-STRING"].Value) {
+		assert.Equal(t, stringValue, *mcp.Env["ENV-STRING"].Value)
 	}
 	assert.Nil(t, mcp.Env["ENV-OAUTH2"].Value)
 	if assert.NotNil(t, mcp.Env["ENV-RAW"].Value) {

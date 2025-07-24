@@ -71,7 +71,6 @@ type SpecMcpServerVariable struct {
 	Description string              `yaml:"description,omitempty" json:"description,omitempty"`
 	Provider    string              `yaml:"provider,omitempty" json:"provider,omitempty"`
 	Scopes      []string            `yaml:"scopes,omitempty" json:"scopes,omitempty"`
-	Default     string              `yaml:"default,omitempty" json:"default,omitempty"`
 
 	// The value that is sent over by the user to be used as replacement for variable object
 	Value *string `yaml:"value,omitempty" json:"value,omitempty"`
@@ -93,7 +92,6 @@ func (s *SpecMcpServerVariable) UnmarshalYAML(unmarshal func(interface{}) error)
 		Description string              `yaml:"description,omitempty" json:"description,omitempty"`
 		Provider    string              `yaml:"provider,omitempty" json:"provider,omitempty"`
 		Scopes      []string            `yaml:"scopes,omitempty" json:"scopes,omitempty"`
-		Default     string              `yaml:"default,omitempty" json:"default,omitempty"`
 		Value       *string             `yaml:"value,omitempty" json:"value,omitempty"`
 	}
 
@@ -105,7 +103,6 @@ func (s *SpecMcpServerVariable) UnmarshalYAML(unmarshal func(interface{}) error)
 	s.Description = obj.Description
 	s.Provider = obj.Provider
 	s.Scopes = obj.Scopes
-	s.Default = obj.Default
 	s.Value = obj.Value
 
 	return nil
@@ -123,14 +120,12 @@ func (s SpecMcpServerVariable) MarshalYAML() (interface{}, error) {
 		Description string              `yaml:"description,omitempty" json:"description,omitempty"`
 		Provider    string              `yaml:"provider,omitempty" json:"provider,omitempty"`
 		Scopes      []string            `yaml:"scopes,omitempty" json:"scopes,omitempty"`
-		Default     string              `yaml:"default,omitempty" json:"default,omitempty"`
 		Value       *string             `yaml:"value,omitempty" json:"value,omitempty"`
 	}{
 		Type:        s.Type,
 		Description: s.Description,
 		Provider:    s.Provider,
 		Scopes:      s.Scopes,
-		Default:     s.Default,
 		Value:       s.Value,
 	}, nil
 }
@@ -168,7 +163,7 @@ func (s SpecMcpServerVariable) MarshalJSON() ([]byte, error) {
 
 // HasRawValue checks to see if Value should be treated as raw string and not object
 func (s SpecMcpServerVariable) HasRawValue() bool {
-	return s.Type == "" && s.Provider == "" && s.Description == "" && s.Default == "" && len(s.Scopes) == 0
+	return s.Type == "" && s.Provider == "" && s.Description == "" && len(s.Scopes) == 0
 }
 
 type SpecMcpServerVariables = map[string]SpecMcpServerVariable

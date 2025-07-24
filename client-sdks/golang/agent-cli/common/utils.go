@@ -37,7 +37,7 @@ func Exit(code int, format string, rest ...interface{}) {
 	}
 
 	fmt.Fprintln(os.Stderr, message)
-	// os.Exit(code) 
+	// os.Exit(code)
 	// -- Check with @Kosmo: why was this changed for the code below?
 	defer func() {
 		if r := recover(); r != nil {

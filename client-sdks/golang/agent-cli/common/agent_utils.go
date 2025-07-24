@@ -188,6 +188,14 @@ func isMcpServerVariableEqual(local *SpecMcpServerVariable, deployed *AgentServe
 			return false
 		}
 	}
+	// If the type is string, we need to check the value
+	// For other types, value is nil in the Spec
+	if local.Type == SpecMcpTypeString && deployed.Type == "string" {
+		if DerefString(local.Value) != DerefString(deployed.Value) {
+			return false
+		}
+	}
+
 	if string(local.Type) != string(deployed.Type) {
 		return false
 	}
@@ -197,12 +205,10 @@ func isMcpServerVariableEqual(local *SpecMcpServerVariable, deployed *AgentServe
 	if local.Provider != deployed.Provider {
 		return false
 	}
-	if local.Default != deployed.Default {
-		return false
-	}
 	if !StringSlicesEqual(local.Scopes, deployed.Scopes) {
 		return false
 	}
+
 	return true
 }
 

@@ -78,7 +78,7 @@ func (v *Validator) validateKeyPair(keyNode *yaml.Node, errors chan Error) {
 		currentStackParts := strings.Split(v.currentStackAsStr, "/")
 		for i := 0; i < len(currentStackParts); i += 1 {
 			if skipNext {
-			    skipNext = false
+				skipNext = false
 				continue
 			}
 			part := currentStackParts[i]
@@ -87,11 +87,11 @@ func (v *Validator) validateKeyPair(keyNode *yaml.Node, errors chan Error) {
 			parentEntry := v.specEntries[strings.Join(currentStackAsStr, "/")]
 
 			if parentEntry != nil {
-				switch parentEntry.ExpectedType.ExpectedType{
+				switch parentEntry.ExpectedType.ExpectedType {
 				case ExpectedTypeEnumMapStringObject:
-				    fallthrough
+					fallthrough
 				case ExpectedTypeEnumMcpServerEnv:
-				    fallthrough
+					fallthrough
 				case ExpectedTypeEnumMcpServerHeaders:
 					skipNext = true
 				}
@@ -625,10 +625,10 @@ func (v *Validator) verifyYamlMatchesSpec(
 					} else if value.GetData().(*YamlNodeData).Kind != YamlNodeKindUnhandled {
 						var msg string
 						if acceptDirectString {
-							msg = fmt.Sprintf("Expected all items in %s to be strings or objects. Found %s.", 
-							    specData.Path, value.GetData().(*YamlNodeData).Kind)
+							msg = fmt.Sprintf("Expected all items in %s to be strings or objects. Found %s.",
+								specData.Path, value.GetData().(*YamlNodeData).Kind)
 						} else {
-							msg = fmt.Sprintf("Expected all items in %s to be objects. Found %s.", 
+							msg = fmt.Sprintf("Expected all items in %s to be objects. Found %s.",
 								specData.Path, value.GetData().(*YamlNodeData).Kind)
 						}
 						errors <- *NewErrorFromYamlNode(msg,
@@ -650,16 +650,15 @@ func (v *Validator) verifyYamlMatchesSpec(
 			if yamlNode.data.Kind == YamlNodeKindList {
 				for _, listItemNode := range yamlNode.GetChildren() {
 					if listItemNode.GetData().(*YamlNodeData).Kind != YamlNodeKindString {
-						errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected all items in %s to be strings. Found: %s", 
+						errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected all items in %s to be strings. Found: %s",
 							specData.Path, listItemNode.GetData().(*YamlNodeData).Kind),
 							listItemNode.GetData().(*YamlNodeData), Critical)
 					}
 				}
 			} else {
 				errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected %s to be a list of strings (if tools are not specified, or the list is empty, all tools are allowed). Found: %s", specData.Path, yamlNode.data.Kind),
-				yamlNode.data, Critical)
+					yamlNode.data, Critical)
 			}
-
 
 		case ExpectedTypeEnumMcpServerUrl:
 			if yamlNode.data.Kind != YamlNodeKindString {
@@ -710,22 +709,22 @@ func (v *Validator) verifyYamlMatchesSpec(
 						"secret": {
 							"provider": "not-allowed",
 							"scopes":   "not-allowed",
-							"value":  "optional",
+							"value":    "optional",
 						},
 						"oauth2-secret": {
 							"provider": "required",
 							"scopes":   "required",
-							"value":  "not-allowed",
+							"value":    "not-allowed",
 						},
 						"string": {
 							"provider": "not-allowed",
 							"scopes":   "not-allowed",
-							"value":  "optional",
+							"value":    "optional",
 						},
 						"data-server-info": {
 							"provider": "not-allowed",
 							"scopes":   "not-allowed",
-							"value":  "not-allowed",
+							"value":    "not-allowed",
 						},
 					}
 					constraints, ok := constraintsForVarType[varType]
@@ -782,8 +781,8 @@ func (v *Validator) verifyYamlMatchesSpec(
 				// Validate that all list items are strings
 				for _, listItemNode := range yamlNode.GetChildren() {
 					if listItemNode.GetData().(*YamlNodeData).Kind != YamlNodeKindString {
-						errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected all items in %s to be strings. Found: %s", 
-						    specData.Path, listItemNode.GetData().(*YamlNodeData).Kind),
+						errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected all items in %s to be strings. Found: %s",
+							specData.Path, listItemNode.GetData().(*YamlNodeData).Kind),
 							listItemNode.GetData().(*YamlNodeData), Critical)
 					}
 				}

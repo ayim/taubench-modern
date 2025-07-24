@@ -9,12 +9,11 @@ class DummyVar:
 
 
 def test_from_variable_string():
-    var = DummyVar("string", description="desc", default="def", value="val")
+    var = DummyVar("string", description="desc", value="val")
     compat = MCPVariableCompat.from_variable(var)
     assert isinstance(compat, MCPVariableCompat)
     assert compat.type == "string"
     assert compat.description == "desc"
-    assert compat.default == "def"
     if isinstance(compat, MCPVariableCompat):
         assert compat.value == "**********"  # masked by default
     compat = MCPVariableCompat.from_variable(var, reveal_sensitive=True)

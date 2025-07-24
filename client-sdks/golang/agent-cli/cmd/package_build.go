@@ -253,9 +253,6 @@ func FilterMcpServerSecretValuesFromSpec(spec *common.AgentSpec) *common.AgentSp
 			// we need to remove the secret values from the headers and env
 			mcpCopy.Headers = RemoveSecretValues(mcp.Headers)
 			mcpCopy.Env = RemoveSecretValues(mcp.Env)
-			// we need to overwrite the default values with the values from the headers and env
-			mcpCopy.Headers = OverwriteDefaultValues(mcpCopy.Headers)
-			mcpCopy.Env = OverwriteDefaultValues(mcpCopy.Env)
 			// done
 			agentCopy.McpServers[j] = mcpCopy
 		}
@@ -293,21 +290,6 @@ func RemoveSecretValues(vars common.SpecMcpServerVariables) common.SpecMcpServer
 			v.Value = nil
 		}
 		// All other types (including data-server-info, string) are preserved
-		copyVars[k] = v
-	}
-	return copyVars
-}
-
-func OverwriteDefaultValues(vars common.SpecMcpServerVariables) common.SpecMcpServerVariables {
-	if vars == nil {
-		return nil
-	}
-	copyVars := make(common.SpecMcpServerVariables, len(vars))
-	for k, v := range vars {
-		if v.Value != nil && v.Type == common.SpecMcpTypeString {
-			v.Default = *v.Value
-			v.Value = nil
-		}
 		copyVars[k] = v
 	}
 	return copyVars

@@ -22,7 +22,6 @@ class ActionPackageCompat:
 class MCPVariableCompat:
     type: Literal["string", "secret", "oauth2-secret", "data-server-info"]
     description: str | None = None
-    default: str | None = None
     provider: str | None = None
     scopes: list[str] | None = None
     value: str | None = None
@@ -40,7 +39,6 @@ class MCPVariableCompat:
             return cls(
                 type="string",
                 description=getattr(var, "description", None),
-                default=getattr(var, "default", None),
                 value=masked_value,
             )
         elif t == "secret":

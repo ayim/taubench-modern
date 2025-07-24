@@ -377,14 +377,14 @@ func assertV3Metadata(t *testing.T, metadata []*common.AgentPackageMetadata) {
 					Description: "Your content type for authentication",
 					Provider:    "",
 					Scopes:      nil,
-					Default:     "/data",
+					Value:       common.Ptr("/data"),
 				},
 				"MCP_API_KEY": {
 					Type:        "secret",
 					Description: "Your API key for authentication",
 					Provider:    "",
 					Scopes:      nil,
-					Default:     "",
+					Value:       nil,
 				},
 				"MY_OAUTH2_API_KEY": {
 					Type:        "oauth2-secret",
@@ -394,7 +394,7 @@ func assertV3Metadata(t *testing.T, metadata []*common.AgentPackageMetadata) {
 						"user.read",
 						"user.write",
 					},
-					Default: "",
+					Value: nil,
 				},
 			}, mcpServer.Env, "agent metadata should have correct MCPServer.Env")
 			assert.Equal(t, "./mcp-servers/file-system", mcpServer.Cwd, "agent metadata should have correct MCPServer.CWD")
@@ -411,21 +411,21 @@ func assertV3Metadata(t *testing.T, metadata []*common.AgentPackageMetadata) {
 					Description: "Your OAuth2 API key for authentication",
 					Provider:    "Microsoft",
 					Scopes:      nil,
-					Default:     "",
+					Value:       nil,
 				},
 				"X-API-Version": {
 					Type:        "string",
 					Description: "API version header",
 					Provider:    "",
 					Scopes:      nil,
-					Default:     "1.0.0",
+					Value:       common.Ptr("1.0.0"),
 				},
 				"X-email-API-Key": {
 					Type:        "secret",
 					Description: "API key to access e-mails",
 					Provider:    "",
 					Scopes:      nil,
-					Default:     "",
+					Value:       nil,
 				},
 			}, mcpServer.Headers, "agent metadata should have correct MCPServer.Env")
 		}

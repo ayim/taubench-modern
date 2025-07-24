@@ -464,7 +464,7 @@ func TestCheckAgentsSynchronization_WithMcpServers(t *testing.T) {
 									"FILE_SYSTEM_ROOT": {
 										Type:        common.SpecMcpTypeString,
 										Description: "Root directory for file operations",
-										Default:     "/data",
+										Value:       common.Ptr("/data"),
 									},
 									"MCP_API_KEY": {
 										Type:        common.SpecMcpTypeSecret,
@@ -515,7 +515,7 @@ func TestCheckAgentsSynchronization_WithMcpServers(t *testing.T) {
 								"FILE_SYSTEM_ROOT": {
 									Type:        "string",
 									Description: "Root directory for file operations",
-									Default:     "/data",
+									Value:       common.Ptr("/data"),
 								},
 								"MCP_API_KEY": {
 									Type:        "secret",
@@ -572,7 +572,7 @@ func TestCheckAgentsSynchronization_WithMcpServers(t *testing.T) {
 									"FILE_SYSTEM_ROOT": {
 										Type:        common.SpecMcpTypeString,
 										Description: "Root directory for file operations",
-										Default:     "/data",
+										Value:       common.Ptr("/data"),
 									},
 								},
 								Cwd:                  "./mcp-servers/file-system",
@@ -601,7 +601,7 @@ func TestCheckAgentsSynchronization_WithMcpServers(t *testing.T) {
 								"FILE_SYSTEM_ROOT": {
 									Type:        "string",
 									Description: "Root directory for file operations",
-									Default:     "/different/path", // Different default
+									Value:       common.Ptr("/different/path"), // Different value
 								},
 							},
 							Cwd:                  common.Ptr("./mcp-servers/file-system"),

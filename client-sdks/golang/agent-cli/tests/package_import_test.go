@@ -47,7 +47,7 @@ func minimalMetadata() []*common.AgentPackageMetadata {
 			Transport:            "auto",
 			Description:          "mcpdesc",
 			URL:                  "http://localhost:1234",
-			Headers:              common.AgentPackageMcpServerVariables{"h1": {Default: "hv1", Type: "string"}},
+			Headers:              common.AgentPackageMcpServerVariables{"h1": {Value: common.Ptr("hv1"), Type: "string"}},
 			ForceSerialToolCalls: true,
 		}},
 	}}
