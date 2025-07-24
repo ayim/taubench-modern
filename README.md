@@ -23,8 +23,8 @@ Available targets:
   dev-widget                Run pnpm run dev on server/examples/debug_widget
   format                    Run formatting with ruff and prettier (node/npm must be in the path for npx to work).
   help                      Show this help
-  lint-fix-unsafe           Run ruff linting (fix violations)
   lint-fix                  Run ruff linting (fix violations)
+  lint-fix-unsafe           Run ruff linting (fix violations)
   lint                      Run ruff linting (check only)
   new-empty-env             Create a new empty .env file if one doesn't exist
   observability-clean       Clean the observability stack and volumes.
@@ -32,14 +32,17 @@ Available targets:
   observability-logs        Show the logs of the observability stack.
   observability-ps          Show the status of the observability stack.
   observability-up          Start the observability stack.
+  run-as-studio             Run the agent server as in Studio
   run-server-exe            Run the agent server executable
+  run-server-hot-reload     Run the agent server with hot reloading (uvicorn --reload)
   run-server                Run the agent server
   sync                      Sync/install all packages in the monorepo
   test-integration          Run only integration tests
+  test                      Run all tests with pytest (VCR playback only)
   test-unit                 Run only unit tests
   test-vcr-record-fresh     Run tests with pytest and record VCR cassettes
   test-vcr-record-new       Run tests with pytest and record VCR cassettes for new requests
-  test                      Run all tests with pytest (VCR playback only)
+  test-workitems-judge      Test work item judge stability by running multiple times
   typecheck                 Run typechecking with pyright
   venv                      Create a new virtual environment with uv
 ```

@@ -60,7 +60,10 @@ def _parse_mcp_variable(data: Any) -> MCPDiscriminatedUnion | str:
         return str(data)
 
 
-def serialize_mcp_variables(variables: MCPVariables | None) -> dict[str, Any] | None:
+def serialize_mcp_variables(
+    variables: MCPVariables | None,
+    exclude_none: bool = True,
+) -> dict[str, Any] | None:
     """Serialize MCPVariables to a JSON-serializable dictionary."""
     if variables is None:
         return None
@@ -69,7 +72,7 @@ def serialize_mcp_variables(variables: MCPVariables | None) -> dict[str, Any] | 
         if isinstance(value, str):
             result[key] = value
         elif isinstance(value, BaseModel):
-            result[key] = value.model_dump()
+            result[key] = value.model_dump(exclude_none=exclude_none)
         else:
             result[key] = str(value)
     return result

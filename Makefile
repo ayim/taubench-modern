@@ -130,7 +130,9 @@ observability-clean: ## Clean the observability stack and volumes.
 # --------------------------------------------------------------------
 run-server:  ## Run the agent server
 	@echo "Running server from agent_platform.server..."
-	uv run -m agent_platform.server
+	@echo "💡 Tip: Set PORT=<port> to use a different port (default: 8000)"
+	@echo ""
+	PORT=$${PORT:-8000} uv run -m agent_platform.server --port $$PORT
 
 run-server-exe:  ## Run the agent server executable
 	@if [ ! -f dist/$(EXE_NAME) ]; then \
@@ -139,12 +141,40 @@ run-server-exe:  ## Run the agent server executable
 		exit 1; \
 	fi
 	@echo "Running server from dist/..."
-	./dist/$(EXE_NAME)
-
+	@echo "💡 Tip: Set PORT=<port> to use a different port (default: 8000)"
+	@echo ""
+	./dist/$(EXE_NAME) --port $${PORT:-8000}
 
 run-as-studio:  ## Run the agent server as in Studio
 	@echo "Running server from agent_platform.server (as Studio)..."
 	uv run -m agent_platform.server --host "127.0.0.1" --port 58885 --use-data-dir-lock --kill-lock-holder
+
+run-server-hot-reload: sync  ## Run the agent server with hot reloading (uvicorn --reload)
+	@echo "Starting agent server with hot reloading..."
+	@echo "Server will automatically restart when you change files in:"
+	@echo "  - server/src/"
+	@echo "  - core/src/"
+	@echo "  - architectures/*/src/ (any architecture)"
+	@echo ""
+	@echo "💡 Tip: Set PORT=<port> to use a different port (default: 8000)"
+	@echo "       Set POSTGRES_HOST=localhost if you have local PostgreSQL running"
+	@echo "       Or use docker compose up postgres to start containerized PostgreSQL"
+	@echo ""
+	SEMA4AI_AGENT_SERVER_DB_TYPE=postgres \
+	LOG_LEVEL=DEBUG \
+	POSTGRES_HOST=$${POSTGRES_HOST:-localhost} \
+	POSTGRES_DB=$${POSTGRES_DB:-agents} \
+	POSTGRES_USER=$${POSTGRES_USER:-agents} \
+	POSTGRES_PASSWORD=$${POSTGRES_PASSWORD:-agents} \
+	POSTGRES_PORT=$${POSTGRES_PORT:-5432} \
+	uv run uvicorn agent_platform.server.dev:create_dev_app \
+		--factory \
+		--host 127.0.0.1 \
+		--port $${PORT:-8000} \
+		--reload \
+		--reload-include server/src/**/*.py \
+		--reload-include core/src/**/*.py \
+		--reload-include architectures/*/src/**/*.py
 
 
 test:  sync check-env-or-no-env ## Run all tests with pytest (VCR playback only)

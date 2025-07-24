@@ -230,12 +230,13 @@ def test_mcp_server_cache_key_includes_env():
 
 
 def test_mcp_server_model_dump_and_validate_roundtrip():
-    """Test that model_dump and model_validate are inverse operations for MCPServer, including all header/env types."""
+    """Test that model_dump and model_validate are inverse
+    operations for MCPServer, including all header/env types."""
     from agent_platform.core.mcp.mcp_types import (
-        MCPVariableTypeString,
-        MCPVariableTypeSecret,
-        MCPVariableTypeOAuth2Secret,
         MCPVariableTypeDataServerInfo,
+        MCPVariableTypeOAuth2Secret,
+        MCPVariableTypeSecret,
+        MCPVariableTypeString,
     )
 
     # Compose headers/env with all types
@@ -363,12 +364,13 @@ def test_mcp_server_model_dump_and_validate_roundtrip():
 
 
 def test_mcp_server_model_dump_and_validate_roundtrip_with_secrets():
-    """Test that model_dump and model_validate are inverse operations for MCPServer, including all header/env types."""
+    """Test that model_dump and model_validate are inverse operations
+    for MCPServer, including all header/env types."""
     from agent_platform.core.mcp.mcp_types import (
-        MCPVariableTypeString,
-        MCPVariableTypeSecret,
-        MCPVariableTypeOAuth2Secret,
         MCPVariableTypeDataServerInfo,
+        MCPVariableTypeOAuth2Secret,
+        MCPVariableTypeSecret,
+        MCPVariableTypeString,
     )
 
     # Compose headers/env with all types

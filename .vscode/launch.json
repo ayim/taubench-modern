@@ -87,6 +87,76 @@
       }
     },
     {
+      // NOTE: This target is kind of tooled to run against `docker compose up` to bring
+      // up postgres + influx + otel stuff (so you can run workroom `npm run dev` and
+      // docker compose up and backend in hot-reload to have backend + frontend hot-reload
+      // together which is really nice!!)
+      "name": "Debug Agent Server with Hot Reload",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": [
+        "agent_platform.server.dev:create_dev_app",
+        "--factory",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8000",
+        "--reload",
+        "--reload-include",
+        "server/src/**/*.py",
+        "--reload-include",
+        "core/src/**/*.py",
+        "--reload-include",
+        "architectures/*/src/**/*.py"
+      ],
+      "justMyCode": false,
+      "console": "integratedTerminal",
+      "env": {
+        "SEMA4AI_AGENT_SERVER_DB_TYPE": "postgres",
+        "LOG_LEVEL": "DEBUG",
+        "POSTGRES_HOST": "localhost",
+        "POSTGRES_DB": "agents",
+        "POSTGRES_USER": "agents",
+        "POSTGRES_PASSWORD": "agents",
+        "POSTGRES_PORT": "5432",
+        "SEMA4AI_AGENT_SERVER_CORS_MODE": "all",
+        "SEMA4AI_AGENT_SERVER_LOG_LEVEL": "DEBUG"
+      }
+    },
+    {
+      "name": "Debug Agent Server with Hot Reload (Custom)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": [
+        "agent_platform.server.dev:create_dev_app",
+        "--factory",
+        "--reload",
+        "--reload-include",
+        "server/src/**/*.py",
+        "--reload-include",
+        "core/src/**/*.py",
+        "--reload-include",
+        "architectures/*/src/**/*.py",
+        "--port",
+        "${input:hotReloadPort}"
+      ],
+      "justMyCode": false,
+      "console": "integratedTerminal",
+      "env": {
+        "SEMA4AI_AGENT_SERVER_DB_TYPE": "postgres",
+        "LOG_LEVEL": "${input:hotReloadAppLogLevel}",
+        "POSTGRES_HOST": "localhost",
+        "POSTGRES_DB": "agents",
+        "POSTGRES_USER": "agents",
+        "POSTGRES_PASSWORD": "agents",
+        "POSTGRES_PORT": "5432",
+        "SEMA4AI_AGENT_SERVER_CORS_MODE": "all",
+        "SEMA4AI_AGENT_SERVER_LOG_LEVEL": "${input:hotReloadAppLogLevel}"
+      }
+    },
+    {
       "name": "Debug pytest run",
       "type": "debugpy",
       "request": "launch",
@@ -144,6 +214,18 @@
       "id": "changesArgs",
       "description": "Provide the arguments to pass to the changes script",
       "default": ""
+    },
+    {
+      "type": "promptString",
+      "id": "hotReloadPort",
+      "description": "Port number for the web server",
+      "default": "8000"
+    },
+    {
+      "type": "promptString",
+      "id": "hotReloadAppLogLevel",
+      "description": "Application log level (DEBUG, INFO, WARNING, ERROR)",
+      "default": "DEBUG"
     }
   ]
 }

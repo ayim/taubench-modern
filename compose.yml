@@ -125,9 +125,16 @@ services:
                 condition: service_healthy
     agent-server:
         <<: *template-service-agent-server
+        # You can run the `Debug Agent Server with Hot Reload` target
+        # to run the agent server with hot reloading.
+        profiles:
+            - production
     workroom-production:
         <<: *template-service-workroom
         container_name: workroom-production
+        # And then run `npm run dev` in the workroom directory to have both
+        # the frontend and backend hot-reload together. (Working against the
+        # postgres/influx/otel stack defined above.)
         profiles:
             - production
 

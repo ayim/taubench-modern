@@ -145,6 +145,8 @@ exclude = [
     "**/.ruff_cache",
     "**/venv",
     "agent-spec/validation/**",
+    "client-sdks/typescript/**",
+    "client-sdks/golang/**",
 ]
 reportMissingImports = true
 reportMissingTypeStubs = false

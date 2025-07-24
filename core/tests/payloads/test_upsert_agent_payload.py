@@ -1,14 +1,15 @@
+import json
+
 from agent_platform.core.agent.agent import Agent, AgentArchitecture
-from agent_platform.core.payloads.upsert_agent import UpsertAgentPayload
-from agent_platform.server.api.private_v2.compatibility.agent_compat import AgentCompat
 from agent_platform.core.mcp.mcp_server import MCPServer
 from agent_platform.core.mcp.mcp_types import (
-    MCPVariableTypeString,
-    MCPVariableTypeSecret,
-    MCPVariableTypeOAuth2Secret,
     MCPVariableTypeDataServerInfo,
+    MCPVariableTypeOAuth2Secret,
+    MCPVariableTypeSecret,
+    MCPVariableTypeString,
 )
-import json
+from agent_platform.core.payloads.upsert_agent import UpsertAgentPayload
+from agent_platform.server.api.private_v2.compatibility.agent_compat import AgentCompat
 
 DEFAULT_ARCH = AgentArchitecture(name="agent_platform.architectures.default", version="1.0.0")
 
@@ -289,9 +290,9 @@ class TestMCPServerPayload:
 
 def test_mcp_union_of_variable_types_behavior():
     from agent_platform.core.mcp.mcp_types import (
-        MCPVariableTypeString,
-        MCPVariableTypeSecret,
         MCPUnionOfVariableTypes,
+        MCPVariableTypeSecret,
+        MCPVariableTypeString,
     )
 
     # Create a dict with both str and MCPVariableTypeString
