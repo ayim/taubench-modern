@@ -4,43 +4,53 @@
 
 ### Branching Strategy
 
-- **Default Branch**: `development`
+- **Single Branch**: `main` (trunk-based development)
 - **Protected Branch**: `main`
-- **Additional One-off Release Branches**: `release` or branches starting with `release-`
+
+### Branch Protection Rules
+
+- **Required Approvals**: 1 approver required for all PRs into `main`
+- **No Built-in Bypass List**: Repository administrators can temporarily disable rule enforcement or add themselves to the bypass list when necessary
+- **Breakglass Access**: Any admin bypass must be:
+  - Logged in GitHub (automatic)
+  - Documented with justification
+  - Approved before use (or after if the issue is emergent enough to require immediate action)
 
 ### Merge Rules
 
-- **Squash Merge**: Allowed only for all merges into `development` and `main`.
-- **All others**: No rules regarding feature branches.
+- **Squash Merge**: Required for all merges into `main`
 
 ### Workflow Overview
 
 1. **Feature Development**:
 
-   - Create a feature branch from `development`.
+   - Create a feature branch from `main`.
    - Implement your changes.
    - Add your changes to the "Unreleased" section of the changelog (see [Change Management](#change-management)).
    - Run `make check-pr` to ensure your changes pass all checks.
-   - Open a Pull Request (PR) to merge your feature branch into `development` using a squash merge.
+   - Open a Pull Request (PR) to merge your feature branch into `main` using a squash merge.
    - **Automatic Build**: The PR will automatically trigger a build, test, and deployment to CDN with PR-specific versioning, plus Slack notification.
 
-2. **Pre-Release**:
+2. **Release Process**:
 
-   - Once features are merged into `development`, update the version in `server/pyproject.toml` following [Semantic Versioning](#semantic-versioning).
-   - Format the changelog: move items from "Unreleased" to a new pre-release section (e.g., "# Agent Server 2.1.0-alpha.1").
-   - Merge the version bump and changelog update into `development` using a squash merge.
-   - Create and push a git tag matching the pattern `agent-server-v*` (e.g., `agent-server-v2.1.0-alpha.1`) on the `development` branch.
+   - Once features are merged into `main`, update the version in `server/pyproject.toml` following [Semantic Versioning](#semantic-versioning).
+   - Format the changelog: move items from "Unreleased" to a new release section (e.g., "# Agent Server 2.1.0").
+   - Merge the version bump and changelog update into `main` using a squash merge.
+   - Create and push a git tag matching the pattern `agent-server-v*` (e.g., `agent-server-v2.1.0`) on the `main` branch.
    - **Automatic Release**: The tag push will automatically:
      - Build and sign executables for all platforms.
      - Deploy to GitHub Releases and CDN.
 
-3. **Main Release**:
-   - When ready for a stable release, update the version in `server/pyproject.toml` to remove pre-release suffixes.
-   - Update the changelog: convert pre-release entries to final release format and remove any pre-release designations.
-   - Merge the version bump and changelog update into `development` using a squash merge.
-   - Merge the `development` branch into `main` using a squash merge.
-   - Create and push a release tag (e.g., `agent-server-v2.1.0`) on the `main` branch.
-   - **Automatic Release**: The tag push will automatically build and deploy the final release.
+3. **Pre-Release Process** (Optional):
+   - For pre-release versions (alpha, beta, rc), follow the same process but use pre-release version numbers (e.g., `agent-server-v2.1.0-alpha.1`).
+   - Pre-releases can be created directly from `main` when testing is needed before a final release.
+
+### Tips
+
+- **Verify version consistency**: The tag version must match `server/pyproject.toml`
+- **Test PR builds**: Use the automatically generated PR builds for testing before releasing
+- **Monitor Slack**: All builds send notifications with download links
+- **Check CDN**: Downloads are available at `https://cdn.sema4.ai/agent-server/v{VERSION}/{platform}/agent-server`
 
 ## Change Management
 
@@ -123,7 +133,50 @@ This project follows [Semantic Versioning (semver)](https://semver.org/) princip
 
 ## Release Process
 
-### Pre-Release (from `development` branch)
+### Standard Release (from `main` branch)
+
+1. **Prepare the version and changelog**:
+
+   ```bash
+   # Edit server/pyproject.toml
+   version = "2.1.0"
+
+   # Update the lockfile after version change
+   make sync
+   ```
+
+2. **Update the changelog**:
+
+   - Convert the "Unreleased" section to a versioned section:
+
+   ```markdown
+   # Sema4.ai Agent Server 2.1.0 (2025-01-15)
+
+   ## Agent Server
+
+   ### Features
+
+   - Your new features here
+   ```
+
+3. **Create PR and tag**:
+
+   ```bash
+   # Create PR with version bump and changelog updates
+   git add server/pyproject.toml server/CHANGELOG.md
+   git commit -m "Prepare release v2.1.0"
+   git push origin your-version-bump-branch
+
+   # After squash merge into main:
+   git checkout main
+   git pull origin main
+   git tag agent-server-v2.1.0
+   git push origin agent-server-v2.1.0
+   ```
+
+4. **Automatic deployment**: The tag push triggers the build and deployment automatically.
+
+### Pre-Release (from `main` branch)
 
 1. **Prepare the version and changelog**:
 
@@ -157,42 +210,14 @@ This project follows [Semantic Versioning (semver)](https://semver.org/) princip
    git commit -m "Prepare pre-release v2.1.0-alpha.1"
    git push origin your-version-bump-branch
 
-   # After squash merge into development:
-   git checkout development
-   git pull origin development
+   # After squash merge into main:
+   git checkout main
+   git pull origin main
    git tag agent-server-v2.1.0-alpha.1
    git push origin agent-server-v2.1.0-alpha.1
    ```
 
 4. **Automatic deployment**: The tag push triggers the build and deployment automatically.
-
-### Main Release (from `main` branch)
-
-1. **Prepare release changes**:
-
-   - Update version in `server/pyproject.toml` to remove pre-release suffix
-   - Run `make sync` to update the lockfile after version change
-   - Clean up changelog to finalize the release notes
-   - Create PR to merge these changes into `development` using squash merge
-
-2. **Merge to main**:
-
-   - Create PR to merge `development` → `main` using squash merge
-   - After PR is merged to `main`:
-
-   ```bash
-   git checkout main
-   git pull origin main
-   git tag agent-server-v2.1.0
-   git push origin agent-server-v2.1.0
-   ```
-
-### Tips
-
-- **Verify version consistency**: The tag version must match `server/pyproject.toml`
-- **Test PR builds**: Use the automatically generated PR builds for testing before releasing
-- **Monitor Slack**: All builds send notifications with download links
-- **Check CDN**: Downloads are available at `https://cdn.sema4.ai/agent-server/v{VERSION}/{platform}/agent-server`
 
 ## Local Development
 
