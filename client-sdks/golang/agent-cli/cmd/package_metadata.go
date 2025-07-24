@@ -123,10 +123,14 @@ func generateActionPackageMetadataForFolder(folderPath string) ([]byte, error) {
 		err := cmd.Run()
 		pretty.LogIfVerbose("[action server cmd]: %+v", cmd)
 		pretty.LogIfVerbose("[action server stdout]: %+v", stdout.String())
-		pretty.LogIfVerbose("[action server stderr]:\n%+v", stderr.String())
+
 		if err != nil {
-			return nil, fmt.Errorf("[generateActionPackageMetadataForFolder] failed to generate metadata: %w", err)
+			// Just stderr should be enough for the error message.
+			return nil, fmt.Errorf("[generateActionPackageMetadataForFolder] failed to generate metadata. err: %+v, stderr: %s", err, stderr.String())
 		}
+		// Just log stderr if there were no errors (otherwise it will be shown twice,
+		// which is a bit too much).
+		pretty.LogIfVerbose("[action server stderr]:\n%+v", stderr.String())
 	} else if err != nil {
 		pretty.LogIfVerbose("[generateActionPackageMetadataForFolder] error checking for metadata file: %s, err: %s", metadataFilePath, err)
 		return nil, err

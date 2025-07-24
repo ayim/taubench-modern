@@ -222,7 +222,7 @@ func ReadSpec(agentPackageDir string) (*common.AgentSpec, error) {
 	data, err := os.ReadFile(specPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, fmt.Errorf("spec YAML file @ [%s] not found", specPath)
+			return nil, fmt.Errorf("[readSpec] spec YAML file @ [%s] not found", specPath)
 		}
 		return nil, fmt.Errorf("[readSpec] failed to read spec YAML file: %w", err)
 	}
@@ -337,15 +337,20 @@ func WriteSpec(spec *common.AgentSpec, agentPackageDir string) error {
 	return nil
 }
 
-func buildAgentPackage(inputDir, outputDir, name string, overwriteAgentPackage bool) error {
+func BuildAgentPackage(inputDir, outputDir, name string, overwriteAgentPackage bool) error {
+	// if the input dir does not exist, return an error
+	if !pathlib.Exists(inputDir) {
+		return fmt.Errorf("[BuildAgentPackage] unable to build agent package because input directory %s does not exist", inputDir)
+	}
+
 	packagePath := filepath.Join(outputDir, name)
 	if pathlib.Exists(packagePath) {
 		if overwriteAgentPackage {
 			if err := os.Remove(packagePath); err != nil {
-				return fmt.Errorf("[buildAgentPackage] failed to remove existing package: %w", err)
+				return fmt.Errorf("[BuildAgentPackage] failed to remove existing package: %w", err)
 			}
 		} else {
-			return fmt.Errorf("[buildAgentPackage] package %s already exists", packagePath)
+			return fmt.Errorf("[BuildAgentPackage] package %s already exists", packagePath)
 		}
 	}
 
@@ -356,35 +361,35 @@ func buildAgentPackage(inputDir, outputDir, name string, overwriteAgentPackage b
 
 	tempDir, err := common.CreateTempDir("build")
 	if err != nil {
-		return fmt.Errorf("[buildAgentPackage] failed to create temporary directory: %w", err)
+		return fmt.Errorf("[BuildAgentPackage] failed to create temporary directory: %w", err)
 	}
 	if err := common.CopyDir(inputDir, tempDir, false); err != nil {
-		return fmt.Errorf("[buildAgentPackage] failed to copy directory %s to %s: %w", filepath.Dir(""), tempDir, err)
+		return fmt.Errorf("[BuildAgentPackage] failed to copy directory %s to %s: %w", filepath.Dir(""), tempDir, err)
 	}
 	defer os.RemoveAll(tempDir)
 
-	pretty.Log("[buildAgentPackage] destination temp directory for package: %+v", tempDir)
+	pretty.Log("[BuildAgentPackage] destination temp directory for package: %+v", tempDir)
 
-	pretty.Log("[buildAgentPackage] creating agent package metadata file...")
+	pretty.Log("[BuildAgentPackage] creating agent package metadata file...")
 	if err := createAgentPackageMetadataFile(tempDir); err != nil {
-		return fmt.Errorf("[buildAgentPackage] failed to create agent package metadata file: %w", err)
+		return fmt.Errorf("[BuildAgentPackage] failed to create agent package metadata file: %w", err)
 	}
-	pretty.Log("[buildAgentPackage] agent package metadata file created")
+	pretty.Log("[BuildAgentPackage] agent package metadata file created")
 
 	if err = buildActionPackages(spec, common.AgentProjectActionsLocation(tempDir)); err != nil {
-		return fmt.Errorf("[buildAgentPackage] failed to build action packages: %w", err)
+		return fmt.Errorf("[BuildAgentPackage] failed to build action packages: %w", err)
 	}
 
 	if err := WriteSpec(spec, tempDir); err != nil {
-		return fmt.Errorf("[buildAgentPackage] failed to create write spec: %w", err)
+		return fmt.Errorf("[BuildAgentPackage] failed to create write spec: %w", err)
 	}
 
 	if err := os.MkdirAll(outputDir, 0o755); err != nil {
-		return fmt.Errorf("[buildAgentPackage] failed to create output directory: %w", err)
+		return fmt.Errorf("[BuildAgentPackage] failed to create output directory: %w", err)
 	}
 
 	if err := zipDir(tempDir, packagePath); err != nil {
-		return fmt.Errorf("[buildAgentPackage] failed to create zip the directory: %w", err)
+		return fmt.Errorf("[BuildAgentPackage] failed to create zip the directory: %w", err)
 	}
 
 	return nil
@@ -399,7 +404,7 @@ var buildCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		err = buildAgentPackage(inputDir, outputDir, agentPackageName, overwriteAgentPackage)
+		err = BuildAgentPackage(inputDir, outputDir, agentPackageName, overwriteAgentPackage)
 		if err != nil {
 			return err
 		}

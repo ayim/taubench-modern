@@ -29,7 +29,7 @@ func deployProjectFromPath(serverURL, projectPath string) error {
 
 	// To update the project to the agent-server we need to use the updateAgentViaPackage API from the
 	// agent-client-go package. This API requires a package file to be uploaded to the agent-server.
-	// The temporary package file is created by the buildAgentPackage function.
+	// The temporary package file is created by the BuildAgentPackage function.
 	// @TODO: we already have a payload available that the agent-server /agents/{agentId} PUT API would accept.
 	// Look into adding a new update via payload API to the agent-client-go.
 	tempPackageFile := "package.zip"
@@ -39,7 +39,7 @@ func deployProjectFromPath(serverURL, projectPath string) error {
 	// we don't need to filter out the values from the Spec as those values will become the ones passed along to
 	// the Agent Server internal tools
 	pretty.LogIfVerbose("[deployProject] building agent package @: %+v", tempPackageDir)
-	err = buildAgentPackage(projectPath, tempPackageDir, tempPackageFile, true)
+	err = BuildAgentPackage(projectPath, tempPackageDir, tempPackageFile, true)
 	if err != nil {
 		return fmt.Errorf("failed to build Agent Package: %w", err)
 	}
