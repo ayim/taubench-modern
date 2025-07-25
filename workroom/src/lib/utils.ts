@@ -12,3 +12,13 @@ export const formatDatetime = (date?: Date | string | null): string | undefined 
   const result = dateTimeFormatter.format(new Date(date));
   return result;
 };
+
+export const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};

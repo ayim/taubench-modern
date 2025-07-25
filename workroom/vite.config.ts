@@ -142,6 +142,11 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/tenants\/spar\/agents/, ''),
         },
+        '/tenants/spar/agents/api/public/v1/': {
+          target: AGENT_SERVER_URL,
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/tenants\/spar\/agents/, ''),
+        },
         '/tenants/spar/agents/api/v2/runs/': {
           target: AGENT_SERVER_URL_WS,
           changeOrigin: true,

@@ -1,19 +1,46 @@
-import { queryOptions } from '@tanstack/react-query';
+import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
 import { QueryProps } from './shared';
 
-export const listAgentWorkItemsQueryKey = (agentId: string) => ['workitem', agentId];
+const getListWorkItemsQueryKey = (tenantId: string) => [tenantId, 'work-items'];
 
-export const listAgentWorkItemsQueryOptions = ({
+export const listWorkItemsQueryOptions = ({
   tenantId,
-  agentId,
   agentAPIClient,
-}: QueryProps<{ agentId: string; tenantId: string }>) =>
+}: QueryProps<{
+  tenantId: string;
+}>) =>
   queryOptions({
-    queryKey: listAgentWorkItemsQueryKey(agentId),
+    queryKey: getListWorkItemsQueryKey(tenantId),
     queryFn: async () => {
-      const apiResponse = await agentAPIClient.agentEventsFetch(tenantId, 'get', '/api/v1/workitems/list/', {
-        params: { query: { agent_id: agentId } },
+      return await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/work-items/', {
+        params: {},
+        errorMsg: 'Failed to fetch work items',
+        silent: true,
       });
-      return apiResponse;
     },
   });
+
+export const useRefreshWorkItems = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      tenantId,
+      agentAPIClient,
+    }: QueryProps<{
+      tenantId: string;
+    }>) => {
+      return await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/work-items/', {
+        params: {},
+        errorMsg: 'Failed to refresh work items',
+        silent: true,
+      });
+    },
+    onSuccess: (_, { tenantId }) => {
+      // Invalidate and refetch the work items query
+      queryClient.invalidateQueries({
+        queryKey: getListWorkItemsQueryKey(tenantId),
+      });
+    },
+  });
+};

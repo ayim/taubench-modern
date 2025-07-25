@@ -16,6 +16,7 @@ import { Route as TenantIdRouteImport } from './routes/$tenantId'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TenantIdIndexRouteImport } from './routes/$tenantId/index'
 import { Route as TenantIdAgentIdRouteImport } from './routes/$tenantId/$agentId'
+import { Route as TenantIdWorkItemsIndexRouteImport } from './routes/$tenantId/workItems/index'
 import { Route as TenantIdSettingsIndexRouteImport } from './routes/$tenantId/settings/index'
 import { Route as TenantIdHomeIndexRouteImport } from './routes/$tenantId/home/index'
 import { Route as TenantIdHelpIndexRouteImport } from './routes/$tenantId/help/index'
@@ -59,6 +60,11 @@ const TenantIdIndexRoute = TenantIdIndexRouteImport.update({
 const TenantIdAgentIdRoute = TenantIdAgentIdRouteImport.update({
   id: '/$agentId',
   path: '/$agentId',
+  getParentRoute: () => TenantIdRoute,
+} as any)
+const TenantIdWorkItemsIndexRoute = TenantIdWorkItemsIndexRouteImport.update({
+  id: '/workItems/',
+  path: '/workItems/',
   getParentRoute: () => TenantIdRoute,
 } as any)
 const TenantIdSettingsIndexRoute = TenantIdSettingsIndexRouteImport.update({
@@ -125,6 +131,7 @@ export interface FileRoutesByFullPath {
   '/$tenantId/help': typeof TenantIdHelpIndexRoute
   '/$tenantId/home': typeof TenantIdHomeIndexRoute
   '/$tenantId/settings': typeof TenantIdSettingsIndexRoute
+  '/$tenantId/workItems': typeof TenantIdWorkItemsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -141,6 +148,7 @@ export interface FileRoutesByTo {
   '/$tenantId/help': typeof TenantIdHelpIndexRoute
   '/$tenantId/home': typeof TenantIdHomeIndexRoute
   '/$tenantId/settings': typeof TenantIdSettingsIndexRoute
+  '/$tenantId/workItems': typeof TenantIdWorkItemsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -160,6 +168,7 @@ export interface FileRoutesById {
   '/$tenantId/help/': typeof TenantIdHelpIndexRoute
   '/$tenantId/home/': typeof TenantIdHomeIndexRoute
   '/$tenantId/settings/': typeof TenantIdSettingsIndexRoute
+  '/$tenantId/workItems/': typeof TenantIdWorkItemsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -180,6 +189,7 @@ export interface FileRouteTypes {
     | '/$tenantId/help'
     | '/$tenantId/home'
     | '/$tenantId/settings'
+    | '/$tenantId/workItems'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -196,6 +206,7 @@ export interface FileRouteTypes {
     | '/$tenantId/help'
     | '/$tenantId/home'
     | '/$tenantId/settings'
+    | '/$tenantId/workItems'
   id:
     | '__root__'
     | '/'
@@ -214,6 +225,7 @@ export interface FileRouteTypes {
     | '/$tenantId/help/'
     | '/$tenantId/home/'
     | '/$tenantId/settings/'
+    | '/$tenantId/workItems/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -273,6 +285,13 @@ declare module '@tanstack/react-router' {
       path: '/$agentId'
       fullPath: '/$tenantId/$agentId'
       preLoaderRoute: typeof TenantIdAgentIdRouteImport
+      parentRoute: typeof TenantIdRoute
+    }
+    '/$tenantId/workItems/': {
+      id: '/$tenantId/workItems/'
+      path: '/workItems'
+      fullPath: '/$tenantId/workItems'
+      preLoaderRoute: typeof TenantIdWorkItemsIndexRouteImport
       parentRoute: typeof TenantIdRoute
     }
     '/$tenantId/settings/': {
@@ -365,6 +384,7 @@ interface TenantIdRouteChildren {
   TenantIdHelpIndexRoute: typeof TenantIdHelpIndexRoute
   TenantIdHomeIndexRoute: typeof TenantIdHomeIndexRoute
   TenantIdSettingsIndexRoute: typeof TenantIdSettingsIndexRoute
+  TenantIdWorkItemsIndexRoute: typeof TenantIdWorkItemsIndexRoute
 }
 
 const TenantIdRouteChildren: TenantIdRouteChildren = {
@@ -377,6 +397,7 @@ const TenantIdRouteChildren: TenantIdRouteChildren = {
   TenantIdHelpIndexRoute: TenantIdHelpIndexRoute,
   TenantIdHomeIndexRoute: TenantIdHomeIndexRoute,
   TenantIdSettingsIndexRoute: TenantIdSettingsIndexRoute,
+  TenantIdWorkItemsIndexRoute: TenantIdWorkItemsIndexRoute,
 }
 
 const TenantIdRouteWithChildren = TenantIdRoute._addFileChildren(

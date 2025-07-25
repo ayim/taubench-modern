@@ -7,6 +7,7 @@ import {
   IconHelpCircle,
   IconHome,
   IconSettings2,
+  IconUnorderedList,
   IconWorkers,
 } from '@sema4ai/icons';
 import { Link as LinkBase, LinkComponentProps, useMatch, useParams } from '@tanstack/react-router';
@@ -143,6 +144,17 @@ const DocumentsLink: FC = memo(() => {
   );
 });
 
+const WorkItemsLink: FC = memo(() => {
+  const { tenantId } = useParams({ from: '/$tenantId' });
+  return (
+    <SideNavigation.ItemGroup>
+      <Link to="/$tenantId/workItems" params={{ tenantId }}>
+        <SideNavigation.Item icon={<IconUnorderedList />}>Work Items</SideNavigation.Item>
+      </Link>
+    </SideNavigation.ItemGroup>
+  );
+});
+
 const SettingsLink: FC = memo(() => {
   const { tenantId } = useParams({ from: '/$tenantId' });
 
@@ -254,6 +266,7 @@ export const Sidebar: FC<SideBarProps> = memo(({ agents }) => {
       <HomeLink />
       <AgentsLink />
       {features.documentIntelligence.enabled && <DocumentsLink />}
+      <WorkItemsLink />
       {agents.length > 0 && (
         <>
           <CustomDivider />
