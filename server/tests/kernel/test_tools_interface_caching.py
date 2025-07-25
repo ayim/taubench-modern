@@ -300,6 +300,16 @@ async def test_cache_hit_after_first_fetch(
     iface: AgentServerToolsInterface,
     monkeypatch,
 ):
+    # Enable caching for this test
+    manager = ConfigurationService.get_instance()
+    manager.update_configuration(
+        ToolCacheConfig,
+        ToolCacheConfig(enabled=True),
+    )
+
+    ToolDefinitionCache.reinitialize()
+    iface._cache = ToolDefinitionCache()
+
     fetch_counter = {"n": 0}
 
     async def fake_fetch(pkgs, additional_headers=None):
@@ -332,11 +342,12 @@ async def test_cache_refresh_after_ttl_expiry(
     iface: AgentServerToolsInterface,
     monkeypatch,
 ):
-    # shorten TTL for the test and restore afterwards
+    # Enable caching and shorten TTL for the test
     manager = ConfigurationService.get_instance()
     manager.update_configuration(
         ToolCacheConfig,
         ToolCacheConfig(
+            enabled=True,
             ttl_seconds=0,
         ),
     )
@@ -385,6 +396,7 @@ async def test_negative_cache_ttl(iface: AgentServerToolsInterface, monkeypatch)
     manager.update_configuration(
         ToolCacheConfig,
         ToolCacheConfig(
+            enabled=True,
             negative_ttl_seconds=0,
         ),
     )
@@ -423,6 +435,16 @@ async def test_cache_waits_for_refresh(
     iface: AgentServerToolsInterface,
     monkeypatch,
 ):
+    # Enable caching for this test
+    manager = ConfigurationService.get_instance()
+    manager.update_configuration(
+        ToolCacheConfig,
+        ToolCacheConfig(enabled=True),
+    )
+
+    ToolDefinitionCache.reinitialize()
+    iface._cache = ToolDefinitionCache()
+
     fetch_counter = {"n": 0}
 
     async def slow_fetch(pkgs, additional_headers=None):
@@ -507,6 +529,16 @@ async def test_merge_allowed_actions_same_url(
     iface: AgentServerToolsInterface,
     monkeypatch,
 ):
+    # Enable caching for this test
+    manager = ConfigurationService.get_instance()
+    manager.update_configuration(
+        ToolCacheConfig,
+        ToolCacheConfig(enabled=True),
+    )
+
+    ToolDefinitionCache.reinitialize()
+    iface._cache = ToolDefinitionCache()
+
     captured: dict[str, list[ActionPackage]] = {}
     fetch_counter = {"n": 0}
 
@@ -568,6 +600,16 @@ async def test_merge_allowed_actions_same_url_union(
     iface: AgentServerToolsInterface,
     monkeypatch,
 ):
+    # Enable caching for this test
+    manager = ConfigurationService.get_instance()
+    manager.update_configuration(
+        ToolCacheConfig,
+        ToolCacheConfig(enabled=True),
+    )
+
+    ToolDefinitionCache.reinitialize()
+    iface._cache = ToolDefinitionCache()
+
     captured: dict[str, list[ActionPackage]] = {}
     fetch_counter = {"n": 0}
 
@@ -636,6 +678,16 @@ async def test_no_unawaited_coroutines_on_cache_hit(
     """Second call to from_action_packages should hit cache without RuntimeWarnings."""
 
     import warnings
+
+    # Enable caching for this test
+    manager = ConfigurationService.get_instance()
+    manager.update_configuration(
+        ToolCacheConfig,
+        ToolCacheConfig(enabled=True),
+    )
+
+    ToolDefinitionCache.reinitialize()
+    iface._cache = ToolDefinitionCache()
 
     fetch_counter = {"n": 0}
 

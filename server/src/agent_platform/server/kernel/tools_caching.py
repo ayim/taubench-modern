@@ -23,7 +23,11 @@ class ToolCacheConfig(Configuration):
     reason, things are not working as smooth as we hope."""
 
     enabled: bool = field(
-        default=True,
+        # NOTE: we are disabling this by default for a bit to see if it helps some
+        # action server issues we occasionally see (where we might be caching at a moment
+        # when the action server is intermittently unavailable, say due to local
+        # file edits + agent project reloads)
+        default=False,
         metadata=FieldMetadata(
             description="Enable/disable tool-definition caching",
             env_vars=[

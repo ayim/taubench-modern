@@ -63,10 +63,18 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
             error_message = str(e)
         else:
             try:
-                result = await tool_def.function(
-                    **args_from_json,
-                    extra_headers=extra_headers,
-                )
+                match tool_def.category:
+                    case "mcp-tool":
+                        # MCP tools only get headers at session init time, not at
+                        # tool call time (we could possibly look at trying to pass
+                        # headers at tool call time, but it's not clear how/why we'd
+                        # want to do that)
+                        result = await tool_def.function(**args_from_json)
+                    case _:
+                        result = await tool_def.function(
+                            **args_from_json,
+                            extra_headers=extra_headers,
+                        )
 
                 # TODO: handling of various result types...
                 if isinstance(result, dict):

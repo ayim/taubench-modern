@@ -1284,3 +1284,55 @@ async def test_tool_call_headers_with_empty_string_user_id():
     assert captured_headers["x-invoked_for_thread_id"] == "test-thread-id"
     assert "x-action_invocation_id" in captured_headers
     assert captured_headers["x-action_invocation_id"] == "call_789"
+
+
+@pytest.mark.asyncio
+async def test_mcp_tool_no_runtime_headers():
+    """Test that internal-tool category tools do not receive extra_headers."""
+    function_called_with = {}
+
+    # Create a "fake" MCP type tool
+    async def mcp_tool_function(**kwargs):
+        nonlocal function_called_with
+        function_called_with = kwargs
+        return {"result": "mcp tool success"}
+
+    tool_def = ToolDefinition(
+        name="mcp_tool",
+        description="An MCP tool that should not receive headers",
+        input_schema={"type": "object", "properties": {"param": {"type": "string"}}},
+        function=mcp_tool_function,
+        category="mcp-tool",
+    )
+
+    # Create the tools interface with mocked kernel
+    interface = AgentServerToolsInterface()
+    mock_kernel = MagicMock()
+    mock_kernel.ctx.start_span.return_value.__enter__ = MagicMock()
+    mock_kernel.ctx.start_span.return_value.__exit__ = MagicMock()
+    interface.attach_kernel(mock_kernel)
+
+    # Create a tool use request with some parameters
+    tool_use = ResponseToolUseContent(
+        tool_call_id="mcp_call",
+        tool_name="mcp_tool",
+        tool_input_raw='{"param": "test_value"}',
+    )
+
+    # Execute the tool directly with extra_headers
+    extra_headers = {
+        "x-test-header": "test-value",
+        "x-another-header": "another-value",
+    }
+
+    result = await interface._safe_execute_tool(tool_def, tool_use, extra_headers=extra_headers)
+
+    # Verify the tool was called successfully
+    assert result.error is None
+    assert result.output_raw == {"result": "mcp tool success"}
+    assert result.definition == tool_def
+    assert result.tool_call_id == "mcp_call"
+
+    # Verify that the function was called with ONLY the JSON args, no extra_headers
+    assert function_called_with == {"param": "test_value"}
+    assert "extra_headers" not in function_called_with
