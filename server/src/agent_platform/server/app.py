@@ -17,7 +17,10 @@ from agent_platform.server.api import (
     private_v2_router,
     public_v2_router,
 )
-from agent_platform.server.api.agent_mcp import build_agent_mcp_app
+from agent_platform.server.api.agent_mcp import (
+    AGENT_MCP_OPENAPI_SCHEMA_PATHS,
+    build_agent_mcp_app,
+)
 from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.api.mcp import MCPAuthenticationMiddleware, mcp
 from agent_platform.server.constants import SystemConfig
@@ -76,7 +79,7 @@ class EnsureAPIPrefixMiddleware(BaseHTTPMiddleware):
 
 class _CustomFastAPI(FastAPI):
     def __init__(self, title="Sema4.ai Agent Server API") -> None:
-        self.__custom_openapi_schema: dict | None = None
+        self._custom_openapi_schema: dict | None = None
         super().__init__(
             title=title,
             version=__version__,
@@ -94,8 +97,8 @@ class _CustomFastAPI(FastAPI):
         3. Replaces all error response schemas with our custom format
         4. Removes FastAPI's default validation error schemas
         """
-        if self.__custom_openapi_schema:
-            return self.__custom_openapi_schema
+        if self._custom_openapi_schema:
+            return self._custom_openapi_schema
         openapi_schema = FastAPI.openapi(self)
 
         # Get the list of architecture names (legacy behavior)
@@ -149,8 +152,20 @@ class _CustomFastAPI(FastAPI):
                             "application/json": {"schema": {"$ref": REF_PREFIX + "ErrorEnvelope"}}
                         }
 
-        self.__custom_openapi_schema = openapi_schema
-        return self.__custom_openapi_schema
+        self._custom_openapi_schema = openapi_schema
+        return self._custom_openapi_schema
+
+
+class _PublicAgentServerApp(_CustomFastAPI):
+    def openapi(self) -> dict[str, Any]:
+        should_update = not bool(self._custom_openapi_schema)
+        result = super().openapi()
+
+        if should_update:
+            result["paths"] |= AGENT_MCP_OPENAPI_SCHEMA_PATHS
+            self._custom_openapi_schema = result
+
+        return result
 
 
 def create_app() -> FastAPI:
@@ -160,7 +175,7 @@ def create_app() -> FastAPI:
     app_private_v2.include_router(private_v2_router)
     add_exception_handlers(app_private_v2)
 
-    app_public_v2 = _CustomFastAPI(
+    app_public_v2 = _PublicAgentServerApp(
         title="Sema4.ai Agent Server Public API Version 2",
     )
     app_public_v2.include_router(public_v2_router)

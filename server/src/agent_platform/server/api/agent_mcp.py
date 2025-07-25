@@ -12,6 +12,7 @@ import re
 from collections.abc import Generator, Iterable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+from functools import cache
 from typing import Annotated
 
 from anyio import ClosedResourceError
@@ -30,11 +31,290 @@ from agent_platform.core.agent import Agent
 from agent_platform.core.payloads import InitiateStreamPayload
 from agent_platform.core.thread import ThreadTextContent
 from agent_platform.server.api.private_v2.runs import sync_run
-from agent_platform.server.auth.handlers import get_auth_handler
+from agent_platform.server.auth.handlers import AuthHandler, get_auth_handler
 from agent_platform.server.error_handlers import add_exception_handlers
 from agent_platform.server.storage import StorageService
 
 logger = logging.getLogger(__name__)
+
+
+AGENT_MCP_OPENAPI_SCHEMA_PATHS = {
+    "/agent-mcp/{aid}/mcp/": {
+        "post": {
+            "summary": "Send JSON-RPC messages to the MCP server",
+            "tags": ["mcp", "agents"],
+            "parameters": [
+                {
+                    "name": "aid",
+                    "in": "path",
+                    "required": True,
+                    "schema": {"type": "string", "title": "Agent ID"},
+                }
+            ],
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "oneOf": [
+                                {
+                                    "type": "object",
+                                    "required": ["jsonrpc", "id", "method"],
+                                    "properties": {
+                                        "jsonrpc": {"type": "string", "enum": ["2.0"]},
+                                        "id": {"oneOf": [{"type": "integer"}, {"type": "string"}]},
+                                        "method": {"type": "string"},
+                                        "params": {"type": "object", "additionalProperties": True},
+                                    },
+                                },
+                                {
+                                    "type": "array",
+                                    "items": {
+                                        "oneOf": [
+                                            {
+                                                "type": "object",
+                                                "required": ["jsonrpc", "id", "method"],
+                                                "properties": {
+                                                    "jsonrpc": {"type": "string", "enum": ["2.0"]},
+                                                    "id": {
+                                                        "oneOf": [
+                                                            {"type": "integer"},
+                                                            {"type": "string"},
+                                                        ]
+                                                    },
+                                                    "method": {"type": "string"},
+                                                    "params": {
+                                                        "type": "object",
+                                                        "additionalProperties": True,
+                                                    },
+                                                },
+                                            },
+                                            {
+                                                "type": "object",
+                                                "required": ["jsonrpc", "id"],
+                                                "properties": {
+                                                    "jsonrpc": {"type": "string", "enum": ["2.0"]},
+                                                    "id": {
+                                                        "oneOf": [
+                                                            {"type": "integer"},
+                                                            {"type": "string"},
+                                                            {"type": "null"},
+                                                        ]
+                                                    },
+                                                    "result": {
+                                                        "type": "object",
+                                                        "additionalProperties": True,
+                                                    },
+                                                    "error": {
+                                                        "type": "object",
+                                                        "required": ["code", "message"],
+                                                        "properties": {
+                                                            "code": {"type": "integer"},
+                                                            "message": {"type": "string"},
+                                                            "data": {
+                                                                "type": "object",
+                                                                "additionalProperties": True,
+                                                            },
+                                                        },
+                                                    },
+                                                },
+                                            },
+                                            {
+                                                "type": "object",
+                                                "required": ["jsonrpc", "method"],
+                                                "properties": {
+                                                    "jsonrpc": {"type": "string", "enum": ["2.0"]},
+                                                    "method": {"type": "string"},
+                                                    "params": {
+                                                        "type": "object",
+                                                        "additionalProperties": True,
+                                                    },
+                                                },
+                                            },
+                                        ]
+                                    },
+                                },
+                                {
+                                    "type": "object",
+                                    "required": ["jsonrpc", "id"],
+                                    "properties": {
+                                        "jsonrpc": {"type": "string", "enum": ["2.0"]},
+                                        "id": {
+                                            "oneOf": [
+                                                {"type": "integer"},
+                                                {"type": "string"},
+                                                {"type": "null"},
+                                            ]
+                                        },
+                                        "result": {"type": "object", "additionalProperties": True},
+                                        "error": {
+                                            "type": "object",
+                                            "required": ["code", "message"],
+                                            "properties": {
+                                                "code": {"type": "integer"},
+                                                "message": {"type": "string"},
+                                                "data": {
+                                                    "type": "object",
+                                                    "additionalProperties": True,
+                                                },
+                                            },
+                                        },
+                                    },
+                                },
+                            ]
+                        }
+                    },
+                    "text/event-stream": {"schema": {"type": "string"}},
+                },
+            },
+            "responses": {
+                "202": {
+                    "description": (
+                        "Accepted (notifications-only input)\n"
+                        "Server returns no body when input is purely notifications"
+                    )
+                },
+                "200": {
+                    "description": "JSON-RPC response(s)",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "oneOf": [
+                                    {
+                                        "type": "object",
+                                        "required": ["jsonrpc", "id"],
+                                        "properties": {
+                                            "jsonrpc": {"type": "string", "enum": ["2.0"]},
+                                            "id": {
+                                                "oneOf": [
+                                                    {"type": "integer"},
+                                                    {"type": "string"},
+                                                    {"type": "null"},
+                                                ]
+                                            },
+                                            "result": {
+                                                "type": "object",
+                                                "additionalProperties": True,
+                                            },
+                                            "error": {
+                                                "type": "object",
+                                                "required": ["code", "message"],
+                                                "properties": {
+                                                    "code": {"type": "integer"},
+                                                    "message": {"type": "string"},
+                                                    "data": {
+                                                        "type": "object",
+                                                        "additionalProperties": True,
+                                                    },
+                                                },
+                                            },
+                                        },
+                                    },
+                                    {
+                                        "type": "array",
+                                        "items": {
+                                            "oneOf": [
+                                                {
+                                                    "type": "object",
+                                                    "required": ["jsonrpc", "id", "method"],
+                                                    "properties": {
+                                                        "jsonrpc": {
+                                                            "type": "string",
+                                                            "enum": ["2.0"],
+                                                        },
+                                                        "id": {
+                                                            "oneOf": [
+                                                                {"type": "integer"},
+                                                                {"type": "string"},
+                                                            ]
+                                                        },
+                                                        "method": {"type": "string"},
+                                                        "params": {
+                                                            "type": "object",
+                                                            "additionalProperties": True,
+                                                        },
+                                                    },
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "required": ["jsonrpc", "id"],
+                                                    "properties": {
+                                                        "jsonrpc": {
+                                                            "type": "string",
+                                                            "enum": ["2.0"],
+                                                        },
+                                                        "id": {
+                                                            "oneOf": [
+                                                                {"type": "integer"},
+                                                                {"type": "string"},
+                                                                {"type": "null"},
+                                                            ]
+                                                        },
+                                                        "result": {
+                                                            "type": "object",
+                                                            "additionalProperties": True,
+                                                        },
+                                                        "error": {
+                                                            "type": "object",
+                                                            "required": ["code", "message"],
+                                                            "properties": {
+                                                                "code": {"type": "integer"},
+                                                                "message": {"type": "string"},
+                                                                "data": {
+                                                                    "type": "object",
+                                                                    "additionalProperties": True,
+                                                                },
+                                                            },
+                                                        },
+                                                    },
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "required": ["jsonrpc", "method"],
+                                                    "properties": {
+                                                        "jsonrpc": {
+                                                            "type": "string",
+                                                            "enum": ["2.0"],
+                                                        },
+                                                        "method": {"type": "string"},
+                                                        "params": {
+                                                            "type": "object",
+                                                            "additionalProperties": True,
+                                                        },
+                                                    },
+                                                },
+                                            ]
+                                        },
+                                    },
+                                ]
+                            }
+                        }
+                    },
+                },
+                "400": {"description": "Bad Request (e.g., invalid JSON-RPC message)"},
+            },
+        },
+        "get": {
+            "summary": "Open an SSE stream for server-initiated messages",
+            "tags": ["mcp", "agents"],
+            "parameters": [
+                {
+                    "name": "aid",
+                    "in": "path",
+                    "required": True,
+                    "schema": {"type": "string", "title": "Agent ID"},
+                }
+            ],
+            "responses": {
+                "200": {
+                    "description": "Server-Sent Events stream of JSON-RPC requests/notifications",
+                    "content": {"text/event-stream": {"schema": {"type": "string"}}},
+                },
+                "405": {"description": "Method Not Allowed - streaming not supported"},
+            },
+        },
+    }
+}
 
 
 @dataclass(frozen=True)
@@ -52,6 +332,13 @@ class _Context:
 
 # Context variable to store request context throughout the request lifecycle
 _ctx = contextvars.ContextVar[_Context]("agent_mcp.request")
+
+
+@cache
+def _get_auth_handler() -> AuthHandler:
+    """In order to run properly, the auth handler for MCP requests
+    must be initialized on the first MCP request"""
+    return get_auth_handler(StorageService.get_instance())
 
 
 class ChatWithAgentInputSchema(BaseModel):
@@ -243,7 +530,6 @@ class AgentMCPApp:
             session_manager: The HTTP session manager for handling MCP requests
         """
         self._session_manager = session_manager
-        self._auth_handler = get_auth_handler(StorageService.get_instance())
 
     async def __call__(
         self,
@@ -275,7 +561,7 @@ class AgentMCPApp:
         request = Request(scope, receive, send)
 
         # Authenticate the user
-        if (user := await self._auth_handler.handle(request)) is None:
+        if (user := await _get_auth_handler().handle(request)) is None:
             raise HTTPException(status_code=403, detail="Unauthorized")
 
         # Extract and validate the agent ID from the path
@@ -287,7 +573,6 @@ class AgentMCPApp:
 
         # Set the request context for this request
         _ctx.set(_Context(agent=agent, user=user, request=request))
-
         # Delegate to the MCP session manager
         await self._session_manager.handle_request(scope, receive, send)
 
@@ -327,6 +612,6 @@ def build_agent_mcp_app():
     # are mapped to the correct HTTP status codes instead of bubbling up as 500s.
     add_exception_handlers(agent_mcp)
     # Mount the ASGI application at the appropriate path
-    agent_mcp.mount("/{agent_id:str}/mcp", asgi_app)
+    agent_mcp.mount("/{agent_id:str}/mcp/", asgi_app)
 
     return agent_mcp

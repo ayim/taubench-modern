@@ -1,6 +1,5 @@
 import logging
 from abc import ABC, abstractmethod
-from functools import lru_cache
 from typing import Annotated, ClassVar
 
 import jwt
@@ -142,8 +141,6 @@ class JWTAuthOIDC(JWTAuthBase):
         return self._jwk_client_cache[issuer]
 
 
-# TODO: @kylie-bee: I don't think we need to cache as FastAPI likely does caching.
-@lru_cache(maxsize=1)
 def get_auth_handler(storage: StorageDependency) -> AuthHandler:
     logger.debug(f"Using auth_type = {AuthConfig.auth_type}")
     if AuthConfig.auth_type == AuthType.JWT_LOCAL:
