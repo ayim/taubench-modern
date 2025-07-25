@@ -27,6 +27,9 @@ from agent_platform.server.storage.postgres.storage_memory import (
 from agent_platform.server.storage.postgres.storage_messages import (
     PostgresStorageMessagesMixin,
 )
+from agent_platform.server.storage.postgres.storage_platform_configs import (
+    PostgresStoragePlatformConfigsMixin,
+)
 from agent_platform.server.storage.postgres.storage_runs import (
     PostgresStorageRunsMixin,
 )
@@ -109,6 +112,7 @@ class PostgresStorage(
     PostgresStorageScopedStorageMixin,
     PostgresStorageFilesMixin,
     PostgresStorageMCPServersMixin,
+    PostgresStoragePlatformConfigsMixin,
 ):
     def __init__(self, pool: AsyncConnectionPool | None = None):
         # Initialize all parent mixins (including CommonMixin for secret manager)

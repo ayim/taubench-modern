@@ -171,3 +171,19 @@ class MCPServerWithNameAlreadyExistsError(PlatformHTTPError):
 
     def __init__(self, message: str = "An MCP server with the given name already exists"):
         super().__init__(error_code=ErrorCode.CONFLICT, message=message)
+
+
+class PlatformConfigNotFoundError(PlatformHTTPError):
+    """A platform configuration with the given ID was not found."""
+
+    def __init__(self, message: str = "A platform configuration with the given ID was not found"):
+        super().__init__(error_code=ErrorCode.NOT_FOUND, message=message)
+
+
+class PlatformConfigWithNameAlreadyExistsError(PlatformHTTPError):
+    """A platform configuration with the given name already exists."""
+
+    def __init__(
+        self, message: str = "A platform configuration with the given name already exists"
+    ):
+        super().__init__(error_code=ErrorCode.CONFLICT, message=message)

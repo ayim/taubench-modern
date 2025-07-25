@@ -1,6 +1,8 @@
+import uuid
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypeVar
 
 from agent_platform.core.configurations import Configuration
@@ -44,7 +46,7 @@ class PlatformPrompt(ABC):
         pass
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class PlatformParameters(ABC):
     """A platform-specific parameters."""
 
@@ -57,25 +59,79 @@ class PlatformParameters(ABC):
     )
     """The kind of platform parameters."""
 
+    name: str = field(
+        default="",
+        metadata={"description": "The name of the platform parameters."},
+    )
+    """The name of the platform parameters."""
+
+    description: str | None = field(
+        default=None,
+        metadata={"description": "The description of the platform parameters."},
+    )
+    """The description of the platform parameters."""
+
+    models: dict[str, list[str]] | None = field(
+        default=None,
+        metadata={
+            "description": (
+                "Allow list of provider -> models mapping (e.g. {'OpenAI': ['gpt-4.1', 'o3']})"
+            ),
+        },
+    )
+    """Allow list of provider -> models mapping (e.g. {'OpenAI': ['gpt-4.1', 'o3']})"""
+
+    created_at: datetime = field(
+        default_factory=lambda: datetime.now(UTC),
+        metadata={"description": "The time at which the platform parameters were created."},
+    )
+    """The time at which the platform parameters were created."""
+
+    updated_at: datetime = field(
+        default_factory=lambda: datetime.now(UTC),
+        metadata={"description": "The time at which the platform parameters were last updated."},
+    )
+    """The time at which the platform parameters were last updated."""
+
+    platform_id: str = field(
+        metadata={"description": "The unique identifier of the platform."},
+        default_factory=lambda: str(uuid.uuid4()),
+    )
+    """The unique identifier of the platform."""
+
+    def __post_init__(self) -> None:
+        """Make sure we have a non-empty name."""
+        if not self.name:
+            object.__setattr__(self, "name", f"{self.kind}-parameters")
+
     @abstractmethod
     def model_dump(
         self,
         *,
         exclude_none: bool = True,
-        exclude_unset: bool = False,
-        exclude_defaults: bool = False,
+        extra: dict[str, Any] | None = None,
     ) -> dict:
         """Convert parameters to a dictionary for client initialization.
 
         Args:
             exclude_none: Whether to exclude fields with value ``None``.
                 Defaults to True.
-            exclude_unset: Whether to exclude fields that were not
-                explicitly set. Not implemented.
-            exclude_defaults: Whether to exclude fields that are set to their
-                default values. Not implemented.
         """
-        pass
+        result = {
+            "kind": self.kind,
+            "name": self.name,
+            "description": self.description,
+            "models": self.models,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "platform_id": self.platform_id,
+            **(extra or {}),
+        }
+
+        if exclude_none:
+            result = {k: v for k, v in result.items() if v is not None}
+
+        return result
 
     @classmethod
     def register_platform_parameters(
@@ -96,10 +152,29 @@ class PlatformParameters(ABC):
         Returns:
             The platform parameters.
         """
+        obj = dict(obj)  # Create a copy to avoid modifying the original
         kind = obj.pop("kind")
         if kind not in cls._platform_parameters_registry:
             raise ValueError(f"Invalid platform parameters kind: {kind}")
+
+        # Convert datetime strings back to datetime objects
+        cls._convert_datetime_fields(obj)
+
         return cls._platform_parameters_registry[kind].model_validate(obj)
+
+    @classmethod
+    def _convert_datetime_fields(cls, obj: dict) -> None:
+        """Convert datetime string fields back to datetime objects in-place.
+
+        This helper method should be called by all subclass model_validate
+        implementations to ensure consistent datetime handling.
+
+        Args:
+            obj: The dictionary to process (modified in-place).
+        """
+        for datetime_field in ["created_at", "updated_at"]:
+            if datetime_field in obj and isinstance(obj[datetime_field], str):
+                obj[datetime_field] = datetime.fromisoformat(obj[datetime_field])
 
 
 class PlatformConverters(ABC, UsesKernelMixin):

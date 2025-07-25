@@ -33,6 +33,8 @@ class GooglePlatformParameters(PlatformParameters):
     def __post_init__(self):
         from os import getenv
 
+        super().__post_init__()
+
         # Handle case where google_api_key is passed as a string
         if self.google_api_key and not isinstance(self.google_api_key, SecretString):
             object.__setattr__(
@@ -56,32 +58,22 @@ class GooglePlatformParameters(PlatformParameters):
         self,
         *,
         exclude_none: bool = True,
-        exclude_unset: bool = False,
-        exclude_defaults: bool = False,
     ) -> dict:
         """Convert parameters to a dictionary for client initialization.
 
         Args:
             exclude_none: Whether to exclude fields with value ``None``.
                 Defaults to True.
-            exclude_unset: Whether to exclude fields that were not explicitly set.
-                Not implemented.
-            exclude_defaults: Whether to exclude fields that are set to their
-                default values. Not implemented.
         """
         api_key_value = None
         if self.google_api_key:
             api_key_value = self.google_api_key.get_secret_value()
 
-        result = {
-            "kind": self.kind,
+        extra = {
             "google_api_key": api_key_value,
         }
 
-        if exclude_none:
-            result = {k: v for k, v in result.items() if v is not None}
-
-        return result
+        return super().model_dump(exclude_none=exclude_none, extra=extra)
 
     def model_copy(self, *, update: dict | None = None) -> "GooglePlatformParameters":
         """Create a new instance of the model with the same values as
@@ -115,6 +107,10 @@ class GooglePlatformParameters(PlatformParameters):
         Returns:
             An GooglePlatformParameters instance.
         """
+        obj = dict(obj)  # Create a copy to avoid modifying the original
+
+        # Convert datetime strings back to datetime objects
+        cls._convert_datetime_fields(obj)
 
         # Directly pass the dictionary to the constructor.
         # The constructor and __post_init__ will handle extra parameters.

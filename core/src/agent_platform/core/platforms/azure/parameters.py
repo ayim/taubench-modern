@@ -83,6 +83,8 @@ class AzureOpenAIPlatformParameters(PlatformParameters):
     def __post_init__(self):
         from os import getenv
 
+        super().__post_init__()
+
         # Handle case where azure_api_key is passed as a string
         if self.azure_api_key and not isinstance(self.azure_api_key, SecretString):
             object.__setattr__(
@@ -119,18 +121,12 @@ class AzureOpenAIPlatformParameters(PlatformParameters):
         self,
         *,
         exclude_none: bool = True,
-        exclude_unset: bool = False,
-        exclude_defaults: bool = False,
     ) -> dict:
         """Convert parameters to a dictionary for client initialization.
 
         Args:
             exclude_none: Whether to exclude fields with value ``None``.
                 Defaults to True.
-            exclude_unset: Whether to exclude fields that were not explicitly set.
-                Not implemented.
-            exclude_defaults: Whether to exclude fields that are set to their
-                default values. Not implemented.
         """
         api_key_value = None
         if self.azure_api_key:
@@ -139,8 +135,7 @@ class AzureOpenAIPlatformParameters(PlatformParameters):
             else:
                 api_key_value = str(self.azure_api_key)
 
-        result = {
-            "kind": self.kind,
+        extra = {
             "azure_api_key": api_key_value,
             "azure_endpoint_url": self.azure_endpoint_url,
             "azure_deployment_name": self.azure_deployment_name,
@@ -150,10 +145,7 @@ class AzureOpenAIPlatformParameters(PlatformParameters):
             "azure_generated_endpoint_url_embeddings": self.azure_generated_endpoint_url_embeddings,
         }
 
-        if exclude_none:
-            result = {k: v for k, v in result.items() if v is not None}
-
-        return result
+        return super().model_dump(exclude_none=exclude_none, extra=extra)
 
     def model_copy(
         self,
@@ -192,6 +184,10 @@ class AzureOpenAIPlatformParameters(PlatformParameters):
         Returns:
             An OpenAIParameters instance.
         """
+        obj = dict(obj)  # Create a copy to avoid modifying the original
+
+        # Convert datetime strings back to datetime objects
+        cls._convert_datetime_fields(obj)
 
         # Directly pass the dictionary to the constructor.
         # The constructor and __post_init__ will handle extra parameters.

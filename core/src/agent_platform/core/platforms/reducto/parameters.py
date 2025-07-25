@@ -88,8 +88,6 @@ class ReductoPlatformParameters(PlatformParameters):
         self,
         *,
         exclude_none: bool = True,
-        exclude_unset: bool = False,
-        exclude_defaults: bool = False,
     ) -> dict:
         """Convert parameters to a dictionary for client initialization.
 
@@ -108,23 +106,19 @@ class ReductoPlatformParameters(PlatformParameters):
             else:
                 api_key_value = str(self.reducto_api_key)
 
-        result = {
-            "kind": self.kind,
+        extra = {
             "reducto_api_key": api_key_value,
         }
 
         if self.delegate_kind:
-            result["delegate_kind"] = self.delegate_kind
+            extra["delegate_kind"] = self.delegate_kind
         if self.delegate_api_key:
             if isinstance(self.delegate_api_key, SecretString):
-                result["delegate_api_key"] = self.delegate_api_key.get_secret_value()
+                extra["delegate_api_key"] = self.delegate_api_key.get_secret_value()
             else:
-                result["delegate_api_key"] = str(self.delegate_api_key)
+                extra["delegate_api_key"] = str(self.delegate_api_key)
 
-        if exclude_none:
-            result = {k: v for k, v in result.items() if v is not None}
-
-        return result
+        return super().model_dump(exclude_none=exclude_none, extra=extra)
 
     def model_copy(self, *, update: dict | None = None) -> "ReductoPlatformParameters":
         """Create a new instance of the model with the same values as
@@ -158,6 +152,10 @@ class ReductoPlatformParameters(PlatformParameters):
         Returns:
             An ReductoParameters instance.
         """
+        obj = dict(obj)  # Create a copy to avoid modifying the original
+
+        # Convert datetime strings back to datetime objects
+        cls._convert_datetime_fields(obj)
 
         # Directly pass the dictionary to the constructor.
         # The constructor and __post_init__ will handle extra parameters.

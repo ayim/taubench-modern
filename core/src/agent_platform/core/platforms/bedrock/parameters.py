@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field, fields
-from typing import Literal
+from typing import Any, Literal
 
 from agent_platform.core.platforms.base import PlatformParameters
 
@@ -163,25 +163,47 @@ class BedrockPlatformParameters(PlatformParameters):
 
     config_params: dict = field(default_factory=dict, repr=False)
 
+    def __post_init__(self):
+        # This is just here so, if in the future, we want a post init
+        # we don't forget to call super().__post_init__()
+        super().__post_init__()
+
+    def aws_client_params(self) -> dict[str, Any]:
+        """Return only the parameters needed for AWS client initialization.
+
+        This method filters out base class metadata fields and config_params
+        (which is handled separately via AioConfig), returning only the
+        AWS-specific client parameters.
+
+        Returns:
+            Dictionary of AWS client parameters with None values excluded.
+        """
+        aws_params = {
+            "region_name": self.region_name,
+            "api_version": self.api_version,
+            "use_ssl": self.use_ssl,
+            "verify": self.verify,
+            "endpoint_url": self.endpoint_url,
+            "aws_access_key_id": self.aws_access_key_id,
+            "aws_secret_access_key": self.aws_secret_access_key,
+            "aws_session_token": self.aws_session_token,
+        }
+
+        # Filter out None values
+        return {k: v for k, v in aws_params.items() if v is not None}
+
     def model_dump(
         self,
         *,
         exclude_none: bool = True,
-        exclude_unset: bool = False,
-        exclude_defaults: bool = False,
     ) -> dict:
         """Convert parameters to a dictionary for client initialization.
 
         Args:
             exclude_none: Whether to exclude fields with value ``None``.
                 Defaults to True.
-            exclude_unset: Whether to exclude fields that were not explicitly set.
-                Not implemented.
-            exclude_defaults: Whether to exclude fields that are set to their
-                default values. Not implemented.
         """
-        result = {
-            "kind": self.kind,
+        extra = {
             "region_name": self.region_name,
             "api_version": self.api_version,
             "use_ssl": self.use_ssl,
@@ -193,10 +215,7 @@ class BedrockPlatformParameters(PlatformParameters):
             "config_params": self.config_params,
         }
 
-        if exclude_none:
-            result = {k: v for k, v in result.items() if v is not None}
-
-        return result
+        return super().model_dump(exclude_none=exclude_none, extra=extra)
 
     def model_copy(self, *, update: dict | None = None) -> "BedrockPlatformParameters":
         """Create a new instance of the model with the same values as
@@ -232,7 +251,10 @@ class BedrockPlatformParameters(PlatformParameters):
         stray = {k: obj.pop(k) for k in list(obj) if k not in top_fields}
         config_params |= stray
 
-        # 3.) Return the new instance
+        # 3.) Convert datetime strings back to datetime objects
+        cls._convert_datetime_fields(obj)
+
+        # 4.) Return the new instance
         obj["config_params"] = config_params
         return cls(**obj)
 

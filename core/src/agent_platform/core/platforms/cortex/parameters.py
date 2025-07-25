@@ -93,6 +93,8 @@ class CortexPlatformParameters(PlatformParameters):
         initialization."""
         from os import getenv
 
+        super().__post_init__()
+
         # Override snowflake_host if SNOWFLAKE_HOST is set (this happens
         # when using SPCS, for example)
         if getenv("SNOWFLAKE_HOST"):
@@ -126,21 +128,14 @@ class CortexPlatformParameters(PlatformParameters):
         self,
         *,
         exclude_none: bool = True,
-        exclude_unset: bool = False,
-        exclude_defaults: bool = False,
     ) -> dict:
         """Convert parameters to a dictionary for client initialization.
 
         Args:
             exclude_none: Whether to exclude fields with value ``None``.
                 Defaults to True.
-            exclude_unset: Whether to exclude fields that were not explicitly set.
-                Not implemented.
-            exclude_defaults: Whether to exclude fields that are set to their
-                default values. Not implemented.
         """
-        result = {
-            "kind": self.kind,
+        extra = {
             "snowflake_username": self.snowflake_username,
             "snowflake_password": (
                 self.snowflake_password.get_secret_value() if self.snowflake_password else None
@@ -153,10 +148,7 @@ class CortexPlatformParameters(PlatformParameters):
             "snowflake_role": self.snowflake_role,
         }
 
-        if exclude_none:
-            result = {k: v for k, v in result.items() if v is not None}
-
-        return result
+        return super().model_dump(exclude_none=exclude_none, extra=extra)
 
     def model_copy(self, *, update: dict | None = None) -> "CortexPlatformParameters":
         """Create a new instance of the model with the same values as
@@ -182,6 +174,11 @@ class CortexPlatformParameters(PlatformParameters):
 
     @classmethod
     def model_validate(cls, obj: dict) -> "CortexPlatformParameters":
+        obj = dict(obj)  # Create a copy to avoid modifying the original
+
+        # Convert datetime strings back to datetime objects
+        cls._convert_datetime_fields(obj)
+
         # Directly pass the dictionary to the constructor.
         # The constructor and __post_init__ will handle extra parameters.
         if "snowflake_password" in obj:

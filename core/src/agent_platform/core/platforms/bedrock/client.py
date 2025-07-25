@@ -84,13 +84,10 @@ class BedrockClient(
         Lazily create a single connection-pooled runtime client.
         """
         if self._bedrock_client is None:
-            params_without_kind = self._parameters.model_dump(exclude_none=True)
-            params_without_kind.pop("kind", None)
-            params_without_kind.pop("config_params", None)
             self._bedrock_client = await self._session.create_client(
                 "bedrock-runtime",
                 config=self._config,
-                **params_without_kind,
+                **self._parameters.aws_client_params(),
             ).__aenter__()
         return self._bedrock_client
 

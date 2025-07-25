@@ -46,22 +46,6 @@ class TestOpenAIPlatformParameters:
         assert "openai_api_key" in dumped
         assert dumped["openai_api_key"] == "test-api-key"
 
-    def test_model_dump_exclude_unset(self) -> None:
-        """Test serialization excluding unset values."""
-        api_key = SecretString("test-api-key")
-        params = OpenAIPlatformParameters(openai_api_key=api_key)
-        dumped = params.model_dump(exclude_unset=True)
-        assert "openai_api_key" in dumped
-        assert dumped["openai_api_key"] == "test-api-key"
-
-    def test_model_dump_exclude_defaults(self) -> None:
-        """Test serialization excluding default values."""
-        api_key = SecretString("test-api-key")
-        params = OpenAIPlatformParameters(openai_api_key=api_key)
-        dumped = params.model_dump(exclude_defaults=True)
-        assert "openai_api_key" in dumped
-        assert dumped["openai_api_key"] == "test-api-key"
-
     def test_model_copy(self) -> None:
         """Test creating a copy with updates."""
         api_key = SecretString("test-api-key")

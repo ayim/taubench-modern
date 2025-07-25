@@ -51,6 +51,10 @@ class TestBedrockPlatformParameters:
             "aws_access_key_id": "test-access-key",
             "aws_secret_access_key": "test-secret-key",
             "config_params": {},
+            "updated_at": params.updated_at.isoformat(),
+            "created_at": params.created_at.isoformat(),
+            "platform_id": params.platform_id,
+            "name": "bedrock-parameters",
         }
 
         # Fields with None values should be excluded
@@ -80,6 +84,12 @@ class TestBedrockPlatformParameters:
             "aws_secret_access_key": "test-secret-key",
             "aws_session_token": None,
             "config_params": {},
+            "updated_at": params.updated_at.isoformat(),
+            "created_at": params.created_at.isoformat(),
+            "platform_id": params.platform_id,
+            "name": "bedrock-parameters",
+            "models": None,
+            "description": None,
         }
 
     def test_model_copy(self) -> None:

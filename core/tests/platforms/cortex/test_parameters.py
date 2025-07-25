@@ -69,6 +69,10 @@ class TestCortexPlatformParameters:
         # Check result
         assert result == {
             "kind": "cortex",
+            "name": "cortex-parameters",
+            "created_at": params.created_at.isoformat(),
+            "updated_at": params.updated_at.isoformat(),
+            "platform_id": params.platform_id,
         }
 
         # Fields with None values should be excluded
@@ -90,6 +94,12 @@ class TestCortexPlatformParameters:
         # Check result
         assert result == {
             "kind": "cortex",
+            "name": "cortex-parameters",
+            "description": None,
+            "models": None,
+            "created_at": params.created_at.isoformat(),
+            "updated_at": params.updated_at.isoformat(),
+            "platform_id": params.platform_id,
             "snowflake_account": None,
             "snowflake_host": None,
             "snowflake_username": None,

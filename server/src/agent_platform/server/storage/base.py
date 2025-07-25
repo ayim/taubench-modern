@@ -6,6 +6,7 @@ from agent_platform.core.files import UploadedFile
 from agent_platform.core.kernel_interfaces.otel import OTelArtifact
 from agent_platform.core.mcp.mcp_server import MCPServer, MCPServerSource
 from agent_platform.core.memory import Memory
+from agent_platform.core.platforms.base import PlatformParameters
 from agent_platform.core.runs import Run, RunStep
 from agent_platform.core.storage import ScopedStorage
 from agent_platform.core.thread import Thread, ThreadMessage
@@ -579,4 +580,42 @@ class BaseStorage(ABC):
     @abstractmethod
     async def get_workitem_files(self, work_item_id: str, user_id: str) -> list[UploadedFile]:
         """Get all files associated with a work item."""
+        pass
+
+    # -------------------------------------------------------------------------
+    # Methods for platform parameters
+    # -------------------------------------------------------------------------
+    @abstractmethod
+    async def create_platform_params(
+        self,
+        platform_params: PlatformParameters,
+    ) -> None:
+        """Create a new platform configuration."""
+        pass
+
+    @abstractmethod
+    async def get_platform_params(
+        self,
+        platform_params_id: str,
+    ) -> PlatformParameters:
+        """Get a platform configuration by ID."""
+        pass
+
+    @abstractmethod
+    async def list_platform_params(self) -> list[PlatformParameters]:
+        """List all platform configurations."""
+        pass
+
+    @abstractmethod
+    async def update_platform_params(
+        self,
+        platform_params_id: str,
+        platform_params: PlatformParameters,
+    ) -> None:
+        """Update a platform configuration."""
+        pass
+
+    @abstractmethod
+    async def delete_platform_params(self, platform_params_id: str) -> None:
+        """Delete a platform configuration."""
         pass
