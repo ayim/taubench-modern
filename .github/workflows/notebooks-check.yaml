@@ -1,0 +1,58 @@
+name: Check Notebooks
+
+on:
+  push:
+    paths:
+      - '**/*.ipynb'
+      - '.github/workflows/notebooks-check.yaml'
+    branches: [main]
+  pull_request:
+    paths:
+      - '**/*.ipynb'
+      - '.github/workflows/notebooks-check.yaml'
+    branches:
+      - '*'
+
+jobs:
+  check-notebooks:
+    runs-on: ubuntu-24.04
+    continue-on-error: true # This makes the check non-blocking
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        id: uv
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            uv.lock
+            **/uv.lock
+
+      - name: Report uv cache status
+        run: echo "uv cache hit? ${{ steps.uv.outputs.cache-hit }}"
+
+      - name: Install dependencies
+        run: make sync
+
+      - name: Check notebooks are clean
+        id: notebook-check
+        run: |
+          echo "::group::Checking notebooks for outputs..."
+          if make notebooks-check; then
+            echo "✅ All notebooks are clean!"
+            echo "status=clean" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️ Some notebooks have outputs that need stripping!"
+            echo "status=dirty" >> $GITHUB_OUTPUT
+            echo "::warning::Some notebooks contain outputs. Consider running 'make notebooks-clean' before committing."
+            # List which notebooks have outputs
+            echo "::group::Notebooks with outputs:"
+            for notebook in $(find . -name "*.ipynb" -type f); do
+              if ! uv run nbstripout --verify "$notebook" 2>/dev/null; then
+                echo "  - $notebook"
+              fi
+            done
+            echo "::endgroup::"
+            exit 1  # Still exit with error to mark the check as failed
+          fi
+          echo "::endgroup::"

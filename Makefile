@@ -253,6 +253,21 @@ check-format:  sync ## Run formatting check with ruff
 	uv run ruff format --check
 	npx prettier@3.5.3 . --check
 
+notebooks-check:  sync ## Check if notebooks have outputs that need stripping (dry-run)
+	@echo "Checking notebooks for outputs that need stripping..."
+	@if uv run nbstripout --verify $$(find . -name "*.ipynb" -type f); then \
+		echo "✅ All notebooks are clean!"; \
+	else \
+		echo "❌ Some notebooks have outputs that need stripping!"; \
+		echo "Run 'make notebooks-clean' to clean them."; \
+		exit 1; \
+	fi
+
+notebooks-clean:  sync ## Strip outputs from all Jupyter notebooks
+	@echo "Stripping outputs from all notebooks..."
+	@uv run nbstripout $$(find . -name "*.ipynb" -type f)
+	@echo "✅ All notebooks have been cleaned!"
+
 # --------------------------------------------------------------------
 # Environment Validation
 # --------------------------------------------------------------------
