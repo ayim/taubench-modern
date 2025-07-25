@@ -4,8 +4,11 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from agent_platform.core.actions.action_utils import (
+    ActionResponse,
     ActionRunStatus,
+    ActionStatusResponse,
     _build_post_async_function,
+    _handle_status_check,
 )
 
 
@@ -65,7 +68,7 @@ class AsyncMockClientSession:
             return AsyncMockResponse(self.get_responses)
 
 
-# ========== CRITICAL TEST: NON-ASYNC ACTION HANDLING ==========
+# ========== SYNC ACTION COMPREHENSIVE TESTS ==========
 @patch("aiohttp.ClientSession")
 @pytest.mark.asyncio
 async def test_non_async_action_direct_return(mock_client_session, monkeypatch):
@@ -73,7 +76,7 @@ async def test_non_async_action_direct_return(mock_client_session, monkeypatch):
     monkeypatch.setenv("SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION", "true")
 
     mock_session = AsyncMockClientSession(
-        post_response_data={"result": "immediate_success", "status": "completed"},
+        post_response_data="immediate_success",
         get_responses=[],  # Should not be called for non-async actions
         post_headers={},  # No async headers for non-async actions
     )
@@ -85,8 +88,193 @@ async def test_non_async_action_direct_return(mock_client_session, monkeypatch):
     result = await async_func(test_param="value")
 
     # Should return the direct result without async polling
-    assert result == {"result": "immediate_success", "status": "completed"}
+    assert result == "immediate_success"
     assert mock_session.get_call_count == 0  # No GET calls should be made
+
+
+@patch("aiohttp.ClientSession")
+@pytest.mark.asyncio
+async def test_sync_action_dict_response_without_result_error(mock_client_session, monkeypatch):
+    """Test sync action returning a dict without 'result' and 'error' keys."""
+    monkeypatch.setenv("SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION", "true")
+
+    response_data = {"data": "some_data", "status": "completed", "count": 42}
+    mock_session = AsyncMockClientSession(
+        post_response_data=response_data,
+        get_responses=[],
+        post_headers={},  # No async headers
+    )
+    mock_client_session.return_value = mock_session
+
+    async_func = _build_post_async_function(
+        action_url="http://localhost:8080/api/actions/test/run", api_key="test-api-key"
+    )
+    result = await async_func(test_param="value")
+
+    # Raw response: result becomes str(dict)
+    assert result == response_data
+    assert mock_session.get_call_count == 0
+
+
+@patch("aiohttp.ClientSession")
+@pytest.mark.asyncio
+async def test_sync_action_response_object_with_truthy_values(mock_client_session, monkeypatch):
+    """Test sync action returning a Response object
+    (dict with both truthy 'result' and 'error' keys)."""
+    monkeypatch.setenv("SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION", "true")
+
+    response_data = {"result": "operation_successful", "error": "some_warning"}
+    mock_session = AsyncMockClientSession(
+        post_response_data=response_data,
+        get_responses=[],
+        post_headers={},  # No async headers
+    )
+    mock_client_session.return_value = mock_session
+
+    async_func = _build_post_async_function(
+        action_url="http://localhost:8080/api/actions/test/run", api_key="test-api-key"
+    )
+    result = await async_func(test_param="value")
+
+    assert result == {"result": "operation_successful", "error": "some_warning"}
+    assert mock_session.get_call_count == 0
+
+
+@patch("aiohttp.ClientSession")
+@pytest.mark.asyncio
+async def test_sync_action_dict_with_result_none_error(mock_client_session, monkeypatch):
+    """Test sync action returning a dict with 'result' key but error is None (falsy)."""
+    monkeypatch.setenv("SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION", "true")
+
+    response_data = {"result": "operation_successful", "error": None}
+    mock_session = AsyncMockClientSession(
+        post_response_data=response_data,
+        get_responses=[],
+        post_headers={},  # No async headers
+    )
+    mock_client_session.return_value = mock_session
+
+    async_func = _build_post_async_function(
+        action_url="http://localhost:8080/api/actions/test/run", api_key="test-api-key"
+    )
+    result = await async_func(test_param="value")
+
+    # Response object: both keys exist, so extract result and error (None)
+    assert result == {"result": "operation_successful", "error": None}
+    assert mock_session.get_call_count == 0
+
+
+@patch("aiohttp.ClientSession")
+@pytest.mark.asyncio
+async def test_sync_action_dict_with_none_result(mock_client_session, monkeypatch):
+    """Test sync action returning a dict with 'error' key but result is None (falsy)."""
+    monkeypatch.setenv("SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION", "true")
+
+    response_data = {"result": None, "error": "something failed"}
+    mock_session = AsyncMockClientSession(
+        post_response_data=response_data,
+        get_responses=[],
+        post_headers={},  # No async headers
+    )
+    mock_client_session.return_value = mock_session
+
+    async_func = _build_post_async_function(
+        action_url="http://localhost:8080/api/actions/test/run", api_key="test-api-key"
+    )
+    result = await async_func(test_param="value")
+
+    # Response object: should extract result (None) and error from the response
+    assert result == {"result": None, "error": "something failed"}
+    assert mock_session.get_call_count == 0
+
+
+@patch("aiohttp.ClientSession")
+@pytest.mark.asyncio
+async def test_sync_action_number_response(mock_client_session, monkeypatch):
+    """Test sync action returning a number."""
+    monkeypatch.setenv("SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION", "true")
+
+    mock_session = AsyncMockClientSession(
+        post_response_data=42,
+        get_responses=[],
+        post_headers={},  # No async headers
+    )
+    mock_client_session.return_value = mock_session
+
+    async_func = _build_post_async_function(
+        action_url="http://localhost:8080/api/actions/test/run", api_key="test-api-key"
+    )
+    result = await async_func(test_param="value")
+
+    assert result == 42
+    assert mock_session.get_call_count == 0
+
+
+@patch("aiohttp.ClientSession")
+@pytest.mark.asyncio
+async def test_sync_action_list_response(mock_client_session, monkeypatch):
+    """Test sync action returning a list."""
+    monkeypatch.setenv("SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION", "true")
+
+    response_data = ["item1", "item2", {"nested": "object"}]
+    mock_session = AsyncMockClientSession(
+        post_response_data=response_data,
+        get_responses=[],
+        post_headers={},  # No async headers
+    )
+    mock_client_session.return_value = mock_session
+
+    async_func = _build_post_async_function(
+        action_url="http://localhost:8080/api/actions/test/run", api_key="test-api-key"
+    )
+    result = await async_func(test_param="value")
+
+    assert result == response_data
+    assert mock_session.get_call_count == 0
+
+
+@patch("aiohttp.ClientSession")
+@pytest.mark.asyncio
+async def test_sync_action_null_response(mock_client_session, monkeypatch):
+    """Test sync action returning null/None."""
+    monkeypatch.setenv("SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION", "true")
+
+    mock_session = AsyncMockClientSession(
+        post_response_data=None,
+        get_responses=[],
+        post_headers={},  # No async headers
+    )
+    mock_client_session.return_value = mock_session
+
+    async_func = _build_post_async_function(
+        action_url="http://localhost:8080/api/actions/test/run", api_key="test-api-key"
+    )
+    result = await async_func(test_param="value")
+
+    assert result is None
+    assert mock_session.get_call_count == 0
+
+
+@patch("aiohttp.ClientSession")
+@pytest.mark.asyncio
+async def test_sync_action_boolean_response(mock_client_session, monkeypatch):
+    """Test sync action returning a boolean."""
+    monkeypatch.setenv("SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION", "true")
+
+    mock_session = AsyncMockClientSession(
+        post_response_data=True,
+        get_responses=[],
+        post_headers={},  # No async headers
+    )
+    mock_client_session.return_value = mock_session
+
+    async_func = _build_post_async_function(
+        action_url="http://localhost:8080/api/actions/test/run", api_key="test-api-key"
+    )
+    result = await async_func(test_param="value")
+
+    assert result is True
+    assert mock_session.get_call_count == 0
 
 
 # ========== CRITICAL TEST: MALFORMED JSON RESPONSE ==========
@@ -128,7 +316,10 @@ async def test_async_action_malformed_json_response(mock_sleep, mock_client_sess
     result = await async_func(test_param="value")
 
     # Should timeout due to JSON parsing errors
-    assert result == {"error": "Async action did not complete after timeout", "result": None}
+    assert result == ActionResponse(
+        result=None,
+        error="Async action did not complete after timeout",
+    )
 
 
 # ========== CRITICAL TEST: MULTIPLE RETRIES WITH EVENTUAL SUCCESS ==========
@@ -172,7 +363,10 @@ async def test_async_action_multiple_retries_eventual_success(
     result = await async_func(test_param="value")
 
     # Should eventually succeed after multiple retries
-    assert result == {"error": None, "result": "finally_done"}
+    assert result == ActionResponse(
+        result="finally_done",
+        error=None,
+    )
     # Verify sleep was called for retries
     assert mock_sleep.call_count >= 3  # At least 3 retries
 
@@ -188,7 +382,10 @@ async def test_async_action_successful_execution(mock_sleep, mock_client_session
     mock_session = AsyncMockClientSession(
         post_response_data={"status": "async"},
         get_responses=[
-            {"status": ActionRunStatus.PASSED, "result": "success"},  # For status check
+            {
+                "status": ActionRunStatus.PASSED,
+                "result": '{"result": "success", "error": null}',
+            },  # For status check
         ],
         post_headers={"x-action-async-completion": "1", "x-action-server-run-id": "test-run-id"},
     )
@@ -203,7 +400,10 @@ async def test_async_action_successful_execution(mock_sleep, mock_client_session
     result = await async_func(test_param="value")
 
     # Verify the result
-    assert result == {"error": None, "result": "success"}
+    assert result == ActionResponse(
+        result='{"result": "success", "error": null}',
+        error=None,
+    )
 
 
 @patch("aiohttp.ClientSession")
@@ -229,7 +429,10 @@ async def test_async_action_failed_execution(mock_sleep, mock_client_session, mo
         action_url="http://localhost:8080/api/actions/test/run", api_key="test-api-key"
     )
     result = await async_func(test_param="value")
-    assert result == {"error": "Action failed", "result": None}
+    assert result == ActionResponse(
+        result=None,
+        error="Action failed",
+    )
 
 
 @patch("aiohttp.ClientSession")
@@ -252,7 +455,10 @@ async def test_async_action_cancelled(mock_sleep, mock_client_session, monkeypat
         action_url="http://localhost:8080/api/actions/test/run", api_key="test-api-key"
     )
     result = await async_func(test_param="value")
-    assert result == {"error": "Action was cancelled", "result": None}
+    assert result == ActionResponse(
+        result=None,
+        error="Action was cancelled",
+    )
 
 
 @patch("aiohttp.ClientSession")
@@ -288,7 +494,10 @@ async def test_async_action_timeout(mock_sleep, mock_client_session, monkeypatch
         action_url="http://localhost:8080/api/actions/test/run", api_key="test-api-key"
     )
     result = await async_func(test_param="value")
-    assert result == {"error": "Async action did not complete after timeout", "result": None}
+    assert result == ActionResponse(
+        result=None,
+        error="Async action did not complete after timeout",
+    )
 
 
 @patch("aiohttp.ClientSession")
@@ -311,7 +520,10 @@ async def test_async_action_network_error(mock_sleep, mock_client_session, monke
         action_url="http://localhost:8080/api/actions/test/run", api_key="test-api-key"
     )
     result = await async_func(test_param="value")
-    assert result == {"error": "Async action did not complete after timeout", "result": None}
+    assert result == ActionResponse(
+        result=None,
+        error="Async action did not complete after timeout",
+    )
 
 
 @patch("aiohttp.ClientSession")
@@ -335,7 +547,10 @@ async def test_async_action_missing_run_id(mock_sleep, mock_client_session, monk
         action_url="http://localhost:8080/api/actions/test/run", api_key="test-api-key"
     )
     result = await async_func(test_param="value")
-    assert result == {"error": "Async action did not complete after timeout", "result": None}
+    assert result == ActionResponse(
+        result=None,
+        error="Async action did not complete after timeout",
+    )
 
 
 @patch("aiohttp.ClientSession")
@@ -358,7 +573,10 @@ async def test_async_action_invalid_status(mock_sleep, mock_client_session, monk
         action_url="http://localhost:8080/api/actions/test/run", api_key="test-api-key"
     )
     result = await async_func(test_param="value")
-    assert result == {"error": "Async action did not complete after timeout", "result": None}
+    assert result == ActionResponse(
+        result=None,
+        error="Async action did not complete after timeout",
+    )
 
 
 @pytest.mark.integration
@@ -459,8 +677,8 @@ async def test_async_action_with_real_server_fast_polling(monkeypatch):  # noqa:
             result = await async_func(duration_seconds=0.3)
 
             # Verify the result
-            assert result["result"] == "Integration test action completed successfully"
-            assert result["error"] is None
+            assert result.result == "Integration test action completed successfully"
+            assert result.error is None
 
             # Verify that multiple polling attempts were made
             # With 0.1 second intervals and the action taking ~0.3 seconds to complete,
@@ -488,3 +706,228 @@ async def test_async_action_with_real_server_fast_polling(monkeypatch):  # noqa:
             os.environ["ACTIONS_ASYNC_MAX_RETRIES"] = original_max_retries
         else:
             os.environ.pop("ACTIONS_ASYNC_MAX_RETRIES", None)
+
+
+# ========== UNIT TESTS FOR _handle_status_check FUNCTION ==========
+
+
+def test_handle_status_check_passed():
+    """Test _handle_status_check with PASSED status."""
+    status_result = ActionStatusResponse(
+        status=ActionRunStatus.PASSED,
+        result="success_data",
+        error_message="some_error",
+    )
+
+    result = _handle_status_check(status_result)
+
+    assert result == ActionResponse(
+        result="success_data",
+        error="some_error",
+    )
+
+
+def test_handle_status_check_failed_with_error_message():
+    """Test _handle_status_check with FAILED status and error_message."""
+    status_result = ActionStatusResponse(
+        status=ActionRunStatus.FAILED,
+        error_message="explicit_error",
+        result="some_result",
+    )
+
+    result = _handle_status_check(status_result)
+
+    assert result == ActionResponse(
+        result="some_result",
+        error="explicit_error",
+    )
+
+
+def test_handle_status_check_failed_no_error_result_json_with_error():
+    """Test _handle_status_check with FAILED status, no error_message,
+    result is JSON string with error."""
+    status_result = ActionStatusResponse(
+        status=ActionRunStatus.FAILED,
+        result='{"error": "json_error", "data": "some_data"}',
+    )
+
+    result = _handle_status_check(status_result)
+
+    assert result == ActionResponse(
+        result='{"error": "json_error", "data": "some_data"}',
+        error="json_error",
+    )
+
+
+def test_handle_status_check_failed_no_error_result_json_without_error():
+    """Test _handle_status_check with FAILED status, no error_message,
+    result is JSON string without error."""
+    status_result = ActionStatusResponse(
+        status=ActionRunStatus.FAILED,
+        result='{"data": "some_data", "status": "completed"}',
+    )
+
+    result = _handle_status_check(status_result)
+
+    assert result == ActionResponse(
+        result='{"data": "some_data", "status": "completed"}',
+        error="Action failed",
+    )
+
+
+def test_handle_status_check_failed_no_error_result_non_json_string():
+    """Test _handle_status_check with FAILED status, no error_message, result is non-JSON string."""
+    status_result = ActionStatusResponse(
+        status=ActionRunStatus.FAILED,
+        result="invalid json string",
+    )
+
+    result = _handle_status_check(status_result)
+
+    assert result == ActionResponse(
+        result="invalid json string",
+        error="Action failed",
+    )
+
+
+def test_handle_status_check_failed_no_error_result_dict_with_error():
+    """Test _handle_status_check with FAILED status, no error_message, result is dict with error."""
+    status_result = ActionStatusResponse(
+        status=ActionRunStatus.FAILED,
+        result={"error": "dict_error", "data": "some_data"},
+    )
+
+    result = _handle_status_check(status_result)
+
+    assert result == ActionResponse(
+        result={"error": "dict_error", "data": "some_data"},
+        error="dict_error",
+    )
+
+
+def test_handle_status_check_failed_no_error_result_dict_with_non_string_error():
+    """Test _handle_status_check with FAILED status, no error_message,
+    result is dict with non-string error."""
+    status_result = ActionStatusResponse(
+        status=ActionRunStatus.FAILED,
+        result={"error": 404, "message": "Not found"},
+    )
+
+    result = _handle_status_check(status_result)
+
+    assert result == ActionResponse(
+        result={"error": 404, "message": "Not found"},
+        error="404",
+    )
+
+
+def test_handle_status_check_failed_no_error_result_dict_without_error():
+    """Test _handle_status_check with FAILED status, no error_message,
+    result is dict without error."""
+    status_result = ActionStatusResponse(
+        status=ActionRunStatus.FAILED,
+        result={"data": "some_data", "status": "completed"},
+    )
+
+    result = _handle_status_check(status_result)
+
+    assert result == ActionResponse(
+        result={"data": "some_data", "status": "completed"},
+        error="Action failed",
+    )
+
+
+def test_handle_status_check_cancelled():
+    """Test _handle_status_check with CANCELLED status."""
+    status_result = ActionStatusResponse(
+        status=ActionRunStatus.CANCELLED,
+        result="some_result",
+    )
+
+    result = _handle_status_check(status_result)
+
+    assert result == ActionResponse(
+        result=None,
+        error="Action was cancelled",
+    )
+
+
+def test_handle_status_check_pending_status():
+    """Test _handle_status_check with PENDING status (should return None)."""
+    status_result = ActionStatusResponse(
+        status=ActionRunStatus.PENDING,
+        result="some_result",
+    )
+
+    result = _handle_status_check(status_result)
+
+    assert result is None
+
+
+def test_handle_status_check_none_status():
+    """Test _handle_status_check with None status (should return None)."""
+    status_result = ActionStatusResponse(
+        result="some_result",
+    )
+
+    result = _handle_status_check(status_result)
+
+    assert result is None
+
+
+def test_handle_status_check_unknown_status():
+    """Test _handle_status_check with unknown status (should return None)."""
+    status_result = ActionStatusResponse(
+        status=999,  # Unknown status
+        result="some_result",
+    )
+
+    result = _handle_status_check(status_result)
+
+    assert result is None
+
+
+def test_handle_status_check_failed_empty_error_message():
+    """Test _handle_status_check with FAILED status and empty error_message."""
+    status_result = ActionStatusResponse(
+        status=ActionRunStatus.FAILED,
+        result="some_result",
+        error_message="",  # Empty string
+    )
+
+    result = _handle_status_check(status_result)
+
+    assert result == ActionResponse(
+        result="some_result",
+        error="Action failed",
+    )
+
+
+def test_handle_status_check_passed_empty_error_message():
+    """Test _handle_status_check with PASSED status and empty error_message."""
+    status_result = ActionStatusResponse(
+        status=ActionRunStatus.PASSED, result="some_result", error_message=""
+    )
+
+    result = _handle_status_check(status_result)
+
+    assert result == ActionResponse(
+        result="some_result",
+        error="",
+    )
+
+
+def test_handle_status_check_passed_no_error_result_dict_with_error_and_error_message():
+    """Test _handle_status_check with PASSED status, no error_message,
+    result is dict with error and error_message."""
+    status_result = ActionStatusResponse(
+        status=ActionRunStatus.PASSED,
+        result={"result": "success", "error": "some_error"},
+    )
+
+    result = _handle_status_check(status_result)
+
+    assert result == ActionResponse(
+        result={"result": "success", "error": "some_error"},
+        error=None,
+    )

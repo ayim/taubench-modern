@@ -9,6 +9,7 @@ from uuid import uuid4
 import structlog
 
 from agent_platform.core.actions import ActionPackage
+from agent_platform.core.actions.action_utils import ActionResponse
 from agent_platform.core.kernel import ToolsInterface
 from agent_platform.core.kernel_interfaces.thread_state import (
     ThreadMessageWithThreadState,
@@ -77,7 +78,11 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                         )
 
                 # TODO: handling of various result types...
-                if isinstance(result, dict):
+                if isinstance(result, ActionResponse):
+                    logger.info(f"ActionResponse: {result}")
+                    result_output = result.result
+                    error_message = result.error
+                elif isinstance(result, dict):
                     # Check for error_code format
                     if "error_code" in result and result["error_code"] != "":
                         error_code = result["error_code"]

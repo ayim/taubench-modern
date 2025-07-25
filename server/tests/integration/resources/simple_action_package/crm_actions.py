@@ -2,7 +2,7 @@ import time
 import uuid
 from typing import TypedDict
 
-from sema4ai.actions import Response, action  # type: ignore
+from sema4ai.actions import ActionError, Response, action  # type: ignore
 
 
 class CustomerData(TypedDict):
@@ -61,7 +61,7 @@ def calculate(expression: str) -> Response[str]:
 
 
 @action
-def test_sleep_action(duration_seconds: float = 1.0) -> Response[str]:
+def sleep_action(duration_seconds: float = 1.0) -> Response[str]:
     """
     A test action that sleeps for a specified duration.
     Useful for testing async action behavior.
@@ -74,6 +74,24 @@ def test_sleep_action(duration_seconds: float = 1.0) -> Response[str]:
     """
     time.sleep(duration_seconds)
     return Response(result=f"Action completed after sleeping for {duration_seconds} seconds")
+
+
+@action
+def sleep_then_error_action(sleep_seconds: float = 2.0) -> Response[str]:
+    """
+    A test action that sleeps for a specified duration and then raises an error.
+    Useful for testing async action error handling - the sleep forces async mode,
+    then the error tests our enhanced error handling logic.
+
+    Args:
+        sleep_seconds: The number of seconds to sleep before erroring (default: 2.0).
+
+    Returns:
+        Always raises an ActionError after sleeping.
+    """
+    time.sleep(sleep_seconds)
+    raise ActionError(f"This is an error after sleeping for {sleep_seconds} seconds")
+    return Response(error="This should not reach here")
 
 
 @action

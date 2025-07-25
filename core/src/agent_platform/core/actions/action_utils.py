@@ -1,7 +1,9 @@
+import json
 import os
 import random
 import string
 from collections.abc import Callable, Coroutine
+from dataclasses import dataclass
 from enum import IntEnum
 from http import HTTPStatus
 from typing import Any, TypedDict
@@ -32,6 +34,14 @@ class ActionStatusResponse(TypedDict, total=False):
     status: int
     result: Any
     error_message: str
+
+
+@dataclass
+class ActionResponse:
+    """Response from action server."""
+
+    result: Any | None
+    error: str | None
 
 
 def _dereference_refs_recursive(item: Any, full_schema: dict) -> Any:
@@ -211,13 +221,57 @@ async def _check_action_status(
         return {"status": -1}
 
 
+def _handle_status_check(status_result: ActionStatusResponse) -> ActionResponse | None:
+    """Handle the status check response from an async action.
+
+    Args:
+        status: The status code from the action run (can be None)
+        status_result: The full status response from the action server
+
+    Returns:
+        dict: Response with error and result keys, or None if action is still running
+    """
+    status = status_result.get("status")
+    if status == ActionRunStatus.PASSED:
+        return ActionResponse(
+            result=status_result.get("result"),
+            error=status_result.get("error_message"),
+        )
+    elif status == ActionRunStatus.FAILED:
+        error = status_result.get("error_message")
+        result = status_result.get("result")
+        if not error:
+            if isinstance(result, str):
+                try:
+                    result = json.loads(result)
+                except Exception:
+                    pass  # Not json
+            if isinstance(result, dict):
+                error = result.get("error")
+                if error and not isinstance(error, str):
+                    error = str(error)
+
+        return ActionResponse(
+            result=status_result.get("result"),
+            error=error or "Action failed",
+        )
+    elif status == ActionRunStatus.CANCELLED:
+        return ActionResponse(
+            result=None,
+            error="Action was cancelled",
+        )
+    else:
+        logger.debug(f"Retrying action status check (status={status})")
+        return None
+
+
 def _build_post_async_function(
     action_url: str,
     api_key: str,
     # Extra headers to be added to the request at
     # tool definition time
     additional_headers: dict | None = None,
-) -> Callable[..., Coroutine[Any, Any, Any]]:
+) -> Callable[..., Coroutine[Any, Any, ActionResponse]]:
     async def _post_async_function(
         # Extra headers to be added to the request at
         # tool invocation time
@@ -241,12 +295,12 @@ def _build_post_async_function(
 
         # Only add async headers if SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION is true
         if os.getenv("SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION", "").lower() == "true":
+            # The timeout can be a float (like 0.1 seconds), so handle it properly
+            timeout_seconds = os.getenv("ACTIONS_ASYNC_TIMEOUT", "20")
             headers.update(
                 {
                     "x-actions-request-id": str(uuid.uuid4()),
-                    "x-actions-async-timeout": str(
-                        int(os.getenv("ACTIONS_ASYNC_TIMEOUT", "20"))
-                    ),  # Default: 20 seconds timeout
+                    "x-actions-async-timeout": str(timeout_seconds),
                     "x-actions-async-callback": "",  # No callback URL
                 }
             )
@@ -291,25 +345,10 @@ def _build_post_async_function(
                                     async_action_run_id=async_action_run_id,
                                     action_server_id=action_server_id,
                                 )
-
-                                status = status_result.get("status")
-
                                 # Handle different status codes
-                                if status == ActionRunStatus.PASSED:
-                                    return {
-                                        "error": status_result.get("error_message"),
-                                        "result": status_result.get("result"),
-                                    }
-                                elif status == ActionRunStatus.FAILED:
-                                    return {
-                                        "error": status_result.get("error_message")
-                                        or "Action failed",
-                                        "result": None,
-                                    }
-                                elif status == ActionRunStatus.CANCELLED:
-                                    return {"error": "Action was cancelled", "result": None}
-                                else:
-                                    logger.debug(f"Retrying action status check: {status}")
+                                status_response = _handle_status_check(status_result)
+                                if status_response is not None:
+                                    return status_response
 
                             await asyncio.sleep(retry_interval)
                             retries += 1
@@ -323,9 +362,13 @@ def _build_post_async_function(
 
                     # If we get here, we've timed out
                     logger.warning(f"Async action did not complete after {max_retries} retries")
-                    return {"error": "Async action did not complete after timeout", "result": None}
-
-                return result
+                    return ActionResponse(
+                        result=None,
+                        error="Async action did not complete after timeout",
+                    )
+                else:
+                    logger.info("Running synchronous action")
+                    return result
 
     return _post_async_function
 
