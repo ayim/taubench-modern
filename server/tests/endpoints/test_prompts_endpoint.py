@@ -23,10 +23,11 @@ from agent_platform.core.runbook.runbook import Runbook
 from agent_platform.core.thread import Thread
 from agent_platform.core.user import User
 from agent_platform.server.api.private_v2.prompt import (
-    _create_platform_client_and_get_model,
+    _create_platform_interface_and_get_model,
     prompt_generate,
     prompt_stream,
 )
+from agent_platform.server.kernel.model_platform import AgentServerPlatformInterface
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -80,6 +81,15 @@ class _DummyPlatformClient:
         yield _DummyDelta("/content/0/text", "add", "is")
         yield _DummyDelta("/content/0/text", "add", "on.")
 
+    async def stream_raw_response(self, *args, **kwargs) -> AsyncGenerator[_DummyDelta, None]:
+        """Mock implementation of stream_raw_response for testing."""
+        # Return the same deltas as generate_stream_response for testing
+        yield _DummyDelta("/role", "add", "agent")
+        yield _DummyDelta("/content", "add", [])
+        yield _DummyDelta("/content/0/text", "add", "Mad")
+        yield _DummyDelta("/content/0/text", "add", "is")
+        yield _DummyDelta("/content/0/text", "add", "on.")
+
 
 class _DummyStorage:
     def __init__(self, agent=None, thread=None):
@@ -98,11 +108,16 @@ class _DummyStorage:
 
 
 _DUMMY_KERNEL = SimpleNamespace()
-_DUMMY_CTX = SimpleNamespace(
-    user_context=SimpleNamespace(
-        user=User(user_id="testing", sub="testing"),
-    ),
+
+# Create a mock context with start_span method
+_DUMMY_CTX = MagicMock()
+_DUMMY_CTX.user_context = SimpleNamespace(
+    user=User(user_id="testing", sub="testing"),
 )
+# Mock the start_span method to return a context manager that yields a mock span
+mock_span = MagicMock()
+_DUMMY_CTX.start_span.return_value.__enter__ = MagicMock(return_value=mock_span)
+_DUMMY_CTX.start_span.return_value.__exit__ = MagicMock(return_value=None)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -181,20 +196,16 @@ def test_create_platform_client_for_every_kind(raw_config):
     """Given different `platform_config.kind`, the correct client is returned."""
     config_copy = raw_config.copy()
 
-    platform_client, model = _create_platform_client_and_get_model(
-        request=Request(
-            scope={
-                "type": "http",
-                "method": "POST",
-                "path": "/api/v2/prompts/generate",
-            }
-        ),
-        user=User(user_id="testing", sub="testing"),
+    platform_interface, model = _create_platform_interface_and_get_model(
         platform_config_raw=raw_config,
+        context=_DUMMY_CTX,
+        model="dummy-model",
+        model_type="llm",
     )
 
-    assert isinstance(platform_client, _DummyPlatformClient)
-    assert platform_client.kind == config_copy["kind"]
+    assert isinstance(platform_interface, AgentServerPlatformInterface)
+    assert isinstance(platform_interface.client, _DummyPlatformClient)
+    assert platform_interface.client.kind == config_copy["kind"]
     assert model == "dummy-model"
 
 
@@ -209,11 +220,14 @@ async def test_generate_endpoint_serialises(monkeypatch):
     async def mock_finalize(*args, **kwargs):
         return None
 
-    fake_prompt = SimpleNamespace(finalize_messages=AsyncMock(side_effect=mock_finalize))
+    fake_prompt = SimpleNamespace(
+        finalize_messages=AsyncMock(side_effect=mock_finalize),
+        messages=[],  # Add messages attribute that the implementation expects
+    )
 
-    # Mock _create_platform_client_and_get_model to help with the test
+    # Mock _create_platform_interface_and_get_model to help with the test
     monkeypatch.setattr(
-        "agent_platform.server.api.private_v2.prompt._create_platform_client_and_get_model",
+        "agent_platform.server.api.private_v2.prompt._create_platform_interface_and_get_model",
         lambda **kwargs: (_DummyPlatformClient("openai"), "some-override-model"),
     )
 
@@ -257,14 +271,17 @@ async def test_stream_endpoint_serialises(monkeypatch):
     async def mock_finalize(*args, **kwargs):
         return None
 
-    # Mock _create_platform_client_and_get_model to help with the test
+    # Mock _create_platform_interface_and_get_model to help with the test
     monkeypatch.setattr(
-        "agent_platform.server.api.private_v2.prompt._create_platform_client_and_get_model",
+        "agent_platform.server.api.private_v2.prompt._create_platform_interface_and_get_model",
         lambda **kwargs: (_DummyPlatformClient("openai"), "dummy-model"),
     )
 
     # Fire the endpoint ---------------------------------------------------------
-    fake_prompt = SimpleNamespace(finalize_messages=AsyncMock(side_effect=mock_finalize))
+    fake_prompt = SimpleNamespace(
+        finalize_messages=AsyncMock(side_effect=mock_finalize),
+        messages=[],  # Add messages attribute that the implementation expects
+    )
     resp = await prompt_stream(
         prompt=fake_prompt,  # type: ignore
         platform_config_raw={"kind": "openai", "openai_api_key": "testing"},
@@ -363,11 +380,14 @@ async def test_generate_endpoint_uses_agent_id(monkeypatch):
         return _DummyPlatformClient("openai"), "dummy-model"
 
     monkeypatch.setattr(
-        "agent_platform.server.api.private_v2.prompt._create_platform_client_and_get_model",
+        "agent_platform.server.api.private_v2.prompt._create_platform_interface_and_get_model",
         spy,
     )
 
-    fake_prompt = SimpleNamespace(finalize_messages=AsyncMock(return_value=None))
+    fake_prompt = SimpleNamespace(
+        finalize_messages=AsyncMock(return_value=None),
+        messages=[],  # Add messages attribute that the implementation expects
+    )
 
     agent = Agent(
         name="Agent",
@@ -401,11 +421,14 @@ async def test_generate_endpoint_uses_thread_id(monkeypatch):
         return _DummyPlatformClient("openai"), "dummy-model"
 
     monkeypatch.setattr(
-        "agent_platform.server.api.private_v2.prompt._create_platform_client_and_get_model",
+        "agent_platform.server.api.private_v2.prompt._create_platform_interface_and_get_model",
         spy,
     )
 
-    fake_prompt = SimpleNamespace(finalize_messages=AsyncMock(return_value=None))
+    fake_prompt = SimpleNamespace(
+        finalize_messages=AsyncMock(return_value=None),
+        messages=[],  # Add messages attribute that the implementation expects
+    )
 
     agent = Agent(
         name="Agent",

@@ -1,9 +1,10 @@
 import json
 import logging
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator, AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
 
+from agent_platform.core.delta import GenericDelta
 from agent_platform.core.kernel import Kernel
 from agent_platform.core.kernel_interfaces.model_platform import PlatformInterface
 from agent_platform.core.platforms.base import PlatformClient
@@ -233,6 +234,125 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
                     # streaming). Re-raise to propagate to the caller so that the
                     # normal error-handling flow (e.g., conversion to
                     # StreamingDeltaAgentError) can take over.
+                    raise
+
+    async def stream_raw_response(
+        self,
+        prompt: Prompt,
+        model: str,
+    ) -> AsyncGenerator[GenericDelta, None]:
+        """Streams raw GenericDeltas, bypassing ResponseStreamPipe.
+
+        This method provides direct access to the raw delta stream from the platform client,
+        avoiding the overhead of the ResponseStreamPipe conversion. Intended for special
+        endpoints that need the raw delta stream.
+
+        Arguments:
+            prompt: The prompt to generate a response for.
+            model: The model to use to generate the response.
+
+        Returns:
+            An async generator yielding GenericDelta objects.
+        """
+        with self.kernel.ctx.start_span(
+            "stream_raw_response",
+            attributes=self.kernel.get_standard_span_attributes(),
+        ):
+            # Use the same prompt processing as stream_response
+            finalized_prompt = await prompt.finalize_messages(
+                self.kernel,
+                platform=self,
+                model=model,
+            )
+
+            # Record tools in trace directly from the finalized_prompt
+            self.kernel.prompts.record_tools_in_trace(
+                finalized_prompt, span_name="stream_raw_response_tools"
+            )
+
+            # Convert the prompt for the platform
+            converted_prompt = await self._internal_client.converters.convert_prompt(
+                finalized_prompt,
+                model_id=model,
+            )
+
+            # Track whether we've started streaming to handle exceptions properly
+            streaming_started = False
+
+            try:
+                # Set up LangSmith tracing (same as stream_response)
+                inputs = self._create_langsmith_inputs_from_prompt(finalized_prompt)
+                metadata = self._generate_metadata(model, streaming=True)
+
+                async with self.kernel.ctx.langsmith.trace_llm(
+                    name="llm_raw_stream_completion",
+                    inputs=inputs,
+                    user_context=self.kernel.ctx.user_context,
+                    metadata=metadata,
+                ) as langsmith_span:
+                    # Collect deltas for final response reconstruction
+                    collected_deltas: list[GenericDelta] = []
+
+                    # Stream the raw deltas directly
+                    streaming_started = True
+                    async for delta in self._internal_client.generate_stream_response(
+                        converted_prompt,
+                        model,
+                    ):
+                        collected_deltas.append(delta)
+                        yield delta
+
+                    # Reconstruct final response for LangSmith output
+                    try:
+                        from agent_platform.core.delta.combine_delta import combine_generic_deltas
+
+                        final_response_dict = combine_generic_deltas(collected_deltas)
+                        final_response = ResponseMessage.model_validate(final_response_dict)
+
+                        # Record the response in LangSmith if available
+                        formatted_messages = (
+                            self.kernel.ctx.langsmith.format_response_for_langsmith(final_response)
+                        )
+                        if langsmith_span:
+                            langsmith_span["output"] = formatted_messages
+
+                        # Add usage information if available
+                        if final_response.usage:
+                            usage = final_response.usage
+                            labels = self.kernel.get_standard_span_attributes()
+                            self.kernel.ctx.increment_counter(
+                                name="sema4ai.agent_server.prompt_tokens",
+                                increment=usage.input_tokens,
+                                labels=labels,
+                            )
+                            self.kernel.ctx.increment_counter(
+                                name="sema4ai.agent_server.completion_tokens",
+                                increment=usage.output_tokens,
+                                labels=labels,
+                            )
+                            self.kernel.ctx.increment_counter(
+                                name="sema4ai.agent_server.total_tokens",
+                                increment=usage.total_tokens,
+                                labels=labels,
+                            )
+                            if langsmith_span:
+                                langsmith_span["usage"] = self._generate_usage_metadata(usage)
+                    except Exception as e:
+                        # If reconstruction fails, log but don't fail the whole stream
+                        logger.warning(f"Failed to reconstruct response for LangSmith: {e}")
+            except Exception:
+                # If LangSmith setup fails *before* we started streaming, or any other error
+                # happens prior to streaming, fall back to streaming without LangSmith
+                if not streaming_started:
+                    # Fallback: stream without LangSmith tracing
+                    async for delta in self._internal_client.generate_stream_response(
+                        converted_prompt,
+                        model,
+                    ):
+                        yield delta
+                else:
+                    # Exception occurred after we started streaming. Re-raise to propagate
+                    # to the caller so that normal error-handling flow can take over.
                     raise
 
     async def count_tokens(self, prompt: Prompt, model: str) -> int:
