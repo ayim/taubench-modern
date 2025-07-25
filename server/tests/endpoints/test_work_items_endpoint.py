@@ -318,13 +318,14 @@ async def test_list_work_items_with_pagination(client: TestClient, seed_agents: 
         actual.append(create_response.json()["work_item_id"])
 
     # List with limit=2 (implicit, offset=0)
+    # Items are returned in DESC order by created_at (newest first)
     response = client.get("/public/v1/work-items/?limit=2")
 
     assert response.status_code == 200
     data = WorkItemsListResponse.model_validate(response.json())
     assert len(data.records) == 2
-    assert data.records[0].work_item_id == actual[0]
-    assert data.records[1].work_item_id == actual[1]
+    assert data.records[0].work_item_id == actual[4]
+    assert data.records[1].work_item_id == actual[3]
     assert data.next_offset == 2
 
     response = client.get("/public/v1/work-items/?limit=2&offset=2")
@@ -333,14 +334,14 @@ async def test_list_work_items_with_pagination(client: TestClient, seed_agents: 
     data = WorkItemsListResponse.model_validate(response.json())
     assert len(data.records) == 2
     assert data.records[0].work_item_id == actual[2]
-    assert data.records[1].work_item_id == actual[3]
+    assert data.records[1].work_item_id == actual[1]
     assert data.next_offset == 4
 
     response = client.get("/public/v1/work-items/?limit=2&offset=4")
     assert response.status_code == 200
     data = WorkItemsListResponse.model_validate(response.json())
     assert len(data.records) == 1
-    assert data.records[0].work_item_id == actual[4]
+    assert data.records[0].work_item_id == actual[0]
     assert data.next_offset is None
 
 

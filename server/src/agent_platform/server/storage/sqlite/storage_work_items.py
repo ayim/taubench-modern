@@ -132,7 +132,7 @@ class SQLiteStorageWorkItemsMixin(CommonMixin):
               FROM v2_work_items w
              WHERE (:agent_id IS NULL OR w.agent_id = :agent_id)
                AND (:created_by IS NULL OR w.created_by = :created_by)
-             ORDER BY w.created_at
+             ORDER BY w.created_at DESC
              LIMIT :limit
             OFFSET :offset
         """

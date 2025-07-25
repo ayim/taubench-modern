@@ -171,7 +171,7 @@ class PostgresStorageWorkItemsMixin(CommonMixin):
               FROM v2.work_items w
              WHERE (%(agent_filter_on)s = FALSE OR w.agent_id = %(agent_id)s::uuid)
                AND (%(created_by_filter_on)s = FALSE OR w.created_by = %(created_by)s::uuid)
-             ORDER BY w.created_at
+             ORDER BY w.created_at DESC
              LIMIT %(limit)s
             OFFSET %(offset)s
         """
