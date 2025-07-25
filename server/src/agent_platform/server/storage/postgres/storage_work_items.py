@@ -131,16 +131,19 @@ class PostgresStorageWorkItemsMixin(CommonMixin):
 
     async def list_work_items(
         self,
-        user_id: str,
         agent_id: str | None = None,
         limit: int = 100,
         offset: int = 0,
         created_by: str | None = None,
     ) -> list[WorkItem]:
-        """List work-items accessible to *user_id* (optionally filtered by agent)."""
-        self._validate_uuid(user_id)
+        """List all work items. If *agent_id* is provided, the list is further filtered to that
+        agent. If *created_by* is provided, the list is further filtered to work items created
+        by that user."""
+
         if agent_id is not None:
             self._validate_uuid(agent_id)
+        if created_by is not None:
+            self._validate_uuid(created_by)
 
         # Use a sentinel UUID when *agent_id* or *created_by* is None so that we can keep a
         # single query without running into Postgres' "ambiguous parameter"
@@ -150,7 +153,6 @@ class PostgresStorageWorkItemsMixin(CommonMixin):
         sentinel_created_by_uuid = "00000000-0000-0000-0000-000000000000"
 
         params: dict[str, object] = {
-            "user_id": user_id,
             # If agent_id is None we pass the sentinel value; the SQL logic
             # treats that the same as "no filtering".
             "agent_id": agent_id or sentinel_agent_uuid,
@@ -167,8 +169,7 @@ class PostgresStorageWorkItemsMixin(CommonMixin):
         query = """
             SELECT w.*
               FROM v2.work_items w
-             WHERE v2.check_user_access(w.user_id, %(user_id)s::uuid)
-               AND (%(agent_filter_on)s = FALSE OR w.agent_id = %(agent_id)s::uuid)
+             WHERE (%(agent_filter_on)s = FALSE OR w.agent_id = %(agent_id)s::uuid)
                AND (%(created_by_filter_on)s = FALSE OR w.created_by = %(created_by)s::uuid)
              ORDER BY w.created_at
              LIMIT %(limit)s

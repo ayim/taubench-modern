@@ -106,24 +106,21 @@ class SQLiteStorageWorkItemsMixin(CommonMixin):
 
     async def list_work_items(
         self,
-        user_id: str,
         agent_id: str | None = None,
         limit: int = 100,
         offset: int = 0,
         created_by: str | None = None,
     ) -> list[WorkItem]:
-        """List all work items accessible to *user_id*. If *agent_id* is
+        """List all work items. If *agent_id* is
         provided, the list is further filtered to that agent. If *created_by* is
         provided, the list is further filtered to work items created by that user."""
 
-        self._validate_uuid(user_id)
         if agent_id is not None:
             self._validate_uuid(agent_id)
         if created_by is not None:
             self._validate_uuid(created_by)
 
         params: dict[str, str | None] = {
-            "user_id": user_id,
             "agent_id": agent_id,
             "limit": str(limit),
             "offset": str(offset),
@@ -133,8 +130,7 @@ class SQLiteStorageWorkItemsMixin(CommonMixin):
         query = """
             SELECT w.*
               FROM v2_work_items w
-             WHERE v2_check_user_access(w.user_id, :user_id) = 1
-               AND (:agent_id IS NULL OR w.agent_id = :agent_id)
+             WHERE (:agent_id IS NULL OR w.agent_id = :agent_id)
                AND (:created_by IS NULL OR w.created_by = :created_by)
              ORDER BY w.created_at
              LIMIT :limit

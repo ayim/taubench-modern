@@ -282,9 +282,7 @@ async def list_work_items(  # noqa: PLR0913
     ),
 ) -> WorkItemsListResponse:
     # User the system user for lookups to avoid permission issues.
-    system_user, _ = await storage.get_or_create_user(WORK_ITEMS_SYSTEM_USER_SUB)
     work_items = await storage.list_work_items(
-        system_user.user_id,
         agent_id=agent_id,
         limit=limit,
         offset=offset,

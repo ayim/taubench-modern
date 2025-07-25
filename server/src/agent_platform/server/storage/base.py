@@ -459,7 +459,6 @@ class BaseStorage(ABC):
     @abstractmethod
     async def list_work_items(
         self,
-        user_id: str,
         agent_id: str | None = None,
         limit: int = 100,
         offset: int = 0,

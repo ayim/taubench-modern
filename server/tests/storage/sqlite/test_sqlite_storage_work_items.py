@@ -176,10 +176,10 @@ async def test_list_work_items_filtering(
     for wi in items:
         await storage.create_work_item(wi)
 
-    all_items = await storage.list_work_items(sample_user_id)
+    all_items = await storage.list_work_items()
     assert len(all_items) >= 3  # could be more if other tests created items
 
-    by_agent = await storage.list_work_items(sample_user_id, agent_id=sample_agent.agent_id)
+    by_agent = await storage.list_work_items(agent_id=sample_agent.agent_id)
     # Exactly the two we inserted for first agent should be returned
     ids_first_agent = {items[0].work_item_id, items[1].work_item_id}
     assert ids_first_agent.issubset({wi.work_item_id for wi in by_agent})
@@ -954,3 +954,76 @@ async def test_update_work_item_all_fields(
 
     # Verify that created_at is preserved (not updated)
     assert fetched_updated.created_at == fetched_initial.created_at
+
+
+@pytest.mark.asyncio
+async def test_list_all_work_items_with_system_user(
+    storage: SQLiteStorage,
+    sample_agent,
+):
+    """Test that work items created with system user are properly owned by that user."""
+    work_items_system_sub = "tenant:work-items:system:system_user"
+
+    # Create system user
+    system_user, _ = await storage.get_or_create_user(work_items_system_sub)
+
+    # Ensure the agent exists (FK)
+    await storage.upsert_agent(system_user.user_id, sample_agent)
+
+    # Create several work items with system user
+    work_item_ids = []
+    num_work_items = 5
+
+    for i in range(num_work_items):
+        work_item = WorkItem(
+            work_item_id=str(uuid4()),
+            user_id=system_user.user_id,
+            created_by=system_user.user_id,
+            agent_id=sample_agent.agent_id,
+            thread_id=None,
+            status=WorkItemStatus.PENDING,
+            messages=[
+                ThreadMessage(
+                    role="user",
+                    content=[ThreadTextContent(text=f"Test message {i}")],
+                ),
+            ],
+            payload={"test_item": i, "system_created": True},
+        )
+        await storage.create_work_item(work_item)
+        work_item_ids.append(work_item.work_item_id)
+
+    # List all work items (no filtering)
+    all_work_items = await storage.list_work_items()
+
+    # Verify that we get at least the work items we created
+    # (there might be other work items from other tests)
+    returned_work_item_ids = {wi.work_item_id for wi in all_work_items}
+    created_work_item_ids = set(work_item_ids)
+
+    # All our created work items should be in the returned list
+    assert created_work_item_ids.issubset(returned_work_item_ids)
+
+    # Find our created work items in the returned list
+    our_work_items = [wi for wi in all_work_items if wi.work_item_id in created_work_item_ids]
+    assert len(our_work_items) == num_work_items
+
+    # Verify all returned work items have the same system user ID
+    for work_item in our_work_items:
+        assert work_item.user_id == system_user.user_id
+        assert work_item.created_by == system_user.user_id
+        assert work_item.agent_id == sample_agent.agent_id
+        assert work_item.status == WorkItemStatus.PENDING
+
+    # Verify payload content for our created items
+    payloads = [wi.payload for wi in our_work_items]
+    for payload in payloads:
+        # Each payload should have system_created=True
+        assert payload.get("system_created") is True
+        # Each payload should have a unique test_item number
+        assert "test_item" in payload
+
+    # Verify we have all expected test_item values
+    test_item_values = {payload["test_item"] for payload in payloads}
+    expected_values = set(range(num_work_items))
+    assert test_item_values == expected_values

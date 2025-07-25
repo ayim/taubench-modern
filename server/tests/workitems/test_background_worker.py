@@ -238,7 +238,7 @@ class TestBackgroundWorker:
             await bw.worker_iteration(always_succeed)
 
         # All should be COMPLETED
-        items = await configured_storage.list_work_items(stub_user.user_id)
+        items = await configured_storage.list_work_items()
         assert len(items) == num_work_items
         assert all(item.status == WorkItemStatus.COMPLETED for item in items)
 
