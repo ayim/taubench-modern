@@ -1,3 +1,12 @@
+# Sema4.ai Agent Server 2.0.21 (2025-07-25)
+
+- Hot Reload for Agent Backend
+- First Class Storage for Platform Configs
+- Enhance CI workflow by adding S3 path for artifact storage across platforms
+- Fix Headers Issue w/ MCP Tools & Disable Tool Caching
+- Update S3 path in CI workflow for Ubuntu artifact storage from 'ubuntu_x64' to 'linux_x64'
+- List workitems (newest comes first)
+
 # Sema4.ai Agent Server 2.0.20 (2025-07-23)
 
 - Add CRUD for MCP servers.
