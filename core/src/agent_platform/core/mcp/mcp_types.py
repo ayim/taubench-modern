@@ -86,3 +86,15 @@ def deserialize_mcp_variables(variables: dict[str, Any] | None) -> MCPVariables 
     if variables is None:
         return None
     return {k: deserialize_mcp_variable(v) for k, v in variables.items()}
+
+
+@dataclass(frozen=True)
+class MCPToolDetail:
+    name: str
+
+
+@dataclass(frozen=True)
+class MCPServerDetail:
+    name: str
+    actions: list[MCPToolDetail]
+    status: Literal["online", "offline"]

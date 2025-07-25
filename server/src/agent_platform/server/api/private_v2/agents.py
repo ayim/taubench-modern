@@ -14,6 +14,7 @@ from agent_platform.core.agent_spec.extract_spec import (
     extract_and_validate_agent_package,
 )
 from agent_platform.core.files import UploadedFile
+from agent_platform.core.mcp.mcp_types import MCPServerDetail
 from agent_platform.core.payloads import (
     ActionServerConfigPayload,
     AgentPackagePayload,
@@ -318,7 +319,10 @@ async def get_agent_details(
     storage: StorageDependency,
 ) -> AgentDetails:
     all_action_details = []
+    all_mcp_server_details = []
     agent = await storage.get_agent(user.user_id, aid)
+
+    # Iterate over action packages, then MCP servers
     for action_package in agent.action_packages:
         try:
             tool_defs = await action_package.to_tool_definitions()
@@ -345,7 +349,31 @@ async def get_agent_details(
         )
         logger.debug(f"Action package details: {action_package_details}")
         all_action_details.append(action_package_details)
+
+    for mcp_server in agent.mcp_servers:
+        try:
+            tool_defs = await mcp_server.to_tool_definitions()
+        except Exception as e:
+            logger.error(f"Error getting tool definitions for MCP server {mcp_server.name}: {e}")
+            mcp_server_details = MCPServerDetail(
+                name=mcp_server.name,
+                actions=[],
+                status="offline",
+            )
+            all_mcp_server_details.append(mcp_server_details)
+            continue
+        allowed_actions = []
+        for tool_def in tool_defs:
+            allowed_actions.append(ActionDetail(name=tool_def.name))
+        mcp_server_details = MCPServerDetail(
+            name=mcp_server.name,
+            actions=allowed_actions,
+            status="online",
+        )
+        all_mcp_server_details.append(mcp_server_details)
+
     return AgentDetails(
         runbook=agent.runbook_structured.raw_text,
         action_packages=all_action_details,
+        mcp_servers=all_mcp_server_details,
     )

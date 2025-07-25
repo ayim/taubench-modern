@@ -4,6 +4,7 @@ from typing import Literal
 from agent_platform.core.actions.action_utils import (
     get_spec_and_build_tool_definitions,
 )
+from agent_platform.core.mcp.mcp_types import MCPServerDetail
 from agent_platform.core.tools.tool_definition import ToolDefinition
 from agent_platform.core.utils import SecretString
 
@@ -189,3 +190,4 @@ class ActionPackageDetail:
 class AgentDetails:
     runbook: str
     action_packages: list[ActionPackageDetail]
+    mcp_servers: list[MCPServerDetail]
