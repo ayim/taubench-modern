@@ -1,3 +1,7 @@
+# Sema4.ai Agent Server 2.0.22 (2025-07-26)
+
+- Rebuild of v2.0.21 due to an error in v2.0.21 release process
+
 # Sema4.ai Agent Server 2.0.21 (2025-07-25)
 
 - Hot Reload for Agent Backend
@@ -40,7 +44,7 @@
 # Sema4.ai Agent Server 2.0.16 (2025-07-16)
 
 - More bug-fixes for work-items
-  
+
 # Sema4.ai Agent Server 2.0.15 (2025-07-16)
 
 - Bug-fixes for work-items
@@ -49,7 +53,7 @@
 
 - Support pre-signed URLs for uploading files to work-items ([GPT-1069](https://linear.app/sema4ai/issue/GPT-1069/add-presigned-url-file-upload-support-for-large-files))
 - Properly set `work_item_url` into work-item callback ([GPT-1087](https://linear.app/sema4ai/issue/GPT-1087/properly-set-work-item-url-into-work-item-callback))
-  
+
 # Sema4.ai Agent Server 2.0.13 (2025-07-14)
 
 - Implement status-based callbacks for Work-Items service.
