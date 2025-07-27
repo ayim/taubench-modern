@@ -371,11 +371,17 @@ class WorkItem:
         if "updated_at" in data and isinstance(data["updated_at"], str):
             data["updated_at"] = datetime.fromisoformat(data["updated_at"])
         if "completed_by" in data and isinstance(data["completed_by"], str):
-            data["completed_by"] = WorkItemCompletedBy(data["completed_by"])
+            try:
+                data["completed_by"] = WorkItemCompletedBy(data["completed_by"])
+            except ValueError:
+                data["completed_by"] = None
         if "status_updated_at" in data and isinstance(data["status_updated_at"], str):
             data["status_updated_at"] = datetime.fromisoformat(data["status_updated_at"])
         if "status_updated_by" in data and isinstance(data["status_updated_by"], str):
-            data["status_updated_by"] = WorkItemStatusUpdatedBy(data["status_updated_by"])
+            try:
+                data["status_updated_by"] = WorkItemStatusUpdatedBy(data["status_updated_by"])
+            except ValueError:
+                data["status_updated_by"] = WorkItemStatusUpdatedBy.HUMAN
         if "messages" in data:
             data["messages"] = [
                 ThreadMessage.model_validate(msg) if isinstance(msg, dict) else msg
