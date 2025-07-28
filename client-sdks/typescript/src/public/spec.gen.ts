@@ -6,7 +6,7 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Public API Version 2',
-    version: '2.0.20',
+    version: '2.0.22',
   },
   paths: {
     '/api/public/v1/agents': {
@@ -1079,6 +1079,391 @@ export const spec = {
                 schema: {},
               },
             },
+          },
+        },
+      },
+    },
+    '/api/public/v1/agent-mcp/{aid}/mcp/': {
+      post: {
+        summary: 'Send JSON-RPC messages to the MCP server',
+        tags: ['mcp', 'agents'],
+        parameters: [
+          {
+            name: 'aid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Agent ID',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                oneOf: [
+                  {
+                    type: 'object',
+                    required: ['jsonrpc', 'id', 'method'],
+                    properties: {
+                      jsonrpc: {
+                        type: 'string',
+                        enum: ['2.0'],
+                      },
+                      id: {
+                        oneOf: [
+                          {
+                            type: 'integer',
+                          },
+                          {
+                            type: 'string',
+                          },
+                        ],
+                      },
+                      method: {
+                        type: 'string',
+                      },
+                      params: {
+                        type: 'object',
+                        additionalProperties: true,
+                      },
+                    },
+                  },
+                  {
+                    type: 'array',
+                    items: {
+                      oneOf: [
+                        {
+                          type: 'object',
+                          required: ['jsonrpc', 'id', 'method'],
+                          properties: {
+                            jsonrpc: {
+                              type: 'string',
+                              enum: ['2.0'],
+                            },
+                            id: {
+                              oneOf: [
+                                {
+                                  type: 'integer',
+                                },
+                                {
+                                  type: 'string',
+                                },
+                              ],
+                            },
+                            method: {
+                              type: 'string',
+                            },
+                            params: {
+                              type: 'object',
+                              additionalProperties: true,
+                            },
+                          },
+                        },
+                        {
+                          type: 'object',
+                          required: ['jsonrpc', 'id'],
+                          properties: {
+                            jsonrpc: {
+                              type: 'string',
+                              enum: ['2.0'],
+                            },
+                            id: {
+                              oneOf: [
+                                {
+                                  type: 'integer',
+                                },
+                                {
+                                  type: 'string',
+                                },
+                                {
+                                  type: 'null',
+                                },
+                              ],
+                            },
+                            result: {
+                              type: 'object',
+                              additionalProperties: true,
+                            },
+                            error: {
+                              type: 'object',
+                              required: ['code', 'message'],
+                              properties: {
+                                code: {
+                                  type: 'integer',
+                                },
+                                message: {
+                                  type: 'string',
+                                },
+                                data: {
+                                  type: 'object',
+                                  additionalProperties: true,
+                                },
+                              },
+                            },
+                          },
+                        },
+                        {
+                          type: 'object',
+                          required: ['jsonrpc', 'method'],
+                          properties: {
+                            jsonrpc: {
+                              type: 'string',
+                              enum: ['2.0'],
+                            },
+                            method: {
+                              type: 'string',
+                            },
+                            params: {
+                              type: 'object',
+                              additionalProperties: true,
+                            },
+                          },
+                        },
+                      ],
+                    },
+                  },
+                  {
+                    type: 'object',
+                    required: ['jsonrpc', 'id'],
+                    properties: {
+                      jsonrpc: {
+                        type: 'string',
+                        enum: ['2.0'],
+                      },
+                      id: {
+                        oneOf: [
+                          {
+                            type: 'integer',
+                          },
+                          {
+                            type: 'string',
+                          },
+                          {
+                            type: 'null',
+                          },
+                        ],
+                      },
+                      result: {
+                        type: 'object',
+                        additionalProperties: true,
+                      },
+                      error: {
+                        type: 'object',
+                        required: ['code', 'message'],
+                        properties: {
+                          code: {
+                            type: 'integer',
+                          },
+                          message: {
+                            type: 'string',
+                          },
+                          data: {
+                            type: 'object',
+                            additionalProperties: true,
+                          },
+                        },
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+            'text/event-stream': {
+              schema: {
+                type: 'string',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'JSON-RPC response(s)',
+            content: {
+              'application/json': {
+                schema: {
+                  oneOf: [
+                    {
+                      type: 'object',
+                      required: ['jsonrpc', 'id'],
+                      properties: {
+                        jsonrpc: {
+                          type: 'string',
+                          enum: ['2.0'],
+                        },
+                        id: {
+                          oneOf: [
+                            {
+                              type: 'integer',
+                            },
+                            {
+                              type: 'string',
+                            },
+                            {
+                              type: 'null',
+                            },
+                          ],
+                        },
+                        result: {
+                          type: 'object',
+                          additionalProperties: true,
+                        },
+                        error: {
+                          type: 'object',
+                          required: ['code', 'message'],
+                          properties: {
+                            code: {
+                              type: 'integer',
+                            },
+                            message: {
+                              type: 'string',
+                            },
+                            data: {
+                              type: 'object',
+                              additionalProperties: true,
+                            },
+                          },
+                        },
+                      },
+                    },
+                    {
+                      type: 'array',
+                      items: {
+                        oneOf: [
+                          {
+                            type: 'object',
+                            required: ['jsonrpc', 'id', 'method'],
+                            properties: {
+                              jsonrpc: {
+                                type: 'string',
+                                enum: ['2.0'],
+                              },
+                              id: {
+                                oneOf: [
+                                  {
+                                    type: 'integer',
+                                  },
+                                  {
+                                    type: 'string',
+                                  },
+                                ],
+                              },
+                              method: {
+                                type: 'string',
+                              },
+                              params: {
+                                type: 'object',
+                                additionalProperties: true,
+                              },
+                            },
+                          },
+                          {
+                            type: 'object',
+                            required: ['jsonrpc', 'id'],
+                            properties: {
+                              jsonrpc: {
+                                type: 'string',
+                                enum: ['2.0'],
+                              },
+                              id: {
+                                oneOf: [
+                                  {
+                                    type: 'integer',
+                                  },
+                                  {
+                                    type: 'string',
+                                  },
+                                  {
+                                    type: 'null',
+                                  },
+                                ],
+                              },
+                              result: {
+                                type: 'object',
+                                additionalProperties: true,
+                              },
+                              error: {
+                                type: 'object',
+                                required: ['code', 'message'],
+                                properties: {
+                                  code: {
+                                    type: 'integer',
+                                  },
+                                  message: {
+                                    type: 'string',
+                                  },
+                                  data: {
+                                    type: 'object',
+                                    additionalProperties: true,
+                                  },
+                                },
+                              },
+                            },
+                          },
+                          {
+                            type: 'object',
+                            required: ['jsonrpc', 'method'],
+                            properties: {
+                              jsonrpc: {
+                                type: 'string',
+                                enum: ['2.0'],
+                              },
+                              method: {
+                                type: 'string',
+                              },
+                              params: {
+                                type: 'object',
+                                additionalProperties: true,
+                              },
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          '202': {
+            description:
+              'Accepted (notifications-only input)\nServer returns no body when input is purely notifications',
+          },
+          '400': {
+            description: 'Bad Request (e.g., invalid JSON-RPC message)',
+          },
+        },
+      },
+      get: {
+        summary: 'Open an SSE stream for server-initiated messages',
+        tags: ['mcp', 'agents'],
+        parameters: [
+          {
+            name: 'aid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Agent ID',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description:
+              'Server-Sent Events stream of JSON-RPC requests/notifications',
+            content: {
+              'text/event-stream': {
+                schema: {
+                  type: 'string',
+                },
+              },
+            },
+          },
+          '405': {
+            description: 'Method Not Allowed - streaming not supported',
           },
         },
       },

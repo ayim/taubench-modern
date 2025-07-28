@@ -1237,6 +1237,8 @@ export interface components {
       runbook: string;
       /** Action Packages */
       action_packages: components['schemas']['ActionPackageDetail'][];
+      /** Mcp Servers */
+      mcp_servers: components['schemas']['MCPServerDetail'][];
     };
     /** AgentPackagePayload */
     AgentPackagePayload: {
@@ -1326,6 +1328,41 @@ export interface components {
        * @constant
        */
       kind: 'azure';
+      /**
+       * Name
+       * @description The name of the platform parameters.
+       * @default
+       */
+      name: string;
+      /**
+       * Description
+       * @description The description of the platform parameters.
+       */
+      description?: string | null;
+      /**
+       * Models
+       * @description Allow list of provider -> models mapping (e.g. {'OpenAI': ['gpt-4.1', 'o3']})
+       */
+      models?: {
+        [key: string]: string[];
+      } | null;
+      /**
+       * Created At
+       * Format: date-time
+       * @description The time at which the platform parameters were created.
+       */
+      created_at?: string;
+      /**
+       * Updated At
+       * Format: date-time
+       * @description The time at which the platform parameters were last updated.
+       */
+      updated_at?: string;
+      /**
+       * Platform Id
+       * @description The unique identifier of the platform.
+       */
+      platform_id?: string;
       /** @description The Azure OpenAI API key. If not provided, it will be attempted to be inferred from the environment. */
       azure_api_key?: components['schemas']['SecretString'] | null;
       /**
@@ -1371,6 +1408,41 @@ export interface components {
        * @constant
        */
       kind: 'bedrock';
+      /**
+       * Name
+       * @description The name of the platform parameters.
+       * @default
+       */
+      name: string;
+      /**
+       * Description
+       * @description The description of the platform parameters.
+       */
+      description?: string | null;
+      /**
+       * Models
+       * @description Allow list of provider -> models mapping (e.g. {'OpenAI': ['gpt-4.1', 'o3']})
+       */
+      models?: {
+        [key: string]: string[];
+      } | null;
+      /**
+       * Created At
+       * Format: date-time
+       * @description The time at which the platform parameters were created.
+       */
+      created_at?: string;
+      /**
+       * Updated At
+       * Format: date-time
+       * @description The time at which the platform parameters were last updated.
+       */
+      updated_at?: string;
+      /**
+       * Platform Id
+       * @description The unique identifier of the platform.
+       */
+      platform_id?: string;
       /**
        * Region Name
        * @description AWS region name (e.g., 'us-west-2'). If not specified, boto3 will use the default region from AWS configuration chain (environment variables, config file, or instance metadata).
@@ -1531,6 +1603,41 @@ export interface components {
        */
       kind: 'cortex';
       /**
+       * Name
+       * @description The name of the platform parameters.
+       * @default
+       */
+      name: string;
+      /**
+       * Description
+       * @description The description of the platform parameters.
+       */
+      description?: string | null;
+      /**
+       * Models
+       * @description Allow list of provider -> models mapping (e.g. {'OpenAI': ['gpt-4.1', 'o3']})
+       */
+      models?: {
+        [key: string]: string[];
+      } | null;
+      /**
+       * Created At
+       * Format: date-time
+       * @description The time at which the platform parameters were created.
+       */
+      created_at?: string;
+      /**
+       * Updated At
+       * Format: date-time
+       * @description The time at which the platform parameters were last updated.
+       */
+      updated_at?: string;
+      /**
+       * Platform Id
+       * @description The unique identifier of the platform.
+       */
+      platform_id?: string;
+      /**
        * Snowflake Username
        * @description The Snowflake username. Optional, as token-based auth is preferred.
        */
@@ -1644,6 +1751,41 @@ export interface components {
        * @constant
        */
       kind: 'google';
+      /**
+       * Name
+       * @description The name of the platform parameters.
+       * @default
+       */
+      name: string;
+      /**
+       * Description
+       * @description The description of the platform parameters.
+       */
+      description?: string | null;
+      /**
+       * Models
+       * @description Allow list of provider -> models mapping (e.g. {'OpenAI': ['gpt-4.1', 'o3']})
+       */
+      models?: {
+        [key: string]: string[];
+      } | null;
+      /**
+       * Created At
+       * Format: date-time
+       * @description The time at which the platform parameters were created.
+       */
+      created_at?: string;
+      /**
+       * Updated At
+       * Format: date-time
+       * @description The time at which the platform parameters were last updated.
+       */
+      updated_at?: string;
+      /**
+       * Platform Id
+       * @description The unique identifier of the platform.
+       */
+      platform_id?: string;
       /** @description The Google API key. If not provided, it will be attempted to be inferred from the environment. */
       google_api_key?: components['schemas']['SecretString'] | null;
     };
@@ -1656,6 +1798,41 @@ export interface components {
        * @constant
        */
       kind: 'groq';
+      /**
+       * Name
+       * @description The name of the platform parameters.
+       * @default
+       */
+      name: string;
+      /**
+       * Description
+       * @description The description of the platform parameters.
+       */
+      description?: string | null;
+      /**
+       * Models
+       * @description Allow list of provider -> models mapping (e.g. {'OpenAI': ['gpt-4.1', 'o3']})
+       */
+      models?: {
+        [key: string]: string[];
+      } | null;
+      /**
+       * Created At
+       * Format: date-time
+       * @description The time at which the platform parameters were created.
+       */
+      created_at?: string;
+      /**
+       * Updated At
+       * Format: date-time
+       * @description The time at which the platform parameters were last updated.
+       */
+      updated_at?: string;
+      /**
+       * Platform Id
+       * @description The unique identifier of the platform.
+       */
+      platform_id?: string;
       /** @description The Groq API key. If not provided, it will be attempted to be inferred from the environment. */
       groq_api_key?: components['schemas']['SecretString'] | null;
     };
@@ -1728,10 +1905,12 @@ export interface components {
       headers?: {
         [key: string]:
           | string
-          | components['schemas']['MCPVariableTypeOAuth2Secret']
-          | components['schemas']['MCPVariableTypeSecret']
-          | components['schemas']['MCPVariableTypeString']
-          | components['schemas']['MCPVariableTypeDataServerInfo'];
+          | (
+              | components['schemas']['MCPVariableTypeString']
+              | components['schemas']['MCPVariableTypeSecret']
+              | components['schemas']['MCPVariableTypeOAuth2Secret']
+              | components['schemas']['MCPVariableTypeDataServerInfo']
+            );
       } | null;
       /**
        * Command
@@ -1750,10 +1929,12 @@ export interface components {
       env?: {
         [key: string]:
           | string
-          | components['schemas']['MCPVariableTypeOAuth2Secret']
-          | components['schemas']['MCPVariableTypeSecret']
-          | components['schemas']['MCPVariableTypeString']
-          | components['schemas']['MCPVariableTypeDataServerInfo'];
+          | (
+              | components['schemas']['MCPVariableTypeString']
+              | components['schemas']['MCPVariableTypeSecret']
+              | components['schemas']['MCPVariableTypeOAuth2Secret']
+              | components['schemas']['MCPVariableTypeDataServerInfo']
+            );
       } | null;
       /**
        * Cwd
@@ -1794,6 +1975,18 @@ export interface components {
        * @default false
        */
       force_serial_tool_calls: boolean;
+    };
+    /** MCPServerDetail */
+    MCPServerDetail: {
+      /** Name */
+      name: string;
+      /** Actions */
+      actions: components['schemas']['MCPToolDetail'][];
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: 'online' | 'offline';
     };
     /** MCPServerResponse */
     MCPServerResponse: {
@@ -1860,6 +2053,11 @@ export interface components {
      * @enum {string}
      */
     MCPServerSource: 'FILE' | 'API';
+    /** MCPToolDetail */
+    MCPToolDetail: {
+      /** Name */
+      name: string;
+    };
     /** MCPVariableCompat */
     MCPVariableCompat: {
       /**
@@ -1869,8 +2067,6 @@ export interface components {
       type: 'string' | 'secret' | 'oauth2-secret' | 'data-server-info';
       /** Description */
       description?: string | null;
-      /** Default */
-      default?: string | null;
       /** Provider */
       provider?: string | null;
       /** Scopes */
@@ -1881,9 +2077,8 @@ export interface components {
     /** MCPVariableTypeDataServerInfo */
     MCPVariableTypeDataServerInfo: {
       /**
-       * Type
-       * @default data-server-info
-       * @constant
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
        */
       type: 'data-server-info';
       /** Value */
@@ -1892,9 +2087,8 @@ export interface components {
     /** MCPVariableTypeOAuth2Secret */
     MCPVariableTypeOAuth2Secret: {
       /**
-       * Type
-       * @default oauth2-secret
-       * @constant
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
        */
       type: 'oauth2-secret';
       /** Provider */
@@ -1909,9 +2103,8 @@ export interface components {
     /** MCPVariableTypeSecret */
     MCPVariableTypeSecret: {
       /**
-       * Type
-       * @default secret
-       * @constant
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
        */
       type: 'secret';
       /** Description */
@@ -1922,15 +2115,12 @@ export interface components {
     /** MCPVariableTypeString */
     MCPVariableTypeString: {
       /**
-       * Type
-       * @default string
-       * @constant
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
        */
       type: 'string';
       /** Description */
       description?: string | null;
-      /** Default */
-      default?: string | null;
       /** Value */
       value?: string | null;
     };
@@ -2047,6 +2237,41 @@ export interface components {
        * @constant
        */
       kind: 'openai';
+      /**
+       * Name
+       * @description The name of the platform parameters.
+       * @default
+       */
+      name: string;
+      /**
+       * Description
+       * @description The description of the platform parameters.
+       */
+      description?: string | null;
+      /**
+       * Models
+       * @description Allow list of provider -> models mapping (e.g. {'OpenAI': ['gpt-4.1', 'o3']})
+       */
+      models?: {
+        [key: string]: string[];
+      } | null;
+      /**
+       * Created At
+       * Format: date-time
+       * @description The time at which the platform parameters were created.
+       */
+      created_at?: string;
+      /**
+       * Updated At
+       * Format: date-time
+       * @description The time at which the platform parameters were last updated.
+       */
+      updated_at?: string;
+      /**
+       * Platform Id
+       * @description The unique identifier of the platform.
+       */
+      platform_id?: string;
       /** @description The OpenAI API key. If not provided, it will be attempted to be inferred from the environment. */
       openai_api_key?: components['schemas']['SecretString'] | null;
     };
@@ -2335,6 +2560,41 @@ export interface components {
        * @constant
        */
       kind: 'reducto';
+      /**
+       * Name
+       * @description The name of the platform parameters.
+       * @default
+       */
+      name: string;
+      /**
+       * Description
+       * @description The description of the platform parameters.
+       */
+      description?: string | null;
+      /**
+       * Models
+       * @description Allow list of provider -> models mapping (e.g. {'OpenAI': ['gpt-4.1', 'o3']})
+       */
+      models?: {
+        [key: string]: string[];
+      } | null;
+      /**
+       * Created At
+       * Format: date-time
+       * @description The time at which the platform parameters were created.
+       */
+      created_at?: string;
+      /**
+       * Updated At
+       * Format: date-time
+       * @description The time at which the platform parameters were last updated.
+       */
+      updated_at?: string;
+      /**
+       * Platform Id
+       * @description The unique identifier of the platform.
+       */
+      platform_id?: string;
       /**
        * Reducto Api Url
        * @description The Reducto API URL.

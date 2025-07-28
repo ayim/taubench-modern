@@ -6,7 +6,7 @@ on:
 
   push:
     tags:
-      - 'sema4ai-agent-server-interface-*'
+      - 'sema4ai-agent-server-interface-v*'
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
@@ -48,6 +48,22 @@ jobs:
 
       - name: Build agent server interface
         run: npm run build
+
+      - name: Set package.json version from tag
+        run: |
+          # Extract version from tag with better error handling
+          if [[ "$GITHUB_REF" =~ ^refs/tags/sema4ai-agent-server-interface-(.+)$ ]]; then
+            TAG_NAME="${BASH_REMATCH[1]}"
+            echo "Extracted version: $TAG_NAME"
+            
+            
+            echo "Version format is valid"
+            npm version --no-git-tag-version "$TAG_NAME"
+          else
+            echo "Error: Tag format does not match expected pattern 'sema4ai-agent-server-interface-<version>'"
+            echo "Actual tag: $GITHUB_REF"
+            exit 1
+          fi
 
       - name: Publish package to GitHub Packages
         run: npm publish

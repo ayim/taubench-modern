@@ -294,6 +294,200 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/public/v1/agent-mcp/{aid}/mcp/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Open an SSE stream for server-initiated messages */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          aid: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description Server-Sent Events stream of JSON-RPC requests/notifications */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'text/event-stream': string;
+          };
+        };
+        /** @description Method Not Allowed - streaming not supported */
+        405: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content?: never;
+        };
+      };
+    };
+    put?: never;
+    /** Send JSON-RPC messages to the MCP server */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          aid: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          'application/json':
+            | {
+                /** @enum {string} */
+                jsonrpc: '2.0';
+                id: number | string;
+                method: string;
+                params?: {
+                  [key: string]: unknown;
+                };
+              }
+            | (
+                | {
+                    /** @enum {string} */
+                    jsonrpc: '2.0';
+                    id: number | string;
+                    method: string;
+                    params?: {
+                      [key: string]: unknown;
+                    };
+                  }
+                | {
+                    /** @enum {string} */
+                    jsonrpc: '2.0';
+                    id: number | string | null;
+                    result?: {
+                      [key: string]: unknown;
+                    };
+                    error?: {
+                      code: number;
+                      message: string;
+                      data?: {
+                        [key: string]: unknown;
+                      };
+                    };
+                  }
+                | {
+                    /** @enum {string} */
+                    jsonrpc: '2.0';
+                    method: string;
+                    params?: {
+                      [key: string]: unknown;
+                    };
+                  }
+              )[]
+            | {
+                /** @enum {string} */
+                jsonrpc: '2.0';
+                id: number | string | null;
+                result?: {
+                  [key: string]: unknown;
+                };
+                error?: {
+                  code: number;
+                  message: string;
+                  data?: {
+                    [key: string]: unknown;
+                  };
+                };
+              };
+          'text/event-stream': string;
+        };
+      };
+      responses: {
+        /** @description JSON-RPC response(s) */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json':
+              | {
+                  /** @enum {string} */
+                  jsonrpc: '2.0';
+                  id: number | string | null;
+                  result?: {
+                    [key: string]: unknown;
+                  };
+                  error?: {
+                    code: number;
+                    message: string;
+                    data?: {
+                      [key: string]: unknown;
+                    };
+                  };
+                }
+              | (
+                  | {
+                      /** @enum {string} */
+                      jsonrpc: '2.0';
+                      id: number | string;
+                      method: string;
+                      params?: {
+                        [key: string]: unknown;
+                      };
+                    }
+                  | {
+                      /** @enum {string} */
+                      jsonrpc: '2.0';
+                      id: number | string | null;
+                      result?: {
+                        [key: string]: unknown;
+                      };
+                      error?: {
+                        code: number;
+                        message: string;
+                        data?: {
+                          [key: string]: unknown;
+                        };
+                      };
+                    }
+                  | {
+                      /** @enum {string} */
+                      jsonrpc: '2.0';
+                      method: string;
+                      params?: {
+                        [key: string]: unknown;
+                      };
+                    }
+                )[];
+          };
+        };
+        /** @description Accepted (notifications-only input)
+         *     Server returns no body when input is purely notifications */
+        202: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content?: never;
+        };
+        /** @description Bad Request (e.g., invalid JSON-RPC message) */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content?: never;
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {

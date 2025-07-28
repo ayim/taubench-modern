@@ -6,7 +6,7 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Private API Version 2',
-    version: '2.0.20',
+    version: '2.0.22',
   },
   paths: {
     '/api/v2/ok': {
@@ -3378,9 +3378,16 @@ export const spec = {
             type: 'array',
             title: 'Action Packages',
           },
+          mcp_servers: {
+            items: {
+              $ref: '#/components/schemas/MCPServerDetail',
+            },
+            type: 'array',
+            title: 'Mcp Servers',
+          },
         },
         type: 'object',
-        required: ['runbook', 'action_packages'],
+        required: ['runbook', 'action_packages', 'mcp_servers'],
         title: 'AgentDetails',
       },
       AgentPackagePayload: {
@@ -3534,6 +3541,62 @@ export const spec = {
             description: 'The kind of platform parameters.',
             default: 'azure',
           },
+          name: {
+            type: 'string',
+            title: 'Name',
+            description: 'The name of the platform parameters.',
+            default: '',
+          },
+          description: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Description',
+            description: 'The description of the platform parameters.',
+          },
+          models: {
+            anyOf: [
+              {
+                additionalProperties: {
+                  items: {
+                    type: 'string',
+                  },
+                  type: 'array',
+                },
+                type: 'object',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Models',
+            description:
+              "Allow list of provider -> models mapping (e.g. {'OpenAI': ['gpt-4.1', 'o3']})",
+          },
+          created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At',
+            description:
+              'The time at which the platform parameters were created.',
+          },
+          updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At',
+            description:
+              'The time at which the platform parameters were last updated.',
+          },
+          platform_id: {
+            type: 'string',
+            title: 'Platform Id',
+            description: 'The unique identifier of the platform.',
+          },
           azure_api_key: {
             anyOf: [
               {
@@ -3625,6 +3688,62 @@ export const spec = {
             title: 'Kind',
             description: 'The kind of platform parameters.',
             default: 'bedrock',
+          },
+          name: {
+            type: 'string',
+            title: 'Name',
+            description: 'The name of the platform parameters.',
+            default: '',
+          },
+          description: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Description',
+            description: 'The description of the platform parameters.',
+          },
+          models: {
+            anyOf: [
+              {
+                additionalProperties: {
+                  items: {
+                    type: 'string',
+                  },
+                  type: 'array',
+                },
+                type: 'object',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Models',
+            description:
+              "Allow list of provider -> models mapping (e.g. {'OpenAI': ['gpt-4.1', 'o3']})",
+          },
+          created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At',
+            description:
+              'The time at which the platform parameters were created.',
+          },
+          updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At',
+            description:
+              'The time at which the platform parameters were last updated.',
+          },
+          platform_id: {
+            type: 'string',
+            title: 'Platform Id',
+            description: 'The unique identifier of the platform.',
           },
           region_name: {
             anyOf: [
@@ -3948,6 +4067,62 @@ export const spec = {
             description: 'The kind of platform parameters.',
             default: 'cortex',
           },
+          name: {
+            type: 'string',
+            title: 'Name',
+            description: 'The name of the platform parameters.',
+            default: '',
+          },
+          description: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Description',
+            description: 'The description of the platform parameters.',
+          },
+          models: {
+            anyOf: [
+              {
+                additionalProperties: {
+                  items: {
+                    type: 'string',
+                  },
+                  type: 'array',
+                },
+                type: 'object',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Models',
+            description:
+              "Allow list of provider -> models mapping (e.g. {'OpenAI': ['gpt-4.1', 'o3']})",
+          },
+          created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At',
+            description:
+              'The time at which the platform parameters were created.',
+          },
+          updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At',
+            description:
+              'The time at which the platform parameters were last updated.',
+          },
+          platform_id: {
+            type: 'string',
+            title: 'Platform Id',
+            description: 'The unique identifier of the platform.',
+          },
           snowflake_username: {
             anyOf: [
               {
@@ -4174,6 +4349,62 @@ export const spec = {
             description: 'The kind of platform parameters.',
             default: 'google',
           },
+          name: {
+            type: 'string',
+            title: 'Name',
+            description: 'The name of the platform parameters.',
+            default: '',
+          },
+          description: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Description',
+            description: 'The description of the platform parameters.',
+          },
+          models: {
+            anyOf: [
+              {
+                additionalProperties: {
+                  items: {
+                    type: 'string',
+                  },
+                  type: 'array',
+                },
+                type: 'object',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Models',
+            description:
+              "Allow list of provider -> models mapping (e.g. {'OpenAI': ['gpt-4.1', 'o3']})",
+          },
+          created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At',
+            description:
+              'The time at which the platform parameters were created.',
+          },
+          updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At',
+            description:
+              'The time at which the platform parameters were last updated.',
+          },
+          platform_id: {
+            type: 'string',
+            title: 'Platform Id',
+            description: 'The unique identifier of the platform.',
+          },
           google_api_key: {
             anyOf: [
               {
@@ -4198,6 +4429,62 @@ export const spec = {
             title: 'Kind',
             description: 'The kind of platform parameters.',
             default: 'groq',
+          },
+          name: {
+            type: 'string',
+            title: 'Name',
+            description: 'The name of the platform parameters.',
+            default: '',
+          },
+          description: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Description',
+            description: 'The description of the platform parameters.',
+          },
+          models: {
+            anyOf: [
+              {
+                additionalProperties: {
+                  items: {
+                    type: 'string',
+                  },
+                  type: 'array',
+                },
+                type: 'object',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Models',
+            description:
+              "Allow list of provider -> models mapping (e.g. {'OpenAI': ['gpt-4.1', 'o3']})",
+          },
+          created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At',
+            description:
+              'The time at which the platform parameters were created.',
+          },
+          updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At',
+            description:
+              'The time at which the platform parameters were last updated.',
+          },
+          platform_id: {
+            type: 'string',
+            title: 'Platform Id',
+            description: 'The unique identifier of the platform.',
           },
           groq_api_key: {
             anyOf: [
@@ -4326,16 +4613,31 @@ export const spec = {
                       type: 'string',
                     },
                     {
-                      $ref: '#/components/schemas/MCPVariableTypeOAuth2Secret',
-                    },
-                    {
-                      $ref: '#/components/schemas/MCPVariableTypeSecret',
-                    },
-                    {
-                      $ref: '#/components/schemas/MCPVariableTypeString',
-                    },
-                    {
-                      $ref: '#/components/schemas/MCPVariableTypeDataServerInfo',
+                      oneOf: [
+                        {
+                          $ref: '#/components/schemas/MCPVariableTypeString',
+                        },
+                        {
+                          $ref: '#/components/schemas/MCPVariableTypeSecret',
+                        },
+                        {
+                          $ref: '#/components/schemas/MCPVariableTypeOAuth2Secret',
+                        },
+                        {
+                          $ref: '#/components/schemas/MCPVariableTypeDataServerInfo',
+                        },
+                      ],
+                      discriminator: {
+                        propertyName: 'type',
+                        mapping: {
+                          'data-server-info':
+                            '#/components/schemas/MCPVariableTypeDataServerInfo',
+                          'oauth2-secret':
+                            '#/components/schemas/MCPVariableTypeOAuth2Secret',
+                          secret: '#/components/schemas/MCPVariableTypeSecret',
+                          string: '#/components/schemas/MCPVariableTypeString',
+                        },
+                      },
                     },
                   ],
                 },
@@ -4386,16 +4688,31 @@ export const spec = {
                       type: 'string',
                     },
                     {
-                      $ref: '#/components/schemas/MCPVariableTypeOAuth2Secret',
-                    },
-                    {
-                      $ref: '#/components/schemas/MCPVariableTypeSecret',
-                    },
-                    {
-                      $ref: '#/components/schemas/MCPVariableTypeString',
-                    },
-                    {
-                      $ref: '#/components/schemas/MCPVariableTypeDataServerInfo',
+                      oneOf: [
+                        {
+                          $ref: '#/components/schemas/MCPVariableTypeString',
+                        },
+                        {
+                          $ref: '#/components/schemas/MCPVariableTypeSecret',
+                        },
+                        {
+                          $ref: '#/components/schemas/MCPVariableTypeOAuth2Secret',
+                        },
+                        {
+                          $ref: '#/components/schemas/MCPVariableTypeDataServerInfo',
+                        },
+                      ],
+                      discriminator: {
+                        propertyName: 'type',
+                        mapping: {
+                          'data-server-info':
+                            '#/components/schemas/MCPVariableTypeDataServerInfo',
+                          'oauth2-secret':
+                            '#/components/schemas/MCPVariableTypeOAuth2Secret',
+                          secret: '#/components/schemas/MCPVariableTypeSecret',
+                          string: '#/components/schemas/MCPVariableTypeString',
+                        },
+                      },
                     },
                   ],
                 },
@@ -4543,6 +4860,29 @@ export const spec = {
         required: ['name', 'transport'],
         title: 'MCPServerCompat',
       },
+      MCPServerDetail: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+          actions: {
+            items: {
+              $ref: '#/components/schemas/MCPToolDetail',
+            },
+            type: 'array',
+            title: 'Actions',
+          },
+          status: {
+            type: 'string',
+            enum: ['online', 'offline'],
+            title: 'Status',
+          },
+        },
+        type: 'object',
+        required: ['name', 'actions', 'status'],
+        title: 'MCPServerDetail',
+      },
       MCPServerResponse: {
         properties: {
           mcp_server_id: {
@@ -4660,6 +5000,17 @@ export const spec = {
         enum: ['FILE', 'API'],
         title: 'MCPServerSource',
       },
+      MCPToolDetail: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+        },
+        type: 'object',
+        required: ['name'],
+        title: 'MCPToolDetail',
+      },
       MCPVariableCompat: {
         properties: {
           type: {
@@ -4677,17 +5028,6 @@ export const spec = {
               },
             ],
             title: 'Description',
-          },
-          default: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Default',
           },
           provider: {
             anyOf: [
@@ -4851,17 +5191,6 @@ export const spec = {
               },
             ],
             title: 'Description',
-          },
-          default: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Default',
           },
           value: {
             anyOf: [
@@ -5058,6 +5387,62 @@ export const spec = {
             title: 'Kind',
             description: 'The kind of platform parameters.',
             default: 'openai',
+          },
+          name: {
+            type: 'string',
+            title: 'Name',
+            description: 'The name of the platform parameters.',
+            default: '',
+          },
+          description: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Description',
+            description: 'The description of the platform parameters.',
+          },
+          models: {
+            anyOf: [
+              {
+                additionalProperties: {
+                  items: {
+                    type: 'string',
+                  },
+                  type: 'array',
+                },
+                type: 'object',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Models',
+            description:
+              "Allow list of provider -> models mapping (e.g. {'OpenAI': ['gpt-4.1', 'o3']})",
+          },
+          created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At',
+            description:
+              'The time at which the platform parameters were created.',
+          },
+          updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At',
+            description:
+              'The time at which the platform parameters were last updated.',
+          },
+          platform_id: {
+            type: 'string',
+            title: 'Platform Id',
+            description: 'The unique identifier of the platform.',
           },
           openai_api_key: {
             anyOf: [
@@ -5496,6 +5881,62 @@ export const spec = {
             title: 'Kind',
             description: 'The kind of platform parameters.',
             default: 'reducto',
+          },
+          name: {
+            type: 'string',
+            title: 'Name',
+            description: 'The name of the platform parameters.',
+            default: '',
+          },
+          description: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Description',
+            description: 'The description of the platform parameters.',
+          },
+          models: {
+            anyOf: [
+              {
+                additionalProperties: {
+                  items: {
+                    type: 'string',
+                  },
+                  type: 'array',
+                },
+                type: 'object',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Models',
+            description:
+              "Allow list of provider -> models mapping (e.g. {'OpenAI': ['gpt-4.1', 'o3']})",
+          },
+          created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At',
+            description:
+              'The time at which the platform parameters were created.',
+          },
+          updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At',
+            description:
+              'The time at which the platform parameters were last updated.',
+          },
+          platform_id: {
+            type: 'string',
+            title: 'Platform Id',
+            description: 'The unique identifier of the platform.',
           },
           reducto_api_url: {
             type: 'string',
