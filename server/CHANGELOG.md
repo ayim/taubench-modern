@@ -1,3 +1,7 @@
+# Sema4.ai Agent Server 2.0.23 (2025-07-28)
+
+- Enhance the prompt for the work-items judge.
+
 # Sema4.ai Agent Server 2.0.22 (2025-07-26)
 
 - Rebuild of v2.0.21 due to an error in v2.0.21 release process
