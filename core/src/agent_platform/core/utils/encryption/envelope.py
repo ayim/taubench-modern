@@ -21,16 +21,18 @@ class EncryptionMetadata:
     scheme: str
     kek_type: str
     enc_ts: str
+    key_id: str | None = None  # Optional field for KMS implementations
 
     def to_json(self) -> str:
         """Convert metadata to a JSON string."""
-        return json.dumps(
-            {
-                "scheme": self.scheme,
-                "kek_type": self.kek_type,
-                "enc_ts": self.enc_ts,
-            }
-        )
+        data = {
+            "scheme": self.scheme,
+            "kek_type": self.kek_type,
+            "enc_ts": self.enc_ts,
+        }
+        if self.key_id is not None:
+            data["key_id"] = self.key_id
+        return json.dumps(data)
 
     @classmethod
     def from_json(cls, json_str: str) -> "EncryptionMetadata":
@@ -40,6 +42,7 @@ class EncryptionMetadata:
             scheme=data["scheme"],
             kek_type=data["kek_type"],
             enc_ts=data["enc_ts"],
+            key_id=data.get("key_id"),  # Optional field
         )
 
 
@@ -64,13 +67,17 @@ class EnvelopeEncryptionResult:
 
     def to_json(self) -> str:
         """Convert the envelope encryption result to a JSON string."""
+        metadata_dict = {
+            "scheme": self.metadata.scheme,
+            "kek_type": self.metadata.kek_type,
+            "enc_ts": self.metadata.enc_ts,
+        }
+        if self.metadata.key_id is not None:
+            metadata_dict["key_id"] = self.metadata.key_id
+
         return json.dumps(
             {
-                "metadata": {
-                    "scheme": self.metadata.scheme,
-                    "kek_type": self.metadata.kek_type,
-                    "enc_ts": self.metadata.enc_ts,
-                },
+                "metadata": metadata_dict,
                 "encrypted_data_key": self.encrypted_data_key.hex(),
                 "encrypted_data": self.encrypted_data.hex(),
                 "data_nonce": self.data_nonce.hex(),
@@ -90,6 +97,7 @@ class EnvelopeEncryptionResult:
                 scheme=data["metadata"]["scheme"],
                 kek_type=data["metadata"]["kek_type"],
                 enc_ts=data["metadata"]["enc_ts"],
+                key_id=data["metadata"].get("key_id"),  # Optional field
             ),
             encrypted_data_key=bytes.fromhex(data["encrypted_data_key"]),
             encrypted_data=bytes.fromhex(data["encrypted_data"]),

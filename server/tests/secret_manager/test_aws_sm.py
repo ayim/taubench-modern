@@ -1,78 +1,123 @@
 """Unit tests for AwsSecretManager."""
 
-import pytest
+import json
+from unittest.mock import MagicMock, patch
 
-from agent_platform.server.secret_manager.aws_sm.aws_sm import AwsSecretManager
-from agent_platform.server.secret_manager.base import BaseSecretManager
+import pytest
+from botocore.exceptions import ClientError
+
+from agent_platform.server.secret_manager.aws_sm.aws_sm import AwsKmsConstants, AwsSecretManager
 
 
 class TestAwsSecretManager:
     """Test suite for AwsSecretManager."""
 
-    def setup_method(self):
-        """Set up test environment."""
-        self.manager = AwsSecretManager()
+    # Test KMS ARN for testing
+    TEST_KMS_ARN = "arn:aws:kms:eu-west-1:471112748664:key/d22373bb-5466-4ea9-a770-195cef4f4a00"
 
-    def test_inheritance(self):
-        """Test that AwsSecretManager inherits from BaseSecretManager."""
-        assert isinstance(self.manager, BaseSecretManager)
+    @patch("boto3.client")
+    def test_setup_with_arn_success(self, mock_boto_client):
+        """Test successful setup with KMS ARN."""
+        mock_client = MagicMock()
+        mock_boto_client.return_value = mock_client
 
-    def test_init(self):
-        """Test initialization of AwsSecretManager."""
-        manager = AwsSecretManager()
-        assert manager is not None
+        manager = AwsSecretManager(kms_key_arn=self.TEST_KMS_ARN)
 
-    def test_setup_raises_not_implemented(self):
-        """Test that setup method raises NotImplementedError."""
-        with pytest.raises(NotImplementedError, match="AWS Secret Manager is not yet supported"):
-            self.manager.setup()
+        mock_boto_client.assert_called_once_with("kms", region_name="eu-west-1")
+        mock_client.describe_key.assert_called_once_with(KeyId=self.TEST_KMS_ARN)
+        assert manager._kms_key_arn == self.TEST_KMS_ARN
+        assert manager._region_name == "eu-west-1"
 
-    def test_store_raises_not_implemented(self):
-        """Test that store method raises NotImplementedError."""
-        with pytest.raises(NotImplementedError, match="AWS Secret Manager is not yet supported"):
-            self.manager.store("test data")
+    def test_init_missing_arn(self):
+        """Test initialization fails without KMS ARN."""
+        with pytest.raises(ValueError, match="KMS key ARN is required"):
+            AwsSecretManager(kms_key_arn=None)
 
-    def test_fetch_raises_not_implemented(self):
-        """Test that fetch method raises NotImplementedError."""
-        with pytest.raises(NotImplementedError, match="AWS Secret Manager is not yet supported"):
-            self.manager.fetch("test reference")
+    def test_parse_region_from_arn_success(self):
+        """Test parsing region from valid ARN."""
+        manager = AwsSecretManager.__new__(AwsSecretManager)  # Create without calling __init__
 
-    def test_setup_exception_type(self):
-        """Test that setup raises the correct exception type."""
-        with pytest.raises(NotImplementedError):
-            self.manager.setup()
+        region = manager._parse_region_from_arn(self.TEST_KMS_ARN)
+        assert region == "eu-west-1"
 
-    def test_multiple_instances(self):
-        """Test that multiple instances can be created."""
-        manager1 = AwsSecretManager()
-        manager2 = AwsSecretManager()
+    def test_parse_region_from_arn_invalid_format(self):
+        """Test parsing region fails with invalid ARN format."""
+        manager = AwsSecretManager.__new__(AwsSecretManager)  # Create without calling __init__
 
-        assert manager1 is not manager2
-        assert isinstance(manager1, AwsSecretManager)
-        assert isinstance(manager2, AwsSecretManager)
+        with pytest.raises(ValueError, match="Invalid KMS ARN format"):
+            manager._parse_region_from_arn("invalid-arn")
 
-    def test_abstract_methods_implementation(self):
-        """Test that all abstract methods are implemented (raising NotImplementedError)."""
-        # This ensures that the class can be instantiated despite having abstract base
-        manager = AwsSecretManager()
+    @patch("boto3.client")
+    def test_setup_key_not_found_error(self, mock_boto_client):
+        """Test setup fails when KMS key is not found."""
+        mock_client = MagicMock()
+        mock_boto_client.return_value = mock_client
+        mock_client.describe_key.side_effect = ClientError(
+            {"Error": {"Code": "NotFoundException"}}, "DescribeKey"
+        )
 
-        # All methods should exist and be callable (though they raise NotImplementedError)
-        assert hasattr(manager, "setup")
-        assert hasattr(manager, "store")
-        assert hasattr(manager, "fetch")
-        assert callable(manager.setup)
-        assert callable(manager.store)
-        assert callable(manager.fetch)
+        with pytest.raises(RuntimeError, match="AWS KMS key not found"):
+            AwsSecretManager(kms_key_arn=self.TEST_KMS_ARN)
 
-    def test_error_message_consistency(self):
-        """Test that all methods have consistent error messages."""
-        expected_message = "AWS Secret Manager is not yet supported"
+    @patch("boto3.client")
+    def test_store_and_fetch_roundtrip(self, mock_boto_client):
+        """Test storing and fetching data works correctly."""
+        mock_client = MagicMock()
+        mock_boto_client.return_value = mock_client
 
-        with pytest.raises(NotImplementedError, match=expected_message):
-            self.manager.setup()
+        # Mock KMS responses
+        mock_client.generate_data_key.return_value = {
+            "Plaintext": b"0" * 32,  # 32-byte key
+            "CiphertextBlob": b"encrypted_key_data",
+        }
+        mock_client.decrypt.return_value = {"Plaintext": b"0" * 32}
 
-        with pytest.raises(NotImplementedError, match=expected_message):
-            self.manager.store("test")
+        manager = AwsSecretManager(kms_key_arn=self.TEST_KMS_ARN)
 
-        with pytest.raises(NotImplementedError, match=expected_message):
-            self.manager.fetch("test")
+        # Test data
+        data = "sensitive information"
+
+        # Store data
+        stored_ref = manager.store(data)
+        assert isinstance(stored_ref, str)
+
+        # Verify it's valid JSON
+        parsed = json.loads(stored_ref)
+        assert "metadata" in parsed
+        assert "encrypted_data_key" in parsed
+
+        # Fetch data
+        retrieved = manager.fetch(stored_ref)
+        assert retrieved == data
+
+        # Verify KMS calls
+        mock_client.generate_data_key.assert_called_once_with(
+            KeyId=self.TEST_KMS_ARN, KeySpec=AwsKmsConstants.KEY_SPEC_AES_256
+        )
+        mock_client.decrypt.assert_called_once()
+
+    @patch("boto3.client")
+    def test_store_kms_access_denied(self, mock_boto_client):
+        """Test store fails when KMS access is denied."""
+        mock_client = MagicMock()
+        mock_boto_client.return_value = mock_client
+        mock_client.generate_data_key.side_effect = ClientError(
+            {"Error": {"Code": "AccessDeniedException", "Message": "Access denied"}},
+            "GenerateDataKey",
+        )
+
+        manager = AwsSecretManager(kms_key_arn=self.TEST_KMS_ARN)
+
+        with pytest.raises(RuntimeError, match="Access denied to AWS KMS"):
+            manager.store("test data")
+
+    @patch("boto3.client")
+    def test_fetch_invalid_json(self, mock_boto_client):
+        """Test fetch fails with invalid JSON."""
+        mock_client = MagicMock()
+        mock_boto_client.return_value = mock_client
+
+        manager = AwsSecretManager(kms_key_arn=self.TEST_KMS_ARN)
+
+        with pytest.raises(RuntimeError, match="Invalid stored reference"):
+            manager.fetch("invalid json")

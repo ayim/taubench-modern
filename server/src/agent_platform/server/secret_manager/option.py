@@ -57,6 +57,8 @@ class SecretService:
             case EncryptionKeySource.ENVIRONMENT:
                 return EnvironmentSecretManager()
             case EncryptionKeySource.AWS:
-                return AwsSecretManager()
+                kms_key_arn = os.getenv("SEMA4AI_AGENT_SERVER_ENCRYPTION_KEY_AWS_KMS_ARN") or None
+
+                return AwsSecretManager(kms_key_arn=kms_key_arn)
             case _:
                 raise ValueError(f"secret source type {source} not supported")
