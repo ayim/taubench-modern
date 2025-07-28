@@ -37,76 +37,53 @@ from agent_platform.server.work_items.settings import WORK_ITEMS_SETTINGS
 logger = logging.getLogger(__name__)
 
 
+def _load_judge_prompt() -> str:
+    """Load the judge prompt from the bundled resources.
+
+    Uses importlib.resources for development and sys._MEIPASS for PyInstaller
+    bundled environments.
+
+    Returns:
+        The judge prompt content as a string.
+    """
+    import sys
+    from pathlib import Path
+
+    from agent_platform.server.constants import IS_FROZEN
+
+    if IS_FROZEN:
+        # PyInstaller bundle - use sys._MEIPASS
+        base_path = Path(getattr(sys, "_MEIPASS"))  # noqa: B009
+        judge_prompt_path = (
+            base_path / "agent_platform" / "server" / "work_items" / "judge_prompt.txt"
+        )
+        content = judge_prompt_path.read_text(encoding="utf-8")
+    else:
+        # Development environment - use importlib.resources
+        from importlib import resources
+
+        package_resources = resources.files("agent_platform.server.work_items")
+        judge_prompt_resource = package_resources / "judge_prompt.txt"
+        content = judge_prompt_resource.read_text(encoding="utf-8")
+
+    return dedent(content)
+
+
 async def _validate_success(item: WorkItem) -> WorkItemStatus:
     # 1. System message describing the judge's role
     system_message = dedent("""
         You are an expert evaluator of LLM conversations. Your role is to assess whether \
-        an AI agent successfully completed a given work item by analyzing the conversation \
-        history between the agent and user.
+        an AI agent successfully completed the task given to it by the user by analyzing the \
+        conversation history between the agent and user. The AI Agent is responsible for \
+        using data, tools and other resources to accomplish a business task
+        which a human would have previously done. Agents often have tools to verify that
+        they have completed the task successfully -- when these tasks fail (including reasons
+        where the business logic verification fails), this means that the agent has failed
+        to complete the task successfully.
     """)
 
     # 2-5. Combined judgment prompt with criteria, primer, messages, and final instructions
-    judge_prompt_msg = dedent("""
-        ## Evaluation Criteria
-
-        **Critical rule:**
-        If **any** "Signs requiring human review" apply, you **must** respond **NEEDS_REVIEW** \
-        immediately—do **not** consider any other criteria or signs of success.
-
-        **Signs requiring human review** *(if any apply, respond NEEDS_REVIEW immediately)*:
-        - The agent defers, requests clarification, or explicitly states it cannot fulfill \
-        the request (e.g. "I cannot complete this," "I do not know…").
-        - The agent's response does **not** contain the direct deliverable (answer, calculation, \
-        document, code snippet, etc.) exactly as requested.
-        - The agent substitutes only explanation or analysis instead of providing the \
-        requested output.
-        - Any unhandled or unresolved error condition (invalid input, tool failure, exception).
-        - The solution is incomplete or partially implemented.
-        - The agent expressed uncertainty about the correctness of the solution.
-        - The agent requested human intervention or clarification.
-        - The conversation ended without a clear deliverable.
-
-        **Signs of successful completion** *(all must apply **and** **no** review-signs apply)*:
-        1. The agent delivered exactly the requested output in the correct form.
-        2. Available tools were used effectively (if applicable).
-        3. All requirements were met or exceeded.
-        4. The agent confirmed successful completion.
-        5. Analysis was thorough and accurate (when analysis was part of the ask).
-        6. The agent navigated any challenges without deferral.
-
-        ## Conversation to Evaluate
-
-        Please evaluate the conversation between the start and end markers below. The conversation \
-        is provided in YAML format which includes the agent's xml formatting markers and thinking \
-        which you should use in the totality of your evaluation.
-
-        <conversation_start>
-        {conversation_thread}
-        </conversation_start>
-
-        ## Response Instructions
-
-        Please follow this two-step process:
-
-        **Step 1: Analysis**
-        First, analyze the conversation systematically:
-        1. Check each "Signs requiring human review" criterion - does any apply?
-        2. If none apply, check each "Signs of successful completion" criterion - do all apply?
-        3. Explain your reasoning for each relevant criterion.
-
-        **Step 2: Final Classification**
-        Based on your analysis, respond with **ONLY** one of these two values on a new line:
-        - **NEEDS_REVIEW** — if **any** "Signs requiring human review" apply.
-        - **COMPLETED** — otherwise (i.e., none of the review signs apply and all signs of \
-        successful completion apply).
-
-        Format your response as:
-        ```
-        ANALYSIS: [Your detailed reasoning here]
-
-        CLASSIFICATION: [NEEDS_REVIEW or COMPLETED]
-        ```
-    """)
+    judge_prompt_msg = _load_judge_prompt()
 
     storage = StorageService.get_instance()
     user = await storage.get_user_by_id(item.user_id)

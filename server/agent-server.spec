@@ -116,6 +116,10 @@ a = Analysis(
         *psycopg_datas,
         *psyco_binary_datas,
         ("LICENSE", "."),
+        (
+            "src/agent_platform/server/work_items",
+            "agent_platform/server/work_items",
+        ),
     ],
     hiddenimports=[
         "pydantic.deprecated.decorator",
