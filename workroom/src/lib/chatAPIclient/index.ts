@@ -253,7 +253,9 @@ export const getChatAPIClient = (
   // Conditionally adding getAgentDetails callback
   if (options?.isAgentDetailsEnabled) {
     apiClient.getAgentDetails = async (agentId) => {
-      return agentAPIClient.getAgentDetails({ agentId, tenantId });
+      return agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/agents/{aid}/agent-details', {
+        params: { path: { aid: agentId } },
+      });
     };
   }
 

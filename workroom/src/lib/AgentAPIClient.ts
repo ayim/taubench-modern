@@ -180,40 +180,6 @@ export class AgentAPIClient {
     return response.data;
   }
 
-  public async getAgentDetails({
-    agentId,
-    tenantId,
-  }: {
-    tenantId: string;
-    agentId: string;
-  }): Promise<operations['getAgentDetails']['responses'][200]['content']['application/json']> {
-    const workroomToken = await this.getWorkroomToken();
-    const tenant = await this.getTenant(tenantId);
-
-    if (!tenant) {
-      throw new RequestError(404, 'Workspace not found');
-    }
-
-    const workroomClient = createWorkroomClient({
-      baseUrl: tenant.environment.url,
-      bearerToken: workroomToken,
-    });
-
-    const response = await workroomClient.GET('/tenants/{tenantId}/workroom/agents/{agentId}/details', {
-      params: {
-        path: {
-          tenantId,
-          agentId,
-        },
-      },
-    });
-    if (response.error) {
-      throw new RequestError(response.response.status, response.error.error.message);
-    }
-
-    return response.data;
-  }
-
   public async getAgentPermissions({
     agentId,
     tenantId,
