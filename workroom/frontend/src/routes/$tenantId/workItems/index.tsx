@@ -18,7 +18,7 @@ export const Route = createFileRoute('/$tenantId/workItems/')({
 
 function WorkItems() {
   return (
-    <div className="h-full overflow-hidden">
+    <div className="h-full overflow-auto">
       <div className="mx-12 my-5">
         <div className="flex flex-col h-full overflow-auto">
           <Box className="border border-solid bg-white border-[#CDCDCD] rounded-[10px] p-4 flex-grow mb-8">
