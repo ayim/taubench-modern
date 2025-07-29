@@ -1,3 +1,4 @@
+import hashlib
 import os
 
 from structlog import get_logger
@@ -33,8 +34,11 @@ class LocalFileSecretManager(BaseSecretManager):
         self._is_valid_key(key)  # Raises exception if invalid
         self.encryption_key = self._convert_key_to_bytes(key)
 
-        # Initialize envelope encryption
-        self._envelope_encryption = StaticKeyEnvelopeEncryption(self.encryption_key)
+        # Generate key_id using SHA256 hash of the key
+        key_id = hashlib.sha256(self.encryption_key).hexdigest()
+
+        # Initialize envelope encryption with SHA256-based key identifier
+        self._envelope_encryption = StaticKeyEnvelopeEncryption(self.encryption_key, key_id=key_id)
 
     def _is_valid_key(self, key: str) -> bool:
         """Check if the key is valid hex-encoded 32-byte key."""
@@ -72,7 +76,9 @@ class LocalFileSecretManager(BaseSecretManager):
         """Use hardcoded fallback key with warning."""
         logger.warning("Using hardcoded fallback key. This is NOT secure for production use!")
         self.encryption_key = self.FALLBACK_KEY
-        self._envelope_encryption = StaticKeyEnvelopeEncryption(self.encryption_key)
+        self._envelope_encryption = StaticKeyEnvelopeEncryption(
+            self.encryption_key, key_id="fallback"
+        )
 
     def store(self, data: str) -> str:
         """Store data using envelope encryption and return the encrypted result."""

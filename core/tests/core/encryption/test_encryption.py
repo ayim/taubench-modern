@@ -248,3 +248,49 @@ class TestEnvelopeEncryption:
         # Attempt to decrypt with modified key type should fail
         with pytest.raises(ValueError, match="Unsupported key type"):
             encryption.decrypt(modified_encrypted)
+
+    def test_key_id_fallback(self):
+        """Test that fallback key_id is correctly stored in metadata."""
+        master_key = AESGCM.generate_key(bit_length=256)
+        encryption = StaticKeyEnvelopeEncryption(master_key, key_id="fallback")
+
+        plaintext = json.dumps({"test": "data"})
+        encrypted = encryption.encrypt(plaintext)
+
+        # Verify key_id is stored correctly
+        encrypted_data = json.loads(encrypted)
+        assert encrypted_data["metadata"]["key_id"] == "fallback"
+
+    def test_key_id_sha256_hash(self):
+        """Test that SHA256 hash key_id is correctly stored and consistent."""
+        import hashlib
+
+        master_key = AESGCM.generate_key(bit_length=256)
+        expected_key_id = hashlib.sha256(master_key).hexdigest()
+        encryption = StaticKeyEnvelopeEncryption(master_key, key_id=expected_key_id)
+
+        plaintext = json.dumps({"test": "data"})
+        encrypted = encryption.encrypt(plaintext)
+
+        # Verify key_id matches SHA256 hash
+        encrypted_data = json.loads(encrypted)
+        assert encrypted_data["metadata"]["key_id"] == expected_key_id
+        assert len(expected_key_id) == 64  # SHA256 hex is 64 characters
+
+    def test_key_id_consistency(self):
+        """Test that same key produces same key_id across encryptions."""
+        import hashlib
+
+        master_key = AESGCM.generate_key(bit_length=256)
+        key_id = hashlib.sha256(master_key).hexdigest()
+        encryption = StaticKeyEnvelopeEncryption(master_key, key_id=key_id)
+
+        # Encrypt same data twice
+        plaintext = json.dumps({"test": "data"})
+        encrypted1 = encryption.encrypt(plaintext)
+        encrypted2 = encryption.encrypt(plaintext)
+
+        # Both should have same key_id (but different nonces/ciphertext)
+        data1 = json.loads(encrypted1)
+        data2 = json.loads(encrypted2)
+        assert data1["metadata"]["key_id"] == data2["metadata"]["key_id"] == key_id

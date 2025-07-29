@@ -148,17 +148,21 @@ class StaticKeyEnvelopeEncryption(EnvelopeEncryption):
     SCHEME = "sema4ai-envelope-aes-gcm-256-v1"
     KEK_TYPE = "static-key"
 
-    def __init__(self, master_key: bytes):
+    def __init__(self, master_key: bytes, key_id: str | None = None):
         """
-        Initialize with a master key for key encryption.
+        Initialize the static key envelope encryption.
 
-        :param master_key: 32-byte (256-bit) master key
+        Args:
+            master_key: The master key for encrypting/decrypting data keys
+            key_id: Optional identifier for the key source
         """
         from .aes_gcm import AESGCM2
 
         if len(master_key) != AESGCM2.VALID_KEY_SIZE:
             raise ValueError(f"Master key must be exactly {AESGCM2.VALID_KEY_SIZE} bytes long")
+
         self.master_key = master_key
+        self.key_id = key_id
 
     def _xor_encrypt_key(self, key: bytes) -> bytes:
         """
@@ -183,6 +187,7 @@ class StaticKeyEnvelopeEncryption(EnvelopeEncryption):
             scheme=self.SCHEME,
             kek_type=self.KEK_TYPE,
             enc_ts=datetime.now(UTC).isoformat(),
+            key_id=self.key_id,
         )
 
         data_cipher = AESGCM2(data_encryption_key)
@@ -214,7 +219,8 @@ class StaticKeyEnvelopeEncryption(EnvelopeEncryption):
 
         if envelope_result.metadata.kek_type != self.KEK_TYPE:
             raise ValueError(
-                f"Unsupported key type: {envelope_result.metadata.kek_type}, expected: {self.KEK_TYPE}"  # noqa: E501
+                f"Unsupported key type: {envelope_result.metadata.kek_type}, "
+                f"expected: {self.KEK_TYPE}"
             )
 
         data_encryption_key = self._xor_encrypt_key(envelope_result.encrypted_data_key)
