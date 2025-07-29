@@ -16,24 +16,26 @@ REGION="${REGION:-europe-west1}"
 usage() {
     echo "Usage: $0 [OPTIONS]"
     echo
-    echo "GCP setup script for Agent Platform"
+    echo "🛠️  Agent Platform GCP Setup & Deploy"
+    echo "   Streamlined setup for personal account deployment"
     echo
     echo "Options:"
     echo "  --check             Check current setup status"
+    echo "  --missing-only      Setup missing components + deploy (recommended)"
     echo "  --database-only     Setup database only"
     echo "  --secrets-only      Setup secrets only"
     echo "  --permissions       Setup permissions only"
-    echo "  --missing-only      Setup only missing components"
-    echo "  --all              Complete setup"
+    echo "  --all              Complete setup + deploy"
     echo "  --help             Show this help"
     echo
     echo "Examples:"
-    echo "  $0                          # Interactive menu (default)"
+    echo "  $0                          # Interactive menu (recommended)"
     echo "  $0 --check                  # Check what's setup and missing"
-    echo "  $0 --all                    # Complete setup"
-    echo "  $0 --missing-only           # Setup only what's missing"
+    echo "  $0 --missing-only           # Setup missing components → deploy"
     echo "  $0 --database-only          # Just create database"
-    echo "  $0 --permissions            # Just setup permissions"
+    echo
+    echo "🚀 After setup, automatically runs:"
+    echo "   make gcp deploy --all --personal-isolated"
     echo
     echo "Environment Variables:"
     echo "  REGION                      # GCP region (default: europe-west1)"
@@ -111,12 +113,22 @@ check_prerequisites_status() {
         missing+=("Docker not running")
     fi
     
-    # Check project selection
-    if [[ -z "${GCLOUD_PROJECT:-}" ]] && [[ -z "$(gcloud config get-value project 2>/dev/null)" ]]; then
+    # Check project selection (use cached value)
+    if [[ -z "${GCLOUD_PROJECT:-}" ]] && [[ -z "$CACHED_PROJECT_ID" ]]; then
         missing+=("GCP project not selected")
     fi
     
-    printf "%s|%s" "$(IFS=',' ; echo "${missing[*]}")" "$(IFS=',' ; echo "${warnings[*]}")"
+    # Handle empty arrays safely
+    local missing_str=""
+    local warnings_str=""
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        missing_str="$(IFS=',' ; echo "${missing[*]}")"
+    fi
+    if [[ ${#warnings[@]} -gt 0 ]]; then
+        warnings_str="$(IFS=',' ; echo "${warnings[*]}")"
+    fi
+    
+    printf "%s|%s" "$missing_str" "$warnings_str"
 }
 
 check_apis_status() {
@@ -137,33 +149,81 @@ check_apis_status() {
         fi
     done
     
-    echo "$(IFS=',' ; echo "${missing[*]}")"
+    # Handle empty array safely
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        echo "$(IFS=',' ; echo "${missing[*]}")"
+    else
+        echo ""
+    fi
 }
 
 check_permissions_status() {
     local missing=()
-    local current_user=$(gcloud config get-value account 2>/dev/null)
-    local build_sa="${PROJECT_ID}-compute@developer.gserviceaccount.com"
+    local current_user="$CACHED_USER_EMAIL"
     
-    # Try to get the actual compute service account
-    local actual_build_sa=$(gcloud projects describe "$PROJECT_ID" --format="value(projectNumber)" 2>/dev/null)
-    if [[ -n "$actual_build_sa" ]]; then
-        build_sa="${actual_build_sa}-compute@developer.gserviceaccount.com"
+    # Check if user has admin access (Owner/Editor) first
+    if gcloud projects get-iam-policy "$PROJECT_ID" \
+        --flatten="bindings[].members" \
+        --format="value(bindings.role,bindings.members)" \
+        --filter="bindings.role:roles/owner OR bindings.role:roles/editor" 2>/dev/null | grep -q "user:$current_user"; then
+        # User has admin access - no need to check individual roles
+        echo ""
+        return 0
     fi
     
-    local roles=(
-        "roles/secretmanager.secretAccessor"
+    # Check individual roles for non-admin users
+    local developer_roles=(
+        "roles/run.admin"
         "roles/cloudsql.client"
+        "roles/cloudsql.admin"
+        "roles/secretmanager.secretAccessor"
         "roles/artifactregistry.writer"
+        "roles/iam.serviceAccountUser"
+        "roles/cloudbuild.builds.editor"
+        "roles/viewer"
     )
     
-    for role in "${roles[@]}"; do
-        if ! gcloud projects get-iam-policy "$PROJECT_ID" --flatten="bindings[].members" --format="table(bindings.role)" --filter="bindings.role:$role AND bindings.members:serviceAccount:$build_sa" 2>/dev/null | grep -q "$role"; then
+    # Check required permissions for personal deployment
+    for role in "${developer_roles[@]}"; do
+        if ! gcloud projects get-iam-policy "$PROJECT_ID" \
+            --flatten="bindings[].members" \
+            --format="value(bindings.role,bindings.members)" \
+            --filter="bindings.role:$role" 2>/dev/null | grep -q "user:$current_user"; then
             missing+=("$role")
         fi
     done
     
-    echo "$(IFS=',' ; echo "${missing[*]}")"
+    # Handle empty array safely
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        echo "$(IFS=',' ; echo "${missing[*]}")"
+    else
+        echo ""
+    fi
+}
+
+# Generate Slack message for access request
+generate_slack_message() {
+    local developer_email="$1"
+    local missing_apis="$2"
+    local missing_permissions="$3"
+    
+    echo ""
+    echo "🚫 Permission denied. Request access via #access-request:"
+    echo ""
+    echo "**Access Request for Agent Platform**"
+    echo "Developer: $developer_email"
+    echo "Project: $PROJECT_ID"
+    if [[ -n "$missing_apis" ]]; then
+        echo "APIs needed: $missing_apis"
+    fi
+    if [[ -n "$missing_permissions" ]]; then
+        echo "Permissions needed: $missing_permissions"
+    fi
+    echo "Admin command: \`./scripts/gcp/add-developer.sh $developer_email\`"
+    echo "@Simen please grant access 🙏"
+    echo ""
+    echo "After access is granted, re-run: make gcp setup"
+    echo ""
 }
 
 check_database_status() {
@@ -187,7 +247,12 @@ check_database_status() {
         fi
     fi
     
-    echo "$(IFS=',' ; echo "${missing[*]}")"
+    # Handle empty array safely
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        echo "$(IFS=',' ; echo "${missing[*]}")"
+    else
+        echo ""
+    fi
 }
 
 check_secrets_status() {
@@ -197,7 +262,28 @@ check_secrets_status() {
         missing+=("npmrc-secret")
     fi
     
-    echo "$(IFS=',' ; echo "${missing[*]}")"
+    # Handle empty array safely
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        echo "$(IFS=',' ; echo "${missing[*]}")"
+    else
+        echo ""
+    fi
+}
+
+check_iap_status() {
+    local missing=()
+    
+    # Check if IAP API is enabled
+    if ! gcloud services list --enabled --filter="name:iap.googleapis.com" --format="value(name)" 2>/dev/null | grep -q "iap.googleapis.com"; then
+        missing+=("iap-api")
+    fi
+    
+    # Handle empty array safely
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        echo "$(IFS=',' ; echo "${missing[*]}")"
+    else
+        echo ""
+    fi
 }
 
 show_setup_status() {
@@ -232,7 +318,16 @@ show_setup_status() {
         local perms_missing=$(check_permissions_status)
         printf "🔑 Permissions:        "
         if [[ -z "$perms_missing" ]]; then
-            echo "✅ All granted"
+            # Check if admin access or individual roles
+            local current_user="$CACHED_USER_EMAIL"
+            if gcloud projects get-iam-policy "$PROJECT_ID" \
+                --flatten="bindings[].members" \
+                --format="value(bindings.role,bindings.members)" \
+                --filter="bindings.role:roles/owner OR bindings.role:roles/editor" 2>/dev/null | grep -q "user:$current_user"; then
+                echo "✅ Admin access (Owner/Editor)"
+            else
+                echo "✅ All granted"
+            fi
         else
             echo "❌ Missing: $perms_missing"
         fi
@@ -254,6 +349,15 @@ show_setup_status() {
         else
             echo "❌ Missing: $secrets_missing"
         fi
+        
+        # Check IAP
+        local iap_missing=$(check_iap_status)
+        printf "🛡️  IAP (Security):     "
+        if [[ -z "$iap_missing" ]]; then
+            echo "✅ Ready"
+        else
+            echo "❌ Missing: $iap_missing"
+        fi
     else
         printf "🔌 APIs:               ⏸️  Skipped (fix prerequisites first)\n"
         printf "🔑 Permissions:        ⏸️  Skipped (fix prerequisites first)\n" 
@@ -267,24 +371,27 @@ show_setup_status() {
 show_setup_menu() {
     show_setup_status
     
-    echo "🎯 What would you like to do?"
+    echo "🎯 Ready to setup and deploy?"
     echo ""
-    echo " 1) 🚀 Complete setup (everything)"
-    echo " 2) 🔧 Setup only missing components ⭐ (recommended)"
+    echo " 1) 🚀 Quick Setup → Deploy (recommended)"
+    echo "    Sets up missing components then automatically deploys"
+    echo ""
+    echo " 2) 🔧 Setup missing components only"
     echo " 3) 🔌 Setup APIs and permissions only"
     echo " 4) 🗄️  Setup database only"
     echo " 5) 🔐 Setup secrets only"
-    echo " 6) 🔍 Refresh status check"
+    echo " 6) 🛡️  Setup IAP (security) only"
+    echo " 7) 🔍 Refresh status check"
     echo " 0) ❌ Exit"
     echo ""
     
     while true; do
-        read -p "Select option (0-6): " choice
+        read -p "Select option (0-7): " choice
         
         case $choice in
             1)
-                echo "✅ Selected: Complete setup"
-                SETUP_ALL=true
+                echo "✅ Selected: Quick setup → deploy"
+                MISSING_ONLY=true
                 break
                 ;;
             2)
@@ -308,16 +415,24 @@ show_setup_menu() {
                 break
                 ;;
             6)
+                echo "✅ Selected: Setup IAP (security) only"
+                setup_personal_iap
+                break
+                ;;
+            7)
                 echo ""
                 show_setup_status
-                echo "🎯 What would you like to do?"
+                echo "🎯 Ready to setup and deploy?"
                 echo ""
-                echo " 1) 🚀 Complete setup (everything)"
-                echo " 2) 🔧 Setup only missing components"
+                echo " 1) 🚀 Quick Setup → Deploy (recommended)"
+                echo "    Sets up missing components then automatically deploys"
+                echo ""
+                echo " 2) 🔧 Setup missing components only"
                 echo " 3) 🔌 Setup APIs and permissions only"
                 echo " 4) 🗄️  Setup database only"
                 echo " 5) 🔐 Setup secrets only"
-                echo " 6) 🔍 Refresh status check"
+                echo " 6) 🛡️  Setup IAP (security) only"
+                echo " 7) 🔍 Refresh status check"
                 echo " 0) ❌ Exit"
                 echo ""
                 ;;
@@ -326,7 +441,7 @@ show_setup_menu() {
                 exit 0
                 ;;
             *)
-                echo "❌ Invalid choice. Please enter 0-6"
+                echo "❌ Invalid choice. Please enter 0-7"
                 ;;
         esac
     done
@@ -336,132 +451,76 @@ show_setup_menu() {
 # Setup functions
 
 setup_permissions() {
-    log_step "Setting up APIs and permissions..."
+    log_step "Checking permissions and access..."
     
-    # First, ensure APIs are enabled (critical for all subsequent operations)
-    log_info "Ensuring required APIs are enabled..."
-    local required_apis=(
-        "cloudbuild.googleapis.com"
-        "run.googleapis.com"
-        "sqladmin.googleapis.com"
-        "secretmanager.googleapis.com"
-        "artifactregistry.googleapis.com"
-        "iam.googleapis.com"
-        "cloudresourcemanager.googleapis.com"
-    )
+    # Get current user
+    local current_user=$(gcloud config get-value account 2>/dev/null)
+    log_info "Current user: $current_user"
     
-    local failed_apis=()
-    for api in "${required_apis[@]}"; do
-        if ! gcloud services list --enabled --filter="name:$api" --format="value(name)" 2>/dev/null | grep -q "$api"; then
-            log_info "Enabling $api..."
-            if gcloud services enable "$api" --quiet 2>/dev/null; then
-                log_success "Enabled $api"
-            else
-                failed_apis+=("$api")
-                log_warning "Failed to enable $api (permission denied)"
-            fi
-        else
-            log_success "$api already enabled"
-        fi
-    done
+    # Check APIs first
+    local missing_apis=$(check_apis_status)
+    local missing_permissions=$(check_permissions_status)
     
-    # Handle failed APIs
-    if [[ ${#failed_apis[@]} -gt 0 ]]; then
-        echo
-        log_error "⚠️  Some APIs couldn't be enabled automatically."
-        echo
-        echo "🔒 Request your GCP admin to enable these APIs:"
-        for api in "${failed_apis[@]}"; do
-            echo "  ❌ $api"
-        done
-        echo
-        echo "📋 Copy this for your admin:"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        for api in "${failed_apis[@]}"; do
-            echo "gcloud services enable $api --project=$PROJECT_ID"
-        done
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo
-        
-        read -p "Continue after admin enables APIs? (y/n): " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            log_error "Setup paused. Re-run script after APIs are enabled."
-            exit 1
-        fi
+    # If user has admin access, try to setup everything
+    local has_admin_access=false
+    if gcloud projects get-iam-policy "$PROJECT_ID" \
+        --flatten="bindings[].members" \
+        --format="value(bindings.role,bindings.members)" \
+        --filter="bindings.role:roles/owner OR bindings.role:roles/editor" 2>/dev/null | grep -q "user:$current_user"; then
+        has_admin_access=true
+        log_info "Admin access detected - will enable APIs and check permissions"
     fi
     
-    # Wait a moment for APIs to propagate
-    if [[ ${#failed_apis[@]} -eq 0 ]]; then
+    # If missing permissions and not admin, generate Slack message
+    if [[ (-n "$missing_apis" || -n "$missing_permissions") && "$has_admin_access" == "false" ]]; then
+        echo ""
+        log_error "🚫 Insufficient permissions for setup"
+        echo ""
+        echo "You're missing required permissions to set up the Agent Platform."
+        echo "This is normal in zero-trust environments."
+        echo ""
+        
+        generate_slack_message "$current_user" "$missing_apis" "$missing_permissions"
+        
+        echo "ℹ️  What happens next:"
+        echo "  1. Copy the message above to #access-request in Slack"
+        echo "  2. Wait for admin to grant access"
+        echo "  3. Re-run this script: make gcp setup"
+        echo ""
+        
+        exit 0
+    fi
+    
+    # Admin path - enable APIs if needed (simplified for personal accounts)
+    if [[ "$has_admin_access" == "true" && -n "$missing_apis" ]]; then
+        log_info "Enabling required APIs..."
+        local required_apis=(
+            "cloudbuild.googleapis.com"
+            "run.googleapis.com"
+            "sqladmin.googleapis.com"
+            "secretmanager.googleapis.com"
+            "artifactregistry.googleapis.com"
+            "iam.googleapis.com"
+            "cloudresourcemanager.googleapis.com"
+        )
+        
+        for api in "${required_apis[@]}"; do
+            if ! gcloud services list --enabled --filter="name:$api" --format="value(name)" 2>/dev/null | grep -q "$api"; then
+                log_info "Enabling $api..."
+                if gcloud services enable "$api" --quiet 2>/dev/null; then
+                    log_success "Enabled $api"
+                else
+                    log_warning "Failed to enable $api"
+                fi
+            fi
+        done
+        
+        # Wait for APIs to propagate
         log_info "Waiting 10 seconds for APIs to fully activate..."
         sleep 10
     fi
     
-    # Now set up service account permissions
-    local current_user=$(gcloud config get-value account 2>/dev/null)
-    local build_sa="${PROJECT_ID}-compute@developer.gserviceaccount.com"
-    
-    # Try to get the actual compute service account
-    local actual_build_sa=$(gcloud projects describe "$PROJECT_ID" --format="value(projectNumber)" 2>/dev/null)
-    if [[ -n "$actual_build_sa" ]]; then
-        build_sa="${actual_build_sa}-compute@developer.gserviceaccount.com"
-    fi
-    
-    log_info "Current user: $current_user"
-    log_info "Build service account: $build_sa"
-    
-    # Required roles for the build service account
-    local roles=(
-        "roles/secretmanager.secretAccessor"
-        "roles/cloudsql.client"
-        "roles/artifactregistry.writer"
-    )
-    
-    log_info "Granting required roles to build service account..."
-    
-    local failed_roles=()
-    for role in "${roles[@]}"; do
-        if gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-            --member="serviceAccount:$build_sa" \
-            --role="$role" \
-            --quiet >/dev/null 2>&1; then
-            log_success "Granted $role to build service account"
-        else
-            failed_roles+=("$role")
-            log_warning "Failed to grant $role (permission denied)"
-        fi
-    done
-    
-    if [[ ${#failed_roles[@]} -gt 0 ]]; then
-        echo
-        log_error "⚠️  Some permissions couldn't be granted automatically."
-        echo
-        echo "🔒 Request your GCP admin to grant these roles to service account:"
-        echo "   $build_sa"
-        echo
-        for role in "${failed_roles[@]}"; do
-            echo "  ❌ $role"
-        done
-        echo
-        echo "📋 Copy this for your admin:"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        for role in "${failed_roles[@]}"; do
-            echo "gcloud projects add-iam-policy-binding $PROJECT_ID \\"
-            echo "  --member='serviceAccount:$build_sa' \\"
-            echo "  --role='$role'"
-            echo
-        done
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        
-        read -p "Continue after admin grants permissions? (y/n): " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            log_error "Setup paused. Re-run script after permissions are granted."
-            exit 1
-        fi
-    fi
-    
-    log_success "APIs and permissions setup complete"
+    log_success "Permissions and APIs ready for personal account deployment"
 }
 
 setup_database() {
@@ -570,6 +629,44 @@ setup_secrets() {
     log_success "Secrets setup complete"
 }
 
+setup_personal_iap() {
+    log_step "Setting up personal IAP configuration..."
+    
+    local current_user_email=$(gcloud config get-value account 2>/dev/null)
+    if [[ -z "$current_user_email" ]]; then
+        log_error "Unable to get current user email"
+        return 1
+    fi
+    
+    log_info "Configuring IAP for your personal instances..."
+    log_info "Your email: $current_user_email"
+    
+    # Enable IAP API
+    log_info "Enabling IAP API..."
+    if gcloud services enable iap.googleapis.com --quiet; then
+        log_success "IAP API enabled"
+    else
+        log_warning "IAP API may already be enabled"
+    fi
+    
+    # Wait for API to propagate
+    log_info "Waiting for IAP API to fully activate..."
+    sleep 5
+    
+    log_success "Personal IAP configuration ready"
+    
+    echo ""
+    log_info "IAP Setup Complete:"
+    echo "🔐 When you deploy your personal instances, IAP will be enabled automatically"
+    echo "👤 You will be the owner and can manage access to your instances"
+    echo "🛡️  Your instances: agent-server-$(echo "$current_user_email" | cut -d'@' -f1 | tr '.' '-'), workroom-$(echo "$current_user_email" | cut -d'@' -f1 | tr '.' '-')"
+    echo ""
+    echo "📋 Manage your IAP access later:"
+    echo "   ./scripts/gcp/manage-my-iap.sh add colleague@company.com"
+    echo "   ./scripts/gcp/manage-my-iap.sh list"
+    echo ""
+}
+
 setup_missing_components() {
     log_step "Setting up missing components only..."
     
@@ -587,6 +684,7 @@ setup_missing_components() {
     local perms_missing=$(check_permissions_status)
     local db_missing=$(check_database_status)
     local secrets_missing=$(check_secrets_status)
+    local iap_missing=$(check_iap_status)
     
     if [[ -n "$apis_missing" || -n "$perms_missing" ]]; then
         setup_permissions
@@ -600,7 +698,11 @@ setup_missing_components() {
         setup_secrets
     fi
     
-    if [[ -z "$apis_missing" && -z "$perms_missing" && -z "$db_missing" && -z "$secrets_missing" ]]; then
+    if [[ -n "$iap_missing" ]]; then
+        setup_personal_iap
+    fi
+    
+    if [[ -z "$apis_missing" && -z "$perms_missing" && -z "$db_missing" && -z "$secrets_missing" && -z "$iap_missing" ]]; then
         log_success "All components already setup! ✨"
     fi
 }
@@ -618,19 +720,33 @@ main() {
     
     # Show interactive menu if no specific options provided
     if [[ "$SHOW_MENU" == "true" ]]; then
-        echo "🛠 Agent Platform GCP Setup"
+        echo "🛠️  Agent Platform GCP Setup & Deploy"
+        echo "   Streamlined setup for personal account deployment"
         echo ""
         
         # Run prerequisites check (includes project selection)
         check_prerequisites
         PROJECT_ID="$GCLOUD_PROJECT"
         
-        show_setup_menu
+        # Check if user has admin access for auto-setup
+        local current_user=$(gcloud config get-value account 2>/dev/null)
+        if gcloud projects get-iam-policy "$PROJECT_ID" \
+            --flatten="bindings[].members" \
+            --format="value(bindings.role,bindings.members)" \
+            --filter="bindings.role:roles/owner OR bindings.role:roles/editor" 2>/dev/null | grep -q "user:$current_user"; then
+            
+            echo "🔑 Admin access detected ($current_user)"
+            echo "🚀 Auto-proceeding with setup → deploy..."
+            echo ""
+            MISSING_ONLY=true
+        else
+            show_setup_menu
+        fi
     else
-        echo "🛠 Agent Platform GCP Setup"
+        echo "🛠️  Agent Platform GCP Setup & Deploy"
         echo "📍 Project: ${GCLOUD_PROJECT:-"(will be selected)"}"
         echo "🌍 Region:  $REGION"
-        echo
+        echo ""
         
         # Run prerequisites check (includes project selection)
         check_prerequisites
@@ -658,12 +774,18 @@ main() {
         fi
     fi
     
-    # Only show completion message if we actually ran setup
+    # Only show completion and deploy if we actually ran setup
     if [[ "$SETUP_ALL" == "true" || "$MISSING_ONLY" == "true" || "$PERMISSIONS_ONLY" == "true" || "$DATABASE_ONLY" == "true" || "$SECRETS_ONLY" == "true" ]]; then
         echo
-        log_success "Setup complete! You can now run:"
-        echo "  ./scripts/gcp/deploy.sh"
+        log_success "✅ Setup complete! Starting deployment..."
         echo
+        echo "🚀 Proceeding to deployment menu..."
+        echo ""
+        
+        # Run deployment through make (no flags needed)
+        echo "▶️  Executing: make gcp deploy"
+        echo ""
+        exec make gcp deploy
     fi
 }
 

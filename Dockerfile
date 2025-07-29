@@ -20,8 +20,17 @@ RUN pip3 install uv --break-system-packages
 # Set working directory
 WORKDIR /build
 
-# Copy the entire project (needed for workspace builds)
-COPY . .
+# Copy workspace configuration first (better caching)
+COPY pyproject.toml uv.lock Makefile ./
+
+# Copy only the source packages needed for the workspace build
+COPY core/ core/
+COPY server/ server/
+COPY architectures/ architectures/
+
+# Copy scripts needed for build
+COPY scripts/build_exe.py scripts/build_exe.py
+COPY scripts/entrypoint.sh scripts/entrypoint.sh
 
 # Build the executable using make commands (Go is already in PATH from golang image)
 RUN make sync && make build-exe

@@ -1,0 +1,234 @@
+import type http from 'node:http';
+import Stream from 'node:stream';
+import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
+import { WebSocket, WebSocketServer } from 'ws';
+import type { Configuration } from '../configuration.js';
+import { extractAuthenticatedUserIdentity } from '../middleware/auth/index.js';
+import type { MonitoringContext } from '../monitoring/index.js';
+import { extractHeadersFromRequest, NO_PROXY_HEADERS, NO_PROXY_WEBSOCKET_HEADERS } from '../utils/request.js';
+import { signAgentToken } from '../utils/signing.js';
+import { extractRequestPathAttributes, joinUrl } from '../utils/url.js';
+
+/**
+ * Start websocket proxying
+ * @see {} Not used for ACE
+ */
+export const initializeWebSocketProxying = ({
+  configuration,
+  monitoring,
+  rewriteAgentServerPath,
+  targetBaseUrl,
+}: {
+  configuration: Configuration;
+  monitoring: MonitoringContext;
+  rewriteAgentServerPath: (currentPath: string) => string;
+  targetBaseUrl: string;
+}) => {
+  const webSocketServer = new WebSocketServer({
+    noServer: true,
+    perMessageDeflate: false,
+  });
+
+  const shutdownPair = ({ workroomWs, agentBackendWs }: { workroomWs: WebSocket; agentBackendWs: WebSocket }): void => {
+    try {
+      workroomWs.close();
+    } catch (e) {
+      const error = e as Error;
+      monitoring.logger.error('failed_to_close_workroom_websocket', { error });
+    }
+    try {
+      agentBackendWs.close();
+    } catch (e) {
+      const error = e as Error;
+      monitoring.logger.error('failed_to_close_agent_websocket', { error });
+    }
+  };
+
+  /**
+   * Handle upgrading a websocket connection
+   * @see {} Not used for ACE
+   */
+  const handleWebsocketUpgrade = async (
+    req: http.IncomingMessage,
+    socket: Stream.Duplex,
+    head: Buffer<ArrayBufferLike>,
+  ) => {
+    const unauthorizedAccess = () => {
+      socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+      socket.destroy();
+    };
+
+    const internalServerError = () => {
+      socket.write('HTTP/1.1 500 Internal Server Error\r\n\r\n');
+      socket.destroy();
+    };
+
+    monitoring.logger.info('Upgrade websocket connection', {
+      requestUrl: req.url,
+    });
+
+    const headers: Record<string, string> = {};
+    // Proxy all valid headers
+    for (const [key, value] of Object.entries(req.headers)) {
+      if (
+        typeof value !== 'undefined' &&
+        NO_PROXY_HEADERS.includes(key) === false &&
+        NO_PROXY_WEBSOCKET_HEADERS.includes(key) === false
+      ) {
+        headers[key] = Array.isArray(value) ? value[0] : value;
+      }
+    }
+
+    if (configuration.auth.type === 'google') {
+      const userIdentityResult = extractAuthenticatedUserIdentity({
+        configuration,
+        headers: extractHeadersFromRequest(req.headers),
+        monitoring,
+      });
+
+      if (!userIdentityResult.success) {
+        switch (userIdentityResult.error.code) {
+          case 'unauthorized':
+            return unauthorizedAccess();
+
+          default:
+            exhaustiveCheck(userIdentityResult.error.code);
+        }
+      }
+
+      if (!userIdentityResult.data.userId) {
+        return unauthorizedAccess();
+      }
+
+      const signedAgentTokenResult = await signAgentToken({
+        configuration,
+        payload: {
+          userId: `tenant:spar:user:${userIdentityResult.data.userId}`,
+        },
+      });
+
+      if (!signedAgentTokenResult.isValid) {
+        monitoring.logger.error('Agent server token signing invalid', {
+          errorMessage: signedAgentTokenResult.reason.message,
+        });
+
+        return internalServerError();
+      }
+
+      headers['authorization'] = `Bearer ${signedAgentTokenResult.token}`;
+    }
+
+    if (!req.url) {
+      throw new Error('No URL found for upgrade request');
+    }
+
+    const urlAttributes = extractRequestPathAttributes(req.url);
+    const targetPath = rewriteAgentServerPath(urlAttributes.pathname);
+
+    const targetUrl = `${joinUrl(targetBaseUrl, targetPath)}${urlAttributes.searchParams}`
+      .replace('http://', 'ws://')
+      .replace('https://', 'wss://');
+
+    monitoring.logger.info('Connecting upstream websocket', {
+      requestUrl: targetUrl,
+    });
+
+    webSocketServer.handleUpgrade(req, socket, head, (wsClient) => {
+      webSocketServer.emit('connection', wsClient, {
+        agentStreamWebsocketURL: targetUrl,
+        headers,
+      });
+    });
+  };
+
+  webSocketServer.on(
+    'connection',
+    (
+      workroomWs: WebSocket,
+      {
+        agentStreamWebsocketURL,
+        headers,
+      }: {
+        agentStreamWebsocketURL: string;
+        headers: {
+          authorization?: string;
+        };
+      },
+    ) => {
+      monitoring.logger.info('Proxying agent server websocket connection', {
+        requestUrl: agentStreamWebsocketURL,
+      });
+
+      const agentBackendWs = new WebSocket(agentStreamWebsocketURL, {
+        headers,
+        perMessageDeflate: false,
+      });
+
+      const bufferedOutgoingMessages: Array<{
+        binary: boolean;
+        data: WebSocket.RawData;
+      }> = [];
+      const bufferedIncomingMessages: Array<{
+        binary: boolean;
+        data: WebSocket.RawData;
+      }> = [];
+
+      const reconcileBufferedMessages = () => {
+        if (agentBackendWs.readyState === WebSocket.OPEN && bufferedOutgoingMessages.length > 0) {
+          // Send outgoing messages
+          for (const payload of bufferedOutgoingMessages) {
+            agentBackendWs.send(payload.data, { binary: payload.binary });
+          }
+
+          monitoring.logger.info('Sent buffered outgoing websocket messages', {
+            count: bufferedOutgoingMessages.length,
+          });
+
+          bufferedOutgoingMessages.splice(0, Infinity);
+        }
+
+        if (workroomWs.readyState === WebSocket.OPEN && bufferedIncomingMessages.length > 0) {
+          // Send incoming messages
+          for (const payload of bufferedIncomingMessages) {
+            workroomWs.send(payload.data, { binary: payload.binary });
+          }
+
+          monitoring.logger.info('Sent buffered incoming websocket messages', {
+            count: bufferedIncomingMessages.length,
+          });
+
+          bufferedIncomingMessages.splice(0, Infinity);
+        }
+      };
+
+      workroomWs.on('open', reconcileBufferedMessages);
+      agentBackendWs.on('open', reconcileBufferedMessages);
+
+      // Work Room -> Agent Backend
+      workroomWs.on('message', (data, isBinary) => {
+        if (agentBackendWs.readyState === WebSocket.OPEN) {
+          agentBackendWs.send(data, { binary: isBinary });
+        } else {
+          bufferedOutgoingMessages.push({ binary: isBinary, data });
+        }
+      });
+
+      // Agent Backend -> Work Room
+      agentBackendWs.on('message', (data, isBinary) => {
+        if (workroomWs.readyState === WebSocket.OPEN) {
+          workroomWs.send(data, { binary: isBinary });
+        } else {
+          bufferedIncomingMessages.push({ binary: isBinary, data });
+        }
+      });
+
+      const shutdown = () => shutdownPair({ workroomWs, agentBackendWs });
+      workroomWs.on('close', shutdown).on('error', shutdown);
+      agentBackendWs.on('close', shutdown).on('error', shutdown);
+    },
+  );
+
+  return {
+    handleWebsocketUpgrade,
+  };
+};

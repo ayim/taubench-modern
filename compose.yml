@@ -1,23 +1,25 @@
+x-env-agent-server: &template-env-agent-server
+    LOG_LEVEL: DEBUG
+    OTEL_COLLECTOR_URL: http://otel-collector:4318
+    POSTGRES_DB: agents
+    POSTGRES_HOST: postgres
+    POSTGRES_PASSWORD: agents
+    POSTGRES_PORT: 5432
+    POSTGRES_USER: agents
+    SEMA4AI_AGENT_SERVER_DB_TYPE: postgres
+
 x-service-agent-server: &template-service-agent-server
     build:
         context: .
         dockerfile: Dockerfile
         args:
             AGENT_SERVER_PORT: 8000
-    container_name: agent-server
     ports:
         - '8000:8000'
     expose:
         - '8000'
     environment:
-        LOG_LEVEL: DEBUG
-        OTEL_COLLECTOR_URL: http://otel-collector:4318
-        POSTGRES_DB: agents
-        POSTGRES_HOST: postgres
-        POSTGRES_PASSWORD: agents
-        POSTGRES_PORT: 5432
-        POSTGRES_USER: agents
-        SEMA4AI_AGENT_SERVER_DB_TYPE: postgres
+        <<: *template-env-agent-server
     restart: unless-stopped
     networks:
         default:
@@ -29,13 +31,6 @@ x-service-agent-server: &template-service-agent-server
         otel-collector:
             condition: service_started
 
-x-arg-workoom: &template-arg-workroom
-    NODE_ENV: production
-    VITE_DEPLOYMENT_TYPE: spar
-    VITE_DEV_SERVER_PORT: 8001
-    VITE_DEV_WORKROOM_TENANT_LIST_URL: /spar-tenants-list
-    VITE_INSTANCE_ID: dev
-
 x-service-workroom: &template-service-workroom
     build:
         context: ./workroom
@@ -43,24 +38,27 @@ x-service-workroom: &template-service-workroom
         secrets:
             - npmrc
         args:
-            <<: *template-arg-workroom
+            ACE_SERVICE_VERSION: v2-dev-build
+            NODE_ENV: production
+            VITE_DEPLOYMENT_TYPE: spar
+            VITE_DEV_SERVER_PORT: 8001
+            VITE_DEV_WORKROOM_TENANT_LIST_URL: /api/tenants-list
+            VITE_INSTANCE_ID: dev
     environment:
         AGENT_SERVER_URL: http://agent-server:8000
+        AUTH_MODE: none
         DEPLOYMENT_TYPE: spar
         META_URL: http://localhost:8001/meta
         NODE_ENV: production
-        WORKROOM_URL: http://localhost:8001
+        PORT: 8001
     ports:
-        - '8001:3001'
+        - '8001:8001'
     expose:
         - '8001'
     networks:
         default:
             aliases:
                 - workroom
-    depends_on:
-        agent-server:
-            condition: service_healthy
 
 services:
     postgres:
@@ -72,6 +70,8 @@ services:
             POSTGRES_PASSWORD: agents
         ports:
             - '5432:5432'
+        expose:
+            - '5432'
         volumes:
             - postgres_data:/var/lib/postgresql/data
         healthcheck:
@@ -81,6 +81,8 @@ services:
             retries: 5
             start_period: 15s
         restart: unless-stopped
+
+#region Telemetry
     influx-db:
         container_name: influx
         image: influxdb:2
@@ -123,12 +125,31 @@ services:
         depends_on:
             influx-db:
                 condition: service_healthy
-    agent-server:
+#endregion
+
+#region Agent Server
+    # You can run the `Debug Agent Server with Hot Reload` target
+    # to run the agent server with hot reloading.
+    agent-server-noauth:
         <<: *template-service-agent-server
-        # You can run the `Debug Agent Server with Hot Reload` target
-        # to run the agent server with hot reloading.
+        container_name: agent-server-noauth
         profiles:
-            - production
+            - agent-server-no-auth
+    agent-server-auth:
+        <<: *template-service-agent-server
+        container_name: agent-server-auth
+        environment:
+            <<: *template-env-agent-server
+            AUTH_TYPE: jwt_local
+            JWT_ALG: ES256
+            JWT_AUD: agent_server
+            JWT_DECODE_KEY_B64: LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFZGpZdnZIcFpnY2FQUy9TOHdJanVjYzlYcUJIYgpyUVNpOGhxSngySGhybzlDZzg3cHdnSGNpWDkwT20xUDFTTEpHaVFVL1lUeG4wbllEQllaU1AwMU9RPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg==
+            JWT_ISS: spar
+        profiles:
+            - agent-server-auth
+#endregion
+
+#region Workroom
     workroom-production:
         <<: *template-service-workroom
         container_name: workroom-production
@@ -136,7 +157,8 @@ services:
         # the frontend and backend hot-reload together. (Working against the
         # postgres/influx/otel stack defined above.)
         profiles:
-            - production
+            - workroom-production
+#endregion
 
 volumes:
     postgres_data:

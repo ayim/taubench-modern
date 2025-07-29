@@ -5,6 +5,19 @@
 # Default configuration
 REGION="${REGION:-europe-west1}"
 
+# Performance optimization: Cache gcloud config values
+# These are called frequently across scripts, so cache them once
+if [[ -z "${CACHED_USER_EMAIL:-}" ]]; then
+    CACHED_USER_EMAIL=$(gcloud config get-value account 2>/dev/null || echo '')
+    CACHED_PROJECT_ID=$(gcloud config get-value project 2>/dev/null || echo '')
+    CACHED_USER=$(echo "$CACHED_USER_EMAIL" | cut -d'@' -f1 | tr '.' '-')
+    
+    # Export for use in other scripts
+    export CACHED_USER_EMAIL
+    export CACHED_PROJECT_ID  
+    export CACHED_USER
+fi
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -33,6 +46,26 @@ log_error() {
 
 log_step() {
     echo -e "${PURPLE}🔧 $1${NC}"
+}
+
+# Progress indicator for long-running operations
+show_progress() {
+    local message="$1"
+    log_step "$message..."
+}
+
+# Simple progress dots for operations
+progress_dots() {
+    local message="$1"
+    local pid="$2"
+    local interval="${3:-2}"
+    
+    echo -n "$message"
+    while kill -0 "$pid" 2>/dev/null; do
+        echo -n "."
+        sleep "$interval"
+    done
+    echo " ✅"
 }
 
 # Check if Homebrew is installed and install if needed (macOS)
@@ -66,6 +99,36 @@ ensure_homebrew() {
     else
         log_error "Homebrew auto-installation only supported on macOS. Install manually:"
         echo "https://brew.sh"
+        exit 1
+    fi
+}
+
+# Check if jq is installed and install if needed (macOS)
+ensure_jq() {
+    if command -v jq >/dev/null 2>&1; then
+        log_success "jq is installed"
+        return 0
+    fi
+    
+    log_warning "jq not found"
+    
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # Ensure Homebrew is available first
+        ensure_homebrew
+        
+        log_step "Installing jq via Homebrew..."
+        brew install jq
+        
+        if command -v jq >/dev/null 2>&1; then
+            log_success "jq installed via Homebrew"
+        else
+            log_error "jq installation failed. Install manually:"
+            echo "https://jqlang.github.io/jq/download/"
+            exit 1
+        fi
+    else
+        log_error "Auto-installation only supported on macOS. Install jq manually:"
+        echo "https://jqlang.github.io/jq/download/"
         exit 1
     fi
 }
@@ -122,8 +185,8 @@ REQUIRED_APIS=(
 select_project() {
     log_info "Setting up GCP project..."
     
-    # Check if project is already set
-    local current_project=$(gcloud config get-value project 2>/dev/null)
+    # Check if project is already set (use cached value)
+    local current_project="$CACHED_PROJECT_ID"
     if [[ -n "$current_project" && "$current_project" != "(unset)" ]]; then
         echo "Current project: $current_project"
         read -p "Use current project '$current_project'? (y/n): " -n 1 -r
@@ -136,7 +199,34 @@ select_project() {
     
     # List available projects
     log_info "Fetching your GCP projects..."
-    local projects=$(gcloud projects list --format="value(projectId,name)" --filter="lifecycleState:ACTIVE" 2>/dev/null)
+    local projects
+    local current_user="$CACHED_USER_EMAIL"
+    
+    # Try to list projects, handle permission errors
+    if ! projects=$(gcloud projects list --format="value(projectId,name)" --filter="lifecycleState:ACTIVE" 2>/dev/null); then
+        log_error "❌ Unable to list projects (permission denied)"
+        echo ""
+        echo "📧 You need project access. Send this message to #access-request:"
+        echo ""
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "🔐 **Project Access Request for Agent Platform**"
+        echo ""
+        echo "**Developer:** $current_user"
+        echo "**Issue:** Cannot list/access GCP projects for development setup"
+        echo ""
+        echo "**Admin Action Required:**"
+        echo "\`\`\`bash"
+        echo "# Run this command to grant project access:"
+        echo "./scripts/gcp/add-developer.sh $current_user"
+        echo "\`\`\`"
+        echo ""
+        echo "@Simen please grant project access when you have a moment 🙏"
+        echo ""
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+        echo "After access is granted, re-run: make gcp setup"
+        exit 1
+    fi
     
     if [[ -z "$projects" ]]; then
         log_error "No accessible projects found. You may need to:"
@@ -271,7 +361,7 @@ link_billing_account() {
     done
 }
 
-# Enhanced API enablement with zero-trust support
+# Enhanced API enablement with zero-trust support and parallel execution
 enable_apis() {
     log_info "Checking required APIs..."
     
@@ -295,18 +385,46 @@ enable_apis() {
     done
     echo
     
-    # Try to enable APIs
-    log_info "Attempting to enable APIs..."
+    # Try to enable APIs in parallel for better performance
+    show_progress "Enabling APIs in parallel"
     local failed_apis=()
+    local pids=()
+    local temp_dir=$(mktemp -d)
     
+    # Start all API enablement operations in background
     for api in "${disabled_apis[@]}"; do
-        if gcloud services enable "$api" 2>/dev/null; then
-            log_success "Enabled $api"
+        (
+            if gcloud services enable "$api" 2>/dev/null; then
+                echo "success" > "$temp_dir/$api.result"
+            else
+                echo "failed" > "$temp_dir/$api.result"
+            fi
+        ) &
+        pids+=($!)
+    done
+    
+    # Wait for all operations to complete
+    for pid in "${pids[@]}"; do
+        wait "$pid"
+    done
+    
+    # Check results
+    for api in "${disabled_apis[@]}"; do
+        if [[ -f "$temp_dir/$api.result" ]]; then
+            if [[ "$(cat "$temp_dir/$api.result")" == "success" ]]; then
+                log_success "Enabled $api"
+            else
+                failed_apis+=("$api")
+                log_warning "Failed to enable $api (permission denied)"
+            fi
         else
             failed_apis+=("$api")
-            log_warning "Failed to enable $api (permission denied)"
+            log_warning "Failed to enable $api (unknown error)"
         fi
     done
+    
+    # Cleanup temp directory
+    rm -rf "$temp_dir"
     
     # Handle failed APIs (zero-trust scenario)
     if [[ ${#failed_apis[@]} -gt 0 ]]; then
@@ -402,8 +520,8 @@ with open('$key_file') as f:
 ensure_gcloud_auth() {
     log_info "Checking gcloud authentication..."
     
-    # Check if already authenticated
-    local current_account=$(gcloud config get-value account 2>/dev/null)
+    # Check if already authenticated (use cached value)
+    local current_account="$CACHED_USER_EMAIL"
     if [[ -n "$current_account" && "$current_account" != "(unset)" ]]; then
         # Verify the auth actually works
         if gcloud auth list --filter="status:ACTIVE" --format="value(account)" | grep -q "$current_account"; then
@@ -509,7 +627,7 @@ configure_docker_auth() {
         return 1
     fi
     
-    log_step "Configuring Docker authentication for Artifact Registry..."
+    show_progress "Configuring Docker authentication for Artifact Registry"
     
     # Configure Docker auth (this is safe even if API isn't ready)
     if gcloud auth configure-docker "$region-docker.pkg.dev" --quiet 2>/dev/null; then
@@ -521,7 +639,7 @@ configure_docker_auth() {
     # Create repository if it doesn't exist (with retry and graceful error handling)
     if ! gcloud artifacts repositories describe cloud-run-source-deploy \
          --location="$region" --quiet >/dev/null 2>&1; then
-        log_step "Creating Artifact Registry repository..."
+        show_progress "Creating Artifact Registry repository"
         
         local retry_count=0
         local max_retries=3
@@ -582,7 +700,52 @@ check_os_compatibility() {
     fi
 }
 
-# Update the main check_prerequisites function
+# Lightweight prerequisites check for deployment operations
+check_prerequisites_lite() {
+    # Just verify the essentials are working - no installation/setup
+    
+    # Check jq is installed
+    if ! command -v jq >/dev/null 2>&1; then
+        log_error "jq not installed. Run: make gcp setup"
+        exit 1
+    fi
+
+    # Check gcloud is installed and authenticated
+    if ! command -v gcloud >/dev/null 2>&1; then
+        log_error "gcloud CLI not installed. Run: make gcp setup"
+        exit 1
+    fi
+    
+    # Use cached values for faster check
+    if [[ -z "$CACHED_USER_EMAIL" || "$CACHED_USER_EMAIL" == "(unset)" ]]; then
+        log_error "Not authenticated with gcloud. Run: gcloud auth login"
+        exit 1
+    fi
+    
+    # Check project is selected
+    if [[ -z "$CACHED_PROJECT_ID" || "$CACHED_PROJECT_ID" == "(unset)" ]]; then
+        log_error "No GCP project selected. Run: make gcp setup"
+        exit 1
+    fi
+    
+    export GCLOUD_PROJECT="$CACHED_PROJECT_ID"
+    log_success "Ready - $CACHED_USER_EMAIL @ $CACHED_PROJECT_ID"
+}
+
+# Check Docker for deploy operations (lightweight)
+check_docker_lite() {
+    if ! command -v docker >/dev/null 2>&1; then
+        log_error "Docker not installed. Run: make gcp setup"
+        exit 1
+    fi
+    
+    if ! docker info >/dev/null 2>&1; then
+        log_error "Docker not running. Please start Docker Desktop and try again."
+        exit 1
+    fi
+}
+
+# Full prerequisites check for setup operations (keeps all the heavy stuff)
 check_prerequisites() {
     log_step "Checking prerequisites..."
     
@@ -605,6 +768,7 @@ check_prerequisites() {
     
     # Install/check tools
     ensure_homebrew
+    ensure_jq
     ensure_gcloud
     ensure_docker
     
@@ -647,15 +811,56 @@ get_service_url() {
         --quiet 2>/dev/null || echo ""
 }
 
-# Get service status
+# Get service status with meaningful descriptions
 get_service_status() {
     local service="$1"
     local region="$2"
     
-    gcloud run services describe "$service" \
+    # Get the raw condition status
+    local raw_status=$(gcloud run services describe "$service" \
         --region="$region" \
         --format="value(status.conditions[0].status)" \
-        --quiet 2>/dev/null || echo "Unknown"
+        --quiet 2>/dev/null || echo "Unknown")
+    
+    # Get condition type and reason for more context
+    local condition_type=$(gcloud run services describe "$service" \
+        --region="$region" \
+        --format="value(status.conditions[0].type)" \
+        --quiet 2>/dev/null || echo "")
+    local condition_reason=$(gcloud run services describe "$service" \
+        --region="$region" \
+        --format="value(status.conditions[0].reason)" \
+        --quiet 2>/dev/null || echo "")
+    
+    # Convert to meaningful status
+    case "$raw_status" in
+        "True")
+            if [[ "$condition_type" == "Ready" ]]; then
+                echo "Running"
+            else
+                echo "Active"
+            fi
+            ;;
+        "False")
+            case "$condition_reason" in
+                "RevisionFailed")
+                    echo "Failed"
+                    ;;
+                "Deploying")
+                    echo "Deploying"
+                    ;;
+                *)
+                    echo "Stopped"
+                    ;;
+            esac
+            ;;
+        "Unknown")
+            echo "Starting"
+            ;;
+        *)
+            echo "$raw_status"
+            ;;
+    esac
 }
 
 # Check if service exists
@@ -684,7 +889,33 @@ format_duration() {
     fi
 }
 
-# Get last deployment time
+# Check if user has admin access for shared deployments
+check_shared_deployment_permissions() {
+    local current_user_email="$CACHED_USER_EMAIL"
+    local project_id="${PROJECT_ID:-$CACHED_PROJECT_ID}"
+    
+    if [[ -z "$current_user_email" ]]; then
+        echo "❌ Unable to get authenticated user. Please run 'gcloud auth login' first."
+        exit 1
+    fi
+    
+    if [[ -z "$project_id" ]]; then
+        echo "❌ No project ID available. Please run setup first."
+        exit 1
+    fi
+    
+    # Check if user has admin access (owner or editor)
+    if gcloud projects get-iam-policy "$project_id" \
+        --flatten="bindings[].members" \
+        --format="value(bindings.role,bindings.members)" \
+        --filter="bindings.role:roles/owner OR bindings.role:roles/editor" 2>/dev/null | grep -q "user:$current_user_email"; then
+        return 0  # Has admin access
+    else
+        return 1  # No admin access
+    fi
+}
+
+# Get last deployment time with context
 get_last_deploy_time() {
     local service="$1"
     local region="$2"
@@ -698,8 +929,23 @@ get_last_deploy_time() {
     if [[ -n "$timestamp" ]]; then
         local current_time=$(date +%s)
         local duration=$((current_time - timestamp))
-        format_duration "$duration"
+        local formatted_duration=$(format_duration "$duration")
+        
+        # Add context based on age
+        if [[ $duration -lt 300 ]]; then
+            # Less than 5 minutes - very recent
+            echo "🟢 $formatted_duration ago"
+        elif [[ $duration -lt 3600 ]]; then
+            # Less than 1 hour - recent
+            echo "🟡 $formatted_duration ago"
+        elif [[ $duration -lt 86400 ]]; then
+            # Less than 1 day - somewhat old
+            echo "🟠 $formatted_duration ago"
+        else
+            # More than 1 day - stale
+            echo "🔴 $formatted_duration ago"
+        fi
     else
-        echo "Unknown"
+        echo "❓ Unknown"
     fi
 } 

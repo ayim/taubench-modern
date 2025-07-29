@@ -1,0 +1,72 @@
+name: Workroom Tests
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/workroom-test.yml'
+      - 'workroom/**'
+
+permissions:
+  contents: read
+
+jobs:
+  test-specs:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: ./workroom
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create .npmrc file
+        shell: bash
+        run: |
+          cat << EOF > .npmrc
+          registry=https://registry.npmjs.org/
+          @sema4ai:registry=https://npm.pkg.github.com/
+          //npm.pkg.github.com/:_authToken=${{ secrets.SEMA4_CI_USER_PACKAGE_READ_TOKEN }}
+          EOF
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          npm ci
+
+      - name: Run tests
+        shell: bash
+        run: |
+          npm run test:specs && npm run test:types
+
+  test-format:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: ./workroom
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create .npmrc file
+        shell: bash
+        run: |
+          cat << EOF > .npmrc
+          registry=https://registry.npmjs.org/
+          @sema4ai:registry=https://npm.pkg.github.com/
+          //npm.pkg.github.com/:_authToken=${{ secrets.SEMA4_CI_USER_PACKAGE_READ_TOKEN }}
+          EOF
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          npm ci
+
+      - name: Run linting
+        shell: bash
+        run: |
+          npm run lint

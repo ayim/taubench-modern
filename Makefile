@@ -365,6 +365,58 @@ new-empty-env:  ## Create a new empty .env file if one doesn't exist
 	fi
 
 # --------------------------------------------------------------------
+# GCP Deployment
+# --------------------------------------------------------------------
+
+gcp:  ## GCP operations: make gcp setup|deploy|status|teardown|add-developer|iap
+	@if [ "$(filter-out $@,$(MAKECMDGOALS))" = "setup" ]; then \
+		echo "Setting up GCP environment..."; \
+		./scripts/gcp/setup.sh; \
+	elif [ "$(filter-out $@,$(MAKECMDGOALS))" = "deploy" ]; then \
+		echo "Deploying to GCP..."; \
+		./scripts/gcp/deploy.sh; \
+	elif [ "$(filter-out $@,$(MAKECMDGOALS))" = "status" ]; then \
+		echo "Checking GCP deployment status..."; \
+		./scripts/gcp/status.sh; \
+	elif [ "$(filter-out $@,$(MAKECMDGOALS))" = "teardown" ]; then \
+		echo "Tearing down GCP resources..."; \
+		./scripts/gcp/teardown.sh; \
+	elif [ "$(filter-out $@,$(MAKECMDGOALS))" = "add-developer" ]; then \
+		echo "Adding developer to GCP project..."; \
+		./scripts/gcp/add-developer.sh; \
+	elif [ "$(filter-out $@,$(MAKECMDGOALS))" = "iap" ]; then \
+		echo "Managing IAP access..."; \
+		./scripts/gcp/iap.sh; \
+	else \
+		echo "Usage: make gcp [setup|deploy|status|teardown|add-developer|iap]"; \
+		echo ""; \
+		echo "🚀 Agent Platform GCP Deployment"; \
+		echo "   Multi-developer environment with user namespacing and IAP security"; \
+		echo ""; \
+		echo "Available commands:"; \
+		echo "  make gcp setup        - Setup GCP environment (interactive, auto-detects missing components)"; \
+		echo "  make gcp deploy       - Deploy services to Cloud Run (interactive, deployment profiles)"; \
+		echo "  make gcp status       - Show deployment status, health, URLs, and logs"; \
+		echo "  make gcp teardown     - Remove GCP resources (interactive, respects permissions)"; \
+		echo "  make gcp add-developer - Add developers to project (admin only, grants necessary roles)"; \
+		echo "  make gcp iap          - Manage Identity-Aware Proxy access control"; \
+		echo ""; \
+		echo "Your services: agent-server-$(CACHED_USER), workroom-$(CACHED_USER)"; \
+		echo ""; \
+		echo "Tips:"; \
+		echo "  • All operations are user-namespaced for isolation"; \
+		echo "  • Use 'Personal Isolated' profile for development (recommended)"; \
+		echo "  • IAP provides secure Google-authenticated access"; \
+		echo "  • For advanced usage: ./scripts/gcp/[script].sh --help"; \
+	fi
+
+# Dummy targets so make doesn't complain about "nothing to be done"
+setup deploy status teardown add-developer iap:
+	@:
+
+.PHONY: gcp setup deploy status teardown add-developer iap
+
+# --------------------------------------------------------------------
 # Cleanup
 # --------------------------------------------------------------------
 clean:  ## Remove build/dist artifacts
@@ -376,6 +428,7 @@ clean:  ## Remove build/dist artifacts
 	@rm -rf build
 	@rm -rf dist
 	@rm -rf *.egg-info
+	@rm -rf workroom/**/dist
 
 # --------------------------------------------------------------------
 # Workitems

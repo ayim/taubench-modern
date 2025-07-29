@@ -1,0 +1,107 @@
+# Git and version control
+.git
+.gitignore
+.gitattributes
+
+# Python virtual environments and caches
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+pip-cache/
+.pytest_cache/
+.coverage
+.tox/
+.cache/
+
+# Node.js and npm
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn/
+
+# Build artifacts and distributions
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Documentation and examples
+docs/
+*.md
+server/examples/
+core/examples/
+
+# Testing and quality assurance
+quality/
+agent-spec/validation/
+**/tests/
+**/*test*.py
+**/*_test.py
+conftest.py
+.pytest_cache/
+test-*/
+
+# Client SDKs (not needed for server build)
+client-sdks/
+
+# Workroom frontend (separate build)
+workroom/
+
+# CI/CD and deployment configs
+.github/
+cloudbuild.yaml
+deploy-*.sh
+compose.yml
+Dockerfile.ace
+TODOs.md
+
+# Observability and monitoring
+observability/
+
+# Environment and config files
+.env*
+.prettierrc.js
+.prettierignore
+.editorconfig
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+.temp/
+
+# OS-specific files
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage reports
+htmlcov/
+.coverage.*
+coverage.xml
+
+# Jupyter Notebooks
+*.ipynb
+.ipynb_checkpoints/
+
+# Other build outputs
+*.zip
+*.tar.gz
+*.tgz 

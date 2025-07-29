@@ -78,7 +78,11 @@ if (!agentComponentPath.includes('node_modules')) {
 }
 
 export default {
-  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}', `${agentComponentPath}/**/*.{js,ts,jsx,tsx,html,css}`],
+  content: [
+    './frontend/index.html',
+    './frontend/src/**/*.{js,ts,jsx,tsx}',
+    `${agentComponentPath}/**/*.{js,ts,jsx,tsx,html,css}`,
+  ],
   theme: {
     extend: {
       fontFamily: {

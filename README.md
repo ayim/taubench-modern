@@ -143,7 +143,9 @@ See [docs/development-guide.md](docs/development-guide.md) for more information 
 
 #### Requirements
 
-1. _To develop with the Workroom application, you must have NPM setup locally in that you have valid authentication with which to use to install packages needed by Workroom and associated dependencies. You should have a `~/.npmrc` file with the following structure:_
+To develop with the Workroom application, you must have **NPM** setup locally, with valid Sema4.ai authentication configured with which to use to install packages needed by Workroom and associated dependencies:
+
+1. You should have a `~/.npmrc` file with the following structure:
 
    _This is needed for both local and docker-based development_
 
@@ -152,40 +154,92 @@ See [docs/development-guide.md](docs/development-guide.md) for more information 
    @sema4ai:registry=https://npm.pkg.github.com/
    ```
 
-2. _`.env` file in `./workroom` populated with [the env example values](./workroom/.env.example)_
+2. Create a `.env` file in `./workroom` by copying the example file. Run this command from the `workroom` directory:
 
-#### Running the full stack with hot reloading
+   ```
+   cp .env.example .env
+   ```
 
-Make sure to `npm install` within `./workroom` before running in hot-reload mode.
+   This will create a `.env` file with the default environment variable values, which you can then edit as needed.
 
-In one terminal:
+   _Note that copying the `.env.auth.example` file will setup Workroom to use authentication._
 
-```sh
-cd workroom
+3. Run `npm install` inside the `workroom` directory
+
+> [!NOTE]
+> The `.env` file in `./workroom` is only necessary for non-docker-based Workroom development. If using workroom via Docker, you don't need to touch these files.
+
+> [!TIP]
+> If developing primarily against Workroom, it is recommended to install Docker (either via OrbStack or Docker desktop).
+
+#### Workroom Hot Reloading
+
+You can run Workroom directly, without Docker _and_ with hot reloading, by running the following:
+
+```shell
 npm run dev
 ```
 
-And in another:
+#### Docker stack: Workroom / Agent Server with Postgres Database
 
-```sh
-docker compose up --build
+The root `compose.yml` configuration configures a wide variety of Docker services and system configurations. It's a great development target if you're working with Workroom.
 
-# Agent Server available on http://localhost:8000
-# Work Room available on http://localhost:8001
+This docker compose setup makes strong use of compose profiles, which allow for switching services on and off to allow for multiple ways of working with it.
+
+> [!TIP]
+> Compose profiles are just like "tags". You can set one or more by either using `COMPOSE_PROFILES=one,two docker compose up` or `docker compose --profile one --profile two up`.
+
+The following table shows the various configurations you can run:
+
+|                                 | _No Profiles_ | `agent-server-no-auth` | `agent-server-auth` | `workroom-production` |
+| ------------------------------- | ------------- | ---------------------- | ------------------- | --------------------- |
+| Postgres                        | ✅            | ✅                     | ✅                  | ✅                    |
+| Influx                          | ✅            | ✅                     | ✅                  | ✅                    |
+| Open Telemetry                  | ✅            | ✅                     | ✅                  | ✅                    |
+| Agent Server, no authentication |               | ✅                     |                     |                       |
+| Agent server, authenticated     |               |                        | ✅                  |                       |
+| Workroom, production config     |               |                        |                     | ✅                    |
+
+So, for example, if you wanted to run a _non-authenticated agent server_ with the _workroom in production mode_, you'd execute the following:
+
+```shell
+COMPOSE_PROFILES=agent-server-no-auth,workroom-production docker compose up --build
 ```
 
-_You can also run a production build of workroom within docker, omitting the `npm run dev` command, by executing just `docker compose --profile production up`._
+Or if you were using Workroom with hot reloading:
+
+```shell
+# In terminal 1:
+COMPOSE_PROFILES=agent-server-no-auth docker compose up
+
+# In terminal 2:
+cd workroom && npm run dev
+```
+
+> [!TIP]
+> The running agent server will be available on [`http://localhost:8000`](http://localhost:8000), and workroom on [`http://localhost:8001`](http://localhost:8001).
 
 #### Known limitations
 
 - Actions do not work (MCP servers do) at all: the short answer "missing router"
 
+#### Troubleshooting
+
+Networking and other issues:
+
+```sh
+docker compose down --remove-orphans
+docker network prune
+COMPOSE_PROFILES=agent-server-no-auth docker compose up --build --force-recreate
+```
+
 ---
 
-You can run a full-stack workroom and agent-server system using `docker` and `docker compose`. This stack comes in two flavours:
+You can run a full-stack workroom and agent-server system using `docker` and `docker compose`. This stack comes in several flavours:
 
-1. Hot reloading (agent-server and workroom built and watched for changes)
-2. Default (everything built for you at startup - "finished product")
+1.  Hot reloading (agent-server and workroom built and watched for changes)
+2.  Production (everything built for you at startup - "finished product")
+3.  Agent server with forced-auth (docker)
 
 ### Creating agents
 
@@ -237,12 +291,91 @@ curl --request POST -L \
 }'
 ```
 
-### Troubleshooting
+## 🚀 GCP Deployment
 
-Networking and other issues
+The Agent Platform includes a comprehensive Google Cloud Platform deployment system supporting multi-developer environments, security controls, and flexible deployment profiles.
 
-```sh
-docker compose down --remove-orphans
-docker network prune
-docker compose --profile production up --build --force-recreate
+### Quick Start
+
+```bash
+make gcp setup      # Initial setup (interactive menu)
+make gcp deploy     # Deploy your personal instance
+make gcp status     # Check deployment status
+make gcp iap        # Manage access control
 ```
+
+### Deployment Profiles
+
+The system supports three deployment profiles:
+
+#### 1️⃣ Personal Isolated (Recommended)
+
+- **Services**: `agent-server-{your-username}`, `workroom-{your-username}`
+- **Database**: `agent-postgres-{your-username}` (your own data)
+- **Security**: IAP enabled, you control access
+- **Best for**: Development, testing, personal use
+
+#### 2️⃣ Personal Shared Database
+
+- **Services**: `agent-server-{your-username}`, `workroom-{your-username}`
+- **Database**: `agent-postgres` (shared team data)
+- **Best for**: Accessing team data with your own endpoints
+
+#### 3️⃣ Team Production (Admin Only)
+
+- **Services**: `agent-server`, `workroom` (shared endpoints)
+- **Database**: `agent-postgres` (shared team data)
+- **Best for**: Production demos, shared team environment
+
+### Available Commands
+
+| Command                  | Purpose                          | Notes                                             |
+| ------------------------ | -------------------------------- | ------------------------------------------------- |
+| `make gcp setup`         | Initial GCP environment setup    | Interactive menu, auto-detects missing components |
+| `make gcp deploy`        | Deploy services to Cloud Run     | Interactive menu with deployment profiles         |
+| `make gcp status`        | Check deployment status & health | Shows URLs, health, logs                          |
+| `make gcp teardown`      | Clean up GCP resources           | Interactive menu, respects permissions            |
+| `make gcp add-developer` | Add developers to project        | Admin only, grants necessary permissions          |
+| `make gcp iap`           | Manage IAP access control        | Control who can access your services              |
+
+### Multi-Developer Support
+
+- **Automatic Namespacing**: Your services are named `agent-server-{username}`, `workroom-{username}`
+- **Isolation**: Each developer has complete control over their instances
+- **Access Control**: You manage who can access your services via Identity-Aware Proxy (IAP)
+- **Cost Efficient**: Personal instances ~$0.40/month when idle
+
+### Identity-Aware Proxy (IAP)
+
+Use `make gcp iap` to manage access to your services:
+
+- **Add Access**: Give colleagues or your domain access to your instances
+- **Remove Access**: Revoke access when needed
+- **Domain Support**: `@company.com` gives access to entire Google Workspace domain
+- **Group Support**: Use Google Groups for team access
+- **Security**: All access is authenticated through Google identity
+
+### Prerequisites
+
+1. **Google Cloud SDK**: Install `gcloud` CLI
+2. **Authentication**: `gcloud auth login`
+3. **Project Setup**: `gcloud config set project YOUR_PROJECT_ID`
+4. **Docker**: Required for building container images
+
+### Advanced Usage
+
+For advanced usage beyond the `make` commands, see the individual scripts in `scripts/gcp/`:
+
+```bash
+# Get detailed help for any script
+./scripts/gcp/setup.sh --help
+./scripts/gcp/deploy.sh --help
+./scripts/gcp/manage-my-iap.sh --help
+```
+
+### Environment Variables
+
+| Variable         | Description               | Default        |
+| ---------------- | ------------------------- | -------------- |
+| `REGION`         | GCP region for deployment | `europe-west1` |
+| `GCLOUD_PROJECT` | GCP project ID            | Auto-detected  |

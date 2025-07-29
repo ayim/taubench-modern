@@ -4,10 +4,22 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
+source "$SCRIPT_DIR/functions/database-functions.sh"
 
 # Default configuration
 REGION="europe-west1"
-PROJECT_ID="${GCLOUD_PROJECT:-$(gcloud config get-value project 2>/dev/null || echo '')}"
+PROJECT_ID="${GCLOUD_PROJECT:-$CACHED_PROJECT_ID}"
+
+# Get current user for namespacing (use cached value from common.sh)
+CURRENT_USER="$CACHED_USER"
+if [[ -z "$CURRENT_USER" ]]; then
+    echo "❌ Unable to get authenticated user. Please run 'gcloud auth login' first."
+    exit 1
+fi
+
+# User-namespaced service names (same as deploy.sh)
+AGENT_SERVER_SERVICE="agent-server-${CURRENT_USER}"
+WORKROOM_SERVICE="workroom-${CURRENT_USER}"
 
 show_help() {
     cat << EOF
@@ -22,6 +34,11 @@ OPTIONS:
     --urls             Show only URLs (useful for scripts)
     --json             Output in JSON format
     -h, --help         Show this help
+
+MULTI-DEVELOPER SUPPORT:
+    🏷️  Services are automatically namespaced by your authenticated user
+    👤 Your services: $AGENT_SERVER_SERVICE, $WORKROOM_SERVICE
+    🗄️  Database: Checks personal database first, falls back to shared
 
 EXAMPLES:
     $0                      # Show full status
@@ -49,90 +66,146 @@ check_service_health() {
     fi
 }
 
+# Gather service data in parallel (optimized for speed)
+gather_service_data() {
+    local service="$1"
+    local temp_file="$2"
+    
+    if service_exists "$service" "$REGION"; then
+        local url status last_deploy revision
+        
+        # Run all gcloud calls in parallel for this service
+        {
+            url=$(get_service_url "$service" "$REGION")
+            status=$(get_service_status "$service" "$REGION")
+            last_deploy=$(get_last_deploy_time "$service" "$REGION")
+            revision=$(gcloud run services describe "$service" \
+                --region="$REGION" \
+                --format="value(status.latestReadyRevisionName)" \
+                --quiet 2>/dev/null || echo "")
+            
+            # Save results to temp file (properly quoted)
+            echo "url='$url'" > "$temp_file"
+            echo "status='$status'" >> "$temp_file"
+            echo "last_deploy='$last_deploy'" >> "$temp_file"
+            echo "revision='$revision'" >> "$temp_file"
+            echo "exists=true" >> "$temp_file"
+        }
+    else
+        echo "exists=false" > "$temp_file"
+    fi
+}
+
+# Display service status from gathered data
 show_service_status() {
     local service="$1"
     local display_name="$2"
+    local data_file="$3"
     
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     log_info "$display_name"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     
-    if service_exists "$service" "$REGION"; then
-        local url status last_deploy
-        url=$(get_service_url "$service" "$REGION")
-        status=$(get_service_status "$service" "$REGION")
-        last_deploy=$(get_last_deploy_time "$service" "$REGION")
+    if [[ -f "$data_file" ]]; then
+        source "$data_file"
         
-        echo "🔗 URL:          $url"
-        echo "📊 Status:       $(if [[ "$status" == "True" ]]; then echo "✅ Running"; else echo "❌ $status"; fi)"
-        echo "⏰ Last Deploy:  $last_deploy ago"
-        
-        if [[ "$service" == "workroom" ]]; then
-            echo "🌐 Health:       $(check_service_health "$service" "$url")"
+        if [[ "$exists" == "true" ]]; then
+            echo "🔗 URL:          $url"
+            echo "📊 Status:       $(if [[ "$status" == "Running" ]]; then echo "✅ $status"; else echo "❌ $status"; fi)"
+            echo "⏰ Last Deploy:  $last_deploy"
+            
+            if [[ "$service" == *"workroom"* ]]; then
+                echo "🌐 Health:       $(check_service_health "$service" "$url")"
+            fi
+            
+            if [[ -n "$revision" ]]; then
+                echo "📦 Revision:     $revision"
+            fi
+        else
+            log_error "Not deployed"
         fi
-        
-        # Show recent revision info
-        local revision
-        revision=$(gcloud run services describe "$service" \
-            --region="$REGION" \
-            --format="value(status.latestReadyRevisionName)" \
-            --quiet 2>/dev/null || echo "")
-        
-        if [[ -n "$revision" ]]; then
-            echo "📦 Revision:     $revision"
-        fi
-        
     else
-        log_error "Not deployed"
+        log_error "Status data not available"
     fi
 }
 
+# Gather database data in parallel
+gather_database_data() {
+    local temp_file="$1"
+    local personal_db="agent-postgres-${CURRENT_USER}"
+    local shared_db="agent-postgres"
+    
+    # Check both databases in parallel
+    {
+        personal_state=$(gcloud sql instances describe "$personal_db" \
+            --format="value(state)" \
+            --quiet 2>/dev/null || echo "NOT_FOUND")
+        shared_state=$(gcloud sql instances describe "$shared_db" \
+            --format="value(state)" \
+            --quiet 2>/dev/null || echo "NOT_FOUND")
+        
+        local db_instance="" db_state="" db_type=""
+        
+        if [[ "$personal_state" != "NOT_FOUND" ]]; then
+            db_instance="$personal_db"
+            db_state="$personal_state"
+            db_type="personal"
+        elif [[ "$shared_state" != "NOT_FOUND" ]]; then
+            db_instance="$shared_db"
+            db_state="$shared_state"
+            db_type="shared"
+        fi
+        
+        if [[ -n "$db_instance" ]]; then
+            db_ip=$(gcloud sql instances describe "$db_instance" \
+                --format="value(ipAddresses[0].ipAddress)" \
+                --quiet 2>/dev/null || echo "")
+        fi
+        
+        # Save results (properly quoted)
+        echo "db_instance='$db_instance'" > "$temp_file"
+        echo "db_state='$db_state'" >> "$temp_file"
+        echo "db_type='$db_type'" >> "$temp_file"
+        echo "db_ip='$db_ip'" >> "$temp_file"
+        echo "personal_db='$personal_db'" >> "$temp_file"
+        echo "shared_db='$shared_db'" >> "$temp_file"
+    }
+}
+
 show_database_status() {
+    local data_file="$1"
+    
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     log_info "Database (Cloud SQL)"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     
-    local db_state db_ip
-    db_state=$(gcloud sql instances describe agent-postgres \
-        --format="value(state)" \
-        --quiet 2>/dev/null || echo "NOT_FOUND")
-    
-    if [[ "$db_state" == "NOT_FOUND" ]]; then
-        log_error "Database not found"
-    else
-        db_ip=$(gcloud sql instances describe agent-postgres \
-            --format="value(ipAddresses[0].ipAddress)" \
-            --quiet 2>/dev/null || echo "")
+    if [[ -f "$data_file" ]]; then
+        source "$data_file"
         
-        echo "🗄️  Instance:     agent-postgres"
-        echo "📊 State:        $(if [[ "$db_state" == "RUNNABLE" ]]; then echo "✅ $db_state"; else echo "⚠️  $db_state"; fi)"
-        echo "🌐 IP Address:   $db_ip"
-        echo "💾 Database:     agents"
-        echo "👤 User:         agents"
+        if [[ -n "$db_instance" ]]; then
+            echo "🗄️  Instance:     $db_instance ($db_type)"
+            echo "📊 State:        $(if [[ "$db_state" == "RUNNABLE" ]]; then echo "✅ $db_state"; else echo "⚠️  $db_state"; fi)"
+            echo "🌐 IP Address:   $db_ip"
+            echo "💾 Database:     agents"
+            echo "👤 User:         agents"
+            
+            # Show connection information if database is running
+            if [[ "$db_state" == "RUNNABLE" ]]; then
+                show_database_connection_info "$db_instance" "agents" "agents" "agents"
+            fi
+        else
+            log_error "No database found (checked: $personal_db, $shared_db)"
+        fi
+    else
+        log_error "Database status data not available"
     fi
 }
 
 show_quick_links() {
     echo ""
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    log_info "Quick Links"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    
-    echo "🔗 Cloud Console:"
-    echo "   • Cloud Run:    https://console.cloud.google.com/run?project=$PROJECT_ID"
-    echo "   • Cloud SQL:    https://console.cloud.google.com/sql/instances?project=$PROJECT_ID"
-    echo "   • Logs:         https://console.cloud.google.com/logs/query?project=$PROJECT_ID"
-    echo "   • Artifacts:    https://console.cloud.google.com/artifacts?project=$PROJECT_ID"
-    
-    echo ""
-    echo "🛠 Common Commands:"
-    echo "   • Deploy workroom only:    ./scripts/gcp/deploy.sh --workroom"
-    echo "   • Deploy agent-server:     ./scripts/gcp/deploy.sh --agent-server"
-    echo "   • Update config only:      ./scripts/gcp/deploy.sh --config-only"
-    echo "   • Show logs:               ./scripts/gcp/status.sh --logs workroom"
-    echo "   • Remove all resources:    ./scripts/gcp/teardown.sh --all"
+    echo "💡 Quick actions: make gcp deploy (deploy) | ./scripts/gcp/status.sh --logs workroom (logs)"
 }
 
 show_logs() {
@@ -150,12 +223,28 @@ show_logs() {
 }
 
 show_urls_only() {
-    local workroom_url agent_url
-    workroom_url=$(get_service_url "workroom" "$REGION")
-    agent_url=$(get_service_url "agent-server" "$REGION")
+    # Parallel URL gathering for faster response
+    local temp_dir=$(mktemp -d)
+    
+    # Get URLs in parallel
+    get_service_url "$WORKROOM_SERVICE" "$REGION" > "$temp_dir/workroom_url" &
+    local workroom_pid=$!
+    get_service_url "$AGENT_SERVER_SERVICE" "$REGION" > "$temp_dir/agent_url" &  
+    local agent_pid=$!
+    
+    # Wait for both to complete
+    wait $workroom_pid
+    wait $agent_pid
+    
+    # Read results
+    local workroom_url=$(cat "$temp_dir/workroom_url" 2>/dev/null || echo "")
+    local agent_url=$(cat "$temp_dir/agent_url" 2>/dev/null || echo "")
     
     echo "WORKROOM_URL=$workroom_url"
     echo "AGENT_SERVER_URL=$agent_url"
+    
+    # Cleanup
+    rm -rf "$temp_dir"
 }
 
 main() {
@@ -167,7 +256,13 @@ main() {
     while [[ $# -gt 0 ]]; do
         case $1 in
             --logs)
-                show_logs_service="${2:-workroom}"
+                local raw_service="${2:-workroom}"
+                # Map short names to namespaced service names
+                case "$raw_service" in
+                    "workroom") show_logs_service="$WORKROOM_SERVICE" ;;
+                    "agent-server") show_logs_service="$AGENT_SERVER_SERVICE" ;;
+                    *) show_logs_service="$raw_service" ;;  # Allow full service names
+                esac
                 shift 2
                 ;;
             --health)
@@ -210,15 +305,40 @@ main() {
         exit 0
     fi
     
-    # Show full status
+    # Show full status with parallel data gathering
     echo "📊 Agent Platform Status"
     echo "📍 Project: $PROJECT_ID"
     echo "🌍 Region:  $REGION"
+    echo "👤 User: $CURRENT_USER"
     
-    show_service_status "workroom" "Workroom (Frontend + Proxy)"
-    show_service_status "agent-server" "Agent Server (Backend API)"
-    show_database_status
+    # Create temp directory for parallel data gathering
+    local temp_dir=$(mktemp -d)
+    local workroom_data="$temp_dir/workroom.data"
+    local agent_data="$temp_dir/agent.data"
+    local database_data="$temp_dir/database.data"
+    
+    # Start parallel data gathering (this is the speed optimization!)
+    show_progress "Gathering service and database status"
+    gather_service_data "$WORKROOM_SERVICE" "$workroom_data" &
+    local workroom_pid=$!
+    gather_service_data "$AGENT_SERVER_SERVICE" "$agent_data" &
+    local agent_pid=$!
+    gather_database_data "$database_data" &
+    local database_pid=$!
+    
+    # Wait for all parallel operations to complete
+    wait $workroom_pid
+    wait $agent_pid
+    wait $database_pid
+    
+    # Display results using gathered data
+    show_service_status "$WORKROOM_SERVICE" "Workroom (Frontend + Proxy)" "$workroom_data"
+    show_service_status "$AGENT_SERVER_SERVICE" "Agent Server (Backend API)" "$agent_data"
+    show_database_status "$database_data"
     show_quick_links
+    
+    # Cleanup temp files
+    rm -rf "$temp_dir"
     
     echo ""
     log_success "Status check complete"
