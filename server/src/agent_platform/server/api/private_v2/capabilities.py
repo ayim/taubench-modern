@@ -8,6 +8,7 @@ from structlog import get_logger
 
 from agent_platform.core.context import AgentServerContext
 from agent_platform.core.delta.combine_delta import combine_generic_deltas
+from agent_platform.core.errors import PlatformError
 from agent_platform.core.mcp import MCPServer
 from agent_platform.core.model_selector import DefaultModelSelector
 from agent_platform.core.model_selector.selection_request import ModelSelectionRequest
@@ -149,6 +150,8 @@ async def _run_test(
         model_id=model,
     )
 
+    platform_errors = []
+
     try:
         start_time = time.time()
         regular_response = await platform_client.generate_response(
@@ -157,10 +160,11 @@ async def _run_test(
         )
         generation_latency = f"{(time.time() - start_time) * 1000:.2f}ms"
         regular_valid = validate_response(regular_response)
-    except Exception as ex:
+    except PlatformError as pex:
+        platform_errors.append(pex.to_log_context())
         logger.exception(
             "Failed to validate regular response",
-            error=ex,
+            error=pex,
         )
 
     try:
@@ -177,10 +181,11 @@ async def _run_test(
         )
         streaming_latency = f"{(time.time() - start_time) * 1000:.2f}ms"
         streaming_valid = validate_response(streaming_response)
-    except Exception as ex:
+    except PlatformError as pex:
+        platform_errors.append(pex.to_log_context())
         logger.exception(
             "Failed to validate streaming response",
-            error=ex,
+            error=pex,
         )
 
     results = {}
@@ -194,6 +199,7 @@ async def _run_test(
             "ok": streaming_valid,
             "latencyMs": streaming_latency,
         },
+        "errors": platform_errors,
     }
 
     return results
@@ -288,7 +294,7 @@ async def test_model_platform_params(
                 platform=platform_client,
                 request=ModelSelectionRequest(
                     model_type="llm",
-                    quality_tier="balanced",
+                    prioritize="intelligence",
                 ),
             )
 
@@ -315,6 +321,7 @@ async def test_model_platform_params(
             # Combine the results into a single dictionary
             combined_results = {
                 "kind": parsed_params.kind,
+                "selected_model": model,
             }
             for result in results:
                 combined_results.update(result)

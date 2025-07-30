@@ -31,6 +31,18 @@ class AzureOpenAIModelMap(PlatformModelMap):
             "text-embedding-3-small": "embedding-3-small",
             "text-embedding-3-large": "embedding-3-large",
             "text-embedding-ada-002": "embedding-ada",
+            # These are all going away (these config files)
+            "azure/openai/gpt-4-1": "gpt-4.1",
+            "azure/openai/gpt-4-1-mini": "gpt-4.1-mini",
+            "azure/openai/gpt-4o": "gpt-4o",
+            "azure/openai/gpt-4o-mini": "gpt-4o-mini",
+            "azure/openai/gpt-4o-chatgpt": "chatgpt-4o-latest",
+            "azure/openai/o3-high": "o3",
+            "azure/openai/o3-low": "o3",
+            "azure/openai/o4-mini-high": "o4-mini",
+            "azure/openai/o4-mini-low": "o4-mini",
+            "azure/openai/text-embedding-3-small": "text-embedding-3-small",
+            "azure/openai/text-embedding-3-large": "text-embedding-3-large",
         },
         metadata=FieldMetadata(
             description=("A mapping between our model names and Azure OpenAI deployment IDs."),

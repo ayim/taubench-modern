@@ -11,15 +11,11 @@ class GroqModelMap(PlatformModelMap):
 
     model_aliases: dict[str, str] = field(
         default_factory=lambda: {
-            "gemma2": "gemma2-9b-it",
             "llama-3.3": "llama-3.3-70b-versatile",
-            "llama-3.1": "llama-3.1-8b-instant",
-            "llama-guard": "llama-guard-3-8b",
-            "llama3-70b": "llama3-70b-8192",
-            "llama3-8b": "llama3-8b-8192",
-            "whisper": "whisper-large-v3",
-            "whisper-turbo": "whisper-large-v3-turbo",
-            "distil-whisper": "distil-whisper-large-v3-en",
+            "groq/meta/llama-3-3-instruct-70b": "llama-3.3-70b-versatile",
+            "groq/meta/llama-4-scout": "llama-4-scout-17b-16e-instruct",
+            "groq/meta/llama-4-maverick": "llama-4-maverick-17b-128e-instruct",
+            "groq/moonshotai/kimi-k2": "moonshotai/kimi-k2-instruct",
         },
         metadata=FieldMetadata(
             description=("A mapping between our model names and Groq model IDs."),
@@ -28,15 +24,10 @@ class GroqModelMap(PlatformModelMap):
 
     models_to_type: dict[str, str] = field(
         default_factory=lambda: {
-            "gemma2": "llm",
             "llama-3.3": "llm",
-            "llama-3.1": "llm",
-            "llama-guard": "llm",
-            "llama3-70b": "llm",
-            "llama3-8b": "llm",
-            "whisper": "llm",
-            "whisper-turbo": "llm",
-            "distil-whisper": "llm",
+            "llama-4-scout": "llm",
+            "llama-4-maverick": "llm",
+            "moonshotai/kimi-k2": "llm",
         },
         metadata=FieldMetadata(
             description=("A mapping between our model names and model types."),
@@ -46,15 +37,10 @@ class GroqModelMap(PlatformModelMap):
     models_to_input_modalities: dict[str, list[str]] = field(
         default_factory=lambda: {
             # TODO vet this
-            "gemma2": ["text", "tools", "images"],
             "llama-3.3": ["text", "tools"],
-            "llama-3.1": ["text", "tools"],
-            "llama-guard": ["text"],
-            "llama3-70b": ["text"],
-            "llama3-8b": ["text"],
-            "whisper": ["text"],
-            "whisper-turbo": ["text"],
-            "distil-whisper": ["text"],
+            "llama-4-scout": ["text", "tools"],
+            "llama-4-maverick": ["text", "tools"],
+            "moonshotai/kimi-k2": ["text", "tools"],
         },
         metadata=FieldMetadata(
             description=("A mapping between our model names and input modalities."),
@@ -64,15 +50,10 @@ class GroqModelMap(PlatformModelMap):
     models_to_output_modalities: dict[str, list[str]] = field(
         default_factory=lambda: {
             # TODO confirm these
-            "gemma2": ["text", "images"],
             "llama-3.3": ["text"],
-            "llama-3.1": ["text"],
-            "llama-guard": ["text"],
-            "llama3-70b": ["text"],
-            "llama3-8b": ["text"],
-            "whisper": ["text"],
-            "whisper-turbo": ["text"],
-            "distil-whisper": ["text"],
+            "llama-4-scout": ["text"],
+            "llama-4-maverick": ["text"],
+            "moonshotai/kimi-k2": ["text"],
         },
         metadata=FieldMetadata(
             description=("A mapping between our model names and output modalities."),
@@ -81,15 +62,10 @@ class GroqModelMap(PlatformModelMap):
 
     model_families: dict[str, str] = field(
         default_factory=lambda: {
-            "gemma2": "gemma",
             "llama-3.3": "llama",
-            "llama-3.1": "llama",
-            "llama-guard": "llama",
-            "llama3-70b": "llama",
-            "llama3-8b": "llama",
-            "whisper": "whisper",
-            "whisper-turbo": "whisper",
-            "distil-whisper": "whisper",
+            "llama-4-scout": "llama",
+            "llama-4-maverick": "llama",
+            "moonshotai/kimi-k2": "llama",
         },
         metadata=FieldMetadata(
             description=("A mapping between our model names and model families."),
@@ -98,15 +74,10 @@ class GroqModelMap(PlatformModelMap):
 
     model_context_windows: dict[str, int | None] = field(
         default_factory=lambda: {
-            "gemma2": 8_192,
             "llama-3.3": 128_000,
-            "llama-3.1": 128_000,
-            "llama-guard": 131_072,
-            "llama3-70b": 8_192,
-            "llama3-8b": 8_192,
-            "whisper": None,  # TODO: update when known
-            "whisper-turbo": None,  # TODO: update when known
-            "distil-whisper": None,  # TODO: update when known
+            "llama-4-scout": 128_000,
+            "llama-4-maverick": 128_000,
+            "moonshotai/kimi-k2": 128_000,
         },
         metadata=FieldMetadata(
             description=("The maximum context window in tokens for each model."),

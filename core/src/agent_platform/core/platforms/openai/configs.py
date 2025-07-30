@@ -52,6 +52,20 @@ class OpenAIModelMap(PlatformModelMap):
             "text-embedding-ada-002": "text-embedding-ada-002",
             # Image models
             "gpt-image-1": "gpt-image-1",
+            # These are all going away (these config files)
+            "openai/openai/gpt-4-5": "gpt-4.5-preview-2025-02-27",
+            "openai/openai/gpt-4-1": "gpt-4.1-2025-04-14",
+            "openai/openai/gpt-4-1-mini": "gpt-4.1-mini-2025-04-14",
+            "openai/openai/gpt-4-1-nano": "gpt-4.1-nano-2025-04-14",
+            "openai/openai/gpt-4o": "gpt-4o-2024-08-06",
+            "openai/openai/gpt-4o-mini": "gpt-4o-mini-2024-07-18",
+            "openai/openai/gpt-4o-chatgpt": "chatgpt-4o-latest",
+            "openai/openai/o4-mini-high": "o4-mini-2025-04-16",
+            "openai/openai/o4-mini-low": "o4-mini-2025-04-16",
+            "openai/openai/o3-high": "o3-2025-04-16",
+            "openai/openai/o3-low": "o3-2025-04-16",
+            "openai/openai/text-embedding-3-small": "text-embedding-3-small",
+            "openai/openai/text-embedding-3-large": "text-embedding-3-large",
         },
         metadata=FieldMetadata(
             description=("A mapping between our model names and OpenAI model IDs."),

@@ -1,417 +1,319 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from agent_platform.core.configurations import Configuration
+import structlog
+
 from agent_platform.core.model_selector.base import ModelSelector
 from agent_platform.core.model_selector.selection_request import ModelSelectionRequest
+from agent_platform.core.platforms.configs import (
+    PlatformModelConfigs,
+    get_model_metadata_by_generic_id,
+)
+from agent_platform.core.platforms.llms_metadata_models import LLMModelMetadata
 
 if TYPE_CHECKING:
     from agent_platform.core.platforms import PlatformClient
 
 
-@dataclass(frozen=True)
-class ModelMappingConfig(Configuration):
-    """
-    Configuration mapping across multiple dimensions:
-      (platform, provider, model_type, quality_tier) -> model_name
-    """
-
-    mappings: dict[str, dict[str, dict[str, dict[str, str]]]] = field(
-        default_factory=lambda: {
-            "anthropic": {
-                "anthropic": {
-                    "llm": {
-                        "best": "claude-3-5-sonnet",
-                        "balanced": "claude-3-5-sonnet",
-                        "fastest": "claude-3-5-haiku",
-                    },
-                },
-            },
-            "bedrock": {
-                "anthropic": {
-                    "llm": {
-                        "best": "claude-3-5-sonnet",
-                        "balanced": "claude-3-5-sonnet",
-                        "fastest": "claude-3-5-haiku",
-                    },
-                },
-                "amazon": {
-                    "embedding": {
-                        "best": "titan-embed-text-v2",
-                        "balanced": "titan-embed-text-v2",
-                        "fastest": "titan-embed-text-v1",
-                    },
-                },
-                "cohere": {
-                    "embedding": {
-                        "best": "cohere-embed-multilingual-v3",
-                        "balanced": "cohere-embed-multilingual-v3",
-                        "fastest": "cohere-embed-english-v3",
-                    },
-                },
-                # Potentially other providers on bedrock
-            },
-            "cortex": {
-                "anthropic": {
-                    "llm": {
-                        "best": "claude-3-5-sonnet",
-                        "balanced": "claude-3-5-sonnet",
-                        "fastest": "claude-3-5-sonnet",
-                    },
-                },
-                "deepseek": {
-                    "llm": {
-                        "best": "deepseek-r1",
-                        "balanced": "deepseek-r1",
-                        "fastest": "deepseek-r1",
-                    },
-                },
-                "meta": {
-                    "llm": {
-                        "best": "llama-3-1-70b",
-                        "balanced": "llama-3-1-8b",
-                        "fastest": "llama-3-1-8b",
-                    },
-                },
-                "snowflake": {
-                    "llm": {
-                        "best": "snowflake-llama-3-3-70b",
-                        "balanced": "snowflake-llama-3-3-70b",
-                        "fastest": "snowflake-llama-3-3-70b",
-                    },
-                    "embedding": {
-                        "best": "snowflake-arctic-embed-l",
-                        "balanced": "snowflake-arctic-embed-m",
-                        "fastest": "snowflake-arctic-embed-m",
-                    },
-                },
-                "voyage": {
-                    "llm": {
-                        "best": "voyage-multilingual",
-                        "balanced": "voyage-multilingual",
-                        "fastest": "voyage-multilingual",
-                    },
-                },
-            },
-            "openai": {
-                "openai": {
-                    "llm": {
-                        "best": "o3-mini-high",
-                        "balanced": "gpt-4.1",
-                        "fastest": "gpt-4.1-nano",
-                    },
-                    "text-to-image": {
-                        "best": "openai-dalle2-highres",
-                        "balanced": "openai-dalle2",
-                        "fastest": "openai-dalle2-lite",
-                    },
-                    "embedding": {
-                        "best": "text-embedding-3-large",
-                        "balanced": "text-embedding-3-large",
-                        "fastest": "text-embedding-3-small",
-                    },
-                },
-            },
-            "azure": {
-                "azure": {
-                    "llm": {
-                        "best": "o3-mini-high",
-                        # TODO: Update to 4.1 when azure confirmed supports it?
-                        "balanced": "gpt-4o",
-                        "fastest": "gpt-4o-mini",
-                    },
-                    "text-to-image": {
-                        "best": "openai-dalle2-highres",
-                        "balanced": "openai-dalle2",
-                        "fastest": "openai-dalle2-lite",
-                    },
-                    "embedding": {
-                        "best": "text-embedding-3-large",
-                        "balanced": "text-embedding-3-large",
-                        "fastest": "text-embedding-3-small",
-                    },
-                },
-            },
-            "google": {
-                "google": {
-                    "llm": {
-                        "best": "gemini-2.5-pro",
-                        "balanced": "gemini-2.5-flash-preview-04-17-high",
-                        "fastest": "gemini-2.5-flash-preview-04-17-low",
-                    },
-                    "embedding": {
-                        "best": "gemini-embedding-exp-03-07",
-                        "balanced": "gemini-embedding-exp-03-07",
-                        "fastest": "gemini-embedding-exp-03-07",
-                    },
-                },
-            },
-            "groq": {
-                "groq": {
-                    "llm": {
-                        "best": "llama-3.3",
-                        "balanced": "llama-3.3",
-                        "fastest": "llama-3.3",
-                    },
-                }
-            },
-            "reducto": {
-                "reducto": {
-                    "document-to-text": {
-                        "best": "reducto-standard-parse",
-                        "balanced": "reducto-standard-parse",
-                        "fastest": "reducto-standard-parse",
-                    },
-                },
-            },
-        },
-    )
-
-    def get_model_name(
-        self,
-        platform: str,
-        provider: str,
-        model_type: str,
-        tier: str,
-    ) -> str | None:
-        """Get model name from the multi-dimensional map."""
-        # Normalize to lower case as needed
-        p = platform.lower()
-        r = provider.lower()
-        mt = model_type.lower()
-        t = tier.lower()
-
-        try:
-            return self.mappings[p][r][mt][t]
-        except KeyError:
-            return None
+logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
 
-@dataclass(frozen=True)
-class ModelFallbackConfig(Configuration):
-    """Configuration for model fallback chains.
+@dataclass(kw_only=True)
+class ModelCandidate:
+    """A candidate model with its metadata for selection."""
 
-    Defines fallback chains for when a requested model is unavailable.
-    """
+    generic_id: str
+    provider: str
+    platform_specific_id: str
+    model_type: str
+    model_family: str
+    metadata: LLMModelMetadata | None = None
+    quality_score: float = 0.0
+    speed_score: float = 0.0
+    cost_score: float = 0.0
 
-    FALLBACKS: dict[str, list[str]] = field(
-        default_factory=lambda: {
-            "claude-3-5-sonnet": ["gpt-4o", "claude-3-5-haiku"],
-            "o1": ["gpt-4o", "claude-3-5-sonnet"],
-            "gpt-4o": ["claude-3-5-sonnet", "gpt-4o-mini"],
-            "titan-embed-text-v2": ["titan-embed-text-v1"],
-            "cohere-embed-multilingual-v3": ["cohere-embed-english-v3"],
-            "snowflake-llama-3-3-70b": ["snowflake-llama-3-3-70b"],
-            "snowflake-arctic-embed-l": ["snowflake-arctic-embed-m"],
-        },
-    )
+    def __post_init__(self):
+        """Load metadata and calculate scores after initialization."""
+        self.metadata = get_model_metadata_by_generic_id(self.generic_id)
+        self.quality_score = self._calculate_quality_score()
+        self.speed_score = self._calculate_speed_score()
+        self.cost_score = self._calculate_cost_score()
 
-    def get_fallbacks(self, model_name: str) -> list[str]:
-        """Get the fallback chain for a specific model.
+    def _calculate_quality_score(self) -> float:
+        """Calculate a quality score based on artificial_analysis_intelligence_index.
 
-        Args:
-            model_name: The name of the model
-
-        Returns:
-            List of model names to try as fallbacks, or empty list if none defined
+        Uses the standardized intelligence index from llms.json metadata.
+        Higher scores indicate higher quality models.
         """
-        return self.FALLBACKS.get(model_name, [])
+        if not self.metadata:
+            # If no metadata available, use a baseline score
+            return 0.0
 
+        # Use the artificial analysis intelligence index as the quality score
+        intelligence_index = self.metadata.evaluations.artificial_analysis_intelligence_index
 
-@dataclass(frozen=True)
-class PlatformDefaultModelConfig(Configuration):
-    """Configuration for default models by platform.
+        if isinstance(intelligence_index, int | float):
+            return float(intelligence_index)
 
-    Defines the default model to use for each platform when no specific model
-    or quality tier is requested. The model type is necessary to specify.
-    """
+        # Fallback to 0 if no intelligence index available
+        return 0.0
 
-    PLATFORM_DEFAULTS: dict[str, dict[str, str]] = field(
-        default_factory=lambda: {
-            "bedrock": {
-                "llm": "claude-3-5-sonnet",
-                "embedding": "titan-embed-text-v2",
-            },
-            "openai": {
-                "llm": "gpt-4.1",
-                "text-to-image": "openai-dalle2",
-                "embedding": "text-embedding-3-large",
-            },
-            # TODO: defaults for azure here?
-            "anthropic": {
-                "llm": "claude-3-5-sonnet",
-            },
-            "cortex": {
-                "llm": "claude-3-5-sonnet",
-                "embedding": "snowflake-arctic-embed-m",
-            },
-            "groq": {
-                "llm": "llama-3.3",
-            },
-            "reducto": {
-                "document-to-text": "reducto-standard-parse",
-            },
-        },
-    )
+    def _calculate_speed_score(self) -> float:
+        """Calculate speed score based on median_output_tokens_per_second.
 
-    def get_default_model(self, platform: str, model_type: str) -> str | None:
-        """Get the default model for a specific platform.
-
-        Args:
-            platform: The platform name (e.g., "bedrock", "openai")
-
-        Returns:
-            The default model name or None if not defined
+        Uses tokens per second from llms.json metadata.
+        Higher scores indicate faster models.
         """
-        defaults_by_type = self.PLATFORM_DEFAULTS.get(platform.lower())
-        if defaults_by_type:
-            return defaults_by_type.get(model_type, None)
-        return None
+        if not self.metadata:
+            return 0.0
+
+        speed = self.metadata.median_output_tokens_per_second
+
+        if isinstance(speed, int | float):
+            return float(speed)
+
+        return 0.0
+
+    def _calculate_cost_score(self) -> float:
+        """Calculate cost score based on price_1m_blended_3_to_1.
+
+        Uses pricing from llms.json metadata.
+        Returns the raw price - lower prices are better for cost optimization.
+        """
+        if not self.metadata:
+            return float("inf")  # No metadata = expensive
+
+        cost = self.metadata.pricing.price_1m_blended_3_to_1
+
+        if isinstance(cost, int | float):
+            return float(cost)
+
+        return float("inf")  # No pricing data = expensive
 
 
 @dataclass
 class DefaultModelSelector(ModelSelector):
-    """
-    An enhanced model selector that:
-      1. Allows specifying a direct model name
-      2. Allows specifying a provider + model_type + tier
-      3. Falls back to platform defaults
-      4. Uses fallback chains if a chosen model is unavailable
-    """
-
-    model_mapping_config: ModelMappingConfig = field(
-        default_factory=ModelMappingConfig,
-    )
-    fallback_config: ModelFallbackConfig = field(
-        default_factory=ModelFallbackConfig,
-    )
-    platform_default_config: PlatformDefaultModelConfig = field(
-        default_factory=PlatformDefaultModelConfig,
-    )
-
-    def _find_model_by_name(
-        self,
-        platform: "PlatformClient",
-        model_name: str,
-    ) -> str | None:
-        """Scan all supported providers for a given model name."""
-        for _, models in platform.configs.supported_models_by_provider.items():
-            for model in models:
-                if model == model_name:
-                    return model
-        return None
-
-    def _get_model_with_fallbacks(
-        self,
-        platform: "PlatformClient",
-        model_name: str,
-    ) -> str | None:
-        """Try primary model, then fallback chain."""
-        primary = self._find_model_by_name(platform, model_name)
-        if primary:
-            return primary
-
-        for fallback_name in self.fallback_config.get_fallbacks(model_name):
-            fb_model = self._find_model_by_name(platform, fallback_name)
-            if fb_model:
-                return fb_model
-        return None
-
-    def select_model(  # noqa: C901 (lots of necessary nested conditionals)
+    def select_model(
         self,
         platform: "PlatformClient",
         request: ModelSelectionRequest | None = None,
     ) -> str:
-        """
-        Attempt to find a model with the following priority:
-          1. If request.direct_model_name is provided -> use it (with fallback).
-          2. Else if (provider, model_type, tier) is specified -> lookup
-             in config (with fallback).
-          3. Else use platform default (with fallback).
-          4. If still none found, pick the first from platform.configs.supported_models.
-          5. If still none, raise ValueError.
+        """Select the best model based on request criteria and quality metadata.
+
+        Selection process:
+        1. Start with all models available on the platform
+        2. Apply filters based on request (model type, direct name, etc.)
+        3. Sort by quality score (highest first) unless prioritizing speed/cost
+        4. Select the best match
         """
         if request is None:
-            request = ModelSelectionRequest()  # empty
+            request = ModelSelectionRequest()
 
-        platform_name = platform.name.lower()
-        if not platform_name:
-            raise ValueError("Platform name not specified in configuration")
+        logger.info(f"Starting model selection - platform: {platform.name}, request: {request}")
 
-        # 1) If direct model name is given, try that first.
-        if request.direct_model_name:
-            maybe_model = self._get_model_with_fallbacks(
-                platform,
-                request.direct_model_name,
+        # Step 1: Collect all candidate models
+        candidates = self._collect_all_candidates(platform)
+        logger.info(f"Found {len(candidates)} total model candidates")
+
+        # Step 2: Apply allowlist filter (platform restrictions)
+        candidates = self._apply_allowlist_filter(platform, candidates)
+        logger.info(f"After allowlist filtering: {len(candidates)} candidates remain")
+
+        # Early exit if no candidates
+        if not candidates:
+            return self._fallback_to_default(platform, request)
+
+        # Step 3: Apply request-based filters
+        candidates = self._apply_request_filters(request, candidates)
+        remaining_models = [c.generic_id for c in candidates]
+        logger.info(
+            f"After request filtering: {len(candidates)} candidates "
+            f"remain - models: {remaining_models}"
+        )
+
+        # Early exit if no candidates after filtering
+        if not candidates:
+            logger.warning("No models match the selection criteria, falling back to default")
+            return self._fallback_to_default(platform, request)
+
+        # Early exit if only one candidate
+        if len(candidates) == 1:
+            selected = candidates[0]
+            logger.info(
+                f"Single candidate remaining, selecting it - "
+                f"model: {selected.generic_id}, quality_score: {selected.quality_score}"
             )
-            if maybe_model:
-                return maybe_model
-            # If it fails, we raise right away or keep going.
-            # Example: We'll raise for clarity:
-            raise ValueError(
-                f"Could not resolve direct model name '{request.direct_model_name}'",
-            )
+            return selected.generic_id
 
-        # 2) If provider/model_type/tier was specified, try to look up
-        #    in the multi-dimensional ModelMappingConfig. We only do this
-        #    if all three fields are available, or we can decide on defaults.
-        if request.provider or request.model_type or request.quality_tier:
-            # We need to handle partial specification. Let's define some defaults:
-            model_type = request.model_type or platform.configs.default_model_type
-            provider = request.provider or platform.configs.default_platform_provider[model_type]
-            tier = request.quality_tier or platform.configs.default_quality_tier[model_type]
+        # Step 4: Sort candidates based on prioritization
+        candidates = self._sort_candidates(request, candidates)
 
-            model_name = self.model_mapping_config.get_model_name(
-                platform=platform_name,
+        # Step 5: Select the best candidate
+        selected = candidates[0]
+        runner_up = candidates[1].generic_id if len(candidates) > 1 else None
+        logger.info(
+            f"Model selection complete - "
+            f"selected: {selected.generic_id}, quality_score: {selected.quality_score}, "
+            f"type: {selected.model_type}, family: {selected.model_family}, "
+            f"total_considered: {len(candidates)}, runner_up: {runner_up}"
+        )
+
+        return selected.generic_id
+
+    def _collect_all_candidates(self, platform: "PlatformClient") -> list[ModelCandidate]:
+        """Collect all possible model candidates for the platform."""
+        config = PlatformModelConfigs()
+        candidates = []
+
+        # Get all models that could potentially run on this platform
+        for (
+            generic_id,
+            platform_specific_id,
+        ) in config.models_to_platform_specific_model_ids.items():
+            # Check if this model is for the current platform
+            if not generic_id.startswith(f"{platform.name}/"):
+                continue
+
+            # Extract provider from generic_id (platform/provider/model)
+            parts = generic_id.split("/")
+            if len(parts) != "platform/provider/model".count("/") + 1:
+                continue
+
+            provider = parts[1]
+            model_type = config.models_to_model_types.get(generic_id, "unknown")
+            model_family = config.models_to_families.get(generic_id, "unknown")
+
+            candidate = ModelCandidate(
+                generic_id=generic_id,
                 provider=provider,
+                platform_specific_id=platform_specific_id,
                 model_type=model_type,
-                tier=tier,
+                model_family=model_family,
             )
-            if model_name:
-                maybe_model = self._get_model_with_fallbacks(
-                    platform,
-                    model_name,
+            candidates.append(candidate)
+
+        return candidates
+
+    def _apply_allowlist_filter(
+        self, platform: "PlatformClient", candidates: list[ModelCandidate]
+    ) -> list[ModelCandidate]:
+        """Filter candidates based on platform allowlist."""
+        allowed_providers_and_models = platform.parameters.models or {}
+
+        # If no allowlist, return all candidates
+        if not allowed_providers_and_models:
+            logger.debug("No allowlist configured, keeping all candidates")
+            return candidates
+
+        # Create set of allowed (provider, platform_specific_id) pairs
+        allowed_models = set()
+        for provider, models in allowed_providers_and_models.items():
+            for model in models:
+                allowed_models.add((provider.lower(), model))
+
+        filtered_candidates = []
+        for candidate in candidates:
+            just_model = candidate.generic_id.split("/")[-1]
+            if (candidate.provider.lower(), just_model) in allowed_models:
+                filtered_candidates.append(candidate)
+            elif (candidate.provider.lower(), candidate.generic_id) in allowed_models:
+                filtered_candidates.append(candidate)
+            else:
+                logger.debug(
+                    f"Candidate filtered out by allowlist - "
+                    f"model: {candidate.generic_id}, provider: {candidate.provider}"
                 )
-                if maybe_model:
-                    return maybe_model
+
+        return filtered_candidates
+
+    def _apply_request_filters(
+        self, request: ModelSelectionRequest, candidates: list[ModelCandidate]
+    ) -> list[ModelCandidate]:
+        """Apply filters based on the selection request."""
+        filtered_candidates = list(candidates)  # Start with all candidates
+
+        # Filter by direct model name if specified
+        if request.direct_model_name:
+            logger.debug(f"Filtering by direct model name: {request.direct_model_name}")
+            filtered_candidates = [
+                c for c in filtered_candidates if c.generic_id == request.direct_model_name
+            ]
+            if not filtered_candidates:
+                logger.warning(
+                    f"Direct model name {request.direct_model_name} not found in candidates"
+                )
+
+        # Filter by model type if specified
+        if request.model_type:
+            logger.debug(f"Filtering by model type: {request.model_type}")
+            filtered_candidates = [
+                c for c in filtered_candidates if c.model_type == request.model_type
+            ]
+            if not filtered_candidates:
+                logger.warning(f"No models found with type {request.model_type}")
+
+        return filtered_candidates
+
+    def _sort_candidates(
+        self, request: ModelSelectionRequest, candidates: list[ModelCandidate]
+    ) -> list[ModelCandidate]:
+        """Sort candidates based on prioritization criteria."""
+        prioritize = request.prioritize or "intelligence"  # Default to intelligence
+
+        logger.debug(f"Sorting candidates by: {prioritize}")
+
+        if prioritize == "intelligence":
+            # Sort by intelligence score (highest first)
+            sorted_candidates = sorted(candidates, key=lambda c: c.quality_score, reverse=True)
+        elif prioritize == "speed":
+            # Sort by speed score (highest first)
+            sorted_candidates = sorted(candidates, key=lambda c: c.speed_score, reverse=True)
+        elif prioritize == "cost":
+            # Sort by cost score (lowest first)
+            sorted_candidates = sorted(candidates, key=lambda c: c.cost_score, reverse=False)
+        else:
+            # Unknown prioritization, default to intelligence
+            logger.warning(f"Unknown prioritization '{prioritize}', defaulting to intelligence")
+            sorted_candidates = sorted(candidates, key=lambda c: c.quality_score, reverse=True)
+
+        # Log the ranking
+        for i, candidate in enumerate(sorted_candidates[:3]):  # Top 3
+            metric_value = "N/A"
+            if prioritize == "intelligence":
+                metric_value = f"{candidate.quality_score:.1f}"
+            elif prioritize == "speed":
+                metric_value = f"{candidate.speed_score:.1f} tokens/sec"
+            elif prioritize == "cost":
+                if candidate.cost_score == float("inf"):
+                    metric_value = "N/A"
                 else:
-                    # If there's a config but we can't find or fallback
-                    raise ValueError(
-                        f"Model '{model_name}' for (provider={provider}, "
-                        f"type={model_type}, tier={tier}) not found "
-                        "or fallback failed.",
-                    )
-            # If that didn't work, we continue on to next step
+                    metric_value = f"${candidate.cost_score:.2f}"
 
-        # 3a) If at this point we don't have a model, and we have no model type,
-        # that's an error
-        if not request.model_type:
-            raise ValueError(
-                f"Failed to find model for platform '{platform_name}' "
-                f"with selection request: {request}",
+            logger.debug(
+                f"Rank {i + 1}: {candidate.generic_id} - {prioritize}: {metric_value} - "
+                f"type: {candidate.model_type} - has_metadata: {candidate.metadata is not None}"
             )
 
-        # 3b) If the request is entirely empty OR if the above didn't yield a model,
-        #    try platform default (filtered by model type, that's important!)
-        default_model_name = self.platform_default_config.get_default_model(
-            platform_name,
-            request.model_type,
-        )
-        if default_model_name:
-            maybe_model = self._get_model_with_fallbacks(
-                platform,
-                default_model_name,
-            )
-            if maybe_model:
-                return maybe_model
+        return sorted_candidates
 
-        # 4) If we still don't have a model, check if the platform has a
-        #    `supported_models` list and use the first one
-        if hasattr(platform.configs, "supported_models") and platform.configs.supported_models:
-            return platform.configs.supported_models[0]
+    def _fallback_to_default(
+        self, platform: "PlatformClient", request: ModelSelectionRequest
+    ) -> str:
+        """Fallback to default model when no candidates are available."""
+        # Try direct model name first if provided
+        if request.direct_model_name:
+            logger.info(f"Using direct model name as fallback: {request.direct_model_name}")
+            return request.direct_model_name
 
-        # 5) If we get here, no suitable model was found
-        raise ValueError(
-            f"Could not find suitable model for platform '{platform_name}' "
-            f"with selection request: {request}",
+        # Use platform default
+        config = PlatformModelConfigs()
+        default_model = config.platforms_to_default_model.get(platform.name)
+
+        if not default_model:
+            raise ValueError(f"No default model configured for platform {platform.name}")
+
+        logger.info(
+            f"Using platform default model as fallback: {default_model} "
+            f"for platform: {platform.name}"
         )
+        return default_model

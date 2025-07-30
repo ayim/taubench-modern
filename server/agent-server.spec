@@ -105,6 +105,10 @@ a = Analysis(
             "src/agent_platform/server/migrations",
             "agent_platform/server/migrations",
         ),
+        (
+            "../core/src/agent_platform/core/platforms/llms.json",
+            "agent_platform/core/platforms/",
+        ),
         # TODO: auto add a prompts dir for each architecture automatically?
         (
             "../architectures/default/src/agent_platform/architectures/default/prompts",

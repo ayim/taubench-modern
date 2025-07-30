@@ -56,7 +56,14 @@ class AzureOpenAIClient(
             **kwargs,
         )
         self._azure_client = self._init_client(self._parameters)
-        self._azure_embeddings_client = self._init_embeddings_client(self._parameters)
+        self._azure_embeddings_client: AsyncAzureOpenAI | None = None
+
+    @property
+    def azure_embeddings_client(self) -> "AsyncAzureOpenAI":
+        """Lazily initialize and return the Azure OpenAI embeddings client."""
+        if self._azure_embeddings_client is None:
+            self._azure_embeddings_client = self._init_embeddings_client(self._parameters)
+        return self._azure_embeddings_client
 
     def _init_client(
         self,
@@ -326,7 +333,7 @@ class AzureOpenAIClient(
         embeddings = []
         total_tokens = 0
         for text in texts:
-            response = await self._azure_embeddings_client.embeddings.create(
+            response = await self.azure_embeddings_client.embeddings.create(
                 model=model_id,
                 input=text,
             )

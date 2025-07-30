@@ -34,7 +34,13 @@ async def test_work_items_e2e(  # noqa: PLR0915
     # Create agent for this test run
     with AgentServerClient(base_url_agent_server_workitems_matrix) as agent_client:
         agent_id = agent_client.create_agent_and_return_agent_id(
-            platform_configs=[{"kind": "openai", "openai_api_key": openai_api_key}],
+            platform_configs=[
+                {
+                    "kind": "openai",
+                    "openai_api_key": openai_api_key,
+                    "models": {"openai": ["gpt-4.1"]},
+                }
+            ],
             runbook="""
             You are a helpful assistant. Always respond with exactly what the user asks for.
             """,

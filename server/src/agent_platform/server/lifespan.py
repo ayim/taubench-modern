@@ -5,6 +5,7 @@ import structlog
 from fastapi import FastAPI
 from starlette.applications import Starlette
 
+from agent_platform.core.platforms.llms_metadata_loader import llms_metadata_loader
 from agent_platform.core.responses.streaming.stream_pipe import ResponseStreamPipe
 from agent_platform.server.constants import SystemConfig, SystemPaths
 
@@ -44,6 +45,17 @@ def _start_work_items_background_worker() -> tuple[asyncio.Task, asyncio.Event]:
 async def lifespan(app: FastAPI):
     # Set up our v2 telemetry
     tracer_provider, meter_provider = setup_telemetry()
+
+    # Initialize platform data (LLMs metadata) early in startup
+    logger.info("Initializing platform metadata...")
+    try:
+        llms_metadata_loader.load_data()
+        logger.info(
+            f"Loaded {llms_metadata_loader.model_count} LLM model metadata entries into memory",
+        )
+    except Exception as e:
+        logger.error(f"Failed to initialize platform metadata: {e!r}", exc_info=e)
+        raise
 
     # Original code
     SystemPaths.upload_dir.mkdir(parents=True, exist_ok=True)

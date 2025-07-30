@@ -31,6 +31,139 @@ def process_payload(payload: UpsertAgentPayload) -> Agent:
     return UpsertAgentPayload.to_agent(payload, user_id="u1")
 
 
+class TestLegacyModelDictToAllowlist:
+    """Test the _legacy_model_dict_to_allowlist method."""
+
+    def setup_method(self):
+        """Set up a test payload instance."""
+        self.payload = _create_payload({})
+
+    def test_valid_simple_provider_name(self):
+        """Test with simple provider and name."""
+        model_dict = {"provider": "openai", "name": "gpt-4"}
+        result = self.payload._legacy_model_dict_to_allowlist(model_dict)
+        assert result == {"openai": ["gpt-4"]}
+
+    def test_valid_name_with_slash(self):
+        """Test when name contains a slash - should split and use first part as provider."""
+        model_dict = {
+            "provider": "openai",  # This will be overridden
+            "name": "anthropic/claude-3-opus",
+        }
+        result = self.payload._legacy_model_dict_to_allowlist(model_dict)
+        assert result == {"anthropic": ["claude-3-opus"]}
+
+    def test_name_with_multiple_slashes(self):
+        """Test when name contains multiple slashes - should only split on first."""
+        model_dict = {"provider": "openai", "name": "provider/model/version"}
+        result = self.payload._legacy_model_dict_to_allowlist(model_dict)
+        assert result == {"provider": ["model/version"]}
+
+    def test_missing_provider_key(self):
+        """Test when provider key is missing - should return None."""
+        model_dict = {"name": "gpt-4"}
+        result = self.payload._legacy_model_dict_to_allowlist(model_dict)
+        assert result is None
+
+    def test_missing_name_key(self):
+        """Test when name key is missing - should return None."""
+        model_dict = {"provider": "openai"}
+        result = self.payload._legacy_model_dict_to_allowlist(model_dict)
+        assert result is None
+
+    def test_missing_both_keys(self):
+        """Test when both keys are missing - should return None."""
+        model_dict = {}
+        result = self.payload._legacy_model_dict_to_allowlist(model_dict)
+        assert result is None
+
+    def test_empty_provider(self):
+        """Test with empty provider string - should return None."""
+        model_dict = {"provider": "", "name": "gpt-4"}
+        result = self.payload._legacy_model_dict_to_allowlist(model_dict)
+        assert result is None
+
+    def test_empty_name(self):
+        """Test with empty name string - should return None."""
+        model_dict = {"provider": "openai", "name": ""}
+        result = self.payload._legacy_model_dict_to_allowlist(model_dict)
+        assert result is None
+
+    def test_empty_both_values(self):
+        """Test with empty strings for both provider and name - should return None."""
+        model_dict = {"provider": "", "name": ""}
+        result = self.payload._legacy_model_dict_to_allowlist(model_dict)
+        assert result is None
+
+    def test_name_starts_with_slash(self):
+        """Test when name starts with a slash."""
+        model_dict = {"provider": "openai", "name": "/gpt-4"}
+        result = self.payload._legacy_model_dict_to_allowlist(model_dict)
+        assert result == {"": ["gpt-4"]}
+
+    def test_name_ends_with_slash(self):
+        """Test when name ends with a slash."""
+        model_dict = {"provider": "openai", "name": "gpt-4/"}
+        result = self.payload._legacy_model_dict_to_allowlist(model_dict)
+        assert result == {"gpt-4": [""]}
+
+    def test_name_only_slash(self):
+        """Test when name is only a slash."""
+        model_dict = {"provider": "openai", "name": "/"}
+        result = self.payload._legacy_model_dict_to_allowlist(model_dict)
+        assert result == {"": [""]}
+
+    def test_none_values(self):
+        """Test with None values for provider and name."""
+        # Test None provider - should return None (invalid input)
+        model_dict = {"provider": None, "name": "gpt-4"}
+        result = self.payload._legacy_model_dict_to_allowlist(model_dict)
+        assert result is None
+
+        # Test None name - should return None (invalid input)
+        model_dict = {"provider": "openai", "name": None}
+        result = self.payload._legacy_model_dict_to_allowlist(model_dict)
+        assert result is None
+
+        # Test both None - should return None (invalid input)
+        model_dict = {"provider": None, "name": None}
+        result = self.payload._legacy_model_dict_to_allowlist(model_dict)
+        assert result is None
+
+    def test_extra_keys_ignored(self):
+        """Test that extra keys in the dictionary are ignored."""
+        model_dict = {
+            "provider": "openai",
+            "name": "gpt-4",
+            "version": "1.0",
+            "config": {"temperature": 0.7},
+        }
+        result = self.payload._legacy_model_dict_to_allowlist(model_dict)
+        assert result == {"openai": ["gpt-4"]}
+
+    def test_real_world_examples(self):
+        """Test with real-world model examples."""
+        # OpenAI
+        model_dict = {"provider": "OpenAI", "name": "gpt-4"}
+        result = self.payload._legacy_model_dict_to_allowlist(model_dict)
+        assert result == {"OpenAI": ["gpt-4"]}
+
+        # Anthropic with slash notation
+        model_dict = {"provider": "Anthropic", "name": "anthropic/claude-3-opus-20240229"}
+        result = self.payload._legacy_model_dict_to_allowlist(model_dict)
+        assert result == {"anthropic": ["claude-3-opus-20240229"]}
+
+        # Azure
+        model_dict = {"provider": "Azure", "name": "gpt-35-turbo"}
+        result = self.payload._legacy_model_dict_to_allowlist(model_dict)
+        assert result == {"Azure": ["gpt-35-turbo"]}
+
+        # Bedrock with provider in name
+        model_dict = {"provider": "Amazon", "name": "amazon/titan-text-express-v1"}
+        result = self.payload._legacy_model_dict_to_allowlist(model_dict)
+        assert result == {"amazon": ["titan-text-express-v1"]}
+
+
 class TestWorkerConfigRoundTrip:
     def test_underscore_key(self) -> None:
         payload = _create_payload(

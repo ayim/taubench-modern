@@ -28,6 +28,20 @@ class CortexModelMap(PlatformModelMap):
             "snowflake-arctic-embed-l": "snowflake-arctic-embed-l-v2.0",
             # Voyage
             "voyage-multilingual": "voyage-multilingual-2",
+            # These are all going away (these config files)
+            "cortex/anthropic/claude-3-5-sonnet": "claude-3-5-sonnet",
+            "cortex/anthropic/claude-3-7-sonnet": "claude-3-7-sonnet",
+            "cortex/anthropic/claude-4-opus": "claude-4-opus",
+            "cortex/anthropic/claude-4-sonnet": "claude-4-sonnet",
+            "cortex/openai/o4-mini-high": "o4-mini",
+            "cortex/openai/o4-mini-low": "o4-mini",
+            "cortex/openai/gpt-4-1": "gpt-4.1",
+            "cortex/deepseek/deepseek-r1": "deepseek-r1",
+            "cortex/meta/llama-4-scout": "llama-4-scout",
+            "cortex/meta/llama-4-maverick": "llama-4-maverick",
+            "cortex/snowflake/snowflake-arctic-embed-m": "snowflake-arctic-embed-m",
+            "cortex/snowflake/snowflake-arctic-embed-l": "snowflake-arctic-embed-l",
+            "cortex/voyage/voyage-multilingual": "voyage-multilingual",
         },
         metadata=FieldMetadata(
             description=("A mapping between our model names and Cortex model IDs."),

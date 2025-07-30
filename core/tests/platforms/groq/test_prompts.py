@@ -36,10 +36,10 @@ class TestOpenAIPrompt:
 
     def test_as_platform_request(self, groq_prompt: GroqPrompt) -> None:
         """Test converting to platform request."""
-        request = groq_prompt.as_platform_request(model="llama-3.1")
+        request = groq_prompt.as_platform_request(model="llama-3.3")
 
         assert isinstance(request, dict)
-        assert request["model"] == "llama-3.1-8b-instant"
+        assert request["model"] == "llama-3.3-70b-versatile"
         assert len(request["messages"]) == 2
         assert request["messages"][0]["role"] == "system"
         assert request["messages"][0]["content"] == "You are a helpful assistant."
@@ -80,10 +80,10 @@ class TestOpenAIPrompt:
             messages=messages,
         )
 
-        request = prompt.as_platform_request(model="whisper")
+        request = prompt.as_platform_request(model="llama-3.3")
 
         assert isinstance(request, dict)
-        assert request["model"] == "whisper-large-v3"
+        assert request["model"] == "llama-3.3-70b-versatile"
         assert len(request["messages"]) == 2
         assert "tools" not in request
 

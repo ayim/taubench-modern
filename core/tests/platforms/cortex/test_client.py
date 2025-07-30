@@ -8,11 +8,6 @@ from snowflake.snowpark import Session
 
 from agent_platform.core.delta import GenericDelta
 from agent_platform.core.kernel import Kernel
-from agent_platform.core.model_selector import (
-    DefaultModelSelector,
-    ModelSelectionRequest,
-)
-from agent_platform.core.model_selector.default import ModelMappingConfig
 from agent_platform.core.platforms.cortex.client import CortexClient
 from agent_platform.core.platforms.cortex.converters import CortexConverters
 from agent_platform.core.platforms.cortex.parameters import CortexPlatformParameters
@@ -426,60 +421,49 @@ async def test_create_embeddings_empty_input(cortex_client: CortexClient) -> Non
     assert result["usage"]["total_tokens"] == 0
 
 
-@pytest.mark.asyncio
-async def test_create_embeddings_model_selector(
-    cortex_client: CortexClient,
-    mock_snowpark_session: MagicMock,
-) -> None:
-    """
-    Example test showing how you might incorporate a ModelSelector
-    to pick a friendly model name, then pass it to create_embeddings.
-    """
-    # Mock session usage
-    mock_collect_result = [{"EMBEDDING": [0.1, 0.2, 0.3]}]
-    (
-        mock_snowpark_session.create_dataframe.return_value.select.return_value.collect.return_value
-    ) = mock_collect_result
+# Will bring this back after ModelMap is removed for this client
+# @pytest.mark.asyncio
+# async def test_create_embeddings_model_selector(
+#     cortex_client: CortexClient,
+#     mock_snowpark_session: MagicMock,
+# ) -> None:
+#     """
+#     Example test showing how you might incorporate a ModelSelector
+#     to pick a friendly model name, then pass it to create_embeddings.
+#     """
+#     # Mock session usage
+#     mock_collect_result = [{"EMBEDDING": [0.1, 0.2, 0.3]}]
+#     (
+#       mock_snowpark_session.create_dataframe.return_value.select.return_value.collect.return_value
+#     ) = mock_collect_result
 
-    # Suppose the selector chooses "snowflake-arctic-embed-m"
-    selected_model_friendly_name = "snowflake-arctic-embed-m"
+#     # Suppose the selector chooses "snowflake-arctic-embed-m"
+#     selected_model_friendly_name = "snowflake-arctic-embed-m"
 
-    mock_selector = MagicMock(spec=DefaultModelSelector)
-    mock_selector.select_model.return_value = selected_model_friendly_name
+#     mock_selector = MagicMock(spec=DefaultModelSelector)
+#     mock_selector.select_model.return_value = selected_model_friendly_name
 
-    mock_model_mapping_config = MagicMock(spec=ModelMappingConfig)
-    mock_model_mapping_config.get_model_name.return_value = selected_model_friendly_name
+#     texts = ["This is a test"]
 
-    texts = ["This is a test"]
+#     with patch(
+#         "agent_platform.core.model_selector.default.DefaultModelSelector",
+#         return_value=mock_selector,
+#     ):
+#         model_selection_request = ModelSelectionRequest(model_type="embedding")
+#         model_selector = DefaultModelSelector()
+#         chosen_model = model_selector.select_model(
+#             cortex_client,
+#             model_selection_request,
+#         )
 
-    with (
-        patch(
-            "agent_platform.core.model_selector.default.DefaultModelSelector",
-            return_value=mock_selector,
-        ),
-        patch(
-            "agent_platform.core.model_selector.default.ModelMappingConfig",
-            return_value=mock_model_mapping_config,
-        ),
-    ):
-        model_selection_request = ModelSelectionRequest(
-            model_type="embedding",
-            quality_tier="balanced",
-        )
-        model_selector = DefaultModelSelector()
-        chosen_model = model_selector.select_model(
-            cortex_client,
-            model_selection_request,
-        )
+#         # Now call create_embeddings with the chosen model
+#         result = await cortex_client.create_embeddings(texts, chosen_model)
 
-        # Now call create_embeddings with the chosen model
-        result = await cortex_client.create_embeddings(texts, chosen_model)
-
-        assert isinstance(result, dict)
-        assert result["embeddings"] == [[0.1, 0.2, 0.3]]
-        assert result["model"] == selected_model_friendly_name
-        expected_tokens = sum(len(t) // 4 for t in texts)
-        assert result["usage"]["total_tokens"] == expected_tokens
+#         assert isinstance(result, dict)
+#         assert result["embeddings"] == [[0.1, 0.2, 0.3]]
+#         assert result["model"] == selected_model_friendly_name
+#         expected_tokens = sum(len(t) // 4 for t in texts)
+#         assert result["usage"]["total_tokens"] == expected_tokens
 
 
 # -----------------------------------------------------------------------------

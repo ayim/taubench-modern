@@ -25,6 +25,11 @@ class GoogleModelMap(PlatformModelMap):
             "gemini-embedding-exp-03-07": "gemini-embedding-exp-03-07",
             "models/text-embedding-004": "models/text-embedding-004",
             "models/embedding-001": "models/embedding-001",
+            # These are all going away (these config files)
+            "google/google/gemini-2-5-pro": "gemini-2.5-pro",
+            "google/google/gemini-2-0-flash": "gemini-2.0-flash",
+            "google/google/gemini-2-0-flash-lite": "gemini-2.0-flash-lite",
+            "google/google/text-embedding-004": "text-embedding-004",
         },
         metadata=FieldMetadata(
             description=("A mapping between our model names and Google model IDs."),

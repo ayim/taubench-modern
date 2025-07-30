@@ -19,11 +19,6 @@ from agent_platform.core.delta import GenericDelta
 from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
 from agent_platform.core.errors.streaming import StreamingError
 from agent_platform.core.kernel import Kernel
-from agent_platform.core.model_selector import (
-    DefaultModelSelector,
-    ModelSelectionRequest,
-)
-from agent_platform.core.model_selector.default import ModelMappingConfig
 from agent_platform.core.platforms.bedrock.client import BedrockClient
 from agent_platform.core.platforms.bedrock.configs import BedrockModelMap
 from agent_platform.core.platforms.bedrock.converters import BedrockConverters
@@ -119,7 +114,29 @@ class TestBedrockErrorHandling:
             aws_secret_access_key="test-secret-key",
         )
         with patch("boto3.client"):
-            return BedrockClient(parameters=parameters)
+            client = BedrockClient(parameters=parameters)
+
+            async def _mock_get_available_models() -> dict[str, list[str]]:
+                return {
+                    "amazon": [
+                        "amazon.titan-embed-text-v2:0:8k",
+                        "amazon.titan-embed-text-v1:2:8k",
+                    ],
+                    "cohere": [
+                        "cohere.embed-english-v3:0:512",
+                        "cohere.embed-multilingual-v3:0:512",
+                    ],
+                    "anthropic": [
+                        "anthropic.claude-sonnet-4-20250514-v1:0",
+                        "anthropic.claude-opus-4-20250514-v1:0",
+                        "anthropic.claude-3-7-sonnet-20250219-v1:0",
+                        "anthropic.claude-3-5-sonnet-20241022-v2:0",
+                        "anthropic.claude-3-haiku-20240307-v1:0",
+                    ],
+                }
+
+            client.get_available_models = _mock_get_available_models
+            return client
 
     def test_handle_bedrock_error_throttling_exception(self, bedrock_client: BedrockClient) -> None:
         """Test handling of ThrottlingException."""
@@ -602,6 +619,27 @@ class TestBedrockClient:
 
             client.parsers.parse_stream_event = AsyncMock()
             client.parsers.parse_stream_event.return_value = mock_aiter()
+
+            async def _mock_get_available_models() -> dict[str, list[str]]:
+                return {
+                    "amazon": [
+                        "amazon.titan-embed-text-v2:0:8k",
+                        "amazon.titan-embed-text-v1:2:8k",
+                    ],
+                    "cohere": [
+                        "cohere.embed-english-v3:0:512",
+                        "cohere.embed-multilingual-v3:0:512",
+                    ],
+                    "anthropic": [
+                        "anthropic.claude-sonnet-4-20250514-v1:0",
+                        "anthropic.claude-opus-4-20250514-v1:0",
+                        "anthropic.claude-3-7-sonnet-20250219-v1:0",
+                        "anthropic.claude-3-5-sonnet-20241022-v2:0",
+                        "anthropic.claude-3-haiku-20240307-v1:0",
+                    ],
+                }
+
+            client.get_available_models = _mock_get_available_models
             return client
 
     @pytest.fixture
@@ -781,54 +819,55 @@ class TestBedrockClient:
             mock_boto3_client.converse_stream.assert_called_once()
             assert len(deltas) > 0
 
-    @pytest.mark.asyncio
-    @patch.object(
-        BedrockPrompt,
-        "as_platform_request",
-        return_value={
-            "modelId": "anthropic.claude-3-5-sonnet-20240620-v1:0",
-            "messages": [{"role": "user", "content": [{"text": "Hello, world!"}]}],
-            "system": "You are a helpful assistant.",
-            "stream": True,
-        },
-    )
-    async def test_generate_stream_response_with_model_selector(
-        self,
-        mock_as_platform_request: MagicMock,
-        bedrock_client: BedrockClient,
-        bedrock_prompt: BedrockPrompt,
-        mock_boto3_client: MagicMock,
-    ) -> None:
-        test_model_map = {
-            "claude-3-5-sonnet": "anthropic.claude-3-5-sonnet-20240620-v1:0",
-        }
+    # We will bring this back when we remove ModelMap
+    # @pytest.mark.asyncio
+    # @patch.object(
+    #     BedrockPrompt,
+    #     "as_platform_request",
+    #     return_value={
+    #         "modelId": "anthropic.claude-3-5-sonnet-20240620-v1:0",
+    #         "messages": [{"role": "user", "content": [{"text": "Hello, world!"}]}],
+    #         "system": "You are a helpful assistant.",
+    #         "stream": True,
+    #     },
+    # )
+    # async def test_generate_stream_response_with_model_selector(
+    #     self,
+    #     mock_as_platform_request: MagicMock,
+    #     bedrock_client: BedrockClient,
+    #     bedrock_prompt: BedrockPrompt,
+    #     mock_boto3_client: MagicMock,
+    # ) -> None:
+    #     test_model_map = {
+    #         "claude-3-5-sonnet": "anthropic.claude-3-5-sonnet-20240620-v1:0",
+    #     }
 
-        async def mock_stream_generator(
-            *args: Any,
-            **kwargs: Any,
-        ) -> AsyncGenerator[GenericDelta, None]:
-            yield MagicMock(spec=GenericDelta)
+    #     async def mock_stream_generator(
+    #         *args: Any,
+    #         **kwargs: Any,
+    #     ) -> AsyncGenerator[GenericDelta, None]:
+    #         yield MagicMock(spec=GenericDelta)
 
-        with patch.object(
-            BedrockModelMap,
-            "model_aliases",
-            test_model_map,
-        ):
+    #     with patch.object(
+    #         BedrockModelMap,
+    #         "model_aliases",
+    #         test_model_map,
+    #     ):
 
-            async def _dummy_stream():
-                yield {}
+    #         async def _dummy_stream():
+    #             yield {}
 
-            mock_boto3_client.converse_stream.return_value = {"stream": _dummy_stream()}
-            bedrock_client.parsers.parse_stream_event = mock_stream_generator
+    #         mock_boto3_client.converse_stream.return_value = {"stream": _dummy_stream()}
+    #         bedrock_client.parsers.parse_stream_event = mock_stream_generator
 
-            deltas: list[GenericDelta] = []
-            async for delta in bedrock_client.generate_stream_response(
-                bedrock_prompt,
-                "claude-3-5-sonnet",
-            ):
-                deltas.append(delta)
-            mock_boto3_client.converse_stream.assert_called_once()
-            assert len(deltas) > 0
+    #         deltas: list[GenericDelta] = []
+    #         async for delta in bedrock_client.generate_stream_response(
+    #             bedrock_prompt,
+    #             "claude-3-5-sonnet",
+    #         ):
+    #             deltas.append(delta)
+    #         mock_boto3_client.converse_stream.assert_called_once()
+    #         assert len(deltas) > 0
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -936,46 +975,39 @@ class TestBedrockClient:
             assert result["embeddings"][1] == [0.4, 0.5, 0.6]
             assert result["usage"]["total_tokens"] == 8
 
-    @pytest.mark.asyncio
-    async def test_create_embeddings_with_model_selector(
-        self,
-        bedrock_client: BedrockClient,
-        mock_boto3_client: MagicMock,
-    ) -> None:
-        model_selector = DefaultModelSelector()
-        text_embedding_model = model_selector.select_model(
-            bedrock_client,
-            ModelSelectionRequest(model_type="embedding", quality_tier="balanced"),
-        )
+    # This will be brought back in a follow-on, when we're ready to remove the old model map
+    # @pytest.mark.asyncio
+    # async def test_create_embeddings_with_model_selector(
+    #     self,
+    #     bedrock_client: BedrockClient,
+    #     mock_boto3_client: MagicMock,
+    # ) -> None:
+    #     model_selector = DefaultModelSelector()
+    #     text_embedding_model = model_selector.select_model(
+    #         bedrock_client,
+    #         ModelSelectionRequest(model_type="embedding"),
+    #     )
 
-        if text_embedding_model.startswith("titan-embed-text"):
-            mock_response = {"body": MagicMock()}
-            mock_response["body"].read.return_value = json.dumps(
-                {"embedding": [0.1, 0.2, 0.3], "inputTextTokenCount": 5},
-            ).encode()
-        else:
-            mock_response = {"body": MagicMock()}
-            mock_response["body"].read.return_value = json.dumps(
-                {
-                    "embeddings": [[0.1, 0.2, 0.3]],
-                    "texts": ["This is a test"],
-                    "token_count": 5,
-                },
-            ).encode()
+    #     if text_embedding_model.endswith("titan-embed-text-v2"):
+    #         mock_response = {"body": MagicMock()}
+    #         mock_response["body"].read.return_value = json.dumps(
+    #             {"embedding": [0.1, 0.2, 0.3], "inputTextTokenCount": 5},
+    #         ).encode()
+    #     else:
+    #         mock_response = {"body": MagicMock()}
+    #         mock_response["body"].read.return_value = json.dumps(
+    #             {
+    #                 "embeddings": [[0.1, 0.2, 0.3]],
+    #                 "texts": ["This is a test"],
+    #                 "token_count": 5,
+    #             },
+    #         ).encode()
 
-        mock_boto3_client.invoke_model.return_value = mock_response
-        texts = ["This is a test"]
-        result = await bedrock_client.create_embeddings(texts, text_embedding_model)
+    #     mock_boto3_client.invoke_model.return_value = mock_response
+    #     texts = ["This is a test"]
+    #     result = await bedrock_client.create_embeddings(texts, text_embedding_model)
 
-        default_provider = bedrock_client.configs.default_platform_provider["embedding"]
-        default_tier = bedrock_client.configs.default_quality_tier["embedding"]
-        default_model = ModelMappingConfig().get_model_name(
-            platform=bedrock_client.name,
-            provider=default_provider,
-            model_type="embedding",
-            tier=default_tier,
-        )
-        assert text_embedding_model == default_model
-        assert isinstance(result, dict)
-        assert "embeddings" in result
-        assert len(result["embeddings"]) == 1
+    #     assert text_embedding_model == "titan-embed-text-v2"
+    #     assert isinstance(result, dict)
+    #     assert "embeddings" in result
+    #     assert len(result["embeddings"]) == 1

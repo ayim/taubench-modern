@@ -110,6 +110,12 @@ class UpsertAgentPayload:
     )
     """Extra fields for the agent."""
 
+    agent_settings: dict[str, Any] = field(
+        default_factory=dict,
+        metadata={"description": "Settings that control the agent's behavior."},
+    )
+    """Settings that control the agent's behavior."""
+
     id: str | None = field(
         default=None,
         metadata={
@@ -257,6 +263,38 @@ class UpsertAgentPayload:
             )
             del self.metadata["question_groups"]
 
+    def _legacy_model_dict_to_allowlist(
+        self,
+        model_dict: dict[str, Any],
+    ) -> dict[str, Any] | None:
+        """Convert a legacy model dictionary to an allowlist dictionary.
+
+        Given a legacy provider/name string, convert it to an allowlist dictionary
+        that permits only that model. If the model name matches 'provider/name', then
+        we will use the provider/ prefix instead of the "provider" key (as the legacy
+        provider key is really more "platform" level than provider level).
+
+        Args:
+            model_dict: The model dictionary to convert.
+
+        Returns:
+            The allowlist dictionary, or None if the model dictionary is invalid.
+        """
+        if "provider" not in model_dict or not model_dict["provider"]:
+            return None
+        if "name" not in model_dict or not model_dict["name"]:
+            return None
+
+        provider = model_dict["provider"]
+        name = model_dict["name"]
+
+        if "/" in name:
+            provider, name = name.split("/", 1)
+
+        return {
+            provider: [name],
+        }
+
     def _handle_legacy_model_openai(self):
         """Handle backward compatibility for 'model' field with OpenAI."""
         if not self.model or "provider" not in self.model:
@@ -282,6 +320,7 @@ class UpsertAgentPayload:
                 {
                     "kind": "openai",
                     **params,
+                    "models": self._legacy_model_dict_to_allowlist(self.model),
                 },
                 *self.platform_configs,
             ],
@@ -341,28 +380,31 @@ class UpsertAgentPayload:
 
         # Legacy: chat_url -> azure_endpoint_url, azure_deployment_name
         # and azure_api_version
-        if "chat_url" in params:
+        if params.get("chat_url"):
             endpoint, deployment_name, api_version = self._split_azure_url(
                 params["chat_url"],
             )
             params["azure_endpoint_url"] = endpoint
             params["azure_deployment_name"] = deployment_name
             params["azure_api_version"] = api_version
-            del params["chat_url"]
 
         # Now same for embeddings_url (just get the deployment name)
-        if "embeddings_url" in params:
+        if params.get("embeddings_url"):
             _, deployment_name, _ = self._split_azure_url(params["embeddings_url"])
             params["azure_deployment_name_embeddings"] = deployment_name
-            del params["embeddings_url"]
 
         # Legacy: chat_openai_api_key -> azure_api_key
         if "chat_openai_api_key" in params:
             params["azure_api_key"] = params["chat_openai_api_key"]
-            del params["chat_openai_api_key"]
 
+        # Remove chat_openai_api_key if present
+        params.pop("chat_openai_api_key", None)
         # Remove embeddings_openai_api_key if present
         params.pop("embeddings_openai_api_key", None)
+        # Remove chat_url if present
+        params.pop("chat_url", None)
+        # Remove embeddings_url if present
+        params.pop("embeddings_url", None)
 
         object.__setattr__(
             self,
@@ -371,6 +413,10 @@ class UpsertAgentPayload:
                 {
                     "kind": "azure",
                     **params,
+                    # NOTE: we can't really handle the allowlist here, as the model
+                    # is baked into that deployment URL... so we just leave it as None
+                    # and let the platform client for Azure handle it.
+                    "models": None,
                 },
                 *self.platform_configs,
             ],
@@ -424,6 +470,7 @@ class UpsertAgentPayload:
                 {
                     "kind": "bedrock",
                     **params,
+                    "models": self._legacy_model_dict_to_allowlist(self.model),
                 },
                 *self.platform_configs,
             ],
@@ -459,6 +506,7 @@ class UpsertAgentPayload:
                 {
                     "kind": "cortex",
                     **params,
+                    "models": self._legacy_model_dict_to_allowlist(self.model),
                 },
                 *self.platform_configs,
             ],
@@ -541,6 +589,7 @@ class UpsertAgentPayload:
             "observability_configs": [config.model_dump() for config in self.observability_configs],
             "mode": self.mode,
             "extra": self.extra,
+            "agent_settings": self.agent_settings,
             "id": self.id,
             "agent_id": self.agent_id,
             "created_at": self.created_at.isoformat() if self.created_at else None,
@@ -618,7 +667,11 @@ class UpsertAgentPayload:
                 cast(AnyPlatformParameters, PlatformParameters.model_validate(config))
                 for config in payload.platform_configs
             ],
-            extra={**metadata_without_mode, **extra},
+            extra={
+                **metadata_without_mode,
+                **extra,
+                "agent_settings": payload.agent_settings or {},
+            },
             user_id=user_id,
             agent_id=(
                 # We prefer an agent_id passed in

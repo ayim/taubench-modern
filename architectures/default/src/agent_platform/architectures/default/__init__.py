@@ -137,7 +137,7 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
     platform, model = await kernel.get_platform_and_model(model_type="llm")
 
     # Get the family of the chosen model
-    model_family = platform.client.model_map.model_families[model]
+    model_family = platform.client.model_map.model_families.get(model)
 
     # Select and load the prompt we'll be using
     unformatted_conversation_prompt = select_prompt(

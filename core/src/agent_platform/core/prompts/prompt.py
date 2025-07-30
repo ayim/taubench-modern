@@ -434,12 +434,6 @@ class Prompt:
         Returns:
             int: Estimated token count
         """
-        # Attempt to translate model name to an OpenAI model identifier
-        if model is not None:
-            from agent_platform.core.platforms.openai import OpenAIModelMap
-
-            model = OpenAIModelMap.model_aliases.get(model, None)
-
         model_name = model or "gpt-3.5-turbo"
         token_count = 0
 

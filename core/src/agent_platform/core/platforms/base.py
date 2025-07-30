@@ -373,7 +373,9 @@ class PlatformModelMap(Configuration):
     def distinct_llm_model_ids(cls) -> list[str]:
         """Get list of distinct Large Language Model names."""
         return list(
-            set(model for model in cls.supported_models() if cls.models_to_type[model] == "llm"),
+            set(
+                model for model in cls.supported_models() if cls.models_to_type.get(model) == "llm"
+            ),
         )
 
     @classmethod
@@ -382,7 +384,9 @@ class PlatformModelMap(Configuration):
         return [
             model
             for model in cls.distinct_llm_model_ids()
-            if all(modality in cls.models_to_input_modalities[model] for modality in modalities)
+            if all(
+                modality in cls.models_to_input_modalities.get(model, []) for modality in modalities
+            )
         ]
 
     @classmethod
@@ -619,6 +623,10 @@ class PlatformClient(
             model-specific information.
         """
         pass
+
+    async def get_available_models(self) -> dict[str, list[str]]:
+        """Get a map from providers to a list of their models for the platform."""
+        return {}
 
     # Machinery to support a `from_platform_config` classmethod
     _platform_clients: ClassVar[dict[str, type["PlatformClient"]]] = {}

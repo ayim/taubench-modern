@@ -146,7 +146,7 @@ class AgentCompat(Agent):
     mcp_servers: list[MCPServerCompat] = field(default_factory=list)
 
     @classmethod
-    def _convert_platform_config_to_legacy_model(  # noqa: C901
+    def _convert_platform_config_to_legacy_model(  # noqa: PLR0912, C901
         cls,
         platform_configs: list[AnyPlatformParameters],
         reveal_sensitive: bool = False,
@@ -171,6 +171,17 @@ class AgentCompat(Agent):
 
         model_config = platform_configs[0].model_dump()
         del model_config["kind"]
+
+        # If we have an allowlist then the legacy model name will be the
+        # first name in the allowlist. Otherwise, we use the kind
+        # to provider mapping.
+        model_name = None
+        if platform_configs[0].models:
+            first_provider = next(iter(platform_configs[0].models))
+            first_name = platform_configs[0].models[first_provider][0]
+            model_name = first_name
+        else:
+            model_name = cls.KIND_TO_LEGACY_MODEL[platform_configs[0].kind]
 
         # Handle legacy: chat_url and embeddings_url for Azure
         if "azure_endpoint_url" in model_config:
@@ -211,7 +222,7 @@ class AgentCompat(Agent):
 
         return dict(
             provider=cls.KIND_TO_PROVIDER[platform_configs[0].kind],
-            name=cls.KIND_TO_LEGACY_MODEL[platform_configs[0].kind],
+            name=model_name,
             config=model_config,
         )
 

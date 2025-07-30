@@ -9,7 +9,7 @@ this interface, ensuring a consistent and controlled interaction model.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Literal
+from typing import Any
 
 from agent_platform.core.agent import Agent
 from agent_platform.core.context import AgentServerContext
@@ -33,6 +33,7 @@ from agent_platform.core.model_selector import (
     ModelSelectionRequest,
     ModelSelector,
 )
+from agent_platform.core.platforms.configs import ModelPrioritization, ModelType
 from agent_platform.core.runs import Run
 from agent_platform.core.streaming import IncomingDelta, StreamingDelta
 from agent_platform.core.thread import Thread
@@ -298,24 +299,15 @@ class Kernel(ABC):
     async def get_platform_and_model(
         self,
         direct_model_name: str | None = None,
-        provider: str | None = None,
-        model_type: Literal[
-            "llm",
-            "embedding",
-            "text-to-image",
-            "text-to-audio",
-            "audio-to-text",
-        ]
-        | None = None,
-        quality_tier: Literal["best", "balanced", "fastest"] | None = None,
+        model_type: ModelType | None = None,
+        prioritize: ModelPrioritization | None = None,
     ) -> tuple[PlatformInterface, str]:
         """Get a platform and a selected model.
 
         Arguments:
             direct_model_name: The name of the model to select. (Optional)
-            provider: The provider of the model to select. (Optional)
             model_type: The type of model to select. (Optional)
-            quality_tier: The quality tier of the model to select. (Optional)
+            prioritize: The prioritization of the model to select. (Optional)
 
         Returns:
             tuple[PlatformInterface, str]: A tuple of the first platform
@@ -326,9 +318,8 @@ class Kernel(ABC):
                 platform.client,
                 ModelSelectionRequest(
                     direct_model_name=direct_model_name,
-                    provider=provider,
                     model_type=model_type,
-                    quality_tier=quality_tier,
+                    prioritize=prioritize,
                 ),
             )
             if model:
@@ -336,13 +327,11 @@ class Kernel(ABC):
 
         raise NoPlatformOrModelFoundError(
             message=f"No platform found for model type: {model_type}, "
-            f"quality tier: {quality_tier}, "
-            f"provider: {provider}, "
+            f"prioritizing: {prioritize}, "
             f"direct model name: {direct_model_name}",
             data={
                 "model_type": model_type,
-                "quality_tier": quality_tier,
-                "provider": provider,
+                "prioritize": prioritize,
                 "direct_model_name": direct_model_name,
             },
         )

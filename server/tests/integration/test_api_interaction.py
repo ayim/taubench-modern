@@ -242,6 +242,7 @@ def test_api_interaction_with_action_server(
                 {
                     "kind": "openai",
                     "openai_api_key": openai_api_key,
+                    "models": {"openai": ["gpt-4.1"]},
                 },
             ],
         )
@@ -493,6 +494,7 @@ def test_async_action_polling_with_fast_retry_interval(
                 {
                     "kind": "openai",
                     "openai_api_key": openai_api_key,
+                    "models": {"openai": ["gpt-4.1"]},
                 },
             ],
         )
@@ -610,6 +612,7 @@ def test_async_action_error_handling(
                 {
                     "kind": "openai",
                     "openai_api_key": openai_api_key,
+                    "models": {"openai": ["gpt-4.1"]},
                 },
             ],
         )
@@ -712,6 +715,7 @@ async def test_agent_details_endpoint(
                 {
                     "kind": "openai",
                     "openai_api_key": openai_api_key,
+                    "models": {"openai": ["gpt-4.1"]},
                 },
             ],
         )
@@ -780,6 +784,7 @@ async def test_create_agent_from_package_with_knowledge_file(
                 {
                     "kind": "openai",
                     "openai_api_key": openai_api_key,
+                    "models": {"openai": ["gpt-4.1"]},
                 },
             ],
         )

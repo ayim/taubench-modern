@@ -268,6 +268,10 @@ class TestAzureOpenAIClient:
             )
             client._parsers.parse_response = MagicMock(return_value=mock_response)
 
+            # Mock the _init_embeddings_client method to return the same mock client
+            # This ensures that the lazy loading also uses the mocked client
+            client._init_embeddings_client = MagicMock(return_value=mock_azure_client)
+
             return client
 
     @pytest.fixture
@@ -300,9 +304,11 @@ class TestAzureOpenAIClient:
         with patch("openai.AsyncAzureOpenAI", return_value=mock_client) as mock_azure:
             client = AzureOpenAIClient(parameters=parameters)
             assert parameters.azure_api_key is not None
-            # Client gets initialized twice (once for completions, once for embeddings)
-            assert mock_azure.call_count == 2
+            # Client gets initialized once for completions (embeddings client is lazy)
+            assert mock_azure.call_count == 1
             assert client._azure_client is mock_client
+            # Embeddings client should be None until first access
+            assert client._azure_embeddings_client is None
 
     def test_init_parameters_with_updates(
         self,
