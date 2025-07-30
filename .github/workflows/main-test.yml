@@ -6,7 +6,7 @@ on:
   pull_request:
     paths-ignore:
       - 'agent-spec/**'
-      - 'client-sdks/golang/agent-cli/**'
+      - 'packages/**'
     branches:
       - '*'
     types:

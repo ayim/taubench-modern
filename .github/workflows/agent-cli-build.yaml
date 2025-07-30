@@ -43,7 +43,7 @@ on:
   pull_request:
     # Trigger a build on changes to files in cli directory
     paths:
-      - 'client-sdks/golang/agent-cli/**'
+      - 'packages/golang-agent-cli/**'
     branches:
       - development
 
@@ -67,7 +67,7 @@ jobs:
           cache: true
           cache-dependency-path: cli/go.sum
       - name: Go Get agent-client-go
-        working-directory: client-sdks/golang/agent-cli
+        working-directory: packages/golang-agent-cli
         env:
           GH_PAT_GHA_TO_ANOTHER_REPO: ${{secrets.GH_PAT_GHA_TO_ANOTHER_REPO}}
         run: |
@@ -76,7 +76,7 @@ jobs:
           go get github.com/Sema4AI/agent-client-go
       - name: Generate build info
         id: build-info
-        working-directory: client-sdks/golang/agent-cli
+        working-directory: packages/golang-agent-cli
         run: |
           buildTime=$(date +%Y%m%d_%H%M%S)
           echo "buildTime=${buildTime}" >> $GITHUB_OUTPUT
@@ -102,9 +102,9 @@ jobs:
         with:
           go-version: '1.23'
           cache: true
-          cache-dependency-path: client-sdks/golang/agent-cli/go.sum
+          cache-dependency-path: packages/golang-agent-cli/go.sum
       - name: Build
-        working-directory: client-sdks/golang/agent-cli
+        working-directory: packages/golang-agent-cli
         env:
           GH_PAT_GHA_TO_ANOTHER_REPO: ${{secrets.GH_PAT_GHA_TO_ANOTHER_REPO}}
         run: |
@@ -116,14 +116,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: agent-cli-linux
-          path: client-sdks/golang/agent-cli/build/agent-cli
+          path: packages/golang-agent-cli/build/agent-cli
       - name: Get version
         run: |
-          echo "${{ needs.build-info.outputs.appVersion }}" > client-sdks/golang/agent-cli/build/version.txt
+          echo "${{ needs.build-info.outputs.appVersion }}" > packages/golang-agent-cli/build/version.txt
       - uses: actions/upload-artifact@v4
         with:
           name: agent-cli-version
-          path: 'client-sdks/golang/agent-cli/build/version.txt'
+          path: 'packages/golang-agent-cli/build/version.txt'
 
   build-windows:
     name: Build for Windows
@@ -143,9 +143,9 @@ jobs:
         with:
           go-version: '1.23'
           cache: true
-          cache-dependency-path: client-sdks/golang/agent-cli/go.sum
+          cache-dependency-path: packages/golang-agent-cli/go.sum
       - name: Build
-        working-directory: client-sdks/golang/agent-cli
+        working-directory: packages/golang-agent-cli
         env:
           GH_PAT_GHA_TO_ANOTHER_REPO: ${{secrets.GH_PAT_GHA_TO_ANOTHER_REPO}}
         run: |
@@ -171,7 +171,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: agent-cli-windows
-          path: client-sdks/golang/agent-cli/build/agent-cli.exe
+          path: packages/golang-agent-cli/build/agent-cli.exe
 
   build-macos-intel:
     name: Build for MacOS Intel
@@ -185,9 +185,9 @@ jobs:
         with:
           go-version: '1.23'
           cache: true
-          cache-dependency-path: client-sdks/golang/agent-cli/go.sum
+          cache-dependency-path: packages/golang-agent-cli/go.sum
       - name: Build
-        working-directory: client-sdks/golang/agent-cli
+        working-directory: packages/golang-agent-cli
         env:
           APPLEID: ${{ secrets.MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI }}
           APPLEIDPASS: ${{ secrets.MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI }}
@@ -209,7 +209,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: agent-cli-macos64
-          path: client-sdks/golang/agent-cli/build/agent-cli
+          path: packages/golang-agent-cli/build/agent-cli
 
   build-macos-arm:
     name: Build for MacOS Apple Silicon
@@ -223,9 +223,9 @@ jobs:
         with:
           go-version: '1.23'
           cache: true
-          cache-dependency-path: client-sdks/golang/agent-cli/go.sum
+          cache-dependency-path: packages/golang-agent-cli/go.sum
       - name: Build
-        working-directory: client-sdks/golang/agent-cli
+        working-directory: packages/golang-agent-cli
         env:
           APPLEID: ${{ secrets.MACOS_APP_ID_FOR_NOTARIZATION_SEMA4AI }}
           APPLEIDPASS: ${{ secrets.MACOS_APP_ID_PASSWORD_FOR_NOTARIZATION_SEMA4AI }}
@@ -247,7 +247,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: agent-cli-macos-arm64
-          path: client-sdks/golang/agent-cli/build/agent-cli
+          path: packages/golang-agent-cli/build/agent-cli
 
   smoke-test:
     needs: [build-linux, build-windows, build-macos-arm]
@@ -273,15 +273,15 @@ jobs:
         with:
           go-version: '1.23'
           cache: true
-          cache-dependency-path: client-sdks/golang/agent-cli/go.sum
+          cache-dependency-path: packages/golang-agent-cli/go.sum
       - name: Download binary
         uses: actions/download-artifact@v4
         with:
           name: ${{ matrix.artifact }}
-          path: client-sdks/golang/agent-cli/dist
+          path: packages/golang-agent-cli/dist
       - name: Set executable permissions
         if: runner.os != 'Windows'
-        run: chmod +x client-sdks/golang/agent-cli/dist/agent-cli
+        run: chmod +x packages/golang-agent-cli/dist/agent-cli
       - name: Run smoke test
-        working-directory: client-sdks/golang/agent-cli
+        working-directory: packages/golang-agent-cli
         run: go test ./tests -run TestVersion -v

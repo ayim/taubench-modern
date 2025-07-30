@@ -58,7 +58,7 @@ conftest.py
 test-*/
 
 # Client SDKs (not needed for server build)
-client-sdks/
+packages/
 
 # Workroom frontend (separate build)
 workroom/

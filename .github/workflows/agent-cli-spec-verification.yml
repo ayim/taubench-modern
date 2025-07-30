@@ -3,11 +3,11 @@ name: Agent CLI Spec Validation
 on:
   push:
     paths:
-      - client-sdks/golang/agent-cli/**
+      - packages/golang-agent-cli/**
       - agent-spec/**
   pull_request:
     paths:
-      - client-sdks/golang/agent-cli/**
+      - packages/golang-agent-cli/**
       - agent-spec/**
   # Manual trigger
   workflow_dispatch:
@@ -31,9 +31,9 @@ jobs:
         with:
           go-version: '1.23'
           cache: true
-          cache-dependency-path: client-sdks/golang/agent-cli/go.sum
+          cache-dependency-path: packages/golang-agent-cli/go.sum
       - name: Go Get agent-client-go
-        working-directory: client-sdks/golang/agent-cli
+        working-directory: packages/golang-agent-cli
         env:
           GH_PAT_GHA_TO_ANOTHER_REPO: ${{secrets.GH_PAT_GHA_TO_ANOTHER_REPO}}
         run: |

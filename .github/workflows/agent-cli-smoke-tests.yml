@@ -6,8 +6,7 @@ on:
   pull_request:
     # Trigger a build on changes to files in cli directory
     paths:
-      - 'client-sdks/golang/agent-client-go/**'
-      - 'client-sdks/golang/agent-cli/**'
+      - 'packages/golang-agent-cli/**'
     branches:
       - main
 
@@ -16,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: client-sdks/golang/agent-cli
+        working-directory: packages/golang-agent-cli
 
     steps:
       - name: Checkout code

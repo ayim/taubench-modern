@@ -193,7 +193,7 @@ def action_server() -> Path:
     return path
 
 
-CLI_DIR = Path(__file__).parent.parent.parent.parent / "client-sdks" / "golang" / "agent-cli"
+CLI_DIR = Path(__file__).parent.parent.parent.parent / "packages" / "golang-agent-cli"
 
 
 def _get_agent_cli_relative_path() -> str:

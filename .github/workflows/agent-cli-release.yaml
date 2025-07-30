@@ -33,7 +33,7 @@ jobs:
     needs: build
     defaults:
       run:
-        working-directory: client-sdks/golang/agent-cli
+        working-directory: packages/golang-agent-cli
     runs-on: ubuntu-22.04
     outputs:
       is_beta: ${{ steps.check_beta.outputs.is_beta }}
@@ -54,23 +54,23 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: agent-cli-windows
-          path: client-sdks/golang/agent-cli/build/windows64/
+          path: packages/golang-agent-cli/build/windows64/
       - uses: actions/download-artifact@v4
         with:
           name: agent-cli-macos64
-          path: client-sdks/golang/agent-cli/build/macos64/
+          path: packages/golang-agent-cli/build/macos64/
       - uses: actions/download-artifact@v4
         with:
           name: agent-cli-macos-arm64
-          path: client-sdks/golang/agent-cli/build/macos-arm64/
+          path: packages/golang-agent-cli/build/macos-arm64/
       - uses: actions/download-artifact@v4
         with:
           name: agent-cli-linux
-          path: client-sdks/golang/agent-cli/build/linux64/
+          path: packages/golang-agent-cli/build/linux64/
       - uses: actions/download-artifact@v4
         with:
           name: agent-cli-version
-          path: client-sdks/golang/agent-cli/build/
+          path: packages/golang-agent-cli/build/
       - run: |
           ls -l
           pwd
@@ -87,7 +87,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: agent-cli-artifacts-for-s3-${{ env.agentCliVersion }}
-          path: client-sdks/golang/agent-cli/s3-drop
+          path: packages/golang-agent-cli/s3-drop
       - name: Configure AWS credentials Dropbox bucket
         uses: aws-actions/configure-aws-credentials@v4
         with:
