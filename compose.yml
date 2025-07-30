@@ -25,6 +25,8 @@ x-service-agent-server: &template-service-agent-server
         default:
             aliases:
                 - agent-server
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
         postgres:
             condition: service_healthy

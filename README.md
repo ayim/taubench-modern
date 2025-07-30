@@ -172,15 +172,24 @@ To develop with the Workroom application, you must have **NPM** setup locally, w
 > [!TIP]
 > If developing primarily against Workroom, it is recommended to install Docker (either via OrbStack or Docker desktop).
 
-#### Workroom Hot Reloading
+#### Workroom Hot Reloading & Dockerized Stack
 
-You can run Workroom directly, without Docker _and_ with hot reloading, by running the following:
+1. Run Workroom without Docker _and_ with hot reloading:
 
 ```shell
 npm run dev
 ```
 
-#### Docker stack: Workroom / Agent Server with Postgres Database
+2. Run the rest of the stack with docker:
+
+```shell
+# Runs agent-server, postgres, OTEL in Docker
+COMPOSE_PROFILES=agent-server-no-auth docker compose up
+# Runs postgres, OTEL in Docker
+docker compose up
+```
+
+#### [Advanced Docker Stack Configuration] Workroom / Agent Server with Postgres Database
 
 The root `compose.yml` configuration configures a wide variety of Docker services and system configurations. It's a great development target if you're working with Workroom.
 
@@ -267,7 +276,7 @@ curl --request POST -L \
   "mcp_servers": [
     {
       "name": "placeholder-mcp-server",
-      "url": "http://localhost:3001/sse"
+      "url": "http://localhost:3001/sse" # http://host.docker.internal:3001/sse when running agent-server inside Docker
     }
   ],
   "agent_architecture": {
