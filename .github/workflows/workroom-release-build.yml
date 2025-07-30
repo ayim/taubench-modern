@@ -2,7 +2,13 @@ name: Workroom Release
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/workroom-release-build.yml'
+      - 'workroom/**'
   push:
+    branches:
+      - main
     paths:
       - '.github/workflows/workroom-release-build.yml'
       - 'workroom/**'
