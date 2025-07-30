@@ -26,6 +26,7 @@ type AgentsOutput struct {
 var (
 	ignoreMissingParam       bool
 	agentProjectSettingsPath string
+	getAllAgentProjects      bool
 )
 
 // ReadRunbook reads the contents of a runbook file.
@@ -108,13 +109,23 @@ func getAgentProject(path string) (*common.AgentProject, error) {
 
 // getAgentProjects reads the agent projects from a given paths.
 func getAgentProjects(paths []string) ([]*common.AgentProject, error) {
-	if len(paths) == 0 {
+	if len(paths) == 0 && !getAllAgentProjects {
 		return nil, nil
 	}
 
 	projectSettings, err := common.ReadAgentProjectSettings(agentProjectSettingsPath)
 	if err != nil {
 		return nil, err
+	}
+
+	// If we want to get all Agent Projects, we need to get all paths from the settings file.
+	// We can disregard the paths passed as arguments then.
+	if getAllAgentProjects {
+		paths = []string{}
+
+		for _, entry := range projectSettings {
+			paths = append(paths, entry.ProjectPath)
+		}
 	}
 
 	var allAgentProjects []*common.AgentProject
@@ -255,5 +266,5 @@ func init() {
 	if err := getCmd.MarkFlagRequired("agent-project-settings-path"); err != nil {
 		fmt.Printf("failed to mark flag as required: %+v", err)
 	}
-
+	getCmd.Flags().BoolVar(&getAllAgentProjects, "get-all-projects", false, "Get all agent projects.")
 }
