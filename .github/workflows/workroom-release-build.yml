@@ -53,6 +53,7 @@ jobs:
             workroom_tag="${workroom_version}+${build_details}"
             ace_prerelease="none"
             release_channel="ci"
+            invoked_by="workroom@${workroom_tag}"
           else
             # Push to dev branch; Publish a "manual" / dev ACE release
             repo_name="$(
@@ -68,14 +69,16 @@ jobs:
             )"
 
             workroom_tag="${workroom_version}-${repo_name}-${branch_name}+${build_details}"
-            ace_prerelease="${repo_name}-${branch_name}-${commit_hash}"
+            ace_prerelease="${repo_name}-workroom-${branch_name}"
             release_channel="manual"
+            invoked_by="${{ github.event.repository.name }}/${{ github.ref_name }}"
           fi
 
           workroom_tag_sanitized="${workroom_tag//+/_}" # Replace + with _ for the tag to be valid
           echo "workroom-tag-sanitized=${workroom_tag_sanitized}" >> "${GITHUB_OUTPUT}"
           echo "ace-prerelease=${ace_prerelease}" >> "${GITHUB_OUTPUT}"
           echo "release-channel=${release_channel}" >> "${GITHUB_OUTPUT}"
+          echo "invoked-by=${invoked_by}" >> "${GITHUB_OUTPUT}"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -128,24 +131,28 @@ jobs:
           workroom_version="${{ steps.build-metadata.outputs.workroom-tag-sanitized }}"
           build_ace_from_branch="master"
           ace_prerelease="${{ steps.build-metadata.outputs.ace-prerelease }}"
+          invoked_by="${{ steps.build-metadata.outputs.invoked-by }}"
 
           cat <<EOF
           Triggering ACE publish workflow with payload:
             - branch=${build_ace_from_branch}
             - workroom-version=${workroom_version}
             - prerelease=${ace_prerelease}
+            - invoked-by=${invoked_by}
           EOF
 
           ACTION_PAYLOAD=$(jq -n \
             --arg ref "${build_ace_from_branch}" \
             --arg workroomVersion "${workroom_version}" \
             --arg prerelease "${ace_prerelease}" \
+            --arg invokedBy "${invoked_by}" \
             '{
               "ref": $ref,
               "inputs": {
                 "branch": $ref,
                 "workroom-version": $workroomVersion,
-                "prerelease": $prerelease
+                "prerelease": $prerelease,
+                "invoked-by": $invokedBy
               }
             }')
 

@@ -151,7 +151,6 @@ jobs:
       - name: Report uv cache status
         run: echo "uv cache hit? ${{ steps.uv.outputs.cache-hit }}"
 
-      # TODO: Unit tests are currently flaky, skipping for now but allowing workflow to continue
       - name: Run unit tests
         timeout-minutes: 30 # TODO: This might be longer than needed.
         run: make test-unit
@@ -212,8 +211,8 @@ jobs:
           name: ${{ matrix.artifact-name }}
           path: dist/agent-server${{ matrix.ext }}
 
-  integration-tests:
-    name: Integration Tests • ${{ matrix.os }}
+  integration-tests-and-publish:
+    name: Integration Tests + Publish Executable • ${{ matrix.os }}
     needs: [version, build, compute-matrix]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45 # TODO: This might be longer than needed.
@@ -251,7 +250,6 @@ jobs:
       - if: runner.os != 'Windows'
         run: chmod +x ./dist/agent-server
 
-      # TODO: Remove continue-on-error once tests are stable
       - name: Run Integration tests
         timeout-minutes: 30 # TODO: This might be longer than needed.
         env:
@@ -281,8 +279,8 @@ jobs:
           echo "Agent server executable uploaded to S3: $S3_BASE_URL/${{ matrix.s3-path }}/agent-server${{ matrix.ext }}"
 
   upload-version-text-to-s3:
-    name: Upload Verstion text file to S3
-    needs: [version, integration-tests]
+    name: Upload Version text file to S3
+    needs: [version, integration-tests-and-publish]
     runs-on: ubuntu-24.04
     permissions:
       id-token: write # Needed for the S3 upload
@@ -316,6 +314,30 @@ jobs:
           echo "v${VERSION}" > version.txt
           aws s3 cp version.txt "$S3_BASE_URL/version.txt" --cache-control max-age=120 --content-type "text/plain"
           echo "Version text file uploaded to S3: $S3_BASE_URL/version.txt"
+
+  trigger-docker-build:
+    name: Trigger Docker build workflow
+    needs: [version, integration-tests-and-publish]
+    runs-on: ubuntu-24.04
+    env:
+      BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+    steps:
+      - name: Trigger Docker build workflow
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'docker-build-ace-image.yaml',
+              ref: '${{ env.BRANCH_NAME }}',
+              inputs: {
+                release_channel: 'manual',
+                agent_server_version: 'v${{ needs.version.outputs.value }}',
+                agent_server_commit: '${{ github.sha }}',
+                agent_server_branch: '${{ env.BRANCH_NAME }}',
+              }
+            })
 
   notify-slack:
     needs: [version, upload-version-text-to-s3]
