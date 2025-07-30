@@ -2,6 +2,7 @@
 
 - Add key identifier for static key encryption keys (KEK) to
   enable graceful key rotation and migrations.
+- Fix duplicate actions showing in agent-details endpoint.
 
 # Sema4.ai Agent Server 2.0.23 (2025-07-28)
 

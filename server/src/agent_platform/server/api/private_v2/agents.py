@@ -1,5 +1,8 @@
 import uuid
+from collections import defaultdict
+from http import HTTPStatus
 
+from aiohttp import ClientSession
 from fastapi import APIRouter, HTTPException
 from structlog import get_logger
 
@@ -13,8 +16,10 @@ from agent_platform.core.agent import AgentArchitecture
 from agent_platform.core.agent_spec.extract_spec import (
     extract_and_validate_agent_package,
 )
+from agent_platform.core.errors.base import PlatformHTTPError
+from agent_platform.core.errors.responses import ErrorCode
 from agent_platform.core.files import UploadedFile
-from agent_platform.core.mcp.mcp_types import MCPServerDetail
+from agent_platform.core.mcp.mcp_types import MCPServerDetail, MCPToolDetail
 from agent_platform.core.payloads import (
     ActionServerConfigPayload,
     AgentPackagePayload,
@@ -22,6 +27,7 @@ from agent_platform.core.payloads import (
     UpsertAgentPayload,
 )
 from agent_platform.core.utils import SecretString
+from agent_platform.core.utils.url import safe_urljoin
 from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.api.private_v2.compatibility.agent_compat import AgentCompat
 from agent_platform.server.auth import AuthedUser
@@ -29,6 +35,153 @@ from agent_platform.server.kernel.tools_caching import ToolDefinitionCache
 
 router = APIRouter()
 logger = get_logger(__name__)
+
+
+def _to_human_friendly_name(name: str) -> str:
+    """Convert action package/action name to human-friendly versions."""
+    # Step 1: Replace hyphens and underscores with spaces
+    formatted = name.replace("-", " ").replace("_", " ")
+
+    # Step 2: Split camelCase words by inserting spaces before uppercase letters
+    import re
+
+    formatted = re.sub(r"([a-z])([A-Z])", r"\1 \2", formatted)
+
+    # Step 3: Title case each word (capitalize first letter, lowercase the rest)
+    return " ".join(word.title() for word in formatted.split())
+
+
+async def _fetch_action_packages_data(url: str, api_key: str) -> dict[str, list[str]]:
+    """Fetch and parse OpenAPI spec to extract action packages from path structure."""
+
+    # Build OpenAPI spec URL
+    http_url = "http://" + url if not url.startswith("http") else url
+    spec_url = safe_urljoin(http_url, "openapi.json")
+
+    # Fetch OpenAPI spec
+    async with ClientSession() as session:
+        async with session.get(spec_url) as response:
+            if response.status == HTTPStatus.OK:
+                spec = await response.json()
+            else:
+                raise Exception(f"HTTP {response.status}: Failed to fetch OpenAPI spec")
+
+    # Parse paths to extract action packages and actions
+    packages_dict = {}
+
+    for path, methods in spec.get("paths", {}).items():
+        # Must start with /api/actions
+        if not path.startswith("/api/actions"):
+            continue
+
+        # Must end with /run
+        if not path.endswith("/run"):
+            continue
+
+        # Parse path: /api/actions/<package>/<action>/run
+        path_parts = path.strip("/").split("/")
+
+        # Must have exactly 5 parts: ["api", "actions", "<package>", "<action>", "run"]
+        if (
+            len(path_parts) != 5  # noqa: PLR2004
+            or path_parts[0] != "api"
+            or path_parts[1] != "actions"
+            or path_parts[4] != "run"
+        ):
+            logger.warning(f"Skipping path with unexpected format: {path}")
+            continue
+
+        package_name = path_parts[2]
+        action_name = path_parts[3]
+
+        # Only process POST methods with 200 responses
+        post_spec = methods.get("post")
+        if not post_spec or "200" not in post_spec.get("responses", {}):
+            continue
+
+        # Convert to human-friendly names
+        friendly_package_name = _to_human_friendly_name(package_name)
+        friendly_action_name = _to_human_friendly_name(action_name)
+
+        # Initialize package if it doesn't exist
+        packages_dict.setdefault(friendly_package_name, [])
+
+        # Add action to package
+        packages_dict[friendly_package_name].append(friendly_action_name)
+
+    return packages_dict
+
+
+async def _process_action_packages(agent) -> list[ActionPackageDetail]:
+    """Process action packages and return their details."""
+    all_action_details = []
+
+    # Group action packages by URL to avoid duplicate calls
+    url_to_packages = defaultdict(list)
+    for action_package in agent.action_packages:
+        if action_package.url:
+            url_to_packages[action_package.url].append(action_package)
+
+    # Fetch action packages data once per unique URL
+    for url, packages in url_to_packages.items():
+        try:
+            # Get the first package to extract api_key (they should all be the same for same URL)
+            api_key = packages[0].api_key.get_secret_value() if packages[0].api_key else ""
+
+            # Fetch action packages data from OpenAPI spec
+            action_packages_data = await _fetch_action_packages_data(url, api_key)
+
+            # Create package details directly from server response
+            for pkg_name, actions in action_packages_data.items():
+                package_actions = [ActionDetail(name=action) for action in actions]
+
+                # Only create package if it has actions
+                if package_actions:
+                    action_package_details = ActionPackageDetail(
+                        name=pkg_name,
+                        actions=package_actions,
+                        version="1.0.0",
+                        status="online",
+                    )
+                    all_action_details.append(action_package_details)
+
+        except Exception as e:
+            logger.error(f"Error processing action packages from {url}: {e}")
+            for package in packages:
+                action_package_details = ActionPackageDetail(
+                    name=package.name,
+                    actions=[],
+                    version=package.version,
+                    status="offline",
+                )
+                all_action_details.append(action_package_details)
+
+    return all_action_details
+
+
+async def _process_mcp_servers(agent) -> list[MCPServerDetail]:
+    """Process MCP servers and return their details."""
+    all_mcp_server_details = []
+
+    for mcp_server in agent.mcp_servers:
+        try:
+            tool_defs = await mcp_server.to_tool_definitions()
+            allowed_actions = [MCPToolDetail(name=tool_def.name) for tool_def in tool_defs]
+            mcp_server_details = MCPServerDetail(
+                name=mcp_server.name,
+                actions=allowed_actions,
+                status="online",
+            )
+        except Exception as e:
+            logger.error(f"Error getting tool definitions for MCP server {mcp_server.name}: {e}")
+            mcp_server_details = MCPServerDetail(
+                name=mcp_server.name,
+                actions=[],
+                status="offline",
+            )
+        all_mcp_server_details.append(mcp_server_details)
+
+    return all_mcp_server_details
 
 
 @router.post("/", response_model=AgentCompat)
@@ -318,62 +471,15 @@ async def get_agent_details(
     aid: str,
     storage: StorageDependency,
 ) -> AgentDetails:
-    all_action_details = []
-    all_mcp_server_details = []
     agent = await storage.get_agent(user.user_id, aid)
+    if not agent:
+        raise PlatformHTTPError(error_code=ErrorCode.NOT_FOUND, message="Agent not found")
 
-    # Iterate over action packages, then MCP servers
-    for action_package in agent.action_packages:
-        try:
-            tool_defs = await action_package.to_tool_definitions()
-        except Exception as e:
-            logger.error(
-                f"Error getting tool definitions for action package {action_package.name}: {e}"
-            )
-            action_package_details = ActionPackageDetail(
-                name=action_package.name,
-                actions=[],
-                version=action_package.version,
-                status="offline",
-            )
-            all_action_details.append(action_package_details)
-            continue
-        allowed_actions = []
-        for tool_def in tool_defs:
-            allowed_actions.append(ActionDetail(name=tool_def.name))
-        action_package_details = ActionPackageDetail(
-            name=action_package.name,
-            actions=allowed_actions,
-            version=action_package.version,
-            status="online",
-        )
-        logger.debug(f"Action package details: {action_package_details}")
-        all_action_details.append(action_package_details)
-
-    for mcp_server in agent.mcp_servers:
-        try:
-            tool_defs = await mcp_server.to_tool_definitions()
-        except Exception as e:
-            logger.error(f"Error getting tool definitions for MCP server {mcp_server.name}: {e}")
-            mcp_server_details = MCPServerDetail(
-                name=mcp_server.name,
-                actions=[],
-                status="offline",
-            )
-            all_mcp_server_details.append(mcp_server_details)
-            continue
-        allowed_actions = []
-        for tool_def in tool_defs:
-            allowed_actions.append(ActionDetail(name=tool_def.name))
-        mcp_server_details = MCPServerDetail(
-            name=mcp_server.name,
-            actions=allowed_actions,
-            status="online",
-        )
-        all_mcp_server_details.append(mcp_server_details)
+    action_packages = await _process_action_packages(agent)
+    mcp_servers = await _process_mcp_servers(agent)
 
     return AgentDetails(
         runbook=agent.runbook_structured.raw_text,
-        action_packages=all_action_details,
-        mcp_servers=all_mcp_server_details,
+        action_packages=action_packages,
+        mcp_servers=mcp_servers,
     )

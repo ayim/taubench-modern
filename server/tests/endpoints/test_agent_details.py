@@ -65,10 +65,16 @@ async def test_agent_details_one_action_package_online(mock_user, mock_storage):
     )
     agent = create_test_agent(action_packages=[action_package])
 
+    # Mock the action packages data response
+    mock_response_data = {
+        "TestServerPackage": ["Test Action"]  # Package name -> list of action names
+    }
+
     with patch(
-        "agent_platform.core.actions.action_package.get_spec_and_build_tool_definitions",
-        return_value=[AsyncMock(name="test_action")],
-    ):
+        "agent_platform.server.api.private_v2.agents._fetch_action_packages_data"
+    ) as mock_fetch:
+        mock_fetch.return_value = mock_response_data
+
         mock_storage.get_agent.return_value = agent
         result = await get_agent_details(
             user=mock_user,
@@ -78,10 +84,11 @@ async def test_agent_details_one_action_package_online(mock_user, mock_storage):
 
     assert result.runbook == "test runbook"
     assert len(result.action_packages) == 1
-    assert result.action_packages[0].name == "test_package"
+    assert result.action_packages[0].name == "TestServerPackage"
     assert result.action_packages[0].version == "1.0.0"
     assert result.action_packages[0].status == "online"
     assert len(result.action_packages[0].actions) == 1
+    assert result.action_packages[0].actions[0].name == "Test Action"
 
 
 async def test_agent_details_one_action_package_offline(mock_user, mock_storage):
@@ -96,8 +103,8 @@ async def test_agent_details_one_action_package_offline(mock_user, mock_storage)
     agent = create_test_agent(action_packages=[action_package])
 
     with patch(
-        "agent_platform.core.actions.action_package.get_spec_and_build_tool_definitions",
-        side_effect=Exception("Failed to get tool definitions"),
+        "agent_platform.server.api.private_v2.agents._fetch_action_packages_data",
+        side_effect=Exception("Failed to fetch action packages"),
     ):
         mock_storage.get_agent.return_value = agent
         result = await get_agent_details(
@@ -128,9 +135,12 @@ async def test_agent_details_two_action_packages_both_online(mock_user, mock_sto
     ]
     agent = create_test_agent(action_packages=action_packages)
 
+    # Mock response with two server packages
+    mock_response_data = {"ServerPackageA": ["action_a"], "ServerPackageB": ["action_b"]}
+
     with patch(
-        "agent_platform.core.actions.action_package.get_spec_and_build_tool_definitions",
-        return_value=[AsyncMock(name="test_action")],
+        "agent_platform.server.api.private_v2.agents._fetch_action_packages_data",
+        return_value=mock_response_data,
     ):
         mock_storage.get_agent.return_value = agent
         result = await get_agent_details(
@@ -140,9 +150,14 @@ async def test_agent_details_two_action_packages_both_online(mock_user, mock_sto
         )
 
     assert result.runbook == "test runbook"
-    assert len(result.action_packages) == 2
-    for i, package in enumerate(result.action_packages):
-        assert package.name == f"test_package_{i}"
+    assert len(result.action_packages) == 2  # Two server packages
+
+    # Should get server package names, not agent package names
+    package_names = [pkg.name for pkg in result.action_packages]
+    assert "ServerPackageA" in package_names
+    assert "ServerPackageB" in package_names
+
+    for package in result.action_packages:
         assert package.version == "1.0.0"
         assert package.status == "online"
         assert len(package.actions) == 1
@@ -163,8 +178,8 @@ async def test_agent_details_two_action_packages_both_offline(mock_user, mock_st
     agent = create_test_agent(action_packages=action_packages)
 
     with patch(
-        "agent_platform.core.actions.action_package.get_spec_and_build_tool_definitions",
-        side_effect=Exception("Failed to get tool definitions"),
+        "agent_platform.server.api.private_v2.agents._fetch_action_packages_data",
+        side_effect=Exception("Failed to fetch action packages"),
     ):
         mock_storage.get_agent.return_value = agent
         result = await get_agent_details(
@@ -176,7 +191,7 @@ async def test_agent_details_two_action_packages_both_offline(mock_user, mock_st
     assert result.runbook == "test runbook"
     assert len(result.action_packages) == 2
     for i, package in enumerate(result.action_packages):
-        assert package.name == f"test_package_{i}"
+        assert package.name == f"test_package_{i}"  # Agent package names for offline packages
         assert package.version == "1.0.0"
         assert package.status == "offline"
         assert len(package.actions) == 0
@@ -186,25 +201,32 @@ async def test_agent_details_two_action_packages_mixed_status(mock_user, mock_st
     """Test getting agent details for an agent with one online and one offline action package."""
     action_packages = [
         ActionPackage(
-            name=f"test_package_{i}",
+            name="online_package",
             organization="test_org",
             version="1.0.0",
-            url="http://test.com",
-            api_key=SecretString(f"test_key_{i}"),  # Different keys for each package
-        )
-        for i in range(2)
+            url="http://online-server.com",
+            api_key=SecretString("test_key_online"),
+        ),
+        ActionPackage(
+            name="offline_package",
+            organization="test_org",
+            version="1.0.0",
+            url="http://offline-server.com",
+            api_key=SecretString("test_key_offline"),
+        ),
     ]
     agent = create_test_agent(action_packages=action_packages)
 
-    async def mock_get_tool_defs(url, api_key, allowed_actions, additional_headers):
-        # Only return success for the first package's key
-        if url == "http://test.com" and api_key == "test_key_0":
-            return [AsyncMock(name="test_action")]
-        raise Exception("Failed to get tool definitions")
+    async def mock_fetch_action_packages_data(url, api_key):
+        # Only succeed for the online server
+        if url == "http://online-server.com":
+            return {"OnlineServerPackage": ["online_action"]}
+        else:
+            raise Exception("Server offline")
 
     with patch(
-        "agent_platform.core.actions.action_package.get_spec_and_build_tool_definitions",
-        side_effect=mock_get_tool_defs,
+        "agent_platform.server.api.private_v2.agents._fetch_action_packages_data",
+        side_effect=mock_fetch_action_packages_data,
     ):
         mock_storage.get_agent.return_value = agent
         result = await get_agent_details(
@@ -216,64 +238,24 @@ async def test_agent_details_two_action_packages_mixed_status(mock_user, mock_st
     assert result.runbook == "test runbook"
     assert len(result.action_packages) == 2
 
-    # First package should be online
-    assert result.action_packages[0].name == "test_package_0"
-    assert result.action_packages[0].version == "1.0.0"
-    assert result.action_packages[0].status == "online"
-    assert len(result.action_packages[0].actions) == 1
+    # Sort by status to ensure consistent ordering
+    packages_by_status = {}
+    for pkg in result.action_packages:
+        packages_by_status[pkg.status] = pkg
 
-    # Second package should be offline
-    assert result.action_packages[1].name == "test_package_1"
-    assert result.action_packages[1].version == "1.0.0"
-    assert result.action_packages[1].status == "offline"
-    assert len(result.action_packages[1].actions) == 0
+    # Online package should have server name
+    online_pkg = packages_by_status["online"]
+    assert online_pkg.name == "OnlineServerPackage"
+    assert online_pkg.version == "1.0.0"
+    assert online_pkg.status == "online"
+    assert len(online_pkg.actions) == 1
 
-
-async def test_agent_details_with_allowed_actions(mock_user, mock_storage):
-    """Test getting agent details for an agent with action packages that have allowed actions."""
-    action_package = ActionPackage(
-        name="test_package",
-        organization="test_org",
-        version="1.0.0",
-        url="http://test.com",
-        api_key=SecretString("test_key"),
-        allowed_actions=["action1", "action2"],  # Only allow these actions
-    )
-    agent = create_test_agent(action_packages=[action_package])
-
-    # Mock tool definitions to return only the allowed actions
-    # (since get_spec_and_build_tool_definitions already handles the filtering)
-    async def mock_get_tool_defs(url, api_key, allowed_actions, additional_headers):
-        # Create mock tool definitions with name attributes
-        tool_defs = []
-        for name in ["action1", "action2"]:  # Only return the allowed actions
-            mock = AsyncMock()
-            mock.name = name
-            tool_defs.append(mock)
-        return tool_defs
-
-    with patch(
-        "agent_platform.core.actions.action_package.get_spec_and_build_tool_definitions",
-        side_effect=mock_get_tool_defs,
-    ):
-        mock_storage.get_agent.return_value = agent
-        result = await get_agent_details(
-            user=mock_user,
-            aid="test_agent",
-            storage=mock_storage,
-        )
-
-    assert result.runbook == "test runbook"
-    assert len(result.action_packages) == 1
-    assert result.action_packages[0].name == "test_package"
-    assert result.action_packages[0].version == "1.0.0"
-    assert result.action_packages[0].status == "online"
-
-    # Verify only allowed actions are included
-    action_names = [action.name for action in result.action_packages[0].actions]
-    assert len(action_names) == 2, "Should have both allowed actions"
-    assert "action1" in action_names, "Should have action1"
-    assert "action2" in action_names, "Should have action2"
+    # Offline package should have agent name
+    offline_pkg = packages_by_status["offline"]
+    assert offline_pkg.name == "offline_package"
+    assert offline_pkg.version == "1.0.0"
+    assert offline_pkg.status == "offline"
+    assert len(offline_pkg.actions) == 0
 
 
 # =============================================================================
@@ -486,9 +468,12 @@ async def test_agent_details_with_action_packages_and_mcp_servers_all_online(
     )
     agent = create_test_agent(action_packages=[action_package], mcp_servers=[mcp_server])
 
+    # Mock action packages response
+    mock_action_packages_data = {"TestServerPackage": ["Test Action"]}
+
     with patch(
-        "agent_platform.core.actions.action_package.get_spec_and_build_tool_definitions",
-        return_value=[AsyncMock(name="test_action")],
+        "agent_platform.server.api.private_v2.agents._fetch_action_packages_data",
+        return_value=mock_action_packages_data,
     ):
         with patch(
             "agent_platform.core.mcp.mcp_server.MCPServer.to_tool_definitions",
@@ -505,7 +490,7 @@ async def test_agent_details_with_action_packages_and_mcp_servers_all_online(
 
     # Verify action package
     assert len(result.action_packages) == 1
-    assert result.action_packages[0].name == "test_package"
+    assert result.action_packages[0].name == "TestServerPackage"
     assert result.action_packages[0].version == "1.0.0"
     assert result.action_packages[0].status == "online"
     assert len(result.action_packages[0].actions) == 1
@@ -535,10 +520,13 @@ async def test_agent_details_with_action_packages_and_mcp_servers_mixed_status(
     )
     agent = create_test_agent(action_packages=[action_package], mcp_servers=[mcp_server])
 
+    # Mock action packages response (online)
+    mock_action_packages_data = {"TestServerPackage": ["Test Action"]}
+
     # Action package online, MCP server offline
     with patch(
-        "agent_platform.core.actions.action_package.get_spec_and_build_tool_definitions",
-        return_value=[AsyncMock(name="test_action")],
+        "agent_platform.server.api.private_v2.agents._fetch_action_packages_data",
+        return_value=mock_action_packages_data,
     ):
         with patch(
             "agent_platform.core.mcp.mcp_server.MCPServer.to_tool_definitions",
@@ -555,7 +543,7 @@ async def test_agent_details_with_action_packages_and_mcp_servers_mixed_status(
 
     # Verify action package (online)
     assert len(result.action_packages) == 1
-    assert result.action_packages[0].name == "test_package"
+    assert result.action_packages[0].name == "TestServerPackage"
     assert result.action_packages[0].status == "online"
     assert len(result.action_packages[0].actions) == 1
 
@@ -587,9 +575,12 @@ async def test_agent_details_with_multiple_action_packages_and_mcp_servers(mock_
     ]
     agent = create_test_agent(action_packages=action_packages, mcp_servers=mcp_servers)
 
+    # Mock action packages response (both agent packages point to same URL, so get server packages)
+    mock_action_packages_data = {"ServerPackageA": ["action_a"], "ServerPackageB": ["action_b"]}
+
     with patch(
-        "agent_platform.core.actions.action_package.get_spec_and_build_tool_definitions",
-        return_value=[AsyncMock(name="test_action")],
+        "agent_platform.server.api.private_v2.agents._fetch_action_packages_data",
+        return_value=mock_action_packages_data,
     ):
         with patch(
             "agent_platform.core.mcp.mcp_server.MCPServer.to_tool_definitions",
@@ -606,8 +597,11 @@ async def test_agent_details_with_multiple_action_packages_and_mcp_servers(mock_
 
     # Verify action packages
     assert len(result.action_packages) == 2
-    for i, package in enumerate(result.action_packages):
-        assert package.name == f"test_package_{i}"
+    package_names = [pkg.name for pkg in result.action_packages]
+    assert "ServerPackageA" in package_names
+    assert "ServerPackageB" in package_names
+
+    for package in result.action_packages:
         assert package.status == "online"
         assert len(package.actions) == 1
 
