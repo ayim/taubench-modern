@@ -168,8 +168,8 @@ const CELL_COMPONENT_MAPPING: CellComponentMappingType = {
     );
   }),
 
-  agent_id: memo(({ rowData }) => {
-    return <CustomCell data={rowData.agent_id || 'N/A'} />;
+  agent_name: memo(({ rowData }) => {
+    return <CustomCell data={rowData.agent_name || 'N/A'} />;
   }),
 
   status: memo(({ rowData }) => {
@@ -239,7 +239,7 @@ const RenderCell: FC<{ columnID: string; index: number } & ComponentProps<CellCo
 
 export const WorkItemsRowItem: FC<TableRowProps<WorkItem, WorkItemsRowItemProps>> = ({ rowData, props, index }) => {
   // Define the exact column order to match the table headers
-  const columnOrder = ['row-selection', 'name', 'agent_id', 'status', 'created_at', 'updated_at', 'actions'];
+  const columnOrder = ['row-selection', 'name', 'agent_name', 'status', 'created_at', 'updated_at', 'actions'];
 
   return (
     <Table.Row>

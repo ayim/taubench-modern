@@ -17,6 +17,7 @@ import { WorkItem } from '~/types';
 import { WorkItemsRowItem, WorkItemsRowItemProps } from './WorkItemsRowItem';
 import WorkItemsActions from './WorkItemsActions';
 import { useRefreshWorkItems, listWorkItemsQueryOptions } from '~/queries/workItems';
+import { getListAgentsQueryOptions } from '~/queries/agents';
 
 type Props = {
   // Remove workItems from props since we'll use the query directly
@@ -34,10 +35,41 @@ const WorkItemsTable: FC<Props> = () => {
     }),
   );
 
+  const { data: agentsResponse = [] } = useQuery(
+    getListAgentsQueryOptions({
+      tenantId,
+      agentAPIClient,
+    }),
+  );
+
+  const mapAgentsById = useMemo(() => {
+    return agentsResponse.reduce(
+      (acc, agent) => {
+        acc[agent.id] = agent;
+        return acc;
+      },
+      {} as Record<string, Exclude<typeof agentsResponse, undefined>[number]>,
+    );
+  }, [agentsResponse]);
+
   // Extract the work items from the response and cast to the correct type
-  const workItems = (
-    Array.isArray(workItemsResponse) ? workItemsResponse : workItemsResponse?.records || []
-  ) as WorkItem[];
+  const workItems = useMemo(
+    () =>
+      ((Array.isArray(workItemsResponse) ? workItemsResponse : workItemsResponse?.records || []) as WorkItem[]).map(
+        (workItem) => {
+          const agentName = workItem.agent_id
+            ? (mapAgentsById[workItem.agent_id]?.name ?? workItem.agent_id)
+            : workItem.agent_id;
+
+          return {
+            ...workItem,
+            agent_name: agentName,
+          };
+        },
+      ),
+    [workItemsResponse, mapAgentsById],
+  );
+
   const [search, setSearch] = useState<string>('');
   const [sort, onSort] = useState<[string, SortDirection] | null>(['created_at', 'desc']);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
@@ -56,7 +88,7 @@ const WorkItemsTable: FC<Props> = () => {
       (row) =>
         row.work_item_id.toLowerCase().includes(search.toLowerCase()) ||
         (row.status && row.status.toLowerCase().includes(search.toLowerCase())) ||
-        (row.agent_id && row.agent_id.toLowerCase().includes(search.toLowerCase())),
+        (row.agent_name && row.agent_name.toLowerCase().includes(search.toLowerCase())),
     );
   }, [search, workItems]);
 
@@ -107,7 +139,7 @@ const WorkItemsTable: FC<Props> = () => {
   const columns: Column[] = [
     { id: 'row-selection', title: '', sortable: false },
     { id: 'name', title: 'Work Item Name', sortable: true },
-    { id: 'agent_id', title: 'Agent ID', sortable: true },
+    { id: 'agent_name', title: 'Agent Name', sortable: true },
     { id: 'status', title: 'Status', sortable: true },
     // { id: 'stage', title: 'Stage', sortable: true },
     // { id: 'state', title: 'State', sortable: true },
