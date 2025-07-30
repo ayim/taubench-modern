@@ -13,23 +13,23 @@ import (
 	AgentServer "github.com/Sema4AI/agent-platform/client-sdks/golang/agent-cli/agent-server-client"
 )
 
-func TestReadSpecV3Empty(t *testing.T) {
+func TestReadSpecV2_1Empty(t *testing.T) {
 	common.Verbose = true
-	spec, err := cmd.ReadSpec("./fixtures/agent-specs/agent-spec-v3-empty")
+	spec, err := cmd.ReadSpec("./fixtures/agent-specs/agent-spec-v2.1-empty")
 	if err != nil {
 		t.Errorf("error: %+v", err)
 	}
-	assert.Equal(t, "v3", spec.AgentPackage.SpecVersion, "agent metadata should have correct Version")
+	assert.Equal(t, "v2", spec.AgentPackage.SpecVersion, "agent metadata should have correct Version")
 }
 
-func TestReadSpecV3(t *testing.T) {
+func TestReadSpecV2_1(t *testing.T) {
 	common.Verbose = true
-	spec, err := cmd.ReadSpec("./fixtures/agent-specs/agent-spec-v3")
+	spec, err := cmd.ReadSpec("./fixtures/agent-specs/agent-spec-v2.1")
 	if err != nil {
 		t.Errorf("error: %+v", err)
 	}
 
-	assert.Equal(t, "v3", spec.AgentPackage.SpecVersion, "agent metadata should have correct Version")
+	assert.Equal(t, "v2", spec.AgentPackage.SpecVersion, "agent metadata should have correct Version")
 	assert.Equal(t, common.Ptr("application/json"), spec.AgentPackage.Agents[0].McpServers[0].Env["CONTENT_TYPE"].Value, "agent metadata should have correct Value")
 	assert.Equal(t, common.SpecMcpTypeSecret, spec.AgentPackage.Agents[0].McpServers[0].Env["MCP_API_KEY"].Type, "agent metadata should have correct Type")
 	assert.Equal(t, common.SpecMcpTypeOAuth2Secret, spec.AgentPackage.Agents[0].McpServers[0].Env["MY_OAUTH2_API_KEY"].Type, "agent metadata should have correct Type")
@@ -39,14 +39,14 @@ func TestReadSpecV3(t *testing.T) {
 	assert.Equal(t, "/data", *spec.AgentPackage.Agents[0].McpServers[0].Env["FILE_SYSTEM_ROOT"].Value, "agent metadata should have correct Provider")
 }
 
-func TestWriteSpecV3(t *testing.T) {
+func TestWriteSpecV2_1(t *testing.T) {
 	common.Verbose = true
-	spec, err := cmd.ReadSpec("./fixtures/agent-specs/agent-spec-v3")
+	spec, err := cmd.ReadSpec("./fixtures/agent-specs/agent-spec-v2.1")
 	if err != nil {
 		t.Errorf("error: %+v", err)
 	}
 
-	assert.Equal(t, "v3", spec.AgentPackage.SpecVersion, "agent metadata should have correct Version")
+	assert.Equal(t, "v2", spec.AgentPackage.SpecVersion, "agent metadata should have correct Version")
 	assert.Equal(t, common.Ptr("application/json"), spec.AgentPackage.Agents[0].McpServers[0].Env["CONTENT_TYPE"].Value, "agent metadata should have correct Value")
 	assert.Equal(t, common.SpecMcpTypeSecret, spec.AgentPackage.Agents[0].McpServers[0].Env["MCP_API_KEY"].Type, "agent metadata should have correct Type")
 	assert.Equal(t, common.SpecMcpTypeOAuth2Secret, spec.AgentPackage.Agents[0].McpServers[0].Env["MY_OAUTH2_API_KEY"].Type, "agent metadata should have correct Type")
@@ -56,10 +56,10 @@ func TestWriteSpecV3(t *testing.T) {
 	assert.Equal(t, "/data", *spec.AgentPackage.Agents[0].McpServers[0].Env["FILE_SYSTEM_ROOT"].Value, "agent metadata should have correct Provider")
 }
 
-func TestWriteSpecStringMatchV3(t *testing.T) {
+func TestWriteSpecStringMatchV2_1(t *testing.T) {
 	common.Verbose = true
 
-	spec, err := cmd.ReadSpec("./fixtures/agent-specs/agent-spec-v3")
+	spec, err := cmd.ReadSpec("./fixtures/agent-specs/agent-spec-v2.1")
 	if err != nil {
 		t.Fatalf("failed to read spec: %+v", err)
 	}
@@ -75,7 +75,7 @@ func TestWriteSpecStringMatchV3(t *testing.T) {
 		t.Fatalf("failed to write spec: %+v", err)
 	}
 
-	originalYamlBytes, err := os.ReadFile("./fixtures/agent-specs/agent-spec-v3/expected-agent-spec.yaml")
+	originalYamlBytes, err := os.ReadFile("./fixtures/agent-specs/agent-spec-v2.1/expected-agent-spec.yaml")
 	if err != nil {
 		t.Fatalf("failed to read written YAML: %+v", err)
 	}
@@ -159,7 +159,7 @@ func TestFilterMcpServerSecretValuesFromSpec(t *testing.T) {
 
 	spec := &common.AgentSpec{
 		AgentPackage: common.SpecAgentPackage{
-			SpecVersion: "v3",
+			SpecVersion: "v2",
 			Agents: []common.SpecAgent{
 				{
 					Name: "agent1",
@@ -217,7 +217,7 @@ func TestFilterMcpServerSecretValuesFromSpec(t *testing.T) {
 
 	filtered := cmd.FilterMcpServerSecretValuesFromSpec(spec)
 	assert.NotNil(t, filtered)
-	assert.Equal(t, "v3", filtered.AgentPackage.SpecVersion)
+	assert.Equal(t, "v2", filtered.AgentPackage.SpecVersion)
 	assert.Equal(t, 1, len(filtered.AgentPackage.Agents))
 	agent := filtered.AgentPackage.Agents[0]
 	assert.Equal(t, 1, len(agent.McpServers))
@@ -262,7 +262,7 @@ func TestFilterMcpServerSecretValuesFromSpec(t *testing.T) {
 func TestFilterMcpServerSecretValuesFromSpec_EmptyCases(t *testing.T) {
 	spec := &common.AgentSpec{
 		AgentPackage: common.SpecAgentPackage{
-			SpecVersion: "v3",
+			SpecVersion: "v2",
 			Agents:      []common.SpecAgent{},
 		},
 	}
@@ -272,7 +272,7 @@ func TestFilterMcpServerSecretValuesFromSpec_EmptyCases(t *testing.T) {
 
 	spec2 := &common.AgentSpec{
 		AgentPackage: common.SpecAgentPackage{
-			SpecVersion: "v3",
+			SpecVersion: "v2",
 			Agents: []common.SpecAgent{{
 				Name:       "agent1",
 				McpServers: nil,
@@ -285,7 +285,7 @@ func TestFilterMcpServerSecretValuesFromSpec_EmptyCases(t *testing.T) {
 
 	spec3 := &common.AgentSpec{
 		AgentPackage: common.SpecAgentPackage{
-			SpecVersion: "v3",
+			SpecVersion: "v2",
 			Agents: []common.SpecAgent{{
 				Name:       "agent1",
 				McpServers: []common.SpecMcpServer{{}},
@@ -700,7 +700,7 @@ func TestSpecWriteFiltersQuestionGroupsFromMetadata(t *testing.T) {
 
 	spec := &common.AgentSpec{
 		AgentPackage: common.SpecAgentPackage{
-			SpecVersion: "v3",
+			SpecVersion: "v2",
 			Agents: []common.SpecAgent{
 				{
 					Name:         "agent-with-qg",

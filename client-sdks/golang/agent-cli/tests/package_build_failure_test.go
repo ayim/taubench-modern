@@ -11,7 +11,7 @@ import (
 
 func TestBuildAgentPackage_Success(t *testing.T) {
 	// Setup test directories
-	inputDir := filepath.Join("fixtures", "agent-projects", "a-1.v3.qg")
+	inputDir := filepath.Join("fixtures", "agent-projects", "a-1.v2.1.qg")
 	outputDir := t.TempDir()
 	packageName := "test-package.zip"
 	overwrite := false
@@ -54,7 +54,7 @@ func TestBuildAgentPackage_InvalidInputDir(t *testing.T) {
 
 func TestBuildAgentPackage_ExistingPackageWithoutOverwrite(t *testing.T) {
 	// Setup test directories
-	inputDir := filepath.Join("fixtures", "agent-projects", "a-1.v3.qg")
+	inputDir := filepath.Join("fixtures", "agent-projects", "a-1.v2.1.qg")
 	outputDir := t.TempDir()
 	packageName := "test-package.zip"
 	overwrite := false
@@ -74,7 +74,7 @@ func TestBuildAgentPackage_ExistingPackageWithoutOverwrite(t *testing.T) {
 
 func TestBuildAgentPackage_ExistingPackageWithOverwrite(t *testing.T) {
 	// Setup test directories
-	inputDir := filepath.Join("fixtures", "agent-projects", "a-1.v3.qg")
+	inputDir := filepath.Join("fixtures", "agent-projects", "a-1.v2.1.qg")
 	outputDir := t.TempDir()
 	packageName := "test-package.zip"
 	overwrite := true
@@ -122,7 +122,7 @@ func TestBuildAgentPackage_MissingAgentSpec(t *testing.T) {
 
 func TestBuildAgentPackage_BadActionPackage(t *testing.T) {
 	// Setup test directories
-	inputDir := filepath.Join("fixtures", "agent-projects", "a-1.v3.bad-action")
+	inputDir := filepath.Join("fixtures", "agent-projects", "a-1.v2.1.bad-action")
 	outputDir := t.TempDir()
 	packageName := "test-package.zip"
 	overwrite := false

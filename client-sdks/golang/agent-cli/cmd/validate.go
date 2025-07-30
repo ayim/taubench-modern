@@ -68,9 +68,9 @@ func runValidateCmd(cmd *cobra.Command, args []string) {
 	var err error
 
 	if showSpecFlag {
-		// For show-spec, we'll use SpecV3 as default
+		// For show-spec, we'll use SpecV2_1 as default
 		var spec map[string]interface{}
-		err = json.Unmarshal([]byte(SpecV3), &spec)
+		err = json.Unmarshal([]byte(SpecV2_1), &spec)
 		if err != nil {
 			pretty.Exit(1, "Error: %s", err)
 		}
@@ -165,17 +165,14 @@ func runValidateCmd(cmd *cobra.Command, args []string) {
 		reportErrorAndExit("Error: 'spec-version' should be a string.", specVersionNode.Line-1, specVersionNode.Column-1, specVersionNode.Line, 0)
 	}
 
-	// Check that the specVersion is "v2" or "v3"
-	if specVersionNode.Value != "v2" && specVersionNode.Value != "v3" {
-		reportErrorAndExit(fmt.Sprintf("Error: 'spec-version' must be 'v2' or 'v3'. Found: %s", specVersionNode.Value), specVersionNode.Line-1, specVersionNode.Column-1, specVersionNode.Line, 0)
-	}
-
 	// Load the appropriate spec based on the version
 	var spec map[string]interface{}
-	// If the Spec version is "v2" or "v3", load the latest validated Spec
-	// The latest versions of the Spec should be backwards compatible with the previous versions
-	if specVersionNode.Value == "v2" || specVersionNode.Value == "v3" {
-		err = json.Unmarshal([]byte(SpecV3), &spec)
+	if specVersionNode.Value == "v2" {
+		// Right now we always expect v2.
+		err = json.Unmarshal([]byte(SpecV2_1), &spec)
+	} else {
+		// If unrecognized, we'd default to the latest spec (which is v2.1 for now)
+		err = json.Unmarshal([]byte(SpecV2_1), &spec)
 	}
 	if err != nil {
 		pretty.Exit(1, "Error: %s", err)
@@ -188,6 +185,7 @@ func runValidateCmd(cmd *cobra.Command, args []string) {
 
 	validator := NewValidator(specEntries, agentRootDirOrZip)
 	errors := make(chan Error)
+
 	go validator.Validate(&rootNode, errors, ignoreActionsFlag)
 
 	diagnostics := []map[string]interface{}{}
@@ -227,7 +225,20 @@ func runValidateCmd(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	os.Exit(1)
+	// If we have critical errors, exit with error, otherwise exit with success.
+	exitCode := 0
+	for _, diagnostic := range diagnostics {
+
+		// Severities from language server protocol:
+		// 1: Error
+		// 2: Warning
+		// 3: Information
+		if diagnostic["severity"].(int) == 1 {
+			exitCode = 1
+			break
+		}
+	}
+	os.Exit(exitCode)
 }
 
 func init() {

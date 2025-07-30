@@ -1,3 +1,6 @@
+package cmd
+
+var SpecV2_1 = `
 {
   "agent-package": {
     "description": "Root element for the agent spec",
@@ -7,7 +10,7 @@
   "agent-package/spec-version": {
     "description": "The version of the spec being used. Example: \"v2\"",
     "required": true,
-    "expected-type": "string"
+    "expected-type": "version_v2"
   },
   "agent-package/exclude": {
     "description": "List of files to exclude from the agent package. Example: [\"*.zip\", \"*.pyc\"]",
@@ -377,3 +380,4 @@
     "deprecated": true
   }
 }
+`

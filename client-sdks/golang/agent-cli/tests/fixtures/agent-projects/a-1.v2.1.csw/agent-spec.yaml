@@ -1,5 +1,5 @@
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents:
     - name: a1
       description: a1
@@ -46,9 +46,7 @@ agent-package:
               type: oauth2-secret
               description: Your OAuth2 API key for authentication
               provider: Microsoft
-              scopes:
-                - user.read
-                - user.write
+              scopes: []
             X-API-Version:
               type: string
               description: API version header
@@ -69,14 +67,5 @@ agent-package:
           cwd: '/Users/username/this/is/where/docker/is/'
           force-serial-tool-calls: true
       knowledge: []
-      docker-mcp-gateway:
-        servers:
-          duckduckgo:
-            tools: [] # Optional: whitelist of tools
-          notion:
-            tools: [] # Empty or not specified means all tools are allowed
-          wikipedia-mcp:
-            tools: ["get_article"] # Whitelist of get_article tool
-          kubernetes:
       metadata:
-        mode: conversational
+        mode: conversational 

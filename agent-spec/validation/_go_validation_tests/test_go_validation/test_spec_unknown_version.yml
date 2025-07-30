@@ -4,9 +4,9 @@
   range:
     end:
       character: 0
-      line: 2
+      line: 3
     start:
       character: 16
-      line: 1
+      line: 2
   severity: 2
   source: sema4ai

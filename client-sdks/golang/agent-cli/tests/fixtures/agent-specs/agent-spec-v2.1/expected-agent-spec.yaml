@@ -1,5 +1,5 @@
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents:
   - name: a1
     description: a1

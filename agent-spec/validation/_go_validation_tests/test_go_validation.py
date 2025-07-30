@@ -91,7 +91,7 @@ def no_spec_version(agent_path):
 
 
 def bad_spec_version(agent_path):
-    _update_spec(agent_path, lambda txt: txt.replace("spec-version: v2", "spec-version: 22"))
+    _update_spec(agent_path, lambda txt: txt.replace("spec-version: v2", "spec-version: v44"))
 
 
 def v2_bad_architecture(agent_path):
@@ -294,7 +294,7 @@ def test_agent_spec_analysis(
         scenario,
         data_regression,
         agent_cli,
-        returncode=0 if scenario is ok else 1,
+        returncode=0 if scenario in (ok, bad_spec_version) else 1,
         action_server=action_server,
         check=do_check,
         # check="only_dir",
@@ -401,7 +401,7 @@ def check_with_spec(
 def test_spec_validation_mcp_servers_ok(agent_cli: Path, datadir: Path, data_regression):
     valid_yaml = """
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents:
     - name: Agent1
       description: This is the description
@@ -457,7 +457,7 @@ def test_spec_validation_mcp_servers_missing_required(
 ):
     bad_yaml = """
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents:
     - name: Agent1
       description: This is the description
@@ -496,7 +496,7 @@ def test_spec_validation_mcp_servers_invalid_transport(
 ):
     bad_yaml = """
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents:
     - name: Agent1
       description: This is the description
@@ -533,7 +533,7 @@ def test_spec_validation_mcp_servers_missing_url_for_http(
 ):
     bad_yaml = """
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents:
     - name: Agent1
       description: This is the description
@@ -572,7 +572,7 @@ def test_spec_validation_mcp_servers_missing_command_line_for_stdio(
 ):
     bad_yaml = """
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents:
     - name: Agent1
       description: This is the description
@@ -608,7 +608,7 @@ def test_spec_validation_mcp_servers_invalid_headers_format(
 ):
     bad_yaml = """
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents:
     - name: Agent1
       description: This is the description
@@ -650,7 +650,7 @@ def test_spec_validation_mcp_servers_invalid_command_line_format(
 ):
     bad_yaml = """
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents:
     - name: Agent1
       description: This is the description
@@ -689,7 +689,7 @@ def test_spec_validation_mcp_servers_invalid_env_vars_format(
 ):
     bad_yaml = """
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents:
     - name: Agent1
       description: This is the description
@@ -730,7 +730,7 @@ def test_spec_validation_mcp_servers_invalid_cwd_format(
 ):
     bad_yaml = """
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents:
     - name: Agent1
       description: This is the description
@@ -771,7 +771,7 @@ def test_spec_validation_mcp_servers_invalid_force_serial_tool_calls_format(
 ):
     bad_yaml = """
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents:
     - name: Agent1
       description: This is the description
@@ -812,7 +812,7 @@ def test_spec_validation_mcp_servers_mixed_transport_configurations(
 ):
     bad_yaml = """
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents:
     - name: Agent1
       description: This is the description
@@ -857,7 +857,7 @@ def test_spec_validation_mcp_servers_headers_bad_type(
 ):
     bad_yaml = """
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents:
     - name: Agent1
       description: This is the description
@@ -926,7 +926,7 @@ agent-package:
 def test_spec_validation_bad_oauth2_secret_type(agent_cli: Path, datadir: Path, data_regression):
     bad_yaml = """
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents:
     - name: Agent1
       description: This is the description
@@ -986,7 +986,7 @@ agent-package:
 def test_spec_validation_bad_auto_transport(agent_cli: Path, datadir: Path, data_regression):
     bad_yaml = """
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents:
     - name: Agent1
       description: This is the description
@@ -1020,7 +1020,7 @@ agent-package:
 def test_spec_bad_mcp_gateway(agent_cli: Path, datadir: Path, data_regression):
     bad_yaml = """
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents:
     - name: Agent1
       description: This is the description
@@ -1053,6 +1053,35 @@ agent-package:
         data_regression,
         bad_yaml,
         datadir,
+    )
+
+
+def test_spec_unknown_version(agent_cli: Path, datadir: Path, data_regression):
+    bad_yaml = """
+agent-package:
+  spec-version: v44
+  agents:
+    - name: Agent1
+      description: This is the description
+      version: 0.0.1
+      model:
+        provider: OpenAI
+        name: GPT 4o
+      architecture: plan_execute
+      reasoning: enabled
+      runbook: runbook.md
+      action-packages: []
+      knowledge: []
+      metadata:
+        mode: conversational
+    """
+
+    check_with_spec(
+        agent_cli,
+        data_regression,
+        bad_yaml,
+        datadir,
+        returncode=0,
     )
 
 

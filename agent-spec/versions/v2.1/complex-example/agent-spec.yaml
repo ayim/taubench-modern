@@ -1,5 +1,5 @@
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents:
     - name: Test Agent
       description: Test Agent for tooling. Multiple actions, custom and Sema4.ai, multiple knowledge files, reasoning enabled

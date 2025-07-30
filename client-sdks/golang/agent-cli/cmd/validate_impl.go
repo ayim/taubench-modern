@@ -30,6 +30,7 @@ const (
 	ExpectedTypeEnumMcpServerVarType         ExpectedTypeEnum = "mcp_server_var_type"
 	ExpectedTypeEnumMcpServerTools           ExpectedTypeEnum = "mcp_server_tools"
 	ExpectedTypeEnumMapStringObject          ExpectedTypeEnum = "map[string,object]"
+	ExpectedTypeEnumVersionV2                ExpectedTypeEnum = "version_v2"
 )
 
 func isValidExpectedTypeEnum(et ExpectedTypeEnum) bool {
@@ -55,7 +56,8 @@ func isValidExpectedTypeEnum(et ExpectedTypeEnum) bool {
 		ExpectedTypeEnumMcpServerHeaders,
 		ExpectedTypeEnumMcpServerVarType,
 		ExpectedTypeEnumMapStringObject,
-		ExpectedTypeEnumMcpServerTools:
+		ExpectedTypeEnumMcpServerTools,
+		ExpectedTypeEnumVersionV2:
 		return true
 	default:
 		return false
@@ -274,7 +276,7 @@ func LoadSpec(jsonSpec map[string]interface{}) (map[string]*Entry, error) {
 			}
 			expectedTypeEnum = ExpectedTypeEnum(expectedTypeStr)
 			if !isValidExpectedTypeEnum(expectedTypeEnum) {
-				return nil, fmt.Errorf("invalid spec: %s. Expected type %s is not a valid expected type", path, expectedTypeStr)
+				return nil, fmt.Errorf("invalid spec: %s. Expected type %s is not a valid expected type (expected isValidExpectedTypeEnum to return true)", path, expectedTypeStr)
 			}
 		}
 

@@ -1,0 +1,3 @@
+- 'Expected agent-package/spec-version to be ''v2'' (validation will proceed considering
+  v2 spec, unexpected nodes will be reported as warnings and the related functionality
+  will be disabled). Found: v44'

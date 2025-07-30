@@ -1,5 +1,5 @@
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents:
     - name: Control Room Smoke Test
       description: This agent puts your Control Room setup in to test. It contains all

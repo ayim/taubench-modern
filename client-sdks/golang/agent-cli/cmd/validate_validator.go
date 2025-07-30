@@ -407,6 +407,18 @@ func (v *Validator) verifyYamlMatchesSpec(
 				v.verifyYamlMatchesSpec(childNode, yamlChild, yamlNode, errors)
 			}
 
+		case ExpectedTypeEnumVersionV2:
+			if yamlNode.data.Kind != YamlNodeKindString {
+				errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected %s to be a string (found %s).", specData.Path, yamlNode.data.Kind),
+					yamlNode.data, Critical)
+			} else {
+				version := yamlNode.data.Node.Value
+				if version != "v2" {
+					errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected %s to be 'v2' (validation will proceed considering v2 spec, unexpected nodes will be reported as warnings and the related functionality will be disabled). Found: %s", specData.Path, version),
+						yamlNode.data, Warning)
+				}
+			}
+
 		case ExpectedTypeEnumList:
 			if yamlNode.data.Kind != YamlNodeKindList {
 				errors <- *NewErrorFromYamlNode(fmt.Sprintf("Expected %s to be a list.", specData.Path),

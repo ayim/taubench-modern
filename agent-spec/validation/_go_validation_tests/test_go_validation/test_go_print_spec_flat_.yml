@@ -650,7 +650,7 @@ agent-package/spec-version:
   Description: 'The version of the spec being used. Example: "v2"'
   ExpectedType:
     EnumValues: null
-    ExpectedType: string
+    ExpectedType: version_v2
     RecommendedValues: null
     RelativeTo: ''
   Path: agent-package/spec-version

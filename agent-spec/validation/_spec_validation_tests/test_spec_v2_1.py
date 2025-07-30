@@ -12,8 +12,8 @@ assert os.path.exists(DOCS_DIR), f"Expected docs dir to exist. Found {DOCS_DIR}"
 
 
 @pytest.fixture(scope="session")
-def v3_spec():
-    specs_found = list(DOCS_DIR.glob("**/v3/agent-package-specification-v3.json"))
+def v_2_1_spec():
+    specs_found = list(DOCS_DIR.glob("**/v2.1/agent-package-specification-v2.1.json"))
     assert len(specs_found) == 1, f"Expected exactly one spec file. Found {specs_found}"
 
     json_spec_path = next(iter(specs_found))
@@ -35,12 +35,12 @@ def _gen_action_package_files(datadir: Path):
 
 
 @pytest.mark.usefixtures("_gen_runbook")
-def test_spec_validation_ok(datadir: Path, v3_spec: dict):
+def test_spec_validation_ok(datadir: Path, v_2_1_spec: dict):
     from ._spec_validation import load_spec
 
     valid_yaml = """
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents: # agents node
     - name: Agent1
       description: This is the description
@@ -57,29 +57,29 @@ agent-package:
         mode: conversational
     """
 
-    validate_from_spec(load_spec(v3_spec), valid_yaml, datadir)
+    validate_from_spec(load_spec(v_2_1_spec), valid_yaml, datadir)
 
 
-def test_spec_validation_missing_required(datadir: Path, v3_spec: dict, data_regression):
+def test_spec_validation_missing_required(datadir: Path, v_2_1_spec: dict, data_regression):
     from _spec_validation_tests._spec_validation import load_spec
 
     bad_yaml = """
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents: # Defines the agents available
     - description: This is the description # Description for the agent (any string)
       metadata:
         mode: conversational
     """
 
-    errors = validate_from_spec(load_spec(v3_spec), bad_yaml, datadir, raise_on_error=False)
+    errors = validate_from_spec(load_spec(v_2_1_spec), bad_yaml, datadir, raise_on_error=False)
     assert errors, "Expected errors"
     errors_str = [e.message for e in errors]
     assert "Missing required entry: agent-package/agents/name." in errors_str
     data_regression.check(errors_str)
 
 
-def test_yaml_categorization(datadir: Path, v3_spec: dict, data_regression):
+def test_yaml_categorization(datadir: Path, v_2_1_spec: dict, data_regression):
     import sys
     from contextlib import redirect_stdout
     from io import StringIO
@@ -111,7 +111,7 @@ object:
         Validator.PRINT_YAML_TREE = True
         try:
             _errors = validate_from_spec(
-                load_spec(v3_spec), bad_yaml, datadir, raise_on_error=False
+                load_spec(v_2_1_spec), bad_yaml, datadir, raise_on_error=False
             )
         finally:
             Validator.PRINT_YAML_TREE = False
@@ -119,29 +119,29 @@ object:
     data_regression.check(yaml_tree.splitlines(keepends=False))
 
 
-def test_spec_validation_not_a_list(datadir: Path, v3_spec: dict):
+def test_spec_validation_not_a_list(datadir: Path, v_2_1_spec: dict):
     from _spec_validation_tests._spec_validation import load_spec
 
     bad_yaml = """
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents: # Defines the agents available
     description: This is not a list, just an attribute in an object...
     """
 
-    errors = validate_from_spec(load_spec(v3_spec), bad_yaml, datadir, raise_on_error=False)
+    errors = validate_from_spec(load_spec(v_2_1_spec), bad_yaml, datadir, raise_on_error=False)
     assert errors, "Expected errors"
     errors_str = [e.message for e in errors]
     assert ["Expected agent-package/agents to be a list."] == errors_str
 
 
 @pytest.mark.usefixtures("_gen_runbook")
-def test_spec_validation_not_string(datadir: Path, v3_spec: dict, data_regression):
+def test_spec_validation_not_string(datadir: Path, v_2_1_spec: dict, data_regression):
     from _spec_validation_tests._spec_validation import load_spec
 
     bad_yaml = """
 agent-package: # Root element
-  spec-version: v3 # The version of the spec being used
+  spec-version: v2 # The version of the spec being used
   agents: # Defines the agents available
     - name: Agent1
       description: This is the description # Description for the agent (any string)
@@ -158,19 +158,19 @@ agent-package: # Root element
         mode: conversational
     """
 
-    errors = validate_from_spec(load_spec(v3_spec), bad_yaml, datadir, raise_on_error=False)
+    errors = validate_from_spec(load_spec(v_2_1_spec), bad_yaml, datadir, raise_on_error=False)
     assert errors, "Expected errors"
     errors_str = [e.message for e in errors]
     data_regression.check(errors_str)
 
 
 @pytest.mark.usefixtures("_gen_runbook")
-def test_spec_validation_not_in_enum(datadir: Path, v3_spec: dict, data_regression):
+def test_spec_validation_not_in_enum(datadir: Path, v_2_1_spec: dict, data_regression):
     from _spec_validation_tests._spec_validation import load_spec
 
     bad_yaml = """
 agent-package: # Root element
-  spec-version: v3 # The version of the spec being used
+  spec-version: v2 # The version of the spec being used
   agents: # Defines the agents available
     - name: Agent1
       description: This is the description # Description for the agent (any string)
@@ -187,18 +187,18 @@ agent-package: # Root element
         mode: conversational
     """
 
-    errors = validate_from_spec(load_spec(v3_spec), bad_yaml, datadir, raise_on_error=False)
+    errors = validate_from_spec(load_spec(v_2_1_spec), bad_yaml, datadir, raise_on_error=False)
     assert errors, "Expected errors"
     errors_str = [e.message for e in errors]
     data_regression.check(errors_str)
 
 
-def test_spec_validation_no_file(datadir: Path, v3_spec: dict, data_regression):
+def test_spec_validation_no_file(datadir: Path, v_2_1_spec: dict, data_regression):
     from _spec_validation_tests._spec_validation import load_spec
 
     bad_yaml = """
 agent-package: # Root element
-  spec-version: v3 # The version of the spec being used
+  spec-version: v2 # The version of the spec being used
   agents: # Defines the agents available
     - name: Agent1
       description: This is the description # Description for the agent (any string)
@@ -217,7 +217,7 @@ agent-package: # Root element
         mode: conversational
     """
 
-    errors = validate_from_spec(load_spec(v3_spec), bad_yaml, datadir, raise_on_error=False)
+    errors = validate_from_spec(load_spec(v_2_1_spec), bad_yaml, datadir, raise_on_error=False)
     assert errors, "Expected errors"
     errors_str = [e.message for e in errors]
     data_regression.check(errors_str)
@@ -226,20 +226,20 @@ agent-package: # Root element
     (datadir / "knowledge").mkdir()
     (datadir / "knowledge" / "knowledge-file.txt").write_text("")
 
-    errors = validate_from_spec(load_spec(v3_spec), bad_yaml, datadir, raise_on_error=True)
+    errors = validate_from_spec(load_spec(v_2_1_spec), bad_yaml, datadir, raise_on_error=True)
 
 
 @pytest.mark.usefixtures("_gen_action_package_files", "_gen_runbook")
 def test_spec_validation_multiple_action_packages(
     datadir: Path,
-    v3_spec: dict,
+    v_2_1_spec: dict,
     data_regression,
 ):
     from _spec_validation_tests._spec_validation import load_spec
 
     bad_yaml = r"""
 agent-package: # Root element
-  spec-version: v3 # The version of the spec being used
+  spec-version: v2 # The version of the spec being used
   agents: # Defines the agents available
     - name: Agent1
       description: This is the description # Description for the agent (any string)
@@ -267,19 +267,19 @@ agent-package: # Root element
           path: MyActions/another/my-action
       # Note: no knowledge node (should be ok as it's not marked as required)
     """
-    errors = validate_from_spec(load_spec(v3_spec), bad_yaml, datadir, raise_on_error=False)
+    errors = validate_from_spec(load_spec(v_2_1_spec), bad_yaml, datadir, raise_on_error=False)
     assert errors, "Expected errors"
     errors_str = [e.message for e in errors]
     data_regression.check(errors_str)
 
 
 @pytest.mark.usefixtures("_gen_runbook")
-def test_spec_validation_deprecated(datadir: Path, v3_spec: dict, data_regression):
+def test_spec_validation_deprecated(datadir: Path, v_2_1_spec: dict, data_regression):
     from _spec_validation_tests._spec_validation import load_spec
 
     bad_yaml = """
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents: # agents node
     - name: Agent1
       type: agent # deprecated
@@ -301,7 +301,7 @@ agent-package:
       resources: [] # deprecated
       reasoningLevel: 1 # deprecated
     """
-    errors = validate_from_spec(load_spec(v3_spec), bad_yaml, datadir, raise_on_error=False)
+    errors = validate_from_spec(load_spec(v_2_1_spec), bad_yaml, datadir, raise_on_error=False)
 
     assert errors, "Expected errors"
     errors_str = [e.message for e in errors]
@@ -314,12 +314,12 @@ agent-package:
 
 
 @pytest.mark.usefixtures("_gen_runbook")
-def test_spec_validation_mcp_servers_ok(datadir: Path, v3_spec: dict):
+def test_spec_validation_mcp_servers_ok(datadir: Path, v_2_1_spec: dict):
     from _spec_validation_tests._spec_validation import load_spec
 
     valid_yaml = """
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents:
     - name: Agent1
       description: This is the description
@@ -376,18 +376,18 @@ agent-package:
               description: Your API key for authentication
     """
 
-    validate_from_spec(load_spec(v3_spec), valid_yaml, datadir)
+    validate_from_spec(load_spec(v_2_1_spec), valid_yaml, datadir)
 
 
 @pytest.mark.usefixtures("_gen_runbook")
 def test_spec_validation_mcp_servers_headers_bad_type(
-    datadir: Path, v3_spec: dict, data_regression
+    datadir: Path, v_2_1_spec: dict, data_regression
 ):
     from _spec_validation_tests._spec_validation import load_spec
 
     valid_yaml = """
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents:
     - name: Agent1
       description: This is the description
@@ -444,7 +444,7 @@ agent-package:
               description: Your API key for authentication
     """
 
-    errors = validate_from_spec(load_spec(v3_spec), valid_yaml, datadir, raise_on_error=False)
+    errors = validate_from_spec(load_spec(v_2_1_spec), valid_yaml, datadir, raise_on_error=False)
     assert errors, "Expected errors"
     errors_str = [e.message for e in errors]
     data_regression.check(errors_str)
@@ -452,13 +452,13 @@ agent-package:
 
 @pytest.mark.usefixtures("_gen_runbook")
 def test_spec_validation_mcp_servers_missing_required(
-    datadir: Path, v3_spec: dict, data_regression
+    datadir: Path, v_2_1_spec: dict, data_regression
 ):
     from _spec_validation_tests._spec_validation import load_spec
 
     bad_yaml = """
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents:
     - name: Agent1
       description: This is the description
@@ -484,7 +484,7 @@ agent-package:
           # Missing description (ok as it's not required)
     """
 
-    errors = validate_from_spec(load_spec(v3_spec), bad_yaml, datadir, raise_on_error=False)
+    errors = validate_from_spec(load_spec(v_2_1_spec), bad_yaml, datadir, raise_on_error=False)
     assert errors, "Expected errors"
     errors_str = [e.message for e in errors]
     data_regression.check(errors_str)
@@ -492,13 +492,13 @@ agent-package:
 
 @pytest.mark.usefixtures("_gen_runbook")
 def test_spec_validation_mcp_servers_invalid_transport(
-    datadir: Path, v3_spec: dict, data_regression
+    datadir: Path, v_2_1_spec: dict, data_regression
 ):
     from _spec_validation_tests._spec_validation import load_spec
 
     bad_yaml = """
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents:
     - name: Agent1
       description: This is the description
@@ -522,7 +522,7 @@ agent-package:
           description: MCP Server with another invalid transport
     """
 
-    errors = validate_from_spec(load_spec(v3_spec), bad_yaml, datadir, raise_on_error=False)
+    errors = validate_from_spec(load_spec(v_2_1_spec), bad_yaml, datadir, raise_on_error=False)
     assert errors, "Expected errors"
     errors_str = [e.message for e in errors]
     data_regression.check(errors_str)
@@ -530,13 +530,13 @@ agent-package:
 
 @pytest.mark.usefixtures("_gen_runbook")
 def test_spec_validation_mcp_servers_missing_url_for_http(
-    datadir: Path, v3_spec: dict, data_regression
+    datadir: Path, v_2_1_spec: dict, data_regression
 ):
     from _spec_validation_tests._spec_validation import load_spec
 
     bad_yaml = """
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents:
     - name: Agent1
       description: This is the description
@@ -568,7 +568,7 @@ agent-package:
           description: MCP Server missing URL for SSE
     """
 
-    errors = validate_from_spec(load_spec(v3_spec), bad_yaml, datadir, raise_on_error=False)
+    errors = validate_from_spec(load_spec(v_2_1_spec), bad_yaml, datadir, raise_on_error=False)
     assert errors, "Expected errors"
     errors_str = [e.message for e in errors]
     data_regression.check(errors_str)
@@ -576,13 +576,13 @@ agent-package:
 
 @pytest.mark.usefixtures("_gen_runbook")
 def test_spec_validation_mcp_servers_missing_command_line_for_stdio(
-    datadir: Path, v3_spec: dict, data_regression
+    datadir: Path, v_2_1_spec: dict, data_regression
 ):
     from _spec_validation_tests._spec_validation import load_spec
 
     bad_yaml = """
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents:
     - name: Agent1
       description: This is the description
@@ -605,7 +605,7 @@ agent-package:
           cwd: ./mcp-server/path
     """
 
-    errors = validate_from_spec(load_spec(v3_spec), bad_yaml, datadir, raise_on_error=False)
+    errors = validate_from_spec(load_spec(v_2_1_spec), bad_yaml, datadir, raise_on_error=False)
     assert errors, "Expected errors"
     errors_str = [e.message for e in errors]
     data_regression.check(errors_str)
@@ -613,13 +613,13 @@ agent-package:
 
 @pytest.mark.usefixtures("_gen_runbook")
 def test_spec_validation_mcp_servers_invalid_headers_format(
-    datadir: Path, v3_spec: dict, data_regression
+    datadir: Path, v_2_1_spec: dict, data_regression
 ):
     from _spec_validation_tests._spec_validation import load_spec
 
     bad_yaml = """
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents:
     - name: Agent1
       description: This is the description
@@ -648,7 +648,7 @@ agent-package:
             123: "valid-header"
     """
 
-    errors = validate_from_spec(load_spec(v3_spec), bad_yaml, datadir, raise_on_error=False)
+    errors = validate_from_spec(load_spec(v_2_1_spec), bad_yaml, datadir, raise_on_error=False)
     assert errors, "Expected errors"
     errors_str = [e.message for e in errors]
     data_regression.check(errors_str)
@@ -656,13 +656,13 @@ agent-package:
 
 @pytest.mark.usefixtures("_gen_runbook")
 def test_spec_validation_mcp_servers_invalid_command_line_format(
-    datadir: Path, v3_spec: dict, data_regression
+    datadir: Path, v_2_1_spec: dict, data_regression
 ):
     from _spec_validation_tests._spec_validation import load_spec
 
     bad_yaml = """
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents:
     - name: Agent1
       description: This is the description
@@ -688,7 +688,7 @@ agent-package:
           command-line: [123, "python", "-m", "server"]
     """
 
-    errors = validate_from_spec(load_spec(v3_spec), bad_yaml, datadir, raise_on_error=False)
+    errors = validate_from_spec(load_spec(v_2_1_spec), bad_yaml, datadir, raise_on_error=False)
     assert errors, "Expected errors"
     errors_str = [e.message for e in errors]
     data_regression.check(errors_str)
@@ -696,13 +696,13 @@ agent-package:
 
 @pytest.mark.usefixtures("_gen_runbook")
 def test_spec_validation_mcp_servers_invalid_env_vars_format(
-    datadir: Path, v3_spec: dict, data_regression
+    datadir: Path, v_2_1_spec: dict, data_regression
 ):
     from _spec_validation_tests._spec_validation import load_spec
 
     bad_yaml = """
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents:
     - name: Agent1
       description: This is the description
@@ -730,7 +730,7 @@ agent-package:
           env: {123: "API_KEY"}
     """
 
-    errors = validate_from_spec(load_spec(v3_spec), bad_yaml, datadir, raise_on_error=False)
+    errors = validate_from_spec(load_spec(v_2_1_spec), bad_yaml, datadir, raise_on_error=False)
     assert errors, "Expected errors"
     errors_str = [e.message for e in errors]
     data_regression.check(errors_str)
@@ -738,13 +738,13 @@ agent-package:
 
 @pytest.mark.usefixtures("_gen_runbook")
 def test_spec_validation_mcp_servers_invalid_cwd_format(
-    datadir: Path, v3_spec: dict, data_regression
+    datadir: Path, v_2_1_spec: dict, data_regression
 ):
     from _spec_validation_tests._spec_validation import load_spec
 
     bad_yaml = """
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents:
     - name: Agent1
       description: This is the description
@@ -772,7 +772,7 @@ agent-package:
           cwd: ["./path"]
     """
 
-    errors = validate_from_spec(load_spec(v3_spec), bad_yaml, datadir, raise_on_error=False)
+    errors = validate_from_spec(load_spec(v_2_1_spec), bad_yaml, datadir, raise_on_error=False)
     assert errors, "Expected errors"
     errors_str = [e.message for e in errors]
     data_regression.check(errors_str)
@@ -780,13 +780,13 @@ agent-package:
 
 @pytest.mark.usefixtures("_gen_runbook")
 def test_spec_validation_mcp_servers_invalid_force_serial_tool_calls_format(
-    datadir: Path, v3_spec: dict, data_regression
+    datadir: Path, v_2_1_spec: dict, data_regression
 ):
     from _spec_validation_tests._spec_validation import load_spec
 
     bad_yaml = """
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents:
     - name: Agent1
       description: This is the description
@@ -814,19 +814,19 @@ agent-package:
           force-serial-tool-calls: 123
     """
 
-    errors = validate_from_spec(load_spec(v3_spec), bad_yaml, datadir, raise_on_error=False)
+    errors = validate_from_spec(load_spec(v_2_1_spec), bad_yaml, datadir, raise_on_error=False)
     assert errors, "Expected errors"
     errors_str = [e.message for e in errors]
     data_regression.check(errors_str)
 
 
 @pytest.mark.usefixtures("_gen_runbook")
-def test_spec_validation_bad_oauth2_secret_type(datadir: Path, v3_spec: dict, data_regression):
+def test_spec_validation_bad_oauth2_secret_type(datadir: Path, v_2_1_spec: dict, data_regression):
     from _spec_validation_tests._spec_validation import load_spec
 
     bad_yaml = """
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents:
     - name: Agent1
       description: This is the description
@@ -875,7 +875,7 @@ agent-package:
                 - not-allowed
     """
 
-    errors = validate_from_spec(load_spec(v3_spec), bad_yaml, datadir, raise_on_error=False)
+    errors = validate_from_spec(load_spec(v_2_1_spec), bad_yaml, datadir, raise_on_error=False)
     assert errors, "Expected errors"
     errors_str = [e.message for e in errors]
     data_regression.check(errors_str)
@@ -883,13 +883,13 @@ agent-package:
 
 @pytest.mark.usefixtures("_gen_runbook")
 def test_spec_validation_mcp_servers_unexpected_fields(
-    datadir: Path, v3_spec: dict, data_regression
+    datadir: Path, v_2_1_spec: dict, data_regression
 ):
     from _spec_validation_tests._spec_validation import load_spec
 
     bad_yaml = """
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents:
     - name: Agent1
       description: This is the description
@@ -918,7 +918,7 @@ agent-package:
           invalid_property: "should not exist"
     """
 
-    errors = validate_from_spec(load_spec(v3_spec), bad_yaml, datadir, raise_on_error=False)
+    errors = validate_from_spec(load_spec(v_2_1_spec), bad_yaml, datadir, raise_on_error=False)
     assert errors, "Expected errors"
     errors_str = [e.message for e in errors]
     data_regression.check(errors_str)
@@ -926,13 +926,13 @@ agent-package:
 
 @pytest.mark.usefixtures("_gen_runbook")
 def test_spec_validation_mcp_servers_mixed_transport_configurations(
-    datadir: Path, v3_spec: dict, data_regression
+    datadir: Path, v_2_1_spec: dict, data_regression
 ):
     from _spec_validation_tests._spec_validation import load_spec
 
     bad_yaml = """
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents:
     - name: Agent1
       description: This is the description
@@ -969,19 +969,19 @@ agent-package:
                 - user.write
     """
 
-    errors = validate_from_spec(load_spec(v3_spec), bad_yaml, datadir, raise_on_error=False)
+    errors = validate_from_spec(load_spec(v_2_1_spec), bad_yaml, datadir, raise_on_error=False)
     assert errors, "Expected errors"
     errors_str = [e.message for e in errors]
     data_regression.check(errors_str)
 
 
 @pytest.mark.usefixtures("_gen_runbook")
-def test_spec_bad_conversation_guide(datadir: Path, v3_spec: dict, data_regression):
+def test_spec_bad_conversation_guide(datadir: Path, v_2_1_spec: dict, data_regression):
     from _spec_validation_tests._spec_validation import load_spec
 
     bad_yaml = """
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents:
     - name: Agent1
       description: This is the description
@@ -999,19 +999,19 @@ agent-package:
       conversation-guide: "not-a-file"
     """
 
-    errors = validate_from_spec(load_spec(v3_spec), bad_yaml, datadir, raise_on_error=False)
+    errors = validate_from_spec(load_spec(v_2_1_spec), bad_yaml, datadir, raise_on_error=False)
     assert errors, "Expected errors"
     errors_str = [e.message for e in errors]
     data_regression.check(errors_str)
 
 
 @pytest.mark.usefixtures("_gen_runbook")
-def test_spec_bad_auto_transport(datadir: Path, v3_spec: dict, data_regression):
+def test_spec_bad_auto_transport(datadir: Path, v_2_1_spec: dict, data_regression):
     from _spec_validation_tests._spec_validation import load_spec
 
     bad_yaml = """
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents:
     - name: Agent1
       description: This is the description
@@ -1034,19 +1034,19 @@ agent-package:
           description: MCP Server with auto transport
     """
 
-    errors = validate_from_spec(load_spec(v3_spec), bad_yaml, datadir, raise_on_error=False)
+    errors = validate_from_spec(load_spec(v_2_1_spec), bad_yaml, datadir, raise_on_error=False)
     assert errors, "Expected errors"
     errors_str = [e.message for e in errors]
     data_regression.check(errors_str)
 
 
 @pytest.mark.usefixtures("_gen_runbook")
-def test_spec_bad_mcp_gateway(datadir: Path, v3_spec: dict, data_regression):
+def test_spec_bad_mcp_gateway(datadir: Path, v_2_1_spec: dict, data_regression):
     from _spec_validation_tests._spec_validation import load_spec
 
     bad_yaml = """
 agent-package:
-  spec-version: v3
+  spec-version: v2
   agents:
     - name: Agent1
       description: This is the description
@@ -1074,7 +1074,36 @@ agent-package:
           wrong-too: []
     """
 
-    errors = validate_from_spec(load_spec(v3_spec), bad_yaml, datadir, raise_on_error=False)
+    errors = validate_from_spec(load_spec(v_2_1_spec), bad_yaml, datadir, raise_on_error=False)
+    assert errors, "Expected errors"
+    errors_str = [e.message for e in errors]
+    data_regression.check(errors_str)
+
+
+@pytest.mark.usefixtures("_gen_runbook")
+def test_spec_unknown_version(datadir: Path, v_2_1_spec: dict, data_regression):
+    from _spec_validation_tests._spec_validation import load_spec
+
+    bad_yaml = """
+agent-package:
+  spec-version: v44
+  agents:
+    - name: Agent1
+      description: This is the description
+      version: 0.0.1
+      model:
+        provider: OpenAI
+        name: GPT 4o
+      architecture: plan_execute
+      reasoning: enabled
+      runbook: runbook.md
+      action-packages: []
+      knowledge: []
+      metadata:
+        mode: conversational
+    """
+
+    errors = validate_from_spec(load_spec(v_2_1_spec), bad_yaml, datadir, raise_on_error=False)
     assert errors, "Expected errors"
     errors_str = [e.message for e in errors]
     data_regression.check(errors_str)

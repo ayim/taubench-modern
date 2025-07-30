@@ -265,7 +265,7 @@ func TestGenerateAgentMetadataFromPackageV2_FieldConsistency(t *testing.T) {
 	assert.Equal(t, AgentServer.AgentKind, agent.Architecture, "v2 should have agent architecture")
 	assert.Equal(t, AgentServer.ReasoningDisabled, agent.Reasoning, "v2 should have disabled reasoning")
 
-	// Test that v3 fields are not present in v2
+	// Test that v2.1 fields are not present in v2
 	assert.Empty(t, agent.McpServers, "v2 should not have MCP servers")
 	assert.Empty(t, agent.Knowledge, "v2 should not have knowledge files")
 	assert.Empty(t, agent.Datasources, "v2 should not have datasources")
@@ -280,51 +280,51 @@ func TestGenerateAgentMetadataFromPackageV2_FieldConsistency(t *testing.T) {
 	assert.Len(t, agent.ActionPackages[0].Actions, 5, "v2 action package should have 5 actions")
 }
 
-func TestGenerateAgentMetadataFromPackageV2_V3Comparison(t *testing.T) {
+func TestGenerateAgentMetadataFromPackageV2_V21Comparison(t *testing.T) {
 	common.Verbose = true
 
-	// Generate metadata for both v2 and v3
+	// Generate metadata for both v2 and v2.1
 	v2Metadata, err := cmd.GenerateAgentMetadataFromPackage("./fixtures/agent-packages/a-1.v2.zip")
 	if err != nil {
 		t.Errorf("error generating v2 metadata: %+v", err)
 	}
 
-	v3Metadata, err := cmd.GenerateAgentMetadataFromPackage("./fixtures/agent-packages/a-1.v3.zip")
+	v21Metadata, err := cmd.GenerateAgentMetadataFromPackage("./fixtures/agent-packages/a-1.v2.1.zip")
 	if err != nil {
-		t.Errorf("error generating v3 metadata: %+v", err)
+		t.Errorf("error generating v2.1 metadata: %+v", err)
 	}
 
 	v2Agent := v2Metadata[0]
-	v3Agent := v3Metadata[0]
+	v21Agent := v21Metadata[0]
 
 	// Test that basic fields are the same between v2 and v3
-	assert.Equal(t, v2Agent.Name, v3Agent.Name, "Name should be the same between v2 and v3")
-	assert.Equal(t, v2Agent.Description, v3Agent.Description, "Description should be the same between v2 and v3")
-	assert.Equal(t, v2Agent.Version, v3Agent.Version, "Version should be the same between v2 and v3")
-	assert.Equal(t, v2Agent.Model.Provider, v3Agent.Model.Provider, "Model.Provider should be the same between v2 and v3")
-	assert.Equal(t, v2Agent.Model.Name, v3Agent.Model.Name, "Model.Name should be the same between v2 and v3")
-	assert.Equal(t, v2Agent.Architecture, v3Agent.Architecture, "Architecture should be the same between v2 and v3")
-	assert.Equal(t, v2Agent.Reasoning, v3Agent.Reasoning, "Reasoning should be the same between v2 and v3")
+	assert.Equal(t, v2Agent.Name, v21Agent.Name, "Name should be the same between v2 and v2.1")
+	assert.Equal(t, v2Agent.Description, v21Agent.Description, "Description should be the same between v2 and v2.1")
+	assert.Equal(t, v2Agent.Version, v21Agent.Version, "Version should be the same between v2 and v2.1")
+	assert.Equal(t, v2Agent.Model.Provider, v21Agent.Model.Provider, "Model.Provider should be the same between v2 and v2.1")
+	assert.Equal(t, v2Agent.Model.Name, v21Agent.Model.Name, "Model.Name should be the same between v2 and v2.1")
+	assert.Equal(t, v2Agent.Architecture, v21Agent.Architecture, "Architecture should be the same between v2 and v2.1")
+	assert.Equal(t, v2Agent.Reasoning, v21Agent.Reasoning, "Reasoning should be the same between v2 and v2.1")
 
 	// Test that action packages are the same
-	assert.Equal(t, len(v2Agent.ActionPackages), len(v3Agent.ActionPackages), "ActionPackages count should be the same between v2 and v3")
-	if len(v2Agent.ActionPackages) > 0 && len(v3Agent.ActionPackages) > 0 {
-		assert.Equal(t, v2Agent.ActionPackages[0].Name, v3Agent.ActionPackages[0].Name, "ActionPackage.Name should be the same between v2 and v3")
-		assert.Equal(t, v2Agent.ActionPackages[0].Version, v3Agent.ActionPackages[0].Version, "ActionPackage.Version should be the same between v2 and v3")
-		assert.Equal(t, len(v2Agent.ActionPackages[0].Actions), len(v3Agent.ActionPackages[0].Actions), "ActionPackage.Actions count should be the same between v2 and v3")
+	assert.Equal(t, len(v2Agent.ActionPackages), len(v21Agent.ActionPackages), "ActionPackages count should be the same between v2 and v2.1")
+	if len(v2Agent.ActionPackages) > 0 && len(v21Agent.ActionPackages) > 0 {
+		assert.Equal(t, v2Agent.ActionPackages[0].Name, v21Agent.ActionPackages[0].Name, "ActionPackage.Name should be the same between v2 and v2.1")
+		assert.Equal(t, v2Agent.ActionPackages[0].Version, v21Agent.ActionPackages[0].Version, "ActionPackage.Version should be the same between v2 and v2.1")
+		assert.Equal(t, len(v2Agent.ActionPackages[0].Actions), len(v21Agent.ActionPackages[0].Actions), "ActionPackage.Actions count should be the same between v2 and v2.1")
 	}
 
 	// Test that v3 has additional fields that v2 doesn't have
 	assert.Empty(t, v2Agent.McpServers, "v2 should not have MCP servers")
-	assert.NotEmpty(t, v3Agent.McpServers, "v3 should have MCP servers")
+	assert.NotEmpty(t, v21Agent.McpServers, "v2.1 should have MCP servers")
 
 	// Test that optional fields are empty in both versions when not specified
 	assert.Empty(t, v2Agent.ConversationStarter, "v2 should have empty ConversationStarter")
-	assert.Empty(t, v3Agent.ConversationStarter, "v3 should have empty ConversationStarter when not specified")
+	assert.Empty(t, v21Agent.ConversationStarter, "v2.1 should have empty ConversationStarter when not specified")
 	assert.Empty(t, v2Agent.WelcomeMessage, "v2 should have empty WelcomeMessage")
-	assert.Empty(t, v3Agent.WelcomeMessage, "v3 should have empty WelcomeMessage when not specified")
+	assert.Empty(t, v21Agent.WelcomeMessage, "v2.1 should have empty WelcomeMessage when not specified")
 	assert.Nil(t, v2Agent.QuestionGroups, "v2 should have nil QuestionGroups")
-	assert.Nil(t, v3Agent.QuestionGroups, "v3 should have nil QuestionGroups when not specified")
+	assert.Nil(t, v21Agent.QuestionGroups, "v2.1 should have nil QuestionGroups when not specified")
 }
 
 func TestGenerateAgentMetadataFromPackageV2_ConversationStarterAndWelcomeMessage(t *testing.T) {
@@ -339,9 +339,9 @@ func TestGenerateAgentMetadataFromPackageV2_ConversationStarterAndWelcomeMessage
 	assert.Equal(t, "", metadata[0].WelcomeMessage, "v2 package metadata should have empty WelcomeMessage")
 }
 
-// ==== V3 TESTS ====
+// ==== V2.1 TESTS ====
 
-func assertV3Metadata(t *testing.T, metadata []*common.AgentPackageMetadata) {
+func assertV21Metadata(t *testing.T, metadata []*common.AgentPackageMetadata) {
 	assert.Equal(t, "0.0.1", metadata[0].Version, "agent metadata should have correct Version")
 	assert.Equal(t, 4, len(metadata[0].McpServers), "agent metadata should have correct McpServers")
 	mcpServerNames := []string{"file-system-server", "database-server", "database-server-no-heads", "file-system-server-no-env"}
@@ -432,19 +432,19 @@ func assertV3Metadata(t *testing.T, metadata []*common.AgentPackageMetadata) {
 	}
 }
 
-func TestGenerateAgentMetadataFromPackageV3(t *testing.T) {
+func TestGenerateAgentMetadataFromPackageV21(t *testing.T) {
 	common.Verbose = true
-	metadata, err := cmd.GenerateAgentMetadataFromPackage("./fixtures/agent-packages/a-1.v3.zip")
+	metadata, err := cmd.GenerateAgentMetadataFromPackage("./fixtures/agent-packages/a-1.v2.1.zip")
 	if err != nil {
 		t.Errorf("error: %+v", err)
 	}
 
-	assertV3Metadata(t, metadata)
+	assertV21Metadata(t, metadata)
 }
 
-func TestGenerateAgentMetadataFromProjectV3QG(t *testing.T) {
+func TestGenerateAgentMetadataFromProjectV21QG(t *testing.T) {
 	common.Verbose = true
-	metadata, err := cmd.GenerateAgentMetadataFromProject("./fixtures/agent-projects/a-1.v3.qg")
+	metadata, err := cmd.GenerateAgentMetadataFromProject("./fixtures/agent-projects/a-1.v2.1.qg")
 	if err != nil {
 		t.Errorf("error: %+v", err)
 	}
@@ -464,9 +464,9 @@ func TestGenerateAgentMetadataFromProjectV3QG(t *testing.T) {
 	}
 }
 
-func TestGenerateAgentMetadataFromProjectV3CSW(t *testing.T) {
+func TestGenerateAgentMetadataFromProjectV21CSW(t *testing.T) {
 	common.Verbose = true
-	metadata, err := cmd.GenerateAgentMetadataFromProject("./fixtures/agent-projects/a-1.v3.csw")
+	metadata, err := cmd.GenerateAgentMetadataFromProject("./fixtures/agent-projects/a-1.v2.1.csw")
 	if err != nil {
 		t.Errorf("error: %+v", err)
 	}
@@ -503,9 +503,9 @@ func TestGenerateAgentMetadataFromProjectV3CSW(t *testing.T) {
 	}
 }
 
-func TestGenerateAgentMetadataFromProjectV3CSW_EmptyFields(t *testing.T) {
+func TestGenerateAgentMetadataFromProjectV21CSW_EmptyFields(t *testing.T) {
 	common.Verbose = true
-	metadata, err := cmd.GenerateAgentMetadataFromProject("./fixtures/agent-projects/a-1.v3.qg")
+	metadata, err := cmd.GenerateAgentMetadataFromProject("./fixtures/agent-projects/a-1.v2.1.qg")
 	if err != nil {
 		t.Errorf("error: %+v", err)
 	}
@@ -520,9 +520,9 @@ func TestGenerateAgentMetadataFromProjectV3CSW_EmptyFields(t *testing.T) {
 	}
 }
 
-func TestGenerateAgentMetadataFromPackageV3_ConversationStarterAndWelcomeMessage(t *testing.T) {
+func TestGenerateAgentMetadataFromPackageV21_ConversationStarterAndWelcomeMessage(t *testing.T) {
 	common.Verbose = true
-	metadata, err := cmd.GenerateAgentMetadataFromPackage("./fixtures/agent-packages/a-1.v3.zip")
+	metadata, err := cmd.GenerateAgentMetadataFromPackage("./fixtures/agent-packages/a-1.v2.1.zip")
 	if err != nil {
 		t.Errorf("error: %+v", err)
 	}
@@ -535,7 +535,7 @@ func TestGenerateAgentMetadataFromPackageV3_ConversationStarterAndWelcomeMessage
 
 func TestQuestionGroupsConsistency(t *testing.T) {
 	common.Verbose = true
-	metadata, err := cmd.GenerateAgentMetadataFromProject("./fixtures/agent-projects/a-1.v3.csw")
+	metadata, err := cmd.GenerateAgentMetadataFromProject("./fixtures/agent-projects/a-1.v2.1.csw")
 	if err != nil {
 		t.Errorf("error: %+v", err)
 	}
@@ -546,7 +546,7 @@ func TestQuestionGroupsConsistency(t *testing.T) {
 
 func TestConversationStarterAndWelcomeMessageTypes(t *testing.T) {
 	common.Verbose = true
-	metadata, err := cmd.GenerateAgentMetadataFromProject("./fixtures/agent-projects/a-1.v3.csw")
+	metadata, err := cmd.GenerateAgentMetadataFromProject("./fixtures/agent-projects/a-1.v2.1.csw")
 	if err != nil {
 		t.Errorf("error: %+v", err)
 	}
@@ -560,11 +560,11 @@ func TestConversationStarterAndWelcomeMessageTypes(t *testing.T) {
 	assert.NotEmpty(t, metadata[0].WelcomeMessage, "WelcomeMessage should not be empty when specified")
 }
 
-// ==== V3 PACKAGE TESTS WITH CONVERSATION GROUPS ====
+// ==== V2.1 PACKAGE TESTS WITH CONVERSATION GROUPS ====
 
-func TestGenerateAgentMetadataFromPackageV3CG(t *testing.T) {
+func TestGenerateAgentMetadataFromPackageV21CG(t *testing.T) {
 	common.Verbose = true
-	metadata, err := cmd.GenerateAgentMetadataFromPackage("./fixtures/agent-packages/a-1.v3.cg.zip")
+	metadata, err := cmd.GenerateAgentMetadataFromPackage("./fixtures/agent-packages/a-1.v2.1.cg.zip")
 	if err != nil {
 		t.Errorf("error: %+v", err)
 	}
@@ -599,12 +599,12 @@ func TestGenerateAgentMetadataFromPackageV3CG(t *testing.T) {
 	}
 
 	// Test MCP servers (should be the same as regular v3)
-	assertV3Metadata(t, metadata)
+	assertV21Metadata(t, metadata)
 }
 
-func TestGenerateAgentMetadataFromPackageV3CGWM(t *testing.T) {
+func TestGenerateAgentMetadataFromPackageV21CGWM(t *testing.T) {
 	common.Verbose = true
-	metadata, err := cmd.GenerateAgentMetadataFromPackage("./fixtures/agent-packages/a-1.v3.cg.wm.zip")
+	metadata, err := cmd.GenerateAgentMetadataFromPackage("./fixtures/agent-packages/a-1.v2.1.cg.wm.zip")
 	if err != nil {
 		t.Errorf("error: %+v", err)
 	}
@@ -641,14 +641,14 @@ func TestGenerateAgentMetadataFromPackageV3CGWM(t *testing.T) {
 	}
 
 	// Test MCP servers (should be the same as regular v3)
-	assertV3Metadata(t, metadata)
+	assertV21Metadata(t, metadata)
 }
 
-// ==== V3 PACKAGE TESTS WITH DOCKER MCP GATEWAY ====
+// ==== V2.1 PACKAGE TESTS WITH DOCKER MCP GATEWAY ====
 
-func TestGenerateAgentMetadataFromPackageV3DockerMcpGateway(t *testing.T) {
+func TestGenerateAgentMetadataFromPackageV21DockerMcpGateway(t *testing.T) {
 	common.Verbose = true
-	metadata, err := cmd.GenerateAgentMetadataFromProject("./fixtures/agent-projects/a-1.v3.docker")
+	metadata, err := cmd.GenerateAgentMetadataFromProject("./fixtures/agent-projects/a-1.v2.1.docker")
 	if err != nil {
 		t.Errorf("error: %+v", err)
 	}
