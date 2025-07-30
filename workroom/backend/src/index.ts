@@ -19,7 +19,7 @@ const main = async () => {
   const monitoring = createMonitoringContext();
 
   const app = await createApplication({ configuration, monitoring });
-  await app.serve();
+  await app.start();
 
   process.on('warning', (warning) => {
     monitoring.logger.info('Node warning', { error: warning });

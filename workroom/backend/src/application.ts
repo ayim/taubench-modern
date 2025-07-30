@@ -1,7 +1,7 @@
 import http from 'node:http';
 import { resolve } from 'node:path';
 import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
-import express, { type NextFunction, type Request, type Response } from 'express';
+import express, { type Application, type NextFunction, type Request, type Response } from 'express';
 import createRouter from 'express-promise-router';
 import type { Configuration } from './configuration.js';
 import { createGetAgentMeta, createProxyToAgentServer } from './handlers/agents.js';
@@ -21,7 +21,9 @@ export const createApplication = async ({
   configuration: Configuration;
   monitoring: MonitoringContext;
 }): Promise<{
-  serve: () => Promise<void>;
+  app: Application;
+  start: () => Promise<void>;
+  stop: () => Promise<void>;
 }> => {
   monitoring.logger.info('Configuring application', {
     authMode: configuration.auth.type,
@@ -183,7 +185,9 @@ export const createApplication = async ({
   });
 
   return {
-    serve: async () => {
+    app,
+
+    start: async () => {
       monitoring.logger.info('Starting server', {
         port: configuration.port,
       });
@@ -193,6 +197,24 @@ export const createApplication = async ({
           monitoring.logger.info('Server listening', {
             port: configuration.port,
           });
+
+          resolve();
+        });
+      });
+    },
+
+    stop: async () => {
+      await new Promise<void>((resolve, reject) => {
+        server.close((err?: Error) => {
+          if (err) {
+            monitoring.logger.error('Server shutdown failed', {
+              error: err,
+            });
+
+            return reject(err);
+          }
+
+          monitoring.logger.info('Server shutdown complete');
 
           resolve();
         });

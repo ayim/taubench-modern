@@ -12,15 +12,19 @@ ENV VITE_DEPLOYMENT_TYPE=$VITE_DEPLOYMENT_TYPE
 ENV VITE_DEV_WORKROOM_TENANT_LIST_URL=$VITE_DEV_WORKROOM_TENANT_LIST_URL
 ENV VITE_DEV_SERVER_PORT=$VITE_DEV_SERVER_PORT
 
+ENV NODE_ENV=production
+
 WORKDIR /app
 
 COPY frontend frontend
 COPY backend backend
 COPY package*.json vite.config.ts tailwind.config.js postcss.config.js ./
 
-RUN --mount=type=secret,id=npmrc,dst=/app/.npmrc npm ci
-RUN npm run build && \
-    sed -i -e "s/ACE_WORKROOM_VERSION_PLACEHOLDER/${ACE_SERVICE_VERSION}/g" frontend/dist/assets/index-*.js
+RUN --mount=type=secret,id=npmrc,dst=/app/.npmrc npm ci --include=dev && \
+    npm run build && \
+    npm prune --production
+
+RUN sed -i -e "s/ACE_WORKROOM_VERSION_PLACEHOLDER/${ACE_SERVICE_VERSION}/g" frontend/dist/assets/index-*.js
 
 #region Final
 FROM node:24-alpine
