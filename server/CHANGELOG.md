@@ -1,3 +1,8 @@
+# Sema4.ai Agent Server 2.0.24 (2025-07-30)
+
+- Add key identifier for static key encryption keys (KEK) to
+  enable graceful key rotation and migrations.
+
 # Sema4.ai Agent Server 2.0.23 (2025-07-28)
 
 - Enhance the prompt for the work-items judge.
