@@ -32,6 +32,17 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Install MCP Gateway
+        run: |
+          git clone https://github.com/docker/mcp-gateway.git
+          cd mcp-gateway
+          mkdir -p "$HOME/.docker/cli-plugins/"
+          make docker-mcp
+
+      - name: Sanity check for MCP Gateway
+        run: |
+          docker mcp --help
+
       - name: Determine Agent Server version when input is blank
         if: env.AGENT_SERVER_VERSION == ''
         run: |
