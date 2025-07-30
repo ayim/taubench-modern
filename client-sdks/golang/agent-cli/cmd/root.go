@@ -45,5 +45,5 @@ func Execute() {
 
 func init() {
 	rootCmd.Flags().BoolVarP(&versionFlag, "version", "v", false, "Show version and exit.")
-	rootCmd.PersistentFlags().BoolVarP(&common.Verbose, "verbose", "p", false, "Set the verbose quality")
+	rootCmd.PersistentFlags().BoolVarP(&common.Verbose, "verbose", "V", false, "Set the verbose quality")
 }

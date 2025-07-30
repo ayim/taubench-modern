@@ -29,6 +29,7 @@ type SpecState struct {
 	assistantKnowledge          map[string][]common.SpecAgentKnowledge
 	assistantActionPackages     map[string][]common.SpecAgentActionPackage
 	assistantMcpServer          map[string][]common.SpecMcpServer
+	AssistantDockerMcpGateway   map[string]*common.SpecDockerMcpGateway
 	assistantRunbooks           map[string]string
 	AssistantConversationGuides map[string]string
 }
@@ -45,16 +46,61 @@ func safeAgentString(agent *AgentServer.Agent) string {
 	if agent == nil {
 		return "<nil>"
 	}
-	return fmt.Sprintf("{ID: %s, Name: %s, Version: %s, NumFiles: %d, NumActions: %d}",
+	return fmt.Sprintf("{ID: %s, Name: %s, Version: %s, NumFiles: %d, NumActions: %d, NumMcpServers: %d}",
 		agent.ID,
 		agent.Name,
 		agent.Version,
 		len(agent.Files),
-		len(agent.ActionPackages))
+		len(agent.ActionPackages),
+		len(agent.McpServers),
+	)
 }
 
-func (state *SpecState) specForAgent(assistant AgentServer.Agent) common.SpecAgent {
+func (state *SpecState) MergeDockerMcpGateway(originalSpec *common.AgentSpec, assistantAgent AgentServer.Agent) *common.SpecDockerMcpGateway {
+	var mergedGateway *common.SpecDockerMcpGateway
+
+	// If the assistant's DockerMcpGateway is nil, return nil
+	if state.AssistantDockerMcpGateway[assistantAgent.ID] == nil {
+		return nil
+	}
+
+	// If the original spec is provided, use it to merge the DockerMcpGateway
+	if originalSpec != nil {
+		for _, originalAgent := range originalSpec.AgentPackage.Agents {
+			if originalAgent.Name == assistantAgent.Name && originalAgent.DockerMcpGateway != nil {
+				mergedGateway = originalAgent.DockerMcpGateway
+
+				assistantDockerMcpGateway := state.AssistantDockerMcpGateway[assistantAgent.ID]
+				if assistantDockerMcpGateway != nil {
+					for name, assistantServer := range assistantDockerMcpGateway.Servers {
+						if mergedGateway.Servers == nil {
+							mergedGateway.Servers = make(map[string]common.SpecDockerMcpServer)
+						}
+						if _, ok := mergedGateway.Servers[name]; !ok {
+							mergedGateway.Servers[name] = assistantServer
+						}
+					}
+				}
+			}
+		}
+	} else {
+		return state.AssistantDockerMcpGateway[assistantAgent.ID]
+	}
+
+	// If we haven't set anything, use the assistant's DockerMcpGateway
+	if mergedGateway == nil {
+		return state.AssistantDockerMcpGateway[assistantAgent.ID]
+	}
+	return mergedGateway
+}
+
+func (state *SpecState) specForAgent(assistant AgentServer.Agent, projectPath string) common.SpecAgent {
 	metadata := assistant.Metadata
+
+	var originalSpec *common.AgentSpec
+	// If the spec read fails, for whatever reason, we ignore the original spec
+	originalSpec, _ = ReadSpec(projectPath)
+	mergedDockerMcpGateway := state.MergeDockerMcpGateway(originalSpec, assistant)
 
 	// Ensuring WorkerConfig is not included in the spec if the agent type is "conversational".
 	if metadata.Mode == "conversational" {
@@ -88,21 +134,22 @@ func (state *SpecState) specForAgent(assistant AgentServer.Agent) common.SpecAge
 			}
 			return assistant.Metadata.WelcomeMessage
 		}(),
-		ActionPackages: state.assistantActionPackages[assistant.ID],
-		McpServers:     state.assistantMcpServer[assistant.ID],
-		Knowledge:      state.assistantKnowledge[assistant.ID],
-		Metadata:       metadata,
+		ActionPackages:   state.assistantActionPackages[assistant.ID],
+		McpServers:       state.assistantMcpServer[assistant.ID],
+		DockerMcpGateway: mergedDockerMcpGateway,
+		Knowledge:        state.assistantKnowledge[assistant.ID],
+		Metadata:         metadata,
 	}
 }
 
 func (state *SpecState) createSpecFile(assistants []AgentServer.Agent, projectPath string) error {
 	agents := []common.SpecAgent{}
 	for _, assistant := range assistants {
-		agents = append(agents, state.specForAgent(assistant))
+		agents = append(agents, state.specForAgent(assistant, projectPath))
 	}
 
 	agentPackage := common.SpecAgentPackage{
-		SpecVersion: "v3",
+		SpecVersion: "v2",
 		Agents:      agents,
 		Exclude: []string{
 			"./.git/**",
@@ -459,6 +506,22 @@ func (state *SpecState) createMcpServers(assistants []AgentServer.Agent) error {
 				cwd = *mcpServer.Cwd
 			}
 
+			// make sure that the command line is not empty and that the transport is stdio : prealbe for docker mcp gateway
+			if len(commandLine) > 2 && mcpServer.Transport == AgentServer.MCPTransportStdio {
+				isDockerMcpGateway := common.IsDockerMcpGateway(&common.AgentPackageMcpServer{Command: commandLine[0], Arguments: commandLine[1:]})
+				pretty.LogIfVerbose("[createMcpServers] is docker mcp gateway: %+v", isDockerMcpGateway)
+				if isDockerMcpGateway {
+					// There is no catalog path for the Agent payload, so we use nil
+					dockerMcpGatewaySpec, err := common.ExtractDockerMcpGatewayToSpec(nil)
+					if err != nil {
+						return fmt.Errorf("[createMcpServers] failed to extract docker mcp gateway: %w", err)
+					}
+					state.AssistantDockerMcpGateway = make(map[string]*common.SpecDockerMcpGateway)
+					state.AssistantDockerMcpGateway[assistant.ID] = dockerMcpGatewaySpec
+					continue
+				}
+			}
+
 			mcpServers = append(mcpServers, common.SpecMcpServer{
 				Name:                 mcpServer.Name,
 				Transport:            mcpServer.Transport,
@@ -497,6 +560,7 @@ func createAgentProject(assistants []AgentServer.Agent, projectPath string) erro
 		assistantKnowledge:          map[string][]common.SpecAgentKnowledge{},
 		assistantActionPackages:     map[string][]common.SpecAgentActionPackage{},
 		assistantMcpServer:          map[string][]common.SpecMcpServer{},
+		AssistantDockerMcpGateway:   map[string]*common.SpecDockerMcpGateway{},
 		assistantRunbooks:           map[string]string{},
 		AssistantConversationGuides: map[string]string{},
 	}

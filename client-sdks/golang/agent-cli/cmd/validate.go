@@ -172,9 +172,9 @@ func runValidateCmd(cmd *cobra.Command, args []string) {
 
 	// Load the appropriate spec based on the version
 	var spec map[string]interface{}
-	if specVersionNode.Value == "v2" {
-		err = json.Unmarshal([]byte(SpecV2), &spec)
-	} else {
+	// If the Spec version is "v2" or "v3", load the latest validated Spec
+	// The latest versions of the Spec should be backwards compatible with the previous versions
+	if specVersionNode.Value == "v2" || specVersionNode.Value == "v3" {
 		err = json.Unmarshal([]byte(SpecV3), &spec)
 	}
 	if err != nil {

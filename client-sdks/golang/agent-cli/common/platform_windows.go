@@ -10,7 +10,8 @@ import (
 )
 
 const (
-	defaultHomeLocation = "%LOCALAPPDATA%\\sema4ai"
+	defaultHomeLocation           = "%LOCALAPPDATA%\\sema4ai"
+	defaultDockerRegistryLocation = "%USERPROFILE%\\.docker\\mcp\\registry.yaml"
 )
 
 var (

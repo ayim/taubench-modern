@@ -21,7 +21,7 @@
 ./dist/agent-cli agent update --agent-server-url http://127.0.0.1:58885 --deploy --payloadPath "./tests/fixtures/agent-payloads/mcp.payload.real.secret.conv.json" --path "/Users/user/sema4ai-agents/q3" --verbose
 ./dist/agent-cli agent update --agent-server-url http://127.0.0.1:58885 --deploy --payloadPath "./tests/fixtures/agent-payloads/mcp.payload.real.welcome.json" --path "/Users/user/sema4ai-agents/q3" --verbose
 ./dist/agent-cli agent update --agent-server-url http://127.0.0.1:58885 --deploy --payloadPath "./tests/fixtures/agent-payloads/mcp.payload.real.welcome.cg.json" --path "/Users/user/sema4ai-agents/q3" --verbose
-# AGENT > UPDATE FULL   
+# AGENT > UPDATE FULL
 ./dist/agent-cli agent update --agent-server-url http://127.0.0.1:58885 --deploy --payloadPath "./tests/fixtures/agent-payloads/mcp.payload.full.json" --path "/Users/user/sema4ai-agents/q3" --verbose
 
 # PROJECT > LIST

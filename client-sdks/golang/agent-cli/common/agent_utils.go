@@ -116,11 +116,46 @@ func AreMcpServersEqual(local []SpecMcpServer, deployed []AgentServer.McpServer)
 	})
 }
 
+// IsSpecDockerMcpGateway checks if the given SpecMcpServer is a docker MCP gateway entry.
+func IsSpecDockerMcpGateway(mcp *SpecMcpServer) bool {
+	if mcp == nil {
+		return false
+	}
+	if mcp.CommandLine == nil {
+		return false
+	}
+	if len(mcp.CommandLine) != 4 {
+		return false
+	}
+	return mcp.CommandLine[0] == "docker" &&
+		mcp.CommandLine[1] == "mcp" &&
+		mcp.CommandLine[2] == "gateway" &&
+		mcp.CommandLine[3] == "run"
+}
+
+// IsAgentDockerMcpGateway checks if the given AgentServer.McpServer is a docker MCP gateway entry.
+func IsAgentDockerMcpGateway(mcp *AgentServer.McpServer) bool {
+	if mcp == nil {
+		return false
+	}
+	if mcp.Command == nil {
+		return false
+	}
+	if len(mcp.Args) != 3 {
+		return false
+	}
+	return *mcp.Command == "docker" &&
+		mcp.Args[0] == "mcp" &&
+		mcp.Args[1] == "gateway" &&
+		mcp.Args[2] == "run"
+}
+
 // isMcpServerEqual compares a SpecMcpServer and AgentServer.McpServer deeply
 func isMcpServerEqual(local *SpecMcpServer, deployed *AgentServer.McpServer) bool {
 	if local.Name != deployed.Name {
 		return false
 	}
+
 	// If the transport is auto, we consider it as equal to the other transport.
 	if string(local.Transport) != string(deployed.Transport) && local.Transport != "auto" && deployed.Transport != "auto" {
 		return false

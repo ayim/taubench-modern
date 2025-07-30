@@ -491,6 +491,7 @@ func GenerateAgentMetadataFromProject(agentProjectPath string) ([]*common.AgentP
 			Datasources:         []common.AgentPackageDatasource{},
 			ActionPackages:      []common.AgentPackageActionPackageMetadata{},
 			McpServers:          []common.AgentPackageMcpServer{},
+			DockerMcpGateway:    nil,
 			Metadata:            agent.Metadata,
 		}
 
@@ -541,6 +542,12 @@ func GenerateAgentMetadataFromProject(agentProjectPath string) ([]*common.AgentP
 				return nil, err
 			}
 			metadata.McpServers = append(metadata.McpServers, *mcpServerMeta)
+		}
+
+		if agent.DockerMcpGateway != nil {
+			pretty.LogIfVerbose("[generateAgentMetadataFromProject] extracting docker mcp gateway...")
+			metadata.DockerMcpGateway, _ = common.ToAgentPackageDockerMcpGateway(agent.DockerMcpGateway)
+			metadata.DockerMcpGatewayChanges, _ = common.CheckDockerRegistryDifferences(agent.DockerMcpGateway, agentProjectPath)
 		}
 
 		pretty.LogIfVerbose("[generateAgentMetadataFromProject] extracting knowledge files...")
@@ -603,11 +610,23 @@ var metadataCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		if agentPackagePath == "" && agentProjectPath == "" {
+			return fmt.Errorf("either --package or --project must be set")
+		}
 
-		pretty.LogIfVerbose("[metadataCmd] generating metadata...")
-		metadata, err := GenerateAgentMetadataFromPackage(agentPackagePath)
-		if err != nil {
-			return err
+		var metadata []*common.AgentPackageMetadata
+		if agentPackagePath != "" {
+			pretty.LogIfVerbose("[metadataCmd] generating metadata from package...")
+			metadata, err = GenerateAgentMetadataFromPackage(agentPackagePath)
+			if err != nil {
+				return err
+			}
+		} else if agentProjectPath != "" {
+			pretty.LogIfVerbose("[metadataCmd] generating metadata from project...")
+			metadata, err = GenerateAgentMetadataFromProject(agentProjectPath)
+			if err != nil {
+				return err
+			}
 		}
 
 		metadataJson, err := json.Marshal(metadata)
@@ -640,7 +659,13 @@ func init() {
 	metadataCmd.Flags().StringVar(
 		&agentPackagePath,
 		"package",
-		common.AGENT_PACKAGE_DEFAULT_NAME,
-		"The path to the .zip file that needs inspecting and metadata generating",
+		"",
+		"The path to the .zip file that needs inspecting and metadata generating (mutually exclusive with --project)",
+	)
+	metadataCmd.Flags().StringVar(
+		&agentProjectPath,
+		"project",
+		"",
+		"The path to the agent project that needs inspecting and metadata generating (mutually exclusive with --package)",
 	)
 }

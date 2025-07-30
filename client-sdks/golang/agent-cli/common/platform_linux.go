@@ -9,7 +9,8 @@ import (
 )
 
 const (
-	defaultHomeLocation = "$HOME/.sema4ai"
+	defaultHomeLocation     = "$HOME/.sema4ai"
+	defaultDockerRegistryLocation = "$HOME/.docker/mcp/registry.yaml"
 )
 
 func ExpandPath(entry string) string {

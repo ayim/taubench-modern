@@ -1,0 +1,10 @@
+# Conversation Guide for the agent
+question-groups:
+  - title: "Getting Started"
+    questions:
+      - "What can you do?"
+      - "How do I use this agent?"
+  - title: "Advanced Usage"
+    questions:
+      - "How do I connect to a database?"
+      - "Can you automate file management?" 

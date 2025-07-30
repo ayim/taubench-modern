@@ -429,6 +429,16 @@ clean:  ## Remove build/dist artifacts
 	@rm -rf dist
 	@rm -rf *.egg-info
 	@rm -rf workroom/**/dist
+	@echo "Clean complete!"
+
+force-clean: clean ## Force remove build/dist artifacts (use with caution)
+	@echo "Force cleaning temp database..."
+	@rm -rf uploads/
+	@rm -rf agent-server.lock
+	@rm -rf agent-server.log
+	@rm -rf agent-server.pid
+	@rm -rf agentserver.db
+	@echo "Force clean complete!"
 
 # --------------------------------------------------------------------
 # Workitems

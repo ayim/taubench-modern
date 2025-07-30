@@ -12,14 +12,19 @@ import (
 type AgentChanges []string
 type ActionPackagesChanges []string
 
+// DockerMcpGatewayChanges is a list of changes to the Docker MCP Gateway configuration
+// Convention: server.serverName or server.serverName.tools.toolName
+type DockerMcpGatewayChanges []string
+
 type AgentProject struct {
-	Path                  string                `json:"path"`
-	AgentID               string                `json:"agentId"`
-	Agent                 SpecAgent             `json:"agent"`
-	Synced                bool                  `json:"synced"`
-	AgentChanges          AgentChanges          `json:"agentChanges"`
-	ActionPackagesChanges ActionPackagesChanges `json:"actionPackagesChanges"`
-	Exclude               []string              `json:"exclude"`
+	Path                    string                  `json:"path"`
+	AgentID                 string                  `json:"agentId"`
+	Agent                   SpecAgent               `json:"agent"`
+	Synced                  bool                    `json:"synced"`
+	AgentChanges            AgentChanges            `json:"agentChanges"`
+	ActionPackagesChanges   ActionPackagesChanges   `json:"actionPackagesChanges"`
+	DockerMcpGatewayChanges DockerMcpGatewayChanges `json:"dockerMcpGatewayChanges"`
+	Exclude                 []string                `json:"exclude"`
 }
 
 var PATTERNS_EXCLUDED_FROM_SYNCHRONIZATION = []string{"**/__action_server_metadata__.json", "**/devdata/**", "**/__pycache__/**"}
@@ -150,6 +155,19 @@ func (ap *AgentProject) GetNotSynchronizedActionPackages(deployedAgent *AgentSer
 	return notSynchronizedActionPackages.items, nil
 }
 
+// CheckDockerRegistryDifferences compares the Docker MCP Gateway configuration in the Agent Project
+// with the configuration in the deployed agent (from the Docker registry) and returns a list of differences.
+func (ap *AgentProject) CheckDockerRegistryDifferences() (DockerMcpGatewayChanges, error) {
+	var differences DockerMcpGatewayChanges
+
+	differences, err := CheckDockerRegistryDifferences(ap.Agent.DockerMcpGateway, ap.Path)
+	if err != nil {
+		return nil, err
+	}
+
+	return differences, nil
+}
+
 func (ap *AgentProject) ApplySynchronizationStatus(deployedAgent *AgentServer.Agent) error {
 	isEqual, agentChanges := ap.Agent.IsEqual(ap, deployedAgent)
 	notSynchronizedActionPackages, err := ap.GetNotSynchronizedActionPackages(deployedAgent)
@@ -157,8 +175,14 @@ func (ap *AgentProject) ApplySynchronizationStatus(deployedAgent *AgentServer.Ag
 		return err
 	}
 
+	dockerMcpGatewayServersChanges, err := ap.CheckDockerRegistryDifferences()
+	if err != nil {
+		return err
+	}
+
 	ap.AgentChanges = agentChanges
 	ap.ActionPackagesChanges = notSynchronizedActionPackages
+	ap.DockerMcpGatewayChanges = dockerMcpGatewayServersChanges
 
 	ap.Synced = isEqual && len(notSynchronizedActionPackages) == 0
 

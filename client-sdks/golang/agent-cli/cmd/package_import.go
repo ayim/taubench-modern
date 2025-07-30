@@ -77,7 +77,44 @@ func getMcpServersFromMetadata(metadata []*common.AgentPackageMetadata) []AgentS
 			ForceSerialToolCalls: mcp.ForceSerialToolCalls,
 		})
 	}
+
+	if dockerMcpGateway := getDockerMCPGateway(metadata); dockerMcpGateway != nil {
+		servers = append(servers, *dockerMcpGateway)
+	}
+
 	return servers
+}
+
+func getDockerMCPGateway(metadata []*common.AgentPackageMetadata) *AgentServer.McpServer {
+	if len(metadata) == 0 || metadata[0] == nil || metadata[0].DockerMcpGateway == nil {
+		return nil
+	}
+
+	// Check if the docker MCP gateway is empty
+	if len(metadata[0].DockerMcpGateway.Servers) == 0 {
+		return nil
+	}
+
+	// Check if the Docker MCP Gateway registry is installed
+	// TODO: decide later if we want to fail if the registry is not found
+	if _, err := common.DockerParseRegistryYAML(); err != nil {
+		pretty.LogIfVerbose("[getDockerMCPGateway] failed to parse Docker MCP Gateway registry (most likely not installed): %+v", err)
+	}
+
+	// Compose the MCP server for the docker MCP gateway
+	pretty.LogIfVerbose("[getDockerMCPGateway] adding Docker MCP Gateway to the list of MCP servers...")
+	return &AgentServer.McpServer{
+		Name:                 "MCP_DOCKER",
+		Description:          "Docker MCP Gateway",
+		Transport:            AgentServer.MCPTransportStdio,
+		URL:                  nil,
+		Headers:              map[string]AgentServer.McpServerVariable{},
+		Command:              common.Ptr("docker"),
+		Args:                 []string{"mcp", "gateway", "run"},
+		Env:                  map[string]AgentServer.McpServerVariable{},
+		Cwd:                  nil,
+		ForceSerialToolCalls: false,
+	}
 }
 
 func getModelConfig(modelConfig string) (map[string]interface{}, error) {
@@ -146,7 +183,7 @@ func prepareActionPackages(metadata []*common.AgentPackageMetadata, agentPackage
 
 		// (destination) calculate where the action packages need to be copied to
 		actionPackageDestPath := filepath.Join(galleryRootDir, actionPackageOrganization, actionPackagePackageName, actionPackage.Version)
-		pretty.LogIfVerbose("Importing Action Package to: %+v", actionPackageDestPath)
+		pretty.LogIfVerbose("[prepareActionPackages] importing Action Package to: %+v", actionPackageDestPath)
 		if err := os.MkdirAll(actionPackageDestPath, 0o755); err != nil {
 			return fmt.Errorf("[prepareActionPackages] failed to create destination for Action Package: %w", err)
 		}
@@ -155,7 +192,7 @@ func prepareActionPackages(metadata []*common.AgentPackageMetadata, agentPackage
 		if err := common.CopyDir(actionPackageSourcePath, actionPackageDestPath, true); err != nil {
 			return fmt.Errorf("[prepareActionPackages] failed to copy files for Action Package: %w", err)
 		}
-		pretty.LogIfVerbose("Action Package  '%s'  imported successfully to: %s", actionPackage.Name, actionPackageDestPath)
+		pretty.LogIfVerbose("[prepareActionPackages] Action Package  '%s'  imported successfully to: %s", actionPackage.Name, actionPackageDestPath)
 	}
 
 	return nil

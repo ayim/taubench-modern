@@ -643,3 +643,42 @@ func TestGenerateAgentMetadataFromPackageV3CGWM(t *testing.T) {
 	// Test MCP servers (should be the same as regular v3)
 	assertV3Metadata(t, metadata)
 }
+
+// ==== V3 PACKAGE TESTS WITH DOCKER MCP GATEWAY ====
+
+func TestGenerateAgentMetadataFromPackageV3DockerMcpGateway(t *testing.T) {
+	common.Verbose = true
+	metadata, err := cmd.GenerateAgentMetadataFromProject("./fixtures/agent-projects/a-1.v3.docker")
+	if err != nil {
+		t.Errorf("error: %+v", err)
+	}
+	assert.NotNil(t, metadata[0].DockerMcpGateway, "DockerMcpGateway should not be nil")
+	assert.NotNil(t, metadata[0].DockerMcpGateway.Servers, "DockerMcpGateway.Servers should not be nil")
+
+	servers := metadata[0].DockerMcpGateway.Servers
+	assert.Contains(t, servers, "duckduckgo", "DockerMcpGateway.Servers should contain 'duckduckgo'")
+	assert.Contains(t, servers, "notion", "DockerMcpGateway.Servers should contain 'notion'")
+	assert.Contains(t, servers, "wikipedia-mcp", "DockerMcpGateway.Servers should contain 'wikipedia-mcp'")
+	assert.Contains(t, servers, "kubernetes", "DockerMcpGateway.Servers should contain 'kubernetes'")
+
+	// duckduckgo: tools should be an empty slice (whitelist of tools)
+	assert.NotNil(t, servers["duckduckgo"].Tools, "duckduckgo tools should not be nil")
+	assert.Equal(t, 2, len(servers["duckduckgo"].Tools), "duckduckgo tools be all tools from catalog")
+
+	// notion: tools should be an empty slice (all tools allowed)
+	assert.NotNil(t, servers["notion"].Tools, "notion tools should not be nil")
+	assert.Equal(t, 19, len(servers["notion"].Tools), "notion tools should be all tools from catalog")
+
+	// wikipedia-mcp: tools should be ["get_article"]
+	assert.NotNil(t, servers["wikipedia-mcp"].Tools, "wikipedia-mcp tools should not be nil")
+	assert.Equal(t, 1, len(servers["wikipedia-mcp"].Tools), "wikipedia-mcp tools should just be one")
+	assert.Equal(t, "get_article", servers["wikipedia-mcp"].Tools[0].Name, "wikipedia-mcp tools should be [\"get_article\"]")
+
+	// kubernetes: tools should be nil or empty (all tools allowed)
+	// Accept both nil and empty slice as "all tools allowed"
+	if tools := servers["kubernetes"].Tools; tools == nil {
+		// ok, nil means all tools allowed
+	} else {
+		assert.Equal(t, 21, len(tools), "kubernetes tools be all tools from catalog")
+	}
+}

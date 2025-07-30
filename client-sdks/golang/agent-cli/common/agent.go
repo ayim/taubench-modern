@@ -182,6 +182,17 @@ type SpecMcpServer struct {
 	ForceSerialToolCalls bool                     `yaml:"force-serial-tool-calls,omitempty" json:"force_serial_tool_calls,omitempty"`
 }
 
+// ------ SpecDockerMcpServer
+// --- describes the configuration for one MCP server in a Docker container
+type SpecDockerMcpGateway struct {
+	Catalog *string                        `yaml:"catalog,omitempty" json:"catalog,omitempty"`
+	Servers map[string]SpecDockerMcpServer `yaml:"servers,omitempty" json:"servers,omitempty"`
+}
+
+type SpecDockerMcpServer struct {
+	Tools []string `yaml:"tools,omitempty" json:"tools,omitempty"` // This functions as a whitelist for the tools that are available in the Docker container - if empty, all tools are available
+}
+
 // ------ SpecAgent
 // --- this is the entry in the Agent Spec file
 // --- this represents an Agent from the list of Agents
@@ -198,38 +209,64 @@ type SpecAgent struct {
 	WelcomeMessage      string                        `yaml:"welcome-message,omitempty" json:"welcome_message,omitempty"`
 	ActionPackages      []SpecAgentActionPackage      `yaml:"action-packages" json:"action_packages"`
 	McpServers          []SpecMcpServer               `yaml:"mcp-servers,omitempty" json:"mcp_servers,omitempty"`
+	DockerMcpGateway    *SpecDockerMcpGateway         `yaml:"docker-mcp-gateway,omitempty" json:"docker_mcp_gateway,omitempty"`
 	Knowledge           []SpecAgentKnowledge          `yaml:"knowledge" json:"knowledge"`
 	Metadata            AgentServer.AgentMetadata     `yaml:"metadata" json:"metadata"`
 }
 
-func (a *SpecAgent) IsEqual(ap *AgentProject, deployed *AgentServer.Agent) (bool, AgentChanges) {
+func (sa *SpecAgent) IsEqual(ap *AgentProject, deployed *AgentServer.Agent) (bool, AgentChanges) {
 	// Calculate the path to the conversation guide file
 	if ap == nil || deployed == nil {
 		return false, AgentChanges{}
 	}
-	conversationGuidePath := path.Join(ap.Path, a.ConversationGuide)
-	if a.ConversationGuide == "" {
+	conversationGuidePath := path.Join(ap.Path, sa.ConversationGuide)
+	if sa.ConversationGuide == "" {
 		// If the conversation guide is not set, we consider it as equal to the empty string.
 		conversationGuidePath = ""
 	}
 
+	// Check if the Docker MCP Gateway objects are equal
+	// In the Agent this can be part of the MCP servers - we need to remove it from there
+	// The check for docker MCP gateway is done separately as we check the object in the Spec and the entry in the Agent
+	var specMcpServers []SpecMcpServer
+	specHasDockerMcpGateway := false
+	for _, mcpServer := range sa.McpServers {
+		if !IsSpecDockerMcpGateway(&mcpServer) {
+			specMcpServers = append(specMcpServers, mcpServer)
+		} else {
+			specHasDockerMcpGateway = true
+		}
+	}
+	specHasDockerMcpGateway = specHasDockerMcpGateway || sa.DockerMcpGateway != nil
+
+	var agentMcpServers []AgentServer.McpServer
+	agentHasDockerMcpGateway := false
+	for _, mcpServer := range deployed.McpServers {
+		if !IsAgentDockerMcpGateway(&mcpServer) {
+			agentMcpServers = append(agentMcpServers, mcpServer)
+		} else {
+			agentHasDockerMcpGateway = true
+		}
+	}
+
 	// Map of changes to check
 	changesMap := map[string]bool{
-		"name":        a.Name == deployed.Name,
-		"description": a.Description == deployed.Description,
+		"name":        sa.Name == deployed.Name,
+		"description": sa.Description == deployed.Description,
 		// From Agent Server v2 onwards, only the model provider can be selected by the user.
 		// Therefore, when detecting changes, we only compare the model provider.
-		"modelProvider":       a.Model.Provider == deployed.Model.Provider,
-		"version":             a.Version == deployed.Version,
-		"architecture":        a.Architecture == deployed.AdvancedConfig.Architecture,
-		"reasoning":           a.Reasoning == deployed.AdvancedConfig.Reasoning,
-		"runbook":             a.Runbook == deployed.Runbook,
+		"modelProvider":       sa.Model.Provider == deployed.Model.Provider,
+		"version":             sa.Version == deployed.Version,
+		"architecture":        sa.Architecture == deployed.AdvancedConfig.Architecture,
+		"reasoning":           sa.Reasoning == deployed.AdvancedConfig.Reasoning,
+		"runbook":             sa.Runbook == deployed.Runbook,
 		"conversationGuide":   IsConversationGuideEqual(conversationGuidePath, deployed.QuestionGroups),
-		"conversationStarter": a.ConversationStarter == deployed.Extra.ConversationStarter, // TODO: change this when ConversationStarter is added to top level Agent struct
-		"welcomeMessage":      a.WelcomeMessage == deployed.Extra.WelcomeMessage,           // TODO: change this when WelcomeMessage is added to top level Agent struct
-		"metadata":            IsAgentMetadataEqual(a.Metadata, deployed.Metadata),
-		"actionPackages":      AreActionPackagesEqual(a.ActionPackages, deployed.ActionPackages),
-		"mcpServers":          AreMcpServersEqual(a.McpServers, deployed.McpServers),
+		"conversationStarter": sa.ConversationStarter == deployed.Extra.ConversationStarter, // TODO: change this when ConversationStarter is added to top level Agent struct
+		"welcomeMessage":      sa.WelcomeMessage == deployed.Extra.WelcomeMessage,           // TODO: change this when WelcomeMessage is added to top level Agent struct
+		"metadata":            IsAgentMetadataEqual(sa.Metadata, deployed.Metadata),
+		"actionPackages":      AreActionPackagesEqual(sa.ActionPackages, deployed.ActionPackages),
+		"mcpServers":          AreMcpServersEqual(specMcpServers, agentMcpServers),
+		"dockerMcpGateway":    specHasDockerMcpGateway == agentHasDockerMcpGateway,
 	}
 
 	// Collect the changes
