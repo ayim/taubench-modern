@@ -17,8 +17,9 @@
     "lint:backend": "eslint ./backend --ext ts --report-unused-disable-directives",
     "lint:frontend": "eslint ./frontend --ext ts,tsx --report-unused-disable-directives",
     "preview": "vite preview",
-    "test:specs": "npm run test:specs:backend",
+    "test:specs": "npm run test:specs:backend && npm run test:specs:frontend",
     "test:specs:backend": "vitest run --test-timeout=10000 --dir ./backend",
+    "test:specs:frontend": "vitest run --dir ./frontend",
     "test:types": "tsc --noEmit -p frontend/tsconfig.json && tsc --noEmit -p backend/tsconfig.json",
     "test": "npm run test:specs && npm run lint && npm run test:types"
   },

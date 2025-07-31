@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Outlet, createFileRoute } from '@tanstack/react-router';
+import { Outlet, createFileRoute, redirect } from '@tanstack/react-router';
 import { Box, Button, EmptyState } from '@sema4ai/components';
 import { DocumentAPIProvider, MarkdownRes, DocTypeContextProvider } from '@sema4ai/agent-components';
 import { getDocumentAPIClient } from '~/lib/DocumentAPIClient';
@@ -10,6 +10,7 @@ import { Content } from './components/Content';
 import { Header } from './components/Header';
 import { Main } from './components/Main';
 import { Sidebar } from './components/Sidebar';
+import { getTenantWorkoomRedirect } from '~/lib/utils';
 
 export const Route = createFileRoute('/$tenantId')({
   loader: async ({ context: { queryClient, agentAPIClient }, params: { tenantId } }) => {
@@ -22,6 +23,16 @@ export const Route = createFileRoute('/$tenantId')({
 
     const tenantMeta = await agentAPIClient.getTenantMeta(tenantId);
     const applicationMeta = await agentAPIClient.getMeta();
+
+    const tenant = await agentAPIClient.getTenant(tenantId);
+
+    const workroomRedirect = tenant ? getTenantWorkoomRedirect({ tenant, location }) : null;
+
+    if (workroomRedirect) {
+      throw redirect({
+        href: workroomRedirect.href,
+      });
+    }
 
     return {
       agents,

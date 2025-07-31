@@ -15,6 +15,7 @@ export interface UserTenant {
   environment: {
     id: string;
     url: string;
+    workroom_url?: string; // only present on ACE
   };
 }
 
@@ -23,18 +24,6 @@ export const listUserTenantsQueryOptions = ({ agentAPIClient }: QueryProps) =>
     queryKey: getListUserTenantsQueryKey(),
     queryFn: async (): Promise<UserTenant[]> => {
       const response = await agentAPIClient.getTenants();
-
-      const currentLocationHostname = window.location.hostname;
-      // the hostname is an ace url when we visit workroom using the ace endpoint
-      // if it is not an ace url, it is the main work room URL (tied to the organisation) that allows to access all workspaces across all ACEs
-      const isAceUrl = currentLocationHostname.startsWith('ace-');
-
-      if (isAceUrl) {
-        return response.filter((tenant) => {
-          return tenant.environment.url.includes(currentLocationHostname);
-        });
-      }
-
       return response;
     },
   });
