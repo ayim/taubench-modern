@@ -109,6 +109,7 @@ class QualityOrchestrator:
         agent_zip_path: Path,
         platforms: list[Platform],
         action_server_url: str | None = None,
+        agent_package_metadata: dict | None = None,
     ) -> dict[str, str]:
         """Upload agent package multiple times, once per platform.
 
@@ -132,7 +133,11 @@ class QualityOrchestrator:
         for platform in platforms:
             platform_agent_name = f"{base_name}-{platform.name}"
             agent_id = await self._upload_agent_with_platform(
-                agent_zip_path, platform_agent_name, platform, action_server_url
+                agent_zip_path,
+                platform_agent_name,
+                platform,
+                action_server_url,
+                agent_package_metadata,
             )
             agent_ids[platform.name] = agent_id
             logger.info(f"Uploaded {platform_agent_name} with ID: {agent_id}")
@@ -146,6 +151,7 @@ class QualityOrchestrator:
         agent_name: str,
         platform: Platform,
         action_server_url: str | None = None,
+        agent_package_metadata: dict | None = None,
     ) -> str:
         """Upload single agent with specific platform configuration."""
         import base64
@@ -158,14 +164,31 @@ class QualityOrchestrator:
         mcp_servers = []
         if action_server_url:
             # use actions always as MCP servers
-            mcp_servers = [
+            mcp_servers.append(
                 {
                     "name": "Test",
                     "transport": "streamable-http",
                     "url": safe_join_url(action_server_url, "/mcp"),
                     "headers": {"Authorization": f"Bearer {TEST_API_KEY}"},
                 }
-            ]
+            )
+
+        if agent_package_metadata is not None and "docker_mcp_gateway" in agent_package_metadata:
+            # don't allow custom catalog for now: just fail hard!
+            if "catalog" in agent_package_metadata["docker-mcp-gateway"]:
+                raise ValueError("Only default catalog is allowed when using docker_mcp_gateway")
+
+            servers = agent_package_metadata["docker_mcp_gateway"].get("servers", {})
+            server_names = list(servers.keys())
+            if len(server_names) > 0:
+                mcp_servers.append(
+                    {
+                        "name": "docker-mcp-gateway",
+                        "transport": "auto",
+                        "command": "docker",
+                        "args": ["mcp", "gateway", "run", "--servers", ",".join(server_names)],
+                    }
+                )
 
         # Delete this agent if it already exists (get ID by name, and if it exists, delete it)
         async with httpx.AsyncClient() as client:

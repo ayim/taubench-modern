@@ -282,8 +282,8 @@ class QualityTestRunner:
 
             package_oauth_secrets = []
 
-            data = await agent_package.extract_package_metadata()
-            for agent_meta in data:
+            agent_package_metadata = await agent_package.extract_package_metadata()
+            for agent_meta in agent_package_metadata:
                 for pkg in agent_meta.get("action_packages", []):
                     package_action_oauth_secrets = []
                     for _, action in pkg.get("secrets", {}).items():
@@ -325,7 +325,7 @@ class QualityTestRunner:
 
             # Upload agent variants (one per platform)
             platform_agent_ids = await self.orchestrator.upload_agent_with_platform_variants(
-                agent_package.zip_path, all_platforms, action_server_url
+                agent_package.zip_path, all_platforms, action_server_url, agent_package_metadata[0]
             )
 
             # Update the platform config for each agent

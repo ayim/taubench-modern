@@ -1,0 +1,23 @@
+thread:
+  - name: one-step-browse
+    description: 'One step search'
+    messages:
+      - role: user
+        content: |
+          Search the web for the most popular Pokemon. 
+          Fetch the content from the first result and pick the Pokemon of the year.
+          Finally, use the greeter tool to greet the Pokemon of the year.
+
+target-platforms:
+  - name: openai
+  # - name: azure
+  # - name: bedrock
+  # - name: cortex
+  # - name: google
+
+evaluations:
+  - kind: llm-eval-of-last-agent-turn
+    expected: |
+      The agent should have used a tool for searching the web for Pokemons.
+      The agent should have picked one Pokemon of the year.
+      The agent should have used a tool for greeting the Pokemon of the year.

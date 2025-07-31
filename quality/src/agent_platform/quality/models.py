@@ -341,7 +341,7 @@ class AgentPackage:
             )
             return target_location
 
-        agent_cli_exe = get_agent_cli_executable_path(version="v1.3.4", download=True)
+        agent_cli_exe = get_agent_cli_executable_path(version="v2.0.6", download=True)
 
         result = subprocess.run(
             [agent_cli_exe, "package", "metadata", "--package", self.zip_path],
