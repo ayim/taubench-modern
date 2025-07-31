@@ -7,18 +7,21 @@ routing between users and agents in the platform.
 """
 
 import contextvars
+import json
 import logging
 import re
-from collections.abc import Generator, Iterable
+from collections.abc import Iterable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from functools import cache
-from typing import Annotated
+from typing import Annotated, Literal
+from uuid import UUID
 
 from anyio import ClosedResourceError
 from mcp import types as mcp_types
 from mcp.server.lowlevel import Server
 from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
+from mcp.types import TextContent
 from pydantic import BaseModel, ConfigDict, Field
 from starlette import types as starlette_types
 from starlette.applications import Starlette
@@ -29,7 +32,11 @@ from starlette.responses import Response
 from agent_platform.core import User
 from agent_platform.core.agent import Agent
 from agent_platform.core.payloads import InitiateStreamPayload
-from agent_platform.core.thread import ThreadTextContent
+from agent_platform.core.thread import (
+    ThreadAttachmentContent,
+    ThreadTextContent,
+    ThreadToolUsageContent,
+)
 from agent_platform.server.api.private_v2.runs import sync_run
 from agent_platform.server.auth.handlers import AuthHandler, get_auth_handler
 from agent_platform.server.error_handlers import add_exception_handlers
@@ -364,7 +371,28 @@ class ChatWithAgentInputSchema(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
 
-def _get_tool_name(agent: Agent) -> str:
+class ListThreadsInputSchema(BaseModel):
+    """The MCP Server implementation list_tools requires
+    that a tool call has a schema, even if it's an empty one."""
+
+    pass
+
+
+class ListThreadMessagesInputSchema(BaseModel):
+    thread_id: Annotated[UUID, Field(description="The ID of the thread to list messages for.")]
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+
+# JSON schema for the chat input, used for tool registration
+CHAT_WITH_AGENT_SCHEMA = ChatWithAgentInputSchema.model_json_schema()
+LIST_THREADS_SCHEMA = ListThreadsInputSchema.model_json_schema()
+LIST_THREAD_MESSAGES_SCHEMA = ListThreadMessagesInputSchema.model_json_schema()
+
+
+def _get_tool_names(
+    agent: Agent,
+) -> dict[Literal["chat", "list_threads", "get_thread_messages"], str]:
     """
     Generate a standardized tool name for an agent.
 
@@ -382,10 +410,14 @@ def _get_tool_name(agent: Agent) -> str:
     if not agent_name.endswith("agent"):
         agent_name = f"{agent_name}_agent"
 
-    return f"message_{agent_name}"
+    return {
+        "chat": f"message_{agent_name}",
+        "list_threads": f"list_{agent_name}_threads",
+        "get_thread_messages": f"get_{agent_name}_thread_messages",
+    }
 
 
-async def chat_with_agent(data: ChatWithAgentInputSchema) -> Generator[str, None, None]:
+async def _chat_with_agent(data: ChatWithAgentInputSchema) -> list[mcp_types.TextContent]:
     """
     Process a chat message sent to an agent and return the agent's response.
 
@@ -442,18 +474,92 @@ async def chat_with_agent(data: ChatWithAgentInputSchema) -> Generator[str, None
     )
 
     # Create a generator to extract text content from the response
-    def message_generator():
+    def _message_generator():
         nonlocal run_result
         for agent_message in run_result:
             for content in agent_message.content:
-                if isinstance(content, ThreadTextContent):
-                    yield content.text.strip()
+                match content:
+                    case ThreadTextContent():
+                        yield content.text.strip()
+                    case ThreadToolUsageContent():
+                        yield content.as_text_content()
 
-    return message_generator()
+    # Convert the text messages to MCP TextContent objects
+    return [mcp_types.TextContent(text=text, type="text") for text in _message_generator()]
 
 
-# JSON schema for the chat input, used for tool registration
-CHAT_WITH_AGENT_SCHEMA = ChatWithAgentInputSchema.model_json_schema()
+async def _list_threads() -> list[mcp_types.TextContent]:
+    ctx = _ctx.get()
+    threads = await StorageService.get_instance().list_threads_for_agent(
+        ctx.user.user_id, ctx.agent.agent_id
+    )
+
+    data = {"threads": [{"thread_identifier": t.name, "thread_id": t.thread_id} for t in threads]}
+
+    return [
+        TextContent.model_validate(
+            {
+                "type": "text",
+                "content_type": "application/json",
+                "text": json.dumps(data),
+            }
+        )
+    ]
+
+
+async def _get_thread_messages(data: ListThreadMessagesInputSchema) -> list[mcp_types.TextContent]:
+    user_id = _ctx.get().user.user_id
+    thread = await StorageService.get_instance().get_thread(user_id, str(data.thread_id))
+
+    thread_messages = []
+    for message in thread.messages:
+        content_data = []
+        for content in message.content:
+            match content:
+                case ThreadTextContent(text):
+                    content_data.append({"kind": content.kind, "text": text.strip()})
+                case ThreadToolUsageContent():
+                    content_data.append(
+                        {
+                            "kind": content.kind,
+                            "name": content.name,
+                            "status": content.status,
+                            "result": content.result,
+                            "error": content.error,
+                        }
+                    )
+                case ThreadAttachmentContent():
+                    attachment_data = {
+                        "name": content.name,
+                        "mime_type": content.mime_type,
+                        "description": content.description,
+                    }
+
+                    if content.uri:
+                        attachment_data["uri"] = content.uri
+                    elif content.base64_data:
+                        attachment_data["base64_data"] = content.base64_data
+                    else:
+                        logger.warning(
+                            f"No URI or base64 data found for attachment {content.content_id}"
+                        )
+                        # Exclude attachment without base64 or uri
+                        continue
+
+                    content_data.append(attachment_data)
+
+        thread_messages.append({"role": message.role, "content": content_data})
+
+    return [
+        mcp_types.TextContent.model_validate(
+            {
+                "type": "text",
+                "content_type": "application/json",
+                "text": json.dumps({"thread_messages": thread_messages}),
+            }
+        )
+    ]
+
 
 # Initialize the MCP server
 _agent_mcp_server = Server("Agent Chat MCP")
@@ -469,8 +575,21 @@ async def list_tools() -> list[mcp_types.Tool]:
     Returns:
         A list of Tool objects that can be called by clients
     """
+    tool_names = _get_tool_names(_ctx.get().agent)
+
     return [
-        mcp_types.Tool(name=_get_tool_name(_ctx.get().agent), inputSchema=CHAT_WITH_AGENT_SCHEMA),
+        mcp_types.Tool(
+            name=tool_names["chat"],
+            inputSchema=CHAT_WITH_AGENT_SCHEMA,
+        ),
+        mcp_types.Tool(
+            name=tool_names["list_threads"],
+            inputSchema=LIST_THREADS_SCHEMA,
+        ),
+        mcp_types.Tool(
+            name=tool_names["get_thread_messages"],
+            inputSchema=LIST_THREAD_MESSAGES_SCHEMA,
+        ),
     ]
 
 
@@ -497,20 +616,33 @@ async def call_tool(
     """
 
     # Get the expected tool name for the current agent
-    tool_name = _get_tool_name(_ctx.get().agent)
+    tool_names = _get_tool_names(_ctx.get().agent)
 
-    if name == tool_name:
+    if name == tool_names["chat"]:
         # Validate the arguments against the schema
         parsed_arguments = ChatWithAgentInputSchema.model_validate(arguments)
+
         try:
-            # Process the chat message and get the response generator
-            messages = await chat_with_agent(parsed_arguments)
+            return await _chat_with_agent(parsed_arguments)
         except Exception as e:
             logger.exception("Error running chat_with_agent tool", exc_info=e)
             raise e
 
-        # Convert the text messages to MCP TextContent objects
-        return [mcp_types.TextContent(text=text, type="text") for text in messages]
+    elif name == tool_names["list_threads"]:
+        try:
+            return await _list_threads()
+        except Exception as e:
+            logger.exception("Error running list_threads tool", exc_info=e)
+            raise e
+    elif name == tool_names["get_thread_messages"]:
+        # Validate the arguments against the schema
+        parsed_arguments = ListThreadMessagesInputSchema.model_validate(arguments)
+
+        try:
+            return await _get_thread_messages(parsed_arguments)
+        except Exception as e:
+            logger.exception("Error running get_thread_messages tool", exc_info=e)
+            raise e
 
     # If the tool name doesn't match, raise an error
     raise ValueError(f"Unknown tool name: {name}")

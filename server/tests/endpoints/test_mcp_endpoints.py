@@ -11,7 +11,7 @@ from collections.abc import AsyncGenerator, Generator
 from contextlib import AsyncExitStack, ExitStack, asynccontextmanager, contextmanager
 from datetime import timedelta
 from functools import cache
-from typing import Any
+from typing import Any, cast
 from unittest.mock import patch
 
 import httpx
@@ -24,6 +24,8 @@ from mcp.types import TextContent
 from starlette.applications import Starlette
 from starlette.responses import Response, StreamingResponse
 from starlette.routing import Route
+
+from agent_platform.core.thread import Thread, ThreadMessage, ThreadTextContent
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +104,48 @@ async def mock_storage() -> AsyncGenerator[None, Any]:
                     version="0.0.1",
                 ),
                 observability_configs=[],
+            ),
+        )
+
+        await storage.upsert_thread(
+            user_id=user.user_id,
+            thread=Thread(
+                user_id=user.user_id,
+                agent_id=agent_1_id,
+                name="Test Thread 1",
+                messages=[
+                    ThreadMessage(
+                        content=[ThreadTextContent("agent_1_message_1")],
+                        commited=True,
+                        role="agent",
+                    ),
+                    ThreadMessage(
+                        content=[ThreadTextContent("agent_1_message_2")],
+                        commited=True,
+                        role="user",
+                    ),
+                    ThreadMessage(
+                        content=[ThreadTextContent("agent_1_message_3")],
+                        commited=True,
+                        role="agent",
+                    ),
+                ],
+            ),
+        )
+
+        await storage.upsert_thread(
+            user_id=user.user_id,
+            thread=Thread(
+                user_id=user.user_id,
+                agent_id=agent_1_id,
+                name="Test Thread 2",
+                messages=[
+                    ThreadMessage(
+                        content=[ThreadTextContent("agent_2_message_1")],
+                        commited=True,
+                        role="agent",
+                    ),
+                ],
             ),
         )
 
@@ -351,7 +395,7 @@ async def test_mcp_endpoints__random_auth(mock_mcp_proxy):
 
 @pytest.mark.flaky(max_runs=5, min_passes=1)
 @pytest.mark.asyncio
-async def test_mcp_agent_endpoints(mock_mcp_proxy):
+async def test_agent_as_mcp_endpoints(mock_mcp_proxy):
     """Test that the MCPAuthenticationMiddleware authenticates requests."""
 
     agent_1_id, _ = get_agent_ids()
@@ -372,12 +416,33 @@ async def test_mcp_agent_endpoints(mock_mcp_proxy):
             await session.initialize()
             assert [t.name for t in (await session.list_tools()).tools] == [
                 "message_test_agent_1_agent",
+                "list_test_agent_1_agent_threads",
+                "get_test_agent_1_agent_thread_messages",
+            ]
+
+            list_thread_response = await session.call_tool("list_test_agent_1_agent_threads")
+
+            threads = json.loads(cast(TextContent, list_thread_response.content[0]).text)["threads"]
+            assert {t["thread_identifier"] for t in threads} == {"Test Thread 1", "Test Thread 2"}
+
+            list_messages_response = await session.call_tool(
+                "get_test_agent_1_agent_thread_messages",
+                arguments={"thread_id": threads[0]["thread_id"]},
+            )
+
+            messages = json.loads(cast(TextContent, list_messages_response.content[0]).text)[
+                "thread_messages"
+            ]
+            assert messages == [
+                {"role": "agent", "content": [{"kind": "text", "text": "agent_1_message_1"}]},
+                {"role": "user", "content": [{"kind": "text", "text": "agent_1_message_2"}]},
+                {"role": "agent", "content": [{"kind": "text", "text": "agent_1_message_3"}]},
             ]
 
 
 @pytest.mark.flaky(max_runs=5, min_passes=1)
 @pytest.mark.asyncio
-async def test_mcp_agent_endpoints_not_auth(mock_mcp_proxy):
+async def test_agent_as_mcp_endpoints__no_auth(mock_mcp_proxy):
     """Test that the MCPAuthenticationMiddleware authenticates requests."""
 
     agent_1_id, _ = get_agent_ids()
