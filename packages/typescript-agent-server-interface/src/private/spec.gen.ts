@@ -6,7 +6,7 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Private API Version 2',
-    version: '2.0.22',
+    version: '2.0.24',
   },
   paths: {
     '/api/v2/ok': {
@@ -7431,6 +7431,12 @@ export const spec = {
             type: 'object',
             title: 'Extra',
             description: 'Extra fields for the agent.',
+          },
+          agent_settings: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Agent Settings',
+            description: "Settings that control the agent's behavior.",
           },
           id: {
             anyOf: [

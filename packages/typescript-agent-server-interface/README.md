@@ -1,16 +1,12 @@
-## Agent Server Interface (Typescript)
+# Agent Server Interface (Typescript)
 
-### Retrieving the latest OpenAPI spec for the PRIVATE API
+## Retrieving the latest OpenAPI spec for the Private AND Public API
 
-1. Run the server (`docker compose up` at the root)
+1. Run the server (`COMPOSE_PROFILES=agent-server-no-auth docker compose up --build` at the root)
 2. Navigate to the [PRIVATE API Open API spec page](http://localhost:8000/api/v2/openapi.json)
 3. Copy the content into [private.openapi.json](./private.openapi.json)
-
-### Retrieving the latest OpenAPI spec for the PUBLIC API
-
-1. Run the server (`docker compose up` at the root)
-2. Navigate to the [PUBLIC API Open API spec page](http://localhost:8000/api/public/v1/openapi.json)
-3. Copy the content into [public.openapi.json](./private.openapi.json)
+4. Navigate to the [PUBLIC API Open API spec page](http://localhost:8000/api/public/v1/openapi.json)
+5. Copy the content into [public.openapi.json](./public.openapi.json)
 
 ### Releasing a new version
 
@@ -19,34 +15,36 @@ _The agent server API changes should trigger an automatic publishing of the inte
 
 1. Update the version of the interface to match the current version of the Agent Server (present in the `info.version` of the `openapi.json`)
 2. Run the following command:
-   _The pre-release should start with 1 if there has not been any new release of that specific version, or incremented by 1 if that version has already been released_
 
-```
-npm version 2.0.17-2
+```sh
+# !!! The version must match the version of the agent-server: see step 1 !!!
+npm version 2.0.22
 ```
 
 3. Open a PR and get it merged
 4. Create a new release with the following format:
    _Notice the version appended after -v_
 
-```
-sema4ai-agent-server-interface-v2.0.17-2
-```
-
-### Generating types and schema.
-
-```
-npm run generate
+```sh
+sema4ai-agent-server-interface-v2.0.22
 ```
 
-Publish prerelease version.
+### Releasing a prerelease version
 
-```
+_Used to test changes that happened between two `agent-server` releases_
+
+```sh
 npm version prerelease --preid=marco
 npm publish    # you need to setup your .npmrc with a gh token
 ```
 
-### Public API
+## Generating types and schema.
+
+```sh
+npm run generate
+```
+
+## Public API usage example
 
 Streaming conversations.
 

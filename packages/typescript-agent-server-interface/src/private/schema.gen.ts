@@ -3600,6 +3600,13 @@ export interface components {
         [key: string]: unknown;
       };
       /**
+       * Agent Settings
+       * @description Settings that control the agent's behavior.
+       */
+      agent_settings?: {
+        [key: string]: unknown;
+      };
+      /**
        * Id
        * @description The ID of the agent (alias of agent_id for backwards compatibility).
        */
