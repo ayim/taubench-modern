@@ -6,6 +6,7 @@ requires-python = ">=3.12.9, <3.13"
 members = [
     "agent-platform",
     "agent-platform-architectures-default",
+    "agent-platform-architectures-experimental",
     "agent-platform-core",
     "agent-platform-quality",
     "agent-platform-server",
@@ -94,6 +95,17 @@ notebooks = [
 name = "agent-platform-architectures-default"
 version = "2.0.0"
 source = { editable = "architectures/default" }
+dependencies = [
+    { name = "agent-platform-core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "agent-platform-core" }]
+
+[[package]]
+name = "agent-platform-architectures-experimental"
+version = "2.0.0"
+source = { editable = "architectures/experimental" }
 dependencies = [
     { name = "agent-platform-core" },
 ]

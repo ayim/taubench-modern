@@ -44,11 +44,13 @@ class ThreadMessageWithThreadState:
             content_tag: str = "response",
             thoughts_tag: str = "thinking",
             tag_expected_past_response: str | None = "step",
+            tag_expected_pre_response: str | None = "thinking",
         ):
             self._message = message
             self._content_tag = content_tag
             self._thoughts_tag = thoughts_tag
             self._tag_expected_past_response = tag_expected_past_response
+            self._tag_expected_pre_response = tag_expected_pre_response
 
         @property
         def content(self) -> XmlTagResponseStreamSink:
@@ -65,7 +67,7 @@ class ThreadMessageWithThreadState:
             return XmlTagResponseStreamSink(
                 tag=self._content_tag,
                 expected_next_tag=self._tag_expected_past_response,
-                expected_preceding_tag=self._thoughts_tag,
+                expected_preceding_tag=self._tag_expected_pre_response,
                 on_tag_partial=_append_content,
                 on_tag_complete=_complete_content,
             )
@@ -116,10 +118,18 @@ class ThreadMessageWithThreadState:
         self,
         message: ThreadMessage,
         thread_state: "ThreadStateInterface",
+        tag_expected_past_response: str | None = "step",
+        tag_expected_pre_response: str | None = "thinking",
     ):
         self._thread_state = thread_state
         self._message = message
-        self._sinks = self.Sinks(self)
+        self._tag_expected_past_response = tag_expected_past_response
+        self._tag_expected_pre_response = tag_expected_pre_response
+        self._sinks = self.Sinks(
+            self,
+            tag_expected_past_response=self._tag_expected_past_response,
+            tag_expected_pre_response=self._tag_expected_pre_response,
+        )
 
     @property
     def sinks(self) -> Sinks:
@@ -211,11 +221,13 @@ class ThreadMessageWithThreadState:
         """Streams the delta to the UI."""
         await self._thread_state.stream_message_delta(self._message)
 
-    def new_thought(self, thought: str) -> None:
+    def new_thought(self, thought: str, complete: bool = False) -> None:
         """Adds a thought to the message."""
         if self._message.commited:
             raise ValueError("Cannot add content to a committed message")
-        self._message.content.append(ThreadThoughtContent(thought=thought))
+        as_thought_content = ThreadThoughtContent(thought=thought)
+        as_thought_content.complete = complete
+        self._message.content.append(as_thought_content)
 
     def clear_thoughts(self) -> None:
         """Clears the thoughts from the message."""
@@ -448,7 +460,12 @@ class ThreadMessageWithThreadState:
     def copy(self) -> "ThreadMessageWithThreadState":
         """Returns a deep copy of the message with thread state."""
         new_message = self._message.copy()
-        return ThreadMessageWithThreadState(new_message, self._thread_state)
+        return ThreadMessageWithThreadState(
+            new_message,
+            self._thread_state,
+            tag_expected_past_response=self._tag_expected_past_response,
+            tag_expected_pre_response=self._tag_expected_pre_response,
+        )
 
 
 class ThreadStateInterface(ABC, UsesKernelMixin):
@@ -466,6 +483,8 @@ class ThreadStateInterface(ABC, UsesKernelMixin):
         to aid in computing deltas."""
         self._active_message_id: str | None = None
         """The ID of the currently active message in the thread."""
+        self._active_message_content: list[AnyThreadMessageContent] = []
+        """The content of the currently active message in the thread."""
 
     @property
     def thread_id(self) -> str:
@@ -482,7 +501,19 @@ class ThreadStateInterface(ABC, UsesKernelMixin):
         """
         return self._active_message_id
 
-    async def new_agent_message(self) -> ThreadMessageWithThreadState:
+    @property
+    def active_message_content(self) -> list[AnyThreadMessageContent]:
+        """The content of the currently active message in the thread."""
+        return self._active_message_content
+
+    async def new_agent_message(
+        self,
+        # TODO: there's some amount of "configuration" here that an agent
+        # arch may want to do... there's been a small number of coupling points
+        # w/ default arch I'm noticing (as I venture into experimental arch territory)
+        tag_expected_past_response: str | None = "step",
+        tag_expected_pre_response: str | None = "thinking",
+    ) -> ThreadMessageWithThreadState:
         """Creates a new agent message in the thread (attached to thread state).
 
         Returns:
@@ -504,9 +535,18 @@ class ThreadStateInterface(ABC, UsesKernelMixin):
         )
         self._previous_message_states[new_message.message_id] = None
         self._previous_message_sequence_numbers[new_message.message_id] = 1
-        return ThreadMessageWithThreadState(new_message, self)
+        return ThreadMessageWithThreadState(
+            new_message,
+            self,
+            tag_expected_past_response=tag_expected_past_response,
+            tag_expected_pre_response=tag_expected_pre_response,
+        )
 
-    async def new_user_message(self) -> ThreadMessageWithThreadState:
+    async def new_user_message(
+        self,
+        tag_expected_past_response: str | None = "step",
+        tag_expected_pre_response: str | None = "thinking",
+    ) -> ThreadMessageWithThreadState:
         """Creates a new user message in the thread (attached to thread state).
 
         Returns:
@@ -528,7 +568,12 @@ class ThreadStateInterface(ABC, UsesKernelMixin):
         )
         self._previous_message_states[new_message.message_id] = None
         self._previous_message_sequence_numbers[new_message.message_id] = 1
-        return ThreadMessageWithThreadState(new_message, self)
+        return ThreadMessageWithThreadState(
+            new_message,
+            self,
+            tag_expected_past_response=tag_expected_past_response,
+            tag_expected_pre_response=tag_expected_pre_response,
+        )
 
     async def stream_message_delta(
         self,
@@ -550,6 +595,9 @@ class ThreadStateInterface(ABC, UsesKernelMixin):
         unwrapped_message = (
             message._message if isinstance(message, ThreadMessageWithThreadState) else message
         )
+
+        # Update the active message content
+        self._active_message_content = unwrapped_message.content.copy()
 
         # First, if we haven't seen this message before, we'll set
         # the previous state to None. (Which our delta computation

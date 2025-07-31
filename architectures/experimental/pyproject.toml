@@ -1,0 +1,20 @@
+[project]
+name = "agent_platform_architectures_experimental"
+version = "2.0.0"
+requires-python = ">=3.12"
+authors = [{ name = "Sema4.ai Engineering", email = "engineering@sema4.ai" }]
+dependencies = ["agent_platform_core"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/agent_platform"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# There are extras here just so it's easy to have concurrent experiments going
+# Say one arch we're trying memory and another data tables as first-class entities in arches 
+[project.entry-points."agent_platform.architectures"]
+"agent_platform.architectures.experimental_1" = "agent_platform.architectures.experimental:entrypoint_exp_1"
+"agent_platform.architectures.experimental_2" = "agent_platform.architectures.experimental:entrypoint_exp_2"
+"agent_platform.architectures.experimental_3" = "agent_platform.architectures.experimental:entrypoint_exp_3"

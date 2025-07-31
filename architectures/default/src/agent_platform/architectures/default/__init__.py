@@ -4,6 +4,10 @@ Default architecture for running agents.
 
 from importlib.metadata import version
 
+from agent_platform.architectures.default.thread_conversion import (
+    thread_messages_to_prompt_messages,
+)
+
 __author__ = "Sema4.ai Engineering"
 __copyright__ = "Copyright 2025, Sema4.ai"
 __license__ = "Proprietary"
@@ -116,6 +120,11 @@ async def _handle_state_parse_failure(kernel: Kernel, state: ArchState) -> ArchS
 
 @aa.step
 async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchState:
+    # Register the thread message conversion function
+    kernel.converters.set_thread_message_conversion_function(
+        thread_messages_to_prompt_messages,
+    )
+
     # Update the elapsed time
     elapsed_seconds = (
         datetime.now(UTC) - datetime.fromisoformat(state.processing_start_time)

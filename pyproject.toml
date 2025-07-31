@@ -48,12 +48,14 @@ python-preference = "only-managed"
 [tool.uv.sources]
 agent_platform_core = { workspace = true }
 agent_platform_architectures_default = { workspace = true }
+agent_platform_architectures_experimental = { workspace = true }
 agent_platform_server = { workspace = true }
 agent_platform_quality = { workspace = true }
 
 [tool.uv.workspace]
 members = [
     "architectures/default/",
+    "architectures/experimental/",
     "core/",
     "server/",
     "quality/",
@@ -128,6 +130,7 @@ known-first-party = [
     "agent_platform.core",
     "agent_platform.quality",
     "agent_platform.architectures.default",
+    "agent_platform.architectures.experimental",
     "agent_platform.server",
     "sema4ai.common",
 ]

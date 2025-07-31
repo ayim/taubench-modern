@@ -17,6 +17,11 @@ class AgentArchManager:
         # A list of “trusted” or “builtin” packages that can run in-process:
         self.in_process_allowlist = {
             ("agent_platform.architectures.default", "1.0.0"),
+            # TODO: version wildcard for these? (Doesn't really matter until
+            # we possibly get into serious versioning here...)
+            ("agent_platform.architectures.experimental_1", "1.0.0"),
+            ("agent_platform.architectures.experimental_2", "1.0.0"),
+            ("agent_platform.architectures.experimental_3", "1.0.0"),
         }
 
     def get_architectures(self) -> list[ArchitectureInfo]:

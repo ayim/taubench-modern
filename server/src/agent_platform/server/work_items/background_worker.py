@@ -8,6 +8,9 @@ from uuid import uuid4
 
 from fastapi import Request
 
+from agent_platform.architectures.default.thread_conversion import (
+    thread_messages_to_prompt_messages,
+)
 from agent_platform.core.context import AgentServerContext
 from agent_platform.core.prompts import Prompt
 from agent_platform.core.prompts.content.text import PromptTextContent
@@ -98,6 +101,11 @@ async def _validate_success(item: WorkItem) -> WorkItemStatus:
     kernel = create_minimal_kernel(ctx)
 
     # Use the existing thread-to-prompt message converter
+    # TODO: using the message conversion for the default arch, but work items
+    # could have it's _own_ conversion tailored to the judgement task
+    kernel.converters.set_thread_message_conversion_function(
+        thread_messages_to_prompt_messages,
+    )
     converted_messages = await kernel.converters.thread_messages_to_prompt_messages(item.messages)
     # Format the conversation thread through a temporary prompt instance
     temp_prompt = Prompt(messages=cast(list, converted_messages))

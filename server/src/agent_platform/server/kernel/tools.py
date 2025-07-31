@@ -38,7 +38,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
 
     # ------------------------------------------------------ tool execution methods
 
-    async def _safe_execute_tool(
+    async def _safe_execute_tool(  # noqa: PLR0912, C901
         self,
         tool_def: ToolDefinition,
         tool_use: ResponseToolUseContent,
@@ -70,6 +70,10 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                         # tool call time (we could possibly look at trying to pass
                         # headers at tool call time, but it's not clear how/why we'd
                         # want to do that)
+                        result = await tool_def.function(**args_from_json)
+                    case "internal-tool":
+                        # Internal tools don't get headers either (no network
+                        # request being made here)
                         result = await tool_def.function(**args_from_json)
                     case _:
                         result = await tool_def.function(

@@ -6,6 +6,7 @@ from typing import Any, Literal
 
 ToolCategory = Literal[
     "unknown",
+    "internal-tool",
     "action-tool",
     "mcp-tool",
     "client-exec-tool",
@@ -58,7 +59,7 @@ class ToolDefinition:
         name: str | None = None,
         description: str | None = None,
         strict: bool = True,
-        category: ToolCategory = "unknown",
+        category: ToolCategory = "internal-tool",
     ) -> "ToolDefinition":
         """Creates a ToolDefinition from an async Python function.
 

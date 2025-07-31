@@ -93,7 +93,12 @@ psycopg_hiddenimports.extend(
 logger.info("Starting main Analysis...")
 a = Analysis(
     ["src/agent_platform/server/server.py"],
-    pathex=["core/src", "architectures/default/src", "server/src"],
+    pathex=[
+        "core/src",
+        "architectures/default/src",
+        "architectures/experimental/src",
+        "server/src",
+    ],
     binaries=[
         # *chromadb_binaries,
         *tiktoken_binaries,
@@ -113,6 +118,10 @@ a = Analysis(
         (
             "../architectures/default/src/agent_platform/architectures/default/prompts",
             "agent_platform/architectures/default/prompts",
+        ),
+        (
+            "../architectures/experimental/src/agent_platform/architectures/experimental/prompts",
+            "agent_platform/architectures/experimental/prompts",
         ),
         *agent_arch_metadata,
         # *chromadb_datas,

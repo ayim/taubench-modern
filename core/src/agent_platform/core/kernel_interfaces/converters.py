@@ -1,4 +1,9 @@
 from abc import ABC, abstractmethod
+from collections.abc import Awaitable, Callable
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from agent_platform.core.kernel import Kernel
 
 from agent_platform.core.prompts.messages import AnyPromptMessage
 from agent_platform.core.thread import ThreadMessage
@@ -11,6 +16,16 @@ class ConvertersInterface(ABC):
     imporant: a cycle from thread state -> what goes into a Prompt ->
     what comes out of a prompt (response) -> back into thread state.
     """
+
+    @abstractmethod
+    def set_thread_message_conversion_function(
+        self,
+        conversion_function: Callable[
+            ["Kernel", list[ThreadMessage]], Awaitable[list[AnyPromptMessage]]
+        ],
+    ) -> None:
+        """Set the function responsible for converting a list of thread messages
+        to a list of prompt messages."""
 
     @abstractmethod
     async def thread_messages_to_prompt_messages(
