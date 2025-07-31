@@ -47,6 +47,8 @@ jobs:
 
       - name: Generate build metadata
         id: build-metadata
+        env:
+          BRANCH_NAME: '${{ github.head_ref || github.ref_name }}'
         run: |
           workroom_version=$(node -p "require('./workroom/package.json').version")
           commit_hash=$(git rev-parse --short HEAD)
@@ -54,7 +56,7 @@ jobs:
 
           build_details="${commit_hash}.${timestamp}"
 
-          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref_name }}" == "main" ]]; then
+          if [[ "${{ github.event_name }}" == "push" && "${BRANCH_NAME}" == "main" ]]; then
             # Merge to main; Publish a CI ACE release
             workroom_tag="${workroom_version}+${build_details}"
             ace_prerelease="none"
@@ -68,7 +70,7 @@ jobs:
                 tr -cd 'a-z-'
             )"
             branch_name="$(
-              echo "${{ github.ref_name }}" |
+              echo "${BRANCH_NAME}" |
                 tr '[:upper:]' '[:lower:]' |
                 tr -cd 'a-z' |
                 cut -c -20
@@ -77,7 +79,7 @@ jobs:
             workroom_tag="${workroom_version}-${repo_name}-${branch_name}+${build_details}"
             ace_prerelease="${repo_name}-workroom-${branch_name}"
             release_channel="manual"
-            invoked_by="${{ github.event.repository.name }}/${{ github.ref_name }}"
+            invoked_by="${{ github.event.repository.name }}/${BRANCH_NAME}"
           fi
 
           workroom_tag_sanitized="${workroom_tag//+/_}" # Replace + with _ for the tag to be valid
