@@ -348,9 +348,10 @@ async def run(  # noqa: PLR0913
         click.echo(f"💾 Results automatically saved to {results_dir}")
 
         def any_failures(results: dict[str, list[ThreadResult]]) -> bool:
-            """Return True if at least one ThreadResult was not successful."""
+            """Return True if at least one thread list is empty or if at least one failed."""
             return any(
-                not thread.success for thread_list in results.values() for thread in thread_list
+                not thread_list or any(not thread.success for thread in thread_list)
+                for thread_list in results.values()
             )
 
         if any_failures(all_results):
