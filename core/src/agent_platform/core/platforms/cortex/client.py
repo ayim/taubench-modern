@@ -1,10 +1,14 @@
 from collections.abc import AsyncGenerator
 from copy import deepcopy
+from dataclasses import dataclass, field
 from logging import getLogger
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from httpx import AsyncClient, AsyncHTTPTransport, Timeout, codes
+from httpx import AsyncClient, Timeout, codes
+from httpx_retries import Retry, RetryTransport
 
+from agent_platform.core.configurations import Configuration
+from agent_platform.core.configurations.base import FieldMetadata
 from agent_platform.core.delta import GenericDelta
 from agent_platform.core.delta.compute_delta import compute_generic_deltas
 from agent_platform.core.platforms.base import (
@@ -31,6 +35,41 @@ if TYPE_CHECKING:
 
 
 logger = getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class CortexRetryConfiguration(Configuration):
+    """A configuration for the Cortex platform."""
+
+    total: int = field(
+        default=3,
+        metadata=FieldMetadata(
+            description="The maximum number of retries to attempt.",
+        ),
+    )
+
+    backoff_factor: float = field(
+        default=1.0,
+        metadata=FieldMetadata(
+            description="The initial delay between retries.",
+        ),
+    )
+
+    backoff_max: float = field(
+        default=60.0,
+        metadata=FieldMetadata(
+            description="The maximum delay between retries.",
+        ),
+    )
+
+    # We want to retry 500 here... Cortex is a bad provider and
+    # randomly throws 500s. (So let's retry to be more resilient.)
+    status_forcelist: list[int] = field(
+        default_factory=lambda: [429, 500, 502, 503, 504],
+        metadata=FieldMetadata(
+            description="The HTTP status codes that can be retried.",
+        ),
+    )
 
 
 class CortexClient(
@@ -146,30 +185,40 @@ class CortexClient(
             "Authorization": f'Snowflake Token="{bearer_token}"',
         }
 
+    def _build_retry_transport(self) -> RetryTransport:
+        """Build a retry transport with appropriate retry strategy."""
+        # Configure retry strategy similar to other platform clients
+        retry_strategy = Retry(
+            total=CortexRetryConfiguration.total,
+            backoff_factor=CortexRetryConfiguration.backoff_factor,
+            status_forcelist=CortexRetryConfiguration.status_forcelist,
+            # Allow retries on all methods for LLM requests (they should be idempotent)
+            allowed_methods=None,
+        )
+
+        return RetryTransport(retry=retry_strategy)
+
     async def _generate_response(
         self,
         request: dict[str, Any],
     ) -> dict[str, Any]:
-        """Generate a response from the Cortex platform."""
-        transport = AsyncHTTPTransport(retries=2)
+        """Generate a response from the Cortex platform with retry logic."""
         timeout = Timeout(300.0)
+        transport = self._build_retry_transport()
 
         async with AsyncClient(
             transport=transport,
             timeout=timeout,
         ) as client:
+            # Build headers (handles token refresh automatically)
+            headers = self._build_headers(streaming=False)
+
             response = await client.post(
                 self._build_url(),
                 json=request,
-                headers=self._build_headers(streaming=False),
+                headers=headers,
             )
-            # # Log the curl command to the console
-            # curl_command = f"curl -X POST {self._build_url()}"
-            # for header, value in self._build_headers(streaming=False).items():
-            #     curl_command += f" -H '{header}: {value}'"
-            # # Careful on the escaping here
-            # curl_command += f" -d '{dumps(request)}'"
-            # print(f"Curl command: {curl_command}")
+
             if response.status_code != codes.OK:
                 try:
                     error_text = await response.aread()
@@ -180,7 +229,7 @@ class CortexClient(
                     f"Cortex generate response call failed "
                     f"with status_code={response.status_code} "
                     f"response_headers={response.headers} "
-                    f"body='{error_detail}' ",
+                    f"body='{error_detail}'",
                 )
                 response.raise_for_status()  # Re-raise after logging
             return response.json()
@@ -189,32 +238,30 @@ class CortexClient(
         self,
         request: dict[str, Any],
     ) -> AsyncGenerator[str, None]:
-        """Generate a stream response from the Cortex platform."""
-        transport = AsyncHTTPTransport(retries=2)
+        """Generate a stream response from the Cortex platform with retry logic."""
         timeout = Timeout(300.0)
+        transport = self._build_retry_transport()
 
         async with AsyncClient(
             transport=transport,
             timeout=timeout,
         ) as client:
-            # Get headers
+            # Get headers (token refresh happens here if needed)
             headers = self._build_headers(streaming=True)
+
             async with client.stream(
                 "POST",
                 self._build_url(),
                 json=request,
                 headers=headers,
-                # timeout=None is handled by client-level timeout now
             ) as response:
-                # Add more detailed error logging on failure
-                if response.status_code != 200:  # noqa: PLR2004
+                if response.status_code != codes.OK:
                     try:
-                        # Attempt to read the response body for detailed error
                         error_text = await response.aread()
                         error_detail = error_text.decode()
                     except Exception as e:
                         error_detail = f"(Failed to read error response body: {e})"
-                    # Log details including request headers that were sent
+
                     logger.error(
                         f"Cortex stream call failed status_code={response.status_code} "
                         f"response_headers={response.headers} body='{error_detail}' "
@@ -222,7 +269,7 @@ class CortexClient(
                     )
                     response.raise_for_status()  # Re-raise after logging
 
-                # Original stream processing
+                # Stream processing
                 async for line in response.aiter_lines():
                     if line.strip():
                         yield line

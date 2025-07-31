@@ -73,6 +73,7 @@ class TestCortexPlatformParameters:
             "created_at": params.created_at.isoformat(),
             "updated_at": params.updated_at.isoformat(),
             "platform_id": params.platform_id,
+            "models": {"anthropic": ["claude-3-5-sonnet"]},
         }
 
         # Fields with None values should be excluded
@@ -96,7 +97,7 @@ class TestCortexPlatformParameters:
             "kind": "cortex",
             "name": "cortex-parameters",
             "description": None,
-            "models": None,
+            "models": {"anthropic": ["claude-3-5-sonnet"]},
             "created_at": params.created_at.isoformat(),
             "updated_at": params.updated_at.isoformat(),
             "platform_id": params.platform_id,

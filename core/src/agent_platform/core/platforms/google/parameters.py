@@ -35,6 +35,15 @@ class GooglePlatformParameters(PlatformParameters):
 
         super().__post_init__()
 
+        # Default the models allowlist to "{ "google": ["gemini-2.0-flash"] }"
+        # to match prior semantics
+        if self.models is None or self.models == {}:
+            object.__setattr__(
+                self,
+                "models",
+                {"google": ["gemini-2.0-flash"]},
+            )
+
         # Handle case where google_api_key is passed as a string
         if self.google_api_key and not isinstance(self.google_api_key, SecretString):
             object.__setattr__(

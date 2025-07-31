@@ -412,8 +412,11 @@ async def test_platform_params_json_serialization_edge_cases(
     # Verify None values are handled correctly
     assert retrieved.name == "Edge Case Config"
     assert retrieved.description is None
-    assert retrieved.models is None
     assert retrieved.kind == "openai"
+
+    # We will auto-populate the allowlist when empty to
+    # what server used to default to for this platform
+    assert retrieved.models == {"openai": ["gpt-4-1"]}
 
 
 @pytest.mark.asyncio

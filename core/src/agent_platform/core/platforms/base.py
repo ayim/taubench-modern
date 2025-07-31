@@ -75,11 +75,17 @@ class PlatformParameters(ABC):
         default=None,
         metadata={
             "description": (
-                "Allow list of provider -> models mapping (e.g. {'OpenAI': ['gpt-4.1', 'o3']})"
+                "Allow list of provider -> models mapping (e.g. {'openai': ['gpt-4-1', 'o3']})"
             ),
         },
     )
-    """Allow list of provider -> models mapping (e.g. {'OpenAI': ['gpt-4.1', 'o3']})"""
+    """Allow list of provider -> models mapping (e.g. {'openai': ['gpt-4-1', 'o3']})
+
+    If not provided, or empty, the platform will default to the
+    allowlist to constrain model selection to what agent-server _used to pick_
+    prior to the introduction of this field. (This is to prevent breaking
+    changes for existing agents.)
+    """
 
     created_at: datetime = field(
         default_factory=lambda: datetime.now(UTC),

@@ -35,6 +35,15 @@ class GroqPlatformParameters(PlatformParameters):
 
         super().__post_init__()
 
+        # Default the models allowlist to "{ "meta": ["llama-3.3"] }"
+        # to match prior semantics
+        if self.models is None or self.models == {}:
+            object.__setattr__(
+                self,
+                "models",
+                {"meta": ["llama-3.3"]},
+            )
+
         # Handle case where groq_api_key is passed as a string
         if self.groq_api_key and not isinstance(self.groq_api_key, SecretString):
             object.__setattr__(

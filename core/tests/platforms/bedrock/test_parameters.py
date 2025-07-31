@@ -55,6 +55,7 @@ class TestBedrockPlatformParameters:
             "created_at": params.created_at.isoformat(),
             "platform_id": params.platform_id,
             "name": "bedrock-parameters",
+            "models": {"anthropic": ["claude-3-5-sonnet"]},
         }
 
         # Fields with None values should be excluded
@@ -88,7 +89,7 @@ class TestBedrockPlatformParameters:
             "created_at": params.created_at.isoformat(),
             "platform_id": params.platform_id,
             "name": "bedrock-parameters",
-            "models": None,
+            "models": {"anthropic": ["claude-3-5-sonnet"]},
             "description": None,
         }
 

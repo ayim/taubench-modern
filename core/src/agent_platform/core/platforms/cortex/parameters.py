@@ -95,6 +95,15 @@ class CortexPlatformParameters(PlatformParameters):
 
         super().__post_init__()
 
+        # Default the models allowlist to "{ "anthropic": ["claude-3-5-sonnet"] }"
+        # to match prior semantics
+        if self.models is None or self.models == {}:
+            object.__setattr__(
+                self,
+                "models",
+                {"anthropic": ["claude-3-5-sonnet"]},
+            )
+
         # Override snowflake_host if SNOWFLAKE_HOST is set (this happens
         # when using SPCS, for example)
         if getenv("SNOWFLAKE_HOST"):

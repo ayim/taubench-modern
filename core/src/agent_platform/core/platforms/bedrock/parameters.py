@@ -164,9 +164,16 @@ class BedrockPlatformParameters(PlatformParameters):
     config_params: dict = field(default_factory=dict, repr=False)
 
     def __post_init__(self):
-        # This is just here so, if in the future, we want a post init
-        # we don't forget to call super().__post_init__()
         super().__post_init__()
+
+        # Default the models allowlist to "{ "anthropic": ["claude-3-5-sonnet"] }"
+        # to match prior semantics
+        if self.models is None or self.models == {}:
+            object.__setattr__(
+                self,
+                "models",
+                {"anthropic": ["claude-3-5-sonnet"]},
+            )
 
     def aws_client_params(self) -> dict[str, Any]:
         """Return only the parameters needed for AWS client initialization.

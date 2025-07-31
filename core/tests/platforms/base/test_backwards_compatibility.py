@@ -28,9 +28,12 @@ class TestPlatformParametersBackwardsCompatibility:
         assert params.platform_id is not None  # Gets UUID default
         assert params.name == "openai-parameters"  # Gets auto-generated name
         assert params.description is None  # Default
-        assert params.models is None  # Default
         assert isinstance(params.created_at, datetime)  # Gets datetime default
         assert isinstance(params.updated_at, datetime)  # Gets datetime default
+
+        # Verify we defaulted the allowlist to 4.1 (what server _used to pick_
+        # when there was no constraint for this Platform)
+        assert params.models == {"openai": ["gpt-4-1"]}
 
     def test_legacy_bedrock_config_deserialization(self):
         """Test that legacy Bedrock configuration data can be loaded."""
@@ -57,6 +60,10 @@ class TestPlatformParametersBackwardsCompatibility:
         assert isinstance(params.created_at, datetime)
         assert isinstance(params.updated_at, datetime)
 
+        # Verify we defaulted the allowlist to claude-3-5-sonnet
+        # (what server _used to pick_ when there was no constraint for this Platform)
+        assert params.models == {"anthropic": ["claude-3-5-sonnet"]}
+
     def test_legacy_cortex_config_deserialization(self):
         """Test that legacy Cortex configuration data can be loaded."""
         legacy_data = {
@@ -82,6 +89,10 @@ class TestPlatformParametersBackwardsCompatibility:
         assert isinstance(params.created_at, datetime)
         assert isinstance(params.updated_at, datetime)
 
+        # Verify we defaulted the allowlist to claude-3-5-sonnet
+        # (what server _used to pick_ when there was no constraint for this Platform)
+        assert params.models == {"anthropic": ["claude-3-5-sonnet"]}
+
     def test_legacy_data_with_some_base_fields(self):
         """Test legacy data that has some but not all base class fields."""
         legacy_data = {
@@ -100,9 +111,12 @@ class TestPlatformParametersBackwardsCompatibility:
 
         # Missing fields should get defaults
         assert params.platform_id is not None
-        assert params.models is None
         assert isinstance(params.created_at, datetime)
         assert isinstance(params.updated_at, datetime)
+
+        # Verify we defaulted the allowlist to 4.1 (what server _used to pick_
+        # when there was no constraint for this Platform)
+        assert params.models == {"openai": ["gpt-4-1"]}
 
     def test_legacy_data_with_string_timestamps(self):
         """Test legacy data that has timestamps as ISO strings."""

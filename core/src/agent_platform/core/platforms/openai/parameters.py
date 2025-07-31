@@ -36,6 +36,15 @@ class OpenAIPlatformParameters(PlatformParameters):
 
         super().__post_init__()
 
+        # Default the models allowlist to "{ "openai": ["gpt-4-1"] }"
+        # to match prior semantics
+        if self.models is None or self.models == {}:
+            object.__setattr__(
+                self,
+                "models",
+                {"openai": ["gpt-4-1"]},
+            )
+
         # Handle case where openai_api_key is passed as a string
         if self.openai_api_key and not isinstance(self.openai_api_key, SecretString):
             object.__setattr__(
