@@ -9,8 +9,11 @@ import structlog
 from agent_platform.orchestrator.default_locations import get_agent_server_executable_path
 
 from agent_platform.quality.models import AgentPackage, Platform
+from agent_platform.quality.utils import safe_join_url
 
 logger = structlog.get_logger(__name__)
+
+TEST_API_KEY = "test"
 
 
 class QualityOrchestrator:
@@ -151,13 +154,16 @@ class QualityOrchestrator:
         with open(agent_zip_path, "rb") as f:
             package_base64 = base64.b64encode(f.read()).decode()
 
-        # Prepare action server configuration if we have one
-        action_servers = []
+        # Prepare MCP servers configuration if we have one
+        mcp_servers = []
         if action_server_url:
-            action_servers = [
+            # use actions always as MCP servers
+            mcp_servers = [
                 {
-                    "url": action_server_url,
-                    "api_key": "test",  # Default API key used by action server in test mode
+                    "name": "Test",
+                    "transport": "streamable-http",
+                    "url": safe_join_url(action_server_url, "/mcp"),
+                    "headers": {"Authorization": f"Bearer {TEST_API_KEY}"},
                 }
             ]
 
@@ -182,7 +188,7 @@ class QualityOrchestrator:
                     "name": agent_name,
                     "description": "Quality test agent",
                     "agent_package_base64": package_base64,
-                    "action_servers": action_servers,
+                    "mcp_servers": mcp_servers,
                     "model": {"provider": "openai", "name": "gpt-4o"},
                 },
                 timeout=30.0,
@@ -300,7 +306,7 @@ class QualityOrchestrator:
             reuse_processes=True,
             lint=True,
             timeout=500,  # Can be slow (time to bootstrap env)
-            additional_args=["--api-key", "test"],  # Use test API key
+            additional_args=["--api-key", TEST_API_KEY],
             port=0,  # Let it choose an available port
         )
         actions_url = (
@@ -443,7 +449,7 @@ class QualityOrchestrator:
         actions_dir = tmp_agent_zip_dir / "actions"
 
         # Get action server executable
-        action_server_executable = get_action_server_executable_path("2.10.0", download=True)
+        action_server_executable = get_action_server_executable_path("2.14.0", download=True)
 
         # Create agent-specific action server data directory
         action_server_data_dir = self.data_dir / "action_servers" / agent_package.name
@@ -477,7 +483,7 @@ class QualityOrchestrator:
             reuse_processes=True,
             lint=True,
             timeout=500,  # Can be slow (time to bootstrap env)
-            additional_args=["--api-key", "test"],  # Use test API key
+            additional_args=["--api-key", TEST_API_KEY],
             port=0,  # Let it choose an available port
             env={"SEMA4AI_FILE_MANAGEMENT_URL": urljoin(self.server_url, "api/v2")},
         )
