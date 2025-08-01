@@ -5,6 +5,7 @@ Unreleased:
 - `/api/v2/providers/{kind}/test` renamed to `/api/v2/platforms/{kind}/test` (aligning clients to our internal terminology more).
 - `/api/v2/providers` renamed to `/api/v2/platforms`.
 - Server will retry getting an OpenAPI spec from action servers; logging in this area is increased.
+- Increase robustness around model params serialization/deserialization.
 
 # Sema4.ai Agent Server 2.0.24 (2025-07-30)
 

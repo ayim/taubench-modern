@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from agent_platform.core.platforms.azure import AzureOpenAIPlatformParameters
 from agent_platform.core.platforms.base import PlatformParameters
 from agent_platform.core.platforms.bedrock import BedrockPlatformParameters
 from agent_platform.core.platforms.cortex import CortexPlatformParameters
@@ -194,3 +195,146 @@ class TestPlatformParametersBackwardsCompatibility:
         # but they should both be datetime objects
         assert isinstance(loaded.created_at, datetime)
         assert isinstance(loaded.updated_at, datetime)
+
+    def test_post_init_converts_string_datetimes(self):
+        """Test that __post_init__ converts string datetimes to datetime objects."""
+        # This tests the safety net in __post_init__ for cases where string datetimes
+        # might slip through model_validate or be passed directly to constructor
+
+        # We need to use a concrete subclass and bypass normal validation
+        # by directly setting field values after construction
+        params = OpenAIPlatformParameters(
+            openai_api_key=SecretString("sk-test-key"),
+        )
+
+        # Simulate what might happen if string datetimes slip through somehow
+        # (using object.__setattr__ to bypass frozen dataclass protection)
+        import datetime as dt
+
+        object.__setattr__(params, "created_at", "2023-01-15T10:30:00+00:00")
+        object.__setattr__(params, "updated_at", "2023-06-20T14:45:30+00:00")
+
+        # Trigger __post_init__ conversion by creating a new instance
+        # with string datetime values (testing the safety net)
+        new_params = OpenAIPlatformParameters(
+            openai_api_key=SecretString("sk-test-key"),
+            created_at="2023-01-15T10:30:00+00:00",  # type: ignore
+            updated_at="2023-06-20T14:45:30+00:00",  # type: ignore
+            name="test-config",
+        )
+
+        # The __post_init__ should have converted the strings to datetime objects
+        assert isinstance(new_params.created_at, dt.datetime)
+        assert isinstance(new_params.updated_at, dt.datetime)
+        assert new_params.created_at.year == 2023
+        assert new_params.created_at.month == 1
+        assert new_params.created_at.day == 15
+        assert new_params.updated_at.year == 2023
+        assert new_params.updated_at.month == 6
+        assert new_params.updated_at.day == 20
+
+    def test_post_init_rejects_invalid_datetime_strings(self):
+        """Test that __post_init__ raises clear errors for invalid datetime strings."""
+        import pytest
+
+        # Test invalid created_at format
+        with pytest.raises(
+            ValueError, match=r"Invalid datetime string for created_at.*Expected ISO format"
+        ):
+            OpenAIPlatformParameters(
+                openai_api_key=SecretString("sk-test-key"),
+                created_at="not-a-valid-datetime",  # type: ignore
+                name="test-config",
+            )
+
+        # Test invalid updated_at format
+        with pytest.raises(
+            ValueError, match=r"Invalid datetime string for updated_at.*Expected ISO format"
+        ):
+            OpenAIPlatformParameters(
+                openai_api_key=SecretString("sk-test-key"),
+                updated_at="2023-13-40T25:70:80",  # type: ignore  # Invalid date/time components
+                name="test-config",
+            )
+
+    def test_model_dump_handles_datetime_objects_bedrock(self):
+        """Test that model_dump correctly serializes datetime objects using Bedrock parameters."""
+        # Create a Bedrock parameter instance with datetime objects (normal case)
+        params = BedrockPlatformParameters(
+            name="Test Bedrock Config",
+            region_name="us-east-1",
+        )
+
+        # Ensure we have datetime objects
+        assert isinstance(params.created_at, datetime)
+        assert isinstance(params.updated_at, datetime)
+
+        # model_dump should convert datetime objects to ISO strings
+        dumped = params.model_dump()
+
+        assert isinstance(dumped["created_at"], str)
+        assert isinstance(dumped["updated_at"], str)
+        # Should be valid ISO format
+        assert "T" in dumped["created_at"]
+        assert "T" in dumped["updated_at"]
+        # Should be able to parse back to datetime
+        datetime.fromisoformat(dumped["created_at"])
+        datetime.fromisoformat(dumped["updated_at"])
+
+    def test_model_dump_handles_string_datetimes_azure(self):
+        """Test that model_dump handles string datetime values gracefully using Azure parameters."""
+        # Create an Azure parameter instance first
+        params = AzureOpenAIPlatformParameters(
+            name="Test Azure Config",
+            azure_endpoint_url="https://test.openai.azure.com",
+            azure_api_key=SecretString("test-key"),
+        )
+
+        # Simulate the scenario where somehow we have string datetime values
+        # (this mimics the original bug scenario)
+        string_created_at = "2023-01-15T10:30:00+00:00"
+        string_updated_at = "2023-06-20T14:45:30+00:00"
+
+        # Force string values (bypassing frozen dataclass protection)
+        object.__setattr__(params, "created_at", string_created_at)
+        object.__setattr__(params, "updated_at", string_updated_at)
+
+        # Verify they are strings now
+        assert isinstance(params.created_at, str)
+        assert isinstance(params.updated_at, str)
+
+        # model_dump should handle string values gracefully (not crash)
+        dumped = params.model_dump()
+
+        # String values should pass through unchanged
+        assert dumped["created_at"] == string_created_at
+        assert dumped["updated_at"] == string_updated_at
+        assert isinstance(dumped["created_at"], str)
+        assert isinstance(dumped["updated_at"], str)
+
+    def test_model_dump_handles_mixed_datetime_types_bedrock(self):
+        """Test model_dump with one datetime object and one string datetime."""
+        # Create a Bedrock parameter instance
+        params = BedrockPlatformParameters(
+            name="Mixed Test Config",
+            region_name="us-west-2",
+        )
+
+        # Mix: keep created_at as datetime, make updated_at a string
+        string_updated_at = "2023-06-20T14:45:30+00:00"
+        object.__setattr__(params, "updated_at", string_updated_at)
+
+        # Verify mixed types
+        assert isinstance(params.created_at, datetime)
+        assert isinstance(params.updated_at, str)
+
+        # model_dump should handle both correctly
+        dumped = params.model_dump()
+
+        # created_at (datetime) should be converted to string
+        assert isinstance(dumped["created_at"], str)
+        assert "T" in dumped["created_at"]
+
+        # updated_at (string) should pass through unchanged
+        assert dumped["updated_at"] == string_updated_at
+        assert isinstance(dumped["updated_at"], str)

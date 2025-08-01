@@ -106,9 +106,33 @@ class PlatformParameters(ABC):
     """The unique identifier of the platform."""
 
     def __post_init__(self) -> None:
-        """Make sure we have a non-empty name."""
+        """Ensures the `name` field is non-empty and converts string datetime fields to
+        `datetime` objects if necessary.
+
+        Specifically, if the `created_at` or `updated_at` fields are provided as strings
+        (rather than `datetime` objects), this method attempts to parse them using
+        `datetime.fromisoformat`.
+
+        The expected string format is ISO 8601, e.g., '2023-01-15T10:30:00+00:00'.
+
+        Raises a `ValueError` if the string cannot be parsed as an ISO 8601 datetime."""
         if not self.name:
             object.__setattr__(self, "name", f"{self.kind}-parameters")
+
+        # Convert string datetime fields to datetime objects if needed
+        # This provides a safety net in case string datetimes slip
+        # through model_validate
+        for field_name in ["created_at", "updated_at"]:
+            field_value = getattr(self, field_name)
+            if isinstance(field_value, str):
+                try:
+                    converted_value = datetime.fromisoformat(field_value)
+                    object.__setattr__(self, field_name, converted_value)
+                except ValueError as e:
+                    raise ValueError(
+                        f"Invalid datetime string for {field_name}: {field_value!r}. "
+                        f"Expected ISO format (e.g., '2023-01-15T10:30:00+00:00')"
+                    ) from e
 
     @abstractmethod
     def model_dump(
@@ -128,8 +152,16 @@ class PlatformParameters(ABC):
             "name": self.name,
             "description": self.description,
             "models": self.models,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "created_at": (
+                self.created_at.isoformat()
+                if self.created_at and hasattr(self.created_at, "isoformat")
+                else self.created_at
+            ),
+            "updated_at": (
+                self.updated_at.isoformat()
+                if self.updated_at and hasattr(self.updated_at, "isoformat")
+                else self.updated_at
+            ),
             "platform_id": self.platform_id,
             **(extra or {}),
         }
