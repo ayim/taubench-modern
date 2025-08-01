@@ -10,13 +10,17 @@ const dateTimeFormatter = new Intl.DateTimeFormat('en-US', {
 });
 
 export const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const date = new Date(dateString);
+  const month = date.toLocaleDateString('en-US', { month: 'short' });
+  const day = date.getDate();
+  const year = date.getFullYear();
+  const hour = date.getHours();
+  const minute = date.getMinutes();
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  const displayHour = hour % 12 || 12;
+  const displayMinute = minute.toString().padStart(2, '0');
+
+  return `${month} ${day}, ${year} at ${displayHour}:${displayMinute} ${ampm}`;
 };
 
 export const formatDatetime = (date?: Date | string | null): string | undefined => {

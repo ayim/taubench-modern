@@ -12,7 +12,7 @@ import {
 import { IconSearch } from '@sema4ai/icons';
 import { FC, useMemo, useState, useCallback } from 'react';
 import { useParams, useRouteContext } from '@tanstack/react-router';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { WorkItem } from '~/types';
 import { WorkItemsRowItem, WorkItemsRowItemProps } from './WorkItemsRowItem';
 import WorkItemsActions from './WorkItemsActions';
@@ -26,6 +26,7 @@ type Props = {
 const WorkItemsTable: FC<Props> = () => {
   const { tenantId } = useParams({ from: '/$tenantId/workItems/' });
   const { agentAPIClient } = useRouteContext({ from: '/$tenantId' });
+  const queryClient = useQueryClient();
 
   // Use the query directly instead of receiving workItems as props
   const { data: workItemsResponse, isLoading } = useQuery(
@@ -73,11 +74,12 @@ const WorkItemsTable: FC<Props> = () => {
   const [search, setSearch] = useState<string>('');
   const [sort, onSort] = useState<[string, SortDirection] | null>(['created_at', 'desc']);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
-  const [hasStaleData] = useState(false);
+  const [hasStaleData] = useState(true);
   const [isRestarting, setIsRestarting] = useState(false);
   const pageSize = 10;
 
   const refreshWorkItems = useRefreshWorkItems();
+  const isSyncing = refreshWorkItems.isPending;
 
   // Filter logic
   const filteredData = useMemo(() => {
@@ -138,9 +140,10 @@ const WorkItemsTable: FC<Props> = () => {
 
   const columns: Column[] = [
     { id: 'row-selection', title: '', sortable: false },
+    { id: 'status', title: 'Status', sortable: true },
     { id: 'name', title: 'Work Item Name', sortable: true },
     { id: 'agent_name', title: 'Agent Name', sortable: true },
-    { id: 'status', title: 'Status', sortable: true },
+    { id: 'view-work-item', title: 'View', sortable: false },
     // { id: 'stage', title: 'Stage', sortable: true },
     // { id: 'state', title: 'State', sortable: true },
     { id: 'created_at', title: 'Date Created', sortable: true },
@@ -189,7 +192,7 @@ const WorkItemsTable: FC<Props> = () => {
     } finally {
       setIsRestarting(false);
     }
-  }, [selectedItems, tenantId, agentAPIClient]);
+  }, [selectedItems, tenantId, agentAPIClient, refreshWorkItems]);
 
   const handleCompleteWorkItem = useCallback(
     async (workItemId: string) => {
@@ -210,13 +213,52 @@ const WorkItemsTable: FC<Props> = () => {
       // Use the hook that's now at the top level
       refreshWorkItems.mutate({ tenantId, agentAPIClient });
     },
-    [tenantId, agentAPIClient],
+    [tenantId, agentAPIClient, refreshWorkItems],
+  );
+
+  const handleRestartWorkItem = useCallback(
+    async (workItemId: string) => {
+      try {
+        await agentAPIClient.agentFetch(tenantId, 'post', '/api/v2/work-items/{work_item_id}/restart', {
+          params: {
+            path: {
+              work_item_id: workItemId,
+            },
+          },
+          errorMsg: 'Failed to restart work item',
+          silent: false,
+        });
+        console.log(`Successfully restarted work item: ${workItemId}`);
+      } catch (error) {
+        console.error(`Failed to restart work item ${workItemId}:`, error);
+      }
+
+      // Refresh the data without triggering sync state
+      try {
+        const updatedData = await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/work-items/', {
+          params: {},
+          errorMsg: 'Failed to refresh work items after restart',
+          silent: true,
+        });
+
+        // Update the query cache directly without using the mutation
+        queryClient.setQueryData([tenantId, 'work-items'], updatedData);
+      } catch (error) {
+        console.error('Error refreshing data after restart:', error);
+      }
+    },
+    [tenantId, agentAPIClient, queryClient],
   );
 
   const handleSync = useCallback(async () => {
     console.log('Syncing work items...');
-    // TODO: Implement sync logic
-  }, []);
+    try {
+      await refreshWorkItems.mutateAsync({ tenantId, agentAPIClient });
+      console.log('Work items synced successfully');
+    } catch (error) {
+      console.error('Error syncing work items:', error);
+    }
+  }, [refreshWorkItems, tenantId, agentAPIClient]);
 
   const rowProps: WorkItemsRowItemProps = useMemo(
     () => ({
@@ -226,8 +268,9 @@ const WorkItemsTable: FC<Props> = () => {
       tenantId,
       isRestarting,
       handleCompleteWorkItem,
+      handleRestartWorkItem,
     }),
-    [selectedItems, workItems, tenantId, isRestarting, handleCompleteWorkItem],
+    [selectedItems, workItems, tenantId, isRestarting, handleCompleteWorkItem, handleRestartWorkItem],
   );
 
   return (
@@ -254,6 +297,7 @@ const WorkItemsTable: FC<Props> = () => {
           handleSyncClick={handleSync}
           hasStaleData={hasStaleData}
           isRestarting={isRestarting}
+          isSyncing={isSyncing}
         />
       </Box>
 

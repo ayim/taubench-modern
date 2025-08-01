@@ -36,11 +36,9 @@ export const useRefreshWorkItems = () => {
         silent: true,
       });
     },
-    onSuccess: (_, { tenantId }) => {
-      // Invalidate and refetch the work items query
-      queryClient.invalidateQueries({
-        queryKey: getListWorkItemsQueryKey(tenantId),
-      });
+    onSuccess: (data, { tenantId }) => {
+      // Update the query cache with the new data instead of invalidating
+      queryClient.setQueryData(getListWorkItemsQueryKey(tenantId), data);
     },
   });
 };

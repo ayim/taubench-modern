@@ -1,5 +1,5 @@
 import { Box, Button } from '@sema4ai/components';
-import { IconRefresh2, IconRefresh } from '@sema4ai/icons';
+import { IconRefresh } from '@sema4ai/icons';
 import React from 'react';
 
 export interface WorkItemsActionsProps {
@@ -8,6 +8,7 @@ export interface WorkItemsActionsProps {
   handleSyncClick: () => Promise<void>;
   hasStaleData: boolean;
   isRestarting?: boolean;
+  isSyncing?: boolean;
 }
 
 const WorkItemsActions: React.FC<WorkItemsActionsProps> = ({
@@ -16,6 +17,7 @@ const WorkItemsActions: React.FC<WorkItemsActionsProps> = ({
   handleSyncClick,
   hasStaleData,
   isRestarting = false,
+  isSyncing = false,
 }) => {
   return (
     <Box className="flex justify-end flex-row gap-2">
@@ -26,11 +28,12 @@ const WorkItemsActions: React.FC<WorkItemsActionsProps> = ({
         title="Sync"
         round
         aria-label="Sync"
-        variant="ghost"
+        variant="primary"
         className="border border-solid border-[#DADEE3] !bg-white"
-        disabled={!hasStaleData}
+        disabled={!hasStaleData || isSyncing}
+        loading={isSyncing}
       >
-        Sync
+        {isSyncing ? 'Syncing...' : 'Sync'}
       </Button>
 
       <Button
@@ -41,7 +44,6 @@ const WorkItemsActions: React.FC<WorkItemsActionsProps> = ({
         loading={isRestarting}
         variant="ghost"
         className="border border-solid border-[#DADEE3] !bg-white"
-        iconAfter={IconRefresh2}
         onClick={handleRestartClick}
         round
       >
