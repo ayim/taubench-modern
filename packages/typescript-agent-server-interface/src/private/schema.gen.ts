@@ -657,7 +657,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v2/capabilities/providers': {
+  '/api/v2/capabilities/platforms': {
     parameters: {
       query?: never;
       header?: never;
@@ -665,7 +665,7 @@ export interface paths {
       cookie?: never;
     };
     /**
-     * Get Providers
+     * Get Platforms
      * @description This endpoint returns detailed information about all supported model platforms
      *     and their configuration parameters, including field descriptions, types,
      *     and whether they are required or optional.
@@ -673,7 +673,7 @@ export interface paths {
      *     The schema returned represents a union of all possible platform parameter
      *     types.
      */
-    get: operations['get_providers_capabilities_providers_get'];
+    get: operations['get_platforms_capabilities_platforms_get'];
     put?: never;
     post?: never;
     delete?: never;
@@ -682,7 +682,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v2/capabilities/providers/{kind}/test': {
+  '/api/v2/capabilities/platforms/{kind}/test': {
     parameters: {
       query?: never;
       header?: never;
@@ -698,7 +698,7 @@ export interface paths {
      *
      *     The endpoint returns a dictionary with the results of the tests.
      */
-    post: operations['test_model_platform_params_capabilities_providers__kind__test_post'];
+    post: operations['test_model_platform_params_capabilities_platforms__kind__test_post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -1341,7 +1341,7 @@ export interface components {
       description?: string | null;
       /**
        * Models
-       * @description Allow list of provider -> models mapping (e.g. {'OpenAI': ['gpt-4.1', 'o3']})
+       * @description Allow list of provider -> models mapping (e.g. {'openai': ['gpt-4-1', 'o3']})
        */
       models?: {
         [key: string]: string[];
@@ -1421,7 +1421,7 @@ export interface components {
       description?: string | null;
       /**
        * Models
-       * @description Allow list of provider -> models mapping (e.g. {'OpenAI': ['gpt-4.1', 'o3']})
+       * @description Allow list of provider -> models mapping (e.g. {'openai': ['gpt-4-1', 'o3']})
        */
       models?: {
         [key: string]: string[];
@@ -1615,7 +1615,7 @@ export interface components {
       description?: string | null;
       /**
        * Models
-       * @description Allow list of provider -> models mapping (e.g. {'OpenAI': ['gpt-4.1', 'o3']})
+       * @description Allow list of provider -> models mapping (e.g. {'openai': ['gpt-4-1', 'o3']})
        */
       models?: {
         [key: string]: string[];
@@ -1764,7 +1764,7 @@ export interface components {
       description?: string | null;
       /**
        * Models
-       * @description Allow list of provider -> models mapping (e.g. {'OpenAI': ['gpt-4.1', 'o3']})
+       * @description Allow list of provider -> models mapping (e.g. {'openai': ['gpt-4-1', 'o3']})
        */
       models?: {
         [key: string]: string[];
@@ -1811,7 +1811,7 @@ export interface components {
       description?: string | null;
       /**
        * Models
-       * @description Allow list of provider -> models mapping (e.g. {'OpenAI': ['gpt-4.1', 'o3']})
+       * @description Allow list of provider -> models mapping (e.g. {'openai': ['gpt-4-1', 'o3']})
        */
       models?: {
         [key: string]: string[];
@@ -2250,7 +2250,7 @@ export interface components {
       description?: string | null;
       /**
        * Models
-       * @description Allow list of provider -> models mapping (e.g. {'OpenAI': ['gpt-4.1', 'o3']})
+       * @description Allow list of provider -> models mapping (e.g. {'openai': ['gpt-4-1', 'o3']})
        */
       models?: {
         [key: string]: string[];
@@ -2573,7 +2573,7 @@ export interface components {
       description?: string | null;
       /**
        * Models
-       * @description Allow list of provider -> models mapping (e.g. {'OpenAI': ['gpt-4.1', 'o3']})
+       * @description Allow list of provider -> models mapping (e.g. {'openai': ['gpt-4-1', 'o3']})
        */
       models?: {
         [key: string]: string[];
@@ -3485,6 +3485,7 @@ export interface components {
        */
       category:
         | 'unknown'
+        | 'internal-tool'
         | 'action-tool'
         | 'mcp-tool'
         | 'client-exec-tool'
@@ -5341,7 +5342,7 @@ export interface operations {
       };
     };
   };
-  get_providers_capabilities_providers_get: {
+  get_platforms_capabilities_platforms_get: {
     parameters: {
       query?: {
         response_model?: unknown;
@@ -5373,7 +5374,7 @@ export interface operations {
       };
     };
   };
-  test_model_platform_params_capabilities_providers__kind__test_post: {
+  test_model_platform_params_capabilities_platforms__kind__test_post: {
     parameters: {
       query?: never;
       header?: never;

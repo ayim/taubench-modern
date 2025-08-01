@@ -6,7 +6,7 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Private API Version 2',
-    version: '2.0.24',
+    version: '2.0.25',
   },
   paths: {
     '/api/v2/ok': {
@@ -2086,13 +2086,13 @@ export const spec = {
         },
       },
     },
-    '/api/v2/capabilities/providers': {
+    '/api/v2/capabilities/platforms': {
       get: {
         tags: ['capabilities'],
-        summary: 'Get Providers',
+        summary: 'Get Platforms',
         description:
           'This endpoint returns detailed information about all supported model platforms\nand their configuration parameters, including field descriptions, types,\nand whether they are required or optional.\n\nThe schema returned represents a union of all possible platform parameter\ntypes.',
-        operationId: 'get_providers_capabilities_providers_get',
+        operationId: 'get_platforms_capabilities_platforms_get',
         parameters: [
           {
             name: 'response_model',
@@ -2107,7 +2107,7 @@ export const spec = {
             in: 'query',
             required: false,
             schema: {
-              default: 'Get OpenAPI Schema for Provider Parameters',
+              default: 'Get OpenAPI Schema for Platform Parameters',
               title: 'Summary',
             },
           },
@@ -2134,14 +2134,14 @@ export const spec = {
         },
       },
     },
-    '/api/v2/capabilities/providers/{kind}/test': {
+    '/api/v2/capabilities/platforms/{kind}/test': {
       post: {
         tags: ['capabilities'],
         summary: 'Test Model Platform Params',
         description:
           'This endpoint is used to test platform parameters by making a series\nof basic requests to the platform.\n\nThe endpoint returns a dictionary with the results of the tests.',
         operationId:
-          'test_model_platform_params_capabilities_providers__kind__test_post',
+          'test_model_platform_params_capabilities_platforms__kind__test_post',
         parameters: [
           {
             name: 'kind',
@@ -3576,7 +3576,7 @@ export const spec = {
             ],
             title: 'Models',
             description:
-              "Allow list of provider -> models mapping (e.g. {'OpenAI': ['gpt-4.1', 'o3']})",
+              "Allow list of provider -> models mapping (e.g. {'openai': ['gpt-4-1', 'o3']})",
           },
           created_at: {
             type: 'string',
@@ -3724,7 +3724,7 @@ export const spec = {
             ],
             title: 'Models',
             description:
-              "Allow list of provider -> models mapping (e.g. {'OpenAI': ['gpt-4.1', 'o3']})",
+              "Allow list of provider -> models mapping (e.g. {'openai': ['gpt-4-1', 'o3']})",
           },
           created_at: {
             type: 'string',
@@ -4102,7 +4102,7 @@ export const spec = {
             ],
             title: 'Models',
             description:
-              "Allow list of provider -> models mapping (e.g. {'OpenAI': ['gpt-4.1', 'o3']})",
+              "Allow list of provider -> models mapping (e.g. {'openai': ['gpt-4-1', 'o3']})",
           },
           created_at: {
             type: 'string',
@@ -4384,7 +4384,7 @@ export const spec = {
             ],
             title: 'Models',
             description:
-              "Allow list of provider -> models mapping (e.g. {'OpenAI': ['gpt-4.1', 'o3']})",
+              "Allow list of provider -> models mapping (e.g. {'openai': ['gpt-4-1', 'o3']})",
           },
           created_at: {
             type: 'string',
@@ -4465,7 +4465,7 @@ export const spec = {
             ],
             title: 'Models',
             description:
-              "Allow list of provider -> models mapping (e.g. {'OpenAI': ['gpt-4.1', 'o3']})",
+              "Allow list of provider -> models mapping (e.g. {'openai': ['gpt-4-1', 'o3']})",
           },
           created_at: {
             type: 'string',
@@ -5423,7 +5423,7 @@ export const spec = {
             ],
             title: 'Models',
             description:
-              "Allow list of provider -> models mapping (e.g. {'OpenAI': ['gpt-4.1', 'o3']})",
+              "Allow list of provider -> models mapping (e.g. {'openai': ['gpt-4-1', 'o3']})",
           },
           created_at: {
             type: 'string',
@@ -5917,7 +5917,7 @@ export const spec = {
             ],
             title: 'Models',
             description:
-              "Allow list of provider -> models mapping (e.g. {'OpenAI': ['gpt-4.1', 'o3']})",
+              "Allow list of provider -> models mapping (e.g. {'openai': ['gpt-4-1', 'o3']})",
           },
           created_at: {
             type: 'string',
@@ -7177,6 +7177,7 @@ export const spec = {
             type: 'string',
             enum: [
               'unknown',
+              'internal-tool',
               'action-tool',
               'mcp-tool',
               'client-exec-tool',
