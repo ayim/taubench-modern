@@ -175,7 +175,7 @@ class QualityOrchestrator:
 
         if agent_package_metadata is not None and "docker_mcp_gateway" in agent_package_metadata:
             # don't allow custom catalog for now: just fail hard!
-            if "catalog" in agent_package_metadata["docker-mcp-gateway"]:
+            if "catalog" in agent_package_metadata.get("docker-mcp-gateway", {}):
                 raise ValueError("Only default catalog is allowed when using docker_mcp_gateway")
 
             servers = agent_package_metadata["docker_mcp_gateway"].get("servers", {})
