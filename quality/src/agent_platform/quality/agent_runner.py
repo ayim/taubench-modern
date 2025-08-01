@@ -21,7 +21,7 @@ class AgentRunner:
         logger.info(f"Running test case: {test_case.thread.name}")
 
         thread_id = None
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
                 f"{self.server_url}/api/v2/threads/",
                 json={"agent_id": agent_id, "name": f"Quality Test Run on {platform_name}"},
@@ -121,11 +121,10 @@ class AgentRunner:
             "thread_id": thread_id,
         }
 
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=60.0 * 5) as client:
             response = await client.post(
                 f"{self.server_url}/api/v2/runs/{agent_id}/sync",
                 json=payload,
-                timeout=60.0 * 5,  # Allow up to 5 minutes for agent responses
             )
             response.raise_for_status()
 

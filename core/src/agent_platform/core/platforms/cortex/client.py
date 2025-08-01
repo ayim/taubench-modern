@@ -42,7 +42,7 @@ class CortexRetryConfiguration(Configuration):
     """A configuration for the Cortex platform."""
 
     total: int = field(
-        default=3,
+        default=5,
         metadata=FieldMetadata(
             description="The maximum number of retries to attempt.",
         ),
@@ -56,7 +56,7 @@ class CortexRetryConfiguration(Configuration):
     )
 
     backoff_max: float = field(
-        default=60.0,
+        default=120.0,
         metadata=FieldMetadata(
             description="The maximum delay between retries.",
         ),

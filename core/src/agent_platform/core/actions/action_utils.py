@@ -3,19 +3,63 @@ import os
 import random
 import string
 from collections.abc import Callable, Coroutine
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import IntEnum
 from http import HTTPStatus
 from typing import Any, TypedDict
 
-from aiohttp import ClientSession
+import httpx
+from httpx_retries import Retry, RetryTransport
 from jsonpointer import JsonPointer, JsonPointerException
 from structlog import get_logger
 
+from agent_platform.core.configurations.base import Configuration, FieldMetadata
 from agent_platform.core.tools.tool_definition import ToolDefinition
 from agent_platform.core.utils.url import safe_urljoin
 
 logger = get_logger(__name__)
+
+
+@dataclass(frozen=True)
+class ActionUtilsRetryConfig(Configuration):
+    total: int = field(
+        default=3,
+        metadata=FieldMetadata(
+            description="The total number of retries to attempt.",
+        ),
+    )
+    backoff_factor: float = field(
+        default=1.0,
+        metadata=FieldMetadata(
+            description="The backoff factor to use for retries.",
+        ),
+    )
+    status_forcelist: set[int] = field(
+        default_factory=lambda: {429, 500, 502, 503, 504},
+        metadata=FieldMetadata(
+            description="The status codes that should be retried.",
+        ),
+    )
+    allowed_methods: list[str] = field(
+        default_factory=lambda: ["GET"],
+        metadata=FieldMetadata(
+            description="The methods that should be retried.",
+        ),
+    )
+
+
+# Retry configuration for read-only operations (spec fetching, status checks)
+def _get_read_retry_transport() -> RetryTransport:
+    return RetryTransport(
+        retry=Retry(
+            # This looks odd, but our config system is set up
+            # to access via attributes on the class
+            total=ActionUtilsRetryConfig.total,
+            backoff_factor=ActionUtilsRetryConfig.backoff_factor,
+            status_forcelist=ActionUtilsRetryConfig.status_forcelist,
+            allowed_methods=ActionUtilsRetryConfig.allowed_methods,
+        )
+    )
 
 
 class ActionRunStatus(IntEnum):
@@ -123,7 +167,7 @@ def _dereference_refs(spec: dict, full_schema: dict) -> dict:
 
 
 async def _get_run_id_from_request_id(
-    session: ClientSession,
+    client: httpx.AsyncClient,
     base_url: str,
     api_key: str,
     request_id: str,
@@ -131,7 +175,7 @@ async def _get_run_id_from_request_id(
     """Get the run ID from a request ID.
 
     Args:
-        session: The aiohttp ClientSession to use
+        client: The httpx AsyncClient to use (should have retry transport)
         base_url: The base URL of the action server
         api_key: The API key for authentication
         request_id: The request ID to get the run ID for
@@ -141,35 +185,35 @@ async def _get_run_id_from_request_id(
     """
     run_id_url = f"{base_url}/api/runs/run-id-from-request-id/{request_id}"
     try:
-        async with session.get(
+        response = await client.get(
             run_id_url,
             headers={
                 "Authorization": f"Bearer {api_key}",
                 "Accept": "application/json",
                 "Content-Type": "application/json",
             },
-        ) as response:
-            if response.status == HTTPStatus.OK:
-                result = await response.json()
-                run_id = result.get("run_id")
-                if run_id:
-                    logger.info(f"Found run ID {run_id} for request ID {request_id}")
-                    return run_id
-                else:
-                    logger.warning(f"No run_id found in response for request ID {request_id}")
-                    return None
+        )
+        if response.status_code == HTTPStatus.OK:
+            result = response.json()
+            run_id = result.get("run_id")
+            if run_id:
+                logger.info(f"Found run ID {run_id} for request ID {request_id}")
+                return run_id
             else:
-                logger.warning(
-                    f"Failed to get run ID for request ID {request_id}. Status: {response.status}"
-                )
+                logger.warning(f"No run_id found in response for request ID {request_id}")
                 return None
+        else:
+            logger.warning(
+                f"Failed to get run ID for request ID {request_id}. Status: {response.status_code}"
+            )
+            response.raise_for_status()
     except Exception as e:
         logger.error(f"Error getting run ID from request ID: {e!s}", exc_info=True)
         return None
 
 
 async def _check_action_status(
-    session: ClientSession | None,
+    client: httpx.AsyncClient,
     base_url: str,
     api_key: str,
     async_action_run_id: str,
@@ -178,8 +222,7 @@ async def _check_action_status(
     """Check the status of an action run.
 
     Args:
-        session: Optional aiohttp ClientSession to reuse.
-        If not provided, a new session will be created.
+        client: The httpx AsyncClient to use (should have retry transport for resilience)
         base_url: The base URL of the action server (e.g., http://localhost:8080)
         api_key: The API key for authentication
         async_action_run_id: The ID of the async action run
@@ -195,27 +238,16 @@ async def _check_action_status(
             "x-action-server-pod-ip": action_server_id,
         }
 
-        # If no session provided, create a new one
-        should_close_session = False
-        if session is None:
-            session = ClientSession()
-            should_close_session = True
+        response = await client.get(f"{base_url}/api/runs/{async_action_run_id}", headers=headers)
 
-        try:
-            async with session.get(
-                f"{base_url}/api/runs/{async_action_run_id}", headers=headers
-            ) as response:
-                if response.status != HTTPStatus.OK:
-                    logger.warning(
-                        f"Received invalid status code from action server: {response.status}"
-                    )
-                    return {"status": -1}  # Indicate error with status -1
+        if response.status_code != HTTPStatus.OK:
+            logger.warning(
+                f"Action status check failed: HTTP {response.status_code} "
+                f"for run {async_action_run_id}"
+            )
+            return {"status": -1}  # Indicate error with status -1
 
-                return await response.json()
-        finally:
-            # Only close the session if we created it
-            if should_close_session:
-                await session.close()
+        return response.json()
     except Exception as e:
         logger.error(f"Error checking action status: {e!s}", exc_info=True)
         return {"status": -1}
@@ -281,8 +313,6 @@ def _build_post_async_function(
         import asyncio
         import uuid
 
-        from aiohttp import ClientSession
-
         characters = string.ascii_letters + string.digits
         action_invocation_id = "".join(random.choice(characters) for _ in range(10))
         headers = {
@@ -308,38 +338,47 @@ def _build_post_async_function(
         # We can't have any headers that map to None, so filter them out
         safe_headers = {k: v for k, v in headers.items() if v is not None}
 
-        async with ClientSession() as session:
-            async with session.post(
+        # Use httpx without retries for action execution (actions need NOT be idempotent
+        # and we don't want to accidentally double-execute them)
+        async with httpx.AsyncClient(timeout=300.0) as action_client:
+            logger.info(f"Executing action: {action_url}")
+            response = await action_client.post(
                 action_url,
                 headers=safe_headers,
                 json=args,
-            ) as response:
-                result = await response.json()
+            )
+            result = response.json()
 
-                # In case of async action, we need to poll for the status of the action
-                # The action server will set the x-action-async-completion header to 1
-                # if the action is async.
-                # Ref: https://github.com/Sema4AI/actions/blob/master/action_server/docs/guides/16-run-action-sync-async.md
-                is_async_action = response.headers.get("x-action-async-completion") == "1"
-                async_action_run_id = response.headers.get("x-action-server-run-id")
-                action_server_id = response.headers.get("x-action-server-pod-ip", "")
-                if is_async_action:
-                    # Extract base URL from the action URL
-                    base_url = action_url.split("/api/actions/")[0]
+            # In case of async action, we need to poll for the status of the action
+            # The action server will set the x-action-async-completion header to 1
+            # if the action is async.
+            # Ref: https://github.com/Sema4AI/actions/blob/master/action_server/docs/guides/16-run-action-sync-async.md
+            is_async_action = response.headers.get("x-action-async-completion") == "1"
+            async_action_run_id = response.headers.get("x-action-server-run-id")
+            action_server_id = response.headers.get("x-action-server-pod-ip", "")
+            if is_async_action:
+                logger.info(f"Action running async, polling for completion: {async_action_run_id}")
+                # Extract base URL from the action URL
+                base_url = action_url.split("/api/actions/")[0]
 
-                    # Start polling for action server status
-                    # Default: 20 minutes with 10 second intervals
-                    max_retries = int(os.getenv("ACTIONS_ASYNC_MAX_RETRIES", "120"))
-                    # Default: 10 seconds between retries
-                    retry_interval = float(os.getenv("ACTIONS_ASYNC_RETRY_INTERVAL", "10"))
-                    retries = 0
+                # Start polling for action server status
+                # Default: 20 minutes with 10 second intervals
+                max_retries = int(os.getenv("ACTIONS_ASYNC_MAX_RETRIES", "120"))
+                # Default: 10 seconds between retries
+                retry_interval = float(os.getenv("ACTIONS_ASYNC_RETRY_INTERVAL", "10"))
+                retries = 0
 
+                # Use a separate client with retry transport for status checks
+                # (these are read-only and should be more resilient)
+                async with httpx.AsyncClient(
+                    transport=_get_read_retry_transport(), timeout=60.0
+                ) as status_client:
                     while retries < max_retries:
                         try:
                             if async_action_run_id:
                                 # Check action status
                                 status_result = await _check_action_status(
-                                    session=session,
+                                    client=status_client,
                                     base_url=base_url,
                                     api_key=api_key,
                                     async_action_run_id=async_action_run_id,
@@ -348,6 +387,12 @@ def _build_post_async_function(
                                 # Handle different status codes
                                 status_response = _handle_status_check(status_result)
                                 if status_response is not None:
+                                    if status_response.error:
+                                        logger.warning(
+                                            f"Async action failed: {status_response.error}",
+                                        )
+                                    else:
+                                        logger.info("Async action completed successfully")
                                     return status_response
 
                             await asyncio.sleep(retry_interval)
@@ -361,14 +406,14 @@ def _build_post_async_function(
                             retries += 1
 
                     # If we get here, we've timed out
-                    logger.warning(f"Async action did not complete after {max_retries} retries")
+                    logger.warning(f"Async action timed out after {max_retries} retries")
                     return ActionResponse(
                         result=None,
                         error="Async action did not complete after timeout",
                     )
-                else:
-                    logger.info("Running synchronous action")
-                    return result
+            else:
+                logger.info("Action completed synchronously")
+                return result
 
     return _post_async_function
 
@@ -442,23 +487,34 @@ async def get_spec_and_build_tool_definitions(
     allowed_actions: list[str],
     additional_headers: dict | None = None,
 ) -> list[ToolDefinition]:
-    from aiohttp import ClientSession
-
     # Get the spec url
     if not url.startswith("http"):
         url = "http://" + url
     spec_url = safe_urljoin(url, "openapi.json")
 
-    async with ClientSession() as session:
-        async with session.get(spec_url) as response:
-            spec = await response.json()
+    logger.info(f"Fetching OpenAPI spec from action-server: {spec_url}")
+
+    # Use httpx with retry transport for fetching OpenAPI specs
+    # (this is a read-only operation that should be resilient to transient failures)
+    async with httpx.AsyncClient(transport=_get_read_retry_transport(), timeout=60.0) as client:
+        response = await client.get(spec_url)
+        response.raise_for_status()  # Raise for HTTP errors
+        spec = response.json()
 
     definitions = _openapi_spec_to_tool_definitions(url, api_key, spec, additional_headers)
     if len(allowed_actions) > 0:
         # Only filter the definitions if we have allowed actions
         # (empty list means all actions are allowed)
+        original_count = len(definitions)
         definitions = [
             definition for definition in definitions if definition.name in allowed_actions
         ]
+        logger.info(
+            f"Filtered {original_count} -> {len(definitions)} tools (allowed: {allowed_actions})"
+        )
+
+    logger.info(f"Found {len(definitions)} tool definitions for action-server @ {url}")
+    if len(definitions) == 0:
+        logger.warning(f"No tool definitions found for action-server @ {url}!")
 
     return definitions

@@ -2,43 +2,45 @@ import json
 import os
 from unittest.mock import patch
 
+import httpx
 import pytest
+from httpx import MockTransport
+from httpx_retries import Retry, RetryTransport
 
 from agent_platform.core.actions.action_utils import (
+    ActionUtilsRetryConfig,
     _dereference_refs,
     get_spec_and_build_tool_definitions,
 )
+from agent_platform.server.configuration_manager import ConfigurationService
 
 
-class MockResponse:
-    def __init__(self, data):
+class MockHttpxResponse:
+    def __init__(self, data, status_code=200):
         self.data = data
+        self.status_code = status_code
 
-    async def json(self):
+    def json(self):
         return self.data
 
-    async def __aenter__(self):
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        pass
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise Exception(f"HTTP {self.status_code}")  # Simplified for testing
 
 
-class MockClientSession:
-    def __init__(self, response_data):
+class MockHttpxClient:
+    def __init__(self, response_data, status_code=200):
         self.response_data = response_data
+        self.status_code = status_code
+
+    async def get(self, url):
+        return MockHttpxResponse(self.response_data, self.status_code)
 
     async def __aenter__(self):
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         pass
-
-    def get(self, url, **kwargs):
-        return MockResponse(self.response_data)
-
-    def post(self, url, **kwargs):
-        return MockResponse({"result": "success"})
 
 
 @pytest.fixture
@@ -53,11 +55,11 @@ def sample_openapi_spec():
 
 
 @pytest.mark.asyncio
-@patch("aiohttp.ClientSession")
+@patch("httpx.AsyncClient")
 async def test_get_spec_and_build_definitions(mock_client_session, sample_openapi_spec):
     """Test fetching OpenAPI spec and building tool definitions."""
     # Setup mock
-    mock_session = MockClientSession(sample_openapi_spec)
+    mock_session = MockHttpxClient(sample_openapi_spec)
     mock_client_session.return_value = mock_session
 
     # Call function
@@ -101,11 +103,11 @@ async def test_get_spec_and_build_definitions(mock_client_session, sample_openap
 
 
 @pytest.mark.asyncio
-@patch("aiohttp.ClientSession")
+@patch("httpx.AsyncClient")
 async def test_get_spec_with_allowed_actions_filter(mock_client_session, sample_openapi_spec):
     """Test filtering actions by allowed_actions."""
     # Setup mock
-    mock_session = MockClientSession(sample_openapi_spec)
+    mock_session = MockHttpxClient(sample_openapi_spec)
     mock_client_session.return_value = mock_session
 
     # Call function with filter
@@ -120,11 +122,11 @@ async def test_get_spec_with_allowed_actions_filter(mock_client_session, sample_
 
 
 @pytest.mark.asyncio
-@patch("aiohttp.ClientSession")
+@patch("httpx.AsyncClient")
 async def test_get_spec_with_one_action(mock_client_session, sample_openapi_spec):
     """Test handling of missing URL."""
     # Setup mock
-    mock_session = MockClientSession(sample_openapi_spec)
+    mock_session = MockHttpxClient(sample_openapi_spec)
     mock_client_session.return_value = mock_session
 
     # Call function
@@ -280,7 +282,7 @@ def test_dereference_relative_ref_format():
 
 
 @pytest.mark.asyncio
-@patch("aiohttp.ClientSession")
+@patch("httpx.AsyncClient")
 async def test_request_body_schema_with_complex_nested_structure(mock_client_session):
     """Test that complex nested request body schemas are preserved properly."""
     complex_spec = {
@@ -343,7 +345,7 @@ async def test_request_body_schema_with_complex_nested_structure(mock_client_ses
         },
     }
 
-    mock_session = MockClientSession(complex_spec)
+    mock_session = MockHttpxClient(complex_spec)
     mock_client_session.return_value = mock_session
 
     tool_definitions = await get_spec_and_build_tool_definitions(
@@ -388,7 +390,7 @@ async def test_request_body_schema_with_complex_nested_structure(mock_client_ses
 
 
 @pytest.mark.asyncio
-@patch("aiohttp.ClientSession")
+@patch("httpx.AsyncClient")
 async def test_request_body_schema_with_refs(mock_client_session):
     """Test that request body schemas with $ref references are properly dereferenced."""
     spec_with_refs = {
@@ -446,7 +448,7 @@ async def test_request_body_schema_with_refs(mock_client_session):
         },
     }
 
-    mock_session = MockClientSession(spec_with_refs)
+    mock_session = MockHttpxClient(spec_with_refs)
     mock_client_session.return_value = mock_session
 
     tool_definitions = await get_spec_and_build_tool_definitions(
@@ -483,7 +485,7 @@ async def test_request_body_schema_with_refs(mock_client_session):
 
 
 @pytest.mark.asyncio
-@patch("aiohttp.ClientSession")
+@patch("httpx.AsyncClient")
 async def test_request_body_schema_preserves_all_json_schema_features(mock_client_session):
     """Test that all JSON Schema features are preserved in request body schema extraction."""
     comprehensive_spec = {
@@ -542,7 +544,7 @@ async def test_request_body_schema_preserves_all_json_schema_features(mock_clien
         },
     }
 
-    mock_session = MockClientSession(comprehensive_spec)
+    mock_session = MockHttpxClient(comprehensive_spec)
     mock_client_session.return_value = mock_session
 
     tool_definitions = await get_spec_and_build_tool_definitions(
@@ -587,7 +589,7 @@ async def test_request_body_schema_preserves_all_json_schema_features(mock_clien
 
 
 @pytest.mark.asyncio
-@patch("aiohttp.ClientSession")
+@patch("httpx.AsyncClient")
 async def test_request_body_schema_empty_or_missing(mock_client_session):
     """Test handling of actions with empty or missing request body schemas."""
     minimal_spec = {
@@ -612,7 +614,7 @@ async def test_request_body_schema_empty_or_missing(mock_client_session):
         },
     }
 
-    mock_session = MockClientSession(minimal_spec)
+    mock_session = MockHttpxClient(minimal_spec)
     mock_client_session.return_value = mock_session
 
     tool_definitions = await get_spec_and_build_tool_definitions(
@@ -630,3 +632,198 @@ async def test_request_body_schema_empty_or_missing(mock_client_session):
     empty_schema_tool = next(t for t in tool_definitions if t.name == "empty_schema")
     assert empty_schema_tool.input_schema["properties"] == {}
     assert empty_schema_tool.input_schema["required"] == []
+
+
+@pytest.fixture(autouse=True)
+def _reset_config_service():
+    """Reset configuration service for each test."""
+    saved = ConfigurationService.get_instance(reinitialize=True)
+    ConfigurationService.set_for_testing(saved)
+    yield
+    ConfigurationService.reset()
+
+
+@pytest.mark.asyncio
+async def test_openapi_spec_retry_on_failure(sample_openapi_spec):
+    """Test that OpenAPI spec fetching retries on failures and eventually succeeds."""
+
+    # Override retry config for fast testing (no backoff delays)
+    manager = ConfigurationService.get_instance()
+    manager.update_configuration(
+        ActionUtilsRetryConfig,
+        ActionUtilsRetryConfig(
+            total=3,
+            backoff_factor=0.0,  # No delay between retries
+            status_forcelist={429, 500, 502, 503, 504},
+            allowed_methods=["GET"],
+        ),
+    )
+
+    call_count = 0
+
+    def mock_handler(request):
+        nonlocal call_count
+        call_count += 1
+
+        if call_count <= 2:  # Fail first 2 attempts
+            return httpx.Response(503, json={"error": "Service Unavailable"})
+        else:  # Succeed on 3rd attempt
+            return httpx.Response(200, json=sample_openapi_spec)
+
+    # Create a mock transport that uses our handler
+    from httpx import MockTransport
+    from httpx_retries import RetryTransport
+
+    mock_transport = MockTransport(mock_handler)
+    retry_transport = RetryTransport(
+        transport=mock_transport,
+        retry=Retry(
+            total=3,
+            backoff_factor=0.0,  # No delay between retries for testing
+            status_forcelist={429, 500, 502, 503, 504},
+            allowed_methods=["GET"],
+        ),
+    )
+
+    # Test with our custom transport
+    async with httpx.AsyncClient(transport=retry_transport, timeout=60.0) as client:
+        response = await client.get("http://localhost:8083/openapi.json")
+        spec = response.json()
+
+    # Verify retry happened and we got the right result
+    assert call_count == 3, f"Expected 3 calls (2 failures + 1 success), got {call_count}"
+    assert spec == sample_openapi_spec
+
+
+@pytest.mark.asyncio
+async def test_openapi_spec_max_retries_exceeded():
+    """Test that OpenAPI spec fetching fails after max retries are exceeded."""
+
+    # Override retry config for fast testing (no backoff delays)
+    manager = ConfigurationService.get_instance()
+    manager.update_configuration(
+        ActionUtilsRetryConfig,
+        ActionUtilsRetryConfig(
+            total=3,
+            backoff_factor=0.0,  # No delay between retries
+            status_forcelist={429, 500, 502, 503, 504},
+            allowed_methods=["GET"],
+        ),
+    )
+
+    call_count = 0
+
+    def mock_handler_always_fail(request):
+        nonlocal call_count
+        call_count += 1
+        return httpx.Response(503, json={"error": "Service Unavailable"})
+
+    # Create a mock transport that always fails
+    from httpx import MockTransport
+    from httpx_retries import RetryTransport
+
+    mock_transport = MockTransport(mock_handler_always_fail)
+    retry_transport = RetryTransport(
+        transport=mock_transport,
+        retry=Retry(
+            total=3,
+            backoff_factor=0.0,  # No delay between retries for testing
+            status_forcelist={429, 500, 502, 503, 504},
+            allowed_methods=["GET"],
+        ),
+    )
+
+    # Should raise exception after max retries
+    async with httpx.AsyncClient(transport=retry_transport, timeout=60.0) as client:
+        response = await client.get("http://localhost:8083/openapi.json")
+        assert response.status_code == 503
+        with pytest.raises(httpx.HTTPStatusError):
+            response.raise_for_status()
+
+    # Verify retries happened (should be 4 total: initial + 3 retries)
+    assert call_count == 4, f"Expected 4 calls (1 initial + 3 retries), got {call_count}"
+
+
+@pytest.mark.asyncio
+async def test_openapi_spec_connection_error_retry():
+    """Test that OpenAPI spec fetching retries on connection errors (server unreachable)."""
+
+    # Override retry config for fast testing (no backoff delays)
+    manager = ConfigurationService.get_instance()
+    manager.update_configuration(
+        ActionUtilsRetryConfig,
+        ActionUtilsRetryConfig(
+            total=3,
+            backoff_factor=0.0,  # No delay between retries
+            status_forcelist={429, 500, 502, 503, 504},
+            allowed_methods=["GET"],
+        ),
+    )
+
+    call_count = 0
+
+    def mock_handler_connection_error(request):
+        nonlocal call_count
+        call_count += 1
+
+        if call_count <= 2:  # Fail first 2 attempts with connection error
+            raise httpx.ConnectError("Connection failed", request=request)
+        else:  # Succeed on 3rd attempt
+            return httpx.Response(200, json={"openapi": "3.0.0", "info": {"title": "Test"}})
+
+    # Create a mock transport that simulates connection failures
+    mock_transport = MockTransport(mock_handler_connection_error)
+    retry_transport = RetryTransport(
+        transport=mock_transport,
+        retry=Retry(
+            total=3,
+            backoff_factor=0.0,  # No delay between retries for testing
+            status_forcelist={429, 500, 502, 503, 504},
+            allowed_methods=["GET"],
+        ),
+    )
+
+    # Test with our custom transport - should retry connection errors
+    async with httpx.AsyncClient(transport=retry_transport, timeout=60.0) as client:
+        response = await client.get("http://localhost:8083/openapi.json")
+        spec = response.json()
+
+    # Verify retry happened and we got the right result
+    assert call_count == 3, (
+        f"Expected 3 calls (2 connection failures + 1 success), got {call_count}"
+    )
+    assert spec == {"openapi": "3.0.0", "info": {"title": "Test"}}
+
+
+@pytest.mark.asyncio
+async def test_openapi_spec_connection_timeout_retry():
+    """Test that OpenAPI spec fetching retries on timeout errors."""
+
+    call_count = 0
+
+    def mock_handler_timeout(request):
+        nonlocal call_count
+        call_count += 1
+
+        if call_count <= 2:  # Fail first 2 attempts with timeout
+            raise httpx.ReadTimeout("Read timeout", request=request)
+        else:  # Succeed on 3rd attempt
+            return httpx.Response(200, json={"openapi": "3.0.0", "info": {"title": "Test"}})
+
+    mock_transport = MockTransport(mock_handler_timeout)
+    retry_transport = RetryTransport(
+        transport=mock_transport,
+        retry=Retry(
+            total=3,
+            backoff_factor=0.0,
+            status_forcelist={429, 500, 502, 503, 504},
+            allowed_methods=["GET"],
+        ),
+    )
+
+    async with httpx.AsyncClient(transport=retry_transport, timeout=60.0) as client:
+        response = await client.get("http://localhost:8083/openapi.json")
+        spec = response.json()
+
+    assert call_count == 3, f"Expected 3 calls (2 timeouts + 1 success), got {call_count}"
+    assert spec == {"openapi": "3.0.0", "info": {"title": "Test"}}

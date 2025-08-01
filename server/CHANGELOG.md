@@ -2,6 +2,7 @@ Unreleased:
 
 - Model Platform Clients now respect a `models` allowlist (that maps from `provider`: [ `list of allowed models` ]).
 - Cortex Client will now retry 500s (as we're seeing Snowflake Cortex throw some of those randomly).
+- Server will retry getting an OpenAPI spec from action servers; logging in this area is increased.
 
 # Sema4.ai Agent Server 2.0.24 (2025-07-30)
 
