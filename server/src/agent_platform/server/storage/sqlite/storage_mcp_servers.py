@@ -1,4 +1,3 @@
-import json
 import uuid
 from datetime import UTC, datetime
 from sqlite3 import IntegrityError
@@ -20,16 +19,6 @@ class SQLiteStorageMCPServersMixin(CommonMixin):
     """
 
     _logger = get_logger(__name__)
-
-    def _encrypt_config(self, config_dict: dict) -> str:
-        """Encrypt the MCP server config dictionary using the secret manager."""
-        config_json = json.dumps(config_dict, sort_keys=True)
-        return self._secret_manager.store(config_json)
-
-    def _decrypt_config(self, encrypted_config: str) -> dict:
-        """Decrypt the MCP server config using the secret manager and return as dictionary."""
-        decrypted_json = self._secret_manager.fetch(encrypted_config)
-        return json.loads(decrypted_json)
 
     # -------------------------------------------------------------------------
     # MCP Servers

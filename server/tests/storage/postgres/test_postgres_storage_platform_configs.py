@@ -1,3 +1,4 @@
+from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
@@ -387,3 +388,64 @@ async def test_platform_params_list_ordering(
     assert params_list[0].name == "Third Config"
     assert params_list[1].name == "Second Config"
     assert params_list[2].name == "First Config"
+
+
+@pytest.mark.asyncio
+async def test_platform_params_database_encryption(
+    storage: PostgresStorage,
+    sample_openai_platform_params: OpenAIPlatformParameters,
+) -> None:
+    """Test that data is encrypted in the database and can be decrypted on retrieval."""
+
+    # Create platform params (this will use actual encryption)
+    await storage.create_platform_params(sample_openai_platform_params)
+
+    # Query the database directly to verify data is encrypted
+    async with storage._cursor() as cur:
+        await cur.execute(
+            "SELECT enc_parameters FROM v2.platform_params WHERE platform_params_id = %s::uuid",
+            (sample_openai_platform_params.platform_id,),
+        )
+        row = await cur.fetchone()
+        assert row is not None
+
+        encrypted_data = row["enc_parameters"]
+
+        # Verify the encrypted data doesn't contain plaintext secrets
+        assert "test-openai-key" not in encrypted_data
+        assert sample_openai_platform_params.name not in encrypted_data
+
+        # Verify it's a non-empty encrypted string
+        assert isinstance(encrypted_data, str)
+        assert len(encrypted_data) > 0
+
+    # Verify we can retrieve and decrypt the data properly
+    retrieved_params = await storage.get_platform_params(sample_openai_platform_params.platform_id)
+    assert retrieved_params.platform_id == sample_openai_platform_params.platform_id
+    assert retrieved_params.name == sample_openai_platform_params.name
+    assert retrieved_params.models == sample_openai_platform_params.models
+
+
+@pytest.mark.asyncio
+async def test_platform_params_encryption_error_handling(
+    storage: PostgresStorage,
+    sample_openai_platform_params: OpenAIPlatformParameters,
+) -> None:
+    """Test error handling when encryption/decryption fails."""
+
+    # Test encryption failure during create
+    with patch.object(storage, "_secret_manager") as mock_secret_manager:
+        mock_secret_manager.store.side_effect = RuntimeError("Encryption failed")
+
+        with pytest.raises(RuntimeError, match="Encryption failed"):
+            await storage.create_platform_params(sample_openai_platform_params)
+
+    # Create a platform config successfully first
+    await storage.create_platform_params(sample_openai_platform_params)
+
+    # Test decryption failure during get
+    with patch.object(storage, "_secret_manager") as mock_secret_manager:
+        mock_secret_manager.fetch.side_effect = RuntimeError("Decryption failed")
+
+        with pytest.raises(RuntimeError, match="Decryption failed"):
+            await storage.get_platform_params(sample_openai_platform_params.platform_id)

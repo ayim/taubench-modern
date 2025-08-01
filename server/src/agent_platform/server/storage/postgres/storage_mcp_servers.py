@@ -1,4 +1,3 @@
-import json
 import uuid
 from datetime import UTC, datetime
 
@@ -16,16 +15,6 @@ from agent_platform.server.storage.postgres.common import CommonMixin
 
 class PostgresStorageMCPServersMixin(CommonMixin):
     """Mixin for PostgreSQL MCP server operations."""
-
-    def _encrypt_config(self, config_dict: dict) -> str:
-        """Encrypt the MCP server config dictionary using the secret manager."""
-        config_json = json.dumps(config_dict, sort_keys=True)
-        return self._secret_manager.store(config_json)
-
-    def _decrypt_config(self, encrypted_config: str) -> dict:
-        """Decrypt the MCP server config using the secret manager and return as dictionary."""
-        decrypted_json = self._secret_manager.fetch(encrypted_config)
-        return json.loads(decrypted_json)
 
     async def create_mcp_server(self, mcp_server: MCPServer, source: MCPServerSource) -> str:
         """Create a new MCP server. Returns the generated MCP server ID."""
