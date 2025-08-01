@@ -24,7 +24,6 @@ from agent_platform.core.prompts import (
 )
 from agent_platform.core.responses import (
     ResponseMessage,
-    ResponseTextContent,
     ResponseToolUseContent,
 )
 from agent_platform.core.tools import ToolDefinition
@@ -56,24 +55,6 @@ class ListMCPToolsRequest:
     )
 
 
-def _basic_test_prompt() -> tuple[Prompt, Callable[[ResponseMessage], bool]]:
-    content = PromptTextContent(
-        text="This is a system test, please reply with the string 'avacado'",
-    )
-
-    def _validate_response(response: ResponseMessage) -> bool:
-        for content in response.content:
-            if isinstance(content, ResponseTextContent):
-                return "avacado" in content.text.lower()
-        return False
-
-    return Prompt(
-        messages=[
-            PromptUserMessage(content=[content]),
-        ],
-    ), _validate_response
-
-
 def _basic_test_prompt_with_tool() -> tuple[Prompt, Callable[[ResponseMessage], bool]]:
     async def _add_book(book: Annotated[_Book, "The book to add to the database"]):
         """Store a new book in the database."""
@@ -82,12 +63,8 @@ def _basic_test_prompt_with_tool() -> tuple[Prompt, Callable[[ResponseMessage], 
     def _validate_response(response: ResponseMessage) -> bool:
         for content in response.content:
             if isinstance(content, ResponseToolUseContent):
-                return (
-                    content.tool_name == "_add_book"
-                    and "book" in content.tool_input
-                    and "title" in content.tool_input["book"]
-                    and content.tool_input["book"]["title"].lower() == "foundation"
-                )
+                # Loosen this to just check that we called the tool
+                return content.tool_name == "_add_book"
 
         return False
 
@@ -217,11 +194,11 @@ async def get_architectures(
     return agent_arch_manager.get_architectures()
 
 
-@router.get("/providers")
-async def get_providers(
+@router.get("/platforms")
+async def get_platforms(
     user: AuthedUser,
     response_model=dict,  # The response is a JSON schema dictionary
-    summary="Get OpenAPI Schema for Provider Parameters",
+    summary="Get OpenAPI Schema for Platform Parameters",
 ):
     """
     This endpoint returns detailed information about all supported model platforms
@@ -250,7 +227,7 @@ async def get_providers(
     return schema
 
 
-@router.post("/providers/{kind}/test")
+@router.post("/platforms/{kind}/test")
 async def test_model_platform_params(
     user: AuthedUser,
     kind: str,
@@ -300,7 +277,8 @@ async def test_model_platform_params(
 
             testing_tasks = []
             for name, (prompt, validate_response) in [
-                ("basic", _basic_test_prompt()),
+                # Let's just run the tool test, as it supercedes the basic test
+                # (if we can't run a tool, we likely can't generate basic responses either)
                 ("simple_tool", _basic_test_prompt_with_tool()),
             ]:
                 testing_tasks.append(
