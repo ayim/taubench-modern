@@ -59,9 +59,12 @@ async def lifespan(app: FastAPI):
 
     # Original code
     SystemPaths.upload_dir.mkdir(parents=True, exist_ok=True)
-    await StorageService.get_instance().setup()
 
     SecretService.get_instance().setup()
+    logger.info("Secret Service initialized")
+
+    await StorageService.get_instance().setup()
+    logger.info("Storage Service initialized")
 
     # IMPORTANT: Order of operations is critical here!
     # Current sequence: DB Migrations (create v2 tables) -> Data migration (v1 to v2)

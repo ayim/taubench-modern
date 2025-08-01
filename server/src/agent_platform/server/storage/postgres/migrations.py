@@ -14,6 +14,8 @@ from agent_platform.server.storage.migrations import (
     MigrationTimeoutError,
 )
 
+logger = get_logger(__name__)
+
 
 class PostgresMigrations(MigrationsProvider):
     """
@@ -80,9 +82,14 @@ class PostgresMigrations(MigrationsProvider):
                (c) Mark dirty=FALSE
           6) Release lock
         """
-        async with self._cursor() as cur:
-            try:
-                await self._acquire_migration_lock(cur)
+
+        locked_acquired_by = None
+        try:
+            async with self._cursor() as cur:
+                if not (locked_acquired_by := await self._acquire_migration_lock(cur)):
+                    logger.warning("Skipping migrations because another migration is running.")
+                    return
+
                 await self._ensure_migrations_table(cur)
 
                 # Get existing migration states from DB
@@ -150,18 +157,25 @@ class PostgresMigrations(MigrationsProvider):
                             filename,
                             new_checksum,
                         )
-
-            finally:
+        finally:
+            if locked_acquired_by:
                 # Release the lock with a *fresh* cursor so we aren't stuck
                 # if the above transaction ended in error/timeout.
                 async with self._cursor() as release_cur:
-                    await self._release_migration_lock(release_cur)
+                    await self._release_migration_lock(release_cur, locked_acquired_by)
 
     # -------------------------------------------------------------------------
     # Locking
     # -------------------------------------------------------------------------
-    async def _acquire_migration_lock(self, cur: AsyncCursor) -> None:
-        """Lock logic to ensure only one migrator runs at a time."""
+    async def _acquire_migration_lock(self, cur: AsyncCursor[DictRow]) -> str | None:
+        """
+        Lock logic to ensure only one migrator runs at a time.
+
+        !!! IMPORTANT !!!
+        Postgres has multiple worker processes,
+        so the process that releases the lock
+        might be different from the process that acquires it.
+        """
         await cur.execute("CREATE SCHEMA IF NOT EXISTS v2;")
         await cur.execute(
             """
@@ -181,17 +195,21 @@ class PostgresMigrations(MigrationsProvider):
                     locked_by = EXCLUDED.locked_by
                 WHERE
                   migration_locks.locked_at < CURRENT_TIMESTAMP - INTERVAL '10 minutes'
-            RETURNING id;
+            RETURNING locked_by;
             """,
         )
-        # row = await cur.fetchone()
-        # if not row:
-        #     raise MigrationLockError(
-        #         "Could not acquire migration lock. "
-        #         "Another migration might be in progress.",
-        #     )
+        row = await cur.fetchone()
 
-    async def _release_migration_lock(self, cur: AsyncCursor[DictRow]) -> None:
+        if row:
+            return row["locked_by"]
+        else:
+            logger.error(
+                f"Could not acquire migration lock. "
+                f"Another migration might be in progress. {row!r}",
+            )
+            return None
+
+    async def _release_migration_lock(self, cur: AsyncCursor[DictRow], locked_by: str) -> None:
         """
         Releases the migration lock if we hold it.
         """
@@ -211,8 +229,9 @@ class PostgresMigrations(MigrationsProvider):
             await cur.execute(
                 """
                 DELETE FROM v2.migration_locks
-                WHERE locked_by = pg_backend_pid()::text;
+                WHERE locked_by = %s
                 """,
+                [locked_by],
             )
 
     # -------------------------------------------------------------------------

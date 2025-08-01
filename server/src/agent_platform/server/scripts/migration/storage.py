@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from contextlib import asynccontextmanager
 from typing import Any
 
 import structlog
@@ -293,9 +294,17 @@ class MigrationPostgresStorage(StorageInterface):
 
     def __init__(self, connection_url: str):
         self.connection_url = connection_url
-        self.storage = None
-        self._pool = None
-        self.conn = None
+        self._pool: AsyncConnectionPool | None = None
+
+    @asynccontextmanager
+    async def _cursor(self):
+        """Context manager for a cursor"""
+        if not self._pool:
+            raise RuntimeError("Not connected to database")
+
+        async with self._pool.connection() as conn:
+            async with conn.cursor(row_factory=dict_row) as cursor:
+                yield cursor
 
     async def connect(self) -> None:
         """Connect to the PostgreSQL database"""
@@ -306,32 +315,26 @@ class MigrationPostgresStorage(StorageInterface):
             open=False,
         )
         await self._pool.open()
-        self.conn = await self._pool.getconn()
 
     async def close(self) -> None:
         """Close the PostgreSQL connection"""
         if self._pool:
             await self._pool.close()
             self._pool = None
-            self.conn = None
 
     async def get_all_agents(self) -> list[dict[str, Any]]:
         """Get all agents from the PostgreSQL database"""
-        if not self._pool or not self.conn:
-            raise RuntimeError("Not connected to database")
 
-        async with self.conn.cursor(row_factory=dict_row) as cursor:
+        async with self._cursor() as cursor:
             await cursor.execute("SELECT * FROM agent")
             rows = await cursor.fetchall()
             return [dict(row) for row in rows]
 
     async def insert_agent(self, agent_data: dict[str, Any]) -> None:
         """Insert agent into the PostgreSQL database"""
-        if not self._pool or not self.conn:
-            raise RuntimeError("Not connected to database")
 
         try:
-            async with self.conn.cursor(row_factory=dict_row) as cursor:
+            async with self._cursor() as cursor:
                 await cursor.execute(
                     """
                     INSERT INTO v2.agent (
@@ -353,28 +356,23 @@ class MigrationPostgresStorage(StorageInterface):
                     """,
                     agent_data,
                 )
-            await self.conn.commit()
         except Exception as e:
             logger.error(f"Error inserting agent: {e}")
             raise
 
     async def get_all_threads(self) -> list[dict[str, Any]]:
         """Get all threads from the PostgreSQL database"""
-        if not self._pool or not self.conn:
-            raise RuntimeError("Not connected to database")
 
-        async with self.conn.cursor(row_factory=dict_row) as cursor:
+        async with self._cursor() as cursor:
             await cursor.execute("SELECT * FROM thread")
             rows = await cursor.fetchall()
             return [dict(row) for row in rows]
 
     async def insert_thread(self, thread_data: dict[str, Any]) -> None:
         """Insert thread into the PostgreSQL database"""
-        if not self._pool or not self.conn:
-            raise RuntimeError("Not connected to database")
 
         try:
-            async with self.conn.cursor(row_factory=dict_row) as cursor:
+            async with self._cursor() as cursor:
                 await cursor.execute(
                     """
                     INSERT INTO v2.thread (
@@ -388,17 +386,14 @@ class MigrationPostgresStorage(StorageInterface):
                     """,
                     thread_data,
                 )
-            await self.conn.commit()
         except Exception as e:
             logger.error(f"Error inserting thread {thread_data.get('name', 'unknown')}: {e}")
             raise
 
     async def get_latest_checkpoint(self, thread_id: str) -> dict[str, Any]:
         """Get the latest checkpoint for a thread from the PostgreSQL database"""
-        if not self._pool or not self.conn:
-            raise RuntimeError("Not connected to database")
 
-        async with self.conn.cursor(row_factory=dict_row) as cursor:
+        async with self._cursor() as cursor:
             await cursor.execute(
                 """
                 SELECT thread_id, checkpoint_ns,
@@ -428,11 +423,9 @@ class MigrationPostgresStorage(StorageInterface):
 
     async def insert_v2_thread_message(self, thread_message_data: dict[str, Any]) -> None:
         """Insert v2 thread message data into the PostgreSQL database"""
-        if not self._pool or not self.conn:
-            raise RuntimeError("Not connected to database")
 
         try:
-            async with self.conn.cursor(row_factory=dict_row) as cursor:
+            async with self._cursor() as cursor:
                 await cursor.execute(
                     """
                     INSERT INTO v2.thread_message (
@@ -449,18 +442,33 @@ class MigrationPostgresStorage(StorageInterface):
                     """,
                     thread_message_data,
                 )
-            await self.conn.commit()
         except Exception as e:
             logger.error(f"Error inserting thread message: {e}")
             raise
 
     async def count_v1_agents(self) -> int:
         """Count the number of v1 agents in the database"""
-        if not self._pool or not self.conn:
-            raise RuntimeError("Not connected to database")
 
         try:
-            async with self.conn.cursor(row_factory=dict_row) as cursor:
+            # Agents v1 might not exist, no point in erroring if it doesn't exist
+            async with self._cursor() as cursor:
+                result = (
+                    await (
+                        await cursor.execute(
+                            """
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables
+                    WHERE table_name = 'agent' AND table_schema = 'public'
+                );
+                """,
+                        )
+                    ).fetchone()
+                ) or {}
+
+                if not result.get("exists"):
+                    return 0
+
+            async with self._cursor() as cursor:
                 await cursor.execute("SELECT COUNT(*) FROM agent")
                 row = await cursor.fetchone()
                 count = row["count"] if row else 0
@@ -475,11 +483,9 @@ class MigrationPostgresStorage(StorageInterface):
 
     async def count_v2_agents(self) -> int:
         """Count the number of v2 agents in the database"""
-        if not self._pool or not self.conn:
-            raise RuntimeError("Not connected to database")
 
         try:
-            async with self.conn.cursor(row_factory=dict_row) as cursor:
+            async with self._cursor() as cursor:
                 await cursor.execute("SELECT COUNT(*) FROM v2.agent")
                 row = await cursor.fetchone()
                 count = row["count"] if row else 0
@@ -494,21 +500,17 @@ class MigrationPostgresStorage(StorageInterface):
 
     async def get_all_users(self) -> list[dict[str, Any]]:
         """Get all users from the PostgreSQL database"""
-        if not self._pool or not self.conn:
-            raise RuntimeError("Not connected to database")
 
-        async with self.conn.cursor(row_factory=dict_row) as cursor:
+        async with self._cursor() as cursor:
             await cursor.execute("SELECT * FROM public.user")
             rows = await cursor.fetchall()
             return [dict(row) for row in rows]
 
     async def insert_user(self, user_data: dict[str, Any]) -> None:
         """Insert user into the PostgreSQL database"""
-        if not self._pool or not self.conn:
-            raise RuntimeError("Not connected to database")
 
         try:
-            async with self.conn.cursor(row_factory=dict_row) as cursor:
+            async with self._cursor() as cursor:
                 await cursor.execute(
                     """
                     INSERT INTO v2.user (
@@ -521,7 +523,6 @@ class MigrationPostgresStorage(StorageInterface):
                     """,
                     user_data,
                 )
-            await self.conn.commit()
         except Exception as e:
             logger.error(f"Error inserting user: {e}")
             raise
