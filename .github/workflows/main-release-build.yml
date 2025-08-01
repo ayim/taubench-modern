@@ -280,8 +280,6 @@ jobs:
               ref: '${{ env.BRANCH_NAME }}',
               inputs: {
                 release_channel: 'ci',
-                agent_server_version: 'v${{ needs.version.outputs.value }}',
-                agent_server_commit: '${{ github.sha }}',
-                agent_server_branch: '${{ env.BRANCH_NAME }}',
+                agent_server_version: 'v${{ needs.version.outputs.value }}'
               }
             })
