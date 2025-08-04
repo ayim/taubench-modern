@@ -19,6 +19,11 @@ from agent_platform.core.utils.url import safe_urljoin
 
 logger = get_logger(__name__)
 
+# This is the default API key for the action server in case none is provided.
+# This is a random string that is used to authenticate with the action server.
+# It is not used for any other purpose.
+DEFAULT_API_KEY = "NO-API-KEY-CONFIGURED"
+
 
 @dataclass(frozen=True)
 class ActionUtilsRetryConfig(Configuration):
@@ -184,11 +189,12 @@ async def _get_run_id_from_request_id(
         The run ID if found, None otherwise
     """
     run_id_url = f"{base_url}/api/runs/run-id-from-request-id/{request_id}"
+    bearer_api_key = api_key or DEFAULT_API_KEY
     try:
         response = await client.get(
             run_id_url,
             headers={
-                "Authorization": f"Bearer {api_key}",
+                "Authorization": f"Bearer {bearer_api_key}",
                 "Accept": "application/json",
                 "Content-Type": "application/json",
             },
@@ -232,8 +238,9 @@ async def _check_action_status(
         dict: The response from the action server containing the run status
     """
     try:
+        bearer_api_key = api_key or DEFAULT_API_KEY
         headers = {
-            "Authorization": f"Bearer {api_key}",
+            "Authorization": f"Bearer {bearer_api_key}",
             "Content-Type": "application/json",
             "x-action-server-pod-ip": action_server_id,
         }
@@ -313,10 +320,12 @@ def _build_post_async_function(
         import asyncio
         import uuid
 
+        bearer_api_key = api_key or DEFAULT_API_KEY
+
         characters = string.ascii_letters + string.digits
         action_invocation_id = "".join(random.choice(characters) for _ in range(10))
         headers = {
-            "Authorization": f"Bearer {api_key}",
+            "Authorization": f"Bearer {bearer_api_key}",
             "Content-Type": "application/json",
             "x-action_invocation_id": action_invocation_id,
             **(additional_headers or {}),
