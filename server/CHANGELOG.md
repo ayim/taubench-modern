@@ -1,3 +1,7 @@
+# Sema4.ai Agent Server 2.0.26 (2025-08-04)
+
+- Release pipeline updates; no functional changes in server.
+
 # Sema4.ai Agent Server 2.0.25 (2025-08-01)
 
 - Model Platform Clients now respect a `models` allowlist (that maps from `provider`: [ `list of allowed models` ]).
