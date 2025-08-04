@@ -9,7 +9,6 @@ if TYPE_CHECKING:
     )
 
 from agent_platform.core.platforms.base import PlatformPrompt
-from agent_platform.core.platforms.openai.configs import OpenAIModelMap
 
 logger = logging.getLogger(__name__)
 
@@ -71,10 +70,9 @@ class OpenAIPrompt(PlatformPrompt):
 
         Returns:
             A OpenAI request."""
-        model_id = OpenAIModelMap.model_aliases[model]
-        logger.info(f"Using OpenAI model: {model} (model_id: {model_id})")
+        logger.info(f"Using OpenAI model: {model}")
         results_dict: dict[str, Any] = {
-            "model": model_id,
+            "model": model,
             "messages": self.messages or [],
         }
 
@@ -83,7 +81,7 @@ class OpenAIPrompt(PlatformPrompt):
             # For o1-mini it's either o1-mini-high or o1-mini-low (as the model
             # name, no reasoning effort param supported)
             model.startswith(prefix) and not model.startswith("o1-mini-")
-            for prefix in ["o3-mini", "o1"]
+            for prefix in ["o4", "o3", "o1"]
         ):
             # For o1/o3 models, adjust temperature based on high/low reasoning
             if model.endswith("-high"):

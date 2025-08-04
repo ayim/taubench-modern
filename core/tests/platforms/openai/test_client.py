@@ -15,7 +15,6 @@ import pytest
 from agent_platform.core.delta import GenericDelta
 from agent_platform.core.kernel import Kernel
 from agent_platform.core.platforms.openai.client import OpenAIClient
-from agent_platform.core.platforms.openai.configs import OpenAIModelMap
 from agent_platform.core.platforms.openai.parameters import OpenAIPlatformParameters
 from agent_platform.core.platforms.openai.prompts import OpenAIPrompt
 from agent_platform.core.prompts import Prompt, PromptTextContent, PromptUserMessage
@@ -88,6 +87,13 @@ class MockChatCompletions:
         self.completions = MockCompletions()
 
 
+class MockModels:
+    """Mock models API."""
+
+    def __init__(self):
+        self.list = MagicMock()
+
+
 class MockOpenAIClient:
     """Mock OpenAI client for testing."""
 
@@ -95,6 +101,7 @@ class MockOpenAIClient:
         """Initialize the mock client."""
         self.chat = MockChatCompletions()
         self.embeddings = MockEmbeddings()
+        self.models = MockModels()
 
 
 class TestOpenAIClient:
@@ -218,11 +225,39 @@ class TestOpenAIClient:
             return CreateEmbeddingResponse(
                 object="list",
                 data=[Embedding(embedding=embedding, index=0, object="embedding")],
-                model=kwargs.get("model", "text-embedding-ada-002"),
+                model=kwargs.get("model", "text-embedding-3-small"),
                 usage=Usage(prompt_tokens=token_count, total_tokens=token_count),
             )
 
         client.embeddings.create.side_effect = mock_embedding_response
+
+        async def mock_models_list_response(**kwargs):
+            from openai.types.model import Model
+
+            return MagicMock(
+                data=[
+                    Model(
+                        id="gpt-4.1-2025-04-14",
+                        object="model",
+                        created=1234567890,
+                        owned_by="openai",
+                    ),
+                    Model(
+                        id="text-embedding-3-small",
+                        object="model",
+                        created=1234567890,
+                        owned_by="openai",
+                    ),
+                    Model(
+                        id="text-embedding-3-large",
+                        object="model",
+                        created=1234567890,
+                        owned_by="openai",
+                    ),
+                ]
+            )
+
+        client.models.list.side_effect = mock_models_list_response
 
         return client
 
@@ -323,7 +358,7 @@ class TestOpenAIClient:
         OpenAIPrompt,
         "as_platform_request",
         return_value={
-            "model": "gpt-4",
+            "model": "gpt-4-1",
             "messages": [
                 {"role": "system", "content": "You are a helpful assistant."},
                 {"role": "user", "content": "Hello, world!"},
@@ -338,31 +373,22 @@ class TestOpenAIClient:
         mock_openai_client: Any,
     ) -> None:
         """Test generating a response."""
-        # Add the model to the model maps
-        test_model_map = {
-            "gpt-4": "gpt-4",
-        }
-        with patch.object(
-            OpenAIModelMap,
-            "model_aliases",
-            test_model_map,
-        ):
-            response = await openai_client.generate_response(
-                prompt=openai_prompt,
-                model="gpt-4",
-            )
+        response = await openai_client.generate_response(
+            prompt=openai_prompt,
+            model="gpt-4-1",
+        )
 
-            mock_openai_client.chat.completions.create.assert_called_once()
-            assert isinstance(response, ResponseMessage)
-            assert isinstance(response.content[0], ResponseTextContent)
-            assert response.content[0].text == "Hello, world!"
+        mock_openai_client.chat.completions.create.assert_called_once()
+        assert isinstance(response, ResponseMessage)
+        assert isinstance(response.content[0], ResponseTextContent)
+        assert response.content[0].text == "Hello, world!"
 
     @pytest.mark.asyncio
     @patch.object(
         OpenAIPrompt,
         "as_platform_request",
         return_value={
-            "model": "gpt-4",
+            "model": "gpt-4-1",
             "messages": [
                 {"role": "system", "content": "You are a helpful assistant."},
                 {"role": "user", "content": "Hello, world!"},
@@ -379,32 +405,21 @@ class TestOpenAIClient:
         mock_openai_client: Any,
     ) -> None:
         """Test generating a stream response."""
-        # Add the model to the model maps
-        test_model_map = {
-            "gpt-4": "gpt-4",
-        }
-
-        with patch.object(
-            OpenAIModelMap,
-            "model_aliases",
-            test_model_map,
+        deltas = []
+        async for delta in openai_client.generate_stream_response(
+            prompt=openai_prompt,
+            model="gpt-4-1",
         ):
-            deltas = []
-            async for delta in openai_client.generate_stream_response(
-                prompt=openai_prompt,
-                model="gpt-4",
-            ):
-                deltas.append(delta)
+            deltas.append(delta)
 
-            mock_openai_client.chat.completions.create.assert_called_once()
-            assert len(deltas) > 0
-            assert all(isinstance(d, GenericDelta) for d in deltas)
+        mock_openai_client.chat.completions.create.assert_called_once()
+        assert len(deltas) > 0
+        assert all(isinstance(d, GenericDelta) for d in deltas)
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
         "embedding_model",
         [
-            "text-embedding-ada-002",
             "text-embedding-3-small",
             "text-embedding-3-large",
         ],
@@ -416,44 +431,32 @@ class TestOpenAIClient:
         mock_openai_client: Any,
     ) -> None:
         """Test creating embeddings for a single text."""
-        # Set up model map
-        test_model_map = {
-            "text-embedding-ada-002": "text-embedding-ada-002",
-            "text-embedding-3-small": "text-embedding-3-small",
-            "text-embedding-3-large": "text-embedding-3-large",
-        }
+        text = "This is a test text for embedding"
+        result = await openai_client.create_embeddings([text], embedding_model)
 
-        with patch.object(
-            OpenAIModelMap,
-            "model_aliases",
-            test_model_map,
-        ):
-            text = "This is a test text for embedding"
-            result = await openai_client.create_embeddings([text], embedding_model)
+        # Verify API call
+        mock_openai_client.embeddings.create.assert_called_once_with(
+            model=embedding_model,
+            input=text,
+        )
 
-            # Verify API call
-            mock_openai_client.embeddings.create.assert_called_once_with(
-                model=test_model_map[embedding_model],
-                input=text,
-            )
+        # Verify result structure
+        assert isinstance(result, dict)
+        assert "embeddings" in result
+        assert "model" in result
+        assert "usage" in result
 
-            # Verify result structure
-            assert isinstance(result, dict)
-            assert "embeddings" in result
-            assert "model" in result
-            assert "usage" in result
-
-            # Verify embedding data
-            assert len(result["embeddings"]) == 1
-            assert len(result["embeddings"][0]) == 1536  # Common OpenAI embedding size
-            assert result["model"] == embedding_model
-            assert "total_tokens" in result["usage"]
+        # Verify embedding data
+        assert len(result["embeddings"]) == 1
+        assert len(result["embeddings"][0]) == 1536  # Common OpenAI embedding size
+        assert result["model"] == embedding_model
+        assert "total_tokens" in result["usage"]
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
         "embedding_model",
         [
-            "text-embedding-ada-002",
+            "text-embedding-3-large",
             "text-embedding-3-small",
         ],
     )
@@ -464,35 +467,24 @@ class TestOpenAIClient:
         mock_openai_client: Any,
     ) -> None:
         """Test creating embeddings for multiple texts."""
-        # Set up model map
-        test_model_map = {
-            "text-embedding-ada-002": "text-embedding-ada-002",
-            "text-embedding-3-small": "text-embedding-3-small",
-        }
+        texts = ["First test text", "Second test text", "Third test text"]
+        result = await openai_client.create_embeddings(texts, embedding_model)
 
-        with patch.object(
-            OpenAIModelMap,
-            "model_aliases",
-            test_model_map,
-        ):
-            texts = ["First test text", "Second test text", "Third test text"]
-            result = await openai_client.create_embeddings(texts, embedding_model)
+        # Verify API calls (one per text)
+        assert mock_openai_client.embeddings.create.call_count == len(texts)
+        for i, text in enumerate(texts):
+            call_args = mock_openai_client.embeddings.create.call_args_list[i][1]
+            assert call_args["model"] == embedding_model
+            assert call_args["input"] == text
 
-            # Verify API calls (one per text)
-            assert mock_openai_client.embeddings.create.call_count == len(texts)
-            for i, text in enumerate(texts):
-                call_args = mock_openai_client.embeddings.create.call_args_list[i][1]
-                assert call_args["model"] == test_model_map[embedding_model]
-                assert call_args["input"] == text
-
-            # Verify result structure
-            assert isinstance(result, dict)
-            assert "embeddings" in result
-            assert len(result["embeddings"]) == len(texts)
-            assert "model" in result
-            assert result["model"] == embedding_model
-            assert "usage" in result
-            assert "total_tokens" in result["usage"]
+        # Verify result structure
+        assert isinstance(result, dict)
+        assert "embeddings" in result
+        assert len(result["embeddings"]) == len(texts)
+        assert "model" in result
+        assert result["model"] == embedding_model
+        assert "usage" in result
+        assert "total_tokens" in result["usage"]
 
     @pytest.mark.asyncio
     async def test_create_embeddings_empty_texts(
@@ -502,29 +494,20 @@ class TestOpenAIClient:
     ) -> None:
         """Test creating embeddings with empty text list."""
         embedding_model = "text-embedding-3-small"
-        test_model_map = {
-            "text-embedding-3-small": "text-embedding-3-small",
-        }
+        result = await openai_client.create_embeddings([], embedding_model)
 
-        with patch.object(
-            OpenAIModelMap,
-            "model_aliases",
-            test_model_map,
-        ):
-            result = await openai_client.create_embeddings([], embedding_model)
+        # Verify no API calls made
+        mock_openai_client.embeddings.create.assert_not_called()
 
-            # Verify no API calls made
-            mock_openai_client.embeddings.create.assert_not_called()
-
-            # Verify result is empty but structured correctly
-            assert isinstance(result, dict)
-            assert "embeddings" in result
-            assert len(result["embeddings"]) == 0
-            assert "model" in result
-            assert result["model"] == embedding_model
-            assert "usage" in result
-            assert "total_tokens" in result["usage"]
-            assert result["usage"]["total_tokens"] == 0
+        # Verify result is empty but structured correctly
+        assert isinstance(result, dict)
+        assert "embeddings" in result
+        assert len(result["embeddings"]) == 0
+        assert "model" in result
+        assert result["model"] == embedding_model
+        assert "usage" in result
+        assert "total_tokens" in result["usage"]
+        assert result["usage"]["total_tokens"] == 0
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -595,21 +578,11 @@ class TestOpenAIClient:
         # Create a mock prompt that returns our test data
         mock_prompt = MagicMock(spec=OpenAIPrompt)
         mock_prompt.as_platform_request.return_value = prompt_data
-
-        # Add the model to the model maps
-        test_model_map = {
-            "gpt-4o": "gpt-4o-2024-08-06",
-        }
-        with patch.object(
-            OpenAIModelMap,
-            "model_aliases",
-            test_model_map,
-        ):
-            token_count = await openai_client.count_tokens(
-                prompt=mock_prompt,
-                model="gpt-4o",
-            )
-            assert token_count == expected_tokens
+        token_count = await openai_client.count_tokens(
+            prompt=mock_prompt,
+            model="gpt-4-1",
+        )
+        assert token_count == expected_tokens
 
     @pytest.mark.asyncio
     async def test_count_tokens_with_empty_prompt(
@@ -620,33 +593,8 @@ class TestOpenAIClient:
         mock_prompt = MagicMock(spec=OpenAIPrompt)
         mock_prompt.as_platform_request.return_value = {"messages": []}
 
-        test_model_map = {
-            "gpt-3.5-turbo": "gpt-3.5-turbo-0125",
-        }
-        with patch.object(
-            OpenAIModelMap,
-            "model_aliases",
-            test_model_map,
-        ):
-            token_count = await openai_client.count_tokens(
-                prompt=mock_prompt,
-                model="gpt-3.5-turbo",
-            )
-            assert token_count == 0
-
-    @pytest.mark.asyncio
-    async def test_count_tokens_with_invalid_model(
-        self,
-        openai_client: OpenAIClient,
-    ) -> None:
-        """Test counting tokens with an invalid model."""
-        mock_prompt = MagicMock(spec=OpenAIPrompt)
-        mock_prompt.as_platform_request.return_value = {
-            "messages": [{"role": "user", "content": "Hello"}],
-        }
-
-        with pytest.raises(KeyError):
-            await openai_client.count_tokens(
-                prompt=mock_prompt,
-                model="invalid-model",
-            )
+        token_count = await openai_client.count_tokens(
+            prompt=mock_prompt,
+            model="gpt-4-1",
+        )
+        assert token_count == 0

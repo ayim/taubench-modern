@@ -5,8 +5,8 @@ import pytest
 
 from agent_platform.core.delta import combine_generic_deltas
 from agent_platform.core.kernel import Kernel
+from agent_platform.core.platforms.configs import PlatformModelConfigs
 from agent_platform.core.platforms.openai.client import OpenAIClient
-from agent_platform.core.platforms.openai.configs import OpenAIModelMap
 from agent_platform.core.platforms.openai.parameters import OpenAIPlatformParameters
 from agent_platform.core.responses.response import ResponseMessage
 from agent_platform.core.utils import SecretString
@@ -16,20 +16,11 @@ from core.tests.vcr_setup import patched_vcr
 # -------------------------------------------------------------------------
 # MODEL LISTS
 # -------------------------------------------------------------------------
-MODELS_WITH_TEXT_INPUT = [
-    m
-    for m in OpenAIModelMap.distinct_llm_model_ids()
-    if m not in OpenAIModelMap.distinct_llm_model_ids_with_audio_input()
+MODELS_TO_TEST = [
+    model
+    for model in PlatformModelConfigs.models_capable_of_driving_agents
+    if model.startswith("openai/openai/")
 ]
-MODELS_WITH_TOOL_INPUT = [
-    m
-    for m in OpenAIModelMap.distinct_llm_model_ids_with_tool_input()
-    if m not in OpenAIModelMap.distinct_llm_model_ids_with_audio_input()
-]
-ALL_MODELS = sorted(
-    set(OpenAIModelMap.distinct_llm_model_ids())
-    - set(OpenAIModelMap.distinct_llm_model_ids_with_audio_input()),
-)
 
 # -------------------------------------------------------------------------
 # TEST CASES
@@ -39,35 +30,35 @@ TEST_CASES = [
         "case_name": "basic_prompt",
         "prompt_fixture": "basic_prompt_no_tools",
         "response_fixture": "response_to_basic_prompt_no_tools",
-        "models": MODELS_WITH_TEXT_INPUT,
+        "models": MODELS_TO_TEST,
         "cassette_suffix": "basic_prompt",
     },
     {
         "case_name": "system_message",
         "prompt_fixture": "basic_prompt_with_system_message",
         "response_fixture": "response_to_basic_prompt_with_system_message",
-        "models": MODELS_WITH_TEXT_INPUT,
+        "models": MODELS_TO_TEST,
         "cassette_suffix": "basic_prompt_with_system_message",
     },
     {
         "case_name": "three_messages",
         "prompt_fixture": "basic_prompt_with_three_messages",
         "response_fixture": "response_to_basic_prompt_with_three_messages",
-        "models": MODELS_WITH_TEXT_INPUT,
+        "models": MODELS_TO_TEST,
         "cassette_suffix": "basic_prompt_with_three_messages",
     },
     {
         "case_name": "one_tool",
         "prompt_fixture": "basic_prompt_with_one_tool",
         "response_fixture": "response_to_basic_prompt_with_one_tool",
-        "models": MODELS_WITH_TOOL_INPUT,
+        "models": MODELS_TO_TEST,
         "cassette_suffix": "basic_prompt_with_one_tool",
     },
     {
         "case_name": "tool_no_args",
         "prompt_fixture": "basic_prompt_tool_no_args",
         "response_fixture": "response_to_basic_prompt_tool_no_args",
-        "models": MODELS_WITH_TOOL_INPUT,
+        "models": MODELS_TO_TEST,
         "cassette_suffix": "basic_prompt_tool_no_args",
     },
 ]
@@ -101,7 +92,7 @@ def openai_client(kernel: Kernel):
 
 
 @pytest.mark.parametrize("case", TEST_CASES, ids=[c["case_name"] for c in TEST_CASES])
-@pytest.mark.parametrize("model_id", ALL_MODELS)
+@pytest.mark.parametrize("model_id", MODELS_TO_TEST)
 async def test_openai_generate_responses(request, openai_client, case, model_id):
     """
     Test each (case, model_id) for generating responses (non-stream).
@@ -134,19 +125,13 @@ async def test_openai_generate_responses(request, openai_client, case, model_id)
 
 
 @pytest.mark.parametrize("case", TEST_CASES, ids=[c["case_name"] for c in TEST_CASES])
-@pytest.mark.parametrize("model_id", ALL_MODELS)
+@pytest.mark.parametrize("model_id", MODELS_TO_TEST)
 async def test_openai_stream_responses(request, openai_client, case, model_id):
     """
     Test each (case, model_id) for streaming responses.
     """
     if model_id not in case["models"]:
         pytest.skip(f"Model {model_id} not applicable to case '{case['case_name']}'")
-
-    if "o3-" in model_id:
-        pytest.skip(
-            "o3-series models do not support streaming responses for our organization"
-            " yet; working on verifying with OpenAI..."
-        )
 
     prompt = request.getfixturevalue(case["prompt_fixture"])
     await prompt.finalize_messages()

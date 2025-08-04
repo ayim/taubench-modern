@@ -155,7 +155,6 @@ class PlatformModelConfigs(Configuration):
             "cortex/openai/o4-mini-low",
             "cortex/openai/gpt-4-1",
             # OpenAI
-            "openai/openai/gpt-4-5",
             "openai/openai/gpt-4-1",
             "openai/openai/gpt-4-1-mini",
             "openai/openai/gpt-4-1-nano",

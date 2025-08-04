@@ -36,10 +36,10 @@ class TestOpenAIPrompt:
 
     def test_as_platform_request(self, openai_prompt: OpenAIPrompt) -> None:
         """Test converting to platform request."""
-        request = openai_prompt.as_platform_request(model="gpt-4-turbo")
+        request = openai_prompt.as_platform_request(model="gpt-4-1")
 
         assert isinstance(request, dict)
-        assert request["model"] == "gpt-4-turbo-2024-04-09"
+        assert request["model"] == "gpt-4-1"
         assert len(request["messages"]) == 2
         assert request["messages"][0]["role"] == "system"
         assert request["messages"][0]["content"] == "You are a helpful assistant."
@@ -48,10 +48,10 @@ class TestOpenAIPrompt:
 
     def test_as_platform_request_with_stream(self, openai_prompt: OpenAIPrompt) -> None:
         """Test converting to platform request with streaming enabled."""
-        request = openai_prompt.as_platform_request(model="gpt-4-turbo", stream=True)
+        request = openai_prompt.as_platform_request(model="gpt-4-1", stream=True)
 
         assert isinstance(request, dict)
-        assert request["model"] == "gpt-4-turbo-2024-04-09"
+        assert request["model"] == "gpt-4-1"
         assert len(request["messages"]) == 2
         assert request["messages"][0]["role"] == "system"
         assert request["messages"][1]["role"] == "user"
@@ -80,10 +80,10 @@ class TestOpenAIPrompt:
             messages=messages,
         )
 
-        request = openai_prompt.as_platform_request(model="gpt-4-turbo")
+        request = openai_prompt.as_platform_request(model="gpt-4-1")
 
         assert isinstance(request, dict)
-        assert request["model"] == "gpt-4-turbo-2024-04-09"
+        assert request["model"] == "gpt-4-1"
         assert len(request["messages"]) == 2
         assert "tools" not in request
 
@@ -133,10 +133,10 @@ class TestOpenAIPrompt:
             tools=[tool_param],
         )
 
-        request = openai_prompt.as_platform_request(model="gpt-4-turbo")
+        request = openai_prompt.as_platform_request(model="gpt-4-1")
 
         assert isinstance(request, dict)
-        assert request["model"] == "gpt-4-turbo-2024-04-09"
+        assert request["model"] == "gpt-4-1"
         assert len(request["messages"]) == 2
         assert "tools" in request
         assert len(request["tools"]) == 1
@@ -165,7 +165,7 @@ class TestOpenAIPrompt:
             high_request = openai_prompt.as_platform_request(model=high_model)
             # not asserting model id because it's not always the same
             # plus, verified model id is appropriately set
-            # in the above test with gpt-4-turbo.
+            # in the above test with gpt-4-1.
             assert "reasoning_effort" in high_request
             assert high_request["reasoning_effort"] == "high"
 

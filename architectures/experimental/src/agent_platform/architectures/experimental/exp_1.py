@@ -63,7 +63,14 @@ async def _process_conversation_step(kernel: Kernel, state: ArchState) -> ArchSt
     platform, model = await kernel.get_platform_and_model(model_type="llm")
 
     # Get the family of the chosen model
-    model_family = platform.client.model_map.model_families[model]
+    try:
+        # We're making this more careful as we transition some model platform
+        # client internals... (and we don't _actually_ use the prompt
+        # specialization today)
+        model_family = platform.client.model_map.model_families.get(model)
+    except (AttributeError, KeyError):
+        logger.warning("Model family not found for model: %s", model)
+        model_family = None
 
     # Let's create a new message in the thread
     message = await kernel.thread_state.new_agent_message(

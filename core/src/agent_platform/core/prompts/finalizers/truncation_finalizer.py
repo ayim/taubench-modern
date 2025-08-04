@@ -129,10 +129,13 @@ class TruncationFinalizer(BaseFinalizer):
         platform = cast("PlatformInterface", platform)
 
         # Sets default to one of the most common context windows.
-        model_name = kwargs.get("model", "gpt-3.5-turbo")
-        max_tokens = (
-            platform.client.model_map.model_context_windows.get(model_name, 128_000) or 128_000
-        )
+        model_name = kwargs.get("model", "gpt-4-1")
+        max_tokens = 128_000  # Default to 128k tokens
+        try:
+            max_tokens = platform.client.model_map.model_context_windows.get(model_name) or 128_000
+        except (AttributeError, KeyError):
+            logger.warning("No model context window found for model: %s", model_name)
+
         max_token_budget = int(max_tokens * self.token_budget_percentage)
 
         # Create a copy of the prompt but with hydrated messages for token counting.

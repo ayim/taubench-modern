@@ -1,7 +1,7 @@
 import base64
 import json
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Literal, cast
+from typing import TYPE_CHECKING, Literal
 
 import httpx
 
@@ -19,7 +19,6 @@ if TYPE_CHECKING:
 
 from agent_platform.core.kernel_interfaces.kernel_mixin import UsesKernelMixin
 from agent_platform.core.platforms.base import PlatformConverters
-from agent_platform.core.platforms.openai.configs import OpenAIRoleMap
 from agent_platform.core.platforms.openai.prompts import OpenAIPrompt
 from agent_platform.core.prompts import (
     Prompt,
@@ -193,10 +192,13 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
         Raises:
             ValueError: If the role is not found in the map.
         """
-        for openai_role, our_role in OpenAIRoleMap.role_map.items():
-            if our_role == role:
-                return cast(Literal["user", "assistant"], openai_role)
-        raise ValueError(f"Role '{role}' not found in OpenAIRoleMap")
+        match role:
+            case "agent":
+                return "assistant"
+            case "user":
+                return "user"
+            case _:
+                raise ValueError(f"Unsupported role: {role}")
 
     async def _process_message_content(
         self,

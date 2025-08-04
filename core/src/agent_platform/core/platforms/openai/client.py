@@ -8,14 +8,9 @@ from agent_platform.core.delta.compute_delta import compute_generic_deltas
 from agent_platform.core.errors import ErrorCode
 from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
 from agent_platform.core.errors.streaming import StreamingError
-from agent_platform.core.platforms.base import (
-    PlatformClient,
-    PlatformConfigs,
-    PlatformModelMap,
-)
-from agent_platform.core.platforms.openai.configs import (
-    OpenAIModelMap,
-    OpenAIPlatformConfigs,
+from agent_platform.core.platforms.base import PlatformClient
+from agent_platform.core.platforms.configs import (
+    resolve_generic_model_id_to_platform_specific_model_id,
 )
 from agent_platform.core.platforms.openai.converters import OpenAIConverters
 from agent_platform.core.platforms.openai.parameters import OpenAIPlatformParameters
@@ -42,8 +37,6 @@ class OpenAIClient(
     """A client for the OpenAI platform."""
 
     NAME: ClassVar[str] = "openai"
-    configs: ClassVar[type[PlatformConfigs]] = OpenAIPlatformConfigs
-    model_map: ClassVar[type[PlatformModelMap]] = OpenAIModelMap
 
     def __init__(
         self,
@@ -199,12 +192,11 @@ class OpenAIClient(
         Returns:
             The number of tokens in the prompt.
         """
-        # TODO: Should we import in a try block and use a fallback algorithm
-        # if it's not installed?
         import tiktoken
 
-        model_id = OpenAIModelMap.model_aliases[model]
-        encoding = tiktoken.encoding_for_model(model_id)
+        # TODO: for now, we don't really care to get the model
+        # right here. Tiktoken internal map is out of date
+        encoding = tiktoken.encoding_for_model("gpt-4o")
 
         # Get the request dictionary
         request = prompt.as_platform_request(model)
@@ -255,7 +247,8 @@ class OpenAIClient(
         """
         from openai import APIError
 
-        request = prompt.as_platform_request(model)
+        model_id = await resolve_generic_model_id_to_platform_specific_model_id(self, model)
+        request = prompt.as_platform_request(model_id)
         try:
             response = await self._openai_client.chat.completions.create(**request)
             return self._parsers.parse_response(response)
@@ -279,7 +272,8 @@ class OpenAIClient(
         from openai import APIError
 
         logger.info(f"Streaming with OpenAI model: {model}")
-        request = prompt.as_platform_request(model, stream=True)
+        model_id = await resolve_generic_model_id_to_platform_specific_model_id(self, model)
+        request = prompt.as_platform_request(model_id, stream=True)
 
         # Initialize message state
         message: dict[str, Any] = {
@@ -344,7 +338,7 @@ class OpenAIClient(
         Returns:
             A dictionary containing the embeddings and usage information.
         """
-        model_id = OpenAIModelMap.model_aliases[model]
+        model_id = await resolve_generic_model_id_to_platform_specific_model_id(self, model)
         logger.info(
             f"Creating embeddings with OpenAI model: {model} (model_id: {model_id})",
         )
@@ -369,6 +363,12 @@ class OpenAIClient(
             "embeddings": embeddings,
             "model": model,
             "usage": {"total_tokens": total_tokens},
+        }
+
+    async def get_available_models(self) -> dict[str, list[str]]:
+        model_list = await self._openai_client.models.list()
+        return {
+            "openai": [model.id for model in model_list.data],
         }
 
 
