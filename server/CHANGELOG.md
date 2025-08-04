@@ -1,3 +1,7 @@
+# Sema4.ai Agent Server 2.0.27 (2025-08-04)
+
+- Add default API key for action server authentication
+
 # Sema4.ai Agent Server 2.0.26 (2025-08-04)
 
 - Release pipeline updates; no functional changes in server.
