@@ -7,10 +7,9 @@
   "scripts": {
     "build": "npm run clean && npm run build:frontend && npm run build:backend",
     "build:frontend": "vite build --mode production --config vite.config.ts",
-    "build:backend": "tsc --project backend/tsconfig.json ",
+    "build:backend": "tsc --project backend/tsconfig.build.json",
     "clean": "rm -rf ./dist",
     "dev": "dotenv tsx watch ./backend/src/index.ts",
-    "dev-old": "concurrently 'npm run dev:frontend' 'npm run dev:backend'",
     "dev:backend": "dotenv tsx watch ./backend/src/index.ts",
     "dev:frontend": "vite build --watch --config vite.config.ts",
     "lint": "npm run lint:backend && npm run lint:frontend",

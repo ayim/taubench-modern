@@ -1,6 +1,7 @@
 import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
 import type { NextFunction, Request, Response } from 'express';
 import { extractGoogleUserIdentity, handleGoogleAuthCheck } from './google.js';
+import { extractSnowflakeUserIdentity, handleSnowflakeAuthCheck } from './snowflake.js';
 import type { Configuration } from '../../configuration.js';
 import type { MonitoringContext } from '../../monitoring/index.js';
 import type { Result } from '../../utils/result.js';
@@ -13,6 +14,8 @@ export const createAuthMiddleware =
         return next();
       case 'google':
         return handleGoogleAuthCheck({ monitoring, next, req, res });
+      case 'snowflake':
+        return handleSnowflakeAuthCheck({ monitoring, next, req, res });
 
       default:
         exhaustiveCheck(configuration.auth);
@@ -46,6 +49,8 @@ export const extractAuthenticatedUserIdentity = ({
       };
     case 'google':
       return extractGoogleUserIdentity({ headers, monitoring });
+    case 'snowflake':
+      return extractSnowflakeUserIdentity({ headers, monitoring });
 
     default:
       exhaustiveCheck(configuration.auth);

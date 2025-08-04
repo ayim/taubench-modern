@@ -2,11 +2,12 @@ import type http from 'node:http';
 import Stream from 'node:stream';
 import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
 import { WebSocket, WebSocketServer } from 'ws';
+import { parseAgentRequest } from '../api/parsers.js';
+import { getRouteBehaviour } from '../api/routing.js';
 import type { Configuration } from '../configuration.js';
 import { extractAuthenticatedUserIdentity } from '../middleware/auth/index.js';
 import type { MonitoringContext } from '../monitoring/index.js';
 import { extractHeadersFromRequest, NO_PROXY_HEADERS, NO_PROXY_WEBSOCKET_HEADERS } from '../utils/request.js';
-import { signAgentToken } from '../utils/signing.js';
 import { extractRequestPathAttributes, joinUrl } from '../utils/url.js';
 
 /**
@@ -58,14 +59,34 @@ export const initializeWebSocketProxying = ({
       socket.destroy();
     };
 
+    const forbiddenAccess = () => {
+      socket.write('HTTP/1.1 403 Unauthorized\r\n\r\n');
+      socket.destroy();
+    };
+
     const internalServerError = () => {
       socket.write('HTTP/1.1 500 Internal Server Error\r\n\r\n');
+      socket.destroy();
+    };
+
+    const notFoundError = () => {
+      socket.write('HTTP/1.1 404 Not Found\r\n\r\n');
       socket.destroy();
     };
 
     monitoring.logger.info('Upgrade websocket connection', {
       requestUrl: req.url,
     });
+
+    if (!req.url) {
+      throw new Error('No URL found for upgrade request');
+    }
+    if (!req.method) {
+      throw new Error('No method found for upgrade request');
+    }
+
+    const urlAttributes = extractRequestPathAttributes(req.url);
+    const targetPath = rewriteAgentServerPath(urlAttributes.pathname);
 
     const headers: Record<string, string> = {};
     // Proxy all valid headers
@@ -79,7 +100,7 @@ export const initializeWebSocketProxying = ({
       }
     }
 
-    if (configuration.auth.type === 'google') {
+    if (configuration.auth.type !== 'none') {
       const userIdentityResult = extractAuthenticatedUserIdentity({
         configuration,
         headers: extractHeadersFromRequest(req.headers),
@@ -100,30 +121,58 @@ export const initializeWebSocketProxying = ({
         return unauthorizedAccess();
       }
 
-      const signedAgentTokenResult = await signAgentToken({
-        configuration,
-        payload: {
-          userId: `tenant:spar:user:${userIdentityResult.data.userId}`,
-        },
-      });
+      const requestPathWithQueryStringParameters = `${targetPath}${urlAttributes.searchParams}`;
 
-      if (!signedAgentTokenResult.isValid) {
-        monitoring.logger.error('Agent server token signing invalid', {
-          errorMessage: signedAgentTokenResult.reason.message,
+      const route = parseAgentRequest({
+        method: req.method,
+        path: requestPathWithQueryStringParameters,
+      });
+      if (route === null) {
+        monitoring.logger.error('Missing agent workroom route', {
+          requestMethod: req.method,
+          requestUrl: requestPathWithQueryStringParameters,
         });
 
-        return internalServerError();
+        return notFoundError();
       }
 
-      headers['authorization'] = `Bearer ${signedAgentTokenResult.token}`;
-    }
+      const routeBehaviour = getRouteBehaviour({
+        configuration,
+        route,
+        userId: userIdentityResult.data.userId,
+      });
 
-    if (!req.url) {
-      throw new Error('No URL found for upgrade request');
-    }
+      if (!routeBehaviour.isAllowed) {
+        monitoring.logger.error('Route not allowed', {
+          requestMethod: req.method,
+          requestUrl: requestPathWithQueryStringParameters,
+        });
 
-    const urlAttributes = extractRequestPathAttributes(req.url);
-    const targetPath = rewriteAgentServerPath(urlAttributes.pathname);
+        return notFoundError();
+      }
+
+      const signResult = await routeBehaviour.signAgentToken();
+
+      if (!signResult.success) {
+        monitoring.logger.error('Agent server token signing invalid', {
+          errorName: signResult.error.code,
+          errorMessage: signResult.error.message,
+        });
+
+        switch (signResult.error.code) {
+          case 'invalid_signing_result':
+            return forbiddenAccess();
+          case 'invalid_signing_auth_configuration':
+          case 'signing_failed':
+            return internalServerError();
+
+          default:
+            exhaustiveCheck(signResult.error);
+        }
+      }
+
+      headers['authorization'] = `Bearer ${signResult.data}`;
+    }
 
     const targetUrl = `${joinUrl(targetBaseUrl, targetPath)}${urlAttributes.searchParams}`
       .replace('http://', 'ws://')

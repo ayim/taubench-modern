@@ -14,7 +14,7 @@ export const createIndexServe =
   async (req: Request, res: Response, next: NextFunction) => {
     // Currently the `express.static` call handles all nested resources, but only
     // `index.html` on the ROOT route. This additional helper allows us to handle
-    // `index.html` loads on non root routes like /spar/home, for instance.
+    // `index.html` loads on non root routes like /<tenant-id>/home, for instance.
 
     const accepts = req.header('Accept') ?? '';
     if (accepts.indexOf('text/html') >= 0) {

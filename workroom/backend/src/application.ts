@@ -36,16 +36,15 @@ export const createApplication = async ({
   app.set('trust proxy', true);
   app.disable('x-powered-by');
 
+  app.use(createRequestLogger({ monitoring }));
+
   app.get('/healthz', createHealthCheck());
   app.get('/ready', createHealthCheck());
 
   const frontendAPIRouter = createRouter();
   app.use('/api', frontendAPIRouter);
 
-  const makeFrontendMiddleware = () => [
-    createRequestLogger({ monitoring }),
-    createAuthMiddleware({ configuration, monitoring }),
-  ];
+  const makeFrontendMiddleware = () => [createAuthMiddleware({ configuration, monitoring })];
 
   frontendAPIRouter.use(...makeFrontendMiddleware());
 
@@ -65,84 +64,93 @@ export const createApplication = async ({
         targetBaseUrl: baseURL.toString(),
       }),
     );
-  } else if (configuration.deployment.type === 'spcs') {
-    const { handleWebsocketUpgrade } = initializeWebSocketProxying({
-      configuration,
-      monitoring,
-      rewriteAgentServerPath: (currentPath) => currentPath,
-      targetBaseUrl: configuration.deployment.agentRouterInternalUrl,
-    });
-    server.on('upgrade', handleWebsocketUpgrade);
-
-    const targetMetaPath = new URL(configuration.deployment.metaUrl).pathname;
-
-    const baseURL = new URL(configuration.deployment.metaUrl);
-    baseURL.pathname = '';
-
-    app.get(
-      '/meta',
-      ...makeFrontendMiddleware(),
-      createProxyToAgentServer({
-        configuration,
-        monitoring,
-        rewriteAgentServerPath: () => targetMetaPath,
-        targetBaseUrl: baseURL.toString(),
-      }),
-    );
-
-    app.all(
-      '/backend/*',
-      ...makeFrontendMiddleware(),
-      createProxyToAgentServer({
-        configuration,
-        monitoring,
-        // This is a NO-OP, but keeping it explicit on both ends is better
-        // for maintainability and simplicity. We have more granular control
-        // this way.
-        rewriteAgentServerPath: (currentPath) => currentPath,
-        targetBaseUrl: configuration.deployment.agentRouterInternalUrl,
-      }),
-    );
   } else if (configuration.deployment.type === 'spar') {
     const { handleWebsocketUpgrade } = initializeWebSocketProxying({
       configuration,
       monitoring,
-      rewriteAgentServerPath: (current) => current.replace('/api/tenants/spar/agents', ''),
+      rewriteAgentServerPath: (current) => current.replace(`/api/tenants/${configuration.tenant.tenantId}/agents`, ''),
       targetBaseUrl: configuration.deployment.agentServerInternalUrl,
     });
     server.on('upgrade', handleWebsocketUpgrade);
 
     app.get('/meta', ...makeFrontendMiddleware(), createGetSparMeta({ configuration }));
 
-    // @TODO: Remove this
-    frontendAPIRouter.post(
-      '/demo-create-agent',
-      createProxyToAgentServer({
-        configuration,
-        monitoring,
-        rewriteAgentServerPath: () => '/api/v2/agents/',
-        targetBaseUrl: configuration.deployment.agentServerInternalUrl,
-      }),
-    );
-
-    frontendAPIRouter.get('/tenants-list', createGetSparTenantsList());
+    frontendAPIRouter.get('/tenants-list', createGetSparTenantsList({ configuration }));
 
     // Workroom routes
-    frontendAPIRouter.get('/tenants/spar/workroom/meta', createGetWorkroomMeta());
+    frontendAPIRouter.get(
+      `/tenants/${configuration.tenant.tenantId}/workroom/meta`,
+      createGetWorkroomMeta({ configuration }),
+    );
+
+    // Overrides
+    if (configuration.legacyRoutingUrl) {
+      monitoring.logger.info('Enabling legacy proxy routes', {
+        requestUrl: configuration.legacyRoutingUrl,
+      });
+
+      frontendAPIRouter.get(
+        `/tenants/${configuration.tenant.tenantId}/workroom/agents/:agentId/threads/:threadId/action-invocations/:actionInvocationId`,
+        createProxyToAgentServer({
+          configuration,
+          monitoring,
+          rewriteAgentServerPath: (current) => current.replace(/^\/api/, '/backend'),
+          skipAuthentication: true, // Auth handled by agent-router
+          targetBaseUrl: configuration.legacyRoutingUrl,
+        }),
+      );
+
+      frontendAPIRouter.get(
+        `/tenants/${configuration.tenant.tenantId}/workroom/agents/:agentId/me/oauth/permissions`,
+        createProxyToAgentServer({
+          configuration,
+          monitoring,
+          rewriteAgentServerPath: (current) => current.replace(/^\/api/, '/backend'),
+          skipAuthentication: true, // Auth handled by agent-router
+          targetBaseUrl: configuration.legacyRoutingUrl,
+        }),
+      );
+
+      frontendAPIRouter.get(
+        `/tenants/${configuration.tenant.tenantId}/workroom/oauth/authorize`,
+        createProxyToAgentServer({
+          configuration,
+          monitoring,
+          rewriteAgentServerPath: (current) => current.replace(/^\/api/, '/backend'),
+          skipAuthentication: true, // Auth handled by agent-router
+          targetBaseUrl: configuration.legacyRoutingUrl,
+        }),
+      );
+
+      frontendAPIRouter.delete(
+        `/tenants/${configuration.tenant.tenantId}/workroom/agents/:agentId/me/oauth/connections/:connectionId`,
+        createProxyToAgentServer({
+          configuration,
+          monitoring,
+          rewriteAgentServerPath: (current) => current.replace(/^\/api/, '/backend'),
+          skipAuthentication: true, // Auth handled by agent-router
+          targetBaseUrl: configuration.legacyRoutingUrl,
+        }),
+      );
+    }
 
     // Agent routes
-    frontendAPIRouter.get('/tenants/spar/workroom/agents/:agentId/meta', createGetAgentMeta());
+    frontendAPIRouter.get(
+      `/tenants/${configuration.tenant.tenantId}/workroom/agents/:agentId/meta`,
+      createGetAgentMeta(),
+    );
     frontendAPIRouter.all(
-      '/tenants/spar/agents/api/v2/*',
+      `/tenants/${configuration.tenant.tenantId}/agents/api/v2/*`,
       createProxyToAgentServer({
         configuration,
         monitoring,
-        rewriteAgentServerPath: (current) => current.replace('/api/tenants/spar/agents', ''),
+        rewriteAgentServerPath: (current) =>
+          current.replace(`/api/tenants/${configuration.tenant.tenantId}/agents`, ''),
         targetBaseUrl: configuration.deployment.agentServerInternalUrl,
       }),
     );
     frontendAPIRouter.get(
-      '/tenants/spar/workroom/agents/:agentId/details',
+      `/tenants/${configuration.tenant.tenantId}/workroom/agents/:agentId/details`,
       createProxyToAgentServer({
         configuration,
         monitoring,

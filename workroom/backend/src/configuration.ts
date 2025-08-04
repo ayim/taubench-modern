@@ -1,4 +1,4 @@
-import { parseEnvVariable, parseEnvVariableInteger } from '@sema4ai/robocloud-shared-utils';
+import { exhaustiveCheck, parseEnvVariable, parseEnvVariableInteger } from '@sema4ai/robocloud-shared-utils';
 
 export interface Configuration {
   auth:
@@ -8,6 +8,10 @@ export interface Configuration {
     | {
         jwtPrivateKeyB64: string;
         type: 'google';
+      }
+    | {
+        jwtPrivateKeyB64: string;
+        type: 'snowflake';
       };
   deployment:
     | {
@@ -15,15 +19,16 @@ export interface Configuration {
         type: 'spar';
       }
     | {
-        agentRouterInternalUrl: string;
-        metaUrl: string;
-        type: 'spcs';
-      }
-    | {
         metaUrl: string;
         type: 'ace';
       };
   frontendMode: 'disk' | 'middleware';
+  legacyRoutingUrl: string | null;
+  tenant: {
+    tenantId: string;
+    tenantName: string;
+    type: 'static';
+  };
   port: number;
 }
 
@@ -47,13 +52,17 @@ export const getConfiguration = (): Configuration => {
     const mode = parseEnvVariable('AUTH_MODE');
     switch (mode) {
       case 'none':
-        return { type: mode };
-      case 'google': {
-        const agentServerJWTPrivateKeyB64 = parseEnvVariable('AGENT_SERVER_JWT_PRIVATE_KEY_B64');
-
+        return { type: 'none' };
+      case 'snowflake': {
         return {
-          type: mode,
-          jwtPrivateKeyB64: agentServerJWTPrivateKeyB64,
+          jwtPrivateKeyB64: parseEnvVariable('AGENT_SERVER_JWT_PRIVATE_KEY_B64'),
+          type: 'snowflake',
+        };
+      }
+      case 'google': {
+        return {
+          jwtPrivateKeyB64: parseEnvVariable('AGENT_SERVER_JWT_PRIVATE_KEY_B64'),
+          type: 'google',
         };
       }
 
@@ -70,12 +79,6 @@ export const getConfiguration = (): Configuration => {
           metaUrl: parseEnvVariable('META_URL'),
           type: 'ace',
         };
-      case 'spcs':
-        return {
-          agentRouterInternalUrl: parseEnvVariable('AGENT_ROUTER_URL'),
-          metaUrl: parseEnvVariable('META_URL'),
-          type: 'spcs',
-        };
       case 'spar':
         return {
           agentServerInternalUrl: parseEnvVariable('AGENT_SERVER_URL'),
@@ -87,12 +90,41 @@ export const getConfiguration = (): Configuration => {
     }
   })();
 
+  const tenant = ((): Configuration['tenant'] => {
+    const authMode = parseEnvVariable('AUTH_MODE') as Configuration['auth']['type'];
+
+    switch (authMode) {
+      case 'snowflake': {
+        // Passed-in automatically by Snowflake when the service is running
+        const snowflakeAccountId = parseEnvVariable('SNOWFLAKE_ACCOUNT').toLowerCase();
+
+        return {
+          tenantId: snowflakeAccountId,
+          tenantName: 'Sema4ai x Snowflake',
+          type: 'static',
+        };
+      }
+      case 'google':
+      case 'none':
+        return {
+          tenantId: 'spar',
+          tenantName: 'SPAR DEV',
+          type: 'static',
+        };
+
+      default:
+        exhaustiveCheck(authMode);
+    }
+  })();
+
+  const legacyRoutingUrl = process.env.LEGACY_AGENT_ROUTER_URL ? parseEnvVariable('LEGACY_AGENT_ROUTER_URL') : null;
+
   return {
     auth,
-
     deployment,
     frontendMode: nodeEnv === 'development' ? 'middleware' : 'disk',
-
+    legacyRoutingUrl,
     port,
+    tenant,
   };
 };

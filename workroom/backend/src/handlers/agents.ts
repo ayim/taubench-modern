@@ -1,7 +1,8 @@
 import { PassThrough } from 'node:stream';
+import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
 import type { Request, Response } from 'express';
 import { parseAgentRequest } from '../api/parsers.js';
-import { isAllowedRoute, signAgentServiceJWTBasedOnRoute } from '../api/routing.js';
+import { getRouteBehaviour } from '../api/routing.js';
 import type { Configuration } from '../configuration.js';
 import type { MonitoringContext } from '../monitoring/index.js';
 import { REQUEST_AUTH_ID_KEY } from '../utils/auth.js';
@@ -29,11 +30,13 @@ export const createProxyToAgentServer =
     configuration,
     monitoring,
     rewriteAgentServerPath,
+    skipAuthentication = false,
     targetBaseUrl,
   }: {
     configuration: Configuration;
     monitoring: MonitoringContext;
     rewriteAgentServerPath: (currentPath: string, getRequestParameter: (param: string) => string) => string;
+    skipAuthentication?: boolean;
     targetBaseUrl: string;
   }) =>
   async (req: Request, res: Response) => {
@@ -51,6 +54,8 @@ export const createProxyToAgentServer =
     const targetUrl = `${joinUrl(targetBaseUrl, targetPath)}${urlAttributes.searchParams}`;
 
     monitoring.logger.info('Proxying agent server request', {
+      authMode: configuration.auth.type,
+      authSkip: skipAuthentication,
       requestMethod: req.method,
       requestUrl: targetUrl,
     });
@@ -73,7 +78,7 @@ export const createProxyToAgentServer =
       headers.set('X-Forwarded-For', clientIP);
     }
 
-    if (configuration.auth.type === 'google') {
+    if (configuration.auth.type !== 'none' && !skipAuthentication) {
       const sub = res.locals[REQUEST_AUTH_ID_KEY] as string | undefined;
       if (!sub) {
         throw new Error('Authentication identity not found');
@@ -85,7 +90,6 @@ export const createProxyToAgentServer =
         method: req.method,
         path: requestPathWithQueryStringParameters,
       });
-
       if (route === null) {
         monitoring.logger.error('Missing agent workroom route', {
           requestMethod: req.method,
@@ -95,7 +99,13 @@ export const createProxyToAgentServer =
         return res.status(404).send('Not found');
       }
 
-      if (!isAllowedRoute(route)) {
+      const routeBehaviour = getRouteBehaviour({
+        configuration,
+        route,
+        userId: sub,
+      });
+
+      if (!routeBehaviour.isAllowed) {
         monitoring.logger.error('Route not allowed', {
           requestMethod: req.method,
           requestUrl: requestPathWithQueryStringParameters,
@@ -104,26 +114,27 @@ export const createProxyToAgentServer =
         return res.status(404).send('Not found');
       }
 
-      const signTokenResponse = await signAgentServiceJWTBasedOnRoute(
-        route,
-        { tenantId: 'spar', userId: sub },
-        configuration,
-      );
+      const signResult = await routeBehaviour.signAgentToken();
 
-      if (!signTokenResponse.success) {
+      if (!signResult.success) {
         monitoring.logger.error('Token signing for agent server failed', {
-          errorName: signTokenResponse.error.code,
-          errorMessage: signTokenResponse.error.message,
+          errorName: signResult.error.code,
+          errorMessage: signResult.error.message,
         });
 
-        return res.status(500).send('Internal server error');
+        switch (signResult.error.code) {
+          case 'invalid_signing_result':
+            return res.status(403).send('Forbidden');
+          case 'invalid_signing_auth_configuration':
+          case 'signing_failed':
+            return res.status(500).send('Internal server error');
+
+          default:
+            exhaustiveCheck(signResult.error);
+        }
       }
 
-      if (!signTokenResponse.data.isValid) {
-        return res.status(403).send('Forbidden');
-      }
-
-      headers.set('Authorization', `Bearer ${signTokenResponse.data.token}`);
+      headers.set('Authorization', `Bearer ${signResult.data}`);
     }
 
     try {

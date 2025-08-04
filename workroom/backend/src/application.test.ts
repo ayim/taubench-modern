@@ -19,8 +19,34 @@ describe('application', () => {
   });
 
   describe('in spar mode', () => {
+    const THREADS = [
+      {
+        user_id: 'b623f27c-d91e-4249-a5c7-4290dcc435e3',
+        agent_id: 'ee405d56-c37e-4030-89b6-d4839e2678a9',
+        name: 'Chat 1',
+        thread_id: '66d60f4d-0a06-4644-b257-7d7a036edd05',
+        messages: [],
+        created_at: '2025-07-28T16:36:35.333023Z',
+        updated_at: '2025-07-28T16:36:35.333024Z',
+        metadata: {},
+      },
+    ];
+
     beforeEach(async () => {
-      const targetServerUrl = '';
+      const targetPort = await getPort();
+      const targetServerUrl = `http://127.0.0.1:${targetPort}`;
+
+      mockServer = setupServer(
+        http.get(`${targetServerUrl}/api/v2/threads`, () => {
+          return HttpResponse.json(THREADS);
+        }),
+      );
+
+      mockServer.listen({
+        onUnhandledRequest: () => {
+          // Squelch
+        },
+      });
 
       service = await createApplication({
         configuration: {
@@ -32,6 +58,12 @@ describe('application', () => {
             type: 'spar',
           },
           frontendMode: 'disk',
+          legacyRoutingUrl: null,
+          tenant: {
+            tenantId: 'spar-test',
+            tenantName: 'SPAR test',
+            type: 'static',
+          },
           port: 8001, // not used
         },
         monitoring: {
@@ -48,6 +80,10 @@ describe('application', () => {
         deploymentType: 'spar',
         workroomTenantListUrl: '/api/tenants-list',
       });
+    });
+
+    it('returns expected proxied threads', async () => {
+      await request(service.app).get('/api/tenants/spar-test/agents/api/v2/threads').expect(200).expect(THREADS);
     });
   });
 
@@ -83,6 +119,12 @@ describe('application', () => {
             type: 'ace',
           },
           frontendMode: 'disk',
+          legacyRoutingUrl: null,
+          tenant: {
+            tenantId: 'ace-test',
+            tenantName: 'ACE test',
+            type: 'static',
+          },
           port: 8001, // not used
         },
         monitoring: {
@@ -98,58 +140,6 @@ describe('application', () => {
       await request(service.app).get('/meta').set('x-sema4ai-test-header', 'test value').expect(200).expect({
         aceId: ACE_ID,
         instanceId: 'dev2',
-      });
-    });
-  });
-
-  describe('in SPCS mode', () => {
-    beforeEach(async () => {
-      const targetPort = await getPort();
-      const targetServerUrl = `http://127.0.0.1:${targetPort}`;
-
-      mockServer = setupServer(
-        http.get(`${targetServerUrl}/meta`, ({ request }) => {
-          expect(request.headers.get('x-sema4ai-test-header')).toEqual('test value spcs');
-
-          return HttpResponse.json({
-            deploymentType: 'spcs',
-            workroomTenantListUrl: '/backend/workspaces',
-          });
-        }),
-      );
-
-      mockServer.listen({
-        onUnhandledRequest: () => {
-          // Squelch
-        },
-      });
-
-      service = await createApplication({
-        configuration: {
-          auth: {
-            type: 'none',
-          },
-          deployment: {
-            agentRouterInternalUrl: targetServerUrl,
-            metaUrl: `${targetServerUrl}/meta`,
-            type: 'spcs',
-          },
-          frontendMode: 'disk',
-          port: 8001, // not used
-        },
-        monitoring: {
-          logger: {
-            info: () => {},
-            error: () => {},
-          },
-        },
-      });
-    });
-
-    it('returns expected /meta via proxy', async () => {
-      await request(service.app).get('/meta').set('x-sema4ai-test-header', 'test value spcs').expect(200).expect({
-        deploymentType: 'spcs',
-        workroomTenantListUrl: '/backend/workspaces',
       });
     });
   });

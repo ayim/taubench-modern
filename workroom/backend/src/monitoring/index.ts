@@ -5,6 +5,7 @@ type LogSeverity = 'INFO' | 'ERROR';
 
 export interface LogAttributes {
   authMode: Configuration['auth']['type'];
+  authSkip: boolean;
   count: number;
   deploymentType: Configuration['deployment']['type'];
   error?: Error;

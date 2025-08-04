@@ -6,14 +6,15 @@ import { extractHeadersFromRequest } from '../../utils/request.js';
 import type { Result } from '../../utils/result.js';
 
 /**
- * Google authentication header, provided when auth is enabled for GCP
- * hosted applications.
+ * Snowflake user identity header
  * @example
- *  "accounts.google.com:109000000000000000000"
+ *  "perry@sema4.ai"
+ * @example
+ *  "perry"
  */
-const GOOGLE_AUTH_HEADER = 'X-Goog-Authenticated-User-ID';
+const SNOWFLAKE_AUTH_HEADER = 'sf-context-current-user';
 
-export const handleGoogleAuthCheck = async ({
+export const handleSnowflakeAuthCheck = async ({
   monitoring,
   next,
   req,
@@ -24,7 +25,7 @@ export const handleGoogleAuthCheck = async ({
   req: Request;
   res: Response;
 }) => {
-  const userIdentityResult = extractGoogleUserIdentity({
+  const userIdentityResult = extractSnowflakeUserIdentity({
     headers: extractHeadersFromRequest(req.headers),
     monitoring,
   });
@@ -39,15 +40,12 @@ export const handleGoogleAuthCheck = async ({
     }
   }
 
-  // @TODO: User Id is no longer identifiable as a Google ID.. this should
-  // be addressed, but it should not contain a colon due to the string joining
-  // in the agent server token signing process.
   res.locals[REQUEST_AUTH_ID_KEY] = userIdentityResult.data.userId;
 
   return next();
 };
 
-export const extractGoogleUserIdentity = ({
+export const extractSnowflakeUserIdentity = ({
   headers,
   monitoring,
 }: {
@@ -62,30 +60,15 @@ export const extractGoogleUserIdentity = ({
     message: string;
   }
 > => {
-  const authHeaderValue = headers[GOOGLE_AUTH_HEADER.toLowerCase()];
+  const authHeaderValue = headers[SNOWFLAKE_AUTH_HEADER.toLowerCase()];
   if (!authHeaderValue) {
-    monitoring.logger.error('Google authentication attempted but no header found');
+    monitoring.logger.error('Snowflake authentication attempted but no header found');
 
     return {
       success: false,
       error: {
         code: 'unauthorized',
-        message: 'Google authentication attempted but no header found',
-      },
-    };
-  }
-
-  const [domain, userId] = authHeaderValue.split(':');
-  if (domain !== 'accounts.google.com') {
-    monitoring.logger.info('Google authentication attempted but an invalid header was provided', {
-      errorMessage: `Invalid Google authentication header: ${GOOGLE_AUTH_HEADER} = ${authHeaderValue}`,
-    });
-
-    return {
-      success: false,
-      error: {
-        code: 'unauthorized',
-        message: 'Google authentication attempted but an invalid header was provided',
+        message: 'Snowflake authentication attempted but no header found',
       },
     };
   }
@@ -93,7 +76,7 @@ export const extractGoogleUserIdentity = ({
   return {
     success: true,
     data: {
-      userId,
+      userId: authHeaderValue,
     },
   };
 };
