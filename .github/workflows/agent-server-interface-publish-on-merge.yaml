@@ -32,17 +32,16 @@ jobs:
         with:
           node-version: '20.19.4'
 
-      - name: Create .npmrc
+      - name: Publish
         env:
           NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        working-directory: packages/typescript-agent-server-interface
         run: |
           cat << EOF > "./.npmrc"
-            registry=https://registry.npmjs.org/
-            @robocorp:registry=https://npm.pkg.github.com/
-            @sema4ai:registry=https://npm.pkg.github.com/
-            //npm.pkg.github.com/:_authToken=$NODE_AUTH_TOKEN
+          registry=https://registry.npmjs.org/
+          @robocorp:registry=https://npm.pkg.github.com/
+          @sema4ai:registry=https://npm.pkg.github.com/
+          //npm.pkg.github.com/:_authToken=\${NODE_AUTH_TOKEN}
           EOF
 
-      - name: Publish
-        working-directory: packages/typescript-agent-server-interface
-        run: npm publish
+          npm publish
