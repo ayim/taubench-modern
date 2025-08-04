@@ -1,4 +1,4 @@
-name: Agent Server Interface Release
+name: Open PR for Agent Server Interface Release
 
 on:
   workflow_dispatch:
