@@ -11,6 +11,7 @@ class AgentPackageParsed:
     spec: dict[str, Any] = field(
         metadata={
             "description": "The parsed agent package specification.",
+            "default": {},
         }
     )
     """The parsed agent package specification."""
@@ -18,6 +19,7 @@ class AgentPackageParsed:
     runbook_text: str = field(
         metadata={
             "description": "The runbook text.",
+            "default": "",
         }
     )
     """The runbook text."""
@@ -26,6 +28,7 @@ class AgentPackageParsed:
         default=None,
         metadata={
             "description": "The knowledge files, if requested (default: ``None``).",
+            "default": None,
         },
     )
     """The knowledge files, if requested (default: ``None``)."""
@@ -34,6 +37,34 @@ class AgentPackageParsed:
         default_factory=list,
         metadata={
             "description": "The question groups of the agent (from agent.metadata).",
+            "default": [],
         },
     )
     """The question groups of the agent (from agent.metadata)."""
+
+    conversation_starter: str | None = field(
+        default=None,
+        metadata={
+            "description": "The conversation starter, if requested (default: ``None``).",
+            "default": None,
+        },
+    )
+    """The conversation starter, if requested (default: ``None``)."""
+
+    welcome_message: str | None = field(
+        default=None,
+        metadata={
+            "description": "The welcome message, if requested (default: ``None``).",
+            "default": None,
+        },
+    )
+    """The welcome message, if requested (default: ``None``)."""
+
+    agent_settings: dict[str, Any] | None = field(
+        default=None,
+        metadata={
+            "description": "The agent settings, if requested (default: ``None``).",
+            "default": None,
+        },
+    )
+    """The agent settings, if requested (default: ``None``)."""

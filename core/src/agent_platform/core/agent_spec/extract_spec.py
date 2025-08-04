@@ -60,6 +60,9 @@ async def extract_and_validate_agent_package(
 
             runbook_raw = _read_file_from_zip(zf, AgentSpecConfig.runbook_filename)
             question_groups = _extract_question_groups(spec, zf)
+            conversation_starter = _extract_conversation_starter(spec)
+            welcome_message = _extract_welcome_message(spec)
+            agent_settings = _extract_agent_settings(spec)
 
             knowledge: Mapping[str, bytes] | KnowledgeStreams | None
             if include_knowledge:
@@ -76,6 +79,9 @@ async def extract_and_validate_agent_package(
                 runbook_text=runbook_raw.decode("utf-8", errors="replace"),
                 knowledge=knowledge,
                 question_groups=question_groups,
+                conversation_starter=conversation_starter,
+                welcome_message=welcome_message,
+                agent_settings=agent_settings,
             )
 
     except zipfile.BadZipFile as exc:
@@ -163,6 +169,20 @@ def _iter_knowledge_members(zf: zipfile.ZipFile) -> Iterable[str]:
     return (fn for fn in zf.namelist() if fn.startswith(prefix) and not fn.endswith("/"))
 
 
+def _get_single_agent(spec: dict[str, Any]) -> dict[str, Any]:
+    """Get the single agent from the spec.
+    Spec allows for multiple agents, but we can only handle one.
+    """
+    # ---------------- agent check ---------------- #
+    agents: list = spec.get("agent-package", {}).get("agents", [])
+    if len(agents) != 1:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only one agent is supported",
+        )
+    return agents[0]
+
+
 def _validate_spec(
     spec: dict[str, Any],
     zf: zipfile.ZipFile,
@@ -170,27 +190,20 @@ def _validate_spec(
     """Raise HTTPException if any rule is violated."""
     try:
         agent_pkg = spec["agent-package"]
-        agents = agent_pkg["agents"]
     except (KeyError, TypeError) as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Malformed spec: missing 'agent-package/agents'",
         ) from exc
 
-    if agent_pkg.get("spec-version") != "v2" and agent_pkg.get("spec-version") != "v3":
+    if agent_pkg.get("spec-version", "") not in ["v2", "v2.1", "v3"]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only spec-version='v2' or spec-version='v3' are supported",
+            detail="Only spec-version='v2', 'v2.1', or 'v3' are supported",
         )
 
     # ---------------- agent check ---------------- #
-    # NOTE: spec allows for multiple agents? We can only handle one.
-    if len(agents) != 1:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only one agent is supported",
-        )
-    agent0 = agents[0]
+    agent0 = _get_single_agent(spec)
 
     # ---------------- conversation guide file check ---------------- #
     conversation_guide_path = agent0.get("conversation-guide")
@@ -230,14 +243,7 @@ def _validate_spec(
 def _extract_question_groups(spec: dict[str, Any], zf: zipfile.ZipFile) -> list[QuestionGroup]:
     # Exceptions are ignored as the conversation guide is optional
     # ---------------- agent check ---------------- #
-    # NOTE: spec allows for multiple agents? We can only handle one.
-    agents: list = spec.get("agent-package", {}).get("agents", [])
-    if len(agents) != 1:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only one agent is supported",
-        )
-    agent0 = agents[0]
+    agent0 = _get_single_agent(spec)
 
     # ---------------- conversation guide file check ---------------- #
     conversation_guide_path = agent0.get("conversation-guide")
@@ -279,3 +285,18 @@ def _extract_question_groups(spec: dict[str, Any], zf: zipfile.ZipFile) -> list[
                 detail="Failed to parse or validate conversation guide",
             ) from e
     return question_groups
+
+
+def _extract_conversation_starter(spec: dict[str, Any]) -> str | None:
+    agent0 = _get_single_agent(spec)
+    return agent0.get("conversation-starter", None)
+
+
+def _extract_welcome_message(spec: dict[str, Any]) -> str | None:
+    agent0 = _get_single_agent(spec)
+    return agent0.get("welcome-message", None)
+
+
+def _extract_agent_settings(spec: dict[str, Any]) -> dict[str, Any] | None:
+    agent0 = _get_single_agent(spec)
+    return agent0.get("agent-settings", None)
