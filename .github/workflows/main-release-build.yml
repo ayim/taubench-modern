@@ -279,7 +279,6 @@ jobs:
               workflow_id: 'agent-server-interface-open-pr.yaml',
               ref: '${{ env.BRANCH_NAME }}',
               inputs: {
-                release_channel: 'ci',
                 agent_server_version: 'v${{ needs.version.outputs.value }}'
               }
             })
