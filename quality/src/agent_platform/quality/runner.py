@@ -341,11 +341,6 @@ class QualityTestRunner:
             # (But we are _sequential_ at the level of a test case!!)
             all_results = []
             for test_case in test_cases:
-                logger.info(
-                    f"Running test case: {test_case.thread.name} "
-                    f"across {len(test_case.target_platforms)} platforms in parallel"
-                )
-
                 # Update sf-auth.json if sf-auth-override is present (one time)
                 # There's some tricky concurrency stuff here... we probably need to LOCK
                 # so that only one agent can update sf-auth.json at a time. (Or find a way
@@ -405,9 +400,7 @@ class QualityTestRunner:
                                 )
 
                 except Exception as e:
-                    logger.error(
-                        f"Failed to execute test case {test_case.thread.name} in parallel: {e}"
-                    )
+                    logger.error(f"Failed to execute test case {test_case.name} in parallel: {e}")
                     # Create error results for all platforms in this test case
                     for platform in test_case.target_platforms:
                         error_result = ThreadResult(
@@ -614,11 +607,11 @@ class QualityTestRunner:
         self, agent_id: str, test_case: TestCase, platform: Platform
     ) -> ThreadResult:
         """Run a single test case on a specific platform."""
-        logger.info(f"Running test: {test_case.thread.name} on platform: {platform.name}")
+        logger.info(f"Running test on platform: {platform.name}")
 
         try:
             # Run the conversation
-            agent_messages = await self.agent_runner.run_test_case(
+            agent_messages, workitem = await self.agent_runner.run_test_case(
                 agent_id, test_case, platform.name
             )
 
@@ -626,7 +619,7 @@ class QualityTestRunner:
             evaluation_results = []
             for evaluation in test_case.evaluations:
                 try:
-                    result = await self.evaluator.evaluate(evaluation, agent_messages)
+                    result = await self.evaluator.evaluate(evaluation, agent_messages, workitem)
                     evaluation_results.append(result)
                 except Exception as e:
                     logger.error(f"Evaluation failed: {evaluation.kind}", error=str(e))
@@ -647,7 +640,7 @@ class QualityTestRunner:
             logger.error(
                 "Test execution failed",
                 extra={
-                    "test_case": test_case.thread.name,
+                    "test_case": test_case.name,
                     "platform": platform.name,
                     "agent_id": agent_id,
                     "error": str(e),

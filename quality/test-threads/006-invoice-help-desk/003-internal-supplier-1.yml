@@ -1,3 +1,6 @@
+name: internal-supplier-ex1
+description: 'Internal Supplier (ex1)'
+
 thread:
   - name: internal-supplier-ex1
     description: 'Internal Supplier (ex1)'

@@ -1,3 +1,6 @@
+name: one-step-browse
+description: 'One step browse'
+
 thread:
   - name: one-step-browse
     description: 'One step browse'

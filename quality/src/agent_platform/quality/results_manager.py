@@ -137,8 +137,8 @@ class QualityResultsManager:
             "zip_path": str(agent_package.zip_path),
             "test_cases": [
                 {
-                    "name": tc.thread.name,
-                    "description": tc.thread.description,
+                    "name": tc.name,
+                    "description": tc.description,
                     "file_path": str(tc.file_path),
                     "target_platforms": [p.name for p in tc.target_platforms],
                     "evaluations": [
@@ -165,12 +165,12 @@ class QualityResultsManager:
 
     def start_test(self, agent_name: str, test_case: TestCase, platform: Platform):
         """Mark the start of a specific test."""
-        test_id = f"{test_case.thread.name}_{platform.name}"
+        test_id = f"{test_case.name}_{platform.name}"
         logger.info(f"Starting test: {agent_name}/{test_id}")
 
         if agent_name in self.current_status["agents"]:
             self.current_status["agents"][agent_name]["current_test"] = {
-                "test_name": test_case.thread.name,
+                "test_name": test_case.name,
                 "platform": platform.name,
                 "started_at": datetime.now().isoformat(),
                 "status": "running",
@@ -180,7 +180,7 @@ class QualityResultsManager:
 
     def complete_test(self, agent_name: str, result: ThreadResult, index: int):
         """Record completion of a specific test."""
-        test_id = f"{result.test_case.thread.name}_{result.platform.name}_{index}"
+        test_id = f"{result.test_case.name}_{result.platform.name}_{index}"
         logger.info(f"Completing test: {agent_name}/{test_id}/{index} - Success: {result.success}")
 
         # Thread-safe test completion - use status lock for shared state updates
@@ -194,7 +194,7 @@ class QualityResultsManager:
                 ):
                     current_test = self.current_status["agents"][agent_name]["current_test"]
                     if (
-                        current_test["test_name"] == result.test_case.thread.name
+                        current_test["test_name"] == result.test_case.name
                         and current_test["platform"] == result.platform.name
                     ):
                         started_at = current_test["started_at"]
@@ -202,17 +202,17 @@ class QualityResultsManager:
                 # Convert ThreadResult to JSON-serializable format
                 result_data = {
                     "trial_id": index,
-                    "test_name": result.test_case.thread.name,
+                    "test_name": result.test_case.name,
                     "platform": result.platform.name,
                     "success": result.success,
                     "started_at": started_at,
                     "completed_at": datetime.now().isoformat(),
                     "error": result.error,
                     "test_case": {
-                        "name": result.test_case.thread.name,
+                        "name": result.test_case.name,
                         "trials": result.test_case.trials,
                         "metrics": [{"name": m.name, "k": m.k} for m in result.test_case.metrics],
-                        "description": result.test_case.thread.description,
+                        "description": result.test_case.description,
                         "file_path": str(result.test_case.file_path),
                         "evaluations": [
                             {

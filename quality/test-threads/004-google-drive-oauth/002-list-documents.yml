@@ -1,3 +1,6 @@
+name: list-documents
+description: 'List Documents'
+
 thread:
   - name: list-documents
     description: 'List Documents'

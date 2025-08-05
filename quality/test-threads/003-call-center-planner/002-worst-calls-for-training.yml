@@ -1,3 +1,6 @@
+name: worst-calls-for-training
+description: 'Worst Calls for Training'
+
 thread:
   - name: worst-calls-for-training
     description: 'Worst Calls for Training'

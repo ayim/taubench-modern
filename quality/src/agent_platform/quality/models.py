@@ -186,10 +186,24 @@ class Metric:
 
 
 @dataclass
+class Workitem:
+    messages: list[Message]
+    payload: dict
+
+
+@dataclass
+class WorkitemResult:
+    status: str
+
+
+@dataclass
 class TestCase:
     """A complete test case with thread and evaluations."""
 
-    thread: Thread
+    name: str
+    description: str
+    thread: Thread | None
+    workitem: Workitem | None
     target_platforms: list[Platform]
     evaluations: list[Evaluation]
     file_path: Path
@@ -199,7 +213,7 @@ class TestCase:
     metrics: list[Metric] = field(default_factory=list)
 
     @classmethod
-    def from_file(cls, file_path: Path) -> "TestCase":
+    def from_file(cls, file_path: Path) -> "TestCase":  # noqa: C901
         """Load a test case from a YAML file."""
         import yaml
 
@@ -222,16 +236,17 @@ class TestCase:
 
             raise ValueError(f"Unknown message content type {content}")
 
-        # Parse thread
-        thread_data = data["thread"][0]  # Assuming single thread per file
-        thread = Thread(
-            name=thread_data["name"],
-            description=thread_data.get("description", ""),  # Use .get() with default
-            messages=[
-                Message(role=msg["role"], content=[parse_content(msg["content"])])
-                for msg in thread_data["messages"]
-            ],
-        )
+        thread = None
+        if len(data.get("thread", [])) > 0:
+            thread_data = data["thread"][0]  # Assuming single thread per file
+            thread = Thread(
+                name=thread_data["name"],
+                description=thread_data.get("description", ""),  # Use .get() with default
+                messages=[
+                    Message(role=msg["role"], content=[parse_content(msg["content"])])
+                    for msg in thread_data["messages"]
+                ],
+            )
 
         # Parse target platforms, if none are present we'll default to just
         # openai
@@ -305,7 +320,26 @@ class TestCase:
             for action_package_secret in data.get("action-secrets", [])
         ]
 
+        workitem = None
+        if len(data.get("workitem", [])) > 0:
+            workitem_data = data["workitem"][0]  # Assuming single workitem per file
+            workitem = Workitem(
+                messages=[
+                    Message(role=msg["role"], content=[parse_content(msg["content"])])
+                    for msg in workitem_data["messages"]
+                ],
+                payload=workitem_data.get("payload", {}),
+            )
+
+        if thread is not None and workitem is not None:
+            raise ValueError("Invalid test file: either thread or workitem should be specified.")
+
+        if thread is None and workitem is None:
+            raise ValueError("Invalid test file: missing either thread or workitem.")
+
         return cls(
+            name=data.get("name"),
+            description=data.get("description"),
             trials=trials,
             metrics=metrics,
             thread=thread,
@@ -314,6 +348,7 @@ class TestCase:
             file_path=file_path,
             action_secrets=action_secrets,
             sf_auth_override=sf_auth_override,
+            workitem=workitem,
         )
 
 

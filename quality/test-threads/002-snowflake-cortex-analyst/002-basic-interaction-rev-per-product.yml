@@ -1,3 +1,6 @@
+name: basic-interaction-rev-per-product
+description: 'Basic Interaction: Revenue per product'
+
 thread:
   - name: basic-interaction-rev-per-product
     description: 'Basic Interaction: Revenue per product'

@@ -1,3 +1,6 @@
+name: external-supplier-ex1
+description: 'External Supplier (ex1)'
+
 thread:
   - name: external-supplier-ex1
     description: 'External Supplier (ex1)'

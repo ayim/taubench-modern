@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING
 import httpx
 import structlog
 
+from agent_platform.quality.models import WorkitemResult
+
 if TYPE_CHECKING:
     from agent_platform.quality.models import Evaluation, Message, TestResult
 
@@ -33,6 +35,7 @@ class EvaluatorEngine:
         self,
         evaluation: "Evaluation",
         agent_messages: list["Message"],
+        workitem: WorkitemResult | None,
     ) -> "TestResult":
         """Run a single evaluation against agent messages."""
         from agent_platform.quality.models import TestResult
@@ -46,6 +49,10 @@ class EvaluatorEngine:
                 result = await self._evaluate_with_llm(evaluation, agent_messages)
             elif evaluation.kind == "tool-call-evaluation":
                 result = await self._evaluate_tool_calls(evaluation, agent_messages)
+            elif evaluation.kind == "workitem-result-evaluation":
+                if workitem is None:
+                    raise ValueError("Workitem is missing, cannot be evaluated")
+                result = await self._evaluate_workitem_result(evaluation, workitem)
             else:
                 return TestResult(
                     evaluation=evaluation,
@@ -330,4 +337,18 @@ Only respond with the JSON object, no other text.
                 "Invalid tool call evaluation format - expected 'calls' "
                 "key with list of call specifications"
             ),
+        )
+
+    async def _evaluate_workitem_result(
+        self, evaluation: "Evaluation", workitem: WorkitemResult
+    ) -> "TestResult":
+        from agent_platform.quality.models import TestResult
+
+        expected = evaluation.expected
+
+        return TestResult(
+            evaluation=evaluation,
+            passed=expected == workitem.status,
+            actual_value=workitem.status,
+            error="Invalid workitem result",
         )

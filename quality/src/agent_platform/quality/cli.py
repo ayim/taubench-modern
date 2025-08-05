@@ -276,7 +276,7 @@ def list_tests(ctx: Context, agent_name: str | None):
         click.echo(f"Found {len(test_cases)} test cases:")
 
     for test_case in test_cases:
-        click.echo(f"  • {test_case.thread.name} ({test_case.file_path})")
+        click.echo(f"  • {test_case.name} ({test_case.file_path})")
         if test_case.evaluations:
             click.echo(f"    Evaluations: {len(test_case.evaluations)}")
             for evaluation in test_case.evaluations:

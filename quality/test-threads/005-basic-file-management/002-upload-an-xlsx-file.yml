@@ -1,3 +1,6 @@
+name: upload-and-verify
+description: 'Upload and verify'
+
 thread:
   - name: upload-and-verify
     description: 'Upload and verify'

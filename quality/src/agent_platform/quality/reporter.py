@@ -77,7 +77,7 @@ class QualityReporter:
 
             for result in platform_results:
                 # Get test case name from the result
-                test_case_name = result.test_case.thread.name
+                test_case_name = result.test_case.name
 
                 # Status
                 if result.error:
@@ -136,15 +136,15 @@ class QualityReporter:
         """Report detailed results for a single test."""
         # Test header with platform information
         status_color = "green" if result.success else "red"
-        test_title = f"[{status_color}]Test: {result.test_case.thread.name} "
+        test_title = f"[{status_color}]Test: {result.test_case.name} "
         test_title += f"(Platform: {result.platform.name})[/{status_color}]"
 
         # Create panel content
         content = []
 
         # Description
-        if result.test_case.thread.description:
-            content.append(f"[dim]Description: {result.test_case.thread.description}[/dim]")
+        if result.test_case.description:
+            content.append(f"[dim]Description: {result.test_case.description}[/dim]")
 
         # Platform information
         content.append(f"[bold]Platform:[/bold] {result.platform.name}")
